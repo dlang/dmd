@@ -19,7 +19,6 @@ module gc.gcx;
 
 //debug = PRINTF;               // turn on printf's
 //debug = COLLECT_PRINTF;       // turn on printf's
-//debug = THREADINVARIANT;      // check thread integrity
 //debug = LOGGING;              // log allocations / frees
 //debug = MEMSTOMP;             // stomp on memory
 //debug = SENTINEL;             // add underrun/overrrun protection
@@ -32,7 +31,6 @@ module gc.gcx;
 version = STACKGROWSDOWN;       // growing the stack means subtracting from the stack pointer
                                 // (use for Intel X86 CPUs)
                                 // else growing the stack means adding to the stack pointer
-version = MULTI_THREADED;       // produce multithreaded version
 
 /***************************************************/
 
@@ -99,33 +97,23 @@ private
     }
 private
 {
-    extern (C) void* rt_stackBottom();
-    extern (C) void* rt_stackTop();
-
     extern (C) void rt_finalize_gc(void* p);
 
-    version (MULTI_THREADED)
+    extern (C) void thread_suspendAll();
+    extern (C) void thread_resumeAll();
+
+    // core.thread
+    enum IsMarked : int
     {
-        extern (C) bool thread_needLock();
-        extern (C) void thread_suspendAll();
-        extern (C) void thread_resumeAll();
-
-        // core.thread
-        enum IsMarked : int
-        {
-                 no,
-                yes,
-            unknown, // memory is not managed by GC
-        }
-        alias IsMarked delegate(void*) IsMarkedDg;
-        extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
-
-        alias void delegate(void*, void*) scanFn;
-        extern (C) void thread_scanAll(scope scanFn fn, void* curStackTop = null);
-
-        alias void delegate(void*) StackShellFn;
-        extern (C) void thread_callWithStackShell(scope StackShellFn fn);
+        no,
+        yes,
+        unknown, // memory is not managed by GC
     }
+    alias IsMarked delegate(void*) IsMarkedDg;
+    extern (C) void thread_processGCMarks(scope IsMarkedDg isMarked);
+
+    alias void delegate(void*, void*) scanFn;
+    extern (C) void thread_scanAll(scope scanFn fn);
 
     extern (C) void onOutOfMemoryError();
     extern (C) void onInvalidMemoryOperationError();
@@ -273,7 +261,6 @@ class GC
         if (!gcx)
             onOutOfMemoryError();
         gcx.initialize();
-        setStackBottom(rt_stackBottom());
     }
 
 
@@ -294,32 +281,15 @@ class GC
     }
 
 
-    invariant()
-    {
-        if (gcx)
-        {
-            gcx.thread_Invariant();
-        }
-    }
-
-
     /**
      *
      */
     void enable()
     {
-        if (!thread_needLock())
-        {
-            assert(gcx.disabled > 0);
-            gcx.disabled--;
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            assert(gcx.disabled > 0);
-            gcx.disabled--;
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        assert(gcx.disabled > 0);
+        gcx.disabled--;
     }
 
 
@@ -328,16 +298,9 @@ class GC
      */
     void disable()
     {
-        if (!thread_needLock())
-        {
-            gcx.disabled++;
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.disabled++;
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.disabled++;
     }
 
 
@@ -365,16 +328,9 @@ class GC
             return oldb;
         }
 
-        if (!thread_needLock())
-        {
-            return go();
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return go();
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return go();
     }
 
 
@@ -403,16 +359,9 @@ class GC
             return oldb;
         }
 
-        if (!thread_needLock())
-        {
-            return go();
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return go();
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return go();
     }
 
 
@@ -441,16 +390,9 @@ class GC
             return oldb;
         }
 
-        if (!thread_needLock())
-        {
-            return go();
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return go();
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return go();
     }
 
 
@@ -521,7 +463,7 @@ class GC
                 switch (state)
                 {
                 case 0:
-                    auto freedpages = gcx.fullcollectshell();
+                    auto freedpages = gcx.fullcollect();
                     collected = true;
                     if (freedpages < gcx.npools * ((POOLSIZE / PAGESIZE) / 8))
                     {   /* Didn't free much, so try allocating more anyway.
@@ -803,16 +745,9 @@ class GC
      */
     size_t extend(void* p, size_t minsize, size_t maxsize)
     {
-        if (!thread_needLock())
-        {
-            return extendNoSync(p, minsize, maxsize);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return extendNoSync(p, minsize, maxsize);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return extendNoSync(p, minsize, maxsize);
     }
 
 
@@ -898,16 +833,9 @@ class GC
             return 0;
         }
 
-        if (!thread_needLock())
-        {
-            return reserveNoSync(size);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return reserveNoSync(size);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return reserveNoSync(size);
     }
 
 
@@ -936,16 +864,9 @@ class GC
             return;
         }
 
-        if (!thread_needLock())
-        {
-            return freeNoSync(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return freeNoSync(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return freeNoSync(p);
     }
 
 
@@ -1013,16 +934,9 @@ class GC
             return null;
         }
 
-        if (!thread_needLock())
-        {
-            return addrOfNoSync(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return addrOfNoSync(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return addrOfNoSync(p);
     }
 
 
@@ -1051,16 +965,9 @@ class GC
             return 0;
         }
 
-        if (!thread_needLock())
-        {
-            return sizeOfNoSync(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return sizeOfNoSync(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return sizeOfNoSync(p);
     }
 
 
@@ -1111,16 +1018,9 @@ class GC
             return  i;
         }
 
-        if (!thread_needLock())
-        {
-            return queryNoSync(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return queryNoSync(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return queryNoSync(p);
     }
 
 
@@ -1148,16 +1048,9 @@ class GC
             return;
         }
 
-        if (!thread_needLock())
-        {
-            checkNoSync(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            checkNoSync(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        checkNoSync(p);
     }
 
 
@@ -1202,32 +1095,6 @@ class GC
     }
 
 
-    //
-    //
-    //
-    private void setStackBottom(void *p)
-    {
-        version (STACKGROWSDOWN)
-        {
-            //p = (void *)((uint *)p + 4);
-            if (p > gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = p;
-            }
-        }
-        else
-        {
-            //p = (void *)((uint *)p - 4);
-            if (p < gcx.stackBottom)
-            {
-                //debug(PRINTF) printf("setStackBottom(%p)\n", p);
-                gcx.stackBottom = cast(char*)p;
-            }
-        }
-    }
-
-
     /**
      * add p to list of roots
      */
@@ -1238,16 +1105,9 @@ class GC
             return;
         }
 
-        if (!thread_needLock())
-        {
-            gcx.addRoot(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.addRoot(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.addRoot(p);
     }
 
 
@@ -1261,16 +1121,9 @@ class GC
             return;
         }
 
-        if (!thread_needLock())
-        {
-            gcx.removeRoot(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.removeRoot(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.removeRoot(p);
     }
 
 
@@ -1279,16 +1132,9 @@ class GC
      */
     @property int delegate(int delegate(ref void*)) rootIter()
     {
-        if (!thread_needLock())
-        {
-            return &gcx.rootIter;
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return &gcx.rootIter;
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return &gcx.rootIter;
     }
 
 
@@ -1303,16 +1149,11 @@ class GC
         }
 
         //debug(PRINTF) printf("+GC.addRange(p = %p, sz = 0x%zx), p + sz = %p\n", p, sz, p + sz);
-        if (!thread_needLock())
-        {
-            gcx.addRange(p, p + sz);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.addRange(p, p + sz);
-        }
+
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.addRange(p, p + sz);
+
         //debug(PRINTF) printf("-GC.addRange()\n");
     }
 
@@ -1327,16 +1168,9 @@ class GC
             return;
         }
 
-        if (!thread_needLock())
-        {
-            gcx.removeRange(p);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.removeRange(p);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.removeRange(p);
     }
 
 
@@ -1345,16 +1179,9 @@ class GC
      */
     @property int delegate(int delegate(ref Range)) rangeIter()
     {
-        if (!thread_needLock())
-        {
-            return &gcx.rangeIter;
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            return &gcx.rangeIter;
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        return &gcx.rangeIter;
     }
 
 
@@ -1372,7 +1199,7 @@ class GC
         {
             gcLock.lock();
             scope(exit) gcLock.unlock();
-            result = gcx.fullcollectshell();
+            result = gcx.fullcollect();
         }
 
         version (none)
@@ -1400,7 +1227,7 @@ class GC
             gcLock.lock();
             scope(exit) gcLock.unlock();
             gcx.noStack++;
-            gcx.fullcollectshell();
+            gcx.fullcollect();
             gcx.noStack--;
         }
     }
@@ -1411,16 +1238,9 @@ class GC
      */
     void minimize()
     {
-        if (!thread_needLock())
-        {
-            gcx.minimize();
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            gcx.minimize();
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        gcx.minimize();
     }
 
 
@@ -1430,16 +1250,9 @@ class GC
      */
     void getStats(out GCStats stats)
     {
-        if (!thread_needLock())
-        {
-            getStatsNoSync(stats);
-        }
-        else
-        {
-            gcLock.lock();
-            scope(exit) gcLock.unlock();
-            getStatsNoSync(stats);
-        }
+        gcLock.lock();
+        scope(exit) gcLock.unlock();
+        getStatsNoSync(stats);
     }
 
 
@@ -1545,21 +1358,6 @@ immutable size_t notbinsize[B_MAX] = [ ~(16-1),~(32-1),~(64-1),~(128-1),~(256-1)
 
 struct Gcx
 {
-    debug (THREADINVARIANT)
-    {
-        pthread_t self;
-        void thread_Invariant() const
-        {
-            if (self != pthread_self())
-                printf("thread_Invariant(): gcx = %p, self = %x, pthread_self() = %x\n", &this, self, pthread_self());
-            assert(self == pthread_self());
-        }
-    }
-    else
-    {
-        void thread_Invariant() const { }
-    }
-
     void *cached_size_key;
     size_t cached_size_val;
 
@@ -1577,7 +1375,6 @@ struct Gcx
     uint noStack;       // !=0 means don't scan stack
     uint log;           // turn on logging
     uint anychanges;
-    void *stackBottom;
     uint inited;
     uint running;
     int disabled;       // turn off collections if >0
@@ -1595,10 +1392,7 @@ struct Gcx
     {   int dummy;
 
         (cast(byte*)&this)[0 .. Gcx.sizeof] = 0;
-        stackBottom = cast(char*)&dummy;
         log_init();
-        debug (THREADINVARIANT)
-            self = pthread_self();
         //printf("gcx = %p, self = %x\n", &this, self);
         inited = 1;
     }
@@ -1648,9 +1442,6 @@ struct Gcx
         if (inited)
         {
             //printf("Gcx.invariant(): this = %p\n", &this);
-
-            // Assure we're called on the right thread
-            debug (THREADINVARIANT) assert(self == pthread_self());
 
             for (size_t i = 0; i < npools; i++)
             {   auto pool = pooltable[i];
@@ -2305,7 +2096,7 @@ struct Gcx
             case 0:
                 // Try collecting
                 collected = true;
-                freedpages = fullcollectshell();
+                freedpages = fullcollect();
                 if (freedpages >= npools * ((POOLSIZE / PAGESIZE) / 4))
                 {   state = 1;
                     continue;
@@ -2615,25 +2406,7 @@ struct Gcx
     /**
      * Return number of full pages free'd.
      */
-    size_t fullcollectshell()
-    {
-        size_t result;
-
-        void op(void* sp)
-        {
-            result = fullcollect(sp);
-        }
-
-        thread_callWithStackShell(&op);
-
-        return result;
-    }
-
-
-    /**
-     *
-     */
-    size_t fullcollect(void *stackTop)
+    size_t fullcollect()
     {
         size_t n;
         Pool*  pool;
@@ -2699,26 +2472,11 @@ struct Gcx
             start = stop;
         }
 
-        version (MULTI_THREADED)
+        if (!noStack)
         {
-            if (!noStack)
-            {
-                debug(COLLECT_PRINTF) printf("scanning multithreaded stack.\n");
-                // Scan stacks and registers for each paused thread
-                thread_scanAll(&mark, stackTop);
-            }
-        }
-        else
-        {
-            if (!noStack)
-            {
-                // Scan stack for main thread
-                debug(PRINTF) printf(" scan stack bot = %p, top = %p\n", stackTop, stackBottom);
-                version (STACKGROWSDOWN)
-                    mark(stackTop, stackBottom);
-                else
-                    mark(stackBottom, stackTop);
-            }
+            debug(COLLECT_PRINTF) printf("\tscan stacks.\n");
+            // Scan stacks and registers for each paused thread
+            thread_scanAll(&mark);
         }
 
         // Scan roots[]
