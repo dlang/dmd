@@ -248,7 +248,7 @@ struct VarDeclaration : Declaration
 #else
     int nestedref;              // referenced by a lexically nested function
 #endif
-    unsigned short alignment;
+    structalign_t alignment;
     int ctorinit;               // it has been initialized in a ctor
     int onstack;                // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
