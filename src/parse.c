@@ -77,25 +77,6 @@ Dsymbols *Parser::parseModule()
         unsigned char *comment = token.blockComment;
 
         nextToken();
-#if DMDV2
-        if (token.value == TOKlparen)
-        {
-            nextToken();
-            if (token.value != TOKidentifier)
-            {   error("module (system) identifier expected");
-                goto Lerr;
-            }
-            Identifier *id = token.ident;
-
-            if (id == Id::system)
-                safe = TRUE;
-            else
-                error("(safe) expected, not %s", id->toChars());
-            nextToken();
-            check(TOKrparen);
-        }
-#endif
-
         if (token.value != TOKidentifier)
         {   error("Identifier expected following module");
             goto Lerr;
@@ -393,7 +374,11 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 {
                     nextToken();
                     if (token.value == TOKint32v && token.uns64value > 0)
+                    {
+                        if (token.uns64value & (token.uns64value - 1))
+                            error("align(%s) must be a power of 2", token.toChars());
                         n = (unsigned)token.uns64value;
+                    }
                     else
                     {   error("positive integer expected, not %s", token.toChars());
                         n = 1;
@@ -416,7 +401,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 nextToken();
                 check(TOKlparen);
                 if (token.value != TOKidentifier)
-                {   error("pragma(identifier expected");
+                {   error("pragma(identifier) expected");
                     goto Lerror;
                 }
                 ident = token.ident;
