@@ -5774,6 +5774,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKfunction:
+            case TOKparameters:
             {
                 if (targ->ty != Tfunction)
                     goto Lno;
@@ -5789,7 +5790,9 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
-                    args->push(new Parameter(arg->storageClass, arg->type, arg->ident, arg->defaultArg));
+                    args->push(new Parameter(arg->storageClass, arg->type,
+                        (tok2 == TOKparameters) ? arg->ident : NULL,
+                        (tok2 == TOKparameters) ? arg->defaultArg : NULL));
                 }
                 tded = new TypeTuple(args);
                 break;

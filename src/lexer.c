@@ -2912,6 +2912,7 @@ static Keyword keywords[] =
 
     // Added after 1.0
     {   "__argTypes",   TOKargTypes     },
+    {   "__parameters", TOKparameters   },
     {   "ref",          TOKref          },
     {   "macro",        TOKmacro        },
 #if DMDV2

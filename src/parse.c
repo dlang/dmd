@@ -5423,6 +5423,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKenum ||
                          token.value == TOKinterface ||
                          token.value == TOKargTypes ||
+                         token.value == TOKparameters ||
 #if DMDV2
                          token.value == TOKconst && peek(&token)->value == TOKrparen ||
                          token.value == TOKinvariant && peek(&token)->value == TOKrparen ||
