@@ -187,6 +187,20 @@ void test3187()
 }
 
 /***************************************/
+// 4090
+
+void test4090()
+{
+    double[10] arr;
+    double tot = 0;
+    foreach (const ref x; arr)
+    {
+        static assert(is(typeof(x) == const double));
+        tot += x;
+    }
+}
+
+/***************************************/
 // 5605
 
 struct MyRange
@@ -416,6 +430,7 @@ int main()
     test2442();
     test2443();
     test3187();
+    test4090();
     test5605();
     test7004();
     test7406();
