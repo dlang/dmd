@@ -206,6 +206,23 @@ Expression *TraitsExp::semantic(Scope *sc)
         StringExp *se = new StringExp(loc, s->ident->toChars());
         return se->semantic(sc);
     }
+    else if (ident == Id::parameterNames)
+    {
+        FuncDeclaration *f;
+        Dsymbol *s = getDsymbol((*args)[0]);
+        if ((f = s->isFuncDeclaration()) == NULL)
+        {
+            error("argument %s is not a function", s->toPrettyChars());
+            goto Lfalse;
+        }
+        Expressions *exps = new Expressions();
+        TypeFunction *tf = (TypeFunction *) f->type;
+        if(tf->parameters)
+            for (size_t i = 0; i < tf->parameters->dim; i++)
+                exps->push(new StringExp(loc, ((Parameter*) tf->parameters->data[i])->ident->toChars()));
+        Expression *e = new TupleExp(loc, exps);
+        return e->semantic(sc);
+    }
     else if (ident == Id::parent)
     {
         if (dim != 1)
