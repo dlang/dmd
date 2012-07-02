@@ -1612,6 +1612,31 @@ void test7965()
     S2 s2 = S2(10);
 }
 
+struct S7965
+{
+    string str;
+    uint unused1, unused2 = 0;
+}
+
+auto f7965(alias fun)()
+{
+    struct Result
+    {
+        S7965 s;
+        this(S7965 _s) { s = _s; }  // required for the problem
+        void g() { assert(fun(s.str) == "xa"); }
+    }
+
+    return Result(S7965("a"));
+}
+
+void test7965a()
+{
+    string s = "x";
+    f7965!(a => s ~= a)().g();
+    assert(s == "xa");
+}
+
 /*******************************************/
 // 8188
 
@@ -1741,6 +1766,7 @@ int main()
     test4841();
     test7199();
     test7965();
+    test7965a();
     test8188();
 
     test5082();
