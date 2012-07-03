@@ -488,7 +488,7 @@ type *TypeClass::toCtype()
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= STRclass;
     s->Sstruct->Salignsize = sym->alignsize;
-    s->Sstruct->Sstructalign = sym->structalign;
+//    s->Sstruct->Sstructalign = sym->structalign;
     s->Sstruct->Sstructsize = sym->structsize;
 
     t = type_alloc(TYstruct);

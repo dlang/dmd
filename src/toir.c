@@ -753,7 +753,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
             {
                 memsize = v->type->size();
                 memalignsize = v->type->alignsize();
-                xalign = v->type->memalign(global.structalign);
+                xalign = v->alignment;
             }
             AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
             v->offset = offset;

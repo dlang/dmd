@@ -36,7 +36,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    structalign = 0;            // struct member alignment in effect
+//    structalign = 0;            // struct member alignment in effect
     hasUnions = 0;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
@@ -392,7 +392,8 @@ void StructDeclaration::semantic(Scope *sc)
 #else
     handle = type->pointerTo();
 #endif
-    structalign = sc->structalign;
+//    structalign = sc->structalign;
+//printf("structalign = %d\n", structalign);
     protection = sc->protection;
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
@@ -510,7 +511,7 @@ void StructDeclaration::semantic(Scope *sc)
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
-        structalign = 0;
+//        structalign = 0;
 
         scope = scx ? scx : new Scope(*sc);
         scope->setNoFree();

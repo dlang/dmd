@@ -49,7 +49,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
-    structalign_t structalign;       // struct member alignment in effect
+    //structalign_t structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
     enum Sizeok sizeok;         // set when structsize contains valid data

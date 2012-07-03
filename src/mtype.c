@@ -2135,11 +2135,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
     return Type::dotExp(sc, e, ident);
 }
 
-structalign_t Type::memalign(structalign_t salign)
-{
-    return salign;
-}
-
 void Type::error(Loc loc, const char *format, ...)
 {
     va_list ap;
@@ -3950,11 +3945,6 @@ int TypeSArray::isString()
 {
     TY nty = next->toBasetype()->ty;
     return nty == Tchar || nty == Twchar || nty == Tdchar;
-}
-
-structalign_t TypeSArray::memalign(structalign_t salign)
-{
-    return next->memalign(salign);
 }
 
 MATCH TypeSArray::constConv(Type *to)
@@ -7687,18 +7677,9 @@ d_uns64 TypeStruct::size(Loc loc)
 }
 
 unsigned TypeStruct::alignsize()
-{   unsigned sz;
-
+{
     sym->size(0);               // give error for forward references
-    sz = sym->alignsize;
-    if (sym->structalign == STRUCTALIGN_DEFAULT)
-    {
-        if (sz > 8)
-            sz = 8;
-    }
-    else if (sz > sym->structalign)
-        sz = sym->structalign;
-    return sz;
+    return sym->alignsize;
 }
 
 Dsymbol *TypeStruct::toDsymbol(Scope *sc)
@@ -7948,12 +7929,6 @@ L1:
 
     de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
-}
-
-structalign_t TypeStruct::memalign(structalign_t salign)
-{
-    sym->size(0);               // give error for forward references
-    return sym->structalign;
 }
 
 Expression *TypeStruct::defaultInit(Loc loc)

@@ -1633,7 +1633,7 @@ elem *NewExp::toElem(IRState *irs)
                 s->Sstruct = struct_calloc();
                 s->Sstruct->Sflags |= 0;
                 s->Sstruct->Salignsize = tclass->sym->alignsize;
-                s->Sstruct->Sstructalign = tclass->sym->structalign;
+//                s->Sstruct->Sstructalign = tclass->sym->structalign;
                 s->Sstruct->Sstructsize = tclass->sym->structsize;
 
                 ::type *tc = type_alloc(TYstruct);
