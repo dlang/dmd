@@ -36,7 +36,6 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-//    structalign = 0;            // struct member alignment in effect
     hasUnions = 0;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
@@ -332,6 +331,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
 
     xeq = NULL;
+    alignment = 0;
 #endif
     arg1type = NULL;
     arg2type = NULL;
@@ -392,9 +392,8 @@ void StructDeclaration::semantic(Scope *sc)
 #else
     handle = type->pointerTo();
 #endif
-//    structalign = sc->structalign;
-//printf("structalign = %d\n", structalign);
     protection = sc->protection;
+    alignment = sc->structalign;
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
         isdeprecated = true;
@@ -456,6 +455,7 @@ void StructDeclaration::semantic(Scope *sc)
         sc2->inunion = 1;
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
 
     size_t members_dim = members->dim;
 

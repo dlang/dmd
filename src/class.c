@@ -614,7 +614,6 @@ void ClassDeclaration::semantic(Scope *sc)
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     sc->structalign = STRUCTALIGN_DEFAULT;
-//    structalign = sc->structalign;
     if (baseClass)
     {   sc->offset = baseClass->structsize;
         alignsize = baseClass->alignsize;

@@ -49,7 +49,6 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
-    //structalign_t structalign;       // struct member alignment in effect
     int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
     enum Sizeok sizeok;         // set when structsize contains valid data
@@ -141,6 +140,8 @@ struct StructDeclaration : AggregateDeclaration
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
     static FuncDeclaration *xerreq;      // object.xopEquals
+
+    structalign_t alignment;    // alignment applied outside of the struct
 #endif
 
     // For 64 bit Efl function call/return ABI

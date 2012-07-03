@@ -2067,6 +2067,15 @@ Lreturn:
     return e;
 }
 
+/************************************
+ * Return alignment to use for this type.
+ */
+
+structalign_t Type::alignment()
+{
+    return STRUCTALIGN_DEFAULT;
+}
+
 /***************************************
  * Figures out what to do with an undefined member reference
  * for classes and structs.
@@ -3939,6 +3948,11 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     e = e->semantic(sc);
     return e;
+}
+
+structalign_t TypeSArray::alignment()
+{
+    return next->alignment();
 }
 
 int TypeSArray::isString()
@@ -7444,6 +7458,11 @@ Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
     return sym->basetype->dotExp(sc, e, ident);
 }
 
+structalign_t TypeTypedef::alignment()
+{
+    return sym->basetype->alignment();
+}
+
 Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident)
 {
 #if LOGDOTEXP
@@ -7929,6 +7948,13 @@ L1:
 
     de = new DotVarExp(e->loc, e, d);
     return de->semantic(sc);
+}
+
+structalign_t TypeStruct::alignment()
+{
+    if (sym->alignment == 0)
+        sym->size(0);
+    return sym->alignment;
 }
 
 Expression *TypeStruct::defaultInit(Loc loc)
