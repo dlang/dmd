@@ -49,6 +49,8 @@ version( AsmX86 )
     {
         return addr % T.sizeof == 0;
     }
+
+    import core.cpuid; // For SSE detection for fence instructions.
 }
 
 
@@ -136,6 +138,15 @@ version( CoreDdoc )
         acq,    /// hoist-load + hoist-store barrier
         rel,    /// sink-load + sink-store barrier
         seq,    /// fully sequenced (acq + rel)
+    }
+
+    /**
+     * Inserts a full load/store memory fence (on platforms that need it). This ensures
+     * that all loads and stores before a call to this function are executed before any
+     * loads and stores after the call.
+     */
+    void atomicFence() nothrow
+    {
     }
 }
 else version( AsmX86_32 )
@@ -573,6 +584,29 @@ else version( AsmX86_32 )
             static assert( false, "Invalid template type specified." );
         }
     }
+
+
+    void atomicFence() nothrow
+    {
+        if (sse2)
+        {
+            asm
+            {
+                mfence;
+            }
+        }
+        else
+        {
+            // The cpuid instruction serializes, but is not ideal
+            // for this (since it's relatively slow), hence why
+            // we prefer the SSE2 mfence instruction.
+            asm
+            {
+                mov EAX, 0;
+                cpuid;
+            }
+        }
+    }
 }
 else version( AsmX86_64 )
 {
@@ -1007,6 +1041,29 @@ else version( AsmX86_64 )
         else
         {
             static assert( false, "Invalid template type specified." );
+        }
+    }
+
+
+    void atomicFence() nothrow
+    {
+        if (sse2)
+        {
+            asm
+            {
+                mfence;
+            }
+        }
+        else
+        {
+            // The cpuid instruction serializes, but is not ideal
+            // for this (since it's relatively slow), hence why
+            // we prefer the SSE2 mfence instruction.
+            asm
+            {
+                mov EAX, 0;
+                cpuid;
+            }
         }
     }
 }
