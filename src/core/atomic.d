@@ -145,9 +145,7 @@ version( CoreDdoc )
      * that all loads and stores before a call to this function are executed before any
      * loads and stores after the call.
      */
-    void atomicFence() nothrow
-    {
-    }
+    void atomicFence() nothrow;
 }
 else version( AsmX86_32 )
 {
