@@ -49,8 +49,6 @@ version( AsmX86 )
     {
         return addr % T.sizeof == 0;
     }
-
-    import core.cpuid; // For SSE detection for fence instructions.
 }
 
 
@@ -586,23 +584,32 @@ else version( AsmX86_32 )
 
     void atomicFence() nothrow
     {
-        if (sse2)
+        import core.cpuid;
+
+        asm
         {
-            asm
-            {
-                mfence;
-            }
-        }
-        else
-        {
-            // The cpuid instruction serializes, but is not ideal
-            // for this (since it's relatively slow), hence why
-            // we prefer the SSE2 mfence instruction.
-            asm
-            {
-                mov EAX, 0;
-                cpuid;
-            }
+            naked;
+
+            call sse2;
+            test AL, AL;
+            jne Lcpuid;
+
+            // Fast path: We have SSE2, so just use mfence.
+            mfence;
+            jmp Lend;
+
+        Lcpuid:
+
+            // Slow path: We use cpuid to serialize. This is
+            // significantly slower than mfence, but is the
+            // only serialization facility we have available
+            // on older non-SSE2 chips.
+            mov EAX, 0;
+            cpuid;
+
+        Lend:
+
+            ;
         }
     }
 }
@@ -1045,23 +1052,11 @@ else version( AsmX86_64 )
 
     void atomicFence() nothrow
     {
-        if (sse2)
+        // SSE2 is always present in 64-bit x86 chips.
+        asm
         {
-            asm
-            {
-                mfence;
-            }
-        }
-        else
-        {
-            // The cpuid instruction serializes, but is not ideal
-            // for this (since it's relatively slow), hence why
-            // we prefer the SSE2 mfence instruction.
-            asm
-            {
-                mov EAX, 0;
-                cpuid;
-            }
+            naked;
+            mfence;
         }
     }
 }
