@@ -7460,7 +7460,16 @@ Expression *TypeTypedef::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
 structalign_t TypeTypedef::alignment()
 {
-    return sym->basetype->alignment();
+    if (sym->inuse)
+    {
+        sym->error("circular definition");
+        sym->basetype = Type::terror;
+        return STRUCTALIGN_DEFAULT;
+    }
+    sym->inuse = 1;
+    structalign_t a = sym->basetype->alignment();
+    sym->inuse = 0;
+    return a;
 }
 
 Expression *TypeTypedef::getProperty(Loc loc, Identifier *ident)
