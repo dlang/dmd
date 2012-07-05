@@ -560,10 +560,6 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
-#if AUTONEST
-    targ_size_t offstack[20];
-    int offi = 0;                       // index into offstack[]
-#endif
     vec_t tbl = NULL;
 
 
@@ -645,25 +641,6 @@ void stackoffsets(int flags)
             /* Can't do this for CPP because the inline function expander
                 adds new symbols on the end.
              */
-#if AUTONEST
-            /*printf("symbol '%s', push = %d, pop = %d\n",
-                s->Sident,s->Spush,s->Spop);*/
-
-            /* Can't do this for optimizer if any code motion occurred.
-                Code motion changes the live range, so variables that
-                occupy the same space could have live ranges that overlap!
-             */
-            if (config.flags4 & CFG4optimized)
-                s->Spop = 0;
-            else
-                while (s->Spush != 0)
-                {   s->Spush--;
-                    assert(offi < arraysize(offstack));
-                    /*printf("Pushing offset x%x\n",Aoffset);*/
-                    offstack[offi++] = Aoffset;
-                }
-#endif
-
             switch (s->Sclass)
             {
                 case SCfastpar:
@@ -746,15 +723,6 @@ void stackoffsets(int flags)
 #endif
                     assert(0);
             }
-
-#if AUTONEST
-            while (s->Spop != 0)
-            {   s->Spop--;
-                assert(offi > 0);
-                Aoffset = offstack[--offi];
-                /*printf("Popping offset x%x\n",Aoffset);*/
-            }
-#endif
         }
     }
     Aoffset = Amax;

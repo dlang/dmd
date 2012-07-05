@@ -1019,12 +1019,6 @@ SYMIDX symbol_add(symbol *s)
         cstate.CSpsymtab->tab = symtab_realloc(cstate.CSpsymtab->tab, cstate.CSpsymtab->symmax);
     }
     cstate.CSpsymtab->tab[sitop] = s;
-#if AUTONEST
-    if (pushcount)
-    {   s->Spush = pushcount;
-        pushcount = 0;
-    }
-#endif
 #ifdef DEBUG
     if (debugy)
         dbg_printf("symbol_add(%p '%s') = %d\n",s,s->Sident,cstate.CSpsymtab->top);
