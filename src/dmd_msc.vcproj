@@ -1333,8 +1333,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dmgcmem.c"
-					>
+					RelativePath=".\root\dmgcmem.c"					>
 					<FileConfiguration
 						Name="Debug|Win32"
 						ExcludedFromBuild="true"
@@ -1385,8 +1384,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\man.c"
-					>
+					RelativePath=".\root\man.c"					>
 				</File>
 				<File
 					RelativePath=".\root\port.c"
