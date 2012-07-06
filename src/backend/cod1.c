@@ -2400,6 +2400,17 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
         return 1;
     }
 
+    if (I64 &&
+        tybasic(ty) == TYcdouble &&
+        numfloatregs - xmmcnt >= 2)
+    {
+        // Allocate to register pair
+        *preg1 = floatregs[xmmcnt];
+        *preg2 = floatregs[xmmcnt + 1];
+        xmmcnt += 2;
+        return 1;
+    }
+
     for (int j = 0; j < 2; j++)
     {
         if (regcnt < numintegerregs)
@@ -2630,8 +2641,33 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 if (preg2 != mreg)
                     retregs |= mask[preg2];
                 code *c1 = getregs(retregs);
-                c1 = genmovreg(c1, preg, lreg);
-                c1 = genmovreg(c1, preg2, mreg);
+
+                tym_t ty1 = tybasic(ep->Ety);
+                tym_t ty2 = ty1;
+                if (ty1 == TYstruct)
+                {   type *targ1 = ep->ET->Ttag->Sstruct->Sarg1type;
+                    type *targ2 = ep->ET->Ttag->Sstruct->Sarg2type;
+                    if (targ1)
+                        ty1 = targ1->Tty;
+                    if (targ2)
+                        ty2 = targ2->Tty;
+                }
+
+                if (preg != lreg)
+                    if (mask[preg] & XMMREGS)
+                    {   unsigned op = xmmload(ty1);                     // MOVSS/D preg,lreg
+                        c1 = gen2(c1,op,modregxrmx(3,preg-XMM0,lreg-XMM0));
+                    }
+                    else
+                        c1 = genmovreg(c1, preg, lreg);
+
+                if (preg2 != mreg)
+                    if (mask[preg2] & XMMREGS)
+                    {   unsigned op = xmmload(ty2);                     // MOVSS/D preg2,mreg
+                        c1 = gen2(c1,op,modregxrmx(3,preg2-XMM0,mreg-XMM0));
+                    }
+                    else
+                        c1 = genmovreg(c1, preg2, mreg);
 
                 c = cat4(c,csave,cp,c1);
                 retregs = mask[preg] | mask[preg2];

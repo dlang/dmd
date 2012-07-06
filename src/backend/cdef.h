@@ -513,7 +513,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define USEDLLSHELL     _WINDLL
 #define FARCLASSES      1       // support near/far classes
 #define MFUNC           (I32) //0 && config.exe == EX_NT)       // member functions are TYmfunc
-#define AUTONEST        0       // overlap storage of nested auto's
 #define CV3             0       // 1 means support CV3 debug format
 
 /* Object module format
@@ -1000,8 +999,6 @@ union eve
 #define SYMBOLZERO      0,0,0,
 #elif MARS
 #define SYMBOLZERO      0,0,
-#elif AUTONEST
-#define SYMBOLZERO      0,0,
 #else
 #define SYMBOLZERO
 #endif
@@ -1023,7 +1020,7 @@ typedef unsigned SYMFLGS;
 
 #define SYMBOLY(fl,regsaved,name,flags) \
         {IDSYMBOL \
-         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,(type *)0,{0},\
+         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,0,(type *)0,{0},\
          SYMBOLZERO\
          UNIXFIELDS\
          SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}

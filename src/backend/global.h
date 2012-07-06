@@ -59,9 +59,6 @@ CEXTERN char *finname,*foutname,*foutdir;
 
 CEXTERN char OPTIMIZER,PARSER;
 CEXTERN symtab_t globsym;
-#if AUTONEST
-CEXTERN int pushcount;
-#endif
 
 CEXTERN Config config;                  // precompiled part of configuration
 CEXTERN Configv configv;                // non-ph part of configuration

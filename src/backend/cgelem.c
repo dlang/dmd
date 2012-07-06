@@ -2669,6 +2669,8 @@ CEXTERN elem * elstruct(elem *e)
             }
             if (targ1 && !targ2)
                 goto L1;
+            if (I64 && ty == TYstruct)
+                goto L1;
             goto Ldefault;
 
         L1:
@@ -2679,6 +2681,12 @@ CEXTERN elem * elstruct(elem *e)
                 else if (I64 && !targ1 && !targ2)
                     // In-memory only
                     goto Ldefault;
+                else if (I64 && targ1 && targ2)
+                {   if (tyfloating(tybasic(targ1->Tty)))
+                        tym = TYcdouble;
+                    else
+                        tym = TYucent;
+                }
             }
             switch (e->Eoper)
             {   case OPstreq:

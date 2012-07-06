@@ -94,10 +94,8 @@ TypeTuple *TypeBasic::toArgTypes()
             break;
 
         case Tcomplex64:
-#if DMDV2
             t1 = Type::tfloat64;
             t2 = Type::tfloat64;
-#endif
             break;
 
         case Tcomplex80:
@@ -378,9 +376,22 @@ TypeTuple *TypeStruct::toArgTypes()
             }
         }
 
-        // Cannot currently handle arg types that fit in 2 registers
         if (t2)
-            goto Lmemory;
+        {
+            if (t1->isfloating() && t2->isfloating())
+            {
+                if (t1->ty == Tfloat64 && t2->ty == Tfloat64)
+                    ;
+                else
+                    goto Lmemory;
+            }
+            else if (t1->isfloating())
+                goto Lmemory;
+            else if (t2->isfloating())
+                goto Lmemory;
+            else
+                ;
+        }
 #else
         if (sym->fields.dim == 1)
         {   VarDeclaration *f = sym->fields[0];

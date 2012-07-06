@@ -836,6 +836,14 @@ void VarDeclaration::semantic(Scope *sc)
     this->parent = sc->parent;
     //printf("this = %p, parent = %p, '%s'\n", this, parent, parent->toChars());
     protection = sc->protection;
+
+    /* If scope's alignment is the default, use the type's alignment,
+     * otherwise the scope overrrides.
+     */
+    alignment = sc->structalign;
+    if (alignment == STRUCTALIGN_DEFAULT)
+        alignment = type->alignment();          // use type's alignment
+
     //printf("sc->stc = %x\n", sc->stc);
     //printf("storage_class = x%x\n", storage_class);
 
@@ -1102,7 +1110,6 @@ Lnomatch:
 #endif
             {
                 storage_class |= STCfield;
-                alignment = sc->structalign;
 #if DMDV2
                 if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->noDefaultCtor ||
                     tb->ty == Tclass  && ((TypeClass  *)tb)->sym->noDefaultCtor)
@@ -1229,6 +1236,19 @@ Lnomatch:
             e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
+            init = new ExpInitializer(loc, e);
+            goto Ldtor;
+        }
+        else if (type->ty == Tstruct &&
+                 (((TypeStruct *)type)->sym->isnested))
+        {
+            /* Nested struct requires valid enclosing frame pointer.
+             * In StructLiteralExp::toElem(), it's calculated.
+             */
+            Expression *e = type->defaultInitLiteral(loc);
+            Expression *e1 = new VarExp(loc, this);
+            e = new ConstructExp(loc, e1, e);
+            e = e->semantic(sc);
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }
@@ -1383,6 +1403,10 @@ Lnomatch:
                                     if (sd->zeroInit == 1)
                                     {
                                         e = new ConstructExp(loc, new VarExp(loc, this), new IntegerExp(loc, 0, Type::tint32));
+                                    }
+                                    else if (sd->isNested())
+                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInitLiteral(loc));
+                                        e->op = TOKblit;
                                     }
                                     else
                                     {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
@@ -1705,9 +1729,8 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
 
     unsigned memsize      = t->size(loc);            // size of member
     unsigned memalignsize = t->alignsize();          // size of member for alignment purposes
-    unsigned memalign     = t->memalign(alignment);  // alignment boundaries
 
-    offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, memalign,
+    offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,
                 &ad->structsize, &ad->alignsize, isunion);
 
     //printf("\t%s: alignsize = %d\n", toChars(), alignsize);

@@ -1743,17 +1743,32 @@ Lagain:
                 Type *argtype = arg->type->semantic(loc, sc);
                 VarDeclaration *var;
 
-                var = new VarDeclaration(loc, argtype, arg->ident, NULL);
-                var->storage_class |= STCforeach;
-                var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
-                if (var->storage_class & (STCref | STCout))
-                    var->storage_class |= STCnodtor;
                 if (dim == 2 && i == 0)
-                {   key = var;
-                    //var->storage_class |= STCfinal;
+                {
+#if (BUG6652 == 1 || BUG6652 == 2)
+                    var = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), NULL);
+                    var->storage_class |= arg->storageClass & (STCin | STCout | STC_TYPECTOR);
+#else
+                    if (arg->storageClass & STCref)
+                        var = new VarDeclaration(loc, argtype, arg->ident, NULL);
+                    else
+                        var = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), NULL);
+                    var->storage_class |= arg->storageClass & (STCin | STCout | STC_TYPECTOR);
+#endif
+                    var->storage_class |= STCforeach;
+                    if (var->storage_class & (STCref | STCout))
+                        var->storage_class |= STCnodtor;
+
+                    key = var;
                 }
                 else
                 {
+                    var = new VarDeclaration(loc, argtype, arg->ident, NULL);
+                    var->storage_class |= STCforeach;
+                    var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
+                    if (var->storage_class & (STCref | STCout))
+                        var->storage_class |= STCnodtor;
+
                     value = var;
                     if (var->storage_class & STCref)
                     {
@@ -1826,6 +1841,30 @@ Lagain:
             value->init = new ExpInitializer(loc, new IndexExp(loc, new VarExp(loc, tmp), new VarExp(loc, key)));
             Statement *ds = new ExpStatement(loc, value);
 
+            if (dim == 2)
+            {   Parameter *arg = (*arguments)[0];
+#if (BUG6652 == 1 || BUG6652 == 2)
+                if ((*arguments)[0]->storageClass & STCref)
+                {
+                    AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
+                    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+                }
+                else
+                {
+                    ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+                    v->storage_class |= STCforeach | STCref | STCbug6652;
+                    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+                }
+#else
+                if (!(arg->storageClass & STCref))
+                {
+                    ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+                    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+                }
+#endif
+            }
             body = new CompoundStatement(loc, ds, body);
 
             s = new ForStatement(loc, forinit, cond, increment, body);
@@ -2452,7 +2491,14 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
      */
 
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
-    key = new VarDeclaration(loc, arg->type, arg->ident, ie);
+#if (BUG6652 == 1 || BUG6652 == 2)
+    key = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), ie);
+#else
+    if (arg->storageClass & STCref)
+        key = new VarDeclaration(loc, arg->type, arg->ident, ie);
+    else
+        key = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), ie);
+#endif
 
     Identifier *id = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
@@ -2498,6 +2544,28 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         // key += 1
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
+
+#if (BUG6652 == 1 || BUG6652 == 2)
+    if (arg->storageClass & STCref)
+    {
+        AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
+        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+    }
+    else
+    {
+        ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+        VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+        v->storage_class |= STCforeach | STCref | STCbug6652;
+        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+    }
+#else
+    if (!(arg->storageClass & STCref))
+    {
+        ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+        VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+    }
+#endif
 
     ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
     s = fs->semantic(sc);
@@ -3468,7 +3536,7 @@ DefaultStatement::DefaultStatement(Loc loc, Statement *s)
     : Statement(loc)
 {
     this->statement = s;
-#if IN_GCC
+#ifdef IN_GCC
     cblock = NULL;
 #endif
 }
@@ -5150,9 +5218,6 @@ LabelDsymbol::LabelDsymbol(Identifier *ident)
         : Dsymbol(ident)
 {
     statement = NULL;
-#if IN_GCC
-    asmLabelNum = 0;
-#endif
 }
 
 LabelDsymbol *LabelDsymbol::isLabel()           // is this a LabelDsymbol()?

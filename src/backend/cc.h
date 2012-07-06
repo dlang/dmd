@@ -1084,6 +1084,7 @@ struct Symbol
     Symbol *Sl,*Sr;             // left, right child
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
+    int alignment;              // variables: alignment, 0 or -1 means default alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 
@@ -1107,7 +1108,7 @@ struct Symbol
         }_SL;
         #define Senumlist Senum->SEenumlist
 
-#if !MARS
+#if SCPP
         struct                  // SClinkage
         {
             long Slinkage_;     // tym linkage bits
@@ -1115,8 +1116,6 @@ struct Symbol
             unsigned Smangle_;
              #define Smangle _SU._SLK.Smangle_
         }_SLK;
-#else
-        long Slinkage;          // SClinkage, tym linkage bits
 #endif
 
         struct
@@ -1157,8 +1156,6 @@ struct Symbol
                                 // class of which Salias is a member
              #define Spath _SU._SA.Spath_
         }_SA;
-#endif
-#if !MARS
         Symbol *Simport_;       // SCextern: if dllimport Symbol, this is the
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
@@ -1191,9 +1188,6 @@ struct Symbol
                                 // also used as 'parameter number' for SCTtemparg
 #elif MARS
     const char *prettyIdent;    // the symbol identifer as the user sees it
-#elif AUTONEST
-    unsigned char Spush;        // # of pushes followed by # of
-    unsigned char Spop;         // pops of scope level
 #endif
 
 #if ELFOBJ || MACHOBJ

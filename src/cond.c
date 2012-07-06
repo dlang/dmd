@@ -261,6 +261,13 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
+        if (!e->type->checkBoolean())
+        {
+            if (e->type->toBasetype() != Type::terror)
+                exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
+            inc = 0;
+            return 0;
+        }
         e = e->ctfeInterpret();
         --nest;
         if (e->op == TOKerror)
