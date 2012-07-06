@@ -604,6 +604,9 @@ void stackoffsets(int flags)
                )
                 alignsize = sz;
 
+            if (s->Salignment > 0)
+                alignsize = s->Salignment;
+
             //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 

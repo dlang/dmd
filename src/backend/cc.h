@@ -1084,7 +1084,7 @@ struct Symbol
     Symbol *Sl,*Sr;             // left, right child
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
-    int alignment;              // variables: alignment, 0 or -1 means default alignment
+    int Salignment;             // variables: alignment, 0 or -1 means default alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 

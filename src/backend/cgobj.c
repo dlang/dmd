@@ -761,7 +761,7 @@ void obj_term()
         obj_theadr(obj.modname);
         objheader(obj.csegname);
         mem_free(obj.csegname);
-        objseggrp(SegData[CODE]->SDoffset,Doffset,0,SegData[UDATA]->SDoffset);  // do real sizes
+        objseggrp(SegData[CODE]->SDoffset,SegData[DATA]->SDoffset,0,SegData[UDATA]->SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
         for (size_t i = 0; i <= seg_count; i++)
@@ -1494,15 +1494,17 @@ void objseggrp(targ_size_t codesize,targ_size_t datasize,
 
 #if MARS
     dsegattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
+    objsegdef(dsegattr,datasize,5,DATACLASS);   // [DATA]  seg _DATA, class DATA
+    objsegdef(dsegattr,cdatasize,7,7);          // [CDATA] seg CONST, class CONST
+    objsegdef(dsegattr,udatasize,8,9);          // [UDATA] seg _BSS,  class BSS
 #else
     dsegattr = I32
           ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
           : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
-#endif
-
     objsegdef(dsegattr,datasize,5,DATACLASS);   // seg _DATA, class DATA
     objsegdef(dsegattr,cdatasize,7,7);          // seg CONST, class CONST
     objsegdef(dsegattr,udatasize,8,9);          // seg _BSS, class BSS
+#endif
 
     obj.lnameidx = 10;                          // next lname index
     obj.segidx = 5;                             // next segment index
@@ -2333,9 +2335,13 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         seg = sdata->Sseg;
     targ_size_t offset = SegData[seg]->SDoffset;
-    alignbytes = align(datasize, offset) - offset;
-//    if (alignbytes)
-//        obj_lidata(seg, offset, alignbytes);
+    if (sdata->Salignment > 0)
+    {   if (SegData[seg]->SDalignment < sdata->Salignment)
+            SegData[seg]->SDalignment = sdata->Salignment;
+        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+    }
+    else
+        alignbytes = align(datasize, offset) - offset;
     sdata->Soffset = offset + alignbytes;
     SegData[seg]->SDoffset = sdata->Soffset;
     return seg;
