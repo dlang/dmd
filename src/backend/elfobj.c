@@ -108,7 +108,7 @@ void obj_tlssections();
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
                         unsigned typ,unsigned bind,IDXSEC sec);
-static long elf_align(FILE *fd, targ_size_t size, long offset);
+static long elf_align(targ_size_t size, long offset);
 
 // The object file is built is several separate pieces
 
@@ -1069,33 +1069,35 @@ void obj_term()
     //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_count %d\n",foffset,section_cnt,seg_count);
     for (int i=1; i<= seg_count; i++)
     {
-        seg = SegData[i];
-        sechdr = MAP_SEG2SEC(i);        // corresponding section
-        foffset = elf_align(fd,sechdr->sh_addralign,foffset);
+        seg_data *pseg = SegData[i];
+        Elf32_Shdr *sechdr = MAP_SEG2SEC(i);        // corresponding section
+        if (sechdr->sh_addralign < pseg->SDalignment)
+            sechdr->sh_addralign = pseg->SDalignment;
+        foffset = elf_align(sechdr->sh_addralign,foffset);
         if (i == UDATA) // 0, BSS never allocated
         {   // but foffset as if it has
             sechdr->sh_offset = foffset;
-            sechdr->sh_size = seg->SDoffset;
+            sechdr->sh_size = pseg->SDoffset;
                                 // accumulated size
             continue;
         }
         else if (sechdr->sh_type == SHT_NOBITS) // .tbss never allocated
         {
             sechdr->sh_offset = foffset;
-            sechdr->sh_size = seg->SDoffset;
+            sechdr->sh_size = pseg->SDoffset;
                                 // accumulated size
             continue;
         }
-        else if (!seg->SDbuf)
+        else if (!pseg->SDbuf)
             continue;           // For others leave sh_offset as 0
 
         sechdr->sh_offset = foffset;
         //printf("\tsection name %d,",sechdr->sh_name);
-        if (seg->SDbuf && seg->SDbuf->size())
+        if (pseg->SDbuf && pseg->SDbuf->size())
         {
-            //printf(" - size %d\n",seg->SDbuf->size());
-            sechdr->sh_size = seg->SDbuf->size();
-            fobjbuf->write(seg->SDbuf->buf, sechdr->sh_size);
+            //printf(" - size %d\n",pseg->SDbuf->size());
+            sechdr->sh_size = pseg->SDbuf->size();
+            fobjbuf->write(pseg->SDbuf->buf, sechdr->sh_size);
             foffset += sechdr->sh_size;
         }
         //printf(" assigned offset %d, size %d\n",foffset,sechdr->sh_size);
@@ -1141,7 +1143,7 @@ void obj_term()
     sechdr->sh_entsize = I64 ? sizeof(Elf64_Sym) : sizeof(Elf32_Sym);
     sechdr->sh_link = SHI_STRINGS;
     sechdr->sh_info = local_cnt;
-    foffset = elf_align(fd,4,foffset);
+    foffset = elf_align(4,foffset);
     sechdr->sh_offset = foffset;
     fobjbuf->write(symtab, sechdr->sh_size);
     foffset += sechdr->sh_size;
@@ -1157,7 +1159,7 @@ void obj_term()
     //
     // Now the relocation data for program code and data sections
     //
-    foffset = elf_align(fd,4,foffset);
+    foffset = elf_align(4,foffset);
     //dbg_printf("output relocations size 0x%x, foffset 0x%x\n",section_names->size(),foffset);
     for (int i=1; i<= seg_count; i++)
     {
@@ -1633,6 +1635,8 @@ STATIC void setup_comdat(Symbol *s)
 
     s->Sseg = elf_getsegment(prefix, cpp_mangle(s), type, flags, align);
                                 // find or create new segment
+    if (s->Salignment > align)
+        SegData[s->Sseg]->SDalignment = s->Salignment;
     SegData[s->Sseg]->SDsym = s;
 }
 
@@ -2002,7 +2006,13 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         seg = sdata->Sseg;
     targ_size_t offset = Offset(seg);
-    alignbytes = align(datasize, offset) - offset;
+    if (sdata->Salignment > 0)
+    {   if (SegData[seg]->SDalignment < sdata->Salignment)
+            SegData[seg]->SDalignment = sdata->Salignment;
+        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+    }
+    else
+        alignbytes = align(datasize, offset) - offset;
     if (alignbytes)
         obj_lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
@@ -2943,31 +2953,11 @@ void objfile_write(FILE *fd, void *buffer, unsigned len)
     fobjbuf->write(buffer, len);
 }
 
-long elf_align(FILE *fd, targ_size_t size,long foffset)
+long elf_align(targ_size_t size,long foffset)
 {
-    long offset;
-    switch (size)
-    {
-        case 0:
-        case 1:
-            return foffset;
-        case 4:
-            offset = (foffset + 3) & ~3;
-            break;
-        case 8:
-            offset = (foffset + 7) & ~7;
-            break;
-        case 16:
-            offset = (foffset + 15) & ~15;
-            break;
-        case 32:
-            offset = (foffset + 31) & ~31;
-            break;
-        default:
-            dbg_printf("size was %d\n",(int)size);
-            assert(0);
-            break;
-    }
+    if (size <= 1)
+        return foffset;
+    long offset = (foffset + size - 1) & ~(size - 1);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;

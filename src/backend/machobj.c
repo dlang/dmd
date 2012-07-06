@@ -810,6 +810,11 @@ void obj_term()
                     continue;
 
                 int align = 1 << psechdr->align;
+                while (align < pseg->SDalignment)
+                {
+                    psechdr->align += 1;
+                    align <<= 1;
+                }
                 foffset = elf_align(align, foffset);
                 vmaddr = (vmaddr + align - 1) & ~(align - 1);
                 if (psechdr->flags == S_ZEROFILL)
@@ -843,6 +848,11 @@ void obj_term()
                     continue;
 
                 int align = 1 << psechdr->align;
+                while (align < pseg->SDalignment)
+                {
+                    psechdr->align += 1;
+                    align <<= 1;
+                }
                 foffset = elf_align(align, foffset);
                 vmaddr = (vmaddr + align - 1) & ~(align - 1);
                 if (psechdr->flags == S_ZEROFILL)
@@ -1695,7 +1705,8 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
         s->Sfl = FLtlsdata;
-        s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
+        align = 4;
+        s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         elf_data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1704,10 +1715,11 @@ int obj_comdat(Symbol *s)
         sectname = "__datacoal_nt";
         segname = "__DATA";
         align = 4;              // 16 byte alignment
-        flags = S_COALESCED;
-        s->Sseg = mach_getsegment(sectname, segname, align, flags);
+        s->Sseg = mach_getsegment(sectname, segname, align, S_COALESCED);
     }
                                 // find or create new segment
+    if (s->Salignment > (1 << align))
+        SegData[s->Sseg]->SDalignment = s->Salignment;
     s->Soffset = SegData[s->Sseg]->SDoffset;
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {   // Code symbols are 'published' by elf_func_start()
@@ -2050,7 +2062,13 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         seg = sdata->Sseg;
     targ_size_t offset = Offset(seg);
-    alignbytes = align(datasize, offset) - offset;
+    if (sdata->Salignment > 0)
+    {   if (SegData[seg]->SDalignment < sdata->Salignment)
+            SegData[seg]->SDalignment = sdata->Salignment;
+        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+    }
+    else
+        alignbytes = align(datasize, offset) - offset;
     if (alignbytes)
         obj_lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
@@ -2658,32 +2676,9 @@ void objfile_write(FILE *fd, void *buffer, unsigned len)
 
 long elf_align(targ_size_t size, long foffset)
 {
-    long offset;
-    switch (size)
-    {
-        case 0:
-        case 1:
-            return foffset;
-        case 2:
-            offset = (foffset + 1) & ~1;
-            break;
-        case 4:
-            offset = (foffset + 3) & ~3;
-            break;
-        case 8:
-            offset = (foffset + 7) & ~7;
-            break;
-        case 16:
-            offset = (foffset + 15) & ~15;
-            break;
-        case 32:
-            offset = (foffset + 31) & ~31;
-            break;
-        default:
-            dbg_printf("size was %lu\n",(unsigned long)size);
-            assert(0);
-            break;
-    }
+    if (size <= 1)
+        return foffset;
+    long offset = (foffset + size - 1) & ~(size - 1);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;

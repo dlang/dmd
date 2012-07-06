@@ -993,6 +993,7 @@ struct seg_data
 {
     int                  SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
+    int                  SDalignment;   // power of 2
 
     bool isfarseg;
     int segidx;                         // internal object file segment number
@@ -1031,6 +1032,7 @@ struct seg_data
     targ_size_t          SDoffset;      // starting offset for data
     Outbuffer           *SDbuf;         // buffer to hold data
     Outbuffer           *SDrel;         // buffer to hold relocation info
+    int                  SDalignment;   // power of 2
 #if ELFOBJ
     IDXSYM               SDsymidx;      // each section is in the symbol table
     IDXSEC               SDrelidx;      // section header for relocation info

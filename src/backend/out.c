@@ -86,7 +86,6 @@ void outdata(symbol *s)
 #if HTOD
     return;
 #endif
-    dt_t *dtstart,*dt;
     targ_size_t datasize,a;
     int seg;
     targ_size_t offset;
@@ -103,7 +102,7 @@ void outdata(symbol *s)
     // Data segment variables are always live on exit from a function
     s->Sflags |= SFLlivexit;
 
-    dtstart = s->Sdt;
+    dt_t *dtstart = s->Sdt;
     s->Sdt = NULL;                      // it will be free'd
 #if OMFOBJ
     int tls = 0;
@@ -119,7 +118,7 @@ void outdata(symbol *s)
     ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
         obj_export(s,0);        // export data definition
-    for (dt = dtstart; dt; dt = dt->DTnext)
+    for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
     {
         //printf("dt = %p, dt = %d\n",dt,dt->dt);
         switch (dt->dt)
@@ -357,7 +356,7 @@ void outdata(symbol *s)
 
     offset = s->Soffset;
 
-    for (dt = dtstart; dt; dt = dt->DTnext)
+    for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
     {
         switch (dt->dt)
         {   case DT_abytes:

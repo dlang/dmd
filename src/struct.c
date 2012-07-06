@@ -208,9 +208,6 @@ void AggregateDeclaration::alignmember(
     //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
     switch (alignment)
     {
-        case 0:
-            assert(0);
-
         case 1:
             // No alignment
             break;
