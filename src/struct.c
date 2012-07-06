@@ -36,7 +36,6 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    structalign = 0;            // struct member alignment in effect
     hasUnions = 0;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
@@ -202,20 +201,36 @@ int AggregateDeclaration::isExport()
  */
 
 void AggregateDeclaration::alignmember(
-        unsigned salign,        // struct alignment that is in effect
-        unsigned size,          // alignment requirement of field
+        structalign_t alignment,   // struct alignment that is in effect
+        unsigned size,             // alignment requirement of field
         unsigned *poffset)
 {
-    //printf("salign = %d, size = %d, offset = %d\n",salign,size,offset);
-    if (salign > 1)
+    //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
+    switch (alignment)
     {
-        assert(size != 3);
-        unsigned sa = size;
-        if (sa == 0 || salign < sa)
-            sa = salign;
-        *poffset = (*poffset + sa - 1) & ~(sa - 1);
+        case 0:
+            assert(0);
+
+        case 1:
+            // No alignment
+            break;
+
+        case STRUCTALIGN_DEFAULT:
+        {   /* Must match what the corresponding C compiler's default
+             * alignment behavior is.
+             */
+            assert(size != 3);
+            unsigned sa = (size == 0 || 8 < size) ? 8 : size;
+            *poffset = (*poffset + sa - 1) & ~(sa - 1);
+            break;
+        }
+
+        default:
+            // Align on alignment boundary, which must be a positive power of 2
+            assert(alignment > 0 && !(alignment & (alignment - 1)));
+            *poffset = (*poffset + alignment - 1) & ~(alignment - 1);
+            break;
     }
-    //printf("result = %d\n",offset);
 }
 
 /****************************************
@@ -227,25 +242,36 @@ unsigned AggregateDeclaration::placeField(
         unsigned *nextoffset,   // next location in aggregate
         unsigned memsize,       // size of member
         unsigned memalignsize,  // size of member for alignment purposes
-        unsigned memalign,      // alignment in effect for this member
+        structalign_t alignment, // alignment in effect for this member
         unsigned *paggsize,     // size of aggregate (updated)
         unsigned *paggalignsize, // size of aggregate for alignment purposes (updated)
         bool isunion            // the aggregate is a union
         )
 {
     unsigned ofs = *nextoffset;
-    alignmember(memalign, memalignsize, &ofs);
+    alignmember(alignment, memalignsize, &ofs);
     unsigned memoffset = ofs;
     ofs += memsize;
     if (ofs > *paggsize)
         *paggsize = ofs;
     if (!isunion)
         *nextoffset = ofs;
-    if (global.params.is64bit && memalign == 8 && memalignsize == 16)
-        /* Not sure how to handle this */
-        ;
-    else if (memalign < memalignsize)
-        memalignsize = memalign;
+
+    if (alignment == STRUCTALIGN_DEFAULT)
+    {
+        if (global.params.is64bit && memalignsize == 16)
+            ;
+        else if (8 < memalignsize)
+            memalignsize = 8;
+        else if (alignment < memalignsize)
+            memalignsize = alignment;
+    }
+    else
+    {
+        if (memalignsize < alignment)
+            memalignsize = alignment;
+    }
+
     if (*paggalignsize < memalignsize)
         *paggalignsize = memalignsize;
 
@@ -328,6 +354,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
 
     xeq = NULL;
+    alignment = 0;
 #endif
     arg1type = NULL;
     arg2type = NULL;
@@ -388,8 +415,8 @@ void StructDeclaration::semantic(Scope *sc)
 #else
     handle = type->pointerTo();
 #endif
-    structalign = sc->structalign;
     protection = sc->protection;
+    alignment = sc->structalign;
     storage_class |= sc->stc;
     if (sc->stc & STCdeprecated)
         isdeprecated = true;
@@ -451,6 +478,7 @@ void StructDeclaration::semantic(Scope *sc)
         sc2->inunion = 1;
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
+    sc2->structalign = STRUCTALIGN_DEFAULT;
 
     size_t members_dim = members->dim;
 
@@ -506,7 +534,7 @@ void StructDeclaration::semantic(Scope *sc)
         fields.setDim(0);
         structsize = 0;
         alignsize = 0;
-        structalign = 0;
+//        structalign = 0;
 
         scope = scx ? scx : new Scope(*sc);
         scope->setNoFree();
@@ -699,7 +727,10 @@ void StructDeclaration::finalizeSize(Scope *sc)
     // Round struct size up to next alignsize boundary.
     // This will ensure that arrays of structs will get their internals
     // aligned properly.
-    structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+    if (alignment == STRUCTALIGN_DEFAULT)
+        structsize = (structsize + alignsize - 1) & ~(alignsize - 1);
+    else
+        structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
     sizeok = SIZEOKdone;
 }

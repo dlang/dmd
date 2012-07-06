@@ -1,5 +1,5 @@
 
-extern(C) int printf(const char*, ...);
+import std.c.stdio;
 
 void testgoto()
 {
@@ -142,9 +142,9 @@ void teststrarg()
 
 ///////////////////////
 
-struct Foo1
+align (1) struct Foo1
 {
-align (1):
+  align (1):
     int a;
     char b;
     long c;
@@ -173,12 +173,24 @@ struct Foo4
 
 void testsizes()
 {
+    printf("%d\n", Foo1.sizeof);
+    assert(Foo1.a.offsetof == 0);
+    assert(Foo1.b.offsetof == 4);
+    assert(Foo1.c.offsetof == 5);
     assert(Foo1.sizeof == 13);
+
+    assert(Foo2.a.offsetof == 0);
+    assert(Foo2.b.offsetof == 4);
+    assert(Foo2.c.offsetof == 8);
     assert(Foo2.sizeof == 16);
-    assert(Foo3.sizeof == 16);
-    assert(Foo4.sizeof == 16);
+
+    assert(Foo3.a.offsetof == 0);
+    assert(Foo3.b.offsetof == 4);
     assert(Foo3.c.offsetof == 8);
     assert(Foo3.b.sizeof == 1);
+    assert(Foo3.sizeof == 16);
+
+    assert(Foo4.sizeof == 16);
 }
 
 ///////////////////////

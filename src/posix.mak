@@ -114,6 +114,7 @@ SRC = win32.mak posix.mak \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
+	scanmscoff.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -125,12 +126,12 @@ SRC = win32.mak posix.mak \
 	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
 	$C/gother.c $C/glocal.c $C/gloop.c $C/html.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
-	$C/type.c $C/melf.h $C/mach.h $C/bcomplex.h \
+	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c \
-	$C/machobj.c \
+	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
@@ -435,6 +436,9 @@ libelf.o: libelf.c $C/melf.h
 libmach.o: libmach.c $C/mach.h
 	$(CC) -c $(CFLAGS) -I$C $<
 
+libmscoff.o: libmscoff.c $C/mscoff.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
 link.o: link.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -458,6 +462,9 @@ rmem.o: $(ROOT)/rmem.c
 
 module.o: module.c $C/html.h
 	$(CC) -c $(CFLAGS) -I$C $<
+
+mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
+	$(CC) -c $(MFLAGS) $<
 
 msc.o: msc.c $(CH) mars.h
 	$(CC) -c $(MFLAGS) $<

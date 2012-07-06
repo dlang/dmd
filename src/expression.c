@@ -5031,6 +5031,16 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     //if (type && type->toBasetype()->ty == Tsarray)
         //error("cannot change reference to static array '%s'", var->toChars());
 
+#if (BUG6652 == 1)
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && (v->storage_class & STCbug6652) && global.params.warnings)
+        warning("Variable modified in foreach body requires ref storage class");
+#elif (BUG6652 == 2)
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && (v->storage_class & STCbug6652) && !global.params.useDeprecated)
+        error("Variable modified in foreach body requires ref storage class");
+#endif
+
     var->checkModify(loc, sc, type);
 
     // See if this expression is a modifiable lvalue (i.e. not const)
@@ -5764,6 +5774,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKfunction:
+            case TOKparameters:
             {
                 if (targ->ty != Tfunction)
                     goto Lno;
@@ -5779,7 +5790,9 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
-                    args->push(new Parameter(arg->storageClass, arg->type, arg->ident, arg->defaultArg));
+                    args->push(new Parameter(arg->storageClass, arg->type,
+                        (tok2 == TOKparameters) ? arg->ident : NULL,
+                        (tok2 == TOKparameters) ? arg->defaultArg : NULL));
                 }
                 tded = new TypeTuple(args);
                 break;

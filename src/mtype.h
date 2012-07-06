@@ -41,7 +41,7 @@ struct HdrGenState;
 struct Parameter;
 
 // Back end
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node; typedef union tree_node TYPE;
 typedef TYPE type;
 #else
@@ -299,8 +299,8 @@ struct Type : Object
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    virtual structalign_t alignment();
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident);
-    virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
@@ -458,7 +458,7 @@ struct TypeSArray : TypeArray
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
-    unsigned memalign(unsigned salign);
+    structalign_t alignment();
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
@@ -763,7 +763,7 @@ struct TypeStruct : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    unsigned memalign(unsigned salign);
+    structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
@@ -842,6 +842,7 @@ struct TypeTypedef : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident);
     int isintegral();
     int isfloating();

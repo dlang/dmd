@@ -3293,6 +3293,23 @@ struct Foo7277
 static assert(Foo7277().func() == 17);
 
 /**************************************************
+    8276 ICE
+**************************************************/
+
+void bug8676(int n)
+{
+    const int X1 = 4 + n;
+    const int X2 = 4;
+    int X3 = 4;
+    int bar1() { return X1; }
+    int bar2() { return X2; }
+    int bar3() { return X3; }
+    static assert(!is(typeof(compiles!(bar1()))));
+    static assert( is(typeof(compiles!(bar2()))));
+    static assert(!is(typeof(compiles!(bar3()))));
+}
+
+/**************************************************
     classes and interfaces
 **************************************************/
 

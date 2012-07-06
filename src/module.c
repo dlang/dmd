@@ -20,7 +20,7 @@
 #include <malloc.h>
 #endif
 
-#if IN_GCC
+#ifdef IN_GCC
 #include "gdc_alloca.h"
 #endif
 
@@ -413,7 +413,7 @@ inline unsigned readlongBE(unsigned *p)
         (((unsigned char *)p)[0] << 24);
 }
 
-#if IN_GCC
+#ifdef IN_GCC
 void Module::parse(bool dump_source)
 #else
 void Module::parse()

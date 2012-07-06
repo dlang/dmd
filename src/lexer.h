@@ -156,6 +156,7 @@ enum TOK
         TOKref,
         TOKmacro,
 #if DMDV2
+        TOKparameters,
         TOKtraits,
         TOKoverloadset,
         TOKpure,

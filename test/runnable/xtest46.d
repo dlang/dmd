@@ -3914,7 +3914,7 @@ template Mfp(alias foo)
 
 class C157 {
  int a = 3;
- int foo(int j, int y) { return j + a + y; }
+ int foo(int i, int y) { return i + a + y; }
 }
 
 void test157()
@@ -5104,7 +5104,7 @@ void test8105()
 
 template ParameterTypeTuple159(alias foo)
 {
-    static if (is(typeof(foo) P == function))
+    static if (is(typeof(foo) P == __parameters))
         alias P ParameterTypeTuple159;
     else
         static assert(0, "argument has no parameters");

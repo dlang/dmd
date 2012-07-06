@@ -731,7 +731,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
              */
             unsigned memsize;
             unsigned memalignsize;
-            unsigned xalign;
+            structalign_t xalign;
 #if DMDV2
             if (v->storage_class & STClazy)
             {
@@ -753,7 +753,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
             {
                 memsize = v->type->size();
                 memalignsize = v->type->alignsize();
-                xalign = v->type->memalign(global.structalign);
+                xalign = v->alignment;
             }
             AggregateDeclaration::alignmember(xalign, memalignsize, &offset);
             v->offset = offset;
