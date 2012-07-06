@@ -1176,9 +1176,7 @@ void Lexer::scan(Token *t)
             SINGLE(';', TOKsemicolon)
             SINGLE(':', TOKcolon)
             SINGLE('$', TOKdollar)
-#if DMDV2
             SINGLE('@', TOKat)
-#endif
 #undef SINGLE
 
 #define DOUBLE(c1,tok1,c2,tok2)         \

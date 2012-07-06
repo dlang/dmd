@@ -155,6 +155,7 @@ enum TOK
         TOKargTypes,
         TOKref,
         TOKmacro,
+        TOKat,
 #if DMDV2
         TOKtraits,
         TOKoverloadset,
@@ -165,7 +166,6 @@ enum TOK
         TOKline,
         TOKfile,
         TOKshared,
-        TOKat,
         TOKpow,
         TOKpowass,
         TOKgoesto,
