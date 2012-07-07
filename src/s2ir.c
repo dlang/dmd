@@ -1238,7 +1238,7 @@ void ReturnStatement::toIR(IRState *irs)
                 es = el_bin(op, ety, es, e);
                 if (op == OPstreq)
                     es->ET = exp->type->toCtype();
-#if DMDV2
+#if 0//DMDV2
                 /* Call postBlit() on *shidden
                  */
                 Type *tb = exp->type->toBasetype();
@@ -1255,21 +1255,6 @@ void ReturnStatement::toIR(IRState *irs)
                         ec = callfunc(loc, irs, 1, Type::tvoid, ec, tb->pointerTo(), fd, fd->type, NULL, NULL);
                         es = el_bin(OPcomma, ec->Ety, es, ec);
                     }
-
-#if 0
-                    /* It has been moved, so disable destructor
-                     */
-                    if (exp->op == TOKvar)
-                    {   VarExp *ve = (VarExp *)exp;
-                        VarDeclaration *v = ve->var->isVarDeclaration();
-                        if (v && v->rundtor)
-                        {
-                            elem *er = el_var(v->rundtor->toSymbol());
-                            er = el_bin(OPeq, TYint, er, el_long(TYint, 0));
-                            es = el_bin(OPcomma, TYint, es, er);
-                        }
-                    }
-#endif
                 }
 #endif
             }

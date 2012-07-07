@@ -1866,7 +1866,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
         {
             VarExp *ve = (VarExp *)e;
             VarDeclaration *v = ve->var->isVarDeclaration();
-	    assert(v);
+            assert(v);
             if (v->type->ty == Tpointer)
                 break;
             if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.

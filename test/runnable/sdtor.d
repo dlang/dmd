@@ -2303,6 +2303,28 @@ void test8335()
 }
 
 /**********************************/
+// 8356
+
+void test8356()
+{
+    static struct S
+    {
+        @disable this(this) { assert(0); }
+    }
+
+    S s;
+    S[3] sa;
+
+  static assert(!__traits(compiles, {
+    S fs() { return s; }
+  }));
+
+  static assert(!__traits(compiles, {
+    S[3] fsa() { return sa; }
+  }));
+}
+
+/**********************************/
 
 int main()
 {
@@ -2383,6 +2405,7 @@ int main()
     test7579a();
     test7579b();
     test8335();
+    test8356();
 
     printf("Success\n");
     return 0;

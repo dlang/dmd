@@ -48,7 +48,6 @@ extern "C" char * __cdecl __locale_decpoint;
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], unsigned dim);
 Expression *expandVar(int result, VarDeclaration *v);
-Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope);
 
 #define LOGSEMANTIC     0
 
