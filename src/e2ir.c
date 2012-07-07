@@ -2770,8 +2770,13 @@ elem *AssignExp::toElem(IRState *irs)
             /* Determine if we need to do postblit
              */
             int postblit = 0;
-            if (needsPostblit(t1->nextOf()))
+            if (needsPostblit(t1->nextOf()) &&
+                (e2->op == TOKslice && ((UnaExp *)e2)->e1->isLvalue() ||
+                 e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
+                 e2->op != TOKslice && e2->isLvalue()))
+            {
                 postblit = 1;
+            }
 
             assert(e2->type->ty != Tpointer);
 
