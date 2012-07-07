@@ -203,16 +203,14 @@ void outdata(symbol *s)
                             break;
                         }
                         default:
-#if OMFOBJ
                             s->Sseg = UDATA;
-#endif
                             elf_data_start(s,datasize,UDATA);
                             obj_lidata(s->Sseg,s->Soffset,datasize);
                             s->Sfl = FLudata;           // uninitialized data
                             break;
                     }
-#if ELFOBJ || MACHOBJ
                     assert(s->Sseg != UNKNOWN);
+#if ELFOBJ || MACHOBJ
                     if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
 #endif
 #if OMFOBJ
@@ -320,9 +318,12 @@ void outdata(symbol *s)
         }
         case mTYnear:
         case 0:
+            if (
 #if OMFOBJ
-            s->Sseg = DATA;
+                s->Sseg == 0 ||
 #endif
+                s->Sseg == UNKNOWN)
+                s->Sseg = DATA;
             seg = elf_data_start(s,datasize,DATA);
             s->Sfl = FLdata;            // initialized data
             break;
