@@ -441,6 +441,7 @@ void outcsegname(char *csegname);
 void outthunk(Symbol *sthunk, Symbol *sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
+void out_readonly(Symbol *s);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);

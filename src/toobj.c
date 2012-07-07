@@ -311,16 +311,13 @@ void Module::genmoduleinfo()
 
     for (size_t i = 0; i < aclasses.dim; i++)
     {
-        ClassDeclaration *cd = aclasses.data()[i];
+        ClassDeclaration *cd = aclasses[i];
         dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
     }
 #endif
 
     csym->Sdt = dt;
-#if ELFOBJ || MACHOBJ
     // Cannot be CONST because the startup code sets flag bits in it
-    csym->Sseg = DATA;
-#endif
     outdata(csym);
 
     //////////////////////////////////////////////
@@ -448,13 +445,8 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Generate static initializer
     sinit->Sclass = scclass;
     sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-    sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    sinit->Sseg = DATA;
-#endif
     toDt(&sinit->Sdt);
+    out_readonly(sinit);
     outdata(sinit);
 
     //////////////////////////////////////////////
@@ -780,10 +772,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
 
     csym->Sdt = dt;
-#if ELFOBJ || MACHOBJ // Burton
     // ClassInfo cannot be const data, because we use the monitor on it
-    csym->Sseg = DATA;
-#endif
     outdata(csym);
     if (isExport())
         obj_export(csym,0);
@@ -846,12 +835,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     vtblsym->Sdt = dt;
     vtblsym->Sclass = scclass;
     vtblsym->Sfl = FLdata;
-#if ELFOBJ
-    vtblsym->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    vtblsym->Sseg = DATA;
-#endif
+    out_readonly(vtblsym);
     outdata(vtblsym);
     if (isExport())
         obj_export(vtblsym,0);
@@ -1092,12 +1076,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     }
 
     csym->Sdt = dt;
-#if ELFOBJ
-    csym->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    csym->Sseg = DATA;
-#endif
+    out_readonly(csym);
     outdata(csym);
     if (isExport())
         obj_export(csym,0);
@@ -1168,12 +1147,7 @@ void StructDeclaration::toObjFile(int multiobj)
             }
 #endif
 
-#if ELFOBJ
-            sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-            sinit->Sseg = DATA;
-#endif
+            out_readonly(sinit);
             outdata(sinit);
         }
 
@@ -1315,12 +1289,6 @@ void VarDeclaration::toObjFile(int multiobj)
             s->Sdt->dt = DT_common;
         }
 
-#if ELFOBJ || MACHOBJ // Burton
-        if (s->Sdt && s->Sdt->dt == DT_azeros && s->Sdt->DTnext == NULL)
-            s->Sseg = UDATA;
-        else
-            s->Sseg = DATA;
-#endif
         if (!sz && type->toBasetype()->ty != Tsarray)
             assert(0); // this shouldn't be possible
 
@@ -1364,13 +1332,8 @@ void TypedefDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-        sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        sinit->Sseg = DATA;
-#endif
         sinit->Sdt = tc->sym->init->toDt();
+        out_readonly(sinit);
         outdata(sinit);
     }
 }
@@ -1409,12 +1372,6 @@ void EnumDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-        sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        sinit->Sseg = DATA;
-#endif
 #if DMDV1
         dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
         //sinit->Sdt = tc->sym->init->toDt();

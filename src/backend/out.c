@@ -209,7 +209,7 @@ void outdata(symbol *s)
                             s->Sfl = FLudata;           // uninitialized data
                             break;
                     }
-                    assert(s->Sseg != UNKNOWN);
+                    assert(s->Sseg && s->Sseg != UNKNOWN);
 #if ELFOBJ || MACHOBJ
                     if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
 #endif
@@ -242,7 +242,9 @@ void outdata(symbol *s)
                     ;
 #endif
                 else if (sb->Sdt)               // if initializer for symbol
+{ if (!s->Sseg) s->Sseg = DATA;
                     outdata(sb);                // write out data for symbol
+}
             }
             case DT_coff:
                 datasize += size(dt->Dty);
@@ -319,9 +321,7 @@ void outdata(symbol *s)
         case mTYnear:
         case 0:
             if (
-#if OMFOBJ
                 s->Sseg == 0 ||
-#endif
                 s->Sseg == UNKNOWN)
                 s->Sseg = DATA;
             seg = elf_data_start(s,datasize,DATA);
@@ -510,6 +510,18 @@ void outcommon(symbol *s,targ_size_t n)
         if (config.fulltypes)
             cv_outsym(s);
     }
+}
+
+/*************************************
+ * Mark a symbol as going into a read-only segment.
+ */
+
+void out_readonly(symbol *s)
+{
+#if ELFOBJ
+    s->Sseg = CDATA;
+#endif
+    // The default is DATA
 }
 
 /******************************

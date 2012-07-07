@@ -984,9 +984,6 @@ void SwitchStatement::toIR(IRState *irs)
          */
         dt_t *dt = NULL;
         Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
-#if MACHOBJ
-        si->Sseg = DATA;
-#endif
         dtsize_t(&dt, numcases);
         dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
 
@@ -1291,7 +1288,6 @@ void ReturnStatement::toIR(IRState *irs)
             e = exp->toElemDtor(irs);
             assert(e);
         }
-
         elem_setLoc(e, loc);
         block_appendexp(blx->curblock, e);
         block_next(blx, BCretexp, NULL);

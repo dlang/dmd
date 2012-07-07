@@ -161,7 +161,7 @@ char *cpp_mangle(Dsymbol *s)
     cms.components.setDim(0);
 
     OutBuffer buf;
-#if MACHOBJ
+#if TARGET_OSX
     buf.writestring("__Z");
 #else
     buf.writestring("_Z");

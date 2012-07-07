@@ -814,12 +814,6 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         s->Sdt->dt = DT_common;
     }
 
-#if ELFOBJ || MACHOBJ // Burton
-    if (s->Sdt && s->Sdt->dt == DT_azeros && s->Sdt->DTnext == NULL)
-        s->Sseg = UDATA;
-    else
-        s->Sseg = DATA;
-#endif
     outdata(s);
     if (isExport())
         obj_export(s,0);
