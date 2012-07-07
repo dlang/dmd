@@ -2054,9 +2054,11 @@ void obj_export(Symbol *s,unsigned argsize)
 int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
-    //dbg_printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+
+    //printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
+    assert(sdata->Sseg);
     if (sdata->Sseg == UNKNOWN) // if we don't know then there
         sdata->Sseg = seg;      // wasn't any segment override
     else
@@ -2087,6 +2089,7 @@ void elf_func_start(Symbol *sfunc)
     //printf("elf_func_start(%s)\n",sfunc->Sident);
     symbol_debug(sfunc);
 
+    assert(sfunc->Sseg);
     if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
     //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Coffset);
@@ -2225,6 +2228,8 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
     comdef.count = count;
     comdef_symbuf->write(&comdef, sizeof(comdef));
     s->Sxtrnnum = 1;
+    if (!s->Sseg)
+        s->Sseg = UDATA;
     return 0;           // should return void
 }
 
@@ -2427,6 +2432,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     printf("reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
         seg,offset,val,targetdatum,flags);
 #endif
+    assert(seg != 0);
     if (SegData[seg]->isCode() && SegData[targetdatum]->isCode())
     {
         assert(0);

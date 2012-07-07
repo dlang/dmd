@@ -327,9 +327,6 @@ void Module::genobjfile(int multiobj)
         cov->Stype->Tcount++;
         cov->Sclass = SCstatic;
         cov->Sfl = FLdata;
-#if ELFOBJ || MACHOBJ
-        cov->Sseg = UDATA;
-#endif
         dtnzeros(&cov->Sdt, 4 * numlines);
         outdata(cov);
         slist_add(cov);
@@ -353,9 +350,6 @@ void Module::genobjfile(int multiobj)
         bcov->Stype->Tcount++;
         bcov->Sclass = SCstatic;
         bcov->Sfl = FLdata;
-#if ELFOBJ || MACHOBJ
-        bcov->Sseg = DATA;
-#endif
         dtnbytes(&bcov->Sdt, (numlines + 32) / 32 * sizeof(*covb), (char *)covb);
         outdata(bcov);
 
@@ -1169,9 +1163,6 @@ Symbol *Module::gencritsec()
     /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
      */
     dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
-#if ELFOBJ || MACHOBJ // Burton
-    s->Sseg = DATA;
-#endif
     outdata(s);
     return s;
 }

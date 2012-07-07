@@ -451,9 +451,6 @@ Symbol *static_sym()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-#if ELFOBJ || MACHOBJ
-    s->Sseg = DATA;
-#endif
     slist_add(s);
     return s;
 }

@@ -253,9 +253,6 @@ symbol * symbol_name(const char *name,int sclass,type *t)
     s->Sclass = (enum SC) sclass;
     s->Stype = t;
     s->Stype->Tcount++;
-#if ELFOBJ || MACHOBJ // Burton
-    s->Sseg = CDATA;
-#endif
 
     if (tyfunc(t->Tty))
         symbol_func(s);

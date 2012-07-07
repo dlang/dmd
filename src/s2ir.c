@@ -971,9 +971,6 @@ void SwitchStatement::toIR(IRState *irs)
          */
         dt_t *dt = NULL;
         Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
-#if MACHOBJ
-        si->Sseg = DATA;
-#endif
         dtsize_t(&dt, numcases);
         dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
 

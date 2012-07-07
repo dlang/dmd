@@ -1156,12 +1156,7 @@ elem *StringExp::toElem(IRState *irs)
         si = symbol_generate(SCstatic,type_fake(TYdarray));
         si->Sdt = dt;
         si->Sfl = FLdata;
-#if ELFOBJ // Burton
-        si->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        si->Sseg = DATA;
-#endif
+        out_readonly(si);
         outdata(si);
 
         st->m = irs->m;
@@ -1184,10 +1179,7 @@ elem *StringExp::toElem(IRState *irs)
         Symbol *si = symbol_generate(SCstatic, t);
         si->Sdt = dt;
         si->Sfl = FLdata;
-
-#if ELFOBJ || MACHOBJ // Burton
-        si->Sseg = CDATA;
-#endif
+        out_readonly(si);
         outdata(si);
 
         e = el_var(si);
@@ -1776,12 +1768,7 @@ elem *AssertExp::toElem(IRState *irs)
                 assertexp_sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
                 assertexp_sfilename->Sdt = dt;
                 assertexp_sfilename->Sfl = FLdata;
-#if ELFOBJ
-                assertexp_sfilename->Sseg = CDATA;
-#endif
-#if MACHOBJ
-                assertexp_sfilename->Sseg = DATA;
-#endif
+                out_readonly(assertexp_sfilename);
                 outdata(assertexp_sfilename);
 
                 assertexp_mn = m;
