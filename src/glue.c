@@ -1255,14 +1255,7 @@ elem *Module::toEfilename()
         sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
         sfilename->Sdt = dt;
         sfilename->Sfl = FLdata;
-#if ELFOBJ
-        sfilename->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        // Because of PIC and CDATA being in the _TEXT segment, cannot
-        // have pointers in CDATA
-        sfilename->Sseg = DATA;
-#endif
+        out_readonly(sfilename);
         outdata(sfilename);
     }
 

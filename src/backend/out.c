@@ -518,10 +518,19 @@ void outcommon(symbol *s,targ_size_t n)
 
 void out_readonly(symbol *s)
 {
+    // The default is DATA
 #if ELFOBJ
     s->Sseg = CDATA;
 #endif
-    // The default is DATA
+#if MACHOBJ
+    /* Because of PIC and CDATA being in the _TEXT segment;
+     * cannot have pointers in CDATA.
+     * Should check s->Sdt and make it CDATA if it has no pointers.
+     */
+#endif
+#if OMFOBJ
+    // Haven't really worked out where immutable read-only data can go.
+#endif
 }
 
 /******************************
