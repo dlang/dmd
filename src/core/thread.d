@@ -99,23 +99,8 @@ private
     //
     // exposed by compiler runtime
     //
-    extern (C) void* rt_stackBottom();
-    extern (C) void* rt_stackTop();
     extern (C) void  rt_moduleTlsCtor();
     extern (C) void  rt_moduleTlsDtor();
-
-
-    void* getStackBottom()
-    {
-        return rt_stackBottom();
-    }
-
-
-    void* getStackTop()
-    {
-        return rt_stackTop();
-    }
-
 
     alias void delegate() gc_atom;
     extern (C) void function(scope gc_atom) gc_atomic;
@@ -315,40 +300,7 @@ else version( Posix )
             assert( obj );
 
             assert( obj.m_curr is &obj.m_main );
-            // NOTE: For some reason this does not always work for threads.
-            //obj.m_main.bstack = getStackBottom();
-            version( D_InlineAsm_X86 )
-            {
-                static void* getBasePtr()
-                {
-                    asm
-                    {
-                        naked;
-                        mov EAX, EBP;
-                        ret;
-                    }
-                }
-
-                obj.m_main.bstack = getBasePtr();
-            }
-            else version( D_InlineAsm_X86_64 )
-            {
-                static void* getBasePtr()
-                {
-                    asm
-                    {
-                        naked;
-                        mov RAX, RBP;
-                        ret;
-                    }
-                }
-
-                obj.m_main.bstack = getBasePtr();
-            }
-            else version( StackGrowsDown )
-                obj.m_main.bstack = &obj + 1;
-            else
-                obj.m_main.bstack = &obj;
+            obj.m_main.bstack = getStackBottom();
             obj.m_main.tstack = obj.m_main.bstack;
 
             version (OSX)
@@ -2683,15 +2635,73 @@ extern(C) void thread_processGCMarks(scope rt.tlsgc.IsMarkedDg dg)
 }
 
 
-/**
- *
- */
+extern (C)
+{
+    version (linux) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
+    version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+}
+
+
+private void* getStackTop()
+{
+    version (D_InlineAsm_X86)
+        asm { naked; mov EAX, ESP; ret; }
+    else version (D_InlineAsm_X86_64)
+        asm { naked; mov RAX, RSP; ret; }
+    else version (GNU)
+        return __builtin_frame_address(0);
+    else
+        static assert(false, "Architecture not supported.");
+}
+
+
+private void* getStackBottom()
+{
+    version (Windows)
+    {
+        version (D_InlineAsm_X86)
+            asm { naked; mov EAX, FS:4; ret; }
+        else version(D_InlineAsm_X86_64)
+            asm { naked; mov RAX, GS:4; ret; }
+        else
+            static assert(false, "Architecture not supported.");
+    }
+    else version (OSX)
+    {
+        import core.sys.osx.pthread;
+        return pthread_get_stackaddr_np(pthread_self());
+    }
+    else version (linux)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_getattr_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else version (FreeBSD)
+    {
+        pthread_attr_t attr;
+        void* addr; size_t size;
+
+        pthread_attr_init(&attr);
+        pthread_attr_get_np(pthread_self(), &attr);
+        pthread_attr_getstack(&attr, &addr, &size);
+        pthread_attr_destroy(&attr);
+        return addr + size;
+    }
+    else
+        static assert(false, "Platform not supported.");
+}
+
+
 extern (C) void* thread_stackBottom()
 {
-    if( auto t = Thread.getThis() )
-        return t.topContext().bstack;
-    return rt_stackBottom();
+    return Thread.getThis().topContext().bstack;
 }
+
 
 ///////////////////////////////////////////////////////////////////////////////
 // Thread Group
