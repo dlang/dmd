@@ -3372,7 +3372,7 @@ class Fiber
     final void reset()
     in
     {
-        assert( m_state == State.TERM );
+        assert( m_state == State.TERM || m_state == State.HOLD );
         assert( m_ctxt.tstack == m_ctxt.bstack );
     }
     body
