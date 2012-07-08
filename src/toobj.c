@@ -300,9 +300,7 @@ void Module::genmoduleinfo()
              * they resolve to 0 if not pulled in by something else.
              * Don't pull in a module just because it was imported.
              */
-#if !OMFOBJ // Optlink crashes with weak symbols at EIP 41AFE7, 402000
             s->Sflags |= SFLweak;
-#endif
             dtxoff(&dt, s, 0, TYnptr);
         }
     }
@@ -1109,9 +1107,6 @@ void StructDeclaration::toObjFile(int multiobj)
         {
             // Generate static initializer
             toInitializer();
-#if 0
-            sinit->Sclass = SCcomdat;
-#else
             if (inTemplateInstance())
             {
                 sinit->Sclass = SCcomdat;
@@ -1120,30 +1115,9 @@ void StructDeclaration::toObjFile(int multiobj)
             {
                 sinit->Sclass = SCglobal;
             }
-#endif
+
             sinit->Sfl = FLdata;
             toDt(&sinit->Sdt);
-
-#if OMFOBJ
-            /* For OMF, common blocks aren't pulled in from the library.
-             */
-            /* ELF comdef's generate multiple
-             * definition errors for them from the gnu linker.
-             * Need to figure out how to generate proper comdef's for ELF.
-             */
-            // See if we can convert a comdat to a comdef,
-            // which saves on exe file space.
-            if (0 &&  // causes multiple def problems with COMMON in one file and COMDAT in library
-                sinit->Sclass == SCcomdat &&
-                sinit->Sdt &&
-                sinit->Sdt->dt == DT_azeros &&
-                sinit->Sdt->DTnext == NULL &&
-                !global.params.multiobj)
-            {
-                sinit->Sclass = SCglobal;
-                sinit->Sdt->dt = DT_common;
-            }
-#endif
 
             out_readonly(sinit);
             outdata(sinit);
@@ -1290,13 +1264,11 @@ void VarDeclaration::toObjFile(int multiobj)
         if (!sz && type->toBasetype()->ty != Tsarray)
             assert(0); // this shouldn't be possible
 
-#if OMFOBJ
-        if (sz)
-#endif
+        if (sz || obj_allowZeroSize())
         {
             outdata(s);
             if (isExport())
-                obj_export(s,0);
+            obj_export(s,0);
         }
     }
 }
