@@ -121,11 +121,7 @@ struct Module : Package
     const char *kind();
     void setDocfile();  // set docfile member
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
-#ifdef IN_GCC
-    void parse(bool dump_source = false);       // syntactic parse
-#else
     void parse();       // syntactic parse
-#endif
     void importAll(Scope *sc);
     void semantic();    // semantic analysis
     void semantic2();   // pass 2 semantic analysis
