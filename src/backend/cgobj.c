@@ -1116,9 +1116,11 @@ STATIC void obj_comment(unsigned char x, const char *string, size_t len)
  * Output library name.
  * Output:
  *      name is modified
+ * Returns:
+ *      true if operation is supported
  */
 
-void obj_includelib(const char *name)
+bool obj_includelib(const char *name)
 {   const char *p;
     size_t len = strlen(name);
 
@@ -1126,6 +1128,7 @@ void obj_includelib(const char *name)
     if (!filespeccmp(p,".lib"))
         len -= strlen(p);               // lop off .LIB extension
     obj_comment(0x9F, name, len);
+    return true;
 }
 
 /**************************
