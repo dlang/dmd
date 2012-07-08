@@ -2782,7 +2782,7 @@ STATIC void obj_modend()
     else
     {   static const char modend[] = {0};
 
-        objrecord(MODEND,modend,sizeof(modend));
+        objrecord(obj.mmodend,modend,sizeof(modend));
     }
 }
 
