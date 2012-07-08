@@ -2702,27 +2702,6 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan )
 
 import core.atomic; // atomicStore, atomicLoad
 
-/**
- * Signals that the code following this call is a critical region. Any code in
- * this region must finish running before the calling thread can be suspended
- * by a call to thread_suspendAll. If the world is stopped while the calling
- * thread is in a critical region, it will be continually suspended and resumed
- * until it is outside a critical region.
- *
- * This function is, in particular, meant to help maintain garbage collector
- * invariants when a lock is not used.
- *
- * $(RED Warning):
- * Using critical regions is extremely error-prone. For instance, using a lock
- * inside a critical region will most likely result in an application deadlocking
- * because the stop-the-world routine will attempt to suspend and resume the thread
- * forever, to no avail.
- *
- * A critical region is exited with thread_exitCriticalRegion.
- *
- * In:
- *  The calling thread must be attached to the runtime.
- */
 extern (C) void thread_enterCriticalRegion()
 in
 {
@@ -2733,13 +2712,6 @@ body
     atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, true);
 }
 
-/**
- * Signals that the calling thread is no longer in a critical region. Following
- * a call to this function, the thread can once again be suspended.
- *
- * In:
- *  The calling thread must be attached to the runtime.
- */
 extern (C) void thread_exitCriticalRegion()
 in
 {
@@ -2750,12 +2722,6 @@ body
     atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, false);
 }
 
-/**
- * Returns true if the current thread is in a critical region; otherwise, false.
- *
- * In:
- *  The calling thread must be attached to the runtime.
- */
 extern (C) bool thread_inCriticalRegion()
 in
 {
