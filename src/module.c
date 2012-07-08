@@ -413,11 +413,7 @@ inline unsigned readlongBE(unsigned *p)
         (((unsigned char *)p)[0] << 24);
 }
 
-#ifdef IN_GCC
-void Module::parse(bool dump_source)
-#else
 void Module::parse()
-#endif
 {
     //printf("Module::parse()\n");
 
@@ -590,7 +586,7 @@ void Module::parse()
 
 #ifdef IN_GCC
     // dump utf-8 encoded source
-    if (dump_source)
+    if (global.params.dump_source)
     {   // %% srcname could contain a path ...
         d_gcc_dump_source(srcname, "utf-8", buf, buflen);
     }
@@ -616,7 +612,7 @@ void Module::parse()
         buflen = dbuf->offset;
 #ifdef IN_GCC
         // dump extracted source
-        if (dump_source)
+        if (global.params.dump_source)
             d_gcc_dump_source(srcname, "d.utf-8", buf, buflen);
 #endif
     }
