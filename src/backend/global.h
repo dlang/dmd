@@ -371,7 +371,7 @@ void obj_import(elem *e);
 void objlinnum(Srcpos srcpos, targ_size_t offset);
 void obj_dosseg(void);
 void obj_startaddress(Symbol *);
-void obj_includelib(const char *);
+bool obj_includelib(const char *);
 void obj_exestr(const char *p);
 void obj_user(const char *p);
 void obj_compiler();

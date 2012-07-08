@@ -31,7 +31,7 @@
  #include "frontend.net/pragma.h"
 #endif
 
-extern void obj_includelib(const char *name);
+extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 
 
@@ -1139,21 +1139,19 @@ void PragmaDeclaration::toObjFile(int multiobj)
         char *name = (char *)mem.malloc(se->len + 1);
         memcpy(name, se->string, se->len);
         name[se->len] = 0;
-#if OMFOBJ
-        /* The OMF format allows library names to be inserted
-         * into the object file. The linker will then automatically
+
+        /* Embed the library names into the object file.
+         * The linker will then automatically
          * search that library, too.
          */
-        obj_includelib(name);
-#elif ELFOBJ || MACHOBJ
-        /* The format does not allow embedded library names,
-         * so instead append the library name to the list to be passed
-         * to the linker.
-         */
-        global.params.libfiles->push(name);
-#else
-        error("pragma lib not supported");
-#endif
+        if (!obj_includelib(name))
+        {
+            /* The format does not allow embedded library names,
+             * so instead append the library name to the list to be passed
+             * to the linker.
+             */
+            global.params.libfiles->push(name);
+        }
     }
 #if DMDV2
     else if (ident == Id::startaddress)

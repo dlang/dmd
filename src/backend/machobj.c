@@ -1461,12 +1461,12 @@ void obj_startaddress(Symbol *s)
 
 /*******************************
  * Output library name.
- * Output:
  */
 
-void obj_includelib(const char *name)
+bool obj_includelib(const char *name)
 {
     //dbg_printf("obj_includelib(name *%s)\n",name);
+    return false;
 }
 
 /**************************
