@@ -640,3 +640,52 @@ template RTInfo(T)
     enum RTInfo = cast(void*)0x12345678;
 }
 
+version (unittest)
+{
+    string __unittest_toString(T)(ref T value) pure nothrow @trusted
+    {
+        static if (is(T == string))
+            return `"` ~ value ~ `"`;   // TODO: Escape internal double-quotes.
+        else
+        {
+            version (druntime_unittest)
+            {
+                return T.stringof;
+            }
+            else
+            {
+                enum phobos_impl = q{
+                    import std.traits;
+                    alias Unqual!T U;
+                    static if (isFloatingPoint!U)
+                    {
+                        import std.string;
+                        enum format_string = is(U == float) ? "%.7g" :
+                                             is(U == double) ? "%.16g" : "%.20g";
+                        return (cast(string function(...) pure nothrow @safe)&format)(format_string, value);
+                    }
+                    else
+                    {
+                        import std.conv;
+                        alias to!string toString;
+                        alias toString!T f;
+                        return (cast(string function(T) pure nothrow @safe)&f)(value);
+                    }
+                };
+                enum tango_impl = q{
+                    import tango.util.Convert;
+                    alias to!(string, T) f;
+                    return (cast(string function(T) pure nothrow @safe)&f)(value);
+                };
+
+                static if (__traits(compiles, { mixin(phobos_impl); }))
+                    mixin(phobos_impl);
+                else static if (__traits(compiles, { mixin(tango_impl); }))
+                    mixin(tango_impl);
+                else
+                    return T.stringof;
+            }
+        }
+    }
+}
+
