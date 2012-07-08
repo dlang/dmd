@@ -180,9 +180,7 @@ void Module::genmoduleinfo()
              * they resolve to 0 if not pulled in by something else.
              * Don't pull in a module just because it was imported.
              */
-#if !OMFOBJ // Optlink crashes with weak symbols at EIP 41AFE7, 402000
             s->Sflags |= SFLweak;
-#endif
             dtxoff(&dt, s, 0, TYnptr);
         }
     }

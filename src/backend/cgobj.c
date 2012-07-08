@@ -1201,11 +1201,15 @@ STATIC void obj_defaultlib()
  */
 
 void obj_wkext(Symbol *s1,Symbol *s2)
-{   char buffer[2+2+2];
-    int i;
-    int x2;
+{
+    //printf("obj_wkext(%s)\n", s1->Sident);
+    if (I32)
+    {
+        // Optlink crashes with weak symbols at EIP 41AFE7, 402000
+        return;
+    }
 
-    printf("obj_wkext(%s)\n", s1->Sident);
+    int x2;
     if (s2)
         x2 = s2->Sxtrnnum;
     else
@@ -1217,9 +1221,11 @@ void obj_wkext(Symbol *s1,Symbol *s2)
         x2 = obj.nullext;
     }
     outextdata();
+
+    char buffer[2+2+2];
     buffer[0] = 0x80;
     buffer[1] = 0xA8;
-    i = 2;
+    int i = 2;
     i += insidx(&buffer[2],s1->Sxtrnnum);
     i += insidx(&buffer[i],x2);
     objrecord(COMENT,buffer,i);
