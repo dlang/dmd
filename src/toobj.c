@@ -968,9 +968,6 @@ void StructDeclaration::toObjFile(int multiobj)
         {
             // Generate static initializer
             toInitializer();
-#if 0
-            sinit->Sclass = SCcomdat;
-#else
             if (inTemplateInstance())
             {
                 sinit->Sclass = SCcomdat;
@@ -979,7 +976,7 @@ void StructDeclaration::toObjFile(int multiobj)
             {
                 sinit->Sclass = SCglobal;
             }
-#endif
+
             sinit->Sfl = FLdata;
             toDt(&sinit->Sdt);
 
@@ -1144,13 +1141,11 @@ void VarDeclaration::toObjFile(int multiobj)
         if (!sz && type->toBasetype()->ty != Tsarray)
             assert(0); // this shouldn't be possible
 
-#if OMFOBJ
-        if (sz)
-#endif
+        if (sz || obj_allowZeroSize())
         {
-        outdata(s);
+            outdata(s);
             if (isExport())
-                obj_export(s,0);
+            obj_export(s,0);
         }
     }
 }

@@ -1469,6 +1469,15 @@ bool obj_includelib(const char *name)
     return false;
 }
 
+/**********************************
+ * Do we allow zero sized objects?
+ */
+
+bool obj_allowZeroSize()
+{
+    return true;
+}
+
 /**************************
  * Embed string in executable.
  */

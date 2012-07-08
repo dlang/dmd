@@ -372,6 +372,7 @@ void objlinnum(Srcpos srcpos, targ_size_t offset);
 void obj_dosseg(void);
 void obj_startaddress(Symbol *);
 bool obj_includelib(const char *);
+bool obj_allowZeroSize();
 void obj_exestr(const char *p);
 void obj_user(const char *p);
 void obj_compiler();
