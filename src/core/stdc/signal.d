@@ -15,6 +15,8 @@
 module core.stdc.signal;
 
 extern (C):
+@system:
+nothrow:
 
 // this should be volatile
 alias int sig_atomic_t;

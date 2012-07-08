@@ -15,6 +15,8 @@
 module core.stdc.fenv;
 
 extern (C):
+@system:
+nothrow:
 
 version( Windows )
 {

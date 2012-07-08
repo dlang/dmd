@@ -19,6 +19,8 @@ private static import core.stdc.math;
 private static import core.stdc.complex;
 
 extern (C):
+@trusted: // Everything here operates on floating point and integer values.
+nothrow:
 
 version( FreeBSD )
 {

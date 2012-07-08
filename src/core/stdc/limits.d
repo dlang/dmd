@@ -17,6 +17,8 @@ module core.stdc.limits;
 private import core.stdc.config;
 
 extern (C):
+@trusted: // Constants only.
+nothrow:
 
 enum CHAR_BIT       = 8;
 enum SCHAR_MIN      = byte.min;

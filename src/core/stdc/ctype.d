@@ -15,8 +15,8 @@
 module core.stdc.ctype;
 
 extern (C):
+@trusted: // All of these operate on integers only.
 nothrow:
-@safe:
 
 int isalnum(int c);
 int isalpha(int c);

@@ -18,6 +18,8 @@ public import core.stdc.stddef; // for wchar_t
 public import core.stdc.stdint; // required by spec
 
 extern (C):
+@trusted: // Types and constants only.
+nothrow:
 
 struct imaxdiv_t
 {

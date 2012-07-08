@@ -1072,7 +1072,7 @@ class Thread
             {
                 if( !nanosleep( &tin, &tout ) )
                     return;
-                if( getErrno() != EINTR )
+                if( errno != EINTR )
                     throw new ThreadException( "Unable to sleep for the specified duration" );
                 tin = tout;
             }

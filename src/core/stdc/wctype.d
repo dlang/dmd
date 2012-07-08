@@ -17,6 +17,7 @@ module core.stdc.wctype;
 public  import core.stdc.wchar_; // for wint_t, WEOF
 
 extern (C):
+@trusted: // Only a couple of functions below operate on unsafe C strings.
 nothrow:
 
 alias wchar_t wctrans_t;
@@ -36,8 +37,8 @@ int iswupper(wint_t wc);
 int iswxdigit(wint_t wc);
 
 int       iswctype(wint_t wc, wctype_t desc);
-wctype_t  wctype(in char* property);
+@system wctype_t  wctype(in char* property);
 wint_t    towlower(wint_t wc);
 wint_t    towupper(wint_t wc);
 wint_t    towctrans(wint_t wc, wctrans_t desc);
-wctrans_t wctrans(in char* property);
+@system wctrans_t wctrans(in char* property);

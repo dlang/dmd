@@ -18,6 +18,7 @@ private import core.stdc.config;
 public import core.stdc.stddef; // for size_t, wchar_t
 
 extern (C):
+@system:
 nothrow:
 
 struct div_t
@@ -62,18 +63,32 @@ long    strtoll(in char* nptr, char** endptr, int base);
 c_ulong strtoul(in char* nptr, char** endptr, int base);
 ulong   strtoull(in char* nptr, char** endptr, int base);
 
-int     rand();
-void    srand(uint seed);
+// No unsafe pointer manipulation.
+@trusted
+{
+    int     rand();
+    void    srand(uint seed);
+}
 
+// We don't mark these @trusted. Given that they return a void*, one has
+// to do a pointer cast to do anything sensible with the result. Thus,
+// functions using these already have to be @trusted, allowing them to
+// call @system stuff anyway.
 void*   malloc(size_t size);
 void*   calloc(size_t nmemb, size_t size);
 void*   realloc(void* ptr, size_t size);
 void    free(void* ptr);
 
-void    abort();
-void    exit(int status);
-int     atexit(void function() func);
-void    _Exit(int status);
+// These are arguably not safe, due to not shutting the process down
+// properly. However, they are sometimes needed to quickly abort even
+// inside @safe code, so we mark them @trusted.
+@trusted
+{
+    void    abort();
+    void    exit(int status);
+    int     atexit(void function() func);
+    void    _Exit(int status);
+}
 
 char*   getenv(in char* name);
 int     system(in char* string);
@@ -81,13 +96,17 @@ int     system(in char* string);
 void*   bsearch(in void* key, in void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
 void    qsort(void* base, size_t nmemb, size_t size, int function(in void*, in void*) compar);
 
-pure int     abs(int j);
-pure c_long  labs(c_long j);
-pure long    llabs(long j);
+// These only operate on integer values.
+@trusted
+{
+    pure int     abs(int j);
+    pure c_long  labs(c_long j);
+    pure long    llabs(long j);
 
-div_t   div(int numer, int denom);
-ldiv_t  ldiv(c_long numer, c_long denom);
-lldiv_t lldiv(long numer, long denom);
+    div_t   div(int numer, int denom);
+    ldiv_t  ldiv(c_long numer, c_long denom);
+    lldiv_t lldiv(long numer, long denom);
+}
 
 int     mblen(in char* s, size_t n);
 int     mbtowc(wchar_t* pwc, in char* s, size_t n);
@@ -97,5 +116,6 @@ size_t  wcstombs(char* s, in wchar_t* pwcs, size_t n);
 
 version( DigitalMars )
 {
+    // See malloc comment about @trusted.
     void* alloca(size_t size); // non-standard
 }
