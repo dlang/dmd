@@ -33,7 +33,7 @@ private
     extern (C) void onOutOfMemoryError();
     extern (C) Object _d_newclass(TypeInfo_Class ci);
     extern (C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr);
-    extern (C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, void *arrptr);
+    extern (C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, void *arrptr) pure nothrow;
     extern (C) void rt_finalize(void *data, bool det=true);
 }
 
@@ -2414,7 +2414,7 @@ version (unittest)
  * of elements that the array can grow to before the array must be
  * extended/reallocated.
  */
-@property size_t capacity(T)(T[] arr)
+@property size_t capacity(T)(T[] arr) pure nothrow
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
@@ -2427,7 +2427,7 @@ version (unittest)
  * The return value is the new capacity of the array (which may be larger than
  * the requested capacity).
  */
-size_t reserve(T)(ref T[] arr, size_t newcapacity)
+size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }
