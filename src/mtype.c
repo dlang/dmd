@@ -7990,7 +7990,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     //if (sym->isNested())
     //    return defaultInit(loc);
     Expressions *structelems = new Expressions();
-    structelems->setDim(sym->fields.dim);
+    structelems->setDim(sym->fields.dim - sym->isnested);
     for (size_t j = 0; j < structelems->dim; j++)
     {
         VarDeclaration *vd = sym->fields[j];
@@ -8010,7 +8010,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     /* Copy from the initializer symbol for larger symbols,
      * otherwise the literals expressed as code get excessively large.
      */
-    if (size(loc) > PTRSIZE * 4)
+    if (size(loc) > PTRSIZE * 4 && !sym->isnested)
         structinit->sinit = sym->toInitializer();
 
     // Why doesn't the StructLiteralExp constructor do this, when
