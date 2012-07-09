@@ -1,6 +1,8 @@
 $(VERSION 060, mmm dd, 2012, =================================================,
 
     $(WHATSNEW
+$(LI core.time: Non-generic aliases for dur have been added (i.e seconds,
+minutes, etc.))
 $(LI For functions which have a version which takes a core.time.Duration
      and another version which takes an integral value, the version which
      takes an integral value has now been deprecated.)

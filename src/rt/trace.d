@@ -224,12 +224,7 @@ static void trace_place(Symbol *s, uint count)
 }
 
 /////////////////////////////////////
-// Initialize and terminate.
-
-shared static this()
-{
-    trace_init();
-}
+// Terminate.
 
 shared static ~this()
 {

@@ -39,7 +39,7 @@ class TypeInfo_h : TypeInfo
         return *cast(ubyte *)p1 - *cast(ubyte *)p2;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return ubyte.sizeof;
     }

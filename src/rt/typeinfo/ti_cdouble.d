@@ -29,7 +29,8 @@ class TypeInfo_r : TypeInfo
     }
 
     static int _compare(cdouble f1, cdouble f2)
-    {   int result;
+    {
+        int result;
 
         if (f1.re < f2.re)
             result = -1;
@@ -63,7 +64,7 @@ class TypeInfo_r : TypeInfo
         return _compare(*cast(cdouble *)p1, *cast(cdouble *)p2);
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return cdouble.sizeof;
     }
@@ -77,19 +78,21 @@ class TypeInfo_r : TypeInfo
         *cast(cdouble *)p2 = t;
     }
 
-    override void[] init() nothrow pure
-    {   static immutable cdouble r;
+    override const(void)[] init() nothrow pure
+    {
+        static immutable cdouble r;
 
         return (cast(cdouble *)&r)[0 .. 1];
     }
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return cdouble.alignof;
     }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
-    {   arg1 = typeid(double);
+    {
+        arg1 = typeid(double);
         arg2 = typeid(double);
         return 0;
     }

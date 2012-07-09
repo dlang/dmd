@@ -615,7 +615,9 @@ version( unittest )
             Thread.yield();
         }
         thread.join();
-        assert( waiting && alertedOne && !alertedTwo );
+        assert( waiting );
+        assert( alertedOne );
+        assert( !alertedTwo );
     }
 
 

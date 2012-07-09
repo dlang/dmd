@@ -32,7 +32,8 @@ class TypeInfo_f : TypeInfo
         if (d1 !<>= d2)         // if either are NaN
         {
             if (d1 !<>= d1)
-            {   if (d2 !<>= d2)
+            {
+                if (d2 !<>= d2)
                     return 0;
                 return -1;
             }
@@ -60,7 +61,7 @@ class TypeInfo_f : TypeInfo
         return _compare(*cast(float *)p1, *cast(float *)p2);
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return float.sizeof;
     }
@@ -74,8 +75,9 @@ class TypeInfo_f : TypeInfo
         *cast(float *)p2 = t;
     }
 
-    override void[] init() nothrow pure
-    {   static immutable float r;
+    override const(void)[] init() nothrow pure
+    {
+        static immutable float r;
 
         return (cast(float *)&r)[0 .. 1];
     }

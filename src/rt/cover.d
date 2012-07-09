@@ -118,6 +118,8 @@ extern (C) void _d_cover_register( string filename, size_t[] valid, uint[] data 
 
 shared static ~this()
 {
+    if (!gdata.length) return;
+
     const NUMLINES = 16384 - 1;
     const NUMCHARS = 16384 * 16 - 1;
 

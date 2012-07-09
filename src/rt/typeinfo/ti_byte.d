@@ -39,7 +39,7 @@ class TypeInfo_g : TypeInfo
         return *cast(byte *)p1 - *cast(byte *)p2;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return byte.sizeof;
     }

@@ -34,7 +34,8 @@ class TypeInfo_e : TypeInfo
         if (d1 !<>= d2)         // if either are NaN
         {
             if (d1 !<>= d1)
-            {   if (d2 !<>= d2)
+            {
+                if (d2 !<>= d2)
                     return 0;
                 return -1;
             }
@@ -62,7 +63,7 @@ class TypeInfo_e : TypeInfo
         return _compare(*cast(real *)p1, *cast(real *)p2);
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return real.sizeof;
     }
@@ -76,13 +77,14 @@ class TypeInfo_e : TypeInfo
         *cast(real *)p2 = t;
     }
 
-    override void[] init() nothrow pure
-    {   static immutable real r;
+    override const(void)[] init() nothrow pure
+    {
+        static immutable real r;
 
         return (cast(real *)&r)[0 .. 1];
     }
 
-    @property override size_t talign() nothrow pure
+    override @property size_t talign() nothrow pure
     {
         return real.alignof;
     }

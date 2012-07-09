@@ -43,7 +43,7 @@ class TypeInfo_i : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return int.sizeof;
     }
