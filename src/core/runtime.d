@@ -451,9 +451,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
                 for( int i = FIRSTFRAME; i < numframes; ++i )
                 {
+                    char[4096] fixbuf;
                     auto buf = framelist[i][0 .. strlen(framelist[i])];
                     auto pos = cast(size_t)(i - FIRSTFRAME);
-                    buf = fixline( buf );
+                    buf = fixline( buf, fixbuf );
                     ret = dg( pos, buf );
                     if( ret )
                         break;
@@ -474,8 +475,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
             char**  framelist;
 
         private:
-            char[4096] fixbuf;
-            char[] fixline( char[] buf )
+            const(char)[] fixline( const(char)[] buf, ref char[4096] fixbuf ) const
             {
                 version( OSX )
                 {

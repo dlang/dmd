@@ -193,7 +193,7 @@ class TypeInfo
     int      compare(in void* p1, in void* p2) const;
     @property size_t   tsize() nothrow pure const @safe;
     void     swap(void* p1, void* p2) const;
-    @property TypeInfo next() nothrow pure const;
+    @property const(TypeInfo) next() nothrow pure const;
     const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
     @property uint     flags() nothrow pure const @safe;
     // 1:    // has possible pointers into GC memory
@@ -231,7 +231,7 @@ class TypeInfo_Array : TypeInfo
     override int compare(in void* p1, in void* p2);
     override @property size_t tsize() nothrow pure;
     override void swap(void* p1, void* p2);
-    override @property TypeInfo next() nothrow pure;
+    override @property const(TypeInfo) next() nothrow pure const;
     override @property uint flags() nothrow pure;
     override @property size_t talign() nothrow pure;
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2);
