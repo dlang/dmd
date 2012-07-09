@@ -354,20 +354,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-
-        "9intrinsic2btFNaNbxPkkZi",
-        "9intrinsic3bsfFNaNbkZi",
-        "9intrinsic3bsrFNaNbkZi",
-        "9intrinsic3btcFNbPkkZi",
-        "9intrinsic3btrFNbPkkZi",
-        "9intrinsic3btsFNbPkkZi",
-        "9intrinsic3inpFNbkZh",
-        "9intrinsic4inplFNbkZk",
-        "9intrinsic4inpwFNbkZt",
-        "9intrinsic4outpFNbkhZh",
-        "9intrinsic5bswapFNaNbkZk",
-        "9intrinsic5outplFNbkkZk",
-        "9intrinsic5outpwFNbktZt",
 #endif
     };
     static const char *std_namearray64[] =
@@ -413,20 +399,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-
-        "9intrinsic2btFNaNbxPmmZi",
-        "9intrinsic3bsfFNaNbmZi",
-        "9intrinsic3bsrFNaNbmZi",
-        "9intrinsic3btcFNbPmmZi",
-        "9intrinsic3btrFNbPmmZi",
-        "9intrinsic3btsFNbPmmZi",
-        "9intrinsic3inpFNbkZh",
-        "9intrinsic4inplFNbkZk",
-        "9intrinsic4inpwFNbkZt",
-        "9intrinsic4outpFNbkhZh",
-        "9intrinsic5bswapFNaNbkZk",
-        "9intrinsic5outplFNbkkZk",
-        "9intrinsic5outpwFNbktZt",
 #endif
     };
     static unsigned char std_ioptab[] =
