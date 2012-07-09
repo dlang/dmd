@@ -593,40 +593,15 @@ int _d_exception_filter(EXCEPTION_POINTERS *eptrs,
 extern(C)
 void _d_throwc(Object h)
 {
-    // create a standard stack frame, so walking the stack is possible
-    asm 
-    { 
-        naked; 
-        push EBP; 
-        mov EBP,ESP; 
-    }
     // @@@ TODO @@@ Signature should change: h will always be a Throwable.
 
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
     _d_createTrace(h);
-
-    // add some space on the stack to allow the stack walker to resynchronize
-    //  even without symbols for kernel32/kernelbase.dll
-    asm 
-    {
-        mov EAX, 1000;
-    clear_stack:
-        push 0;
-        dec EAX;
-        jnz clear_stack;
-    }
-
     //_d_setUnhandled(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, cast(void *)&h);
-
-    asm
-    {
-        mov ESP,EBP;
-        pop EBP;
-    }
 }
 
 /***********************************
