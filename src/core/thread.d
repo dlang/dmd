@@ -83,6 +83,7 @@ class FiberException : Exception
 private
 {
     import core.sync.mutex;
+    import core.atomic;
 
     //
     // from core.memory
@@ -748,9 +749,9 @@ class Thread
             if( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
                 throw new ThreadException( "Unable to join thread" );
             // NOTE: m_addr must be cleared before m_hndl is closed to avoid
-            //       a race condition with isRunning.  The operation is labeled
-            //       volatile to prevent compiler reordering.
-            volatile m_addr = m_addr.init;
+            //       a race condition with isRunning.  The operation is done
+            //       with atomicStore to prevent races.
+            atomicStore(*cast(shared)&m_addr, m_addr.init);
             CloseHandle( m_hndl );
             m_hndl = m_hndl.init;
         }
@@ -762,7 +763,7 @@ class Thread
             //       which is normally called by the dtor.  Setting m_addr
             //       to zero ensures that pthread_detach will not be called
             //       on object destruction.
-            volatile m_addr = m_addr.init;
+            atomicStore(*cast(shared)&m_addr, m_addr.init);
         }
         if( m_unhandled )
         {
@@ -2652,8 +2653,6 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan )
     thread_scanAllType((type, p1, p2) => scan(p1, p2));
 }
 
-import core.atomic; // atomicStore, atomicLoad
-
 extern (C) void thread_enterCriticalRegion()
 in
 {
@@ -3120,7 +3119,7 @@ private
         assert( obj );
 
         assert( Thread.getThis().m_curr is obj.m_ctxt );
-        volatile Thread.getThis().m_lock = false;
+        atomicStore(*cast(shared)&Thread.getThis().m_lock, false);
         obj.m_ctxt.tstack = obj.m_ctxt.bstack;
         obj.m_state = Fiber.State.EXEC;
 
@@ -4140,7 +4139,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        volatile tobj.m_lock = true;
+        atomicStore(*cast(shared)&tobj.m_lock, true);
         tobj.pushContext( m_ctxt );
 
         fiber_switchContext( oldp, newp );
@@ -4148,7 +4147,7 @@ private:
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
         tobj.popContext();
-        volatile tobj.m_lock = false;
+        atomicStore(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 
@@ -4174,7 +4173,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        volatile tobj.m_lock = true;
+        atomicStore(*cast(shared)&tobj.m_lock, true);
 
         fiber_switchContext( oldp, newp );
 
@@ -4184,7 +4183,7 @@ private:
         //       executing here may be different from the one above, so get the
         //       current thread handle before unlocking, etc.
         tobj = Thread.getThis();
-        volatile tobj.m_lock = false;
+        atomicStore(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 }
@@ -4218,8 +4217,6 @@ else
 
 version( unittest )
 {
-    import core.atomic;
-
     class TestFiber : Fiber
     {
         this()
