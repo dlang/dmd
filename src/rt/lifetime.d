@@ -2183,7 +2183,7 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
             va_start(q, __va_argsave);
             for (size_t i = 0; i < length; i++)
             {
-                va_arg(q, ti.next, result + i * sizeelem);
+                va_arg(q, cast()ti.next, result + i * sizeelem);
             }
             va_end(q);
         }
