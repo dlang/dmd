@@ -42,7 +42,7 @@ class TypeInfo_P : TypeInfo
         return 0;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return (void*).sizeof;
     }
@@ -56,7 +56,7 @@ class TypeInfo_P : TypeInfo
         *cast(void* *)p2 = t;
     }
 
-    @property override uint flags() nothrow pure
+    override @property uint flags() nothrow pure
     {
         return 1;
     }

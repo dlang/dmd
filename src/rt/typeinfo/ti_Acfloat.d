@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_Aq : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -30,7 +30,8 @@ class TypeInfo_Aq : TypeInfo_Array
     override string toString() const pure nothrow @safe { return "cfloat[]"; }
 
     override hash_t getHash(in void* p)
-    {   cfloat[] s = *cast(cfloat[]*)p;
+    {
+        cfloat[] s = *cast(cfloat[]*)p;
         return hashOf(s.ptr, s.length * cfloat.sizeof);
     }
 
@@ -71,7 +72,7 @@ class TypeInfo_Aq : TypeInfo_Array
         return 0;
     }
 
-    @property override TypeInfo next() nothrow pure
+    override @property const(TypeInfo) next() nothrow pure
     {
         return typeid(cfloat);
     }

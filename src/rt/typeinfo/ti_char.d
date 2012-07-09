@@ -39,7 +39,7 @@ class TypeInfo_a : TypeInfo
         return *cast(char *)p1 - *cast(char *)p2;
     }
 
-    @property override size_t tsize() nothrow pure
+    override @property size_t tsize() nothrow pure
     {
         return char.sizeof;
     }
@@ -53,8 +53,9 @@ class TypeInfo_a : TypeInfo
         *cast(char *)p2 = t;
     }
 
-    override void[] init() nothrow pure
-    {   static immutable char c;
+    override const(void)[] init() nothrow pure
+    {
+        static immutable char c;
 
         return (cast(char *)&c)[0 .. 1];
     }

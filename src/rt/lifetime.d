@@ -95,7 +95,7 @@ extern (C) void* _d_allocmemory(size_t sz)
 /**
  *
  */
-extern (C) Object _d_newclass(ClassInfo ci)
+extern (C) Object _d_newclass(const ClassInfo ci)
 {
     void* p;
 
@@ -546,7 +546,7 @@ void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos)
  * It doesn't matter what the current allocated length of the array is, the
  * user is telling the runtime that he knows what he is doing.
  */
-extern(C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr)
+extern(C) void _d_arrayshrinkfit(const TypeInfo ti, void[] arr)
 {
     // note, we do not care about shared.  We are setting the length no matter
     // what, so no lock is required.
@@ -565,7 +565,7 @@ extern(C) void _d_arrayshrinkfit(TypeInfo ti, void[] arr)
     }
 }
 
-void __doPostblit(void *ptr, size_t len, TypeInfo ti)
+void __doPostblit(void *ptr, size_t len, const TypeInfo ti)
 {
     // optimize out any type info that does not need postblit.
     //if((&ti.postblit).funcptr is &TypeInfo.postblit) // compiler doesn't like this
@@ -606,7 +606,7 @@ void __doPostblit(void *ptr, size_t len, TypeInfo ti)
  * of 0 to get the current capacity.  Returns the number of elements that can
  * actually be stored once the resizing is done.
  */
-extern(C) size_t _d_arraysetcapacity(TypeInfo ti, size_t newcapacity, void[]* p)
+extern(C) size_t _d_arraysetcapacity(const TypeInfo ti, size_t newcapacity, void[]* p)
 in
 {
     assert(ti);
@@ -761,7 +761,7 @@ Loverflow:
  * ti is the type of the resulting array, or pointer to element.
  * (For when the array is initialized to 0)
  */
-extern (C) void[] _d_newarrayT(TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayT(const TypeInfo ti, size_t length)
 {
     void[] result;
     auto size = ti.next.tsize();                // array element size
@@ -820,7 +820,7 @@ Loverflow:
 /**
  * For when the array has a non-zero initializer.
  */
-extern (C) void[] _d_newarrayiT(TypeInfo ti, size_t length)
+extern (C) void[] _d_newarrayiT(const TypeInfo ti, size_t length)
 {
     void[] result;
     auto size = ti.next.tsize();                // array element size
@@ -899,14 +899,14 @@ Loverflow:
 /**
  *
  */
-void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
+void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
 {
     debug(PRINTF) printf("_d_newarrayOpT(ndims = %d)\n", ndims);
     if (ndims == 0)
         return null;
     else
     {
-        void[] foo(TypeInfo ti, va_list ap, size_t ndims)
+        void[] foo(const TypeInfo ti, va_list ap, size_t ndims)
         {
             size_t dim;
             va_arg(ap, dim);
@@ -966,7 +966,7 @@ void[] _d_newarrayOpT(alias op)(TypeInfo ti, size_t ndims, va_list q)
 /**
  *
  */
-extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
+extern (C) void[] _d_newarraymT(const TypeInfo ti, size_t ndims, ...)
 {
     debug(PRINTF) printf("_d_newarraymT(ndims = %d)\n", ndims);
 
@@ -989,7 +989,7 @@ extern (C) void[] _d_newarraymT(TypeInfo ti, size_t ndims, ...)
 /**
  *
  */
-extern (C) void[] _d_newarraymiT(TypeInfo ti, size_t ndims, ...)
+extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
 {
     debug(PRINTF) printf("_d_newarraymiT(ndims = %d)\n", ndims);
 
@@ -1112,7 +1112,7 @@ debug(PRINTF)
 /**
  *
  */
-extern (C) void _d_delarray_t(void[]* p, TypeInfo ti)
+extern (C) void _d_delarray_t(void[]* p, const TypeInfo ti)
 {
     if (p)
     {
@@ -1288,7 +1288,7 @@ extern (C) void rt_finalize_gc(void* p)
 /**
  * Resize dynamic arrays with 0 initializers.
  */
-extern (C) void[] _d_arraysetlengthT(TypeInfo ti, size_t newlength, void[]* p)
+extern (C) void[] _d_arraysetlengthT(const TypeInfo ti, size_t newlength, void[]* p)
 in
 {
     assert(ti);
@@ -1466,7 +1466,7 @@ Loverflow:
  *      initsize        size of initializer
  *      ...             initializer
  */
-extern (C) void[] _d_arraysetlengthiT(TypeInfo ti, size_t newlength, void[]* p)
+extern (C) void[] _d_arraysetlengthiT(const TypeInfo ti, size_t newlength, void[]* p)
 in
 {
     assert(!(*p).length || (*p).ptr);
@@ -1658,7 +1658,7 @@ Loverflow:
 /**
  * Append y[] to array x[]
  */
-extern (C) void[] _d_arrayappendT(TypeInfo ti, ref byte[] x, byte[] y)
+extern (C) void[] _d_arrayappendT(const TypeInfo ti, ref byte[] x, byte[] y)
 {
     auto length = x.length;
     auto sizeelem = ti.next.tsize();            // array element size
@@ -1755,7 +1755,7 @@ size_t newCapacity(size_t newlength, size_t size)
 /**
  * Obsolete, replaced with _d_arrayappendcTX()
  */
-extern (C) void[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
+extern (C) void[] _d_arrayappendcT(const TypeInfo ti, ref byte[] x, ...)
 {
     version(X86)
     {
@@ -1796,7 +1796,7 @@ extern (C) void[] _d_arrayappendcT(TypeInfo ti, ref byte[] x, ...)
  * Caller must initialize those elements.
  */
 extern (C)
-byte[] _d_arrayappendcTX(TypeInfo ti, ref byte[] px, size_t n)
+byte[] _d_arrayappendcTX(const TypeInfo ti, ref byte[] px, size_t n)
 {
     // This is a cut&paste job from _d_arrayappendT(). Should be refactored.
 
@@ -1973,7 +1973,7 @@ extern (C) void[] _d_arrayappendwd(ref byte[] x, dchar c)
 /**
  *
  */
-extern (C) byte[] _d_arraycatT(TypeInfo ti, byte[] x, byte[] y)
+extern (C) byte[] _d_arraycatT(const TypeInfo ti, byte[] x, byte[] y)
 out (result)
 {
     auto sizeelem = ti.next.tsize();            // array element size
@@ -2037,7 +2037,7 @@ body
 /**
  *
  */
-extern (C) void[] _d_arraycatnT(TypeInfo ti, uint n, ...)
+extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
 {
     size_t length;
     auto size = ti.next.tsize(); // array element size
@@ -2117,7 +2117,7 @@ extern (C) void[] _d_arraycatnT(TypeInfo ti, uint n, ...)
  * Allocate the array, rely on the caller to do the initialization of the array.
  */
 extern (C)
-void* _d_arrayliteralTX(TypeInfo ti, size_t length)
+void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
 {
     auto sizeelem = ti.next.tsize();            // array element size
     void* result;
@@ -2139,7 +2139,7 @@ void* _d_arrayliteralTX(TypeInfo ti, size_t length)
 /**
  * The old way, obsolete.
  */
-extern (C) void* _d_arrayliteralT(TypeInfo ti, size_t length, ...)
+extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
 {
     auto sizeelem = ti.next.tsize();            // array element size
     void* result;
@@ -2205,7 +2205,7 @@ struct Array2
 /**
  *
  */
-extern (C) void[] _adDupT(TypeInfo ti, void[] a)
+extern (C) void[] _adDupT(const TypeInfo ti, void[] a)
 out (result)
 {
     auto sizeelem = ti.next.tsize();            // array element size

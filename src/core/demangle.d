@@ -1450,7 +1450,7 @@ private struct Demangle
             {
                 debug(info)
                 {
-                    auto msg = e.toString;
+                    auto msg = e.toString();
                     printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
                 }
                 if( dst.length < buf.length )
