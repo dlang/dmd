@@ -711,7 +711,7 @@ class TypeInfo_StaticArray : TypeInfo
             memcpy(p2 + o, tmp, sz);
         }
         if (pbuffer)
-            delete pbuffer;
+            GC.free(pbuffer);
     }
 
     override const(void)[] init() nothrow pure { return value.init(); }
@@ -2009,7 +2009,7 @@ extern (C) void _d_monitordelete(Object h, bool det)
         //       refcount and it may have multiple owners.
         /+
         if (det && (cast(void*) i) !is (cast(void*) h))
-            delete i;
+            GC.free(cast(void*)i);
         +/
         setMonitor(h, null);
     }

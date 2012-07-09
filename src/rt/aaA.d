@@ -18,6 +18,7 @@ private
     import core.stdc.stdarg;
     import core.stdc.string;
     import core.stdc.stdio;
+    import core.memory;
 
     enum BlkAttr : uint
     {
@@ -502,7 +503,7 @@ body
             if (aa.b.ptr == aa.binit.ptr)
                 aa.binit[] = null;
             else
-                delete aa.b;
+                GC.free(aa.b.ptr);
 
             newb.nodes = aa.nodes;
             newb.keyti = aa.keyti;
