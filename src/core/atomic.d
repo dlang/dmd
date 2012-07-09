@@ -1212,4 +1212,40 @@ version( unittest )
         static assert(!__traits(compiles, cas(&ptr2, ifThis, writeThis)));
         static assert(!__traits(compiles, cas(&ptr2, ifThis2, writeThis2)));
     }
+
+    unittest
+    {
+        import core.thread;
+
+        // Use heap memory to ensure an optimizing
+        // compiler doesn't put things in registers.
+        uint* x = new uint();
+        bool* f = new bool();
+        uint* r = new uint();
+
+        auto thr = new Thread(()
+        {
+            while (!*f)
+            {
+            }
+
+            atomicFence();
+
+            *r = *x;
+        });
+
+        thr.start();
+
+        *x = 42;
+
+        atomicFence();
+
+        *f = true;
+
+        atomicFence();
+
+        thr.join();
+
+        assert(*r == 42);
+    }
 }
