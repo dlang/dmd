@@ -1773,7 +1773,7 @@ extern (C) void[] _d_arrayappendcT(const TypeInfo ti, ref byte[] x, ...)
 
         va_list ap;
         va_start(ap, __va_argsave);
-        va_arg(ap, ti.next, cast(void*)b.ptr);
+        va_arg(ap, cast()ti.next, cast(void*)b.ptr);
         va_end(ap);
 
         // The 0..1 here is strange.  Inside _d_arrayappendT, it ends up copying
