@@ -3576,7 +3576,7 @@ static assert(is(typeof(S5110.value) == int));
 class C5110
 {
  override:
-    string toString() { return ""; }
+    const string toString() { return ""; }
 
     class Nested
     {
