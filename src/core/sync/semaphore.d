@@ -436,7 +436,7 @@ version( unittest )
                 semaphore.notify();
                 Thread.yield();
             }
-            Thread.sleep( 10_000_000 ); // 1s
+            Thread.sleep( dur!"seconds"(1) ); // 1s
             synchronized( synProduced )
             {
                 allProduced = true;
