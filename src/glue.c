@@ -305,12 +305,10 @@ void Module::genobjfile(int multiobj)
 #if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
                 objextdef(s->Sident);
 #else
-#if ELFOBJ || MACHOBJ
-                int nbytes = reftoident(DATA, Offset(DATA), s, 0, I64 ? (CFoff | CFoffset64) : CFoff);
-#else
-                int nbytes = reftoident(DATA, Doffset, s, 0, CFoff);
-                Doffset += nbytes;
-#endif
+                Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
+                sref->Sfl = FLdata;
+                dtxoff(&sref->Sdt, s, 0, TYnptr);
+                outdata(sref);
 #endif
             }
         }
