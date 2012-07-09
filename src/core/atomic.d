@@ -604,8 +604,12 @@ else version( AsmX86_32 )
             // significantly slower than mfence, but is the
             // only serialization facility we have available
             // on older non-SSE2 chips.
+            push EBX;
+
             mov EAX, 0;
             cpuid;
+
+            pop EBX;
 
         Lend:
 
