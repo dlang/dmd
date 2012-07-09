@@ -109,6 +109,10 @@ version (Windows)
     extern(C) __gshared ModuleInfo*[] _moduleinfo_array;
     extern(C) void _minit();
 }
+version (OSX)
+{
+    extern (C) __gshared ModuleInfo*[] _moduleinfo_array;
+}
 
 __gshared ModuleGroup _moduleGroup;
 
