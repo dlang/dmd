@@ -137,6 +137,13 @@ version( CoreDdoc )
         rel,    /// sink-load + sink-store barrier
         seq,    /// fully sequenced (acq + rel)
     }
+
+    /**
+     * Inserts a full load/store memory fence (on platforms that need it). This ensures
+     * that all loads and stores before a call to this function are executed before any
+     * loads and stores after the call.
+     */
+    void atomicFence() nothrow;
 }
 else version( AsmX86_32 )
 {
@@ -571,6 +578,42 @@ else version( AsmX86_32 )
         else
         {
             static assert( false, "Invalid template type specified." );
+        }
+    }
+
+
+    void atomicFence() nothrow
+    {
+        import core.cpuid;
+
+        asm
+        {
+            naked;
+
+            call sse2;
+            test AL, AL;
+            jne Lcpuid;
+
+            // Fast path: We have SSE2, so just use mfence.
+            mfence;
+            jmp Lend;
+
+        Lcpuid:
+
+            // Slow path: We use cpuid to serialize. This is
+            // significantly slower than mfence, but is the
+            // only serialization facility we have available
+            // on older non-SSE2 chips.
+            push EBX;
+
+            mov EAX, 0;
+            cpuid;
+
+            pop EBX;
+
+        Lend:
+
+            ;
         }
     }
 }
@@ -1009,6 +1052,17 @@ else version( AsmX86_64 )
             static assert( false, "Invalid template type specified." );
         }
     }
+
+
+    void atomicFence() nothrow
+    {
+        // SSE2 is always present in 64-bit x86 chips.
+        asm
+        {
+            naked;
+            mfence;
+        }
+    }
 }
 
 // This is an ABI adapter that works on all architectures.  It type puns
@@ -1157,5 +1211,41 @@ version( unittest )
         shared(S)* ptr2;
         static assert(!__traits(compiles, cas(&ptr2, ifThis, writeThis)));
         static assert(!__traits(compiles, cas(&ptr2, ifThis2, writeThis2)));
+    }
+
+    unittest
+    {
+        import core.thread;
+
+        // Use heap memory to ensure an optimizing
+        // compiler doesn't put things in registers.
+        uint* x = new uint();
+        bool* f = new bool();
+        uint* r = new uint();
+
+        auto thr = new Thread(()
+        {
+            while (!*f)
+            {
+            }
+
+            atomicFence();
+
+            *r = *x;
+        });
+
+        thr.start();
+
+        *x = 42;
+
+        atomicFence();
+
+        *f = true;
+
+        atomicFence();
+
+        thr.join();
+
+        assert(*r == 42);
     }
 }
