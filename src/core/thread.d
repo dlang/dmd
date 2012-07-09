@@ -2642,8 +2642,12 @@ private void scanAllTypeImpl( scope ScanAllThreadsTypeFn scan, void* curStackTop
             scan( ScanType.stack, t.m_reg.ptr, t.m_reg.ptr + t.m_reg.length );
         }
 
-        scope dg = (void* p1, void* p2) => scan(ScanType.tls, p1, p2);
-        rt.tlsgc.scan(t.m_tlsgcdata, dg);
+        void op(void* p1, void* p2)
+        {
+            scan(ScanType.tls, p1, p2);
+        }
+
+        rt.tlsgc.scan(t.m_tlsgcdata, &op);
     }
 }
 
