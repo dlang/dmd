@@ -6,9 +6,9 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -w -d -Isrc -Iimport -property
-UDFLAGS=-O -release -w -d -Isrc -Iimport -property
-DDOCFLAGS=-c -w -d -o- -Isrc -Iimport
+DFLAGS=-O -release -inline -w -Isrc -Iimport -property
+UDFLAGS=-O -release -w -Isrc -Iimport -property
+DDOCFLAGS=-c -w -o- -Isrc -Iimport
 
 CFLAGS=
 
@@ -545,25 +545,25 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 import: $(IMPORTS)
 
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 ######################## Header .di file copy ##############################
 
