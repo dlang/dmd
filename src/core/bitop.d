@@ -15,7 +15,6 @@
 module core.bitop;
 
 nothrow:
-pure:
 @safe:
 
 version( D_InlineAsm_X86_64 )
@@ -40,7 +39,7 @@ else version( D_InlineAsm_X86 )
  * }
  * ---
  */
-int bsf(size_t v);
+int bsf(size_t v) pure;
 
 unittest
 {
@@ -65,7 +64,7 @@ unittest
  * }
  * ---
  */
-int bsr(size_t v);
+int bsr(size_t v) pure;
 
 unittest
 {
@@ -75,19 +74,19 @@ unittest
 /**
  * Tests the bit.
  */
-int bt(in size_t* p, size_t bitnum);
+int bt(in size_t* p, size_t bitnum) pure;
 
 
 /**
  * Tests and complements the bit.
  */
-int btc(size_t* p, size_t bitnum);
+int btc(size_t* p, size_t bitnum) pure;
 
 
 /**
  * Tests and resets (sets to 0) the bit.
  */
-int btr(size_t* p, size_t bitnum);
+int btr(size_t* p, size_t bitnum) pure;
 
 
 /**
@@ -139,7 +138,7 @@ int main()
 }
  * ---
  */
-int bts(size_t* p, size_t bitnum);
+int bts(size_t* p, size_t bitnum) pure;
 
 unittest
 {
@@ -190,9 +189,9 @@ unittest
  * byte 3, byte 1 becomes byte 2, byte 2 becomes byte 1, byte 3
  * becomes byte 0.
  */
-uint bswap(uint v);
+uint bswap(uint v) pure;
 
-@system
+@system // not pure
 {
     /**
      * Reads I/O port at port_address.
@@ -234,7 +233,7 @@ uint bswap(uint v);
 /**
  *  Calculates the number of set bits in a 32-bit integer.
  */
-int popcnt( uint x )
+int popcnt( uint x ) pure
 {
     // Avoid branches, and the potential for cache misses which
     // could be incurred with a table lookup.
@@ -281,7 +280,7 @@ unittest
 /**
  * Reverses the order of bits in a 32-bit integer.
  */
-@trusted uint bitswap( uint x )
+@trusted uint bitswap( uint x ) pure
 {
     version (AsmX86)
     {
