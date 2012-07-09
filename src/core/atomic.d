@@ -613,7 +613,7 @@ else version( AsmX86_32 )
 
         Lend:
 
-            ;
+            ret;
         }
     }
 }
@@ -1060,7 +1060,9 @@ else version( AsmX86_64 )
         asm
         {
             naked;
+
             mfence;
+            ret;
         }
     }
 }
