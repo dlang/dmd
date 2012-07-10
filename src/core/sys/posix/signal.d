@@ -509,6 +509,8 @@ else version( FreeBSD )
             ___spare___ __spare__;
         }
         __reason _reason;
+
+        @property ref c_long si_band() { return _reason._poll._band; }
     }
 
     int kill(pid_t, int);
