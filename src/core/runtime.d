@@ -462,7 +462,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                 return ret;
             }
 
-            override string toString()
+            override string toString() const
             {
                 string buf;
                 foreach( i, line; this )
