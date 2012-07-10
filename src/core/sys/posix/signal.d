@@ -375,116 +375,116 @@ version( linux )
                 int      si_fd;
             } _sigpoll_t _sigpoll;
         } _sifields_t _sifields;
-        
+
         // How these fields are to be accessed. (as mentionned in kernel source code).
         @property
         pid_t si_pid() {
-        	return _sifields._kill.si_pid;
+                return _sifields._kill.si_pid;
         }
-        
+
         @property
         pid_t si_pid(pid_t si_pid) {
-        	return _sifields._kill.si_pid = si_pid;
+                return _sifields._kill.si_pid = si_pid;
         }
-        
+
         @property
         uid_t si_uid() {
-        	return _sifields._kill.si_uid;
+                return _sifields._kill.si_uid;
         }
-        
+
         @property
         uid_t si_uid(uid_t si_uid) {
-        	return _sifields._kill.si_uid = si_uid;
+                return _sifields._kill.si_uid = si_uid;
         }
-        
+
         @property
         int si_tid() {
-        	return _sifields._timer.si_tid;
+                return _sifields._timer.si_tid;
         }
-        
+
         @property
         int si_tid(int si_tid) {
-        	return _sifields._timer.si_tid = si_tid;
+                return _sifields._timer.si_tid = si_tid;
         }
-        
+
         @property
         int si_overrun() {
-        	return _sifields._timer.si_overrun;
+                return _sifields._timer.si_overrun;
         }
-        
+
         @property
         int si_overrun(int si_overrun) {
-        	return _sifields._timer.si_overrun = si_overrun;
+                return _sifields._timer.si_overrun = si_overrun;
         }
-        
+
         @property
         int si_status() {
-        	return _sifields._sigchld.si_status;
+                return _sifields._sigchld.si_status;
         }
-        
+
         @property
         int si_status(int si_status) {
-        	return _sifields._sigchld.si_status = si_status;
+                return _sifields._sigchld.si_status = si_status;
         }
-        
+
         @property
         clock_t si_utime() {
-        	return _sifields._sigchld.si_utime;
+                return _sifields._sigchld.si_utime;
         }
-        
+
         @property
         clock_t si_utime(clock_t si_utime) {
-        	return _sifields._sigchld.si_utime = si_utime;
+                return _sifields._sigchld.si_utime = si_utime;
         }
-        
+
         @property
         clock_t si_stime() {
-        	return _sifields._sigchld.si_stime;
+                return _sifields._sigchld.si_stime;
         }
-        
+
         @property
         clock_t si_stime(clock_t si_stime) {
-        	return _sifields._sigchld.si_stime = si_stime;
+                return _sifields._sigchld.si_stime = si_stime;
         }
-        
+
         @property
         sigval si_value() {
-        	return _sifields._rt.si_sigval;
+                return _sifields._rt.si_sigval;
         }
-        
+
         @property
         sigval si_value(sigval si_value) {
-        	return _sifields._rt.si_sigval = si_value;
+                return _sifields._rt.si_sigval = si_value;
         }
-        
+
         @property
         int si_int() {
-        	return _sifields._rt.si_sigval.sival_int;
+                return _sifields._rt.si_sigval.sival_int;
         }
-        
+
         @property
         int si_int(int si_int) {
-        	return _sifields._rt.si_sigval.sival_int = si_int;
+                return _sifields._rt.si_sigval.sival_int = si_int;
         }
-        
+
         @property
         void* si_ptr() {
-        	return _sifields._rt.si_sigval.sival_ptr;
+                return _sifields._rt.si_sigval.sival_ptr;
         }
-        
+
         @property
         void* si_ptr(void* si_ptr) {
-        	return _sifields._rt.si_sigval.sival_ptr = si_ptr;
+                return _sifields._rt.si_sigval.sival_ptr = si_ptr;
         }
-        
+
         @property
         void* si_addr() {
-        	return _sifields._sigfault.si_addr;
+                return _sifields._sigfault.si_addr;
         }
-        
+
         @property
         void* si_addr(void* si_addr) {
-        	return _sifields._sigfault.si_addr = si_addr;
+                return _sifields._sigfault.si_addr = si_addr;
         }
     }
 
