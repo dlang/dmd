@@ -336,16 +336,16 @@ void outdata(symbol *s)
         s->Sseg = seg;
     else
         seg = s->Sseg;
-    if (s->Sclass == SCglobal || s->Sclass == SCstatic)
-    {
-        objpubdefsize(s->Sseg,s,s->Soffset,datasize); // do the definition
-    }
 #endif
 #if OMFOBJ
     s->Sseg = seg;
-    if (s->Sclass == SCglobal)          /* if a pubdef to be done       */
-        objpubdef(seg,s,s->Soffset);    /* do the definition            */
 #endif
+    if (s->Sclass == SCglobal
+#if ELFOBJ || MACHOBJ
+        || s->Sclass == SCstatic
+#endif
+        )
+        objpubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
     assert(s->Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s->Sclass == SCstatic && funcsym_p)) // not local static
