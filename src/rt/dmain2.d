@@ -30,7 +30,6 @@ version (Windows)
 
     extern (Windows) alias int function() FARPROC;
     extern (Windows) FARPROC    GetProcAddress(void*, in char*);
-    extern (Windows) void*      LoadLibraryA(in char*);
     extern (Windows) void*      LoadLibraryW(in wchar_t*);
     extern (Windows) int        FreeLibrary(void*);
     extern (Windows) void*      LocalFree(void*);
@@ -126,64 +125,28 @@ extern (C) void* rt_loadLibrary(in char[] name)
         void* mod;
         if (name.length == 0) return null;
         // Load a DLL at runtime
-        if (GetVersion() < 0x80000000)
-        {
-            wchar_t* tempW;
-            auto tempWbufofslen = MultiByteToWideChar(65001, 0,
-                name.ptr, name.length, null, 0);
-            if (!tempWbufofslen) return null;
-            enum wcharsize       = typeof(*tempW).sizeof;
-            enum ofssize         = 4 * wcharsize;
-            auto tempWbufofssize = (tempWbufofslen+1) * wcharsize;
-            auto tempWbufsize    = tempWbufofssize + ofssize;
-            
-            tempW = cast(typeof(tempW))alloca(tempWbufsize);
-            if (!tempW) return null;
-            tempW[0..4] = r"\\?\";
-            auto tempWofs = cast(typeof(tempW))((cast(ubyte*)tempW)+ofssize);
-            
-            auto tempWofslen = MultiByteToWideChar(65001, 0,
-                name.ptr, name.length, tempWofs, tempWbufofslen);
-            if (tempWofslen == 0 && tempWbufofslen != tempWofslen) return null;
-            
-            tempWofs[tempWofslen] = '\0';
-            
-            // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
-            mod = LoadLibraryW(tempW);
-        }
-        else
-        {
-            char* temp;
-            wchar_t* tempW;
-            auto tempWbuflen = MultiByteToWideChar(65001, 0,
-                name.ptr, name.length, null, 0);
-            if (!tempWbuflen) return null;
-            auto tempWbufsize = (tempWbuflen+1) * typeof(*tempW).sizeof;
-            tempW = cast(typeof(tempW))alloca(tempWbufsize);
-            if (!tempW) return null;
-            
-            auto tempWlen = MultiByteToWideChar(65001, 0,
-                name.ptr, name.length, tempW, tempWbufsize);
-            if (tempWlen == 0 && tempWbuflen != tempWlen) return null;
-            tempW[tempWlen] = '\0';
-            
-            auto tempbuflen = WideCharToMultiByte(0, 0,
-                tempW, tempWbuflen,
-                null, 0, null, null);
-            auto tempbufsize = (tempbuflen+1) * typeof(*temp).sizeof;
-            temp = cast(typeof(temp))alloca(tempbufsize);
-            if (!temp) return null;
-            
-            auto templen = WideCharToMultiByte(0, 0,
-                tempW,tempWbuflen,
-                temp, tempbufsize, null, null);
-            if (templen == 0 && tempbuflen != templen) return null;
-            
-            temp[templen] = '\0';
-            
-            // BUG: LoadLibraryA() call calls rt_init(), which fails if proxy is not set!
-            mod = LoadLibraryA(temp);
-        }
+        wchar_t* tempW;
+        auto tempWbufofslen = MultiByteToWideChar(65001, 0,
+            name.ptr, name.length, null, 0);
+        if (!tempWbufofslen) return null;
+        enum wcharsize       = typeof(*tempW).sizeof;
+        enum ofssize         = 4 * wcharsize;
+        auto tempWbufofssize = (tempWbufofslen+1) * wcharsize;
+        auto tempWbufsize    = tempWbufofssize + ofssize;
+        
+        tempW = cast(typeof(tempW))alloca(tempWbufsize);
+        if (!tempW) return null;
+        tempW[0..4] = r"\\?\";
+        auto tempWofs = cast(typeof(tempW))((cast(ubyte*)tempW)+ofssize);
+        
+        auto tempWofslen = MultiByteToWideChar(65001, 0,
+            name.ptr, name.length, tempWofs, tempWbufofslen);
+        if (tempWofslen == 0 && tempWbufofslen != tempWofslen) return null;
+        
+        tempWofs[tempWofslen] = '\0';
+        
+        // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
+        mod = LoadLibraryW(tempW);
         if (mod is null)
             return mod;
         gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
