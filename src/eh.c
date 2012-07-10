@@ -55,7 +55,6 @@ symbol *except_gentables()
     assert(!usedalloca);
 
     symbol *s = symbol_generate(SCstatic,tsint);
-//    s->Sseg = UNKNOWN;
     symbol_keep(s);
     symbol_debug(s);
 
