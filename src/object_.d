@@ -24,6 +24,7 @@ private
     import core.atomic;
     import core.stdc.string;
     import core.stdc.stdlib;
+    import core.memory;
     import rt.util.hash;
     import rt.util.string;
     import rt.util.console;
