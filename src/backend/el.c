@@ -1634,6 +1634,7 @@ elem * el_ptr(symbol *s)
          * that data variable.
          */
         symbol *sd = symboldata(Doffset, TYnptr);
+        sd->Sseg = DATA;
         Doffset += reftoident(DATA, Doffset, s, 0, CFoff);
         e = el_picvar(sd);
         return e;
@@ -1974,7 +1975,9 @@ elem *el_convstring(elem *e)
     // in the DATA segment
 
     if (eecontext.EEcompile)
-        s = symboldata(Doffset,e->Ety);
+    {   s = symboldata(Doffset,e->Ety);
+        s->Sseg = DATA;
+    }
     else
         s = out_readonly_sym(e->Ety,p,len);
 
