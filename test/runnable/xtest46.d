@@ -4943,7 +4943,7 @@ class A158
 class B158 : A158
 {
     override void foo1() { }
-    override void foo2() { }
+    override void foo2() const { }
     override void foo3() { }
     override void foo4() { }
 }

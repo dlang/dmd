@@ -5209,11 +5209,15 @@ Lcovariant:
      */
     if (!MODimplicitConv(t2->mod, t1->mod))
     {
+#if 0//stop attribute inference with const
         // If adding 'const' will make it covariant
         if (MODimplicitConv(t2->mod, MODmerge(t1->mod, MODconst)))
             stc |= STCconst;
         else
             goto Lnotcovariant;
+#else
+        goto Ldistinct;
+#endif
     }
 
     /* Can convert pure to impure, and nothrow to throw
