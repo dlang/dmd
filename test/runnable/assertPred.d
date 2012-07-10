@@ -94,7 +94,7 @@ unittest {
     assert(a == [1, 2, 3, 4, 5]);
     bool assertCaught = false;
     try {
-        assert(a == [5, 4, 3, 2, 1]);
+        assert(a[] == [5, 4, 3, 2, 1]);
     } catch (AssertError e) {
         assert(e.msg == "[1, 2, 3, 4, 5] == [5, 4, 3, 2, 1]  is unexpected");
         assertCaught = true;
@@ -124,7 +124,7 @@ unittest {
 class C123 {
     string s;
     override string toString() { return `C123("` ~ s ~ `")`; }
-    override bool opEquals(Object other) const { return false; }
+    override bool opEquals(const Object other) const pure nothrow @safe { return false; }
 }
 unittest {
     auto a = new C123, b = new C123;

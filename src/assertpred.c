@@ -7,6 +7,7 @@
 // See the included readme.txt for details.
 
 #include <stdlib.h>
+#include <string.h>
 
 #include "expression.h"
 #include "scope.h"
