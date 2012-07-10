@@ -2847,7 +2847,24 @@ private void* getStackBottom()
 }
 
 
+extern (C) void* thread_stackTop()
+in
+{
+    // Not strictly required, but it gives us more flexibility.
+    assert(Thread.getThis());
+}
+body
+{
+    return getStackTop();
+}
+
+
 extern (C) void* thread_stackBottom()
+in
+{
+    assert(Thread.getThis());
+}
+body
 {
     return Thread.getThis().topContext().bstack;
 }
