@@ -330,7 +330,7 @@ bool readFile( string name, ref char[] buf )
                                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                                        cast(HANDLE) null );
 
-        GC.free(wnamez);
+        GC.free(cast(void*)wnamez);
         if( file == INVALID_HANDLE_VALUE )
             return false;
         scope( exit ) CloseHandle( file );
