@@ -763,7 +763,7 @@ class Thread
             //       which is normally called by the dtor.  Setting m_addr
             //       to zero ensures that pthread_detach will not be called
             //       on object destruction.
-            atomicStore(*cast(shared)&m_addr, m_addr.init);
+            atomicStore(*cast(shared)&m_addr, cast(shared)m_addr.init);
         }
         if( m_unhandled )
         {
