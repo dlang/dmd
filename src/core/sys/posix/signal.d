@@ -376,18 +376,12 @@ version( linux )
             } _sigpoll_t _sigpoll;
         } _sifields_t _sifields;
 
-        // How these fields are to be accessed. (as mentionned in kernel source code).
         @property ref pid_t si_pid() { return _sifields._kill.si_pid; }
         @property ref uid_t si_uid() { return _sifields._kill.si_uid; }
-        @property ref int si_tid() { return _sifields._timer.si_tid; }
-        @property ref int si_overrun() { return _sifields._timer.si_overrun; }
-        @property ref int si_status() { return _sifields._sigchld.si_status; }
-        @property ref clock_t si_utime() { return _sifields._sigchld.si_utime; }
-        @property ref clock_t si_stime() { return _sifields._sigchld.si_stime; }
-        @property ref sigval si_value() { return _sifields._rt.si_sigval; }
-        @property ref int si_int() { return _sifields._rt.si_sigval.sival_int; }
-        @property ref void* si_ptr() { return _sifields._rt.si_sigval.sival_ptr; }
         @property ref void* si_addr() { return _sifields._sigfault.si_addr; }
+        @property ref int si_status() { return _sifields._sigchld.si_status; }
+        @property ref c_long si_band() { return _sifields._sigpoll.si_band; }
+        @property ref sigval si_value() { return _sifields._rt.si_sigval; }
     }
 
     enum
