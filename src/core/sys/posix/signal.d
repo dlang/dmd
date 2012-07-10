@@ -377,115 +377,17 @@ version( linux )
         } _sifields_t _sifields;
 
         // How these fields are to be accessed. (as mentionned in kernel source code).
-        @property
-        pid_t si_pid() {
-                return _sifields._kill.si_pid;
-        }
-
-        @property
-        pid_t si_pid(pid_t si_pid) {
-                return _sifields._kill.si_pid = si_pid;
-        }
-
-        @property
-        uid_t si_uid() {
-                return _sifields._kill.si_uid;
-        }
-
-        @property
-        uid_t si_uid(uid_t si_uid) {
-                return _sifields._kill.si_uid = si_uid;
-        }
-
-        @property
-        int si_tid() {
-                return _sifields._timer.si_tid;
-        }
-
-        @property
-        int si_tid(int si_tid) {
-                return _sifields._timer.si_tid = si_tid;
-        }
-
-        @property
-        int si_overrun() {
-                return _sifields._timer.si_overrun;
-        }
-
-        @property
-        int si_overrun(int si_overrun) {
-                return _sifields._timer.si_overrun = si_overrun;
-        }
-
-        @property
-        int si_status() {
-                return _sifields._sigchld.si_status;
-        }
-
-        @property
-        int si_status(int si_status) {
-                return _sifields._sigchld.si_status = si_status;
-        }
-
-        @property
-        clock_t si_utime() {
-                return _sifields._sigchld.si_utime;
-        }
-
-        @property
-        clock_t si_utime(clock_t si_utime) {
-                return _sifields._sigchld.si_utime = si_utime;
-        }
-
-        @property
-        clock_t si_stime() {
-                return _sifields._sigchld.si_stime;
-        }
-
-        @property
-        clock_t si_stime(clock_t si_stime) {
-                return _sifields._sigchld.si_stime = si_stime;
-        }
-
-        @property
-        sigval si_value() {
-                return _sifields._rt.si_sigval;
-        }
-
-        @property
-        sigval si_value(sigval si_value) {
-                return _sifields._rt.si_sigval = si_value;
-        }
-
-        @property
-        int si_int() {
-                return _sifields._rt.si_sigval.sival_int;
-        }
-
-        @property
-        int si_int(int si_int) {
-                return _sifields._rt.si_sigval.sival_int = si_int;
-        }
-
-        @property
-        void* si_ptr() {
-                return _sifields._rt.si_sigval.sival_ptr;
-        }
-
-        @property
-        void* si_ptr(void* si_ptr) {
-                return _sifields._rt.si_sigval.sival_ptr = si_ptr;
-        }
-
-        @property
-        void* si_addr() {
-                return _sifields._sigfault.si_addr;
-        }
-
-        @property
-        void* si_addr(void* si_addr) {
-                return _sifields._sigfault.si_addr = si_addr;
-        }
+        @property ref pid_t si_pid() { return _sifields._kill.si_pid; }
+        @property ref uid_t si_uid() { return _sifields._kill.si_uid; }
+        @property ref int si_tid() { return _sifields._timer.si_tid; }
+        @property ref int si_overrun() { return _sifields._timer.si_overrun; }
+        @property ref int si_status() { return _sifields._sigchld.si_status; }
+        @property ref clock_t si_utime() { return _sifields._sigchld.si_utime; }
+        @property ref clock_t si_stime() { return _sifields._sigchld.si_stime; }
+        @property ref sigval si_value() { return _sifields._rt.si_sigval; }
+        @property ref int si_int() { return _sifields._rt.si_sigval.sival_int; }
+        @property ref void* si_ptr() { return _sifields._rt.si_sigval.sival_ptr; }
+        @property ref void* si_addr() { return _sifields._sigfault.si_addr; }
     }
 
     enum
