@@ -224,16 +224,16 @@ class TypeInfo_Pointer : TypeInfo
 
 class TypeInfo_Array : TypeInfo
 {
-    override string toString();
-    override equals_t opEquals(const Object o);
-    override hash_t getHash(in void* p) @trusted;
-    override equals_t equals(in void* p1, in void* p2);
-    override int compare(in void* p1, in void* p2);
-    override @property size_t tsize() nothrow pure;
-    override void swap(void* p1, void* p2);
+    override string toString() const;
+    override equals_t opEquals(const Object o) const;
+    override hash_t getHash(in void* p) @trusted const;
+    override equals_t equals(in void* p1, in void* p2) const;
+    override int compare(in void* p1, in void* p2) const;
+    override @property size_t tsize() nothrow pure const;
+    override void swap(void* p1, void* p2) const;
     override @property const(TypeInfo) next() nothrow pure const;
-    override @property uint flags() nothrow pure;
-    override @property size_t talign() nothrow pure;
+    override @property uint flags() nothrow pure const;
+    override @property size_t talign() nothrow pure const;
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 
     TypeInfo value;
@@ -451,7 +451,7 @@ class Throwable : Object
 
     this(string msg, Throwable next = null);
     this(string msg, string file, size_t line, Throwable next = null);
-    override string toString();
+    override string toString() const;
 }
 
 

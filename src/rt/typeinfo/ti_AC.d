@@ -17,9 +17,9 @@ module rt.typeinfo.ti_AC;
 
 class TypeInfo_AC : TypeInfo_Array
 {
-    override string toString() { return TypeInfo.toString(); }
+    override string toString() const { return TypeInfo.toString(); }
 
-    override equals_t opEquals(const Object o) { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(const Object o) const { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
