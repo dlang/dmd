@@ -410,7 +410,7 @@ struct GC
      */
     static inout(void)* addrOf( inout(void)* p ) nothrow /* FIXME pure */
     {
-        return cast(inout(void)*)addrOf(cast()p);
+        return cast(inout(void)*)gc_addrOf(cast(void*)p);
     }
 
 
@@ -436,7 +436,7 @@ struct GC
      */
     static size_t sizeOf( in void* p ) nothrow
     {
-        return sizeOf(cast(const)p);
+        return gc_sizeOf(cast(void*)p);
     }
 
 
@@ -464,7 +464,7 @@ struct GC
      */
     static BlkInfo query( in void* p ) nothrow
     {
-        return query(cast(const)p);
+        return gc_query(cast(void*)p);
     }
 
 
