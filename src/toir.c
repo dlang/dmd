@@ -453,13 +453,13 @@ int intrinsic_op(char *name)
         "5bitop3btcFNaNbNfPkkZi",
         "5bitop3btrFNaNbNfPkkZi",
         "5bitop3btsFNaNbNfPkkZi",
-        "5bitop3inpFNaNbkZh",
-        "5bitop4inplFNaNbkZk",
-        "5bitop4inpwFNaNbkZt",
-        "5bitop4outpFNaNbkhZh",
+        "5bitop3inpFNbkZh",
+        "5bitop4inplFNbkZk",
+        "5bitop4inpwFNbkZt",
+        "5bitop4outpFNbkhZh",
         "5bitop5bswapFNaNbNfkZk",
-        "5bitop5outplFNaNbkkZk",
-        "5bitop5outpwFNaNbktZt",
+        "5bitop5outplFNbkkZk",
+        "5bitop5outpwFNbktZt",
     };
     static const char *core_namearray64[] =
     {
@@ -483,13 +483,13 @@ int intrinsic_op(char *name)
         "5bitop3btcFNaNbNfPmmZi",
         "5bitop3btrFNaNbNfPmmZi",
         "5bitop3btsFNaNbNfPmmZi",
-        "5bitop3inpFNaNbkZh",
-        "5bitop4inplFNaNbkZk",
-        "5bitop4inpwFNaNbkZt",
-        "5bitop4outpFNaNbkhZh",
+        "5bitop3inpFNbkZh",
+        "5bitop4inplFNbkZk",
+        "5bitop4inpwFNbkZt",
+        "5bitop4outpFNbkhZh",
         "5bitop5bswapFNaNbNfkZk",
-        "5bitop5outplFNaNbkkZk",
-        "5bitop5outpwFNaNbktZt",
+        "5bitop5outplFNbkkZk",
+        "5bitop5outpwFNbktZt",
     };
     static unsigned char core_ioptab[] =
     {
