@@ -56,7 +56,7 @@ enum TOK;
 // Back end
 struct IRState;
 struct Blockx;
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node; typedef union tree_node block;
 union tree_node; typedef union tree_node elem;
 #else
@@ -318,9 +318,11 @@ struct ForStatement : Statement
     Expression *condition;
     Expression *increment;
     Statement *body;
+    int nest;
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
+    Statement *semanticInit(Scope *sc);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
@@ -542,7 +544,7 @@ struct CaseRangeStatement : Statement
 struct DefaultStatement : Statement
 {
     Statement *statement;
-#if IN_GCC
+#ifdef IN_GCC
     block *cblock;      // back end: label for the block
 #endif
 
@@ -602,6 +604,7 @@ struct SwitchErrorStatement : Statement
 struct ReturnStatement : Statement
 {
     Expression *exp;
+    int implicit0;
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
@@ -848,9 +851,6 @@ struct LabelStatement : Statement
 struct LabelDsymbol : Dsymbol
 {
     LabelStatement *statement;
-#if IN_GCC
-    unsigned asmLabelNum;       // GCC-specific
-#endif
 
     LabelDsymbol(Identifier *ident);
     LabelDsymbol *isLabel();

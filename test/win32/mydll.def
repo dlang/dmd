@@ -1,0 +1,9 @@
+LIBRARY         MYDLL
+DESCRIPTION     'MyDll demonstration DLL'
+
+EXETYPE		NT
+CODE            PRELOAD DISCARDABLE
+DATA            PRELOAD SINGLE
+
+EXPORTS
+	D5mydll12__ModuleInfoZ

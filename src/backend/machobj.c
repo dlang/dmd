@@ -810,6 +810,11 @@ void obj_term()
                     continue;
 
                 int align = 1 << psechdr->align;
+                while (align < pseg->SDalignment)
+                {
+                    psechdr->align += 1;
+                    align <<= 1;
+                }
                 foffset = elf_align(align, foffset);
                 vmaddr = (vmaddr + align - 1) & ~(align - 1);
                 if (psechdr->flags == S_ZEROFILL)
@@ -843,6 +848,11 @@ void obj_term()
                     continue;
 
                 int align = 1 << psechdr->align;
+                while (align < pseg->SDalignment)
+                {
+                    psechdr->align += 1;
+                    align <<= 1;
+                }
                 foffset = elf_align(align, foffset);
                 vmaddr = (vmaddr + align - 1) & ~(align - 1);
                 if (psechdr->flags == S_ZEROFILL)
@@ -1451,12 +1461,21 @@ void obj_startaddress(Symbol *s)
 
 /*******************************
  * Output library name.
- * Output:
  */
 
-void obj_includelib(const char *name)
+bool obj_includelib(const char *name)
 {
     //dbg_printf("obj_includelib(name *%s)\n",name);
+    return false;
+}
+
+/**********************************
+ * Do we allow zero sized objects?
+ */
+
+bool obj_allowZeroSize()
+{
+    return true;
 }
 
 /**************************
@@ -1600,9 +1619,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
     int align = I64 ? 3 : 2;            // align to NPTRSIZE
     // The size is sizeof(struct FuncTable) in deh2.d
-    mach_getsegment("__deh_beg", "__DATA", align, S_COALESCED, 3 * NPTRSIZE);
     int seg = mach_getsegment("__deh_eh", "__DATA", align, S_REGULAR);
-    mach_getsegment("__deh_end", "__DATA", align, S_COALESCED, NPTRSIZE);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
@@ -1670,6 +1687,11 @@ void obj_ehsections()
  *      "segment index" of COMDAT
  */
 
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    return obj_comdat(s);
+}
+
 int obj_comdat(Symbol *s)
 {
     const char *sectname;
@@ -1692,11 +1714,8 @@ int obj_comdat(Symbol *s)
     else if ((s->ty() & mTYLINK) == mTYthread)
     {
         s->Sfl = FLtlsdata;
-        align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
-        mach_getsegment("__tls_data", "__DATA", align, S_REGULAR, 4);
-        s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
+        align = 4;
+        s->Sseg = mach_getsegment("__tlscoal_nt", "__DATA", align, S_COALESCED);
         elf_data_start(s, 1 << align, s->Sseg);
     }
     else
@@ -1705,10 +1724,11 @@ int obj_comdat(Symbol *s)
         sectname = "__datacoal_nt";
         segname = "__DATA";
         align = 4;              // 16 byte alignment
-        flags = S_COALESCED;
-        s->Sseg = mach_getsegment(sectname, segname, align, flags);
+        s->Sseg = mach_getsegment(sectname, segname, align, S_COALESCED);
     }
                                 // find or create new segment
+    if (s->Salignment > (1 << align))
+        SegData[s->Sseg]->SDalignment = s->Salignment;
     s->Soffset = SegData[s->Sseg]->SDoffset;
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {   // Code symbols are 'published' by elf_func_start()
@@ -1887,10 +1907,7 @@ seg_data *obj_tlsseg()
     if (seg_tlsseg == UNKNOWN)
     {
         int align = I64 ? 4 : 2;            // align to 16 bytes for floating point
-        mach_getsegment("__tls_beg", "__DATA", align, S_COALESCED, 4);
         seg_tlsseg = mach_getsegment("__tls_data", "__DATA", align, S_REGULAR);
-        mach_getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-        mach_getsegment("__tls_end", "__DATA", align, S_COALESCED, 4);
     }
     return SegData[seg_tlsseg];
 }
@@ -2046,15 +2063,23 @@ void obj_export(Symbol *s,unsigned argsize)
 int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
-    //dbg_printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+
+    //printf("elf_data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
+    assert(sdata->Sseg);
     if (sdata->Sseg == UNKNOWN) // if we don't know then there
         sdata->Sseg = seg;      // wasn't any segment override
     else
         seg = sdata->Sseg;
     targ_size_t offset = Offset(seg);
-    alignbytes = align(datasize, offset) - offset;
+    if (sdata->Salignment > 0)
+    {   if (SegData[seg]->SDalignment < sdata->Salignment)
+            SegData[seg]->SDalignment = sdata->Salignment;
+        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+    }
+    else
+        alignbytes = align(datasize, offset) - offset;
     if (alignbytes)
         obj_lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
@@ -2073,6 +2098,7 @@ void elf_func_start(Symbol *sfunc)
     //printf("elf_func_start(%s)\n",sfunc->Sident);
     symbol_debug(sfunc);
 
+    assert(sfunc->Sseg);
     if (sfunc->Sseg == UNKNOWN)
         sfunc->Sseg = CODE;
     //printf("sfunc->Sseg %d CODE %d cseg %d Coffset x%x\n",sfunc->Sseg,CODE,cseg,Coffset);
@@ -2211,6 +2237,8 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
     comdef.count = count;
     comdef_symbuf->write(&comdef, sizeof(comdef));
     s->Sxtrnnum = 1;
+    if (!s->Sseg)
+        s->Sseg = UDATA;
     return 0;           // should return void
 }
 
@@ -2413,6 +2441,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
     printf("reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
         seg,offset,val,targetdatum,flags);
 #endif
+    assert(seg != 0);
     if (SegData[seg]->isCode() && SegData[targetdatum]->isCode())
     {
         assert(0);
@@ -2662,32 +2691,9 @@ void objfile_write(FILE *fd, void *buffer, unsigned len)
 
 long elf_align(targ_size_t size, long foffset)
 {
-    long offset;
-    switch (size)
-    {
-        case 0:
-        case 1:
-            return foffset;
-        case 2:
-            offset = (foffset + 1) & ~1;
-            break;
-        case 4:
-            offset = (foffset + 3) & ~3;
-            break;
-        case 8:
-            offset = (foffset + 7) & ~7;
-            break;
-        case 16:
-            offset = (foffset + 15) & ~15;
-            break;
-        case 32:
-            offset = (foffset + 31) & ~31;
-            break;
-        default:
-            dbg_printf("size was %lu\n",(unsigned long)size);
-            assert(0);
-            break;
-    }
+    if (size <= 1)
+        return foffset;
+    long offset = (foffset + size - 1) & ~(size - 1);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;
@@ -2702,8 +2708,6 @@ long elf_align(targ_size_t size, long foffset)
 void obj_moduleinfo(Symbol *scc)
 {
     int align = I64 ? 4 : 2;
-
-    mach_getsegment("__minfo_beg", "__DATA", align, S_COALESCED, 4);
 
     int seg = mach_getsegment("__minfodata", "__DATA", align, S_REGULAR);
     //printf("obj_moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
@@ -2722,8 +2726,6 @@ void obj_moduleinfo(Symbol *scc)
     if (I64)
         flags |= CFoffset64;
     SegData[seg]->SDoffset += reftoident(seg, Offset(seg), scc, 0, flags);
-
-    mach_getsegment("__minfo_end", "__DATA", align, S_COALESCED, 4);
 }
 
 #endif

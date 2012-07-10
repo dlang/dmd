@@ -302,7 +302,6 @@ STATIC void ecom(elem **pe)
         if (tyfloating(tym))
             return;
         break;
-#if TX86
     case OPstrcpy:
     case OPstrcat:
     case OPmemcpy:
@@ -312,9 +311,7 @@ STATIC void ecom(elem **pe)
         ecom(&e->E1);
         touchfunc(0);
         return;
-#endif
     default:                            /* other operators */
-#if TX86
 #ifdef DEBUG
         if (!EBIN(e)) WROP(e->Eoper);
 #endif
@@ -328,22 +325,14 @@ STATIC void ecom(elem **pe)
     case OPand:
     case OPeqeq:
     case OPne:
+#if TX86
     case OPscale:
     case OPyl2x:
     case OPyl2xp1:
+#endif
         ecom(&e->E1);
         ecom(&e->E2);
         break;
-#else
-#ifdef DEBUG
-        if (!EOP(e)) WROP(e->Eoper);
-#endif
-        assert(EOP(e));
-        ecom(&e->E1);
-        if (EBIN(e))
-                ecom(&e->E2);           /* eval left first              */
-        break;
-#endif
     case OPstring:
     case OPaddr:
     case OPbit:
@@ -356,7 +345,7 @@ STATIC void ecom(elem **pe)
 
     // Explicitly list all the unary ops for speed
     case OPnot: case OPcom: case OPneg: case OPuadd:
-    case OPabs: case OPsqrt: case OPrndtol: case OPsin: case OPcos: case OPrint:
+    case OPabs: case OPrndtol: case OPrint:
     case OPpreinc: case OPpredec:
     case OPbool: case OPstrlen: case OPs16_32: case OPu16_32:
     case OPd_s32: case OPd_u32:
@@ -373,6 +362,9 @@ STATIC void ecom(elem **pe)
     case OPvoid: case OPnullcheck:
     case OPbsf: case OPbsr: case OPbswap: case OPvector:
     case OPld_u64:
+#if TX86
+    case OPsqrt: case OPsin: case OPcos:
+#endif
 #if TARGET_SEGMENTED
     case OPoffset: case OPnp_fp: case OPnp_f16p: case OPf16p_np:
 #endif
@@ -620,12 +612,10 @@ STATIC void touchfunc(int flag)
                 }
                 break;
             case OPind:
-#if TX86
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-#endif
                 goto L1;
 #if TARGET_SEGMENTED
             case OPvp_fp:
@@ -653,7 +643,7 @@ STATIC void touchstar()
 
   for (i = touchstari; i < hcstop; i++)
   {     e = hcstab[i].Helem;
-        if (e && (e->Eoper == OPind || e->Eoper == OPbt) /*&& !(e->Ety & mTYconst)*/)
+        if (e && (e->Eoper == OPind || e->Eoper == OPbt) )
                 hcstab[i].Helem = NULL;
   }
   touchstari = hcstop;

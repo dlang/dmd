@@ -35,6 +35,10 @@
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
+#
+#  DISABLED:             text describing why the test is disabled (if empty, the test is
+#                        considered to be enabled).
+#                        default: (none, enabled)
 
 ifeq (,$(OS))
     OS:=$(shell uname)

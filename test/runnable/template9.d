@@ -189,6 +189,47 @@ void test9()
 }
 
 /**********************************/
+// 1780
+
+template Tuple1780(Ts ...) { alias Ts Tuple1780; }
+
+template Decode1780( T )                            { alias Tuple1780!() Types; }
+template Decode1780( T : TT!(Us), alias TT, Us... ) { alias Us Types; }
+
+void test1780()
+{
+    struct S1780(T1, T2) {}
+
+    // should extract tuple (bool,short) but matches the first specialisation
+    alias Decode1780!( S1780!(bool,short) ).Types SQ1780;  // --> SQ2 is empty tuple!
+    static assert(is(SQ1780 == Tuple1780!(bool, short)));
+}
+
+/**********************************/
+// 3608
+
+template foo3608(T, U){}
+
+template BaseTemplate3608(alias TTT : U!V, alias U, V...)
+{
+    alias U BaseTemplate3608;
+}
+template TemplateParams3608(alias T : U!V, alias U, V...)
+{
+    alias V TemplateParams3608;
+}
+
+template TyueTuple3608(T...) { alias T TyueTuple3608; }
+
+void test3608()
+{
+    alias foo3608!(int, long) Foo3608;
+
+    static assert(__traits(isSame, BaseTemplate3608!Foo3608, foo3608));
+    static assert(is(TemplateParams3608!Foo3608 == TyueTuple3608!(int, long)));
+}
+
+/**********************************/
 // 5015
 
 import breaker;
@@ -307,8 +348,14 @@ void foo2579(T)(T delegate(in Object) dlg)
 
 void test2579()
 {
-    foo2579( (in Object) { return 15; } );
+    foo2579( (in Object o) { return 15; } );
 }
+
+/**********************************/
+// 4953
+
+void bug4953(T = void)(short x) {}
+static assert(is(typeof(bug4953(3))));
 
 /**********************************/
 // 5886 & 5393
@@ -354,6 +401,31 @@ void test5393()
 
     auto b = new B;
     b.foobar();
+}
+
+/**********************************/
+// 5896
+
+struct X5896
+{
+                 T opCast(T)(){ return 1; }
+           const T opCast(T)(){ return 2; }
+       immutable T opCast(T)(){ return 3; }
+          shared T opCast(T)(){ return 4; }
+    const shared T opCast(T)(){ return 5; }
+}
+void test5896()
+{
+    auto xm =              X5896  ();
+    auto xc =        const(X5896) ();
+    auto xi =    immutable(X5896) ();
+    auto xs =       shared(X5896) ();
+    auto xcs= const(shared(X5896))();
+    assert(cast(int)xm == 1);
+    assert(cast(int)xc == 2);
+    assert(cast(int)xi == 3);
+    assert(cast(int)xs == 4);
+    assert(cast(int)xcs== 5);
 }
 
 /**********************************/
@@ -635,6 +707,20 @@ void test6780()
 }
 
 /**********************************/
+// 6891
+
+struct S6891(int N, T)
+{
+    void f(U)(S6891!(N, U) u) { }
+}
+
+void test6891()
+{
+    alias S6891!(1, void) A;
+    A().f(A());
+}
+
+/**********************************/
 // 6994
 
 struct Foo6994
@@ -835,6 +921,40 @@ void test7037()
 }
 
 /**********************************/
+// 7110
+
+struct S7110
+{
+    int opSlice(int, int) const { return 0; }
+    int opSlice()         const { return 0; }
+    int opIndex(int, int) const { return 0; }
+    int opIndex(int)      const { return 0; }
+}
+
+enum e7110 = S7110();
+
+template T7110(alias a) { } // or T7110(a...)
+
+alias T7110!( S7110 ) T71100; // passes
+alias T7110!((S7110)) T71101; // passes
+
+alias T7110!( S7110()[0..0]  )  A0; // passes
+alias T7110!(  (e7110[0..0]) )  A1; // passes
+alias T7110!(   e7110[0..0]  )  A2; // passes
+
+alias T7110!( S7110()[0, 0]  ) B0; // passes
+alias T7110!(  (e7110[0, 0]) ) B1; // passes
+alias T7110!(   e7110[0, 0]  ) B2; // passes
+
+alias T7110!( S7110()[]  ) C0; // passes
+alias T7110!(  (e7110[]) ) C1; // passes
+alias T7110!(   e7110[]  ) C2; // fails: e7110 is used as a type
+
+alias T7110!( S7110()[0]  ) D0; // passes
+alias T7110!(  (e7110[0]) ) D1; // passes
+alias T7110!(   e7110[0]  ) D2; // fails: e7110 must be an array or pointer type, not S7110
+
+/**********************************/
 // 7124
 
 template StaticArrayOf(T : E[dim], E, size_t dim)
@@ -924,6 +1044,24 @@ void test7416() {
 }
 
 /**********************************/
+// 7563
+
+class Test7563
+{
+    void test(T, bool a = true)(T t)
+    {
+
+    }
+}
+
+void test7563()
+{
+    auto test = new Test7563;
+    pragma(msg, typeof(test.test!(int, true)).stringof);
+    pragma(msg, typeof(test.test!(int)).stringof); // Error: expression (test.test!(int)) has no type
+}
+
+/**********************************/
 // 7580
 
 struct S7580(T)
@@ -956,6 +1094,378 @@ void test7580()
 }
 
 /**********************************/
+// 7585
+
+extern(C) alias void function() Callback;
+
+template W7585a(alias dg)
+{
+    //pragma(msg, typeof(dg));
+    extern(C) void W7585a() { dg(); }
+}
+
+void test7585()
+{
+    static void f7585a(){}
+    Callback cb1 = &W7585a!(f7585a);      // OK
+    static assert(!__traits(compiles,
+    {
+        void f7585b(){}
+        Callback cb2 = &W7585a!(f7585b);  // NG
+    }));
+
+    Callback cb3 = &W7585a!((){});              // NG -> OK
+    Callback cb4 = &W7585a!(function(){});      // OK
+    static assert(!__traits(compiles,
+    {
+        Callback cb5 = &W7585a!(delegate(){});  // NG
+    }));
+
+    static int global;  // global data
+    Callback cb6 = &W7585a!((){return global;});    // NG -> OK
+    static assert(!__traits(compiles,
+    {
+        int n;
+        Callback cb7 = &W7585a!((){return n;});     // NG
+    }));
+}
+
+/**********************************/
+// 7643
+
+template T7643(A...){ alias A T7643; }
+
+alias T7643!(long, "x", string, "y") Specs7643;
+
+alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
+
+/**********************************/
+// 7671
+
+       inout(int)[3]  id7671n1             ( inout(int)[3] );
+       inout( U )[n]  id7671x1(U, size_t n)( inout( U )[n] );
+
+shared(inout int)[3]  id7671n2             ( shared(inout int)[3] );
+shared(inout  U )[n]  id7671x2(U, size_t n)( shared(inout  U )[n] );
+
+void test7671()
+{
+    static assert(is( typeof( id7671n1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x1( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+
+    static assert(is( typeof( id7671n2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+    static assert(is( typeof( id7671x2( (immutable(int)[3]).init ) ) == immutable(int[3]) ));
+}
+
+/************************************/
+// 7672
+
+T foo7672(T)(T a){ return a; }
+
+void test7672(inout(int[]) a = null, inout(int*) p = null)
+{
+    static assert(is( typeof(        a ) == inout(int[]) ));
+    static assert(is( typeof(foo7672(a)) == inout(int)[] ));
+
+    static assert(is( typeof(        p ) == inout(int*) ));
+    static assert(is( typeof(foo7672(p)) == inout(int)* ));
+}
+
+/**********************************/
+// 7684
+
+       U[]  id7684(U)(        U[]  );
+shared(U[]) id7684(U)( shared(U[]) );
+
+void test7684()
+{
+    shared(int)[] x;
+    static assert(is( typeof(id7684(x)) == shared(int)[] ));
+}
+
+/**********************************/
+// 7694
+
+void match7694(alias m)()
+{
+    m.foo();    //removing this line supresses ice in both cases
+}
+
+struct T7694
+{
+    void foo(){}
+    void bootstrap()
+    {
+    //next line causes ice
+        match7694!(this)();
+    //while this works:
+        alias this p;
+        match7694!(p)();
+    }
+}
+
+/**********************************/
+// 7755
+
+template to7755(T)
+{
+    T to7755(A...)(A args)
+    {
+        return toImpl7755!T(args);
+    }
+}
+
+T toImpl7755(T, S)(S value)
+{
+    return T.init;
+}
+
+template Foo7755(T){}
+
+struct Bar7755
+{
+    void qux()
+    {
+        if (is(typeof(to7755!string(Foo7755!int)))){};
+    }
+}
+
+/**********************************/
+
+       inout(U)[]  id11a(U)(        inout(U)[]  );
+       inout(U[])  id11a(U)(        inout(U[])  );
+inout(shared(U[])) id11a(U)( inout(shared(U[])) );
+
+void test11a(inout int _ = 0)
+{
+    shared(const(int))[] x;
+    static assert(is( typeof(id11a(x)) == shared(const(int))[] ));
+
+    shared(int)[] y;
+    static assert(is( typeof(id11a(y)) == shared(int)[] ));
+
+    inout(U)[n] idz(U, size_t n)( inout(U)[n] );
+
+    inout(shared(bool[1])) z;
+    static assert(is( typeof(idz(z)) == inout(shared(bool[1])) ));
+}
+
+inout(U[]) id11b(U)( inout(U[]) );
+
+void test11b()
+{
+    alias const(shared(int)[]) T;
+    static assert(is(typeof(id11b(T.init)) == const(shared(int)[])));
+}
+
+/**********************************/
+// 7769
+
+void f7769(K)(inout(K) value){}
+void test7769()
+{
+    f7769("abc");
+}
+
+/**********************************/
+// 7812
+
+template A7812(T...) {}
+
+template B7812(alias C) if (C) {}
+
+template D7812()
+{
+    alias B7812!(A7812!(NonExistent!())) D7812;
+}
+
+static assert(!__traits(compiles, D7812!()));
+
+/**********************************/
+// 7873
+
+inout(T)* foo(T)(inout(T)* t)
+{
+    static assert(is(T == int*));
+    return t;
+}
+
+inout(T)* bar(T)(inout(T)* t)
+{
+    return foo(t);
+}
+
+void test7873()
+{
+    int *i;
+    bar(&i);
+}
+
+/**********************************/
+// 7933
+
+struct Boo7933(size_t dim){int a;}
+struct Baa7933(size_t dim)
+{
+    Boo7933!dim a;
+    //Boo7933!1 a; //(1) This version causes no errors
+}
+
+auto foo7933()(Boo7933!1 b){return b;}
+//auto fuu7933(Boo7933!1 b){return b;} //(2) This line neutralizes the error
+
+void test7933()
+{
+    Baa7933!1 a; //(3) This line causes the error message
+    auto b = foo7933(Boo7933!1(1));
+}
+
+/**********************************/
+// 8094
+
+struct Tuple8094(T...) {}
+
+template getParameters8094(T, alias P)
+{
+    static if (is(T t == P!U, U...))
+        alias U getParameters8094;
+    else
+        static assert(false);
+}
+
+void test8094()
+{
+    alias getParameters8094!(Tuple8094!(int, string), Tuple8094) args;
+}
+
+/**********************************/
+
+struct Tuple12(T...)
+{
+    void foo(alias P)()
+    {
+        alias Tuple12 X;
+        static if (is(typeof(this) t == X!U, U...))
+            alias U getParameters;
+        else
+            static assert(false);
+    }
+}
+
+void test12()
+{
+    Tuple12!(int, string) t;
+    t.foo!Tuple12();
+}
+
+/**********************************/
+// 8125
+
+void foo8125(){}
+
+struct X8125(alias a) {}
+
+template Y8125a(T : A!f, alias A, alias f) {}  //OK
+template Y8125b(T : A!foo8125, alias A) {}     //NG
+
+void test8125()
+{
+    alias Y8125a!(X8125!foo8125) y1;
+    alias Y8125b!(X8125!foo8125) y2;
+}
+
+/**********************************/
+
+struct A13() {}
+struct B13(TT...) {}
+struct C13(T1) {}
+struct D13(T1, TT...) {}
+struct E13(T1, T2) {}
+struct F13(T1, T2, TT...) {}
+
+template Test13(alias X)
+{
+    static if (is(X x : P!U, alias P, U...))
+        enum Test13 = true;
+    else
+        enum Test13 = false;
+}
+
+void test13()
+{
+    static assert(Test13!( A13!() ));
+    static assert(Test13!( B13!(int) ));
+    static assert(Test13!( B13!(int, double) ));
+    static assert(Test13!( B13!(int, double, string) ));
+    static assert(Test13!( C13!(int) ));
+    static assert(Test13!( D13!(int) ));
+    static assert(Test13!( D13!(int, double) ));
+    static assert(Test13!( D13!(int, double, string) ));
+    static assert(Test13!( E13!(int, double) ));
+    static assert(Test13!( F13!(int, double) ));
+    static assert(Test13!( F13!(int, double, string) ));
+    static assert(Test13!( F13!(int, double, string, bool) ));
+}
+
+/**********************************/
+
+struct A14(T, U, int n = 1)
+{
+}
+
+template Test14(alias X)
+{
+    static if (is(X x : P!U, alias P, U...))
+        alias U Test14;
+    else
+        static assert(0);
+}
+
+void test14()
+{
+    alias A14!(int, double) Type;
+    alias Test14!Type Params;
+    static assert(Params.length == 3);
+    static assert(is(Params[0] == int));
+    static assert(is(Params[1] == double));
+    static assert(   Params[2] == 1);
+}
+
+/**********************************/
+// 8129
+
+class X8129 {}
+class A8129 {}
+class B8129 : A8129 {}
+
+int foo8129(T : A8129)(X8129 x) { return 1; }
+int foo8129(T : A8129)(X8129 x, void function (T) block) { return 2; }
+
+int bar8129(T, R)(R range, T value) { return 1; }
+
+int baz8129(T, R)(R range, T value) { return 1; }
+int baz8129(T, R)(R range, Undefined value) { return 2; }
+
+void test8129()
+{
+    auto x = new X8129;
+    assert(x.foo8129!B8129()      == 1);
+    assert(x.foo8129!B8129((a){}) == 2);
+    assert(foo8129!B8129(x)        == 1);
+    assert(foo8129!B8129(x, (a){}) == 2);
+    assert(foo8129!B8129(x)              == 1);
+    assert(foo8129!B8129(x, (B8129 b){}) == 2);
+
+    ubyte[] buffer = [0, 1, 2];
+    assert(bar8129!ushort(buffer, 915) == 1);
+
+    // While deduction, parameter type 'Undefined' shows semantic error.
+    static assert(!__traits(compiles, {
+        baz8129!ushort(buffer, 915);
+    }));
+}
+
+/**********************************/
 
 int main()
 {
@@ -968,12 +1478,15 @@ int main()
     test7();
     test8();
     test9();
+    test1780();
+    test3608();
     test6404();
     test2246();
     bug4984();
     test2579();
     test5886();
     test5393();
+    test5896();
     test6825();
     test6789();
     test2778();
@@ -984,6 +1497,7 @@ int main()
     test6208c();
     test6738();
     test6780();
+    test6891();
     test6994();
     test3467();
     test4413();
@@ -994,7 +1508,23 @@ int main()
     test7124();
     test7359();
     test7416();
+    test7563();
     test7580();
+    test7585();
+    test7671();
+    test7672();
+    test7684();
+    test11a();
+    test11b();
+    test7769();
+    test7873();
+    test7933();
+    test8094();
+    test12();
+    test8125();
+    test13();
+    test14();
+    test8129();
 
     printf("Success\n");
     return 0;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -67,6 +67,8 @@ int shareddtorcount;
 
 char *lastmname;
 
+bool onlyOneMain(Loc loc);
+
 /**************************************
  * Append s to list of object files to generate later.
  */
@@ -81,7 +83,7 @@ void obj_append(Dsymbol *s)
 void obj_write_deferred(Library *library)
 {
     for (size_t i = 0; i < obj_symbols_towrite.dim; i++)
-    {   Dsymbol *s = obj_symbols_towrite.tdata()[i];
+    {   Dsymbol *s = obj_symbols_towrite[i];
         Module *m = s->getModule();
 
         char *mname;
@@ -289,7 +291,7 @@ void Module::genobjfile(int multiobj)
         /* Generate a reference to the moduleinfo, so the module constructors
          * and destructors get linked in.
          */
-        Module *m = aimports.tdata()[0];
+        Module *m = aimports[0];
         assert(m);
         if (m->sictor || m->sctor || m->sdtor || m->ssharedctor || m->sshareddtor)
         {
@@ -302,12 +304,10 @@ void Module::genobjfile(int multiobj)
 #if 0 /* This should work, but causes optlink to fail in common/newlib.asm */
                 objextdef(s->Sident);
 #else
-#if ELFOBJ || MACHOBJ
-                int nbytes = reftoident(DATA, Offset(DATA), s, 0, I64 ? (CFoff | CFoffset64) : CFoff);
-#else
-                int nbytes = reftoident(DATA, Doffset, s, 0, CFoff);
-                Doffset += nbytes;
-#endif
+                Symbol *sref = symbol_generate(SCstatic, type_fake(TYnptr));
+                sref->Sfl = FLdata;
+                dtxoff(&sref->Sdt, s, 0, TYnptr);
+                outdata(sref);
 #endif
             }
         }
@@ -324,9 +324,6 @@ void Module::genobjfile(int multiobj)
         cov->Stype->Tcount++;
         cov->Sclass = SCstatic;
         cov->Sfl = FLdata;
-#if ELFOBJ || MACHOBJ
-        cov->Sseg = UDATA;
-#endif
         dtnzeros(&cov->Sdt, 4 * numlines);
         outdata(cov);
         slist_add(cov);
@@ -336,7 +333,7 @@ void Module::genobjfile(int multiobj)
 
     for (size_t i = 0; i < members->dim; i++)
     {
-        Dsymbol *member = members->tdata()[i];
+        Dsymbol *member = (*members)[i];
         member->toObjFile(multiobj);
     }
 
@@ -350,9 +347,6 @@ void Module::genobjfile(int multiobj)
         bcov->Stype->Tcount++;
         bcov->Sclass = SCstatic;
         bcov->Sfl = FLdata;
-#if ELFOBJ || MACHOBJ
-        bcov->Sseg = DATA;
-#endif
         dtnbytes(&bcov->Sdt, (numlines + 32) / 32 * sizeof(*covb), (char *)covb);
         outdata(bcov);
 
@@ -466,7 +460,10 @@ void Module::genobjfile(int multiobj)
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
                 sp->Sclass = SCfastpar;
-                sp->Spreg = I64 ? DI : AX;
+
+                FuncParamRegs fpr(TYjfunc);
+                fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
+
                 sp->Sflags &= ~SFLspill;
                 sp->Sfl = FLpara;       // FLauto?
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;
@@ -543,7 +540,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        printf("function  %s\n",func->toChars());
+        printf("function  %s\n",func->toPrettyChars());
 
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
@@ -582,6 +579,28 @@ void FuncDeclaration::toObjFile(int multiobj)
 //      if (!(config.flags3 & CFG3pic))
 //          s->Sclass = SCstatic;
         f->Fflags3 |= Fnested;
+
+        /* The enclosing function must have its code generated first,
+         * so we know things like where its local symbols are stored.
+         */
+        FuncDeclaration *fdp = toAliasFunc()->toParent2()->isFuncDeclaration();
+        // Bug 8016 - only include the function if it is a template instance
+        Dsymbol * owner = NULL;
+        if (fdp)
+        {   owner =  fdp->toParent();
+            while (owner && !owner->isTemplateInstance())
+                owner = owner->toParent();
+        }
+
+        if (owner && fdp && fdp->semanticRun == PASSsemantic3done &&
+            !fdp->isUnitTestDeclaration())
+        {
+            /* Can't do unittest's out of order, they are order dependent in that their
+             * execution is done in lexical order, and some modules (std.datetime *cough*
+             * *cough*) rely on this.
+             */
+            fdp->toObjFile(multiobj);
+        }
     }
     else
     {
@@ -589,9 +608,10 @@ void FuncDeclaration::toObjFile(int multiobj)
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
 
-        // Pull in RTL startup code
-        if (func->isMain())
-        {   objextdef("_main");
+        // Pull in RTL startup code (but only once)
+        if (func->isMain() && onlyOneMain(loc))
+        {
+            objextdef("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             obj_ehsections();   // initialize exception handling sections
 #endif
@@ -609,7 +629,8 @@ void FuncDeclaration::toObjFile(int multiobj)
 #endif
             s->Sclass = SCglobal;
         }
-        else if (func->isWinMain())
+#if TARGET_WINDOS
+        else if (func->isWinMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused");
             obj_includelib(libname);
@@ -617,12 +638,13 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
 
         // Pull in RTL startup code
-        else if (func->isDllMain())
+        else if (func->isDllMain() && onlyOneMain(loc))
         {
             objextdef("__acrtused_dll");
             obj_includelib(libname);
             s->Sclass = SCglobal;
         }
+#endif
     }
 
     cstate.CSpsymtab = &f->Flocsym;
@@ -710,7 +732,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (parameters)
     {
         for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = parameters->tdata()[i];
+        {   VarDeclaration *v = (*parameters)[i];
             if (v->csym)
             {
                 error("compiler error, parameter '%s', bugzilla 2962?", v->toChars());
@@ -779,49 +801,14 @@ void FuncDeclaration::toObjFile(int multiobj)
     // Determine register assignments
     if (pi)
     {
-        if (global.params.is64bit)
-        {
-            // Order of assignment of pointer or integer parameters
-            static const unsigned char argregs[6] = { DI,SI,DX,CX,R8,R9 };
-            int r = 0;
-            int xmmcnt = XMM0;
+        FuncParamRegs fpr(tyf);
 
-            for (size_t i = 0; i < pi; i++)
-            {   Symbol *sp = params[i];
-                tym_t ty = tybasic(sp->Stype->Tty);
-                // BUG: doesn't work for structs
-                if (r < sizeof(argregs)/sizeof(argregs[0]))
-                {
-                    if (type_jparam(sp->Stype))
-                    {
-                        sp->Sclass = SCfastpar;
-                        sp->Spreg = argregs[r];
-                        sp->Sfl = FLauto;
-                        ++r;
-                    }
-                }
-                if (xmmcnt <= XMM7)
-                {
-                    if (tyxmmreg(ty))
-                    {
-                        sp->Sclass = SCfastpar;
-                        sp->Spreg = xmmcnt;
-                        sp->Sfl = FLauto;
-                        ++xmmcnt;
-                    }
-                }
-            }
-        }
-        else
-        {
-            // First parameter goes in register
-            Symbol *sp = params[0];
-            if ((tyf == TYjfunc || tyf == TYmfunc) &&
-                type_jparam(sp->Stype))
-            {   sp->Sclass = SCfastpar;
-                sp->Spreg = (tyf == TYjfunc) ? AX : CX;
+        for (size_t i = 0; i < pi; i++)
+        {   Symbol *sp = params[i];
+            if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
+            {
+                sp->Sclass = SCfastpar;
                 sp->Sfl = FLauto;
-                //printf("'%s' is SCfastpar\n",sp->Sident);
             }
         }
     }
@@ -975,8 +962,30 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
-        Dsymbol *s = irs.deferToObj->tdata()[i];
+        Dsymbol *s = (*irs.deferToObj)[i];
+
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        if (fd)
+        {   FuncDeclaration *fdp = fd->toParent2()->isFuncDeclaration();
+            if (fdp && fdp->semanticRun < PASSobj)
+            {   /* Bugzilla 7595
+                 * FuncDeclaration::buildClosure() relies on nested functions
+                 * being toObjFile'd after the outer function. Otherwise, the
+                 * v->offset's for the closure variables are wrong.
+                 * So, defer fd until after fdp is done.
+                 */
+                fdp->deferred.push(fd);
+                continue;
+            }
+        }
+
         s->toObjFile(0);
+    }
+
+    for (size_t i = 0; i < deferred.dim; i++)
+    {
+        FuncDeclaration *fd = deferred[i];
+        fd->toObjFile(0);
     }
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
@@ -991,6 +1000,22 @@ void FuncDeclaration::toObjFile(int multiobj)
         obj_startaddress(irs.startaddress);
     }
 #endif
+}
+
+bool onlyOneMain(Loc loc)
+{
+    static bool hasMain = false;
+    if (hasMain)
+    {
+#if TARGET_WINDOS
+        error(loc, "only one main/WinMain/DllMain allowed");
+#else
+        error(loc, "only one main allowed");
+#endif
+        return false;
+    }
+    hasMain = true;
+    return true;
 }
 
 /* ================================================================== */
@@ -1080,6 +1105,20 @@ unsigned Type::totym()
                 default:
                     assert(0);
                     break;
+            }
+            static bool once = false;
+            if (!once)
+            {
+                if (global.params.is64bit || TARGET_OSX)
+                    ;
+                else
+                {   error(0, "SIMD vector types not supported on this platform");
+                    once = true;
+                }
+                if (tv->size(0) == 32)
+                {   error(0, "AVX vector types not supported");
+                    once = true;
+                }
             }
             break;
         }
@@ -1191,9 +1230,6 @@ Symbol *Module::gencritsec()
     /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
      */
     dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
-#if ELFOBJ || MACHOBJ // Burton
-    s->Sseg = DATA;
-#endif
     outdata(s);
     return s;
 }
@@ -1219,14 +1255,7 @@ elem *Module::toEfilename()
         sfilename = symbol_generate(SCstatic,type_fake(TYdarray));
         sfilename->Sdt = dt;
         sfilename->Sfl = FLdata;
-#if ELFOBJ
-        sfilename->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        // Because of PIC and CDATA being in the _TEXT segment, cannot
-        // have pointers in CDATA
-        sfilename->Sseg = DATA;
-#endif
+        out_readonly(sfilename);
         outdata(sfilename);
     }
 

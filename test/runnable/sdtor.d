@@ -1705,6 +1705,74 @@ void test59()
 }
 
 /**********************************/
+// 5737
+
+void test5737()
+{
+    static struct S
+    {
+        static int destroyed;
+        static int copied;
+
+        this(this)
+        {
+            copied++;
+        }
+
+        ~this()
+        {
+            destroyed++;
+        }
+    }
+
+    static S s;
+
+    ref S foo()
+    {
+        return s;
+    }
+
+    {
+        auto s2 = foo();
+    }
+
+    assert(S.copied == 1); // fail, s2 was not copied;
+    assert(S.destroyed == 1); // ok, s2 was destroyed
+}
+
+/**********************************/
+// 6119
+
+void test6119()
+{
+    int postblit = 0;
+    int dtor = 0;
+
+    struct Test
+    {
+        this(this) { ++postblit; }
+        ~this()    { ++dtor; }
+    }
+
+    void takesVal(Test x) {}
+    ref Test returnsRef(ref Test x) { return x; }
+
+    void f(ref Test x) { takesVal( x ); }
+
+    Test x;
+
+    postblit = dtor = 0;
+    takesVal(returnsRef(x));
+    assert(postblit == 1);
+    assert(dtor == 1);
+
+    postblit = dtor = 0;
+    f(x);
+    assert(postblit == 1);
+    assert(dtor == 1);
+}
+
+/**********************************/
 // 6364
 
 struct Foo6364
@@ -1878,6 +1946,78 @@ void test6177()
 
 
 /**********************************/
+// 6470
+
+struct S6470
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6470()
+{
+    S6470[] a1;
+    S6470[] a2;
+    a1.length = 3;
+    a2.length = 3;
+    a1[] = a2[];
+    assert(S6470.spblit == 3);
+
+    S6470 s;
+
+    S6470[] a3;
+    a3.length = 3;
+    a3 = [s, s, s];
+    assert(S6470.spblit == 6);
+
+    void func(S6470[] a){}
+    func([s, s, s]);
+    assert(S6470.spblit == 9);
+}
+
+/**********************************/
+// 6636
+
+struct S6636
+{
+    ~this()
+    {
+        ++sdtor;
+    }
+}
+
+void func6636(S6636[3] sa) {}
+
+void test6636()
+{
+    sdtor = 0;
+
+    S6636[3] sa;
+    func6636(sa);
+    assert(sdtor == 3);
+}
+
+/**********************************/
+// 6637
+
+struct S6637
+{
+    static int spblit;
+
+    this(this){ ++spblit; }
+}
+
+void test6637()
+{
+    void func(S6637[3] sa){}
+
+    S6637[3] sa;
+    func(sa);
+    assert(S6637.spblit == 3);
+}
+
+/**********************************/
 // 7353
 
 struct S7353
@@ -1914,6 +2054,134 @@ void test7353()
         t = s.save2();
         assert(S7353.ci == 3);
     }
+}
+
+/**********************************/
+// 8036
+
+struct S8036a
+{
+    ~this() {}
+}
+struct S8036b // or class
+{
+    S8036a[0] s;
+}
+
+/**********************************/
+
+struct S61
+{
+    this(long length)
+    {
+        this.length = length;
+    }
+
+    long length;
+}
+
+
+const(S61) copy(const S61 s)
+{
+    return s;
+}
+
+
+void test61()
+{
+    S61 t = S61(42);
+    const S61 u = t;
+
+    assert(t == u);
+    assert(copy(t) == u);
+    assert(t == copy(u));
+}
+
+/**********************************/
+// 7506
+
+void test7506()
+{
+    static struct S
+    {
+        static uint ci = 0;
+        static uint di = 0;
+        uint i;
+
+        this(int x) { i = ci++; /*writeln("new: ", i);*/ }
+        this(this)  { i = ci++; /*writeln("copy ", i);*/ }
+        ~this()     { ++di;     /*writeln("del: ", i);*/ }
+
+        S save3()
+        {
+            return this;
+        }
+    }
+
+    {
+        auto s = S(1), t = S(1);
+        assert(S.ci == 2);
+        t = s.save3();
+        assert(S.ci == 3);  // line 23
+    }
+    assert(S.di == 3);
+}
+
+/**********************************/
+// 7530
+
+void test7530()
+{
+    static struct S
+    {
+        int val;
+
+        this(int n) { val = n; }
+        this(this) { val *= 3; }
+    }
+
+    S[] sa = new S[](1);
+    sa[0].val = 1;
+    S foo()
+    {
+        return sa[0];
+    }
+    auto s = foo();
+    assert(s.val == 3);
+}
+
+/**********************************/
+
+struct S62
+{
+    this(int length)
+    {
+        _length = length;
+    }
+
+    int opBinary(string op)(in S62 rhs) const
+        if(op == "-")
+    {
+        return this.length - rhs.length;
+    }
+
+    @property int length() const
+    {
+        return _length;
+    }
+
+    invariant()
+    {
+        assert(_length == 1);
+    }
+
+    int _length  = 1;
+}
+
+
+void test62()
+{
+    immutable result = S62.init - S62.init;
 }
 
 /**********************************/
@@ -1979,12 +2247,21 @@ int main()
     test57();
     test58();
     test59();
+    test5737();
+    test6119();
     test6364();
     test6499();
     test60();
     test4316();
     test6177();
+    test6470();
+    test6636();
+    test6637();
     test7353();
+    test61();
+    test7506();
+    test7530();
+    test62();
 
     printf("Success\n");
     return 0;

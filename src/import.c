@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -45,7 +45,7 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
         this->ident = aliasId;
     // import [std].stdio;
     else if (packages && packages->dim)
-        this->ident = packages->tdata()[0];
+        this->ident = (*packages)[0];
     // import [foo];
     else
         this->ident = id;
@@ -77,13 +77,11 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
 
-    Import *si;
-
-    si = new Import(loc, packages, id, aliasId, isstatic);
+    Import *si = new Import(loc, packages, id, aliasId, isstatic);
 
     for (size_t i = 0; i < names.dim; i++)
     {
-        si->addAlias(names.tdata()[i], aliases.tdata()[i]);
+        si->addAlias(names[i], aliases[i]);
     }
 
     return si;
@@ -95,7 +93,16 @@ void Import::load(Scope *sc)
 
     // See if existing module
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
-
+#if TARGET_NET  //dot net needs modules and packages with same name
+#else
+    if (pkg && pkg->isModule())
+    {
+        ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
+             pkg->toChars(), pkg->toPrettyChars(), id->toChars());
+        mod = pkg->isModule(); // Error recovery - treat as import of that module
+        return;
+    }
+#endif
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -105,7 +112,18 @@ void Import::load(Scope *sc)
         if (s->isModule())
             mod = (Module *)s;
         else
-            error("package and module have the same name");
+        {
+            if (pkg)
+            {
+                ::error(loc, "can only import from a module, not from package %s.%s",
+                    pkg->toPrettyChars(), id->toChars());
+            }
+            else
+            {
+                ::error(loc, "can only import from a module, not from package %s",
+                    id->toChars());
+            }
+        }
 #endif
     }
 
@@ -221,18 +239,26 @@ void Import::semantic(Scope *sc)
         sc->protection = PROTpublic;
 #endif
         for (size_t i = 0; i < aliasdecls.dim; i++)
-        {   Dsymbol *s = aliasdecls.tdata()[i];
+        {   Dsymbol *s = aliasdecls[i];
 
             //printf("\tImport alias semantic('%s')\n", s->toChars());
-            if (!mod->search(loc, names.tdata()[i], 0))
-                error("%s not found", (names.tdata()[i])->toChars());
-
-            s->semantic(sc);
+            if (mod->search(loc, names[i], 0))
+                s->semantic(sc);
+            else
+            {
+                s = mod->search_correct(names[i]);
+                if (s)
+                    mod->error(loc, "import '%s' not found, did you mean '%s %s'?", names[i]->toChars(), s->kind(), s->toChars());
+                else
+                    mod->error(loc, "import '%s' not found", names[i]->toChars());
+            }
         }
         sc = sc->pop();
     }
 
-    if (global.params.moduleDeps != NULL)
+    if (global.params.moduleDeps != NULL &&
+        // object self-imports itself, so skip that (Bugzilla 7547)
+        !(id == Id::object && sc->module->ident == Id::object))
     {
         /* The grammar of the file is:
          *      ImportDeclaration
@@ -263,7 +289,7 @@ void Import::semantic(Scope *sc)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {
-                Identifier *pid = packages->tdata()[i];
+                Identifier *pid = (*packages)[i];
                 ob->printf("%s.", pid->toChars());
             }
         }
@@ -283,8 +309,8 @@ void Import::semantic(Scope *sc)
             else
                 ob->writebyte(',');
 
-            Identifier *name = names.tdata()[i];
-            Identifier *alias = aliases.tdata()[i];
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
 
             if (!alias)
             {
@@ -340,8 +366,8 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      */
     for (size_t i = 0; i < names.dim; i++)
     {
-        Identifier *name = names.tdata()[i];
-        Identifier *alias = aliases.tdata()[i];
+        Identifier *name = names[i];
+        Identifier *alias = aliases[i];
 
         if (!alias)
             alias = name;
@@ -397,12 +423,30 @@ void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (packages && packages->dim)
     {
         for (size_t i = 0; i < packages->dim; i++)
-        {   Identifier *pid = packages->tdata()[i];
+        {   Identifier *pid = (*packages)[i];
 
             buf->printf("%s.", pid->toChars());
         }
     }
-    buf->printf("%s;", id->toChars());
+    buf->printf("%s", id->toChars());
+    if (names.dim)
+    {
+        buf->writestring(" : ");
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+
+            if (alias)
+                buf->printf("%s = %s", alias->toChars(), name->toChars());
+            else
+                buf->printf("%s", name->toChars());
+
+            if (i < names.dim - 1)
+                buf->writestring(", ");
+        }
+    }
+    buf->printf(";");
     buf->writenl();
 }
 

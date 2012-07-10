@@ -161,6 +161,25 @@ void test10()
 }
 
 /*********************************************/
+// 7560
+
+class Base7560
+{
+    template getter(T)
+    {
+        void get(ref T[] i, uint n) {}
+    }
+    mixin getter!uint;
+    mixin getter!char;
+}
+
+class Derived7560 : Base7560
+{
+    alias Base7560.get get;
+    void get(ref char[] x) {}
+}
+
+/*********************************************/
 
 void main()
 {

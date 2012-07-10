@@ -1580,6 +1580,129 @@ void test7199()
 }
 
 /*******************************************/
+// 7965
+
+void test7965()
+{
+    int x;
+    static int* px;
+    px = &x;
+
+    printf("&x = %p in main()\n", &x);
+    struct S1
+    {
+        char y;
+        void boom() {
+            printf("&x = %p in S1.boom()\n", &x);
+            assert(&x == px);
+            //x = 42; // makes the struct nested
+        }
+    }
+    S1 s1;
+    s1.boom();
+
+    struct S2
+    {
+        this(int n) {
+            printf("&x = %p in S2.this()\n", &x);
+            assert(&x == px);
+        }
+        char y;
+    }
+    S2 s2 = S2(10);
+}
+
+struct S7965
+{
+    string str;
+    uint unused1, unused2 = 0;
+}
+
+auto f7965(alias fun)()
+{
+    struct Result
+    {
+        S7965 s;
+        this(S7965 _s) { s = _s; }  // required for the problem
+        void g() { assert(fun(s.str) == "xa"); }
+    }
+
+    return Result(S7965("a"));
+}
+
+void test7965a()
+{
+    string s = "x";
+    f7965!(a => s ~= a)().g();
+    assert(s == "xa");
+}
+
+/*******************************************/
+// 8188
+
+mixin template Print8188(b...)
+{
+    int doprint()
+    {
+        return b[0] * b[1];
+    }
+}
+
+class A8188
+{
+    int x, y;
+    mixin Print8188!(x, y);
+}
+
+void test8188()
+{
+    auto a = new A8188;
+    a.x = 2;
+    a.y = 5;
+    assert(a.doprint() == 10);
+}
+
+/*******************************************/
+// 5082
+
+struct S5082 { float x; }
+
+struct Map5082a(alias fun)
+{
+    typeof({ return fun(int.init); }()) cache;
+}
+
+struct Map5082b(alias fun)
+{
+    typeof({ return fun(int.init); }()) cache;
+
+    S5082 front(int i) { return fun(i); }
+}
+
+void test5082()
+{
+    auto temp = S5082(1);
+    auto func = (int v){ return temp; };
+    auto map1 = Map5082a!func();
+    auto map2 = Map5082b!func();
+    assert(map2.front(1) == temp);
+}
+
+
+/*******************************************/
+// 8194
+
+void test8194()
+{
+    int foo;
+    static void bar()
+    {
+        typeof(foo) baz;
+        static assert(is(typeof(baz) == int));
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1642,6 +1765,12 @@ int main()
     test7428();
     test4841();
     test7199();
+    test7965();
+    test7965a();
+    test8188();
+
+    test5082();
+    test8194();
 
     printf("Success\n");
     return 0;

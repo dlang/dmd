@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="dmd_msc"
 	ProjectGUID="{BAE0389D-7D3F-4D5E-AE0E-C871776E8432}"
 	RootNamespace="dmd"
@@ -768,6 +768,38 @@
 			<File
 				RelativePath=".\unialpha.c"
 				>
+				<FileConfiguration
+					Name="Debug|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Debug|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|Win32"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Release|x64"
+					ExcludedFromBuild="true"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath=".\unittests.c"
@@ -1301,16 +1333,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dchar.c"
-					>
-				</File>
-				<File
-					RelativePath=".\root\dchar.h"
-					>
-				</File>
-				<File
-					RelativePath=".\root\dmgcmem.c"
-					>
+					RelativePath=".\root\dmgcmem.c"					>
 					<FileConfiguration
 						Name="Debug|Win32"
 						ExcludedFromBuild="true"
@@ -1361,16 +1384,7 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\lstring.c"
-					>
-				</File>
-				<File
-					RelativePath=".\root\lstring.h"
-					>
-				</File>
-				<File
-					RelativePath=".\root\man.c"
-					>
+					RelativePath=".\root\man.c"					>
 				</File>
 				<File
 					RelativePath=".\root\port.c"
@@ -1423,7 +1437,23 @@
 						RelativePath=".\root\gc\bits.c"
 						>
 						<FileConfiguration
+							Name="Debug|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
 							Name="Debug|x64"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
 							ExcludedFromBuild="true"
 							>
 							<Tool
@@ -1447,7 +1477,23 @@
 						RelativePath=".\root\gc\gc.c"
 						>
 						<FileConfiguration
+							Name="Debug|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
 							Name="Debug|x64"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
 							ExcludedFromBuild="true"
 							>
 							<Tool
@@ -1519,7 +1565,23 @@
 						RelativePath=".\root\gc\win32.c"
 						>
 						<FileConfiguration
+							Name="Debug|Win32"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
 							Name="Debug|x64"
+							ExcludedFromBuild="true"
+							>
+							<Tool
+								Name="VCCLCompilerTool"
+							/>
+						</FileConfiguration>
+						<FileConfiguration
+							Name="Release|Win32"
 							ExcludedFromBuild="true"
 							>
 							<Tool
@@ -1645,7 +1707,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1656,7 +1718,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1667,7 +1729,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1678,7 +1740,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo$(IntDir)\$(InputName).obj /Fe$(IntDir)\$(InputName).exe $(InputPath)&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;$(IntDir)\$(InputName).exe&#x0D;&#x0A;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>

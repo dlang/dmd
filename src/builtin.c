@@ -10,8 +10,8 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strcmp()
 #include <math.h>
-
 
 #include "mars.h"
 #include "declaration.h"
@@ -167,7 +167,7 @@ uinteger_t eval_bswap(Expression *arg0)
 Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
 {
     assert(arguments && arguments->dim);
-    Expression *arg0 = arguments->tdata()[0];
+    Expression *arg0 = (*arguments)[0];
     Expression *e = NULL;
     switch (builtin)
     {

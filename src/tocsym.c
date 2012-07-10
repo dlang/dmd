@@ -178,6 +178,7 @@ Symbol *VarDeclaration::toSymbol()
         else
             id = ident->toChars();
         s = symbol_calloc(id);
+        s->Salignment = alignment;
 
         if (storage_class & (STCout | STCref))
         {
@@ -476,9 +477,6 @@ Symbol *static_sym()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
-#if ELFOBJ || MACHOBJ
-    s->Sseg = DATA;
-#endif
     slist_add(s);
     return s;
 }
@@ -609,15 +607,15 @@ Symbol *ClassDeclaration::toVtblSymbol()
 
 Symbol *AggregateDeclaration::toInitializer()
 {
-    Symbol *s;
-    Classsym *stag;
-
     if (!sinit)
     {
-        stag = fake_classsym(Id::ClassInfo);
-        s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Classsym *stag = fake_classsym(Id::ClassInfo);
+        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
+        StructDeclaration *sd = isStructDeclaration();
+        if (sd)
+            s->Salignment = sd->alignment;
         slist_add(s);
         sinit = s;
     }

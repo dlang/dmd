@@ -545,8 +545,7 @@ STATIC elem * elstring(elem *e)
 /************************
  */
 
-#if TX86
-
+#if TARGET_SEGMENTED
 /************************
  * Convert far pointer to pointer.
  */
@@ -560,6 +559,7 @@ STATIC void eltonear(elem **pe)
     e->Ety = ty;
     *pe = optelem(e,TRUE);
 }
+#endif
 
 /************************
  */
@@ -581,12 +581,6 @@ STATIC elem * elstrcpy(elem *e)
 #endif
         case OPstring:
             /* Replace strcpy(e1,"string") with memcpy(e1,"string",sizeof("string")) */
-#if 0
-            // As memcpy
-            e->Eoper = OPmemcpy;
-            elem *en = el_long(TYsize_t, strlen(e->E2->EV.ss.Vstring) + 1);
-            e->E2 = el_bin(OPparam,TYvoid,e->E2,en);
-#else
             // As streq
             e->Eoper = OPstreq;
             type *t = type_allocn(TYarray, tschar);
@@ -599,7 +593,6 @@ STATIC elem * elstrcpy(elem *e)
             e = el_bin(OPcomma,e->Ety,e,el_copytree(e->E1->E1));
             if (el_sideeffect(e->E2))
                 fixside(&e->E1->E1->E1,&e->E2);
-#endif
             e = optelem(e,TRUE);
             break;
     }
@@ -669,7 +662,7 @@ STATIC elem * elmemxxx(elem *e)
                     elem *enbytes = e->E2->E1;
                     elem *evalue = e->E2->E2;
 
-#if MARS && TX86
+#if MARS
                     if (enbytes->Eoper == OPconst && evalue->Eoper == OPconst
                         /* && tybasic(e->E1->Ety) == TYstruct*/)
                     {   tym_t tym;
@@ -687,11 +680,9 @@ STATIC elem * elmemxxx(elem *e)
                             case CHARSIZE:      tym = TYchar;   goto L1;
                             case SHORTSIZE:     tym = TYshort;  goto L1;
                             case LONGSIZE:      tym = TYlong;   goto L1;
-#if LONGLONG
                             case LLONGSIZE:     if (intsize == 2)
                                                     goto Ldefault;
                                                 tym = TYllong;  goto L1;
-#endif
                             L1:
                                 ety = e->Ety;
                                 memset(&value, value & 0xFF, sizeof(value));
@@ -741,7 +732,6 @@ STATIC elem * elmemxxx(elem *e)
                         el_free(ex);
                         return optelem(e, TRUE);
                     }
-#if 1
                     // Convert OPmemcpy to OPstreq
                     e->Eoper = OPstreq;
                     type *t = type_allocn(TYarray, tschar);
@@ -761,7 +751,6 @@ STATIC elem * elmemxxx(elem *e)
                     if (el_sideeffect(e->E2))
                         fixside(&e->E1->E1->E1,&e->E2);
                     return optelem(e,TRUE);
-#endif
                 }
                 break;
 
@@ -772,7 +761,6 @@ STATIC elem * elmemxxx(elem *e)
     return e;
 }
 
-#endif
 
 /***********************
  *        +             #       (combine offsets with addresses)
@@ -1375,6 +1363,31 @@ Lopt:
     return optelem(e,TRUE);
 }
 
+/***************************************
+ * Fill in ops[maxops] with operands of repeated operator oper.
+ * Returns:
+ *      true    didn't fail
+ *      false   more than maxops operands
+ */
+
+bool fillinops(elem **ops, int *opsi, int maxops, int oper, elem *e)
+{
+    if (e->Eoper == oper)
+    {
+        if (!fillinops(ops, opsi, maxops, oper, e->E1) ||
+            !fillinops(ops, opsi, maxops, oper, e->E2))
+            return false;
+    }
+    else
+    {
+        if (*opsi >= maxops)
+            return false;       // error, too many
+        ops[*opsi] = e;
+        *opsi += 1;
+    }
+    return true;
+}
+
 
 /*************************************
  * Replace shift|shift with rotate.
@@ -1415,6 +1428,105 @@ STATIC elem *elor(elem *e)
             return el_selecte1(e);
         }
     }
+
+    /* BSWAP: (data[0]<< 24) | (data[1]<< 16) | (data[2]<< 8) | (data[3]<< 0)
+     */
+    if (sz == 4 && OPTIMIZER)
+    {   elem *ops[4];
+        int opsi = 0;
+        if (fillinops(ops, &opsi, 4, OPor, e) && opsi == 4)
+        {
+            elem *ex = NULL;
+            unsigned mask = 0;
+            for (int i = 0; i < 4; i++)
+            {   elem *eo = ops[i];
+                elem *eo2;
+                int shift;
+                elem *eo111;
+                if (eo->Eoper == OPu8_16 &&
+                    eo->E1->Eoper == OPind)
+                {
+                    eo111 = eo->E1->E1;
+                    shift = 0;
+                }
+                else if (eo->Eoper == OPshl &&
+                    eo->E1->Eoper == OPu8_16 &&
+                    (eo2 = eo->E2)->Eoper == OPconst &&
+                    eo->E1->E1->Eoper == OPind)
+                {
+                    shift = el_tolong(eo2);
+                    switch (shift)
+                    {   case 8:
+                        case 16:
+                        case 24:
+                            break;
+                        default:
+                            goto L1;
+                    }
+                    eo111 = eo->E1->E1->E1;
+                }
+                else
+                    goto L1;
+                unsigned off;
+                elem *ed;
+                if (eo111->Eoper == OPadd)
+                {
+                    ed = eo111->E1;
+                    if (eo111->E2->Eoper != OPconst)
+                        goto L1;
+                    off = el_tolong(eo111->E2);
+                    if (off < 1 || off > 3)
+                        goto L1;
+                }
+                else
+                {
+                    ed = eo111;
+                    off = 0;
+                }
+                switch ((off << 5) | shift)
+                {
+                    // BSWAP
+                    case (0 << 5) | 24: mask |= 1; break;
+                    case (1 << 5) | 16: mask |= 2; break;
+                    case (2 << 5) |  8: mask |= 4; break;
+                    case (3 << 5) |  0: mask |= 8; break;
+
+                    // No swap
+                    case (0 << 5) |  0: mask |= 0x10; break;
+                    case (1 << 5) |  8: mask |= 0x20; break;
+                    case (2 << 5) | 16: mask |= 0x40; break;
+                    case (3 << 5) | 24: mask |= 0x80; break;
+
+                        break;
+                    default:
+                        goto L1;
+                }
+                if (ex)
+                {
+                    if (!el_match(ex, ed))
+                        goto L1;
+                }
+                else
+                {   if (el_sideeffect(ed))
+                        goto L1;
+                    ex = ed;
+                }
+            }
+            /* Got a match, build:
+             *   BSWAP(*ex)
+             */
+            if (mask == 0x0F)
+                e = el_una(OPbswap, e->Ety, el_una(OPind, e->Ety, ex));
+            else if (mask == 0xF0)
+                e = el_una(OPind, e->Ety, ex);
+            else
+                goto L1;
+            return e;
+        }
+    }
+  L1:
+    ;
+
     return elbitwise(e);
 }
 
@@ -2509,27 +2621,73 @@ STATIC void elstructwalk(elem *e,tym_t tym)
  */
 
 CEXTERN elem * elstruct(elem *e)
-{   tym_t tym;
-    elem *e2;
-    elem **pe2;
-
+{
     //printf("elstruct(%p)\n", e);
     if (e->Eoper == OPstreq && (e->E1->Eoper == OPcomma || OTassign(e->E1->Eoper)))
         return cgel_lvalue(e);
+
     //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-    if (e->ET)
+
+    if (!e->ET)
+        return e;
+
+    tym_t tym;
+    tym_t ty = tybasic(e->ET->Tty);
+
+    type *targ1 = NULL;
+    type *targ2 = NULL;
+    if (ty == TYstruct)
+    {   // If a struct is a wrapper for another type, prefer that other type
+        targ1 = e->ET->Ttag->Sstruct->Sarg1type;
+        targ2 = e->ET->Ttag->Sstruct->Sarg2type;
+    }
+
     switch ((int) type_size(e->ET))
     {
-#if TX86
         case CHARSIZE:  tym = TYchar;   goto L1;
         case SHORTSIZE: tym = TYshort;  goto L1;
         case LONGSIZE:  tym = TYlong;   goto L1;
-#if LONGLONG
         case LLONGSIZE: if (intsize == 2)
                             goto Ldefault;
                         tym = TYllong;  goto L1;
-#endif
+        case 16:
+            if (config.fpxmmregs && e->Eoper == OPstreq)
+            {
+                elem *e2 = e->E2;
+                if (tybasic(e2->Ety) == TYstruct &&
+                    (EBIN(e2) || EUNA(e2)) &&
+                    tysimd(e2->E1->Ety))   // is a vector type
+                {   tym = tybasic(e2->E1->Ety);
+
+                    /* This has problems if the destination is not aligned, as happens with
+                     *   float4 a,b;
+                     *   float[4] c;
+                     *   c = cast(float[4])(a + b);
+                     */
+                    goto L1;
+                }
+            }
+            if (targ1 && !targ2)
+                goto L1;
+            if (I64 && ty == TYstruct)
+                goto L1;
+            goto Ldefault;
+
         L1:
+            if (ty == TYstruct)
+            {   // If a struct is a wrapper for another type, prefer that other type
+                if (targ1 && !targ2)
+                    tym = targ1->Tty;
+                else if (I64 && !targ1 && !targ2)
+                    // In-memory only
+                    goto Ldefault;
+                else if (I64 && targ1 && targ2)
+                {   if (tyfloating(tybasic(targ1->Tty)))
+                        tym = TYcdouble;
+                    else
+                        tym = TYucent;
+                }
+            }
             switch (e->Eoper)
             {   case OPstreq:
                     e->Eoper = OPeq;
@@ -2538,16 +2696,15 @@ CEXTERN elem * elstruct(elem *e)
                     elstructwalk(e->E2,tym);
                     e = optelem(e,TRUE);
                     break;
+
                 case OPstrpar:
                     e = el_selecte1(e);
                     /* FALL-THROUGH */
                 default:                /* called by doptelem()         */
-                    e2 = e;
-                    elstructwalk(e2,tym);
+                    elstructwalk(e,tym);
                     break;
             }
             break;
-#endif
         case 0:
             if (e->Eoper == OPstreq)
             {   e->Eoper = OPcomma;
@@ -2560,6 +2717,8 @@ CEXTERN elem * elstruct(elem *e)
 
         default:
         Ldefault:
+        {
+            elem **pe2;
             if (e->Eoper == OPstreq)
                 pe2 = &e->E2;
             else if (e->Eoper == OPstrpar)
@@ -2568,20 +2727,19 @@ CEXTERN elem * elstruct(elem *e)
                 break;
             while ((*pe2)->Eoper == OPcomma)
                 pe2 = &(*pe2)->E2;
-            e2 = *pe2;
+            elem *e2 = *pe2;
 
             // Convert (x streq (a?y:z)) to (x streq *(a ? &y : &z))
             if (e2->Eoper == OPcond)
             {   tym_t ty2 = e2->Ety;
-                tym_t typ;
 
                 /* We should do the analysis to see if we can use
                    something simpler than TYfptr.
                  */
 #if TARGET_SEGMENTED
-                typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
+                tym_t typ = (intsize == LONGSIZE) ? TYnptr : TYfptr;
 #else
-                typ = TYnptr;
+                tym_t typ = TYnptr;
 #endif
                 e2 = el_una(OPaddr,typ,e2);
                 e2 = optelem(e2,TRUE);          /* distribute & to x and y leaves */
@@ -2589,10 +2747,11 @@ CEXTERN elem * elstruct(elem *e)
                 break;
             }
             break;
+        }
     }
     return e;
 }
-
+
 /**************************
  * Assignment. Replace bit field assignment with
  * equivalent tree.
@@ -4219,7 +4378,6 @@ beg:
                     goto retnull;
                 leftgoal = rightgoal;
                 break;
-#if TX86
             case OPmemcmp:
                 if (!goal)
                 {   // So OPmemcmp is removed cleanly
@@ -4228,7 +4386,6 @@ beg:
                 }
                 leftgoal = rightgoal;
                 break;
-#endif
         }
 
         e1 = e->E1;

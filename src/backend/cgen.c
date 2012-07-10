@@ -64,6 +64,7 @@ void code_orflag(code *c,unsigned flag)
     }
 }
 
+#if TX86
 /*****************************
  * Set rex bits on last code in list.
  */
@@ -76,6 +77,7 @@ void code_orrex(code *c,unsigned rex)
         c->Irex |= rex;
     }
 }
+#endif
 
 /**************************************
  * Set the opcode fields in cs.
@@ -164,34 +166,21 @@ code * cat6(code *c1,code *c2,code *c3,code *c4,code *c5,code *c6)
  */
 
 code *gen(code *c,code *cs)
-{   code *ce,*cstart;
-    unsigned reg;
-
+{
 #ifdef DEBUG                            /* this is a high usage routine */
     assert(cs);
 #endif
+#if TX86
     assert(I64 || cs->Irex == 0);
-    ce = code_calloc();
+#endif
+    code* ce = code_calloc();
     *ce = *cs;
     //printf("ce = %p %02x\n", ce, ce->Iop);
     ccheck(ce);
-    if (config.flags4 & CFG4optimized &&
-        (ce->Iop == 0x81 || ce->Iop == 0x80) &&
-        ce->IFL2 == FLconst &&
-        reghasvalue((ce->Iop == 0x80) ? BYTEREGS : ALLREGS,I64 ? ce->IEV2.Vsize_t : ce->IEV2.Vlong,&reg) &&
-        !(ce->Iflags & CFopsize && I16)
-       )
-    {   // See if we can replace immediate instruction with register instruction
-        static unsigned char regop[8] =
-                { 0x00,0x08,0x10,0x18,0x20,0x28,0x30,0x38 };
-
-        //printf("replacing 0x%02x, val = x%lx\n",ce->Iop,ce->IEV2.Vlong);
-        ce->Iop = regop[(ce->Irm & modregrm(0,7,0)) >> 3] | (ce->Iop & 1);
-        code_newreg(ce, reg);
-    }
+    simplify_code(ce);
     code_next(ce) = CNIL;
     if (c)
-    {   cstart = c;
+    {   code* cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
         code_next(c) = ce;                      /* link into list       */
         return cstart;
@@ -205,7 +194,9 @@ code *gen1(code *c,unsigned op)
   ce = code_calloc();
   ce->Iop = op;
   ccheck(ce);
+#if TX86
   assert(op != LEA);
+#endif
   if (c)
   {     cstart = c;
         while (code_next(c)) c = code_next(c);  /* find end of list     */
@@ -215,6 +206,7 @@ code *gen1(code *c,unsigned op)
   return ce;
 }
 
+#if TX86
 code *gen2(code *c,unsigned op,unsigned rm)
 { code *ce,*cstart;
 
@@ -250,6 +242,7 @@ code *gen2sib(code *c,unsigned op,unsigned rm,unsigned sib)
   }
   return cstart;
 }
+#endif
 
 /********************************
  * Generate an ASM sequence.
@@ -267,13 +260,13 @@ code *genasm(code *c,char *s,unsigned slen)
     return cat(c,ce);
 }
 
+#if TX86
 code *gencs(code *c,unsigned op,unsigned ea,unsigned FL2,symbol *s)
 {   code cs;
 
     cs.Iop = op;
     cs.Iea = ea;
     ccheck(&cs);
-    cs.Iflags = 0;
     cs.IFL2 = FL2;
     cs.IEVsym2 = s;
     cs.IEVoffset2 = 0;
@@ -329,6 +322,7 @@ code *genc(code *c,unsigned op,unsigned ea,unsigned FL1,targ_size_t EV1,unsigned
     cs.IEV2.Vsize_t = EV2;
     return gen(c,&cs);
 }
+#endif
 
 /********************************
  * Generate 'instruction' which is actually a line number.
@@ -341,10 +335,6 @@ code *genlinnum(code *c,Srcpos srcpos)
     srcpos.print("genlinnum");
 #endif
     cs.Iop = ESCAPE | ESClinnum;
-    cs.Iflags = 0;
-    cs.Irex = 0;
-    cs.IFL1 = 0;
-    cs.IFL2 = 0;
     cs.IEV1.Vsrcpos = srcpos;
     return gen(c,&cs);
 }
@@ -378,8 +368,6 @@ code *genadjesp(code *c, int offset)
     if (!I16 && offset)
     {
         cs.Iop = ESCAPE | ESCadjesp;
-        cs.Iflags = 0;
-        cs.Irex = 0;
         cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
@@ -387,6 +375,7 @@ code *genadjesp(code *c, int offset)
         return c;
 }
 
+#if TX86
 /********************************
  * Generate 'instruction' which tells the scheduler that the fpu stack has
  * changed.
@@ -398,14 +387,13 @@ code *genadjfpu(code *c, int offset)
     if (!I16 && offset)
     {
         cs.Iop = ESCAPE | ESCadjfpu;
-        cs.Iflags = 0;
-        cs.Irex = 0;
         cs.IEV1.Vint = offset;
         return gen(c,&cs);
     }
     else
         return c;
 }
+#endif
 
 /********************************
  * Generate 'nop'

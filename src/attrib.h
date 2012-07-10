@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -33,13 +33,14 @@ struct AttribDeclaration : Dsymbol
 
     AttribDeclaration(Dsymbols *decl);
     virtual Dsymbols *include(Scope *sc, ScopeDsymbol *s);
+    int apply(Dsymbol_apply_ft_t fp, void *param);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
         StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
-        unsigned structalign);
+        structalign_t structalign);
     void semanticNewSc(Scope *sc,
         StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
-        unsigned structalign);
+        structalign_t structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -48,6 +49,7 @@ struct AttribDeclaration : Dsymbol
     void emitComment(Scope *sc);
     const char *kind();
     int oneMember(Dsymbol **ps, Identifier *ident);
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     int hasPointers();
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
@@ -57,7 +59,6 @@ struct AttribDeclaration : Dsymbol
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
-    int cvMember(unsigned char *p);
 };
 
 struct StorageClassDeclaration: AttribDeclaration
@@ -114,12 +115,14 @@ struct AlignDeclaration : AttribDeclaration
 
 struct AnonDeclaration : AttribDeclaration
 {
-    int isunion;
+    bool isunion;
+    structalign_t alignment;
     int sem;                    // 1 if successful semantic()
 
     AnonDeclaration(Loc loc, int isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
 };
@@ -184,6 +187,7 @@ struct CompileDeclaration : AttribDeclaration
     void compileIt(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
 };
 
 #endif /* DMD_ATTRIB_H */

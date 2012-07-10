@@ -16,12 +16,12 @@ struct Bar
 {
     template Abc(T)
     {
-	T y;
+        T y;
     }
 
     template Def(T)
     {
-	T z;
+        T z;
     }
 }
 
@@ -242,17 +242,17 @@ template duff_for(alias id1, alias id2, alias s)
 
     void duff_for()
     {
-	printf("duff_for(%d, %d)\n", id1, id2);
-	typeof(id1) id = id1;
+        printf("duff_for(%d, %d)\n", id1, id2);
+        typeof(id1) id = id1;
         printf("fid = %d, %d\n", id, (id2 - id) % 8);
         switch ((id2 - id) % 8)
         {
         case 0:
-	 while (id != id2)
-	 {
-	     printf("wid = %d\n", id);
-	     s(); ++id;
-	     goto case;
+         while (id != id2)
+         {
+             printf("wid = %d\n", id);
+             s(); ++id;
+             goto case;
         case 7: s(); ++id; goto case;
         case 6: s(); ++id; goto case;
         case 5: s(); ++id; goto case;
@@ -260,9 +260,9 @@ template duff_for(alias id1, alias id2, alias s)
         case 3: s(); ++id; goto case;
         case 2: s(); ++id; goto case;
         case 1: s(); ++id;
-	     break;
-	default: assert(0);
-	 }
+             break;
+        default: assert(0);
+         }
         }
     }
 }
@@ -285,8 +285,8 @@ template duff(alias id1, alias id2, alias s)
 
     void duff()
     {
-	s();
-	s();
+        s();
+        s();
     }
 }
 
@@ -382,30 +382,30 @@ struct Bar17
 
 void test17()
 {
-    printf("x17 = %d\n", x17);		// prints 5
+    printf("x17 = %d\n", x17);          // prints 5
     assert(x17 == 5);
     {   Bar17 b;
-	int x17 = 3;
+        int x17 = 3;
 
-	printf("b.x17 = %d\n", b.x17);	// prints 5
-	assert(b.x17 == 5);
-	printf("x17 = %d\n", x17);	// prints 3
-	assert(x17 == 3);
-	{
-	    mixin Foo17;
-	    printf("x17 = %d\n", x17);	// prints 5
-	    assert(x17 == 5);
-	    x17 = 4;
-	    printf("x17 = %d\n", x17);	// prints 4
-	    assert(x17 == 4);
-	}
-	printf("x17 = %d\n", x17);	// prints 3
-	assert(x17 == 3);
+        printf("b.x17 = %d\n", b.x17);  // prints 5
+        assert(b.x17 == 5);
+        printf("x17 = %d\n", x17);      // prints 3
+        assert(x17 == 3);
+        {
+            mixin Foo17;
+            printf("x17 = %d\n", x17);  // prints 5
+            assert(x17 == 5);
+            x17 = 4;
+            printf("x17 = %d\n", x17);  // prints 4
+            assert(x17 == 4);
+        }
+        printf("x17 = %d\n", x17);      // prints 3
+        assert(x17 == 3);
     }
-    printf("x17 = %d\n", x17);		// prints 5
+    printf("x17 = %d\n", x17);          // prints 5
     assert(x17 == 5);
 }
-	
+
 /*******************************************/
 
 template Foo18() { int z = 3; }
@@ -454,8 +454,8 @@ template Foo20()
 {
     int f()
     {
-	printf("in C20.f()\n");
-	return 6;
+        printf("in C20.f()\n");
+        return 6;
     }
 }
 
@@ -496,9 +496,9 @@ void test21()
 template A22(T)
 {
     this()
-    {	int i;
+    {   int i;
         i = super.foo();
-	assert(i == 67);
+        assert(i == 67);
     }
 }
 
@@ -588,47 +588,46 @@ void test25()
 
 template Get26(T)
 {
-        Reader get (ref T x)
-        {
-                return this;
-        }
+    Reader get (ref T x)
+    {
+        return this;
+    }
 }
 
 class Reader
 {
-
-        mixin Get26!(byte) bar;
-        alias bar.get get;
-        mixin Get26!(int) beq;
-        alias beq.get get;
+    mixin Get26!(byte) bar;
+    alias bar.get get;
+    mixin Get26!(int) beq;
+    alias beq.get get;
 }
 
 void test26()
 {
-        Reader r = new Reader;
-	Reader s;
-        byte q;
-        s = r.get (q);
-	assert(s == r);
+    Reader r = new Reader;
+    Reader s;
+    byte q;
+    s = r.get (q);
+    assert(s == r);
 }
 
 /*******************************************/
 
 template Template(int L)
 {
-	int i = L;
-	int foo(int b = Template!(9).i) {
-		return b;
-	}
+    int i = L;
+    int foo(int b = Template!(9).i) {
+        return b;
+    }
 }
 
 void test27()
 {
-	int i = 10;
-	int foo(int b = Template!(9).i) {
-		return b;
-	}
-	assert(foo()==9);
+    int i = 10;
+    int foo(int b = Template!(9).i) {
+        return b;
+    }
+    assert(foo()==9);
 }
 
 /*******************************************/
@@ -654,42 +653,42 @@ void test28()
 
 template T29()
 {
-	int x;
+    int x;
 }
 
 struct S29
 {
-	mixin T29;
-	int y;
+    mixin T29;
+    int y;
 }
 
 const S29 s29 = { x:2, y:3 };
 
 void test29()
 {
-	assert(s29.x == 2);
-	assert(s29.y == 3);
+    assert(s29.x == 2);
+    assert(s29.y == 3);
 }
 
 /*******************************************/
 
 class A30
 {
-        template ctor(Type)
+    template ctor(Type)
+    {
+        this(Type[] arr)
         {
-                this(Type[] arr)
-                {
-                        foreach(Type v; arr) writeln(typeid(typeof(v)));
-                }
+            foreach(Type v; arr) writeln(typeid(typeof(v)));
         }
+    }
 
-        mixin ctor!(int);
+    mixin ctor!(int);
 }
 
 void test30()
 {
-	static int[] ints = [0,1,2,3];
-	A30 a = new A30(ints);
+    static int[] ints = [0,1,2,3];
+    A30 a = new A30(ints);
 }
 
 /*******************************************/
@@ -741,12 +740,12 @@ template T33( int i )
     int foo()
     {
         printf("foo %d\n", i );
-	return i;
+        return i;
     }
     int opCall()
     {
         printf("opCall %d\n", i );
-	return i;
+        return i;
     }
 }
 
@@ -779,9 +778,9 @@ template mix34()
     int i;
     void print()
     {
-	printf( "%d %d\n", i, j );
-	assert(i == 0);
-	assert(j == 0);
+        printf( "%d %d\n", i, j );
+        assert(i == 0);
+        assert(j == 0);
     }
 }
 
@@ -816,7 +815,7 @@ struct Foo36
     mixin T!(int) m;
     template T(t)
     {
-	t b;
+        t b;
     }
     int c;
 }
@@ -840,25 +839,25 @@ void test36()
 
 template Foo37()
 {
-        template func() {
-                int func() {
-                        return 6;
-                }
+    template func() {
+        int func() {
+            return 6;
         }
+    }
 }
 
 class Baz37
 {
-        mixin Foo37 bar;
+    mixin Foo37 bar;
 }
 
 void test37()
 {
-	Baz37 b = new Baz37;
-        auto i = b.bar.func!()();
-	assert(i == 6);
-        i = (new Baz37).bar.func!()();
-	assert(i == 6);
+    Baz37 b = new Baz37;
+    auto i = b.bar.func!()();
+    assert(i == 6);
+    i = (new Baz37).bar.func!()();
+    assert(i == 6);
 }
 
 /*******************************************/
@@ -869,10 +868,10 @@ template Foo38()
 
     ~this()
     {
-	printf("one\n");
-	assert(a == 4);
-	assert(b == 5);
-	c++;
+        printf("one\n");
+        assert(a == 4);
+        assert(b == 5);
+        c++;
     }
 }
 
@@ -886,10 +885,10 @@ class Outer38
 
     ~this()
     {
-	printf("two\n");
-	assert(b == 5);
-	assert(c == 0);
-	c++;
+        printf("two\n");
+        assert(b == 5);
+        assert(c == 0);
+        c++;
     }
 }
 
@@ -906,7 +905,7 @@ template TDtor()
 {
     ~this()
     {
-	printf("Mixed-in dtor\n");
+        printf("Mixed-in dtor\n");
     }
 }
 
@@ -914,7 +913,7 @@ class Base39
 {
     ~this()
     {
-	printf("Base39 dtor\n");
+        printf("Base39 dtor\n");
     }
 }
 
@@ -925,7 +924,7 @@ class Class39 : Base39
 
     ~this()
     {
-	printf("Class39 dtor\n");
+        printf("Class39 dtor\n");
     }
 }
 
@@ -1126,6 +1125,34 @@ void test42()
     auto p = new TestFoo();
     assert(p.foo() == 1);
     assert(p.test.foo() == 2);
+}
+
+/*******************************************/
+// 8032
+
+mixin template T8032()
+{
+    void f() { }
+}
+
+class A8032a
+{
+    mixin T8032; // Named mixin causes the error too
+    void f() { }
+}
+class B8032a : A8032a
+{
+    override void f() { }
+}
+
+class A8032b
+{
+    void f() { }
+    mixin T8032; // Named mixin causes the error too
+}
+class B8032b : A8032b
+{
+    override void f() { }
 }
 
 /*******************************************/

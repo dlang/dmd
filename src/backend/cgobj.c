@@ -523,6 +523,30 @@ seg_data *getsegment()
 }
 
 
+/**************************
+ * Ouput read only data for data.
+ * Output:
+ *      *pseg   segment of that data
+ * Returns:
+ *      offset of that data
+ */
+
+int elf_data_cdata(char *p, int len, int *pseg)
+{
+    targ_size_t oldoff = Doffset;
+    obj_bytes(DATA,Doffset,len,p);
+    Doffset += len;
+    *pseg = DATA;
+    return oldoff;
+}
+
+int elf_data_cdata(char *p, int len)
+{
+    int pseg;
+
+    return elf_data_cdata(p, len, &pseg);
+}
+
 /******************************
  * Perform initialization that applies to all .obj output files.
  * Input:
@@ -737,7 +761,7 @@ void obj_term()
         obj_theadr(obj.modname);
         objheader(obj.csegname);
         mem_free(obj.csegname);
-        objseggrp(SegData[CODE]->SDoffset,Doffset,0,SegData[UDATA]->SDoffset);  // do real sizes
+        objseggrp(SegData[CODE]->SDoffset,SegData[DATA]->SDoffset,0,SegData[UDATA]->SDoffset);  // do real sizes
 
         // Update any out-of-date far segment sizes
         for (size_t i = 0; i <= seg_count; i++)
@@ -1092,9 +1116,11 @@ STATIC void obj_comment(unsigned char x, const char *string, size_t len)
  * Output library name.
  * Output:
  *      name is modified
+ * Returns:
+ *      true if operation is supported
  */
 
-void obj_includelib(const char *name)
+bool obj_includelib(const char *name)
 {   const char *p;
     size_t len = strlen(name);
 
@@ -1102,6 +1128,16 @@ void obj_includelib(const char *name)
     if (!filespeccmp(p,".lib"))
         len -= strlen(p);               // lop off .LIB extension
     obj_comment(0x9F, name, len);
+    return true;
+}
+
+/**********************************
+ * Do we allow zero sized objects?
+ */
+
+bool obj_allowZeroSize()
+{
+    return false;
 }
 
 /**************************
@@ -1174,11 +1210,15 @@ STATIC void obj_defaultlib()
  */
 
 void obj_wkext(Symbol *s1,Symbol *s2)
-{   char buffer[2+2+2];
-    int i;
-    int x2;
+{
+    //printf("obj_wkext(%s)\n", s1->Sident);
+    if (I32)
+    {
+        // Optlink crashes with weak symbols at EIP 41AFE7, 402000
+        return;
+    }
 
-    printf("obj_wkext(%s)\n", s1->Sident);
+    int x2;
     if (s2)
         x2 = s2->Sxtrnnum;
     else
@@ -1190,9 +1230,11 @@ void obj_wkext(Symbol *s1,Symbol *s2)
         x2 = obj.nullext;
     }
     outextdata();
+
+    char buffer[2+2+2];
     buffer[0] = 0x80;
     buffer[1] = 0xA8;
-    i = 2;
+    int i = 2;
     i += insidx(&buffer[2],s1->Sxtrnnum);
     i += insidx(&buffer[i],x2);
     objrecord(COMENT,buffer,i);
@@ -1470,15 +1512,17 @@ void objseggrp(targ_size_t codesize,targ_size_t datasize,
 
 #if MARS
     dsegattr = SEG_ATTR(SEG_ALIGN16,SEG_C_PUBLIC,0,USE32);
+    objsegdef(dsegattr,datasize,5,DATACLASS);   // [DATA]  seg _DATA, class DATA
+    objsegdef(dsegattr,cdatasize,7,7);          // [CDATA] seg CONST, class CONST
+    objsegdef(dsegattr,udatasize,8,9);          // [UDATA] seg _BSS,  class BSS
 #else
     dsegattr = I32
           ? SEG_ATTR(SEG_ALIGN4,SEG_C_PUBLIC,0,USE32)
           : SEG_ATTR(SEG_ALIGN2,SEG_C_PUBLIC,0,USE16);
-#endif
-
     objsegdef(dsegattr,datasize,5,DATACLASS);   // seg _DATA, class DATA
     objsegdef(dsegattr,cdatasize,7,7);          // seg CONST, class CONST
     objsegdef(dsegattr,udatasize,8,9);          // seg _BSS, class BSS
+#endif
 
     obj.lnameidx = 10;                          // next lname index
     obj.segidx = 5;                             // next segment index
@@ -1771,6 +1815,11 @@ void obj_moduleinfo(Symbol *scc)
  *      distinguish it from regular segments).
  */
 
+int obj_comdatsize(Symbol *s, targ_size_t symsize)
+{
+    return obj_comdat(s);
+}
+
 int obj_comdat(Symbol *s)
 {   char lnames[IDMAX+IDOHD+1]; // +1 to allow room for strcpy() terminating 0
     char cextdef[2+2];
@@ -1847,6 +1896,7 @@ int obj_comdat(Symbol *s)
     }
     if (s->Sclass == SCstatic)
         lr->flags |= 0x04;      // local bit (make it an "LCOMDAT")
+    s->Soffset = 0;
     return pseg->SDseg;
 }
 
@@ -1855,11 +1905,10 @@ int obj_comdat(Symbol *s)
  * Used after a COMDAT for a function is done.
  */
 
-void obj_setcodeseg(int seg,targ_size_t offset)
+void obj_setcodeseg(int seg)
 {
     assert(0 < seg && seg <= seg_count);
     cseg = seg;
-    Coffset = offset;
 }
 
 /********************************
@@ -2304,10 +2353,15 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         seg = sdata->Sseg;
     targ_size_t offset = SegData[seg]->SDoffset;
-    alignbytes = align(datasize, offset) - offset;
-    if (alignbytes)
-        obj_lidata(seg, offset, alignbytes);
+    if (sdata->Salignment > 0)
+    {   if (SegData[seg]->SDalignment < sdata->Salignment)
+            SegData[seg]->SDalignment = sdata->Salignment;
+        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+    }
+    else
+        alignbytes = align(datasize, offset) - offset;
     sdata->Soffset = offset + alignbytes;
+    SegData[seg]->SDoffset = sdata->Soffset;
     return seg;
 }
 
@@ -2350,6 +2404,11 @@ void objpubdef(int seg,Symbol *s,targ_size_t offset)
     ti = (config.fulltypes == CVOLD) ? cv_typidx(s->Stype) : 0;
     reclen += instypidx(p,ti);
     obj.pubdatai += reclen;
+}
+
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+{
+    objpubdef(seg, s, offset);
 }
 
 /*******************************
@@ -2723,7 +2782,7 @@ STATIC void obj_modend()
     else
     {   static const char modend[] = {0};
 
-        objrecord(MODEND,modend,sizeof(modend));
+        objrecord(obj.mmodend,modend,sizeof(modend));
     }
 }
 

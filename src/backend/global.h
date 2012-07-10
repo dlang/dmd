@@ -59,9 +59,6 @@ CEXTERN char *finname,*foutname,*foutdir;
 
 CEXTERN char OPTIMIZER,PARSER;
 CEXTERN symtab_t globsym;
-#if AUTONEST
-CEXTERN int pushcount;
-#endif
 
 CEXTERN Config config;                  // precompiled part of configuration
 CEXTERN Configv configv;                // non-ph part of configuration
@@ -115,14 +112,14 @@ elem *exp2_copytotemp(elem *e);
 
 /* util.c */
 #if __clang__
-void util_exit(int) __attribute__((analyzer_noreturn));
-void util_assert(char *, int) __attribute__((analyzer_noreturn));
+void util_exit(int) __attribute__((noreturn));
+void util_assert(const char *, int) __attribute__((noreturn));
 #elif _MSC_VER
 __declspec(noreturn) void util_exit(int);
-__declspec(noreturn) void util_assert(char *, int);
+__declspec(noreturn) void util_assert(const char *, int);
 #else
 void util_exit(int);
-void util_assert(char *, int);
+void util_assert(const char *, int);
 #if __DMC__
 #pragma ZTC noreturn(util_exit)
 #pragma ZTC noreturn(util_assert)
@@ -135,7 +132,6 @@ void util_set32(void);
 void util_set64(void);
 int ispow2(targ_ullong);
 
-#if TX86
 #if __GNUC__
 #define util_malloc(n,size) mem_malloc((n)*(size))
 #define util_calloc(n,size) mem_calloc((n)*(size))
@@ -156,7 +152,6 @@ void *parc_calloc(size_t len);
 void *parc_realloc(void *oldp,size_t len);
 char *parc_strdup(const char *s);
 void parc_free(void *p);
-#endif
 #endif
 
 void swap(int *,int *);
@@ -376,7 +371,8 @@ void obj_import(elem *e);
 void objlinnum(Srcpos srcpos, targ_size_t offset);
 void obj_dosseg(void);
 void obj_startaddress(Symbol *);
-void obj_includelib(const char *);
+bool obj_includelib(const char *);
+bool obj_allowZeroSize();
 void obj_exestr(const char *p);
 void obj_user(const char *p);
 void obj_compiler();
@@ -393,7 +389,7 @@ void obj_ehsections();
 void obj_moduleinfo(Symbol *scc);
 int  obj_comdat(Symbol *);
 int  obj_comdatsize(Symbol *, targ_size_t symsize);
-void obj_setcodeseg(int seg,targ_size_t offset);
+void obj_setcodeseg(int seg);
 int  obj_codeseg(char *name,int suffix);
 seg_data *obj_tlsseg();
 seg_data *obj_tlsseg_bss();
@@ -402,6 +398,7 @@ void obj_browse(char *, unsigned);
 void objend(void);
 void obj_export(Symbol *s, unsigned argsize);
 void objpubdef(int seg, Symbol *s, targ_size_t offset);
+void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
 #if ELFOBJ
 void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
 #elif MACHOBJ
@@ -425,6 +422,9 @@ void reftocodseg(int seg, targ_size_t offset, targ_size_t val);
 int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val, int flags);
 void obj_far16thunk(Symbol *s);
 void obj_fltused();
+int elf_data_cdata(char *p, int len, int *pseg);
+int elf_data_cdata(char *p, int len);
+
 
 // objrecor.c
 void objfile_open(const char *);
@@ -442,6 +442,7 @@ void outcsegname(char *csegname);
 void outthunk(Symbol *sthunk, Symbol *sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2);
 void outdata(Symbol *s);
 void outcommon(Symbol *s, targ_size_t n);
+void out_readonly(Symbol *s);
 void out_regcand(symtab_t *);
 void writefunc(Symbol *sfunc);
 void alignOffset(int seg,targ_size_t datasize);
@@ -515,7 +516,8 @@ Symbol *symboldata(targ_size_t offset,tym_t ty);
 int dom(block *A , block *B);
 unsigned revop(unsigned op);
 unsigned invrel(unsigned op);
-int binary(const char *p, const char __near * __near *tab, int high);
+int binary(const char *p, const char ** tab, int high);
+int binary(const char *p, size_t len, const char ** tab, int high);
 
 /* go.c */
 void go_term(void);

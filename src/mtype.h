@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -41,7 +41,7 @@ struct HdrGenState;
 struct Parameter;
 
 // Back end
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node; typedef union tree_node TYPE;
 typedef TYPE type;
 #else
@@ -204,6 +204,7 @@ struct Type : Object
     static ClassDeclaration *typeinfowild;
 
     static TemplateDeclaration *associativearray;
+    static TemplateDeclaration *rtinfo;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
@@ -298,10 +299,11 @@ struct Type : Object
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident);
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    virtual structalign_t alignment();
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident);
-    virtual unsigned memalign(unsigned salign);
     virtual Expression *defaultInit(Loc loc = 0);
     virtual Expression *defaultInitLiteral(Loc loc);
+    virtual Expression *voidInitLiteral(VarDeclaration *var);
     virtual int isZeroInit(Loc loc = 0);                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
@@ -311,7 +313,7 @@ struct Type : Object
     Expression *getTypeInfo(Scope *sc);
     virtual TypeInfoDeclaration *getTypeInfoDeclaration();
     virtual int builtinTypeInfo();
-    virtual Type *reliesOnTident();
+    virtual Type *reliesOnTident(TemplateParameters *tparams = NULL);
     virtual int hasWild();
     virtual Expression *toExpression();
     virtual int hasPointers();
@@ -345,6 +347,7 @@ struct TypeError : Type
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
+    TypeTuple *toArgTypes();
 };
 
 struct TypeNext : Type
@@ -354,7 +357,7 @@ struct TypeNext : Type
     TypeNext(TY ty, Type *next);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void checkDeprecated(Loc loc, Scope *sc);
-    Type *reliesOnTident();
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     int hasWild();
     Type *nextOf();
     Type *makeConst();
@@ -416,6 +419,7 @@ struct TypeVector : Type
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
+    MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -454,11 +458,12 @@ struct TypeSArray : TypeArray
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
-    unsigned memalign(unsigned salign);
+    structalign_t alignment();
     MATCH constConv(Type *to);
     MATCH implicitConvTo(Type *to);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
+    Expression *voidInitLiteral(VarDeclaration *var);
     dt_t **toDt(dt_t **pdt);
     dt_t **toDtElem(dt_t **pdt, Expression *e);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
@@ -483,6 +488,7 @@ struct TypeDArray : TypeArray
     d_uns64 size(Loc loc);
     unsigned alignsize();
     Type *semantic(Loc loc, Scope *sc);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
@@ -525,6 +531,8 @@ struct TypeAArray : TypeArray
     int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    Type *reliesOnTident(TemplateParameters *tparams);
+    Expression *toExpression();
     int hasPointers();
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
@@ -628,7 +636,7 @@ struct TypeFunction : TypeNext
     void attributesToCBuffer(OutBuffer *buf, int mod);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    Type *reliesOnTident();
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -697,7 +705,7 @@ struct TypeIdentifier : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
-    Type *reliesOnTident();
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
 };
 
@@ -715,6 +723,7 @@ struct TypeInstance : TypeQualified
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
 };
 
@@ -754,9 +763,10 @@ struct TypeStruct : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    unsigned memalign(unsigned salign);
+    structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
+    Expression *voidInitLiteral(VarDeclaration *var);
     int isZeroInit(Loc loc);
     int isAssignable();
     int checkBoolean();
@@ -832,6 +842,7 @@ struct TypeTypedef : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident);
     int isintegral();
     int isfloating();
@@ -913,7 +924,7 @@ struct TypeTuple : Type
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     int equals(Object *o);
-    Type *reliesOnTident();
+    Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     Expression *getProperty(Loc loc, Identifier *ident);

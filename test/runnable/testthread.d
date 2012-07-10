@@ -56,7 +56,7 @@ int main()
         tx[i].start();
     for (i = 0; i < tx.length; i++)
         tx[i].join();
-    Thread.sleep(10000);
+    Thread.sleep(dur!"msecs"(1));
 
     printf("**Success**\n");
     return 0;

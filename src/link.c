@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -97,7 +97,7 @@ int runLINK()
     {
         if (i)
             cmdbuf.writeByte('+');
-        p = global.params.objfiles->tdata()[i];
+        p = (*global.params.objfiles)[i];
         char *basename = FileName::removeExt(FileName::name(p));
         char *ext = FileName::ext(p);
         if (ext && !strchr(basename, '.'))
@@ -114,7 +114,7 @@ int runLINK()
     {   /* Generate exe file name from first obj name.
          * No need to add it to cmdbuf because the linker will default to it.
          */
-        char *n = global.params.objfiles->tdata()[0];
+        char *n = (*global.params.objfiles)[0];
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, "exe");
         global.params.exefile = fn->toChars();
@@ -150,7 +150,7 @@ int runLINK()
     {
         if (i)
             cmdbuf.writeByte('+');
-        writeFilename(&cmdbuf, global.params.libfiles->tdata()[i]);
+        writeFilename(&cmdbuf, (*global.params.libfiles)[i]);
     }
 
     if (global.params.deffile)
@@ -193,7 +193,7 @@ int runLINK()
     cmdbuf.writestring("/noi");
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
     {
-        cmdbuf.writestring(global.params.linkswitches->tdata()[i]);
+        cmdbuf.writestring((*global.params.linkswitches)[i]);
     }
     cmdbuf.writeByte(';');
 
@@ -208,7 +208,7 @@ int runLINK()
         flnk.setbuffer(p, plen);
         flnk.ref = 1;
         if (flnk.write())
-            error("error writing file %s", lnkfilename);
+            error(0, "error writing file %s", lnkfilename);
         if (lnkfilename->len() < plen)
             sprintf(p, "@%s", lnkfilename->toChars());
     }
@@ -225,7 +225,6 @@ int runLINK()
     return status;
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
     pid_t childpid;
-    int i;
     int status;
 
     // Build argv[]
@@ -258,7 +257,7 @@ int runLINK()
     }
     else
     {   // Generate exe file name from first obj name
-        char *n = global.params.objfiles->tdata()[0];
+        char *n = (*global.params.objfiles)[0];
         char *e;
         char *ex;
 
@@ -336,9 +335,11 @@ int runLINK()
     }
 
     for (size_t i = 0; i < global.params.linkswitches->dim; i++)
-    {   char *p = global.params.linkswitches->tdata()[i];
-        if (!p || !p[0] || !(p[0] == '-' && p[1] == 'l'))
-            // Don't need -Xlinker if switch starts with -l
+    {   char *p = (*global.params.linkswitches)[i];
+        if (!p || !p[0] || !(p[0] == '-' && (p[1] == 'l' || p[1] == 'L')))
+            // Don't need -Xlinker if switch starts with -l or -L.
+            // Eliding -Xlinker is significant for -L since it allows our paths
+            // to take precedence over gcc defaults.
             argv.push((char *)"-Xlinker");
         argv.push(p);
     }
@@ -352,7 +353,7 @@ int runLINK()
      *  4. standard libraries.
      */
     for (size_t i = 0; i < global.params.libfiles->dim; i++)
-    {   char *p = global.params.libfiles->tdata()[i];
+    {   char *p = (*global.params.libfiles)[i];
         size_t plen = strlen(p);
         if (plen > 2 && p[plen - 2] == '.' && p[plen -1] == 'a')
             argv.push(p);
@@ -393,25 +394,25 @@ int runLINK()
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
-            printf("%s ", argv.tdata()[i]);
+            printf("%s ", argv[i]);
         printf("\n");
         fflush(stdout);
     }
 
     argv.push(NULL);
 #if HAS_POSIX_SPAWN
-    int spawn_err = posix_spawnp(&childpid, argv.tdata()[0], NULL, NULL, argv.tdata(), environ);
+    int spawn_err = posix_spawnp(&childpid, argv[0], NULL, NULL, argv.tdata(), environ);
     if (spawn_err != 0)
     {
-        perror(argv.tdata()[0]);
+        perror(argv[0]);
         return -1;
     }
 #else
     childpid = fork();
     if (childpid == 0)
     {
-        execvp(argv.tdata()[0], argv.tdata());
-        perror(argv.tdata()[0]);           // failed to execute
+        execvp(argv[0], argv.tdata());
+        perror(argv[0]);           // failed to execute
         return -1;
     }
     else if (childpid == -1)
@@ -490,7 +491,7 @@ int executecmd(char *cmd, char *args, int useenv)
         else
         {
         L1:
-            error("command line length of %d is too long",len);
+            error(0, "command line length of %d is too long",len);
         }
     }
 
@@ -607,7 +608,7 @@ int runProgram()
     childpid = fork();
     if (childpid == 0)
     {
-        char *fn = argv.tdata()[0];
+        char *fn = argv[0];
         if (!FileName::absolute(fn))
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);

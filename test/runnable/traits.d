@@ -703,6 +703,68 @@ static assert(__traits(isVirtualMethod, FF.YYY));
 static assert(__traits(getVirtualMethods, FF, "YYY").length == 1);
 
 /********************************************************/
+// 7608
+
+struct S7608a(bool T)
+{
+    static if (T) { int x; }
+    int y;
+}
+struct S7608b
+{
+    version(none) { int x; }
+    int y;
+}
+template TypeTuple7608(T...){ alias T TypeTuple7608; }
+void test7608()
+{
+    alias TypeTuple7608!(__traits(allMembers, S7608a!false)) MembersA;
+    static assert(MembersA.length == 1);
+    static assert(MembersA[0] == "y");
+
+    alias TypeTuple7608!(__traits(allMembers, S7608b)) MembersB;
+    static assert(MembersB.length == 1);
+    static assert(MembersB[0] == "y");
+}
+
+/********************************************************/
+// 7858
+
+void test7858()
+{
+    class C
+    {
+        final void ffunc(){}
+        final void ffunc(int){}
+
+        void vfunc(){}
+        void vfunc(int){}
+
+        abstract void afunc();
+        abstract void afunc(int);
+
+        static void sfunc(){}
+        static void sfunc(int){}
+    }
+
+    static assert(__traits(isFinalFunction, C.ffunc) ==
+                  __traits(isFinalFunction, __traits(getOverloads, C, "ffunc")[0]));    // NG
+    static assert(__traits(isVirtualFunction, C.vfunc) ==
+                  __traits(isVirtualFunction, __traits(getOverloads, C, "vfunc")[0]));  // NG
+    static assert(__traits(isVirtualMethod, C.vfunc) ==
+                  __traits(isVirtualMethod, __traits(getOverloads, C, "vfunc")[0]));    // NG
+    static assert(__traits(isAbstractFunction, C.afunc) ==
+                  __traits(isAbstractFunction, __traits(getOverloads, C, "afunc")[0])); // OK
+    static assert(__traits(isStaticFunction, C.sfunc) ==
+                  __traits(isStaticFunction, __traits(getOverloads, C, "sfunc")[0]));   // OK
+
+    static assert(__traits(isSame, C.ffunc, __traits(getOverloads, C, "ffunc")[0]));    // NG
+    static assert(__traits(isSame, C.vfunc, __traits(getOverloads, C, "vfunc")[0]));    // NG
+    static assert(__traits(isSame, C.afunc, __traits(getOverloads, C, "afunc")[0]));    // NG
+    static assert(__traits(isSame, C.sfunc, __traits(getOverloads, C, "sfunc")[0]));    // NG
+}
+
+/********************************************************/
 
 int main()
 {
@@ -730,6 +792,8 @@ int main()
     test21();
     test22();
     test23();
+    test7608();
+    test7858();
 
     writeln("Success");
     return 0;

@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // mem{set|cpy}()
 
 #include "rmem.h"
 
@@ -17,6 +18,7 @@
 #include "utf.h"
 #include "declaration.h"
 #include "aggregate.h"
+#include "template.h"
 #include "scope.h"
 
 //#define DUMP .dump(__PRETTY_FUNCTION__, this)
@@ -35,9 +37,10 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
     MATCH match = implicitConvTo(t);
     if (match)
-    {   TY tyfrom = type->toBasetype()->ty;
-        TY tyto = t->toBasetype()->ty;
+    {
 #if DMDV1
+        TY tyfrom = type->toBasetype()->ty;
+        TY tyto = t->toBasetype()->ty;
         if (global.params.warnings &&
             Type::impcnvWarn[tyfrom][tyto] &&
             op != TOKint64)
@@ -107,6 +110,9 @@ fflush(stdout);
         else if (t->reliesOnTident())
             error("forward reference to type %s", t->reliesOnTident()->toChars());
 
+//printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
+//type = type->semantic(loc, sc);
+//printf("type %s t %s\n", type->deco, t->deco);
         error("cannot implicitly convert expression (%s) of type %s to %s",
             toChars(), type->toChars(), t->toChars());
     }
@@ -129,6 +135,17 @@ Expression *StringExp::implicitCastTo(Scope *sc, Type *t)
 Expression *ErrorExp::implicitCastTo(Scope *sc, Type *t)
 {
     return this;
+}
+
+Expression *FuncExp::implicitCastTo(Scope *sc, Type *t)
+{
+    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
+    if ((t->ty == Tpointer && t->nextOf()->ty == Tfunction) ||
+        t->ty == Tdelegate)
+    {
+        return inferType(t);
+    }
+    return Expression::implicitCastTo(sc, t);
 }
 
 /*******************************************
@@ -490,14 +507,17 @@ MATCH StringExp::implicitConvTo(Type *t)
                             return MATCHnomatch;
                         m = MATCHconst;
                     }
-                    switch (tn->ty)
+                    if (!committed)
                     {
-                        case Tchar:
-                        case Twchar:
-                        case Tdchar:
-                            if (!committed)
-                                return m;
-                            break;
+                        switch (tn->ty)
+                        {
+                            case Tchar:
+                                return (postfix != 'w' && postfix != 'd' ? m : MATCHconvert);
+                            case Twchar:
+                                return (postfix == 'w' ? m : MATCHconvert);
+                            case Tdchar:
+                                return (postfix == 'd' ? m : MATCHconvert);
+                        }
                     }
                     break;
             }
@@ -533,13 +553,14 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
                 result = MATCHnomatch;
         }
 
+        Type *telement = tb->nextOf();
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (*elements)[i];
-            MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
-            if (m < result)
-                result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
+            MATCH m = (MATCH)e->implicitConvTo(telement);
+            if (m < result)
+                result = m;                     // remember worst match
         }
 
         if (!result)
@@ -547,25 +568,46 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
 
         return result;
     }
+    else if (tb->ty == Tvector &&
+        (typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+        // Convert array literal to vector type
+        TypeVector *tv = (TypeVector *)tb;
+        TypeSArray *tbase = (TypeSArray *)tv->basetype;
+        assert(tbase->ty == Tsarray);
+        if (elements->dim != tbase->dim->toInteger())
+            return MATCHnomatch;
+
+        Type *telement = tv->elementType();
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
+            MATCH m = (MATCH)e->implicitConvTo(telement);
+            if (m < result)
+                result = m;                     // remember worst match
+            if (result == MATCHnomatch)
+                break;                          // no need to check for worse
+        }
+        return result;
+    }
     else
         return Expression::implicitConvTo(t);
 }
 
 MATCH AssocArrayLiteralExp::implicitConvTo(Type *t)
-{   MATCH result = MATCHexact;
-
+{
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
     if (tb->ty == Taarray && typeb->ty == Taarray)
     {
+        MATCH result = MATCHexact;
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *e = keys->tdata()[i];
+        {   Expression *e = (*keys)[i];
             MATCH m = (MATCH)e->implicitConvTo(((TypeAArray *)tb)->index);
             if (m < result)
                 result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
-            e = values->tdata()[i];
+            e = (*values)[i];
             m = (MATCH)e->implicitConvTo(tb->nextOf());
             if (m < result)
                 result = m;                     // remember worst match
@@ -719,12 +761,24 @@ MATCH DelegateExp::implicitConvTo(Type *t)
 
 MATCH FuncExp::implicitConvTo(Type *t)
 {
-    //printf("FuncExp::implicitCastTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
-    if (type && type != Type::tvoid && tok == TOKreserved && type->ty == Tpointer
-        && (t->ty == Tpointer || t->ty == Tdelegate))
-    {   // Allow implicit function to delegate conversion
-        if (type->nextOf()->covariant(t->nextOf()) == 1)
-            return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+    //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
+    Expression *e = inferType(t, 1);
+    if (e)
+    {
+        if (e != this)
+            return e->implicitConvTo(t);
+
+        /* MATCHconst:   Conversion from implicit to explicit function pointer
+         * MATCHconvert: Conversion from impliict funciton pointer to delegate
+         */
+        if (tok == TOKreserved && type->ty == Tpointer &&
+            (t->ty == Tpointer || t->ty == Tdelegate))
+        {
+            if (type == t)
+                return MATCHexact;
+            if (type->nextOf()->covariant(t->nextOf()) == 1)
+                return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+        }
     }
     return Expression::implicitConvTo(t);
 }
@@ -875,6 +929,9 @@ Expression *Expression::castTo(Scope *sc, Type *t)
             }
             else if (tb->ty == Tvector && typeb->ty != Tvector)
             {
+                //printf("test1 e = %s, e->type = %s, tb = %s\n", e->toChars(), e->type->toChars(), tb->toChars());
+                TypeVector *tv = (TypeVector *)tb;
+                e = new CastExp(loc, e, tv->elementType());
                 e = new VectorExp(loc, e, tb);
                 e = e->semantic(sc);
                 return e;
@@ -1289,9 +1346,9 @@ Expression *TupleExp::castTo(Scope *sc, Type *t)
 {   TupleExp *e = (TupleExp *)copy();
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
-    {   Expression *ex = e->exps->tdata()[i];
+    {   Expression *ex = (*e->exps)[i];
         ex = ex->castTo(sc, t);
-        e->exps->tdata()[i] = ex;
+        (*e->exps)[i] = ex;
     }
     return e;
 }
@@ -1337,6 +1394,28 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
             e->type = tp;
         }
     }
+    else if (tb->ty == Tvector &&
+        (typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+        // Convert array literal to vector type
+        TypeVector *tv = (TypeVector *)tb;
+        TypeSArray *tbase = (TypeSArray *)tv->basetype;
+        assert(tbase->ty == Tsarray);
+        if (elements->dim != tbase->dim->toInteger())
+            goto L1;
+
+        e = (ArrayLiteralExp *)copy();
+        e->elements = (Expressions *)elements->copy();
+        Type *telement = tv->elementType();
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *ex = (*elements)[i];
+            ex = ex->castTo(sc, telement);
+            (*e->elements)[i] = ex;
+        }
+        Expression *ev = new VectorExp(loc, e, tb);
+        ev = ev->semantic(sc);
+        return ev;
+    }
 L1:
     return e->Expression::castTo(sc, t);
 }
@@ -1356,13 +1435,13 @@ Expression *AssocArrayLiteralExp::castTo(Scope *sc, Type *t)
         e->values = (Expressions *)values->copy();
         assert(keys->dim == values->dim);
         for (size_t i = 0; i < keys->dim; i++)
-        {   Expression *ex = values->tdata()[i];
+        {   Expression *ex = (*values)[i];
             ex = ex->castTo(sc, tb->nextOf());
-            e->values->tdata()[i] = ex;
+            (*e->values)[i] = ex;
 
-            ex = keys->tdata()[i];
+            ex = (*keys)[i];
             ex = ex->castTo(sc, ((TypeAArray *)tb)->index);
-            e->keys->tdata()[i] = ex;
+            (*e->keys)[i] = ex;
         }
         e->type = t;
         return e;
@@ -1491,15 +1570,11 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
 Expression *FuncExp::castTo(Scope *sc, Type *t)
 {
     //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
-    if (tok == TOKreserved)
-    {   assert(type && type != Type::tvoid);
-        if (type->ty == Tpointer && t->ty == Tdelegate)
-        {
-            Expression *e = copy();
-            e->type = new TypeDelegate(fd->type);
-            e->type = e->type->semantic(loc, sc);
-            return e;
-        }
+    Expression *e = inferType(t, 1);
+    if (e)
+    {   if (e != this)
+            e = e->castTo(sc, t);
+        return e;
     }
     return Expression::castTo(sc, t);
 }
@@ -1535,6 +1610,187 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
         e->type = e2->type;
     }
     return e;
+}
+
+/* ==================== inferType ====================== */
+
+/****************************************
+ * Set type inference target
+ *      flag    1: don't put an error when inference fails
+ */
+
+Expression *Expression::inferType(Type *t, int flag, TemplateParameters *tparams)
+{
+    return this;
+}
+
+Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+{
+    if (t)
+    {
+        t = t->toBasetype();
+        if (t->ty == Tarray || t->ty == Tsarray)
+        {
+            Type *tn = t->nextOf();
+            for (size_t i = 0; i < elements->dim; i++)
+            {   Expression *e = (*elements)[i];
+                if (e)
+                {   e = e->inferType(tn, flag, tparams);
+                    (*elements)[i] = e;
+                }
+            }
+        }
+    }
+    return this;
+}
+
+Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+{
+    if (t)
+    {
+        t = t->toBasetype();
+        if (t->ty == Taarray)
+        {   TypeAArray *taa = (TypeAArray *)t;
+            Type *ti = taa->index;
+            Type *tv = taa->nextOf();
+            for (size_t i = 0; i < keys->dim; i++)
+            {   Expression *e = (*keys)[i];
+                if (e)
+                {   e = e->inferType(ti, flag, tparams);
+                    (*keys)[i] = e;
+                }
+            }
+            for (size_t i = 0; i < values->dim; i++)
+            {   Expression *e = (*values)[i];
+                if (e)
+                {   e = e->inferType(tv, flag, tparams);
+                    (*values)[i] = e;
+                }
+            }
+        }
+    }
+    return this;
+}
+
+Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
+{
+    if (!to)
+        return this;
+
+    //printf("FuncExp::interType('%s'), to=%s\n", type?type->toChars():"null", to->toChars());
+
+    if (!type)  // semantic is not yet done
+    {
+        if (to->ty == Tdelegate ||
+            to->ty == Tpointer && to->nextOf()->ty == Tfunction)
+        {   fd->treq = to;
+        }
+        return this;
+    }
+
+    Expression *e = NULL;
+
+    Type *t = to;
+    if (t->ty == Tdelegate)
+    {   if (tok == TOKfunction)
+            goto L1;
+        t = t->nextOf();
+    }
+    else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+    {   if (tok == TOKdelegate)
+            goto L1;
+        t = t->nextOf();
+    }
+
+    if (td)
+    {   /// Parameter types inference from
+        assert(td->scope);
+        if (t->ty == Tfunction)
+        {
+            TypeFunction *tfv = (TypeFunction *)t;
+            TypeFunction *tfl = (TypeFunction *)fd->type;
+            //printf("\ttfv = %s\n", tfv->toChars());
+            //printf("\ttfl = %s\n", tfl->toChars());
+            size_t dim = Parameter::dim(tfl->parameters);
+
+            if (Parameter::dim(tfv->parameters) == dim &&
+                tfv->varargs == tfl->varargs)
+            {
+                Objects *tiargs = new Objects();
+                tiargs->reserve(td->parameters->dim);
+
+                for (size_t i = 0; i < td->parameters->dim; i++)
+                {
+                    TemplateParameter *tp = (*td->parameters)[i];
+                    for (size_t u = 0; u < dim; u++)
+                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
+                        if (p->type->ty == Tident &&
+                            ((TypeIdentifier *)p->type)->ident == tp->ident)
+                        {   p = Parameter::getNth(tfv->parameters, u);
+                            Type *tprm = p->type;
+                            if (tprm->reliesOnTident(tparams))
+                                goto L1;
+                            tprm = tprm->semantic(loc, td->scope);
+                            tiargs->push(tprm);
+                            u = dim;    // break inner loop
+                        }
+                    }
+                }
+
+                // Set target of return type inference
+                assert(td->onemember);
+                FuncLiteralDeclaration *fld = td->onemember->isFuncLiteralDeclaration();
+                assert(fld);
+                if (!fld->type->nextOf() && tfv->next)
+                    fld->treq = tfv;
+
+                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+                e = (new ScopeExp(loc, ti))->semantic(td->scope);
+                if (e->op == TOKfunction)
+                {   FuncExp *fe = (FuncExp *)e;
+                    assert(fe->td == NULL);
+                    e = fe->inferType(to, flag);
+                }
+            }
+        }
+    }
+    else if (type)
+    {
+        assert(type != Type::tvoid);   // semantic is already done
+
+        // Allow conversion from implicit function pointer to delegate
+        if (tok == TOKreserved && type->ty == Tpointer &&
+            to->ty == Tdelegate)
+        {
+            Type *typen = type->nextOf();
+            if (typen->deco)
+            {
+                FuncExp *fe = (FuncExp *)copy();
+                fe->tok = TOKdelegate;
+                fe->type = (new TypeDelegate(typen))->merge();
+                e = fe;
+            }
+        }
+        else
+            e = this;
+    }
+L1:
+    if (!flag && !e)
+    {   error("cannot infer function literal type from %s", to->toChars());
+        e = new ErrorExp();
+    }
+    return e;
+}
+
+Expression *CondExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+{
+    if (t)
+    {
+        t = t->toBasetype();
+        e1 = e1->inferType(t, flag, tparams);
+        e2 = e2->inferType(t, flag, tparams);
+    }
+    return this;
 }
 
 /* ==================== ====================== */
@@ -1602,7 +1858,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
     while (e->op == TOKarrayliteral && e->type->ty == Tarray
         && (((ArrayLiteralExp *)e)->elements->dim == 1))
     {
-        e = ((ArrayLiteralExp *)e)->elements->tdata()[0];
+        e = (*((ArrayLiteralExp *)e)->elements)[0];
         if (other->ty == Tsarray || other->ty == Tarray)
             other = other->nextOf();
         else

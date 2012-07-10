@@ -68,7 +68,7 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = members->tdata()[i];
+    {   Dsymbol *member = (*members)[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -77,7 +77,7 @@ void Module::genmoduleinfo()
     // importedModules[]
     size_t aimports_dim = aimports.dim;
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports.tdata()[i];
+    {   Module *m = aimports[i];
         if (!m->needmoduleinfo)
             aimports_dim--;
     }
@@ -150,9 +150,7 @@ void Module::genmoduleinfo()
                  * they resolve to 0 if not pulled in by something else.
                  * Don't pull in a module just because it was imported.
                  */
-#if !OMFOBJ // Optlink crashes with weak symbols at EIP 41AFE7, 402000
                 s->Sflags |= SFLweak;
-#endif
                 dtxoff(&dt, s, 0, TYnptr);
             }
         }
@@ -162,7 +160,7 @@ void Module::genmoduleinfo()
         dtsize_t(&dt, aclasses.dim);
         for (size_t i = 0; i < aclasses.dim; i++)
         {
-            ClassDeclaration *cd = aclasses.tdata()[i];
+            ClassDeclaration *cd = aclasses[i];
             dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
         }
     }
@@ -215,7 +213,7 @@ void Module::genmoduleinfo()
 
     //printf("members->dim = %d\n", members->dim);
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = members->tdata()[i];
+    {   Dsymbol *member = (*members)[i];
 
         //printf("\tmember '%s'\n", member->toChars());
         member->addLocalClass(&aclasses);
@@ -224,7 +222,7 @@ void Module::genmoduleinfo()
     // importedModules[]
     int aimports_dim = aimports.dim;
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports.tdata()[i];
+    {   Module *m = aimports[i];
         if (!m->needModuleInfo())
             aimports_dim--;
     }
@@ -293,7 +291,7 @@ void Module::genmoduleinfo()
     //////////////////////////////////////////////
 
     for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports.tdata()[i];
+    {   Module *m = aimports[i];
 
         if (m->needModuleInfo())
         {   Symbol *s = m->toSymbol();
@@ -302,25 +300,20 @@ void Module::genmoduleinfo()
              * they resolve to 0 if not pulled in by something else.
              * Don't pull in a module just because it was imported.
              */
-#if !OMFOBJ // Optlink crashes with weak symbols at EIP 41AFE7, 402000
             s->Sflags |= SFLweak;
-#endif
             dtxoff(&dt, s, 0, TYnptr);
         }
     }
 
     for (size_t i = 0; i < aclasses.dim; i++)
     {
-        ClassDeclaration *cd = aclasses.data()[i];
+        ClassDeclaration *cd = aclasses[i];
         dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
     }
 #endif
 
     csym->Sdt = dt;
-#if ELFOBJ || MACHOBJ
     // Cannot be CONST because the startup code sets flag bits in it
-    csym->Sseg = DATA;
-#endif
     outdata(csym);
 
     //////////////////////////////////////////////
@@ -405,6 +398,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             sthis->Stype->Tcount++;
             sthis->Sclass = SCfastpar;
             sthis->Spreg = AX;
+            sthis->Spreg2 = NOREG;
             sthis->Sfl = FLauto;
 
             // Call each of the destructors in dtors[]
@@ -447,13 +441,8 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Generate static initializer
     sinit->Sclass = scclass;
     sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-    sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    sinit->Sseg = DATA;
-#endif
     toDt(&sinit->Sdt);
+    out_readonly(sinit);
     outdata(sinit);
 
     //////////////////////////////////////////////
@@ -483,7 +472,8 @@ void ClassDeclaration::toObjFile(int multiobj)
             void *deallocator;
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
-            const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            void *xgetRTInfo;
             //TypeInfo typeinfo;
        }
      */
@@ -568,7 +558,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         {
             for (size_t i = 0; i < cd->members->dim; i++)
             {
-                Dsymbol *sm = cd->members->tdata()[i];
+                Dsymbol *sm = (*cd->members)[i];
                 //printf("sm = %s %s\n", sm->kind(), sm->toChars());
                 if (sm->hasPointers())
                     goto L2;
@@ -597,6 +587,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
 #if DMDV2
+#if 0
     FuncDeclaration *sgetmembers = findGetMembers();
     if (sgetmembers)
         dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
@@ -604,16 +595,25 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);        // module getMembers() function
 #endif
 
+    // xgetRTInfo
+    if (getRTInfo)
+        getRTInfo->toDt(&dt);
+    else if (flags & 2)
+        dtsize_t(&dt, 0);       // no pointers
+    else
+        dtsize_t(&dt, 1);       // has pointers
+#endif
+
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
-    // Put out vtblInterfaces->tdata()[]. Must immediately follow csym, because
+    // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
     offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = vtblInterfaces->tdata()[i];
+    {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
 
         /* The layout is:
@@ -639,11 +639,11 @@ void ClassDeclaration::toObjFile(int multiobj)
         offset += id->vtbl.dim * PTRSIZE;
     }
 
-    // Put out the vtblInterfaces->tdata()[].vtbl[]
+    // Put out the (*vtblInterfaces)[].vtbl[]
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out %d interface vtbl[]s for '%s'\n", vtblInterfaces->dim, toChars());
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = vtblInterfaces->tdata()[i];
+    {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
 
         //printf("    interface[%d] is '%s'\n", i, id->toChars());
@@ -662,7 +662,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         {
             assert(j < b->vtbl.dim);
 #if 0
-            Object *o = b->vtbl.tdata()[j];
+            Object *o = b->vtbl[j];
             if (o)
             {
                 printf("o = %p\n", o);
@@ -671,7 +671,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                 printf("s->kind() = '%s'\n", s->kind());
             }
 #endif
-            FuncDeclaration *fd = b->vtbl.tdata()[j];
+            FuncDeclaration *fd = b->vtbl[j];
             if (fd)
                 dtxoff(&dt, fd->toThunkSymbol(b->offset), 0, TYnptr);
             else
@@ -689,7 +689,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {
         for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-        {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
+        {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
             if (bs->fillVtbl(this, &bvtbl, 0))
             {
@@ -712,7 +712,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     FuncDeclaration *fd;
 
                     assert(j < bvtbl.dim);
-                    fd = bvtbl.tdata()[j];
+                    fd = bvtbl[j];
                     if (fd)
                         dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
                     else
@@ -727,13 +727,13 @@ void ClassDeclaration::toObjFile(int multiobj)
     // This must be mirrored with ClassDeclaration::baseVtblOffset()
     //printf("putting out overriding interface vtbl[]s for '%s' at offset x%x\n", toChars(), offset);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = vtblInterfaces->tdata()[i];
+    {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *cd;
 
         for (cd = this->baseClass; cd; cd = cd->baseClass)
         {
             for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
+            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
                 if (b->base == bs->base)
                 {
@@ -754,7 +754,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     for (; j < id->vtbl.dim; j++)
                     {
                         assert(j < b->vtbl.dim);
-                        FuncDeclaration *fd = b->vtbl.tdata()[j];
+                        FuncDeclaration *fd = b->vtbl[j];
                         if (fd)
                             dtxoff(&dt, fd->toThunkSymbol(bs->offset), 0, TYnptr);
                         else
@@ -768,10 +768,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
 
     csym->Sdt = dt;
-#if ELFOBJ || MACHOBJ // Burton
     // ClassInfo cannot be const data, because we use the monitor on it
-    csym->Sseg = DATA;
-#endif
     outdata(csym);
     if (isExport())
         obj_export(csym,0);
@@ -784,7 +781,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     dtxoff(&dt, csym, 0, TYnptr);           // first entry is ClassInfo reference
     for (size_t i = 1; i < vtbl.dim; i++)
     {
-        FuncDeclaration *fd = vtbl.tdata()[i]->isFuncDeclaration();
+        FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
 
         //printf("\tvtbl[%d] = %p\n", i, fd);
         if (fd && (fd->fbody || !isAbstract()))
@@ -807,7 +804,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                 for (size_t j = 1; j < vtbl.dim; j++)
                 {   if (j == i)
                         continue;
-                    FuncDeclaration *fd2 = vtbl.tdata()[j]->isFuncDeclaration();
+                    FuncDeclaration *fd2 = vtbl[j]->isFuncDeclaration();
                     if (!fd2->ident->equals(fd->ident))
                         continue;
                     if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))
@@ -834,12 +831,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     vtblsym->Sdt = dt;
     vtblsym->Sclass = scclass;
     vtblsym->Sfl = FLdata;
-#if ELFOBJ
-    vtblsym->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    vtblsym->Sseg = DATA;
-#endif
+    out_readonly(vtblsym);
     outdata(vtblsym);
     if (isExport())
         obj_export(vtblsym,0);
@@ -860,7 +852,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
-        BaseClass *b = vtblInterfaces->tdata()[i];
+        BaseClass *b = (*vtblInterfaces)[i];
 
         if (b == bc)
             return csymoffset;
@@ -877,7 +869,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
     for (cd = this->baseClass; cd; cd = cd->baseClass)
     {
         for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-        {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
+        {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
             if (bs->fillVtbl(this, NULL, 0))
             {
@@ -892,14 +884,14 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 #endif
 #if INTERFACE_VIRTUAL
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = vtblInterfaces->tdata()[i];
+    {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *cd;
 
         for (cd = this->baseClass; cd; cd = cd->baseClass)
         {
             //printf("\tbase class %s\n", cd->toChars());
             for (size_t k = 0; k < cd->vtblInterfaces->dim; k++)
-            {   BaseClass *bs = cd->vtblInterfaces->tdata()[k];
+            {   BaseClass *bs = (*cd->vtblInterfaces)[k];
 
                 if (bc == bs)
                 {   //printf("\tcsymoffset = x%x\n", csymoffset);
@@ -940,7 +932,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
     // Put out the members
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = members->tdata()[i];
+    {   Dsymbol *member = (*members)[i];
 
         member->toObjFile(0);
     }
@@ -976,7 +968,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
 #if DMDV2
-            const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            //const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
+            void* xgetRTInfo;
 #endif
             //TypeInfo typeinfo;
        }
@@ -1003,7 +996,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, 0);
     dtsize_t(&dt, 0);
 
-    // vtblInterfaces->tdata()[]
+    // (*vtblInterfaces)[]
     unsigned offset;
     dtsize_t(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
@@ -1049,19 +1042,22 @@ void InterfaceDeclaration::toObjFile(int multiobj)
 
 #if DMDV2
     // xgetMembers
-    dtsize_t(&dt, 0);
+    //dtsize_t(&dt, 0);
+
+    // xgetRTInfo
+    dtsize_t(&dt, 0x12345678);
 #endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
 
     //////////////////////////////////////////////
 
-    // Put out vtblInterfaces->tdata()[]. Must immediately follow csym, because
+    // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
     offset += vtblInterfaces->dim * (4 * PTRSIZE);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
-    {   BaseClass *b = vtblInterfaces->tdata()[i];
+    {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
 
         // ClassInfo
@@ -1076,12 +1072,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     }
 
     csym->Sdt = dt;
-#if ELFOBJ
-    csym->Sseg = CDATA;
-#endif
-#if MACHOBJ
-    csym->Sseg = DATA;
-#endif
+    out_readonly(csym);
     outdata(csym);
     if (isExport())
         obj_export(csym,0);
@@ -1116,9 +1107,6 @@ void StructDeclaration::toObjFile(int multiobj)
         {
             // Generate static initializer
             toInitializer();
-#if 0
-            sinit->Sclass = SCcomdat;
-#else
             if (inTemplateInstance())
             {
                 sinit->Sclass = SCcomdat;
@@ -1127,37 +1115,11 @@ void StructDeclaration::toObjFile(int multiobj)
             {
                 sinit->Sclass = SCglobal;
             }
-#endif
+
             sinit->Sfl = FLdata;
             toDt(&sinit->Sdt);
 
-#if OMFOBJ
-            /* For OMF, common blocks aren't pulled in from the library.
-             */
-            /* ELF comdef's generate multiple
-             * definition errors for them from the gnu linker.
-             * Need to figure out how to generate proper comdef's for ELF.
-             */
-            // See if we can convert a comdat to a comdef,
-            // which saves on exe file space.
-            if (0 &&  // causes multiple def problems with COMMON in one file and COMDAT in library
-                sinit->Sclass == SCcomdat &&
-                sinit->Sdt &&
-                sinit->Sdt->dt == DT_azeros &&
-                sinit->Sdt->DTnext == NULL &&
-                !global.params.multiobj)
-            {
-                sinit->Sclass = SCglobal;
-                sinit->Sdt->dt = DT_common;
-            }
-#endif
-
-#if ELFOBJ
-            sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-            sinit->Sseg = DATA;
-#endif
+            out_readonly(sinit);
             outdata(sinit);
         }
 
@@ -1182,7 +1144,7 @@ void VarDeclaration::toObjFile(int multiobj)
     Dsymbol *parent;
 
     //printf("VarDeclaration::toObjFile(%p '%s' type=%s) protection %d\n", this, toChars(), type->toChars(), protection);
-    //printf("\talign = %d\n", type->alignsize());
+    //printf("\talign = %d\n", alignment);
 
     if (type->ty == Terror)
     {   error("had semantic errors when compiling");
@@ -1299,16 +1261,14 @@ void VarDeclaration::toObjFile(int multiobj)
             s->Sdt->dt = DT_common;
         }
 
-#if ELFOBJ || MACHOBJ // Burton
-        if (s->Sdt && s->Sdt->dt == DT_azeros && s->Sdt->DTnext == NULL)
-            s->Sseg = UDATA;
-        else
-            s->Sseg = DATA;
-#endif
-        if (sz)
-        {   outdata(s);
+        if (!sz && type->toBasetype()->ty != Tsarray)
+            assert(0); // this shouldn't be possible
+
+        if (sz || obj_allowZeroSize())
+        {
+            outdata(s);
             if (isExport())
-                obj_export(s,0);
+            obj_export(s,0);
         }
     }
 }
@@ -1342,13 +1302,8 @@ void TypedefDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-        sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        sinit->Sseg = DATA;
-#endif
         sinit->Sdt = tc->sym->init->toDt();
+        out_readonly(sinit);
         outdata(sinit);
     }
 }
@@ -1387,12 +1342,6 @@ void EnumDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-#if ELFOBJ // Burton
-        sinit->Sseg = CDATA;
-#endif
-#if MACHOBJ
-        sinit->Sseg = DATA;
-#endif
 #if DMDV1
         dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
         //sinit->Sdt = tc->sym->init->toDt();

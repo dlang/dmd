@@ -188,8 +188,8 @@ L1:
                 if (t->Tflags & TFsizeunknown)
                     goto err1;
                 sz = t->Ttag->Sstruct->Salignsize;
-                if (sz > t->Ttag->Sstruct->Sstructalign)
-                    sz = t->Ttag->Sstruct->Sstructalign;
+                if (sz > t->Ttag->Sstruct->Sstructalign + 1)
+                    sz = t->Ttag->Sstruct->Sstructalign + 1;
                 break;
 
             case TYldouble:
@@ -239,7 +239,7 @@ type *type_alloc(tym_t ty)
 {   type *t;
     static type tzero;
 
-#if TARGET_SEGMENTED
+#if !MARS
     assert(tybasic(ty) != TYtemplate);
 #endif
     if (type_list)
@@ -336,7 +336,7 @@ type *type_allocn(tym_t ty,type *tn)
  * Allocate a TYmemptr type.
  */
 
-#if !MARS
+#if SCPP
 type *type_allocmemptr(Classsym *stag,type *tn)
 {   type *t;
 
@@ -415,7 +415,7 @@ type_count_free()
  * Initialize type package.
  */
 
-STATIC type * __near type_allocbasic(tym_t ty)
+STATIC type * type_allocbasic(tym_t ty)
 {   type *t;
 
     t = type_alloc(ty);
@@ -879,23 +879,6 @@ int type_isvla(type *t)
     return 0;
 }
 
-/*************************************
- * Determine if type can be passed in a register.
- */
-
-int type_jparam(type *t)
-{
-    targ_size_t sz;
-    type_debug(t);
-    return tyjparam(t->Tty) ||
-
-                ((tybasic(t->Tty) == TYstruct || tybasic(t->Tty) == TYarray) &&
-                 (sz = type_size(t)) <= NPTRSIZE &&
-                 (sz == 1 || sz == 2 || sz == 4 || sz == 8)) ||
-
-                tybasic(t->Tty) == TYfloat4;
-}
-
 
 /**********************************
  * Pretty-print a type.
@@ -1139,9 +1122,6 @@ param_t *param_calloc()
     static param_t pzero;
     param_t *p;
 
-#if !TX86
-    debug_assert(PARSER);
-#endif
     if (param_list)
     {
         p = param_list;

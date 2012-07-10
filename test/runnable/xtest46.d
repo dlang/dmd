@@ -30,8 +30,8 @@ void foo2(T...)(T args)
 {
     foreach (arg; args[0 .. $])
     {
-	//writeln(arg);
-	bar2!(typeof(arg))(&arg);
+        //writeln(arg);
+        bar2!(typeof(arg))(&arg);
     }
 }
 
@@ -47,11 +47,11 @@ void test3()
 {
     version (unittest)
     {
-	printf("unittest!\n");
+        printf("unittest!\n");
     }
     else
     {
-	printf("no unittest!\n");
+        printf("no unittest!\n");
     }
 }
 
@@ -118,7 +118,7 @@ struct T6
 
     S6* opDot()
     {
-	return &s;
+        return &s;
     }
 }
 
@@ -150,7 +150,7 @@ class C7
 
     S7* opDot()
     {
-	return &s;
+        return &s;
     }
 }
 
@@ -242,9 +242,9 @@ int f12(ABC abc) { return 2; }
 
 void test12()
 {
-	A a;
-	auto i = f12(a);
-	assert(i == 1);
+    A a;
+    auto i = f12(a);
+    assert(i == 1);
 }
 
 /***************************************************/
@@ -301,7 +301,7 @@ void test15()
 
     auto bar()(int x)
     {
-	return 5 + x;
+        return 5 + x;
     }
 
     printf("%d\n", foo15(4));
@@ -349,7 +349,7 @@ class C18
     void foo(string s) { }  // this is hidden, but that's ok 'cuz no overlap
     void bar()
     {
-	foo("abc");
+        foo("abc");
     }
 }
 
@@ -539,8 +539,8 @@ struct S29
 
     void wyda()
     {
-	a.wyda;
-	a.wyda();
+        a.wyda;
+        a.wyda();
     }
 }
 
@@ -661,11 +661,11 @@ void test35()
 
         foo35(a<b, a, b) = 42;
         printf("a = %d and b = %d\n", a, b); // a = 42 and b = 11
-	assert(a == 42 && b == 11);
+        assert(a == 42 && b == 11);
 
         bar35(a<b, a, b) = 52;
         printf("a = %d and b = %d\n", a, b);
-	assert(a == 42 && b == 52);
+        assert(a == 42 && b == 52);
 }
 
 /***************************************************/
@@ -892,7 +892,7 @@ void sort(alias less)(string[] r)
             {
                 return less("a", "a");
             }
-	    .sort!(less)(r);
+            .sort!(less)(r);
 }
 
 void foo48()
@@ -921,8 +921,8 @@ struct S49
 
     this( string name )
     {
-	printf( "(ctor) &%.*s.x = %p\n", name.length, name.ptr, &x );
-	p = cast(void*)&x;
+        printf( "(ctor) &%.*s.x = %p\n", name.length, name.ptr, &x );
+        p = cast(void*)&x;
     }
 
     invariant() {}
@@ -1009,15 +1009,15 @@ void test54()
 
 class Foo55
 {
-	synchronized void noop1() { }
-	void noop2() shared { }
+    synchronized void noop1() { }
+    void noop2() shared { }
 }
 
 void test55()
 {
-	auto foo = new shared(Foo55);
-	foo.noop1();
-	foo.noop2();
+    auto foo = new shared(Foo55);
+    foo.noop1();
+    foo.noop2();
 }
 
 /***************************************************/
@@ -1068,7 +1068,7 @@ void test60()
     enum real ONE = 1.0;
     real x;
     for (x=0.0; x<10.0; x+=ONE)
-	printf("%Lg\n", x);
+        printf("%Lg\n", x);
     printf("%Lg\n", x);
     assert(x == 10);
 }
@@ -1289,15 +1289,15 @@ void test72()
 class Foo73
 {
   static if (is(typeof(this) T : shared T))
-	static assert(0);
+    static assert(0);
   static if (is(typeof(this) U == shared U))
-	static assert(0);
+    static assert(0);
   static if (is(typeof(this) U == const U))
-	static assert(0);
+    static assert(0);
   static if (is(typeof(this) U == immutable U))
-	static assert(0);
+    static assert(0);
   static if (is(typeof(this) U == const shared U))
-	static assert(0);
+    static assert(0);
 
   static assert(!is(int == const));
   static assert(!is(int == immutable));
@@ -1382,7 +1382,9 @@ void test73()
     static assert(!is(Bari!(const(T))));
     static assert(!is(Bari!(shared(T))));
     static assert(!is(Bari!(const(shared(T)))));
-    static assert(!is(Barc!(shared(T))));
+
+    static assert(is(Barc!(shared(T))));
+
     static assert(!is(Bars!(T)));
     static assert(!is(Bars!(const(T))));
     static assert(!is(Bars!(immutable(T))));
@@ -1422,10 +1424,10 @@ void test75()
 {   int x = 0;
     try
     {
-	A75.raise("a");
+        A75.raise("a");
     } catch (Exception e)
     {
-	x = 1;
+        x = 1;
     }
     assert(x == 1);
 }
@@ -1521,11 +1523,11 @@ void test80()
 
     int[]* foo()
     {
-	static int x;
-	x++;
-	assert(x == 1);
-	auto p = &array;
-	return p;
+        static int x;
+        x++;
+        assert(x == 1);
+        auto p = &array;
+        return p;
     }
 
     (*foo()).length += 2;
@@ -1571,6 +1573,13 @@ void test83()
    int x = 1;
    bump(x);
    assert(x == 2);
+}
+
+/***************************************************/
+
+interface Test4174
+{
+    void func(T)() {}
 }
 
 /***************************************************/
@@ -1676,7 +1685,7 @@ struct S88
 {
     void opDispatch(string s, T)(T i)
     {
-	printf("S.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("S.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
     }
 }
 
@@ -1684,7 +1693,7 @@ class C88
 {
     void opDispatch(string s)(int i)
     {
-	printf("C.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
+        printf("C.opDispatch('%.*s', %d)\n", s.length, s.ptr, i);
     }
 }
 
@@ -1692,7 +1701,7 @@ struct D88
 {
     template opDispatch(string s)
     {
-	enum int opDispatch = 8;
+        enum int opDispatch = 8;
     }
 }
 
@@ -1728,7 +1737,7 @@ struct S90
 {
     void opDispatch( string name, T... )( T values )
     {
-	assert(values[0] == 3.14);
+        assert(values[0] == 3.14);
     }
 }
 
@@ -2136,7 +2145,7 @@ auto filter113(File113.ByLine rs)
 {
     struct Filter
     {
-	this(File113.ByLine r) { }
+        this(File113.ByLine r) { }
     }
 
     return Filter(rs);
@@ -2155,7 +2164,7 @@ template foo114(fun...)
 {
     auto foo114(int[] args)
     {
-	return 1;
+        return 1;
     }
 }
 
@@ -2167,7 +2176,7 @@ pragma(msg, typeof(foo114!"a + b"([1,2,3])));
 struct Foo115 {
     void opBinary(string op)(Foo other) {
         pragma(msg, "op: " ~ op);
-	assert(0);
+        assert(0);
     }
 }
 
@@ -2448,6 +2457,17 @@ alias typeof(foo5195) good5195;
 static assert( is (food5195 == good5195));
 
 /***************************************************/
+
+version (Windows)
+{
+}
+else
+{
+int[0] var5332;
+void test5332() { auto x = var5332; }
+}
+
+/***************************************************/
 // 5191
 
 struct Foo129
@@ -2491,10 +2511,11 @@ void test129()
 
 const shared class C5107
 {
+    int x;
 }
 
-static assert(is(C5107 ==  const)); // okay
-static assert(is(C5107 == shared)); // fails!
+static assert(is(typeof(C5107.x) ==  const)); // okay
+static assert(is(typeof(C5107.x) == shared)); // fails!
 
 /***************************************************/
 
@@ -2687,7 +2708,7 @@ void test135()
 {
   shared S135[] s;
   if (0)
-	s[0] = S135();
+    s[0] = S135();
 }
 
 /***************************************************/
@@ -3523,9 +3544,9 @@ void test4539()
 
 void test1471()
 {
-	int n;
-	string bar = "BOOM"[n..$-1];
-	assert(bar == "BOO");
+    int n;
+    string bar = "BOOM"[n..$-1];
+    assert(bar == "BOO");
 }
 
 /***************************************************/
@@ -3555,6 +3576,31 @@ pure int test4031()
 {
     static const int x = 8;
     return x;
+}
+
+/***************************************************/
+// 5437
+
+template EnumMembers5437(E)
+{
+    template TypeTuple(T...){ alias T TypeTuple; }
+
+    alias TypeTuple!("A", "B") EnumMembers5437;
+}
+template IntValue5437()
+{
+    int IntValue5437 = 10;
+}
+
+void test5437()
+{
+    enum Foo { A, B }
+    alias EnumMembers5437!Foo members;      // OK
+    enum n1 = members.length;               // OK
+    enum n2 = (EnumMembers5437!Foo).length; // NG, type -> symbol
+
+    enum s1 = IntValue5437!().sizeof;       // OK
+    enum s2 = (IntValue5437!()).sizeof;     // NG, type -> expression
 }
 
 /***************************************************/
@@ -3831,6 +3877,15 @@ void test5799()
 
 enum Foo6529 : char { A='a' }
 ref const(Foo6529) func6529(const(Foo6529)[] arr){ return arr[0]; }
+
+/***************************************************/
+
+void test783()
+{
+    const arr = [ 1,2,3 ];
+    const i = 2;
+    auto jhk = new int[arr[i]]; // "need size of rightmost array, not type arr[i]"
+}
 
 /***************************************************/
 
@@ -4455,16 +4510,16 @@ class C5311
 
     void breaksPure() pure const
     {
-        static assert(!__traits(compiles, { globalData++; }));		// SHOULD BE ERROR
-        static assert(!__traits(compiles, { X.globalData++; }));	// SHOULD BE ERROR
-        static assert(!__traits(compiles, { this.globalData++; }));	// SHOULD BE ERROR
+        static assert(!__traits(compiles, { globalData++; }));      // SHOULD BE ERROR
+        static assert(!__traits(compiles, { X.globalData++; }));    // SHOULD BE ERROR
+        static assert(!__traits(compiles, { this.globalData++; })); // SHOULD BE ERROR
 
         static assert(!__traits(compiles, { int a = this.globalData; }));
     }
 }
 static void breaksPure5311a(C5311 x) pure
 {
-    static assert(!__traits(compiles, { x.globalData++; }));		// SHOULD BE ERROR
+    static assert(!__traits(compiles, { x.globalData++; }));        // SHOULD BE ERROR
 
     static assert(!__traits(compiles, { int a = x.globalData; }));
 }
@@ -4475,16 +4530,16 @@ struct S5311
 
     void breaksPure() pure const
     {
-        static assert(!__traits(compiles, { globalData++; }));		// SHOULD BE ERROR
-        static assert(!__traits(compiles, { X.globalData++; }));	// SHOULD BE ERROR
-        static assert(!__traits(compiles, { this.globalData++; }));	// SHOULD BE ERROR
+        static assert(!__traits(compiles, { globalData++; }));      // SHOULD BE ERROR
+        static assert(!__traits(compiles, { X.globalData++; }));    // SHOULD BE ERROR
+        static assert(!__traits(compiles, { this.globalData++; })); // SHOULD BE ERROR
 
         static assert(!__traits(compiles, { int a = this.globalData; }));
     }
 }
 static void breaksPure5311b(S5311 x) pure
 {
-    static assert(!__traits(compiles, { x.globalData++; }));		// SHOULD BE ERROR
+    static assert(!__traits(compiles, { x.globalData++; }));        // SHOULD BE ERROR
 
     static assert(!__traits(compiles, { int a = x.globalData; }));
 }
@@ -4668,6 +4723,103 @@ class B158 : A158
 
 
 /***************************************************/
+// 3282
+
+class Base3282
+{
+    string f()
+    {
+        return "Base.f()";
+    }
+}
+class Derived3282 : Base3282
+{
+    string f()
+    {
+        return "Derived.f()";
+    }
+    string f() const
+    {
+        return "Derived.f() const";
+    }
+}
+
+void test3282()
+{
+    auto x = new Base3282;
+    assert(x.f() == "Base.f()");
+    auto y = new Derived3282;
+    assert(y.f() == "Derived.f()");// calls "Derived.f() const", but it is expected that be called non-const.
+    auto z = new const(Derived3282);
+    assert(z.f() == "Derived.f() const");
+}
+
+/***************************************************/
+// 7534
+
+class C7534
+{
+    int foo(){ return 1; }
+}
+class D7534 : C7534
+{
+    override int foo(){ return 2; }
+    int foo() const { return 3; }
+    // Error: D.foo multiple overrides of same function
+}
+void test7534()
+{
+    C7534 mc = new C7534();
+    assert(mc.foo() == 1);
+
+    D7534 md = new D7534();
+    assert(md.foo() == 2);
+    mc = md;
+    assert(mc.foo() == 2);
+
+    const(D7534) cd = new const(D7534)();
+    assert(cd.foo() == 3);
+    md = cast()cd;
+    assert(md.foo() == 2);
+}
+
+/***************************************************/
+// 7534 + return type covariance
+
+class X7534 {}
+class Y7534 : X7534
+{
+    int value; this(int n){ value = n; }
+}
+
+class V7534
+{
+    X7534 foo(){ return new X7534(); }
+}
+class W7534 : V7534
+{
+    Y7534 foo(){ return new Y7534(1); }
+    Y7534 foo() const { return new Y7534(2); }
+}
+
+void test7534cov()
+{
+    auto mv = new V7534();
+    assert(typeid(mv.foo()) == typeid(X7534));
+
+    auto mw = new W7534();
+    assert(typeid(mw.foo()) == typeid(Y7534));
+    assert(mw.foo().value == 1);
+    mv = mw;
+    assert(typeid(mv.foo()) == typeid(Y7534));
+    assert((cast(Y7534)mv.foo()).value == 1);
+
+    auto cw = new const(W7534)();
+    assert(typeid(cw.foo()) == typeid(Y7534));
+    assert(cw.foo().value == 2);
+}
+
+/***************************************************/
 // 7562
 
 static struct MyInt
@@ -4690,6 +4842,289 @@ mixin template ProxyOf(alias a)
 
     void test1(this X)(){}
     void test2(this Y)(){}
+}
+
+/***************************************************/
+// 7583
+
+template Tup7583(E...) { alias E Tup7583; }
+
+struct S7583
+{
+    Tup7583!(float, char) field;
+    alias field this;
+    this(int x) {    }
+}
+
+int bug7583() {
+    S7583[] arr;
+    arr ~= S7583(0);
+    return 1;
+}
+
+static assert (bug7583());
+
+/***************************************************/
+// 7618
+
+void test7618(const int x = 1)
+{
+    int func(ref int x) { return 1; }
+    static assert(!__traits(compiles, func(x)));
+    // Error: function test.foo.func (ref int _param_0) is not callable using argument types (const(int))
+
+    int delegate(ref int) dg = (ref int x) => 1;
+    static assert(!__traits(compiles, dg(x)));
+    // --> no error, bad!
+
+    int function(ref int) fp = (ref int x) => 1;
+    static assert(!__traits(compiles, fp(x)));
+    // --> no error, bad!
+}
+
+/***************************************************/
+// 7621
+
+void test7621()
+{
+    enum uint N = 4u;
+    char[] A = "hello".dup;
+    uint[immutable char[4u]] dict;
+    dict[*cast(immutable char[4]*)(A[0 .. N].ptr)] = 0; // OK
+    dict[*cast(immutable char[N]*)(A[0 .. N].ptr)] = 0; // line 6, error
+}
+
+/***************************************************/
+// 7682
+
+template ConstOf7682(T)
+{
+    alias const(T) ConstOf7682;
+}
+bool pointsTo7682(S)(ref const S source) @trusted pure nothrow
+{
+    return true;
+}
+void test7682()
+{
+    shared(ConstOf7682!(int[])) x;  // line A
+
+    struct S3 { int[10] a; }
+    shared(S3) sh3;
+    shared(int[]) sh3sub = sh3.a[];
+    assert(pointsTo7682(sh3sub));   // line B
+}
+
+/***************************************************/
+// 7735
+
+void a7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+    b7735(data);
+}
+
+void b7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+    c7735(data);
+}
+
+void c7735(void[][] data...)
+{
+    //writeln(data);
+    assert(data.length == 1);
+}
+
+void test7735()
+{
+    a7735([]);
+    a7735([]);
+}
+
+/***************************************************/
+// 7815
+
+mixin template Helpers() {
+
+  static if (is(Flags!Move)) {
+    Flags!Move flags;
+  } else {
+    // DMD will happily instantiate the allegedly
+    // non-existent Flags!This here. (!)
+    pragma(msg, __traits(derivedMembers, Flags!Move));
+  }
+}
+
+template Flags(T) {
+  mixin({
+    int defs = 1;
+    foreach (name; __traits(derivedMembers, Move)) {
+        defs++;
+    }
+    if (defs) {
+      return "struct Flags { bool a; }";
+    } else {
+      return "";
+    }
+  }());
+}
+
+struct Move {
+  int a;
+  mixin Helpers!();
+}
+
+enum a7815 = Move.init.flags;
+
+/***************************************************/
+
+struct A7823 {
+    long a;
+    enum A7823 b = {0};
+}
+
+void test7823(A7823 a = A7823.b) { }
+
+/***************************************************/
+// 7871
+
+struct Tuple7871
+{
+    string field;
+    alias field this;
+}
+
+//auto findSplitBefore(R1)(R1 haystack)
+auto findSplitBefore7871(string haystack)
+{
+    return Tuple7871(haystack);
+}
+
+void test7871()
+{
+    string line = `<bookmark href="https://stuff">`;
+    auto a = findSplitBefore7871(line[0 .. $])[0];
+}
+
+/***************************************************/
+// 7906
+
+void test7906()
+{
+    static assert(!__traits(compiles, { enum s = [string.min]; }));
+}
+
+/***************************************************/
+// 7907
+
+template Id7907(E)
+{
+    alias E Id7907;
+}
+template Id7907(alias E)
+{
+    alias E Id7907;
+}
+
+void test7907()
+{
+    static assert(!__traits(compiles, { alias Id7907!([string.min]) X; }));
+}
+
+/***************************************************/
+// 1175
+
+class A1175
+{
+    class I1 { }
+}
+
+class B1175 : A1175
+{
+    class I2 : I1 { }
+
+    I1 getI() { return new I2; }
+}
+
+/***************************************************/
+// 7983
+
+class A7983 {
+        void f() {
+                g7983(this);
+        }
+        unittest {
+        }
+}
+
+void g7983(T)(T a)
+{
+        foreach (name; __traits(allMembers, T)) {
+                pragma(msg, name);
+                static if (__traits(compiles, &__traits(getMember, a, name)))
+                {
+                }
+        }
+}
+
+/***************************************************/
+// 8004
+
+void test8004()
+{
+    auto n = (int n = 10){ return n; }();
+    assert(n == 10);
+}
+
+/***************************************************/
+// 8064
+
+void test8064()
+{
+    uint[5] arry;
+    ref uint acc(size_t i) {
+        return arry[i];
+    }
+    auto arryacc = &acc;
+    arryacc(3) = 5; // same error
+}
+
+/***************************************************/
+
+void func8105(in ref int x) { }
+
+void test8105()
+{
+}
+
+/***************************************************/
+
+template ParameterTypeTuple159(alias foo)
+{
+    static if (is(typeof(foo) P == __parameters))
+        alias P ParameterTypeTuple159;
+    else
+        static assert(0, "argument has no parameters");
+}
+
+int func159(int i, long j = 7) { return 3; }
+
+alias ParameterTypeTuple159!func159 PT;
+
+int bar159(PT) { return 4; }
+
+pragma(msg, typeof(bar159));
+pragma(msg, PT[1]);
+
+PT[1] boo159(PT[1..2] a) { return a[0]; }
+
+void test159()
+{
+    assert(bar159(1) == 4);
+    assert(boo159() == 7);
 }
 
 /***************************************************/
@@ -4871,6 +5306,7 @@ int main()
     test4539();
     test4963();
     test4031();
+    test5437();
     test6230();
     test6264();
     test6284();
@@ -4912,6 +5348,21 @@ int main()
     test7196();
     test7285();
     test7321();
+    test3282();
+    test7534();
+    test7534cov();
+    test7618();
+    test7621();
+    test7682();
+    test7735();
+    test7823();
+    test7871();
+    test7906();
+    test7907();
+    test8004();
+    test8064();
+    test8105();
+    test159();
 
     printf("Success\n");
     return 0;

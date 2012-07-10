@@ -165,6 +165,10 @@ bool Dsymbol::hasStaticCtorOrDtor()
     return FALSE;
 }
 
+void Dsymbol::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+{
+}
+
 char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";
@@ -308,7 +312,7 @@ int Dsymbol::isAnonymous()
 
 void Dsymbol::setScope(Scope *sc)
 {
-    //printf("Dsymbol::setScope() %p %s\n", this, toChars());
+    //printf("Dsymbol::setScope() %p %s, %p stc = %llx\n", this, toChars(), sc, sc->stc);
     if (!sc->nofree)
         sc->setNoFree();                // may need it even after semantic() finishes
     scope = sc;
@@ -432,8 +436,14 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             id = ti->name;
             sm = s->search(loc, id, 0);
             if (!sm)
-            {   error("template identifier %s is not a member of %s %s",
-                    id->toChars(), s->kind(), s->toChars());
+            {
+                sm = s->search_correct(id);
+                if (sm)
+                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
+                          id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                else
+                    error("template identifier '%s' is not a member of '%s %s'",
+                          id->toChars(), s->kind(), s->toChars());
                 return NULL;
             }
             sm = sm->toAlias();
@@ -552,6 +562,11 @@ int Dsymbol::needThis()
     return FALSE;
 }
 
+int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    return (*fp)(this, param);
+}
+
 int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("Dsymbol::addMember('%s')\n", toChars());
@@ -592,7 +607,7 @@ void Dsymbol::error(const char *format, ...)
     }
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    verror(loc, format, ap, kind(), toPrettyChars());
     va_end(ap);
 }
 
@@ -600,39 +615,8 @@ void Dsymbol::error(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    verror(loc, format, ap);
+    verror(loc, format, ap, kind(), toPrettyChars());
     va_end(ap);
-}
-
-void Dsymbol::verror(Loc loc, const char *format, va_list ap)
-{
-    if (!global.gag)
-    {
-        char *p = loc.toChars();
-        if (!*p)
-            p = locToChars();
-
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Error: ");
-        fprintf(stdmsg, "%s %s ", kind(), toPrettyChars());
-
-        vfprintf(stdmsg, format, ap);
-
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-//halt();
-    }
-    else
-    {
-        global.gaggedErrors++;
-    }
-
-    global.errors++;
-
-    //fatal();
 }
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
@@ -863,7 +847,8 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                 s = s2;
             else if (s2 && s != s2)
             {
-                if (s->toAlias() == s2->toAlias())
+                if (s->toAlias() == s2->toAlias() ||
+                    s->getType() == s2->getType() && s->getType())
                 {
                     /* After following aliases, we found the same
                      * symbol, so it's not an ambiguity.  But if one
@@ -1070,7 +1055,7 @@ static int dimDg(void *ctx, size_t n, Dsymbol *)
 size_t ScopeDsymbol::dim(Dsymbols *members)
 {
     size_t n = 0;
-    foreach(members, &dimDg, &n);
+    foreach(NULL, members, &dimDg, &n);
     return n;
 }
 #endif
@@ -1103,7 +1088,7 @@ static int getNthSymbolDg(void *ctx, size_t n, Dsymbol *sym)
 Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
 {
     GetNthSymbolCtx ctx = { nth, NULL };
-    int res = foreach(members, &getNthSymbolDg, &ctx);
+    int res = foreach(NULL, members, &getNthSymbolDg, &ctx);
     return res ? ctx.sym : NULL;
 }
 #endif
@@ -1118,7 +1103,7 @@ Dsymbol *ScopeDsymbol::getNth(Dsymbols *members, size_t nth, size_t *pn)
  */
 
 #if DMDV2
-int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
+int ScopeDsymbol::foreach(Scope *sc, Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *ctx, size_t *pn)
 {
     assert(dg);
     if (!members)
@@ -1130,10 +1115,12 @@ int ScopeDsymbol::foreach(Dsymbols *members, ScopeDsymbol::ForeachDg dg, void *c
     {   Dsymbol *s = (*members)[i];
 
         if (AttribDeclaration *a = s->isAttribDeclaration())
-            result = foreach(a->decl, dg, ctx, &n);
+            result = foreach(sc, a->include(sc, NULL), dg, ctx, &n);
         else if (TemplateMixin *tm = s->isTemplateMixin())
-            result = foreach(tm->members, dg, ctx, &n);
+            result = foreach(sc, tm->members, dg, ctx, &n);
         else if (s->isTemplateInstance())
+            ;
+        else if (s->isUnitTestDeclaration())
             ;
         else
             result = dg(ctx, n++, s);
@@ -1383,6 +1370,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 VoidInitializer *e = new VoidInitializer(0);
                 e->type = Type::tsize_t;
                 v->init = e;
+                v->storage_class |= STCctfe; // it's never a true static variable
             }
             *pvar = v;
         }

@@ -158,11 +158,11 @@ void out_config_init()
 
     if (params->symdebug)
     {
-#if ELFOBJ || MACHOBJ
+#if SYMDEB_DWARF
         configv.addlinenumbers = 1;
         config.fulltypes = (params->symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 #endif
-#if OMFOBJ
+#if SYMDEB_CODEVIEW
         configv.addlinenumbers = 1;
         config.fulltypes = CV4;
 #endif
@@ -251,7 +251,7 @@ void util_set64()
         tyalignsize[TYnullptr + i] = 8;
         tyalignsize[TYnptr + i] = 8;
         tyalignsize[TYnref + i] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || TARGET_WINDOS
         tyalignsize[TYldouble + i] = 16;
         tyalignsize[TYildouble + i] = 16;
         tyalignsize[TYcldouble + i] = 16;
@@ -337,7 +337,6 @@ symbol *symboldata(targ_size_t offset,tym_t ty)
     symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s->Sfl = FLdata;
     s->Soffset = offset;
-    s->Sseg = DATA;
     symbol_keep(s);             // keep around
     return s;
 }
@@ -385,6 +384,7 @@ void backend_init()
     ph_init();
     block_init();
 
+    cod3_setdefault();
     if (global.params.is64bit)
     {
         util_set64();

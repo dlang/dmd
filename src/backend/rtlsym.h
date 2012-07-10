@@ -62,6 +62,7 @@ SYMBOL_MARS(MEMSET16,        FLfunc,FREGSAVED,"_memset16", 0, t) \
 SYMBOL_MARS(MEMSET32,        FLfunc,FREGSAVED,"_memset32", 0, t) \
 SYMBOL_MARS(MEMSET64,        FLfunc,FREGSAVED,"_memset64", 0, t) \
 SYMBOL_MARS(MEMSET128,       FLfunc,FREGSAVED,"_memset128",0, t) \
+SYMBOL_MARS(MEMSET128ii,     FLfunc,FREGSAVED,"_memset128ii",0, t) \
 SYMBOL_MARS(MEMSET80,        FLfunc,FREGSAVED,"_memset80", 0, t) \
 SYMBOL_MARS(MEMSET160,       FLfunc,FREGSAVED,"_memset160",0, t) \
 SYMBOL_MARS(MEMSETFLOAT,     FLfunc,FREGSAVED,"_memsetFloat", 0, t) \
@@ -80,6 +81,8 @@ SYMBOL_MARS(DHIDDENFUNC,   FLfunc,FREGSAVED,"_d_hidden_func", 0, t) \
 SYMBOL_MARS(NEWCLASS,      FLfunc,FREGSAVED,"_d_newclass", 0, t) \
 SYMBOL_MARS(NEWARRAYT,     FLfunc,FREGSAVED,"_d_newarrayT", 0, t) \
 SYMBOL_MARS(NEWARRAYIT,    FLfunc,FREGSAVED,"_d_newarrayiT", 0, t) \
+SYMBOL_MARS(NEWITEMT,     FLfunc,FREGSAVED,"_d_newitemT", 0, t) \
+SYMBOL_MARS(NEWITEMIT,    FLfunc,FREGSAVED,"_d_newitemiT", 0, t) \
 SYMBOL_MARS(NEWARRAYMT,    FLfunc,FREGSAVED,"_d_newarraymT", 0, tv) \
 SYMBOL_MARS(NEWARRAYMIT,   FLfunc,FREGSAVED,"_d_newarraymiT", 0, tv) \
 SYMBOL_MARS(ARRAYLITERALT, FLfunc,FREGSAVED,"_d_arrayliteralT", 0, tv) \

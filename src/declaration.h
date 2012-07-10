@@ -84,6 +84,12 @@ enum PURE;
 #define STCdisable      0x2000000000LL  // for functions that are not callable
 #define STCresult       0x4000000000LL  // for result variables passed to out contracts
 #define STCnodefaultctor 0x8000000000LL  // must be set inside constructor
+#define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
+                                         // and used only in backend process, so it's rvalue
+
+#ifdef BUG6652
+#define STCbug6652      0x800000000000LL //
+#endif
 
 struct Match
 {
@@ -119,7 +125,7 @@ struct Declaration : Dsymbol
     enum LINK linkage;
     int inuse;                  // used to detect cycles
 
-#if IN_GCC
+#ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
 #endif
 
@@ -130,6 +136,8 @@ struct Declaration : Dsymbol
     const char *kind();
     unsigned size(Loc loc);
     void checkModify(Loc loc, Scope *sc, Type *t);
+
+    Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
     void toJsonBuffer(OutBuffer *buf);
@@ -250,6 +258,7 @@ struct VarDeclaration : Declaration
 #else
     int nestedref;              // referenced by a lexically nested function
 #endif
+    structalign_t alignment;
     int ctorinit;               // it has been initialized in a ctor
     int onstack;                // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
@@ -276,6 +285,7 @@ struct VarDeclaration : Declaration
     VarDeclaration(Loc loc, Type *t, Identifier *id, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -527,7 +537,7 @@ enum BUILTIN
     BUILTINbsr,                 // core.bitop.bsr
     BUILTINbsf,                 // core.bitop.bsf
     BUILTINbswap,               // core.bitop.bswap
-#if IN_GCC
+#ifdef IN_GCC
     BUILTINgcc,                 // GCC builtin
 #endif
 };
@@ -552,12 +562,14 @@ struct FuncDeclaration : Declaration
     Identifier *outId;                  // identifier for out statement
     VarDeclaration *vresult;            // variable corresponding to outId
     LabelDsymbol *returnLabel;          // where the return goes
+    Scope *scout;                       // out contract scope for vresult->semantic
 
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
     VarDeclaration *v_arguments;        // '_arguments' parameter
-#if IN_GCC
+#ifdef IN_GCC
+    VarDeclaration *v_arguments_var;    // '_arguments' variable
     VarDeclaration *v_argptr;           // '_argptr' variable
 #endif
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
@@ -603,6 +615,7 @@ struct FuncDeclaration : Declaration
     VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
+    FuncDeclarations deferred;          // toObjFile() these functions after this one
 
     unsigned flags;
     #define FUNCFLAGpurityInprocess 1   // working on determining purity
@@ -672,6 +685,7 @@ struct FuncDeclaration : Declaration
     void checkNestedReference(Scope *sc, Loc loc);
     int needsClosure();
     int hasNestedFrameRefs();
+    void buildResultVar();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
@@ -716,6 +730,7 @@ struct FuncAliasDeclaration : FuncDeclaration
 struct FuncLiteralDeclaration : FuncDeclaration
 {
     enum TOK tok;                       // TOKfunction or TOKdelegate
+    Type *treq;                         // target of return type inference
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
         ForeachStatement *fes);

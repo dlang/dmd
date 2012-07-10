@@ -95,14 +95,14 @@ struct IntRange
     IntRange(const SignExtendedNumber& a)
         : imin(a), imax(a) {}
     /// Create a range with the lower and upper bounds.
-    IntRange(const SignExtendedNumber& lower, const SignExtendedNumber& upper) 
+    IntRange(const SignExtendedNumber& lower, const SignExtendedNumber& upper)
         : imin(lower), imax(upper) {}
-    
+
     /// Create the tightest range containing all valid integers in the specified
-    /// type. 
+    /// type.
     static IntRange fromType(Type *type);
     /// Create the tightest range containing all valid integers in the type with
-    /// a forced signedness. 
+    /// a forced signedness.
     static IntRange fromType(Type *type, bool isUnsigned);
 
 
@@ -131,7 +131,7 @@ struct IntRange
     /// Check if this range contains 0.
     bool containsZero() const;
 
-    /// Compute the range of the negated absolute values of the original range. 
+    /// Compute the range of the negated absolute values of the original range.
     IntRange absNeg() const;
 
     /// Compute the union of two ranges.
@@ -139,7 +139,7 @@ struct IntRange
     void unionOrAssign(const IntRange& other, bool& union_);
 
     /// Dump the content of the integer range to the console.
-    const IntRange& dump(const char* funcName, Expression *e) const; 
+    const IntRange& dump(const char* funcName, Expression *e) const;
 
     /// Split the range into two nonnegative- and negative-only subintervals.
     void splitBySign(IntRange& negRange, bool& hasNegRange,

@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
@@ -99,6 +98,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
 
                 e1 = new DotVarExp(loc, e1, tcd->vthis);
                 e1->type = tcd->vthis->type;
+                e1->type = e1->type->addMod(t->mod);
                 // Do not call checkNestedRef()
                 //e1 = e1->semantic(sc);
 
@@ -127,6 +127,7 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
                 }
                 if (s && s->isClassDeclaration())
                 {   e1->type = s->isClassDeclaration()->type;
+                    e1->type = e1->type->addMod(t->mod);
                     if (n > 1)
                         e1 = e1->semantic(sc);
                 }
@@ -302,6 +303,129 @@ return_expr:
 }
 
 /******************************
+ * Check the tail CallExp is really property function call.
+ */
+
+void checkPropertyCall(Expression *e, Expression *emsg)
+{
+    while (e->op == TOKcomma)
+        e = ((CommaExp *)e)->e2;
+
+    if (e->op == TOKcall)
+    {   CallExp *ce = (CallExp *)e;
+        TypeFunction *tf;
+        if (ce->f)
+        {
+            tf = (TypeFunction *)ce->f->type;
+            /* If a forward reference to ce->f, try to resolve it
+             */
+            if (!tf->deco && ce->f->scope)
+            {   ce->f->semantic(ce->f->scope);
+                tf = (TypeFunction *)ce->f->type;
+            }
+        }
+        else if (ce->e1->type->ty == Tfunction)
+            tf = (TypeFunction *)ce->e1->type;
+        else if (ce->e1->type->ty == Tdelegate)
+            tf = (TypeFunction *)ce->e1->type->nextOf();
+        else if (ce->e1->type->ty == Tpointer && ce->e1->type->nextOf()->ty == Tfunction)
+            tf = (TypeFunction *)ce->e1->type->nextOf();
+        else
+            assert(0);
+
+        if (!tf->isproperty && global.params.enforcePropertySyntax)
+            ce->e1->error("not a property %s", emsg->toChars());
+    }
+}
+
+/******************************
+ * Pull out property with UFCS.
+ */
+
+Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NULL)
+{
+    Expression *e = NULL;
+    Expression *eleft;
+    Identifier *ident;
+    Objects* tiargs;
+    Loc loc = e1->loc;
+
+    if (e1->op == TOKdot)
+    {
+        DotIdExp *die = (DotIdExp *)e1;
+        eleft  = die->e1;
+        ident  = die->ident;
+        tiargs = NULL;
+        goto L1;
+    }
+    else if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti;
+        dti = (DotTemplateInstanceExp *)e1;
+        eleft  = dti->e1;
+        ident  = dti->ti->name;
+        tiargs = dti->ti->tiargs;
+    L1:
+        /* .ident
+         * .ident!tiargs
+         */
+        e = new IdentifierExp(loc, Id::empty);
+        if (tiargs)
+            e = new DotTemplateInstanceExp(loc, e, ident, tiargs);
+        else
+            e = new DotIdExp(loc, e, ident);
+
+        if (e2)
+        {
+            /* .f(e1) = e2
+             */
+            Expression *ex = e->syntaxCopy();
+            Expressions *a1 = new Expressions();
+            a1->setDim(1);
+            (*a1)[0] = eleft;
+            ex = new CallExp(loc, ex, a1);
+            ex = ex->trySemantic(sc);
+
+            /* .f(e1, e2)
+             */
+            Expressions *a2 = new Expressions();
+            a2->setDim(2);
+            (*a2)[0] = eleft;
+            (*a2)[1] = e2;
+            e = new CallExp(loc, e, a2);
+            if (ex)
+            {   // if fallback setter exists, gag errors
+                e = e->trySemantic(sc);
+                if (!e)
+                {   checkPropertyCall(ex, e1);
+                    ex = new AssignExp(loc, ex, e2);
+                    return ex->semantic(sc);
+                }
+            }
+            else
+            {   // strict setter prints errors if fails
+                e = e->semantic(sc);
+            }
+            checkPropertyCall(e, e1);
+            return e;
+        }
+        else
+        {
+            /* .f(e1)
+             */
+            Expressions *arguments = new Expressions();
+            arguments->setDim(1);
+            (*arguments)[0] = eleft;
+            e = new CallExp(loc, e, arguments);
+            e = e->semantic(sc);
+            checkPropertyCall(e, e1);
+            return e->semantic(sc);
+        }
+    }
+    return e;
+}
+
+/******************************
  * Perform semantic() on an array of Expressions.
  */
 
@@ -423,14 +547,14 @@ int expandAliasThisTuples(Expressions *exps, int starti)
 
     for (size_t u = starti; u < exps->dim; u++)
     {
-        Expression *exp = exps->tdata()[u];
+        Expression *exp = (*exps)[u];
         TupleDeclaration *td = isAliasThisTuple(exp);
         if (td)
         {
             exps->remove(u);
             for (size_t i = 0; i<td->objects->dim; ++i)
             {
-                Expression *e = isExpression(td->objects->tdata()[i]);
+                Expression *e = isExpression((*td->objects)[i]);
                 assert(e);
                 assert(e->op == TOKdsymbol);
                 DsymbolExp *se = (DsymbolExp *)e;
@@ -445,7 +569,7 @@ int expandAliasThisTuples(Expressions *exps, int starti)
             printf("expansion ->\n");
             for (size_t i = 0; i<exps->dim; ++i)
             {
-                Expression *e = exps->tdata()[i];
+                Expression *e = (*exps)[i];
                 printf("\texps[%d] e = %s %s\n", i, Token::tochars[e->op], e->toChars());
             }
     #endif
@@ -506,7 +630,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   error("%s has no value", e->toChars());
+        {   e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -591,6 +715,12 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         {   Expression *arg = (*exps)[i];
 
             arg = resolveProperties(sc, arg);
+#if 0
+            if (arg->op == TOKtype)
+            {   arg->error("%s is not an expression", arg->toChars());
+                arg = new ErrorExp();
+            }
+#endif
             (*exps)[i] =  arg;
 
             //arg->rvalue();
@@ -647,24 +777,41 @@ void valueNoDtor(Expression *e)
 #if DMDV2
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
 {
-    Type *tb = e->type->toBasetype();
-    assert(tb->ty == Tstruct);
-    StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-    if (sd->cpctor)
+    if (e->op == TOKarrayliteral)
     {
-        /* Create a variable tmp, and replace the argument e with:
-         *      (tmp = e),tmp
-         * and let AssignExp() handle the construction.
-         * This is not the most efficent, ideally tmp would be constructed
-         * directly onto the stack.
-         */
-        Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-        VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
-        tmp->storage_class |= STCctfe;
-        tmp->noscope = noscope;
-        Expression *ae = new DeclarationExp(loc, tmp);
-        e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-        e = e->semantic(sc);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
+        for (size_t i = 0; i < ae->elements->dim; i++)
+        {
+            ae->elements->tdata()[i] =
+                callCpCtor(loc, sc, ae->elements->tdata()[i], noscope);
+        }
+        e = ae->semantic(sc);
+        return e;
+    }
+
+    Type *tb = e->type->toBasetype();
+    Type *tv = tb;
+    while (tv->ty == Tsarray)
+        tv = tv->nextOf()->toBasetype();
+    if (tv->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)tv)->sym;
+        if (sd->cpctor)
+        {
+            /* Create a variable tmp, and replace the argument e with:
+             *      (tmp = e),tmp
+             * and let AssignExp() handle the construction.
+             * This is not the most efficent, ideally tmp would be constructed
+             * directly onto the stack.
+             */
+            Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
+            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
+            tmp->storage_class |= STCctfe;
+            tmp->noscope = noscope;
+            Expression *ae = new DeclarationExp(loc, tmp);
+            e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+            e = e->semantic(sc);
+        }
     }
     return e;
 }
@@ -678,6 +825,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
  *      3. do default promotions on arguments corresponding to ...
  *      4. add hidden _arguments[] argument
  *      5. call copy constructor for struct value arguments
+ * Input:
+ *      fd      the function being called, NULL if called indirectly
  * Returns:
  *      return type from function
  */
@@ -730,7 +879,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         Expression *arg;
 
         if (i < nargs)
-            arg = arguments->tdata()[i];
+            arg = (*arguments)[i];
         else
             arg = NULL;
 
@@ -740,7 +889,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             if (!arg)
             {
-                if (!p->defaultArg)
+                if (!p->defaultArg || !fd)
                 {
                     if (tf->varargs == 2 && i + 1 == nparams)
                         goto L2;
@@ -755,22 +904,22 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->push(arg);
                 nargs++;
             }
-            else if (arg->op == TOKfunction)
-            {   FuncExp *fe = (FuncExp *)arg;
+            else
+            {
                 Type *pt = p->type;
                 if (tf->varargs == 2 && i + 1 == nparams && pt->nextOf())
                     pt = pt->nextOf();
-                fe->setType(pt);
-                arg = fe->semantic(sc);
-                arguments->tdata()[i] =  arg;
+                arg = arg->inferType(pt);
+                (*arguments)[i] = arg;
             }
 
             if (tf->varargs == 2 && i + 1 == nparams)
             {
                 //printf("\t\tvarargs == 2, p->type = '%s'\n", p->type->toChars());
-                if (arg->implicitConvTo(p->type))
+                MATCH m;
+                if ((m = arg->implicitConvTo(p->type)) != MATCHnomatch)
                 {
-                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()))
+                    if (p->type->nextOf() && arg->implicitConvTo(p->type->nextOf()) >= m)
                         goto L2;
                     else if (nargs != nparams)
                     {   error(loc, "expected %llu function arguments, not %llu", (ulonglong)nparams, (ulonglong)nargs);
@@ -811,7 +960,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         c->type = v->type;
 
                         for (size_t u = i; u < nargs; u++)
-                        {   Expression *a = arguments->tdata()[u];
+                        {   Expression *a = (*arguments)[u];
                             if (tret && !((TypeArray *)tb)->next->equals(a->type))
                                 a = a->toDelegate(sc, tret);
 
@@ -835,7 +984,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         Expressions *args = new Expressions();
                         args->setDim(nargs - i);
                         for (size_t u = i; u < nargs; u++)
-                            args->tdata()[u - i] = arguments->tdata()[u];
+                            (*args)[u - i] = (*arguments)[u];
                         arg = new NewExp(loc, NULL, NULL, p->type, args);
                         break;
                     }
@@ -849,7 +998,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = arg->semantic(sc);
                 //printf("\targ = '%s'\n", arg->toChars());
                 arguments->setDim(i + 1);
-                arguments->tdata()[i] =  arg;
+                (*arguments)[i] =  arg;
                 nargs = i + 1;
                 done = 1;
             }
@@ -885,7 +1034,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     assert(nargs >= nparams);
     for (size_t i = 0; i < nargs; i++)
     {
-        Expression *arg = arguments->tdata()[i];
+        Expression *arg = (*arguments)[i];
         assert(arg);
 
         if (i < nparams)
@@ -914,7 +1063,37 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                arg = arg->toLvalue(sc, arg);
+                if (arg->op == TOKstructliteral)
+                {
+                    Identifier *idtmp = Lexer::uniqueId("__tmpsl");
+                    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(0, arg));
+                    tmp->storage_class |= STCctfe;
+                    Expression *ae = new DeclarationExp(loc, tmp);
+                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+                    e = e->semantic(sc);
+
+                    arg = e;
+                }
+                else if (arg->op == TOKcall)
+                {
+                    CallExp *ce = (CallExp *)arg;
+                    if (ce->e1->op == TOKdotvar &&
+                        ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
+                    {
+                        DotVarExp *dve = (DotVarExp *)ce->e1;
+                        assert(dve->e1->op == TOKcomma);
+                        assert(((CommaExp *)dve->e1)->e2->op == TOKvar);
+                        VarExp *ve = (VarExp *)((CommaExp *)dve->e1)->e2;
+                        VarDeclaration *tmp = ve->var->isVarDeclaration();
+
+                        arg = new CommaExp(arg->loc, arg, new VarExp(loc, tmp));
+                        arg = arg->semantic(sc);
+                    }
+                    else
+                        arg = arg->toLvalue(sc, arg);
+                }
+                else
+                    arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
@@ -922,17 +1101,24 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
 
             Type *tb = arg->type->toBasetype();
-#if !SARRAYVALUE
-            // Convert static arrays to pointers
-            if (tb->ty == Tsarray)
+            if (arg->op == TOKarrayliteral)
             {
-                arg = arg->checkToPointer();
+                arg = callCpCtor(loc, sc, arg, 1);
             }
-#endif
-#if DMDV2
-            if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
+            else if (tb->ty == Tsarray)
             {
-                if (arg->op == TOKcall)
+#if !SARRAYVALUE
+                // Convert static arrays to pointers
+                arg = arg->checkToPointer();
+#else
+                // call copy constructor of each element
+                arg = callCpCtor(loc, sc, arg, 1);
+#endif
+            }
+#if DMDV2
+            else if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
+            {
+                if (arg->op == TOKcall && !arg->isLvalue())
                 {
                     /* The struct value returned from the function is transferred
                      * to the function, so the callee should not call the destructor
@@ -1054,7 +1240,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         }
         arg = arg->optimize(WANTvalue);
     L3:
-        arguments->tdata()[i] =  arg;
+        (*arguments)[i] =  arg;
     }
 
     // If D linkage and variadic, add _arguments[] as first argument
@@ -1109,18 +1295,17 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
  * Write out argument list to buf.
  */
 
-void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
+void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
 {
-    if (arguments)
+    if (expressions)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        for (size_t i = 0; i < expressions->dim; i++)
+        {   Expression *e = (*expressions)[i];
 
-            if (arg)
-            {   if (i)
-                    buf->writeByte(',');
-                expToCBuffer(buf, hgs, arg, PREC_assign);
-            }
+            if (i)
+                buf->writeByte(',');
+            if (e)
+                expToCBuffer(buf, hgs, e, PREC_assign);
         }
     }
 }
@@ -1135,12 +1320,12 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
     {   OutBuffer argbuf;
 
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = arguments->tdata()[i];
+        {   Expression *e = (*arguments)[i];
 
             if (i)
                 buf->writeByte(',');
             argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, hgs, 0);
+            e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
         }
     }
@@ -1229,13 +1414,16 @@ void Expression::print()
 }
 
 char *Expression::toChars()
-{   OutBuffer *buf;
+{
     HdrGenState hgs;
-
     memset(&hgs, 0, sizeof(hgs));
-    buf = new OutBuffer();
-    toCBuffer(buf, &hgs);
-    return buf->toChars();
+
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writeByte(0);
+    char *p = (char *)buf.data;
+    buf.data = NULL;
+    return p;
 }
 
 void Expression::error(const char *format, ...)
@@ -1343,12 +1531,12 @@ void Expression::toMangleBuffer(OutBuffer *buf)
 /***************************************
  * Return !=0 if expression is an lvalue.
  */
-#if DMDV2
+
 int Expression::isLvalue()
 {
     return 0;
 }
-#endif
+
 
 /*******************************
  * Give error if we're not an lvalue.
@@ -1729,7 +1917,7 @@ Expressions *Expression::arraySyntaxCopy(Expressions *exps)
 
             if (e)
                 e = e->syntaxCopy();
-            a->tdata()[i] = e;
+            (*a)[i] = e;
         }
     }
     return a;
@@ -2340,8 +2528,8 @@ char *ComplexExp::toChars()
     creall(value).format(buf1, sizeof(buf1));
     cimagl(value).format(buf2, sizeof(buf2));
 #else
-    ld_sprint(buffer, 'g', creall(value));
-    ld_sprint(buffer, 'g', cimagl(value));
+    ld_sprint(buf1, 'g', creall(value));
+    ld_sprint(buf2, 'g', cimagl(value));
 #endif
     sprintf(buffer, "(%s+%si)", buf1, buf2);
     assert(strlen(buffer) < sizeof(buffer));
@@ -2578,12 +2766,12 @@ void IdentifierExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writestring(ident->toChars());
 }
 
-#if DMDV2
+
 int IdentifierExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2618,7 +2806,7 @@ AggregateDeclaration *isAggregate(Type *t);
 Expression *DsymbolExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("DsymbolExp::semantic('%s')\n", s->toChars());
+    printf("DsymbolExp::semantic(%s %s)\n", s->kind(), s->toChars());
 #endif
 
 Lagain:
@@ -2636,7 +2824,7 @@ Lagain:
 
     //printf("DsymbolExp:: %p '%s' is a symbol\n", this, toChars());
     //printf("s = '%s', s->kind = '%s'\n", s->toChars(), s->kind());
-    if (type)
+    if (type && !s->needThis())
         return this;
     if (!s->isFuncDeclaration())        // functions are checked after overloading
         checkDeprecated(sc, s);
@@ -2802,18 +2990,38 @@ Lagain:
     TupleDeclaration *tup = s->isTupleDeclaration();
     if (tup)
     {
+        for (size_t i = 0; i < tup->objects->dim; i++)
+        {
+            Dsymbol *sa = getDsymbol((*tup->objects)[i]);
+            if (sa && sa->needThis())
+            {
+                if (hasThis(sc)
+#if DMDV2
+                        && !sa->isFuncDeclaration()
+#endif
+                    )
+                {
+                    // Supply an implicit 'this', as in
+                    //    this.ident
+                    (*tup->objects)[i] = new DotVarExp(loc, new ThisExp(loc), sa->isDeclaration());
+                }
+            }
+        }
+
         e = new TupleExp(loc, tup);
         e = e->semantic(sc);
         return e;
     }
 
     TemplateInstance *ti = s->isTemplateInstance();
-    if (ti && !global.errors)
+    if (ti)
     {   if (!ti->semanticRun)
             ti->semantic(sc);
-        s = ti->inst->toAlias();
+        s = ti->toAlias();
         if (!s->isTemplateInstance())
             goto Lagain;
+        if (ti->errors)
+            return new ErrorExp();
         e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
@@ -2849,12 +3057,12 @@ void DsymbolExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(s->toChars());
 }
 
-#if DMDV2
+
 int DsymbolExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -2947,12 +3155,12 @@ void ThisExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("this");
 }
 
-#if DMDV2
+
 int ThisExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *ThisExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -3164,20 +3372,6 @@ int StringExp::equals(Object *o)
     return FALSE;
 }
 
-char *StringExp::toChars()
-{
-    OutBuffer buf;
-    HdrGenState hgs;
-    char *p;
-
-    memset(&hgs, 0, sizeof(hgs));
-    toCBuffer(&buf, &hgs);
-    buf.writeByte(0);
-    p = (char *)buf.data;
-    buf.data = NULL;
-    return p;
-}
-
 Expression *StringExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
@@ -3385,7 +3579,7 @@ int StringExp::isBool(int result)
     return result ? TRUE : FALSE;
 }
 
-#if DMDV2
+
 int StringExp::isLvalue()
 {
     /* string literal is rvalue in default, but
@@ -3393,7 +3587,7 @@ int StringExp::isLvalue()
      */
     return 0;
 }
-#endif
+
 
 Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -3543,6 +3737,7 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
 {
     elements = new Expressions;
     elements->push(e);
+    this->ownedByCtfe = false;
 }
 
 Expression *ArrayLiteralExp::syntaxCopy()
@@ -3598,10 +3793,10 @@ StringExp *ArrayLiteralExp::toString()
         if (elements)
             for (int i = 0; i < elements->dim; ++i)
             {
-                Expression *ch = elements->tdata()[i];
+                Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                buf.writedchar(ch->toInteger());
+                buf.writeUTF8(ch->toInteger());
             }
         buf.writebyte(0);
 
@@ -3609,7 +3804,8 @@ StringExp *ArrayLiteralExp::toString()
         if (telem == Twchar) prefix = 'w';
         else if (telem == Tdchar) prefix = 'd';
 
-        StringExp *se = new StringExp(loc, buf.extractData(), buf.size - 1, prefix);
+        const size_t len = buf.offset - 1;
+        StringExp *se = new StringExp(loc, buf.extractData(), len, prefix);
         se->type = type;
         return se;
     }
@@ -3628,7 +3824,7 @@ void ArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = elements ? elements->dim : 0;
     buf->printf("A%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *e = elements->tdata()[i];
+    {   Expression *e = (*elements)[i];
         e->toMangleBuffer(buf);
     }
 }
@@ -3678,6 +3874,9 @@ Expression *AssocArrayLiteralExp::semantic(Scope *sc)
     keys = arrayExpressionToCommonType(sc, keys, &tkey);
     values = arrayExpressionToCommonType(sc, values, &tvalue);
 
+    if (tkey == Type::terror || tvalue == Type::terror)
+        return new ErrorExp;
+
     type = new TypeAArray(tvalue, tkey);
     type = type->semantic(loc, sc);
     return this;
@@ -3694,8 +3893,8 @@ void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writeByte('[');
     for (size_t i = 0; i < keys->dim; i++)
-    {   Expression *key = keys->tdata()[i];
-        Expression *value = values->tdata()[i];
+    {   Expression *key = (*keys)[i];
+        Expression *value = (*values)[i];
 
         if (i)
             buf->writeByte(',');
@@ -3711,8 +3910,8 @@ void AssocArrayLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = keys->dim;
     buf->printf("A%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *key = keys->tdata()[i];
-        Expression *value = values->tdata()[i];
+    {   Expression *key = (*keys)[i];
+        Expression *value = (*values)[i];
 
         key->toMangleBuffer(buf);
         value->toMangleBuffer(buf);
@@ -3729,10 +3928,12 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->sd = sd;
     this->elements = elements;
     this->stype = stype;
+    this->sinit = NULL;
     this->sym = NULL;
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
+    //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
 Expression *StructLiteralExp::syntaxCopy()
@@ -3742,7 +3943,6 @@ Expression *StructLiteralExp::syntaxCopy()
 
 Expression *StructLiteralExp::semantic(Scope *sc)
 {   Expression *e;
-    size_t nfields = sd->fields.dim - sd->isnested;
 
 #if LOGSEMANTIC
     printf("StructLiteralExp::semantic('%s')\n", toChars());
@@ -3750,20 +3950,30 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
+    sd->size(loc);
+    if (sd->sizeok != SIZEOKdone)
+        return new ErrorExp();
+    size_t nfields = sd->fields.dim - sd->isnested;
+
     elements = arrayExpressionSemantic(elements, sc);   // run semantic() on each element
     expandTuples(elements);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
-    {   e = elements->tdata()[i];
+    {   e = (*elements)[i];
         if (!e)
             continue;
 
         e = resolveProperties(sc, e);
         if (i >= nfields)
-        {   error("more initializers than fields of %s", sd->toChars());
+        {
+#if 0
+            for (size_t i = 0; i < sd->fields.dim; i++)
+                printf("[%d] = %s\n", i, sd->fields[i]->toChars());
+#endif
+            error("more initializers than fields (%d) of %s", nfields, sd->toChars());
             return new ErrorExp();
         }
-        Dsymbol *s = sd->fields.tdata()[i];
+        Dsymbol *s = sd->fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v);
         if (v->offset < offset)
@@ -3782,23 +3992,15 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             telem = telem->toBasetype()->nextOf();
         }
 
-        if (e->op == TOKfunction)
-        {   e = ((FuncExp *)e)->inferType(sc, telem);
-            if (!e)
-            {   error("cannot infer function literal type from %s", telem->toChars());
-                e = new ErrorExp();
-            }
-        }
-
         e = e->implicitCastTo(sc, telem);
 
-        elements->tdata()[i] = e;
+        (*elements)[i] = e;
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
     for (size_t i = elements->dim; i < nfields; i++)
-    {   Dsymbol *s = sd->fields.tdata()[i];
+    {   Dsymbol *s = sd->fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v);
         assert(!v->isThisDeclaration());
@@ -3821,7 +4023,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                     else if (v->scope)
                     {   // Do deferred semantic analysis
                         Initializer *i2 = v->init->syntaxCopy();
-                        i2 = i2->semantic(v->scope, v->type, WANTinterpret);
+                        i2 = i2->semantic(v->scope, v->type, INITinterpret);
                         e = i2->toExpression();
                         // remove v->scope (see bug 3426)
                         // but not if gagged, for we might be called again.
@@ -3873,7 +4075,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
     {
         //printf("\ti = %d\n", i);
         assert(i < elements->dim);
-        e = elements->tdata()[i];
+        e = (*elements)[i];
         if (e)
         {
             //printf("e = %s, e->type = %s\n", e->toChars(), e->type->toChars());
@@ -3887,7 +4089,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
                 Expressions *z = new Expressions;
                 z->setDim(length);
                 for (int q = 0; q < length; ++q)
-                    z->tdata()[q] = e->copy();
+                    (*z)[q] = e->copy();
                 e = new ArrayLiteralExp(loc, z);
                 e->type = type;
             }
@@ -3914,13 +4116,13 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
     {
         for (size_t i = 0; i < sd->fields.dim; i++)
         {
-            Dsymbol *s = sd->fields.tdata()[i];
+            Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
 
             if (offset == v->offset &&
                 type->size() == v->type->size())
-            {   Expression *e = elements->tdata()[i];
+            {   Expression *e = (*elements)[i];
                 if (e)
                 {
                     return i;
@@ -3945,7 +4147,7 @@ void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
     size_t dim = elements ? elements->dim : 0;
     buf->printf("S%u", dim);
     for (size_t i = 0; i < dim; i++)
-    {   Expression *e = elements->tdata()[i];
+    {   Expression *e = (*elements)[i];
         if (e)
             e->toMangleBuffer(buf);
         else
@@ -3988,8 +4190,32 @@ Expression *TypeExp::syntaxCopy()
 Expression *TypeExp::semantic(Scope *sc)
 {
     //printf("TypeExp::semantic(%s)\n", type->toChars());
-    type = type->semantic(loc, sc);
-    return this;
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+
+    type->resolve(loc, sc, &e, &t, &s);
+    if (e)
+    {
+        //printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+        e = e->semantic(sc);
+    }
+    else if (t)
+    {
+        //printf("t = %d %s\n", t->ty, t->toChars());
+        type = t->semantic(loc, sc);
+        e = this;
+    }
+    else if (s)
+    {
+        //printf("s = %s %s\n", s->kind(), s->toChars());
+        e = new DsymbolExp(loc, s, s->hasOverloads());
+        e = e->semantic(sc);
+    }
+    else
+        assert(0);
+
+    return e;
 }
 
 int TypeExp::rvalue()
@@ -4038,6 +4264,8 @@ Lagain:
             ti->semantic(sc);
         if (ti->inst)
         {
+            if (ti->inst->errors)
+                return new ErrorExp();
             Dsymbol *s = ti->inst->toAlias();
             sds2 = s->isScopeDsymbol();
             if (!sds2)
@@ -4051,7 +4279,7 @@ Lagain:
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
-                    e = new DsymbolExp(loc, s);
+                    e = new DsymbolExp(loc, s, s->hasOverloads());
                 e = e->semantic(sc);
                 //printf("-1ScopeExp::semantic()\n");
                 return e;
@@ -4174,6 +4402,13 @@ Lagain:
             sc = sc->push(cdthis);
             type = newtype->semantic(loc, sc);
             sc = sc->pop();
+
+            if (!MODimplicitConv(thisexp->type->mod, newtype->mod))
+            {
+                error("nested type %s should have the same or weaker constancy as enclosing type %s",
+                    newtype->toChars(), thisexp->type->toChars());
+                goto Lerr;
+            }
         }
         else
         {
@@ -4208,7 +4443,7 @@ Lagain:
         else if (cd->isAbstract())
         {   error("cannot create instance of abstract class %s", cd->toChars());
             for (size_t i = 0; i < cd->vtbl.dim; i++)
-            {   FuncDeclaration *fd = cd->vtbl.tdata()[i]->isFuncDeclaration();
+            {   FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
                 if (fd && fd->isAbstract())
                     error("function %s is abstract", fd->toChars());
             }
@@ -4461,7 +4696,7 @@ Lagain:
                 goto Lerr;
             }
 
-            Expression *arg = arguments->tdata()[i];
+            Expression *arg = (*arguments)[i];
             arg = resolveProperties(sc, arg);
             arg = arg->implicitCastTo(sc, Type::tsize_t);
             arg = arg->optimize(WANTvalue);
@@ -4469,7 +4704,7 @@ Lagain:
             {   error("negative array index %s", arg->toChars());
                 goto Lerr;
             }
-            arguments->tdata()[i] =  arg;
+            (*arguments)[i] =  arg;
             tb = ((TypeDArray *)tb)->next->toBasetype();
         }
     }
@@ -4765,14 +5000,14 @@ void VarExp::checkEscapeRef()
     }
 }
 
-#if DMDV2
+
 int VarExp::isLvalue()
 {
-    if (var->storage_class & STClazy)
+    if (var->storage_class & (STClazy | STCtemp))
         return 0;
     return 1;
 }
-#endif
+
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -4795,6 +5030,16 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
     //if (type && type->toBasetype()->ty == Tsarray)
         //error("cannot change reference to static array '%s'", var->toChars());
+
+#if (BUG6652 == 1)
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && (v->storage_class & STCbug6652) && global.params.warnings)
+        warning("Variable modified in foreach body requires ref storage class");
+#elif (BUG6652 == 2)
+    VarDeclaration *v = var->isVarDeclaration();
+    if (v && (v->storage_class & STCbug6652) && !global.params.useDeprecated)
+        error("Variable modified in foreach body requires ref storage class");
+#endif
 
     var->checkModify(loc, sc, type);
 
@@ -4845,7 +5090,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 
     exps->reserve(tup->objects->dim);
     for (size_t i = 0; i < tup->objects->dim; i++)
-    {   Object *o = tup->objects->tdata()[i];
+    {   Object *o = (*tup->objects)[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
         {
             Expression *e = (Expression *)o;
@@ -4949,8 +5194,6 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     this->fd = fd;
     this->td = td;
     tok = fd->tok;  // save original kind of function/delegate/(infer)
-    tded = NULL;
-    scope = NULL;
 }
 
 Expression *FuncExp::syntaxCopy()
@@ -4963,36 +5206,41 @@ Expression *FuncExp::semantic(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("FuncExp::semantic(%s)\n", toChars());
+    if (fd->treq) printf("  treq = %s\n", fd->treq->toChars());
 #endif
     if (!type || type == Type::tvoid)
     {
-        // save for later use
-        scope = sc;
+        /* fd->treq might be incomplete type,
+         * so should not semantic it.
+         * void foo(T)(T delegate(int) dg){}
+         * foo(a=>a); // in IFTI, treq == T delegate(int)
+         */
+        //if (fd->treq)
+        //    fd->treq = fd->treq->semantic(loc, sc);
 
-        //printf("td = %p, tded = %p\n", td, tded);
+        // Set target of return type inference
+        if (fd->treq && !fd->type->nextOf())
+        {   TypeFunction *tfv = NULL;
+            if (fd->treq->ty == Tdelegate ||
+                (fd->treq->ty == Tpointer && fd->treq->nextOf()->ty == Tfunction))
+                tfv = (TypeFunction *)fd->treq->nextOf();
+            if (tfv)
+            {   TypeFunction *tfl = (TypeFunction *)fd->type;
+                tfl->next = tfv->nextOf();
+            }
+        }
+
+        //printf("td = %p, treq = %p\n", td, fd->treq);
         if (td)
         {
             assert(td->parameters && td->parameters->dim);
             td->semantic(sc);
+            type = Type::tvoid; // temporary type
 
-            if (!tded)
-            {   // defer type determination
-                type = Type::tvoid; // temporary type
+            if (!fd->treq)  // defer type determination
                 return this;
-            }
-            else
-            {
-                Expression *e = inferType(sc, tded);
-                if (e)
-                {   e = e->castTo(sc, tded);
-                    e = e->semantic(sc);
-                }
-                if (!e)
-                {   error("cannot infer function literal type");
-                    e = new ErrorExp();
-                }
-                return e;
-            }
+
+            return inferType(fd->treq);
         }
 
         unsigned olderrors = global.errors;
@@ -5021,14 +5269,32 @@ Expression *FuncExp::semantic(Scope *sc)
 
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd->isNested() && fd->tok == TOKdelegate) ||
-            (tok == TOKreserved && tded && tded->ty == Tdelegate))
+            (tok == TOKreserved && fd->treq && fd->treq->ty == Tdelegate))
         {
             type = new TypeDelegate(fd->type);
             type = type->semantic(loc, sc);
+
+            fd->tok = TOKdelegate;
         }
         else
         {
-            type = fd->type->pointerTo();
+            type = new TypePointer(fd->type);
+            type = type->semantic(loc, sc);
+            //type = fd->type->pointerTo();
+
+            /* A lambda expression deduced to function pointer might become
+             * to a delegate literal implicitly.
+             *
+             *   auto foo(void function() fp) { return 1; }
+             *   assert(foo({}) == 1);
+             *
+             * So, should keep fd->tok == TOKreserve if fd->treq == NULL.
+             */
+            if (fd->treq && fd->treq->ty == Tpointer)
+            {   // change to non-nested
+                fd->tok = TOKfunction;
+                fd->vthis = NULL;
+            }
         }
         fd->tookAddressOf++;
     }
@@ -5038,13 +5304,10 @@ Expression *FuncExp::semantic(Scope *sc)
 // used from CallExp::semantic()
 Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 {
-    assert(!tded);
-    assert(!scope);
-
     if ((!type || type == Type::tvoid) && td && arguments && arguments->dim)
     {
         for (size_t k = 0; k < arguments->dim; k++)
-        {   Expression *checkarg = arguments->tdata()[k];
+        {   Expression *checkarg = (*arguments)[k];
             if (checkarg->op == TOKerror)
                 return checkarg;
         }
@@ -5054,6 +5317,12 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
 
         TypeFunction *tfl = (TypeFunction *)fd->type;
         size_t dim = Parameter::dim(tfl->parameters);
+        if (arguments->dim < dim)
+        {   // Default arguments are always typed, so they don't need inference.
+            Parameter *p = Parameter::getNth(tfl->parameters, arguments->dim);
+            if (p->defaultArg)
+                dim = arguments->dim;
+        }
 
         if ((!tfl->varargs && arguments->dim == dim) ||
             ( tfl->varargs && arguments->dim >= dim))
@@ -5082,83 +5351,6 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
         return new ErrorExp();
     }
     return semantic(sc);
-}
-
-Expression *FuncExp::inferType(Scope *sc, Type *to)
-{
-    //printf("inferType sc = %p, to = %s\n", sc, to->toChars());
-    if (!sc)
-    {   // used from TypeFunction::callMatch()
-        assert(scope);
-        sc = scope;
-    }
-
-    Expression *e = NULL;
-    if (td)
-    {   /// Parameter types inference from
-        assert(!type || type == Type::tvoid);
-        Type *t = to;
-        if (t->ty == Tdelegate ||
-            t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-        {   t = t->nextOf();
-        }
-        if (t->ty == Tfunction)
-        {
-            TypeFunction *tfv = (TypeFunction *)t;
-            TypeFunction *tfl = (TypeFunction *)fd->type;
-            size_t dim = Parameter::dim(tfl->parameters);
-
-            if (Parameter::dim(tfv->parameters) == dim &&
-                tfv->varargs == tfl->varargs)
-            {
-                Objects *tiargs = new Objects();
-                tiargs->reserve(td->parameters->dim);
-
-                for (size_t i = 0; i < td->parameters->dim; i++)
-                {
-                    TemplateParameter *tp = (*td->parameters)[i];
-                    for (size_t u = 0; u < dim; u++)
-                    {   Parameter *p = Parameter::getNth(tfl->parameters, u);
-                        if (p->type->ty == Tident &&
-                            ((TypeIdentifier *)p->type)->ident == tp->ident)
-                        {   p = Parameter::getNth(tfv->parameters, u);
-                            if (p->type->ty == Tident)
-                                return NULL;
-                            tiargs->push(p->type);
-                            u = dim;    // break inner loop
-                        }
-                    }
-                }
-
-                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
-                e = (new ScopeExp(loc, ti))->semantic(sc);
-            }
-        }
-    }
-    else
-    {
-        assert(type && type != Type::tvoid);   // semantic is already done
-        e = this;
-    }
-
-    if (e)
-    {   // Check implicit function to delegate conversion
-        if (e->implicitConvTo(to))
-            e = e->castTo(sc, to);
-        else
-            e = NULL;
-    }
-    return e;
-}
-
-void FuncExp::setType(Type *t)
-{
-    assert(t);
-
-    if (t->ty == Tdelegate ||
-        t->ty == Tpointer && t->nextOf()->ty == Tfunction)
-    {   tded = t;
-    }
 }
 
 char *FuncExp::toChars()
@@ -5207,7 +5399,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
     if (ad)
     {
         if (ad->decl && ad->decl->dim == 1)
-            s = ad->decl->tdata()[0];
+            s = (*ad->decl)[0];
     }
 
     if (s->isVarDeclaration())
@@ -5398,7 +5590,7 @@ void TraitsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         for (size_t i = 0; i < args->dim; i++)
         {
             buf->writeByte(',');
-            Object *oarg = args->tdata()[i];
+            Object *oarg = (*args)[i];
             ObjectToCBuffer(buf, hgs, oarg);
         }
     }
@@ -5451,8 +5643,8 @@ Expression *IsExp::syntaxCopy()
         p = new TemplateParameters();
         p->setDim(parameters->dim);
         for (size_t i = 0; i < p->dim; i++)
-        {   TemplateParameter *tp = parameters->tdata()[i];
-            p->tdata()[i] = tp->syntaxCopy();
+        {   TemplateParameter *tp = (*parameters)[i];
+            (*p)[i] = tp->syntaxCopy();
         }
     }
 
@@ -5562,7 +5754,7 @@ Expression *IsExp::semantic(Scope *sc)
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = cd->baseclasses->tdata()[i];
+                    {   BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
@@ -5582,6 +5774,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKfunction:
+            case TOKparameters:
             {
                 if (targ->ty != Tfunction)
                     goto Lno;
@@ -5597,7 +5790,9 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
-                    args->push(new Parameter(arg->storageClass, arg->type, NULL, NULL));
+                    args->push(new Parameter(arg->storageClass, arg->type,
+                        (tok2 == TOKparameters) ? arg->ident : NULL,
+                        (tok2 == TOKparameters) ? arg->defaultArg : NULL));
                 }
                 tded = new TypeTuple(args);
                 break;
@@ -5659,13 +5854,13 @@ Expression *IsExp::semantic(Scope *sc)
         }
         else
         {
-            tded = (Type *)dedtypes.tdata()[0];
+            tded = (Type *)dedtypes[0];
             if (!tded)
                 tded = targ;
 #if DMDV2
             Objects tiargs;
             tiargs.setDim(1);
-            tiargs.tdata()[0] = targ;
+            tiargs[0] = targ;
 
             /* Declare trailing parameters
              */
@@ -5764,7 +5959,7 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         for (size_t i = 1; i < parameters->dim; i++)
         {
             buf->writeByte(',');
-            TemplateParameter *tp = parameters->tdata()[i];
+            TemplateParameter *tp = (*parameters)[i];
             tp->toCBuffer(buf, hgs);
         }
     }
@@ -6166,7 +6361,7 @@ Expression *CompileExp::semantic(Scope *sc)
         error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
         return new ErrorExp();
     }
-    e1 = e1->optimize(WANTvalue | WANTinterpret);
+    e1 = e1->ctfeInterpret();
     StringExp *se = e1->toString();
     if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
@@ -6208,7 +6403,7 @@ Expression *FileExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
-    e1 = e1->optimize(WANTvalue | WANTinterpret);
+    e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
     {   error("file name argument must be a string, not (%s)", e1->toChars());
         goto Lerror;
@@ -6337,7 +6532,7 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {
-    // Indicate we didn't come from CallExp::semantic()
+    // Indicate we need to resolve by UFCS.
     return semantic(sc, 0);
 }
 
@@ -6406,7 +6601,29 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         }
     }
 
+//    Type *t1save = e1->type;
+
     UnaExp::semantic(sc);
+
+#if 0
+    /*
+     * Identify typeof(var).stringof and use the original type of var, if possible
+     */
+    if (ident == Id::stringof && e1->op == TOKtype && t1save && t1save->ty == Ttypeof)
+    {   TypeTypeof *t = (TypeTypeof *)t1save;
+        if (t->exp->op == TOKvar)
+        {
+            Type *ot = ((VarExp *)t->exp)->var->originalType;
+            if (ot)
+            {
+                char *s = ((VarExp *)t->exp)->var->originalType->toChars();
+                e = new StringExp(loc, s, strlen(s), 'c');
+                e = e->semantic(sc);
+                return e;
+            }
+        }
+    }
+#endif
 
     if (ident == Id::mangleof)
     {   // symbol.mangleof
@@ -6614,7 +6831,12 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             e = e->semantic(sc);
             return e;
         }
-        error("undefined identifier %s", toChars());
+        s = ie->sds->search_correct(ident);
+        if (s)
+            error("undefined identifier '%s', did you mean '%s %s'?",
+                  ident->toChars(), s->kind(), s->toChars());
+        else
+            error("undefined identifier '%s'", ident->toChars());
         return new ErrorExp();
     }
     else if (t1b->ty == Tpointer &&
@@ -6631,23 +6853,46 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         return e->type->dotExp(sc, e, ident);
     }
 #if DMDV2
-    else if ((t1b->ty == Tarray || t1b->ty == Tsarray ||
-             t1b->ty == Taarray) &&
-             ident != Id::sort && ident != Id::reverse &&
-             ident != Id::dup && ident != Id::idup)
+    else if (!flag)
     {   /* If ident is not a valid property, rewrite:
          *   e1.ident
          * as:
          *   .ident(e1)
          */
-        unsigned errors = global.startGagging();
+        if (e1->op == TOKtype ||
+            t1b->ty == Tvoid ||
+            (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray) &&
+            (ident == Id::sort || ident == Id::reverse || ident == Id::dup || ident == Id::idup))
+        {   goto L2;
+        }
+
+        /* This would be much better if we added a "hasProperty" method to types,
+         * i.e. the gagging is a bad way.
+         */
+
+        if (t1b->ty == Taarray)
+        {
+            TypeAArray *taa = (TypeAArray *)t1b;
+            if (!taa->impl &&
+                ident != Id::__sizeof &&
+                ident != Id::__xalignof &&
+                ident != Id::init &&
+                ident != Id::mangleof &&
+                ident != Id::stringof &&
+                ident != Id::offsetof)
+            {
+                // Find out about these errors when not gagged
+                taa->getImpl();
+            }
+        }
+
         Type *t1 = e1->type;
-        e = e1->type->dotExp(sc, e1, ident);
-        if (global.endGagging(errors))    // if failed to find the property
+        unsigned errors = global.startGagging();
+        e = t1->dotExp(sc, e1, ident);
+        if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
-            e = new DotIdExp(loc, new IdentifierExp(loc, Id::empty), ident);
-            e = new CallExp(loc, e, e1);
+            e = resolveUFCSProperties(sc, this);
         }
         e = e->semantic(sc);
         return e;
@@ -6655,9 +6900,9 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 #endif
     else
     {
+    L2:
         e = e1->type->dotExp(sc, e1, ident);
-        if (!(flag && e->op == TOKdotti))       // let CallExp::semantic() handle this
-            e = e->semantic(sc);
+        e = e->semantic(sc);
         return e;
     }
 }
@@ -6720,7 +6965,7 @@ Expression *DotVarExp::semantic(Scope *sc)
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
-            {   Object *o = tup->objects->tdata()[i];
+            {   Object *o = (*tup->objects)[i];
                 if (o->dyncast() != DYNCAST_EXPRESSION)
                 {
                     error("%s is not an expression", o->toChars());
@@ -6805,12 +7050,12 @@ Lerr:
     return new ErrorExp();
 }
 
-#if DMDV2
+
 int DotVarExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -6945,13 +7190,47 @@ TemplateDeclaration *DotTemplateInstanceExp::getTempdecl(Scope *sc)
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 {
+    // Indicate we need to resolve by UFCS.
+    return semantic(sc, 0);
+}
+Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
+{
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
 #endif
-    Expression *eleft;
-    Expression *e = new DotIdExp(loc, e1, ti->name);
+
+    UnaExp::semantic(sc);
+    if (e1->op == TOKerror)
+        return e1;
+
+    Expression *e;
+    DotIdExp *die = new DotIdExp(loc, e1, ti->name);
+
+    if (flag || !e1->type || e1->op == TOKtype ||
+        e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule())
+    {
+        e = die->semantic(sc, 1);
+    }
+    else
+    {
+        Type *t1b = e1->type->toBasetype();
+        if ((t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
+             t1b->ty == Tnull  || t1b->isTypeBasic() && t1b->ty != Tvoid))
+        {
+            /* No built-in type has templatized property, so can short cut.
+             */
+            return resolveUFCSProperties(sc, this);
+        }
+
+        unsigned errors = global.startGagging();
+        e = die->semantic(sc, 1);
+        if (global.endGagging(errors))
+        {
+            return resolveUFCSProperties(sc, this);
+        }
+    }
+
 L1:
-    e = e->semantic(sc);
     if (e->op == TOKerror)
         return e;
     if (e->op == TOKdottd)
@@ -6960,7 +7239,7 @@ L1:
             return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
         TemplateDeclaration *td = dte->td;
-        eleft = dte->e1;
+        Expression *eleft = dte->e1;
         ti->tempdecl = td;
         if (ti->needsTypeInference(sc))
         {
@@ -7034,8 +7313,15 @@ L1:
         {   TemplateExp *te = (TemplateExp *) de->e2;
             e = new DotTemplateExp(loc,de->e1,te->td);
         }
+        else
+            goto Lerr;
+
+        e = e->semantic(sc);
+        if (e == de)
+            goto Lerr;
         goto L1;
     }
+Lerr:
     error("%s isn't a template", e->toChars());
     return new ErrorExp();
 }
@@ -7135,7 +7421,7 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
     Expressions *arguments = new Expressions();
     if (earg1)
     {   arguments->setDim(1);
-        arguments->tdata()[0] = earg1;
+        (*arguments)[0] = earg1;
     }
     this->arguments = arguments;
 }
@@ -7145,8 +7431,8 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
 {
     Expressions *arguments = new Expressions();
     arguments->setDim(2);
-    arguments->tdata()[0] = earg1;
-    arguments->tdata()[1] = earg2;
+    (*arguments)[0] = earg1;
+    (*arguments)[1] = earg2;
 
     this->arguments = arguments;
 }
@@ -7159,123 +7445,125 @@ Expression *CallExp::syntaxCopy()
 
 Expression *CallExp::resolveUFCS(Scope *sc)
 {
-    Expression *ethis = NULL;
-    DotIdExp *dotid;
-    DotTemplateInstanceExp *dotti;
+    Expression *e;
     Identifier *ident;
+    Objects *tiargs;
 
     if (e1->op == TOKdot)
     {
-        dotid = (DotIdExp *)e1;
-        ident = dotid->ident;
-        ethis = dotid->e1 = dotid->e1->semantic(sc);
-        if (ethis->op == TOKdotexp)
-            return NULL;
-        ethis = resolveProperties(sc, ethis);
+        DotIdExp *die = (DotIdExp *)e1;
+        e      = (die->e1 = die->e1->semantic(sc));
+        ident  = die->ident;
+        tiargs = NULL;
     }
     else if (e1->op == TOKdotti)
     {
-        dotti = (DotTemplateInstanceExp *)e1;
-        ident = dotti->ti->name;
-        ethis = dotti->e1 = dotti->e1->semantic(sc);
-        if (ethis->op == TOKdotexp)
-            return NULL;
-        ethis = resolveProperties(sc, ethis);
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        e      = (dti->e1 = dti->e1->semantic(sc));
+        ident  = dti->ti->name;
+        tiargs = dti->ti->tiargs;
     }
+    else
+        return NULL;
 
-    if (ethis && ethis->type)
+    if (e->op == TOKerror || !e->type)
+        return NULL;
+
+    if (e->op == TOKtype || e->op == TOKimport)
+        return NULL;
+
+    //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
+    Type *t = e->type->toBasetype();
+    if (t->ty == Taarray)
     {
-        AggregateDeclaration *ad;
-Lagain:
-        Type *tthis = ethis->type->toBasetype();
-        if (tthis->ty == Tclass)
+        if (tiargs)
         {
-            ad = ((TypeClass *)tthis)->sym;
-            if (search_function(ad, ident))
-                return NULL;
-            goto L1;
+            goto Lshift;
         }
-        else if (tthis->ty == Tstruct)
+        else if (ident == Id::remove)
         {
-            ad = ((TypeStruct *)tthis)->sym;
-            if (search_function(ad, ident))
-                return NULL;
-        L1:
-            if (ad->aliasthis)
-            {
-                ethis = resolveAliasThis(sc, ethis);
-                goto Lagain;
+            /* Transform:
+             *  aa.remove(arg) into delete aa[arg]
+             */
+            if (!arguments || arguments->dim != 1)
+            {   error("expected key as argument to aa.remove()");
+                return new ErrorExp();
             }
-        }
-        else if (tthis->ty == Taarray && e1->op == TOKdot)
-        {
-            if (ident == Id::remove)
-            {
-                /* Transform:
-                 *  aa.remove(arg) into delete aa[arg]
-                 */
-                if (!arguments || arguments->dim != 1)
-                {   error("expected key as argument to aa.remove()");
-                    return new ErrorExp();
-                }
-                Expression *key = arguments->tdata()[0];
-                key = key->semantic(sc);
-                key = resolveProperties(sc, key);
-                if (!key->rvalue())
-                    return new ErrorExp();
+            if (!e->type->isMutable())
+            {   const char *p = NULL;
+                if (e->type->isConst())
+                    p = "const";
+                else if (e->type->isImmutable())
+                    p = "immutable";
+                else
+                    p = "inout";
+                error("cannot remove key from %s associative array %s", p, e->toChars());
+                return new ErrorExp();
+            }
+            Expression *key = (*arguments)[0];
+            key = key->semantic(sc);
+            key = resolveProperties(sc, key);
 
-                TypeAArray *taa = (TypeAArray *)tthis;
-                key = key->implicitCastTo(sc, taa->index);
+            TypeAArray *taa = (TypeAArray *)t;
+            key = key->implicitCastTo(sc, taa->index);
 
-                return new RemoveExp(loc, ethis, key);
-            }
-            else if (ident == Id::apply || ident == Id::applyReverse)
-            {
-                return NULL;
-            }
-            else
-            {   TypeAArray *taa = (TypeAArray *)tthis;
-                assert(taa->ty == Taarray);
-                StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(0, ident, 2);
-                if (s)
-                    return NULL;
-                goto Lshift;
-            }
+            if (!key->rvalue())
+                return new ErrorExp();
+
+            return new RemoveExp(loc, e, key);
         }
-        else if (tthis->ty == Tarray || tthis->ty == Tsarray)
+        else if (ident == Id::apply || ident == Id::applyReverse)
         {
+            return NULL;
+        }
+        else
+        {   TypeAArray *taa = (TypeAArray *)t;
+            assert(taa->ty == Taarray);
+            StructDeclaration *sd = taa->getImpl();
+            Dsymbol *s = sd->search(0, ident, 2);
+            if (s)
+                return NULL;
+            goto Lshift;
+        }
+    }
+    else if (t->ty == Tarray || t->ty == Tsarray ||
+             t->ty == Tnull  || t->isTypeBasic() && t->ty != Tvoid)
+    {
+        /* In basic, built-in types don't have normal and templatized
+         * member functions. So can short cut.
+         */
 Lshift:
-            if (!arguments)
-                arguments = new Expressions();
-            arguments->shift(ethis);
-            if (e1->op == TOKdot)
-            {
-                /* Transform:
-                 *  array.id(args) into .id(array,args)
-                 */
-#if DMDV2
-                e1 = new DotIdExp(dotid->loc,
-                                  new IdentifierExp(dotid->loc, Id::empty),
-                                  ident);
-#else
-                e1 = new IdentifierExp(dotid->loc, ident);
-#endif
-            }
-            else if (e1->op == TOKdotti)
-            {
-                /* Transform:
-                 *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
-                 */
-#if DMDV2
-                e1 = new DotTemplateInstanceExp(dotti->loc,
-                                new IdentifierExp(dotti->loc, Id::empty),
-                                dotti->ti->name, dotti->ti->tiargs);
-#else
-                e1 = new ScopeExp(dotti->loc, dotti->ti);
-#endif
-            }
-            //printf("-> this = %s\n", toChars());
+        if (!arguments)
+            arguments = new Expressions();
+        arguments->shift(e);
+        if (!tiargs)
+        {
+            /* Transform:
+             *  array.id(args) into .id(array,args)
+             */
+            e1 = new DotIdExp(e1->loc,
+                              new IdentifierExp(e1->loc, Id::empty),
+                              ident);
+        }
+        else
+        {
+            /* Transform:
+             *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
+             */
+            e1 = new DotTemplateInstanceExp(e1->loc,
+                            new IdentifierExp(e1->loc, Id::empty),
+                            ident, tiargs);
+        }
+    }
+    else
+    {
+        DotIdExp *die = new DotIdExp(e->loc, e, ident);
+
+        unsigned errors = global.startGagging();
+        Expression *ex = die->semantic(sc, 1);
+        if (global.endGagging(errors))
+        {
+            goto Lshift;
         }
     }
     return NULL;
@@ -7283,7 +7571,6 @@ Lshift:
 
 Expression *CallExp::semantic(Scope *sc)
 {
-    TypeFunction *tf;
     Type *t1;
     int istemp;
     Objects *targsi = NULL;     // initial list of template arguments
@@ -7298,7 +7585,7 @@ Expression *CallExp::semantic(Scope *sc)
 #if 0
     if (arguments && arguments->dim)
     {
-        Expression *earg = arguments->tdata()[0];
+        Expression *earg = (*arguments)[0];
         earg->print();
         if (earg->type) earg->type->print();
     }
@@ -7425,7 +7712,7 @@ Lagain:
     {
         if (e1->op == TOKdot)
         {   DotIdExp *die = (DotIdExp *)e1;
-            e1 = die->semantic(sc, 1);
+            e1 = die->semantic(sc);
             /* Look for e1 having been rewritten to expr.opDispatch!(string)
              * We handle such earlier, so go back.
              * Note that in the rewrite, we carefully did not run semantic() on e1
@@ -7456,7 +7743,10 @@ Lagain:
             if (ve->var->storage_class & STClazy)
             {
                 // lazy paramaters can be called without violating purity and safety
-                TypeFunction *tf = new TypeFunction(NULL, ve->var->type, 0, LINKd, STCsafe | STCpure);
+                Type *tw = ve->var->type;
+                Type *tc = ve->var->type->substWildTo(MODconst);
+                TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd, STCsafe | STCpure);
+                (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
                 TypeDelegate *t = new TypeDelegate(tf);
                 ve->type = t->semantic(loc, sc);
             }
@@ -7546,7 +7836,13 @@ Lagain:
                 goto L1;        // overload of opCall, therefore it's a call
 
             if (e1->op != TOKtype)
-            {   error("%s %s does not overload ()", ad->kind(), ad->toChars());
+            {
+                if (ad->aliasthis)
+                {
+                    e1 = resolveAliasThis(sc, e1);
+                    goto Lagain;
+                }
+                error("%s %s does not overload ()", ad->kind(), ad->toChars());
                 return new ErrorExp();
             }
 
@@ -7577,7 +7873,7 @@ Lagain:
     if (arguments && arguments->dim)
     {
         for (size_t k = 0; k < arguments->dim; k++)
-        {   Expression *checkarg = arguments->tdata()[k];
+        {   Expression *checkarg = (*arguments)[k];
             if (checkarg->op == TOKerror)
                 return checkarg;
         }
@@ -7590,7 +7886,7 @@ Lagain:
     if (targsi && targsi->dim)
     {
         for (size_t k = 0; k < targsi->dim; k++)
-        {   Object *o = targsi->tdata()[k];
+        {   Object *o = (*targsi)[k];
             if (isError(o))
                 return new ErrorExp();
         }
@@ -7604,13 +7900,23 @@ Lagain:
         AggregateDeclaration *ad;
         UnaExp *ue = (UnaExp *)(e1);
 
+        Expression *ue1 = ue->e1;
+        VarDeclaration *v;
+        if (ue1->op == TOKvar &&
+            (v = ((VarExp *)ue1)->var->isVarDeclaration()) != NULL &&
+            v->needThis())
+        {
+            ue->e1 = new TypeExp(ue1->loc, ue1->type);
+            ue1 = NULL;
+        }
+
         if (e1->op == TOKdotvar)
         {   // Do overload resolution
             dve = (DotVarExp *)(e1);
 
             f = dve->var->isFuncDeclaration();
             assert(f);
-            f = f->overloadResolve(loc, ue->e1, arguments);
+            f = f->overloadResolve(loc, ue1, arguments);
 
             ad = f->toParent()->isAggregateDeclaration();
         }
@@ -7621,7 +7927,7 @@ Lagain:
             if (!arguments)
                 // Should fix deduceFunctionTemplate() so it works on NULL argument
                 arguments = new Expressions();
-            f = td->deduceFunctionTemplate(sc, loc, targsi, ue->e1, arguments);
+            f = td->deduceFunctionTemplate(sc, loc, targsi, ue1, arguments);
             if (!f)
                 return new ErrorExp();
             ad = td->toParent()->isAggregateDeclaration();
@@ -7670,6 +7976,7 @@ Lagain:
             {
                 e1 = new DotVarExp(loc, dte->e1, f);
                 e1 = e1->semantic(sc);
+                ue = (UnaExp *)e1;
             }
 #if 0
             printf("ue->e1 = %s\n", ue->e1->toChars());
@@ -7825,7 +8132,7 @@ Lagain:
         FuncDeclaration *f = NULL;
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
-        {   s = eo->vars->a.tdata()[i];
+        {   s = eo->vars->a[i];
             FuncDeclaration *f2 = s->isFuncDeclaration();
             if (f2)
             {
@@ -7865,38 +8172,28 @@ Lagain:
     }
     else if (t1->ty != Tfunction)
     {
-        if (t1->ty == Tdelegate)
+        TypeFunction *tf;
+        const char *p;
+        if (e1->op == TOKfunction)
+        {
+            // function literal that direct called is always inferred.
+            assert(((FuncExp *)e1)->fd);
+            f = ((FuncExp *)e1)->fd;
+            tf = (TypeFunction *)f->type;
+            p = "function literal";
+
+            f->checkNestedReference(sc, loc);
+        }
+        else if (t1->ty == Tdelegate)
         {   TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
-            if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
-            {
-                if (sc->func->setImpure())
-                    error("pure function '%s' cannot call impure delegate '%s'", sc->func->toChars(), e1->toChars());
-            }
-            if (sc->func && tf->trust <= TRUSTsystem)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot call system delegate '%s'", sc->func->toChars(), e1->toChars());
-            }
-            goto Lcheckargs;
+            p = "delegate";
         }
         else if (t1->ty == Tpointer && ((TypePointer *)t1)->next->ty == Tfunction)
         {
-            Expression *e = new PtrExp(loc, e1);
-            t1 = ((TypePointer *)t1)->next;
-            if (sc->func && !((TypeFunction *)t1)->purity && !(sc->flags & SCOPEdebug))
-            {
-                if (sc->func->setImpure())
-                    error("pure function '%s' cannot call impure function pointer '%s'", sc->func->toChars(), e1->toChars());
-            }
-            if (sc->func && ((TypeFunction *)t1)->trust <= TRUSTsystem)
-            {
-                if (sc->func->setUnsafe())
-                    error("safe function '%s' cannot call system function pointer '%s'", sc->func->toChars(), e1->toChars());
-            }
-            e->type = t1;
-            e1 = e;
+            tf = (TypeFunction *)(((TypePointer *)t1)->next);
+            p = "function pointer";
         }
         else if (e1->op == TOKtemplate)
         {
@@ -7923,6 +8220,50 @@ Lagain:
         {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
             return new ErrorExp();
         }
+
+        if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
+        {
+            if (sc->func->setImpure())
+                error("pure function '%s' cannot call impure %s '%s'", sc->func->toChars(), p, e1->toChars());
+        }
+        if (sc->func && tf->trust <= TRUSTsystem)
+        {
+            if (sc->func->setUnsafe())
+                error("safe function '%s' cannot call system %s '%s'", sc->func->toChars(), p, e1->toChars());
+        }
+
+        if (!tf->callMatch(NULL, arguments))
+        {
+            OutBuffer buf;
+
+            buf.writeByte('(');
+            if (arguments)
+            {
+                HdrGenState hgs;
+
+                argExpTypesToCBuffer(&buf, arguments, &hgs);
+                buf.writeByte(')');
+                if (ethis)
+                    ethis->type->modToBuffer(&buf);
+            }
+            else
+                buf.writeByte(')');
+
+            //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+            ::error(loc, "%s %s %s is not callable using argument types %s",
+                p, e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                buf.toChars());
+
+            return new ErrorExp();
+        }
+
+        if (t1->ty == Tpointer)
+        {
+            Expression *e = new PtrExp(loc, e1);
+            e->type = tf;
+            e1 = e;
+        }
+        t1 = tf;
     }
     else if (e1->op == TOKvar)
     {
@@ -7960,10 +8301,7 @@ Lagain:
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
-    tf = (TypeFunction *)(t1);
-
-Lcheckargs:
-    assert(tf->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)(t1);
 
     if (!arguments)
         arguments = new Expressions();
@@ -7995,10 +8333,12 @@ Lcheckargs:
 }
 
 
-#if DMDV2
+
 int CallExp::isLvalue()
 {
     Type *tb = e1->type->toBasetype();
+    if (tb->ty == Tdelegate || tb->ty == Tpointer)
+        tb = tb->nextOf();
     if (tb->ty == Tfunction && ((TypeFunction *)tb)->isref)
     {
         if (e1->op == TOKdotvar)
@@ -8008,7 +8348,7 @@ int CallExp::isLvalue()
     }
     return 0;
 }
-#endif
+
 
 Expression *CallExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -8164,6 +8504,16 @@ Expression *AddrExp::semantic(Scope *sc)
                     f->tookAddressOf++;
                 if (f->isNested())
                 {
+                    if (f->isFuncLiteralDeclaration())
+                    {
+                        if (!f->FuncDeclaration::isNested())
+                        {   /* Supply a 'null' for a this pointer if no this is available
+                             */
+                            Expression *e = new DelegateExp(loc, new NullExp(loc, Type::tnull), f, ve->hasOverloads);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
                     Expression *e = new DelegateExp(loc, e1, f, ve->hasOverloads);
                     e = e->semantic(sc);
                     return e;
@@ -8241,12 +8591,12 @@ Expression *PtrExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
+
 int PtrExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 void PtrExp::checkEscapeRef()
 {
@@ -8586,6 +8936,8 @@ Expression *CastExp::semantic(Scope *sc)
         }
         else
             to = to->semantic(loc, sc);
+        if (to == Type::terror)
+            return new ErrorExp();
 
         if (!to->equals(e1->type))
         {
@@ -8611,26 +8963,6 @@ Expression *CastExp::semantic(Scope *sc)
 
         Type *t1b = e1->type->toBasetype();
         Type *tob = to->toBasetype();
-
-        if (e1->op == TOKfunction &&
-            (tob->ty == Tdelegate || tob->ty == Tpointer && tob->nextOf()->ty == Tfunction))
-        {
-            FuncExp *fe = (FuncExp *)e1;
-            Expression *e = NULL;
-            if (e1->type == Type::tvoid)
-            {
-                e = fe->inferType(sc, tob);
-            }
-            else if (e1->type->ty == Tpointer && e1->type->nextOf()->ty == Tfunction &&
-                     fe->tok == TOKreserved &&
-                     tob->ty == Tdelegate)
-            {
-                if (fe->implicitConvTo(tob))
-                    e = fe->castTo(sc, tob);
-            }
-            if (e)
-                e1 = e->semantic(sc);
-        }
 
         if (tob->ty == Tstruct &&
             !tob->equals(t1b)
@@ -8668,6 +9000,12 @@ Expression *CastExp::semantic(Scope *sc)
         if (tob->ty == Tvector && t1b->ty != Tvector)
         {
             return new VectorExp(loc, e1, to);
+        }
+
+        if (tob->isintegral() && t1b->ty == Tarray &&
+            !global.params.useDeprecated)
+        {
+            error("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
         }
     }
     else if (!to)
@@ -8785,7 +9123,7 @@ VectorExp::VectorExp(Loc loc, Expression *e, Type *t)
         : UnaExp(loc, TOKvector, sizeof(VectorExp), e)
 {
     assert(t->ty == Tvector);
-    to = t;
+    to = (TypeVector *)t;
     dim = ~0;
 }
 
@@ -8842,7 +9180,9 @@ Expression *SliceExp::syntaxCopy()
     if (this->upr)
         upr = this->upr->syntaxCopy();
 
-    return new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    SliceExp *se = new SliceExp(loc, e1->syntaxCopy(), lwr, upr);
+    se->lengthVar = this->lengthVar;    // bug7871
+    return se;
 }
 
 Expression *SliceExp::semantic(Scope *sc)
@@ -8956,8 +9296,8 @@ Lagain:
 
     if (t->ty == Ttuple)
     {
-        lwr = lwr->optimize(WANTvalue | WANTinterpret);
-        upr = upr->optimize(WANTvalue | WANTinterpret);
+        lwr = lwr->ctfeInterpret();
+        upr = upr->ctfeInterpret();
         uinteger_t i1 = lwr->toUInteger();
         uinteger_t i2 = upr->toUInteger();
 
@@ -9045,12 +9385,12 @@ void SliceExp::checkEscapeRef()
     e1->checkEscapeRef();
 }
 
-#if DMDV2
+
 int SliceExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -9187,7 +9527,9 @@ ArrayExp::ArrayExp(Loc loc, Expression *e1, Expressions *args)
 
 Expression *ArrayExp::syntaxCopy()
 {
-    return new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ArrayExp *ae = new ArrayExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    ae->lengthVar = this->lengthVar;    // bug7871
+    return ae;
 }
 
 Expression *ArrayExp::semantic(Scope *sc)
@@ -9199,6 +9541,8 @@ Expression *ArrayExp::semantic(Scope *sc)
 #endif
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     t1 = e1->type->toBasetype();
     if (t1->ty != Tclass && t1->ty != Tstruct)
@@ -9207,7 +9551,7 @@ Expression *ArrayExp::semantic(Scope *sc)
         {   error("only one index allowed to index %s", t1->toChars());
             goto Lerr;
         }
-        e = new IndexExp(loc, e1, arguments->tdata()[0]);
+        e = new IndexExp(loc, e1, (*arguments)[0]);
         return e->semantic(sc);
     }
 
@@ -9222,14 +9566,14 @@ Lerr:
     return new ErrorExp();
 }
 
-#if DMDV2
+
 int ArrayExp::isLvalue()
 {
     if (type && type->toBasetype()->ty == Tvoid)
         return 0;
     return 1;
 }
-#endif
+
 
 Expression *ArrayExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -9311,12 +9655,12 @@ void CommaExp::checkEscapeRef()
     e2->checkEscapeRef();
 }
 
-#if DMDV2
+
 int CommaExp::isLvalue()
 {
     return e2->isLvalue();
 }
-#endif
+
 
 Expression *CommaExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -9354,6 +9698,13 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     modifiable = 0;     // assume it is an rvalue
 }
 
+Expression *IndexExp::syntaxCopy()
+{
+    IndexExp *ie = new IndexExp(loc, e1->syntaxCopy(), e2->syntaxCopy());
+    ie->lengthVar = this->lengthVar;    // bug7871
+    return ie;
+}
+
 Expression *IndexExp::semantic(Scope *sc)
 {   Expression *e;
     Type *t1;
@@ -9388,7 +9739,7 @@ Expression *IndexExp::semantic(Scope *sc)
     if (e2->type == Type::terror)
         goto Lerr;
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix
-        e2 = ((TupleExp *)e2)->exps->tdata()[0];
+        e2 = (*((TupleExp *)e2)->exps)[0];
 
     if (t1->ty == Tsarray || t1->ty == Tarray || t1->ty == Ttuple)
         sc = sc->pop();
@@ -9439,7 +9790,7 @@ Expression *IndexExp::semantic(Scope *sc)
         case Ttuple:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-            e2 = e2->optimize(WANTvalue | WANTinterpret);
+            e2 = e2->ctfeInterpret();
             uinteger_t index = e2->toUInteger();
             size_t length;
             TupleExp *te;
@@ -9496,12 +9847,12 @@ Lerr:
     return new ErrorExp();
 }
 
-#if DMDV2
+
 int IndexExp::isLvalue()
 {
     return 1;
 }
-#endif
+
 
 Expression *IndexExp::toLvalue(Scope *sc, Expression *e)
 {
@@ -9700,6 +10051,7 @@ Expression *AssignExp::semantic(Scope *sc)
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
+        ae->e1 = resolveProperties(sc, ae->e1);
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
@@ -9715,7 +10067,7 @@ Expression *AssignExp::semantic(Scope *sc)
             {   Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
                 // Deal with $
                 for (size_t i = 0; i < ae->arguments->dim; i++)
-                {   Expression *x = ae->arguments->tdata()[i];
+                {   Expression *x = (*ae->arguments)[i];
                     // Create scope for '$' variable for this dimension
                     ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
                     sym->loc = loc;
@@ -9733,7 +10085,7 @@ Expression *AssignExp::semantic(Scope *sc)
                         x = new CommaExp(0, av, x);
                         x->semantic(sc);
                     }
-                    ae->arguments->tdata()[i] = x;
+                    (*ae->arguments)[i] = x;
                     sc = sc->pop();
                 }
                 Expressions *a = (Expressions *)ae->arguments->copy();
@@ -9755,7 +10107,7 @@ Expression *AssignExp::semantic(Scope *sc)
                         return new ErrorExp();
                     }
 
-                    e = new CallExp(loc, e, ae->arguments->tdata()[0], e2);
+                    e = new CallExp(loc, e, (*ae->arguments)[0], e2);
                     e = e->semantic(sc);
                     return e;
                 }
@@ -9839,13 +10191,49 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
-    {
-    Expression *e = BinExp::semantic(sc);
-    if (e->op == TOKerror)
-        return e;
-    }
-
+    e2 = e2->semantic(sc);
+    if (e2->op == TOKerror)
+        return new ErrorExp();
     e2 = resolveProperties(sc, e2);
+
+    /* With UFCS, e.f = value
+     * Could mean:
+     *      .f(e, value)
+     * or:
+     *      .f(e) = value
+     */
+    if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        dti->e1 = dti->e1->semantic(sc);
+        if (!global.errors && dti->e1->type)
+        {
+            unsigned errors = global.startGagging();
+            e1 = dti->semantic(sc, 1);
+            if (global.endGagging(errors) || e1->op == TOKerror)
+            {
+                return resolveUFCSProperties(sc, dti, e2);
+            }
+        }
+    }
+    else if (e1->op == TOKdot)
+    {
+        DotIdExp *die = (DotIdExp *)e1;
+        die->e1 = die->e1->semantic(sc);
+        if (!global.errors && die->e1->type)
+        {
+            unsigned errors = global.startGagging();
+            e1 = die->semantic(sc, 1);
+            if (global.endGagging(errors) || e1->op == TOKerror)
+            {
+                return resolveUFCSProperties(sc, die, e2);
+            }
+        }
+    }
+Le1:
+    e1 = e1->semantic(sc);
+    if (e1->op == TOKerror)
+        return new ErrorExp();
 
     /* We have f = value.
      * Could mean:
@@ -9988,7 +10376,8 @@ Ltupleassign:
             TypeTuple *tt = (TypeTuple *)e1->type;
 
             Identifier *id = Lexer::uniqueId("__tup");
-            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, new ExpInitializer(e2->loc, e2));
+            ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
+            VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
             v->storage_class = STCctfe | STCref | STCforeach;
             Expression *ve = new VarExp(e2->loc, v);
             ve->type = e2->type;
@@ -9999,7 +10388,7 @@ Ltupleassign:
             for (size_t u = 0; u < iexps->dim ; u++)
             {
             Lexpand:
-                Expression *e = iexps->tdata()[u];
+                Expression *e = (*iexps)[u];
 
                 Parameter *arg = Parameter::getNth(tt->arguments, u);
                 //printf("[%d] iexps->dim = %d, ", u, iexps->dim);
@@ -10015,7 +10404,7 @@ Ltupleassign:
                     goto Lnomatch;
                 }
             }
-            iexps->tdata()[0] = new CommaExp(loc, new DeclarationExp(e2->loc, v), iexps->tdata()[0]);
+            (*iexps)[0] = new CommaExp(loc, new DeclarationExp(e2->loc, v), (*iexps)[0]);
             e2 = new TupleExp(e2->loc, iexps);
             e2 = e2->semantic(sc);
             goto Ltupleassign;
@@ -10035,27 +10424,6 @@ Ltupleassign:
     }
 
     Type *t1 = e1->type->toBasetype();
-
-    if (t1->ty == Tdelegate || (t1->ty == Tpointer && t1->nextOf()->ty == Tfunction)
-        && e2->op == TOKfunction)
-    {
-        FuncExp *fe = (FuncExp *)e2;
-        if (e2->type == Type::tvoid)
-        {
-            e2 = fe->inferType(sc, t1);
-        }
-        else if (e2->type->ty == Tpointer && e2->type->nextOf()->ty == Tfunction &&
-                 fe->tok == TOKreserved &&
-                 t1->ty == Tdelegate)
-        {
-            if (fe->implicitConvTo(t1))
-                e2 = fe->castTo(sc, t1);
-        }
-        if (!e2)
-        {   error("cannot infer function literal type from %s", t1->toChars());
-            e2 = new ErrorExp();
-        }
-    }
 
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
@@ -10109,16 +10477,6 @@ Ltupleassign:
                 sd->cpctor)
             {   /* We have a copy constructor for this
                  */
-                // Scan past commma's
-                Expression *ec = NULL;
-                while (e2->op == TOKcomma)
-                {   CommaExp *ecomma = (CommaExp *)e2;
-                    e2 = ecomma->e2;
-                    if (ec)
-                        ec = new CommaExp(ecomma->loc, ec, ecomma->e1);
-                    else
-                        ec = ecomma->e1;
-                }
                 if (e2->op == TOKquestion)
                 {   /* Write as:
                      *  a ? e1 = b : e1 = c;
@@ -10129,15 +10487,9 @@ Ltupleassign:
                     AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
                     ea2->op = op;
                     Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
-                else if (e2->op == TOKvar ||
-                         e2->op == TOKdotvar ||
-                         e2->op == TOKstar ||
-                         e2->op == TOKthis ||
-                         e2->op == TOKindex)
+                else if (e2->isLvalue())
                 {   /* Write as:
                      *  e1.cpctor(e2);
                      */
@@ -10146,8 +10498,6 @@ Ltupleassign:
 
                     Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
                     e = new CallExp(loc, e, e2);
-                    if (ec)
-                        e = new CommaExp(loc, ec, e);
                     return e->semantic(sc);
                 }
                 else if (e2->op == TOKcall)
@@ -10162,7 +10512,7 @@ Ltupleassign:
     }
     else if (t1->ty == Tclass)
     {   // Disallow assignment operator overloads for same type
-        if (!e2->implicitConvTo(e1->type))
+        if (op == TOKassign && !e2->implicitConvTo(e1->type))
         {
             Expression *e = op_overload(sc);
             if (e)
@@ -10172,6 +10522,21 @@ Ltupleassign:
 
     if (t1->ty == Tsarray && !refinit)
     {
+        Type *t2 = e2->type->toBasetype();
+
+        if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+        {   // static array assignment should check their lengths
+            TypeSArray *tsa1 = (TypeSArray *)t1;
+            TypeSArray *tsa2 = (TypeSArray *)t2;
+            uinteger_t dim1 = tsa1->dim->toInteger();
+            uinteger_t dim2 = tsa2->dim->toInteger();
+            if (dim1 != dim2)
+            {
+                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                return new ErrorExp();
+            }
+        }
+
         if (e1->op == TOKindex &&
             ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
@@ -10183,7 +10548,6 @@ Ltupleassign:
         }
         else
         {
-            Type *t2 = e2->type->toBasetype();
             // Convert e2 to e2[], unless e2-> e1[0]
             if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
@@ -10198,8 +10562,14 @@ Ltupleassign:
         }
     }
 
+    e2 = e2->inferType(t1);
     if (!e2->rvalue())
         return new ErrorExp();
+
+    if (e2->op == TOKarrayliteral)
+    {
+        e2 = callCpCtor(loc, sc, e2, 1);
+    }
 
     if (e1->op == TOKarraylength)
     {
@@ -10237,8 +10607,16 @@ Ltupleassign:
     }
     else
 #endif
+    // If it is a array, get the element type. Note that it may be
+    // multi-dimensional.
+    Type *telem = t1;
+    while (telem->ty == Tarray)
+        telem = telem->nextOf();
+
+    // Check for block assignment. If it is of type void[], void[][], etc,
+    // '= null' is the only allowable block assignment (Bug 7493)
     if (e1->op == TOKslice &&
-        t1->nextOf() &&
+        t1->nextOf() && (telem->ty != Tvoid || e2->op == TOKnull) &&
         e2->implicitConvTo(t1->nextOf())
        )
     {   // memset
@@ -10335,10 +10713,9 @@ CatAssignExp::CatAssignExp(Loc loc, Expression *e1, Expression *e2)
 }
 
 Expression *CatAssignExp::semantic(Scope *sc)
-{   Expression *e;
-
+{
     //printf("CatAssignExp::semantic() %s\n", toChars());
-    e = op_overload(sc);
+    Expression *e = op_overload(sc);
     if (e)
         return e;
 
@@ -10352,20 +10729,25 @@ Expression *CatAssignExp::semantic(Scope *sc)
     }
 
     e1 = e1->modifiableLvalue(sc, e1);
+    if (e1->op == TOKerror)
+        return e1;
 
     Type *tb1 = e1->type->toBasetype();
-    Type *tb2 = e2->type->toBasetype();
+    Type *tb1next = tb1->nextOf();
 
+    e2 = e2->inferType(tb1next);
     if (!e2->rvalue())
         return new ErrorExp();
 
-    Type *tb1next = tb1->nextOf();
+    Type *tb2 = e2->type->toBasetype();
 
     if ((tb1->ty == Tarray) &&
         (tb2->ty == Tarray || tb2->ty == Tsarray) &&
         (e2->implicitConvTo(e1->type)
 #if DMDV2
-         || tb2->nextOf()->implicitConvTo(tb1next)
+         || (tb2->nextOf()->implicitConvTo(tb1next) &&
+             (tb2->nextOf()->size(0) == tb1next->size(0) ||
+             tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
 #endif
         )
        )
@@ -11100,7 +11482,7 @@ Expression *PowExp::semantic(Scope *sc)
         {
             importMathChecked = 1;
             for (size_t i = 0; i < Module::amodules.dim; i++)
-            {   Module *mi = Module::amodules.tdata()[i];
+            {   Module *mi = Module::amodules[i];
                 //printf("\t[%d] %s\n", i, mi->toChars());
                 if (mi->ident == Id::math &&
                     mi->parent->ident == Id::std &&
@@ -11936,12 +12318,12 @@ Expression *CondExp::semantic(Scope *sc)
     return this;
 }
 
-#if DMDV2
+
 int CondExp::isLvalue()
 {
     return e1->isLvalue() && e2->isLvalue();
 }
-#endif
+
 
 Expression *CondExp::toLvalue(Scope *sc, Expression *ex)
 {

@@ -32,12 +32,16 @@ ROOT=root
 MODEL=32
 
 ifeq (OSX,$(TARGET))
+    SDKDIR=/Developer/SDKs
+    ifeq "$(wildcard $(SDKDIR) )" ""
+        SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+    endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    #SDK=/Developer/SDKs/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-    #SDK=/Developer/SDKs/MacOSX10.5.sdk
-    #SDK=/Developer/SDKs/MacOSX10.6.sdk
-    SDK:=$(if $(filter 11.%, $(OSVER)), /Developer/SDKs/MacOSX10.6.sdk, /Developer/SDKs/MacOSX10.5.sdk)
+    #SDK=$(SDKDIR)/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
+    #SDK=$(SDKDIR)/MacOSX10.5.sdk
+    #SDK=$(SDKDIR)/MacOSX10.6.sdk
+    SDK:=$(if $(filter 11.%, $(OSVER)), $(SDKDIR)/MacOSX10.6.sdk, $(SDKDIR)/MacOSX10.5.sdk)
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
@@ -57,8 +61,8 @@ CC=$(HOST_CC) -m$(MODEL) $(TARGET_CFLAGS)
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__near= -D__pascal= -fno-exceptions -O2
+#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
+GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
@@ -70,17 +74,17 @@ DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cg87.o cgxmm.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
-	constfold.o irstate.o dchar.o cond.o debug.o \
+	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
 	glocal.o gloop.o glue.o gnuc.o go.o gother.o html.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
-	lexer.o link.o lstring.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
+	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
 	parse.o ph.o ptrntab.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
-	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
+	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o intrange.o assertpred.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
@@ -103,13 +107,14 @@ SRC = win32.mak posix.mak \
 	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
-	utf.h utf.c staticassert.h staticassert.c unialpha.c \
+	utf.h utf.c staticassert.h staticassert.c \
 	typinf.c toobj.c toctype.c tocvdebug.c toelfdebug.c entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c intrange.c apply.c canthrow.c sideeffect.c assertpred.c \
+	scanmscoff.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
@@ -121,17 +126,16 @@ SRC = win32.mak posix.mak \
 	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
 	$C/gother.c $C/glocal.c $C/gloop.c $C/html.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
-	$C/type.c $C/melf.h $C/mach.h $C/bcomplex.h \
+	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c \
-	$C/machobj.c \
+	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/dchar.h $(ROOT)/dchar.c $(ROOT)/lstring.h \
-	$(ROOT)/lstring.c $(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
+	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
@@ -297,9 +301,6 @@ irstate.o: irstate.c irstate.h
 csymbol.o: $C/symbol.c
 	$(CC) -c $(MFLAGS) $< -o $@
 
-dchar.o: $(ROOT)/dchar.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
 cond.o: cond.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -394,7 +395,7 @@ html.o: $C/html.c $(CH) $C/html.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 iasm.o: iasm.c $(CH) $C/iasm.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
+	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $<
 
 id.o: id.c id.h
 	$(CC) -c $(CFLAGS) $<
@@ -438,11 +439,11 @@ libelf.o: libelf.c $C/melf.h
 libmach.o: libmach.c $C/mach.h
 	$(CC) -c $(CFLAGS) -I$C $<
 
+libmscoff.o: libmscoff.c $C/mscoff.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
 link.o: link.c
 	$(CC) -c $(CFLAGS) $<
-
-lstring.o: $(ROOT)/lstring.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 machobj.o: $C/machobj.c
 	$(CC) -c $(MFLAGS) -I. $<
@@ -464,6 +465,9 @@ rmem.o: $(ROOT)/rmem.c
 
 module.o: module.c $C/html.h
 	$(CC) -c $(CFLAGS) -I$C $<
+
+mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
+	$(CC) -c $(MFLAGS) $<
 
 msc.o: msc.c $(CH) mars.h
 	$(CC) -c $(MFLAGS) $<
@@ -582,9 +586,6 @@ util.o: util.c
 utf.o: utf.c utf.h
 	$(CC) -c $(CFLAGS) $<
 
-unialpha.o: unialpha.c
-	$(CC) -c $(CFLAGS) $<
-
 unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -662,7 +663,6 @@ endif
 	gcov toctype.c
 	gcov toelfdebug.c
 	gcov typinf.c
-	gcov unialpha.c
 	gcov utf.c
 	gcov util.c
 	gcov version.c

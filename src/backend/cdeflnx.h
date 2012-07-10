@@ -28,8 +28,6 @@
 #define __stdcall __attribute__ ((__stdcall__))
 
 #define __pascal
-#define __near
-#define  _near
 #define __far
 #define  _far
 #define __ss

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -87,11 +87,13 @@ void unittests();
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define BREAKABI 1      // 0 if not ready to break the ABI just yet
 #define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
 #define SARRAYVALUE DMDV2       // static arrays are value types
 #define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
+#define BUG6652 1       // Making foreach range statement parameter non-ref in default
+                        // 1: Modifying iteratee in body is warned with -w switch
+                        // 2: Modifying iteratee in body is error without -d switch
 
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))
@@ -237,6 +239,10 @@ struct Param
     char *mapfile;
 };
 
+typedef unsigned structalign_t;
+#define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
+// other values are all powers of 2
+
 struct Global
 {
     const char *mars_ext;
@@ -253,7 +259,9 @@ struct Global
     const char *written;
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
-    int structalign;
+
+    structalign_t structalign;       // default alignment for struct fields
+
     const char *version;
 
     Param params;
@@ -417,7 +425,7 @@ typedef uint64_t StorageClass;
 void warning(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
-void verror(Loc loc, const char *format, va_list);
+void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
 void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list);
 void fatal();
@@ -430,7 +438,7 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-#if IN_GCC
+#ifdef IN_GCC
 #define stdmsg stderr
 #else
 #define stdmsg stderr

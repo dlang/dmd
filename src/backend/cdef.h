@@ -513,7 +513,6 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define USEDLLSHELL     _WINDLL
 #define FARCLASSES      1       // support near/far classes
 #define MFUNC           (I32) //0 && config.exe == EX_NT)       // member functions are TYmfunc
-#define AUTONEST        0       // overlap storage of nested auto's
 #define CV3             0       // 1 means support CV3 debug format
 
 /* Object module format
@@ -527,6 +526,9 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #ifndef MACHOBJ
 #define MACHOBJ         TARGET_OSX
 #endif
+
+#define SYMDEB_CODEVIEW TARGET_WINDOS
+#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 
 #define TOOLKIT_H
 
@@ -593,9 +595,6 @@ typedef int bool;
 #define __far
 #define __cs
 #define __ss
-#define near
-#define _near
-#define __near
 #endif
 
 // gcc defines this for us, dmc doesn't, so look for it's __I86__
@@ -884,6 +883,7 @@ struct Symbol;
 struct LIST;
 struct elem;
 
+typedef unsigned char reg_t;    // register number
 typedef unsigned regm_t;        // Register mask type
 struct immed_t
 {   targ_size_t value[REGMAX];  // immediate values in registers
@@ -1002,8 +1002,6 @@ union eve
 #define SYMBOLZERO      0,0,0,
 #elif MARS
 #define SYMBOLZERO      0,0,
-#elif AUTONEST
-#define SYMBOLZERO      0,0,
 #else
 #define SYMBOLZERO
 #endif
@@ -1025,7 +1023,7 @@ typedef unsigned SYMFLGS;
 
 #define SYMBOLY(fl,regsaved,name,flags) \
         {IDSYMBOL \
-         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,(type *)0,{0},\
+         (symbol *)0,(symbol *)0,(symbol *)0,(dt_t *)0,0,(type *)0,{0},\
          SYMBOLZERO\
          UNIXFIELDS\
          SCextern,(fl),(flags),0,0,0,0,0,0,0,{0},(regsaved),{name}}

@@ -362,6 +362,8 @@ type *TypeStruct::toCtype()
         s->Sstruct->Salignsize = sym->alignsize;
         s->Sstruct->Sstructalign = sym->alignsize;
         s->Sstruct->Sstructsize = sym->structsize;
+        s->Sstruct->Sarg1type = sym->arg1type ? sym->arg1type->toCtype() : NULL;
+        s->Sstruct->Sarg2type = sym->arg2type ? sym->arg2type->toCtype() : NULL;
 
         if (sym->isUnionDeclaration())
             s->Sstruct->Sflags |= STRunion;
@@ -378,7 +380,7 @@ type *TypeStruct::toCtype()
          */
         if (global.params.symdebug)
             for (size_t i = 0; i < sym->fields.dim; i++)
-            {   VarDeclaration *v = sym->fields.tdata()[i];
+            {   VarDeclaration *v = sym->fields[i];
 
                 Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
                 s2->Smemoff = v->offset;
@@ -486,7 +488,7 @@ type *TypeClass::toCtype()
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= STRclass;
     s->Sstruct->Salignsize = sym->alignsize;
-    s->Sstruct->Sstructalign = sym->structalign;
+//    s->Sstruct->Sstructalign = sym->structalign;
     s->Sstruct->Sstructsize = sym->structsize;
 
     t = type_alloc(TYstruct);
@@ -505,7 +507,7 @@ type *TypeClass::toCtype()
      */
     if (global.params.symdebug)
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields.tdata()[i];
+        {   VarDeclaration *v = sym->fields[i];
 
             Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
             s2->Smemoff = v->offset;

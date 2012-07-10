@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -10,6 +10,7 @@
 
 #include <stdio.h>
 #include <assert.h>
+#include <string.h>                     // strcmp()
 
 #include "id.h"
 #include "init.h"
@@ -22,6 +23,7 @@
 #include "lexer.h"
 #include "mtype.h"
 #include "scope.h"
+#include "arraytypes.h"
 
 int findCondition(Strings *ids, Identifier *ident)
 {
@@ -29,7 +31,7 @@ int findCondition(Strings *ids, Identifier *ident)
     {
         for (size_t i = 0; i < ids->dim; i++)
         {
-            const char *id = ids->tdata()[i];
+            const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
                 return TRUE;
@@ -218,6 +220,7 @@ StaticIfCondition::StaticIfCondition(Loc loc, Expression *exp)
     : Condition(loc)
 {
     this->exp = exp;
+    this->nest = 0;
 }
 
 Condition *StaticIfCondition::syntaxCopy()
@@ -228,7 +231,7 @@ Condition *StaticIfCondition::syntaxCopy()
 int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 {
 #if 0
-    printf("StaticIfCondition::include(sc = %p, s = %p)\n", sc, s);
+    printf("StaticIfCondition::include(sc = %p, s = %p) this=%p inc = %d\n", sc, s, this, inc);
     if (s)
     {
         printf("\ts = '%s', kind = %s\n", s->toChars(), s->kind());
@@ -236,6 +239,15 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 #endif
     if (inc == 0)
     {
+        if (exp->op == TOKerror || nest > 100)
+        {
+            error(loc, (nest > 1000) ? "unresolvable circular static if expression"
+                                     : "error evaluating static if expression");
+            if (!global.gag)
+                inc = 2;                // so we don't see the error message again
+            return 0;
+        }
+
         if (!sc)
         {
             error(loc, "static if conditional cannot be at global scope");
@@ -243,13 +255,26 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             return 0;
         }
 
+        ++nest;
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
         Expression *e = exp->semantic(sc);
         sc->pop();
-        e = e->optimize(WANTvalue | WANTinterpret);
-        if (e->isBool(TRUE))
+        if (!e->type->checkBoolean())
+        {
+            if (e->type->toBasetype() != Type::terror)
+                exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
+            inc = 0;
+            return 0;
+        }
+        e = e->ctfeInterpret();
+        --nest;
+        if (e->op == TOKerror)
+        {   exp = e;
+            inc = 0;
+        }
+        else if (e->isBool(TRUE))
             inc = 1;
         else if (e->isBool(FALSE))
             inc = 2;
@@ -321,7 +346,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
 
             TemplateParameters parameters;
             parameters.setDim(1);
-            parameters.tdata()[0] = &tp;
+            parameters[0] = &tp;
 
             Objects dedtypes;
             dedtypes.setDim(1);
@@ -333,7 +358,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
             else
             {
                 inc = 1;
-                Type *tded = (Type *)dedtypes.tdata()[0];
+                Type *tded = (Type *)dedtypes[0];
                 if (!tded)
                     tded = targ;
                 Dsymbol *s = new AliasDeclaration(loc, id, tded);

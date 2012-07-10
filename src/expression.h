@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,6 +18,7 @@
 #include "intrange.h"
 
 struct Type;
+struct TypeVector;
 struct Scope;
 struct TupleDeclaration;
 struct VarDeclaration;
@@ -137,6 +138,7 @@ struct Expression : Object
     virtual MATCH implicitConvTo(Type *t);
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
+    virtual Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     virtual void checkEscape();
     virtual void checkEscapeRef();
     virtual Expression *resolveLoc(Loc loc, Scope *sc);
@@ -166,6 +168,11 @@ struct Expression : Object
     // Same as WANTvalue, but also expand variables as far as possible
     #define WANTexpand  8
 
+    // Entry point for CTFE.
+    // A compile-time result is required. Give an error if not possible
+    Expression *ctfeInterpret();
+
+    // Implementation of CTFE for this expression
     virtual Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
 
     virtual int isConst();
@@ -376,7 +383,6 @@ struct StringExp : Expression
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     //Expression *syntaxCopy();
     int equals(Object *o);
-    char *toChars();
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
@@ -440,6 +446,7 @@ struct ArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
 
     Expression *doInline(InlineDoState *ids);
@@ -465,6 +472,7 @@ struct AssocArrayLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -477,6 +485,7 @@ struct StructLiteralExp : Expression
                                 // NULL entries for fields to skip
     Type *stype;                // final type of result (can be different from sd's type)
 
+    Symbol *sinit;              // if this is a defaultInitLiteral, this symbol contains the default initializer
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
@@ -656,18 +665,16 @@ struct FuncExp : Expression
     FuncLiteralDeclaration *fd;
     TemplateDeclaration *td;
     enum TOK tok;
-    Type *tded;
-    Scope *scope;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    Expression *inferType(Scope *sc, Type *t);
-    void setType(Type *t);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
@@ -788,12 +795,14 @@ struct BinExp : Expression
     int isunsigned();
     Expression *incompatibleTypes();
     void dump(int indent);
+
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
     Expression *interpretCommon2(InterState *istate, CtfeGoal goal,
-        Expression *(*fp)(TOK, Type *, Expression *, Expression *));
+        Expression *(*fp)(Loc, TOK, Type *, Expression *, Expression *));
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
+    Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
     Expression *arrayOp(Scope *sc);
 
     Expression *doInline(InlineDoState *ids);
@@ -898,6 +907,7 @@ struct DotTemplateInstanceExp : UnaExp
     Expression *syntaxCopy();
     TemplateDeclaration *getTempdecl(Scope *sc);
     Expression *semantic(Scope *sc);
+    Expression *semantic(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 };
@@ -1085,7 +1095,7 @@ struct CastExp : UnaExp
 
 struct VectorExp : UnaExp
 {
-    Type *to;
+    TypeVector *to;             // the target vector type before semantic()
     unsigned dim;               // number of elements in the vector
 
     VectorExp(Loc loc, Expression *e, Type *t);
@@ -1093,6 +1103,7 @@ struct VectorExp : UnaExp
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     elem *toElem(IRState *irs);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct SliceExp : UnaExp
@@ -1193,6 +1204,7 @@ struct IndexExp : BinExp
     int modifiable;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1592,7 +1604,7 @@ struct EqualExp : BinExp
     elem *toElem(IRState *irs);
 };
 
-// === and !===
+// is and !is
 
 struct IdentityExp : BinExp
 {
@@ -1625,6 +1637,7 @@ struct CondExp : BinExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
+    Expression *inferType(Type *t, int flag = 0, TemplateParameters *tparams = NULL);
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
@@ -1704,6 +1717,9 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *newval, int firstIndex);
 void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, int firstIndex);
 void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, int firstIndex);
+
+int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len);
+int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len);
 
 
 #endif /* DMD_EXPRESSION_H */

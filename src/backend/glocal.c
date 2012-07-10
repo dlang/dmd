@@ -269,9 +269,7 @@ Loop:
                 local_remove(LFambigdef | LFambigref);
             }
             break;
-#if TX86
         case OPstrlen:
-#endif
         case OPind:
             local_exp(e->E1,1);
             local_ambigref();
@@ -316,7 +314,6 @@ Loop:
             local_remove(LFfloat | LFambigref | LFambigdef);
             break;
 
-#if TX86
         case OPmemset:
             local_exp(e->E2,1);
             if (e->E1->Eoper == OPvar)
@@ -334,7 +331,6 @@ Loop:
                 local_exp(e->E1,1);
             local_ambigdef();
             break;
-#endif
 
         case OPvar:
             s = e->EV.sp.Vsym;
@@ -590,23 +586,19 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPcallns:
             case OPnewarray:
             case OPmultinewarray:
-#if TX86
             case OPstrcat:
             case OPstrcpy:
             case OPmemcpy:
             case OPbtc:
             case OPbtr:
             case OPbts:
-#endif
             case OPstrctor:
                 flags |= LFambigref | LFambigdef;
                 break;
 
-#if TX86
             case OPmemset:
                 flags |= LFambigdef;
                 break;
-#endif
 
             case OPvar:
                 if (e->EV.sp.Vsym == s)
@@ -618,12 +610,10 @@ STATIC int local_getflags(elem *e,symbol *s)
             case OPind:
             case OParray:
             case OPfield:
-#if TX86
             case OPstrlen:
             case OPstrcmp:
             case OPmemcmp:
             case OPbt:
-#endif
                 flags |= LFambigref;
                 break;
 

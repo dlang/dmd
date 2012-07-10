@@ -905,6 +905,28 @@ void test46()
     c.i = 10;
 }
 
+/*************************************/
+
+void bug5809()
+{
+    ushort[2] x = void;
+    x[0] = 0;
+    x[1] = 0x1234;
+    ushort *px =  &x[0];
+
+    uint b = px[0];
+
+    assert(px[0] == 0);
+}
+
+/*************************************/
+
+void bug7546()
+{
+    double p = -0.0;
+    assert(p == 0);
+}
+
 
 /*************************************/
 
@@ -1171,6 +1193,43 @@ void test52()
 }
 
 /*************************************/
+import std.stdio;
+import std.c.stdarg;
+
+void myfunc(int a1, ...) {
+	va_list argument_list;
+	TypeInfo argument_type;
+	string sa; int ia; double da;
+	writefln("%d variable arguments", _arguments.length);
+	writefln("argument types %s", _arguments);
+	version(X86) va_start(argument_list, a1);
+	version(X86_64) va_start(argument_list, __va_argsave);
+	for (int i = 0; i < _arguments.length; ) {
+		if ((argument_type=_arguments[i++]) == typeid(string)) {
+			va_arg(argument_list, sa);
+			writefln("%d) string arg = '%s', length %d", i+1, sa.length<=20? sa : "?", sa.length);
+		} else if (argument_type == typeid(int)) {
+			va_arg(argument_list, ia);
+			writefln("%d) int arg = %d", i+1, ia);
+		} else if (argument_type == typeid(double)) {
+			va_arg(argument_list, da);
+			writefln("%d) double arg = %f", i+1, da);
+		} else {
+			throw new Exception("invalid argument type");
+		}
+	}
+	va_end(argument_list);
+}
+
+void test6758() {
+	myfunc(1, 2, 3, 4, 5, 6, 7, 8, "9", "10");				// Fails.
+	myfunc(1, 2.0, 3, 4, 5, 6, 7, 8, "9", "10");			// Works OK.
+	myfunc(1, 2, 3, 4, 5, 6, 7, "8", "9", "10");			// Works OK.
+	myfunc(1, "2", 3, 4, 5, 6, 7, 8, "9", "10");			// Works OK.
+}
+
+
+/*************************************/
 
 int main()
 {
@@ -1220,12 +1279,15 @@ int main()
     test44();
     test45();
     test46();
+    bug5809();
+    bug7546();
     test47();
     test48();
     test49();
     test50();
     test51();
     test52();
+    test6758();
 
     printf("Success\n");
     return 0;

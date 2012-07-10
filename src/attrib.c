@@ -11,6 +11,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <assert.h>
+#include <string.h>                     // memcpy()
 
 #include "rmem.h"
 
@@ -30,7 +31,7 @@
  #include "frontend.net/pragma.h"
 #endif
 
-extern void obj_includelib(const char *name);
+extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 
 
@@ -45,6 +46,24 @@ AttribDeclaration::AttribDeclaration(Dsymbols *decl)
 Dsymbols *AttribDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
     return decl;
+}
+
+int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
+{
+    Dsymbols *d = include(scope, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            if (s)
+            {
+                if (s->apply(fp, param))
+                    return 1;
+            }
+        }
+    }
+    return 0;
 }
 
 int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
@@ -65,7 +84,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
         StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
-        unsigned structalign)
+        structalign_t structalign)
 {
     if (decl)
     {
@@ -100,7 +119,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
         StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
-        unsigned structalign)
+        structalign_t structalign)
 {
     if (decl)
     {
@@ -244,23 +263,17 @@ void AttribDeclaration::toObjFile(int multiobj)
     }
 }
 
-int AttribDeclaration::cvMember(unsigned char *p)
+void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
 {
-    int nwritten = 0;
-    int n;
     Dsymbols *d = include(NULL, NULL);
 
     if (d)
     {
         for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
-            n = s->cvMember(p);
-            if (p)
-                p += n;
-            nwritten += n;
+            s->setFieldOffset(ad, poffset, isunion);
         }
     }
-    return nwritten;
 }
 
 int AttribDeclaration::hasPointers()
@@ -431,6 +444,7 @@ void StorageClassDeclaration::setScope(Scope *sc)
         if (stc & (STCsafe | STCtrusted | STCsystem))
             scstc &= ~(STCsafe | STCtrusted | STCsystem);
         scstc |= stc;
+        //printf("scstc = x%llx\n", scstc);
 
         setScopeNewSc(sc, scstc, sc->linkage, sc->protection, sc->explicitProtection, sc->structalign);
     }
@@ -730,7 +744,10 @@ void AlignDeclaration::semantic(Scope *sc)
 
 void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->printf("align (%d)", salign);
+    if (salign == STRUCTALIGN_DEFAULT)
+        buf->printf("align");
+    else
+        buf->printf("align (%d)", salign);
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
@@ -740,6 +757,7 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     this->loc = loc;
+    this->alignment = 0;
     this->isunion = isunion;
     this->sem = 0;
 }
@@ -757,21 +775,6 @@ void AnonDeclaration::semantic(Scope *sc)
 {
     //printf("\tAnonDeclaration::semantic %s %p\n", isunion ? "union" : "struct", this);
 
-    if (sem == 1)
-    {   //printf("already completed\n");
-        scope = NULL;
-        return;             // semantic() already completed
-    }
-
-    Scope *scx = NULL;
-    if (scope)
-    {   sc = scope;
-        scx = scope;
-        scope = NULL;
-    }
-
-    unsigned dprogress_save = Module::dprogress;
-
     assert(sc->parent);
 
     Dsymbol *parent = sc->parent->pastMixin();
@@ -783,106 +786,85 @@ void AnonDeclaration::semantic(Scope *sc)
         return;
     }
 
+    alignment = sc->structalign;
     if (decl)
     {
-        AnonymousAggregateDeclaration aad;
-        int adisunion;
-
-        if (sc->anonAgg)
-        {   ad = sc->anonAgg;
-            adisunion = sc->inunion;
-        }
-        else
-            adisunion = ad->isUnionDeclaration() != NULL;
-
-//      printf("\tsc->anonAgg = %p\n", sc->anonAgg);
-//      printf("\tad  = %p\n", ad);
-//      printf("\taad = %p\n", &aad);
-
         sc = sc->push();
-        sc->anonAgg = &aad;
         sc->stc &= ~(STCauto | STCscope | STCstatic | STCtls | STCgshared);
         sc->inunion = isunion;
         sc->offset = 0;
         sc->flags = 0;
-        aad.structalign = sc->structalign;
-        aad.parent = ad;
 
         for (size_t i = 0; i < decl->dim; i++)
         {
             Dsymbol *s = (*decl)[i];
-
             s->semantic(sc);
-            if (isunion)
-                sc->offset = 0;
-            if (aad.sizeok == 2)
-            {
-                break;
-            }
         }
         sc = sc->pop();
+    }
+}
 
-        // If failed due to forward references, unwind and try again later
-        if (aad.sizeok == 2)
+
+void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)
+{
+    //printf("\tAnonDeclaration::setFieldOffset %s %p\n", isunion ? "union" : "struct", this);
+
+    if (decl)
+    {
+        /* This works by treating an AnonDeclaration as an aggregate 'member',
+         * so in order to place that member we need to compute the member's
+         * size and alignment.
+         */
+
+        size_t fieldstart = ad->fields.dim;
+
+        /* Hackishly hijack ad's structsize and alignsize fields
+         * for use in our fake anon aggregate member.
+         */
+        unsigned savestructsize = ad->structsize;
+        unsigned savealignsize  = ad->alignsize;
+        ad->structsize = 0;
+        ad->alignsize = 0;
+
+        unsigned offset = 0;
+        for (size_t i = 0; i < decl->dim; i++)
         {
-            ad->sizeok = 2;
-            //printf("\tsetting ad->sizeok %p to 2\n", ad);
-            if (!sc->anonAgg)
-            {
-                scope = scx ? scx : new Scope(*sc);
-                scope->setNoFree();
-                scope->module->addDeferredSemantic(this);
-            }
-            Module::dprogress = dprogress_save;
-            //printf("\tforward reference %p\n", this);
-            return;
+            Dsymbol *s = (*decl)[i];
+
+            s->setFieldOffset(ad, &offset, this->isunion);
+            if (this->isunion)
+                offset = 0;
         }
-        if (sem == 0)
-        {   Module::dprogress++;
-            sem = 1;
-            //printf("\tcompleted %p\n", this);
-        }
-        else
-            ;//printf("\talready completed %p\n", this);
+
+        unsigned anonstructsize = ad->structsize;
+        unsigned anonalignsize  = ad->alignsize;
+        ad->structsize = savestructsize;
+        ad->alignsize  = savealignsize;
 
         // 0 sized structs are set to 1 byte
-        if (aad.structsize == 0)
+        if (anonstructsize == 0)
         {
-            aad.structsize = 1;
-            aad.alignsize = 1;
+            anonstructsize = 1;
+            anonalignsize = 1;
         }
 
-        // Align size of anonymous aggregate
-//printf("aad.structalign = %d, aad.alignsize = %d, sc->offset = %d\n", aad.structalign, aad.alignsize, sc->offset);
-        ad->alignmember(aad.structalign, aad.alignsize, &sc->offset);
-        //ad->structsize = sc->offset;
-//printf("sc->offset = %d\n", sc->offset);
+        /* Given the anon 'member's size and alignment,
+         * go ahead and place it.
+         */
+        unsigned anonoffset = AggregateDeclaration::placeField(
+                poffset,
+                anonstructsize, anonalignsize, alignment,
+                &ad->structsize, &ad->alignsize,
+                isunion);
 
-        // Add members of aad to ad
-        //printf("\tadding members of aad to '%s'\n", ad->toChars());
-        for (size_t i = 0; i < aad.fields.dim; i++)
+        // Add to the anon fields the base offset of this anonymous aggregate
+        //printf("anon fields, anonoffset = %d\n", anonoffset);
+        for (size_t i = fieldstart; i < ad->fields.dim; i++)
         {
-            VarDeclaration *v = aad.fields[i];
-
-            v->offset += sc->offset;
-            ad->fields.push(v);
+            VarDeclaration *v = ad->fields[i];
+            //printf("\t[%d] %s %d\n", i, v->toChars(), v->offset);
+            v->offset += anonoffset;
         }
-
-        // Add size of aad to ad
-        if (adisunion)
-        {
-            if (aad.structsize > ad->structsize)
-                ad->structsize = aad.structsize;
-            sc->offset = 0;
-        }
-        else
-        {
-            ad->structsize = sc->offset + aad.structsize;
-            sc->offset = ad->structsize;
-        }
-
-        if (ad->alignsize < aad.alignsize)
-            ad->alignsize = aad.alignsize;
     }
 }
 
@@ -943,7 +925,7 @@ void PragmaDeclaration::setScope(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp* se = e->toString();
             if (!se)
@@ -977,7 +959,12 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
-                e = e->optimize(WANTvalue | WANTinterpret);
+                if (e->op != TOKerror && e->op != TOKtype)
+                    e = e->ctfeInterpret();
+                if (e->op == TOKerror)
+                {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
+                    return;
+                }
                 StringExp *se = e->toString();
                 if (se)
                 {
@@ -999,7 +986,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
                 goto Lnodecl;
@@ -1017,7 +1004,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         }
         goto Lnodecl;
     }
-#if IN_GCC
+#ifdef IN_GCC
     else if (ident == Id::GNU_asm)
     {
         if (! args || args->dim != 2)
@@ -1041,7 +1028,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             e = (*args)[1];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             e = e->toString();
             if (e && ((StringExp *)e)->sz == 1)
                 s = ((StringExp *)e);
@@ -1063,7 +1050,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
-            e = e->optimize(WANTvalue | WANTinterpret);
+            e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
             if (!sa || !sa->isFuncDeclaration())
@@ -1090,7 +1077,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
                     e = e->semantic(sc);
-                    e = e->optimize(WANTvalue | WANTinterpret);
+                    e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");
                     else
@@ -1152,21 +1139,19 @@ void PragmaDeclaration::toObjFile(int multiobj)
         char *name = (char *)mem.malloc(se->len + 1);
         memcpy(name, se->string, se->len);
         name[se->len] = 0;
-#if OMFOBJ
-        /* The OMF format allows library names to be inserted
-         * into the object file. The linker will then automatically
+
+        /* Embed the library names into the object file.
+         * The linker will then automatically
          * search that library, too.
          */
-        obj_includelib(name);
-#elif ELFOBJ || MACHOBJ
-        /* The format does not allow embedded library names,
-         * so instead append the library name to the list to be passed
-         * to the linker.
-         */
-        global.params.libfiles->push(name);
-#else
-        error("pragma lib not supported");
-#endif
+        if (!obj_includelib(name))
+        {
+            /* The format does not allow embedded library names,
+             * so instead append the library name to the list to be passed
+             * to the linker.
+             */
+            global.params.libfiles->push(name);
+        }
     }
 #if DMDV2
     else if (ident == Id::startaddress)
@@ -1254,9 +1239,9 @@ void ConditionalDeclaration::emitComment(Scope *sc)
 
 Dsymbols *ConditionalDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 {
-    //printf("ConditionalDeclaration::include()\n");
+    //printf("ConditionalDeclaration::include(sc = %p) scope = %p\n", sc, scope);
     assert(condition);
-    return condition->include(sc, sd) ? decl : elsedecl;
+    return condition->include(scope ? scope : sc, sd) ? decl : elsedecl;
 }
 
 void ConditionalDeclaration::setScope(Scope *sc)
@@ -1416,6 +1401,26 @@ void StaticIfDeclaration::importAll(Scope *sc)
 void StaticIfDeclaration::setScope(Scope *sc)
 {
     // do not evaluate condition before semantic pass
+
+    // But do set the scope, in case we need it for forward referencing
+    Dsymbol::setScope(sc);
+
+    // Set the scopes for both the decl and elsedecl, as we don't know yet
+    // which will be selected, and the scope will be the same regardless
+    Dsymbols *d = decl;
+    for (int j = 0; j < 2; j++)
+    {
+        if (d)
+        {
+           for (size_t i = 0; i < d->dim; i++)
+           {
+               Dsymbol *s = (*d)[i];
+
+               s->setScope(sc);
+           }
+        }
+        d = elsedecl;
+    }
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)
@@ -1446,6 +1451,8 @@ const char *StaticIfDeclaration::kind()
 
 
 /***************************** CompileDeclaration *****************************/
+
+// These are mixin declarations, like mixin("int x");
 
 CompileDeclaration::CompileDeclaration(Loc loc, Expression *exp)
     : AttribDeclaration(NULL)
@@ -1483,7 +1490,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    exp = exp->optimize(WANTvalue | WANTinterpret);
+    exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
     {   exp->error("argument to mixin must be a string, not (%s)", exp->toChars());
@@ -1520,3 +1527,10 @@ void CompileDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring(");");
     buf->writenl();
 }
+
+const char *CompileDeclaration::kind()
+{
+    return "mixin";
+}
+
+

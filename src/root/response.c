@@ -109,6 +109,7 @@ int response_expand(int *pargc, char ***pargv)
             char *buffer;
             char *bufend;
             char *p;
+            int comment = 0;
 
             cp++;
             p = getenv(cp);
@@ -171,15 +172,31 @@ int response_expand(int *pargc, char ***pargv)
                         goto L2;
 
                     case 0xD:
+                    case '\n':
+                        if (comment)
+                        {
+                            comment = 0;
+                        }
                     case 0:
                     case ' ':
                     case '\t':
-                    case '\n':
                         continue;   // scan to start of argument
 
+                    case '#':
+                        comment = 1;
+                        continue;
+
                     case '@':
+                        if (comment)
+                        {
+                            continue;
+                        }
                         recurse = 1;
                     default:      /* start of new argument   */
+                        if (comment)
+                        {
+                            continue;
+                        }
                         if (addargp(&n,p))
                             goto noexpand;
                         instring = 0;

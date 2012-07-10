@@ -75,7 +75,7 @@ struct AA;
 #if TARGET_NET
 struct PragmaScope;
 #endif
-#if IN_GCC
+#ifdef IN_GCC
 union tree_node;
 typedef union tree_node TYPE;
 #else
@@ -109,6 +109,8 @@ enum PASS
     PASSobj,            // toObjFile() run
 };
 
+typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
+
 struct Dsymbol : Object
 {
     Identifier *ident;
@@ -129,7 +131,6 @@ struct Dsymbol : Object
     int isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
-    void verror(Loc loc, const char *format, va_list ap);
     void checkDeprecated(Loc loc, Scope *sc);
     Module *getModule();
     Module *getAccessModule();
@@ -146,6 +147,7 @@ struct Dsymbol : Object
     virtual const char *toPrettyChars();
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
+    virtual int apply(Dsymbol_apply_ft_t fp, void *param);
     virtual int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     virtual void setScope(Scope *sc);
     virtual void importAll(Scope *sc);
@@ -185,6 +187,7 @@ struct Dsymbol : Object
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps, Identifier *ident);
     static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
+    virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     virtual int hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
@@ -280,7 +283,7 @@ struct ScopeDsymbol : Dsymbol
     static Dsymbol *getNth(Dsymbols *members, size_t nth, size_t *pn = NULL);
 
     typedef int (*ForeachDg)(void *ctx, size_t idx, Dsymbol *s);
-    static int foreach(Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn=NULL);
+    static int foreach(Scope *sc, Dsymbols *members, ForeachDg dg, void *ctx, size_t *pn=NULL);
 
     ScopeDsymbol *isScopeDsymbol() { return this; }
 };

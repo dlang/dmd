@@ -281,6 +281,51 @@ void test8()
 }
 
 /***************************************************/
+// on concat operation
+
+void test9()
+{
+    int function(int)[] a2;
+    a2 ~= x => x;
+}
+
+/***************************************************/
+// on associative array key
+
+void test10()
+{
+    int[int function()] aa;
+    assert(!aa.remove(() => 1));
+
+    int[int function(int)] aa2;
+    assert(!aa2.remove(x => 1));
+}
+
+/***************************************************/
+// on common type deduction
+
+void test11()
+{
+    auto a1 = [x => x, (int x) => x * 2];
+    static assert(is(typeof(a1[0]) == int function(int) pure @safe nothrow));
+    assert(a1[0](10) == 10);
+    assert(a1[1](10) == 20);
+
+    //int n = 10;
+    //auto a2 = [x => n, (int x) => x * 2];
+    //static assert(is(typeof(a2[0]) == int delegate(int) @safe nothrow));
+    //assert(a2[0](99) == 10);
+    //assert(a2[1](10) == 20);
+
+    int function(int) fp = true ? (x => x) : (x => x*2);
+    assert(fp(10) == 10);
+
+    int m = 10;
+    int delegate(int) dg = true ? (x => x) : (x => m*2);
+    assert(dg(10) == 10);
+}
+
+/***************************************************/
 // 3235
 
 void test3235()
@@ -332,6 +377,65 @@ void test7202()
 }
 
 /***************************************************/
+// 7288
+
+void test7288()
+{
+    // 7288 -> OK
+    auto foo()
+    {
+        int x;
+        return () => { return x; };
+    }
+    pragma(msg, typeof(&foo));
+    alias int delegate() nothrow @safe delegate() nothrow @safe delegate() Dg;
+    pragma(msg, Dg);
+    static assert(is(typeof(&foo) == Dg));  // should pass
+}
+
+/***************************************************/
+// 7499
+
+void test7499()
+{
+    int function(int)[]   a1 = [ x => x ];  // 7499
+    int function(int)[][] a2 = [[x => x]];  // +a
+    assert(a1[0]   (10) == 10);
+    assert(a2[0][0](10) == 10);
+}
+
+/***************************************************/
+// 7500
+
+void test7500()
+{
+    alias immutable bool function(int[]) Foo;
+    Foo f = a => true;
+}
+
+/***************************************************/
+// 7525
+
+void test7525()
+{
+    {
+        char[] delegate() a = { return null; };
+           int delegate() b = { return 1U; };
+          uint delegate() c = { return 1; };
+         float delegate() d = { return 1.0; };
+        double delegate() e = { return 1.0f; };
+    }
+
+    {
+        char[] delegate(int) a = (x){ return null; };
+           int delegate(int) b = (x){ return 1U; };
+          uint delegate(int) c = (x){ return 1; };
+         float delegate(int) d = (x){ return 1.0; };
+        double delegate(int) e = (x){ return 1.0f; };
+    }
+}
+
+/***************************************************/
 // 7582
 
 void test7582()
@@ -342,6 +446,208 @@ void test7582()
         foo2 = (b) { };
     };
 }
+
+/***************************************************/
+// 7649
+
+void test7649()
+{
+    void foo(int function(int) fp = x => 1)
+    {
+        assert(fp(1) == 1);
+    }
+    foo();
+}
+
+/***************************************************/
+// 7650
+
+void test7650()
+{
+    int[int function(int)] aa1 = [x=>x:1, x=>x*2:2];
+    foreach (k, v; aa1) {
+        if (v == 1) assert(k(10) == 10);
+        if (v == 2) assert(k(10) == 20);
+    }
+
+    int function(int)[int] aa2 = [1:x=>x, 2:x=>x*2];
+    assert(aa2[1](10) == 10);
+    assert(aa2[2](10) == 20);
+
+    int n = 10;
+    int[int delegate(int)] aa3 = [x=>n+x:1, x=>n+x*2:2];
+    foreach (k, v; aa3) {
+        if (v == 1) assert(k(10) == 20);
+        if (v == 2) assert(k(10) == 30);
+    }
+
+    int delegate(int)[int] aa4 = [1:x=>n+x, 2:x=>n+x*2];
+    assert(aa4[1](10) == 20);
+    assert(aa4[2](10) == 30);
+}
+
+/***************************************************/
+// 7705
+
+void test7705()
+{
+    void foo1(void delegate(ref int ) dg){ int x=10; dg(x); }
+    foo1((ref x){ pragma(msg, typeof(x)); assert(x == 10); });
+    static assert(!__traits(compiles, foo1((x){}) ));
+
+    void foo2(void delegate(int, ...) dg){ dg(20, 3.14); }
+    foo2((x,...){ pragma(msg, typeof(x)); assert(x == 20); });
+
+    void foo3(void delegate(int[]...) dg){ dg(1, 2, 3); }
+    foo3((x ...){ pragma(msg, typeof(x)); assert(x == [1,2,3]); });
+}
+
+/***************************************************/
+// 7713
+
+void foo7713(T)(T delegate(in Object) dlg)
+{}
+void test7713()
+{
+   foo7713( (in obj) { return 15; } );   // line 6
+}
+
+/***************************************************/
+// 7743
+
+auto foo7743a()
+{
+    int x = 10;
+    return () nothrow {
+        return x;
+    };
+}
+auto foo7743b()
+{
+    int x = 10;
+    return () nothrow => x;
+}
+void test7743()
+{
+    static assert(is(typeof(&foo7743a) == int delegate() nothrow @safe function()));
+    assert(foo7743a()() == 10);
+
+    static assert(is(typeof(&foo7743b) == int delegate() nothrow @safe function()));
+    assert(foo7743b()() == 10);
+}
+
+/***************************************************/
+// 7761
+
+enum dg7761 = (int a) pure => 2 * a;
+
+void test7761()
+{
+    static assert(is(typeof(dg7761) == int function(int) pure @safe nothrow));
+    assert(dg7761(10) == 20);
+}
+
+/***************************************************/
+// 7941
+
+void test7941()
+{
+    static assert(!__traits(compiles, { enum int c = function(){}; }));
+}
+
+/***************************************************/
+// 8005
+
+void test8005()
+{
+    auto n = (a, int n = 2){ return n; }(1);
+    assert(n == 2);
+}
+
+/***************************************************/
+// test8198
+
+void test8198()
+{
+    T delegate(T) zero(T)(T delegate(T) f)
+    {
+        return x => x;
+    }
+
+    T delegate(T) delegate(T delegate(T)) succ(T)(T delegate(T) delegate(T delegate(T)) n)
+    {
+        return f => x => f(n(f)(x));
+    }
+
+    auto n = &zero!uint;
+    foreach (i; 0..10)
+    {
+        assert(n(x => x + 1)(0) == i);
+        n = succ(n);
+    }
+}
+
+/***************************************************/
+// 8226
+
+immutable f8226 = (int x) => x * 2;
+
+void test8226()
+{
+    assert(f8226(10) == 20);
+}
+
+/***************************************************/
+// 8241
+
+auto exec8241a(alias a = function(x) => x, T...)(T as)
+{
+    return a(as);
+}
+
+auto exec8241b(alias a = (x) => x, T...)(T as)
+{
+    return a(as);
+}
+
+void test8241()
+{
+    exec8241a(2);
+    exec8241b(2);
+}
+
+/***************************************************/
+// 8242
+
+template exec8242(alias a, T...)
+{
+    auto func8242(T as)
+    {
+        return a(as);
+    }
+}
+
+mixin exec8242!(x => x, int);
+mixin exec8242!((string x) => x, string);
+
+void test8242()
+{
+    func8242(1);
+    func8242("");
+}
+
+/***************************************************/
+// 8315
+
+void test8315()
+{
+    bool b;
+    foo8315!(a => b)();
+}
+
+void foo8315(alias pred)()
+if (is(typeof(pred(1)) == bool))
+{}
 
 /***************************************************/
 
@@ -356,11 +662,31 @@ int main()
     test6();
     test7();
     test8();
+    test9();
+    test10();
+    test11();
     test3235();
     test6714();
     test7193();
     test7202();
+    test7288();
+    test7499();
+    test7500();
+    test7525();
     test7582();
+    test7649();
+    test7650();
+    test7705();
+    test7713();
+    test7743();
+    test7761();
+    test7941();
+    test8005();
+    test8198();
+    test8226();
+    test8241();
+    test8242();
+    test8315();
 
     printf("Success\n");
     return 0;

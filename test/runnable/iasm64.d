@@ -3881,7 +3881,7 @@ L1:	pop	RAX	;
 	mov	p[RBP],RAX ;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
 	//printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
 	assert(p[i] == b);
@@ -4010,7 +4010,7 @@ L1:	pop	RAX	;
 	mov	p[RBP],RAX ;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
 	//printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
 	assert(p[i] == b);
@@ -4089,7 +4089,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4139,7 +4139,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4339,7 +4339,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4671,7 +4671,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4761,7 +4761,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -4797,7 +4797,7 @@ L1:
         mov p[RBP], RAX;
     }
 
-    foreach (i, b; data)
+    foreach (ref i, b; data)
     {
         assert(p[i] == b);
     }
@@ -6383,7 +6383,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);
@@ -6443,7 +6443,7 @@ L1:     pop     RAX;
         mov     p[RBP],RAX;
     }
 
-    foreach (i,b; data)
+    foreach (ref i, b; data)
     {
         //printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
         assert(p[i] == b);

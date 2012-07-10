@@ -1,5 +1,6 @@
 
 extern (C) int printf(const(char*) fmt, ...);
+import core.vararg;
 
 struct Tup(T...)
 {
@@ -635,8 +636,8 @@ mixin template Wrapper6479()
 
 void test6832()
 {
-	static class Foo { }
-	static struct Bar { Foo foo; alias foo this; }
+    static class Foo { }
+    static struct Bar { Foo foo; alias foo this; }
     Bar bar;
     bar = new Foo;          // ok
     assert(bar !is null);   // ng
@@ -718,6 +719,146 @@ void test7136()
 }
 
 /***************************************************/
+// 7731
+
+struct A7731
+{
+    int a;
+}
+template Inherit7731(alias X)
+{
+    X __super;
+    alias __super this;
+}
+struct B7731
+{
+    mixin Inherit7731!A7731;
+    int b;
+}
+
+struct PolyPtr7731(X)
+{
+    X* _payload;
+    static if (is(typeof(X.init.__super)))
+    {
+        alias typeof(X.init.__super) Super;
+        @property auto getSuper(){ return PolyPtr7731!Super(&_payload.__super); }
+        alias getSuper this;
+    }
+}
+template create7731(X)
+{
+    PolyPtr7731!X create7731(T...)(T args){
+        return PolyPtr7731!X(args);
+    }
+}
+
+void f7731a(PolyPtr7731!A7731 a) {/*...*/}
+void f7731b(PolyPtr7731!B7731 b) {f7731a(b);/*...*/}
+
+void test7731()
+{
+    auto b = create7731!B7731();
+}
+
+/***************************************************/
+// 7808
+
+struct Nullable7808(T)
+{
+    private T _value;
+
+    this()(T value)
+    {
+        _value = value;
+    }
+
+    @property ref inout(T) get() inout pure @safe
+    {
+        return _value;
+    }
+    alias get this;
+}
+
+class C7808 {}
+struct S7808 { C7808 c; }
+
+void func7808(S7808 s) {}
+
+void test7808()
+{
+    auto s = Nullable7808!S7808(S7808(new C7808));
+    func7808(s);
+}
+
+/***************************************************/
+// 7945
+
+struct S7945
+{
+    int v;
+    alias v this;
+}
+void foo7945(ref int n){}
+
+void test7945()
+{
+    auto s = S7945(1);
+    foo7945(s);         // 1.NG -> OK
+    s.foo7945();        // 2.OK, ufcs
+    foo7945(s.v);       // 3.OK
+    s.v.foo7945();      // 4.OK, ufcs
+}
+
+/***************************************************/
+// 7992
+
+struct S7992
+{
+    int[] arr;
+    alias arr this;
+}
+S7992 func7992(...)
+{
+    S7992 ret;
+    ret.arr.length = _arguments.length;
+    return ret;
+}
+void test7992()
+{
+    int[] arr;
+    assert(arr.length == 0);
+    arr ~= func7992(1, 2);  //NG
+    //arr = func7992(1, 2); //OK
+    assert(arr.length == 2);
+}
+
+/***************************************************/
+// 8169
+
+void test8169()
+{
+    static struct ValueImpl
+    {
+       static immutable(int) getValue()
+       {
+           return 42;
+       }
+    }
+
+    static struct ValueUser
+    {
+       ValueImpl m_valueImpl;
+       alias m_valueImpl this;
+    }
+
+    static assert(ValueImpl.getValue() == 42); // #0, OK
+    static assert(ValueUser.getValue() == 42); // #1, NG
+    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG
+    static assert(typeof(ValueUser.m_valueImpl).getValue() == 42); // #3, OK
+}
+
+/***************************************************/
 
 int main()
 {
@@ -746,6 +887,11 @@ int main()
     test6928();
     test6929();
     test7136();
+    test7731();
+    test7808();
+    test7945();
+    test7992();
+    test8169();
 
     printf("Success\n");
     return 0;

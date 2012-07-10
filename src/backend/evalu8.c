@@ -384,7 +384,6 @@ elem *poptelem(elem *e)
             L3:
                 e = selecte1(e,e->ET);
                 e->Eoper = OPrelconst;
-#if 1
                 // If this is an address of a function template,
                 // try to expand the template if it's got an explicit
                 // parameter list.
@@ -402,56 +401,16 @@ elem *poptelem(elem *e)
                         type_settype(&e->ET, newpointer(s->Stype));
                     }
                 }
-#endif
             }
             break;
         case OPind:
             e->E1 = e1 = poptelem(e->E1);
-#if TX86
             if (e1->Eoper == OPrelconst)
             {   /* convert *(&var) to var       */
 
                 e = selecte1(e,e->ET);
                 e->Eoper = OPvar;
             }
-#else
-            if (e1->Eoper == OPrelconst)
-            {
-                unsigned to_sz =  tysize(tym_conv(e->ET));
-                unsigned frm_sz = tysize(tym_conv(e1->ET));
-
-                if (tyfunc(tybasic(e->ET->Tty)))
-                    to_sz = LONGSIZE;
-                else if (tybasic(e->ET->Tty) == TYstruct || tybasic(e->ET->Tty) == TYarray)
-                    {
-                    to_sz = LONGSIZE;
-                    e1->ET = e->ET;
-                    }
-                if(to_sz == frm_sz)
-                {       /* convert *(&var) to var       */
-doit:
-                    e = selecte1(e,e->ET);
-                    e->Eoper = OPvar;
-                }
-                else                    /* handle the most common cases for now */
-                {   unsigned offset = e1->Eoffset;
-                    switch(to_sz)
-                        {
-                        case SHORTSIZE:
-                            if (frm_sz == LONGSIZE && (offset%LONGSIZE) == SHORTSIZE)
-                                goto doit;
-                            break;
-                        case CHARSIZE:
-                            if (frm_sz == LONGSIZE &&
-                               offset%(LONGSIZE-CHARSIZE) == CHARSIZE)
-                                goto doit;
-                            if (frm_sz == SHORTSIZE && offset&1)
-                                goto doit;
-                            break;
-                        }
-                 }
-            }
-#endif
             break;
 #if TARGET_SEGMENTED
         case OPnp_fp:
@@ -640,13 +599,13 @@ elem * evalu8(elem *e)
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
 
-#if TX86 && SCPP
+#if TARGET_SEGMENTED && SCPP
         // Huge pointers are always evaluated at runtime
         if (tym == TYhptr && (l1 != 0 || l2 != 0))
             return e;
 #endif
         esave = *e;
-#if !__OpenBSD__
+#if TX86 && !__OpenBSD__
         _clear87();
 #endif
     }
@@ -844,7 +803,7 @@ elem * evalu8(elem *e)
                 break;
 
             default:
-#if TX86
+#if TARGET_SEGMENTED
                 if (intsize == 2)
                 {   if (tyfv(tym))
                         e->EV.Vlong = (l1 & 0xFFFF0000) |
@@ -1039,7 +998,7 @@ elem * evalu8(elem *e)
                 break;
 
             default:
-#if TX86
+#if TARGET_SEGMENTED
                 if (intsize == 2 &&
                     tyfv(tym) && tysize[tym2] == 2)
                     e->EV.Vllong = (l1 & 0xFFFF0000) |
@@ -1589,7 +1548,6 @@ elem * evalu8(elem *e)
         break;
 
     case OPneg:
-#if TX86
         // Avoid converting NANS to NAN
         memcpy(&e->EV.Vcldouble,&e1->EV.Vcldouble,sizeof(e->EV.Vcldouble));
         switch (tym)
@@ -1622,25 +1580,8 @@ elem * evalu8(elem *e)
                 e->EV.Vllong = -l1;
                 break;
         }
-#else
-        switch (tym)
-        {   case TYdouble:
-                e->EV.Vdouble = -e1->EV.Vdouble;
-                break;
-            case TYfloat:
-                e->EV.Vfloat = -e1->EV.Vfloat;
-                break;
-            case TYldouble:
-                e->EV.Vldouble = -d1;
-                break;
-            default:
-                e->EV.Vllong = -l1;
-                break;
-        }
-#endif
         break;
     case OPabs:
-#if 1
         switch (tym)
         {
             case TYdouble:
@@ -1674,11 +1615,12 @@ elem * evalu8(elem *e)
                 break;
         }
         break;
-#endif
+#if TX86
     case OPsqrt:
-    case OPrndtol:
     case OPsin:
     case OPcos:
+#endif
+    case OPrndtol:
     case OPrint:
         return e;
     case OPngt:
@@ -1745,7 +1687,7 @@ elem * evalu8(elem *e)
                 case TYcfloat:
                     if (isnan(e1->EV.Vcfloat.re) || isnan(e1->EV.Vcfloat.im) ||
                         isnan(e2->EV.Vcfloat.re) || isnan(e2->EV.Vcfloat.im))
-                        i ^= 1;
+                        ;
                     else
                         i ^= (int)((e1->EV.Vcfloat.re == e2->EV.Vcfloat.re) &&
                                    (e1->EV.Vcfloat.im == e2->EV.Vcfloat.im));
@@ -1753,7 +1695,7 @@ elem * evalu8(elem *e)
                 case TYcdouble:
                     if (isnan(e1->EV.Vcdouble.re) || isnan(e1->EV.Vcdouble.im) ||
                         isnan(e2->EV.Vcdouble.re) || isnan(e2->EV.Vcdouble.im))
-                        i ^= 1;
+                        ;
                     else
                         i ^= (int)((e1->EV.Vcdouble.re == e2->EV.Vcdouble.re) &&
                                    (e1->EV.Vcdouble.im == e2->EV.Vcdouble.im));
@@ -1761,7 +1703,7 @@ elem * evalu8(elem *e)
                 case TYcldouble:
                     if (isnan(e1->EV.Vcldouble.re) || isnan(e1->EV.Vcldouble.im) ||
                         isnan(e2->EV.Vcldouble.re) || isnan(e2->EV.Vcldouble.im))
-                        i ^= 1;
+                        ;
                     else
                         i ^= (int)((e1->EV.Vcldouble.re == e2->EV.Vcldouble.re) &&
                                    (e1->EV.Vcldouble.im == e2->EV.Vcldouble.im));

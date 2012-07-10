@@ -96,12 +96,34 @@ void test7278()
 }
 
 /**********************************************/
+// 8221
+
+class A8221
+{
+    A8221 foo() { return this; }
+}
+class B8221: A8221
+{
+    override typeof(null) foo() { return null; } // error
+}
+void test8221()
+{
+    auto a = new A8221();
+    assert(a.foo() is a);
+    auto b = new B8221();
+    assert(b.foo() is null);
+    a = b;
+    assert(a.foo() is null);
+}
+
+/**********************************************/
 
 int main()
 {
     test1();
     test2();
     test7278();
+    test8221();
 
     printf("Success\n");
     return 0;

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -89,7 +89,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISTYPE(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Type *t = getType(args->tdata()[i]); \
+        {   Type *t = getType((*args)[i]);      \
             if (!t)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -101,7 +101,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
 #define ISDSYMBOL(cond) \
         for (size_t i = 0; i < dim; i++)        \
-        {   Dsymbol *s = getDsymbol(args->tdata()[i]);   \
+        {   Dsymbol *s = getDsymbol((*args)[i]); \
             if (!s)                             \
                 goto Lfalse;                    \
             if (!(cond))                        \
@@ -196,7 +196,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (dim != 1)
             goto Ldimerror;
-        Object *o = args->tdata()[0];
+        Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         if (!s || !s->ident)
         {
@@ -210,7 +210,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = args->tdata()[0];
+        Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         if (s)
             s = s->toParent();
@@ -231,13 +231,13 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 2)
             goto Ldimerror;
-        Object *o = args->tdata()[0];
-        Expression *e = isExpression(args->tdata()[1]);
+        Object *o = (*args)[0];
+        Expression *e = isExpression((*args)[1]);
         if (!e)
         {   error("expression expected as second argument of __traits %s", ident->toChars());
             goto Lfalse;
         }
-        e = e->optimize(WANTvalue | WANTinterpret);
+        e = e->ctfeInterpret();
         StringExp *se = e->toString();
         if (!se || se->length() == 0)
         {   error("string expected as second argument of __traits %s instead of %s", ident->toChars(), e->toChars());
@@ -336,7 +336,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = args->tdata()[0];
+        Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         ClassDeclaration *cd;
         if (!s || (cd = s->isClassDeclaration()) == NULL)
@@ -350,7 +350,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
-        Object *o = args->tdata()[0];
+        Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         ScopeDsymbol *sd;
         if (!s)
@@ -380,7 +380,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                     /* Skip if already present in idents[]
                      */
                     for (size_t j = 0; j < idents->dim; j++)
-                    {   Identifier *id = idents->tdata()[j];
+                    {   Identifier *id = (*idents)[j];
                         if (id == sm->ident)
                             return 0;
 #ifdef DEBUG
@@ -396,7 +396,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         };
 
         Identifiers *idents = new Identifiers;
-        ScopeDsymbol::foreach(sd->members, &PushIdentsDg::dg, idents);
+
+        ScopeDsymbol::foreach(sc, sd->members, &PushIdentsDg::dg, idents);
 
         ClassDeclaration *cd = sd->isClassDeclaration();
         if (cd && ident == Id::allMembers)
@@ -407,7 +408,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 {
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {   ClassDeclaration *cb = (*cd->baseclasses)[i]->base;
-                        ScopeDsymbol::foreach(cb->members, &PushIdentsDg::dg, idents);
+                        ScopeDsymbol::foreach(NULL, cb->members, &PushIdentsDg::dg, idents);
                         if (cb->baseclasses->dim)
                             dg(cb, idents);
                     }
@@ -420,9 +421,9 @@ Expression *TraitsExp::semantic(Scope *sc)
         assert(sizeof(Expressions) == sizeof(Identifiers));
         Expressions *exps = (Expressions *)idents;
         for (size_t i = 0; i < idents->dim; i++)
-        {   Identifier *id = idents->tdata()[i];
+        {   Identifier *id = (*idents)[i];
             StringExp *se = new StringExp(loc, id->toChars());
-            exps->tdata()[i] = se;
+            (*exps)[i] = se;
         }
 
 #if DMDV1
@@ -447,12 +448,14 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
 
         for (size_t i = 0; i < dim; i++)
-        {   Object *o = args->tdata()[i];
+        {   Object *o = (*args)[i];
             Expression *e;
 
             unsigned errors = global.startGagging();
             unsigned oldspec = global.speculativeGag;
             global.speculativeGag = global.gag;
+            bool scSpec = sc->speculative;
+            sc->speculative = true;
 
             Type *t = isType(o);
             if (t)
@@ -473,6 +476,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 }
             }
 
+            sc->speculative = scSpec;
             global.speculativeGag = oldspec;
             if (global.endGagging(errors))
             {
@@ -487,8 +491,8 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (dim != 2)
             goto Ldimerror;
         TemplateInstance::semanticTiargs(loc, sc, args, 0);
-        Object *o1 = args->tdata()[0];
-        Object *o2 = args->tdata()[1];
+        Object *o1 = (*args)[0];
+        Object *o2 = (*args)[1];
         Dsymbol *s1 = getDsymbol(o1);
         Dsymbol *s2 = getDsymbol(o2);
 
@@ -523,6 +527,11 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         s1 = s1->toAlias();
         s2 = s2->toAlias();
+
+        if (s1->isFuncAliasDeclaration())
+            s1 = ((FuncAliasDeclaration *)s1)->toAliasFunc();
+        if (s2->isFuncAliasDeclaration())
+            s2 = ((FuncAliasDeclaration *)s2)->toAliasFunc();
 
         if (s1 == s2)
             goto Ltrue;

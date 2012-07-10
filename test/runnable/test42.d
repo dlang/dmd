@@ -3576,7 +3576,7 @@ static assert(is(typeof(S5110.value) == int));
 class C5110
 {
  override:
-    string toString() { return ""; }
+    const string toString() { return ""; }
 
     class Nested
     {
@@ -3604,10 +3604,10 @@ shared class Bug5504b
 
 void test5504()
 {
-    Bug5504 c;
+    immutable Bug5504 c;
     c.foo(10);
     c.xx!(int).hoo(10);
-    Bug5504b d;
+    shared Bug5504b d;
     d.foo(10);
     d.xx!(int).hoo(10);
 }
@@ -3616,7 +3616,7 @@ void test5504()
 
 void bug5105() // compilation test -- don't need to run
 {
-    auto c = new C5105;
+    auto c = new shared(C5105);
     c.foo(10);
 }
 
@@ -4782,6 +4782,403 @@ C7504 create7504(T...)(T input)
 
 /***************************************************/
 
+struct S7502
+{
+    int[0x1000] arr;
+}
+
+S7502 s7502;
+
+void test7502()
+{
+    s7502 = s7502.init;
+}
+
+/***************************************************/
+
+void nextis(void delegate() dg = {}) {}
+
+void test4820() {
+    nextis();
+}
+
+/***************************************************/
+
+void test4820_2() {
+
+void nextis(void delegate() dg = {}) {}
+    nextis();
+}
+
+/***************************************************/
+
+template T3509(bool b) { static assert (b); }
+
+template Mix3509() { void f() {} }
+
+class C3509 {
+    alias T3509!(is(typeof(M.f))) U;
+    mixin Mix3509!() M;
+}
+
+/***************************************************/
+
+struct S3510(int x) {}
+
+template Mix3510() { Sa s; }
+
+class C3510 {
+    mixin Mix3510!();
+    alias S3510!(0) Sa;
+}
+
+/***************************************************/
+
+struct Array243(T) if (is(T == bool))
+{
+    struct Range
+    {
+        Array243!bool _outer;
+        ulong _a, _b, _c;
+	ulong _d;
+    }
+
+    Range opSlice()
+    {
+        return Range(this, 0, 3);
+    }
+
+}
+
+
+void test243() {
+    Array243!bool a;
+}
+
+/***************************************************/
+// 7742
+
+struct Foo7742 {
+    static immutable f = Foo7742(1, 2);
+    int x, y;
+}
+
+struct Bar7742 {
+    int x, y;
+    static immutable f = Bar7742(1, 2);
+}
+
+void test7742()
+{
+    assert(Foo7742.f.x == 1);
+    assert(Foo7742.f.y == 2);
+
+    assert(Bar7742.f.x == 1);
+    assert(Bar7742.f.y == 2);
+}
+
+/***************************************************/
+// 7807
+
+interface Interface7807
+{
+    Interface7807 getNext();
+    const(Interface7807) getNext() const;
+}
+
+class Implementation7807 : Interface7807
+{
+    Implementation7807 getNext()
+    {
+        return this;
+    }
+
+    const(Implementation7807) getNext() const
+    {
+        return null;
+    }
+}
+
+void test7807()
+{
+    auto mc = new Implementation7807();
+    assert(mc.getNext() is mc);
+    Interface7807 mi = mc;
+    assert(mi.getNext() is mi);
+
+    auto cc = new const(Implementation7807)();
+    assert(cc.getNext() is null);
+    const(Interface7807) ci = cc;
+    assert(ci.getNext() is null);
+}
+
+/***************************************************/
+// 7815
+
+enum Closure {
+    Matrix
+}
+
+struct BasicMatrix {
+    mixin Operand!( Closure.Matrix );
+}
+
+template Operand( Closure closure_ ) {
+    alias closure_ closure;
+}
+
+struct Expression( string op_, Lhs, Rhs = void ) {
+    enum lhsClosure = closureOf!Lhs;
+}
+
+template closureOf( T ) {
+    enum closureOf = T.closure;
+}
+
+alias Expression!("+", BasicMatrix) Foo7815;
+
+/***************************************************/
+
+struct Test244 {
+    static immutable c = Test244();
+    static if( true ){}
+}
+
+/***************************************************/
+
+int noswap245(ubyte *data)
+{
+    return
+	(data[0]<<  0) |
+	(data[1]<<  8) |
+	(data[2]<< 16) |
+	(data[3]<< 24);
+}
+
+int bswap245(ubyte *data)
+{
+    return
+	(data[0]<< 24) |
+	(data[1]<< 16) |
+	(data[2]<< 8 ) |
+	(data[3]<< 0 );
+}
+
+void test245()
+{
+    int x1 = 0x01234567;
+    x1 = noswap245(cast(ubyte *)&x1);
+    assert(x1 == 0x01234567);
+    x1 = bswap245(cast(ubyte *)&x1);
+    assert(x1 == 0x67452301);
+}
+
+/***************************************************/
+
+mixin template mix7974()
+{
+    uint _x;
+}
+
+struct Foo7974
+{
+    immutable Foo7974 fa = Foo7974(0);
+
+    this(uint x)
+    {
+        _x = x;
+    }
+
+    mixin mix7974!();
+}
+
+/***************************************************/
+// 4155
+
+
+float getnanf() { return float.nan; }
+double getnand() { return double.nan; }
+real getnanr() { return real.nan; }
+
+void test4155()
+{
+    assert(getnanf() != 0);
+    assert(getnand() != 0);
+    assert(getnanr() != 0);
+}
+
+/***************************************************/
+// 7911
+
+struct Klass7911
+{
+    double value;
+
+    //static const Klass zero; // Does not trigger bug!
+    static const Klass7911 zero = {0}; // Bug trigger #1
+
+    static if (true) // Bug trigger #2
+        static if (true)
+            Klass7911 foo() { return Klass7911(); }
+}
+
+void test7911()
+{
+    auto a = Klass7911().foo();
+}
+
+/***************************************************/
+// 8069
+
+interface I8069
+{
+    void f();
+}
+struct A8069
+{
+    final class B8069 : I8069
+    {
+        A8069 a;
+        void f() {}
+    }
+}
+
+/***************************************************/
+// 8095
+
+void bug8095(int p0, int *p1, int z, int edx, int *p4, int p5)
+{
+    int x = z / 3;
+    if (z) {
+        int c = p5 + *p1 + p0; // *p1 segfaults -- it does *z !!
+        if ( z / 5 )
+            c = 1;
+        *p4 = c;
+        x = c;
+    }
+    void never_used() {
+        ++x;
+        int * unused = p1; // kills p4 somehow
+    }
+}
+
+void test8095() {
+    int x, y;
+    bug8095(0, &x, 1, 0, &y, 0);
+}
+
+/***************************************************/
+// 8091
+
+int solve1(int n) {
+    int a;
+    return ((a = n ? (n>=1u) : 1) != 0) ? a : 0;
+//    return ((a = !n ? 1 : (n>=1u)) != 0) ? a : 0;
+}
+
+int solve2(int n) {
+    int a;
+//    return ((a = n ? (n>=1u) : 1) != 0) ? a : 0;
+    return ((a = !n ? 1 : (n>=1u)) != 0) ? a : 0;
+}
+
+void test8091() {
+    assert(solve1(1) ==  1);
+    assert(solve2(1) ==  1);
+}
+
+/***************************************************/
+
+struct IPoint {
+    int x, y;
+}
+
+void bug6189_2(uint half, IPoint pos, float[4] *pts, uint unused) {
+    pos.y += half;
+    float xo = pos.x;
+    float yo = pos.y;
+
+    (*pts)[0] = xo;
+    (*pts)[1] = yo;
+    (*pts)[2] = xo;
+}
+
+void test6189_2()
+{
+    auto pos = IPoint(2, 2);
+    float[4] pts;
+    pts[0] = pts[1] = pts[2] = pts[3] = 0;
+    bug6189_2(0, pos, &pts, 0);
+
+    assert(pts[0] == 2);
+}
+
+/***************************************************/
+// 8199
+
+version (D_InlineAsm_X86_64)
+{
+    version = Check;
+    enum Align = 0x8;
+}
+else version (D_InlineAsm_X86)
+{
+    version = Check;
+    version (OSX)
+        enum Align = 0xC;
+}
+
+void onFailure()
+{
+    assert(0, "alignment failure");
+}
+
+void checkAlign()
+{
+    version (Check)
+    {
+        static if (is(typeof(Align)))
+        asm
+        {
+            naked;
+            mov EAX, ESP;
+            and EAX, 0xF;
+            cmp EAX, Align;
+            je Lpass;
+            call onFailure;
+        Lpass:
+            ret;
+        }
+    }
+    else
+        return;
+}
+
+void foo8199()
+{
+}
+
+void test8199()
+{
+    try
+        foo8199();
+    finally
+        checkAlign();
+}
+
+/***************************************************/
+
+void test246()
+{
+    struct Struct
+    {
+        void method() {}
+    }
+    auto val = Struct();
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5028,6 +5425,20 @@ int main()
     test7422();
     test7424();
     test7504();
+    test7502();
+    test4820();
+    test4820_2();
+    test243();
+    test7742();
+    test245();
+    test7807();
+    test4155();
+    test7911();
+    test8095();
+    test8091();
+    test6189_2();
+    test8199();
+    test246();
 
     writefln("Success");
     return 0;

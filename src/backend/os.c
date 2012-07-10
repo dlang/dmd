@@ -65,6 +65,9 @@ int file_createdirs(char *name);
  * This function does not return.
  */
 
+#if _MSC_VER
+__declspec(noreturn)
+#endif
 void os_error(int line)
 {
 #if _WIN32
@@ -79,7 +82,9 @@ void os_error(int line)
 #endif
 
 #define os_error() os_error(__LINE__)
+#if __DMC__
 #pragma noreturn(os_error)
+#endif
 
 #if _WIN32
 /*********************************

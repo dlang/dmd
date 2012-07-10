@@ -1,5 +1,5 @@
 // utf.c
-// Copyright (c) 2003-2009 by Digital Mars
+// Copyright (c) 2003-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -7,22 +7,32 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-// Description of UTF-8 at:
-// http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+/// Description of UTF-8 in [1].  Unicode non-characters and private-use
+/// code points described in [2],[4].
+///
+/// References:
+/// [1] http://www.cl.cam.ac.uk/~mgk25/unicode.html#utf-8
+/// [2] http://en.wikipedia.org/wiki/Unicode
+/// [3] http://unicode.org/faq/utf_bom.html
+/// [4] http://www.unicode.org/versions/Unicode6.1.0/ch03.pdf
 
-#include <stdio.h>
-#include <string.h>
 #include <assert.h>
 
 #include "utf.h"
 
-int utf_isValidDchar(dchar_t c)
+namespace
 {
-    return c < 0xD800 ||
-        (c > 0xDFFF && c <= 0x10FFFF && c != 0xFFFE && c != 0xFFFF);
-}
 
-static const unsigned char UTF8stride[256] =
+/* The following encodings are valid, except for the 5 and 6 byte
+ * combinations:
+ *      0xxxxxxx
+ *      110xxxxx 10xxxxxx
+ *      1110xxxx 10xxxxxx 10xxxxxx
+ *      11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
+ *      111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+ *      1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
+ */
+const unsigned UTF8_STRIDE[256] =
 {
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
     1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,
@@ -42,237 +52,73 @@ static const unsigned char UTF8stride[256] =
     4,4,4,4,4,4,4,4,5,5,5,5,6,6,0xFF,0xFF,
 };
 
-/**
- * stride() returns the length of a UTF-8 sequence starting at index i
- * in string s.
- * Returns:
- *  The number of bytes in the UTF-8 sequence or
- *  0xFF meaning s[i] is not the start of of UTF-8 sequence.
- */
+}   // namespace
 
-unsigned stride(unsigned char* s, size_t i)
+namespace Unicode
 {
-    unsigned result = UTF8stride[s[i]];
-    return result;
+
+// UTF-8 decoding errors
+char const UTF8_DECODE_OUTSIDE_CODE_SPACE[] = "Outside Unicode code space";
+char const UTF8_DECODE_TRUNCATED_SEQUENCE[] = "Truncated UTF-8 sequence";
+char const UTF8_DECODE_OVERLONG[]           = "Overlong UTF-8 sequence";
+char const UTF8_DECODE_INVALID_TRAILER[]    = "Invalid trailing code unit";
+char const UTF8_DECODE_INVALID_CODE_POINT[] = "Invalid code point decoded";
+
+// UTF-16 decoding errors
+char const UTF16_DECODE_TRUNCATED_SEQUENCE[]= "Truncated UTF-16 sequence";
+char const UTF16_DECODE_INVALID_SURROGATE[] = "Invalid low surrogate";
+char const UTF16_DECODE_UNPAIRED_SURROGATE[]= "Unpaired surrogate";
+char const UTF16_DECODE_INVALID_CODE_POINT[]= "Invalid code point decoded";
+
+}   // namespace Unicode
+
+using namespace Unicode;
+
+/// The Unicode code space is the range of code points [0x000000,0x10FFFF]
+/// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
+/// and non-characters (which end in 0xFFFE or 0xFFFF).
+bool utf_isValidDchar(dchar_t c)
+{
+    // TODO: Whether non-char code points should be rejected is pending review
+    return c <= 0x10FFFF                        // largest character code point
+        && !(0xD800 <= c && c <= 0xDFFF)        // surrogate pairs
+        && (c & 0xFFFFFE) != 0x00FFFE           // non-characters
+//        && (c & 0xFFFE) != 0xFFFE               // non-characters
+//        && !(0x00FDD0 <= c && c <= 0x00FDEF)    // non-characters
+        ;
 }
 
-/********************************************
- * Decode a single UTF-8 character sequence.
- * Returns:
- *      NULL    success
- *      !=NULL  error message string
+/*******************************
+ * Return !=0 if unicode alpha.
+ * Use table from C99 Appendix D.
  */
 
-const char *utf_decodeChar(unsigned char *s, size_t len, size_t *pidx, dchar_t *presult)
+bool isUniAlpha(dchar_t c)
 {
-    dchar_t V;
-    size_t i = *pidx;
-    unsigned char u = s[i];
-
-    //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
-
-    assert(i >= 0 && i < len);
-
-    if (u & 0x80)
-    {   unsigned n;
-        unsigned char u2;
-
-        /* The following encodings are valid, except for the 5 and 6 byte
-         * combinations:
-         *      0xxxxxxx
-         *      110xxxxx 10xxxxxx
-         *      1110xxxx 10xxxxxx 10xxxxxx
-         *      11110xxx 10xxxxxx 10xxxxxx 10xxxxxx
-         *      111110xx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-         *      1111110x 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx
-         */
-        for (n = 1; ; n++)
-        {
-            if (n > 4)
-                goto Lerr;              // only do the first 4 of 6 encodings
-            if (((u << n) & 0x80) == 0)
-            {
-                if (n == 1)
-                    goto Lerr;
-                break;
-            }
-        }
-
-        // Pick off (7 - n) significant bits of B from first byte of octet
-        V = (dchar_t)(u & ((1 << (7 - n)) - 1));
-
-        if (i + (n - 1) >= len)
-            goto Lerr;                  // off end of string
-
-        /* The following combinations are overlong, and illegal:
-         *      1100000x (10xxxxxx)
-         *      11100000 100xxxxx (10xxxxxx)
-         *      11110000 1000xxxx (10xxxxxx 10xxxxxx)
-         *      11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
-         *      11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
-         */
-        u2 = s[i + 1];
-        if ((u & 0xFE) == 0xC0 ||
-            (u == 0xE0 && (u2 & 0xE0) == 0x80) ||
-            (u == 0xF0 && (u2 & 0xF0) == 0x80) ||
-            (u == 0xF8 && (u2 & 0xF8) == 0x80) ||
-            (u == 0xFC && (u2 & 0xFC) == 0x80))
-            goto Lerr;                  // overlong combination
-
-        for (unsigned j = 1; j != n; j++)
-        {
-            u = s[i + j];
-            if ((u & 0xC0) != 0x80)
-                goto Lerr;                      // trailing bytes are 10xxxxxx
-            V = (V << 6) | (u & 0x3F);
-        }
-        if (!utf_isValidDchar(V))
-            goto Lerr;
-        i += n;
-    }
-    else
+    static size_t const END = sizeof(ALPHA_TABLE) / sizeof(ALPHA_TABLE[0]);
+    size_t high = END - 1;
+    // Shortcut search if c is out of range
+    size_t low
+        = (c < ALPHA_TABLE[0][0] || ALPHA_TABLE[high][1] < c) ? high + 1 : 0;
+    // Binary search
+    while (low <= high)
     {
-        V = (dchar_t) u;
-        i++;
-    }
-
-    assert(utf_isValidDchar(V));
-    *pidx = i;
-    *presult = V;
-    return NULL;
-
-  Lerr:
-    *presult = (dchar_t) s[i];
-    *pidx = i + 1;
-    return "invalid UTF-8 sequence";
-}
-
-/***************************************************
- * Validate a UTF-8 string.
- * Returns:
- *      NULL    success
- *      !=NULL  error message string
- */
-
-const char *utf_validateString(unsigned char *s, size_t len)
-{
-    size_t idx;
-    const char *err = NULL;
-    dchar_t dc;
-
-    for (idx = 0; idx < len; )
-    {
-        err = utf_decodeChar(s, len, &idx, &dc);
-        if (err)
-            break;
-    }
-    return err;
-}
-
-
-/********************************************
- * Decode a single UTF-16 character sequence.
- * Returns:
- *      NULL    success
- *      !=NULL  error message string
- */
-
-
-const char *utf_decodeWchar(unsigned short *s, size_t len, size_t *pidx, dchar_t *presult)
-{
-    const char *msg;
-    size_t i = *pidx;
-    unsigned u = s[i];
-
-    assert(i >= 0 && i < len);
-    if (u & ~0x7F)
-    {   if (u >= 0xD800 && u <= 0xDBFF)
-        {   unsigned u2;
-
-            if (i + 1 == len)
-            {   msg = "surrogate UTF-16 high value past end of string";
-                goto Lerr;
-            }
-            u2 = s[i + 1];
-            if (u2 < 0xDC00 || u2 > 0xDFFF)
-            {   msg = "surrogate UTF-16 low value out of range";
-                goto Lerr;
-            }
-            u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
-            i += 2;
-        }
-        else if (u >= 0xDC00 && u <= 0xDFFF)
-        {   msg = "unpaired surrogate UTF-16 value";
-            goto Lerr;
-        }
-        else if (u == 0xFFFE || u == 0xFFFF)
-        {   msg = "illegal UTF-16 value";
-            goto Lerr;
-        }
+        size_t mid = (low + high) >> 1;
+        if (c < ALPHA_TABLE[mid][0])
+            high = mid - 1;
+        else if (ALPHA_TABLE[mid][1] < c)
+            low = mid + 1;
         else
-            i++;
+        {
+            assert(ALPHA_TABLE[mid][0] <= c && c <= ALPHA_TABLE[mid][1]);
+            return true;
+        }
     }
-    else
-    {
-        i++;
-    }
-
-    assert(utf_isValidDchar(u));
-    *pidx = i;
-    *presult = (dchar_t)u;
-    return NULL;
-
-  Lerr:
-    *presult = (dchar_t)s[i];
-    *pidx = i + 1;
-    return msg;
+    return false;
 }
-
-void utf_encodeChar(unsigned char *s, dchar_t c)
-{
-    if (c <= 0x7F)
-    {
-        s[0] = (char) c;
-    }
-    else if (c <= 0x7FF)
-    {
-        s[0] = (char)(0xC0 | (c >> 6));
-        s[1] = (char)(0x80 | (c & 0x3F));
-    }
-    else if (c <= 0xFFFF)
-    {
-        s[0] = (char)(0xE0 | (c >> 12));
-        s[1] = (char)(0x80 | ((c >> 6) & 0x3F));
-        s[2] = (char)(0x80 | (c & 0x3F));
-    }
-    else if (c <= 0x10FFFF)
-    {
-        s[0] = (char)(0xF0 | (c >> 18));
-        s[1] = (char)(0x80 | ((c >> 12) & 0x3F));
-        s[2] = (char)(0x80 | ((c >> 6) & 0x3F));
-        s[3] = (char)(0x80 | (c & 0x3F));
-    }
-    else
-        assert(0);
-}
-
-void utf_encodeWchar(unsigned short *s, dchar_t c)
-{
-    if (c <= 0xFFFF)
-    {
-        s[0] = (wchar_t) c;
-    }
-    else
-    {
-        s[0] = (wchar_t) ((((c - 0x10000) >> 10) & 0x3FF) + 0xD800);
-        s[1] = (wchar_t) (((c - 0x10000) & 0x3FF) + 0xDC00);
-    }
-}
-
 
 /**
- * Returns the code length of c in the encoding.
- * The code is returned in character count, not in bytes.
+ * Returns the code length of c in code units.
  */
 
 int utf_codeLengthChar(dchar_t c)
@@ -291,10 +137,10 @@ int utf_codeLengthWchar(dchar_t c)
 }
 
 /**
- * Returns the code length of c in the encoding.
+ * Returns the code length of c in code units for the encoding.
  * sz is the encoding: 1 = utf8, 2 = utf16, 4 = utf32.
- * The code is returned in character count, not in bytes.
  */
+
 int utf_codeLength(int sz, dchar_t c)
 {
     if (sz == 1)
@@ -305,16 +151,161 @@ int utf_codeLength(int sz, dchar_t c)
     return 1;
 }
 
-void utf_encode(int sz, void *s, dchar_t c)
+void utf_encodeChar(utf8_t *s, dchar_t c)
 {
-    if (sz == 1)
-        utf_encodeChar((unsigned char *)s, c);
-    else if (sz == 2)
-        utf_encodeWchar((unsigned short *)s, c);
+    assert(s != NULL);
+    assert(utf_isValidDchar(c));
+    if (c <= 0x7F)
+    {
+        s[0] = static_cast<utf8_t>(c);
+    }
+    else if (c <= 0x07FF)
+    {
+        s[0] = static_cast<utf8_t>(0xC0 | (c >> 6));
+        s[1] = static_cast<utf8_t>(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0xFFFF)
+    {
+        s[0] = static_cast<utf8_t>(0xE0 | (c >> 12));
+        s[1] = static_cast<utf8_t>(0x80 | ((c >> 6) & 0x3F));
+        s[2] = static_cast<utf8_t>(0x80 | (c & 0x3F));
+    }
+    else if (c <= 0x10FFFF)
+    {
+        s[0] = static_cast<utf8_t>(0xF0 | (c >> 18));
+        s[1] = static_cast<utf8_t>(0x80 | ((c >> 12) & 0x3F));
+        s[2] = static_cast<utf8_t>(0x80 | ((c >> 6) & 0x3F));
+        s[3] = static_cast<utf8_t>(0x80 | (c & 0x3F));
+    }
+    else
+        assert(0);
+}
+
+void utf_encodeWchar(utf16_t *s, dchar_t c)
+{
+    assert(s != NULL);
+    assert(utf_isValidDchar(c));
+    if (c <= 0xFFFF)
+    {
+        s[0] = static_cast<utf16_t>(c);
+    }
     else
     {
-        assert(sz == 4);
-        memcpy((unsigned char *)s, &c, sz);
+        s[0] = static_cast<utf16_t>((((c - 0x010000) >> 10) & 0x03FF) + 0xD800);
+        s[1] = static_cast<utf16_t>(((c - 0x010000) & 0x03FF) + 0xDC00);
     }
 }
 
+void utf_encode(int sz, void *s, dchar_t c)
+{
+    if (sz == 1)
+        utf_encodeChar((utf8_t *)s, c);
+    else if (sz == 2)
+        utf_encodeWchar((utf16_t *)s, c);
+    else
+    {
+        assert(sz == 4);
+        *((utf32_t *)s) = c;
+    }
+}
+
+/********************************************
+ * Decode a UTF-8 sequence as a single UTF-32 code point.
+ * Returns:
+ *      NULL    success
+ *      !=NULL  error message string
+ */
+
+const char *utf_decodeChar(utf8_t const *s, size_t len, size_t *pidx, dchar_t *presult)
+{
+    assert(s != NULL);
+    assert(pidx != NULL);
+    assert(presult != NULL);
+    size_t i = (*pidx)++;
+    assert(i < len);
+    utf8_t u = s[i];
+    // Pre-stage results for ASCII and error cases
+    *presult = u;
+
+    //printf("utf_decodeChar(s = %02x, %02x, %02x len = %d)\n", u, s[1], s[2], len);
+
+    // Get expected sequence length
+    unsigned n = UTF8_STRIDE[u];
+    switch (n)
+    {
+    case 1:                             // ASCII
+        return UTF8_DECODE_OK;
+    case 2: case 3: case 4:             // multi-byte UTF-8
+        break;
+    default:                            // 5- or 6-byte sequence
+        return UTF8_DECODE_OUTSIDE_CODE_SPACE;
+    }
+    if (len < i + n)                    // source too short
+        return UTF8_DECODE_TRUNCATED_SEQUENCE;
+
+    // Pick off 7 - n low bits from first code unit
+    utf32_t c = u & ((1 << (7 - n)) - 1);
+    /* The following combinations are overlong, and illegal:
+     *      1100000x (10xxxxxx)
+     *      11100000 100xxxxx (10xxxxxx)
+     *      11110000 1000xxxx (10xxxxxx 10xxxxxx)
+     *      11111000 10000xxx (10xxxxxx 10xxxxxx 10xxxxxx)
+     *      11111100 100000xx (10xxxxxx 10xxxxxx 10xxxxxx 10xxxxxx)
+     */
+    utf8_t u2 = s[++i];
+    if ((u & 0xFE) == 0xC0 ||           // overlong combination
+        (u == 0xE0 && (u2 & 0xE0) == 0x80) ||
+        (u == 0xF0 && (u2 & 0xF0) == 0x80) ||
+        (u == 0xF8 && (u2 & 0xF8) == 0x80) ||
+        (u == 0xFC && (u2 & 0xFC) == 0x80))
+        return UTF8_DECODE_OVERLONG;
+    // Decode remaining bits
+    for (n += i - 1; i != n; ++i)
+    {
+        u = s[i];
+        if ((u & 0xC0) != 0x80)         // trailing bytes are 10xxxxxx
+            return UTF8_DECODE_INVALID_TRAILER;
+        c = (c << 6) | (u & 0x3F);
+    }
+    if (!utf_isValidDchar(c))
+        return UTF8_DECODE_INVALID_CODE_POINT;
+    *pidx = i;
+    *presult = c;
+    return UTF8_DECODE_OK;
+}
+
+/********************************************
+ * Decode a UTF-16 sequence as a single UTF-32 code point.
+ * Returns:
+ *      NULL    success
+ *      !=NULL  error message string
+ */
+
+const char *utf_decodeWchar(utf16_t const *s, size_t len, size_t *pidx, dchar_t *presult)
+{
+    assert(s != NULL);
+    assert(pidx != NULL);
+    assert(presult != NULL);
+    size_t i = (*pidx)++;
+    assert(i < len);
+    // Pre-stage results for ASCII and error cases
+    utf32_t u = *presult = s[i];
+
+    if (u < 0x80)                       // ASCII
+        return UTF16_DECODE_OK;
+    if (0xD800 <= u && u <= 0xDBFF)     // Surrogate pair
+    {   if (len <= i + 1)
+            return UTF16_DECODE_TRUNCATED_SEQUENCE;
+        utf16_t u2 = s[i + 1];
+        if (u2 < 0xDC00 || 0xDFFF < u)
+            return UTF16_DECODE_INVALID_SURROGATE;
+        u = ((u - 0xD7C0) << 10) + (u2 - 0xDC00);
+        ++*pidx;
+    }
+    else if (0xDC00 <= u && u <= 0xDFFF)
+        return UTF16_DECODE_UNPAIRED_SURROGATE;
+    if (!utf_isValidDchar(u))
+        return UTF16_DECODE_INVALID_CODE_POINT;
+    *presult = u;
+    return UTF16_DECODE_OK;
+}

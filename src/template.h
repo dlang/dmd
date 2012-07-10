@@ -37,6 +37,7 @@ struct AliasDeclaration;
 struct FuncDeclaration;
 struct HdrGenState;
 enum MATCH;
+enum PASS;
 
 struct Tuple : Object
 {
@@ -57,7 +58,7 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
 
-    int semanticRun;                    // 1 semantic() run
+    enum PASS semanticRun;              // 1 semantic() run
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
@@ -289,7 +290,7 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    int semanticRun;    // has semantic() been done?
+    enum PASS semanticRun;    // has semantic() been done?
     int semantictiargsdone;     // has semanticTiargs() been done?
     int nest;           // for recursion detection
     int havetempdecl;   // 1 if used second constructor
@@ -351,7 +352,9 @@ struct TemplateMixin : TemplateInstance
     void inlineScan();
     const char *kind();
     int oneMember(Dsymbol **ps, Identifier *ident);
+    int apply(Dsymbol_apply_ft_t fp, void *param);
     int hasPointers();
+    void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

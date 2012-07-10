@@ -1,5 +1,4 @@
 
-
 // Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
@@ -24,7 +23,6 @@
 typedef size_t hash_t;
 
 #include "longdouble.h"
-#include "dchar.h"
 
 char *wchar2ascii(wchar_t *);
 int wcharIsAscii(wchar_t *);
@@ -33,9 +31,6 @@ int wcharIsAscii(wchar_t *, unsigned len);
 
 int bstrcmp(unsigned char *s1, unsigned char *s2);
 char *bstr2str(unsigned char *b);
-void error(const char *format, ...);
-void error(const wchar_t *format, ...);
-void warning(const char *format, ...);
 
 #ifndef TYPEDEFS
 #define TYPEDEFS
@@ -95,7 +90,6 @@ struct Object
     virtual void print();
 
     virtual char *toChars();
-    virtual dchar *toDchars();
     virtual void toBuffer(OutBuffer *buf);
 
     /**
@@ -285,14 +279,11 @@ struct OutBuffer : Object
     void write(const void *data, unsigned nbytes);
     void writebstring(unsigned char *string);
     void writestring(const char *string);
-    void writedstring(const char *string);
-    void writedstring(const wchar_t *string);
     void prependstring(const char *string);
     void writenl();                     // write newline
     void writeByte(unsigned b);
     void writebyte(unsigned b) { writeByte(b); }
     void writeUTF8(unsigned b);
-    void writedchar(unsigned b);
     void prependbyte(unsigned b);
     void writeword(unsigned w);
     void writeUTF16(unsigned w);
@@ -303,10 +294,6 @@ struct OutBuffer : Object
     void align(unsigned size);
     void vprintf(const char *format, va_list args);
     void printf(const char *format, ...);
-#if M_UNICODE
-    void vprintf(const unsigned short *format, va_list args);
-    void printf(const unsigned short *format, ...);
-#endif
     void bracket(char left, char right);
     unsigned bracket(unsigned i, const char *left, unsigned j, const char *right);
     void spread(unsigned offset, unsigned nbytes);

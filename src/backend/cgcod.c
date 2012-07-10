@@ -37,7 +37,6 @@ STATIC code * loadcse(elem *,unsigned,regm_t);
 STATIC void blcodgen(block *);
 STATIC void cgcod_eh();
 STATIC code * cse_save(regm_t ms);
-STATIC int cse_simple(elem *e,int i);
 STATIC code * comsub(elem *,regm_t *);
 
 bool floatreg;                  // !=0 if floating register is required
@@ -111,12 +110,10 @@ static regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
 void codgen()
 {   block *b,*bn;
     bool flag;
-    int i;
     targ_size_t swoffset,coffset;
     tym_t functy;
     unsigned nretblocks;                // number of return blocks
     code *cprolog;
-    regm_t noparams;
 #if SCPP
     block *btry;
 #endif
@@ -129,15 +126,7 @@ void codgen()
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
     functy = tybasic(funcsym_p->ty());
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    regm_t value = BYTEREGS_INIT;
-    ALLREGS = ALLREGS_INIT;
-    BYTEREGS = value;
-    if (I64)
-    {   ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
-        BYTEREGS = ALLREGS;
-    }
-#endif
+    cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
 
@@ -204,14 +193,14 @@ tryagain:
 
     if (!config.fulltypes || (config.flags4 & CFG4optimized))
     {
-        noparams = 0;
-        for (i = 0; i < globsym.top; i++)
+        regm_t noparams = 0;
+        for (int i = 0; i < globsym.top; i++)
         {
             Symbol *s = globsym.tab[i];
             s->Sflags &= ~SFLread;
             switch (s->Sclass)
             {   case SCfastpar:
-                    regcon.params |= mask[s->Spreg];
+                    regcon.params |= s->Spregm();
                 case SCparameter:
                     if (s->Sfl == FLreg)
                         noparams |= s->Sregm;
@@ -340,8 +329,8 @@ tryagain:
         for (b = startblock; b; b = b->Bnext)
         {   if (b->Bflags & BFLjmpoptdone)      /* if no more jmp opts for this blk */
                 continue;
-            i = branch(b,0);            // see if jmp => jmp short
-            if (i)                      /* if any bytes saved           */
+            int i = branch(b,0);            // see if jmp => jmp short
+            if (i)                          // if any bytes saved
             {   targ_size_t offset;
 
                 b->Bsize -= i;
@@ -413,8 +402,7 @@ tryagain:
             {   unsigned u = b->Balign;
                 unsigned nalign = (u - (unsigned)Coffset) & (u - 1);
 
-                while (nalign--)
-                    obj_byte(cseg,Coffset++,0x90);      // XCHG AX,AX
+                cod3_align_bytes(nalign);
             }
             assert(b->Boffset == Coffset);
 
@@ -572,10 +560,6 @@ void stackoffsets(int flags)
     targ_size_t Amax,sz;
     unsigned alignsize;
     int offi;
-#if AUTONEST
-    targ_size_t offstack[20];
-    int offi = 0;                       // index into offstack[]
-#endif
     vec_t tbl = NULL;
 
 
@@ -612,7 +596,18 @@ void stackoffsets(int flags)
             }
             alignsize = type_alignsize(s->Stype);
 
-            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)type_alignsize(s->Stype), s->Sflags & SFLread);
+            /* The purpose of this is to reduce alignment faults when SIMD vectors
+             * are reinterpreted cast to other types with less alignment.
+             */
+            if (sz == 16 && config.fpxmmregs && alignsize < sz &&
+                (s->Sclass == SCauto || s->Sclass == SCtmp)
+               )
+                alignsize = sz;
+
+            if (s->Salignment > 0)
+                alignsize = s->Salignment;
+
+            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)
@@ -649,25 +644,6 @@ void stackoffsets(int flags)
             /* Can't do this for CPP because the inline function expander
                 adds new symbols on the end.
              */
-#if AUTONEST
-            /*printf("symbol '%s', push = %d, pop = %d\n",
-                s->Sident,s->Spush,s->Spop);*/
-
-            /* Can't do this for optimizer if any code motion occurred.
-                Code motion changes the live range, so variables that
-                occupy the same space could have live ranges that overlap!
-             */
-            if (config.flags4 & CFG4optimized)
-                s->Spop = 0;
-            else
-                while (s->Spush != 0)
-                {   s->Spush--;
-                    assert(offi < arraysize(offstack));
-                    /*printf("Pushing offset x%x\n",Aoffset);*/
-                    offstack[offi++] = Aoffset;
-                }
-#endif
-
             switch (s->Sclass)
             {
                 case SCfastpar:
@@ -709,8 +685,8 @@ void stackoffsets(int flags)
                         vec_setbit(si,tbl);
 
                     // Align doubles to 8 byte boundary
-                    if (!I16 && type_alignsize(s->Stype) > REGSIZE)
-                        Aalign = type_alignsize(s->Stype);
+                    if (!I16 && alignsize > REGSIZE)
+                        Aalign = alignsize;
                 L2:
                     break;
 
@@ -750,15 +726,6 @@ void stackoffsets(int flags)
 #endif
                     assert(0);
             }
-
-#if AUTONEST
-            while (s->Spop != 0)
-            {   s->Spop--;
-                assert(offi > 0);
-                Aoffset = offstack[--offi];
-                /*printf("Popping offset x%x\n",Aoffset);*/
-            }
-#endif
         }
     }
     Aoffset = Amax;
@@ -835,10 +802,10 @@ STATIC void blcodgen(block *bl)
 
             sflsave[i] = s->Sfl;
             if (s->Sclass & SCfastpar &&
-                regcon.params & mask[s->Spreg] &&
+                regcon.params & s->Spregm() &&
                 vec_testbit(dfoidx,s->Srange))
             {
-                regcon.used |= mask[s->Spreg];
+                regcon.used |= s->Spregm();
             }
 
             if (s->Sfl == FLreg)
@@ -858,6 +825,7 @@ STATIC void blcodgen(block *bl)
                         regcon.mvar |= s->Sregm;
                         regcon.cse.mval &= ~s->Sregm;
                         regcon.immed.mval &= ~s->Sregm;
+                        regcon.params &= ~s->Sregm;
                         if (s->Sclass == SCfastpar)
                             regcon.mpvar |= s->Sregm;
                     }
@@ -1576,7 +1544,9 @@ STATIC code * cse_save(regm_t ms)
             ms &= ~mask[reg];           /* turn off reg bit in ms       */
 
             // If we can simply reload the CSE, we don't need to save it
-            if (!cse_simple(csextab[i].e,i))
+            if (cse_simple(&csextab[i].csimple, csextab[i].e))
+                csextab[i].flags |= CSEsimple;
+            else
             {
                 c = cat(c, gensavereg(reg, i));
                 reflocal = TRUE;
@@ -1615,71 +1585,6 @@ code *cse_flush(int do87)
     if (do87)
         c = cat(c,save87());    // save any 8087 temporaries
     return c;
-}
-
-/*************************************************
- */
-
-STATIC int cse_simple(elem *e,int i)
-{   regm_t regm;
-    unsigned reg;
-    code *c;
-    int sz;
-
-    sz = tysize[tybasic(e->Ety)];
-    if (!I16 &&                                  // don't bother with 16 bit code
-        e->Eoper == OPadd &&
-        sz == REGSIZE &&
-        e->E2->Eoper == OPconst &&
-        e->E1->Eoper == OPvar &&
-        isregvar(e->E1,&regm,&reg) &&
-        sz <= REGSIZE &&
-        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
-       )
-    {
-        c = &csextab[i].csimple;
-        memset(c,0,sizeof(*c));
-
-        // Make this an LEA instruction
-        c->Iop = 0x8D;                          // LEA
-        buildEA(c,reg,-1,1,e->E2->EV.Vuns);
-        if (I64)
-        {   if (sz == 8)
-                c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
-        }
-
-        csextab[i].flags |= CSEsimple;
-        return 1;
-    }
-    else if (e->Eoper == OPind &&
-        sz <= REGSIZE &&
-        e->E1->Eoper == OPvar &&
-        isregvar(e->E1,&regm,&reg) &&
-        (I32 || I64 || regm & IDXREGS) &&
-        !(e->E1->EV.sp.Vsym->Sflags & SFLspill)
-       )
-    {
-        c = &csextab[i].csimple;
-        memset(c,0,sizeof(*c));
-
-        // Make this a MOV instruction
-        c->Iop = (sz == 1) ? 0x8A : 0x8B;       // MOV reg,EA
-        buildEA(c,reg,-1,1,0);
-        if (sz == 2 && I32)
-            c->Iflags |= CFopsize;
-        else if (I64)
-        {   if (sz == 8)
-                c->Irex |= REX_W;
-            else if (sz == 1 && reg >= 4)
-                c->Irex |= REX;
-        }
-
-        csextab[i].flags |= CSEsimple;
-        return 1;
-    }
-    return 0;
 }
 
 /*************************
@@ -1910,10 +1815,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                         csextab[i].flags |= CSEload;
                         if (*pretregs == mPSW)  /* if result in CCs only */
                         {                       // CMP cs[BP],0
-                            c = genc(NULL,0x81 ^ byte,modregrm(2,7,BPRM),
-                                        FLcs,i, FLconst,(targ_uns) 0);
-                            if (I32 && sz == 2)
-                                c->Iflags |= CFopsize;
+                            c = gen_testcse(NULL, sz, i);
                         }
                         else
                         {
@@ -1921,10 +1823,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
                             if (byte && !(retregs & BYTEREGS))
                                     retregs = BYTEREGS;
                             c = allocreg(&retregs,&reg,tym);
-                                            // MOV reg,cs[BP]
-                            c = genc1(c,0x8B,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                            if (I64)
-                                code_orrex(c, REX_W);
+                            c = gen_loadcse(c, reg, i);
                         L10:
                             regcon.cse.mval |= mask[reg]; // cs is in a reg
                             regcon.cse.value[reg] = e;
@@ -2052,28 +1951,18 @@ done:
  */
 
 STATIC code * loadcse(elem *e,unsigned reg,regm_t regm)
-{ unsigned i,op;
-  code *c;
-
-  for (i = cstop; i--;)
+{
+  for (unsigned i = cstop; i--;)
   {
         //printf("csextab[%d] = %p, regm = x%x\n", i, csextab[i].e, csextab[i].regm);
         if (csextab[i].e == e && csextab[i].regm & regm)
         {
                 reflocal = TRUE;
                 csextab[i].flags |= CSEload;    /* it was loaded        */
-                c = getregs(mask[reg]);
                 regcon.cse.value[reg] = e;
                 regcon.cse.mval |= mask[reg];
-                op = 0x8B;
-                if (reg == ES)
-                {       op = 0x8E;
-                        reg = 0;
-                }
-                c = genc1(c,op,modregxrm(2,reg,BPRM),FLcs,(targ_uns) i);
-                if (I64)
-                    code_orrex(c, REX_W);
-                return c;
+                code *c = getregs(mask[reg]);
+                return gen_loadcse(c, reg, i);
         }
   }
 #if DEBUG
@@ -2377,19 +2266,14 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
             sz = -(adjesp & 7) & 7;
         if (calledafunc && !I16 && sz && (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
         {
-            unsigned grex = I64 ? REX_W << 16 : 0;
             regm_t mval_save = regcon.immed.mval;
             regcon.immed.mval = 0;      // prevent reghasvalue() optimizations
                                         // because c hasn't been executed yet
-            cs1 = genc2(cs1,0x81,grex | modregrm(3,5,SP),sz);  // SUB ESP,sz
-            if (I64)
-                code_orrex(cs1, REX_W);
+            cs1 = cod3_stackadj(cs1, sz);
             regcon.immed.mval = mval_save;
             cs1 = genadjesp(cs1, sz);
 
-            code *cx = genc2(CNIL,0x81,grex | modregrm(3,0,SP),sz);  // ADD ESP,sz
-            if (I64)
-                code_orrex(cx, REX_W);
+            code *cx = cod3_stackadj(NULL, -sz);
             cx = genadjesp(cx, -sz);
             cs2 = cat(cx, cs2);
         }

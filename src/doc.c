@@ -19,6 +19,10 @@
 #include "rmem.h"
 #include "root.h"
 
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#include "gnuc.h"
+#endif
+
 #include "mars.h"
 #include "dsymbol.h"
 #include "macro.h"
@@ -77,7 +81,9 @@ struct DocComment
     Macro **pmacrotable;
     Escape **pescapetable;
 
-    DocComment();
+    DocComment() :
+       summary(NULL), copyright(NULL), macros(NULL), pmacrotable(NULL), pescapetable(NULL)
+    { }
 
     static DocComment *parse(Scope *sc, Dsymbol *s, unsigned char *comment);
     static void parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, unsigned mlen);
@@ -227,7 +233,7 @@ void Module::gendocfile()
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles->dim; i++)
         {
-            FileName f(global.params.ddocfiles->tdata()[i], 0);
+            FileName f((*global.params.ddocfiles)[i], 0);
             File file(&f);
             file.readv();
             // BUG: convert file contents to UTF-8 before use
@@ -260,6 +266,9 @@ void Module::gendocfile()
         Macro::define(&macrotable, (unsigned char *)"DATETIME", 8, (unsigned char *)p, strlen(p));
         Macro::define(&macrotable, (unsigned char *)"YEAR", 4, (unsigned char *)p + 20, 4);
     }
+
+    char *srcfilename = srcfile->toChars();
+    Macro::define(&macrotable, (unsigned char *)"SRCFILENAME", 11, (unsigned char *)srcfilename, strlen(srcfilename));
 
     char *docfilename = docfile->toChars();
     Macro::define(&macrotable, (unsigned char *)"DOCFILENAME", 11, (unsigned char *)docfilename, strlen(docfilename));
@@ -1010,11 +1019,6 @@ void EnumMember::toDocBuffer(OutBuffer *buf)
 
 
 /********************************* DocComment *********************************/
-
-DocComment::DocComment()
-{
-    memset(this, 0, sizeof(DocComment));
-}
 
 DocComment *DocComment::parse(Scope *sc, Dsymbol *s, unsigned char *comment)
 {
@@ -1777,7 +1781,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
     int leadingBlank = 1;
     int inCode = 0;
-    int inComment = 0;                  // in <!-- ... --> comment
+    //int inComment = 0;                  // in <!-- ... --> comment
     unsigned iCodeStart;                // start of code section
 
     unsigned iLineStart = offset;

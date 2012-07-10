@@ -36,17 +36,20 @@ int _binary[] =
          OPpostinc,OPpostdec,OPeq,OPaddass,OPminass,OPmulass,OPdivass,
          OPmodass,OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
          OPle,OPgt,OPlt,OPge,OPeqeq,OPne,OPparam,OPcall,OPcallns,OPcolon,OPcolon2,
-         OPbit,OPoutp,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
+         OPbit,OPbrack,OParrowstar,OPmemcpy,OPmemcmp,OPmemset,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
          OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,
-         OPscale,OPremquo,OPyl2x,OPyl2xp1,
+         OPremquo,
+#if TX86
+         OPoutp,OPscale,OPyl2x,OPyl2xp1,
+#endif
         };
 int _unary[] =
         {OPnot,OPcom,OPind,OPaddr,OPneg,OPuadd,
-         OPabs,OPsqrt,OPrndtol,OPsin,OPcos,OPrint,
+         OPabs,OPrndtol,OPrint,
          OPpreinc,OPpredec,
          OPbool,OPstrlen,OPnullcheck,
          OPb_8,OPs16_32,OPu16_32,OPd_s32,OPd_u32,
@@ -57,11 +60,14 @@ int _unary[] =
          OPd_s64,OPs64_d,OPd_u64,OPu64_d,OPld_u64,
          OP128_64,OPs64_128,OPu64_128,
          OPucall,OPucallns,OPstrpar,OPstrctor,OPu16_d,OPd_u16,
-         OPinp,OParrow,OPnegass,
+         OParrow,OPnegass,
          OPctor,OPdtor,OPsetjmp,OPvoid,OParraylength,
          OPbsf,OPbsr,OPbswap,
          OPddtor,
          OPvector,
+#if TX86
+         OPsqrt,OPsin,OPcos,OPinp,
+#endif
 #if TARGET_SEGMENTED
          OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
@@ -75,7 +81,6 @@ int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
          OPnegass,
-        /* OPbtc,OPbtr,OPbts,*/
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -109,10 +114,13 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
-                OPinp,OPoutp,OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
+                OPnegass,OPctor,OPdtor,OPmark,OPvoid,OPnewarray,
                 OPmultinewarray,OPcheckcast,OPnullcheck,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
+#if TX86
+                OPinp,OPoutp,
+#endif
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
@@ -120,7 +128,7 @@ int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPcall,OPcallns,OPinfo,OPmemset,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
-                OPabs,OPsqrt,OPrndtol,OPsin,OPcos,OPrint,OPscale,
+                OPabs,OPrndtol,OPrint,
                 OPstrlen,OPstrcmp,OPind,OPaddr,
                 OPnot,OPbool,OPcom,OPadd,OPmin,OPmul,OPand,OPor,OPmemcmp,
                 OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
@@ -139,12 +147,14 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
+#if TX86
+                OPsqrt,OPsin,OPcos,OPscale,
+#endif
 #if TARGET_SEGMENTED
                 OPvp_fp,OPcvp_fp,OPnp_fp,OPnp_f16p,OPf16p_np,OPoffset,
 #endif
-                /*OPcomma,OPbit,OPoror,OPandand,OPcond,OPcolon,OPcolon2*/};
-int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
-                OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
+                };
+int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPstrlen,OPstrcmp,OPind,OPaddr,
                 OPnot,OPbool,OPcom,OPadd,OPmin,OPmul,OPand,OPor,OPstring,
                 OPxor,OPdiv,OPmod,OPshl,OPshr,OPashr,OPeqeq,OPne,OPle,OPlt,OPge,OPgt,
@@ -167,6 +177,9 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPsqrt,OPrndtol,OPrint,
                 OProl,OPror,OPvector,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
+#if TX86
+                OPsqrt,OPsin,OPcos,OPscale,OPyl2x,OPyl2xp1,
+#endif
 #if TARGET_SEGMENTED
                 OPvp_fp,OPcvp_fp,OPoffset,OPnp_fp,OPnp_f16p,OPf16p_np,
 #endif
@@ -445,8 +458,10 @@ void dotab()
         case OPxor:     X("^",          elxor,  cdorth);
         case OPstring:  X("string",     elstring,cderr);
         case OPrelconst: X("relconst",  elzot, cdrelconst);
+#if TX86
         case OPinp:     X("inp",        elzot, cdport);
         case OPoutp:    X("outp",       elzot, cdport);
+#endif
         case OPasm:     X("asm",        elzot, cdasm);
         case OPinfo:    X("info",       elinfo,cdinfo);
         case OPdctor:   X("dctor",      elzot, cddctor);
@@ -485,14 +500,16 @@ void dotab()
         case OPneg:     X("-",          elneg,  cdneg);
         case OPuadd:    X("+",          elzot,  cderr);
         case OPabs:     X("abs",        evalu8, cdabs);
+#if TX86
         case OPsqrt:    X("sqrt",       evalu8, cdneg);
         case OPsin:     X("sin",        evalu8, cdneg);
         case OPcos:     X("cos",        evalu8, cdneg);
-        case OPrint:    X("rint",       evalu8, cdneg);
-        case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPscale:   X("scale",      elzot,  cdscale);
         case OPyl2x:    X("yl2x",       elzot,  cdscale);
         case OPyl2xp1:  X("yl2xp1",     elzot,  cdscale);
+#endif
+        case OPrint:    X("rint",       evalu8, cdneg);
+        case OPrndtol:  X("rndtol",     evalu8, cdrndtol);
         case OPstrlen:  X("strlen",     elzot,  cdstrlen);
         case OPstrcpy:  X("strcpy",     elstrcpy,cdstrcpy);
         case OPmemcpy:  X("memcpy",     elmemxxx,cdmemcpy);
@@ -662,14 +679,22 @@ void fltables()
 
         static char indatafl[] =        /* is FLxxxx a data type?       */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,
-          FLcs,FLfltreg,FLallocatmp,FLdatseg,FLndp,FLtlsdata,FLbprel,
-          FLstack,FLregsave };
+          FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
+          FLstack,FLregsave,
+#if TX86
+          FLndp,
+#endif
+        };
 #if TARGET_SEGMENTED
         static char indatafl_s[] = { FLfardata, };
 #endif
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
-        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLndp,FLbprel,FLstack,FLregsave };
+        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+#if TX86
+          FLndp,
+#endif
+        };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
         { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,FLfunc,
@@ -726,7 +751,9 @@ void fltables()
                 case FLblockoff: segfl[i] = CS; break;
                 case FLcs:      segfl[i] = SS;  break;
                 case FLregsave: segfl[i] = SS;  break;
+#if TX86
                 case FLndp:     segfl[i] = SS;  break;
+#endif
                 case FLswitch:  segfl[i] = -1;  break;
                 case FLfltreg:  segfl[i] = SS;  break;
                 case FLoffset:  segfl[i] = -1;  break;
@@ -816,9 +843,7 @@ void dotytab()
 #endif
     static tym_t _nullptr[] = { TYnullptr };
 #if TARGET_SEGMENTED
-#if OMFOBJ
     static tym_t _fv[]      = { TYfptr, TYvptr };
-#endif
 #if TARGET_WINDOS
     static tym_t _farfunc[] = { TYffunc,TYfpfunc,TYfsfunc,TYfsysfunc };
 #endif
@@ -842,6 +867,11 @@ void dotytab()
                                  TYlong4,TYulong4,TYllong2,TYullong2,
                              };
 #endif
+    static tym_t _simd[] = {
+                                 TYfloat4,TYdouble2,
+                                 TYschar16,TYuchar16,TYshort8,TYushort8,
+                                 TYlong4,TYulong4,TYllong2,TYullong2,
+                             };
 
     static struct
     {
@@ -971,7 +1001,7 @@ void dotytab()
     T1(_mptr,     TYFLmptr);
 #endif
 
-#if OMFOBJ && TARGET_SEGMENTED
+#if TARGET_SEGMENTED
     T1(_fv,       TYFLfv);
     T2(_farfunc,  TYFLfarfunc);
 #endif
@@ -991,6 +1021,7 @@ void dotytab()
 #if TX86
     T1(_xmmreg,    TYFLxmmreg);
 #endif
+    T1(_simd,      TYFLsimd);
 #undef T1
 #undef T2
 
@@ -1055,6 +1086,11 @@ void dotytab()
 #else
 #error "fix this"
 #endif
+                break;
+
+            case TYcent:
+            case TYucent:
+                sz = 8;
                 break;
         }
         tysize[typetab[i].ty | 0x00] = sz;

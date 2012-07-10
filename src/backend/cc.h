@@ -144,7 +144,6 @@ enum LANG
 #   define debug_assert(e)
 #endif
 
-
 /***************************
  * Print out debugging information.
  */
@@ -1029,6 +1028,10 @@ typedef struct STRUCT
                                 // of a template class, this is the
                                 // template class Symbol
 
+    // For 64 bit Elf function ABI
+    type *Sarg1type;
+    type *Sarg2type;
+
     /* For:
      *  template<class T> struct A { };
      *  template<class T> struct A<T *> { };
@@ -1081,6 +1084,7 @@ struct Symbol
     Symbol *Sl,*Sr;             // left, right child
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
+    int Salignment;             // variables: alignment, 0 or -1 means default alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 
@@ -1104,7 +1108,7 @@ struct Symbol
         }_SL;
         #define Senumlist Senum->SEenumlist
 
-#if !MARS
+#if SCPP
         struct                  // SClinkage
         {
             long Slinkage_;     // tym linkage bits
@@ -1112,8 +1116,6 @@ struct Symbol
             unsigned Smangle_;
              #define Smangle _SU._SLK.Smangle_
         }_SLK;
-#else
-        long Slinkage;          // SClinkage, tym linkage bits
 #endif
 
         struct
@@ -1154,15 +1156,20 @@ struct Symbol
                                 // class of which Salias is a member
              #define Spath _SU._SA.Spath_
         }_SA;
-#endif
-#if !MARS
         Symbol *Simport_;       // SCextern: if dllimport Symbol, this is the
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
 #endif
-        unsigned char Spreg_;   // SCfastpar: register parameter is passed in
-        #define Spreg _SU.Spreg_
+        struct                  // SCfastpar
+        {
+            reg_t Spreg_;       // register parameter is passed in
+            reg_t Spreg2_;      // if 2 registers, this is the most significant, else NOREG
+        }_SR;
+        #define Spreg _SU._SR.Spreg_
+        #define Spreg2 _SU._SR.Spreg2_
     }_SU;
+
+    regm_t Spregm();            // return mask of Spreg and Spreg2
 
 #if SCPP || MARS
     Symbol *Sscope;             // enclosing scope (could be struct tag,
@@ -1181,9 +1188,6 @@ struct Symbol
                                 // also used as 'parameter number' for SCTtemparg
 #elif MARS
     const char *prettyIdent;    // the symbol identifer as the user sees it
-#elif AUTONEST
-    unsigned char Spush;        // # of pushes followed by # of
-    unsigned char Spop;         // pops of scope level
 #endif
 
 #if ELFOBJ || MACHOBJ
@@ -1330,9 +1334,13 @@ struct Aliassym : Symbol { };
 #endif
 
 /* Format the identifier for presentation to the user   */
-char *cpp_prettyident (Symbol *s);
+#if SCPP
+    char *cpp_prettyident (Symbol *s);
+    inline char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : s->Sident; }
+#else
+    inline char *prettyident(Symbol *s) { return s->Sident; }
+#endif
 
-inline char *prettyident(Symbol *s) { return CPP ? cpp_prettyident(s) : s->Sident; }
 
 /**********************************
  * Function parameters:
