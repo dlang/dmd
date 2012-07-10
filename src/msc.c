@@ -158,11 +158,11 @@ void out_config_init()
 
     if (params->symdebug)
     {
-#if ELFOBJ || MACHOBJ
+#if SYMDEB_DWARF
         configv.addlinenumbers = 1;
         config.fulltypes = (params->symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 #endif
-#if OMFOBJ
+#if SYMDEB_CODEVIEW
         configv.addlinenumbers = 1;
         config.fulltypes = CV4;
 #endif
@@ -337,7 +337,6 @@ symbol *symboldata(targ_size_t offset,tym_t ty)
     symbol *s = symbol_generate(SClocstat, type_fake(ty));
     s->Sfl = FLdata;
     s->Soffset = offset;
-    //s->Sseg = DATA;
     symbol_keep(s);             // keep around
     return s;
 }

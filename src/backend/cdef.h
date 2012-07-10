@@ -527,6 +527,9 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define MACHOBJ         TARGET_OSX
 #endif
 
+#define SYMDEB_CODEVIEW TARGET_WINDOS
+#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+
 #define TOOLKIT_H
 
 /* Masks so we can easily check size */
