@@ -68,7 +68,7 @@ CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
-	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h
+	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h $C/obj.h
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
@@ -131,7 +131,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c \
 	$C/machobj.c \
-	$C/xmm.h \
+	$C/xmm.h $C/obj.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \

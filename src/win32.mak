@@ -147,6 +147,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
+	$C\obj.h \
 	$C\backend.txt
 
 # From TK
@@ -183,7 +184,7 @@ $(TARGET).exe : $(OBJS) win32.mak
 CCH=
 #TOTALH=$(CCH) total.sym
 TOTALH=$(CCH) id.h
-CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h $C\obj.h
 
 ##################### GENERATED SOURCE #####################
 
