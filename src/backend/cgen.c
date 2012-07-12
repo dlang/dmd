@@ -584,7 +584,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));
 #endif
-        obj_bytes(seg,soffset,numbytes,zeros);
+        Obj::bytes(seg,soffset,numbytes,zeros);
 }
 
 /****************************
@@ -632,17 +632,17 @@ void searchfixlist(symbol *s)
 
                     //printf("Soffset = x%lx, Loffset = x%lx, Lval = x%lx\n",s->Soffset,p->Loffset,p->Lval);
                     ad = s->Soffset - p->Loffset - REGSIZE + p->Lval;
-                    obj_bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
+                    Obj::bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
                 }
                 else
                 {
 #if TARGET_OSX
                     symbol *funcsymsave = funcsym_p;
                     funcsym_p = p->Lfuncsym;
-                    reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
+                    Obj::reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
                     funcsym_p = funcsymsave;
 #else
-                    reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
+                    Obj::reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
 #endif
                 }
                 *lp = p->Lnext;
@@ -684,7 +684,7 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
 #if TARGET_SEGMENTED
         if (tybasic(s->ty()) == TYf16func)
         {
-            obj_far16thunk(s);          /* make it into a thunk         */
+            Obj::far16thunk(s);          /* make it into a thunk         */
             searchfixlist(s);
         }
         else
@@ -718,19 +718,19 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
                     continue;
                 }
                 s->Sclass = SCextern;   /* make it external             */
-                objextern(s);
+                Obj::external(s);
                 if (s->Sflags & SFLweak)
                 {
-                    obj_wkext(s, NULL);
+                    Obj::wkext(s, NULL);
                 }
             }
 #if TARGET_OSX
             symbol *funcsymsave = funcsym_p;
             funcsym_p = ln->Lfuncsym;
-            reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
+            Obj::reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
             funcsym_p = funcsymsave;
 #else
-            reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
+            Obj::reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
 #endif
             *plnext = ln->Lnext;
 #if TERMCODE

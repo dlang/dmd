@@ -272,7 +272,7 @@ tryagain:
         cstop--;
 
     if (configv.addlinenumbers)
-        objlinnum(funcsym_p->Sfunc->Fstartline,Coffset);
+        Obj::linnum(funcsym_p->Sfunc->Fstartline,Coffset);
 
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
@@ -444,7 +444,7 @@ tryagain:
 #endif
     {   assert(!(config.flags & CFGromable));
         //printf("framehandleroffset = x%x, coffset = x%x\n",framehandleroffset,coffset);
-        reftocodseg(cseg,framehandleroffset,coffset);
+        Obj::reftocodeseg(cseg,framehandleroffset,coffset);
     }
 #endif
 
@@ -485,7 +485,7 @@ tryagain:
            start of the last instruction
          */
         /* Instead, try offset to cleanup code  */
-        objlinnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
+        Obj::linnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
 
 #if MARS
     if (usednteh & NTEH_try)

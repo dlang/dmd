@@ -381,7 +381,7 @@ void cod3_align_bytes(size_t nbytes)
     }; // XCHG AX,AX
     assert(nbytes < sizeof(nops));
     assert(SegData[cseg]->SDseg == cseg);
-    obj_write_bytes(SegData[cseg],nbytes,nops);
+    Obj::write_bytes(SegData[cseg],nbytes,nops);
 }
 
 void cod3_align()
@@ -1325,7 +1325,7 @@ void outjmptab(block *b)
 
   /* Any alignment bytes necessary */
   alignbytes = align(0,*poffset) - *poffset;
-  obj_lidata(jmpseg,*poffset,alignbytes);
+  Obj::lidata(jmpseg,*poffset,alignbytes);
 
   def = list_block(b->Bsucc)->Boffset;  /* default address              */
   assert(vmin <= vmax);
@@ -1337,7 +1337,7 @@ void outjmptab(block *b)
                         break;
                 }
         }
-        reftocodseg(jmpseg,*poffset,targ);
+        Obj::reftocodeseg(jmpseg,*poffset,targ);
         *poffset += tysize[TYnptr];
         if (u == vmax)                  /* for case that (vmax == ~0)   */
                 break;
@@ -1376,7 +1376,7 @@ void outswitab(block *b)
   }
   offset = *poffset;
   alignbytes = align(0,*poffset) - *poffset;
-  obj_lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
+  Obj::lidata(seg,*poffset,alignbytes);  /* any alignment bytes necessary */
   assert(*poffset == offset + alignbytes);
 
   sz = intsize;
@@ -1384,7 +1384,7 @@ void outswitab(block *b)
   for (n = 0; n < ncases; n++)          /* send out value table         */
   {
         //printf("\tcase %d, offset = x%x\n", n, *poffset);
-        obj_write_bytes(SegData[seg],sz,p);
+        Obj::write_bytes(SegData[seg],sz,p);
         p++;
   }
   offset += alignbytes + sz * ncases;
@@ -1397,7 +1397,7 @@ void outswitab(block *b)
         for (n = 0; n < ncases; n++)
         {   val = MSREG(*p);
             p++;
-            obj_write_bytes(SegData[seg],REGSIZE,&val);
+            Obj::write_bytes(SegData[seg],REGSIZE,&val);
         }
         offset += REGSIZE * ncases;
         assert(*poffset == offset);
@@ -1406,7 +1406,7 @@ void outswitab(block *b)
   bl = b->Bsucc;
   for (n = 0; n < ncases; n++)          /* send out address table       */
   {     bl = list_next(bl);
-        reftocodseg(seg,*poffset,list_block(bl)->Boffset);
+        Obj::reftocodeseg(seg,*poffset,list_block(bl)->Boffset);
         *poffset += tysize[TYnptr];
   }
   assert(*poffset == offset + ncases * tysize[TYnptr]);
@@ -2886,7 +2886,7 @@ Lagain:
         free(buffer);
 #else
         char name[IDMAX+IDOHD+1];
-        size_t len = obj_mangle(funcsym_p,name);
+        size_t len = Obj::mangle(funcsym_p,name);
         assert(len < sizeof(name));
         genasm(c,name,len);                             // append func name
 #endif
@@ -3822,7 +3822,7 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     sthunk->Ssize = Coffset - thunkoffset; /* size of thunk */
     sthunk->Sseg = cseg;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    objpubdef(cseg,sthunk,sthunk->Soffset);
+    Obj::pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
     searchfixlist(sthunk);              /* resolve forward refs */
 }
@@ -3836,7 +3836,7 @@ void makeitextern(symbol *s)
         if (s->Sxtrnnum == 0)
         {       s->Sclass = SCextern;           /* external             */
                 /*printf("makeitextern(x%x)\n",s);*/
-                objextern(s);
+                Obj::external(s);
         }
 }
 
@@ -5463,7 +5463,7 @@ STATIC void cod3_flush()
 #ifdef DEBUG
     assert(pgen - bytes < sizeof(bytes));
 #endif
-    offset += obj_bytes(cseg,offset,pgen - bytes,bytes);
+    offset += Obj::bytes(cseg,offset,pgen - bytes,bytes);
     pgen = bytes;
 }
 
@@ -5497,7 +5497,7 @@ unsigned codout(code *c)
                 switch (op & 0xFFFF00)
                 {   case ESClinnum:
                         /* put out line number stuff    */
-                        objlinnum(c->IEV1.Vsrcpos,OFFSET());
+                        Obj::linnum(c->IEV1.Vsrcpos,OFFSET());
                         break;
 #if SCPP
 #if 1
@@ -5549,7 +5549,7 @@ unsigned codout(code *c)
                 }
                 else
                 {
-                    offset += obj_bytes(cseg,offset,c->IEV1.as.len,c->IEV1.as.bytes);
+                    offset += Obj::bytes(cseg,offset,c->IEV1.as.len,c->IEV1.as.bytes);
                 }
 #ifdef DEBUG
                 assert(calccodsize(c) == c->IEV1.as.len);
@@ -5848,14 +5848,14 @@ unsigned codout(code *c)
                             FLUSH();
                             if (c->IFL2 == FLdatseg)
                             {
-                                reftodatseg(cseg,offset,c->IEVpointer2,
+                                Obj::reftodatseg(cseg,offset,c->IEVpointer2,
                                         c->IEVseg2,flags);
                                 offset += 4;
                             }
                             else
                             {
                                 s = c->IEVsym2;
-                                offset += reftoident(cseg,offset,s,0,flags);
+                                offset += Obj::reftoident(cseg,offset,s,0,flags);
                             }
                             break;
 
@@ -5924,7 +5924,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             return;
         case FLdatseg:
             FLUSH();
-            reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
+            Obj::reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,CFoffset64 | flags);
             break;
         case FLframehandler:
             framehandleroffset = OFFSET();
@@ -5934,9 +5934,9 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             FLUSH();
             ad = uev->Vswitch->Btableoffset;
             if (config.flags & CFGromable)
-                    reftocodseg(cseg,offset,ad);
+                    Obj::reftocodeseg(cseg,offset,ad);
             else
-                    reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                    Obj::reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
             break;
 #if TARGET_SEGMENTED
         case FLcsdata:
@@ -5956,7 +5956,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 #endif
             FLUSH();
             s = uev->sp.Vsym;               /* symbol pointer               */
-            reftoident(cseg,offset,s,uev->sp.Voffset,CFoffset64 | flags);
+            Obj::reftoident(cseg,offset,s,uev->sp.Voffset,CFoffset64 | flags);
             break;
 
 #if TARGET_OSX
@@ -5970,7 +5970,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             s = uev->sp.Vsym;               /* symbol pointer               */
             assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
             FLUSH();
-            reftoident(cseg,offset,s,0,CFoffset64 | flags);
+            Obj::reftoident(cseg,offset,s,0,CFoffset64 | flags);
             break;
 
         case FLblock:                       /* displacement to another block */
@@ -5982,7 +5982,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
             FLUSH();
             assert(uev->Vblock);
             //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", offset, uev->Vblock->Boffset, funcoffset);
-            reftocodseg(cseg,offset,uev->Vblock->Boffset);
+            Obj::reftocodeseg(cseg,offset,uev->Vblock->Boffset);
             break;
 
         default:
@@ -6011,7 +6011,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         return;
     case FLdatseg:
         FLUSH();
-        reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        Obj::reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLframehandler:
         framehandleroffset = OFFSET();
@@ -6021,9 +6021,9 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         FLUSH();
         ad = uev->Vswitch->Btableoffset;
         if (config.flags & CFGromable)
-                reftocodseg(cseg,offset,ad);
+                Obj::reftocodeseg(cseg,offset,ad);
         else
-                reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                Obj::reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
@@ -6043,7 +6043,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 #endif
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
+        Obj::reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
         break;
 
 #if TARGET_OSX
@@ -6059,7 +6059,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 FLUSH();
-                offset += reftoident(cseg,offset,s,0,flags) - 4;
+                offset += Obj::reftoident(cseg,offset,s,0,flags) - 4;
         }
         else if (s->Sseg == cseg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
@@ -6073,7 +6073,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         {
                 assert(TARGET_SEGMENTED || !tyfarfunc(s->ty()));
                 FLUSH();
-                reftoident(cseg,offset,s,val,flags);
+                Obj::reftoident(cseg,offset,s,val,flags);
         }
         break;
 
@@ -6086,7 +6086,7 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
         FLUSH();
         assert(uev->Vblock);
         //printf("FLblockoff: offset = %x, Boffset = %x, funcoffset = %x\n", offset, uev->Vblock->Boffset, funcoffset);
-        reftocodseg(cseg,offset,uev->Vblock->Boffset);
+        Obj::reftocodeseg(cseg,offset,uev->Vblock->Boffset);
         break;
 
     default:
@@ -6111,15 +6111,15 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         return;
     case FLdatseg:
         FLUSH();
-        reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
+        Obj::reftodatseg(cseg,offset,uev->_EP.Vpointer,uev->_EP.Vseg,flags);
         break;
     case FLswitch:
         FLUSH();
         ad = uev->Vswitch->Btableoffset;
         if (config.flags & CFGromable)
-                reftocodseg(cseg,offset,ad);
+                Obj::reftocodeseg(cseg,offset,ad);
         else
-                reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+                Obj::reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
@@ -6130,7 +6130,7 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         assert(SIXTEENBIT || TARGET_SEGMENTED);
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+        Obj::reftoident(cseg,offset,s,uev->sp.Voffset,flags);
         break;
     case FLfunc:                        /* function call                */
         assert(SIXTEENBIT || TARGET_SEGMENTED);
@@ -6138,7 +6138,7 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         if (tyfarfunc(s->ty()))
         {       /* Large code references are always absolute    */
                 FLUSH();
-                offset += reftoident(cseg,offset,s,0,flags) - 2;
+                offset += Obj::reftoident(cseg,offset,s,0,flags) - 2;
         }
         else if (s->Sseg == cseg &&
                  (s->Sclass == SCstatic || s->Sclass == SCglobal) &&
@@ -6149,7 +6149,7 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
         }
         else
         {       FLUSH();
-                reftoident(cseg,offset,s,0,flags);
+                Obj::reftoident(cseg,offset,s,0,flags);
         }
         break;
     case FLblock:                       /* displacement to another block */
@@ -6166,7 +6166,7 @@ STATIC void do16bit(enum FL fl,union evc *uev,int flags)
 
     case FLblockoff:
         FLUSH();
-        reftocodseg(cseg,offset,uev->Vblock->Boffset);
+        Obj::reftocodeseg(cseg,offset,uev->Vblock->Boffset);
         break;
 
     default:
