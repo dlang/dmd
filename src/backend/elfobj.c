@@ -10,7 +10,6 @@
 
 
 // Output to ELF object files
-
 #if SCPP || MARS
 #include        <stdio.h>
 #include        <string.h>
@@ -94,7 +93,7 @@ void elfobj_refGOTsym()
     if (!GOTsym)
     {
         symbol *s = elfobj_getGOTsym();
-        objextern(s);
+        Obj::external(s);
     }
 }
 
@@ -582,7 +581,7 @@ symbol *elf_sym_cdata(tym_t ty,char *p,int len)
         //printf("elf_sym_cdata(ty = %x, p = %x, len = %d, CDoffset = %x)\n", ty, p, len, CDoffset);
         alignOffset(CDATA, tysize(ty));
         s = symboldata(CDoffset, ty);
-        obj_bytes(CDATA, CDoffset, len, p);
+        Obj::bytes(CDATA, CDoffset, len, p);
         s->Sseg = CDATA;
     }
 
@@ -598,7 +597,7 @@ symbol *elf_sym_cdata(tym_t ty,char *p,int len)
  *      offset of that data
  */
 
-int elf_data_cdata(char *p, int len, int *pseg)
+int Obj::data_readonly(char *p, int len, int *pseg)
 {
     int oldoff;
     /*if (OPT_IS_SET(OPTfwritable_strings))
@@ -620,11 +619,11 @@ int elf_data_cdata(char *p, int len, int *pseg)
     return oldoff;
 }
 
-int elf_data_cdata(char *p, int len)
+int Obj::data_readonly(char *p, int len)
 {
     int pseg;
 
-    return elf_data_cdata(p, len, &pseg);
+    return Obj::data_readonly(p, len, &pseg);
 }
 
 /******************************
@@ -632,7 +631,7 @@ int elf_data_cdata(char *p, int len)
  *      Called before any other obj_xxx routines
  */
 
-void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
+void Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
     //printf("obj_init()\n");
 
@@ -815,7 +814,7 @@ void obj_init(Outbuffer *objbuf, const char *filename, const char *csegname)
  *      csegname:       User specified default code segment name
  */
 
-void obj_initfile(const char *filename, const char *csegname, const char *modname)
+void Obj::initfile(const char *filename, const char *csegname, const char *modname)
 {
     //dbg_printf("obj_initfile(filename = %s, modname = %s)\n",filename,modname);
 
@@ -962,7 +961,7 @@ void *elf_renumbersyms()
  * Fixup and terminate object file.
  */
 
-void obj_termfile()
+void Obj::termfile()
 {
     //dbg_printf("obj_termfile\n");
     if (configv.addlinenumbers)
@@ -975,7 +974,7 @@ void obj_termfile()
  * Terminate package.
  */
 
-void obj_term()
+void Obj::term()
 {
     //printf("obj_term()\n");
 #if SCPP
@@ -1272,7 +1271,7 @@ void obj_term()
  *      cseg    current code segment
  */
 
-void objlinnum(Srcpos srcpos, targ_size_t offset)
+void Obj::linnum(Srcpos srcpos, targ_size_t offset)
 {
     if (srcpos.Slinnum == 0)
         return;
@@ -1350,7 +1349,7 @@ void objlinnum(Srcpos srcpos, targ_size_t offset)
  * Set start address
  */
 
-void obj_startaddress(Symbol *s)
+void Obj::startaddress(Symbol *s)
 {
     //dbg_printf("obj_startaddress(Symbol *%s)\n",s->Sident);
     //obj.startaddress = s;
@@ -1360,7 +1359,7 @@ void obj_startaddress(Symbol *s)
  * Output library name.
  */
 
-bool obj_includelib(const char *name)
+bool Obj::includelib(const char *name)
 {
     //dbg_printf("obj_includelib(name *%s)\n",name);
     return false;
@@ -1370,7 +1369,7 @@ bool obj_includelib(const char *name)
  * Do we allow zero sized objects?
  */
 
-bool obj_allowZeroSize()
+bool Obj::allowZeroSize()
 {
     return true;
 }
@@ -1379,7 +1378,7 @@ bool obj_allowZeroSize()
  * Embed string in executable.
  */
 
-void obj_exestr(const char *p)
+void Obj::exestr(const char *p)
 {
     //dbg_printf("obj_exestr(char *%s)\n",p);
 }
@@ -1388,7 +1387,7 @@ void obj_exestr(const char *p)
  * Embed string in obj.
  */
 
-void obj_user(const char *p)
+void Obj::user(const char *p)
 {
     //dbg_printf("obj_user(char *%s)\n",p);
 }
@@ -1397,7 +1396,7 @@ void obj_user(const char *p)
  * Output a weak extern record.
  */
 
-void obj_wkext(Symbol *s1,Symbol *s2)
+void Obj::wkext(Symbol *s1,Symbol *s2)
 {
     //dbg_printf("obj_wkext(Symbol *%s,Symbol *s2)\n",s1->Sident,s2->Sident);
 }
@@ -1443,7 +1442,7 @@ void obj_compiler()
  *              3:      compiler
  */
 
-void obj_staticctor(Symbol *s,int dtor,int none)
+void Obj::staticctor(Symbol *s,int dtor,int none)
 {
 // Static constructors and destructors
     IDXSEC seg;
@@ -1470,7 +1469,7 @@ void obj_staticctor(Symbol *s,int dtor,int none)
  *      s       static destructor function
  */
 
-void obj_staticdtor(Symbol *s)
+void Obj::staticdtor(Symbol *s)
 {
     IDXSEC seg;
     Outbuffer *buf;
@@ -1494,7 +1493,7 @@ void obj_staticdtor(Symbol *s)
  * Used for static ctor and dtor lists.
  */
 
-void obj_funcptr(Symbol *s)
+void Obj::funcptr(Symbol *s)
 {
     //dbg_printf("obj_funcptr(%s) \n",s->Sident);
 }
@@ -1508,7 +1507,7 @@ void obj_funcptr(Symbol *s)
  *      length of function
  */
 
-void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
+void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 {
     //dbg_printf("obj_ehtables(%s) \n",sfunc->Sident);
 
@@ -1550,7 +1549,7 @@ void obj_ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
  * Put out symbols that define the beginning/end of the .deh_eh section.
  */
 
-void obj_ehsections()
+void Obj::ehsections()
 {
     int sec = elf_getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
     //obj_bytes(sec, 0, 4, NULL);
@@ -1578,7 +1577,7 @@ void obj_tlssections()
     int align = I64 ? 16 : 4;
 
     int sec = elf_getsegment(".tdata", NULL, SHT_PROGDEF, SHF_ALLOC|SHF_WRITE|SHF_TLS, align);
-    obj_bytes(sec, 0, align, NULL);
+    Obj::bytes(sec, 0, align, NULL);
 
     namidx = elf_addstr(symtab_strings,"_tlsstart");
     elf_addsym(namidx, 0, align, STT_TLS, STB_GLOBAL, MAP_SEG2SECIDX(sec));
@@ -1649,23 +1648,23 @@ STATIC void setup_comdat(Symbol *s)
     SegData[s->Sseg]->SDsym = s;
 }
 
-int obj_comdat(Symbol *s)
+int Obj::comdat(Symbol *s)
 {
     setup_comdat(s);
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {
-        objpubdef(s->Sseg,s,0);
+        Obj::pubdef(s->Sseg,s,0);
         searchfixlist(s);               // backpatch any refs to this symbol
     }
     return s->Sseg;
 }
 
-int obj_comdatsize(Symbol *s, targ_size_t symsize)
+int Obj::comdatsize(Symbol *s, targ_size_t symsize)
 {
     setup_comdat(s);
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {
-        objpubdefsize(s->Sseg,s,0,symsize);
+        Obj::pubdefsize(s->Sseg,s,0,symsize);
         searchfixlist(s);               // backpatch any refs to this symbol
     }
     s->Soffset = 0;
@@ -1776,7 +1775,7 @@ int elf_getsegment(const char *name, const char *suffix, int type, int flags,
  *      segment index of newly created code segment
  */
 
-int obj_codeseg(char *name,int suffix)
+int Obj::codeseg(char *name,int suffix)
 {
     int seg;
     const char *sfx;
@@ -1838,7 +1837,7 @@ int obj_codeseg(char *name,int suffix)
  *      segment for TLS segment
  */
 
-seg_data *obj_tlsseg()
+seg_data *Obj::tlsseg()
 {
     /* Ensure that ".tdata" precedes any other .tdata. section, as the ld
      * linker script fails to work right.
@@ -1865,7 +1864,7 @@ seg_data *obj_tlsseg()
  *      segment for TLS segment
  */
 
-seg_data *obj_tlsseg_bss()
+seg_data *Obj::tlsseg_bss()
 {
     static const char tlssegname[] = ".tbss";
     //dbg_printf("obj_tlsseg_bss(\n");
@@ -1986,7 +1985,7 @@ char *obj_mangle2(Symbol *s,char *dest)
  * Export a function name.
  */
 
-void obj_export(Symbol *s,unsigned argsize)
+void Obj::export_symbol(Symbol *s,unsigned argsize)
 {
     //dbg_printf("obj_export(%s,%d)\n",s->Sident,argsize);
 }
@@ -2004,7 +2003,7 @@ void obj_export(Symbol *s,unsigned argsize)
  *      actual seg
  */
 
-int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
+int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
 {
     targ_size_t alignbytes;
     //printf("elf_data_start(%s,size %llx,seg %d)\n",sdata->Sident,datasize,seg);
@@ -2023,7 +2022,7 @@ int elf_data_start(Symbol *sdata, targ_size_t datasize, int seg)
     else
         alignbytes = align(datasize, offset) - offset;
     if (alignbytes)
-        obj_lidata(seg, offset, alignbytes);
+        Obj::lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;
     return seg;
 }
@@ -2051,7 +2050,7 @@ void elf_func_start(Symbol *sfunc)
     //dbg_printf("sfunc->Sseg %d CODE %d cseg %d Coffset %d\n",sfunc->Sseg,CODE,cseg,Coffset);
     cseg = sfunc->Sseg;
     assert(cseg == CODE || cseg > COMD);
-    objpubdef(cseg, sfunc, Coffset);
+    Obj::pubdef(cseg, sfunc, Coffset);
     sfunc->Soffset = Coffset;
 
     if (config.fulltypes)
@@ -2084,11 +2083,11 @@ void elf_func_term(Symbol *sfunc)
  *      offset =        offset of name within segment
  */
 
-void objpubdef(int seg, Symbol *s, targ_size_t offset)
+void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
 {
     const targ_size_t symsize=
         tyfunc(s->ty()) ? Offset(s->Sseg) - offset : type_size(s->Stype);
-    objpubdefsize(seg, s, offset, symsize);
+    Obj::pubdefsize(seg, s, offset, symsize);
 }
 
 /********************************
@@ -2100,7 +2099,7 @@ void objpubdef(int seg, Symbol *s, targ_size_t offset)
  *      symsize         size of symbol
  */
 
-void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
 {
     int bind;
     switch (s->Sclass)
@@ -2150,7 +2149,7 @@ void objpubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
  *      NOTE: Numbers will not be linear.
  */
 
-int objextern(const char *name)
+int Obj::external(const char *name)
 {
     //dbg_printf("objextdef('%s')\n",name);
     assert(name);
@@ -2159,9 +2158,9 @@ int objextern(const char *name)
     return symidx;
 }
 
-int objextdef(const char *name)
+int Obj::external_def(const char *name)
 {
-    return objextern(name);
+    return Obj::external(name);
 }
 
 /*******************************
@@ -2174,7 +2173,7 @@ int objextdef(const char *name)
  *      NOTE: Numbers will not be linear.
  */
 
-int objextern(Symbol *s)
+int Obj::external(Symbol *s)
 {
     int symtype,sectype;
     unsigned size;
@@ -2219,7 +2218,7 @@ int objextern(Symbol *s)
  *      Symbol table index for symbol
  */
 
-int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
+int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
 {
     //printf("obj_comdef('%s',%d,%d)\n",s->Sident,size,count);
     symbol_debug(s);
@@ -2232,7 +2231,7 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
         s->Sfl = FLtlsdata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
-        objpubdef(s->Sseg, s, 0);
+        Obj::pubdef(s->Sseg, s, 0);
         searchfixlist(s);
         return s->Sseg;
     }
@@ -2243,7 +2242,7 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
         s->Sfl = FLudata;
         SegData[s->Sseg]->SDsym = s;
         SegData[s->Sseg]->SDoffset += size * count;
-        objpubdef(s->Sseg, s, 0);
+        Obj::pubdef(s->Sseg, s, 0);
         searchfixlist(s);
         return s->Sseg;
     }
@@ -2261,9 +2260,9 @@ int obj_comdef(Symbol *s,targ_size_t size,targ_size_t count)
 #endif
 }
 
-int obj_comdef(Symbol *s, int flag, targ_size_t size, targ_size_t count)
+int Obj::common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)
 {
-    return obj_comdef(s, size, count);
+    return Obj::common_block(s, size, count);
 }
 
 /***************************************
@@ -2271,9 +2270,9 @@ int obj_comdef(Symbol *s, int flag, targ_size_t size, targ_size_t count)
  * (uninitialized data only)
  */
 
-void obj_write_zeros(seg_data *pseg, targ_size_t count)
+void Obj::write_zeros(seg_data *pseg, targ_size_t count)
 {
-    obj_lidata(pseg->SDseg, pseg->SDoffset, count);
+    Obj::lidata(pseg->SDseg, pseg->SDoffset, count);
 }
 
 /***************************************
@@ -2282,7 +2281,7 @@ void obj_write_zeros(seg_data *pseg, targ_size_t count)
  *      For boundary alignment and initialization
  */
 
-void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
+void Obj::lidata(int seg,targ_size_t offset,targ_size_t count)
 {
     //printf("obj_lidata(%d,%x,%d)\n",seg,offset,count);
     if (seg == UDATA || seg == UNKNOWN)
@@ -2295,7 +2294,7 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
     }
     else
     {
-        obj_bytes(seg, offset, count, NULL);
+        Obj::bytes(seg, offset, count, NULL);
     }
 }
 
@@ -2303,16 +2302,16 @@ void obj_lidata(int seg,targ_size_t offset,targ_size_t count)
  * Append byte to segment.
  */
 
-void obj_write_byte(seg_data *pseg, unsigned byte)
+void Obj::write_byte(seg_data *pseg, unsigned byte)
 {
-    obj_byte(pseg->SDseg, pseg->SDoffset, byte);
+    Obj::byte(pseg->SDseg, pseg->SDoffset, byte);
 }
 
 /************************************
  * Output byte to object file.
  */
 
-void obj_byte(int seg,targ_size_t offset,unsigned byte)
+void Obj::byte(int seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2330,9 +2329,9 @@ void obj_byte(int seg,targ_size_t offset,unsigned byte)
  * Append bytes to segment.
  */
 
-void obj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
+void Obj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
 {
-    obj_bytes(pseg->SDseg, pseg->SDoffset, nbytes, p);
+    Obj::bytes(pseg->SDseg, pseg->SDoffset, nbytes, p);
 }
 
 /************************************
@@ -2341,7 +2340,7 @@ void obj_write_bytes(seg_data *pseg, unsigned nbytes, void *p)
  *      nbytes
  */
 
-unsigned obj_bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
+unsigned Obj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
 {
 #if 0
     if (!(seg >= 0 && seg <= seg_count))
@@ -2521,7 +2520,7 @@ void elf_addrel(int seg, targ_size_t offset, unsigned type,
  *              reftodatseg(DATA,offset,3 * sizeof(int *),UDATA);
  */
 
-void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
+void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
         unsigned targetdatum,int flags)
 {
     Outbuffer *buf;
@@ -2590,7 +2589,7 @@ void reftodatseg(int seg,targ_size_t offset,targ_size_t val,
  *      val =           displacement from start of this module
  */
 
-void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
+void Obj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
 {
     Outbuffer *buf;
     int save;
@@ -2640,7 +2639,7 @@ void reftocodseg(int seg,targ_size_t offset,targ_size_t val)
  *      number of bytes in reference (4 or 8)
  */
 
-int reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
+int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
     bool external = TRUE;
@@ -2928,7 +2927,7 @@ void obj_far16thunk(Symbol *s)
  * Mark object file as using floating point.
  */
 
-void obj_fltused()
+void Obj::fltused()
 {
     //dbg_printf("obj_fltused()\n");
 }
@@ -2978,7 +2977,7 @@ long elf_align(targ_size_t size,long foffset)
 
 #if MARS
 
-void obj_moduleinfo(Symbol *scc)
+void Obj::moduleinfo(Symbol *scc)
 {
 //    if (I64) return;          // for now, until Phobos64 works
 
@@ -2998,7 +2997,7 @@ void obj_moduleinfo(Symbol *scc)
         refOffset = SegData[seg]->SDoffset;
         SegData[seg]->SDbuf->writezeros(NPTRSIZE);
         SegData[seg]->SDoffset += NPTRSIZE;
-        SegData[seg]->SDoffset += reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
+        SegData[seg]->SDoffset += Obj::reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
     }
 
     /* Constructor that links the ModuleReference to the head of
@@ -3035,7 +3034,7 @@ void obj_moduleinfo(Symbol *scc)
             buf->writeByte(0x8B);
             buf->writeByte(modregrm(0,CX,5));
             buf->write32(0);
-            elf_addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, objextern("_Dmodule_ref"), -4);
+            elf_addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, Obj::external("_Dmodule_ref"), -4);
         }
         else
         {
@@ -3049,7 +3048,7 @@ void obj_moduleinfo(Symbol *scc)
             /* movl _Dmodule_ref, %ecx */
             buf->writeByte(0xB9);
             buf->write32(0);
-            elf_addrel(seg, codeOffset + 6, reltype, objextern("_Dmodule_ref"), 0);
+            elf_addrel(seg, codeOffset + 6, reltype, Obj::external("_Dmodule_ref"), 0);
         }
 
         if (I64)
