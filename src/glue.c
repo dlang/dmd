@@ -222,7 +222,7 @@ void obj_start(char *srcfile)
     slist_reset();
     clearStringTab();
 
-    obj_init(&objbuf, srcfile, NULL);
+    Obj::init(&objbuf, srcfile, NULL);
 
     el_reset();
 #if TX86
@@ -233,7 +233,7 @@ void obj_start(char *srcfile)
 
 void obj_end(Library *library, File *objfile)
 {
-    obj_term();
+    Obj::term();
 
     if (library)
     {
@@ -260,6 +260,17 @@ void obj_end(Library *library, File *objfile)
     objbuf.inc = 0;
 }
 
+bool obj_includelib(const char *name)
+{
+    return Obj::includelib(name);
+}
+
+void obj_startaddress(Symbol *s)
+{
+    return Obj::startaddress(s);
+}
+
+
 /**************************************
  * Generate .obj file for Module.
  */
@@ -272,7 +283,7 @@ void Module::genobjfile(int multiobj)
 
     lastmname = srcfile->toChars();
 
-    obj_initfile(lastmname, NULL, toPrettyChars());
+    Obj::initfile(lastmname, NULL, toPrettyChars());
 
     eictor = NULL;
     ictorlocalgot = NULL;
@@ -412,7 +423,7 @@ void Module::genobjfile(int multiobj)
 
     if (doppelganger)
     {
-        obj_termfile();
+        Obj::termfile();
         return;
     }
 
@@ -489,7 +500,7 @@ void Module::genobjfile(int multiobj)
         }
     }
 
-    obj_termfile();
+    Obj::termfile();
 }
 
 
@@ -611,37 +622,37 @@ void FuncDeclaration::toObjFile(int multiobj)
         // Pull in RTL startup code (but only once)
         if (func->isMain() && onlyOneMain(loc))
         {
-            objextdef("_main");
+            Obj::external_def("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            obj_ehsections();   // initialize exception handling sections
+            Obj::ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
-            objextdef("__acrtused_con");
+            Obj::external_def("__acrtused_con");
 #endif
-            obj_includelib(libname);
+            Obj::includelib(libname);
             s->Sclass = SCglobal;
         }
         else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
         {
 #if TARGET_WINDOS
-            objextdef("__acrtused_con");        // bring in C startup code
-            obj_includelib("snn.lib");          // bring in C runtime library
+            Obj::external_def("__acrtused_con");        // bring in C startup code
+            Obj::includelib("snn.lib");          // bring in C runtime library
 #endif
             s->Sclass = SCglobal;
         }
 #if TARGET_WINDOS
         else if (func->isWinMain() && onlyOneMain(loc))
         {
-            objextdef("__acrtused");
-            obj_includelib(libname);
+            Obj::external_def("__acrtused");
+            Obj::includelib(libname);
             s->Sclass = SCglobal;
         }
 
         // Pull in RTL startup code
         else if (func->isDllMain() && onlyOneMain(loc))
         {
-            objextdef("__acrtused_dll");
-            obj_includelib(libname);
+            Obj::external_def("__acrtused_dll");
+            Obj::includelib(libname);
             s->Sclass = SCglobal;
         }
 #endif
@@ -958,7 +969,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     writefunc(s);
     if (isExport())
-        obj_export(s, Poffset);
+        Obj::export_symbol(s, Poffset);
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
@@ -991,13 +1002,13 @@ void FuncDeclaration::toObjFile(int multiobj)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // A hack to get a pointer to this function put in the .dtors segment
     if (ident && memcmp(ident->toChars(), "_STD", 4) == 0)
-        obj_staticdtor(s);
+        Obj::staticdtor(s);
 #endif
 #if DMDV2
     if (irs.startaddress)
     {
-        printf("Setting start address\n");
-        obj_startaddress(irs.startaddress);
+        //printf("Setting start address\n");
+        Obj::startaddress(irs.startaddress);
     }
 #endif
 }
