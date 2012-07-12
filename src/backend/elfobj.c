@@ -10,7 +10,6 @@
 
 
 // Output to ELF object files
-
 #if SCPP || MARS
 #include        <stdio.h>
 #include        <string.h>
