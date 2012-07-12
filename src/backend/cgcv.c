@@ -442,7 +442,7 @@ void cv_init()
                 cgcv.deb_offset = 0x80000000;
         }
 
-        obj_write_bytes(SegData[DEBSYM],4,&cgcv.signature);
+        Obj::write_bytes(SegData[DEBSYM],4,&cgcv.signature);
 
         // Allocate an LF_ARGLIST with no arguments
         if (config.fulltypes == CV4)
@@ -481,7 +481,7 @@ void cv_init()
         strcpy(version + 1,VERSION);
         cv_namestring(debsym + 8,version);
         TOWORD(debsym,6 + sizeof(version));
-        obj_write_bytes(SegData[DEBSYM],8 + sizeof(version),debsym);
+        Obj::write_bytes(SegData[DEBSYM],8 + sizeof(version),debsym);
 
 #if OMFOBJ && TDB
         // Put out S_TDBNAME record
@@ -497,7 +497,7 @@ void cv_init()
             TOWORD(ds + 2,S_TDBNAME);
             TOLONG(ds + 4,pstate.STtdbtimestamp);
             cv_namestring(ds + 8,ftdbname);
-            obj_write_bytes(SegData[DEBSYM],8 + len,ds);
+            Obj::write_bytes(SegData[DEBSYM],8 + len,ds);
         }
 #endif
     }
@@ -2122,10 +2122,10 @@ STATIC void cv4_outsym(symbol *s)
         }
 
         unsigned soffset = Offset(DEBSYM);
-        obj_write_bytes(SegData[DEBSYM],length,debsym);
+        Obj::write_bytes(SegData[DEBSYM],length,debsym);
 
         // Put out fixup for function start offset
-        reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
+        Obj::reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
     }
     else
     {   targ_size_t base;
@@ -2266,8 +2266,8 @@ STATIC void cv4_outsym(symbol *s)
                 assert(length <= 0x1000);
                 if (idx2 != 0)
                 {   unsigned offset = Offset(DEBSYM);
-                    obj_write_bytes(SegData[DEBSYM],length,debsym);
-                    obj_long(DEBSYM,offset + fixoff,s->Soffset,
+                    Obj::write_bytes(SegData[DEBSYM],length,debsym);
+                    Obj::write_long(DEBSYM,offset + fixoff,s->Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
                 return;
@@ -2313,7 +2313,7 @@ STATIC void cv4_outsym(symbol *s)
                 return;
         }
         assert(length <= 40 + len);
-        obj_write_bytes(SegData[DEBSYM],length,debsym);
+        Obj::write_bytes(SegData[DEBSYM],length,debsym);
     }
 }
 
@@ -2347,7 +2347,7 @@ STATIC void cv4_func(Funcsym *s)
         if (endarg == 0 && sa->Sclass != SCparameter && sa->Sclass != SCfastpar)
         {   static unsigned short endargs[] = { 2,S_ENDARG };
 
-            obj_write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
+            Obj::write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
             endarg = 1;
         }
 #endif
@@ -2521,13 +2521,13 @@ STATIC void cv4_func(Funcsym *s)
 
         TOWORD(sreturn,u);
         TOWORD(sreturn + 2,S_RETURN);
-        obj_write_bytes(SegData[DEBSYM],u + 2,sreturn);
+        Obj::write_bytes(SegData[DEBSYM],u + 2,sreturn);
     }
 
     // Put out end scope
     {   static unsigned short endproc[] = { 2,S_END };
 
-        obj_write_bytes(SegData[DEBSYM],sizeof(endproc),endproc);
+        Obj::write_bytes(SegData[DEBSYM],sizeof(endproc),endproc);
     }
 
     cv_outlist();
@@ -2548,13 +2548,13 @@ void cv_term()
     {
         case CV4:
         case CVSYM:
-            obj_write_bytes(SegData[DEBTYP],4,&cgcv.signature);
+            Obj::write_bytes(SegData[DEBTYP],4,&cgcv.signature);
             if (debtyptop != 1)
             {
                 for (u = 0; u < debtyptop; u++)
                 {   debtyp_t *d = debtyp[u];
 
-                    obj_write_bytes(SegData[DEBTYP],2 + d->length,(char *)d + sizeof(unsigned));
+                    Obj::write_bytes(SegData[DEBTYP],2 + d->length,(char *)d + sizeof(unsigned));
 #if TERMCODE || _WIN32 || MARS
                     debtyp_free(d);
 #endif

@@ -776,7 +776,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   {     s = e->EV.sp.Vsym;
         fl = s->Sfl;
         if (tyfloating(s->ty()))
-            obj_fltused();
+            Obj::fltused();
   }
   else
         fl = FLoper;
@@ -788,7 +788,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   tym_t ty = e->Ety;
   unsigned sz = tysize(ty);
   if (tyfloating(ty))
-        obj_fltused();
+        Obj::fltused();
   if (I64 && (sz == 8 || sz == 16))
         pcs->Irex |= REX_W;
   if (!I16 && sz == SHORTSIZE)
@@ -2253,7 +2253,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             (info[clib].flags & (INFfloat | INFwkdone)) == INFfloat)
         {   info[clib].flags |= INFwkdone;
             makeitextern(rtlsym[RTLSYM_INTONLY]);
-            obj_wkext(s,rtlsym[RTLSYM_INTONLY]);
+            Obj::wkext(s,rtlsym[RTLSYM_INTONLY]);
         }
     }
     if (I16)
@@ -3088,7 +3088,7 @@ code *params(elem *e,unsigned stackalign)
 
   tym = tybasic(e->Ety);
   if (tyfloating(tym))
-        obj_fltused();
+        Obj::fltused();
 
   int grex = I64 ? REX_W << 16 : 0;
 
@@ -3731,7 +3731,7 @@ code *loaddata(elem *e,regm_t *pretregs)
   if (tym == TYstruct)
         return cdrelconst(e,pretregs);
   if (tyfloating(tym))
-  {     obj_fltused();
+  {     Obj::fltused();
         if (config.inline8087)
         {   if (*pretregs & mST0)
                 return load87(e,0,pretregs,NULL,-1);

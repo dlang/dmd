@@ -59,7 +59,7 @@ void out_extdef(symbol *s)
  */
 void outcsegname(char *csegname)
 {
-    obj_codeseg(csegname,0);
+    Obj::codeseg(csegname,0);
 }
 
 /***********************************
@@ -117,7 +117,7 @@ void outdata(symbol *s)
     datasize = 0;
     ty = s->ty();
     if (ty & mTYexport && config.wflags & WFexpdef && s->Sclass != SCstatic)
-        obj_export(s,0);        // export data definition
+        Obj::export_symbol(s,0);        // export data definition
     for (dt_t *dt = dtstart; dt; dt = dt->DTnext)
     {
         //printf("dt = %p, dt = %d\n",dt,dt->dt);
@@ -136,16 +136,16 @@ void outdata(symbol *s)
                          dt->DTnbytes > config.threshold)
                 {
                     targ_size_t foffset;
-                    dt->DTseg = obj_fardata(s->Sident,dt->DTnbytes,&foffset);
+                    dt->DTseg = Obj::fardata(s->Sident,dt->DTnbytes,&foffset);
                     dt->DTabytes += foffset;
                 L1:
-                    obj_write_bytes(SegData[dt->DTseg],dt->DTnbytes,dt->DTpbytes);
+                    Obj::write_bytes(SegData[dt->DTseg],dt->DTnbytes,dt->DTpbytes);
                     break;
                 }
                 else
 #endif
                 {
-                    dt->DTabytes += elf_data_cdata(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
+                    dt->DTabytes += Obj::data_readonly(dt->DTpbytes,dt->DTnbytes,&dt->DTseg);
                 }
                 break;
             }
@@ -176,7 +176,7 @@ void outdata(symbol *s)
                     {
 #if TARGET_SEGMENTED
                         case mTYfar:                    // if far data
-                            s->Sseg = obj_fardata(s->Sident,datasize,&s->Soffset);
+                            s->Sseg = Obj::fardata(s->Sident,datasize,&s->Soffset);
                             s->Sfl = FLfardata;
                             break;
 
@@ -189,11 +189,11 @@ void outdata(symbol *s)
                             break;
 #endif
                         case mTYthread:
-                        {   seg_data *pseg = obj_tlsseg_bss();
+                        {   seg_data *pseg = Obj::tlsseg_bss();
                             s->Sseg = pseg->SDseg;
-                            elf_data_start(s, datasize, pseg->SDseg);
+                            Obj::data_start(s, datasize, pseg->SDseg);
 #if ELFOBJ || MACHOBJ
-                            obj_lidata(pseg->SDseg, pseg->SDoffset, datasize);
+                            Obj::lidata(pseg->SDseg, pseg->SDoffset, datasize);
 #endif
 #if OMFOBJ
                             pseg->SDoffset += datasize;
@@ -204,8 +204,8 @@ void outdata(symbol *s)
                         }
                         default:
                             s->Sseg = UDATA;
-                            elf_data_start(s,datasize,UDATA);
-                            obj_lidata(s->Sseg,s->Soffset,datasize);
+                            Obj::data_start(s,datasize,UDATA);
+                            Obj::lidata(s->Sseg,s->Soffset,datasize);
                             s->Sfl = FLudata;           // uninitialized data
                             break;
                     }
@@ -216,7 +216,7 @@ void outdata(symbol *s)
 #if OMFOBJ
                     if (s->Sclass == SCglobal)          // if a pubdef to be done
 #endif
-                        objpubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
+                        Obj::pubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
                     searchfixlist(s);
                     if (config.fulltypes &&
                         !(s->Sclass == SCstatic && funcsym_p)) // not local static
@@ -262,7 +262,7 @@ void outdata(symbol *s)
 
     if (s->Sclass == SCcomdat)          // if initialized common block
     {
-        seg = obj_comdatsize(s, datasize);
+        seg = Obj::comdatsize(s, datasize);
         switch (ty & mTYLINK)
         {
 #if TARGET_SEGMENTED
@@ -295,7 +295,7 @@ void outdata(symbol *s)
       {
 #if TARGET_SEGMENTED
         case mTYfar:                    // if far data
-            seg = obj_fardata(s->Sident,datasize,&s->Soffset);
+            seg = Obj::fardata(s->Sident,datasize,&s->Soffset);
             s->Sfl = FLfardata;
             break;
 
@@ -308,9 +308,9 @@ void outdata(symbol *s)
             break;
 #endif
         case mTYthread:
-        {   seg_data *pseg = obj_tlsseg();
+        {   seg_data *pseg = Obj::tlsseg();
             s->Sseg = pseg->SDseg;
-            elf_data_start(s, datasize, s->Sseg);
+            Obj::data_start(s, datasize, s->Sseg);
 #if OMFOBJ
             tls = 1;
 #endif
@@ -324,7 +324,7 @@ void outdata(symbol *s)
                 s->Sseg == 0 ||
                 s->Sseg == UNKNOWN)
                 s->Sseg = DATA;
-            seg = elf_data_start(s,datasize,DATA);
+            seg = Obj::data_start(s,datasize,DATA);
             s->Sfl = FLdata;            // initialized data
             break;
         default:
@@ -345,7 +345,7 @@ void outdata(symbol *s)
         || s->Sclass == SCstatic
 #endif
         )
-        objpubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
+        Obj::pubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
     assert(s->Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s->Sclass == SCstatic && funcsym_p)) // not local static
@@ -369,38 +369,38 @@ void outdata(symbol *s)
                     flags |= CFoffset64;
 #if TARGET_SEGMENTED
                 if (tybasic(dt->Dty) == TYcptr)
-                    reftocodseg(seg,offset,dt->DTabytes);
+                    Obj::reftocodeseg(seg,offset,dt->DTabytes);
                 else
 #endif
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-                    reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+                    Obj::reftodatseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #else
                 /*else*/ if (dt->DTseg == DATA)
-                    reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
+                    Obj::reftodatseg(seg,offset,dt->DTabytes,DATA,flags);
                 else
-                    reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
+                    Obj::reftofarseg(seg,offset,dt->DTabytes,dt->DTseg,flags);
 #endif
                 offset += size(dt->Dty);
                 break;
             case DT_ibytes:
-                obj_bytes(seg,offset,dt->DTn,dt->DTdata);
+                Obj::bytes(seg,offset,dt->DTn,dt->DTdata);
                 offset += dt->DTn;
                 break;
             case DT_nbytes:
-                obj_bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
+                Obj::bytes(seg,offset,dt->DTnbytes,dt->DTpbytes);
                 offset += dt->DTnbytes;
                 break;
             case DT_azeros:
-                //printf("obj_lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
+                //printf("Obj::lidata(seg = %d, offset = %d, azeros = %d)\n", seg, offset, dt->DTazeros);
                 if (0 && seg == cseg)
                 {
-                    obj_lidata(seg,offset,dt->DTazeros);
+                    Obj::lidata(seg,offset,dt->DTazeros);
                     offset += dt->DTazeros;
                 }
                 else
                 {
                     SegData[seg]->SDoffset = offset;
-                    obj_lidata(seg,offset,dt->DTazeros);
+                    Obj::lidata(seg,offset,dt->DTazeros);
                     offset = SegData[seg]->SDoffset;
                 }
                 break;
@@ -414,15 +414,15 @@ void outdata(symbol *s)
                     flags = CFoff | CFseg;
                 if (I64)
                     flags |= CFoffset64;
-                offset += reftoident(seg,offset,sb,a,flags);
+                offset += Obj::reftoident(seg,offset,sb,a,flags);
                 break;
             }
             case DT_coff:
-                reftocodseg(seg,offset,dt->DToffset);
+                Obj::reftocodeseg(seg,offset,dt->DToffset);
                 offset += intsize;
                 break;
             case DT_1byte:
-                obj_byte(seg,offset++,dt->DTonebyte);
+                Obj::byte(seg,offset++,dt->DTonebyte);
                 break;
             default:
 #ifdef DEBUG
@@ -469,7 +469,7 @@ void outcommon(symbol *s,targ_size_t n)
         {
 #if ELFOBJ
             s->Sclass = SCcomdef;
-            obj_comdef(s, 0, n, 1);
+            Obj::common_block(s, 0, n, 1);
 #else
             /* COMDEFs not supported in tls segment
              * so put them out as COMDATs with initialized 0s
@@ -486,13 +486,13 @@ void outcommon(symbol *s,targ_size_t n)
         {
             s->Sclass = SCcomdef;
 #if ELFOBJ || MACHOBJ
-            obj_comdef(s, 0, n, 1);
+            Obj::common_block(s, 0, n, 1);
 #endif
 #if OMFOBJ
 #if TARGET_SEGMENTED
-            s->Sxtrnnum = obj_comdef(s,(s->ty() & mTYfar) == 0,n,1);
+            s->Sxtrnnum = Obj::common_block(s,(s->ty() & mTYfar) == 0,n,1);
 #else
-            s->Sxtrnnum = obj_comdef(s,true,n,1);
+            s->Sxtrnnum = Obj::common_block(s,true,n,1);
 #endif
             s->Sseg = UNKNOWN;
 #if TARGET_SEGMENTED
@@ -1208,15 +1208,15 @@ STATIC void writefunc2(symbol *sfunc)
 #if OMFOBJ
             csegsave = cseg;
 #endif
-            obj_comdat(sfunc);
+            Obj::comdat(sfunc);
         }
         else
             if (config.flags & CFGsegs) // if user set switch for this
             {
 #if SCPP || TARGET_WINDOS
-                obj_codeseg(cpp_mangle(funcsym_p),1);
+                Obj::codeseg(cpp_mangle(funcsym_p),1);
 #else
-                obj_codeseg(funcsym_p->Sident, 1);
+                Obj::codeseg(funcsym_p->Sident, 1);
 #endif
                                         // generate new code segment
             }
@@ -1265,7 +1265,7 @@ STATIC void writefunc2(symbol *sfunc)
     {
 #if OMFOBJ
         if (!(config.flags4 & CFG4allcomdat))
-            objpubdef(cseg,sfunc,sfunc->Soffset);       // make a public definition
+            Obj::pubdef(cseg,sfunc,sfunc->Soffset);       // make a public definition
 #endif
 
 #if SCPP && _WIN32
@@ -1330,7 +1330,7 @@ STATIC void writefunc2(symbol *sfunc)
                           }
                           break;
 
-                L2:     objextdef(startup[i]);          // pull in startup code
+                L2:     Obj::external_def(startup[i]);          // pull in startup code
                         break;
             }
         }
@@ -1341,7 +1341,7 @@ STATIC void writefunc2(symbol *sfunc)
         sfunc->Sclass != SCsinline &&
         !(sfunc->Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
         sfunc->ty() & mTYexport)
-        obj_export(sfunc,Poffset);      // export function definition
+        Obj::export_symbol(sfunc,Poffset);      // export function definition
 
     if (config.fulltypes)
         cv_func(sfunc);                 // debug info for function
@@ -1357,7 +1357,7 @@ STATIC void writefunc2(symbol *sfunc)
 
 #if OMFOBJ
     if (symbol_iscomdat(sfunc))         // if generated a COMDAT
-        obj_setcodeseg(csegsave);       // reset to real code seg
+        Obj::setcodeseg(csegsave);       // reset to real code seg
 #endif
 
     /* Check if function is a constructor or destructor, by     */
@@ -1371,7 +1371,7 @@ STATIC void writefunc2(symbol *sfunc)
         if (p[0] == '_' && p[1] == 'S' && p[2] == 'T' &&
             (p[3] == 'I' || p[3] == 'D'))
 #endif
-            obj_funcptr(sfunc);
+            Obj::funcptr(sfunc);
     }
 
 Ldone:
@@ -1403,7 +1403,7 @@ void alignOffset(int seg,targ_size_t datasize)
     //dbg_printf("seg %d datasize = x%x, Offset(seg) = x%x, alignbytes = x%x\n",
       //seg,datasize,Offset(seg),alignbytes);
     if (alignbytes)
-        obj_lidata(seg,Offset(seg),alignbytes);
+        Obj::lidata(seg,Offset(seg),alignbytes);
 }
 
 
@@ -1459,7 +1459,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     alignOffset(DATA, sz);
     s = symboldata(Doffset,ty | mTYconst);
     s->Sseg = DATA;
-    obj_write_bytes(SegData[DATA], len, p);
+    Obj::write_bytes(SegData[DATA], len, p);
     //printf("s->Sseg = %d:x%x\n", s->Sseg, s->Soffset);
 #endif
     if (len <= ROMAX)

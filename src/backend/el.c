@@ -1567,7 +1567,7 @@ elem * el_var(symbol *s)
 #if TARGET_WINDOS
         switch (t->Tty & (mTYimport | mTYthread))
         {   case mTYimport:
-                obj_import(e);
+                Obj::import(e);
                 break;
             case mTYthread:
         /*
@@ -1635,7 +1635,7 @@ elem * el_ptr(symbol *s)
          */
         symbol *sd = symboldata(Doffset, TYnptr);
         sd->Sseg = DATA;
-        Doffset += reftoident(DATA, Doffset, s, 0, CFoff);
+        Doffset += Obj::reftoident(DATA, Doffset, s, 0, CFoff);
         e = el_picvar(sd);
         return e;
     }
@@ -1944,7 +1944,7 @@ elem *el_convstring(elem *e)
         s->Sseg = cseg;
         symbol_keep(s);
         if (!eecontext.EEcompile || eecontext.EEin)
-        {   obj_bytes(cseg,Coffset,len,p);
+        {   Obj::bytes(cseg,Coffset,len,p);
             Coffset += len;
         }
         mem_free(p);

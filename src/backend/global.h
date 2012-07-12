@@ -494,7 +494,6 @@ void rtlsym_term();
 #if ELFOBJ || MACHOBJ
 void elf_add_cdata();
 symbol * elf_sym_cdata(tym_t, char *, int );
-int  elf_data_cdata(char *str,int len,int *pseg);
 #if ELFOBJ
 int elf_getsegment(const char *name, const char *suffix,
         int type, int flags, int align);
