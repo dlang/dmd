@@ -1133,10 +1133,7 @@ int tryMain(int argc, char *argv[])
              */
             if (FileName::equals(ext, global.mars_ext) ||
                 FileName::equals(ext, global.hdr_ext) ||
-                FileName::equals(ext, "dd") ||
-                FileName::equals(ext, "htm") ||
-                FileName::equals(ext, "html") ||
-                FileName::equals(ext, "xhtml"))
+                FileName::equals(ext, "dd"))
             {
                 ext--;                  // skip onto '.'
                 assert(*ext == '.');

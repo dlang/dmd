@@ -77,7 +77,7 @@ DMD_OBJS = \
 	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
-	glocal.o gloop.o glue.o gnuc.o go.o gother.o html.o iasm.o id.o \
+	glocal.o gloop.o glue.o gnuc.o go.o gother.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
@@ -460,7 +460,7 @@ mars.o: mars.c
 rmem.o: $(ROOT)/rmem.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
-module.o: module.c $C/html.h
+module.o: module.c
 	$(CC) -c $(CFLAGS) -I$C $<
 
 mscoffobj.o: $C/mscoffobj.c $C/mscoff.h

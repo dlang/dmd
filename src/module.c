@@ -37,9 +37,6 @@
 #include "hdrgen.h"
 #include "lexer.h"
 
-#define MARS 1
-#include "html.h"
-
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
 #endif
@@ -71,7 +68,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     errors = 0;
     numlines = 0;
     members = NULL;
-    isHtml = 0;
     isDocFile = 0;
     needmoduleinfo = 0;
 #ifdef IN_GCC
@@ -123,17 +119,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         !srcfilename->equalsExt(global.hdr_ext) &&
         !srcfilename->equalsExt("dd"))
     {
-        if (srcfilename->equalsExt("html") ||
-            srcfilename->equalsExt("htm")  ||
-            srcfilename->equalsExt("xhtml"))
-        {   if (!global.params.useDeprecated)
-                error("html source files is deprecated %s", srcfilename->toChars());
-            isHtml = 1;
-        }
-        else
-        {   error("source file name '%s' must have .%s extension", srcfilename->toChars(), global.mars_ext);
-            fatal();
-        }
+        error("source file name '%s' must have .%s extension", srcfilename->toChars(), global.mars_ext);
+        fatal();
     }
 
     char *argobj;
@@ -602,19 +589,6 @@ void Module::parse()
         if (!docfile)
             setDocfile();
         return;
-    }
-    if (isHtml)
-    {
-        OutBuffer *dbuf = new OutBuffer();
-        Html h(srcname, buf, buflen);
-        h.extractCode(dbuf);
-        buf = dbuf->data;
-        buflen = dbuf->offset;
-#ifdef IN_GCC
-        // dump extracted source
-        if (global.params.dump_source)
-            d_gcc_dump_source(srcname, "d.utf-8", buf, buflen);
-#endif
     }
     Parser p(this, buf, buflen, docfile != NULL);
     p.nextToken();
