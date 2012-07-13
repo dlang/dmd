@@ -528,7 +528,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #endif
 
 #define SYMDEB_CODEVIEW TARGET_WINDOS
-#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
+#define SYMDEB_DWARF    (TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX)
 
 #define TOOLKIT_H
 

@@ -717,7 +717,7 @@ again:
 #if ELFOBJ || MACHOBJ
         if (config.flags3 & CFG3pic)
         {
-            elfobj_gotref(s);
+            Obj::gotref(s);
         }
 #endif
 #endif
@@ -1222,7 +1222,7 @@ STATIC void writefunc2(symbol *sfunc)
             }
         cod3_align();                   // align start of function
 #if ELFOBJ || MACHOBJ
-        elf_func_start(sfunc);
+        Obj::func_start(sfunc);
 #endif
 #if OMFOBJ
         sfunc->Sseg = cseg;             // current code seg
@@ -1242,7 +1242,7 @@ STATIC void writefunc2(symbol *sfunc)
     PARSER = 1;
 #endif
 #if ELFOBJ || MACHOBJ
-    elf_func_term(sfunc);
+    Obj::func_term(sfunc);
 #endif
 #if MARS
     /* This is to make uplevel references to SCfastpar variables
@@ -1452,7 +1452,7 @@ symbol *out_readonly_sym(tym_t ty, void *p, int len)
     /* MACHOBJ can't go here, because the const data segment goes into
      * the _TEXT segment, and one cannot have a fixup from _TEXT to _TEXT.
      */
-    s = elf_sym_cdata(ty, (char *)p, len);
+    s = Obj::sym_cdata(ty, (char *)p, len);
 #else
     unsigned sz = tysize(ty);
 

@@ -73,9 +73,9 @@ static char __file__[] = __FILE__;      // for tassert.h
 int dwarf_getsegment(const char *name, int align)
 {
 #if ELFOBJ
-    return elf_getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
+    return ElfObj::getsegment(name, NULL, SHT_PROGDEF, 0, align * 4);
 #elif MACHOBJ
-    return mach_getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
+    return MachObj::getsegment(name, "__DWARF", align * 2, S_ATTR_DEBUG);
 #else
     assert(0);
     return 0;
@@ -89,9 +89,9 @@ int dwarf_getsegment(const char *name, int align)
 void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 {
 #if ELFOBJ
-    elf_addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, I64 ? R_X86_64_32 : RI_TYPE_SYM32, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
+    MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -100,9 +100,9 @@ void dwarf_addrel(int seg, targ_size_t offset, int targseg, targ_size_t val = 0)
 void dwarf_addrel64(int seg, targ_size_t offset, int targseg, targ_size_t val)
 {
 #if ELFOBJ
-    elf_addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
+    ElfObj::addrel(seg, offset, R_X86_64_64, MAP_SEG2SYMIDX(targseg), val);
 #elif MACHOBJ
-    mach_addrel(seg, offset, NULL, targseg, RELaddr, val);
+    MachObj::addrel(seg, offset, NULL, targseg, RELaddr, val);
 #else
     assert(0);
 #endif
@@ -672,7 +672,7 @@ void dwarf_initfile(const char *filename)
         break;
     }
 #endif
-    //infobuf->write32(elf_addstr(debug_str_buf, cwd)); // DW_AT_comp_dir as DW_FORM_strp, doesn't work on some systems
+    //infobuf->write32(Obj::addstr(debug_str_buf, cwd)); // DW_AT_comp_dir as DW_FORM_strp, doesn't work on some systems
     infobuf->writeString(cwd);                  // DW_AT_comp_dir as DW_FORM_string
     free(cwd);
 
