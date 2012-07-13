@@ -1260,7 +1260,7 @@ elem *el_picvar(symbol *s)
 
     if (I64)
     {
-        elfobj_refGOTsym();
+        Obj::refGOTsym();
         switch (s->Sclass)
         {
             case SCstatic:
@@ -1480,7 +1480,7 @@ elem * el_var(symbol *s)
          * In the future, we should figure out a way to optimize to the 'var' version.
          */
         if (I64)
-            elfobj_refGOTsym();
+            Obj::refGOTsym();
         elem *e1 = el_calloc();
         e1->EV.sp.Vsym = s;
         if (s->Sclass == SCstatic || s->Sclass == SClocstat)

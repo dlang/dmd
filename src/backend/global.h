@@ -491,25 +491,7 @@ void rtlsym_init();
 void rtlsym_reset();
 void rtlsym_term();
 
-#if ELFOBJ || MACHOBJ
-void elf_add_cdata();
-symbol * elf_sym_cdata(tym_t, char *, int );
-#if ELFOBJ
-int elf_getsegment(const char *name, const char *suffix,
-        int type, int flags, int align);
-void elf_addrel(int seg, targ_size_t offset, unsigned type,
-                        unsigned symidx, targ_size_t val);
-#endif
-#if MACHOBJ
-int mach_getsegment(const char *sectname, const char *segname,
-        int align, int flags, int flags2 = 0);
-void mach_addrel(int seg, targ_size_t offset, symbol *targsym,
-        unsigned targseg, int rtype, int val = 0);
-#endif
-void elf_func_start(Symbol *sfunc);
-void elf_func_term(Symbol *sfunc);
-unsigned elf_addstr(Outbuffer *strtab, const char *);
-
+#if SYMDEB_DWARF
 void dwarf_CFA_set_loc(size_t location);
 void dwarf_CFA_set_reg_offset(int reg, int offset);
 void dwarf_CFA_offset(int reg, int offset);
@@ -517,9 +499,6 @@ void dwarf_CFA_args_size(size_t sz);
 #endif
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-void elfobj_gotref(symbol *s);
-symbol *elfobj_getGOTsym();
-void elfobj_refGOTsym();
 elem * exp_isconst();
 elem *lnx_builtin_next_arg(elem *efunc,list_t arglist);
 char *lnx_redirect_funcname(const char *);

@@ -80,6 +80,33 @@ struct Obj
     static void fltused();
     static int data_readonly(char *p, int len, int *pseg);
     static int data_readonly(char *p, int len);
+    static symbol *sym_cdata(tym_t, char *, int);
+    static unsigned addstr(Outbuffer *strtab, const char *);
+    static void func_start(Symbol *sfunc);
+    static void func_term(Symbol *sfunc);
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    static void gotref(symbol *s);
+    static symbol *getGOTsym();
+    static void refGOTsym();
+#endif
+
+};
+
+struct ElfObj : Obj
+{
+    static int getsegment(const char *name, const char *suffix,
+        int type, int flags, int align);
+    static void addrel(int seg, targ_size_t offset, unsigned type,
+                        unsigned symidx, targ_size_t val);
+};
+
+struct MachObj : Obj
+{
+    static int getsegment(const char *sectname, const char *segname,
+        int align, int flags, int flags2 = 0);
+    static void addrel(int seg, targ_size_t offset, symbol *targsym,
+        unsigned targseg, int rtype, int val = 0);
 };
 
 #endif

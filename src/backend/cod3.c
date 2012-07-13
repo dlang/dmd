@@ -1206,7 +1206,7 @@ void doswitch(block *b)
             gen1(cx, 0x58 + DI);        // L1: POP EDI
 
                                         //     ADD EDI,_GLOBAL_OFFSET_TABLE_+3
-            symbol *gotsym = elfobj_getGOTsym();
+            symbol *gotsym = Obj::getGOTsym();
             cgot = gencs(CNIL,0x81,modregrm(3,0,DI),FLextern,gotsym);
             cgot->Iflags = CFoff;
             cgot->IEVoffset2 = 3;
@@ -1869,7 +1869,7 @@ code *cdgot(elem *e, regm_t *pretregs)
     gen1(c, 0x58 + reg);        // L1: POP reg
 
                                 //     ADD reg,_GLOBAL_OFFSET_TABLE_+3
-    symbol *gotsym = elfobj_getGOTsym();
+    symbol *gotsym = Obj::getGOTsym();
     cgot = gencs(CNIL,0x81,modregrm(3,0,reg),FLextern,gotsym);
     /* Because the 2:3 offset from L1: is hardcoded,
      * this sequence of instructions must not
@@ -3596,7 +3596,7 @@ code *cod3_load_got()
     gen1(c, 0x58 + BX);         // L1: POP EBX
 
                                 //     ADD EBX,_GLOBAL_OFFSET_TABLE_+3
-    symbol *gotsym = elfobj_getGOTsym();
+    symbol *gotsym = Obj::getGOTsym();
     cgot = gencs(CNIL,0x81,0xC3,FLextern,gotsym);
     cgot->Iflags = CFoff;
     cgot->IEVoffset2 = 3;
