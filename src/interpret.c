@@ -1218,38 +1218,14 @@ Expression *DoStatement::interpret(InterState *istate)
         istate->start = NULL;
     Expression *e;
 
-    if (istate->start)
-    {
-        e = body ? body->interpret(istate) : NULL;
-        if (istate->start)
-            return NULL;
-        if (e == EXP_CANT_INTERPRET)
-            return e;
-        if (e == EXP_BREAK_INTERPRET)
-        {
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                istate->gotoTarget = NULL;
-                e = NULL;
-            } // else break at a higher level
-            return e;
-        }
-        if (e == EXP_CONTINUE_INTERPRET)
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                goto Lcontinue;
-            }
-            else // else continue at a higher level
-                return e;
-        if (e)
-            return e;
-    }
-
     while (1)
     {
+        bool wasGoto = !!istate->start;
         e = body ? body->interpret(istate) : NULL;
         if (e == EXP_CANT_INTERPRET)
             break;
+        if (wasGoto && istate->start)
+            return NULL;
         if (e == EXP_BREAK_INTERPRET)
         {
             if (!istate->gotoTarget || istate->gotoTarget == this)
@@ -1302,79 +1278,53 @@ Expression *ForStatement::interpret(InterState *istate)
             return e;
         assert(!e);
     }
-
-    if (istate->start)
+    while (1)
     {
+        if (condition && !istate->start)
+        {
+            e = condition->interpret(istate);
+            if (exceptionOrCantInterpret(e))
+                break;
+            if (!e->isConst())
+            {   e = EXP_CANT_INTERPRET;
+                break;
+            }
+            if (e->isBool(FALSE))
+            {   e = NULL;
+                break;
+            }
+            assert( isTrueBool(e) );
+        }
+
+        bool wasGoto = !!istate->start;
         e = body ? body->interpret(istate) : NULL;
-        if (istate->start)
-            return NULL;
         if (e == EXP_CANT_INTERPRET)
-            return e;
+            break;
+        if (wasGoto && istate->start)
+            return NULL;
+
         if (e == EXP_BREAK_INTERPRET)
         {
             if (!istate->gotoTarget || istate->gotoTarget == this)
             {
                 istate->gotoTarget = NULL;
-                return NULL;
+                e = NULL;
             } // else break at a higher level
+            break;
         }
-        if (e == EXP_CONTINUE_INTERPRET)
-        {
-            if (!istate->gotoTarget || istate->gotoTarget == this)
-            {
-                istate->gotoTarget = NULL;
-                goto Lcontinue;
-            } // else continue at a higher level
-        }
-        if (e)
-            return e;
-    }
+        if (e && e != EXP_CONTINUE_INTERPRET)
+            break;
 
-    while (1)
-    {
-        if (!condition)
-            goto Lhead;
-        e = condition->interpret(istate);
-        if (exceptionOrCantInterpret(e))
-            break;
-        if (!e->isConst())
-        {   e = EXP_CANT_INTERPRET;
-            break;
-        }
-        if (isTrueBool(e))
+        if (istate->gotoTarget && istate->gotoTarget != this)
+            break; // continue at a higher level
+        istate->gotoTarget = NULL;
+
+        if (increment)
         {
-        Lhead:
-            e = body ? body->interpret(istate) : NULL;
+            e = increment->interpret(istate);
             if (e == EXP_CANT_INTERPRET)
                 break;
-            if (e == EXP_BREAK_INTERPRET)
-            {
-                if (!istate->gotoTarget || istate->gotoTarget == this)
-                {
-                    istate->gotoTarget = NULL;
-                    e = NULL;
-                } // else break at a higher level
-                break;
-            }
-            if (e && e != EXP_CONTINUE_INTERPRET)
-                break;
-            if (istate->gotoTarget && istate->gotoTarget != this)
-                break; // continue at a higher level
-        Lcontinue:
-            istate->gotoTarget = NULL;
-            if (increment)
-            {
-                e = increment->interpret(istate);
-                if (e == EXP_CANT_INTERPRET)
-                    break;
-            }
         }
-        else if (e->isBool(FALSE))
-        {   e = NULL;
-            break;
-        }
-        else
-            assert(0);
     }
     return e;
 }
