@@ -432,6 +432,26 @@ static assert(!is(typeof(compiles!(badslice3([1,2,3])))));
 
 /*******************************************/
 
+int bug7894()
+{
+    for (int k = 0; k < 2; ++k) {
+        goto Lagain;
+Lagain: ;
+    }
+    int m = 1;
+    do {
+        ++m;
+        goto Ldo;
+Ldo: ;
+    } while (m < 3);
+    assert( m == 3);
+
+    return 1;
+}
+static assert( bug7894() );
+
+/*******************************************/
+
 size_t bug5524(int x, int[] more...)
 {
     int[0] zz;
