@@ -1221,13 +1221,7 @@ STATIC void writefunc2(symbol *sfunc)
                                         // generate new code segment
             }
         cod3_align();                   // align start of function
-#if ELFOBJ || MACHOBJ
-        Obj::func_start(sfunc);
-#endif
-#if OMFOBJ
-        sfunc->Sseg = cseg;             // current code seg
-#endif
-        sfunc->Soffset = Coffset;       // offset of start of function
+        objmod->func_start(sfunc);
         searchfixlist(sfunc);           // backpatch any refs to this function
     }
 
@@ -1241,9 +1235,7 @@ STATIC void writefunc2(symbol *sfunc)
 #if SCPP
     PARSER = 1;
 #endif
-#if ELFOBJ || MACHOBJ
-    Obj::func_term(sfunc);
-#endif
+    objmod->func_term(sfunc);
 #if MARS
     /* This is to make uplevel references to SCfastpar variables
      * from nested functions work.

@@ -426,9 +426,11 @@ int Obj::data_readonly(char *p, int len)
  *      Called before any other obj_xxx routines
  */
 
-void Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
+Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
     //printf("Obj::init()\n");
+    MachObj *obj = new MachObj();
+
     cseg = CODE;
     fobjbuf = objbuf;
 
@@ -496,6 +498,8 @@ void Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     if (config.fulltypes)
         dwarf_initfile(filename);
+
+    return obj;
 }
 
 /**************************

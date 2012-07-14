@@ -318,7 +318,7 @@ void Module::genmoduleinfo()
 
     //////////////////////////////////////////////
 
-    Obj::moduleinfo(msym);
+    objmod->moduleinfo(msym);
 }
 
 /* ================================================================== */
@@ -771,7 +771,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     // ClassInfo cannot be const data, because we use the monitor on it
     outdata(csym);
     if (isExport())
-        Obj::export_symbol(csym,0);
+        objmod->export_symbol(csym,0);
 
     //////////////////////////////////////////////
 
@@ -834,7 +834,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     out_readonly(vtblsym);
     outdata(vtblsym);
     if (isExport())
-        Obj::export_symbol(vtblsym,0);
+        objmod->export_symbol(vtblsym,0);
 }
 
 /******************************************
@@ -1075,7 +1075,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     out_readonly(csym);
     outdata(csym);
     if (isExport())
-        Obj::export_symbol(csym,0);
+        objmod->export_symbol(csym,0);
 }
 
 /* ================================================================== */
@@ -1264,11 +1264,11 @@ void VarDeclaration::toObjFile(int multiobj)
         if (!sz && type->toBasetype()->ty != Tsarray)
             assert(0); // this shouldn't be possible
 
-        if (sz || Obj::allowZeroSize())
+        if (sz || objmod->allowZeroSize())
         {
             outdata(s);
             if (isExport())
-            Obj::export_symbol(s,0);
+            objmod->export_symbol(s,0);
         }
     }
 }

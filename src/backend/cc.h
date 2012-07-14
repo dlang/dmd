@@ -717,9 +717,7 @@ typedef struct FUNC_S
                                 // of SCftexpspec explicit specializations
     Funcsym *Fsurrogatesym;     // Fsurrogate: surrogate cast function
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     char *Fredirect;            // redirect function name to this name in object
-#endif
 } func_t;
 
 #define func_calloc()   ((func_t *) mem_fcalloc(sizeof(func_t)))

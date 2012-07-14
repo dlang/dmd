@@ -62,7 +62,7 @@ symbol *except_gentables()
 
     outdata(s);                 // output the scope table
 
-    Obj::ehtables(funcsym_p,funcsym_p->Ssize,s);
+    objmod->ehtables(funcsym_p,funcsym_p->Ssize,s);
 #endif
     return NULL;
 }

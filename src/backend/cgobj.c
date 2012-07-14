@@ -554,8 +554,10 @@ int Obj::data_readonly(char *p, int len)
  *      csegname        code segment name (can be NULL)
  */
 
-void Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
+Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
+        Obj *mobj = new Obj();
+
         memset(&obj,0,sizeof(obj));
 
         obj.buf = objbuf;
@@ -649,6 +651,8 @@ void Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
         ledata_new(cseg,0);             // so ledata is never NULL
         if (config.fulltypes)           // if full typing information
             cv_init();                  // initialize debug output code
+
+        return mobj;
 }
 
 /**************************
@@ -2363,6 +2367,22 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
     sdata->Soffset = offset + alignbytes;
     SegData[seg]->SDoffset = sdata->Soffset;
     return seg;
+}
+
+void Obj::func_start(Symbol *sfunc)
+{
+    //printf("Obj::func_start(%s)\n",sfunc->Sident);
+    symbol_debug(sfunc);
+    sfunc->Sseg = cseg;             // current code seg
+    sfunc->Soffset = Coffset;       // offset of start of function
+}
+
+/*******************************
+ * Update function info after codgen
+ */
+
+void Obj::func_term(Symbol *sfunc)
+{
 }
 
 /********************************

@@ -234,3 +234,4 @@ const char *regstring[32] = {"AX","CX","DX","BX","SP","BP","SI","DI",
 
 type *chartype;                 /* default 'char' type                  */
 
+Obj *objmod = NULL;
