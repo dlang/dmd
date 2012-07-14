@@ -374,7 +374,7 @@ int EnumDeclaration::isDeprecated()
     return isdeprecated;
 }
 
-Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
     if (scope)

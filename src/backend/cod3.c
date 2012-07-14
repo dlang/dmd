@@ -684,7 +684,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
         case BCgoto:
             nextb = list_block(bl->Bsucc);
-            if ((funcsym_p->Sfunc->Fflags3 & Fnteh ||
+            if (((funcsym_p->Sfunc->Fflags3 & Fnteh) ||
                  (MARS /*&& config.flags2 & CFG2seh*/)) &&
                 bl->Btry != nextb->Btry &&
                 nextb->BC != BC_finally)
@@ -3736,10 +3736,10 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         c1 = genc(CNIL,0x81,modregrm(2,0,7),
             FLconst,p,                                  /* to this      */
             FLconst,d);                                 /* ADD p[BX],d  */
-        if (config.wflags & WFssneds ||
+        if ((config.wflags & WFssneds) ||
             // If DS needs reloading from SS,
             // then assume SS != DS on thunk entry
-            (config.wflags & WFss && LARGEDATA))
+            ((config.wflags & WFss) && LARGEDATA))
             c1->Iflags |= CFss;                         /* SS:          */
         c = cat(c,c1);
     }
@@ -3788,10 +3788,10 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         {
             /* MOV/LES BX,[SS:] p[BX]   */
             c1 = genc1(CNIL,(FARTHIS ? 0xC4 : 0x8B),modregrm(2,BX,7),FLconst,(targ_uns) p);
-            if (config.wflags & WFssneds ||
+            if ((config.wflags & WFssneds) ||
                 // If DS needs reloading from SS,
                 // then assume SS != DS on thunk entry
-                (config.wflags & WFss && LARGEDATA))
+                ((config.wflags & WFss) && LARGEDATA))
                 c1->Iflags |= CFss;                     /* SS:          */
 
             /* MOV/LES BX,[ES:]d2[BX] */

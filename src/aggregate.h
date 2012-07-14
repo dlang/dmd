@@ -151,7 +151,7 @@ struct StructDeclaration : AggregateDeclaration
     StructDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
-    Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc, Identifier *ident, SYMFIND flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *mangle();
     const char *kind();
@@ -268,7 +268,7 @@ struct ClassDeclaration : AggregateDeclaration
     virtual int isBaseOf(ClassDeclaration *cd, int *poffset);
 
     virtual int isBaseInfoComplete();
-    Dsymbol *search(Loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc, Identifier *ident, SYMFIND flags);
     Dsymbol *searchBase(Loc, Identifier *ident);
 #if DMDV2
     int isFuncHidden(FuncDeclaration *fd);

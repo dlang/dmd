@@ -444,7 +444,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         StorageClass stc = postblit->storage_class &
                             (STCdisable | STCsafe | STCtrusted | STCsystem | STCpure | STCnothrow);
         if (stc & (STCsafe | STCtrusted))
-            stc = stc & ~STCsafe | STCtrusted;
+            stc = (stc & ~STCsafe) | STCtrusted;
 
         Parameters *fparams = new Parameters;
         fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));

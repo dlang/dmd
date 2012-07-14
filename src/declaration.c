@@ -122,7 +122,7 @@ void Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 }
 #endif
 
-Dsymbol *Declaration::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Declaration::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     Dsymbol *s = Dsymbol::search(loc, ident, flags);
     if (!s && type)

@@ -342,7 +342,6 @@ struct ForStatement : Statement
 
 struct ForeachStatement : Statement
 {
-    enum TOK op;                // TOKforeach or TOKforeach_reverse
     Parameters *arguments;      // array of Parameter*'s
     Expression *aggr;
     Statement *body;
@@ -354,6 +353,7 @@ struct ForeachStatement : Statement
 
     Statements *cases;          // put breaks, continues, gotos and returns here
     CompoundStatements *gotos;  // forward referenced goto's go here
+    enum TOK op;                // TOKforeach or TOKforeach_reverse
 
     ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
@@ -749,8 +749,8 @@ struct TryFinallyStatement : Statement
 
 struct OnScopeStatement : Statement
 {
-    TOK tok;
     Statement *statement;
+    TOK tok;
 
     OnScopeStatement(Loc loc, TOK tok, Statement *statement);
     Statement *syntaxCopy();

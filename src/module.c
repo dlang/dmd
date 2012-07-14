@@ -908,7 +908,7 @@ int Module::needModuleInfo()
     return needmoduleinfo || global.params.cov;
 }
 
-Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Module::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     /* Since modules can be circularly referenced,
      * need to stop infinite recursive searches.

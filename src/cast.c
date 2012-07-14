@@ -2016,7 +2016,7 @@ Lagain:
         {
             if (!t1n->isImmutable() && !t2n->isImmutable() && t1n->isShared() != t2n->isShared())
                 goto Lincompatible;
-            unsigned char mod = MODmerge(t1n->mod, t2n->mod);
+            MOD mod = MODmerge(t1n->mod, t2n->mod);
             t1 = t1n->castMod(mod)->pointerTo();
             t2 = t2n->castMod(mod)->pointerTo();
             t = t1;
@@ -2107,7 +2107,7 @@ Lagain:
     {
         Type *t1n = t1->nextOf();
         Type *t2n = t2->nextOf();
-        unsigned char mod;
+        MOD mod;
         if (e1->op == TOKnull && e2->op != TOKnull)
             mod = t2n->mod;
         else if (e1->op != TOKnull && e2->op == TOKnull)
@@ -2133,7 +2133,7 @@ Lagain:
     {
         if (t1->mod != t2->mod)
         {
-            unsigned char mod;
+            MOD mod;
             if (e1->op == TOKnull && e2->op != TOKnull)
                 mod = t2->mod;
             else if (e1->op != TOKnull && e2->op == TOKnull)
@@ -2216,7 +2216,7 @@ Lcc:
         {
             if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
                 goto Lincompatible;
-            unsigned char mod = MODmerge(t1->mod, t2->mod);
+            MOD mod = MODmerge(t1->mod, t2->mod);
             t1 = t1->castMod(mod);
             t2 = t2->castMod(mod);
             t = t1;
@@ -2326,7 +2326,7 @@ Lcc:
         assert(t1->ty == t2->ty);
         if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
             goto Lincompatible;
-        unsigned char mod = MODmerge(t1->mod, t2->mod);
+        MOD mod = MODmerge(t1->mod, t2->mod);
 
         t1 = t1->castMod(mod);
         t2 = t2->castMod(mod);

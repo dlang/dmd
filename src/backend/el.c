@@ -1724,7 +1724,7 @@ int el_noreturn(elem *e)
     {   elem_debug(e);
         switch (e->Eoper)
         {   case OPcomma:
-                if (result |= el_noreturn(e->E1))
+                if ((result |= el_noreturn(e->E1)))
                     break;
                 e = e->E2;
                 continue;

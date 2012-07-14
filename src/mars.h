@@ -354,11 +354,11 @@ typedef longdouble real_t;
 
 struct Module;
 
-//typedef unsigned Loc;         // file location
+// file location
 struct Loc
 {
     const char *filename;
-    unsigned linnum;
+    uint32_t linnum;
 
     Loc()
     {

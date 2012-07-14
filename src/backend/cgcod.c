@@ -74,7 +74,7 @@ unsigned usednteh;              // if !=0, then used NT exception handling
 /* Register contents    */
 con_t regcon;
 
-int pass;                       // PASSxxxx
+CGPASS pass;                    // CGPASSxxxx
 
 static symbol *retsym;          // set to symbol that should be placed in
                                 // register AX
@@ -128,13 +128,13 @@ void codgen()
     functy = tybasic(funcsym_p->ty());
     cod3_initregs();
     allregs = ALLREGS;
-    pass = PASSinit;
+    pass = CGPASSinit;
 
 tryagain:
     #ifdef DEBUG
     if (debugr)
-        printf("------------------ PASS%s -----------------\n",
-            (pass == PASSinit) ? "init" : ((pass == PASSreg) ? "reg" : "final"));
+        printf("------------------ CGPASS%s -----------------\n",
+            (pass == CGPASSinit) ? "init" : ((pass == CGPASSreg) ? "reg" : "final"));
     #endif
     lastretregs = last2retregs = last3retregs = last4retregs = last5retregs = 0;
 
@@ -228,7 +228,7 @@ tryagain:
         }
     }
     else
-    {   pass = PASSfinal;
+    {   pass = CGPASSfinal;
         for (b = startblock; b; b = b->Bnext)
             blcodgen(b);                // generate the code for each block
     }
@@ -236,7 +236,7 @@ tryagain:
     assert(!regcon.cse.mops);           // should have all been used
 
     // See which variables we can put into registers
-    if (pass != PASSfinal &&
+    if (pass != CGPASSfinal &&
         !anyiasm)                               // possible LEA or LES opcodes
     {
         allregs |= cod3_useBP();                // see if we can use EBP
@@ -245,12 +245,12 @@ tryagain:
         if (!(allregs & mBX) && !gotref)
         {   allregs |= mBX;                     // EBX can now be used
             cgreg_assign(retsym);
-            pass = PASSreg;
+            pass = CGPASSreg;
         }
         else if (cgreg_assign(retsym))          // if we found some registers
-            pass = PASSreg;
+            pass = CGPASSreg;
         else
-            pass = PASSfinal;
+            pass = CGPASSfinal;
         for (b = startblock; b; b = b->Bnext)
         {   code_free(b->Bcode);
             b->Bcode = NULL;
@@ -1275,7 +1275,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         unsigned size;
 
 #if 0
-        if (pass == PASSfinal)
+        if (pass == CGPASSfinal)
         {   dbg_printf("allocreg %s,%d: regcon.mvar %s regcon.cse.mval %s msavereg %s *pretregs %s tym ",
                 file,line,regm_str(regcon.mvar),regm_str(regcon.cse.mval),
                 regm_str(msavereg),regm_str(*pretregs));
@@ -1333,7 +1333,7 @@ L3:
             if (!regcon.indexregs && r & ~mLSW)
                 r &= ~mLSW;
 
-            if (pass == PASSfinal && r & ~lastretregs && !I16)
+            if (pass == CGPASSfinal && r & ~lastretregs && !I16)
             {   // Try not to always allocate the same register,
                 // to schedule better
 
@@ -1602,7 +1602,7 @@ void cssave(elem *e,regm_t regm,unsigned opsflag)
   if (e->Ecount && e->Ecomsub)
   {
         //printf("cssave(e = %p, regm = x%x, opsflag = %d)\n", e, regm, opsflag);
-        if (!opsflag && pass != PASSfinal && (I32 || I64))
+        if (!opsflag && pass != CGPASSfinal && (I32 || I64))
             return;
 
         //printf("cssave(e = %p, regm = x%x, opsflag = x%x)\n", e, regm, opsflag);
@@ -1660,7 +1660,7 @@ bool evalinregister(elem *e)
         if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
                                         /* to be generated              */
         {
-            if ((I32 || I64) && pass == PASSfinal && sz <= REGSIZE)
+            if ((I32 || I64) && pass == CGPASSfinal && sz <= REGSIZE)
             {
                 // Do it only if at least 2 registers are available
                 regm_t m;
@@ -1704,7 +1704,7 @@ regm_t getscratch()
 {   regm_t scratch;
 
     scratch = 0;
-    if (pass == PASSfinal)
+    if (pass == CGPASSfinal)
     {
         scratch = allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
                 regcon.immed.mval | regcon.params | mfuncreg);

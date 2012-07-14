@@ -382,7 +382,7 @@ int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return result;
 }
 
-Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
+Dsymbol *Import::search(Loc loc, Identifier *ident, SYMFIND flags)
 {
     //printf("%s.Import::search(ident = '%s', flags = x%x)\n", toChars(), ident->toChars(), flags);
 

@@ -1093,7 +1093,7 @@ Type *Type::addSTC(StorageClass stc)
  * Apply MODxxxx bits to existing type.
  */
 
-Type *Type::castMod(unsigned mod)
+Type *Type::castMod(MOD mod)
 {   Type *t;
 
     switch (mod)
@@ -1138,7 +1138,7 @@ Type *Type::castMod(unsigned mod)
  * a shared type => "shared const"
  */
 
-Type *Type::addMod(unsigned mod)
+Type *Type::addMod(MOD mod)
 {   Type *t = this;
 
     /* Add anything to immutable, and it remains immutable
@@ -1206,7 +1206,7 @@ Type *Type::addStorageClass(StorageClass stc)
 {
     /* Just translate to MOD bits and let addMod() do the work
      */
-    unsigned mod = 0;
+    MOD mod = 0;
 
     if (stc & STCimmutable)
         mod = MODimmutable;
@@ -1363,10 +1363,10 @@ Type *Type::toBasetype()
 /***************************
  * Return !=0 if modfrom can be implicitly converted to modto
  */
-int MODimplicitConv(unsigned char modfrom, unsigned char modto)
+bool MODimplicitConv(MOD modfrom, MOD modto)
 {
     if (modfrom == modto)
-        return 1;
+        return true;
 
     //printf("MODimplicitConv(from = %x, to = %x)\n", modfrom, modto);
     #define X(m, n) (((m) << 4) | (n))
@@ -1378,10 +1378,10 @@ int MODimplicitConv(unsigned char modfrom, unsigned char modto)
         case X(MODimmutable, MODconst | MODshared):
         case X(MODshared,    MODconst | MODshared):
         case X(MODwild | MODshared,    MODconst | MODshared):
-            return 1;
+            return true;
 
         default:
-            return 0;
+            return false;
     }
     #undef X
 }
@@ -1389,7 +1389,7 @@ int MODimplicitConv(unsigned char modfrom, unsigned char modto)
 /***************************
  * Return !=0 if a method of type '() modfrom' can call a method of type '() modto'.
  */
-int MODmethodConv(unsigned char modfrom, unsigned char modto)
+bool MODmethodConv(MOD modfrom, MOD modto)
 {
     if (MODimplicitConv(modfrom, modto))
         return 1;
@@ -1403,10 +1403,10 @@ int MODmethodConv(unsigned char modfrom, unsigned char modto)
         case X(MODshared, MODshared|MODwild):
         case X(MODshared|MODimmutable, MODshared|MODwild):
         case X(MODshared|MODconst, MODshared|MODwild):
-            return 1;
+            return true;
 
         default:
-            return 0;
+            return false;
     }
     #undef X
 }
@@ -1414,7 +1414,7 @@ int MODmethodConv(unsigned char modfrom, unsigned char modto)
 /***************************
  * Merge mod bits to form common mod.
  */
-int MODmerge(unsigned char mod1, unsigned char mod2)
+MOD MODmerge(MOD mod1, MOD mod2)
 {
     if (mod1 == mod2)
         return mod1;
@@ -1476,7 +1476,7 @@ int MODmerge(unsigned char mod1, unsigned char mod2)
 /*********************************
  * Mangling for mod.
  */
-void MODtoDecoBuffer(OutBuffer *buf, unsigned char mod)
+void MODtoDecoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {   case 0:
@@ -1507,7 +1507,7 @@ void MODtoDecoBuffer(OutBuffer *buf, unsigned char mod)
 /*********************************
  * Name for mod.
  */
-void MODtoBuffer(OutBuffer *buf, unsigned char mod)
+void MODtoBuffer(OutBuffer* buf, MOD mod)
 {
     switch (mod)
     {   case 0:
@@ -1576,7 +1576,7 @@ void Type::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
     }
 }
 
-void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -1585,7 +1585,7 @@ void Type::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     buf->writestring(toChars());
 }
 
-void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
+void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {
@@ -1594,8 +1594,8 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
             MODtoBuffer(buf, this->mod & MODshared);
             buf->writeByte('(');
         }
-        int m1 = this->mod & ~MODshared;
-        int m2 = (mod ^ m1) & m1;
+        MOD m1 = this->mod & ~MODshared;
+        MOD m2 = (mod ^ m1) & m1;
         if (m2)
         {
             MODtoBuffer(buf, m2);
@@ -1867,7 +1867,7 @@ unsigned Type::wildConvTo(Type *tprm)
     return 0;
 }
 
-Type *Type::substWildTo(unsigned mod)
+Type *Type::substWildTo(MOD mod)
 {
     //printf("+Type::substWildTo this = %s, mod = x%x\n", toChars(), mod);
     Type *t;
@@ -2692,7 +2692,7 @@ char *TypeBasic::toChars()
     return Type::toChars();
 }
 
-void TypeBasic::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeBasic::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     //printf("TypeBasic::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
     if (mod != this->mod)
@@ -3412,7 +3412,7 @@ char *TypeVector::toChars()
     return Type::toChars();
 }
 
-void TypeVector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeVector::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     //printf("TypeVector::toCBuffer2(mod = %d, this->mod = %d)\n", mod, this->mod);
     if (mod != this->mod)
@@ -3919,7 +3919,7 @@ void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
         next->toDecoBuffer(buf,  (flag & 0x100) ? flag : mod);
 }
 
-void TypeSArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeSArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -4193,7 +4193,7 @@ void TypeDArray::toDecoBuffer(OutBuffer *buf, int flag)
         next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
-void TypeDArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeDArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -4617,7 +4617,7 @@ void TypeAArray::toDecoBuffer(OutBuffer *buf, int flag)
     next->toDecoBuffer(buf, (flag & 0x100) ? 0 : mod);
 }
 
-void TypeAArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeAArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -4791,7 +4791,7 @@ d_uns64 TypePointer::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypePointer::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     //printf("TypePointer::toCBuffer2() next = %d\n", next->ty);
     if (mod != this->mod)
@@ -4936,7 +4936,7 @@ d_uns64 TypeReference::size(Loc loc)
     return PTRSIZE;
 }
 
-void TypeReference::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeReference::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -5347,7 +5347,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
 }
 
 // kind is inserted before the argument list and will usually be "function" or "delegate".
-void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind)
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, MOD mod, const char *kind)
 {
     if (hgs->ddoc != 1)
     {
@@ -5379,7 +5379,7 @@ void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int m
     t->attributesToCBuffer(buf, mod);
 }
 
-void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     //printf("TypeFunction::toCBuffer2() this = %p, ref = %d\n", this, isref);
     if (inuse)
@@ -5393,7 +5393,7 @@ void TypeFunction::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     inuse--;
 }
 
-void TypeFunction::attributesToCBuffer(OutBuffer *buf, int mod)
+void TypeFunction::attributesToCBuffer(OutBuffer *buf, MOD mod)
 {
     /* Use postfix style for attributes
      */
@@ -5757,7 +5757,7 @@ int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
-    unsigned wildmatch = 0;
+    MOD wildmatch = 0;
 
     if (ethis)
     {   Type *t = ethis->type;
@@ -6201,7 +6201,7 @@ MATCH TypeDelegate::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
-void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeDelegate::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -6574,7 +6574,7 @@ void TypeIdentifier::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%d%s", len, name);
 }
 
-void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -6741,7 +6741,7 @@ Type *TypeInstance::syntaxCopy()
 }
 
 
-void TypeInstance::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeInstance::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -6891,7 +6891,7 @@ Dsymbol *TypeTypeof::toDsymbol(Scope *sc)
     return t->toDsymbol(sc);
 }
 
-void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -7113,7 +7113,7 @@ Lerr:
     return terror;
 }
 
-void TypeReturn::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeReturn::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -7204,7 +7204,7 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%s", name);
 }
 
-void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -7436,7 +7436,7 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%s", name);
 }
 
-void TypeTypedef::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeTypedef::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     //printf("TypeTypedef::toCBuffer2() '%s'\n", sym->toChars());
     if (mod != this->mod)
@@ -7723,7 +7723,7 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%s", name);
 }
 
-void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -8216,7 +8216,7 @@ void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
     buf->printf("%s", name);
 }
 
-void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
@@ -8814,7 +8814,7 @@ Type *TypeTuple::makeConst()
 }
 #endif
 
-void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeTuple::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     Parameter::argsToCBuffer(buf, hgs, arguments, 0);
 }
@@ -8988,7 +8988,7 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     }
 }
 
-void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
+void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, MOD mod)
 {
     if (mod != this->mod)
     {   toCBuffer3(buf, hgs, mod);
