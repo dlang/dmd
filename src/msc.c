@@ -56,7 +56,9 @@ void out_config_init()
     tytab[TYchar] |= TYFLuns;
 #if TARGET_WINDOS
     if (params->is64bit)
-        config.exe = EX_WIN64;
+    {   config.exe = EX_WIN64;
+        config.fpxmmregs = TRUE;
+    }
     else
         config.exe = EX_NT;
 
