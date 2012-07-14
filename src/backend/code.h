@@ -985,9 +985,13 @@ void cgsched_block(block *b);
 //      Generalize the Windows platform concept of CODE,DATA,UDATA,etc
 //      into multiple segments
 
-#if OMFOBJ
+struct Ledatarec;               // OMF
+struct linnum_data;             // Elf, Mach
 
-struct Ledatarec;
+
+typedef unsigned int IDXSTR;
+typedef unsigned int IDXSEC;
+typedef unsigned int IDXSYM;
 
 struct seg_data
 {
@@ -995,6 +999,7 @@ struct seg_data
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
 
+#if OMFOBJ
     bool isfarseg;
     int segidx;                         // internal object file segment number
     int lnameidx;                       // lname idx of segment name
@@ -1003,37 +1008,13 @@ struct seg_data
     targ_size_t origsize;               // original size
     long seek;                          // seek position in output file
     Ledatarec *ledata;                  // current one we're filling in
-};
-
-//extern  targ_size_t Coffset;
-
 #endif
 
-#if ELFOBJ || MACHOBJ
-
-typedef unsigned int IDXSTR;
-typedef unsigned int IDXSEC;
-typedef unsigned int IDXSYM;
-
-struct linnum_data
-{
-    const char *filename;
-    unsigned filenumber;        // corresponding file number for DW_LNS_set_file
-
-    unsigned linoff_count;
-    unsigned linoff_max;
-    unsigned (*linoff)[2];      // [0] = line number, [1] = offset
-};
-
-struct seg_data
-{
-    int                  SDseg;         // segment index into SegData[]
+#if 1 //ELFOBJ || MACHOBJ
     IDXSEC               SDshtidx;      // section header table index
-    targ_size_t          SDoffset;      // starting offset for data
     Outbuffer           *SDbuf;         // buffer to hold data
     Outbuffer           *SDrel;         // buffer to hold relocation info
-    int                  SDalignment;   // power of 2
-#if ELFOBJ
+#if 1 //ELFOBJ
     IDXSYM               SDsymidx;      // each section is in the symbol table
     IDXSEC               SDrelidx;      // section header for relocation info
     targ_size_t          SDrelmaxoff;   // maximum offset encountered
@@ -1050,8 +1031,22 @@ struct seg_data
     linnum_data         *SDlinnum_data; // array of line number / offset data
 
     int isCode();
+#endif
 };
 
+
+
+#if 1 //ELFOBJ || MACHOBJ
+
+struct linnum_data
+{
+    const char *filename;
+    unsigned filenumber;        // corresponding file number for DW_LNS_set_file
+
+    unsigned linoff_count;
+    unsigned linoff_max;
+    unsigned (*linoff)[2];      // [0] = line number, [1] = offset
+};
 
 #endif
 

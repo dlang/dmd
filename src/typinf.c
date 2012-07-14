@@ -771,7 +771,7 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 
     outdata(s);
     if (isExport())
-        Obj::export_symbol(s,0);
+        objmod->export_symbol(s,0);
 }
 
 #endif

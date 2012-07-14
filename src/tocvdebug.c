@@ -249,7 +249,7 @@ void TypedefDeclaration::toDebug()
         TOWORD(debsym,length - 2);
 
         assert(length <= 40 + len);
-        Obj::write_bytes(SegData[DEBSYM],length,debsym);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
     }
 }
 
@@ -277,7 +277,7 @@ void EnumDeclaration::toDebug()
         TOWORD(debsym,length - 2);
 
         assert(length <= 40 + len);
-        Obj::write_bytes(SegData[DEBSYM],length,debsym);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
     }
 }
 
@@ -429,7 +429,7 @@ void StructDeclaration::toDebug()
     TOWORD(debsym,length - 2);
 
     assert(length <= 40 + len);
-    Obj::write_bytes(SegData[DEBSYM],length,debsym);
+    objmod->write_bytes(SegData[DEBSYM],length,debsym);
 
 //    return typidx;
 }
@@ -611,7 +611,7 @@ void ClassDeclaration::toDebug()
     TOWORD(debsym,length - 2);
 
     assert(length <= 40 + len);
-    Obj::write_bytes(SegData[DEBSYM],length,debsym);
+    objmod->write_bytes(SegData[DEBSYM],length,debsym);
 
 //    return typidx;
 }
