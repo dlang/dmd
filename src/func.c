@@ -191,11 +191,9 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
-        type = type->semantic(loc, sc);
-        sc = sc->pop();
 
-        /* Apply const, immutable and shared storage class
-         * to the function type
+        /* Apply const, immutable, wild and shared storage class
+         * to the function type. Do this before type semantic.
          */
         StorageClass stc = storage_class;
         if (type->isImmutable())
@@ -218,35 +216,28 @@ void FuncDeclaration::semantic(Scope *sc)
             case STCimmutable | STCshared | STCwild:
                 // Don't use toInvariant(), as that will do a merge()
                 type = type->makeInvariant();
-                goto Lmerge;
+                break;
 
             case STCconst:
             case STCconst | STCwild:
                 type = type->makeConst();
-                goto Lmerge;
+                break;
 
             case STCshared | STCconst:
             case STCshared | STCconst | STCwild:
                 type = type->makeSharedConst();
-                goto Lmerge;
+                break;
 
             case STCshared:
                 type = type->makeShared();
-                goto Lmerge;
+                break;
 
             case STCwild:
                 type = type->makeWild();
-                goto Lmerge;
+                break;
 
             case STCshared | STCwild:
                 type = type->makeSharedWild();
-                goto Lmerge;
-
-            Lmerge:
-                if (!(type->ty == Tfunction && !type->nextOf()))
-                    /* Can't do merge if return type is not known yet
-                     */
-                    type->deco = type->merge()->deco;
                 break;
 
             case 0:
@@ -255,7 +246,11 @@ void FuncDeclaration::semantic(Scope *sc)
             default:
                 assert(0);
         }
+
+        type = type->semantic(loc, sc);
+        sc = sc->pop();
     }
+
     storage_class &= ~STCref;
     if (type->ty != Tfunction)
     {
