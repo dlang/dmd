@@ -11472,6 +11472,7 @@ Expression *PowExp::semantic(Scope *sc)
         }
 
         static int importMathChecked = 0;
+        static bool importMath = false;
         if (!importMathChecked)
         {
             importMathChecked = 1;
@@ -11481,12 +11482,23 @@ Expression *PowExp::semantic(Scope *sc)
                 if (mi->ident == Id::math &&
                     mi->parent->ident == Id::std &&
                     !mi->parent->parent)
+                {
+                    importMath = true;
                     goto L1;
+                }
             }
             error("must import std.math to use ^^ operator");
             return new ErrorExp();
 
          L1: ;
+        }
+        else
+        {
+            if (!importMath)
+            {
+                error("must import std.math to use ^^ operator");
+                return new ErrorExp();
+            }                
         }
 
         e = new IdentifierExp(loc, Id::empty);
