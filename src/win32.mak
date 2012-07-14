@@ -92,7 +92,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 
 OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	newman.obj glocal.obj os.obj nteh.obj evalu8.obj cgcs.obj \
-	rtlsym.obj html.obj cgelem.obj cgen.obj cgreg.obj out.obj \
+	rtlsym.obj cgelem.obj cgen.obj cgreg.obj out.obj \
 	blockopt.obj cgobj.obj cg.obj cgcv.obj type.obj dt.obj \
 	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
@@ -338,7 +338,7 @@ mars.obj : $(TOTALH) module.h mars.h mars.c
 md5.obj : $C\md5.h $C\md5.c
 	$(CC) -c $(MFLAGS) $C\md5
 
-module.obj : $(TOTALH) $C\html.h module.c
+module.obj : $(TOTALH) module.c
 	$(CC) -c $(CFLAGS) -I$C $(PREC) module.c
 
 msc.obj : $(CH) mars.h msc.c
