@@ -84,11 +84,11 @@ DMD_OBJS = \
 	parse.o ph.o ptrntab.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
-	unialpha.o toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
+	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o \
+	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o
+	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -104,33 +104,34 @@ SRC = win32.mak posix.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
-	utf.h utf.c staticassert.h staticassert.c unialpha.c \
+	utf.h utf.c staticassert.h staticassert.c \
 	typinf.c toobj.c toctype.c tocvdebug.c toelfdebug.c entity.c \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c sideeffect.c \
+	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
+	scanmscoff.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
-	$C/el.h $C/iasm.h $C/rtlsym.h $C/html.h \
+	$C/el.h $C/iasm.h $C/rtlsym.h \
 	$C/bcomplex.c $C/blockopt.c $C/cg.c $C/cg87.c $C/cgxmm.c \
 	$C/cgcod.c $C/cgcs.c $C/cgcv.c $C/cgelem.c $C/cgen.c $C/cgobj.c \
 	$C/cgreg.c $C/var.c $C/strtold.c \
 	$C/cgsched.c $C/cod1.c $C/cod2.c $C/cod3.c $C/cod4.c $C/cod5.c \
 	$C/code.c $C/symbol.c $C/debug.c $C/dt.c $C/ee.c $C/el.c \
 	$C/evalu8.c $C/go.c $C/gflow.c $C/gdag.c \
-	$C/gother.c $C/glocal.c $C/gloop.c $C/html.c $C/newman.c \
+	$C/gother.c $C/glocal.c $C/gloop.c $C/newman.c \
 	$C/nteh.c $C/os.c $C/out.c $C/outbuf.c $C/ptrntab.c $C/rtlsym.c \
-	$C/type.c $C/melf.h $C/mach.h $C/bcomplex.h \
+	$C/type.c $C/melf.h $C/mach.h $C/mscoff.h $C/bcomplex.h \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c \
-	$C/machobj.c \
+	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
@@ -223,6 +224,9 @@ blockopt.o: $C/blockopt.c
 	$(CC) -c $(MFLAGS) $<
 
 builtin.o: builtin.c
+	$(CC) -c $(CFLAGS) $<
+
+canthrow.o: canthrow.c
 	$(CC) -c $(CFLAGS) $<
 
 cast.o: cast.c
@@ -384,11 +388,8 @@ gother.o: $C/gother.c
 hdrgen.o: hdrgen.c
 	$(CC) -c $(CFLAGS) $<
 
-html.o: $C/html.c $(CH) $C/html.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
 iasm.o: iasm.c $(CH) $C/iasm.h
-	$(CC) -c $(MFLAGS) -I$(ROOT) $<
+	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $<
 
 id.o: id.c id.h
 	$(CC) -c $(CFLAGS) $<
@@ -417,6 +418,9 @@ inline.o: inline.c
 interpret.o: interpret.c
 	$(CC) -c $(CFLAGS) $<
 
+intrange.o: intrange.h intrange.c
+	$(CC) -c $(CFLAGS) intrange.c
+
 json.o: json.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -427,6 +431,9 @@ libelf.o: libelf.c $C/melf.h
 	$(CC) -c $(CFLAGS) -I$C $<
 
 libmach.o: libmach.c $C/mach.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
+libmscoff.o: libmscoff.c $C/mscoff.h
 	$(CC) -c $(CFLAGS) -I$C $<
 
 link.o: link.c
@@ -452,6 +459,9 @@ rmem.o: $(ROOT)/rmem.c
 
 module.o: module.c
 	$(CC) -c $(CFLAGS) -I$C $<
+
+mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
+	$(CC) -c $(MFLAGS) $<
 
 msc.o: msc.c $(CH) mars.h
 	$(CC) -c $(MFLAGS) $<
@@ -570,9 +580,6 @@ util.o: util.c
 utf.o: utf.c utf.h
 	$(CC) -c $(CFLAGS) $<
 
-unialpha.o: unialpha.c
-	$(CC) -c $(CFLAGS) $<
-
 unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -591,6 +598,7 @@ gcov:
 	gcov arrayop.c
 	gcov attrib.c
 	gcov builtin.c
+	gcov canthrow.c
 	gcov cast.c
 	gcov class.c
 	gcov clone.c
@@ -649,10 +657,10 @@ endif
 	gcov toctype.c
 	gcov toelfdebug.c
 	gcov typinf.c
-	gcov unialpha.c
 	gcov utf.c
 	gcov util.c
 	gcov version.c
+	gcov intrange.c
 
 #	gcov hdrgen.c
 #	gcov tocvdebug.c
