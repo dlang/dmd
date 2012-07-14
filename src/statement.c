@@ -1935,29 +1935,29 @@ Lagain:
                 goto Lapply;
 
         {   /* Look for range iteration, i.e. the properties
-             * .empty, .next, .retreat, .head and .rear
+             * .empty, .popFront, .popBack, .front and .back
              *    foreach (e; aggr) { ... }
              * translates to:
-             *    for (auto __r = aggr[]; !__r.empty; __r.next)
-             *    {   auto e = __r.head;
+             *    for (auto __r = aggr[]; !__r.empty; __r.popFront)
+             *    {   auto e = __r.front;
              *        ...
              *    }
              */
             AggregateDeclaration *ad = (tab->ty == Tclass)
                         ? (AggregateDeclaration *)((TypeClass  *)tab)->sym
                         : (AggregateDeclaration *)((TypeStruct *)tab)->sym;
-            Identifier *idhead;
-            Identifier *idnext;
+            Identifier *idfront;
+            Identifier *idpopFront;
             if (op == TOKforeach)
-            {   idhead = Id::Ffront;
-                idnext = Id::FpopFront;
+            {   idfront = Id::Ffront;
+                idpopFront = Id::FpopFront;
             }
             else
-            {   idhead = Id::Fback;
-                idnext = Id::FpopBack;
+            {   idfront = Id::Fback;
+                idpopFront = Id::FpopBack;
             }
-            Dsymbol *shead = search_function(ad, idhead);
-            if (!shead)
+            Dsymbol *sfront = ad->search(0, idfront, 0);
+            if (!sfront)
                 goto Lapply;
 
             /* Generate a temporary __r and initialize it with the aggregate.
@@ -1973,13 +1973,13 @@ Lagain:
 
             // __r.next
             e = new VarExp(loc, r);
-            Expression *increment = new CallExp(loc, new DotIdExp(loc, e, idnext));
+            Expression *increment = new CallExp(loc, new DotIdExp(loc, e, idpopFront));
 
             /* Declaration statement for e:
-             *    auto e = __r.idhead;
+             *    auto e = __r.idfront;
              */
             e = new VarExp(loc, r);
-            Expression *einit = new DotIdExp(loc, e, idhead);
+            Expression *einit = new DotIdExp(loc, e, idfront);
             Statement *makeargs, *forbody;
             if (dim == 1)
             {
@@ -2002,7 +2002,7 @@ Lagain:
                 makeargs = new ExpStatement(loc, de);
 
                 Expression *ve = new VarExp(loc, vd);
-                ve->type = shead->isDeclaration()->type;
+                ve->type = sfront->isDeclaration()->type;
                 if (ve->type->toBasetype()->ty == Tfunction)
                     ve->type = ve->type->toBasetype()->nextOf();
                 if (!ve->type || ve->type->ty == Terror)
