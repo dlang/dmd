@@ -389,6 +389,7 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
     if (tn && (!tn->isMutable() || !tn->isAssignable()))
     {
         error("slice %s is not mutable", e1->toChars());
+        return new ErrorExp();
     }
 
     return BinExp::arrayOp(sc);
