@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -11,9 +11,6 @@
 // The idea is to minimize #ifdef's in the app code.
 
 #include "longdouble.h"
-
-#ifndef TYPEDEFS
-#define TYPEDEFS
 
 #if _MSC_VER
 #include <float.h>  // for _isnan
@@ -28,8 +25,6 @@ typedef unsigned __int64 ulonglong;
 #else
 typedef long long longlong;
 typedef unsigned long long ulonglong;
-#endif
-
 #endif
 
 typedef double d_time;
