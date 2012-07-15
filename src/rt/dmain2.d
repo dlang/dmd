@@ -35,7 +35,7 @@ version (Windows)
     extern (Windows) void*      LocalFree(void*);
     extern (Windows) wchar_t*   GetCommandLineW();
     extern (Windows) wchar_t**  CommandLineToArgvW(wchar_t*, int*);
-    extern (Windows) export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int);
+    extern (Windows) export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int*);
     extern (Windows) int        IsDebuggerPresent();
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }
@@ -381,7 +381,7 @@ extern (C) int main(int argc, char** argv)
         assert(wclen <= int.max, "wclen must not exceed int.max");
 
         char*     cargp = null;
-        size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, cast(int)wclen, null, 0, null, 0);
+        size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, cast(int)wclen, null, 0, null, null);
 
         cargp = cast(char*) alloca(cargl);
         args  = ((cast(char[]*) alloca(wargc * (char[]).sizeof)))[0 .. wargc];
@@ -390,11 +390,11 @@ extern (C) int main(int argc, char** argv)
         {
             size_t wlen = wcslen(wargs[i]);
             assert(wlen <= int.max, "wlen cannot exceed int.max");
-            int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, null, 0, null, 0);
+            int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, null, 0, null, null);
             args[i]  = cargp[p .. p+clen];
             if (clen==0) continue;
             p += clen; assert(p <= cargl);
-            WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, &args[i][0], clen, null, 0);
+            WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, &args[i][0], clen, null, null);
         }
         LocalFree(wargs);
         wargs = null;

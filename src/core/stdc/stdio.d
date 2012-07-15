@@ -121,10 +121,9 @@ enum
     SEEK_END
 }
 
-struct _iobuf
+version( Windows )
 {
-    align (1):
-    version( Windows )
+    struct _iobuf
     {
         char* _ptr;
         int   _cnt;
@@ -133,9 +132,12 @@ struct _iobuf
         int   _file;
         int   _charbuf;
         int   _bufsiz;
-        int   __tmpnum;
+        char* __tmpnum;
     }
-    else version( linux )
+}
+else version( linux )
+{
+    align(1) struct _iobuf
     {
         int     _flags;
         char*   _read_ptr;
@@ -159,7 +161,10 @@ struct _iobuf
         char[1] _shortbuf;
         void*   _lock;
     }
-    else version( OSX )
+}
+else version( OSX )
+{
+    align (1) struct _iobuf
     {
         ubyte*    _p;
         int       _r;
@@ -186,7 +191,10 @@ struct _iobuf
         int       _blksize;
         fpos_t    _offset;
     }
-    else version( FreeBSD )
+}
+else version( FreeBSD )
+{
+    align (1) struct _iobuf
     {
         ubyte*          _p;
         int             _r;
@@ -220,11 +228,12 @@ struct _iobuf
         int             _orientation;
         __mbstate_t     _mbstate;
     }
-    else
-    {
-        static assert( false, "Unsupported platform" );
-    }
 }
+else
+{
+    static assert( false, "Unsupported platform" );
+}
+
 
 alias shared(_iobuf) FILE;
 
