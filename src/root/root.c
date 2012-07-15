@@ -56,68 +56,6 @@ extern "C" void __cdecl _assert(void *e, void *f, unsigned line)
 #endif
 
 
-/*************************************
- * Convert wchar string to ascii string.
- */
-
-char *wchar2ascii(wchar_t *us)
-{
-    return wchar2ascii(us, wcslen(us));
-}
-
-char *wchar2ascii(wchar_t *us, unsigned len)
-{
-    unsigned i;
-    char *p;
-
-    p = (char *)mem.malloc(len + 1);
-    for (i = 0; i <= len; i++)
-        p[i] = (char) us[i];
-    return p;
-}
-
-int wcharIsAscii(wchar_t *us)
-{
-    return wcharIsAscii(us, wcslen(us));
-}
-
-int wcharIsAscii(wchar_t *us, unsigned len)
-{
-    unsigned i;
-
-    for (i = 0; i <= len; i++)
-    {
-        if (us[i] & ~0xFF)      // if high bits set
-            return 0;           // it's not ascii
-    }
-    return 1;
-}
-
-
-/***********************************
- * Compare length-prefixed strings (bstr).
- */
-
-int bstrcmp(unsigned char *b1, unsigned char *b2)
-{
-    return (*b1 == *b2 && memcmp(b1 + 1, b2 + 1, *b2) == 0) ? 0 : 1;
-}
-
-/***************************************
- * Convert bstr into a malloc'd string.
- */
-
-char *bstr2str(unsigned char *b)
-{
-    char *s;
-    unsigned len;
-
-    len = *b;
-    s = (char *) mem.malloc(len + 1);
-    s[len] = 0;
-    return (char *)memcpy(s,b + 1,len);
-}
-
 /**************************************
  * Print error message and exit.
  */
@@ -134,11 +72,6 @@ void error(const char *format, ...)
     fflush(stdout);
 
     exit(EXIT_FAILURE);
-}
-
-void error_mem()
-{
-    error("out of memory");
 }
 
 /**************************************
@@ -200,10 +133,9 @@ void Object::mark()
 
 /****************************** String ********************************/
 
-String::String(char *str, int ref)
+String::String(char *str)
+    : str(mem.strdup(str))
 {
-    this->str = ref ? str : mem.strdup(str);
-    this->ref = ref;
 }
 
 String::~String()
@@ -291,8 +223,8 @@ void String::print()
 
 /****************************** FileName ********************************/
 
-FileName::FileName(char *str, int ref)
-    : String(str,ref)
+FileName::FileName(char *str)
+    : String(str)
 {
 }
 
@@ -324,11 +256,6 @@ char *FileName::combine(const char *path, const char *name)
 #endif
     memcpy(f + pathlen, name, namelen + 1);
     return f;
-}
-
-FileName::FileName(char *path, char *name)
-    : String(combine(path,name),1)
-{
 }
 
 // Split a path into an Array of paths
@@ -678,7 +605,7 @@ FileName *FileName::defaultExt(const char *name, const char *ext)
 
     e = FileName::ext(name);
     if (e)                              // if already has an extension
-        return new FileName((char *)name, 0);
+        return new FileName((char *)name);
 
     len = strlen(name);
     extlen = strlen(ext);
@@ -686,7 +613,7 @@ FileName *FileName::defaultExt(const char *name, const char *ext)
     memcpy(s,name,len);
     s[len] = '.';
     memcpy(s + len + 1, ext, extlen + 1);
-    return new FileName(s, 0);
+    return new FileName(s);
 }
 
 /***************************
@@ -708,7 +635,7 @@ FileName *FileName::forceExt(const char *name, const char *ext)
         s = (char *)alloca(len + extlen + 1);
         memcpy(s,name,len);
         memcpy(s + len, ext, extlen + 1);
-        return new FileName(s, 0);
+        return new FileName(s);
     }
     else
         return defaultExt(name, ext);   // doesn't have one
@@ -1008,7 +935,7 @@ File::File(char *n)
     buffer = NULL;
     len = 0;
     touchtime = NULL;
-    name = new FileName(n, 0);
+    name = new FileName(n);
 }
 
 File::~File()
@@ -1418,7 +1345,7 @@ void File::remove()
 
 Files *File::match(char *n)
 {
-    return match(new FileName(n, 0));
+    return match(new FileName(n));
 }
 
 Files *File::match(FileName *n)
@@ -1866,6 +1793,7 @@ char *OutBuffer::toChars()
     return (char *)data;
 }
 
+// TODO: Remove (only used by disabled GC)
 /********************************* Bits ****************************/
 
 Bits::Bits()
@@ -1958,18 +1886,3 @@ void Bits::sub(Bits *b)
     for (u = 0; u < allocdim; u++)
         data[u] &= ~b->data[u];
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
