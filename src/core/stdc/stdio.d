@@ -332,10 +332,11 @@ int rename(in char* from, in char* to);
 @trusted FILE* tmpfile(); // No unsafe pointer manipulation.
 char* tmpnam(char* s);
 
+int   fclose(FILE* stream);
+
 // No unsafe pointer manipulation.
 @trusted
 {
-    int   fclose(FILE* stream);
     int   fflush(FILE* stream);
 }
 
