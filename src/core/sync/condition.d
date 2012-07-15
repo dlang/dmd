@@ -594,7 +594,9 @@ version( unittest )
             synchronized( mutex )
             {
                 waiting    = true;
-                alertedOne = condReady.wait( dur!"seconds"(1) );
+                // we never want to miss the notification (30s)
+                alertedOne = condReady.wait( dur!"seconds"(30) );
+                // but we don't want to wait long for the timeout (1s)
                 alertedTwo = condReady.wait( dur!"seconds"(1) );
             }
         }
