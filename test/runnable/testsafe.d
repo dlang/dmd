@@ -321,6 +321,12 @@ void structcast()
     static assert(!__traits(compiles, c = cast(C)b)); 
 } 
 
+@safe void test6497()
+{
+    int n;
+    (0 ? n : n) = 3;
+}
+
 @safe
 void varargs()
 {
