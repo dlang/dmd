@@ -44,10 +44,10 @@ enum BUILTIN FuncDeclaration::isBuiltin()
 {
     static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
     static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
-    static const char FuintZint[] = "FNaNbkZi";    // pure nothrow int function(uint)
-    static const char FuintZuint[] = "FNaNbkZk";   // pure nothrow uint function(uint)
+    static const char FuintZint[] = "FNaNbNfkZi";  // @safe pure nothrow int function(uint)
+    static const char FuintZuint[] = "FNaNbNfkZk"; // @safe pure nothrow uint function(uint)
     static const char FulongZulong[] = "FNaNbkZk"; // pure nothrow int function(ulong)
-    static const char FulongZint[] = "FNaNbmZi";   // pure nothrow int function(uint)
+    static const char FulongZint[] = "FNaNbNfmZi"; // @safe pure nothrow int function(uint)
     static const char FrealrealZreal [] = "FNaNbNfeeZe";  // @safe pure nothrow real function(real, real)
     static const char FrealZlong [] = "FNaNbNfeZl";  // @safe pure nothrow long function(real)
 
