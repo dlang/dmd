@@ -79,16 +79,10 @@ void*   calloc(size_t nmemb, size_t size);
 void*   realloc(void* ptr, size_t size);
 void    free(void* ptr);
 
-// These are arguably not safe, due to not shutting the process down
-// properly. However, they are sometimes needed to quickly abort even
-// inside @safe code, so we mark them @trusted.
-@trusted
-{
-    void    abort();
-    void    exit(int status);
-    int     atexit(void function() func);
-    void    _Exit(int status);
-}
+void    abort();
+void    exit(int status);
+int     atexit(void function() func);
+void    _Exit(int status);
 
 char*   getenv(in char* name);
 int     system(in char* string);
