@@ -442,20 +442,6 @@ int intrinsic_op(char *name)
         OPscale,
         OPrndtol,
         OPyl2xp1,
-
-        OPbt,
-        OPbsf,
-        OPbsr,
-        OPbtc,
-        OPbtr,
-        OPbts,
-        OPinp,
-        OPinp,
-        OPinp,
-        OPoutp,
-        OPbswap,
-        OPoutp,
-        OPoutp,
     };
 
 #ifdef DMDV2
