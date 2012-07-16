@@ -124,8 +124,9 @@ extern (C) void* rt_loadLibrary(in char[] name)
     {
         if (name.length == 0) return null;
         // Load a DLL at runtime
+        enum CP_UTF8 = 65001;
         wchar_t* tempW;
-        auto tempWbufofslen = MultiByteToWideChar(65001, 0,
+        auto tempWbufofslen = MultiByteToWideChar(CP_UTF8, 0,
             name.ptr, name.length, null, 0);
         if (!tempWbufofslen) return null;
         enum wcharsize       = typeof(*tempW).sizeof;
@@ -138,7 +139,7 @@ extern (C) void* rt_loadLibrary(in char[] name)
         tempW[0..4] = r"\\?\";
         auto tempWofs = cast(typeof(tempW))((cast(ubyte*)tempW)+ofssize);
         
-        auto tempWofslen = MultiByteToWideChar(65001, 0,
+        auto tempWofslen = MultiByteToWideChar(CP_UTF8, 0,
             name.ptr, name.length, tempWofs, tempWbufofslen);
         if (tempWofslen == 0 && tempWbufofslen != tempWofslen) return null;
         
