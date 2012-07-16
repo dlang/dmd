@@ -15,9 +15,10 @@
 module core.stdc.stddef;
 
 extern (C):
+@trusted: // Types only.
+nothrow:
 
-//alias typeof(int.sizeof)                    size_t;
-//alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
+// size_t and ptrdiff_t are defined in the object module.
 
 version( Windows )
 {

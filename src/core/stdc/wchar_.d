@@ -22,7 +22,7 @@ public import core.stdc.time;    // for tm
 public import core.stdc.stdint;  // for WCHAR_MIN, WCHAR_MAX
 
 extern (C):
-
+@system:
 nothrow:
 
 alias int     mbstate_t;
@@ -43,13 +43,18 @@ int vwscanf(in wchar_t* format, va_list arg);
 int wprintf(in wchar_t* format, ...);
 int wscanf(in wchar_t* format, ...);
 
-wint_t fgetwc(FILE* stream);
-wint_t fputwc(wchar_t c, FILE* stream);
+// No unsafe pointer manipulation.
+@trusted
+{
+    wint_t fgetwc(FILE* stream);
+    wint_t fputwc(wchar_t c, FILE* stream);
+}
 
 wchar_t* fgetws(wchar_t* s, int n, FILE* stream);
 int      fputws(in wchar_t* s, FILE* stream);
 
-extern (D)
+// No unsafe pointer manipulation.
+extern (D) @trusted
 {
     wint_t getwchar()                     { return fgetwc(stdin);     }
     wint_t putwchar(wchar_t c)            { return fputwc(c,stdout);  }
@@ -57,8 +62,12 @@ extern (D)
     wint_t putwc(wchar_t c, FILE* stream) { return fputwc(c, stream); }
 }
 
-wint_t ungetwc(wint_t c, FILE* stream);
-int    fwide(FILE* stream, int mode);
+// No unsafe pointer manipulation.
+@trusted
+{
+    wint_t ungetwc(wint_t c, FILE* stream);
+    int    fwide(FILE* stream, int mode);
+}
 
 double  wcstod(in wchar_t* nptr, wchar_t** endptr);
 float   wcstof(in wchar_t* nptr, wchar_t** endptr);
@@ -101,8 +110,13 @@ version( Windows )
     wchar_t* _wstrtime(wchar_t*); // non-standard
 }
 
-wint_t btowc(int c);
-int    wctob(wint_t c);
+// No unsafe pointer manipulation.
+@trusted
+{
+    wint_t btowc(int c);
+    int    wctob(wint_t c);
+}
+
 int    mbsinit(in mbstate_t* ps);
 size_t mbrlen(in char* s, size_t n, mbstate_t* ps);
 size_t mbrtowc(wchar_t* pwc, in char* s, size_t n, mbstate_t* ps);

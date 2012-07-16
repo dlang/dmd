@@ -17,6 +17,7 @@ module core.stdc.math;
 private import core.stdc.config;
 
 extern (C):
+@trusted: // All functions here operate on floating point and integer values only.
 nothrow:
 
 alias float  float_t;

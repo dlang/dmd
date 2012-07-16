@@ -15,6 +15,8 @@
 module core.stdc.float_;
 
 extern (C):
+@trusted: // Constants only.
+nothrow:
 
 enum FLT_ROUNDS                 = 1;
 enum FLT_EVAL_METHOD    = 2;

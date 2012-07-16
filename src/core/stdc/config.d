@@ -15,6 +15,8 @@
 module core.stdc.config;
 
 extern (C):
+@trusted: // Types only.
+nothrow:
 
 version( Windows )
 {
