@@ -15,7 +15,7 @@
 module core.stdc.locale;
 
 extern (C):
-
+@trusted: // Only setlocale operates on C strings.
 nothrow:
 
 struct lconv
@@ -59,5 +59,5 @@ enum LC_TELEPHONE      = 10; // non-standard
 enum LC_MEASUREMENT    = 11; // non-standard
 enum LC_IDENTIFICATION = 12; // non-standard
 
-char*  setlocale(int category, in char* locale);
+@system char*  setlocale(int category, in char* locale);
 lconv* localeconv();

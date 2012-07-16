@@ -39,7 +39,7 @@ version (Windows)
     extern (Windows) export int MultiByteToWideChar(uint, uint, in char*, int, wchar_t*, int);
     extern (Windows) int        IsDebuggerPresent();
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
-        }
+}
 
 version (all)
 {

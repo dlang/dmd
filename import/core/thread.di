@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:   Sean Kelly, Walter Bright
+ * Authors:   Sean Kelly, Walter Bright, Alex Rønne Petersen
  * Source:    $(DRUNTIMESRC core/_thread.d)
  */
 
@@ -669,8 +669,24 @@ extern(C) void thread_processGCMarks( scope IsMarkedDg isMarked );
 
 
 /**
+ * Returns the stack top of the currently active stack within the calling
+ * thread.
+ *
+ * In:
+ *  The calling thread must be attached to the runtime.
+ *
+ * Returns:
+ *  The address of the stack top.
+ */
+extern (C) void* thread_stackTop();
+
+
+/**
  * Returns the stack bottom of the currently active stack within the calling
  * thread.
+ *
+ * In:
+ *  The calling thread must be attached to the runtime.
  *
  * Returns:
  *  The address of the stack bottom.

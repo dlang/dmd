@@ -103,7 +103,7 @@ else version (X86_64)
         void* reg_args;
     }
 
-    struct __va_argsave_t
+    align(16) struct __va_argsave_t
     {
         size_t[6] regs;   // RDI,RSI,RDX,RCX,R8,R9
         real[8] fpregs;   // XMM0..XMM7

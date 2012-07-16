@@ -14,14 +14,16 @@
  */
 module core.stdc.errno;
 
-extern (C) int getErrno();      // for internal use
-extern (C) int setErrno(int);   // for internal use
+@trusted: // Only manipulates errno.
+nothrow:
 
 @property int errno() { return getErrno(); }
 @property int errno(int n) { return setErrno(n); }
 
 extern (C):
-nothrow:
+
+private extern (C) int getErrno();      // for internal use
+private extern (C) int setErrno(int);   // for internal use
 
 version( Windows )
 {

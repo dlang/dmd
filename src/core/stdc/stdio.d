@@ -27,6 +27,7 @@ private
 }
 
 extern (C):
+@system:
 nothrow:
 
 version( Windows )
@@ -121,10 +122,9 @@ enum
     SEEK_END
 }
 
-struct _iobuf
+version( Windows )
 {
-    align (1):
-    version( Windows )
+    struct _iobuf
     {
         char* _ptr;
         int   _cnt;
@@ -133,9 +133,12 @@ struct _iobuf
         int   _file;
         int   _charbuf;
         int   _bufsiz;
-        int   __tmpnum;
+        char* __tmpnum;
     }
-    else version( linux )
+}
+else version( linux )
+{
+    align(1) struct _iobuf
     {
         int     _flags;
         char*   _read_ptr;
@@ -159,7 +162,10 @@ struct _iobuf
         char[1] _shortbuf;
         void*   _lock;
     }
-    else version( OSX )
+}
+else version( OSX )
+{
+    align (1) struct _iobuf
     {
         ubyte*    _p;
         int       _r;
@@ -186,7 +192,10 @@ struct _iobuf
         int       _blksize;
         fpos_t    _offset;
     }
-    else version( FreeBSD )
+}
+else version( FreeBSD )
+{
+    align (1) struct _iobuf
     {
         ubyte*          _p;
         int             _r;
@@ -220,11 +229,12 @@ struct _iobuf
         int             _orientation;
         __mbstate_t     _mbstate;
     }
-    else
-    {
-        static assert( false, "Unsupported platform" );
-    }
 }
+else
+{
+    static assert( false, "Unsupported platform" );
+}
+
 
 alias shared(_iobuf) FILE;
 
@@ -328,11 +338,17 @@ alias int fpos_t;
 int remove(in char* filename);
 int rename(in char* from, in char* to);
 
-FILE* tmpfile();
+@trusted FILE* tmpfile(); // No unsafe pointer manipulation.
 char* tmpnam(char* s);
 
 int   fclose(FILE* stream);
-int   fflush(FILE* stream);
+
+// No unsafe pointer manipulation.
+@trusted
+{
+    int   fflush(FILE* stream);
+}
+
 FILE* fopen(in char* filename, in char* mode);
 FILE* freopen(in char* filename, in char* mode, FILE* stream);
 
@@ -352,15 +368,20 @@ int vscanf(in char* format, va_list arg);
 int printf(in char* format, ...);
 int scanf(in char* format, ...);
 
-int fgetc(FILE* stream);
-int fputc(int c, FILE* stream);
+// No usafe pointer manipulation.
+@trusted
+{
+    int fgetc(FILE* stream);
+    int fputc(int c, FILE* stream);
+}
 
 char* fgets(char* s, int n, FILE* stream);
 int   fputs(in char* s, FILE* stream);
 char* gets(char* s);
 int   puts(in char* s);
 
-extern (D)
+// No unsafe pointer manipulation.
+extern (D) @trusted
 {
     int getchar()                 { return getc(stdin);     }
     int putchar(int c)            { return putc(c,stdout);  }
@@ -368,20 +389,25 @@ extern (D)
     int putc(int c, FILE* stream) { return fputc(c,stream); }
 }
 
-int ungetc(int c, FILE* stream);
+@trusted int ungetc(int c, FILE* stream); // No unsafe pointer manipulation.
 
 size_t fread(void* ptr, size_t size, size_t nmemb, FILE* stream);
 size_t fwrite(in void* ptr, size_t size, size_t nmemb, FILE* stream);
 
-int fgetpos(FILE* stream, fpos_t * pos);
-int fsetpos(FILE* stream, in fpos_t* pos);
+// No unsafe pointer manipulation.
+@trusted
+{
+    int fgetpos(FILE* stream, fpos_t * pos);
+    int fsetpos(FILE* stream, in fpos_t* pos);
 
-int    fseek(FILE* stream, c_long offset, int whence);
-c_long ftell(FILE* stream);
+    int    fseek(FILE* stream, c_long offset, int whence);
+    c_long ftell(FILE* stream);
+}
 
 version( Windows )
 {
-  extern (D)
+  // No unsafe pointer manipulation.
+  extern (D) @trusted
   {
     void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
     pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
@@ -396,33 +422,45 @@ version( Windows )
 }
 else version( linux )
 {
+  // No unsafe pointer manipulation.
+  @trusted
+  {
     void rewind(FILE* stream);
     pure void clearerr(FILE* stream);
     pure int  feof(FILE* stream);
     pure int  ferror(FILE* stream);
     int  fileno(FILE *);
+  }
 
     int  snprintf(char* s, size_t n, in char* format, ...);
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
 else version( OSX )
 {
+  // No unsafe pointer manipulation.
+  @trusted
+  {
     void rewind(FILE*);
     pure void clearerr(FILE*);
     pure int  feof(FILE*);
     pure int  ferror(FILE*);
     int  fileno(FILE*);
+  }
 
     int  snprintf(char* s, size_t n, in char* format, ...);
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
 else version( FreeBSD )
 {
+  // No unsafe pointer manipulation.
+  @trusted
+  {
     void rewind(FILE*);
     pure void clearerr(FILE*);
     pure int  feof(FILE*);
     pure int  ferror(FILE*);
     int  fileno(FILE*);
+  }
 
     int  snprintf(char* s, size_t n, in char* format, ...);
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);

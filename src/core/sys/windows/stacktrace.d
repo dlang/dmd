@@ -103,13 +103,26 @@ private:
         STACKFRAME64 stackframe;
         with (stackframe)
         {
-            enum Flat = ADDRESS_MODE.AddrModeFlat;
-            AddrPC.Offset    = ctxt.Eip;
-            AddrPC.Mode      = Flat;
-            AddrFrame.Offset = ctxt.Ebp;
-            AddrFrame.Mode   = Flat;
-            AddrStack.Offset = ctxt.Esp;
-            AddrStack.Mode   = Flat;
+            version(X86) 
+            {
+                enum Flat = ADDRESS_MODE.AddrModeFlat;
+                AddrPC.Offset    = ctxt.Eip;
+                AddrPC.Mode      = Flat;
+                AddrFrame.Offset = ctxt.Ebp;
+                AddrFrame.Mode   = Flat;
+                AddrStack.Offset = ctxt.Esp;
+                AddrStack.Mode   = Flat;
+            }
+	    else version(X86_64)
+            {
+                enum Flat = ADDRESS_MODE.AddrModeFlat;
+                AddrPC.Offset    = ctxt.Rip;
+                AddrPC.Mode      = Flat;
+                AddrFrame.Offset = ctxt.Rbp;
+                AddrFrame.Mode   = Flat;
+                AddrStack.Offset = ctxt.Rsp;
+                AddrStack.Mode   = Flat;
+            }
         }
 
         static struct BufSymbol
