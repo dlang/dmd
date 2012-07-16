@@ -103,7 +103,7 @@ struct AA
  * in value.
  */
 
-size_t aligntsize(size_t tsize)
+size_t aligntsize(size_t tsize) nothrow
 {
     version (D_LP64)
         // Size of key needed to align value on 16 bytes
@@ -802,7 +802,7 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
 }
 
 
-static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(TypeInfo tiRaw)
+static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(TypeInfo tiRaw) nothrow
 {
     TypeInfo_AssociativeArray ti;
     while (true)
@@ -926,7 +926,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
  *      Hash value
  */
 extern (C)
-hash_t _aaGetHash(AA* aa, TypeInfo tiRaw)
+hash_t _aaGetHash(AA* aa, TypeInfo tiRaw) nothrow
 {
     import rt.util.hash;
 

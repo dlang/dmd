@@ -689,7 +689,7 @@ class TypeInfo_AssociativeArray : TypeInfo
                     this.value == c.value;
     }
 
-    override hash_t getHash(in void* p) @trusted
+    override hash_t getHash(in void* p) nothrow @trusted
     {
         return _aaGetHash(cast(void*)p, this);
     }
@@ -2105,7 +2105,7 @@ extern (C)
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
-    hash_t _aaGetHash(void* aa, TypeInfo tiRaw);
+    hash_t _aaGetHash(void* aa, TypeInfo tiRaw) nothrow;
 }
 
 struct AssociativeArray(Key, Value)
