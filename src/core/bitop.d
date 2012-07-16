@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Don Clugston 2005 - 2009.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
- * Authors:   Don Clugston, Sean Kelly, Walter Bright
+ * Authors:   Don Clugston, Sean Kelly, Walter Bright, Alex Rønne Petersen
  * Source:    $(DRUNTIMESRC core/_bitop.d)
  */
 
