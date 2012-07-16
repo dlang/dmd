@@ -714,13 +714,13 @@ struct TryCatchStatement : Statement
 struct Catch : Object
 {
     Loc loc;
-    Type *type;
+    Types *types;
     Identifier *ident;
     VarDeclaration *var;
     Statement *handler;
     bool internalCatch;
 
-    Catch(Loc loc, Type *t, Identifier *id, Statement *handler);
+    Catch(Loc loc, Types *t, Identifier *id, Statement *handler);
     Catch *syntaxCopy();
     void semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
