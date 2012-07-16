@@ -122,7 +122,6 @@ extern (C) void* rt_loadLibrary(in char[] name)
 {
     version (Windows)
     {
-        void* mod;
         if (name.length == 0) return null;
         // Load a DLL at runtime
         wchar_t* tempW;
@@ -146,7 +145,7 @@ extern (C) void* rt_loadLibrary(in char[] name)
         tempWofs[tempWofslen] = '\0';
         
         // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
-        mod = LoadLibraryW(tempW);
+        auto mod = LoadLibraryW(tempW);
         if (mod is null)
             return mod;
         gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
@@ -392,7 +391,7 @@ extern (C) int main(int argc, char** argv)
     version (Windows)
     {
         wchar_t*  wcbuf = GetCommandLineW();
-        size_t 	  wclen = wcslen(wcbuf);
+        size_t    wclen = wcslen(wcbuf);
         int       wargc = 0;
         wchar_t** wargs = CommandLineToArgvW(wcbuf, &wargc);
         assert(wargc == argc);
