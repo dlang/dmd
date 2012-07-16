@@ -809,7 +809,8 @@ static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(TypeInfo tiRaw)
     {
         if ((ti = cast(TypeInfo_AssociativeArray)tiRaw) !is null)
             break;
-        else if (auto tiConst = cast(TypeInfo_Const)tiRaw) {
+
+        if (auto tiConst = cast(TypeInfo_Const)tiRaw) {
             // The member in object_.d and object.di differ. This is to ensure
             //  the file can be compiled both independently in unittest and
             //  collectively in generating the library. Fixing object.di
@@ -929,39 +930,38 @@ hash_t _aaGetHash(AA* aa, TypeInfo tiRaw)
 {
     import rt.util.hash;
 
+    if (!aa.a)
+    	return 0;
+
     hash_t h = 0;
+    TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
+    auto keyti = ti.key;
+    auto valueti = ti.next;
+    const keysize = aligntsize(keyti.tsize());
 
-    if (aa.a)
+    foreach (e; aa.a.b)
     {
-        TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
-        auto keyti = ti.key;
-        auto valueti = ti.next;
-        const keysize = aligntsize(keyti.tsize());
+	while (e)
+	{
+	    auto pkey = cast(void*)(e + 1);
+	    auto pvalue = pkey + keysize;
 
-        foreach (e; aa.a.b)
-        {
-            while (e)
-            {
-                auto pkey = cast(void*)(e + 1);
-                auto pvalue = pkey + keysize;
+	    // Compute a hash for the key/value pair by hashing their
+	    // respective hash values.
+	    hash_t[2] hpair;
+	    hpair[0] = e.hash;
+	    hpair[1] = valueti.getHash(pvalue);
 
-                // Compute a hash for the key/value pair by hashing their
-                // respective hash values.
-                hash_t[2] hpair;
-                hpair[0] = e.hash;
-                hpair[1] = valueti.getHash(pvalue);
+	    // Combine the hash of the key/value pair with the running hash
+	    // value using an associative operator (+) so that the resulting
+	    // hash value is independent of the actual order the pairs are
+	    // stored in (important to ensure equality of hash value for two
+	    // AA's containing identical pairs but with different hashtable
+	    // sizes).
+	    h += hashOf(hpair.ptr, hpair.length * hash_t.sizeof);
 
-                // Combine the hash of the key/value pair with the running hash
-                // value using a commutative operator (+) so that the resulting
-                // hash value is independent of the actual order the pairs are
-                // stored in (important to ensure equality of hash value for
-                // two AA's containing identical pairs but with different
-                // hashtable sizes).
-                h += hashOf(hpair.ptr, hpair.length * hash_t.sizeof);
-
-                e = e.next;
-            }
-        }
+	    e = e.next;
+	}
     }
 
     return h;
