@@ -29,13 +29,13 @@ template TPair(T, U) {
             this._left = left;
             this._right = right;
         }
-        public const T left() {
+        public T left() {
             return this._left;
         }
-        public const U right() {
+        public U right() {
             return this._right;
         }
-        override public const boolean opEquals(const Object obj) {
+        override public boolean opEquals(Object obj) {
             Pair other = cast(Pair) obj;
             if (other !is null) {
                 return (left() == other.left()) && (right() == other.right());

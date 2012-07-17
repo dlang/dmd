@@ -133,7 +133,7 @@ void test4()
 
 class A5
 {
-    override const bool opEquals(const Object o)
+    override bool opEquals(Object o)
     {
         printf("A.opEquals!(%p)\n", o);
         return 1;
@@ -155,7 +155,7 @@ class A5
 
 class B5 : A5
 {
-    override const bool opEquals(const Object o)
+    override bool opEquals(Object o)
     {
         printf("B.opEquals!(%p)\n", o);
         return 1;
