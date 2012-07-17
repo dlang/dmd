@@ -8452,6 +8452,7 @@ Expression *AddrExp::semantic(Scope *sc)
         if (e1->op == TOKdotvar)
         {
             DotVarExp *dve = (DotVarExp *)e1;
+            checkDeprecated(sc, dve->var);
             FuncDeclaration *f = dve->var->isFuncDeclaration();
 
             if (f)
@@ -8467,6 +8468,7 @@ Expression *AddrExp::semantic(Scope *sc)
         {
             VarExp *ve = (VarExp *)e1;
 
+            checkDeprecated(sc, ve->var);
             VarDeclaration *v = ve->var->isVarDeclaration();
             if (v)
             {
