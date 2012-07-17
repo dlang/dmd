@@ -18,6 +18,7 @@
 #include "aggregate.h"
 #include "dsymbol.h"
 #include "mtype.h"
+#include "declaration.h"
 
 #if DMDV2
 
@@ -78,9 +79,32 @@ void AliasThis::semantic(Scope *sc)
                 ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else
                 ::error(loc, "undefined identifier %s", ident->toChars());
+            return;
         }
         else if (ad->aliasthis && s != ad->aliasthis)
             error("there can be only one alias this");
+
+        /* disable the alias this conversion so the implicit conversion check
+         * doesn't use it.
+         */
+        /* This should use ad->aliasthis directly, but with static foreach and templates
+         * ad->type->sym might be different to ad.
+         */
+        AggregateDeclaration *ad2 = ad->type->toDsymbol(NULL)->isAggregateDeclaration();
+        Dsymbol *save = ad2->aliasthis;
+        ad2->aliasthis = NULL;
+
+        if (Declaration *d = s->isDeclaration())
+        {
+            Type *t = d->type;
+            assert(t);
+            if (ad->type->implicitConvTo(t))
+            {
+                ::error(loc, "alias this is not reachable as %s already converts to %s", ad->toChars(), t->toChars());
+            }
+        }
+
+        ad2->aliasthis = save;
         ad->aliasthis = s;
     }
     else
