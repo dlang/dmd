@@ -1525,6 +1525,22 @@ void test8129()
 }
 
 /**********************************/
+// 8238
+
+void test8238()
+{
+    static struct S { template t(){ int t; } }
+
+    S s1, s2;
+    assert(cast(void*)&s1      != cast(void*)&s2     );
+    assert(cast(void*)&s1      != cast(void*)&s1.t!());
+    assert(cast(void*)&s2      != cast(void*)&s2.t!());
+    assert(cast(void*)&s1.t!() == cast(void*)&s2.t!());
+    s1.t!() = 256;
+    assert(s2.t!() == 256);
+}
+
+/**********************************/
 // 8976
 
 void f8976(ref int) { }
@@ -1632,6 +1648,7 @@ int main()
     test13();
     test14();
     test8129();
+    test8238();
     test8976();
     test8940();
 

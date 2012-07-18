@@ -7140,6 +7140,16 @@ Expression *DotVarExp::semantic(Scope *sc)
             Expression *e = expandVar(WANTvalue, v);
             if (e)
                 return e;
+
+            if (v->isDataseg())     // fix bugzilla 8238
+            {
+                // (e1, v)
+                accessCheck(loc, sc, e1, v);
+                VarExp *ve = new VarExp(loc, v);
+                e = new CommaExp(loc, e1, ve);
+                e = e->semantic(sc);
+                return e;
+            }
         }
         Dsymbol *s;
         if (sc->func && !sc->intypeof && t1->hasPointers() &&
