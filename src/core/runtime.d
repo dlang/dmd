@@ -293,8 +293,8 @@ extern (C) bool runModuleUnitTests()
             void*[MAXFRAMES]  callstack;
             int               numframes;
 
-            numframes = backtrace( callstack, MAXFRAMES );
-            backtrace_symbols_fd( callstack, numframes, 2 );
+            numframes = backtrace( callstack.ptr, MAXFRAMES );
+            backtrace_symbols_fd( callstack.ptr, numframes, 2 );
         }
 
         sigaction_t action = void;
@@ -412,7 +412,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         }
                     }
                 }
-                framelist = backtrace_symbols( callstack, numframes );
+                framelist = backtrace_symbols( callstack.ptr, numframes );
             }
 
             ~this()

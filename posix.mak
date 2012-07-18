@@ -27,9 +27,9 @@ IMPDIR=import
 
 MODEL=32
 
-DFLAGS=-m$(MODEL) -O -release -inline -w -d -Isrc -Iimport -property
-UDFLAGS=-m$(MODEL) -O -release -w -d -Isrc -Iimport -property
-DDOCFLAGS=-m$(MODEL) -c -w -d -o- -Isrc -Iimport
+DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -Iimport -property
+UDFLAGS=-m$(MODEL) -O -release -w -Isrc -Iimport -property
+DDOCFLAGS=-m$(MODEL) -c -w -o- -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
 
@@ -535,7 +535,7 @@ $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 import: $(IMPORTS) 
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
-	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -m$(MODEL) -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
 

@@ -24,6 +24,7 @@ private
     import core.atomic;
     import core.stdc.string;
     import core.stdc.stdlib;
+    import core.memory;
     import rt.util.hash;
     import rt.util.string;
     import rt.util.console;
@@ -712,7 +713,7 @@ class TypeInfo_StaticArray : TypeInfo
             memcpy(p2 + o, tmp, sz);
         }
         if (pbuffer)
-            delete pbuffer;
+            GC.free(pbuffer);
     }
 
     override const(void)[] init() nothrow pure const { return value.init(); }
@@ -2011,7 +2012,10 @@ extern (C) void _d_monitordelete(Object h, bool det)
         //       refcount and it may have multiple owners.
         /+
         if (det && (cast(void*) i) !is (cast(void*) h))
-            delete i;
+        {
+            destroy(i);
+            GC.free(cast(void*)i);
+        }
         +/
         setMonitor(h, null);
     }
