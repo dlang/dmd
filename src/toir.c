@@ -354,20 +354,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-
-        "9intrinsic2btFNaNbxPkkZi",
-        "9intrinsic3bsfFNaNbkZi",
-        "9intrinsic3bsrFNaNbkZi",
-        "9intrinsic3btcFNbPkkZi",
-        "9intrinsic3btrFNbPkkZi",
-        "9intrinsic3btsFNbPkkZi",
-        "9intrinsic3inpFNbkZh",
-        "9intrinsic4inplFNbkZk",
-        "9intrinsic4inpwFNbkZt",
-        "9intrinsic4outpFNbkhZh",
-        "9intrinsic5bswapFNaNbkZk",
-        "9intrinsic5outplFNbkkZk",
-        "9intrinsic5outpwFNbktZt",
 #endif
     };
     static const char *std_namearray64[] =
@@ -413,20 +399,6 @@ int intrinsic_op(char *name)
         "4math5ldexpFNaNbNfeiZe",
         "4math6rndtolFNaNbNfeZl",
         "4math6yl2xp1FNaNbNfeeZe",
-
-        "9intrinsic2btFNaNbxPmmZi",
-        "9intrinsic3bsfFNaNbmZi",
-        "9intrinsic3bsrFNaNbmZi",
-        "9intrinsic3btcFNbPmmZi",
-        "9intrinsic3btrFNbPmmZi",
-        "9intrinsic3btsFNbPmmZi",
-        "9intrinsic3inpFNbkZh",
-        "9intrinsic4inplFNbkZk",
-        "9intrinsic4inpwFNbkZt",
-        "9intrinsic4outpFNbkhZh",
-        "9intrinsic5bswapFNaNbkZk",
-        "9intrinsic5outplFNbkkZk",
-        "9intrinsic5outpwFNbktZt",
 #endif
     };
     static unsigned char std_ioptab[] =
@@ -442,20 +414,6 @@ int intrinsic_op(char *name)
         OPscale,
         OPrndtol,
         OPyl2xp1,
-
-        OPbt,
-        OPbsf,
-        OPbsr,
-        OPbtc,
-        OPbtr,
-        OPbts,
-        OPinp,
-        OPinp,
-        OPinp,
-        OPoutp,
-        OPbswap,
-        OPoutp,
-        OPoutp,
     };
 
 #ifdef DMDV2
@@ -475,17 +433,17 @@ int intrinsic_op(char *name)
 
         "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
 
-        "5bitop2btFNaNbxPkkZi",
-        "5bitop3bsfFNaNbkZi",
-        "5bitop3bsrFNaNbkZi",
-        "5bitop3btcFNbPkkZi",
-        "5bitop3btrFNbPkkZi",
-        "5bitop3btsFNbPkkZi",
+        "5bitop2btFNaNbNfxPkkZi",
+        "5bitop3bsfFNaNbNfkZi",
+        "5bitop3bsrFNaNbNfkZi",
+        "5bitop3btcFNaNbNfPkkZi",
+        "5bitop3btrFNaNbNfPkkZi",
+        "5bitop3btsFNaNbNfPkkZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
         "5bitop4outpFNbkhZh",
-        "5bitop5bswapFNaNbkZk",
+        "5bitop5bswapFNaNbNfkZk",
         "5bitop5outplFNbkkZk",
         "5bitop5outpwFNbktZt",
     };
@@ -505,17 +463,17 @@ int intrinsic_op(char *name)
 
         "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
 
-        "5bitop2btFNaNbxPmmZi",
-        "5bitop3bsfFNaNbmZi",
-        "5bitop3bsrFNaNbmZi",
-        "5bitop3btcFNbPmmZi",
-        "5bitop3btrFNbPmmZi",
-        "5bitop3btsFNbPmmZi",
+        "5bitop2btFNaNbNfxPmmZi",
+        "5bitop3bsfFNaNbNfmZi",
+        "5bitop3bsrFNaNbNfmZi",
+        "5bitop3btcFNaNbNfPmmZi",
+        "5bitop3btrFNaNbNfPmmZi",
+        "5bitop3btsFNaNbNfPmmZi",
         "5bitop3inpFNbkZh",
         "5bitop4inplFNbkZk",
         "5bitop4inpwFNbkZt",
         "5bitop4outpFNbkhZh",
-        "5bitop5bswapFNaNbkZk",
+        "5bitop5bswapFNaNbNfkZk",
         "5bitop5outplFNbkkZk",
         "5bitop5outpwFNbktZt",
     };
