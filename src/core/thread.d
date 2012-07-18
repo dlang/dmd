@@ -749,9 +749,9 @@ class Thread
             if( WaitForSingleObject( m_hndl, INFINITE ) != WAIT_OBJECT_0 )
                 throw new ThreadException( "Unable to join thread" );
             // NOTE: m_addr must be cleared before m_hndl is closed to avoid
-            //       a race condition with isRunning.  The operation is done
-            //       with atomicStore to prevent races.
-            atomicStore(*cast(shared)&m_addr, m_addr.init);
+            //       a race condition with isRunning. The operation is done
+            //       with atomicStore to prevent compiler reordering.
+            atomicStore!(msync.raw)(*cast(shared)&m_addr, m_addr.init);
             CloseHandle( m_hndl );
             m_hndl = m_hndl.init;
         }
@@ -763,7 +763,7 @@ class Thread
             //       which is normally called by the dtor.  Setting m_addr
             //       to zero ensures that pthread_detach will not be called
             //       on object destruction.
-            atomicStore(*cast(shared)&m_addr, cast(shared)m_addr.init);
+            m_addr = m_addr.init;
         }
         if( m_unhandled )
         {
@@ -3057,7 +3057,6 @@ private
     version( Posix )
     {
         import core.sys.posix.unistd;   // for sysconf
-        import core.sys.posix.sys.mman; // for mmap
 
         version( AsmX86_Windows )    {} else
         version( AsmX86_Posix )      {} else
@@ -3118,7 +3117,7 @@ private
         assert( obj );
 
         assert( Thread.getThis().m_curr is obj.m_ctxt );
-        atomicStore(*cast(shared)&Thread.getThis().m_lock, false);
+        atomicStore!(msync.raw)(*cast(shared)&Thread.getThis().m_lock, false);
         obj.m_ctxt.tstack = obj.m_ctxt.bstack;
         obj.m_state = Fiber.State.EXEC;
 
@@ -3804,7 +3803,10 @@ private:
             m_size = sz;
         }
         else
-        {   static if( __traits( compiles, mmap ) )
+        {
+            import core.sys.posix.sys.mman; // mmap
+
+            static if( __traits( compiles, mmap ) )
             {
                 m_pmem = mmap( null,
                                sz,
@@ -3863,6 +3865,8 @@ private:
         // NOTE: m_ctxt is guaranteed to be alive because it is held in the
         //       global context list.
         Thread.remove( m_ctxt );
+
+        import core.sys.posix.sys.mman; // munmap
 
         static if( __traits( compiles, VirtualAlloc ) )
         {
@@ -4138,7 +4142,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        atomicStore(*cast(shared)&tobj.m_lock, true);
+        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, true);
         tobj.pushContext( m_ctxt );
 
         fiber_switchContext( oldp, newp );
@@ -4146,7 +4150,7 @@ private:
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
         tobj.popContext();
-        atomicStore(*cast(shared)&tobj.m_lock, false);
+        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 
@@ -4172,7 +4176,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        atomicStore(*cast(shared)&tobj.m_lock, true);
+        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, true);
 
         fiber_switchContext( oldp, newp );
 
@@ -4182,7 +4186,7 @@ private:
         //       executing here may be different from the one above, so get the
         //       current thread handle before unlocking, etc.
         tobj = Thread.getThis();
-        atomicStore(*cast(shared)&tobj.m_lock, false);
+        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 }
