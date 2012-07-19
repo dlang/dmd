@@ -4517,11 +4517,11 @@ version( OSX )
         //       compiler.  If it isn't, something is disastrously wrong.
         auto obj = Thread.getThis();
 
-        if (p >= _tls_data_array[0].ptr && p < &_tls_data_array[0][length])
+        if (p >= _tls_data_array[0].ptr && p < &_tls_data_array[0][$])
         {
             return obj.m_tls.ptr + (p - _tls_data_array[0].ptr);
         }
-        else if (p >= _tls_data_array[1].ptr && p < &_tls_data_array[1][length])
+        else if (p >= _tls_data_array[1].ptr && p < &_tls_data_array[1][$])
         {
             size_t sz = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
             return obj.m_tls.ptr + sz + (p - _tls_data_array[1].ptr);

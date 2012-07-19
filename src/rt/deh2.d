@@ -123,7 +123,7 @@ DHandlerTable *__eh_finddata(void *address)
     version (OSX)
     {
         auto pstart = cast(FuncTable *)_deh_eh_array.ptr;
-        auto pend   = cast(FuncTable *)&_deh_eh_array[length];
+        auto pend   = cast(FuncTable *)&_deh_eh_array[$];
     }
     else
     {

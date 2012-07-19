@@ -348,7 +348,7 @@ class Semaphore
         }
         else version( OSX )
         {
-            return wait( 0 );
+            return wait( dur!"hnsecs"(0) );
         }
         else version( Posix )
         {
