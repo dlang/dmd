@@ -650,6 +650,17 @@ if (is(typeof(pred(1)) == bool))
 {}
 
 /***************************************************/
+// 8397
+
+void test8397()
+{
+    void function(int) f;
+  static assert(!is(typeof({
+    f = function(string x) {};
+  })));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -687,6 +698,7 @@ int main()
     test8241();
     test8242();
     test8315();
+    test8397();
 
     printf("Success\n");
     return 0;
