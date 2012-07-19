@@ -3745,7 +3745,7 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             if (o->dyncast() == DYNCAST_TYPE)
             {
                 *ps = NULL;
-                *pt = (Type *)o;
+                *pt = ((Type *)o)->addMod(this->mod);
                 return;
             }
 
@@ -3795,7 +3795,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         {   error(loc, "%s is not a type", toChars());
             return Type::terror;
         }
-        t = (Type *)o;
+        t = ((Type *)o)->addMod(this->mod);
         return t;
     }
 
@@ -3872,7 +3872,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
                 goto Lerror;
             }
             Parameter *arg = (*tt->arguments)[(size_t)d];
-            return arg->type;
+            return arg->type->addMod(this->mod);
         }
         case Tstruct:
         {   TypeStruct *ts = (TypeStruct *)tbn;
