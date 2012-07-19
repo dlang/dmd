@@ -554,6 +554,16 @@ int test4()
 static assert(test4() == 24666);
 
 /************************************/
+// 8400
+
+void test8400()
+{
+    immutable a = [1,2];
+    int[a.length+0] b; // ok
+    int[a.length  ] c; // error
+}
+
+/************************************/
 
 int main()
 {
@@ -561,6 +571,7 @@ int main()
     test2();
     test3();
     test6077();
+    test8400();
 
     printf("Success\n");
     return 0;

@@ -6369,9 +6369,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 v = s->isVarDeclaration();
                 if (v && id == Id::length)
                 {
-                    e = v->getConstInitializer();
-                    if (!e)
-                        e = new VarExp(loc, v);
+                    e = new VarExp(loc, v);
                     t = e->type;
                     if (!t)
                         goto Lerror;
