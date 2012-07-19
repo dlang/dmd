@@ -469,13 +469,17 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
                 result = MATCHnomatch;
         }
 
+        if (!elements->dim && typeb->nextOf()->toBasetype()->ty != Tvoid)
+            result = MATCHnomatch;
+
+        Type *telement = tb->nextOf();
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (*elements)[i];
-            MATCH m = (MATCH)e->implicitConvTo(tb->nextOf());
-            if (m < result)
-                result = m;                     // remember worst match
             if (result == MATCHnomatch)
                 break;                          // no need to check for worse
+            MATCH m = (MATCH)e->implicitConvTo(telement);
+            if (m < result)
+                result = m;                     // remember worst match
         }
 
         if (!result)
@@ -483,6 +487,29 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
 
         return result;
     }
+#if DMDV2
+    else if (tb->ty == Tvector &&
+        (typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+        // Convert array literal to vector type
+        TypeVector *tv = (TypeVector *)tb;
+        TypeSArray *tbase = (TypeSArray *)tv->basetype;
+        assert(tbase->ty == Tsarray);
+        if (elements->dim != tbase->dim->toInteger())
+            return MATCHnomatch;
+
+        Type *telement = tv->elementType();
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *e = (*elements)[i];
+            MATCH m = (MATCH)e->implicitConvTo(telement);
+            if (m < result)
+                result = m;                     // remember worst match
+            if (result == MATCHnomatch)
+                break;                          // no need to check for worse
+        }
+        return result;
+    }
+#endif
     else
         return Expression::implicitConvTo(t);
 }
@@ -1065,6 +1092,30 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
         e = (ArrayLiteralExp *)copy();
         e->type = typeb->nextOf()->pointerTo();
     }
+#if DMDV2
+    else if (tb->ty == Tvector &&
+        (typeb->ty == Tarray || typeb->ty == Tsarray))
+    {
+        // Convert array literal to vector type
+        TypeVector *tv = (TypeVector *)tb;
+        TypeSArray *tbase = (TypeSArray *)tv->basetype;
+        assert(tbase->ty == Tsarray);
+        if (elements->dim != tbase->dim->toInteger())
+            goto L1;
+
+        e = (ArrayLiteralExp *)copy();
+        e->elements = (Expressions *)elements->copy();
+        Type *telement = tv->elementType();
+        for (size_t i = 0; i < elements->dim; i++)
+        {   Expression *ex = (*elements)[i];
+            ex = ex->castTo(sc, telement);
+            (*e->elements)[i] = ex;
+        }
+        Expression *ev = new VectorExp(loc, e, tb);
+        ev = ev->semantic(sc);
+        return ev;
+    }
+#endif
 L1:
     return e->Expression::castTo(sc, t);
 }
