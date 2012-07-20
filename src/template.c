@@ -1351,7 +1351,7 @@ L2:
         }
 
         // Match attributes of ethis against attributes of fd
-        if (fd->type)
+        if (fd->type && !fd->isCtorDeclaration())
         {
             Type *tthis = ethis->type;
             unsigned mod = fd->type->mod;
@@ -2021,7 +2021,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         TypeFunction *tf1 = (TypeFunction *)fd->type;
         TypeFunction *tf2 = (TypeFunction *)fd_best->type;
         MATCH c1 = (MATCH) tf1->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? ethis : NULL, fargs);
-        MATCH c2 = (MATCH) tf2->callMatch(fd_best->needThis() && !fd->isCtorDeclaration() ? ethis : NULL, fargs);
+        MATCH c2 = (MATCH) tf2->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? ethis : NULL, fargs);
         //printf("2: c1 = %d, c2 = %d\n", c1, c2);
 
         if (c1 > c2)
@@ -2083,7 +2083,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     ti = new TemplateInstance(loc, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
-    if (!fd_best || !((TypeFunction*)fd_best->type)->callMatch(ethis, fargs))
+    if (!fd_best)
+        goto Lerror;
+    if (!((TypeFunction*)fd_best->type)->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? ethis : NULL, fargs))
         goto Lerror;
 
     if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
