@@ -353,14 +353,14 @@ Expression *BinExp::arrayOp(Scope *sc)
 
             sc->module->importedFrom->members->push(fd);
 
-            Scope *scx = sc->push();
-            scx->parent = sc->module->importedFrom;
-            scx->stc = 0;
-            scx->linkage = LINKc;
-            fd->semantic(scx);
-            fd->semantic2(scx);
-            fd->semantic3(scx);
-            scx->pop();
+            sc = sc->push();
+            sc->parent = sc->module->importedFrom;
+            sc->stc = 0;
+            sc->linkage = LINKc;
+            fd->semantic(sc);
+            fd->semantic2(sc);
+            fd->semantic3(sc);
+            sc->pop();
         }
         else
         {   /* In library, refer to it.
@@ -373,68 +373,9 @@ Expression *BinExp::arrayOp(Scope *sc)
     /* Call the function fd(arguments)
      */
     Expression *ec = new VarExp(0, fd);
-    Expression *e;
-
-    if (global.params.useArrayBounds == 2 ||
-        (global.params.useArrayBounds == 1 &&
-         sc->func && ((TypeFunction *)sc->func->type)->trust == TRUSTsafe))
-    {
-        /* arrayOp(a, b, ...) ->
-         *      (auto tmp0 = e0, tmp1 = e1, ...),
-         *      assert(tmp0.length == tmp1.length && ...),
-         *      arrayOp(tmp0, tmp1, ...)
-         *
-         *  This is only possible because all parameters must be array slices,
-         *  so we don't have to worry about destructors/postblits etc
-         */
-
-        assert(arguments->dim);
-        Expression *decls = NULL;
-        Expression *econd = new IntegerExp(0, 1, Type::tbool);
-        VarDeclaration *tmp0 = NULL;
-
-        for(size_t i = 0; i < arguments->dim; ++i)
-        {
-            VarDeclaration *tmpn = new VarDeclaration(0, (*arguments)[i]->type, Lexer::uniqueId("__tmp"),
-                                                      new ExpInitializer(0, (*arguments)[i]));
-            if (!tmp0)
-                tmp0 = tmpn;
-
-            Expression *de = new DeclarationExp(0, tmpn);
-            if (decls)
-                decls = new CommaExp(0, de, decls);
-            else
-                decls = de;
-
-            if ((*arguments)[i]->type->ty == Tarray && tmp0 != tmpn)
-            {
-                Expression *equal = new EqualExp(TOKequal, 0, new ArrayLengthExp(0, new VarExp(0, tmp0)),
-                                                              new ArrayLengthExp(0, new VarExp(0, tmpn)));
-                econd = new AndAndExp(0, econd, equal);
-            }
-            (*arguments)[i] = new VarExp(0, tmpn);
-        }
-
-        OutBuffer msgbuf;
-        msgbuf.printf("length mismatch match for array operation '%s'", toChars());
-        msgbuf.writebyte(0);
-        Expression *emsg = new StringExp(0, msgbuf.extractData());
-        Expression *ea = new AssertExp(loc, econd, emsg);
-
-        e = new CallExp(loc, ec, arguments);
-        e->type = type;
-        e = new CommaExp(0, ea, e);
-        e = new CommaExp(0, decls, e);
-        //printf("%s\n", e->toChars());
-        //printf("%s\n", fd->type->toChars());
-    }
-    else
-    {
-        e = new CallExp(loc, ec, arguments);
-        e->type = type;
-    }
-
-    return e->semantic(sc);
+    Expression *e = new CallExp(loc, ec, arguments);
+    e->type = type;
+    return e;
 }
 
 Expression *BinAssignExp::arrayOp(Scope *sc)
