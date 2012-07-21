@@ -385,10 +385,10 @@ void test17()
 
 void test18()
 {
-    real t = 0.;
+    real t = 0.0;
     for(int i=0; i<10; i++)
     {
-	t += 1.;
+	t += 1.0;
 	real r =  (2*t);
 	printf("%Lg  %Lg  %Lg\n", t, r, 2*t);
 	assert(2*t == (i+1)*2);

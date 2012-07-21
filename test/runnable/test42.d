@@ -2154,7 +2154,7 @@ public struct foo134
 
 class bar134
 {
-    final void fun(foo134 arg = foo134(0.)) { }
+    final void fun(foo134 arg = foo134(0.0)) { }
 }
 
 /***************************************************/
