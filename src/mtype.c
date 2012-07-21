@@ -8448,14 +8448,12 @@ L1:
         return de;
     }
 
-#if 0 // shouldn't this be here?
     if (s->isImport() || s->isModule() || s->isPackage())
     {
         e = new DsymbolExp(e->loc, s, 0);
         e = e->semantic(sc);
         return e;
     }
-#endif
 
     OverloadSet *o = s->isOverloadSet();
     if (o)
