@@ -49,7 +49,7 @@ struct Struct
 {
     int langID;
     long _force_nrvo;
-}       
+}
 
 Struct[1] table;
 
@@ -57,7 +57,7 @@ Struct getfirst()
 {
     foreach(v; table) {
         writeln(v.langID);
-	assert(v.langID == 1);
+    assert(v.langID == 1);
         return v;
     }
     assert(0);
@@ -67,7 +67,7 @@ Struct getsecond()
 {
     foreach(ref v; table) {
         writeln(v.langID);
-	assert(v.langID == 1);
+    assert(v.langID == 1);
         return v;
     }
     assert(0);
@@ -92,11 +92,11 @@ class ExOuter
 {
     class ExInner
     {
-	this()
-	{
-	    typeof(this.outer) X;
-	    static assert(is(typeof(X) == ExOuter));
-	}
+    this()
+    {
+        typeof(this.outer) X;
+        static assert(is(typeof(X) == ExOuter));
+    }
     }
 }
 
@@ -107,20 +107,20 @@ void test4()
 /************************************************/
 
 int status5;
- 
+
 struct MyStruct5
 {
 }
- 
+
 void rec5(int i, MyStruct5 s)
 {
     if( i > 0 )
     {
-	status5++;
-	rec5(i-1, s);
+    status5++;
+    rec5(i-1, s);
     }
 }
- 
+
 void test5()
 {
     assert(status5==0);
@@ -155,37 +155,37 @@ void test6()
 template parseUinteger(string s)
 {
     static if (s.length == 0)
-    {	const char[] value = "";
-	const char[] rest = "";
+    {   const char[] value = "";
+    const char[] rest = "";
     }
     else static if (s[0] >= '0' && s[0] <= '9')
-    {	const char[] value = s[0] ~ parseUinteger!(s[1..$]).value;
-	const char[] rest = parseUinteger!(s[1..$]).rest;
+    {   const char[] value = s[0] ~ parseUinteger!(s[1..$]).value;
+    const char[] rest = parseUinteger!(s[1..$]).rest;
     }
     else
-    {	const char[] value = "";
-	const char[] rest = s;
+    {   const char[] value = "";
+    const char[] rest = s;
     }
 }
 
 template parseInteger(string s)
 {
     static if (s.length == 0)
-    {	const char[] value = "";
-	const char[] rest = "";
+    {   const char[] value = "";
+    const char[] rest = "";
     }
     else static if (s[0] >= '0' && s[0] <= '9')
-    {	const char[] value = s[0] ~ parseUinteger!(s[1..$]).value;
-	const char[] rest = parseUinteger!(s[1..$]).rest;
+    {   const char[] value = s[0] ~ parseUinteger!(s[1..$]).value;
+    const char[] rest = parseUinteger!(s[1..$]).rest;
     }
     else static if (s.length >= 2 &&
-		s[0] == '-' && s[1] >= '0' && s[1] <= '9')
-    {	const char[] value = s[0..2] ~ parseUinteger!(s[2..$]).value;
-	const char[] rest = parseUinteger!(s[2..$]).rest;
+        s[0] == '-' && s[1] >= '0' && s[1] <= '9')
+    {   const char[] value = s[0..2] ~ parseUinteger!(s[2..$]).value;
+    const char[] rest = parseUinteger!(s[2..$]).rest;
     }
     else
-    {	const char[] value = "";
-	const char[] rest = s;
+    {   const char[] value = "";
+    const char[] rest = s;
     }
 }
 
@@ -259,8 +259,8 @@ char[] toHtmlFilename(char[] fname)
 {
     foreach (ref c; fname)
     {
-	if (!isalnum(c) && c != '.' && c != '-')
-	    c = '_';
+    if (!isalnum(c) && c != '.' && c != '-')
+        c = '_';
     }
     return fname;
 }
@@ -304,9 +304,9 @@ class C13
     int a = 4;
     this()
     {
-	printf("C13.this()\n");
-	assert(a == 4);
-	a = 5;
+    printf("C13.this()\n");
+    assert(a == 4);
+    a = 5;
     }
 }
 
@@ -332,7 +332,7 @@ class Foo15 : Base15 {
 
 class Bar15 : Foo15 {
         alias Foo15.func func;
-	int func(string a) { return 2; }
+    int func(string a) { return 2; }
 }
 
 void test15()
@@ -350,9 +350,9 @@ struct Iterator16(T : Basic16!(T, U), U)
 {
     static void Foo()
     {
-	writeln(typeid(T), typeid(U));
-	assert(is(T == int));
-	assert(is(U == float));
+    writeln(typeid(T), typeid(U));
+    assert(is(T == int));
+    assert(is(U == float));
     }
 }
 
@@ -379,7 +379,7 @@ void test17()
     S17!(int).iterator i;
     auto x = insert17(a, i);
     assert(x == 3);
-} 
+}
 
 /************************************************/
 
@@ -388,10 +388,10 @@ void test18()
     real t = 0.0;
     for(int i=0; i<10; i++)
     {
-	t += 1.0;
-	real r =  (2*t);
-	printf("%Lg  %Lg  %Lg\n", t, r, 2*t);
-	assert(2*t == (i+1)*2);
+    t += 1.0;
+    real r =  (2*t);
+    printf("%Lg  %Lg  %Lg\n", t, r, 2*t);
+    assert(2*t == (i+1)*2);
     }
 }
 
@@ -417,16 +417,16 @@ class myclass20
 {
     template XX(uint a, uint c)
     {
-	static uint XX(){ return (a*256+c);}
+    static uint XX(){ return (a*256+c);}
     }
     void testcase()
     {
-	switch (cast(uint)type20.a)
-	{
-	    case XX!(cast(uint)type20.a,cast(uint)type20.b)():
-		break;
-	    default: assert(0);
-	}
+    switch (cast(uint)type20.a)
+    {
+        case XX!(cast(uint)type20.a,cast(uint)type20.b)():
+        break;
+        default: assert(0);
+    }
     }
 }
 
@@ -611,18 +611,18 @@ class RangeCoder
     ulong range;
 
     this() {
-	for (int i=0; i<cumCount.length; i++)
-	    cumCount[i] = i;
-	lower = 0;
-	upper = 0xffffffff;
-	range = 0x100000000;
+    for (int i=0; i<cumCount.length; i++)
+        cumCount[i] = i;
+    lower = 0;
+    upper = 0xffffffff;
+    range = 0x100000000;
     }
 
     void encode(uint symbol) {
-	uint total = cumCount[$ - 1];              
-	// "Error: Access Violation" in following line
-	upper = lower + cast(uint)((cumCount[symbol+1] * range) / total) - 1;
-	lower = lower + cast(uint)((cumCount[symbol]   * range) / total);
+    uint total = cumCount[$ - 1];
+    // "Error: Access Violation" in following line
+    upper = lower + cast(uint)((cumCount[symbol+1] * range) / total) - 1;
+    lower = lower + cast(uint)((cumCount[symbol]   * range) / total);
     }
 }
 
@@ -640,18 +640,18 @@ struct Vector34
 
     public static Vector34 opCall(float x = 0, float y = 0, float z = 0)
     {
-	Vector34 v;
+    Vector34 v;
 
-	v.x = x;
-	v.y = y;
-	v.z = z;
+    v.x = x;
+    v.y = y;
+    v.z = z;
 
-	return v;
+    return v;
     }
 
     public string toString()
     {
-	return std.string.format("<%f, %f, %f>", x, y, z);
+    return std.string.format("<%f, %f, %f>", x, y, z);
     }
 }
 
@@ -661,33 +661,33 @@ class Foo34
 
     public this()
     {
-	v = Vector34(1, 0, 0);
+    v = Vector34(1, 0, 0);
     }
 
     public void foo()
     {
-	bar();
+    bar();
     }
 
     private void bar()
     {
-	auto s = foobar();
-	writef("Returned: %s\n", s);
-	assert(std.string.format("%s", s) == "<1.000000, 0.000000, 0.000000>");
+    auto s = foobar();
+    writef("Returned: %s\n", s);
+    assert(std.string.format("%s", s) == "<1.000000, 0.000000, 0.000000>");
     }
 
     public Vector34 foobar()
     {
-	writef("Returning %s\n", v);
+    writef("Returning %s\n", v);
 
-	return v;
-	Vector34 b = Vector34();
-	return b;
+    return v;
+    Vector34 b = Vector34();
+    return b;
     }
 }
 
 void test34()
-{   
+{
     Foo34 f = new Foo34();
     f.foo();
 }
@@ -728,10 +728,10 @@ void test37()
 {
     synchronized
     {
-	synchronized
-	{
-	    writefln("Hello world!");
-	}
+    synchronized
+    {
+        writefln("Hello world!");
+    }
     }
 }
 
@@ -797,7 +797,7 @@ void test39()
 
 /************************************************/
 
-void test40() 
+void test40()
 {
     int[char] x;
     x['b'] = 123;
@@ -821,7 +821,7 @@ enum Enum42 {
 
 void test42() {
         Enum42[] enums = new Enum42[1];
-	assert(enums[0] == Enum42.A);
+    assert(enums[0] == Enum42.A);
 }
 
 
@@ -1026,12 +1026,12 @@ void test51()
 
 void test52()
 {
-    struct Foo {  
-	alias int Y;
-    }  
+    struct Foo {
+    alias int Y;
+    }
     with (Foo) {
-         Y y;  
-    }  
+         Y y;
+    }
 }
 
 /************************************************/
@@ -1116,29 +1116,29 @@ void test57()
 
     static if (is(AA T : T[U], U : const char[]))
     {
-	writeln(typeid(T));
-	writeln(typeid(U));
+    writeln(typeid(T));
+    writeln(typeid(U));
 
-	assert(is(T == long));
-	assert(is(U == const(char)[]));
+    assert(is(T == long));
+    assert(is(U == const(char)[]));
     }
 
     static if (is(AA A : A[B], B : int))
     {
-	assert(0);
+    assert(0);
     }
 
     static if (is(int[10] W : W[V], int V))
     {
-	writeln(typeid(W));
-	assert(is(W == int));
-	writeln(V);
-	assert(V == 10);
+    writeln(typeid(W));
+    assert(is(W == int));
+    writeln(V);
+    assert(V == 10);
     }
 
     static if (is(int[10] X : X[Y], int Y : 5))
     {
-	assert(0);
+    assert(0);
     }
 }
 
@@ -1164,11 +1164,11 @@ long foo58(B58 b)
 {   int i;
     try
     {
-	b.set(3);
+    b.set(3);
     }
     catch (HiddenFuncError o)
     {
-	i = 1;
+    i = 1;
     }
     assert(i == 1);
     return b.squareIt();
@@ -1213,20 +1213,20 @@ class C60
 {
     extern (C++) int bar60(int i, int j, int k)
     {
-	printf("this = %p\n", this);
-	printf("i = %d\n", i);
-	printf("j = %d\n", j);
-	printf("k = %d\n", k);
-	assert(i == 4);
-	assert(j == 5);
-	assert(k == 6);
-	return 1;
+    printf("this = %p\n", this);
+    printf("i = %d\n", i);
+    printf("j = %d\n", j);
+    printf("k = %d\n", k);
+    assert(i == 4);
+    assert(j == 5);
+    assert(k == 6);
+    return 1;
     }
 }
 
 
 extern (C++)
-	int foo60(int i, int j, int k)
+    int foo60(int i, int j, int k)
 {
     printf("i = %d\n", i);
     printf("j = %d\n", j);
