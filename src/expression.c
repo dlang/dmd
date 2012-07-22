@@ -1099,49 +1099,49 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 arg = arg->modifiableLvalue(sc, arg);
             }
-
-            Type *tb = arg->type->toBasetype();
-            if (arg->op == TOKarrayliteral)
-            {
-                arg = callCpCtor(loc, sc, arg, 1);
+            else if (p->storageClass & STClazy)
+            {   // Convert lazy argument to a delegate
+                arg = arg->toDelegate(sc, p->type);
             }
-            else if (tb->ty == Tsarray)
+            else
             {
-#if !SARRAYVALUE
-                // Convert static arrays to pointers
-                arg = arg->checkToPointer();
-#else
-                // call copy constructor of each element
-                arg = callCpCtor(loc, sc, arg, 1);
-#endif
-            }
-#if DMDV2
-            else if (tb->ty == Tstruct && !(p->storageClass & (STCref | STCout)))
-            {
-                if (arg->op == TOKcall && !arg->isLvalue())
+                Type *tb = arg->type->toBasetype();
+                if (arg->op == TOKarrayliteral)
                 {
-                    /* The struct value returned from the function is transferred
-                     * to the function, so the callee should not call the destructor
-                     * on it.
-                     */
-                    valueNoDtor(arg);
-                }
-                else
-                {   /* Not transferring it, so call the copy constructor
-                     */
                     arg = callCpCtor(loc, sc, arg, 1);
                 }
-            }
+                else if (tb->ty == Tsarray)
+                {
+#if !SARRAYVALUE
+                    // Convert static arrays to pointers
+                    arg = arg->checkToPointer();
+#else
+                    // call copy constructor of each element
+                    arg = callCpCtor(loc, sc, arg, 1);
 #endif
+                }
+#if DMDV2
+                else if (tb->ty == Tstruct)
+                {
+                    if (arg->op == TOKcall && !arg->isLvalue())
+                    {
+                        /* The struct value returned from the function is transferred
+                         * to the function, so the callee should not call the destructor
+                         * on it.
+                         */
+                        valueNoDtor(arg);
+                    }
+                    else
+                    {   /* Not transferring it, so call the copy constructor
+                         */
+                        arg = callCpCtor(loc, sc, arg, 1);
+                    }
+                }
+#endif
+            }
 
             //printf("arg: %s\n", arg->toChars());
             //printf("type: %s\n", arg->type->toChars());
-
-            // Convert lazy argument to a delegate
-            if (p->storageClass & STClazy)
-            {
-                arg = arg->toDelegate(sc, p->type);
-            }
 #if DMDV2
             /* Look for arguments that cannot 'escape' from the called
              * function.
