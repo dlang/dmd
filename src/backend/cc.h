@@ -966,6 +966,7 @@ typedef struct STRUCT
 #define STRinstantiating 0x200000       // if currently being instantiated
 #define STRexplicit     0x400000        // if explicit template instantiation
 #define STRgenctor0     0x800000        // need to gen X::X()
+#define STRnotpod       0x1000000       // struct is not POD
     tym_t ptrtype;              // type of pointer to refer to classes by
     unsigned short access;      // current access privilege, here so
                                 // enum declarations can get at it

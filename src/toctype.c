@@ -358,13 +358,14 @@ type *TypeStruct::toCtype()
         Symbol *s = symbol_calloc(sym->toPrettyChars());
         s->Sclass = SCstruct;
         s->Sstruct = struct_calloc();
-        s->Sstruct->Sflags |= 0;
         s->Sstruct->Salignsize = sym->alignsize;
         s->Sstruct->Sstructalign = sym->alignsize;
         s->Sstruct->Sstructsize = sym->structsize;
         s->Sstruct->Sarg1type = sym->arg1type ? sym->arg1type->toCtype() : NULL;
         s->Sstruct->Sarg2type = sym->arg2type ? sym->arg2type->toCtype() : NULL;
 
+        if (!sym->isPOD())
+            s->Sstruct->Sflags |= STRnotpod;
         if (sym->isUnionDeclaration())
             s->Sstruct->Sflags |= STRunion;
 

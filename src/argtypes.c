@@ -279,10 +279,11 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
 
 TypeTuple *TypeStruct::toArgTypes()
 {
+    //printf("TypeStruct::toArgTypes() %s\n", toChars());
     if (!sym->isPOD())
     {
      Lmemory:
-        //printf("toArgTypes() %s => [ ]\n", toChars());
+        //printf("\ttoArgTypes() %s => [ ]\n", toChars());
         return new TypeTuple();         // pass on the stack
     }
     Type *t1 = NULL;
@@ -407,7 +408,7 @@ TypeTuple *TypeStruct::toArgTypes()
 #endif
     }
 
-    //printf("toArgTypes() %s => [%s,%s]\n", toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");
+    //printf("\ttoArgTypes() %s => [%s,%s]\n", toChars(), t1 ? t1->toChars() : "", t2 ? t2->toChars() : "");
 
     TypeTuple *t;
     if (t1)

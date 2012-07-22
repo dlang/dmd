@@ -2630,8 +2630,9 @@ CEXTERN elem * elstruct(elem *e)
 
     if (!e->ET)
         return e;
+    //printf("\tnumbytes = %d\n", (int)type_size(e->ET));
 
-    tym_t tym;
+    tym_t tym = ~0;
     tym_t ty = tybasic(e->ET->Tty);
 
     type *targ1 = NULL;
@@ -2670,24 +2671,36 @@ CEXTERN elem * elstruct(elem *e)
             if (targ1 && !targ2)
                 goto L1;
             if (I64 && ty == TYstruct)
+            {   tym = TYucent;
                 goto L1;
+            }
             goto Ldefault;
 
         L1:
             if (ty == TYstruct)
-            {   // If a struct is a wrapper for another type, prefer that other type
+            {   // This needs to match what TypeFunction::retStyle() does
+
+                // If a struct is a wrapper for another type, prefer that other type
                 if (targ1 && !targ2)
                     tym = targ1->Tty;
                 else if (I64 && !targ1 && !targ2)
-                    // In-memory only
-                    goto Ldefault;
+                {   if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
+                    {
+                        // In-memory only
+                        goto Ldefault;
+                    }
+                    if (type_size(e->ET) == 16)
+                        goto Ldefault;
+                }
                 else if (I64 && targ1 && targ2)
                 {   if (tyfloating(tybasic(targ1->Tty)))
                         tym = TYcdouble;
                     else
                         tym = TYucent;
                 }
+                assert(tym != TYstruct);
             }
+            assert(tym != ~0);
             switch (e->Eoper)
             {   case OPstreq:
                     e->Eoper = OPeq;

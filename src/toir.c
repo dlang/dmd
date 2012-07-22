@@ -795,23 +795,29 @@ enum RET TypeFunction::retStyle()
     //printf("TypeFunction::retStyle() %s\n", toChars());
 #if DMDV2
     if (isref)
+    {
+        //printf("  ref RETregs\n");
         return RETregs;                 // returns a pointer
+    }
 #endif
 
     Type *tn = next->toBasetype();
-Lagain:
-    Type *tns = tn;
+    //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
+    Type *tns = tn;
 
+Lagain:
 #if SARRAYVALUE
-    if (tn->ty == Tsarray)
+    if (tns->ty == Tsarray)
     {
         do
         {
             tns = tns->nextOf()->toBasetype();
         } while (tns->ty == Tsarray);
+
         if (tns->ty != Tstruct)
         {
+L2:
             if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
                 ;                               // 32 bit C/C++ structs always on stack
             else
@@ -821,12 +827,14 @@ Lagain:
                     case 2:
                     case 4:
                     case 8:
+                        //printf("  sarray RETregs\n");
                         return RETregs; // return small structs in regs
                                             // (not 3 byte structs!)
                     default:
                         break;
                 }
             }
+            //printf("  sarray RETstack\n");
             return RETstack;
         }
     }
@@ -835,10 +843,17 @@ Lagain:
     if (tns->ty == Tstruct)
     {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
         if (global.params.isLinux && linkage != LINKd && !global.params.is64bit)
+        {
+            //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
+        }
         if (sd->arg1type && !sd->arg2type)
         {
-            tn = sd->arg1type;
+            tns = sd->arg1type;
+#if SARRAYVALUE
+            if (tns->ty != Tstruct)
+                goto L2;
+#endif
             goto Lagain;
         }
         else if (sd->isPOD())
@@ -848,12 +863,14 @@ Lagain:
                 case 2:
                 case 4:
                 case 8:
+                    //printf("  3 RETregs\n");
                     return RETregs;     // return small structs in regs
                                         // (not 3 byte structs!)
                 default:
                     break;
             }
         }
+        //printf("  3 RETstack\n");
         return RETstack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
@@ -866,7 +883,11 @@ Lagain:
             return RETstack;
     }
     else
+    {
+        //assert(sz <= 16);
+        //printf("  4 RETregs\n");
         return RETregs;
+    }
 }
 
 

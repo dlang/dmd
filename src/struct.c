@@ -736,13 +736,42 @@ void StructDeclaration::finalizeSize(Scope *sc)
  * Return true if struct is POD (Plain Old Data).
  * This is defined as:
  *      not nested
- *      no constructors, postblits, destructors, or assignment operators
+ *      no postblits, constructors, destructors, or assignment operators
  *      no fields with with any of those
  * The idea being these are compatible with C structs.
+ *
+ * Note that D struct constructors can mean POD, since there is always default
+ * construction with no ctor, but that interferes with OPstrpar which wants it
+ * on the stack in memory, not in registers.
  */
 bool StructDeclaration::isPOD()
 {
-    return !(isnested || cpctor || postblit || ctor || dtor);
+    if (isnested || cpctor || postblit || ctor || dtor)
+        return false;
+
+    /* Recursively check any fields have a constructor.
+     * We should cache the results of this.
+     */
+    for (size_t i = 0; i < fields.dim; i++)
+    {
+        Dsymbol *s = fields[i];
+        VarDeclaration *v = s->isVarDeclaration();
+        assert(v && v->storage_class & STCfield);
+        if (v->storage_class & STCref)
+            continue;
+        Type *tv = v->type->toBasetype();
+        while (tv->ty == Tsarray)
+        {   TypeSArray *ta = (TypeSArray *)tv;
+            tv = tv->nextOf()->toBasetype();
+        }
+        if (tv->ty == Tstruct)
+        {   TypeStruct *ts = (TypeStruct *)tv;
+            StructDeclaration *sd = ts->sym;
+            if (!sd->isPOD())
+                return false;
+        }
+    }
+    return true;
 }
 
 void StructDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
