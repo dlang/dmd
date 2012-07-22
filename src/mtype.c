@@ -8105,8 +8105,9 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     {   m = MATCHexact;         // exact match
         if (mod != to->mod)
         {
+            m = MATCHconst;
             if (MODimplicitConv(mod, to->mod))
-                m = MATCHconst;
+                ;
             else
             {   /* Check all the fields. If they can all be converted,
                  * allow the conversion.
@@ -8122,11 +8123,15 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     // 'to' type
                     Type *tv = v->type->castMod(to->mod);
 
-                    //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), tvf->implicitConvTo(tv));
-                    if (tvf->implicitConvTo(tv) < MATCHconst)
-                        return MATCHnomatch;
+                    // field match
+                    MATCH mf = tvf->implicitConvTo(tv);
+                    //printf("\t%s => %s, match = %d\n", v->type->toChars(), tv->toChars(), mf);
+
+                    if (mf == MATCHnomatch)
+                        return mf;
+                    if (mf < m)         // if field match is worse
+                        m = mf;
                 }
-                m = MATCHconst;
             }
         }
     }

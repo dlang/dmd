@@ -2718,6 +2718,20 @@ void test8099()
 
 /************************************/
 
+struct S8212 { int x; }
+
+shared S8212 s8212;
+
+shared int x8212;
+
+void test8212()
+{
+   int y = x8212;
+   S8212 s2 = s8212;
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -2832,6 +2846,7 @@ int main()
     test7757();
     test8098();
     test8099();
+    test8212();
 
     printf("Success\n");
     return 0;
