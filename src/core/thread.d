@@ -4517,14 +4517,16 @@ version( OSX )
         //       compiler.  If it isn't, something is disastrously wrong.
         auto obj = Thread.getThis();
 
-        if (p >= _tls_data_array[0].ptr && p < &_tls_data_array[0][$])
+        immutable off0 = cast(size_t)(p - _tls_data_array[0].ptr);
+        if (off0 < _tls_data_array[0].length)
         {
-            return obj.m_tls.ptr + (p - _tls_data_array[0].ptr);
+            return obj.m_tls.ptr + off0;
         }
-        else if (p >= _tls_data_array[1].ptr && p < &_tls_data_array[1][$])
+        immutable off1 = cast(size_t)(p - _tls_data_array[1].ptr);
+        if (off1 < _tls_data_array[1].length)
         {
             size_t sz = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
-            return obj.m_tls.ptr + sz + (p - _tls_data_array[1].ptr);
+            return obj.m_tls.ptr + sz + off1;
         }
         else
             assert(0);
