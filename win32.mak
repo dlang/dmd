@@ -26,11 +26,8 @@ MANIFEST= \
 	posix.mak \
 	win32.mak \
 	\
-	import\object.di \
-	\
-	import\core\thread.di \
-	\
 	src\object_.d \
+	src\object.di \
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
@@ -42,6 +39,7 @@ MANIFEST= \
 	src\core\runtime.d \
 	src\core\simd.d \
 	src\core\thread.d \
+	src\core\thread.di \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
@@ -389,6 +387,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sync\semaphore.di
 
 COPY=\
+	$(IMPDIR)\object.di \
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\bitop.d \
 	$(IMPDIR)\core\cpuid.d \
@@ -398,6 +397,7 @@ COPY=\
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
 	$(IMPDIR)\core\simd.d \
+	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	\
@@ -579,6 +579,9 @@ copydir: $(IMPDIR)
 
 copy: $(COPY)
 
+$(IMPDIR)\object.di : src\object.di
+	copy $** $@
+
 $(IMPDIR)\core\atomic.d : src\core\atomic.d
 	copy $** $@
 
@@ -604,6 +607,9 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 	copy $** $@
 
 $(IMPDIR)\core\simd.d : src\core\simd.d
+	copy $** $@
+
+$(IMPDIR)\core\thread.di : src\core\thread.di
 	copy $** $@
 
 $(IMPDIR)\core\time.d : src\core\time.d
@@ -853,8 +859,5 @@ install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DOCS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
-	del $(IMPDIR)\core\atomic.d $(IMPDIR)\core\bitop.d $(IMPDIR)\core\cpuid.d $(IMPDIR)\core\demangle.d $(IMPDIR)\core\exception.d $(IMPDIR)\core\math.d $(IMPDIR)\core\memory.d $(IMPDIR)\core\runtime.d $(IMPDIR)\core\simd.d $(IMPDIR)\core\time.d $(IMPDIR)\core\vararg.d
-	rmdir $(IMPDIR)\core\stdc /S /Q
-	rmdir $(IMPDIR)\core\sync /S /Q
-	rmdir $(IMPDIR)\core\sys /S /Q
+	del $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	rmdir /S /Q $(DOCDIR) $(IMPDIR)
