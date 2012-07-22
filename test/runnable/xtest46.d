@@ -5172,6 +5172,88 @@ void test159()
 }
 
 /***************************************************/
+// 8283
+
+struct Foo8283 {
+    this(long) { }
+}
+
+struct FooContainer {
+    Foo8283 value;
+}
+
+auto get8283() {
+    union Buf { FooContainer result; }
+    Buf buf = {};
+    return buf.result;
+}
+
+void test8283() {
+    auto a = get8283();
+}
+
+
+/***************************************************/
+
+enum E160 : ubyte { jan = 1 }
+
+struct D160
+{
+    short _year  = 1;
+    E160 _month = E160.jan;
+    ubyte _day   = 1;
+
+    this(int year, int month, int day) pure
+    {
+        _year  = cast(short)year;
+        _month = cast(E160)month;
+        _day   = cast(ubyte)day;
+    }
+}
+
+struct T160
+{
+    ubyte _hour;
+    ubyte _minute;
+    ubyte _second;
+
+    this(int hour, int minute, int second = 0) pure
+    {
+        _hour   = cast(ubyte)hour;
+        _minute = cast(ubyte)minute;
+        _second = cast(ubyte)second;
+    }
+}
+
+struct DT160
+{
+    D160 _date;
+    T160 _tod;
+
+    this(int year, int month, int day,
+         int hour = 0, int minute = 0, int second = 0) pure
+    {
+        _date = D160(year, month, day);
+        _tod = T160(hour, minute, second);
+    }
+}
+
+void foo160(DT160 dateTime)
+{
+        printf("test7 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
+	assert(dateTime._date._year == 1999);
+	assert(dateTime._date._day == 6);
+}
+
+void test160() {
+        auto dateTime = DT160(1999, 7, 6, 12, 30, 33);
+        printf("test5 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
+	assert(dateTime._date._year == 1999);
+	assert(dateTime._date._day == 6);
+        foo160(DT160(1999, 7, 6, 12, 30, 33));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5410,6 +5492,8 @@ int main()
     test8064();
     test8105();
     test159();
+    test8283();
+    test160();
 
     printf("Success\n");
     return 0;
