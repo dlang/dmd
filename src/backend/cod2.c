@@ -3124,7 +3124,6 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
     genregs(c3,0x2B,DI,CX);                     /* SUB DI,CX            */
     code_orrex(c3,rex);
     genmovreg(c3,SI,DI);                        /* MOV SI,DI            */
-    code_orrex(c3,rex);
 
     /* Load DS with right value */
     switch (ty2)
@@ -3174,9 +3173,7 @@ code *cdstrcpy(elem *e,regm_t *pretregs)
     if (need_DS)
         c4 = gen1(c4,0x1F);                     /* POP DS               */
     if (*pretregs)
-    {   c4 = genmovreg(c4,AX,DI);               /* MOV AX,DI            */
-        code_orrex(c4,rex);
-    }
+        c4 = genmovreg(c4,AX,DI);               /* MOV AX,DI            */
     c4 = gen1(c4,0xF3);                         /* REP                  */
     gen1(c4,0xA4);                              /* MOVSB                */
 
@@ -3282,7 +3279,6 @@ code *cdmemcpy(elem *e,regm_t *pretregs)
     if (*pretregs)                              // if need return value
     {   c3 = cat(c3,getregs(mAX));
         c3 = genmovreg(c3,AX,DI);
-        code_orrex(c3, rex);
     }
 
     if (0 && I32 && config.flags4 & CFG4speed)
@@ -3504,7 +3500,6 @@ fixres:
     if (*pretregs)                              // if need return value
     {   c3 = getregs(mBX);
         c3 = genmovreg(c3,BX,DI);
-        code_orrex(c3,rex);
     }
 
     c3 = cat(c3,getregs(mDI | mCX));
