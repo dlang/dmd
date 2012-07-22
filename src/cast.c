@@ -554,6 +554,9 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
                 result = MATCHnomatch;
         }
 
+        if (!elements->dim && typeb->nextOf()->toBasetype()->ty != Tvoid)
+            result = MATCHnomatch;
+
         Type *telement = tb->nextOf();
         for (size_t i = 0; i < elements->dim; i++)
         {   Expression *e = (*elements)[i];

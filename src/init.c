@@ -504,8 +504,33 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         }
 
         Initializer *val = value[i];
+        ExpInitializer *ei = val->isExpInitializer();
+        if (ei && !idx)
+            ei->expandTuples = 1;
         val = val->semantic(sc, t->nextOf(), needInterpret);
-        value[i] = val;
+
+        ei = val->isExpInitializer();
+        // found a tuple, expand it
+        if (ei && ei->exp->op == TOKtuple)
+        {
+            TupleExp *te = (TupleExp *)ei->exp;
+            index.remove(i);
+            value.remove(i);
+
+            for (size_t j = 0; j < te->exps->dim; ++j)
+            {
+                Expression *e = (*te->exps)[j];
+                index.insert(i + j, (Expression *)NULL);
+                value.insert(i + j, new ExpInitializer(e->loc, e));
+            }
+            i--;
+            continue;
+        }
+        else
+        {
+            value[i] = val;
+        }
+
         length++;
         if (length == 0)
         {   error(loc, "array dimension overflow");
@@ -751,6 +776,7 @@ ExpInitializer::ExpInitializer(Loc loc, Expression *exp)
     : Initializer(loc)
 {
     this->exp = exp;
+    this->expandTuples = 0;
 }
 
 Initializer *ExpInitializer::syntaxCopy()
@@ -841,6 +867,11 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     }
 
     Type *tb = t->toBasetype();
+
+    if (exp->op == TOKtuple &&
+        expandTuples &&
+        !exp->implicitConvTo(t))
+        return new ExpInitializer(loc, exp);
 
     /* Look for case of initializing a static array with a too-short
      * string literal, such as:
