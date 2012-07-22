@@ -329,6 +329,8 @@ type *TypeStruct::toCtype()
         s->Sstruct->Sarg1type = sym->arg1type ? sym->arg1type->toCtype() : NULL;
         s->Sstruct->Sarg2type = sym->arg2type ? sym->arg2type->toCtype() : NULL;
 
+        if (!sym->isPOD())
+            s->Sstruct->Sflags |= STRnotpod;
     if (sym->isUnionDeclaration())
         s->Sstruct->Sflags |= STRunion;
 

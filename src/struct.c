@@ -599,9 +599,13 @@ void StructDeclaration::finalizeSize(Scope *sc)
  * Return true if struct is POD (Plain Old Data).
  * This is defined as:
  *      not nested
- *      no constructors, postblits, destructors, or assignment operators
+ *      no postblits, constructors, destructors, or assignment operators
  *      no fields with with any of those
  * The idea being these are compatible with C structs.
+ *
+ * Note that D struct constructors can mean POD, since there is always default
+ * construction with no ctor, but that interferes with OPstrpar which wants it
+ * on the stack in memory, not in registers.
  */
 bool StructDeclaration::isPOD()
 {
