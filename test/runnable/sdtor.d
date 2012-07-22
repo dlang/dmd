@@ -2185,6 +2185,51 @@ void test62()
 }
 
 /**********************************/
+// 8335
+
+struct S8335
+{
+    static int postblit;
+
+    int i;
+    this(this) { ++postblit; }
+}
+
+void f8335(ref S8335[3] arr)
+{
+    arr[0].i = 7;
+}
+
+void g8335(lazy S8335[3] arr)
+{
+    assert(S8335.postblit == 0);
+    auto x = arr;
+}
+
+void h8335(lazy S8335 s)
+{
+    assert(S8335.postblit == 0);
+    auto x = s;
+    assert(S8335.postblit == 1);
+}
+
+void test8335()
+{
+    S8335[3] arr;
+    f8335(arr);
+    assert(S8335.postblit == 0);
+    assert(arr[0].i == 7);
+
+    g8335(arr);
+    assert(S8335.postblit == 3);
+
+    S8335.postblit = 0;
+    S8335 s;
+    h8335(s);
+    assert(S8335.postblit == 1);
+}
+
+/**********************************/
 
 int main()
 {
@@ -2262,6 +2307,7 @@ int main()
     test7506();
     test7530();
     test62();
+    test8335();
 
     printf("Success\n");
     return 0;
