@@ -15,6 +15,15 @@ module rt.deh;
 import core.sys.windows.windows;
 //import core.stdc.stdio;
 
+version (D_InlineAsm_X86)
+{
+    version = AsmX86;
+}
+else version (D_InlineAsm_X86_64)
+{
+    version = AsmX86;
+}
+
 enum EXCEPTION_DISPOSITION {
     ExceptionContinueExecution,
     ExceptionContinueSearch,
@@ -590,42 +599,41 @@ int _d_exception_filter(EXCEPTION_POINTERS *eptrs,
 /***********************************
  * Throw a D object.
  */
-extern(C)
-void _d_throwc(Object h)
-{
-    // create a standard stack frame, so walking the stack is possible
-    asm 
-    { 
-        naked; 
-        push EBP; 
-        mov EBP,ESP; 
-    }
-    // @@@ TODO @@@ Signature should change: h will always be a Throwable.
 
+private void throwImpl(Object h)
+{
+    // @@@ TODO @@@ Signature should change: h will always be a Throwable.
     //printf("_d_throw(h = %p, &h = %p)\n", h, &h);
     //printf("\tvptr = %p\n", *(void **)h);
     _d_createTrace(h);
-
-    // add some space on the stack to allow the stack walker to resynchronize
-    //  even without symbols for kernel32/kernelbase.dll
-    asm 
-    {
-        mov EAX, 1000;
-    clear_stack:
-        push 0;
-        dec EAX;
-        jnz clear_stack;
-    }
-
     //_d_setUnhandled(h);
     RaiseException(STATUS_DIGITAL_MARS_D_EXCEPTION,
                    EXCEPTION_NONCONTINUABLE,
                    1, cast(void *)&h);
+}
 
-    asm
+extern(C) void _d_throwc(Object h)
+{
+    // set up a stack frame for trace unwinding
+    version (AsmX86)
     {
-        mov ESP,EBP;
-        pop EBP;
+        asm
+        {
+            naked;
+            enter 0, 0;
+        }
+        version (D_InlineAsm_X86)
+            asm { mov EAX, [EBP+8]; }
+        asm
+        {
+            call throwImpl;
+            leave;
+            ret;
+        }
+    }
+    else
+    {
+        throwImpl(h);
     }
 }
 
