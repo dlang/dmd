@@ -5218,6 +5218,22 @@ void test8283() {
 
 
 /***************************************************/
+// 8395
+
+struct S8395
+{
+    int v;
+    this(T : long)(T x) { v = x * 2; }
+}
+void test8395()
+{
+    S8395 ms = 6;
+    assert(ms.v == 12);
+    const S8395 cs = 7;
+    assert(cs.v == 14);
+}
+
+/***************************************************/
 
 enum E160 : ubyte { jan = 1 }
 
@@ -5518,6 +5534,7 @@ int main()
     test8105();
     test159();
     test8283();
+    test8395();
     test160();
 
     printf("Success\n");
