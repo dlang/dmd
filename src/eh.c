@@ -88,7 +88,7 @@ void except_fillInEHTable(symbol *s)
     dt_t **pdt = &s->Sdt;
 
     /*
-        void*           pointer to start of function
+        void*           pointer to start of function (Windows)
         unsigned        offset of ESP from EBP
         unsigned        offset from start of function to return code
         unsigned nguards;       // dimension of guard[] (Linux)
@@ -115,9 +115,12 @@ void except_fillInEHTable(symbol *s)
     int sz = 0;
 
     // Address of start of function
+#if OUREH
+#else
     symbol_debug(funcsym_p);
     pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
     sz += fsize;
+#endif
 
     //printf("ehtables: func = %s, offset = x%x, startblock->Boffset = x%x\n", funcsym_p->Sident, funcsym_p->Soffset, startblock->Boffset);
 
@@ -195,6 +198,7 @@ void except_fillInEHTable(symbol *s)
 
             if (b->jcatchvar)                           // if try-catch
             {
+                assert(catchoffset);
                 pdt = dtdword(pdt,catchoffset);
                 pdt = dtsize_t(pdt,0);                  // no finally handler
 
@@ -209,7 +213,8 @@ void except_fillInEHTable(symbol *s)
                 // To successor of BC_finally block
                 bhandler = list_block(bhandler->Bsucc);
 #if OUREH
-                pdt = dtxoff(pdt,funcsym_p,bhandler->Boffset - startblock->Boffset, TYnptr);    // finally handler address
+                assert(bhandler->Boffset > startblock->Boffset);
+                pdt = dtsize_t(pdt,bhandler->Boffset - startblock->Boffset);    // finally handler offset
 #else
                 pdt = dtcoff(pdt,bhandler->Boffset);  // finally handler address
 #endif
@@ -293,7 +298,8 @@ void except_fillInEHTable(symbol *s)
                 pdt = dtdword(pdt,stack[stacki - 1]);   // parent index
                 pdt = dtdword(pdt,0);           // no catch offset
 #if OUREH
-                pdt = dtxoff(pdt,funcsym_p,foffset - startblock->Boffset, TYnptr);    // finally handler offset
+                assert(foffset > startblock->Boffset);
+                pdt = dtsize_t(pdt,foffset - startblock->Boffset);    // finally handler offset
 #else
                 pdt = dtcoff(pdt,foffset);  // finally handler address
 #endif
@@ -337,7 +343,8 @@ void except_fillInEHTable(symbol *s)
                 pdt = dtsize_t(pdt,cod3_bpoffset(b->jcatchvar));     // EBP offset
 
 #if OUREH
-                pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);  // catch handler address
+                assert(bcatch->Boffset > startblock->Boffset);
+                pdt = dtsize_t(pdt,bcatch->Boffset - startblock->Boffset);  // catch handler offset
 #else
                 pdt = dtcoff(pdt,bcatch->Boffset);        // catch handler address
 #endif
