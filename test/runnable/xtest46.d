@@ -4663,6 +4663,30 @@ void test7073()
 }
 
 /***************************************************/
+// 7150
+
+struct A7150
+{
+    static int cnt;
+
+    this(T)(T thing, int i)
+    {
+        this(thing, i > 0); // Error: constructor call must be in a constructor
+        ++cnt;
+    }
+    this(T)(T thing, bool b)
+    {
+        ++cnt;
+    }
+}
+
+void test7150()
+{
+    auto a = A7150(5, 5); // Error: template instance constructtest.A.__ctor!(int) error instantiating
+    assert(A7150.cnt == 2);
+}
+
+/***************************************************/
 // 7160
 
 class HomeController {
@@ -5471,6 +5495,7 @@ int main()
     test2856();
     test6056();
     test7073();
+    test7150();
     test7160();
     test7168();
     test7170();
