@@ -21,7 +21,7 @@ private import rt.util.string;
 
 class TypeInfo_Ag : TypeInfo_Array
 {
-    override equals_t opEquals(const Object o) const { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:

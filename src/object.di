@@ -30,11 +30,11 @@ alias immutable(dchar)[] dstring;
 
 class Object
 {
-    string   toString() const;
-    hash_t   toHash() @trusted nothrow const;
-    int      opCmp(const Object o) const;
-    equals_t opEquals(const Object o) const;
-    equals_t opEquals(const Object lhs, const Object rhs) const;
+    string   toString();
+    hash_t   toHash() @trusted nothrow;
+    int      opCmp(Object o);
+    equals_t opEquals(Object o);
+    equals_t opEquals(Object lhs, Object rhs);
 
     interface Monitor
     {
@@ -225,7 +225,7 @@ class TypeInfo_Pointer : TypeInfo
 class TypeInfo_Array : TypeInfo
 {
     override string toString() const;
-    override equals_t opEquals(const Object o) const;
+    override equals_t opEquals(Object o);
     override hash_t getHash(in void* p) @trusted const;
     override equals_t equals(in void* p1, in void* p2) const;
     override int compare(in void* p1, in void* p2) const;
