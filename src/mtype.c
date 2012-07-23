@@ -5712,77 +5712,106 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 }
 
 
+Type *getIndirection(Type *t)
+{
+    t = t->toBasetype();
+
+    if (t->ty == Tsarray)
+    {   while (t->ty == Tsarray)
+            t = t->nextOf()->toBasetype();
+    }
+    if (t->ty == Tarray || t->ty == Tpointer)
+        return t->nextOf()->toBasetype();
+    if (t->ty == Taarray || t->ty == Tclass)
+        return t;
+    if (t->ty == Tstruct)
+        return t->hasPointers() ? t : NULL; // TODO
+
+    // should consider TypeDelegate?
+    return NULL;
+}
+
 /********************************************
  * Do this lazily, as the parameter types might be forward referenced.
  */
 void TypeFunction::purityLevel()
 {
+    //printf("purityLevel(%s)\n", toChars());
+
     TypeFunction *tf = this;
-    if (tf->purity == PUREfwdref)
+    if (tf->purity == PUREfwdref && tf->next)
     {   /* Evaluate what kind of purity based on the modifiers for the parameters
          */
-        tf->purity = PUREstrong;        // assume strong until something weakens it
-        if (tf->parameters)
+        enum PURE purity = PUREstrong;  // assume strong until something weakens it
+        size_t dim = Parameter::dim(tf->parameters);
+
+        if (dim)
         {
-            size_t dim = Parameter::dim(tf->parameters);
+            Type *tret = tf->next;
+            assert(tret);
+            Type *treti = tf->isref ? tret->toBasetype() : getIndirection(tret);
+            if (treti && (treti->mod & MODimmutable))
+                treti = NULL;   // indirection is immutable
+            //printf("  tret = %s, treti = %s\n", tret->toChars(), treti ? treti->toChars() : "NULL");
+
             for (size_t i = 0; i < dim; i++)
             {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
                 if (fparam->storageClass & STClazy)
                 {
-                    tf->purity = PUREweak;
+                    purity = PUREweak;
                     break;
                 }
                 if (fparam->storageClass & STCout)
                 {
-                    tf->purity = PUREweak;
+                    purity = PUREweak;
                     break;
                 }
                 if (!fparam->type)
                     continue;
-                if (fparam->storageClass & STCref)
+
+                Type *tprm = fparam->type;
+                Type *tprmi = fparam->storageClass & STCref ? tprm->toBasetype() : getIndirection(tprm);
+                //printf("  [%d] tprm = %s, tprmi = %s\n", i, tprm->toChars(), tprmi ? tprmi->toChars() : "NULL");
+
+                if (!tprmi || (tprmi->mod & MODimmutable))
+                    continue;           // there is no mutable indirection
+                if (tprmi->isMutable())
+                {   purity = PUREweak;      // indirection is mutable
+                    break;
+                }
+                if (!treti)
+                    continue;   // mutable indirection is never returned
+
+                if (purity < PUREstrong)
+                    continue;
+
+                // Determine the parameter is really PUREconst or not
+                assert(tprmi->mod & (MODconst | MODwild));
+                if (tprmi->constConv(treti))    // simple case
+                    purity = PUREconst;
+                else if (tprmi->invariantOf()->equals(treti->invariantOf()))
+                    continue;
+                else
                 {
-                    if (!(fparam->type->mod & (MODconst | MODimmutable | MODwild)))
-                    {   tf->purity = PUREweak;
-                        break;
-                    }
-                    if (fparam->type->mod & MODconst)
-                    {   tf->purity = PUREconst;
-                        continue;
-                    }
+                    /* The rest of this is little strict; fix later.
+                     * For example:
+                     *
+                     *      struct S { immutable* p; }
+                     *      pure S foo(const int* p);
+                     *
+                     * which would maintain strong purity.
+                     */
+                    if (tprmi->hasPointers() || treti->hasPointers())
+                        purity = PUREconst;
                 }
-                Type *t = fparam->type->toBasetype();
-                if (!t->hasPointers())
-                    continue;
-                if (t->mod & (MODimmutable | MODwild))
-                    continue;
-                /* The rest of this is too strict; fix later.
-                 * For example, the only pointer members of a struct may be immutable,
-                 * which would maintain strong purity.
-                 */
-                if (t->mod & MODconst)
-                {   tf->purity = PUREconst;
-                    continue;
-                }
-                Type *tn = t->nextOf();
-                if (tn)
-                {   tn = tn->toBasetype();
-                    if (tn->ty == Tpointer || tn->ty == Tarray)
-                    {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
-                         */
-                        if (tn->mod & (MODimmutable | MODwild))
-                            continue;
-                        if (tn->mod & MODconst)
-                        {   tf->purity = PUREconst;
-                            continue;
-                        }
-                    }
-                }
+
                 /* Should catch delegates and function pointers, and fold in their purity
                  */
-                tf->purity = PUREweak;          // err on the side of too strict
-                break;
             }
         }
+
+        //printf("  --> purity: %d\n", purity);
+        tf->purity = purity;
     }
 }
 

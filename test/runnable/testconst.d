@@ -2744,6 +2744,82 @@ void test8212()
 }
 
 /************************************/
+// 8408
+
+template hasMutableIndirection8408(T)
+{
+    template Unqual(T)
+    {
+             static if (is(T U == shared(const U))) alias U Unqual;
+        else static if (is(T U ==        const U )) alias U Unqual;
+        else static if (is(T U ==    immutable U )) alias U Unqual;
+        else static if (is(T U ==        inout U )) alias U Unqual;
+        else static if (is(T U ==       shared U )) alias U Unqual;
+        else                                        alias T Unqual;
+    }
+
+    enum hasMutableIndirection8408 = !is(typeof({ Unqual!T t = void; immutable T u = t; }));
+}
+static assert(!hasMutableIndirection8408!(int));
+static assert(!hasMutableIndirection8408!(int[3]));
+static assert( hasMutableIndirection8408!(Object));
+
+auto dup8408(E)(inout(E)[] arr) pure @trusted
+{
+    static if (hasMutableIndirection8408!E)
+    {
+        auto copy = new E[](arr.length);
+        copy[] = cast(E[])arr[];        // assume constant
+        return cast(inout(E)[])copy;    // assume constant
+    }
+    else
+    {
+        auto copy = new E[](arr.length);
+        copy[] = arr[];
+        return copy;
+    }
+}
+
+void test8408()
+{
+    void test(E, bool constConv)()
+    {
+                  E[] marr = [E.init, E.init, E.init];
+        immutable E[] iarr = [E.init, E.init, E.init];
+
+                  E[] m2m = marr.dup8408();    assert(m2m == marr);
+        immutable E[] i2i = iarr.dup8408();    assert(i2i == iarr);
+
+      static if (constConv)
+      { // If dup() hss strong purity, implicit conversion is allowed
+        immutable E[] m2i = marr.dup8408();    assert(m2i == marr);
+                  E[] i2m = iarr.dup8408();    assert(i2m == iarr);
+      }
+      else
+      {
+        static assert(!is(typeof({ immutable E[] m2i = marr.dup8408(); })));
+        static assert(!is(typeof({           E[] i2m = iarr.dup8408(); })));
+      }
+    }
+
+    class C {}
+    struct S1 { long n; }
+    struct S2 { int* p; }
+    struct T1 { S1 s; }
+    struct T2 { S2 s; }
+    struct T3 { S1 s1;  S2 s2; }
+
+    test!(int   , true )();
+    test!(int[3], true )();
+    test!(C     , false)();
+    test!(S1    , true )();
+    test!(S2    , false)();
+    test!(T1    , true )();
+    test!(T2    , false)();
+    test!(T3    , false)();
+}
+
+/************************************/
 // 8688
 
 void test8688()
@@ -2875,6 +2951,7 @@ int main()
     test8099();
     test8201();
     test8212();
+    test8408();
     test8688();
 
     printf("Success\n");
