@@ -2312,7 +2312,15 @@ Lnext:
 
                 case 2:                 // no more digits to left of .
                     if (c == '.')
-                    {   dblstate++;
+                    {
+#if DMDV2
+                        unsigned char* next = p;
+                        while(*next == '_')
+                            ++next;
+                        if(hex ? !isxdigit(*next) : !isdigit(*next))
+                            error("Float literals must have digits to the right of their '.'");
+#endif
+                        dblstate++;
                         break;
                     }
                 case 4:                 // no more digits to right of .
