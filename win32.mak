@@ -854,7 +854,7 @@ zip: druntime.zip
 
 druntime.zip:
 	del druntime.zip
-	zip32 -u druntime $(MANIFEST) $(DOCS) $(IMPORTS) src\rt\minit.obj
+	zip32 -ur druntime $(MANIFEST) $(DOCS) $(IMPDIR) src\rt\minit.obj
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
