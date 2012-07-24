@@ -92,6 +92,18 @@ void test8147()
 }
 
 /***************************************************/
+// 8410
+
+void test8410()
+{
+    struct Foo { int[15] x; string s; }
+
+    Foo[5] a1 = Foo([0,0,0,0,0,0,0,0,0,0,0,0,0,0,0], "hello"); // OK
+    Foo f = { s: "hello" }; // OK (not static)
+    Foo[5] a2 = { s: "hello" }; // error
+}
+
+/***************************************************/
 
 int main()
 {
@@ -99,6 +111,7 @@ int main()
     test7239();
     test8123();
     test8147();
+    test8410();
 
     printf("Success\n");
     return 0;
