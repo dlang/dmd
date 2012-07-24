@@ -384,7 +384,7 @@ Expression *BinAssignExp::arrayOp(Scope *sc)
 
     /* Check that the elements of e1 can be assigned to
      */
-    Type *tn = type->toBasetype()->nextOf();
+    Type *tn = e1->type->toBasetype()->nextOf();
 
     if (tn && (!tn->isMutable() || !tn->isAssignable()))
     {

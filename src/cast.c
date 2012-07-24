@@ -1888,6 +1888,7 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //e->dump(0);
 
+    MATCH m;
     Expression *e1 = *pe1;
     Expression *e2 = *pe2;
 
@@ -2084,10 +2085,20 @@ Lagain:
          */
         goto Lx2;
     }
-    else if ((t1->ty == Tsarray || t1->ty == Tarray) && t1->implicitConvTo(t2))
+    else if ((t1->ty == Tsarray || t1->ty == Tarray) &&
+             (m = t1->implicitConvTo(t2)) != MATCHnomatch)
     {
         if (t1->ty == Tsarray && e2->op == TOKarrayliteral)
             goto Lt1;
+        if (m == MATCHconst &&
+            (e->op == TOKaddass || e->op == TOKminass || e->op == TOKmulass ||
+             e->op == TOKdivass || e->op == TOKmodass || e->op == TOKpowass ||
+             e->op == TOKandass || e->op == TOKorass  || e->op == TOKxorass)
+           )
+        {   // Don't make the lvalue const
+            t = t2;
+            goto Lret;
+        }
         goto Lt2;
     }
     else if ((t2->ty == Tsarray || t2->ty == Tarray) && t2->implicitConvTo(t1))
