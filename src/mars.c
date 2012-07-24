@@ -582,7 +582,10 @@ int tryMain(int argc, char *argv[])
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
-                global.params.warnings = 2;
+            {
+                if (!global.params.warnings)
+                    global.params.warnings = 2;
+            }
             else if (strcmp(p + 1, "O") == 0)
                 global.params.optimize = 1;
             else if (p[1] == 'o')
