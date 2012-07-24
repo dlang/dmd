@@ -80,20 +80,11 @@ mode_t umask(mode_t);
 
 version( linux )
 {
-    static if(__WORDSIZE==64)
-    {
-        private alias uint _pad_t;
-    }
-    else
-    {
-        private alias ushort _pad_t;
-    }
-
     struct stat_t
     {
         dev_t       st_dev;
         static if(__WORDSIZE==32) {
-            _pad_t      __pad1;
+            ushort      __pad1;
         } 
         static if( !__USE_FILE_OFFSET64 || __WORDSIZE==64 )
         {
@@ -114,11 +105,11 @@ version( linux )
         uid_t       st_uid;
         gid_t       st_gid;
         static if(__WORDSIZE==64) {
-            _pad_t pad0;
+            uint pad0;
         }
         dev_t       st_rdev;
         static if(__WORDSIZE==32) {
-            _pad_t      __pad2;
+            ushort      __pad2;
         }
         off_t       st_size;
         blksize_t   st_blksize;
