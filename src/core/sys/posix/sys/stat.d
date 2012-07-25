@@ -83,32 +83,37 @@ version( linux )
     struct stat_t
     {
         dev_t       st_dev;
-        static if(__WORDSIZE==32) {
+        static if(__WORDSIZE==32)
+        {
             ushort      __pad1;
-        } 
+        }
         static if( !__USE_FILE_OFFSET64 || __WORDSIZE==64 )
         {
-            uint       st_ino;
+            uint        st_ino;
         }
         else
         {
-            uint       __st_ino;
+            uint        __st_ino;
         }
-        static if (__WORDSIZE==32) {
+        static if (__WORDSIZE==32)
+        {
             mode_t      st_mode;
             nlink_t     st_nlink;
         }
-        else {
+        else
+        {
             nlink_t     st_nlink;
             mode_t      st_mode;
         }
         uid_t       st_uid;
         gid_t       st_gid;
-        static if(__WORDSIZE==64) {
-            uint pad0;
+        static if(__WORDSIZE==64)
+        {
+            uint        pad0;
         }
         dev_t       st_rdev;
-        static if(__WORDSIZE==32) {
+        static if(__WORDSIZE==32)
+        {
             ushort      __pad2;
         }
         off_t       st_size;
@@ -135,13 +140,15 @@ version( linux )
             time_t      st_ctime;
             c_ulong     st_ctimensec;
         }
-        static if(__WORDSIZE==64) {
-            c_long __unused[3];
+        static if(__WORDSIZE==64)
+        {
+            c_long      __unused[3];
         }
-        else {
+        else
+        {
             static if( __USE_FILE_OFFSET64 )
             {
-                    ino_t       st_ino;
+                ino_t       st_ino;
             }
             else
             {
