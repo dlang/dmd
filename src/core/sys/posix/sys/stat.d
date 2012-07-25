@@ -114,14 +114,17 @@ version( linux )
         off_t       st_size;
         blksize_t   st_blksize;
         blkcnt_t    st_blocks;
-        static if( __USE_MISC ) // true if _BSD_SOURCE || _SVID_SOURCE
+        static if( __USE_MISC || __USE_XOPEN2K8 )
         {
             timespec    st_atim;
             timespec    st_mtim;
             timespec    st_ctim;
-            alias st_atim.tv_sec st_atime;
-            alias st_mtim.tv_sec st_mtime;
-            alias st_ctim.tv_sec st_ctime;
+            extern(D)
+            {
+                @property ref time_t st_atime() { return st_atim.tv_sec; }
+                @property ref time_t st_mtime() { return st_mtim.tv_sec; }
+                @property ref time_t st_ctime() { return st_ctim.tv_sec; }
+            }
         }
         else
         {
