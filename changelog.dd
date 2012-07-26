@@ -12,6 +12,7 @@ $(LI clear has been renamed to destroy. clear remains as an alias to destroy
 )
 
 $(RUNTIMEBUGSFIXED
+    $(LI $(BUGZILLA 5206): stat_t is not the same as struct stat)
     $(LI $(BUGZILLA 5582): Improvements to the DLL startup code)
     $(LI $(BUGZILLA 5930): cas doesn't work when used in code compiled with -D)
     $(LI $(BUGZILLA 6631): core.time module constructor runs AFTER main program's module constructor)
