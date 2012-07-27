@@ -76,6 +76,9 @@ MANIFEST= \
 	\
 	src\core\sys\freebsd\sys\event.d \
 	\
+	src\core\sys\linux\execinfo.d \
+	\
+	src\core\sys\osx\execinfo.d \
 	src\core\sys\osx\pthread.d \
 	src\core\sys\osx\mach\dyld.d \
 	src\core\sys\osx\mach\getsect.d \
@@ -426,6 +429,10 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	\
+	$(IMPDIR)\core\sys\linux\execinfo.d \
+	\
+	$(IMPDIR)\core\sys\osx\execinfo.d \
+	$(IMPDIR)\core\sys\osx\pthread.d \
 	$(IMPDIR)\core\sys\osx\mach\kern_return.d \
 	$(IMPDIR)\core\sys\osx\mach\port.d \
 	$(IMPDIR)\core\sys\osx\mach\semaphore.d \
@@ -576,6 +583,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\posix\netinet
 	mkdir $(IMPDIR)\core\sys\osx\mach
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
+	mkdir $(IMPDIR)\core\sys\linux
 	mkdir $(IMPDIR)\core\stdc
 
 copy: $(COPY)
@@ -683,6 +691,15 @@ $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\pthread.d : src\core\sys\osx\pthread.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\kern_return.d : src\core\sys\osx\mach\kern_return.d

@@ -97,6 +97,10 @@ MANIFEST= \
 	\
 	src/core/sys/freebsd/sys/event.d \
 	\
+	src/core/sys/linux/execinfo.d \
+	\
+	src/core/sys/osx/execinfo.d \
+	src/core/sys/osx/pthread.d \
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
 	src/core/sys/osx/mach/kern_return.d \
@@ -451,6 +455,10 @@ COPY=\
 	\
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
+	$(IMPDIR)/core/sys/linux/execinfo.d \
+	\
+	$(IMPDIR)/core/sys/osx/execinfo.d \
+	$(IMPDIR)/core/sys/osx/pthread.d \
 	$(IMPDIR)/core/sys/osx/mach/kern_return.d \
 	$(IMPDIR)/core/sys/osx/mach/port.d \
 	$(IMPDIR)/core/sys/osx/mach/semaphore.d \
@@ -548,6 +556,7 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/posix/netinet
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
+	-mkdir -p $(IMPDIR)/core/sys/linux
 
 copy: $(COPY)
 

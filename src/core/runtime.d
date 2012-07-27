@@ -38,30 +38,13 @@ private
 
     extern (C) string[] rt_args();
 
+    // backtrace
     version( linux )
-    {
-        import core.demangle;
-        import core.stdc.stdlib : free;
-        import core.stdc.string : strlen, memchr;
-        extern (C) int    backtrace(void**, int);
-        extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**, int, int);
-        import core.sys.posix.signal; // segv handler
-    }
+        import core.sys.linux.execinfo;
     else version( OSX )
-    {
-        import core.demangle;
-        import core.stdc.stdlib : free;
-        import core.stdc.string : strlen;
-        extern (C) int    backtrace(void**, int);
-        extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**, int, int);
-        import core.sys.posix.signal; // segv handler
-    }
+        import core.sys.osx.execinfo;
     else version( Windows )
-    {
         import core.sys.windows.stacktrace;
-    }
 
     // For runModuleUnitTests error reporting.
     version( Windows )
@@ -287,6 +270,8 @@ extern (C) bool runModuleUnitTests()
 {
     static if( __traits( compiles, backtrace ) )
     {
+        import core.sys.posix.signal; // segv handler
+
         static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr )
         {
             static enum MAXFRAMES = 128;
@@ -375,6 +360,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
     static if( __traits( compiles, backtrace ) )
     {
+        import core.demangle;
+        import core.stdc.stdlib : free;
+        import core.stdc.string : strlen, memchr;
+
         class DefaultTraceInfo : Throwable.TraceInfo
         {
             this()
