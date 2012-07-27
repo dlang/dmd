@@ -95,6 +95,8 @@ MANIFEST= \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
 	\
+	src/core/sys/freebsd/dlfcn.d \
+	src/core/sys/freebsd/execinfo.d \
 	src/core/sys/freebsd/sys/event.d \
 	\
 	src/core/sys/linux/execinfo.d \
@@ -280,6 +282,7 @@ SRC_D_MODULES = \
 	core/stdc/time \
 	core/stdc/wchar_ \
 	\
+	core/sys/freebsd/execinfo \
 	core/sys/freebsd/sys/event \
 	\
 	core/sys/posix/signal \
@@ -453,6 +456,8 @@ COPY=\
 	$(IMPDIR)/core/stdc/wchar_.d \
 	$(IMPDIR)/core/stdc/wctype.d \
 	\
+	$(IMPDIR)/core/sys/freebsd/dlfcn.d \
+	$(IMPDIR)/core/sys/freebsd/execinfo.d \
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
 	$(IMPDIR)/core/sys/linux/execinfo.d \

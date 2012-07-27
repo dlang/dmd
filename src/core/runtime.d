@@ -43,6 +43,8 @@ private
         import core.sys.linux.execinfo;
     else version( OSX )
         import core.sys.osx.execinfo;
+    else version( FreeBSD )
+        import core.sys.freebsd.execinfo;
     else version( Windows )
         import core.sys.windows.stacktrace;
 
@@ -498,6 +500,18 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
                     if (pptr && pptr < eptr)
                         eptr = pptr;
+
+                    if( bptr++ && eptr )
+                    {
+                        symBeg = bptr - buf.ptr;
+                        symEnd = eptr - buf.ptr;
+                    }
+                }
+                else version( FreeBSD )
+                {
+                    // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
+                    auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
+                    auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
 
                     if( bptr++ && eptr )
                     {

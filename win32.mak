@@ -74,6 +74,8 @@ MANIFEST= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\freebsd\dlfcn.d \
+	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\sys\event.d \
 	\
 	src\core\sys\linux\execinfo.d \
@@ -427,6 +429,8 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
+	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	\
 	$(IMPDIR)\core\sys\linux\execinfo.d \
@@ -688,6 +692,12 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 	copy $** $@
 
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
