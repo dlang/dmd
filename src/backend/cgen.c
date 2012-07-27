@@ -584,7 +584,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));
 #endif
-        Obj::bytes(seg,soffset,numbytes,zeros);
+        objmod->bytes(seg,soffset,numbytes,zeros);
 }
 
 /****************************
@@ -632,7 +632,7 @@ void searchfixlist(symbol *s)
 
                     //printf("Soffset = x%lx, Loffset = x%lx, Lval = x%lx\n",s->Soffset,p->Loffset,p->Lval);
                     ad = s->Soffset - p->Loffset - REGSIZE + p->Lval;
-                    Obj::bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
+                    objmod->bytes(p->Lseg,p->Loffset,REGSIZE,&ad);
                 }
                 else
                 {
@@ -642,7 +642,7 @@ void searchfixlist(symbol *s)
                     Obj::reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
                     funcsym_p = funcsymsave;
 #else
-                    Obj::reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
+                    objmod->reftoident(p->Lseg,p->Loffset,s,p->Lval,p->Lflags);
 #endif
                 }
                 *lp = p->Lnext;
@@ -718,10 +718,10 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
                     continue;
                 }
                 s->Sclass = SCextern;   /* make it external             */
-                Obj::external(s);
+                objmod->external(s);
                 if (s->Sflags & SFLweak)
                 {
-                    Obj::wkext(s, NULL);
+                    objmod->wkext(s, NULL);
                 }
             }
 #if TARGET_OSX
@@ -730,7 +730,7 @@ STATIC int outfixlist_dg(void *parameter, void *pkey, void *pvalue)
             Obj::reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
             funcsym_p = funcsymsave;
 #else
-            Obj::reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
+            objmod->reftoident(ln->Lseg,ln->Loffset,s,ln->Lval,ln->Lflags);
 #endif
             *plnext = ln->Lnext;
 #if TERMCODE
