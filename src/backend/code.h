@@ -428,6 +428,8 @@ struct code
 #define CFvex       0x100000    // vex prefix
 #define CFvex3      0x200000    // 3 byte vex prefix
 
+#define CFjmp5      0x400000    // always a 5 byte jmp
+
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 

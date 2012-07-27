@@ -49,6 +49,9 @@ STATIC void do64bit (enum FL,union evc *,int);
 #define JMPOFF  Doffset
 #endif
 
+//#define JMPJMPTABLE   TARGET_WINDOS
+#define JMPJMPTABLE     0               // benchmarking shows its slower
+
 /*************
  * Size in bytes of each instruction.
  * 0 means illegal instruction.
@@ -1152,15 +1155,56 @@ void doswitch(block *b)
             c = genc2(c,0x81,modregrm(3,7,reg),vmax-vmin);
             genjmp(c,JA,FLblock,list_block(b->Bsucc));  /* JA default   */
         }
-        if (!I32)
-            c = gen2(c,0xD1,modregrm(3,4,reg)); /* SHL reg,1            */
         if (I32)
         {
+#if JMPJMPTABLE
+            /* LEA jreg,offset ctable[reg][reg * 4]
+               JMP jreg
+              ctable:
+               JMP case0
+               JMP case1
+               ...
+             */
+            code *ctable = CNIL;
+            block *bdef = list_block(b->Bsucc);
+            targ_llong u;
+            for (u = vmin; ; u++)
+            {   block *targ = bdef;
+                for (n = 0; n < ncases; n++)
+                {
+                    if (p[n] == u)
+                    {   targ = list_block(list_nth(b->Bsucc, n + 1));
+                        break;
+                    }
+                }
+                code *cj = genjmp(CNIL,JMP,FLblock,targ);
+                cj->Iflags |= CFjmp5;           // don't shrink these
+                ctable = cat(ctable, cj);
+                if (u == vmax)
+                    break;
+            }
+
+            // Allocate scratch register jreg
+            regm_t scratchm = ALLREGS & ~mask[reg];
+            unsigned jreg = AX;
+            c = cat(c, allocreg(&scratchm,&jreg,TYint));
+
+            // LEA jreg, offset ctable[reg][reg*4]
+            ce = genc1(CNIL,LEA,modregrm(2,jreg,4),FLcode,6);
+            ce->Isib = modregrm(2,reg,reg);
+            ce = gen2(ce,0xFF,modregrm(3,4,jreg));      // JMP jreg
+            ce = cat(ce, ctable);
+            b->Btablesize = 0;
+            goto L2;
+#else
             ce = genc1(CNIL,0xFF,modregrm(0,4,4),FLswitch,0); /* JMP [CS:]disp[idxreg*4] */
             ce->Isib = modregrm(2,reg,5);
+#endif
         }
         else
-        {   rm = getaddrmode(retregs) | modregrm(0,4,0);
+        {
+            c = gen2(c,0xD1,modregrm(3,4,reg)); /* SHL reg,1            */
+            rm = getaddrmode(retregs) | modregrm(0,4,0);
             ce = genc1(CNIL,0xFF,rm,FLswitch,0);        /* JMP [CS:]disp[idxreg] */
         }
         int flags = (config.flags & CFGromable) ? CFcs : 0; // table is in code seg
@@ -1285,11 +1329,13 @@ void doswitch(block *b)
         ce = cat(ce,ct);
         b->Btablesize = disp + intsize + ncases * tysize[TYnptr];
     }
+L2: ;
     b->Bcode = cat3(cc,c,ce);
     //assert(b->Bcode);
     cgstate.stackclean--;
 }
-
+
+
 /******************************
  * Output data block for a jump table (BCjmptab).
  * The 'holes' in the table get filled with the
@@ -1298,6 +1344,10 @@ void doswitch(block *b)
 
 void outjmptab(block *b)
 {
+#if JMPJMPTABLE
+    if (I32)
+        return;
+#endif
   unsigned ncases,n;
   targ_llong u,vmin,vmax,val,*p;
   targ_size_t alignbytes,def,targ,*poffset;
@@ -3595,7 +3645,7 @@ int branch(block *bl,int flag)
         cn = code_next(c);
         op = c->Iop;
         if ((op & ~0x0F) == 0x70 && c->Iflags & CFjmp16 ||
-            op == JMP)
+            (op == JMP && !(c->Iflags & CFjmp5)))
         {
           L1:
             switch (c->IFL2)
@@ -5746,6 +5796,12 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
                 Obj::reftocodeseg(cseg,offset,ad);
         else
                 Obj::reftodatseg(cseg,offset,ad,JMPSEG,CFoff);
+        break;
+    case FLcode:
+        assert(JMPJMPTABLE);            // the only use case
+        FLUSH();
+        ad = * (targ_size_t *) uev + OFFSET();
+        Obj::reftocodeseg(cseg,offset,ad);
         break;
 #if TARGET_SEGMENTED
     case FLcsdata:
