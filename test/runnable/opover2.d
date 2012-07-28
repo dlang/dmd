@@ -694,6 +694,32 @@ void test7641()
 }
 
 /**************************************/
+// 8434
+
+void test8434()
+{
+    class Vector2D(T)
+    {
+        T x, y;
+
+        this(T x, T y) {
+            this.x = x;
+            this.y = y;
+        }
+
+        U opCast(U)() const { assert(0); }
+    }
+
+    alias Vector2D!(short) Vector2s;
+    alias Vector2D!(float) Vector2f;
+
+    Vector2s vs1 = new Vector2s(42, 23);
+    Vector2s vs2 = new Vector2s(42, 23);
+
+    assert(vs1 != vs2);
+}
+
+/**************************************/
 
 int main()
 {
@@ -716,6 +742,7 @@ int main()
     test16();
     test17();
     test7641();
+    test8434();
 
     printf("Success\n");
     return 0;
