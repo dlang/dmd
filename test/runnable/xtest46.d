@@ -830,6 +830,7 @@ void test44()
 }
 
 /***************************************************/
+// 2006
 
 void test2006()
 {
@@ -839,6 +840,15 @@ void test2006()
     assert(aas.length == 1);
     aas = aas ~ cast (string []) [];
     assert(aas.length == 2);
+}
+
+/***************************************************/
+// 8442
+
+void test8442()
+{
+    enum int[] fooEnum = [];
+    immutable fooImmutable = fooEnum;
 }
 
 /***************************************************/
@@ -5386,6 +5396,7 @@ int main()
     test84();
     test85();
     test2006();
+    test8442();
     test86();
     test87();
     test5554();
