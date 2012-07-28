@@ -5179,6 +5179,37 @@ void test246()
 
 /***************************************************/
 
+double sqrt8454(double d) { return d/2; }
+void foo8454(cdouble m) {}
+void test8454() {
+    foo8454(0 - sqrt8454(1.0) * 1i);
+}
+
+/***************************************************/
+// 8423
+
+struct S8423
+{
+    int opCmp(S8423 rhs)
+    {
+        return 1;
+    }
+}
+
+void enforce8423(bool value, string a, string b)
+{
+    if (!value) assert(false);
+}
+
+void test8423()
+{
+    auto a = S8423();
+    auto b = S8423();
+    enforce8423(a > b, null, null);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5439,6 +5470,8 @@ int main()
     test6189_2();
     test8199();
     test246();
+    test8454();
+    test8423();
 
     writefln("Success");
     return 0;
