@@ -930,12 +930,20 @@ Expression *EqualExp::op_overload(Scope *sc)
         if (!(cd1->isCPPinterface() || cd2->isCPPinterface()))
         {
             /* Rewrite as:
-             *      .object.opEquals(cast(Object)e1, cast(Object)e2)
+             *      .object.opEquals(e1, e2)
+             */
+            Expression *e1x = e1;
+            Expression *e2x = e2;
+
+            /*
              * The explicit cast is necessary for interfaces,
              * see http://d.puremagic.com/issues/show_bug.cgi?id=4088
              */
-            Expression *e1x = new CastExp(loc, e1, ClassDeclaration::object->getType());
-            Expression *e2x = new CastExp(loc, e2, ClassDeclaration::object->getType());
+            Type *to = ClassDeclaration::object->getType();
+            if (cd1->isInterfaceDeclaration())
+                e1x = new CastExp(loc, e1, t1->isMutable() ? to : to->constOf());
+            if (cd2->isInterfaceDeclaration())
+                e2x = new CastExp(loc, e2, t2->isMutable() ? to : to->constOf());
 
             Expression *e = new IdentifierExp(loc, Id::empty);
             e = new DotIdExp(loc, e, Id::object);
