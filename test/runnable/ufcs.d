@@ -315,6 +315,34 @@ void test8252()
 }
 
 /*******************************************/
+// 8453
+
+T[] sort8453(T)(T[] a) { return a; }
+
+void test8453()
+{
+    int[int] foo;
+    auto bar1 = foo.keys().sort8453(); // OK
+    auto bar2 = foo.keys.sort8453();   // Error
+}
+
+/*******************************************/
+
+template Signal4()
+{
+    void connect(){}
+}
+struct S4
+{
+    mixin Signal4!() s;
+}
+void test4()
+{
+    S4 s;
+    s.s.connect();  // s.s is TOKdotexp, so never match UFCS
+}
+
+/*******************************************/
 
 int main()
 {
@@ -329,6 +357,8 @@ int main()
     test7943();
     test8180();
     test8252();
+    test8453();
+    test4();
 
     printf("Success\n");
     return 0;
