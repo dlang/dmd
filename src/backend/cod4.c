@@ -1968,12 +1968,12 @@ code *cdcmp(elem *e,regm_t *pretregs)
             c = getregs(mask[reg]);
             switch (op)
             {   case OPle:
-                    c = genc2(c,0x81,grex | modregrmx(3,0,reg & 7),(unsigned)-1);   // ADD reg,-1
+                    c = genc2(c,0x81,grex | modregrmx(3,0,reg),(unsigned)-1);   // ADD reg,-1
                     code_orflag(c, CFpsw);
-                    genc2(c,0x81,grex | modregrmx(3,2,reg & 7),0);          // ADC reg,0
+                    genc2(c,0x81,grex | modregrmx(3,2,reg),0);          // ADC reg,0
                     goto oplt;
                 case OPgt:
-                    c = gen2(c,0xF7,grex | modregrmx(3,3,reg & 7));         // NEG reg
+                    c = gen2(c,0xF7,grex | modregrmx(3,3,reg));         // NEG reg
 #if TARGET_WINDOS
                     // What does the Windows platform do?
                     //  lower INT_MIN by 1?   See test exe9.c
