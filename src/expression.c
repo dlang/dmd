@@ -7463,11 +7463,14 @@ Expression *CallExp::resolveUFCS(Scope *sc)
     if (e->op == TOKerror || !e->type)
         return NULL;
 
-    if (e->op == TOKtype || e->op == TOKimport)
+    if (e->op == TOKtype || e->op == TOKimport || e->op == TOKdotexp)
         return NULL;
 
-    //printf("resolveUCSS %s, e->op = %s\n", toChars(), Token::toChars(e->op));
+    e = resolveProperties(sc, e);
+
     Type *t = e->type->toBasetype();
+    //printf("resolveUCSS %s, e = %s, %s, %s\n",
+    //    toChars(), Token::toChars(e->op), t->toChars(), e->toChars());
     if (t->ty == Taarray)
     {
         if (tiargs)
