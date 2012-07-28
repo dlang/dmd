@@ -1067,7 +1067,9 @@ L1:
   }
 
   /* Replace (0 - e2) with (-e2)        */
-  if (cnst(e1) && !boolres(e1))
+  if (cnst(e1) && !boolres(e1) &&
+      !(tycomplex(tym) && !tycomplex(e1->Ety) && !tycomplex(e2->Ety))
+     )
   {     el_free(e1);
         e->E1 = e2;
         e->E2 = NULL;
