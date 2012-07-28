@@ -543,23 +543,28 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
         (typeb->ty == Tarray || typeb->ty == Tsarray))
     {
+        Type *typen = typeb->nextOf()->toBasetype();
+
         if (tb->ty == Tsarray)
         {   TypeSArray *tsa = (TypeSArray *)tb;
             if (elements->dim != tsa->dim->toInteger())
                 result = MATCHnomatch;
         }
 
-        if (!elements->dim && typeb->nextOf()->toBasetype()->ty != Tvoid)
-            result = MATCHnomatch;
-
         Type *telement = tb->nextOf();
-        for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (*elements)[i];
-            if (result == MATCHnomatch)
-                break;                          // no need to check for worse
-            MATCH m = (MATCH)e->implicitConvTo(telement);
-            if (m < result)
-                result = m;                     // remember worst match
+        if (!elements->dim)
+        {   if (typen->ty != Tvoid)
+                result = typen->implicitConvTo(telement);
+        }
+        else
+        {   for (size_t i = 0; i < elements->dim; i++)
+            {   Expression *e = (*elements)[i];
+                if (result == MATCHnomatch)
+                    break;                          // no need to check for worse
+                MATCH m = (MATCH)e->implicitConvTo(telement);
+                if (m < result)
+                    result = m;                     // remember worst match
+            }
         }
 
         if (!result)
