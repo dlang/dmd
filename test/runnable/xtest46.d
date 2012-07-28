@@ -5280,17 +5280,32 @@ struct DT160
 
 void foo160(DT160 dateTime)
 {
-        printf("test7 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
-	assert(dateTime._date._year == 1999);
-	assert(dateTime._date._day == 6);
+    printf("test7 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
+    assert(dateTime._date._year == 1999);
+    assert(dateTime._date._day == 6);
 }
 
-void test160() {
-        auto dateTime = DT160(1999, 7, 6, 12, 30, 33);
-        printf("test5 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
-	assert(dateTime._date._year == 1999);
-	assert(dateTime._date._day == 6);
-        foo160(DT160(1999, 7, 6, 12, 30, 33));
+void test160()
+{
+    auto dateTime = DT160(1999, 7, 6, 12, 30, 33);
+    printf("test5 year %d, day %d\n", dateTime._date._year, dateTime._date._day);
+    assert(dateTime._date._year == 1999);
+    assert(dateTime._date._day == 6);
+    foo160(DT160(1999, 7, 6, 12, 30, 33));
+}
+
+/***************************************************/
+// 8437
+
+class Cgi8437
+{
+    struct PostParserState {
+        UploadedFile piece;
+    }
+
+    static struct UploadedFile {
+        string contentFilename;
+    }
 }
 
 /***************************************************/
