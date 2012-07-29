@@ -698,7 +698,7 @@ void test7641()
 
 void test8434()
 {
-    class Vector2D(T)
+    static class Vector2D(T)
     {
         T x, y;
 
