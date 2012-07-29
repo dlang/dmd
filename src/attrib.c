@@ -1367,6 +1367,31 @@ Dsymbol *StaticIfDeclaration::syntaxCopy(Dsymbol *s)
     return dd;
 }
 
+Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
+{
+    //printf("StaticIfDeclaration::include(sc = %p) scope = %p\n", sc, scope);
+
+    if (condition->inc == 0)
+    {
+        Dsymbols *d = ConditionalDeclaration::include(sc, sd);
+
+        // Set the scopes lazily.
+        if (scope && d)
+        {
+           for (size_t i = 0; i < d->dim; i++)
+           {
+               Dsymbol *s = (*d)[i];
+
+               s->setScope(sc);
+           }
+        }
+        return d;
+    }
+    else
+    {
+        return ConditionalDeclaration::include(sc, sd);
+    }
+}
 
 int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
@@ -1404,23 +1429,6 @@ void StaticIfDeclaration::setScope(Scope *sc)
 
     // But do set the scope, in case we need it for forward referencing
     Dsymbol::setScope(sc);
-
-    // Set the scopes for both the decl and elsedecl, as we don't know yet
-    // which will be selected, and the scope will be the same regardless
-    Dsymbols *d = decl;
-    for (int j = 0; j < 2; j++)
-    {
-        if (d)
-        {
-           for (size_t i = 0; i < d->dim; i++)
-           {
-               Dsymbol *s = (*d)[i];
-
-               s->setScope(sc);
-           }
-        }
-        d = elsedecl;
-    }
 }
 
 void StaticIfDeclaration::semantic(Scope *sc)
