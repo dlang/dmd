@@ -1336,7 +1336,7 @@ class Throwable : Object
         //this.info = _d_traceContext();
     }
 
-    override string toString() const
+    override string toString()
     {
         char[20] tmp = void;
         char[]   buf;
