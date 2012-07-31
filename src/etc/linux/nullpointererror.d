@@ -1,16 +1,14 @@
 /**
- * Written in the D programming language.
  * Handle page protection error using Errors. NullPointerError is throw when deferencing null. A system dependant error is throw in other cases.
- * Note : Only linux on x86 and x86_64 is supported for now.
+ * Note: Only x86 and x86_64 are supported for now.
  *
- * Copyright: Copyright Digital Mars 2000 - 2012.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE_1_0.txt)
  * Authors:   Amaury SECHET, FeepingCreature, Vladimir Panteleev
- * Source: $(DRUNTIMESRC src/core/nullpointererror.d)
+ * Source: $(DRUNTIMESRC src/etc/linux/nullpointererror.d)
  */
-module core.nullpointererror;
+module etc.linux.nullpointererror;
 
 version(linux) {
 
@@ -99,40 +97,48 @@ version(X86_64) {
 		auto addr = cast(REG_TYPE) info.si_addr;
 		context.uc_mcontext.gregs[REG_RDI] = addr;
 		context.uc_mcontext.gregs[REG_RSI] = rip;
-		context.uc_mcontext.gregs[REG_RIP] = (rip != addr)?(cast(REG_TYPE) &sigsegv_userspace_handler + 0x04):(cast(REG_TYPE) &sigsegv_userspace_handler);
+		context.uc_mcontext.gregs[REG_RIP] = (rip != addr)?(cast(REG_TYPE) &sigsegv_data_handler):(cast(REG_TYPE) &sigsegv_code_handler);
 	}
 	
-	// User space
+	// All handler functions must be called with faulting address in RDI and original RIP in RSI.
 	
-	// This function must be called with faulting address in RDI and original RIP in RSI.
-	void sigsegv_userspace_handler() {
+	// This functionis called when the segfault's cause is to call an invalid function pointer.
+	void sigsegv_code_handler() {
 		asm {
 			naked;
 			
 			// Handle the stack for an invalid function call (segfault at RIP).
+			// With the return pointer, the stack is now alligned.
 			push RBP;
 			mov RBP, RSP;
 			
-			// We jump directly here if we are in a valid function call case.
+			jmp sigsegv_data_handler;
+		}
+	}
+	
+	void sigsegv_data_handler() {
+		asm {
+			naked;
+			
 			push RSI;	// return address (original RIP).
 			push RBP;	// old RBP
 			mov RBP, RSP;
 			
-			pushf;		// Save flags.
+			pushfq;		// Save flags.
 			push RAX;	// RAX, RCX, RDX, and R8 to R11 are trash registers and must be preserved as local variables.
 			push RCX;
 			push RDX;
 			push R8;
 			push R9;
 			push R10;
-			push R11;
+			push R11;	// With 10 pushes, the stack is still aligned.
 			
 			// Parameter address is already set as RAX.
 			call sigsegv_userspace_process;
 			
 			// Restore RDI and RSI values.
 			call restore_RDI;
-			push RAX;
+			push RAX;	// RDI is in RAX. It is pushed and will be poped back to RDI.
 			
 			call restore_RSI;
 			mov RSI, RAX;
@@ -147,7 +153,7 @@ version(X86_64) {
 			pop RDX;
 			pop RCX;
 			pop RAX;
-			popf;		// Restore flags.
+			popfq;		// Restore flags.
 			
 			// Return
 			pop RBP;
@@ -179,27 +185,38 @@ version(X86_64) {
 		auto addr = cast(REG_TYPE) info.si_addr;
 		context.uc_mcontext.gregs[REG_EAX] = addr;
 		context.uc_mcontext.gregs[REG_EDX] = eip;
-		context.uc_mcontext.gregs[REG_EIP] = (eip != addr)?(cast(REG_TYPE) &sigsegv_userspace_handler + 0x03):(cast(REG_TYPE) &sigsegv_userspace_handler);
+		context.uc_mcontext.gregs[REG_EIP] = (eip != addr)?(cast(REG_TYPE) &sigsegv_code_handler + 0x03):(cast(REG_TYPE) &sigsegv_data_handler);
 	}
 	
-	// User space
+	// All handler functions must be called with faulting address in EAX and original EIP in EDX.
 	
-	// This function must be called with faulting address in EAX and original EIP in EDX.
-	void sigsegv_userspace_handler() {
+	// This functionis called when the segfault's cause is to call an invalid function pointer.
+	void sigsegv_code_handler() {
 		asm {
 			naked;
 			
 			// Handle the stack for an invalid function call (segfault at EIP).
-			push EBP;
+			// 4 bytes are used for function pointer; We need 12 byte to keep stack aligned.
+			sub ESP, 12;
+			mov 8[ESP], EBP;
 			mov EBP, ESP;
+			
+			jmp sigsegv_data_handler;
+		}
+	}
+	
+	void sigsegv_data_handler() {
+		asm {
+			naked;
 			
 			// We jump directly here if we are in a valid function call case.
 			push EDX;	// return address (original EIP).
 			push EBP;	// old EBP
 			mov EBP, ESP;
 			
-			pushf;		// Save flags.
+			pushfd;		// Save flags.
 			push ECX;	// ECX is a trash register and must be preserved as local variable.
+						// 4 pushes have been done. The stack is aligned.
 			
 			// Parameter address is already set as EAX.
 			call sigsegv_userspace_process;
@@ -208,7 +225,7 @@ version(X86_64) {
 			call restore_registers;
 			
 			pop ECX;
-			popf;		// Restore flags.
+			popfd;		// Restore flags.
 			
 			// Return
 			pop EBP;
@@ -225,18 +242,17 @@ version(X86_64) {
 // This should be calculated by druntime.
 enum PAGE_SIZE = 4096;
 
-// The first 64Kb are reserved for detecting null pointer deferences.
-enum MEMORY_RESERVED_FOR_NULL_DEFERENCE = 4096 * 16;
+// The first 64Kb are reserved for detecting null pointer dereferencess.
+enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 
 // User space handler
-
 void sigsegv_userspace_process(void* address) {
-	// The first page is protected to detect null deference.
-	if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEFERENCE) {
+	// The first page is protected to detect null dereferences.
+	if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE) {
 		throw new NullPointerError();
 	}
 	
-	throw new SignalError(SIGSEGV);
+	throw new InvalidPointerError();
 }
 
 public :
@@ -244,38 +260,26 @@ public :
 /**
  * Thrown on posix system when a signal is recieved. Is only throw for SIGSEGV.
  */
-class SignalError : Error {
-	private int _signum;
-	
-	this(int signum, string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-		_signum = signum;
+class InvalidPointerError : Error {
+	this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
 		super("", file, line, next);
 	}
 	
-	this(int signum, Throwable next, string file = __FILE__, size_t line = __LINE__) {
-		_signum = signum;
+	this(Throwable next, string file = __FILE__, size_t line = __LINE__) {
 		super("", file, line, next);
-	}
-	
-	/**
-	 * Property that returns the signal number.
-	 */
-	@property
-	int signum() const {
-		return _signum;
 	}
 }
 
 /**
- * Throw on null pointer deference.
+ * Throw on null pointer dereferences.
  */
-class NullPointerError : SignalError {
+class NullPointerError : InvalidPointerError {
 	this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
-		super(SIGSEGV, file, line, next);
+		super(file, line, next);
 	}
 	
 	this(Throwable next, string file = __FILE__, size_t line = __LINE__) {
-		super(SIGSEGV, file, line, next);
+		super(file, line, next);
 	}
 }
 

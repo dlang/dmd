@@ -71,7 +71,6 @@ MANIFEST= \
 	src/core/exception.d \
 	src/core/math.d \
 	src/core/memory.d \
-	src/core/nullpointererror.d \
 	src/core/runtime.d \
 	src/core/simd.d \
 	src/core/thread.d \
@@ -268,7 +267,9 @@ MANIFEST= \
 	src/rt/util/console.d \
 	src/rt/util/hash.d \
 	src/rt/util/string.d \
-	src/rt/util/utf.d
+	src/rt/util/utf.d \
+	\
+	src/etc/linux/nullpointererror.d
 
 GC_MODULES = gc/gc gc/gcalloc gc/gcbits gc/gcstats gc/gcx
 
@@ -282,7 +283,6 @@ SRC_D_MODULES = \
 	core/exception \
 	core/math \
 	core/memory \
-	core/nullpointererror \
 	core/runtime \
 	core/simd \
 	core/thread \
@@ -400,7 +400,9 @@ SRC_D_MODULES = \
 	rt/typeinfo/ti_ulong \
 	rt/typeinfo/ti_ushort \
 	rt/typeinfo/ti_void \
-	rt/typeinfo/ti_wchar
+	rt/typeinfo/ti_wchar \
+	\
+	etc/linux/nullpointererror
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
@@ -418,7 +420,6 @@ DOCS=\
 	$(DOCDIR)/core_exception.html \
 	$(DOCDIR)/core_math.html \
 	$(DOCDIR)/core_memory.html \
-	$(DOCDIR)/core_nullpointererror.html \
 	$(DOCDIR)/core_runtime.html \
 	$(DOCDIR)/core_simd.html \
 	$(DOCDIR)/core_thread.html \
@@ -541,7 +542,9 @@ COPY=\
 	$(IMPDIR)/core/sys/windows/dll.d \
 	$(IMPDIR)/core/sys/windows/stacktrace.d \
 	$(IMPDIR)/core/sys/windows/threadaux.d \
-	$(IMPDIR)/core/sys/windows/windows.d
+	$(IMPDIR)/core/sys/windows/windows.d \
+	\
+	$(IMPDIR)/etc/linux/nullpointererror.d
 
 SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 
@@ -590,6 +593,7 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
 	-mkdir -p $(IMPDIR)/core/sys/linux/sys
+	-mkdir -p $(IMPDIR)/etc/linux
 
 copy: $(COPY)
 
