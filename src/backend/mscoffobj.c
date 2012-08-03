@@ -8,7 +8,7 @@
 // See the included readme.txt for details.
 
 
-#if SCPP || MARS
+#if MARS
 #include        <stdio.h>
 #include        <string.h>
 #include        <stdlib.h>
@@ -1976,7 +1976,7 @@ void MsCoffObj::pubdef(int seg, Symbol *s, targ_size_t offset)
  *      NOTE: Numbers will not be linear.
  */
 
-int MsCoffObj::external(const char *name)
+int MsCoffObj::external_def(const char *name)
 {
     //printf("MsCoffObj::external_def('%s')\n",name);
     assert(name);
@@ -1985,10 +1985,6 @@ int MsCoffObj::external(const char *name)
     return 0;
 }
 
-int MsCoffObj::external_def(const char *name)
-{
-    return MsCoffObj::external(name);
-}
 
 /*******************************
  * Output an external for existing symbol.

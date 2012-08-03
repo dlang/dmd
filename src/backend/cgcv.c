@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -55,13 +55,6 @@ static vec_t debtypvec;         // vector of used entries
 
 #define DEBTYPHASHDIM   1009
 static unsigned debtyphash[DEBTYPHASHDIM];
-
-#if MARS
-// char *ftdbname; // in ztc/var.c
-#define TDB 0
-#else
-#define TDB 1
-#endif
 
 #define DEB_NULL cgcv.deb_offset        // index of null debug type record
 
@@ -262,7 +255,7 @@ idx_t cv_debtyp(debtyp_t *d)
     assert(d);
     length = d->length;
     //printf("length = %3d\n",length);
-#if OMFOBJ && TDB
+#if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
     {
             idx_t result;
@@ -442,7 +435,7 @@ void cv_init()
                 cgcv.deb_offset = 0x80000000;
         }
 
-        Obj::write_bytes(SegData[DEBSYM],4,&cgcv.signature);
+        objmod->write_bytes(SegData[DEBSYM],4,&cgcv.signature);
 
         // Allocate an LF_ARGLIST with no arguments
         if (config.fulltypes == CV4)
@@ -481,9 +474,9 @@ void cv_init()
         strcpy(version + 1,VERSION);
         cv_namestring(debsym + 8,version);
         TOWORD(debsym,6 + sizeof(version));
-        Obj::write_bytes(SegData[DEBSYM],8 + sizeof(version),debsym);
+        objmod->write_bytes(SegData[DEBSYM],8 + sizeof(version),debsym);
 
-#if OMFOBJ && TDB
+#if SYMDEB_TDB
         // Put out S_TDBNAME record
         if (config.fulltypes == CVTDB)
         {
@@ -497,7 +490,7 @@ void cv_init()
             TOWORD(ds + 2,S_TDBNAME);
             TOLONG(ds + 4,pstate.STtdbtimestamp);
             cv_namestring(ds + 8,ftdbname);
-            Obj::write_bytes(SegData[DEBSYM],8 + len,ds);
+            objmod->write_bytes(SegData[DEBSYM],8 + len,ds);
         }
 #endif
     }
@@ -505,7 +498,7 @@ void cv_init()
     {
         assert(0);
     }
-#if TDB
+#if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
         cgcv.deb_offset = cv_debtyp(d);
     else
@@ -922,7 +915,7 @@ idx_t cv4_struct(Classsym *s,int flags)
 
     // Assign a number to prevent infinite recursion if a struct member
     // references the same struct.
-#if OMFOBJ && TDB
+#if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
     {
         TOWORD(d->data + 2,0);          // number of fields
@@ -1389,7 +1382,7 @@ printf("fwd struct ref\n");
     else
         TOLONG(d->data + 6,cv_debtyp(dt));
 
-#if TDB
+#if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
         s->Stypidx = cv_debtyp(d);
 #endif
@@ -1461,7 +1454,7 @@ STATIC unsigned cv4_enum(symbol *s)
 
     // Assign a number to prevent infinite recursion if an enum member
     // references the same enum.
-#if OMFOBJ && TDB
+#if SYMDEB_TDB
     if (config.fulltypes == CVTDB)
     {   debtyp_t *df;
 
@@ -1729,7 +1722,7 @@ L1:
 
 #if JHANDLE
         case TYjhandle:
-#if TDB
+#if SYMDEB_TDB
             if (config.fulltypes == CVTDB) {
                 attribute |= 20;
                 goto L2;
@@ -2122,10 +2115,10 @@ STATIC void cv4_outsym(symbol *s)
         }
 
         unsigned soffset = Offset(DEBSYM);
-        Obj::write_bytes(SegData[DEBSYM],length,debsym);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
 
         // Put out fixup for function start offset
-        Obj::reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
+        objmod->reftoident(DEBSYM,soffset + u,s,0,CFseg | CFoff);
     }
     else
     {   targ_size_t base;
@@ -2266,8 +2259,8 @@ STATIC void cv4_outsym(symbol *s)
                 assert(length <= 0x1000);
                 if (idx2 != 0)
                 {   unsigned offset = Offset(DEBSYM);
-                    Obj::write_bytes(SegData[DEBSYM],length,debsym);
-                    Obj::write_long(DEBSYM,offset + fixoff,s->Soffset,
+                    objmod->write_bytes(SegData[DEBSYM],length,debsym);
+                    objmod->write_long(DEBSYM,offset + fixoff,s->Soffset,
                         cgcv.LCFDpointer + fd,idx1,idx2);
                 }
                 return;
@@ -2313,7 +2306,7 @@ STATIC void cv4_outsym(symbol *s)
                 return;
         }
         assert(length <= 40 + len);
-        Obj::write_bytes(SegData[DEBSYM],length,debsym);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
     }
 }
 
@@ -2347,7 +2340,7 @@ STATIC void cv4_func(Funcsym *s)
         if (endarg == 0 && sa->Sclass != SCparameter && sa->Sclass != SCfastpar)
         {   static unsigned short endargs[] = { 2,S_ENDARG };
 
-            Obj::write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
+            objmod->write_bytes(SegData[DEBSYM],sizeof(endargs),endargs);
             endarg = 1;
         }
 #endif
@@ -2521,13 +2514,13 @@ STATIC void cv4_func(Funcsym *s)
 
         TOWORD(sreturn,u);
         TOWORD(sreturn + 2,S_RETURN);
-        Obj::write_bytes(SegData[DEBSYM],u + 2,sreturn);
+        objmod->write_bytes(SegData[DEBSYM],u + 2,sreturn);
     }
 
     // Put out end scope
     {   static unsigned short endproc[] = { 2,S_END };
 
-        Obj::write_bytes(SegData[DEBSYM],sizeof(endproc),endproc);
+        objmod->write_bytes(SegData[DEBSYM],sizeof(endproc),endproc);
     }
 
     cv_outlist();
@@ -2548,13 +2541,13 @@ void cv_term()
     {
         case CV4:
         case CVSYM:
-            Obj::write_bytes(SegData[DEBTYP],4,&cgcv.signature);
+            objmod->write_bytes(SegData[DEBTYP],4,&cgcv.signature);
             if (debtyptop != 1)
             {
                 for (u = 0; u < debtyptop; u++)
                 {   debtyp_t *d = debtyp[u];
 
-                    Obj::write_bytes(SegData[DEBTYP],2 + d->length,(char *)d + sizeof(unsigned));
+                    objmod->write_bytes(SegData[DEBTYP],2 + d->length,(char *)d + sizeof(unsigned));
 #if TERMCODE || _WIN32 || MARS
                     debtyp_free(d);
 #endif
@@ -2568,7 +2561,7 @@ void cv_term()
             }
             break;
 
-#if _WIN32 && TDB
+#if SYMDEB_TDB
         case CVTDB:
 #if 1
             tdb_term();

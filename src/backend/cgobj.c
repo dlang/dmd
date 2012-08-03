@@ -640,17 +640,19 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
             seg_count = DEBTYP;
         }
 
-        Obj::theadr(filename);
+        mobj->theadr(filename);
         obj.modname = filename;
         if (!csegname || !*csegname)            // if no code seg name supplied
             obj.csegname = objmodtoseg(obj.modname);    // generate one
         else
             obj.csegname = mem_strdup(csegname);        // our own copy
         objheader(obj.csegname);
-        Obj::segment_group(0,0,0,0);             // obj seg and grp info
+        mobj->segment_group(0,0,0,0);             // obj seg and grp info
         ledata_new(cseg,0);             // so ledata is never NULL
         if (config.fulltypes)           // if full typing information
+        {   objmod = mobj;
             cv_init();                  // initialize debug output code
+        }
 
         return mobj;
 }
@@ -1031,7 +1033,7 @@ STATIC void linnum_term()
         if (filename != lastfilename)
         {
             if (filename)
-                Obj::theadr(filename);
+                objmod->theadr(filename);
             lastfilename = filename;
         }
 #endif
@@ -1053,7 +1055,7 @@ STATIC void linnum_term()
                     offset = *(unsigned long *)&ln->data[u];
                 else
                     offset = *(unsigned short *)&ln->data[u];
-                Obj::linnum(srcpos,offset);
+                objmod->linnum(srcpos,offset);
                 u += intsize;
             }
             linnum_flush();
@@ -1204,7 +1206,7 @@ STATIC void obj_defaultlib()
 
     if (!(config.flags2 & CFG2nodeflib))
     {
-        Obj::includelib(configv.deflibname ? configv.deflibname : library);
+        objmod->includelib(configv.deflibname ? configv.deflibname : library);
     }
 }
 
@@ -1643,6 +1645,11 @@ void Obj::staticctor(Symbol *s,int dtor,int seg)
     }
 }
 
+void Obj::staticdtor(Symbol *s)
+{
+    assert(0);
+}
+
 //#else
 
 /***************************************
@@ -1755,6 +1762,11 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
     offset += Obj::reftoident(obj.fisegi,offset,ehsym,0,0);   // pointer to data
     Obj::bytes(obj.fisegi,offset,intsize,&size);          // size of function
     SegData[obj.fisegi]->SDoffset = offset + intsize;
+}
+
+void Obj::ehsections()
+{
+    assert(0);
 }
 
 /***************************************
@@ -2531,6 +2543,11 @@ static unsigned storelength(unsigned long length,unsigned i)
     return i + 1;               // index past where we stuffed length
 }
 
+int Obj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
+{
+    return common_block(s, 0, size, count);
+}
+
 int Obj::common_block(Symbol *s,int flag,targ_size_t size,targ_size_t count)
 { register unsigned i;
   unsigned long length;
@@ -2688,7 +2705,7 @@ STATIC void obj_modend()
                 {
                  Ladd:
                     s->Sclass = SCextern;
-                    external = Obj::external(s);
+                    external = objmod->external(s);
                     outextdata();
                 }
                 break;

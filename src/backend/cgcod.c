@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -280,7 +280,7 @@ tryagain:
         cstop--;
 
     if (configv.addlinenumbers)
-        Obj::linnum(funcsym_p->Sfunc->Fstartline,Coffset);
+        objmod->linnum(funcsym_p->Sfunc->Fstartline,Coffset);
 
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
@@ -452,7 +452,7 @@ tryagain:
 #endif
     {   assert(!(config.flags & CFGromable));
         //printf("framehandleroffset = x%x, coffset = x%x\n",framehandleroffset,coffset);
-        Obj::reftocodeseg(cseg,framehandleroffset,coffset);
+        objmod->reftocodeseg(cseg,framehandleroffset,coffset);
     }
 #endif
 
@@ -493,7 +493,7 @@ tryagain:
            start of the last instruction
          */
         /* Instead, try offset to cleanup code  */
-        Obj::linnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
+        objmod->linnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
 
 #if MARS
     if (usednteh & NTEH_try)
