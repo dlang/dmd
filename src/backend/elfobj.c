@@ -2151,7 +2151,7 @@ void Obj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize
  *      NOTE: Numbers will not be linear.
  */
 
-int Obj::external(const char *name)
+int Obj::external_def(const char *name)
 {
     //dbg_printf("Obj::external_def('%s')\n",name);
     assert(name);
@@ -2160,10 +2160,6 @@ int Obj::external(const char *name)
     return symidx;
 }
 
-int Obj::external_def(const char *name)
-{
-    return Obj::external(name);
-}
 
 /*******************************
  * Output an external for existing symbol.
@@ -3036,7 +3032,7 @@ void Obj::moduleinfo(Symbol *scc)
             buf->writeByte(0x8B);
             buf->writeByte(modregrm(0,CX,5));
             buf->write32(0);
-            ElfObj::addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, Obj::external("_Dmodule_ref"), -4);
+            ElfObj::addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, Obj::external_def("_Dmodule_ref"), -4);
         }
         else
         {
@@ -3050,7 +3046,7 @@ void Obj::moduleinfo(Symbol *scc)
             /* movl _Dmodule_ref, %ecx */
             buf->writeByte(0xB9);
             buf->write32(0);
-            ElfObj::addrel(seg, codeOffset + 6, reltype, Obj::external("_Dmodule_ref"), 0);
+            ElfObj::addrel(seg, codeOffset + 6, reltype, Obj::external_def("_Dmodule_ref"), 0);
         }
 
         if (I64)

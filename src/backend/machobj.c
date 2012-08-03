@@ -2185,7 +2185,7 @@ void Obj::pubdef(int seg, Symbol *s, targ_size_t offset)
  *      NOTE: Numbers will not be linear.
  */
 
-int Obj::external(const char *name)
+int Obj::external_def(const char *name)
 {
     //printf("Obj::external_def('%s')\n",name);
     assert(name);
@@ -2194,10 +2194,6 @@ int Obj::external(const char *name)
     return 0;
 }
 
-int Obj::external_def(const char *name)
-{
-    return Obj::external(name);
-}
 
 /*******************************
  * Output an external for existing symbol.
