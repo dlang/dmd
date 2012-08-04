@@ -16,6 +16,7 @@
 #include        <sys/stat.h>
 #include        <fcntl.h>
 #include        <ctype.h>
+#include        <time.h>
 
 #if _WIN32 || linux
 #include        <malloc.h>
@@ -45,9 +46,6 @@
 
 static Outbuffer *fobjbuf;
 
-//regm_t BYTEREGS = BYTEREGS_INIT;
-//regm_t ALLREGS = ALLREGS_INIT;
-
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
 
@@ -69,35 +67,30 @@ static long elf_align(targ_size_t size, long offset);
 
 
 // String Table  - String table for all other names
-static Outbuffer *symtab_strings;
+static Outbuffer *string_table;
 
 // Section Headers
-Outbuffer  *SECbuf;             // Buffer to build section table in
-#define SecHdrTab   ((struct scnhdr *)SECbuf->buf)
+Outbuffer  *ScnhdrBuf;             // Buffer to build section table in
+// The -1 is because it is 1 based indexing
+#define ScnhdrTab   (((struct scnhdr *)ScnhdrBuf->buf)-1)
 
-// The relocation for text and data seems to get lost.
-// Try matching the order gcc output them
-// This means defining the sections and then removing them if they are
-// not used.
-static int section_cnt;         // Number of sections in table
-#define SEC_TAB_INIT 16         // Initial number of sections in buffer
-#define SEC_TAB_INC  4          // Number of sections to increment buffer by
+static int scnhdr_cnt;          // Number of sections in table
+#define SCNHDR_TAB_INITSIZE 16  // Initial number of sections in buffer
+#define SCNHDR_TAB_INC  4       // Number of sections to increment buffer by
 
 #define SYM_TAB_INIT 100        // Initial number of symbol entries in buffer
 #define SYM_TAB_INC  50         // Number of symbols to increment buffer by
 
-/* Three symbol tables, because the different types of symbols
- * are grouped into 3 different types (and a 4th for comdef's).
- */
-
-static Outbuffer *local_symbuf;
-static Outbuffer *public_symbuf;
-static Outbuffer *extern_symbuf;
+// The symbol table
+static Outbuffer *symbuf;
 
 struct Comdef { symbol *sym; targ_size_t size; int count; };
 static Outbuffer *comdef_symbuf;        // Comdef's are stored here
 
-static Outbuffer *indirectsymbuf1;      // indirect symbol table of Symbol*'s
+static segidx_t segidx_drectve;         // contents of ".drectve" section
+static segidx_t segidx_debugs;
+static segidx_t segidx_xdata;
+
 static int jumpTableSeg;                // segment index for __jump_table
 
 static Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
@@ -120,15 +113,15 @@ static IDXSTR extdef;
 
 int seg_data::isCode()
 {
-    return (SecHdrTab[SDshtidx].s_flags & IMAGE_SCN_CNT_CODE) != 0;
+    return (ScnhdrTab[SDshtidx].s_flags & IMAGE_SCN_CNT_CODE) != 0;
 }
 
 
 seg_data **SegData;
 int seg_count;
 int seg_max;
-int seg_tlsseg = UNKNOWN;
-int seg_tlsseg_bss = UNKNOWN;
+segidx_t seg_tlsseg = UNKNOWN;
+segidx_t seg_tlsseg_bss = UNKNOWN;
 
 /*******************************************************
  * Because the mscoff relocations cannot be computed until after
@@ -158,7 +151,7 @@ struct Relocation
  *      strtab  =       string table for entry
  *      str     =       string to add
  *
- * Returns index into the specified string table.
+ * Returns offset into the specified string table.
  */
 
 IDXSTR MsCoffObj::addstr(Outbuffer *strtab, const char *str)
@@ -181,7 +174,7 @@ IDXSTR MsCoffObj::addstr(Outbuffer *strtab, const char *str)
 
 static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix)
 {
-    const char *ent = (char *)strtab->buf+1;
+    const char *ent = (char *)strtab->buf+4;
     const char *pend = ent+strtab->size() - 1;
     const char *s = str;
     const char *sx = suffix;
@@ -236,7 +229,7 @@ static IDXSTR elf_findstr(Outbuffer *strtab, const char *str, const char *suffix
  * Input:
  *      str     =       string to add
  *
- * Returns index into the table.
+ * Returns offset of the string in string table (offset of the string).
  */
 
 static IDXSTR elf_addmangled(Symbol *s)
@@ -244,7 +237,7 @@ static IDXSTR elf_addmangled(Symbol *s)
     //printf("elf_addmangled(%s)\n", s->Sident);
     char dest[DEST_LEN];
 
-    IDXSTR namidx = symtab_strings->size();
+    IDXSTR namidx = string_table->size();
     char *destr = obj_mangle2(s, dest);
     const char *name = destr;
     if (CPP && name[0] == '_' && name[1] == '_')
@@ -279,12 +272,12 @@ static IDXSTR elf_addmangled(Symbol *s)
     else if (tyfunc(s->ty()) && s->Sfunc && s->Sfunc->Fredirect)
         name = s->Sfunc->Fredirect;
     size_t len = strlen(name);
-    symtab_strings->reserve(len+1);
-    strcpy((char *)symtab_strings->p,name);
-    symtab_strings->setsize(namidx+len+1);
+    string_table->reserve(len+1);
+    strcpy((char *)string_table->p,name);
+    string_table->setsize(namidx+len+1);
     if (destr != dest)                  // if we resized result
         mem_free(destr);
-    //dbg_printf("\telf_addmagled symtab_strings %s namidx %d len %d size %d\n",name, namidx,len,symtab_strings->size());
+    //dbg_printf("\telf_addmagled string_table %s namidx %d len %d size %d\n",name, namidx,len,string_table->size());
     return namidx;
 }
 
@@ -327,7 +320,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
  *
  */
 
-int MsCoffObj::data_readonly(char *p, int len, int *pseg)
+int MsCoffObj::data_readonly(char *p, int len, segidx_t *pseg)
 {
     int oldoff;
     if (I64)
@@ -351,7 +344,7 @@ int MsCoffObj::data_readonly(char *p, int len, int *pseg)
 
 int MsCoffObj::data_readonly(char *p, int len)
 {
-    int pseg;
+    segidx_t pseg;
 
     return MsCoffObj::data_readonly(p, len, &pseg);
 }
@@ -374,25 +367,16 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     // Initialize buffers
 
-    if (symtab_strings)
-        symtab_strings->setsize(1);
-    else
-    {   symtab_strings = new Outbuffer(1024);
-        symtab_strings->reserve(2048);
-        symtab_strings->writeByte(0);
+    if (!string_table)
+    {   string_table = new Outbuffer(1024);
+        string_table->reserve(2048);
     }
+    string_table->setsize(0);
+    string_table->write32(4);           // first 4 bytes are length of string table
 
-    if (!local_symbuf)
-        local_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    local_symbuf->setsize(0);
-
-    if (!public_symbuf)
-        public_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    public_symbuf->setsize(0);
-
-    if (!extern_symbuf)
-        extern_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
-    extern_symbuf->setsize(0);
+    if (!symbuf)
+        symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
+    symbuf->setsize(0);
 
     if (!comdef_symbuf)
         comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
@@ -400,46 +384,77 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     extdef = 0;
 
-    if (indirectsymbuf1)
-        indirectsymbuf1->setsize(0);
-    jumpTableSeg = 0;
-
-    if (indirectsymbuf2)
-        indirectsymbuf2->setsize(0);
     pointersSeg = 0;
 
     // Initialize segments for CODE, DATA, UDATA and CDATA
-    size_t struct_section_size = sizeof(struct scnhdr);
-    if (SECbuf)
+    if (!ScnhdrBuf)
     {
-        SECbuf->setsize(struct_section_size);
+        ScnhdrBuf = new Outbuffer(SYM_TAB_INC * sizeof(struct scnhdr));
+        ScnhdrBuf->reserve(SCNHDR_TAB_INITSIZE * sizeof(struct scnhdr));
     }
-    else
-    {
-        SECbuf = new Outbuffer(SYM_TAB_INC * struct_section_size);
-        SECbuf->reserve(SEC_TAB_INIT * struct_section_size);
-        // Ignore the first section - section numbers start at 1
-        SECbuf->writezeros(struct_section_size);
-    }
-    section_cnt = 1;
+    ScnhdrBuf->setsize(0);
+    scnhdr_cnt = 0;
+
+    /* Define sections. Although the order should not matter, we duplicate
+     * the same order VC puts out just to avoid trouble.
+     */
+
+    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
+    addScnhdr(".drectve", IMAGE_SCN_LNK_INFO |
+                          IMAGE_SCN_ALIGN_1BYTES |
+                          IMAGE_SCN_LNK_REMOVE);        // linker commands
+    addScnhdr(".debug$S", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          IMAGE_SCN_ALIGN_1BYTES |
+                          IMAGE_SCN_MEM_READ |
+                          IMAGE_SCN_MEM_DISCARDABLE);
+    addScnhdr(".data",    IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          IMAGE_SCN_ALIGN_4BYTES |
+                          IMAGE_SCN_MEM_READ |
+                          IMAGE_SCN_MEM_WRITE);             // DATA
+    addScnhdr(".text",    IMAGE_SCN_CNT_CODE |
+                          align |
+                          IMAGE_SCN_MEM_EXECUTE |
+                          IMAGE_SCN_MEM_READ);              // CODE
+    addScnhdr(".pdata",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          IMAGE_SCN_ALIGN_4BYTES |
+                          IMAGE_SCN_MEM_READ);              // CDATA
+    addScnhdr(".xdata",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                          IMAGE_SCN_ALIGN_4BYTES |
+                          IMAGE_SCN_MEM_READ);
+
+    addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
+                          IMAGE_SCN_ALIGN_4BYTES |
+                          IMAGE_SCN_MEM_READ |
+                          IMAGE_SCN_MEM_WRITE);        // UDATA
 
     seg_count = 0;
-    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
-    MsCoffObj::getsegment(".text",  IMAGE_SCN_CNT_CODE |
-                              align |
-                              IMAGE_SCN_MEM_EXECUTE |
-                              IMAGE_SCN_MEM_READ);              // CODE
-    MsCoffObj::getsegment(".data",  IMAGE_SCN_CNT_INITIALIZED_DATA |
-                              IMAGE_SCN_ALIGN_4BYTES |
-                              IMAGE_SCN_MEM_READ |
-                              IMAGE_SCN_MEM_WRITE);             // DATA
-    MsCoffObj::getsegment(".rdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                              IMAGE_SCN_ALIGN_4BYTES |
-                              IMAGE_SCN_MEM_READ);              // CDATA
-    MsCoffObj::getsegment(".bss",   IMAGE_SCN_CNT_UNINITIALIZED_DATA |
-                              IMAGE_SCN_ALIGN_4BYTES |
-                              IMAGE_SCN_MEM_READ |
-                              IMAGE_SCN_MEM_WRITE);        // UDATA
+
+#define SHI_DRECTVE     1
+#define SHI_DEBUGS      2
+#define SHI_DATA        3
+#define SHI_TEXT        4
+#define SHI_CDATA       5
+#define SHI_XDATA       6
+#define SHI_UDATA       7
+
+    getsegment2(SHI_TEXT);
+    assert(SegData[CODE]->SDseg == CODE);
+
+    getsegment2(SHI_DATA);
+    assert(SegData[DATA]->SDseg == DATA);
+
+    getsegment2(SHI_CDATA);
+    assert(SegData[CDATA]->SDseg == CDATA);
+
+    getsegment2(SHI_UDATA);
+    assert(SegData[UDATA]->SDseg == UDATA);
+
+    segidx_drectve = getsegment2(SHI_DRECTVE);
+    segidx_debugs  = getsegment2(SHI_DEBUGS);
+    segidx_xdata   = getsegment2(SHI_XDATA);
+
+    SegData[segidx_drectve]->SDbuf->setsize(0);
+    SegData[segidx_drectve]->SDbuf->write("  ", 2);
 
 //    if (config.fulltypes)
 //        dwarf_initfile(filename);
@@ -467,7 +482,7 @@ void MsCoffObj::initfile(const char *filename, const char *csegname, const char 
         assert(!I64);      // fix later
         SegData[cseg]->SDshtidx = newsecidx =
             elf_newsection(csegname,0,SHT_PROGDEF,SHF_ALLOC|SHF_EXECINSTR);
-        newtextsec = &SecHdrTab[newsecidx];
+        newtextsec = &ScnhdrTab[newsecidx];
         newtextsec->sh_addralign = 4;
         SegData[cseg]->SDsymidx =
             elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
@@ -484,12 +499,12 @@ void MsCoffObj::initfile(const char *filename, const char *csegname, const char 
 
 int32_t *patchAddr(int seg, targ_size_t offset)
 {
-    return(int32_t *)(fobjbuf->buf + SecHdrTab[SegData[seg]->SDshtidx].s_scnptr + offset);
+    return(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].s_scnptr + offset);
 }
 
 int32_t *patchAddr64(int seg, targ_size_t offset)
 {
-    return(int32_t *)(fobjbuf->buf + SecHdrTab[SegData[seg]->SDshtidx].s_scnptr + offset);
+    return(int32_t *)(fobjbuf->buf + ScnhdrTab[SegData[seg]->SDshtidx].s_scnptr + offset);
 }
 
 void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
@@ -497,37 +512,37 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     //printf("patch(offset = x%04x, seg = %d, value = x%llx)\n", (unsigned)offset, seg, value);
     if (I64)
     {
-        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab[pseg->SDshtidx].s_scnptr  + offset);
+        int32_t *p = (int32_t *)(fobjbuf->buf + ScnhdrTab[pseg->SDshtidx].s_scnptr  + offset);
 #if 0
         printf("\taddr1 = x%llx\n\taddr2 = x%llx\n\t*p = x%llx\n\tdelta = x%llx\n",
-            SecHdrTab[pseg->SDshtidx].s_vaddr,
-            SecHdrTab[SegData[seg]->SDshtidx].s_vaddr,
+            ScnhdrTab[pseg->SDshtidx].s_vaddr,
+            ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr,
             *p,
-            SecHdrTab[SegData[seg]->SDshtidx].s_vaddr -
-            (SecHdrTab[pseg->SDshtidx].s_vaddr + offset));
+            ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr -
+            (ScnhdrTab[pseg->SDshtidx].s_vaddr + offset));
 #endif
-        *p += SecHdrTab[SegData[seg]->SDshtidx].s_vaddr -
-              (SecHdrTab[pseg->SDshtidx].s_vaddr - value);
+        *p += ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr -
+              (ScnhdrTab[pseg->SDshtidx].s_vaddr - value);
     }
     else
     {
-        int32_t *p = (int32_t *)(fobjbuf->buf + SecHdrTab[pseg->SDshtidx].s_scnptr + offset);
+        int32_t *p = (int32_t *)(fobjbuf->buf + ScnhdrTab[pseg->SDshtidx].s_scnptr + offset);
 #if 0
         printf("\taddr1 = x%x\n\taddr2 = x%x\n\t*p = x%x\n\tdelta = x%x\n",
-            SecHdrTab[pseg->SDshtidx].s_vaddr,
-            SecHdrTab[SegData[seg]->SDshtidx].s_vaddr,
+            ScnhdrTab[pseg->SDshtidx].s_vaddr,
+            ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr,
             *p,
-            SecHdrTab[SegData[seg]->SDshtidx].s_vaddr -
-            (SecHdrTab[pseg->SDshtidx].s_vaddr + offset));
+            ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr -
+            (ScnhdrTab[pseg->SDshtidx].s_vaddr + offset));
 #endif
-        *p += SecHdrTab[SegData[seg]->SDshtidx].s_vaddr -
-              (SecHdrTab[pseg->SDshtidx].s_vaddr - value);
+        *p += ScnhdrTab[SegData[seg]->SDshtidx].s_vaddr -
+              (ScnhdrTab[pseg->SDshtidx].s_vaddr - value);
     }
 }
 
 /***************************
  * Number symbols so they are
- * ordered as locals, public and then extern/comdef
+ * ordered.
  */
 
 void mach_numbersyms()
@@ -535,30 +550,15 @@ void mach_numbersyms()
     //printf("mach_numbersyms()\n");
     int n = 0;
 
-    int dim;
-    dim = local_symbuf->size() / sizeof(symbol *);
-    for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)local_symbuf->buf)[i];
-        s->Sxtrnnum = n;
-        n++;
-    }
-
-    dim = public_symbuf->size() / sizeof(symbol *);
-    for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)public_symbuf->buf)[i];
-        s->Sxtrnnum = n;
-        n++;
-    }
-
-    dim = extern_symbuf->size() / sizeof(symbol *);
-    for (int i = 0; i < dim; i++)
-    {   symbol *s = ((symbol **)extern_symbuf->buf)[i];
+    size_t dim = symbuf->size() / sizeof(symbol *);
+    for (size_t i = 0; i < dim; i++)
+    {   symbol *s = ((symbol **)symbuf->buf)[i];
         s->Sxtrnnum = n;
         n++;
     }
 
     dim = comdef_symbuf->size() / sizeof(Comdef);
-    for (int i = 0; i < dim; i++)
+    for (size_t i = 0; i < dim; i++)
     {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
         c->sym->Sxtrnnum = n;
         n++;
@@ -604,113 +604,58 @@ void MsCoffObj::term()
 #endif
 
     /* Write out the object file in the following order:
-     *  header
-     *  commands
-     *          segment_command
-     *                  { sections }
-     *          symtab_command
-     *          dysymtab_command
-     *  { segment contents }
-     *  { relocations }
-     *  symbol table
-     *  string table
-     *  indirect symbol table
+     *  Header
+     *  Section Headers
+     *  Symbol table
+     *  String table
+     *  Section data
      */
 
     unsigned foffset;
-    unsigned headersize;
-    unsigned sizeofcmds;
 
     // Write out the bytes for the header
-    if (I64)
+
+    struct filehdr header;
+
+    header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
+    header.f_nscns = scnhdr_cnt - 1;
+    time(&header.f_timdat);
+    header.f_symptr = 0;        // offset to symbol table
+    header.f_nsyms = 0;
+    header.f_opthdr = 0;
+    header.f_flags = 0;
+
+    foffset = sizeof(header);       // start after header
+
+    foffset += ScnhdrBuf->size();   // section headers
+
+    header.f_symptr = foffset;
+    header.f_nsyms = symbuf->size() / sizeof(symbol *);
+    foffset += header.f_nsyms * sizeof(struct syment);  // symbol table
+
+    foffset += string_table->size();            // string table
+
+    // Compute file offsets of all the section data
+
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
     {
-        struct filehdr header;
-
-        header.f_magic = IMAGE_FILE_MACHINE_AMD64;
-        header.f_nscns = section_cnt - 1;
-        header.f_timdat = 0;
-        header.f_symptr = 0;
-        header.f_nsyms = 0;
-        header.f_opthdr = 0;
-        header.f_flags = 0;
-        fobjbuf->write(&header, sizeof(header));
-
-        foffset = sizeof(header);       // start after header
-        headersize = sizeof(header);
-//        sizeofcmds = header.sizeofcmds;
-
-        // Write the actual data later
-//        fobjbuf->writezeros(header.sizeofcmds);
-//        foffset += header.sizeofcmds;
+        seg_data *pseg = SegData[seg];
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
+        foffset = elf_align(pseg->SDalignment, foffset);
+        if (pseg->SDbuf && pseg->SDbuf->size())
+        {
+            int align = pseg->SDalignment;
+            if (align > 1)
+            {
+                foffset = (foffset + align - 1) & ~(align - 1);
+            }
+            psechdr->s_scnptr = foffset;
+            psechdr->s_size = pseg->SDbuf->size();
+            foffset += psechdr->s_size;
+        }
     }
-    else
-    {
-        struct filehdr header;
-
-        header.f_magic = IMAGE_FILE_MACHINE_I386;
-        header.f_nscns = section_cnt - 1;
-        header.f_timdat = 0;
-        header.f_symptr = 0;
-        header.f_nsyms = 0;
-        header.f_opthdr = 0;
-        header.f_flags = 0;
-        fobjbuf->write(&header, sizeof(header));
-
-        fobjbuf->write(&header, sizeof(header));
-        foffset = sizeof(header);       // start after header
-        headersize = sizeof(header);
-//        sizeofcmds = header.sizeofcmds;
-
-        // Write the actual data later
-//        fobjbuf->writezeros(header.sizeofcmds);
-//        foffset += header.sizeofcmds;
-    }
-
-    struct syment segment_cmd;
-    struct symtab_command symtab_cmd;
-    struct dysymtab_command dysymtab_cmd;
-
-    memset(&segment_cmd, 0, sizeof(segment_cmd));
-    memset(&symtab_cmd, 0, sizeof(symtab_cmd));
-    memset(&dysymtab_cmd, 0, sizeof(dysymtab_cmd));
 
 #if 0
-    segment_cmd.cmd = LC_SEGMENT;
-    segment_cmd.cmdsize = sizeof(segment_cmd) +
-                                (section_cnt - 1) * sizeof(struct section);
-    segment_cmd.nsects = section_cnt - 1;
-    segment_cmd.maxprot = 7;
-    segment_cmd.initprot = 7;
-
-    symtab_cmd.cmd = LC_SYMTAB;
-    symtab_cmd.cmdsize = sizeof(symtab_cmd);
-
-    dysymtab_cmd.cmd = LC_DYSYMTAB;
-    dysymtab_cmd.cmdsize = sizeof(dysymtab_cmd);
-
-    /* If a __pointers section was emitted, need to set the .reserved1
-     * field to the symbol index in the indirect symbol table of the
-     * start of the __pointers symbols.
-     */
-    if (pointersSeg)
-    {
-        seg_data *pseg = SegData[pointersSeg];
-        if (I64)
-        {
-            struct section_64 *psechdr = &SecHdrTab64[pseg->SDshtidx]; // corresponding section
-            psechdr->reserved1 = indirectsymbuf1
-                ? indirectsymbuf1->size() / sizeof(Symbol *)
-                : 0;
-        }
-        else
-        {
-            struct section *psechdr = &SecHdrTab[pseg->SDshtidx]; // corresponding section
-            psechdr->reserved1 = indirectsymbuf1
-                ? indirectsymbuf1->size() / sizeof(Symbol *)
-                : 0;
-        }
-    }
-
     // Walk through sections determining size and file offsets
 
     //
@@ -721,7 +666,7 @@ void MsCoffObj::term()
     segment_cmd.fileoff = foffset;
     unsigned vmaddr = 0;
 
-    //printf("Setup offsets and sizes foffset %d\n\tsection_cnt %d, seg_count %d\n",foffset,section_cnt,seg_count);
+    //printf("Setup offsets and sizes foffset %d\n\tscnhdr_cnt %d, seg_count %d\n",foffset,scnhdr_cnt,seg_count);
     // Zero filled segments go at the end, so go through segments twice
     for (int i = 0; i < 2; i++)
     {
@@ -730,7 +675,7 @@ void MsCoffObj::term()
             seg_data *pseg = SegData[seg];
             if (I64)
             {
-                struct section_64 *psechdr = &SecHdrTab64[pseg->SDshtidx]; // corresponding section
+                struct section_64 *psechdr = &ScnhdrTab64[pseg->SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
                 if (i ^ (psechdr->flags == S_ZEROFILL))
@@ -758,7 +703,7 @@ void MsCoffObj::term()
                     {
                         //printf("\tsize %d\n", pseg->SDbuf->size());
                         psechdr->size = pseg->SDbuf->size();
-                        fobjbuf->write(pseg->SDbuf->buf, psechdr->size);
+                        fobjbuf->write(pseg->SDbuf);
                         foffset += psechdr->size;
                     }
                 }
@@ -768,7 +713,7 @@ void MsCoffObj::term()
             }
             else
             {
-                struct section *psechdr = &SecHdrTab[pseg->SDshtidx]; // corresponding section
+                struct section *psechdr = &ScnhdrTab[pseg->SDshtidx]; // corresponding section
 
                 // Do zero-fill the second time through this loop
                 if (i ^ (psechdr->flags == S_ZEROFILL))
@@ -796,7 +741,7 @@ void MsCoffObj::term()
                     {
                         //printf("\tsize %d\n", pseg->SDbuf->size());
                         psechdr->size = pseg->SDbuf->size();
-                        fobjbuf->write(pseg->SDbuf->buf, psechdr->size);
+                        fobjbuf->write(pseg->SDbuf);
                         foffset += psechdr->size;
                     }
                 }
@@ -830,10 +775,10 @@ void MsCoffObj::term()
 
     // Put out relocation data
     mach_numbersyms();
-    for (int seg = 1; seg <= seg_count; seg++)
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
     {
         seg_data *pseg = SegData[seg];
-        scnhdr *psechdr = &SecHdrTab[pseg->SDshtidx];   // corresponding section
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
         //printf("psechdr->addr = x%x\n", psechdr->addr);
 
         foffset = elf_align(I64 ? 8 : 4, foffset);
@@ -900,11 +845,11 @@ void MsCoffObj::term()
 
                                 int32_t *p = patchAddr64(seg, r->offset);
                                 // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, .s_vaddr = x%x, Soffset = x%x\n", *p, (int)SecHdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr, (int)s->Soffset);
-//printf("pseg = x%x, r->offset = x%x\n", (int)SecHdrTab64[pseg->SDshtidx].s_vaddr, (int)r->offset);
-                                *p += SecHdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr;
+//printf("*p = x%x, .s_vaddr = x%x, Soffset = x%x\n", *p, (int)ScnhdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr, (int)s->Soffset);
+//printf("pseg = x%x, r->offset = x%x\n", (int)ScnhdrTab64[pseg->SDshtidx].s_vaddr, (int)r->offset);
+                                *p += ScnhdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr;
                                 *p += s->Soffset;
-                                *p -= SecHdrTab64[pseg->SDshtidx].s_vaddr + r->offset + 4;
+                                *p -= ScnhdrTab64[pseg->SDshtidx].s_vaddr + r->offset + 4;
                                 //patch(pseg, r->offset, s->Sseg, s->Soffset);
                                 continue;
                             }
@@ -955,14 +900,14 @@ void MsCoffObj::term()
                                 rel.r_length = 3;
                                 int32_t *p = patchAddr64(seg, r->offset);
                                 // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
+                                *p += ScnhdrTab64[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
                                 //patch(pseg, r->offset, s->Sseg, s->Soffset);
                             }
                             else
                             {
                                 int32_t *p = patchAddr(seg, r->offset);
                                 // Absolute address; add in addr of start of targ seg
-                                *p += SecHdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
+                                *p += ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr + s->Soffset;
                                 //patch(pseg, r->offset, s->Sseg, s->Soffset);
                             }
                             continue;
@@ -984,14 +929,14 @@ void MsCoffObj::term()
                     if (I64)
                     {
                         srel.r_type = IMAGE_REL_AMD64_SSPAN32;
-                        srel.r_value = SecHdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr + *p64;
-                        //printf("SECTDIFF: x%llx + x%llx = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].s_vaddr, *p, srel.r_value);
+                        srel.r_value = ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr + *p64;
+                        //printf("SECTDIFF: x%llx + x%llx = x%x\n", ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr, *p, srel.r_value);
                     }
                     else
                     {
                         srel.r_type = IMAGE_REL_I386_SECREL;
-                        srel.r_value = SecHdrTab[SegData[r->targseg]->SDshtidx].s_vaddr + *p;
-                        //printf("SECTDIFF: x%x + x%x = x%x\n", SecHdrTab[SegData[r->targseg]->SDshtidx].s_vaddr, *p, srel.r_value);
+                        srel.r_value = ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr + *p;
+                        //printf("SECTDIFF: x%x + x%x = x%x\n", ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr, *p, srel.r_value);
                     }
                     srel.r_pcrel = 0;
                     fobjbuf->write(&srel, sizeof(srel));
@@ -1002,10 +947,10 @@ void MsCoffObj::term()
                     //srel.r_type = GENERIC_RELOC_PAIR;
                     srel.r_length = 2;
                     if (I64)
-                        srel.r_value = SecHdrTab64[pseg->SDshtidx].s_vaddr +
+                        srel.r_value = ScnhdrTab64[pseg->SDshtidx].s_vaddr +
                                 r->funcsym->Slocalgotoffset + NPTRSIZE;
                     else
-                        srel.r_value = SecHdrTab[pseg->SDshtidx].s_vaddr +
+                        srel.r_value = ScnhdrTab[pseg->SDshtidx].s_vaddr +
                                 r->funcsym->Slocalgotoffset + NPTRSIZE;
                     srel.r_pcrel = 0;
                     fobjbuf->write(&srel, sizeof(srel));
@@ -1017,15 +962,15 @@ void MsCoffObj::term()
                     {
                         p64 = patchAddr64(seg, r->offset);
                         //printf("address = x%x, p64 = %p *p64 = x%llx\n", r->offset, p64, *p64);
-                        *p64 += SecHdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr -
-                              (SecHdrTab64[pseg->SDshtidx].s_vaddr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        *p64 += ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr -
+                              (ScnhdrTab64[pseg->SDshtidx].s_vaddr + r->funcsym->Slocalgotoffset + NPTRSIZE);
                     }
                     else
                     {
                         p = patchAddr(seg, r->offset);
                         //printf("address = x%x, p = %p *p = x%x\n", r->offset, p, *p);
-                        *p += SecHdrTab[SegData[r->targseg]->SDshtidx].s_vaddr -
-                              (SecHdrTab[pseg->SDshtidx].s_vaddr + r->funcsym->Slocalgotoffset + NPTRSIZE);
+                        *p += ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr -
+                              (ScnhdrTab[pseg->SDshtidx].s_vaddr + r->funcsym->Slocalgotoffset + NPTRSIZE);
                     }
                     continue;
                 }
@@ -1056,10 +1001,10 @@ void MsCoffObj::term()
                             patch(pseg, r->offset, r->targseg, 0);
                         else
                         {   // Absolute address; add in addr of start of targ seg
-//printf("*p = x%x, targ.s_vaddr = x%x\n", *p64, (int)SecHdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr);
-//printf("pseg = x%x, r->offset = x%x\n", (int)SecHdrTab64[pseg->SDshtidx].s_vaddr, (int)r->offset);
-                            *p64 += SecHdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr;
-                            //*p64 -= SecHdrTab64[pseg->SDshtidx].s_vaddr;
+//printf("*p = x%x, targ.s_vaddr = x%x\n", *p64, (int)ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr);
+//printf("pseg = x%x, r->offset = x%x\n", (int)ScnhdrTab64[pseg->SDshtidx].s_vaddr, (int)r->offset);
+                            *p64 += ScnhdrTab64[SegData[r->targseg]->SDshtidx].s_vaddr;
+                            //*p64 -= ScnhdrTab64[pseg->SDshtidx].s_vaddr;
                         }
                         //printf("%d:x%04x before = x%04llx, after = x%04llx pcrel = %d\n", seg, r->offset, before, *p64, rel.r_pcrel);
                     }
@@ -1072,7 +1017,7 @@ void MsCoffObj::term()
                             patch(pseg, r->offset, r->targseg, 0);
                         else
                             // Absolute address; add in addr of start of targ seg
-                            *p += SecHdrTab[SegData[r->targseg]->SDshtidx].s_vaddr;
+                            *p += ScnhdrTab[SegData[r->targseg]->SDshtidx].s_vaddr;
                         //printf("%d:x%04x before = x%04x, after = x%04x pcrel = %d\n", seg, r->offset, before, *p, rel.r_pcrel);
                     }
                     continue;
@@ -1094,23 +1039,23 @@ void MsCoffObj::term()
         }
     }
 
-    // Put out symbol table
-    foffset = elf_align(I64 ? 8 : 4, foffset);
-    symtab_cmd.symoff = foffset;
-    dysymtab_cmd.ilocalsym = 0;
-    dysymtab_cmd.nlocalsym  = local_symbuf->size() / sizeof(symbol *);
-    dysymtab_cmd.iextdefsym = dysymtab_cmd.nlocalsym;
-    dysymtab_cmd.nextdefsym = public_symbuf->size() / sizeof(symbol *);
-    dysymtab_cmd.iundefsym = dysymtab_cmd.iextdefsym + dysymtab_cmd.nextdefsym;
-    int nexterns = extern_symbuf->size() / sizeof(symbol *);
-    int ncomdefs = comdef_symbuf->size() / sizeof(Comdef);
-    dysymtab_cmd.nundefsym  = nexterns + ncomdefs;
-    symtab_cmd.nsyms =  dysymtab_cmd.nlocalsym +
-                        dysymtab_cmd.nextdefsym +
-                        dysymtab_cmd.nundefsym;
-    fobjbuf->reserve(symtab_cmd.nsyms * sizeof(struct nlist));
-    for (int i = 0; i < dysymtab_cmd.nlocalsym; i++)
-    {   symbol *s = ((symbol **)local_symbuf->buf)[i];
+#endif
+
+
+    // Write the header
+    fobjbuf->write(&header, sizeof(header));
+    foffset = sizeof(header);
+
+    // Write the section headers
+    fobjbuf->write(ScnhdrBuf);
+    foffset += ScnhdrBuf->size();
+
+    // Write the symbol table
+    fobjbuf->writezeros(header.f_nsyms * sizeof(struct syment));
+#if 0
+    fobjbuf->reserve(header.f_nsyms * sizeof(struct syment));
+    for (size_t i = 0; i < header.f_nsyms; i++)
+    {   symbol *s = ((symbol **)symbuf->buf)[i];
         struct nlist sym;
         sym.n_un.n_strx = elf_addmangled(s);
         sym.n_type = N_SECT;
@@ -1118,107 +1063,28 @@ void MsCoffObj::term()
         if (s->Sclass == SCcomdat)
             sym.n_desc = N_WEAK_DEF;
         sym.n_sect = s->Sseg;
-        sym.n_value = s->Soffset + SecHdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr;
+        sym.n_value = s->Soffset + ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr;
         fobjbuf->write(&sym, sizeof(sym));
     }
-    for (int i = 0; i < dysymtab_cmd.nextdefsym; i++)
-    {   symbol *s = ((symbol **)public_symbuf->buf)[i];
-
-        //printf("Writing public symbol %d:x%x %s\n", s->Sseg, s->Soffset, s->Sident);
-        struct nlist sym;
-        sym.n_un.n_strx = elf_addmangled(s);
-        sym.n_type = N_EXT | N_SECT;
-        sym.n_desc = 0;
-        if (s->Sclass == SCcomdat)
-            sym.n_desc = N_WEAK_DEF;
-        sym.n_sect = s->Sseg;
-        sym.n_value = s->Soffset + SecHdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr;
-        fobjbuf->write(&sym, sizeof(sym));
-    }
-    for (int i = 0; i < nexterns; i++)
-    {   symbol *s = ((symbol **)extern_symbuf->buf)[i];
-        struct nlist sym;
-        sym.n_un.n_strx = elf_addmangled(s);
-        sym.n_value = s->Soffset;
-        sym.n_type = N_EXT | N_UNDF;
-        sym.n_desc = tyfunc(s->ty()) ? REFERENCE_FLAG_UNDEFINED_LAZY
-                                     : REFERENCE_FLAG_UNDEFINED_NON_LAZY;
-        sym.n_sect = 0;
-        fobjbuf->write(&sym, sizeof(sym));
-    }
-    for (int i = 0; i < ncomdefs; i++)
-    {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
-        struct nlist sym;
-        sym.n_un.n_strx = elf_addmangled(c->sym);
-        sym.n_value = c->size * c->count;
-        sym.n_scnum = IMAGE_SYM_UNDEFINED;
-        sym.n_type = 0;
-        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
-        sym.n_numaux = 0;
-
-        fobjbuf->write(&sym, sizeof(sym));
-    }
-    if (extdef)
-    {
-        struct nlist_64 sym;
-        sym.n_un.n_strx = extdef;
-        sym.n_value = 0;
-        sym.n_type = N_EXT | N_UNDF;
-        sym.n_desc = 0;
-        sym.n_sect = 0;
-        sym.n_numaux = 0;
-
-        fobjbuf->write(&sym, sizeof(sym));
-        symtab_cmd.nsyms++;
-    }
-    foffset += symtab_cmd.nsyms * sizeof(struct nlist);
-
-    // Put out string table
-    foffset = elf_align(I64 ? 8 : 4, foffset);
-    symtab_cmd.stroff = foffset;
-    symtab_cmd.strsize = symtab_strings->size();
-    fobjbuf->write(symtab_strings->buf, symtab_cmd.strsize);
-    foffset += symtab_cmd.strsize;
-
-    // Put out indirectsym table, which is in two parts
-    foffset = elf_align(I64 ? 8 : 4, foffset);
-    dysymtab_cmd.indirectsymoff = foffset;
-    if (indirectsymbuf1)
-    {   dysymtab_cmd.nindirectsyms += indirectsymbuf1->size() / sizeof(Symbol *);
-        for (int i = 0; i < dysymtab_cmd.nindirectsyms; i++)
-        {   Symbol *s = ((Symbol **)indirectsymbuf1->buf)[i];
-            fobjbuf->write32(s->Sxtrnnum);
-        }
-    }
-    if (indirectsymbuf2)
-    {   int n = indirectsymbuf2->size() / sizeof(Symbol *);
-        dysymtab_cmd.nindirectsyms += n;
-        for (int i = 0; i < n; i++)
-        {   Symbol *s = ((Symbol **)indirectsymbuf2->buf)[i];
-            fobjbuf->write32(s->Sxtrnnum);
-        }
-    }
-    foffset += dysymtab_cmd.nindirectsyms * 4;
-
-    /* The correct offsets are now determined, so
-     * rewind and fix the header.
-     */
-    fobjbuf->position(headersize, sizeofcmds);
-    if (I64)
-    {
-        fobjbuf->write(&segment_cmd64, sizeof(segment_cmd64));
-        fobjbuf->write(SECbuf->buf + sizeof(struct section_64), (section_cnt - 1) * sizeof(struct section_64));
-    }
-    else
-    {
-        fobjbuf->write(&segment_cmd, sizeof(segment_cmd));
-        fobjbuf->write(SECbuf->buf + sizeof(struct section), (section_cnt - 1) * sizeof(struct section));
-    }
-    fobjbuf->write(&symtab_cmd, sizeof(symtab_cmd));
-    fobjbuf->write(&dysymtab_cmd, sizeof(dysymtab_cmd));
-    fobjbuf->position(foffset, 0);
-    fobjbuf->flush();
+    foffset += header.f_nsyms * sizeof(struct syment);
 #endif
+
+    // Write the string table
+    *(unsigned *)(string_table->buf) = string_table->size();
+    fobjbuf->write(string_table);
+    foffset += string_table->size();
+
+    // Write the section data
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
+    {
+        seg_data *pseg = SegData[seg];
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
+        foffset = elf_align(pseg->SDalignment, foffset);
+        if (pseg->SDbuf && pseg->SDbuf->size())
+            fobjbuf->write(pseg->SDbuf);
+    }
+
+    fobjbuf->flush();
 }
 
 /*****************************
@@ -1323,7 +1189,9 @@ void MsCoffObj::startaddress(Symbol *s)
 bool MsCoffObj::includelib(const char *name)
 {
     //dbg_printf("MsCoffObj::includelib(name *%s)\n",name);
-    return false;
+    SegData[segidx_drectve]->SDbuf->write(" /DEFAULTLIB:", 13);
+    SegData[segidx_drectve]->SDbuf->write(name, strlen(name));
+    return true;
 }
 
 /**********************************
@@ -1603,25 +1471,36 @@ int MsCoffObj::comdat(Symbol *s)
 }
 
 /**********************************
- * Get segment.
+ * Get segment, which may already exist.
  * Input:
  *      flags2  put out some data for this, so the linker will keep things in order
- *      align   segment alignment as power of 2
  * Returns:
  *      segment index of found or newly created segment
  */
 
-int MsCoffObj::getsegment(const char *sectname, unsigned long flags)
+segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
 {
     assert(strlen(sectname) <= 16);
     for (int seg = 1; seg <= seg_count; seg++)
     {   seg_data *pseg = SegData[seg];
         if (!(flags & IMAGE_SCN_LNK_COMDAT) &&
-            strncmp(SecHdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
+            strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
             return seg;         // return existing segment
     }
 
-    int seg = ++seg_count;
+    segidx_t seg = getsegment2(addScnhdr(sectname, flags));
+
+    //printf("seg_count = %d\n", seg_count);
+    return seg;
+}
+
+/******************************************
+ * Create a new segment corresponding to an existing scnhdr index shtidx
+ */
+
+segidx_t MsCoffObj::getsegment2(IDXSEC shtidx)
+{
+    segidx_t seg = ++seg_count;
     if (seg_count >= seg_max)
     {                           // need more room in segment table
         seg_max += 10;
@@ -1645,7 +1524,7 @@ int MsCoffObj::getsegment(const char *sectname, unsigned long flags)
     {
         seg_data *pseg = (seg_data *)mem_calloc(sizeof(seg_data));
         SegData[seg] = pseg;
-        if (!(flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
+        if (!(ScnhdrTab[shtidx].s_flags & IMAGE_SCN_CNT_UNINITIALIZED_DATA))
         {   pseg->SDbuf = new Outbuffer(4096);
             pseg->SDbuf->reserve(4096);
         }
@@ -1657,17 +1536,35 @@ int MsCoffObj::getsegment(const char *sectname, unsigned long flags)
     pseg->SDseg = seg;
     pseg->SDoffset = 0;
 
-    struct scnhdr *sec = (struct scnhdr *)
-        SECbuf->writezeros(sizeof(struct section));
-    strncpy(sec->s_name, sectname, 8);
-    sec->s_flags = flags;
-
-    pseg->SDshtidx = section_cnt++;
+    pseg->SDshtidx = shtidx;
     pseg->SDaranges_offset = 0;
     pseg->SDlinnum_count = 0;
 
     //printf("seg_count = %d\n", seg_count);
     return seg;
+}
+
+/********************************************
+ * Add new scnhdr.
+ * Returns:
+ *      scnhdr number for added scnhdr
+ */
+
+IDXSEC MsCoffObj::addScnhdr(const char *scnhdr_name, unsigned long flags)
+{
+    struct scnhdr sec;
+    memset(&sec, 0, sizeof(sec));
+    size_t len = strlen(scnhdr_name);
+    if (len > 8)
+    {   // Use /nnnn form
+        IDXSTR idx = addstr(string_table, scnhdr_name);
+        sprintf(sec.s_name, "/%d", idx);
+    }
+    else
+        memcpy(sec.s_name, scnhdr_name, len);
+    sec.s_flags = flags;
+    ScnhdrBuf->write((void *)&sec, sizeof(sec));
+    return ++scnhdr_cnt;
 }
 
 /********************************
@@ -1859,7 +1756,7 @@ void MsCoffObj::export_symbol(Symbol *s,unsigned argsize)
  *      actual seg
  */
 
-int MsCoffObj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
+segidx_t MsCoffObj::data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg)
 {
     targ_size_t alignbytes;
 
@@ -1938,7 +1835,7 @@ void MsCoffObj::func_term(Symbol *sfunc)
  *      offset =        offset of name within segment
  */
 
-void MsCoffObj::pubdef(int seg, Symbol *s, targ_size_t offset)
+void MsCoffObj::pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
 {
 #if 0
     printf("MsCoffObj::pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s->Sident);
@@ -1952,17 +1849,17 @@ void MsCoffObj::pubdef(int seg, Symbol *s, targ_size_t offset)
     {
         case SCglobal:
         case SCinline:
-            public_symbuf->write(&s, sizeof(s));
+            symbuf->write(&s, sizeof(s));
             break;
         case SCcomdat:
         case SCcomdef:
-            public_symbuf->write(&s, sizeof(s));
+            symbuf->write(&s, sizeof(s));
             break;
         default:
-            local_symbuf->write(&s, sizeof(s));
+            symbuf->write(&s, sizeof(s));
             break;
     }
-    //printf("%p\n", *(void**)public_symbuf->buf);
+    //printf("%p\n", *(void**)symbuf->buf);
     s->Sxtrnnum = 1;
 }
 
@@ -1981,7 +1878,7 @@ int MsCoffObj::external_def(const char *name)
     //printf("MsCoffObj::external_def('%s')\n",name);
     assert(name);
     assert(extdef == 0);
-    extdef = MsCoffObj::addstr(symtab_strings, name);
+    extdef = MsCoffObj::addstr(string_table, name);
     return 0;
 }
 
@@ -2000,7 +1897,7 @@ int MsCoffObj::external(Symbol *s)
 {
     //printf("MsCoffObj::external('%s') %x\n",s->Sident,s->Svalue);
     symbol_debug(s);
-    extern_symbuf->write(&s, sizeof(s));
+    symbuf->write(&s, sizeof(s));
     s->Sxtrnnum = 1;
     return 1;
 }
@@ -2055,11 +1952,11 @@ void MsCoffObj::write_zeros(seg_data *pseg, targ_size_t count)
  *      For boundary alignment and initialization
  */
 
-void MsCoffObj::lidata(int seg,targ_size_t offset,targ_size_t count)
+void MsCoffObj::lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
 {
     //printf("MsCoffObj::lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg]->SDshtidx;
-    if ((SecHdrTab[idx].s_flags) & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
+    if ((ScnhdrTab[idx].s_flags) & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
     {   // Use SDoffset to record size of bss section
         SegData[seg]->SDoffset += count;
     }
@@ -2082,7 +1979,7 @@ void MsCoffObj::write_byte(seg_data *pseg, unsigned byte)
  * Output byte to object file.
  */
 
-void MsCoffObj::byte(int seg,targ_size_t offset,unsigned byte)
+void MsCoffObj::byte(segidx_t seg,targ_size_t offset,unsigned byte)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
@@ -2111,7 +2008,7 @@ void MsCoffObj::write_bytes(seg_data *pseg, unsigned nbytes, void *p)
  *      nbytes
  */
 
-unsigned MsCoffObj::bytes(int seg, targ_size_t offset, unsigned nbytes, void *p)
+unsigned MsCoffObj::bytes(segidx_t seg, targ_size_t offset, unsigned nbytes, void *p)
 {
 #if 0
     if (!(seg >= 0 && seg <= seg_count))
@@ -2152,7 +2049,7 @@ if (!buf) halt();
  * Add a relocation entry for seg/offset.
  */
 
-void MsCoffObj::addrel(int seg, targ_size_t offset, symbol *targsym,
+void MsCoffObj::addrel(segidx_t seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val)
 {
     Relocation rel;
@@ -2205,7 +2102,7 @@ void mach_relsort(Outbuffer *buf)
  *      val =           addend or displacement from address
  */
 
-void MsCoffObj::addrel(int seg, targ_size_t offset, unsigned type,
+void MsCoffObj::addrel(segidx_t seg, targ_size_t offset, unsigned type,
                                         IDXSYM symidx, targ_size_t val)
 {
 }
@@ -2223,7 +2120,7 @@ void MsCoffObj::addrel(int seg, targ_size_t offset, unsigned type,
  *              MsCoffObj::reftodatseg(DATA,offset,3 * sizeof(int *),UDATA);
  */
 
-void MsCoffObj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
+void MsCoffObj::reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
         unsigned targetdatum,int flags)
 {
     Outbuffer *buf = SegData[seg]->SDbuf;
@@ -2264,7 +2161,7 @@ void MsCoffObj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
  *      val =           displacement from start of this module
  */
 
-void MsCoffObj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
+void MsCoffObj::reftocodeseg(segidx_t seg,targ_size_t offset,targ_size_t val)
 {
     //printf("MsCoffObj::reftocodeseg(seg=%d, offset=x%lx, val=x%lx )\n",seg,(unsigned long)offset,(unsigned long)val);
     assert(seg > 0);
@@ -2297,7 +2194,7 @@ void MsCoffObj::reftocodeseg(int seg,targ_size_t offset,targ_size_t val)
  *      number of bytes in reference (4 or 8)
  */
 
-int MsCoffObj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
+int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size_t val,
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
@@ -2343,8 +2240,9 @@ int MsCoffObj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t va
                 }
 #endif
                 seg_data *pseg = SegData[jumpTableSeg];
-//                SecHdrTab[pseg->SDshtidx].reserved2 = 5;
+//                ScnhdrTab[pseg->SDshtidx].reserved2 = 5;
 
+#if 0
                 if (!indirectsymbuf1)
                     indirectsymbuf1 = new Outbuffer();
                 else
@@ -2366,6 +2264,7 @@ int MsCoffObj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t va
 
                 // Add symbol s to indirectsymbuf1
                 indirectsymbuf1->write(&s, sizeof(Symbol *));
+#endif
              L1:
                 val -= offset + 4;
                 MsCoffObj::addrel(seg, offset, NULL, jumpTableSeg, RELrel);
@@ -2512,6 +2411,18 @@ void MsCoffObj::gotref(symbol *s)
     }
 }
 #endif
+
+/**********************************
+ * Reset code seg to existing seg.
+ * Used after a COMDAT for a function is done.
+ */
+
+void MsCoffObj::setcodeseg(int seg)
+{
+    assert(0 < seg && seg <= seg_count);
+    cseg = seg;
+}
+
 
 #endif
 #endif

@@ -145,7 +145,7 @@ struct MsCoffObj : Obj
     VIRTUAL void moduleinfo(Symbol *scc);
     VIRTUAL int  comdat(Symbol *);
     VIRTUAL int  comdatsize(Symbol *, targ_size_t symsize);
-//    VIRTUAL void setcodeseg(int seg);
+    VIRTUAL void setcodeseg(int seg);
     VIRTUAL seg_data *tlsseg();
     VIRTUAL seg_data *tlsseg_bss();
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
@@ -179,6 +179,8 @@ struct MsCoffObj : Obj
     VIRTUAL void func_term(Symbol *sfunc);
 
     static int getsegment(const char *sectname, unsigned long flags);
+    static int getsegment2(unsigned shtidx);
+    static unsigned addScnhdr(const char *scnhdr_name, unsigned long flags);
 
     static void addrel(int seg, targ_size_t offset, symbol *targsym,
         unsigned targseg, int rtype, int val);

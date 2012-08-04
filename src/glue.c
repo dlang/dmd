@@ -222,10 +222,10 @@ void obj_start(char *srcfile)
     slist_reset();
     clearStringTab();
 
-#if TARGET_WINDOWS
+#if TARGET_WINDOS
     // Produce Ms COFF files for 64 bit code, OMF for 32 bit code
-    objmod = I64 ? MsCoffObj::init(&objbuf, srcfile, NULL)
-                 :       Obj::init(&objbuf, srcfile, NULL);
+    objmod = global.params.is64bit == 1 ? MsCoffObj::init(&objbuf, srcfile, NULL)
+                                        :       Obj::init(&objbuf, srcfile, NULL);
 #else
     objmod = Obj::init(&objbuf, srcfile, NULL);
 #endif

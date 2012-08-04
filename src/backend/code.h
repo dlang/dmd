@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1996 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -18,6 +18,8 @@ extern "C" {
 struct LabelDsymbol;
 struct Declaration;
 #endif
+
+typedef int segidx_t;           // index into SegData[]
 
 #define CNIL ((code *) NULL)
 
@@ -646,7 +648,7 @@ extern  targ_size_t localsize,Toff,Poff,Aoff,
         framehandleroffset,
         Aoffset,Toffset,EEoffset;
 extern  int Aalign;
-extern  int cseg;
+extern  segidx_t cseg;
 extern  int STACKALIGN;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
@@ -1017,7 +1019,7 @@ typedef unsigned int IDXSYM;
 
 struct seg_data
 {
-    int                  SDseg;         // index into SegData[]
+    segidx_t             SDseg;         // index into SegData[]
     targ_size_t          SDoffset;      // starting offset for data
     int                  SDalignment;   // power of 2
 
