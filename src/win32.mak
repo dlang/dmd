@@ -97,19 +97,20 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
-	ti_pvoid.obj
+	ti_pvoid.obj mscoffobj.obj
 
-# from ROOT
-
+# Root package
 GCOBJS=rmem.obj
+# Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-
 ROOTOBJS= array.obj gnuc.obj man.obj root.obj port.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
+# All objects
 OBJS= $(OBJ1) $(OBJ8) $(ROOTOBJS)
 
+# D front end
 SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	utf.c entity.c identifier.c mtype.c expression.c optimize.c \
 	template.h template.c lexer.c declaration.c cast.c \
@@ -130,6 +131,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 
 # From C++ compiler
 
+# D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h $C\html.h \
@@ -141,24 +143,21 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\evalu8.c $C\go.c $C\gflow.c $C\gdag.c \
 	$C\gother.c $C\glocal.c $C\gloop.c $C\html.c $C\newman.c \
 	$C\nteh.c $C\os.c $C\out.c $C\outbuf.c $C\ptrntab.c $C\rtlsym.c \
-	$C\type.c $C\melf.h $C\mach.h $C\bcomplex.h \
+	$C\type.c $C\melf.h $C\mach.h $C\mscoff.h $C\bcomplex.h \
 	$C\cdeflnx.h $C\outbuf.h $C\token.h $C\tassert.h \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
-	$C\obj.h \
+	$C\mscoffobj.c $C\obj.h \
 	$C\backend.txt
 
-# From TK
-
+# Toolkit
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 
-# From root
-
-ROOTSRC= \
-	$(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
+# Root package
+ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
 	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
@@ -167,10 +166,12 @@ ROOTSRC= \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
 	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
 	$(ROOT)\dmgcmem.c
+# Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
+# Makefiles
 MAKEFILES=win32.mak posix.mak
 
 #########################################
@@ -209,18 +210,21 @@ id.h id.c : idgen.c
 
 ##################### SPECIAL BUILDS #####################
 
+# Pre-compiled header
 total.sym : $(ROOT)\root.h mars.h lexer.h parse.h enum.h dsymbol.h \
 	mtype.h expression.h attrib.h init.h cond.h version.h \
 	declaration.h statement.h scope.h import.h module.h id.h \
 	template.h aggregate.h arraytypes.h lib.h total.h
 	$(CC) -c $(CFLAGS) -HFtotal.sym total.h
 
+# Generated source
 impcnvtab.obj : mtype.h impcnvtab.c
 	$(CC) -c -I$(ROOT) -cpp impcnvtab
 
 iasm.obj : $(CH) $(TOTALH) $C\iasm.h iasm.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) iasm
 
+# D front/back end
 bcomplex.obj : $C\bcomplex.c
 	$(CC) -c $(MFLAGS) $C\bcomplex
 
@@ -344,6 +348,9 @@ module.obj : $(TOTALH) $C\html.h module.c
 msc.obj : $(CH) mars.h msc.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) msc
 
+mscoffobj.obj : $C\mscoff.h $C\mscoffobj.c
+	$(CC) -c $(MFLAGS) -I.;$(ROOT) $C\mscoffobj
+
 newman.obj : $(CH) $C\newman.c
 	$(CC) -c $(MFLAGS) $C\newman
 
@@ -417,8 +424,7 @@ var.obj : $C\var.c optab.c
 tk.obj : tk.c
 	$(CC) -c $(MFLAGS) tk.c
 
-# ROOT
-
+# Root
 aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
 	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
 
@@ -455,7 +461,7 @@ speller.obj : $(ROOT)\speller.h $(ROOT)\speller.c
 stringtable.obj : $(ROOT)\stringtable.c
 	$(CC) -c $(CFLAGS) $(ROOT)\stringtable.c
 
-# ROOT/GC
+# Root/GC -- Removed (look in history)
 #
 #bits.obj : $(ROOT)\gc\bits.h $(ROOT)\gc\bits.c
 #	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\bits.c
@@ -466,6 +472,7 @@ stringtable.obj : $(ROOT)\stringtable.c
 #win32.obj : $(ROOT)\gc\os.h $(ROOT)\gc\win32.c
 #	$(CC) -c $(CFLAGS) -I$(ROOT)\gc $(ROOT)\gc\win32.c
 
+############################## Generated Rules ###############################
 
 ################# Source file dependencies ###############
 
