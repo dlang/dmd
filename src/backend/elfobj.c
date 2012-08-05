@@ -2019,7 +2019,7 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
     if (sdata->Salignment > 0)
     {   if (SegData[seg]->SDalignment < sdata->Salignment)
             SegData[seg]->SDalignment = sdata->Salignment;
-        alignbytes = (offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1);
+        alignbytes = ((offset + sdata->Salignment - 1) & ~(sdata->Salignment - 1)) - offset;
     }
     else
         alignbytes = align(datasize, offset) - offset;
