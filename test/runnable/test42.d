@@ -5217,6 +5217,27 @@ void test8423()
 }
 
 /***************************************************/
+class Foo8496
+{
+public:
+    void foo(uint value)
+    {
+        ubyte size = value < (0x7fU << 0 ) ? 1 :
+                     value < (0x7fU << 14) ? 2 :
+                                             3;
+        import std.stdio;
+        writeln(size);
+	assert(size == 2);
+    }
+}
+
+void test8496()
+{
+    Foo8496 f = new Foo8496();
+    f.foo(1000000);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5480,6 +5501,7 @@ int main()
     test246();
     test8454();
     test8423();
+    test8496();
 
     writefln("Success");
     return 0;
