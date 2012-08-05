@@ -556,6 +556,7 @@ int Obj::data_readonly(char *p, int len)
 
 Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 {
+        //printf("Obj::init()\n");
         Obj *mobj = new Obj();
 
         memset(&obj,0,sizeof(obj));
@@ -2418,6 +2419,7 @@ void Obj::pubdef(int seg,Symbol *s,targ_size_t offset)
     char *p;
     unsigned ti;
 
+    assert(offset < 1000000);
     int idx = SegData[seg]->segidx;
     if (obj.pubdatai + 1 + (IDMAX + IDOHD) + 4 + 2 > sizeof(obj.pubdata) ||
         idx != getindex(obj.pubdata + 1))
