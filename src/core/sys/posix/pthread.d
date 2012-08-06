@@ -242,12 +242,12 @@ version( linux )
     {
         _pthread_cleanup_buffer buffer = void;
 
-        void push()( _pthread_cleanup_routine routine, void* arg )
+        extern (D) void push()( _pthread_cleanup_routine routine, void* arg )
         {
             _pthread_cleanup_push( &buffer, routine, arg );
         }
 
-        void pop()( int execute )
+        extern (D) void pop()( int execute )
         {
             _pthread_cleanup_pop( &buffer, execute );
         }
@@ -268,7 +268,7 @@ else version( OSX )
     {
         _pthread_cleanup_buffer buffer = void;
 
-        void push()( _pthread_cleanup_routine routine, void* arg )
+        extern (D) void push()( _pthread_cleanup_routine routine, void* arg )
         {
             pthread_t self       = pthread_self();
             buffer.__routine     = routine;
@@ -277,7 +277,7 @@ else version( OSX )
             self.__cleanup_stack = cast(pthread_handler_rec*) &buffer;
         }
 
-        void pop()( int execute )
+        extern (D) void pop()( int execute )
         {
             pthread_t self       = pthread_self();
             self.__cleanup_stack = cast(pthread_handler_rec*) buffer.__next;
@@ -301,12 +301,12 @@ else version( FreeBSD )
     {
         _pthread_cleanup_info __cleanup_info__ = void;
 
-        void push()( _pthread_cleanup_routine cleanup_routine, void* cleanup_arg )
+        extern (D) void push()( _pthread_cleanup_routine cleanup_routine, void* cleanup_arg )
         {
             __pthread_cleanup_push_imp( cleanup_routine, cleanup_arg, &__cleanup_info__ );
         }
 
-        void pop()( int execute )
+        extern (D) void pop()( int execute )
         {
             __pthread_cleanup_pop_imp( execute );
         }

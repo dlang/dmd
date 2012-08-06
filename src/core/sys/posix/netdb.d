@@ -309,7 +309,7 @@ else version( FreeBSD )
         int     h_addrtype;
         int     h_length;
         char**  h_addr_list;
-        char*   h_addr() @property { return h_addr_list[0]; } // non-standard
+        extern (D) char* h_addr() @property { return h_addr_list[0]; } // non-standard
     }
 
     struct netent
