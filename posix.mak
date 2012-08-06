@@ -95,8 +95,14 @@ MANIFEST= \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
 	\
+	src/core/sys/freebsd/dlfcn.d \
+	src/core/sys/freebsd/execinfo.d \
 	src/core/sys/freebsd/sys/event.d \
 	\
+	src/core/sys/linux/execinfo.d \
+	\
+	src/core/sys/osx/execinfo.d \
+	src/core/sys/osx/pthread.d \
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
 	src/core/sys/osx/mach/kern_return.d \
@@ -276,6 +282,7 @@ SRC_D_MODULES = \
 	core/stdc/time \
 	core/stdc/wchar_ \
 	\
+	core/sys/freebsd/execinfo \
 	core/sys/freebsd/sys/event \
 	\
 	core/sys/posix/signal \
@@ -449,8 +456,14 @@ COPY=\
 	$(IMPDIR)/core/stdc/wchar_.d \
 	$(IMPDIR)/core/stdc/wctype.d \
 	\
+	$(IMPDIR)/core/sys/freebsd/dlfcn.d \
+	$(IMPDIR)/core/sys/freebsd/execinfo.d \
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
+	$(IMPDIR)/core/sys/linux/execinfo.d \
+	\
+	$(IMPDIR)/core/sys/osx/execinfo.d \
+	$(IMPDIR)/core/sys/osx/pthread.d \
 	$(IMPDIR)/core/sys/osx/mach/kern_return.d \
 	$(IMPDIR)/core/sys/osx/mach/port.d \
 	$(IMPDIR)/core/sys/osx/mach/semaphore.d \
@@ -548,6 +561,7 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/posix/netinet
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
+	-mkdir -p $(IMPDIR)/core/sys/linux
 
 copy: $(COPY)
 
