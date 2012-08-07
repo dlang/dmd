@@ -1,6 +1,10 @@
 /* Microsoft COFF object file format */
 
+#if defined(_MSC_VER) || defined(_QC) || defined(__WATCOM__)
+#pragma pack(push, 1)
+#elif defined(__DMC__) || defined(__ZTC__)
 #pragma ZTC align 1
+#endif
 
 /***********************************************/
 
@@ -248,4 +252,8 @@ union auxent
 
 /***********************************************/
 
+#if defined(_MSC_VER) || defined(_QC) || defined(__WATCOM__)
+#pragma pack(pop)
+#elif defined(__DMC__) || defined(__ZTC__)
 #pragma ZTC align
+#endif

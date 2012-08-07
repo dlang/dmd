@@ -91,19 +91,19 @@ struct longdouble
     void set(unsigned long long d) { ld_setull(this, d); }
     void set(bool               d) { ld_set(this, d); }
 
-    operator float             () { return ld_read(this); }
+    operator float             () { return (float)ld_read(this); }
     operator double            () { return ld_read(this); }
 
-    operator signed char       () { return ld_read(this); }
-    operator short             () { return ld_read(this); }
-    operator int               () { return ld_read(this); }
-    operator long              () { return ld_read(this); }
+    operator signed char       () { return (signed char)ld_read(this); }
+    operator short             () { return (short)ld_read(this); }
+    operator int               () { return (int)ld_read(this); }
+    operator long              () { return (long)ld_read(this); }
     operator long long         () { return ld_readll(this); }
 
-    operator unsigned char     () { return ld_read(this); }
-    operator unsigned short    () { return ld_read(this); }
-    operator unsigned int      () { return ld_read(this); }
-    operator unsigned long     () { return ld_read(this); }
+    operator unsigned char     () { return (unsigned char)ld_read(this); }
+    operator unsigned short    () { return (unsigned short)ld_read(this); }
+    operator unsigned int      () { return (unsigned int)ld_read(this); }
+    operator unsigned long     () { return (unsigned long)ld_read(this); }
     operator unsigned long long() { return ld_readull(this); }
     operator bool              () { return mantissa != 0 || exponent != 0; } // correct?
 };
