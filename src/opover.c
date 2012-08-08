@@ -809,7 +809,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args2);
+                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
             }
         }
 
@@ -825,7 +825,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
             }
             else
             {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, NULL, &args1);
+                templateResolve(&m, td, sc, loc, targsi, e2, &args1);
             }
         }
 
