@@ -2280,18 +2280,28 @@ void destroy(T)(T obj) if (is(T == class))
     rt_finalize(cast(void*)obj);
 }
 
+void destroy(T)(T obj) if (is(T == interface))
+{
+    destroy(cast(Object)obj);
+}
+
 version(unittest) unittest
 {
+   interface I { }
    {
-       class A { string s = "A"; this() {} }
-       auto a = new A;
-       a.s = "asd";
+       class A: I { string s = "A"; this() {} }
+       auto a = new A, b = new A;
+       a.s = b.s = "asd";
        destroy(a);
        assert(a.s == "A");
+
+       I i = b;
+       destroy(i);
+       assert(b.s == "A");
    }
    {
        static bool destroyed = false;
-       class B
+       class B: I
        {
            string s = "B";
            this() {}
@@ -2300,11 +2310,17 @@ version(unittest) unittest
                destroyed = true;
            }
        }
-       auto a = new B;
-       a.s = "asd";
+       auto a = new B, b = new B;
+       a.s = b.s = "asd";
        destroy(a);
        assert(destroyed);
        assert(a.s == "B");
+
+       destroyed = false;
+       I i = b;
+       destroy(i);
+       assert(destroyed);
+       assert(b.s == "B");
    }
    // this test is invalid now that the default ctor is not run after clearing
    version(none)
@@ -2389,7 +2405,7 @@ version(unittest) unittest
 }
 
 void destroy(T)(ref T obj)
-    if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
+    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
 }

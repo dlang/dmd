@@ -566,6 +566,11 @@ void destroy(T)(T obj) if (is(T == class))
     rt_finalize(cast(void*)obj);
 }
 
+void destroy(T)(T obj) if (is(T == interface))
+{
+    destroy(cast(Object)obj);
+}
+
 void destroy(T)(ref T obj) if (is(T == struct))
 {
     typeid(T).destroy(&obj);
@@ -583,7 +588,7 @@ void destroy(T : U[n], U, size_t n)(ref T obj)
 }
 
 void destroy(T)(ref T obj)
-if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
+if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
 }
