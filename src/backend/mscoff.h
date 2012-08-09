@@ -126,9 +126,11 @@ struct syment
 /***********************************************/
 
 struct reloc
-{   unsigned r_vaddr;           // file offset of relocation
+{
+#pragma pack(1)
+    unsigned r_vaddr;           // file offset of relocation
     unsigned r_symndx;          // symbol table index
-    unsigned short r_type;
+    unsigned short r_type;      // IMAGE_REL_XXX kind of relocation to be performed
 
 #define IMAGE_REL_AMD64_ABSOLUTE        0
 #define IMAGE_REL_AMD64_ADDR64          1
@@ -159,6 +161,8 @@ struct reloc
 #define IMAGE_REL_I386_TOKEN            0xC
 #define IMAGE_REL_I386_SECREL7          0xD
 #define IMAGE_REL_I386_REL32            0x14
+
+#pragma pack()
 };
 
 
@@ -177,8 +181,10 @@ struct lineno
 
 /***********************************************/
 
+#pragma pack(1)
 union auxent
 {
+#pragma pack(1)
     // Function definitions
     struct
     {   unsigned TagIndex;
@@ -189,10 +195,13 @@ union auxent
 
     // .bf symbols
     struct
-    {   unsigned Unused;
+    {
+#pragma pack(1)
+        unsigned Unused;
         unsigned short Linenumber;
         char filler[6];
         unsigned PointerToNextFunction;
+#pragma pack()
     } x_bf;
 
     // .ef symbols
@@ -232,7 +241,9 @@ union auxent
     } x_section;
 
     char filler[18];
+#pragma pack()
 };
+#pragma pack()
 
 
 /***********************************************/
