@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -12,24 +12,19 @@
 
 #include "longdouble.h"
 
-#ifndef TYPEDEFS
-#define TYPEDEFS
-
-#include <wchar.h>
-
 #if _MSC_VER
-typedef __int64 longlong;
-typedef unsigned __int64 ulonglong;
-
+#include <float.h>  // for _isnan
+#include <malloc.h> // for alloca
 // According to VC 8.0 docs, long double is the same as double
 longdouble strtold(const char *p,char **endp);
 #define strtof  strtod
+#define isnan   _isnan
 
+typedef __int64 longlong;
+typedef unsigned __int64 ulonglong;
 #else
 typedef long long longlong;
 typedef unsigned long long ulonglong;
-#endif
-
 #endif
 
 typedef double d_time;

@@ -422,7 +422,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 #endif
     if (!buf)
     {   assert(module_name);
-        FileName f((char *)module_name, 0);
+        FileName f((char *)module_name);
         File file(&f);
         file.readv();
         buf = file.buffer;
