@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2011 by Digital Mars
+// Copyright (c) 2000-2012 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -1616,6 +1616,7 @@ void AsmStatement::toIR(IRState *irs)
                 break;
         }
 
+#if TX86
         // Repeat for second operand
         switch (c->IFL2)
         {
@@ -1639,6 +1640,7 @@ void AsmStatement::toIR(IRState *irs)
                     s->Sflags |= SFLlivexit;
                 break;
         }
+#endif
         //c->print();
     }
 

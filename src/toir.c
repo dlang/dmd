@@ -304,6 +304,7 @@ elem *setEthis(Loc loc, IRState *irs, elem *ey, AggregateDeclaration *ad)
 
 int intrinsic_op(char *name)
 {
+#if TX86
     //printf("intrinsic_op(%s)\n", name);
     static const char *namearray[] =
     {
@@ -482,6 +483,9 @@ int intrinsic_op(char *name)
 
     int i = binary(name + 6, I64 ? namearray64 : namearray, sizeof(namearray) / sizeof(char *));
     return (i == -1) ? i : ioptab[i];
+#endif
+
+    return -1;
 }
 
 
