@@ -1668,6 +1668,7 @@ void AsmStatement::toIR(IRState *irs)
                 break;
         }
 
+#if TX86
         // Repeat for second operand
         switch (c->IFL2)
         {
@@ -1691,6 +1692,7 @@ void AsmStatement::toIR(IRState *irs)
                     s->Sflags |= SFLlivexit;
                 break;
         }
+#endif
         //c->print();
     }
 

@@ -23,6 +23,8 @@
 #include        "global.h"
 #include        "type.h"
 #include        "tinfo.h"
+#include        "melf.h"
+#include        "outbuf.h"
 #if SCPP
 #include        "exh.h"
 #endif
@@ -416,6 +418,72 @@ code* cod3_stackadj(code* c, int nbytes)
     c = genc2(c, 0x81, grex | rm, nbytes);
     return c;
 }
+
+#if ELFOBJ
+/* Constructor that links the ModuleReference to the head of
+ * the list pointed to by _Dmoduleref
+ */
+void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
+{
+    /*      ret
+     * codeOffset:
+     *      pushad
+     *      mov     EAX,&ModuleReference
+     *      mov     ECX,_DmoduleRef
+     *      mov     EDX,[ECX]
+     *      mov     [EAX],EDX
+     *      mov     [ECX],EAX
+     *      popad
+     *      ret
+     */
+
+    const int seg = CODE;
+
+    if (I64 && config.flags3 & CFG3pic)
+    {   // LEA RAX,ModuleReference[RIP]
+        buf->writeByte(REX | REX_W);
+        buf->writeByte(0x8D);
+        buf->writeByte(modregrm(0,AX,5));
+        buf->write32(refOffset);
+        ElfObj::addrel(seg, codeOffset + 3, R_X86_64_PC32, 3 /*STI_DATA*/, -4);
+
+        // MOV RCX,_DmoduleRef@GOTPCREL[RIP]
+        buf->writeByte(REX | REX_W);
+        buf->writeByte(0x8B);
+        buf->writeByte(modregrm(0,CX,5));
+        buf->write32(0);
+        ElfObj::addrel(seg, codeOffset + 10, R_X86_64_GOTPCREL, Obj::external_def("_Dmodule_ref"), -4);
+    }
+    else
+    {
+        const int reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+
+        /* movl ModuleReference*, %eax */
+        buf->writeByte(0xB8);
+        buf->write32(refOffset);
+        ElfObj::addrel(seg, codeOffset + 1, reltype, 3 /*STI_DATA*/, 0);
+
+        /* movl _Dmodule_ref, %ecx */
+        buf->writeByte(0xB9);
+        buf->write32(0);
+        ElfObj::addrel(seg, codeOffset + 6, reltype, Obj::external_def("_Dmodule_ref"), 0);
+    }
+
+    if (I64)
+        buf->writeByte(REX | REX_W);
+    buf->writeByte(0x8B); buf->writeByte(0x11); /* movl (%ecx), %edx */
+    if (I64)
+        buf->writeByte(REX | REX_W);
+    buf->writeByte(0x89); buf->writeByte(0x10); /* movl %edx, (%eax) */
+    if (I64)
+        buf->writeByte(REX | REX_W);
+    buf->writeByte(0x89); buf->writeByte(0x01); /* movl %eax, (%ecx) */
+
+    buf->writeByte(0xC3); /* ret */
+}
+
+#endif
+
 
 /*****************************
  * Given a type, return a mask of

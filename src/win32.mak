@@ -130,9 +130,9 @@ BFLAGS=
 ##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_CPU_X86=1
 # Compile flags for compiler unit tests
 TFLAGS=-I$(STLPORT);$(CPPUNIT)\include;$(INCLUDE) $(TFLAGS) -DDISABLE_MAIN=1 -cpp -Aa -Ab -Ae -Ar
 # Recursive make
@@ -198,7 +198,8 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
-	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
+	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
@@ -239,7 +240,7 @@ ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 # Header files
 #TOTALH=total.sym # Use with pre-compiled headers
 TOTALH=id.h
-CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\obj.h
 
 # Makefiles
@@ -342,15 +343,15 @@ zip: detab tolf $(MAKEFILES)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK)
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DTARGET_CPU_X86=1 -I$(TK)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp impcnvgen
+	$(CC) -I$(ROOT) -cpp -DTARGET_CPU_X86=1 impcnvgen
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp idgen
+	$(CC) -cpp -DTARGET_CPU_X86=1 idgen
 	idgen
 
 ############################# Intermediate Rules ############################

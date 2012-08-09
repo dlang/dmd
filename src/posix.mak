@@ -1,4 +1,3 @@
-# NOTE: need to validate solaris behavior
 ifeq (,$(TARGET))
     OS:=$(shell uname)
     OSVER:=$(shell uname -r)
@@ -25,11 +24,31 @@ ifeq (,$(TARGET))
     endif
 endif
 
+ifeq (,$(TARGET_CPU))
+    $(warning no cpu specified, assuming X86)
+    TARGET_CPU=X86
+endif
+
+ifeq (X86,$(TARGET_CPU))
+    TARGET_CH = $C/code_x86.h
+    TARGET_OBJS = cg87.o cgxmm.o cgsched.o cod1.o cod2.o cod3.o cod4.o ptrntab.o
+else
+    ifeq (stub,$(TARGET_CPU))
+        TARGET_CH = $C/code_stub.h
+        TARGET_OBJS = platform_stub.o
+    else
+        $(error unknown TARGET_CPU: '$(TARGET_CPU)')
+    endif
+endif
+
 C=backend
 TK=tk
 ROOT=root
 
 MODEL=32
+ifneq (x,x$(MODEL))
+    MODEL_FLAG=-m$(MODEL)
+endif
 
 ifeq (OSX,$(TARGET))
     SDKDIR=/Developer/SDKs
@@ -52,7 +71,7 @@ else
 endif
 
 HOST_CC=g++
-CC=$(HOST_CC) -m$(MODEL) $(TARGET_CFLAGS)
+CC=$(HOST_CC) $(MODEL_FLAG) $(TARGET_CFLAGS)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -64,16 +83,17 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1
+COMMON_FLAGS = -I$(ROOT) $(GFLAGS) -DMARS=1 -DTARGET_$(TARGET)=1 -DTARGET_CPU_$(TARGET_CPU)=1
+CFLAGS = $(COMMON_FLAGS)
+MFLAGS = $(COMMON_FLAGS) -I$C -I$(TK)
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
-	$C/dt.h $C/cgcv.h $C/el.h $C/iasm.h $C/obj.h
+	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
 
 DMD_OBJS = \
 	access.o array.o attrib.o bcomplex.o blockopt.o \
-	cast.o code.o cg.o cg87.o cgxmm.o cgcod.o cgcs.o cgelem.o cgen.o \
-	cgreg.o cgsched.o class.o cod1.o cod2.o cod3.o cod4.o cod5.o \
+	cast.o code.o cg.o cgcod.o cgcs.o cgelem.o cgen.o \
+	cgreg.o class.o cod5.o \
 	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
@@ -81,14 +101,15 @@ DMD_OBJS = \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
-	parse.o ph.o ptrntab.o root.o rtlsym.o s2ir.o scope.o statement.o \
+	parse.o ph.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o
+	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o \
+	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
     DMD_OBJS += libmach.o machobj.o
@@ -130,7 +151,7 @@ SRC = win32.mak posix.mak \
 	$C/cdeflnx.h $C/outbuf.h $C/token.h $C/tassert.h \
 	$C/elfobj.c $C/cv4.h $C/dwarf2.h $C/exh.h $C/go.h \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
-	$C/ti_pvoid.c \
+	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
@@ -142,13 +163,14 @@ SRC = win32.mak posix.mak \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
 	$(ROOT)/longdouble.h $(ROOT)/longdouble.c \
-	$(ROOT)/speller.h $(ROOT)/speller.c
+	$(ROOT)/speller.h $(ROOT)/speller.c \
+	$(TARGET_CH)
 
 
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) $(HOST_CC) -o dmd -m$(MODEL) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(ENVP) $(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -493,6 +515,9 @@ parse.o: parse.c
 ph.o: ph.c
 	$(CC) -c $(MFLAGS) $<
 
+platform_stub.o: $C/platform_stub.c
+	$(CC) -c $(MFLAGS) $<
+
 port.o: $(ROOT)/port.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
@@ -530,7 +555,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc -m$(MODEL) -I$(ROOT) -c $<
+	gcc $(MODEL_FLAG) -I$(ROOT) -c $<
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
