@@ -639,8 +639,16 @@ void FuncDeclaration::toObjFile(int multiobj)
         else if (strcmp(s->Sident, "main") == 0 && linkage == LINKc)
         {
 #if TARGET_WINDOS
+            if (I64)
+            {
+                objmod->includelib("LIBCMT");
+                objmod->includelib("OLDNAMES");
+            }
+            else
+            {
             objmod->external_def("__acrtused_con");        // bring in C startup code
             objmod->includelib("snn.lib");          // bring in C runtime library
+            }
 #endif
             s->Sclass = SCglobal;
         }
