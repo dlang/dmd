@@ -11521,7 +11521,7 @@ Expression *PowExp::semantic(Scope *sc)
             {
                 error("must import std.math to use ^^ operator");
                 return new ErrorExp();
-            }                
+            }
         }
 
         e = new IdentifierExp(loc, Id::empty);

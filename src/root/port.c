@@ -514,7 +514,7 @@ char *Port::strupr(char *s)
 
 #endif
 
-#if __sun && __SVR4
+#if __sun&&__SVR4
 
 #define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #include <math.h>

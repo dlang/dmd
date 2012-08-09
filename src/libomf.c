@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1986-1995 by Symantec
- * Copyright (c) 2000-2011 by Digital Mars
+ * Copyright (c) 2000-2012 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
