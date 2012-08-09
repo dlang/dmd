@@ -31,7 +31,7 @@ version(linux) {
         fsfilcnt_t f_favail;
         c_ulong f_fsid;
         version(_STATVFSBUF_F_UNUSED) 
-    {
+        {
             int __f_unused;
         }
         c_ulong f_flag;
@@ -65,19 +65,6 @@ version(linux) {
         {
             ST_RDONLY = 1,        /* Mount read-only.  */
             ST_NOSUID = 2
-        }
-    }
-    version(unittest) 
-    {
-        extern size_t c_get_statvfs_size();
-        extern int c_check_statvfs_struct(statvfs_t* t);
-    }
-    unittest 
-    {
-        assert(statvfs_t.sizeof==c_get_statvfs_size());
-        statvfs_t t;
-        foreach(i, m ; __traits(allMembers, statvfs_t)) {
-            mixin("t."~m~"=i+1;");
         }
     }
 }
