@@ -1,10 +1,11 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
 
 #include "port.h"
+
 #if __DMC__
 #include <math.h>
 #include <float.h>
@@ -12,6 +13,7 @@
 #include <time.h>
 #include <stdlib.h>
 #include <string.h>
+#include <wchar.h>
 
 double Port::nan = NAN;
 double Port::infinity = INFINITY;
@@ -127,6 +129,7 @@ char *Port::strupr(char *s)
 #include <errno.h>
 #include <string.h>
 #include <ctype.h>
+#include <wchar.h>
 #include <stdlib.h>
 #include <limits> // for std::numeric_limits
 
@@ -343,6 +346,7 @@ char *Port::strupr(char *s)
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <wchar.h>
 #include <float.h>
 #include <assert.h>
 
@@ -520,6 +524,7 @@ char *Port::strupr(char *s)
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
+#include <wchar.h>
 #include <float.h>
 #include <ieeefp.h>
 
@@ -648,4 +653,3 @@ char *Port::strupr(char *s)
 }
 
 #endif
-

@@ -233,7 +233,7 @@ void Module::gendocfile()
         // Override with the ddoc macro files from the command line
         for (size_t i = 0; i < global.params.ddocfiles->dim; i++)
         {
-            FileName f((*global.params.ddocfiles)[i], 0);
+            FileName f((*global.params.ddocfiles)[i]);
             File file(&f);
             file.readv();
             // BUG: convert file contents to UTF-8 before use
