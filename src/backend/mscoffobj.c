@@ -1300,8 +1300,9 @@ void MsCoffObj::startaddress(Symbol *s)
 bool MsCoffObj::includelib(const char *name)
 {
     //dbg_printf("MsCoffObj::includelib(name *%s)\n",name);
-    SegData[segidx_drectve]->SDbuf->write(" /DEFAULTLIB:", 13);
+    SegData[segidx_drectve]->SDbuf->write(" /DEFAULTLIB:\"", 14);
     SegData[segidx_drectve]->SDbuf->write(name, strlen(name));
+    SegData[segidx_drectve]->SDbuf->writeByte('"');
     return true;
 }
 
