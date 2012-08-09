@@ -84,6 +84,8 @@ static int scnhdr_cnt;          // Number of sections in table
 // The symbol table
 static Outbuffer *symbuf;
 
+static Outbuffer *syment_buf;   // array of struct syment
+
 struct Comdef { symbol *sym; targ_size_t size; int count; };
 static Outbuffer *comdef_symbuf;        // Comdef's are stored here
 
@@ -378,6 +380,10 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
         symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
     symbuf->setsize(0);
 
+    if (!syment_buf)
+        syment_buf = new Outbuffer(sizeof(struct syment) * SYM_TAB_INIT);
+    syment_buf->setsize(0);
+
     if (!comdef_symbuf)
         comdef_symbuf = new Outbuffer(sizeof(symbol *) * SYM_TAB_INIT);
     comdef_symbuf->setsize(0);
@@ -540,28 +546,87 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
     }
 }
 
-/***************************
- * Number symbols so they are
- * ordered.
+
+/*********************************
+ * Build syment[], the array of symbols.
+ * Store them in syment_buf.
  */
 
-void mach_numbersyms()
+void build_syment_table()
 {
-    //printf("mach_numbersyms()\n");
-    int n = 0;
+    /* The @comp.id symbol appears to be the version of VC that generated the .obj file.
+     * Anything we put in there would have no relevance, so we'll not put out this symbol.
+     */
 
+    /* Now goes one symbol per section.
+     */
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
+    {
+        seg_data *pseg = SegData[seg];
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
+
+        struct syment sym;
+        memcpy(sym.n_name, psechdr->s_name, 8);
+        sym.n_value = 0;
+        sym.n_scnum = pseg->SDshtidx;
+        sym.n_type = 0;
+        sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
+        sym.n_numaux = 1;
+
+        assert(sizeof(sym) == 18);
+        syment_buf->write(&sym, sizeof(sym));
+
+        union auxent aux;
+        memset(&aux, 0, sizeof(aux));
+        aux.x_section.length = psechdr->s_size;
+
+        syment_buf->write(&aux, sizeof(aux));
+        //printf("%d %d %d %d %d %d\n", sizeof(aux.x_fd), sizeof(aux.x_bf), sizeof(aux.x_ef),
+        //     sizeof(aux.x_weak), sizeof(aux.x_filename), sizeof(aux.x_section));
+        assert(sizeof(aux) == 18);
+    }
+
+    /* Add symbols from symbuf[]
+     */
+
+    int n = seg_count + 1;
     size_t dim = symbuf->size() / sizeof(symbol *);
     for (size_t i = 0; i < dim; i++)
     {   symbol *s = ((symbol **)symbuf->buf)[i];
         s->Sxtrnnum = n;
         n++;
-    }
 
-    dim = comdef_symbuf->size() / sizeof(Comdef);
-    for (size_t i = 0; i < dim; i++)
-    {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
-        c->sym->Sxtrnnum = n;
-        n++;
+        struct syment sym;
+
+        const char *name = s->Sident;
+        size_t len = strlen(name);
+        if (len > 8)
+        {   // Use /nnnn form
+            IDXSTR idx = MsCoffObj::addstr(string_table, name);
+            sprintf(sym.n_name, "/%d", idx);
+        }
+        else
+        {   memcpy(sym.n_name, name, len);
+            if (len < 8)
+                memset(sym.n_name + len, 0, 8 - len);
+        }
+
+        sym.n_value = 0;
+        switch (s->Sclass)
+        {
+            case SCextern:
+                sym.n_scnum = IMAGE_SYM_UNDEFINED;
+                break;
+
+            default:
+                sym.n_scnum = SegData[s->Sseg]->SDshtidx;
+                break;
+        }
+        sym.n_type = 0x20;
+        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
+        sym.n_numaux = 0;
+
+        syment_buf->write(&sym, sizeof(sym));
     }
 }
 
@@ -603,6 +668,8 @@ void MsCoffObj::term()
         return;
 #endif
 
+    build_syment_table();
+
     /* Write out the object file in the following order:
      *  Header
      *  Section Headers
@@ -618,7 +685,7 @@ void MsCoffObj::term()
     struct filehdr header;
 
     header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
-    header.f_nscns = scnhdr_cnt - 1;
+    header.f_nscns = scnhdr_cnt;
     time(&header.f_timdat);
     header.f_symptr = 0;        // offset to symbol table
     header.f_nsyms = 0;
@@ -630,7 +697,7 @@ void MsCoffObj::term()
     foffset += ScnhdrBuf->size();   // section headers
 
     header.f_symptr = foffset;
-    header.f_nsyms = symbuf->size() / sizeof(symbol *);
+    header.f_nsyms = syment_buf->size() / sizeof(struct syment);
     foffset += header.f_nsyms * sizeof(struct syment);  // symbol table
 
     foffset += string_table->size();            // string table
@@ -652,6 +719,24 @@ void MsCoffObj::term()
             psechdr->s_scnptr = foffset;
             psechdr->s_size = pseg->SDbuf->size();
             foffset += psechdr->s_size;
+        }
+    }
+
+    // Compute file offsets of the relocation data
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
+    {
+        seg_data *pseg = SegData[seg];
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
+        if (pseg->SDrel)
+        {
+            unsigned nreloc = pseg->SDrel->size() / sizeof(struct Relocation);
+            if (nreloc)
+            {
+                foffset = (foffset + 3) & ~3;
+                psechdr->s_relptr = foffset;
+                psechdr->s_nreloc = nreloc;
+                foffset += nreloc * sizeof(struct reloc);
+            }
         }
     }
 
@@ -774,7 +859,6 @@ void MsCoffObj::term()
     }
 
     // Put out relocation data
-    mach_numbersyms();
     for (segidx_t seg = 1; seg <= seg_count; seg++)
     {
         seg_data *pseg = SegData[seg];
@@ -1051,7 +1135,8 @@ void MsCoffObj::term()
     foffset += ScnhdrBuf->size();
 
     // Write the symbol table
-    fobjbuf->writezeros(header.f_nsyms * sizeof(struct syment));
+    fobjbuf->write(syment_buf);
+
 #if 0
     fobjbuf->reserve(header.f_nsyms * sizeof(struct syment));
     for (size_t i = 0; i < header.f_nsyms; i++)
@@ -1082,6 +1167,32 @@ void MsCoffObj::term()
         foffset = elf_align(pseg->SDalignment, foffset);
         if (pseg->SDbuf && pseg->SDbuf->size())
             fobjbuf->write(pseg->SDbuf);
+    }
+
+    // Compute the relocations, write them out, keep reusing the same buffer
+    static Outbuffer *reloc_buf = NULL;
+    if (!reloc_buf)
+        reloc_buf = new Outbuffer(128 * sizeof(struct reloc));
+    assert(sizeof(struct reloc) == 10);
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
+    {
+        seg_data *pseg = SegData[seg];
+        scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
+        if (pseg->SDrel)
+        {   Relocation *r = (Relocation *)pseg->SDrel->buf;
+            Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
+            reloc_buf->setsize(0);
+            foffset = elf_align(4, foffset);
+            for (; r != rend; r++)
+            {   reloc rel;
+                rel.r_vaddr = 0;
+                rel.r_symndx = 0;
+                rel.r_type = 0;
+                reloc_buf->write(&rel, sizeof(rel));
+            }
+            fobjbuf->write(reloc_buf);
+            foffset += sizeof(struct reloc);
+        }
     }
 
     fobjbuf->flush();
@@ -1480,17 +1591,21 @@ int MsCoffObj::comdat(Symbol *s)
 
 segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
 {
-    assert(strlen(sectname) <= 16);
-    for (int seg = 1; seg <= seg_count; seg++)
+    //printf("getsegment(%s)\n", sectname);
+    assert(strlen(sectname) <= 8);      // so it won't go into string_table
+    for (segidx_t seg = 1; seg <= seg_count; seg++)
     {   seg_data *pseg = SegData[seg];
         if (!(flags & IMAGE_SCN_LNK_COMDAT) &&
             strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
+        {
+            printf("\t%s\n", seg);
             return seg;         // return existing segment
+        }
     }
 
     segidx_t seg = getsegment2(addScnhdr(sectname, flags));
 
-    //printf("seg_count = %d\n", seg_count);
+    //printf("\tseg_count = %d\n", seg_count);
     return seg;
 }
 
@@ -2371,7 +2486,7 @@ void MsCoffObj::moduleinfo(Symbol *scc)
 {
     int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_4BYTES;
 
-    int seg = MsCoffObj::getsegment("._minfodata", IMAGE_SCN_CNT_INITIALIZED_DATA |
+    int seg = MsCoffObj::getsegment(".minfodt", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                              align |
                                              IMAGE_SCN_MEM_READ |
                                              IMAGE_SCN_MEM_WRITE);
