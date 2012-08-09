@@ -17,6 +17,7 @@
 #include "rmem.h"                       // mem
 #include "stringtable.h"
 
+// TODO: Merge with root.String
 hash_t calcHash(const char *str, size_t len)
 {
     hash_t hash = 0;

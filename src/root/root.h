@@ -15,44 +15,13 @@
 #ifdef DEBUG
 #include <assert.h>
 #endif
+#include "port.h"
 
 #if __DMC__
 #pragma once
 #endif
 
 typedef size_t hash_t;
-
-#include "longdouble.h"
-
-char *wchar2ascii(wchar_t *);
-int wcharIsAscii(wchar_t *);
-char *wchar2ascii(wchar_t *, unsigned len);
-int wcharIsAscii(wchar_t *, unsigned len);
-
-int bstrcmp(unsigned char *s1, unsigned char *s2);
-char *bstr2str(unsigned char *b);
-
-#ifndef TYPEDEFS
-#define TYPEDEFS
-
-#if _MSC_VER
-#include <float.h>  // for _isnan
-#include <malloc.h> // for alloca
-// According to VC 8.0 docs, long double is the same as double
-longdouble strtold(const char *p,char **endp);
-#define strtof  strtod
-#define isnan   _isnan
-
-typedef __int64 longlong;
-typedef unsigned __int64 ulonglong;
-#else
-typedef long long longlong;
-typedef unsigned long long ulonglong;
-#endif
-
-#endif
-
-longlong randomx();
 
 /*
  * Root of our class library.
@@ -107,11 +76,9 @@ struct Object
 
 struct String : Object
 {
-    int ref;                    // != 0 if this is a reference to someone else's string
     char *str;                  // the string itself
 
-    String(char *str, int ref = 1);
-
+    String(char *str);
     ~String();
 
     static hash_t calcHash(const char *str, size_t len);
@@ -127,8 +94,7 @@ struct String : Object
 
 struct FileName : String
 {
-    FileName(char *str, int ref);
-    FileName(char *path, char *name);
+    FileName(char *str);
     hash_t hashCode();
     int equals(Object *obj);
     static int equals(const char *name1, const char *name2);
@@ -378,6 +344,7 @@ struct ArrayBase : Array
     }
 };
 
+// TODO: Remove (only used by disabled GC)
 struct Bits : Object
 {
     unsigned bitdim;
