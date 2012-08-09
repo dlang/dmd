@@ -150,7 +150,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 #endif
 
     if (global.params.objname)
-        objfilename = new FileName(argobj, 0);
+        objfilename = new FileName(argobj);
     else
         objfilename = FileName::forceExt(argobj, global.obj_ext);
 
@@ -188,7 +188,7 @@ void Module::setDocfile()
         argdoc = FileName::combine(global.params.docdir, argdoc);
     }
     if (global.params.docname)
-        docfilename = new FileName(argdoc, 0);
+        docfilename = new FileName(argdoc);
     else
         docfilename = FileName::forceExt(argdoc, global.doc_ext);
 
@@ -216,7 +216,7 @@ void Module::setHdrfile()
         arghdr = FileName::combine(global.params.hdrdir, arghdr);
     }
     if (global.params.hdrname)
-        hdrfilename = new FileName(arghdr, 0);
+        hdrfilename = new FileName(arghdr);
     else
         hdrfilename = FileName::forceExt(arghdr, global.hdr_ext);
 
