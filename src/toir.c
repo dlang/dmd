@@ -585,7 +585,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         unsigned offset = PTRSIZE;      // leave room for previous sthis
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars.tdata()[i];
+        {   VarDeclaration *v = closureVars[i];
             assert(v->isVarDeclaration());
 
 #if DMDV2
@@ -665,7 +665,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 
         // Copy function parameters into closure
         for (size_t i = 0; i < closureVars.dim; i++)
-        {   VarDeclaration *v = closureVars.tdata()[i];
+        {   VarDeclaration *v = closureVars[i];
 
             if (!v->isParameter())
                 continue;
@@ -717,6 +717,29 @@ enum RET TypeFunction::retStyle()
     //printf("tn = %s\n", tn->toChars());
     d_uns64 sz = tn->size();
     Type *tns = tn;
+
+    if (global.params.isWindows && global.params.is64bit)
+    {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->isscalar())
+            return RETregs;
+#if SARRAYVALUE
+        if (tns->ty == Tsarray)
+        {
+            do
+            {
+                tns = tns->nextOf()->toBasetype();
+            } while (tns->ty == Tsarray);
+        }
+#endif
+        if (tns->ty == Tstruct)
+        {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+            if (!sd->isPOD())
+                return RETstack;
+        }
+        if (sz <= 64 && !(sz & (sz - 1)))
+            return RETregs;
+        return RETstack;
+    }
 
 Lagain:
 #if SARRAYVALUE
