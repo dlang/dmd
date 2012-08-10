@@ -144,7 +144,7 @@ MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
 
 defaulttarget: debdmd
 
-#########################################
+############################### Rule Variables ###############################
 
 # D front end
 OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
@@ -209,7 +209,8 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
-	$C\global.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\global.h $C\code.h $C\code_x86.h $C/code_stub.h $C/platform_stub.c \
+	$C\type.h $C\dt.h $C\cgcv.h \
 	$C\el.h $C\iasm.h $C\rtlsym.h \
 	$C\bcomplex.c $C\blockopt.c $C\cg.c $C\cg87.c $C\cgxmm.c \
 	$C\cgcod.c $C\cgcs.c $C\cgcv.c $C\cgelem.c $C\cgen.c $C\cgobj.c \
@@ -248,6 +249,12 @@ ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
 #	$(ROOT)\gc\win32.c
 
+# Header files
+#TOTALH=total.sym # Use with pre-compiled headers
+TOTALH=id.h
+CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\code_x86.h $C\type.h $C\dt.h $C\cgcv.h \
+	$C\el.h $C\iasm.h $C\obj.h
+
 # Makefiles
 MAKEFILES=win32.mak posix.mak
 
@@ -269,15 +276,12 @@ debdmd:
 	$(MAKE) OPT= "DEBUG=-D -g -DUNITTEST" LFLAGS=-L/ma/co dmd.exe
 
 $(TARGET).exe : $(OBJS) win32.mak
-	dmc -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
+	$(CC) -o$(TARGET).exe $(OBJS) -cpp -mn -Ar $(LFLAGS)
+
+################################ Unit Tests ##################################
 
 
-##################### INCLUDE MACROS #####################
 
-CCH=
-#TOTALH=$(CCH) total.sym
-TOTALH=$(CCH) id.h
-CH= $C\cc.h $C\global.h $C\oper.h $C\code.h $C\type.h $C\dt.h $C\cgcv.h $C\el.h $C\iasm.h $C\obj.h
 
 ############################ Maintenance Targets #############################
 
@@ -294,14 +298,18 @@ install-copy:
 	$(CP) dmd.exe $(INSTALL)\windows\bin\ 
 	$(CP) phobos\phobos.lib     $(INSTALL)\windows\lib 
 	$(CP) $(SRCS)               $(INSTALL)\src\dmd
-	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root\ 
-	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk\  
-	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend\  
-	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd\  
-	$(CP) gpl.txt               $(INSTALL)\src\dmd\ 
-	$(CP) readme.txt            $(INSTALL)\src\dmd\ 
-	$(CP) artistic.txt          $(INSTALL)\src\dmd\ 
-	$(CP) backendlicense.txt    $(INSTALL)\src\dmd\ 
+	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
+	$(CP) $(TKSRC)              $(INSTALL)\src\dmd\tk
+	$(CP) $(BACKSRC)            $(INSTALL)\src\dmd\backend
+	$(CP) $(MAKEFILES)          $(INSTALL)\src\dmd
+	$(CP) gpl.txt               $(INSTALL)\src\dmd\gpl.txt
+	$(CP) readme.txt            $(INSTALL)\src\dmd\readme.txt
+	$(CP) artistic.txt          $(INSTALL)\src\dmd\artistic.txt
+	$(CP) backendlicense.txt    $(INSTALL)\src\dmd\backendlicense.txt
+
+install-clean:
+	$(DEL) /s/q $(INSTALL)\*
+	$(RD) /s/q $(INSTALL)
 
 detab:
 	$(DETAB) $(SRCS) $(ROOTSRC) $(TKSRC) $(BACKSRC)
@@ -321,15 +329,15 @@ zip: detab tolf $(MAKEFILES)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -I$(TK) $(WINLIBS) #-L$(LINKS)
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DTARGET_CPU_X86=1 -I$(TK) $(WINLIBS) #-L$(LINKS)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp impcnvgen
+	$(CC) -I$(ROOT) -cpp -DTARGET_CPU_X86=1 impcnvgen
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp idgen
+	$(CC) -cpp -DTARGET_CPU_X86=1 idgen
 	idgen
 
 ############################# Intermediate Rules ############################
