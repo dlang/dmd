@@ -140,11 +140,11 @@ SYMBOL_SCPP(AHSHIFT,   FLfunc,0,"_AHSHIFT",0,tstrace) \
 \
 SYMBOL_SCPP_TX86(HDIFFN, FLfunc,mBX|mCX|mSI|mDI|mBP|mES,"_aNahdiff", 0, 0) \
 SYMBOL_SCPP_TX86(HDIFFF, FLfunc,mBX|mCX|mSI|mDI|mBP|mES,"_aFahdiff", 0, 0) \
+SYMBOL_SCPP_TX86(INTONLY,FLfunc,mSI|mDI,"_intonly", 0, 0) \
 \
 SYMBOL_Z(EXCEPT_LIST, FLextern,0,"_except_list",0,tsint) \
 SYMBOL_Z(SETJMP3, FLfunc,FREGSAVED,"_setjmp3", 0, 0) \
 SYMBOL_Z(LONGJMP, FLfunc,FREGSAVED,"_seh_longjmp_unwind@4", 0, 0) \
-SYMBOL_Z(INTONLY, FLfunc,mSI|mDI,"_intonly", 0, 0) \
 SYMBOL_Z(ALLOCA,  FLfunc,fregsaved,"__alloca", 0, 0) \
 SYMBOL_Z(CPP_LONGJMP, FLfunc,FREGSAVED,"_cpp_longjmp_unwind@4", 0, 0) \
 SYMBOL_Z(PTRCHK, FLfunc,fregsaved,"_ptrchk", 0, 0) \

@@ -151,7 +151,7 @@ struct CFA_state
 
 int dwarf_regno(int reg)
 {
-    assert(reg <= R15);
+    assert(reg < NUMGENREGS);
     if (I16 || I32)
         return reg;
     else

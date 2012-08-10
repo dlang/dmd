@@ -2248,6 +2248,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             c = cod3_stackadj(c, -nalign);
         calledafunc = 1;
 
+#if SCPP & TX86
         if (I16 &&                                   // bug in Optlink for weak references
             config.flags3 & CFG3wkfloat &&
             (info[clib].flags & (INFfloat | INFwkdone)) == INFfloat)
@@ -2255,6 +2256,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             makeitextern(rtlsym[RTLSYM_INTONLY]);
             objmod->wkext(s,rtlsym[RTLSYM_INTONLY]);
         }
+#endif
     }
     if (I16)
         stackpush -= info[clib].pop;

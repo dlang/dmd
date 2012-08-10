@@ -250,8 +250,8 @@ tryagain:
         allregs |= cod3_useBP();                // see if we can use EBP
 
         // If pic code, but EBX was never needed
-        if (!(allregs & mBX) && !gotref)
-        {   allregs |= mBX;                     // EBX can now be used
+        if (!(allregs & mask[PICREG]) && !gotref)
+        {   allregs |= mask[PICREG];            // EBX can now be used
             cgreg_assign(retsym);
             pass = PASSreg;
         }
@@ -813,7 +813,7 @@ Lagain:
     if (usednteh & NTEHjmonitor)
     {   Symbol *sthis;
 
-        for (si = 0; 1; si++)
+        for (SYMIDX si = 0; 1; si++)
         {   assert(si < globsym.top);
             sthis = globsym.tab[si];
             if (strcmp(sthis->Sident,"this") == 0)
@@ -1597,7 +1597,9 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
 #ifdef DEBUG
 #define allocreg(a,b,c) allocreg((a),(b),(c),__LINE__,__FILE__)
 #endif
-{       regm_t r;
+{
+#if TX86
+        regm_t r;
         regm_t retregs;
         unsigned reg;
         unsigned msreg,lsreg;
@@ -1762,6 +1764,9 @@ L3:
         last2retregs = lastretregs;
         lastretregs = retregs;
         return getregs(retregs);
+#else
+#warning cpu specific code
+#endif
 }
 
 /*************************
@@ -1808,7 +1813,7 @@ STATIC code * cse_save(regm_t ms)
     regcon.cse.mops &= ~ms;
 
     /* Skip CSEs that are already saved */
-    for (regm = 1; regm <= mES; regm <<= 1)
+    for (regm = 1; regm < mask[NUMREGS]; regm <<= 1)
     {
         if (regm & ms)
         {   elem *e;
@@ -2225,7 +2230,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
         assert(I16);
         if (((csemask | emask) & DOUBLEREGS_16) == DOUBLEREGS_16)
         {
-            for (reg = AX; reg != -1; reg = dblreg[reg])
+            for (reg = 0; reg != -1; reg = dblreg[reg])
             {   assert((int) reg >= 0 && reg <= 7);
                 if (mask[reg] & csemask)
                     c = cat(c,loadcse(e,reg,mask[reg]));

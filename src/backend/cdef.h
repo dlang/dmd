@@ -156,7 +156,14 @@ One and only one of these macros must be set by the makefile:
  * Target machine types:
  */
 
+#if !MARS
+#define DM_TARGET_CPU_X86 1
 #define TX86            1               // target is Intel 80X86 processor
+#endif
+
+#if DM_TARGET_CPU_X86
+#define TX86            1               // target is Intel 80X86 processor
+#endif
 
 // Set to 1 using the makefile
 #ifndef TARGET_LINUX
