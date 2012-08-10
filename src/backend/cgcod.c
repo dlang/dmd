@@ -58,6 +58,10 @@ REGSAVE regsave;
 
 CGstate cgstate;                // state of code generator
 
+regm_t BYTEREGS = BYTEREGS_INIT;
+regm_t ALLREGS = ALLREGS_INIT;
+
+
 /************************************
  * # of bytes that SP is beyond BP.
  */

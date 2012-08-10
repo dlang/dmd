@@ -2647,12 +2647,12 @@ CEXTERN elem * elstruct(elem *e)
 
     switch ((int) type_size(e->ET))
     {
-        case CHARSIZE:  tym = TYchar;   goto L1;
-        case SHORTSIZE: tym = TYshort;  goto L1;
-        case LONGSIZE:  tym = TYlong;   goto L1;
-        case LLONGSIZE: if (intsize == 2)
-                            goto Ldefault;
-                        tym = TYllong;  goto L1;
+        case 1:  tym = TYchar;   goto L1;
+        case 2:  tym = TYshort;  goto L1;
+        case 4:  tym = TYlong;   goto L1;
+        case 8:  if (intsize == 2)
+                     goto Ldefault;
+                 tym = TYllong;  goto L1;
         case 16:
             if (config.fpxmmregs && e->Eoper == OPstreq)
             {
@@ -2670,6 +2670,8 @@ CEXTERN elem * elstruct(elem *e)
                     goto L1;
                 }
             }
+            if (config.exe == EX_WIN64)
+                goto Ldefault;
             if (targ1 && !targ2)
                 goto L1;
             if (I64 && ty == TYstruct)
@@ -2681,9 +2683,13 @@ CEXTERN elem * elstruct(elem *e)
         L1:
             if (ty == TYstruct)
             {   // This needs to match what TypeFunction::retStyle() does
-
+                if (config.exe == EX_WIN64)
+                {
+                    if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
+                        goto Ldefault;
+                }
                 // If a struct is a wrapper for another type, prefer that other type
-                if (targ1 && !targ2)
+                else if (targ1 && !targ2)
                     tym = targ1->Tty;
                 else if (I64 && !targ1 && !targ2)
                 {   if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)

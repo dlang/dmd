@@ -60,10 +60,9 @@ void out_config_init()
         config.fpxmmregs = TRUE;
     }
     else
-        config.exe = EX_NT;
-
-    // Win32 eh
-    config.flags2 |= CFG2seh;
+    {   config.exe = EX_NT;
+        config.flags2 |= CFG2seh;       // Win32 eh
+    }
 
     if (params->run)
         config.wflags |= WFexe;         // EXE file only optimizations
@@ -165,8 +164,14 @@ void out_config_init()
         config.fulltypes = (params->symdebug == 1) ? CVDWARF_D : CVDWARF_C;
 #endif
 #if SYMDEB_CODEVIEW
-        configv.addlinenumbers = 1;
-        config.fulltypes = CV4;
+        if (params->is64bit)
+        {
+        }
+        else
+        {
+            configv.addlinenumbers = 1;
+            config.fulltypes = CV4;
+        }
 #endif
         if (!params->optimize)
             config.flags |= CFGalwaysframe;

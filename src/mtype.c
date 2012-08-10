@@ -299,9 +299,12 @@ void Type::init()
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         REALSIZE = 12;
         REALPAD = 2;
-#else
+#elif TARGET_WINDOS
         REALSIZE = 10;
         REALPAD = 0;
+#elif defined(IN_GCC)
+#else
+        assert(0);
 #endif
         Tsize_t = Tuns32;
         Tptrdiff_t = Tint32;
