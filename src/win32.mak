@@ -130,9 +130,9 @@ BFLAGS=
 ##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DTARGET_CPU_X86=1
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DTARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
 # Compile flags for compiler unit tests
 TFLAGS=-I$(STLPORT);$(CPPUNIT)\include;$(INCLUDE) $(TFLAGS) -DDISABLE_MAIN=1 -cpp -Aa -Ab -Ae -Ar
 # Recursive make
@@ -343,15 +343,15 @@ zip: detab tolf $(MAKEFILES)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DTARGET_CPU_X86=1 -I$(TK)
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp -DTARGET_CPU_X86=1 impcnvgen
+	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp -DTARGET_CPU_X86=1 idgen
+	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
 
 ############################# Intermediate Rules ############################

@@ -66,9 +66,9 @@ union evc
     } as;                       // asm node (FLasm)
 };
 
-#if TARGET_CPU_X86
+#if DM_TARGET_CPU_X86
 #include "code_x86.h"
-#elif TARGET_CPU_stub
+#elif DM_TARGET_CPU_stub
 #include "code_stub.h"
 #else
 #error unknown cpu
