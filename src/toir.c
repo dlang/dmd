@@ -809,6 +809,29 @@ enum RET TypeFunction::retStyle()
     d_uns64 sz = tn->size();
     Type *tns = tn;
 
+    if (global.params.isWindows && global.params.is64bit)
+    {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->isscalar())
+            return RETregs;
+#if SARRAYVALUE
+        if (tns->ty == Tsarray)
+        {
+            do
+            {
+                tns = tns->nextOf()->toBasetype();
+            } while (tns->ty == Tsarray);
+        }
+#endif
+        if (tns->ty == Tstruct)
+        {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+            if (!sd->isPOD())
+                return RETstack;
+        }
+        if (sz <= 64 && !(sz & (sz - 1)))
+            return RETregs;
+        return RETstack;
+    }
+
 Lagain:
 #if SARRAYVALUE
     if (tns->ty == Tsarray)
