@@ -2318,6 +2318,16 @@ FuncParamRegs::FuncParamRegs(tym_t tyf)
             numintegerregs = 0;
         numfloatregs = 0;
     }
+    else if (I64 && config.exe == EX_WIN64)
+    {
+        static const unsigned char reglist[] = { CX,DX,R8,R9 };
+        argregs = reglist;
+        numintegerregs = sizeof(reglist) / sizeof(reglist[0]);
+
+        static const unsigned char freglist[] = { XMM0, XMM1, XMM2, XMM3 };
+        floatregs = freglist;
+        numfloatregs = sizeof(freglist) / sizeof(freglist[0]);
+    }
     else if (I64)
     {
         static const unsigned char reglist[] = { DI,SI,DX,CX,R8,R9 };
@@ -2403,6 +2413,7 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
     }
 
     if (I64 &&
+        config.exe != EX_WIN64 &&
         tybasic(ty) == TYcdouble &&
         numfloatregs - xmmcnt >= 2)
     {
@@ -2422,6 +2433,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
             {
                 *preg = argregs[regcnt];
                 ++regcnt;
+                if (config.exe == EX_WIN64)
+                    ++xmmcnt;
                 goto Lnext;
             }
         }
@@ -2430,6 +2443,8 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
             if (tyxmmreg(ty))
             {
                 *preg = floatregs[xmmcnt];
+                if (config.exe == EX_WIN64)
+                    ++regcnt;
                 ++xmmcnt;
                 goto Lnext;
             }
@@ -2699,7 +2714,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     keepmsk |= saved;
 
     // Variadic functions store the number of XMM registers used in AL
-    if (I64 && e->Eflags & EFLAGS_variadic)
+    if (I64 && config.exe != EX_WIN64 && e->Eflags & EFLAGS_variadic)
     {   code *c1 = getregs(mAX);
         c1 = movregconst(c1,AX,xmmcnt,1);
         c = cat(c, c1);

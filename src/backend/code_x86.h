@@ -110,20 +110,18 @@ enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
 #define RMload  (1 << 30)
 #define RMstore (1 << 31)
 
+extern regm_t ALLREGS;
+extern regm_t BYTEREGS;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     // To support positional independent code,
     // must be able to remove BX from available registers
-extern regm_t ALLREGS;
 #define ALLREGS_INIT            (mAX|mBX|mCX|mDX|mSI|mDI)
 #define ALLREGS_INIT_PIC        (mAX|mCX|mDX|mSI|mDI)
-extern regm_t BYTEREGS;
 #define BYTEREGS_INIT           (mAX|mBX|mCX|mDX)
 #define BYTEREGS_INIT_PIC       (mAX|mCX|mDX)
 #else
-#define ALLREGS                 (mAX|mBX|mCX|mDX|mSI|mDI)
-#define ALLREGS_INIT            ALLREGS
-#undef BYTEREGS
-#define BYTEREGS                (mAX|mBX|mCX|mDX)
+#define ALLREGS_INIT            (mAX|mBX|mCX|mDX|mSI|mDI)
+#define BYTEREGS_INIT           (mAX|mBX|mCX|mDX)
 #endif
 
 /* We use the same IDXREGS for the 386 as the 8088, because if

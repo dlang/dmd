@@ -80,6 +80,10 @@ int REALALIGNSIZE = 4;
 int REALSIZE = 10;
 int REALPAD = 0;
 int REALALIGNSIZE = 2;
+#elif defined(IN_GCC)
+int REALSIZE = 0;
+int REALPAD = 0;
+int REALALIGNSIZE = 0;
 #else
 #error "fix this"
 #endif
@@ -256,9 +260,12 @@ void Type::init()
 #elif TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         REALSIZE = 12;
         REALPAD = 2;
-#else
+#elif TARGET_WINDOS
         REALSIZE = 10;
         REALPAD = 0;
+#elif defined(IN_GCC)
+#else
+        assert(0);
 #endif
         Tsize_t = Tuns32;
         Tptrdiff_t = Tint32;
