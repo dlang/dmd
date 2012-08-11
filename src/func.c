@@ -1593,7 +1593,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (cd)
                 {
 #if TARGET_WINDOS
-                    if (/*config.flags2 & CFG2seh &&*/  // always on for WINDOS
+                    if (!global.params.is64bit &&
                         !isStatic() && !fbody->usesEH())
                     {
                         /* The back end uses the "jmonitor" hack for syncing;

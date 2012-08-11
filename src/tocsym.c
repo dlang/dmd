@@ -402,7 +402,7 @@ Symbol *FuncDeclaration::toSymbol()
                 case LINKcpp:
                 {   t->Tmangle = mTYman_cpp;
 #if TARGET_WINDOS
-                    if (isThis())
+                    if (isThis() && !global.params.is64bit)
                         t->Tty = TYmfunc;
 #endif
                     s->Sflags |= SFLpublic;

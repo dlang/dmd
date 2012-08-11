@@ -2508,7 +2508,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   oldregcon = regcon.cse.mval;
   oldregimmed = regcon.immed.mval;
   oldmfuncreg = mfuncreg;       /* remember old one                     */
-  mfuncreg = (mBP | mES | ALLREGS) & ~regcon.mvar;
+  mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
   stackpushsave = stackpush;
   calledafuncsave = calledafunc;
   calledafunc = 0;
