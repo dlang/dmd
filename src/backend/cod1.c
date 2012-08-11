@@ -2518,7 +2518,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {
         elem *ep = parameters[i].e;
         if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, &parameters[i].reg2))
+        {
+            if (config.exe == EX_WIN64)
+                numpara += REGSIZE;             // allocate stack space for it anyway
             continue;   // goes in register, not stack
+        }
 
         // Parameter i goes on the stack
         parameters[i].reg = NOREG;
@@ -2707,6 +2711,14 @@ code *cdfunc(elem *e,regm_t *pretregs)
             }
             keepmsk |= retregs;      // don't change preg when evaluating func address
         }
+    }
+
+    if (np && config.exe == EX_WIN64)
+    {   // Allocate stack space for them anyway
+        unsigned sz = np * REGSIZE;
+        c = cod3_stackadj(c, sz);
+        c = genadjesp(c, sz);
+        stackpush += sz;
     }
 
     // Restore any register parameters we saved
