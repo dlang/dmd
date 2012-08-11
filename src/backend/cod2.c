@@ -4060,7 +4060,7 @@ code *getoffset(elem *e,unsigned reg)
                 cs.Irex |= REX_B;
             if (I64)
             {   cs.Irex |= REX_W;
-                if (config.flags3 & CFG3pic)
+                if (config.flags3 & CFG3pic || config.exe == EX_WIN64)
                 {   // LEA reg,immed32[RIP]
                     cs.Iop = 0x8D;
 #if TARGET_OSX

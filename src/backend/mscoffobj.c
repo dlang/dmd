@@ -825,7 +825,7 @@ printf("test1\n");
                             {
                                 rel.r_vaddr = r->offset;
                                 rel.r_symndx = s->Sxtrnnum;
-
+#if 0
                                 int32_t *p = patchAddr(seg, r->offset);
                                 // Absolute address; add in addr of start of targ seg
 //printf("*p = x%x, .s_vaddr = x%x, Soffset = x%x\n", *p, (int)ScnhdrTab[SegData[s->Sseg]->SDshtidx].s_vaddr, (int)s->Soffset);
@@ -834,6 +834,7 @@ printf("test1\n");
                                 *p += s->Soffset;
                                 *p -= ScnhdrTab[pseg->SDshtidx].s_vaddr + r->offset + 4;
                                 //patch(pseg, r->offset, s->Sseg, s->Soffset);
+#endif
                             }
 #endif
                         }
