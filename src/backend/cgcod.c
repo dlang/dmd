@@ -1778,8 +1778,8 @@ L3:
         {
 #ifdef DEBUG
             WRTYxx(tym);
-            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs %s, reg %d, tym x%x\n",
-                file,line,regcon.mvar,msavereg,regm_str(*pretregs),*preg,tym);
+            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg %s *pretregs %s, reg %d, tym x%x\n",
+                file,line,regcon.mvar,regm_str(msavereg),regm_str(*pretregs),*preg,tym);
 #endif
             assert(0);
         }
@@ -2380,8 +2380,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
   if (debugw)
   {     printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(e->Eoper);
-        printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                msavereg,regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
   }
 #endif
@@ -2392,8 +2392,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 #ifdef DEBUG
         printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
         elem_print(e);
-        printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                msavereg,regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
 #endif
         assert(0);
@@ -2490,8 +2490,8 @@ L1:
   if (debugw)
   {     printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(op);
-        printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                msavereg,regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
   }
 #endif
     if (configv.addlinenumbers && e->Esrcpos.Slinnum)
