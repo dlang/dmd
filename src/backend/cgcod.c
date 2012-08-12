@@ -2685,7 +2685,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 
 const char *regm_str(regm_t rm)
 {
-    #define NUM 4
+    #define NUM 10
     #define SMAX 128
     static char str[NUM][SMAX + 1];
     static int i;
