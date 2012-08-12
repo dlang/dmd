@@ -2901,7 +2901,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     regm_t retregs;
     symbol *s;
 
-    //printf("funccall(e = %p, *pretregs = x%x, numpara = %d, numalign = %d)\n",e,*pretregs,numpara,numalign);
+    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d)\n",e,regm_str(*pretregs),numpara,numalign);
     calledafunc = 1;
     /* Determine if we need frame for function prolog/epilog    */
 #if TARGET_WINDOS

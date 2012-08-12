@@ -1672,12 +1672,12 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         }
         count = 0;
 L1:
-        //printf("L1: allregs = x%x, *pretregs = x%x\n", allregs, *pretregs);
+        //printf("L1: allregs = x%x, *pretregs = %s\n", allregs, regm_str(*pretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
         msreg = lsreg = (unsigned)-1;           /* no value assigned yet        */
 L3:
-        //printf("L2: allregs = x%x, *pretregs = x%x\n", allregs, *pretregs);
+        //printf("L2: allregs = x%x, *pretregs = %s\n", allregs, regm_str(*pretregs));
         r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
@@ -1769,7 +1769,7 @@ L3:
         {
 #ifdef DEBUG
             if (retregs != DOUBLEREGS)
-                printf("retregs = x%x, *pretregs = x%x\n",retregs,*pretregs);
+                printf("retregs = x%x, *pretregs = %s\n", retregs, regm_str(*pretregs));
 #endif
             assert(retregs == DOUBLEREGS);
             reg = AX;
@@ -1778,8 +1778,8 @@ L3:
         {
 #ifdef DEBUG
             WRTYxx(tym);
-            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs x%x, reg %d, tym x%x\n",
-                file,line,regcon.mvar,msavereg,*pretregs,*preg,tym);
+            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg x%x *pretregs %s, reg %d, tym x%x\n",
+                file,line,regcon.mvar,msavereg,regm_str(*pretregs),*preg,tym);
 #endif
             assert(0);
         }
@@ -2144,8 +2144,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #ifdef DEBUG
 if (debugw)
 {
-printf("comsub(e=%p): *pretregs=%x, emask=%x, csemask=%x, regcon.cse.mval=%x, regcon.mvar=%x\n",
-        e,*pretregs,emask,csemask,regcon.cse.mval,regcon.mvar);
+printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%x, regcon.mvar=%x\n",
+        e,regm_str(*pretregs),emask,csemask,regcon.cse.mval,regcon.mvar);
 if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 }
 #endif
@@ -2390,7 +2390,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
   if ((regcon.cse.mops & regcon.cse.mval) != regcon.cse.mops)
   {
 #ifdef DEBUG
-        printf("+codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
+        printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
         elem_print(e);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);
@@ -2488,7 +2488,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 L1:
 #ifdef DEBUG
   if (debugw)
-  {     printf("-codelem(e=%p,*pretregs=x%x) ",e,*pretregs);
+  {     printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(op);
         printf("msavereg=x%x regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
                 msavereg,regcon.cse.mval,regcon.cse.mops);
@@ -2539,8 +2539,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 freenode(e);
 #ifdef DEBUG
                 if (debugw)
-                    printf("-scodelem(e=%p *pretregs=x%x keepmsk=%s constflag=%d\n",
-                            e,*pretregs,regm_str(keepmsk),constflag);
+                    printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+                            e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
                 return c;
         }
@@ -2671,8 +2671,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   mfuncreg &= oldmfuncreg;      /* update original                      */
 #ifdef DEBUG
   if (debugw)
-        printf("-scodelem(e=%p *pretregs=x%x keepmsk=%s constflag=%d\n",
-                e,*pretregs,regm_str(keepmsk),constflag);
+        printf("-scodelem(e=%p *pretregs=%s keepmsk=%s constflag=%d\n",
+                e,regm_str(*pretregs),regm_str(keepmsk),constflag);
 #endif
   return cat4(cs1,c,cs3,cs2);
 }

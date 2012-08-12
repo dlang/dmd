@@ -774,7 +774,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   unsigned varreg;
   unsigned cflags;
 
-  //printf("cdaddass(e=%p, *pretregs = x%x)\n",e,*pretregs);
+  //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
   op = e->Eoper;
   retregs = 0;
   reverse = 0;
@@ -1725,7 +1725,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
   int fl;
   int flag;
 
-  //printf("cdcmp(e = %p, retregs = %s)\n",e,regm_str(*pretregs));
+  //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
   // Collect extra parameter. This is pretty ugly...
   flag = cdcmp_flag;
   cdcmp_flag = 0;
@@ -3037,7 +3037,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
 #ifdef DEBUG
   if (!(!*pretregs || retregs))
         WROP(e->Eoper),
-        printf(" *pretregs = x%x, retregs = x%x, e = %p\n",*pretregs,retregs,e);
+        printf(" *pretregs = %s, retregs = x%x, e = %p\n",regm_str(*pretregs),retregs,e);
 #endif
   assert(!*pretregs || retregs);
   return cat(c,fixresult(e,retregs,pretregs));  /* lsw only             */
@@ -3411,7 +3411,7 @@ code *cdpair(elem *e, regm_t *pretregs)
         return cat(c1,codelem(e->E2,pretregs,FALSE));
     }
 
-    //printf("\ncdpair(e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     //printf("Ecount = %d\n", e->Ecount);
     retregs = *pretregs & allregs;
     if  (!retregs)
