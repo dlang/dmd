@@ -3423,7 +3423,7 @@ code *cdpair(elem *e, regm_t *pretregs)
         regs1 = regs2;
         regs2 = retregs & (mLSW | mBP);
     }
-    //printf("1: regs1 = x%x, regs2 = x%x\n", regs1, regs2);
+    //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);
     c2 = scodelem(e->E2, &regs2, regs1, FALSE);
 
@@ -3433,7 +3433,7 @@ code *cdpair(elem *e, regm_t *pretregs)
     if (e->E2->Ecount)
         cg = cat(cg, getregs(regs2));
 
-    //printf("regs1 = x%x, regs2 = x%x\n", regs1, regs2);
+    //printf("regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     return cat4(c1,c2,cg,fixresult(e,regs1 | regs2,pretregs));
 }
 
