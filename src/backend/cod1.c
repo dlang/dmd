@@ -549,8 +549,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
 
 #ifdef DEBUG
   if (debugw)
-    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=x%x desmsk=x%x\n",
-            e,cs,op,reg,(unsigned long long)offset,keepmsk,desmsk);
+    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=x%x\n",
+            e,cs,op,reg,(unsigned long long)offset,regm_str(keepmsk),desmsk);
 #endif
 
   assert(e);
@@ -774,7 +774,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   tym_t e1ty;
   symbol *s;
 
-  //printf("getlvalue(e = %p, keepmsk = x%x)\n",e,(unsigned)keepmsk);
+  //printf("getlvalue(e = %p, keepmsk = %s)\n",e,regm_str(keepmsk));
   //elem_print(e);
   assert(e);
   elem_debug(e);
@@ -834,7 +834,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #endif
     case FLoper:
 #ifdef DEBUG
-        if (debugw) printf("getlvalue(e = %p, km = x%x)\n",e,keepmsk);
+        if (debugw) printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
 #endif
         switch (e->Eoper)
         {

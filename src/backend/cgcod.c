@@ -2539,8 +2539,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 freenode(e);
 #ifdef DEBUG
                 if (debugw)
-                    printf("-scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
-                            e,*pretregs,keepmsk,constflag);
+                    printf("-scodelem(e=%p *pretregs=x%x keepmsk=%s constflag=%d\n",
+                            e,*pretregs,regm_str(keepmsk),constflag);
 #endif
                 return c;
         }
@@ -2671,8 +2671,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   mfuncreg &= oldmfuncreg;      /* update original                      */
 #ifdef DEBUG
   if (debugw)
-        printf("-scodelem(e=%p *pretregs=x%x keepmsk=x%x constflag=%d\n",
-                e,*pretregs,keepmsk,constflag);
+        printf("-scodelem(e=%p *pretregs=x%x keepmsk=%s constflag=%d\n",
+                e,*pretregs,regm_str(keepmsk),constflag);
 #endif
   return cat4(cs1,c,cs3,cs2);
 }
