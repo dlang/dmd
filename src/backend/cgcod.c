@@ -238,7 +238,7 @@ tryagain:
         {   regcon.used = msavereg | regcon.cse.mval;   // registers already in use
             b = dfo[dfoidx];
             blcodgen(b);                        // gen code in depth-first order
-            //printf("b->Bregcon.used = x%x\n", b->Bregcon.used);
+            //printf("b->Bregcon.used = %s\n", regm_str(b->Bregcon.used));
             cgreg_used(dfoidx,b->Bregcon.used); // gather register used information
         }
     }
