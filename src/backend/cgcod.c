@@ -2144,8 +2144,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #ifdef DEBUG
 if (debugw)
 {
-printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%x, regcon.mvar=%s\n",
-        e,regm_str(*pretregs),emask,csemask,regcon.cse.mval,regm_str(regcon.mvar));
+printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%s, regcon.mvar=%s\n",
+        e,regm_str(*pretregs),emask,csemask,regm_str(regcon.cse.mval),regm_str(regcon.mvar));
 if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 }
 #endif
@@ -2380,8 +2380,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
   if (debugw)
   {     printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(e->Eoper);
-        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
   }
 #endif
@@ -2392,8 +2392,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 #ifdef DEBUG
         printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
         elem_print(e);
-        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
 #endif
         assert(0);
@@ -2490,8 +2490,8 @@ L1:
   if (debugw)
   {     printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(op);
-        printf("msavereg=%s regcon.cse.mval=x%x regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regcon.cse.mval,regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
   }
 #endif
     if (configv.addlinenumbers && e->Esrcpos.Slinnum)
@@ -2567,8 +2567,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   /* in mfuncreg.                                                       */
 #ifdef DEBUG
   if ((mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
-        printf("mfuncreg x%x, regcon.cse.mval x%x, oldregcon x%x, regcon.mvar %s\n",
-                mfuncreg,regcon.cse.mval,oldregcon,regm_str(regcon.mvar));
+        printf("mfuncreg x%x, regcon.cse.mval %s, oldregcon x%x, regcon.mvar %s\n",
+                mfuncreg,regm_str(regcon.cse.mval),oldregcon,regm_str(regcon.mvar));
 #endif
   assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
@@ -2783,12 +2783,12 @@ void andregcon(con_t *pregconsave)
         m <<= 1;
         m |= 1;
     }
-    //printf("regcon.cse.mval = x%x, regconsave->mval = x%x ",regcon.cse.mval,pregconsave->cse.mval);
+    //printf("regcon.cse.mval = %s, regconsave->mval = %s ",regm_str(regcon.cse.mval),regm_str(pregconsave->cse.mval));
     regcon.used |= pregconsave->used;
     regcon.cse.mval &= pregconsave->cse.mval;
     regcon.immed.mval &= pregconsave->immed.mval;
     regcon.params &= pregconsave->params;
-    //printf("regcon.cse.mval&regcon.cse.mops = x%x, regcon.cse.mops = x%x\n",regcon.cse.mval & regcon.cse.mops,regcon.cse.mops);
+    //printf("regcon.cse.mval&regcon.cse.mops = %s, regcon.cse.mops = x%x\n",regm_str(regcon.cse.mval & regcon.cse.mops),regcon.cse.mops);
     regcon.cse.mops &= regcon.cse.mval;
 }
 
