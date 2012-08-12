@@ -1769,7 +1769,7 @@ L3:
         {
 #ifdef DEBUG
             if (retregs != DOUBLEREGS)
-                printf("retregs = x%x, *pretregs = %s\n", retregs, regm_str(*pretregs));
+                printf("retregs = %s, *pretregs = %s\n", regm_str(retregs), regm_str(*pretregs));
 #endif
             assert(retregs == DOUBLEREGS);
             reg = AX;

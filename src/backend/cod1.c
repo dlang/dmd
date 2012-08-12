@@ -1767,7 +1767,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             }
             else
 #ifdef DEBUG
-                printf("retregs = x%x, forregs = x%x\n",retregs,forregs),
+                printf("retregs = %s, forregs = x%x\n", regm_str(retregs), forregs),
 #endif
                 assert(0);
             if (EOP(e))
