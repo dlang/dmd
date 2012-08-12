@@ -549,8 +549,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
 
 #ifdef DEBUG
   if (debugw)
-    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=x%x\n",
-            e,cs,op,reg,(unsigned long long)offset,regm_str(keepmsk),desmsk);
+    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=%s\n",
+            e,cs,op,reg,(unsigned long long)offset,regm_str(keepmsk),regm_str(desmsk));
 #endif
 
   assert(e);
