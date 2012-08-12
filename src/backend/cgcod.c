@@ -1478,7 +1478,7 @@ unsigned findreg(regm_t regm
         i++;
     }
 #ifdef DEBUG
-  printf("findreg(x%x, line=%d, file='%s', function = '%s')\n",regmsave,line,file,funcsym_p->Sident);
+  printf("findreg(%s, line=%d, file='%s', function = '%s')\n",regm_str(regmsave),line,file,funcsym_p->Sident);
   fflush(stdout);
 #endif
 //*(char*)0=0;
