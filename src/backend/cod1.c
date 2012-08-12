@@ -1767,7 +1767,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             }
             else
 #ifdef DEBUG
-                printf("retregs = %s, forregs = x%x\n", regm_str(retregs), forregs),
+                printf("retregs = %s, forregs = %s\n", regm_str(retregs), regm_str(forregs)),
 #endif
                 assert(0);
             if (EOP(e))
@@ -4152,7 +4152,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 #ifdef DEBUG
         if (!(forregs & BYTEREGS))
         {       elem_print(e);
-                printf("forregs = x%x\n",forregs);
+                printf("forregs = %s\n", regm_str(forregs));
         }
 #endif
         int op = 0x8A;                                  // byte MOV
