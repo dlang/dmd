@@ -1778,8 +1778,8 @@ L3:
         {
 #ifdef DEBUG
             WRTYxx(tym);
-            printf("\nallocreg: fil %s lin %d, regcon.mvar x%x msavereg %s *pretregs %s, reg %d, tym x%x\n",
-                file,line,regcon.mvar,regm_str(msavereg),regm_str(*pretregs),*preg,tym);
+            printf("\nallocreg: fil %s lin %d, regcon.mvar %s msavereg %s *pretregs %s, reg %d, tym x%x\n",
+                file,line,regm_str(regcon.mvar),regm_str(msavereg),regm_str(*pretregs),*preg,tym);
 #endif
             assert(0);
         }
@@ -2144,8 +2144,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #ifdef DEBUG
 if (debugw)
 {
-printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%x, regcon.mvar=%x\n",
-        e,regm_str(*pretregs),emask,csemask,regcon.cse.mval,regcon.mvar);
+printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%x, regcon.mvar=%s\n",
+        e,regm_str(*pretregs),emask,csemask,regcon.cse.mval,regm_str(regcon.mvar));
 if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 }
 #endif
@@ -2567,8 +2567,8 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   /* in mfuncreg.                                                       */
 #ifdef DEBUG
   if ((mfuncreg & (regcon.cse.mval & ~oldregcon)) != 0)
-        printf("mfuncreg x%x, regcon.cse.mval x%x, oldregcon x%x, regcon.mvar x%x\n",
-                mfuncreg,regcon.cse.mval,oldregcon,regcon.mvar);
+        printf("mfuncreg x%x, regcon.cse.mval x%x, oldregcon x%x, regcon.mvar %s\n",
+                mfuncreg,regcon.cse.mval,oldregcon,regm_str(regcon.mvar));
 #endif
   assert((mfuncreg & (regcon.cse.mval & ~oldregcon)) == 0);
 
@@ -2582,7 +2582,7 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   if (regcon.mvar & tosave)
   {
         //elem_print(e);
-        //printf("test1: regcon.mvar x%x tosave x%x\n", regcon.mvar, tosave);
+        //printf("test1: regcon.mvar %s tosave x%x\n", regm_str(regcon.mvar), tosave);
         cgreg_unregister(regcon.mvar & tosave);
   }
 
