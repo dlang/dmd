@@ -2142,8 +2142,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #ifdef DEBUG
 if (debugw)
 {
-printf("comsub(e=%p): *pretregs=%s, emask=%x, csemask=%x, regcon.cse.mval=%s, regcon.mvar=%s\n",
-        e,regm_str(*pretregs),emask,csemask,regm_str(regcon.cse.mval),regm_str(regcon.mvar));
+printf("comsub(e=%p): *pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
+        e,regm_str(*pretregs),regm_str(emask),regm_str(csemask),regm_str(regcon.cse.mval),regm_str(regcon.mvar));
 if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 }
 #endif
@@ -2228,8 +2228,8 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 #if DEBUG
                 if (EOP(e))
                 {
-                    printf("e = %p, op = x%x, emask = x%x, csemask = x%x\n",
-                        e,e->Eoper,emask,csemask);
+                    printf("e = %p, op = x%x, emask = %s, csemask = %s\n",
+                        e,e->Eoper,regm_str(emask),regm_str(csemask));
                     //printf("mMSW = x%x, mLSW = x%x\n", mMSW, mLSW);
                     elem_print(e);
                 }
@@ -2284,7 +2284,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
         }
         if (!EOP(e)) goto reload;
 #if DEBUG
-        printf("e = %p, csemask = x%x, emask = x%x\n",e,csemask,emask);
+        printf("e = %p, csemask = %s, emask = %s\n",e,regm_str(csemask),regm_str(emask));
 #endif
         assert(0);
   }
