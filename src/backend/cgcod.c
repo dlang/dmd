@@ -2380,8 +2380,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
   if (debugw)
   {     printf("+codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(e->Eoper);
-        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
   }
 #endif
@@ -2392,8 +2392,8 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 #ifdef DEBUG
         printf("+codelem(e=%p,*pretregs=%s) ", e, regm_str(*pretregs));
         elem_print(e);
-        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
         printf("Ecount = %d, Ecomsub = %d\n", e->Ecount, e->Ecomsub);
 #endif
         assert(0);
@@ -2490,8 +2490,8 @@ L1:
   if (debugw)
   {     printf("-codelem(e=%p,*pretregs=%s) ",e,regm_str(*pretregs));
         WROP(op);
-        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=x%x\n",
-                regm_str(msavereg),regm_str(regcon.cse.mval),regcon.cse.mops);
+        printf("msavereg=%s regcon.cse.mval=%s regcon.cse.mops=%s\n",
+                regm_str(msavereg),regm_str(regcon.cse.mval),regm_str(regcon.cse.mops));
   }
 #endif
     if (configv.addlinenumbers && e->Esrcpos.Slinnum)
@@ -2788,7 +2788,7 @@ void andregcon(con_t *pregconsave)
     regcon.cse.mval &= pregconsave->cse.mval;
     regcon.immed.mval &= pregconsave->immed.mval;
     regcon.params &= pregconsave->params;
-    //printf("regcon.cse.mval&regcon.cse.mops = %s, regcon.cse.mops = x%x\n",regm_str(regcon.cse.mval & regcon.cse.mops),regcon.cse.mops);
+    //printf("regcon.cse.mval&regcon.cse.mops = %s, regcon.cse.mops = %s\n",regm_str(regcon.cse.mval & regcon.cse.mops), regm_str(regcon.cse.mops));
     regcon.cse.mops &= regcon.cse.mval;
 }
 
