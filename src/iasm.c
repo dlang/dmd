@@ -3493,7 +3493,7 @@ STATIC code *asm_da_parse(OP *pop)
 
             label = asmstate.sc->func->searchLabel(asmtok->ident);
             if (!label)
-                error(asmstate.loc, "label '%s' not found\n", asmtok->ident->toChars());
+                error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
 
             c = code_calloc();
             c->Iop = ASM;
