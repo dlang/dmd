@@ -144,6 +144,7 @@ MANIFEST= \
 	src/core/sys/posix/sys/shm.d \
 	src/core/sys/posix/sys/socket.d \
 	src/core/sys/posix/sys/stat.d \
+	src/core/sys/posix/sys/statvfs.d \
 	src/core/sys/posix/sys/time.d \
 	src/core/sys/posix/sys/types.d \
 	src/core/sys/posix/sys/uio.d \
@@ -502,6 +503,7 @@ COPY=\
 	$(IMPDIR)/core/sys/posix/sys/shm.d \
 	$(IMPDIR)/core/sys/posix/sys/socket.d \
 	$(IMPDIR)/core/sys/posix/sys/stat.d \
+	$(IMPDIR)/core/sys/posix/sys/statvfs.d \
 	$(IMPDIR)/core/sys/posix/sys/time.d \
 	$(IMPDIR)/core/sys/posix/sys/types.d \
 	$(IMPDIR)/core/sys/posix/sys/uio.d \
