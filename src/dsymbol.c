@@ -479,7 +479,7 @@ void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 unsigned Dsymbol::size(Loc loc)
 {
-    error("Dsymbol '%s' has no size\n", toChars());
+    error("Dsymbol '%s' has no size", toChars());
     return 0;
 }
 

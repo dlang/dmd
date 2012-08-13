@@ -6358,7 +6358,7 @@ Expression *CompileExp::semantic(Scope *sc)
         return e1;
     if (!e1->type->isString())
     {
-        error("argument to mixin must be a string type, not %s\n", e1->type->toChars());
+        error("argument to mixin must be a string type, not %s", e1->type->toChars());
         return new ErrorExp();
     }
     e1 = e1->ctfeInterpret();

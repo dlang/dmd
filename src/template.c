@@ -4818,7 +4818,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Scope *scope = tempdecl->scope;
     if (!tempdecl->semanticRun)
     {
-        error("template instantiation %s forward references template declaration %s\n", toChars(), tempdecl->toChars());
+        error("template instantiation %s forward references template declaration %s", toChars(), tempdecl->toChars());
         return;
     }
 
@@ -5304,7 +5304,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
             }
             if (!td->semanticRun)
             {
-                error("%s forward references template declaration %s\n", toChars(), td->toChars());
+                error("%s forward references template declaration %s", toChars(), td->toChars());
                 return NULL;
             }
         }
