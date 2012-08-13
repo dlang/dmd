@@ -99,6 +99,7 @@ void cgreg_init()
         switch (s->Sclass)
         {   case SCparameter:
             case SCfastpar:
+            case SCshadowreg:
                 // Do not put parameters in registers if they are not used
                 // more than twice (otherwise we have a net loss).
                 if (s->Sweight <= 2 && !tyxmmreg(s->ty()))
@@ -492,7 +493,7 @@ void cgreg_spillreg_prolog(block *b,Symbol *s,code **pcstore,code **pcload)
         // If it's startblock, and it's a spilled parameter, we
         // need to load it
         if (s->Sflags & SFLspill && bi == 0 &&
-            (s->Sclass == SCparameter || s->Sclass == SCfastpar))
+            (s->Sclass == SCparameter || s->Sclass == SCfastpar || s->Sclass == SCshadowreg))
         {
             goto Lload;
         }
@@ -650,6 +651,7 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
                 case SCbprel:
                     s->Sfl = FLbprel;
                     break;
+                case SCshadowreg:
                 case SCparameter:
                     s->Sfl = FLpara;
                     break;
@@ -777,6 +779,7 @@ int cgreg_assign(Symbol *retsym)
                     case SCbprel:
                         s->Sfl = FLbprel;
                         break;
+                    case SCshadowreg:
                     case SCparameter:
                         s->Sfl = FLpara;
                         break;

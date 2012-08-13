@@ -396,7 +396,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             Symbol *sthis = symbol_calloc("this");
             sthis->Stype = type_fake(TYnptr);
             sthis->Stype->Tcount++;
-            sthis->Sclass = SCfastpar;
+            sthis->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
             sthis->Spreg = AX;
             sthis->Spreg2 = NOREG;
             sthis->Sfl = FLauto;

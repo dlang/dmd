@@ -720,6 +720,8 @@ void MsCoffObj::term()
             psechdr->s_size = pseg->SDbuf->size();
             foffset += psechdr->s_size;
         }
+        else
+            psechdr->s_size = pseg->SDoffset;
     }
 
     // Compute file offsets of the relocation data
@@ -1311,7 +1313,7 @@ int MsCoffObj::comdat(Symbol *s)
 {
     unsigned align;
 
-    //printf("MsCoffObj::comdat(Symbol* %s)\n",s->Sident);
+    printf("MsCoffObj::comdat(Symbol* %s)\n",s->Sident);
     //symbol_print(s);
     symbol_debug(s);
 
@@ -1368,7 +1370,7 @@ int MsCoffObj::comdat(Symbol *s)
 
 segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
 {
-    //printf("getsegment(%s)\n", sectname);
+    printf("getsegment(%s)\n", sectname);
     assert(strlen(sectname) <= 8);      // so it won't go into string_table
     for (segidx_t seg = 1; seg <= seg_count; seg++)
     {   seg_data *pseg = SegData[seg];
@@ -1383,6 +1385,7 @@ segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
     segidx_t seg = getsegment2(addScnhdr(sectname, flags));
 
     //printf("\tseg_count = %d\n", seg_count);
+    printf("\tseg = %d, %d, %s\n", seg, SegData[seg]->SDshtidx, ScnhdrTab[SegData[seg]->SDshtidx].s_name);
     return seg;
 }
 
@@ -1488,7 +1491,7 @@ int MsCoffObj::codeseg(char *name,int suffix)
 
 seg_data *MsCoffObj::tlsseg()
 {
-    //printf("MsCoffObj::tlsseg(\n");
+    printf("MsCoffObj::tlsseg\n");
 
     if (seg_tlsseg == UNKNOWN)
     {
@@ -1652,7 +1655,7 @@ segidx_t MsCoffObj::data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg
 {
     targ_size_t alignbytes;
 
-    //printf("MsCoffObj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+    printf("MsCoffObj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata->Sseg);
@@ -1729,7 +1732,7 @@ void MsCoffObj::func_term(Symbol *sfunc)
 
 void MsCoffObj::pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
 {
-#if 0
+#if 1
     printf("MsCoffObj::pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s->Sident);
     //symbol_print(s);
 #endif
@@ -1753,6 +1756,11 @@ void MsCoffObj::pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
     }
     //printf("%p\n", *(void**)symbuf->buf);
     s->Sxtrnnum = 1;
+}
+
+void MsCoffObj::pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize)
+{
+    pubdef(seg, s, offset);
 }
 
 /*******************************
@@ -1846,7 +1854,7 @@ void MsCoffObj::write_zeros(seg_data *pseg, targ_size_t count)
 
 void MsCoffObj::lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
 {
-    //printf("MsCoffObj::lidata(%d,%x,%d)\n",seg,offset,count);
+    printf("MsCoffObj::lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg]->SDshtidx;
     if ((ScnhdrTab[idx].s_flags) & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
     {   // Use SDoffset to record size of bss section

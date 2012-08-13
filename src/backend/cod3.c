@@ -295,7 +295,6 @@ int cod3_EA(code *c)
 
 void cod3_initregs()
 {
-    // should probably be !TARGET_WINDOS insetad of a long list of some targets
     if (I64)
     {
         ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI| mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
@@ -361,10 +360,8 @@ void cod3_set64()
     DOUBLEREGS = DOUBLEREGS_64;
     STACKALIGN = 16;
 
-#if TARGET_WINDOS || TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     ALLREGS = mAX|mBX|mCX|mDX|mSI|mDI|  mR8|mR9|mR10|mR11|mR12|mR13|mR14|mR15;
     BYTEREGS = ALLREGS;
-#endif
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
@@ -1191,7 +1188,8 @@ void doswitch(block *b)
         ce = NULL;
     }
 #if TARGET_WINDOS               // try and find relocation to support this
-    else if ((targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
+    else if (config.exe != EX_WIN64 &&
+             (targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
     {   int modify;
 
         b->BC = BCjmptab;
@@ -2950,12 +2948,25 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
     return c;
 }
 
+code* prolog_gen_win64_varargs()
+{
+    /* The Microsoft scheme.
+     * http://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.80)
+     * Copy registers onto stack.
+         mov     8[RSP],RCX
+         mov     010h[RSP],RDX
+         mov     018h[RSP],R8
+         mov     020h[RSP],R9
+     */
+    return CNIL;
+}
+
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
 {
 #ifdef DEBUG
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
-        if (debugr && s->Sclass == SCfastpar)
+        if (debugr && (s->Sclass == SCfastpar || s->Sclass == SCshadowreg))
         {
             printf("symbol '%s' is fastpar in register [%s,%s]\n", s->Sident,
                 regm_str(mask[s->Spreg]),
@@ -3899,6 +3910,7 @@ void cod3_adjSymOffsets()
         {
             case SCparameter:
             case SCregpar:
+            case SCshadowreg:
 //printf("s = '%s', Soffset = x%x, Poff = x%x, EBPtoESP = x%x\n", s->Sident, s->Soffset, Poff, EBPtoESP);
                 s->Soffset += Poff;
 if (0 && !(funcsym_p->Sfunc->Fflags3 & Fmember))

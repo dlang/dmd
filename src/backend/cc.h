@@ -1159,7 +1159,7 @@ struct Symbol
         #define Simport _SU.Simport_
                                 // Symbol it was imported from
 #endif
-        struct                  // SCfastpar
+        struct                  // SCfastpar, SCshadowreg
         {
             reg_t Spreg_;       // register parameter is passed in
             reg_t Spreg2_;      // if 2 registers, this is the most significant, else NOREG

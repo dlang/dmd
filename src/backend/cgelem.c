@@ -3977,7 +3977,7 @@ STATIC elem * elshr(elem *e)
         {
             Symbol *s = e1->EV.sp.Vsym;
 
-            if (s->Sclass != SCfastpar)
+            if (s->Sclass != SCfastpar && s->Sclass != SCshadowreg)
             {
                 e1->EV.sp.Voffset += SHORTSIZE; // address high word in long
                 if (I32)

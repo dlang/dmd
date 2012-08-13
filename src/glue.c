@@ -446,7 +446,7 @@ void Module::genobjfile(int multiobj)
         toModuleArray();
     }
 
-#if 1
+#if 1   // Disable this to make 'naked' compiler that doesn't need Phobos
     // Always generate module info, because of templates and -cov
     if (1 || needModuleInfo())
         genmoduleinfo();
@@ -478,7 +478,7 @@ void Module::genobjfile(int multiobj)
                 Symbol *sp = symbol_calloc("linnum");
                 sp->Stype = type_fake(TYint);
                 sp->Stype->Tcount++;
-                sp->Sclass = SCfastpar;
+                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
 
                 FuncParamRegs fpr(TYjfunc);
                 fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
@@ -834,7 +834,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         {   Symbol *sp = params[i];
             if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
-                sp->Sclass = SCfastpar;
+                sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
                 sp->Sfl = FLauto;
             }
         }

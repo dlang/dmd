@@ -1264,13 +1264,18 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
     case FLreg:
         goto L2;
     case FLpara:
+        if (s->Sclass == SCshadowreg)
+            goto Lauto;
+    Lpara:
         refparam = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);
         goto L2;
 
     case FLauto:
         if (s->Sclass == SCfastpar)
-        {   regm_t pregm = s->Spregm();
+        {
+    Lauto:
+            regm_t pregm = s->Spregm();
             /* See if the parameter is still hanging about in a register,
              * and so can we load from that register instead.
              */
@@ -1298,6 +1303,8 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                     regcon.params &= ~pregm;
             }
         }
+        if (s->Sclass == SCshadowreg)
+            goto Lpara;
     case FLtmp:
     case FLbprel:
         reflocal = TRUE;
@@ -2536,6 +2543,12 @@ code *cdfunc(elem *e,regm_t *pretregs)
         numpara += paramsize(ep,stackalign);
     }
 
+    if (config.exe == EX_WIN64)
+    {
+        if (numpara < 4 * REGSIZE)
+            numpara = 4 * REGSIZE;
+    }
+
     assert((numpara & (REGSIZE - 1)) == 0);
     assert((stackpush & (REGSIZE - 1)) == 0);
 
@@ -2714,11 +2727,34 @@ code *cdfunc(elem *e,regm_t *pretregs)
     }
 
     if (np && config.exe == EX_WIN64)
-    {   // Allocate stack space for them anyway
-        unsigned sz = np * REGSIZE;
+    {   // Allocate stack space for four entries anyway
+        // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
+        unsigned sz = 4 * REGSIZE;
         c = cod3_stackadj(c, sz);
         c = genadjesp(c, sz);
         stackpush += sz;
+
+        /* Variadic functions store XMM parameters into their corresponding GP registers
+         */
+        for (int i = 0; i < np; i++)
+        {
+            int preg = parameters[i].reg;
+            regm_t retregs = mask[preg];
+            if (retregs & XMMREGS)
+            {   int reg;
+
+                switch (preg)
+                {   case XMM0: reg = CX; break;
+                    case XMM1: reg = DX; break;
+                    case XMM2: reg = R8; break;
+                    case XMM3: reg = R9; break;
+                    default:   assert(0);
+                }
+                code *c1 = getregs(mask[reg]);
+                c1 = gen2(c1,STOD,(REX_W << 16) | modregxrmx(3,preg-XMM0,reg)); // MOVD reg,preg
+                c = cat(c,c1);
+            }
+        }
     }
 
     // Restore any register parameters we saved
@@ -3998,7 +4034,8 @@ code *loaddata(elem *e,regm_t *pretregs)
   else
   {
     // See if we can use register that parameter was passed in
-    if (regcon.params && e->EV.sp.Vsym->Sclass == SCfastpar &&
+    if (regcon.params &&
+        (e->EV.sp.Vsym->Sclass == SCfastpar || e->EV.sp.Vsym->Sclass == SCshadowreg) &&
         regcon.params & mask[e->EV.sp.Vsym->Spreg] &&
         !(e->Eoper == OPvar && e->EV.sp.Voffset > 0) && // Must be at the base of that variable
         sz <= REGSIZE)                  // make sure no 'paint' to a larger size happened

@@ -150,7 +150,7 @@ struct MsCoffObj : Obj
     VIRTUAL seg_data *tlsseg_bss();
     VIRTUAL void export_symbol(Symbol *s, unsigned argsize);
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
-//    VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
+    VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
 //    VIRTUAL int external(const char *);
     VIRTUAL int external_def(const char *);
     VIRTUAL int data_start(Symbol *sdata, targ_size_t datasize, int seg);

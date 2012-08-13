@@ -933,6 +933,7 @@ void symbol_free(symbol *s)
                 case SCparameter:
                 case SCregpar:
                 case SCfastpar:
+                case SCshadowreg:
                 case SCregister:
                 case SCtmp:
                 case SCauto:
