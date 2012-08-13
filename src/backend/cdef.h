@@ -909,7 +909,7 @@ struct con_t
 {   cse_t cse;                  // CSEs in registers
     immed_t immed;              // immediate values in registers
     regm_t mvar;                // mask of register variables
-    regm_t mpvar;               // mask of SCfastpar register variables
+    regm_t mpvar;               // mask of SCfastpar, SCshadowreg register variables
     regm_t indexregs;           // !=0 if more than 1 uncommitted index register
     regm_t used;                // mask of registers used
     regm_t params;              // mask of registers which still contain register
@@ -1053,6 +1053,7 @@ typedef unsigned SYMFLGS;
     X(parameter,SCEXP|SCSS       )      /* function parameter                   */ \
     X(regpar,   SCEXP|SCSS       )      /* function register parameter          */ \
     X(fastpar,  SCEXP|SCSS       )      /* function parameter passed in register */ \
+    X(shadowreg,SCEXP|SCSS       )      /* function parameter passed in register, shadowed on stack */ \
     X(typedef,  0                )      /* type definition                      */ \
     X(explicit, 0                )      /* explicit                             */ \
     X(mutable,  0                )      /* mutable                              */ \

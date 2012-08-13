@@ -212,6 +212,7 @@ tryagain:
             s->Sflags &= ~SFLread;
             switch (s->Sclass)
             {   case SCfastpar:
+                case SCshadowreg:
                     regcon.params |= s->Spregm();
                 case SCparameter:
                     if (s->Sfl == FLreg)
@@ -854,16 +855,26 @@ Lcont:
         c = cat(c,nteh_setsp(0x89));            // MOV __context[EBP].esp,ESP
 #endif
 
+    if (I64 && variadic(funcsym_p->Stype) && config.exe == EX_WIN64)
+    {
+        /* The Microsoft scheme.
+         */
+        c = cat(c, prolog_gen_win64_varargs());
+    }
+
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
     c = cat(c, prolog_loadparams(tyf, pushalloc, &namedargs));
 
-    /* Load arguments passed in registers into the varargs save area
-     * so they can be accessed by va_arg().
-     */
-    if (I64 && variadic(funcsym_p->Stype))
+    // Special prolog setup for variadic functions
+    if (I64 && variadic(funcsym_p->Stype) && config.exe != EX_WIN64)
     {
+        /* The Intel 64 bit ABI scheme.
+         * abi_sysV_amd64.pdf
+         * Load arguments passed in registers into the varargs save area
+         * so they can be accessed by va_arg().
+         */
         /* Look for __va_argsave
          */
         symbol *sv = NULL;
@@ -1040,6 +1051,7 @@ void stackoffsets(int flags)
                     EEoffset += sz;
                     break;
 
+                case SCshadowreg:
                 case SCparameter:
                     Poffset = align(REGSIZE,Poffset); /* align on word stack boundary */
                     if (I64 && alignsize == 16 && Poffset & 8)
@@ -1050,6 +1062,7 @@ void stackoffsets(int flags)
                                 ? type_size(tsdouble)   // float passed as double
                                 : type_size(s->Stype);
                     break;
+
                 case SCpseudo:
                 case SCstatic:
                 case SCbprel:
@@ -1135,7 +1148,7 @@ STATIC void blcodgen(block *bl)
         {   symbol *s = globsym.tab[i];
 
             sflsave[i] = s->Sfl;
-            if (s->Sclass & SCfastpar &&
+            if ((s->Sclass == SCfastpar || s->Sclass == SCshadowreg) &&
                 regcon.params & s->Spregm() &&
                 vec_testbit(dfoidx,s->Srange))
             {
@@ -1145,7 +1158,7 @@ STATIC void blcodgen(block *bl)
             if (s->Sfl == FLreg)
             {   if (vec_testbit(dfoidx,s->Srange))
                 {   regcon.mvar |= s->Sregm;
-                    if (s->Sclass == SCfastpar)
+                    if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
                         regcon.mpvar |= s->Sregm;
                 }
             }
@@ -1160,7 +1173,7 @@ STATIC void blcodgen(block *bl)
                         regcon.cse.mval &= ~s->Sregm;
                         regcon.immed.mval &= ~s->Sregm;
                         regcon.params &= ~s->Sregm;
-                        if (s->Sclass == SCfastpar)
+                        if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
                             regcon.mpvar |= s->Sregm;
                     }
                 }

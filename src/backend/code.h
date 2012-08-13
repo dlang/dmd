@@ -384,6 +384,7 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
 code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc);
 code* prolog_setupalloca();
 code* prolog_trace(bool farfunc, unsigned* regsaved);
+code* prolog_gen_win64_varargs();
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs);
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs);
 

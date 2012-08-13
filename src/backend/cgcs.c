@@ -530,6 +530,7 @@ STATIC void touchlvalue(elem *e)
         case SCauto:
         case SCparameter:
         case SCfastpar:
+        case SCshadowreg:
         case SCbprel:
             if (e->EV.sp.Vsym->Sflags & SFLunambig)
                 break;
@@ -588,6 +589,7 @@ STATIC void touchfunc(int flag)
                     case SCauto:
                     case SCparameter:
                     case SCfastpar:
+                    case SCshadowreg:
                     case SCbprel:
                         //printf("he = '%s'\n", he->EV.sp.Vsym->Sident);
                         if (he->EV.sp.Vsym->Sflags & SFLunambig)
