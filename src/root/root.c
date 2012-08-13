@@ -1275,7 +1275,7 @@ err:
 void File::readv()
 {
     if (read())
-        error("Error reading file '%s'\n",name->toChars());
+        error("Error reading file '%s'",name->toChars());
 }
 
 /**************************************
@@ -1290,13 +1290,13 @@ void File::mmreadv()
 void File::writev()
 {
     if (write())
-        error("Error writing file '%s'\n",name->toChars());
+        error("Error writing file '%s'",name->toChars());
 }
 
 void File::appendv()
 {
     if (write())
-        error("Error appending to file '%s'\n",name->toChars());
+        error("Error appending to file '%s'",name->toChars());
 }
 
 /*******************************************

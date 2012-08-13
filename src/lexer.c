@@ -1288,7 +1288,7 @@ unsigned Lexer::escapeSequence()
                     c = v;
                 }
                 else
-                    error("undefined escape hex sequence \\%c\n",c);
+                    error("undefined escape hex sequence \\%c",c);
                 break;
 
         case '&':                       // named character entity
@@ -1337,7 +1337,7 @@ unsigned Lexer::escapeSequence()
                         error("0%03o is larger than a byte", c);
                 }
                 else
-                    error("undefined escape sequence \\%c\n",c);
+                    error("undefined escape sequence \\%c",c);
                 break;
     }
     return c;

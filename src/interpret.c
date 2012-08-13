@@ -7013,7 +7013,7 @@ bool isCtfeValueValid(Expression *newval)
     {
         return true;
     }
-    newval->error("CTFE internal error: illegal value %s\n", newval->toChars());
+    newval->error("CTFE internal error: illegal value %s", newval->toChars());
     return false;
 }
 
