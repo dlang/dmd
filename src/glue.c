@@ -504,11 +504,11 @@ void Module::genobjfile(int multiobj)
     }
 #endif
 
-#if !C_ONLY
-    // Always generate module info, because of templates and -cov
-    if (1 || needModuleInfo())
+    /* Always generate module info, because of templates and -cov.
+     * But module info needs the runtime library, so disable it for betterC.
+     */
+    if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
-#endif
 
     objmod->termfile();
 }

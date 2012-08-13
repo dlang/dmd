@@ -686,6 +686,8 @@ int main(int argc, char *argv[])
                 global.params.quiet = 1;
             else if (strcmp(p + 1, "release") == 0)
                 global.params.release = 1;
+            else if (strcmp(p + 1, "betterC") == 0)
+                global.params.betterC = 1;
 #if DMDV2
             else if (strcmp(p + 1, "noboundscheck") == 0)
                 noboundscheck = 1;
