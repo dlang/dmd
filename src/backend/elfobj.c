@@ -2736,7 +2736,8 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             if (!s->Sxtrnnum)
             {   // not in symbol table yet - class might change
                 //dbg_printf("\tadding %s to fixlist\n",s->Sident);
-                addtofixlist(s,offset,seg,val,flags);
+                size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
+                assert(numbyteswritten == retsize);
                 return retsize;
             }
             else
