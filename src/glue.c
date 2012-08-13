@@ -446,11 +446,11 @@ void Module::genobjfile(int multiobj)
         toModuleArray();
     }
 
-#if 1   // Disable this to make 'naked' compiler that doesn't need Phobos
-    // Always generate module info, because of templates and -cov
-    if (1 || needModuleInfo())
+    /* Always generate module info, because of templates and -cov.
+     * But module info needs the runtime library, so disable it for betterC.
+     */
+    if (!global.params.betterC /*|| needModuleInfo()*/)
         genmoduleinfo();
-#endif
 
     // If module assert
     for (int i = 0; i < 3; i++)

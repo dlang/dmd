@@ -181,6 +181,7 @@ struct Param
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
+    char betterC;       // be a "better C" compiler; no dependency on D runtime
 
     char *argv0;        // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
