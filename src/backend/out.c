@@ -1071,6 +1071,7 @@ STATIC void writefunc2(symbol *sfunc)
                 goto L3;
             case SCregpar:
             case SCparameter:
+            case SCshadowreg:
 #endif
                 s->Sfl = FLpara;
                 if (tyf == TYifunc)
