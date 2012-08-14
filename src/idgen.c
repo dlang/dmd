@@ -265,6 +265,7 @@ Msgtable msgtable[] =
     { "lib" },
     { "msg" },
     { "startaddress" },
+    { "mangle" },
 
     // For special functions
     { "tohash", "toHash" },

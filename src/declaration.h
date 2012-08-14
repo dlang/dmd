@@ -124,6 +124,7 @@ struct Declaration : Dsymbol
     enum PROT protection;
     enum LINK linkage;
     int inuse;                  // used to detect cycles
+    char *symbol_override;      // overridden symbol with pragma(mangle, "...")
 
 #ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
@@ -312,6 +313,7 @@ struct VarDeclaration : Declaration
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
+    char *mangle();
 
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
