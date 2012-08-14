@@ -2980,14 +2980,15 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
     unsigned pushallocreg = (tyf == TYmfunc) ? CX : AX;
     code* c = NULL;
 
-    /* Copy SCfastpar (parameters passed in registers) that were not assigned registers
-     * into their stack locations.
+    /* Copy SCfastpar and SCshadowreg (parameters passed in registers) that were not assigned
+     * registers into their stack locations.
      */
+    regm_t shadowregm = 0;
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
         unsigned sz = type_size(s->Stype);
 
-        if (s->Sclass == SCfastpar && s->Sfl != FLreg)
+        if ((s->Sclass == SCfastpar || s->Sclass == SCshadowreg) && s->Sfl != FLreg)
         {   // Argument is passed in a register
 
             type *t = s->Stype;
@@ -3002,7 +3003,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
 #if MARS
-                 // This variable has been reference by a nested function
+                 // mTYvolatile means this variable has been reference by a nested function
                  !(s->Stype->Tty & mTYvolatile) &&
 #endif
                  (config.flags4 & CFG4optimized || !config.fulltypes)))
@@ -3012,22 +3013,27 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             }
             else
             {
-                targ_size_t offset = Aoff + BPoff + s->Soffset;
+                targ_size_t offset = Aoff + BPoff;
+                if (s->Sclass == SCshadowreg)
+                    offset = Poff;
+                offset += s->Soffset;
                 if (!hasframe)
                     offset += EBPtoESP;
 
                 unsigned preg = s->Spreg;
                 for (int i = 0; i < 2; ++i)     // twice, once for each possible parameter register
                 {
+                    shadowregm |= mask[preg];
                     int op = 0x89;                  // MOV x[EBP],preg
                     if (XMM0 <= preg && preg <= XMM15)
                         op = xmmstore(t->Tty);
-                    if (hasframe)
+                    if (!(pushalloc && preg == pushallocreg) || s->Sclass == SCshadowreg)
                     {
-                        if (!(pushalloc && preg == pushallocreg))
+                        code *c2;
+                        if (hasframe)
                         {
                             // MOV x[EBP],preg
-                            code *c2 = genc1(CNIL,op,
+                            c2 = genc1(CNIL,op,
                                              modregxrm(2,preg,BPRM),FLconst, offset);
                             if (XMM0 <= preg && preg <= XMM15)
                             {
@@ -3039,16 +3045,12 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                                 if (I64 && sz >= 8)
                                     code_orrex(c2, REX_W);
                             }
-                            c = cat(c, c2);
                         }
-                    }
-                    else
-                    {
-                        if (!(pushalloc && preg == pushallocreg))
+                        else
                         {
                             // MOV offset[ESP],preg
                             // BUG: byte size?
-                            code *c2 = genc1(CNIL,op,
+                            c2 = genc1(CNIL,op,
                                              (modregrm(0,4,SP) << 8) |
                                              modregxrm(2,preg,4),FLconst,offset);
                             if (preg >= XMM0 && preg <= XMM15)
@@ -3059,8 +3061,8 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                                 if (I64 && sz >= 8)
                                     c2->Irex |= REX_W;
                             }
-                            c = cat(c,c2);
                         }
+                        c = cat(c,c2);
                     }
                     preg = s->Spreg2;
                     if (preg == NOREG)
@@ -3073,7 +3075,45 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
         }
     }
 
-    /* Copy SCfastpar (parameters passed in registers) that were assigned registers
+    if (config.exe == EX_WIN64 && variadic(funcsym_p->Stype))
+    {
+        /* The Microsoft scheme.
+         * http://msdn.microsoft.com/en-US/library/dd2wa36c(v=vs.80)
+         * Copy registers onto stack.
+             mov     8[RSP],RCX or XMM0
+             mov     010h[RSP],RDX or XMM1
+             mov     018h[RSP],R8 or XMM2
+             mov     020h[RSP],R9 or XMM3
+         */
+        static reg_t vregs[4] = { CX,DX,R8,R9 };
+        for (int i = 0; i < sizeof(vregs)/sizeof(vregs[0]); ++i)
+        {
+            unsigned preg = vregs[i];
+            unsigned offset = Poff + i * REGSIZE;
+            if (!(shadowregm & (mask[preg] | mask[XMM0 + i])))
+            {
+                code *c2;
+                if (hasframe)
+                {
+                    // MOV x[EBP],preg
+                    c2 = genc1(CNIL,0x89,
+                                     modregxrm(2,preg,BPRM),FLconst, offset);
+                    code_orrex(c2, REX_W);
+                }
+                else
+                {
+                    // MOV offset[ESP],preg
+                    c2 = genc1(CNIL,0x89,
+                                     (modregrm(0,4,SP) << 8) |
+                                     modregxrm(2,preg,4),FLconst,offset + EBPtoESP);
+                }
+                c2->Irex |= REX_W;
+                c = cat(c,c2);
+            }
+        }
+    }
+
+    /* Copy SCfastpar and SCshadowreg (parameters passed in registers) that were assigned registers
      * into their assigned registers.
      * Note that we have a big problem if Pa is passed in R1 and assigned to R2,
      * and Pb is passed in R2 but assigned to R1. Detect it and assert.
@@ -3083,10 +3123,10 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
     {   symbol *s = globsym.tab[si];
         unsigned sz = type_size(s->Stype);
 
-        if (s->Sclass == SCfastpar)
+        if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
             *namedargs |= s->Spregm();
 
-        if (s->Sclass == SCfastpar && s->Sfl == FLreg)
+        if ((s->Sclass == SCfastpar || s->Sclass == SCshadowreg) && s->Sfl == FLreg)
         {   // Argument is passed in a register
 
             type *t = s->Stype;

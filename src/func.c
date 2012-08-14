@@ -939,7 +939,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             Type *t;
 
 #ifndef IN_GCC
-            if (global.params.is64bit)
+            if (global.params.is64bit && !global.params.isWindows)
             {   // Declare save area for varargs registers
                 Type *t = new TypeIdentifier(loc, Id::va_argsave_t);
                 t = t->semantic(loc, sc);
@@ -1429,7 +1429,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v_argptr->init = new VoidInitializer(loc);
 #else
                 Type *t = argptr->type;
-                if (global.params.is64bit)
+                if (global.params.is64bit && !global.params.isWindows)
                 {   // Initialize _argptr to point to v_argsave
                     Expression *e1 = new VarExp(0, argptr);
                     Expression *e = new SymOffExp(0, v_argsave, 6*8 + 8*16);
