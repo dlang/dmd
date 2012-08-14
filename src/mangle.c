@@ -154,6 +154,9 @@ char *FuncDeclaration::mangle()
     __body
 #endif
     {
+        if (symbol_override)
+            return symbol_override;
+
         if (isMain())
             return (char *)"_Dmain";
 
@@ -161,6 +164,21 @@ char *FuncDeclaration::mangle()
             return ident->toChars();
 
         assert(this);
+        return Declaration::mangle();
+    }
+
+char *VarDeclaration::mangle()
+#if __DMC__
+    __out(result)
+    {
+        assert(strlen(result) > 0);
+    }
+    __body
+#endif
+    {
+        if (symbol_override)
+            return symbol_override;
+
         return Declaration::mangle();
     }
 
