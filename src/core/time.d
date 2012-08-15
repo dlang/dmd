@@ -1546,7 +1546,7 @@ struct TickDuration
             {
                 enum unitsPerSec = convert!("seconds", units)(1);
 
-                return to!("seconds", T) * unitsPerSec;
+                return to!("seconds", T)() * unitsPerSec;
             }
         }
         else
