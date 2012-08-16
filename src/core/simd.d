@@ -61,14 +61,16 @@ alias Vector!(uint[8])    uint8;         ///
 alias Vector!(long[4])    long4;         ///
 alias Vector!(ulong[4])   ulong4;        ///
 
-/** XMM opcodes that conform to the following:
- *
- *  opcode xmm1,xmm2/mem
-
- * and do not have side effects (i.e. do not write to memory).
- */
-enum XMM
+version ( D_SIMD )
 {
+  /** XMM opcodes that conform to the following:
+   *
+   *  opcode xmm1,xmm2/mem
+   *
+   * and do not have side effects (i.e. do not write to memory).
+   */
+  enum XMM
+  {
     ADDSS = 0xF30F58,
     ADDSD = 0xF20F58,
     ADDPS = 0x000F58,
@@ -366,33 +368,34 @@ enum XMM
 // POPCNT and LZCNT (have their own CPUID bits)
     POPCNT     = 0xF30FB8,
     // LZCNT
-}
+  }
 
-/**
- * Generate two operand instruction with XMM 128 bit operands.
- *
- * This is a compiler magic function - it doesn't behave like
- * regular D functions.
- *
- * Parameters:
- *      opcode  any of the XMM opcodes; it must be a compile time constant
- *      op1     first operand
- *      op2     second operand
- * Returns:
- *      result of opcode
- */
-void16 __simd(XMM opcode, void16 op1, void16 op2);
+  /**
+   * Generate two operand instruction with XMM 128 bit operands.
+   *
+   * This is a compiler magic function - it doesn't behave like
+   * regular D functions.
+   *
+   * Parameters:
+   *      opcode  any of the XMM opcodes; it must be a compile time constant
+   *      op1     first operand
+   *      op2     second operand
+   * Returns:
+   *      result of opcode
+   */
+  void16 __simd(XMM opcode, void16 op1, void16 op2);
 
-/* The following use overloading to ensure correct typing.
- * Compile with inlining on for best performance.
- */
+  /* The following use overloading to ensure correct typing.
+   * Compile with inlining on for best performance.
+   */
 
-short8 pcmpeq()(short8 v1, short8 v2)
-{
-    return __simd(XMM.PCMPEQW, v1, v2);
-}
+  short8 pcmpeq()(short8 v1, short8 v2)
+  {
+      return __simd(XMM.PCMPEQW, v1, v2);
+  }
 
-ushort8 pcmpeq()(ushort8 v1, ushort8 v2)
-{
-    return __simd(XMM.PCMPEQW, v1, v2);
+  ushort8 pcmpeq()(ushort8 v1, ushort8 v2)
+  {
+      return __simd(XMM.PCMPEQW, v1, v2);
+  }
 }
