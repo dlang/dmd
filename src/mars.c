@@ -321,8 +321,11 @@ Usage:\n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
   -c             do not link\n\
-  -cov           do code coverage analysis\n\
-  -D             generate documentation\n\
+  -cov           do code coverage analysis\n"
+#if CC_DRIVES_LINKING
+"  -cflag=ccflag  pass ccflag to the C compiler being used to drive linking\n"
+#endif
+"  -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
   -d             allow deprecated features\n\
@@ -445,6 +448,7 @@ int tryMain(int argc, char *argv[])
     global.params.quiet = 1;
 
     global.params.linkswitches = new Strings();
+    global.params.ccswitches = new Strings();
     global.params.libfiles = new Strings();
     global.params.objfiles = new Strings();
     global.params.ddocfiles = new Strings();
@@ -784,6 +788,12 @@ int tryMain(int argc, char *argv[])
             {
                 global.params.linkswitches->push(p + 2);
             }
+#if CC_DRIVES_LINKING
+            else if (memcmp(p + 1, "cflag=", 6) == 0)
+            {
+                global.params.ccswitches->push(p + 1 + 6);
+            }
+#endif
             else if (memcmp(p + 1, "defaultlib=", 11) == 0)
             {
                 global.params.defaultlibname = p + 1 + 11;

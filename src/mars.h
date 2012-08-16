@@ -124,6 +124,15 @@ void unittests();
 #endif
 #endif
 
+// On these systems the C Compiler is used to drive linking.
+// The compiler is chosen using the ${CC} environment variable, but if that is
+//   not provided it will default to gcc.
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#ifndef CC_DRIVES_LINKING
+#define CC_DRIVES_LINKING 1
+#endif
+#endif
+
 
 struct OutBuffer;
 
@@ -232,6 +241,7 @@ struct Param
     // Linker stuff
     Strings *objfiles;
     Strings *linkswitches;
+    Strings *ccswitches;
     Strings *libfiles;
     char *deffile;
     char *resfile;
