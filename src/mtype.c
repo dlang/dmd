@@ -5208,6 +5208,41 @@ Lnotcovariant:
     return 2;
 }
 
+int TypeFunction::overloadConflict(TypeFunction *t1, TypeFunction *t2)
+{
+    assert(t1 && t2);
+
+    if (t1->equals(t2))
+        return TRUE;
+
+    if (t1->varargs != t2->varargs)
+        return FALSE;
+
+    if (t1->mod != t2->mod)
+        return FALSE;
+
+    int pn1 = Parameter::dim(t1->parameters);
+    int pn2 = Parameter::dim(t2->parameters);
+    if (pn1 != pn2)
+        return FALSE;
+
+    for(size_t i = 0; i < pn1; ++i)
+    {
+        Parameter *arg1 = Parameter::getNth(t1->parameters, i);
+        Parameter *arg2 = Parameter::getNth(t2->parameters, i);
+        StorageClass sc = STCref | STCin | STCout | STClazy;
+
+        if (!arg1->type->equals(arg2->type))
+            return FALSE;
+        if (arg1->storageClass != arg2->storageClass)
+            return FALSE;
+        if (arg1->type->mod != arg2->type->mod)
+            return FALSE;
+    }
+
+    return TRUE;
+}
+
 void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
 {   unsigned char mc;
 
