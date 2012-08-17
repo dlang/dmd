@@ -6,9 +6,9 @@
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE_1_0.txt)
  * Authors:   Amaury SECHET, FeepingCreature, Vladimir Panteleev
- * Source: $(DRUNTIMESRC src/etc/linux/nullpointererror.d)
+ * Source: $(DRUNTIMESRC src/etc/linux/memory.d)
  */
-module etc.linux.nullpointererror;
+module etc.linux.memoryerror;
 
 version(linux) {
 
