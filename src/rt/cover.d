@@ -24,6 +24,7 @@ private
     }
     import core.bitop;
     import core.stdc.stdio;
+    import core.memory;
     import rt.util.utf;
 
     struct BitArray
@@ -329,7 +330,7 @@ bool readFile( string name, ref char[] buf )
                                        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,
                                        cast(HANDLE) null );
 
-        delete wnamez;
+        GC.free(cast(void*)wnamez);
         if( file == INVALID_HANDLE_VALUE )
             return false;
         scope( exit ) CloseHandle( file );
@@ -357,7 +358,7 @@ bool readFile( string name, ref char[] buf )
                         namez[$ - 1] = 0;
         int     file = open( namez.ptr, O_RDONLY );
 
-        delete namez;
+        GC.free(namez.ptr);
         if( file == -1 )
             return false;
         scope( exit ) close( file );

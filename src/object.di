@@ -30,11 +30,11 @@ alias immutable(dchar)[] dstring;
 
 class Object
 {
-    string   toString() const;
-    hash_t   toHash() @trusted nothrow const;
-    int      opCmp(const Object o) const;
-    equals_t opEquals(const Object o) const;
-    equals_t opEquals(const Object lhs, const Object rhs) const;
+    string   toString();
+    hash_t   toHash() @trusted nothrow;
+    int      opCmp(Object o);
+    equals_t opEquals(Object o);
+    equals_t opEquals(Object lhs, Object rhs);
 
     interface Monitor
     {
@@ -45,131 +45,9 @@ class Object
     static Object factory(string classname);
 }
 
-bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == class) && is(Rhs == class))
-{
-    // If aliased to the same object or both null => equal
-    if (lhs is rhs) return true;
-
-    static if (is(Lhs == shared) || is(Rhs == shared))
-    {
-        // If either is shared, is defined only equality comparisons.
-        return false;
-    }
-    else
-    {
-      version (all) // allow direct comparison
-      {
-        // If either is null => non-equal
-        if (lhs is null || rhs is null) return false;
-
-        // If same exact type => one call to method opEquals
-        if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
-            return lhs.opEquals(rhs);
-
-        // General case => symmetric calls to method opEquals
-        return lhs.opEquals(rhs) && rhs.opEquals(lhs);
-      }
-      else      // always compare with const(Object)
-      {
-        return _ObjectEq(lhs, rhs);
-      }
-    }
-}
-
-bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == interface) || is(Rhs == interface))
-{
-    // If aliased to the same object or both null => equal
-    static if (is(typeof(lhs is rhs)))
-    {
-        if (lhs is rhs) return true;
-    }
-
-    static if (is(Lhs == shared) || is(Rhs == shared))
-    {
-        // If either is shared, is defined only equality comparisons.
-        return false;
-    }
-    else
-    {
-        // If either is interface, downcast to Object and keep qualifier
-        static if (is(Lhs == interface))
-        {
-            static if (is(Lhs == shared))
-                auto lho = cast(shared const(Object))lhs;
-            else
-                auto lho = cast(const Object)lhs;
-            // If C++ interface, result is null
-        }
-        else
-            alias lhs lho;
-
-        static if (is(Rhs == interface))
-        {
-            static if (is(Rhs == shared))
-                auto rho = cast(shared const(Object))rhs;
-            else
-                auto rho = cast(const Object)rhs;
-        }
-        else
-            alias rhs rho;
-
-        return _ObjectEq(lho, rho);
-    }
-}
-
-deprecated bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == typedef) || is(Rhs == typedef))
-{
-    static if (is(Lhs LhsB == typedef))
-    {
-        static if (is(Lhs == immutable))
-            alias immutable(LhsB) Lhs2;
-        else static if (is(Lhs == const))
-        {
-            static if (is(Lhs == shared))
-                alias const(shared(LhsB)) Lhs2;
-            else
-                alias const(LhsB) Lhs2;
-        }
-        else
-        {
-            static if (is(Lhs == shared))
-                alias shared(LhsB) Lhs2;
-            else
-                alias LhsB Lhs2;
-        }
-    }
-    else
-        alias Lhs Lhs2;
-
-    static if (is(Rhs RhsB == typedef))
-    {
-        static if (is(Rhs == immutable))
-            alias immutable(RhsB) Rhs2;
-        else static if (is(Rhs == const))
-        {
-            static if (is(Rhs == shared))
-                alias const(shared(RhsB)) Rhs2;
-            else
-                alias const(RhsB) Rhs2;
-        }
-        else
-        {
-            static if (is(Rhs == shared))
-                alias shared(RhsB) Rhs2;
-            else
-                alias RhsB Rhs2;
-        }
-    }
-    else
-        alias Rhs Rhs2;
-
-    return opEquals(cast(Lhs2)lhs, cast(Rhs2)rhs);
-}
-
-private bool _ObjectEq(const Object lhs, const Object rhs);
+bool opEquals(const Object lhs, const Object rhs);
+bool opEquals(Object lhs, Object rhs);
+//bool opEquals(TypeInfo lhs, TypeInfo rhs);
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
@@ -225,7 +103,7 @@ class TypeInfo_Pointer : TypeInfo
 class TypeInfo_Array : TypeInfo
 {
     override string toString() const;
-    override equals_t opEquals(const Object o) const;
+    override equals_t opEquals(Object o);
     override hash_t getHash(in void* p) @trusted const;
     override equals_t equals(in void* p1, in void* p2) const;
     override int compare(in void* p1, in void* p2) const;
@@ -451,7 +329,7 @@ class Throwable : Object
 
     this(string msg, Throwable next = null);
     this(string msg, string file, size_t line, Throwable next = null);
-    override string toString() const;
+    override string toString();
 }
 
 
@@ -688,6 +566,11 @@ void destroy(T)(T obj) if (is(T == class))
     rt_finalize(cast(void*)obj);
 }
 
+void destroy(T)(T obj) if (is(T == interface))
+{
+    destroy(cast(Object)obj);
+}
+
 void destroy(T)(ref T obj) if (is(T == struct))
 {
     typeid(T).destroy(&obj);
@@ -705,7 +588,7 @@ void destroy(T : U[n], U, size_t n)(ref T obj)
 }
 
 void destroy(T)(ref T obj)
-if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
+if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
 }

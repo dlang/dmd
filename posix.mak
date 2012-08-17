@@ -27,9 +27,9 @@ IMPDIR=import
 
 MODEL=32
 
-DFLAGS=-m$(MODEL) -O -release -inline -w -d -Isrc -Iimport -property
-UDFLAGS=-m$(MODEL) -O -release -w -d -Isrc -Iimport -property
-DDOCFLAGS=-m$(MODEL) -c -w -d -o- -Isrc -Iimport
+DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -Iimport -property
+UDFLAGS=-m$(MODEL) -O -release -w -Isrc -Iimport -property
+DDOCFLAGS=-m$(MODEL) -c -w -o- -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O
 
@@ -47,11 +47,8 @@ MANIFEST= \
 	posix.mak \
 	win32.mak \
 	\
-	import/object.di \
-	\
-	import/core/thread.di \
-	\
 	src/object_.d \
+	src/object.di \
 	\
 	src/core/atomic.d \
 	src/core/bitop.d \
@@ -63,6 +60,7 @@ MANIFEST= \
 	src/core/runtime.d \
 	src/core/simd.d \
 	src/core/thread.d \
+	src/core/thread.di \
 	src/core/time.d \
 	src/core/vararg.d \
 	\
@@ -97,8 +95,14 @@ MANIFEST= \
 	src/core/sync/rwmutex.d \
 	src/core/sync/semaphore.d \
 	\
+	src/core/sys/freebsd/dlfcn.d \
+	src/core/sys/freebsd/execinfo.d \
 	src/core/sys/freebsd/sys/event.d \
 	\
+	src/core/sys/linux/execinfo.d \
+	\
+	src/core/sys/osx/execinfo.d \
+	src/core/sys/osx/pthread.d \
 	src/core/sys/osx/mach/dyld.d \
 	src/core/sys/osx/mach/getsect.d \
 	src/core/sys/osx/mach/kern_return.d \
@@ -140,6 +144,7 @@ MANIFEST= \
 	src/core/sys/posix/sys/shm.d \
 	src/core/sys/posix/sys/socket.d \
 	src/core/sys/posix/sys/stat.d \
+	src/core/sys/posix/sys/statvfs.d \
 	src/core/sys/posix/sys/time.d \
 	src/core/sys/posix/sys/types.d \
 	src/core/sys/posix/sys/uio.d \
@@ -278,8 +283,11 @@ SRC_D_MODULES = \
 	core/stdc/time \
 	core/stdc/wchar_ \
 	\
+	core/sys/freebsd/execinfo \
 	core/sys/freebsd/sys/event \
 	\
+	core/sys/posix/signal \
+	core/sys/posix/dirent \
 	core/sys/posix/sys/select \
 	core/sys/posix/sys/socket \
 	core/sys/posix/sys/stat \
@@ -414,6 +422,7 @@ IMPORTS=\
 	$(IMPDIR)/core/sync/semaphore.di
 
 COPY=\
+	$(IMPDIR)/object.di \
 	$(IMPDIR)/core/atomic.d \
 	$(IMPDIR)/core/bitop.d \
 	$(IMPDIR)/core/cpuid.d \
@@ -423,6 +432,7 @@ COPY=\
 	$(IMPDIR)/core/memory.d \
 	$(IMPDIR)/core/runtime.d \
 	$(IMPDIR)/core/simd.d \
+	$(IMPDIR)/core/thread.di \
 	$(IMPDIR)/core/time.d \
 	$(IMPDIR)/core/vararg.d \
 	\
@@ -448,8 +458,14 @@ COPY=\
 	$(IMPDIR)/core/stdc/wchar_.d \
 	$(IMPDIR)/core/stdc/wctype.d \
 	\
+	$(IMPDIR)/core/sys/freebsd/dlfcn.d \
+	$(IMPDIR)/core/sys/freebsd/execinfo.d \
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
+	$(IMPDIR)/core/sys/linux/execinfo.d \
+	\
+	$(IMPDIR)/core/sys/osx/execinfo.d \
+	$(IMPDIR)/core/sys/osx/pthread.d \
 	$(IMPDIR)/core/sys/osx/mach/kern_return.d \
 	$(IMPDIR)/core/sys/osx/mach/port.d \
 	$(IMPDIR)/core/sys/osx/mach/semaphore.d \
@@ -488,6 +504,7 @@ COPY=\
 	$(IMPDIR)/core/sys/posix/sys/shm.d \
 	$(IMPDIR)/core/sys/posix/sys/socket.d \
 	$(IMPDIR)/core/sys/posix/sys/stat.d \
+	$(IMPDIR)/core/sys/posix/sys/statvfs.d \
 	$(IMPDIR)/core/sys/posix/sys/time.d \
 	$(IMPDIR)/core/sys/posix/sys/types.d \
 	$(IMPDIR)/core/sys/posix/sys/uio.d \
@@ -531,10 +548,10 @@ $(DOCDIR)/core_sync_%.html : src/core/sync/%.d
 
 ######################## Header .di file generation ##############################
 
-import: $(IMPORTS) 
+import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
-	$(DMD) -m$(MODEL) -c -d -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -m$(MODEL) -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
 
@@ -547,10 +564,14 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/posix/netinet
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
+	-mkdir -p $(IMPDIR)/core/sys/linux
 
 copy: $(COPY)
 
-$(IMPDIR)/core/%.d : src/core/%.d
+$(IMPDIR)/%.di : src/%.di
+	cp $< $@
+
+$(IMPDIR)/%.d : src/%.d
 	cp $< $@
 
 ################### C/ASM Targets ############################
@@ -608,5 +629,4 @@ install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
 
 clean:
-	rm -rf obj lib $(IMPDIR)/core/stdc $(IMPDIR)/core/sync $(IMPDIR)/core/sys doc
-	rm -rf $(IMPDIR)/core/atomic.d $(IMPDIR)/core/bitop.d $(IMPDIR)/core/cpuid.d $(IMPDIR)/core/demangle.d $(IMPDIR)/core/exception.d $(IMPDIR)/core/math.d $(IMPDIR)/core/memory.d $(IMPDIR)/core/runtime.d $(IMPDIR)/core/simd.d $(IMPDIR)/core/time.d $(IMPDIR)/core/vararg.d
+	rm -rf obj lib $(IMPDIR) $(DOCDIR)

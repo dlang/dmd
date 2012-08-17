@@ -24,6 +24,7 @@ private
     import core.atomic;
     import core.stdc.string;
     import core.stdc.stdlib;
+    import core.memory;
     import rt.util.hash;
     import rt.util.string;
     import rt.util.console;
@@ -76,7 +77,7 @@ class Object
     /**
      * Convert Object to a human readable string.
      */
-    string toString() const
+    string toString()
     {
         return this.classinfo.name;
     }
@@ -84,7 +85,7 @@ class Object
     /**
      * Compute hash function for Object.
      */
-    hash_t toHash() @trusted nothrow const
+    hash_t toHash() @trusted nothrow
     {
         // BUG: this prevents a compacting GC from working, needs to be fixed
         return cast(hash_t)cast(void*)this;
@@ -99,7 +100,7 @@ class Object
      *  $(TR $(TD this &gt; obj) $(TD &gt; 0))
      *  )
      */
-    int opCmp(const Object o) const
+    int opCmp(Object o)
     {
         // BUG: this prevents a compacting GC from working, needs to be fixed
         //return cast(int)cast(void*)this - cast(int)cast(void*)o;
@@ -111,12 +112,12 @@ class Object
     /**
      * Returns !=0 if this object does have the same contents as obj.
      */
-    equals_t opEquals(const Object o) const
+    equals_t opEquals(Object o)
     {
         return this is o;
     }
 
-    equals_t opEquals(const Object lhs, const Object rhs) const
+    equals_t opEquals(Object lhs, Object rhs)
     {
         if (lhs is rhs)
             return true;
@@ -155,138 +156,49 @@ class Object
 /************************
  * Returns true if lhs and rhs are equal.
  */
-bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == class) && is(Rhs == class))
+bool opEquals(const Object lhs, const Object rhs)
+{
+    // A hack for the moment.
+    return opEquals(cast()lhs, cast()rhs);
+}
+
+bool opEquals(Object lhs, Object rhs)
 {
     // If aliased to the same object or both null => equal
     if (lhs is rhs) return true;
 
-    static if (is(Lhs == shared) || is(Rhs == shared))
-    {
-        // If either is shared, is defined only equality comparisons.
-        return false;
-    }
-    else
-    {
-      version (all) // allow direct comparison
-      {
-        // If either is null => non-equal
-        if (lhs is null || rhs is null) return false;
-
-        // If same exact type => one call to method opEquals
-        if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
-            return lhs.opEquals(rhs);
-
-        // General case => symmetric calls to method opEquals
-        return lhs.opEquals(rhs) && rhs.opEquals(lhs);
-      }
-      else      // always compare with const(Object)
-      {
-        return _ObjectEq(lhs, rhs);
-      }
-    }
-}
-
-bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == interface) || is(Rhs == interface))
-{
-    // If aliased to the same object or both null => equal
-    static if (is(typeof(lhs is rhs)))
-    {
-        if (lhs is rhs) return true;
-    }
-
-    static if (is(Lhs == shared) || is(Rhs == shared))
-    {
-        // If either is shared, is defined only equality comparisons.
-        return false;
-    }
-    else
-    {
-        // If either is interface, downcast to Object and keep qualifier
-        static if (is(Lhs == interface))
-        {
-            static if (is(Lhs == shared))
-                auto lho = cast(shared const(Object))lhs;
-            else
-                auto lho = cast(const Object)lhs;
-            // If C++ interface, result is null
-        }
-        else
-            alias lhs lho;
-
-        static if (is(Rhs == interface))
-        {
-            static if (is(Rhs == shared))
-                auto rho = cast(shared const(Object))rhs;
-            else
-                auto rho = cast(const Object)rhs;
-        }
-        else
-            alias rhs rho;
-
-        return _ObjectEq(lho, rho);
-    }
-}
-
-deprecated bool opEquals(Lhs, Rhs)(Lhs lhs, Rhs rhs)
-    if (is(Lhs == typedef) || is(Rhs == typedef))
-{
-    static if (is(Lhs LhsB == typedef))
-    {
-        static if (is(Lhs == immutable))
-            alias immutable(LhsB) Lhs2;
-        else static if (is(Lhs == const))
-        {
-            static if (is(Lhs == shared))
-                alias const(shared(LhsB)) Lhs2;
-            else
-                alias const(LhsB) Lhs2;
-        }
-        else
-        {
-            static if (is(Lhs == shared))
-                alias shared(LhsB) Lhs2;
-            else
-                alias LhsB Lhs2;
-        }
-    }
-    else
-        alias Lhs Lhs2;
-
-    static if (is(Rhs RhsB == typedef))
-    {
-        static if (is(Rhs == immutable))
-            alias immutable(RhsB) Rhs2;
-        else static if (is(Rhs == const))
-        {
-            static if (is(Rhs == shared))
-                alias const(shared(RhsB)) Rhs2;
-            else
-                alias const(RhsB) Rhs2;
-        }
-        else
-        {
-            static if (is(Rhs == shared))
-                alias shared(RhsB) Rhs2;
-            else
-                alias RhsB Rhs2;
-        }
-    }
-    else
-        alias Rhs Rhs2;
-
-    return opEquals(cast(Lhs2)lhs, cast(Rhs2)rhs);
-}
-
-private bool _ObjectEq(const Object lhs, const Object rhs)
-{
     // If either is null => non-equal
     if (lhs is null || rhs is null) return false;
 
     // If same exact type => one call to method opEquals
     if (typeid(lhs) is typeid(rhs) || typeid(lhs).opEquals(typeid(rhs)))
         return lhs.opEquals(rhs);
+
+    // General case => symmetric calls to method opEquals
+    return lhs.opEquals(rhs) && rhs.opEquals(lhs);
+}
+
+bool opEquals(TypeInfo lhs, TypeInfo rhs)
+{
+    // If aliased to the same object or both null => equal
+    if (lhs is rhs) return true;
+
+    // If either is null => non-equal
+    if (lhs is null || rhs is null) return false;
+
+    // If same exact type => one call to method opEquals
+    if (typeid(lhs) == typeid(rhs)) return lhs.opEquals(rhs);
+
+    //printf("%.*s and %.*s, %d %d\n", lhs.toString(), rhs.toString(), lhs.opEquals(rhs), rhs.opEquals(lhs));
+
+    // Factor out top level const
+    // (This still isn't right, should follow same rules as compiler does for type equality.)
+    TypeInfo_Const c = cast(TypeInfo_Const) lhs;
+    if (c)
+        lhs = c.base;
+    c = cast(TypeInfo_Const) rhs;
+    if (c)
+        rhs = c.base;
 
     // General case => symmetric calls to method opEquals
     return lhs.opEquals(rhs) && rhs.opEquals(lhs);
@@ -328,6 +240,12 @@ struct OffsetTypeInfo
  */
 class TypeInfo
 {
+    override string toString() const
+    {
+        // hack to keep const qualifiers for TypeInfo member functions
+        return (cast()super).toString();
+    }
+
     override hash_t toHash() @trusted const
     {
         try
@@ -344,7 +262,7 @@ class TypeInfo
         }
     }
 
-    override int opCmp(const Object o) const
+    override int opCmp(Object o)
     {
         if (this is o)
             return 0;
@@ -354,7 +272,7 @@ class TypeInfo
         return dstrcmp(this.toString(), ti.toString());
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         /* TypeInfo instances are singletons, but duplicates can exist
          * across DLL's. Therefore, comparing for a name match is
@@ -431,7 +349,7 @@ class TypeInfo_Vector : TypeInfo
 {
     override string toString() const { return "__vector(" ~ base.toString() ~ ")"; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -463,7 +381,7 @@ class TypeInfo_Typedef : TypeInfo
 {
     override string toString() const { return name; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -505,7 +423,7 @@ class TypeInfo_Pointer : TypeInfo
 {
     override string toString() const { return m_next.toString() ~ "*"; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -555,7 +473,7 @@ class TypeInfo_Array : TypeInfo
 {
     override string toString() const { return value.toString() ~ "[]"; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -644,7 +562,7 @@ class TypeInfo_StaticArray : TypeInfo
         return cast(string)(value.toString() ~ "[" ~ tmp.intToString(len) ~ "]");
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -712,7 +630,7 @@ class TypeInfo_StaticArray : TypeInfo
             memcpy(p2 + o, tmp, sz);
         }
         if (pbuffer)
-            delete pbuffer;
+            GC.free(pbuffer);
     }
 
     override const(void)[] init() nothrow pure const { return value.init(); }
@@ -762,7 +680,7 @@ class TypeInfo_AssociativeArray : TypeInfo
         return cast(string)(next.toString() ~ "[" ~ key.toString() ~ "]");
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -805,7 +723,7 @@ class TypeInfo_Function : TypeInfo
         return cast(string)(next.toString() ~ "()");
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -831,7 +749,7 @@ class TypeInfo_Delegate : TypeInfo
         return cast(string)(next.toString() ~ " delegate()");
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -875,7 +793,7 @@ class TypeInfo_Class : TypeInfo
 {
     override string toString() const { return info.name; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -885,7 +803,7 @@ class TypeInfo_Class : TypeInfo
 
     override hash_t getHash(in void* p) @trusted const
     {
-        auto o = *cast(const Object*)p;
+        auto o = *cast(Object*)p;
         return o ? o.toHash() : 0;
     }
 
@@ -1002,7 +920,7 @@ class TypeInfo_Interface : TypeInfo
 {
     override string toString() const { return info.name; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -1066,7 +984,7 @@ class TypeInfo_Struct : TypeInfo
 {
     override string toString() const { return name; }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -1210,7 +1128,7 @@ class TypeInfo_Tuple : TypeInfo
         return s;
     }
 
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -1282,7 +1200,7 @@ class TypeInfo_Const : TypeInfo
     }
 
     //override equals_t opEquals(Object o) { return base.opEquals(o); }
-    override equals_t opEquals(const Object o) const
+    override equals_t opEquals(Object o)
     {
         if (this is o)
             return true;
@@ -1290,7 +1208,7 @@ class TypeInfo_Const : TypeInfo
         if (typeid(this) != typeid(o))
             return false;
 
-        auto t = cast(const TypeInfo_Const)o;
+        auto t = cast(TypeInfo_Const)o;
         return base.opEquals(t.base);
     }
 
@@ -1418,7 +1336,7 @@ class Throwable : Object
         //this.info = _d_traceContext();
     }
 
-    override string toString() const
+    override string toString()
     {
         char[20] tmp = void;
         char[]   buf;
@@ -2011,7 +1929,10 @@ extern (C) void _d_monitordelete(Object h, bool det)
         //       refcount and it may have multiple owners.
         /+
         if (det && (cast(void*) i) !is (cast(void*) h))
-            delete i;
+        {
+            destroy(i);
+            GC.free(cast(void*)i);
+        }
         +/
         setMonitor(h, null);
     }
@@ -2359,18 +2280,28 @@ void destroy(T)(T obj) if (is(T == class))
     rt_finalize(cast(void*)obj);
 }
 
+void destroy(T)(T obj) if (is(T == interface))
+{
+    destroy(cast(Object)obj);
+}
+
 version(unittest) unittest
 {
+   interface I { }
    {
-       class A { string s = "A"; this() {} }
-       auto a = new A;
-       a.s = "asd";
+       class A: I { string s = "A"; this() {} }
+       auto a = new A, b = new A;
+       a.s = b.s = "asd";
        destroy(a);
        assert(a.s == "A");
+
+       I i = b;
+       destroy(i);
+       assert(b.s == "A");
    }
    {
        static bool destroyed = false;
-       class B
+       class B: I
        {
            string s = "B";
            this() {}
@@ -2379,11 +2310,17 @@ version(unittest) unittest
                destroyed = true;
            }
        }
-       auto a = new B;
-       a.s = "asd";
+       auto a = new B, b = new B;
+       a.s = b.s = "asd";
        destroy(a);
        assert(destroyed);
        assert(a.s == "B");
+
+       destroyed = false;
+       I i = b;
+       destroy(i);
+       assert(destroyed);
+       assert(b.s == "B");
    }
    // this test is invalid now that the default ctor is not run after clearing
    version(none)
@@ -2468,7 +2405,7 @@ version(unittest) unittest
 }
 
 void destroy(T)(ref T obj)
-    if (!is(T == struct) && !is(T == class) && !_isStaticArray!T)
+    if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
 {
     obj = T.init;
 }

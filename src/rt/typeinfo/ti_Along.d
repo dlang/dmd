@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_Al : TypeInfo_Array
 {
-    override equals_t opEquals(const Object o) const { return TypeInfo.opEquals(o); }
+    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:

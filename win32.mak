@@ -6,9 +6,9 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -w -d -Isrc -Iimport -property
-UDFLAGS=-O -release -w -d -Isrc -Iimport -property
-DDOCFLAGS=-c -w -d -o- -Isrc -Iimport
+DFLAGS=-O -release -inline -w -Isrc -Iimport -property
+UDFLAGS=-O -release -w -Isrc -Iimport -property
+DDOCFLAGS=-c -w -o- -Isrc -Iimport
 
 CFLAGS=
 
@@ -26,11 +26,8 @@ MANIFEST= \
 	posix.mak \
 	win32.mak \
 	\
-	import\object.di \
-	\
-	import\core\thread.di \
-	\
 	src\object_.d \
+	src\object.di \
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
@@ -42,6 +39,7 @@ MANIFEST= \
 	src\core\runtime.d \
 	src\core\simd.d \
 	src\core\thread.d \
+	src\core\thread.di \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
@@ -76,8 +74,13 @@ MANIFEST= \
 	src\core\sync\rwmutex.d \
 	src\core\sync\semaphore.d \
 	\
+	src\core\sys\freebsd\dlfcn.d \
+	src\core\sys\freebsd\execinfo.d \
 	src\core\sys\freebsd\sys\event.d \
 	\
+	src\core\sys\linux\execinfo.d \
+	\
+	src\core\sys\osx\execinfo.d \
 	src\core\sys\osx\pthread.d \
 	src\core\sys\osx\mach\dyld.d \
 	src\core\sys\osx\mach\getsect.d \
@@ -380,6 +383,7 @@ DOCS=\
 	$(DOCDIR)\core_sync_semaphore.html
 
 IMPORTS=\
+	$(IMPDIR)\object.di \
 	$(IMPDIR)\core\sync\barrier.di \
 	$(IMPDIR)\core\sync\condition.di \
 	$(IMPDIR)\core\sync\config.di \
@@ -389,6 +393,7 @@ IMPORTS=\
 	$(IMPDIR)\core\sync\semaphore.di
 
 COPY=\
+	$(IMPDIR)\object.di \
 	$(IMPDIR)\core\atomic.d \
 	$(IMPDIR)\core\bitop.d \
 	$(IMPDIR)\core\cpuid.d \
@@ -398,6 +403,7 @@ COPY=\
 	$(IMPDIR)\core\memory.d \
 	$(IMPDIR)\core\runtime.d \
 	$(IMPDIR)\core\simd.d \
+	$(IMPDIR)\core\thread.di \
 	$(IMPDIR)\core\time.d \
 	$(IMPDIR)\core\vararg.d \
 	\
@@ -423,8 +429,14 @@ COPY=\
 	$(IMPDIR)\core\stdc\wchar_.d \
 	$(IMPDIR)\core\stdc\wctype.d \
 	\
+	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
+	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	\
+	$(IMPDIR)\core\sys\linux\execinfo.d \
+	\
+	$(IMPDIR)\core\sys\osx\execinfo.d \
+	$(IMPDIR)\core\sys\osx\pthread.d \
 	$(IMPDIR)\core\sys\osx\mach\kern_return.d \
 	$(IMPDIR)\core\sys\osx\mach\port.d \
 	$(IMPDIR)\core\sys\osx\mach\semaphore.d \
@@ -545,25 +557,25 @@ $(DOCDIR)\core_sync_semaphore.html : src\core\sync\semaphore.d
 import: $(IMPORTS)
 
 $(IMPDIR)\core\sync\barrier.di : src\core\sync\barrier.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\condition.di : src\core\sync\condition.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\config.di : src\core\sync\config.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\exception.di : src\core\sync\exception.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\mutex.di : src\core\sync\mutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\rwmutex.di : src\core\sync\rwmutex.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
-	$(DMD) -c -d -o- -Isrc -Iimport -Hf$@ $**
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $**
 
 ######################## Header .di file copy ##############################
 
@@ -575,9 +587,13 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\posix\netinet
 	mkdir $(IMPDIR)\core\sys\osx\mach
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
+	mkdir $(IMPDIR)\core\sys\linux
 	mkdir $(IMPDIR)\core\stdc
 
 copy: $(COPY)
+
+$(IMPDIR)\object.di : src\object.di
+	copy $** $@
 
 $(IMPDIR)\core\atomic.d : src\core\atomic.d
 	copy $** $@
@@ -604,6 +620,9 @@ $(IMPDIR)\core\runtime.d : src\core\runtime.d
 	copy $** $@
 
 $(IMPDIR)\core\simd.d : src\core\simd.d
+	copy $** $@
+
+$(IMPDIR)\core\thread.di : src\core\thread.di
 	copy $** $@
 
 $(IMPDIR)\core\time.d : src\core\time.d
@@ -675,7 +694,22 @@ $(IMPDIR)\core\stdc\wchar_.d : src\core\stdc\wchar_.d
 $(IMPDIR)\core\stdc\wctype.d : src\core\stdc\wctype.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\osx\pthread.d : src\core\sys\osx\pthread.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\mach\kern_return.d : src\core\sys\osx\mach\kern_return.d
@@ -847,14 +881,11 @@ zip: druntime.zip
 
 druntime.zip:
 	del druntime.zip
-	zip32 -u druntime $(MANIFEST) $(DOCS) $(IMPORTS) src\rt\minit.obj
+	zip32 -ur druntime $(MANIFEST) $(DOCS) $(IMPDIR) src\rt\minit.obj
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
 
 clean:
-	del $(DOCS) $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
-	del $(IMPDIR)\core\atomic.d $(IMPDIR)\core\bitop.d $(IMPDIR)\core\cpuid.d $(IMPDIR)\core\demangle.d $(IMPDIR)\core\exception.d $(IMPDIR)\core\math.d $(IMPDIR)\core\memory.d $(IMPDIR)\core\runtime.d $(IMPDIR)\core\simd.d $(IMPDIR)\core\time.d $(IMPDIR)\core\vararg.d
-	rmdir $(IMPDIR)\core\stdc /S /Q
-	rmdir $(IMPDIR)\core\sync /S /Q
-	rmdir $(IMPDIR)\core\sys /S /Q
+	del $(DRUNTIME) $(OBJS_TO_DELETE) $(GCSTUB)
+	rmdir /S /Q $(DOCDIR) $(IMPDIR)

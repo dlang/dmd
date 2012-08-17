@@ -348,7 +348,7 @@ class Semaphore
         }
         else version( OSX )
         {
-            return wait( 0 );
+            return wait( dur!"hnsecs"(0) );
         }
         else version( Posix )
         {
@@ -436,7 +436,7 @@ version( unittest )
                 semaphore.notify();
                 Thread.yield();
             }
-            Thread.sleep( 10_000_000 ); // 1s
+            Thread.sleep( dur!"seconds"(1) );
             synchronized( synProduced )
             {
                 allProduced = true;

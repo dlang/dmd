@@ -20,6 +20,7 @@ private
     debug(adi) import core.stdc.stdio;
     import core.stdc.string;
     import core.stdc.stdlib;
+    import core.memory;
     import rt.util.utf;
 
     enum BlkAttr : uint
@@ -324,7 +325,7 @@ extern (C) char[] _adSortChar(char[] a)
             a[i .. i + t.length] = t[];
             i += t.length;
         }
-        delete da;
+        GC.free(da.ptr);
     }
     return a;
 }
@@ -346,7 +347,7 @@ extern (C) wchar[] _adSortWchar(wchar[] a)
             a[i .. i + t.length] = t[];
             i += t.length;
         }
-        delete da;
+        GC.free(da.ptr);
     }
     return a;
 }

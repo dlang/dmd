@@ -11,6 +11,16 @@ $(LI clear has been renamed to destroy. clear remains as an alias to destroy
      but has been scheduled for deprecation. Please use destroy instead.)
 )
 
+$(RUNTIMEBUGSFIXED
+    $(LI $(BUGZILLA 5206): stat_t is not the same as struct stat)
+    $(LI $(BUGZILLA 5582): Improvements to the DLL startup code)
+    $(LI $(BUGZILLA 5930): cas doesn't work when used in code compiled with -D)
+    $(LI $(BUGZILLA 6631): core.time module constructor runs AFTER main program's module constructor)
+    $(LI $(BUGZILLA 7704): RangeError when using key optainey by AA byKey() iteration)
+    $(LI $(BUGZILLA 7923): Please remove 'deprecated' from setAssertHandler())
+    $(LI $(BUGZILLA 8274): thread_attachThis only works for main thread)
+)
+
 $(VERSION 059, mmm dd, 2012, =================================================,
 
     $(RUNTIMEBUGSFIXED

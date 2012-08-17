@@ -38,30 +38,15 @@ private
 
     extern (C) string[] rt_args();
 
+    // backtrace
     version( linux )
-    {
-        import core.demangle;
-        import core.stdc.stdlib : free;
-        import core.stdc.string : strlen, memchr;
-        extern (C) int    backtrace(void**, int);
-        extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**, int, int);
-        import core.sys.posix.signal; // segv handler
-    }
+        import core.sys.linux.execinfo;
     else version( OSX )
-    {
-        import core.demangle;
-        import core.stdc.stdlib : free;
-        import core.stdc.string : strlen;
-        extern (C) int    backtrace(void**, int);
-        extern (C) char** backtrace_symbols(void**, int);
-        extern (C) void   backtrace_symbols_fd(void**, int, int);
-        import core.sys.posix.signal; // segv handler
-    }
+        import core.sys.osx.execinfo;
+    else version( FreeBSD )
+        import core.sys.freebsd.execinfo;
     else version( Windows )
-    {
         import core.sys.windows.stacktrace;
-    }
 
     // For runModuleUnitTests error reporting.
     version( Windows )
@@ -287,14 +272,16 @@ extern (C) bool runModuleUnitTests()
 {
     static if( __traits( compiles, backtrace ) )
     {
+        import core.sys.posix.signal; // segv handler
+
         static extern (C) void unittestSegvHandler( int signum, siginfo_t* info, void* ptr )
         {
             static enum MAXFRAMES = 128;
             void*[MAXFRAMES]  callstack;
             int               numframes;
 
-            numframes = backtrace( callstack, MAXFRAMES );
-            backtrace_symbols_fd( callstack, numframes, 2 );
+            numframes = backtrace( callstack.ptr, MAXFRAMES );
+            backtrace_symbols_fd( callstack.ptr, numframes, 2 );
         }
 
         sigaction_t action = void;
@@ -375,6 +362,10 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
     static if( __traits( compiles, backtrace ) )
     {
+        import core.demangle;
+        import core.stdc.stdlib : free;
+        import core.stdc.string : strlen, memchr, memmove;
+
         class DefaultTraceInfo : Throwable.TraceInfo
         {
             this()
@@ -412,7 +403,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                         }
                     }
                 }
-                framelist = backtrace_symbols( callstack, numframes );
+                framelist = backtrace_symbols( callstack.ptr, numframes );
             }
 
             ~this()
@@ -477,6 +468,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         private:
             const(char)[] fixline( const(char)[] buf, ref char[4096] fixbuf ) const
             {
+                size_t symBeg, symEnd;
                 version( OSX )
                 {
                     // format is:
@@ -490,18 +482,13 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
                                 i++;
                             if( 3 > n )
                                 continue;
-                            auto bsym = i;
+                            symBeg = i;
                             while( i < buf.length && ' ' != buf[i] )
                                 i++;
-                            auto esym = i;
-                            auto tail = buf.length - esym;
-                            fixbuf[0 .. bsym] = buf[0 .. bsym];
-                            auto m = demangle( buf[bsym .. esym], fixbuf[bsym .. $] );
-                            fixbuf[bsym + m.length .. bsym + m.length + tail] = buf[esym .. $];
-                            return fixbuf[0 .. bsym + m.length + tail];
+                            symEnd = i;
+                            break;
                         }
                     }
-                    return buf;
                 }
                 else version( linux )
                 {
@@ -516,19 +503,58 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
                     if( bptr++ && eptr )
                     {
-                        size_t bsym = bptr - buf.ptr;
-                        size_t esym = eptr - buf.ptr;
-                        auto tail = buf.length - esym;
-                        fixbuf[0 .. bsym] = buf[0 .. bsym];
-                        auto m = demangle( buf[bsym .. esym], fixbuf[bsym .. $] );
-                        fixbuf[bsym + m.length .. bsym + m.length + tail] = buf[esym .. $];
-                        return fixbuf[0 .. bsym + m.length + tail];
+                        symBeg = bptr - buf.ptr;
+                        symEnd = eptr - buf.ptr;
                     }
-                    return buf;
+                }
+                else version( FreeBSD )
+                {
+                    // format is: 0x00000000 <_D6module4funcAFZv+0x78> at module
+                    auto bptr = cast(char*) memchr( buf.ptr, '<', buf.length );
+                    auto eptr = cast(char*) memchr( buf.ptr, '+', buf.length );
+
+                    if( bptr++ && eptr )
+                    {
+                        symBeg = bptr - buf.ptr;
+                        symEnd = eptr - buf.ptr;
+                    }
                 }
                 else
                 {
-                    return buf;
+                    // fallthrough
+                }
+
+                assert(symBeg < buf.length && symEnd < buf.length);
+                assert(symBeg < symEnd);
+
+                enum min = (size_t a, size_t b) => a <= b ? a : b;
+                if (symBeg == symEnd || symBeg >= fixbuf.length)
+                {
+                    immutable len = min(buf.length, fixbuf.length);
+                    fixbuf[0 .. len] = buf[0 .. len];
+                    return fixbuf[0 .. len];
+                }
+                else
+                {
+                    fixbuf[0 .. symBeg] = buf[0 .. symBeg];
+
+                    auto sym = demangle(buf[symBeg .. symEnd], fixbuf[symBeg .. $]);
+
+                    if (sym.ptr !is fixbuf.ptr + symBeg)
+                    {
+                        // demangle reallocated the buffer, copy the symbol to fixbuf
+                        immutable len = min(fixbuf.length - symBeg, sym.length);
+                        memmove(fixbuf.ptr + symBeg, sym.ptr, len);
+                        if (symBeg + len == fixbuf.length)
+                            return fixbuf[];
+                    }
+
+                    immutable pos = symBeg + sym.length;
+                    assert(pos < fixbuf.length);
+                    immutable tail = buf.length - symEnd;
+                    immutable len = min(fixbuf.length - pos, tail);
+                    fixbuf[pos .. pos + len] = buf[symEnd .. symEnd + len];
+                    return fixbuf[0 .. pos + len];
                 }
             }
         }
