@@ -125,28 +125,26 @@ extern (C) void* rt_loadLibrary(in char[] name)
         if (name.length == 0) return null;
         // Load a DLL at runtime
         enum CP_UTF8 = 65001;
-        wchar_t* tempW;
-        auto tempWbufofslen = MultiByteToWideChar(CP_UTF8, 0,
-            name.ptr, name.length, null, 0);
-        if (!tempWbufofslen) return null;
-        enum wcharsize       = typeof(*tempW).sizeof;
-        enum ofssize         = 4 * wcharsize;
-        auto tempWbufofssize = (tempWbufofslen+1) * wcharsize;
-        auto tempWbufsize    = tempWbufofssize + ofssize;
+        auto len = MultiByteToWideChar(
+            CP_UTF8, 0, name.ptr, name.length, null, 0);
+        if (len == 0)
+            return null;
         
-        tempW = cast(typeof(tempW))alloca(tempWbufsize);
-        if (!tempW) return null;
-        tempW[0..4] = r"\\?\";
-        auto tempWofs = cast(typeof(tempW))((cast(ubyte*)tempW)+ofssize);
+        auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
+        if (buf is null)
+            return null;
+        scope (exit)
+            free(buf);
         
-        auto tempWofslen = MultiByteToWideChar(CP_UTF8, 0,
-            name.ptr, name.length, tempWofs, tempWbufofslen);
-        if (tempWofslen == 0 && tempWbufofslen != tempWofslen) return null;
+        len = MultiByteToWideChar(
+            CP_UTF8, 0, name.ptr, name.length, buf, len);
+        if (len == 0)
+            return null;
         
-        tempWofs[tempWofslen] = '\0';
+        buf[len] = '\0';
         
         // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
-        auto mod = LoadLibraryW(tempW);
+        auto mod = LoadLibraryW(buf);
         if (mod is null)
             return mod;
         gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
