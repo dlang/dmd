@@ -24,7 +24,7 @@ struct ModuleDeclaration;
 struct Macro;
 struct Escape;
 struct VarDeclaration;
-struct Library;
+class Library;
 
 // Back end
 #ifdef IN_GCC

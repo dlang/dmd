@@ -228,8 +228,7 @@ void OmToHeader(Header *h, ObjModule *om)
      * write into the next field, which we will promptly overwrite
      * anyway. (So make sure to write the fields in ascending order.)
      */
-
-    len = sprintf(h->file_time, "%lu", om->file_time);
+    len = sprintf(h->file_time, "%llu", (longlong)om->file_time);
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
@@ -572,7 +571,9 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     {   /* Mock things up for the object module file that never was
          * actually written out.
          */
-        time(&om->file_time);
+        time_t file_time = 0;
+        time(&file_time);
+        om->file_time = (long)file_time;
         om->user_id = 0;                // meaningless on Windows
         om->group_id = 0;               // meaningless on Windows
         om->file_mode = 0100644;
@@ -677,7 +678,9 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     om.length = 4 + objsymbols.dim * 4 + slength;
     om.offset = 8;
     om.name = (char*)"";
-    ::time(&om.file_time);
+    time_t file_time = 0;
+    ::time(&file_time);
+    om.file_time = (long)file_time;
     om.user_id = 0;
     om.group_id = 0;
     om.file_mode = 0;
