@@ -20,3 +20,5 @@ src/dmd.exe
 src/impcnvgen.exe
 *.map
 .DS_Store
+trace.def
+trace.log
