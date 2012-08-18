@@ -6089,21 +6089,30 @@ Expression *DotVarExp::semantic(Scope *sc)
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
             {   Object *o = (*tup->objects)[i];
-                if (o->dyncast() != DYNCAST_EXPRESSION)
+                Expression *e;
+                if (o->dyncast() == DYNCAST_EXPRESSION)
+                {
+                    e = (Expression *)o;
+                    if (e->op == TOKdsymbol)
+                    {
+                        DsymbolExp *ve = (DsymbolExp *)e;
+
+                        e = new DotVarExp(loc, e1, ve->s->isDeclaration());
+                    }
+                }
+                else if (o->dyncast() == DYNCAST_DSYMBOL)
+                {
+                    e = new DsymbolExp(loc, (Dsymbol *)o);
+                }
+                else if (o->dyncast() == DYNCAST_TYPE)
+                {
+                    e = new TypeExp(loc, (Type *)o);
+                }
+                else
                 {
                     error("%s is not an expression", o->toChars());
                     goto Lerr;
                 }
-
-                Expression *e = (Expression *)o;
-                if (e->op != TOKdsymbol)
-                {   error("%s is not a member", e->toChars());
-                    goto Lerr;
-                }
-
-                DsymbolExp *ve = (DsymbolExp *)e;
-
-                e = new DotVarExp(loc, e1, ve->s->isDeclaration());
                 exps->push(e);
             }
             Expression *e = new TupleExp(loc, exps);
