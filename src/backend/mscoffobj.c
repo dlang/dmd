@@ -2110,12 +2110,12 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
-#if 1
+#if 0
     dbg_printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
     printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
-    symbol_print(s);
+    //symbol_print(s);
 #endif
     assert(seg > 0);
     if (s->Sclass != SClocstat && !s->Sxtrnnum)
