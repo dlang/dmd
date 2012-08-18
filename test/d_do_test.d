@@ -220,7 +220,7 @@ void execute(ref File f, string command, bool expectpass)
     f.writeln(command);
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
-    f.write(readText(filename));
+    f.rawWrite(readText(filename));
 
     if (WIFSIGNALED(rc))
     {
