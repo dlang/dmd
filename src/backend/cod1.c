@@ -1332,8 +1332,21 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                 pcs->Iflags = CFgs;
             }
             break;
-#else
-            pcs->Iflags |= CFfs;                // add FS: override
+#elif TARGET_WINDOS
+            if (I64)
+            {   // GS:[88]
+                pcs->Irm = modregrm(0, 0, 4);
+                pcs->Isib = modregrm(0, 4, 5);  // don't use [RIP] addressing
+                pcs->IFL1 = FLconst;
+                pcs->IEV1.Vuns = 88;
+                pcs->Iflags = CFgs;
+                pcs->Irex |= REX_W;
+                break;
+            }
+            else
+            {
+                pcs->Iflags |= CFfs;    // add FS: override
+            }
 #endif
         }
 #if TARGET_SEGMENTED

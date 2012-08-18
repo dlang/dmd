@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -1505,14 +1505,28 @@ elem * el_var(symbol *s)
         e->Eoper = OPind;
         e->E1 = el_bin(OPadd,e1->Ety,e2,e1);
         e->E2 = NULL;
-#else
+#elif TARGET_WINDOS
         /*
+            Win32:
                 mov     EAX,FS:__tls_array
                 mov     ECX,__tls_index
                 mov     EAX,[ECX*4][EAX]
                 inc     dword ptr _t[EAX]
 
                 e => *(&s + *(FS:_tls_array + _tls_index * 4))
+
+                If this is an executable app, not a dll, _tls_index
+                can be assumed to be 0.
+
+            Win64:
+
+                mov     EAX,&s
+                mov     RDX,GS:__tls_array
+                mov     ECX,_tls_index[RIP]
+                mov     RCX,[RCX*8][RDX]
+                mov     EAX,[RCX][RAX]
+
+                e => *(&s + *(GS:[80] + _tls_index * 8))
 
                 If this is an executable app, not a dll, _tls_index
                 can be assumed to be 0.
@@ -1531,7 +1545,7 @@ elem * el_var(symbol *s)
         }
         else
         {
-            e2 = el_bin(OPmul,TYint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_long(TYint,4));
+            e2 = el_bin(OPmul,TYint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_long(TYint,REGSIZE));
             ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
             e2 = el_bin(OPadd,ea->Ety,ea,e2);
         }
