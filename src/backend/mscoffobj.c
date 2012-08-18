@@ -601,9 +601,10 @@ void build_syment_table()
         const char *name = s->Sident;
         size_t len = strlen(name);
         if (len > 8)
-        {   // Use /nnnn form
+        {   // Use offset into string table
             IDXSTR idx = MsCoffObj::addstr(string_table, name);
-            sprintf(sym.n_name, "/%d", idx);
+            sym.n_zeroes = 0;
+            sym.n_offset = idx;
         }
         else
         {   memcpy(sym.n_name, name, len);
