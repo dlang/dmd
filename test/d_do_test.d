@@ -8,6 +8,7 @@ import std.file;
 import std.format;
 import std.process;
 import std.random;
+import std.regex;
 import std.stdio;
 import std.string;
 import core.sys.posix.sys.wait;
@@ -49,6 +50,7 @@ struct TestArgs
     string   executeArgs;
     string[] sources;
     string   permuteArgs;
+    string   compileOutput;
     string   postScript;
     string   requiredArgs;
     // reason for disabling the test (if empty, the test is not disabled)
@@ -94,6 +96,35 @@ bool findTestParameter(string file, string token, ref string result)
     if (findTestParameter(file[tokenStart+lineEnd..$], token, result2))
         result ~= " " ~ result2;
 
+    return true;
+}
+
+bool findOutputParameter(string file, string token, ref string result, string sep)
+{
+    auto istart = std.string.indexOf(file, token);
+    if (istart == -1)
+        return false;
+
+    // skips the :, if present
+    if (file[istart] == ':') ++istart;
+
+    enum embed_sep = "---";
+
+    auto n = std.string.indexOf(file[istart .. $], embed_sep);
+    enforce(n != -1);
+    istart += n + embed_sep.length;
+    while (file[0] == '-') ++istart;
+
+    auto iend = std.string.indexOf(file[istart .. $], embed_sep);
+    enforce(iend != -1);
+    iend += istart;
+
+    auto str = file[istart .. iend];
+    str = std.string.strip(str);
+    str = std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
+    str = std.regex.replace(str, regex(`(?<=[^/]*)/(?=[^()]*\(\d+\):)`, "g"), sep);
+
+    result = str ? str : ""; // keep non-null
     return true;
 }
 
@@ -148,6 +179,8 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     findTestParameter(file, "DISABLED", testArgs.disabled_reason);
 
+    findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
 }
@@ -183,7 +216,7 @@ string genTempFilename()
 {
     auto a = appender!string();
     foreach (ref e; 0 .. 8)
-    {  
+    {
         formattedWrite(a, "%x", rndGen.front);
         rndGen.popFront();
     }
@@ -212,7 +245,7 @@ version(Windows)
     }
 }
 
-void execute(ref File f, string command, bool expectpass)
+string execute(ref File f, string command, bool expectpass)
 {
     auto filename = genTempFilename();
     scope(exit) if (std.file.exists(filename)) std.file.remove(filename);
@@ -220,7 +253,8 @@ void execute(ref File f, string command, bool expectpass)
     f.writeln(command);
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
-    f.rawWrite(readText(filename));
+    string output = readText(filename);
+    f.rawWrite(output);
 
     if (WIFSIGNALED(rc))
     {
@@ -235,6 +269,8 @@ void execute(ref File f, string command, bool expectpass)
         else
             enforce(1 == value, "expected rc == 1, but exited with rc == " ~ to!string(value));
     }
+
+    return output;
 }
 
 int main(string[] args)
@@ -303,6 +339,7 @@ int main(string[] args)
 
         try
         {
+            string compile_output;
             if (!testArgs.compileSeparately)
             {
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
@@ -317,7 +354,8 @@ int main(string[] args)
                         (testArgs.mode == TestMode.RUN ? "" : "-c "),
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
-                execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+
+                compile_output = execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
             }
             else
             {
@@ -329,7 +367,7 @@ int main(string[] args)
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
-                    execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output ~= execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -343,6 +381,16 @@ int main(string[] args)
 
                     execute(f, command, true);
                 }
+            }
+
+            if (testArgs.compileOutput !is null)
+            {
+                compile_output = std.string.strip(compile_output);
+                compile_output = std.regex.replace(compile_output, regex(`\r\n|\r|\n`, "g"), "\n");
+                compile_output = std.regex.replace(compile_output, regex(`DMD v2\.[0-9]+ DEBUG\n`, ""), "");
+                compile_output = std.regex.replace(compile_output, regex(`\nDMD v2\.[0-9]+ DEBUG`, ""), "");
+                enforce(compile_output == testArgs.compileOutput,
+                        "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
             }
 
             if (testArgs.mode == TestMode.RUN)
