@@ -6088,23 +6088,23 @@ Expression *DotVarExp::semantic(Scope *sc)
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
-            {   Object *o = (Object *)tup->objects->data[i];
+            {   Object *o = (*tup->objects)[i];
                 if (o->dyncast() != DYNCAST_EXPRESSION)
                 {
                     error("%s is not an expression", o->toChars());
+                    goto Lerr;
                 }
-                else
-                {
-                    Expression *e = (Expression *)o;
-                    if (e->op != TOKdsymbol)
-                        error("%s is not a member", e->toChars());
-                    else
-                    {   DsymbolExp *ve = (DsymbolExp *)e;
 
-                        e = new DotVarExp(loc, e1, ve->s->isDeclaration());
-                        exps->push(e);
-                    }
+                Expression *e = (Expression *)o;
+                if (e->op != TOKdsymbol)
+                {   error("%s is not a member", e->toChars());
+                    goto Lerr;
                 }
+
+                DsymbolExp *ve = (DsymbolExp *)e;
+
+                e = new DotVarExp(loc, e1, ve->s->isDeclaration());
+                exps->push(e);
             }
             Expression *e = new TupleExp(loc, exps);
             e = e->semantic(sc);
@@ -6148,6 +6148,9 @@ Expression *DotVarExp::semantic(Scope *sc)
     }
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 
