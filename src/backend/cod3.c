@@ -5619,8 +5619,10 @@ unsigned codout(code *c)
                                     else
                                         val = -8;
                                 }
-#if TARGET_OSX
-                                // Mach-O linkage already takes the 4 byte size into account
+#if TARGET_OSX || TARGET_WINDOS
+                                /* Mach-O and Win64 linkage already take the 4 byte size
+                                 * into account
+        `                        */
                                 val += 4;
 #endif
                             }

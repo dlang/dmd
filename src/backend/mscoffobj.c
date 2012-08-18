@@ -2110,7 +2110,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
-#if 0
+#if 1
     dbg_printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
     printf("retsize = %d\n", retsize);
@@ -2230,7 +2230,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
         buf->setsize(offset);
-        //printf("offset = x%llx, val = x%llx\n", offset, val);
+        printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);
         else

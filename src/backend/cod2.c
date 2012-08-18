@@ -4023,6 +4023,21 @@ code *getoffset(elem *e,unsigned reg)
         }
         break;
     }
+#elif TARGET_WINDOS
+        if (I64)
+        {
+            assert(reg != STACK);
+            cs.IEVsym2 = e->EV.sp.Vsym;
+            cs.IEVoffset2 = e->EV.sp.Voffset;
+            cs.Iop = 0xB8 + (reg & 7);      // MOV Ereg,offset s
+            if (reg & 8)
+                cs.Irex |= REX_B;
+            cs.Iflags = CFoff;              // want offset only
+            cs.IFL2 = fl;
+            c = gen(NULL,&cs);
+            break;
+        }
+        goto L4;
 #else
         goto L4;
 #endif
