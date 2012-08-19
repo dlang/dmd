@@ -115,6 +115,15 @@ struct CacheInfo
 }
 
 public:
+    /// $(RED Scheduled for deprecation. Please use $(D dataCaches) instead.)
+    // Note: When we deprecate it, we simply make it private.
+    __gshared CacheInfo[5] datacache;
+
+    @property {
+    /// The data caches. If there are fewer than 5 physical caches levels,
+    /// the remaining levels are set to size_t.max (== entire memory space)
+    const(CacheInfo)[5] dataCaches() { return datacache; }
+
     /// Returns vendor string, for display purposes only.
     /// Do NOT use this to determine features!
     /// Note that some CPUs have programmable vendorIDs.
@@ -122,10 +131,6 @@ public:
     /// Returns processor string, for display purposes only
     string processor()  {return processorName;}
 
-    /// The data caches. If there are fewer than 5 physical caches levels,
-    /// the remaining levels are set to size_t.max (== entire memory space)
-    __gshared CacheInfo[5] datacache;
-    @property {
     /// Does it have an x87 FPU on-chip?
     bool x87onChip()    {return (features&FPU_BIT)!=0;}
     /// Is MMX supported?
@@ -254,10 +259,15 @@ public:
 __gshared:
     // All these values are set only once, and never subsequently modified.
 public:
+    /// $(RED Warning: This field will be turned into a property in a future release.)
+    ///
     /// Processor type (vendor-dependent).
     /// This should be visible ONLY for display purposes.
     uint stepping, model, family;
+    /// $(RED This field has been deprecated. Please use $(D cacheLevels) instead.)
     uint numCacheLevels = 1;
+    /// The number of cache levels in the CPU.
+    @property uint cacheLevels() { return numCacheLevels; }
 private:
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
