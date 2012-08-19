@@ -61,6 +61,9 @@
  */
 module core.cpuid;
 
+@trusted:
+nothrow:
+
 // If optimizing for a particular processor, it is generally better
 // to identify based on features rather than model. NOTE: Normally
 // it's only worthwhile to optimise for the latest Intel and AMD CPU,
