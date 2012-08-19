@@ -813,6 +813,7 @@ bool hasCPUID()
     }
 }
 
+/*
 // TODO: Implement this function with OS support
 void cpuidPPC()
 {
@@ -850,7 +851,7 @@ void cpuidSparc()
     // UltraSparcIV+ : L1 = 64,  4way. L2 = 2048, L3=32*1024.
     // Sparc64V      : L1 = 128, 2way. L2 = 4096 4way.
 }
-
+*/
 
 shared static this()
 {
