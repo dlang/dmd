@@ -216,20 +216,25 @@ public:
     uint coresPerCPU()      {return maxCores;}
 
     /// Optimisation hints for assembly code.
+    ///
     /// For forward compatibility, the CPU is compared against different
-    /// microarchitectures. For 32-bit X86, comparisons are made against
+    /// microarchitectures. For 32-bit x86, comparisons are made against
     /// the Intel PPro/PII/PIII/PM family.
     ///
     /// The major 32-bit x86 microarchitecture 'dynasties' have been:
-    /// (1) Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2).
-    /// (2) AMD Athlon (K7, K8, K10).
-    /// (3) Intel NetBurst (Pentium 4, Pentium D).
-    /// (4) In-order Pentium (Pentium1, PMMX, Atom)
+    ///
+    /// * Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2).
+    /// * AMD Athlon (K7, K8, K10).
+    /// * Intel NetBurst (Pentium 4, Pentium D).
+    /// * In-order Pentium (Pentium1, PMMX, Atom)
+    ///
     /// Other early CPUs (Nx586, AMD K5, K6, Centaur C3, Transmeta,
-    ///   Cyrix, Rise) were mostly in-order.
+    /// Cyrix, Rise) were mostly in-order.
+    ///
     /// Some new processors do not fit into the existing categories:
-    /// Intel Atom 230/330 (family 6, model 0x1C) is an in-order core.
-    /// Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core.
+    ///
+    /// * Intel Atom 230/330 (family 6, model 0x1C) is an in-order core.
+    /// * Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core.
     ///
     /// Within each dynasty, the optimisation techniques are largely
     /// identical (eg, use instruction pairing for group 4). Major
