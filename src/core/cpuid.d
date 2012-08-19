@@ -161,6 +161,12 @@ public:
     bool fma()          {return avx() && (miscfeatures&FMA_BIT)!=0;}
     /// Is FP16C supported
     bool fp16c()        {return avx() && (miscfeatures&FP16C_BIT)!=0;}
+    /// Is AVX2 supported
+    bool avx2()         {return avx() && (extfeatures & AVX2_BIT) != 0;}
+    /// Is HLE (hardware lock elision) supported
+    bool hle()          {return (extfeatures & HLE_BIT) != 0;}
+    /// Is RTM (restricted transactional memory) supported
+    bool rtm()          {return (extfeatures & RTM_BIT) != 0;}
     /// Is AMD 3DNOW supported?
     bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
     /// Is AMD 3DNOW Ext supported?
@@ -252,6 +258,7 @@ private:
     char [48] processorNameBuffer;
     uint features = 0;     // mmx, sse, sse2, hyperthreading, etc
     uint miscfeatures = 0; // sse3, etc.
+    uint extfeatures = 0;  // HLE, AVX2, RTM, etc.
     uint amdfeatures = 0;  // 3DNow!, mmxext, etc
     uint amdmiscfeatures = 0; // sse4a, sse5, svm, etc
     ulong xfeatures = 0;   // XFEATURES_ENABLED_MASK
@@ -293,6 +300,19 @@ private:
         AVX_BIT = 1<<28,
         FP16C_BIT = 1<<29,
         RDRAND_BIT = 1<<30,
+    }
+    // Feature flags for cpuid.{EAX = 7, ECX = 0}.EBX.
+    enum : uint
+    {
+        FSGSBASE_BIT = 1 << 1,
+        BMI1_BIT = 1 << 4,
+        HLE_BIT = 1 << 5,
+        AVX2_BIT = 1 << 6,
+        SMEP_BIT = 1 << 8,
+        BMI2_BIT = 1 << 9,
+        ERMS_BIT = 1 << 10,
+        INVPCID_BIT = 1 << 11,
+        RTM_BIT = 1 << 12,
     }
     // feature flags XFEATURES_ENABLED_MASK
     enum : ulong
@@ -551,7 +571,7 @@ void getCpuInfo0B()
 void cpuidX86()
 {
     char * venptr = vendorID.ptr;
-    uint a, b, c, d, a2;
+    uint a, b, c, d, a2, ext;
     version(D_InlineAsm_X86)
     {
         asm {
@@ -598,6 +618,16 @@ void cpuidX86()
     }
     features = d;
     miscfeatures = c;
+
+    asm
+    {
+        mov EAX, 7; // Structured extended feature leaf.
+        mov ECX, 0; // Main leaf.
+        cpuid;
+        mov ext, EBX; // HLE, AVX2, RTM, etc.
+    }
+
+    extfeatures = ext;
 
     if (miscfeatures & OSXSAVE_BIT)
     {
