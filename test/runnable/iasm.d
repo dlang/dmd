@@ -4646,6 +4646,47 @@ L1:     pop     EAX;
     }
 }
 
+/* ======================= TSX ======================= */
+
+void test60()
+{
+    int x;
+    ubyte* p;
+
+    static ubyte data[] =
+    [
+        0xf2, // xacquire
+        0xf3, // xrelease
+        0x0f, 0xc8, // xbegin foo
+        0xc6, 0x00, 0x7b, // xabort 123
+        0x0f, 0x01, 0xd5, // xend
+        0x0f, 0x01, 0xd6, // xtest
+    ];
+
+    asm
+    {
+        call end;
+
+    foo:
+
+        xacquire;
+        xrelease;
+        xbegin foo;
+        xabort 123;
+        xend;
+        xtest;
+
+    end:
+
+        pop EAX;
+        mov p[EBP], EAX;
+    }
+
+    foreach (i, b; data)
+	assert(p[i] == b);
+}
+
+
 /****************************************************/
 
 int main()
@@ -4715,6 +4756,7 @@ int main()
     test57();
     test58();
     test59();
+    test60();
   }
     printf("Success\n");
     return 0;
