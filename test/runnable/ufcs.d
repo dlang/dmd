@@ -333,6 +333,7 @@ void α8503(int i) {}
 
 void test8503()
 {
+    0.α8503();  // Error
     1.α8503();  // Error
 }
 
