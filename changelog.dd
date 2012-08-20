@@ -1,72 +1,129 @@
 $(VERSION 060, mmm dd, 2012, =================================================,
 
     $(WHATSNEW
-$(LI core.time: Non-generic aliases for dur have been added (i.e seconds,
-minutes, etc.))
-$(LI For functions which have a version which takes a core.time.Duration
-     and another version which takes an integral value, the version which
-     takes an integral value has now been deprecated.)
-     )
-$(LI clear has been renamed to destroy. clear remains as an alias to destroy
-     but has been scheduled for deprecation. Please use destroy instead.)
-)
+        $(LI core.time: Non-generic aliases for dur have been added (i.e seconds(),
+        minutes(), etc.))
+        $(LI For functions which have a version which takes a core.time.Duration
+        and another version which takes an integral value, the version which
+        takes an integral value has now been deprecated.)
+        $(LI clear() has been renamed to destroy(). clear() remains as an alias to
+        destroy() but has been scheduled for deprecation. Please use destroy()
+        instead.)
+        $(LI Exception backtracing has been implemented for FreeBSD.)
+        $(LI A FreeBSD-specific module (core.sys.freebsd.dlfcn) has been added for
+        the dlfcn.h C header for that platform.)
+        $(LI Modules for the execinfo.h C header have been added for FreeBSD, OS X,
+        and Linux (core.sys.freebsd.execinfo, core.sys.osx.execinfo, and
+        core.sys.linux.execinfo, respectively).)
+        $(LI Several core.stdc modules have been annotated with safety attributes.)
+        $(LI Most functions in core.bitop have been marked @safe pure nothrow.)
+        $(LI thread_stackBottom() and thread_stackTop() now require the current
+        thread to be attached to the runtime (with thread_attachThis()).)
+        $(LI A new atomicFence() instruction has been added to core.atomic.)
+        $(LI An experimental critical regions API has been added. See the functions
+        thread_enterCriticalRegion(), thread_exitCriticalRegion(), and
+        thread_inCriticalRegion() in core.thread. This API is not set in stone, so
+        the documentation is not yet processed by Ddoc and the interface may
+        change over time.)
+        $(LI The capacity() and reserve() functions have been marked pure nothrow.)
+        $(LI The thread_needLock() function has been removed. It was largely
+        considered useless since single core systems are very rare today (and it
+        didn't result in significant enough optimization anyway).)
+        $(LI The thread_scanAll() function now scans the calling thread's stack
+        and registers in addition to other threads'.)
+        $(LI All of core.sys.posix.pthread has been marked nothrow.)
+        $(LI A thread_setThis() function has been added to core.thread. This is a
+        low-level function primarily useful when side-stepping DRuntime's threading
+        infrastructure.)
+        $(LI Some core.stdc.stdio functions have been marked pure.)
+        $(LI Several core.memory functions have been marked pure and nothrow.)
+        $(LI core.stdc.stdarg now supports vector types.)
+        $(LI All core.sys.windows.windows functions are now nothrow. Some have been
+        marked pure as well.)
+        $(LI SYSTEM_INFO, GetSystemInfo(), and GetNativeSystemInfo() have been
+        added to core.sys.windows.windows.)
+        $(LI thread_attachThis() and thread_detachThis() are now more forgiving
+        about attaching already-attached threads and detaching already-detached
+        threads.)
+        $(LI Thread.yield() now uses SwitchToThread() on Windows.)
+        $(LI All core.atomic functions have been marked nothrow. Some have been
+        marked pure.)
+        $(LI Condition now has a mutex() property.)
+        $(LI RWMutex's reader() and writer() functions have been marked @property.)
+        $(LI 256-bit SIMD types have been added to core.simd.)
+        $(LI Exceptions will no longer trap on Windows if a debugger is attached.)
+        $(LI SetTimer() and KillTimer() have been added to core.sys.windows.windows.)
+        $(LI Fiber.reset() now has overloads that allow resetting the function.)
+        $(LI TypeInfo now has a new function rtInfo(). While this is now part of the
+        public API, the information it provides is completely internal to the runtime.)
+    )
 
-$(RUNTIMEBUGSFIXED
-    $(LI $(BUGZILLA 5206): stat_t is not the same as struct stat)
-    $(LI $(BUGZILLA 5582): Improvements to the DLL startup code)
-    $(LI $(BUGZILLA 5930): cas doesn't work when used in code compiled with -D)
-    $(LI $(BUGZILLA 6631): core.time module constructor runs AFTER main program's module constructor)
-    $(LI $(BUGZILLA 7704): RangeError when using key optainey by AA byKey() iteration)
-    $(LI $(BUGZILLA 7923): Please remove 'deprecated' from setAssertHandler())
-    $(LI $(BUGZILLA 8274): thread_attachThis only works for main thread)
+    $(RUNTIMEBUGSFIXED
+        $(LI Unlisted bug: An out of bounds error in the internal EH code has been fixed.)
+        $(LI Unlisted bug: Some infinite recursions in core.memory functions have been fixed.)
+        $(LI Unlisted bug: Fiber.reset()'s precondition has been fixed to allow State.HOLD.)
+        $(LI Unlisted bug: Some memory leaks on shutdown have been fixed.)
+        $(LI $(BUGZILLA 5206): stat_t is not the same as struct stat)
+        $(LI $(BUGZILLA 5582): Improvements to the DLL startup code)
+        $(LI $(BUGZILLA 5930): cas doesn't work when used in code compiled with -D)
+        $(LI $(BUGZILLA 6631): core.time module constructor runs AFTER main program's module constructor)
+        $(LI $(BUGZILLA 7704): RangeError when using key optainey by AA byKey() iteration)
+        $(LI $(BUGZILLA 7923): Please remove 'deprecated' from setAssertHandler())
+        $(LI $(BUGZILLA 8274): thread_attachThis only works for main thread)
+    )
 )
 
 $(VERSION 059, mmm dd, 2012, =================================================,
 
     $(RUNTIMEBUGSFIXED
-$(LI $(BUGZILLA 7606): core.time.TickDuration opCmp accepts only lvalues)
+        $(LI $(BUGZILLA 7606): core.time.TickDuration opCmp accepts only lvalues)
     )
 )
 
 $(VERSION 057, mmm dd, 2011, =================================================,
 
     $(RUNTIMEBUGSFIXED
-$(LI $(BUGZILLA 6909): incorrect definition of the OVERLAPPED struct in core.sys.windows.windows ?)
+        $(LI $(BUGZILLA 6909): incorrect definition of the OVERLAPPED struct in core.sys.windows.windows ?)
     )
 )
+
 $(VERSION 055, mmm dd, 2011, =================================================,
 
     $(RUNTIMEBUGSFIXED
-$(LI $(BUGZILLA 5967): Mangling of ArgClose for variadic function is swapped)
-$(LI $(BUGZILLA 6493): Source code for the doc of core.time points to std.datetime.)
-$(LI $(BUGZILLA 6466): core.demangle incorrect demangling of variables)
+        $(LI $(BUGZILLA 5967): Mangling of ArgClose for variadic function is swapped)
+        $(LI $(BUGZILLA 6493): Source code for the doc of core.time points to std.datetime.)
+        $(LI $(BUGZILLA 6466): core.demangle incorrect demangling of variables)
     )
 )
+
 $(VERSION 054, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
-$(LI Added core.sys.posix.netdb)
-$(LI For functions which have a version which takes a core.time.Duration
-     and another version which takes an integral value, the version which
-     takes an integral value is now scheduled for deprecation.)
+        $(LI Added core.sys.posix.netdb.)
+        $(LI For functions which have a version which takes a core.time.Duration
+        and another version which takes an integral value, the version which
+        takes an integral value is now scheduled for deprecation.)
     )
+
     $(RUNTIMEBUGSFIXED
-$(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
-$(LI $(BUGZILLA 5272): Postblit not called on copying due to array append)
-$(LI $(BUGZILLA 5956): Undocumented mangling of struct value)
-$(LI $(BUGZILLA 6135): Thread/GC interaction bug on OS X)
+        $(LI $(BUGZILLA 4323): std.demangle incorrectly handles template floating point numbers)
+        $(LI $(BUGZILLA 5272): Postblit not called on copying due to array append)
+        $(LI $(BUGZILLA 5956): Undocumented mangling of struct value)
+        $(LI $(BUGZILLA 6135): Thread/GC interaction bug on OS X)
     )
 )
+
 $(VERSION 053, mmm dd, 2011, =================================================,
 
     $(WHATSNEW
-$(LI Added some gc benchmark apps)
-$(LI Move std.intrinsic to core.intrinsic)
-$(LI Implemented $(I exception chaining), as described in TDPL for Posix.)
+        $(LI Added some GC benchmark apps.)
+        $(LI Moved std.intrinsic to core.intrinsic.)
+        $(LI Implemented $(I exception chaining), as described in TDPL for POSIX.)
     )
+
     $(RUNTIMEBUGSFIXED
-$(LI $(BUGZILLA 5612): core.cpuid not implemented on 64)
-$(LI $(BUGZILLA 1001): print stack trace (in debug mode) when program die)
-$(LI $(BUGZILLA 5847): Threads started by core.thread should have same floating point state as main thread)
+        $(LI $(BUGZILLA 5612): core.cpuid not implemented on 64)
+        $(LI $(BUGZILLA 1001): print stack trace (in debug mode) when program die)
+        $(LI $(BUGZILLA 5847): Threads started by core.thread should have same floating point state as main thread)
     )
 )
