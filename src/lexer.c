@@ -1937,7 +1937,7 @@ TOK Lexer::number(Token *t)
                         if (p[1] == '.')        // .. is a separate token
                             goto done;
 #if DMDV2
-                        if (isalpha(p[1]) || p[1] == '_')
+                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
 #endif
                     case 'i':
@@ -1979,7 +1979,7 @@ TOK Lexer::number(Token *t)
                     if (c == '.' && p[1] != '.')
                     {
 #if DMDV2
-                        if (isalpha(p[1]) || p[1] == '_')
+                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
 #endif
                         goto real;
