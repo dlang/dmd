@@ -95,6 +95,11 @@ Library *Library::factory()
 }
 #endif
 
+Library *LibMSCoff_factory()
+{
+    return new LibMSCoff();
+}
+
 LibMSCoff::LibMSCoff()
 {
     libfile = NULL;

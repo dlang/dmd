@@ -26,5 +26,7 @@ class Library
     virtual void write() = 0;
 };
 
+Library *LibMSCoff_factory();
+
 #endif /* DMD_LIB_H */
 
