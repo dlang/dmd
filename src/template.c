@@ -4506,6 +4506,12 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
+        /* If you remove this dummy variable declaration, 
+         * running test/fail_compilation/fail281.d stops dmd without error message.
+         * It seems to me that is dmc's SEH code generation bug.
+         */
+        bool dummy = 0;
+
         // do not catch at every nesting level, because generating the output error might cause more stack
         //  errors in the __except block otherwise
         __try
@@ -4818,7 +4824,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Scope *scope = tempdecl->scope;
     if (!tempdecl->semanticRun)
     {
-        error("template instantiation %s forward references template declaration %s\n", toChars(), tempdecl->toChars());
+        error("template instantiation %s forward references template declaration %s", toChars(), tempdecl->toChars());
         return;
     }
 
@@ -5304,7 +5310,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
             }
             if (!td->semanticRun)
             {
-                error("%s forward references template declaration %s\n", toChars(), td->toChars());
+                error("%s forward references template declaration %s", toChars(), td->toChars());
                 return NULL;
             }
         }

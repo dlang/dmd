@@ -1288,7 +1288,7 @@ unsigned Lexer::escapeSequence()
                     c = v;
                 }
                 else
-                    error("undefined escape hex sequence \\%c\n",c);
+                    error("undefined escape hex sequence \\%c",c);
                 break;
 
         case '&':                       // named character entity
@@ -1337,7 +1337,7 @@ unsigned Lexer::escapeSequence()
                         error("0%03o is larger than a byte", c);
                 }
                 else
-                    error("undefined escape sequence \\%c\n",c);
+                    error("undefined escape sequence \\%c",c);
                 break;
     }
     return c;
@@ -1937,7 +1937,7 @@ TOK Lexer::number(Token *t)
                         if (p[1] == '.')        // .. is a separate token
                             goto done;
 #if DMDV2
-                        if (isalpha(p[1]) || p[1] == '_')
+                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
 #endif
                     case 'i':
@@ -1979,7 +1979,7 @@ TOK Lexer::number(Token *t)
                     if (c == '.' && p[1] != '.')
                     {
 #if DMDV2
-                        if (isalpha(p[1]) || p[1] == '_')
+                        if (isalpha(p[1]) || p[1] == '_' || (p[1] & 0x80))
                             goto done;
 #endif
                         goto real;

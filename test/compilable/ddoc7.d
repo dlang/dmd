@@ -1,6 +1,6 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddoc7-postscript.sh
+// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 7
 
 //-----------------------------------------------
 /// my enum

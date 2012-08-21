@@ -1014,7 +1014,7 @@ S38 bar38() {
 void test38()
 {
   {
-    auto s1 = foo38;
+    auto s1 = foo38();
     assert(S38.count == 1);
     assert(S38.postblit == 0);
   }
@@ -1022,7 +1022,7 @@ void test38()
   S38.postblit = 0;
 
   {
-    auto s2 = bar38;
+    auto s2 = bar38();
     assert(S38.count == 1);
     assert(S38.postblit == 0);
   }
@@ -2185,6 +2185,79 @@ void test62()
 }
 
 /**********************************/
+// 7579
+
+void test7579a()
+{
+    static struct S
+    {
+        // postblit can also have no body because isn't called
+        @disable this(this) { assert(0); }
+    }
+
+    @property S fs() { return S(); }
+    @property S[3] fsa() { return [S(), S(), S()]; }
+
+    S s0;
+    S s1 = S();
+    static assert(!__traits(compiles, { S s2 = s1; }));         // OK
+    S s2 = fs;
+    static assert(!__traits(compiles, { s2 = s1; }));           // OK
+
+    // static array
+    S[3] sa0;
+    S[3] sa1 = [S(), S(), S()];
+    static assert(!__traits(compiles, { S[3] sa2 = sa1; }));    // fixed
+    S[3] sa2 = fsa;
+    static assert(!__traits(compiles, { sa2 = sa1; }));         // fixed
+    sa2 = [S(), S(), S()];
+    sa2 = fsa;
+
+    S[] da1 = new S[3];
+    S[] da2 = new S[3];
+    static assert(!__traits(compiles, { da2[] = da1[]; }));     // fixed
+
+    // concatenation and appending
+    static assert(!__traits(compiles, { da1 ~= s1; }));         // fixed
+    static assert(!__traits(compiles, { da1 ~= S(); }));
+    static assert(!__traits(compiles, { da1 ~= fsa; }));
+    static assert(!__traits(compiles, { da1 ~= fsa[]; }));
+    static assert(!__traits(compiles, { da1 = da1 ~ s1; }));    // fixed
+    static assert(!__traits(compiles, { da1 = s1 ~ da1; }));    // fixed
+    static assert(!__traits(compiles, { da1 = da1 ~ S(); }));
+    static assert(!__traits(compiles, { da1 = da1 ~ fsa; }));
+    static assert(!__traits(compiles, { da1 = da1 ~ da; }));
+}
+
+void test7579b()
+{
+    static struct S
+    {
+        // postblit asserts in runtime
+        this(this) { assert(0); }
+    }
+
+    @property S fs() { return S(); }
+    @property S[3] fsa() { return [S(), S(), S()]; }
+
+    S s0;
+    S s1 = S();
+    S s2 = fs;
+
+    // static array
+    S[3] sa0;
+    S[3] sa1 = [S(), S(), S()];
+    S[3] sa2 = fsa;
+    sa2 = [S(), S(), S()];
+    sa2 = fsa;
+
+    S[] da1 = new S[3];
+    S[] da2 = new S[3];
+
+    // concatenation and appending always run postblits
+}
+
+/**********************************/
 // 8335
 
 struct S8335
@@ -2227,6 +2300,28 @@ void test8335()
     S8335 s;
     h8335(s);
     assert(S8335.postblit == 1);
+}
+
+/**********************************/
+// 8356
+
+void test8356()
+{
+    static struct S
+    {
+        @disable this(this) { assert(0); }
+    }
+
+    S s;
+    S[3] sa;
+
+  static assert(!__traits(compiles, {
+    S fs() { return s; }
+  }));
+
+  static assert(!__traits(compiles, {
+    S[3] fsa() { return sa; }
+  }));
 }
 
 /**********************************/
@@ -2307,7 +2402,10 @@ int main()
     test7506();
     test7530();
     test62();
+    test7579a();
+    test7579b();
     test8335();
+    test8356();
 
     printf("Success\n");
     return 0;

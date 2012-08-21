@@ -1955,10 +1955,6 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::init)
     {
-        if (ty == Tvoid)
-            error(loc, "void does not have an initializer");
-        if (ty == Tfunction)
-            error(loc, "function does not have an initializer");
         if (toBasetype()->ty == Tstruct &&
             ((TypeStruct *)toBasetype())->sym->isNested())
         {
@@ -3523,7 +3519,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
 
     if (!n->isMutable())
         if (ident == Id::sort || ident == Id::reverse)
-            error(e->loc, "can only %s a mutable array\n", ident->toChars());
+            error(e->loc, "can only %s a mutable array", ident->toChars());
 
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {

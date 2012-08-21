@@ -556,7 +556,7 @@ int tryMain(int argc, char *argv[])
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = 1;
             else if (strcmp(p + 1, "gt") == 0)
-            {   error(0, "use -profile instead of -gt\n");
+            {   error(0, "use -profile instead of -gt");
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
@@ -900,7 +900,7 @@ int tryMain(int argc, char *argv[])
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (global.params.lib && global.params.dll)
-        error(0, "cannot mix -lib and -shared\n");
+        error(0, "cannot mix -lib and -shared");
 #endif
 
     if (global.params.release)
@@ -1160,7 +1160,7 @@ int tryMain(int argc, char *argv[])
                 }
             }
             else
-            {   error(0, "unrecognized file extension %s\n", ext);
+            {   error(0, "unrecognized file extension %s", ext);
                 fatal();
             }
         }
