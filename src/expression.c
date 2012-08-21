@@ -6088,23 +6088,32 @@ Expression *DotVarExp::semantic(Scope *sc)
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
-            {   Object *o = (Object *)tup->objects->data[i];
-                if (o->dyncast() != DYNCAST_EXPRESSION)
+            {   Object *o = (*tup->objects)[i];
+                Expression *e;
+                if (o->dyncast() == DYNCAST_EXPRESSION)
                 {
-                    error("%s is not an expression", o->toChars());
+                    e = (Expression *)o;
+                    if (e->op == TOKdsymbol)
+                    {
+                        DsymbolExp *ve = (DsymbolExp *)e;
+
+                        e = new DotVarExp(loc, e1, ve->s->isDeclaration());
+                    }
+                }
+                else if (o->dyncast() == DYNCAST_DSYMBOL)
+                {
+                    e = new DsymbolExp(loc, (Dsymbol *)o);
+                }
+                else if (o->dyncast() == DYNCAST_TYPE)
+                {
+                    e = new TypeExp(loc, (Type *)o);
                 }
                 else
                 {
-                    Expression *e = (Expression *)o;
-                    if (e->op != TOKdsymbol)
-                        error("%s is not a member", e->toChars());
-                    else
-                    {   DsymbolExp *ve = (DsymbolExp *)e;
-
-                        e = new DotVarExp(loc, e1, ve->s->isDeclaration());
-                        exps->push(e);
-                    }
+                    error("%s is not an expression", o->toChars());
+                    goto Lerr;
                 }
+                exps->push(e);
             }
             Expression *e = new TupleExp(loc, exps);
             e = e->semantic(sc);
@@ -6148,6 +6157,9 @@ Expression *DotVarExp::semantic(Scope *sc)
     }
     //printf("-DotVarExp::semantic('%s')\n", toChars());
     return this;
+
+Lerr:
+    return new ErrorExp();
 }
 
 
