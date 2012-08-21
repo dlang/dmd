@@ -796,7 +796,7 @@ void MsCoffObj::term()
                 {
                     //printf("Relocation\n");
                     //symbol_print(s);
-                    if (pseg->isCode())
+                    if (1 || pseg->isCode())
                     {
                         if (I64)
                         {
@@ -1234,10 +1234,20 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
      */
 
     int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;  // align to NPTRSIZE
-    // The size is sizeof(struct FuncTable) in deh2.d
-    int seg = MsCoffObj::getsegment("._deh_eh", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                          align |
-                                          IMAGE_SCN_MEM_READ);
+
+    MsCoffObj::getsegment("._deh_bg", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+
+   // The size is sizeof(struct FuncTable) in deh2.d
+    int seg =
+    MsCoffObj::getsegment("._deh_eh", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+
+    MsCoffObj::getsegment("._deh_en", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
 
     Outbuffer *buf = SegData[seg]->SDbuf;
     if (I64)
@@ -1254,46 +1264,76 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 
 /*********************************************
  * Put out symbols that define the beginning/end of the .deh_eh section.
- * This gets called if this is the module with "main()" in it.
+ * This gets called if this is the module with "extern (D) main()" in it.
  */
 
 void MsCoffObj::ehsections()
 {
     //printf("MsCoffObj::ehsections()\n");
-#if 0
-    /* Determine Mac OSX version, and put out the sections slightly differently for each.
-     * This is needed because the linker on OSX 10.5 behaves differently than
-     * the linker on 10.6.
-     * See Bugzilla 3502 for more information.
-     */
-    static SInt32 MacVersion;
-    if (!MacVersion)
-        Gestalt(gestaltSystemVersion, &MacVersion);
+    int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
 
-    /* Exception handling sections
-     */
-    // 12 is size of struct FuncTable in D runtime
-    MsCoffObj::getsegment("__deh_beg", "__DATA", 2, S_COALESCED, 12);
-    int seg = MsCoffObj::getsegment("__deh_eh", "__DATA", 2, S_REGULAR);
-    Outbuffer *buf = SegData[seg]->SDbuf;
-    buf->writezeros(12);                // 12 is size of struct FuncTable in D runtime,
-                                        // this entry gets skipped over by __eh_finddata()
+    int segdeh_bg =
+    MsCoffObj::getsegment("._deh_bg", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
 
-    MsCoffObj::getsegment("__deh_end", "__DATA", 2, S_COALESCED, 4);
+   // The size is sizeof(struct FuncTable) in deh2.d
+    MsCoffObj::getsegment("._deh_eh", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
 
-    /* Thread local storage sections
+    int segdeh_en =
+    MsCoffObj::getsegment("._deh_en", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+
+    /* Create symbol _eh_beg that sits just before the .minfodt segment
      */
-    MsCoffObj::getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-    MsCoffObj::getsegment("__tls_data", "__DATA", 2, S_REGULAR, 4);
-    MsCoffObj::getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-    MsCoffObj::getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
+    symbol *eh_beg = symbol_name("_eh_beg", SCstatic, tspvoid);
+    eh_beg->Sseg = segdeh_bg;
+    eh_beg->Soffset = 0;
+    symbuf->write(&eh_beg, sizeof(eh_beg));
+    Obj::bytes(segdeh_bg, 0, I64 ? 8 * 3 : 4 * 3, NULL);
+
+    /* Create symbol _eh_end that sits just after the ._deh_eh segment
+     */
+    symbol *eh_end = symbol_name("_eh_end", SCstatic, tspvoid);
+    eh_end->Sseg = segdeh_en;
+    eh_end->Soffset = 0;
+    symbuf->write(&eh_end, sizeof(eh_end));
+    Obj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
+
+    /*************************************************************************/
 
     /* Module info sections
      */
-    MsCoffObj::getsegment("__minfo_beg", "__DATA", 2, S_COALESCED, 4);
-    MsCoffObj::getsegment("__minfodata", "__DATA", 2, S_REGULAR, 4);
-    MsCoffObj::getsegment("__minfo_end", "__DATA", 2, S_COALESCED, 4);
-#endif
+    int segbg =
+    MsCoffObj::getsegment(".minfobg", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+    MsCoffObj::getsegment(".minfodt", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+    int segen =
+    MsCoffObj::getsegment(".minfoen", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+
+    /* Create symbol _minfo_beg that sits just before the .minfodt segment
+     */
+    symbol *minfo_beg = symbol_name("_minfo_beg", SCstatic, tspvoid);
+    minfo_beg->Sseg = segbg;
+    minfo_beg->Soffset = 0;
+    symbuf->write(&minfo_beg, sizeof(minfo_beg));
+    Obj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
+
+    /* Create symbol _minfo_end that sits just after the .minfodt segment
+     */
+    symbol *minfo_end = symbol_name("_minfo_end", SCstatic, tspvoid);
+    minfo_end->Sseg = segen;
+    minfo_end->Soffset = 0;
+    symbuf->write(&minfo_end, sizeof(minfo_end));
+    Obj::bytes(segen, 0, I64 ? 8 : 4, NULL);
 }
 
 /*********************************
@@ -1778,8 +1818,8 @@ int MsCoffObj::external_def(const char *name)
 {
     //printf("MsCoffObj::external_def('%s')\n",name);
     assert(name);
-    assert(extdef == 0);
-    extdef = MsCoffObj::addstr(string_table, name);
+    symbol *s = symbol_name(name, SCextern, tspvoid);
+    symbuf->write(&s, sizeof(s));
     return 0;
 }
 
@@ -2276,18 +2316,28 @@ long elf_align(targ_size_t size, long foffset)
 
 /***************************************
  * Stuff pointer to ModuleInfo in its own segment.
+ * Input:
+ *      scc     symbol for ModuleInfo
  */
 
 #if MARS
 
 void MsCoffObj::moduleinfo(Symbol *scc)
 {
-    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_4BYTES;
+    int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
 
-    int seg = MsCoffObj::getsegment(".minfodt", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                             align |
-                                             IMAGE_SCN_MEM_READ |
-                                             IMAGE_SCN_MEM_WRITE);
+    /* Module info sections
+     */
+    MsCoffObj::getsegment(".minfobg", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+    int seg =
+    MsCoffObj::getsegment(".minfodt", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
+    MsCoffObj::getsegment(".minfoen", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ);
     //printf("MsCoffObj::moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
 
     int flags = CFoff;
