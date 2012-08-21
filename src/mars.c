@@ -404,6 +404,7 @@ int tryMain(int argc, char *argv[])
     int argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
+        int setdefaultlib = 0;
     const char *inifilename = NULL;
 
 #ifdef DEBUG
@@ -788,6 +789,7 @@ int tryMain(int argc, char *argv[])
             }
             else if (memcmp(p + 1, "defaultlib=", 11) == 0)
             {
+                setdefaultlib = 1;
                 global.params.defaultlibname = p + 1 + 11;
             }
             else if (memcmp(p + 1, "debuglib=", 9) == 0)
@@ -980,6 +982,11 @@ int tryMain(int argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("D_SIMD");
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win64");
+        if (!setdefaultlib)
+        {   global.params.defaultlibname = "phobos64";
+            if (!setdebuglib)
+                global.params.debuglibname = global.params.defaultlibname;
+        }
 #endif
     }
     else
