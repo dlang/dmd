@@ -24,6 +24,51 @@
 #include "statement.h"
 #include "hdrgen.h"
 
+AggregateDeclaration *isAggregate(Type *t); // from opover.c
+
+void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
+{
+    if (!ad->isnested)
+        return;
+
+    Dsymbol *s = sc->func;
+    if (s)
+    {
+        Dsymbol *sparent = ad->toParent2();
+        //printf("ad = %p %s [%s], parent:%p\n", ad, ad->toChars(), ad->loc.toChars(), ad->parent);
+        //printf("sparent = %p %s [%s], parent: %s\n", sparent, sparent->toChars(), sparent->loc.toChars(), sparent->parent->toChars());
+
+        while (s)
+        {
+            if (s == sparent)   // hit!
+            {
+                // Is it better moving this check to AggregateDeclaration:semantic?
+                for (size_t i = 0; i < ad->fields.dim; i++)
+                {   VarDeclaration *vd = ad->fields[i]->isVarDeclaration();
+                    if (vd)
+                        if (AggregateDeclaration *ad2 = isAggregate(vd->type))
+                            if (ad2->isStructDeclaration())
+                                checkFrameAccess(loc, sc, ad2);
+                }
+                return;
+            }
+
+            if (FuncDeclaration *fd = s->isFuncDeclaration())
+            {
+                if (!fd->isThis() && !fd->isNested())
+                    break;
+            }
+            if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
+            {
+                if (ad2->storage_class & STCstatic)
+                    break;
+            }
+            s = s->toParent2();
+        }
+    }
+    error(loc, "cannot access frame pointer of %s", ad->toPrettyChars());
+}
+
 /********************************* Declaration ****************************/
 
 Declaration::Declaration(Identifier *id)
@@ -1224,6 +1269,22 @@ Lnomatch:
         // Provide a default initializer
         //printf("Providing default initializer for '%s'\n", toChars());
         if (type->ty == Tstruct &&
+            ((TypeStruct *)type)->sym->isnested)
+        {
+            /* Nested struct requires valid enclosing frame pointer.
+             * In StructLiteralExp::toElem(), it's calculated.
+             */
+
+            checkFrameAccess(loc, sc, ((TypeStruct *)type)->sym);
+
+            Expression *e = type->defaultInitLiteral(loc);
+            Expression *e1 = new VarExp(loc, this);
+            e = new ConstructExp(loc, e1, e);
+            e = e->semantic(sc);
+            init = new ExpInitializer(loc, e);
+            goto Ldtor;
+        }
+        else if (type->ty == Tstruct &&
             ((TypeStruct *)type)->sym->zeroInit == 1)
         {   /* If a struct is all zeros, as a special case
              * set it's initializer to the integer 0.
@@ -1236,19 +1297,6 @@ Lnomatch:
             e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
             e->type = e1->type;         // don't type check this, it would fail
-            init = new ExpInitializer(loc, e);
-            goto Ldtor;
-        }
-        else if (type->ty == Tstruct &&
-                 (((TypeStruct *)type)->sym->isnested))
-        {
-            /* Nested struct requires valid enclosing frame pointer.
-             * In StructLiteralExp::toElem(), it's calculated.
-             */
-            Expression *e = type->defaultInitLiteral(loc);
-            Expression *e1 = new VarExp(loc, this);
-            e = new ConstructExp(loc, e1, e);
-            e = e->semantic(sc);
             init = new ExpInitializer(loc, e);
             goto Ldtor;
         }

@@ -1703,6 +1703,101 @@ void test8194()
 }
 
 /*******************************************/
+// 8339
+
+template map8339a(fun...)
+{
+    auto map8339a(Range)(Range r) {
+        struct Result {
+            this(double[] input) {}
+        }
+        return Result(r);
+    }
+}
+template map8339b(fun...)
+{
+    auto map8339b(Range)(Range r) {
+        struct Result {
+            this(double[] input) { fun[0](input.length); }
+        }
+        return Result(r);
+    }
+}
+template map8339c(fun...)
+{
+    auto map8339c(Range)(Range r) {
+        static struct Result {
+            this(double[] input) {}
+        }
+        return Result(r);
+    }
+}
+template map8339d(fun...)
+{
+    auto map8339d(Range)(Range r) {
+        static struct Result {
+            this(double[] input) { fun[0](input.length); }
+        }
+        return Result(r);
+    }
+}
+void copy8339(T)(T x)
+{
+    T xSaved;
+}
+void test8339a()
+{
+    double[] x;
+    int n;
+
+    // Result has context pointer, so cannot copy
+    static assert (!is(typeof({ copy8339(map8339a!(a=>a)(x)); })));
+    static assert (!is(typeof({ copy8339(map8339a!(a=>n)(x)); })));
+
+    // same as
+    static assert (!is(typeof({ copy8339(map8339b!(a=>a)(x)); })));
+    static assert (!is(typeof({ copy8339(map8339b!(a=>n)(x)); })));
+
+    // fun is never instantiated
+    copy8339(map8339c!(a=>a)(x));
+    copy8339(map8339c!(a=>n)(x));
+
+    // static nested struct doesn't have contest pointer
+    copy8339(map8339d!(a=>a)(x));
+  //copy8339(map8339d!(a=>n)(x));   // too strict case
+
+}
+
+template filter8339(alias pred)
+{
+    auto filter8339(R)(R r) {
+        struct Result {
+            R range;
+            this(R r) {}
+            auto front() { return pred(0); }
+        }
+        return Result(r);
+    }
+}
+void test8339b()
+{
+    static makefilter() { int n; return filter8339!(a=>n)([]); }
+
+    auto r1 = makefilter();
+    static assert(!is(typeof({ filter8339!(a=>a)(r1); })));
+}
+
+void test8339c()
+{
+    class C(X) { X x; }
+    class C1 { C!C1 x; }
+    alias C!C1 C2;
+
+    struct Pair { C1 t; C2 u; void func(){} }
+    Pair pair;
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1771,6 +1866,9 @@ int main()
 
     test5082();
     test8194();
+    test8339a();
+    test8339b();
+    test8339c();
 
     printf("Success\n");
     return 0;
