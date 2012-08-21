@@ -634,6 +634,8 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e = new ErrorExp();
         }
 
+        e = callCpCtor(e->loc, sc, e, 1);
+
         if (t0)
         {   if (t0 != e->type)
             {
@@ -771,6 +773,27 @@ void valueNoDtor(Expression *e)
     }
 }
 
+/********************************************
+ * Determine if t is an array of structs that need a postblit.
+ */
+#if DMDV2
+int checkPostblit(Loc loc, Type *t)
+{
+    t = t->toBasetype();
+    while (t->ty == Tsarray)
+        t = t->nextOf()->toBasetype();
+    if (t->ty == Tstruct)
+    {   FuncDeclaration *fd = ((TypeStruct *)t)->sym->postblit;
+        if (fd)
+        {   if (fd->storage_class & STCdisable)
+                fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
+            return 1;
+        }
+    }
+    return 0;
+}
+#endif
+
 /*********************************************
  * Call copy constructor for struct value argument.
  */
@@ -796,7 +819,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (sd->cpctor)
+        if (sd->cpctor && e->isLvalue())
         {
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
@@ -1106,11 +1129,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             else
             {
                 Type *tb = arg->type->toBasetype();
-                if (arg->op == TOKarrayliteral)
-                {
-                    arg = callCpCtor(loc, sc, arg, 1);
-                }
-                else if (tb->ty == Tsarray)
+                if (tb->ty == Tsarray)
                 {
 #if !SARRAYVALUE
                     // Convert static arrays to pointers
@@ -10592,11 +10611,6 @@ Ltupleassign:
     if (!e2->rvalue())
         return new ErrorExp();
 
-    if (e2->op == TOKarrayliteral)
-    {
-        e2 = callCpCtor(loc, sc, e2, 1);
-    }
-
     if (e1->op == TOKarraylength)
     {
         // e1 is not an lvalue, but we let code generator handle it
@@ -10661,9 +10675,18 @@ Ltupleassign:
         }
         //error("cannot assign to static array %s", e1->toChars());
     }
-    else if (e1->op == TOKslice && t2->ty == Tarray &&
+    // Check element-wise assignment.
+    else if (e1->op == TOKslice &&
+        (t2->ty == Tarray || t2->ty == Tsarray) &&
         t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        if (op != TOKblit &&
+            (e2->op == TOKslice && ((UnaExp *)e2)->e1->isLvalue() ||
+             e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
+             e2->op != TOKslice && e2->isLvalue()))
+        {
+            checkPostblit(e2->loc, t2->nextOf());
+        }
         e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
@@ -10778,6 +10801,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         )
        )
     {   // Append array
+        checkPostblit(e1->loc, tb1next);
         e2 = e2->castTo(sc, e1->type);
         type = e1->type;
         e = this;
@@ -10786,6 +10810,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         e2->implicitConvTo(tb1next)
        )
     {   // Append element
+        checkPostblit(e2->loc, tb2);
         e2 = e2->castTo(sc, tb1next);
         type = e1->type;
         e = this;
@@ -11160,6 +11185,7 @@ Expression *CatExp::semantic(Scope *sc)
         if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
             e2->implicitConvTo(tb1next) >= MATCHconvert)
         {
+            checkPostblit(e2->loc, tb2);
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
             if (tb2->ty == Tarray)
@@ -11172,6 +11198,7 @@ Expression *CatExp::semantic(Scope *sc)
         else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
             e1->implicitConvTo(tb2next) >= MATCHconvert)
         {
+            checkPostblit(e1->loc, tb1);
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
             if (tb1->ty == Tarray)
@@ -11210,6 +11237,10 @@ Expression *CatExp::semantic(Scope *sc)
             tb1next->mod != tb2next->mod)
         {
             type = type->nextOf()->toHeadMutable()->arrayOf();
+        }
+        if (tb->nextOf())
+        {
+            checkPostblit(loc, tb->nextOf());
         }
 #if 0
         e1->type->print();

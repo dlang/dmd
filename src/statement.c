@@ -3778,6 +3778,15 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (!((TypeFunction *)fd->type)->isref)
             exp = exp->optimize(WANTvalue);
 
+        if (exp->op == TOKcall)
+            valueNoDtor(exp);
+        else
+        {
+            Expression *e = exp->isTemp();
+            if (e)
+                exp = e;                // don't need temporary
+        }
+
         if (fd->nrvo_can && exp->op == TOKvar)
         {   VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
@@ -3787,9 +3796,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 fd->nrvo_can = 0;
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
-//            else if (tbret->ty == Tstruct && ((TypeStruct *)tbret)->sym->dtor)
-//                // Struct being returned has destructors
-//                fd->nrvo_can = 0;
             else if (fd->nrvo_var == NULL)
             {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
                 {   //printf("Setting nrvo to %s\n", v->toChars());
@@ -3803,6 +3809,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else
             fd->nrvo_can = 0;
+
+        if (!fd->nrvo_can &&
+            exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
+        {
+            exp = callCpCtor(exp->loc, sc, exp, 1);
+        }
 
         if (fd->inferRetType)
         {   TypeFunction *tf = (TypeFunction *)fd->type;
@@ -4042,17 +4054,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
         exp = NULL;
         return new CompoundStatement(loc, s, this);
-    }
-
-    if (exp)
-    {   if (exp->op == TOKcall)
-            valueNoDtor(exp);
-        else
-        {
-            Expression *e = exp->isTemp();
-            if (e)
-                exp = e;                // don't need temporary
-        }
     }
 
     return this;
