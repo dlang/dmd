@@ -3256,6 +3256,43 @@ void bug6851()
 static assert({ bug6851(); return true; }());
 
 /**************************************************
+    7876
+**************************************************/
+int* bug7876(int n){
+    int x;auto ptr = &x;
+    if (n==2) ptr = null;
+    return ptr;
+}
+
+struct S7876
+{
+    int *p;
+}
+
+S7876 bug7876b(int n) {
+    int x;
+    S7876 s;
+    s.p = &x;
+    if (n==11) s.p = null;
+    return s;
+}
+
+int test7876(int n)
+{
+    if (n >= 10) {
+        S7876 m = bug7876b(n);
+        return 1;
+    }
+    int *p = bug7876(n);
+    return 1;
+}
+
+static assert( is(typeof(compiles!(test7876(2)))));
+static assert(!is(typeof(compiles!(test7876(0)))));
+static assert( is(typeof(compiles!(test7876(11)))));
+static assert(!is(typeof(compiles!(test7876(10)))));
+
+/**************************************************
     6817 if converted to &&, only with -inline
 **************************************************/
 static assert({
