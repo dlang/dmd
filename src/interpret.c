@@ -89,6 +89,12 @@ public:
         popAll(framepointer);
         framepointer = oldframe;
     }
+    bool isInCurrentFrame(VarDeclaration *v)
+    {
+        if (v->isDataseg() && !v->isCTFE())
+            return false;   // It's a global
+        return v->ctfeAdrOnStack >= framepointer;
+    }
     Expression *getValue(VarDeclaration *v)
     {
         if (v->isDataseg() && !v->isCTFE())
@@ -1034,6 +1040,66 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
     return Cat(type, e1, e2);
 }
 
+/**
+  Given an expression e which is about to be returned from the current
+  function, generate an error if it contains pointers to local variables.
+  Return true if it is safe to return, false if an error was generated.
+
+  Only checks expressions passed by value (pointers to local variables
+  may already be stored in members of classes, arrays, or AAs which
+  were passed as mutable function parameters).
+*/
+bool stopPointersEscapingFromArray(Loc loc, Expressions *elems);
+
+bool stopPointersEscaping(Loc loc, Expression *e)
+{
+    if (!e->type->hasPointers())
+        return true;
+    if ( isPointer(e->type) )
+    {
+        if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
+            ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
+        {   error(loc, "returning a pointer to a local stack variable");
+            return false;
+        }
+        // TODO: If it is a TOKdotvar or TOKindex, we should check that it is not
+        // pointing to a local struct or static array.
+    }
+    if (e->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)e;
+        return stopPointersEscapingFromArray(loc, se->elements);
+    }
+    if (e->op == TOKarrayliteral)
+    {
+        return stopPointersEscapingFromArray(loc, ((ArrayLiteralExp *)e)->elements);
+    }
+    if (e->op == TOKassocarrayliteral)
+    {
+        AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)e;
+        if (!stopPointersEscapingFromArray(loc, aae->keys))
+            return false;
+        return stopPointersEscapingFromArray(loc, aae->values);
+    }
+    return true;
+}
+
+// Check all members of an array for escaping local variables. Return false if error
+bool stopPointersEscapingFromArray(Loc loc, Expressions *elems)
+{
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *m = elems->tdata()[i];
+        if (!m)
+            continue;
+        if (m)
+            if ( !stopPointersEscaping(loc, m) )
+                return false;
+    }
+    return true;
+}
+
+
 bool scrubArray(Loc loc, Expressions *elems, bool structlit = false);
 
 /* All results destined for use outside of CTFE need to have their CTFE-specific
@@ -1141,11 +1207,24 @@ Expression *ReturnStatement::interpret(InterState *istate)
     // return a value OR a pointer
     Expression *e;
     if ( isPointer(exp->type) )
-        e = exp->interpret(istate, ctfeNeedLvalue);
+    {   e = exp->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(e))
+            return e;
+        // Disallow returning pointers to stack-allocated variables (bug 7876)
+        if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
+            ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
+        {   error("returning a pointer to a local stack variable");
+            return EXP_CANT_INTERPRET;
+        }
+    }
     else
+    {
         e = exp->interpret(istate);
-    if (exceptionOrCantInterpret(e))
-        return e;
+        if (exceptionOrCantInterpret(e))
+            return e;
+        if (!stopPointersEscaping(loc, e))
+            return EXP_CANT_INTERPRET;
+    }
     if (needToCopyLiteral(e))
         e = copyLiteral(e);
 #if LOGASSIGN
@@ -7013,7 +7092,7 @@ bool isCtfeValueValid(Expression *newval)
     {
         return true;
     }
-    newval->error("CTFE internal error: illegal value %s\n", newval->toChars());
+    newval->error("CTFE internal error: illegal value %s", newval->toChars());
     return false;
 }
 

@@ -1289,7 +1289,7 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _eh_beg that sits just before the .minfodt segment
      */
-    symbol *eh_beg = symbol_name("_eh_beg", SCstatic, tspvoid);
+    symbol *eh_beg = symbol_name("_deh_beg", SCstatic, tspvoid);
     eh_beg->Sseg = segdeh_bg;
     eh_beg->Soffset = 0;
     symbuf->write(&eh_beg, sizeof(eh_beg));
@@ -1297,7 +1297,7 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _eh_end that sits just after the ._deh_eh segment
      */
-    symbol *eh_end = symbol_name("_eh_end", SCstatic, tspvoid);
+    symbol *eh_end = symbol_name("_deh_end", SCstatic, tspvoid);
     eh_end->Sseg = segdeh_en;
     eh_end->Soffset = 0;
     symbuf->write(&eh_end, sizeof(eh_end));
