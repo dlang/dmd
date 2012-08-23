@@ -86,12 +86,12 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         goto Lcorrupt;
     }
     unsigned long string_len = *(unsigned long *)(buf + off);
-    off += 4;
-    char *string_table = (char *)(buf + off);
+    char *string_table = (char *)(buf + off + 4);
     if (off + string_len > buflen)
     {   reason = __LINE__;
         goto Lcorrupt;
     }
+    string_len -= 4;
 
     for (long i = 0; i < header->f_nsyms; i++)
     {   struct syment *n;

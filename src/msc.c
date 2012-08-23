@@ -58,6 +58,10 @@ void out_config_init()
     if (params->is64bit)
     {   config.exe = EX_WIN64;
         config.fpxmmregs = TRUE;
+
+        // Not sure we really need these two lines, try removing them later
+        config.flags |= CFGnoebp;
+        config.flags |= CFGalwaysframe;
     }
     else
     {   config.exe = EX_NT;
