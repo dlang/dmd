@@ -652,10 +652,17 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     /************* Offset of first module ***********************/
 
     unsigned moffset = 8;       // signature
+
+    unsigned firstLinkerMemberOffset = moffset;
     moffset += sizeof(Header) + 4 + objsymbols.dim * 4 + slength;       // 1st Linker Member
     moffset += moffset & 1;
-    moffset += sizeof(Header) + 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 4 + slength;
+
+    unsigned secondLinkerMemberOffset = moffset;
+    moffset += sizeof(Header) + 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength;
     moffset += moffset & 1;
+
+    unsigned LongnamesMemberOffset = moffset;
+    moffset += sizeof(Header) + noffset;                        // Longnames Member size
 
 #if LOG
     printf("\tmoffset = x%x\n", moffset);
@@ -689,6 +696,8 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /*** Write out First Linker Member ***/
 
+    assert(libbuf->offset == firstLinkerMemberOffset);
+
     Header h;
     OmToHeader(&h, &om);
     libbuf->write(&h, sizeof(h));
@@ -720,6 +729,8 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     if (libbuf->offset & 1)
         libbuf->writeByte('\n');
+
+    assert(libbuf->offset == secondLinkerMemberOffset);
 
     om.length = 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength;
     OmToHeader(&h, &om);
@@ -761,6 +772,9 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     if (libbuf->offset & 1)
         libbuf->writeByte('\n');
 
+    //printf("libbuf %x longnames %x\n", (int)libbuf->offset, (int)LongnamesMemberOffset);
+    assert(libbuf->offset == LongnamesMemberOffset);
+
     // header
     memset(&h, ' ', sizeof(Header));
     h.object_name[0] = '/';
@@ -788,6 +802,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
         if (libbuf->offset & 1)
             libbuf->writeByte('\n');    // module alignment
 
+        //printf("libbuf %x om %x\n", (int)libbuf->offset, (int)om->offset);
         assert(libbuf->offset == om->offset);
 
         OmToHeader(&h, om);

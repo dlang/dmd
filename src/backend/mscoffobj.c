@@ -1289,7 +1289,7 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _eh_beg that sits just before the .minfodt segment
      */
-    symbol *eh_beg = symbol_name("_eh_beg", SCstatic, tspvoid);
+    symbol *eh_beg = symbol_name("_deh_beg", SCstatic, tspvoid);
     eh_beg->Sseg = segdeh_bg;
     eh_beg->Soffset = 0;
     symbuf->write(&eh_beg, sizeof(eh_beg));
@@ -1297,7 +1297,7 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _eh_end that sits just after the ._deh_eh segment
      */
-    symbol *eh_end = symbol_name("_eh_end", SCstatic, tspvoid);
+    symbol *eh_end = symbol_name("_deh_end", SCstatic, tspvoid);
     eh_end->Sseg = segdeh_en;
     eh_end->Soffset = 0;
     symbuf->write(&eh_end, sizeof(eh_end));
@@ -1354,9 +1354,9 @@ int MsCoffObj::comdat(Symbol *s)
 {
     unsigned align;
 
-    printf("MsCoffObj::comdat(Symbol* %s)\n",s->Sident);
+    //printf("MsCoffObj::comdat(Symbol* %s)\n",s->Sident);
     //symbol_print(s);
-    symbol_debug(s);
+    //symbol_debug(s);
 
     if (tyfunc(s->ty()))
     {
@@ -1411,7 +1411,7 @@ int MsCoffObj::comdat(Symbol *s)
 
 segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
 {
-    printf("getsegment(%s)\n", sectname);
+    //printf("getsegment(%s)\n", sectname);
     assert(strlen(sectname) <= 8);      // so it won't go into string_table
     for (segidx_t seg = 1; seg <= seg_count; seg++)
     {   seg_data *pseg = SegData[seg];
@@ -1532,7 +1532,7 @@ int MsCoffObj::codeseg(char *name,int suffix)
 
 seg_data *MsCoffObj::tlsseg()
 {
-    printf("MsCoffObj::tlsseg\n");
+    //printf("MsCoffObj::tlsseg\n");
 
     if (seg_tlsseg == UNKNOWN)
     {
@@ -1773,7 +1773,7 @@ void MsCoffObj::func_term(Symbol *sfunc)
 
 void MsCoffObj::pubdef(segidx_t seg, Symbol *s, targ_size_t offset)
 {
-#if 1
+#if 0
     printf("MsCoffObj::pubdef(%d:x%x s=%p, %s)\n", seg, offset, s, s->Sident);
     //symbol_print(s);
 #endif
@@ -1895,7 +1895,7 @@ void MsCoffObj::write_zeros(seg_data *pseg, targ_size_t count)
 
 void MsCoffObj::lidata(segidx_t seg,targ_size_t offset,targ_size_t count)
 {
-    printf("MsCoffObj::lidata(%d,%x,%d)\n",seg,offset,count);
+    //printf("MsCoffObj::lidata(%d,%x,%d)\n",seg,offset,count);
     size_t idx = SegData[seg]->SDshtidx;
     if ((ScnhdrTab[idx].s_flags) & IMAGE_SCN_CNT_UNINITIALIZED_DATA)
     {   // Use SDoffset to record size of bss section
