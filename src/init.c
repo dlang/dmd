@@ -149,6 +149,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
     vars.setDim(field.dim);
     t = t->toBasetype();
+    if (t->ty == Tsarray && t->nextOf()->toBasetype()->ty == Tstruct)
+        t = t->nextOf()->toBasetype();
     if (t->ty == Tstruct)
     {
         unsigned fieldi = 0;
