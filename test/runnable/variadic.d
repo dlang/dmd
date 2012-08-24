@@ -1461,6 +1461,16 @@ TypeTuple!(int, long) TT6700;
 static assert(bug6700!( (TT6700[1..$]) )==2);
 
 /***************************************/
+// 6966
+
+template X6966(T...)
+{
+    alias const(T[0]) X6966;
+}
+static assert(is(X6966!(int) == const(int)));
+static assert(is(X6966!(int, 0) == const(int)));
+
+/***************************************/
 // 7233
 
 struct Foo7233 { int x, y; }
