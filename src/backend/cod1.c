@@ -2538,12 +2538,13 @@ code *cdfunc(elem *e,regm_t *pretregs)
     for (int i = np; --i >= 0;)
     {
         elem *ep = parameters[i].e;
-        //printf("[%d] size = %u, numpara = %d ", i, paramsize(ep, stackalign), numpara); WRTYxx(ep->Ety); printf("\n");
+        unsigned psize = paramsize(ep, stackalign);
+        //printf("[%d] size = %u, numpara = %d ", i, psize, numpara); WRTYxx(ep->Ety); printf("\n");
         if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, &parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
-            {   numpara += REGSIZE;             // allocate stack space for it anyway
-                assert(paramsize(ep, stackalign) <= REGSIZE);
+            {   assert(psize <= REGSIZE);
+                numpara += REGSIZE;             // allocate stack space for it anyway
             }
             continue;   // goes in register, not stack
         }
@@ -2557,7 +2558,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
         }
-        numpara += paramsize(ep,stackalign);
+        numpara += psize;
     }
 
     if (config.exe == EX_WIN64)
@@ -2587,6 +2588,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
         stackpushsave += numalign;
     }
     assert(stackpush == stackpushsave);
+    if (config.exe == EX_WIN64)
+    {
+        //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
+        assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
+    }
 
     int regsaved[XMM7 + 1];
     memset(regsaved, -1, sizeof(regsaved));
@@ -2749,9 +2755,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     if (config.exe == EX_WIN64)
     {   // Allocate stack space for four entries anyway
         // http://msdn.microsoft.com/en-US/library/ew5tede7(v=vs.80)
-        unsigned sz = 4 * REGSIZE;
-        if (stackpush - stackpushsave < sz)
-        {   sz -= stackpush - stackpushsave;
+        {   unsigned sz = 4 * REGSIZE;
             c = cod3_stackadj(c, sz);
             c = genadjesp(c, sz);
             stackpush += sz;

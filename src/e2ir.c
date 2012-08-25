@@ -46,7 +46,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 typedef ArrayBase<elem> Elems;
 
-elem *addressElem(elem *e, Type *t);
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 
@@ -55,11 +55,16 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
 
 /* If variable var of type typ is a reference
  */
+bool ISREF(Declaration *var, Type *tb)
+{
 #if SARRAYVALUE
-#define ISREF(var, tb) (var->isOut() || var->isRef())
+    return (var->isParameter() && config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)
+            || var->isOut() || var->isRef();
 #else
-#define ISREF(var, tb) ((var->isParameter() && tb->ty == Tsarray) || var->isOut() || var->isRef())
+    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
+            || var->isOut() || var->isRef();
 #endif
+}
 
 /************************************
  * Call a function.
@@ -145,6 +150,14 @@ elem *callfunc(Loc loc,
                     ea = ae->toElem(irs);
                     goto L1;
                 }
+            }
+            if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE)
+            {   /* Copy to a temporary, and make the argument a pointer
+                 * to that temporary.
+                 */
+                ea = arg->toElem(irs);
+                ea = addressElem(ea, arg->type, true);
+                goto L1;
             }
             ea = arg->toElem(irs);
         L1:
@@ -232,13 +245,10 @@ elem *callfunc(Loc loc,
         else
         {
             // make virtual call
-            elem *ev;
-            unsigned vindex;
-
             assert(ethis);
-            ev = el_same(&ethis);
+            elem *ev = el_same(&ethis);
             ev = el_una(OPind, TYnptr, ev);
-            vindex = fd->vtblIndex;
+            unsigned vindex = fd->vtblIndex;
             assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
@@ -336,17 +346,15 @@ if (I32) assert(tysize[TYnptr] == 4);
  * Take address of an elem.
  */
 
-elem *addressElem(elem *e, Type *t)
+elem *addressElem(elem *e, Type *t, bool alwaysCopy)
 {
-    elem **pe;
-
     //printf("addressElem()\n");
 
+    elem **pe;
     for (pe = &e; (*pe)->Eoper == OPcomma; pe = &(*pe)->E2)
         ;
-    if ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind)
-    {   Symbol *stmp;
-        elem *eeq;
+    if (alwaysCopy || ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind))
+    {
         elem *e2 = *pe;
         type *tx;
 
@@ -356,8 +364,8 @@ elem *addressElem(elem *e, Type *t)
             tx = t->toCtype();
         else
             tx = type_fake(e2->Ety);
-        stmp = symbol_genauto(tx);
-        eeq = el_bin(OPeq,e2->Ety,el_var(stmp),e2);
+        Symbol *stmp = symbol_genauto(tx);
+        elem *eeq = el_bin(OPeq,e2->Ety,el_var(stmp),e2);
         if (tybasic(e2->Ety) == TYstruct)
         {
             eeq->Eoper = OPstreq;
