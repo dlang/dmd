@@ -1214,7 +1214,8 @@ elem *Module::toEmodulename()
         // Use this instead so -fPIC will work
         efilename = el_ptr(si);
         efilename = el_bin(OPadd, TYnptr, efilename, el_long(TYuint, 8));
-        efilename = el_una(OPind, TYdarray, efilename);
+        if (config.exe != EX_WIN64)
+            efilename = el_una(OPind, TYdarray, efilename);
 #else
         efilename = el_var(si);
         efilename->Ety = TYdarray;
@@ -1249,7 +1250,7 @@ elem *Module::toEfilename()
         outdata(sfilename);
     }
 
-    efilename = el_var(sfilename);
+    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
     return efilename;
 }
 

@@ -48,15 +48,20 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+typedef ArrayBase<elem> Elems;
 
-elem *addressElem(elem *e, Type *t);
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
-elem *bit_assign(enum OPER op, elem *eb, elem *ei, elem *ev, int result);
-elem *bit_read(elem *eb, elem *ei, int result);
 elem *exp2_copytotemp(elem *e);
 
 #define el_setLoc(e,loc)        ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
+
+bool ISREF(Declaration *var)
+{
+    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
+            || var->isOut() || var->isRef();
+}
 
 /************************************
  * Call a function.
@@ -71,7 +76,7 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Array *arguments)
+        Expressions *arguments)
 {
     elem *ep;
     elem *e;
@@ -89,7 +94,9 @@ elem *callfunc(Loc loc,
         directcall, tret->toChars(), ec, fd);
     printf("ec: "); elem_print(ec);
     if (fd)
-        printf("fd = '%s'\n", fd->toChars());
+        printf("fd = '%s', vtblIndex = %d, isVirtual() = %d\n", fd->toChars(), fd->vtblIndex, fd->isVirtual());
+    if (ehidden)
+    {   printf("ehidden: "); elem_print(ehidden); }
 #endif
 
     t = t->toBasetype();
@@ -122,7 +129,7 @@ elem *callfunc(Loc loc,
         int j = (tf->linkage == LINKd && tf->varargs == 1);
 
         for (size_t i = 0; i < arguments->dim ; i++)
-        {   Expression *arg = (Expression *)arguments->data[i];
+        {   Expression *arg = (*arguments)[i];
             elem *ea;
 
             //printf("\targ[%d]: %s\n", i, arg->toChars());
@@ -141,12 +148,21 @@ elem *callfunc(Loc loc,
                     goto L1;
                 }
             }
+            if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE)
+            {   /* Copy to a temporary, and make the argument a pointer
+                 * to that temporary.
+                 */
+                ea = arg->toElem(irs);
+                ea = addressElem(ea, arg->type, true);
+                goto L1;
+            }
             ea = arg->toElem(irs);
         L1:
             if (tybasic(ea->Ety) == TYstruct)
             {
                 ea = el_una(OPstrpar, TYstruct, ea);
                 ea->ET = ea->E1->ET;
+                assert(ea->ET);
             }
             if (reverse)
                 ep = el_param(ep,ea);
@@ -161,10 +177,11 @@ elem *callfunc(Loc loc,
         {   // Don't have one, so create one
             type *tc;
 
-            if (tf->next->toBasetype()->ty == Tstruct)
-                tc = tf->next->toCtype();
+            Type *tret = tf->next;
+            if (tret->toBasetype()->ty == Tstruct)
+                tc = tret->toCtype();
             else
-                tc = type_fake(tf->next->totym());
+                tc = type_fake(tret->totym());
             Symbol *stmp = symbol_genauto(tc);
             ehidden = el_ptr(stmp);
         }
@@ -226,8 +243,10 @@ elem *callfunc(Loc loc,
             elem *ev = el_same(&ethis);
             ev = el_una(OPind, TYnptr, ev);
             unsigned vindex = fd->vtblIndex;
+            assert((int)vindex >= 0);
 
             // Build *(ev + vindex * 4)
+if (I32) assert(tysize[TYnptr] == 4);
             ec = el_bin(OPadd,TYnptr,ev,el_long(TYsize_t, vindex * tysize[TYnptr]));
             ec = el_una(OPind,TYnptr,ec);
             ec = el_una(OPind,tybasic(sfunc->Stype->Tty),ec);
@@ -237,7 +256,6 @@ elem *callfunc(Loc loc,
     {
         assert(!ethis);
         ethis = getEthis(0, irs, fd);
-
     }
 
     ep = el_param(ep, ethis);
@@ -311,17 +329,15 @@ elem *callfunc(Loc loc,
  * Take address of an elem.
  */
 
-elem *addressElem(elem *e, Type *t)
+elem *addressElem(elem *e, Type *t, bool alwaysCopy)
 {
-    elem **pe;
-
     //printf("addressElem()\n");
 
+    elem **pe;
     for (pe = &e; (*pe)->Eoper == OPcomma; pe = &(*pe)->E2)
         ;
-    if ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind)
-    {   Symbol *stmp;
-        elem *eeq;
+    if (alwaysCopy || ((*pe)->Eoper != OPvar && (*pe)->Eoper != OPind))
+    {
         elem *e2 = *pe;
         type *tx;
 
@@ -331,8 +347,8 @@ elem *addressElem(elem *e, Type *t)
             tx = t->toCtype();
         else
             tx = type_fake(e2->Ety);
-        stmp = symbol_genauto(tx);
-        eeq = el_bin(OPeq,e2->Ety,el_var(stmp),e2);
+        Symbol *stmp = symbol_genauto(tx);
+        elem *eeq = el_bin(OPeq,e2->Ety,el_var(stmp),e2);
         if (tybasic(e2->Ety) == TYstruct)
         {
             eeq->Eoper = OPstreq;
@@ -715,7 +731,7 @@ elem *VarExp::toElem(IRState *irs)
 
             ethis = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, offset));
             e = el_una(OPind, 0, ethis);
-            if ((var->isParameter() && tb->ty == Tsarray) || var->isOut() || var->isRef())
+            if (ISREF(var))
                 goto L2;
             goto L1;
         }
@@ -732,7 +748,7 @@ elem *VarExp::toElem(IRState *irs)
         e = el_var(var->toImport());
         e = el_una(OPind,s->ty(),e);
     }
-    else if ((var->isParameter() && tb->ty == Tsarray) || var->isOut() || var->isRef())
+    else if (ISREF(var))
     {   // Static arrays are really passed as pointers to the array
         // Out parameters are really references
         e = el_var(s);
@@ -1610,7 +1626,7 @@ elem *SymOffExp::toElem(IRState *irs)
             if (!nrvo)
                 soffset += offset;
             e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
-            if ((var->isParameter() && tb->ty == Tsarray) || var->isOut() || var->isRef())
+            if (ISREF(var))
                 e = el_una(OPind, s->ty(), e);
             else if (nrvo)
             {   e = el_una(OPind, TYnptr, e);
@@ -1619,7 +1635,7 @@ elem *SymOffExp::toElem(IRState *irs)
             goto L1;
         }
     }
-    if ((var->isParameter() && tb->ty == Tsarray) || var->isOut() || var->isRef())
+    if (ISREF(var))
     {   // Static arrays are really passed as pointers to the array
         // Out parameters are really references
         e = el_var(s);
