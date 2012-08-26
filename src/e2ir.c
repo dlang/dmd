@@ -416,7 +416,7 @@ elem *array_toPtr(Type *t, elem *e)
 }
 
 /*****************************************
- * Convert array to a dynamic array.
+ * Convert array to a dynamic array suitable as a function argument.
  */
 
 elem *array_toDarray(Type *t, elem *e)
@@ -505,11 +505,13 @@ elem *array_toDarray(Type *t, elem *e)
             e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
             break;
     }
+    if (config.exe == EX_WIN64)
+        e = addressElem(e, Type::tvoid->arrayOf());
     return el_combine(ef, e);
 }
 
 /*****************************************
- * Evaluate elem and convert to dynamic array.
+ * Evaluate elem and convert to dynamic array suitable as a function argument.
  */
 
 elem *eval_Darray(IRState *irs, Expression *e)
@@ -644,6 +646,11 @@ Lagain:
     {
         r = RTLSYM_MEMSET8;
         edim = el_bin(OPmul, TYsize_t, edim, el_long(TYsize_t, sz));
+    }
+
+    if (config.exe == EX_WIN64 && sz > REGSIZE)
+    {
+        evalue = addressElem(evalue, tb);
     }
 
     if (tybasic(evalue->Ety) == TYstruct)
@@ -1791,10 +1798,13 @@ elem *AssertExp::toElem(IRState *irs)
                 assertexp_name = (char *)id;
             }
 
-            efilename = el_var(assertexp_sfilename);
+            efilename = (config.exe == EX_WIN64) ? el_ptr(assertexp_sfilename)
+                                                 : el_var(assertexp_sfilename);
 
             if (msg)
             {   elem *emsg = msg->toElem(irs);
+                if (config.exe == EX_WIN64)
+                    emsg = addressElem(emsg, msg->type);
                 ea = el_var(rtlsym[RTLSYM_DASSERT_MSG]);
                 ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
             }
@@ -2799,6 +2809,8 @@ elem *CatAssignExp::toElem(IRState *irs)
             tb1n->equals(tb2->nextOf()->toBasetype()))
         {   // Append array
             e1 = el_una(OPaddr, TYnptr, e1);
+            if (config.exe == EX_WIN64 && this->e2->type->size(0) > REGSIZE)
+                e2 = addressElem(e2, this->e2->type);
             if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
             {
                 e2 = el_una(OPstrpar, TYstruct, e2);

@@ -2539,13 +2539,17 @@ code *cdfunc(elem *e,regm_t *pretregs)
     {
         elem *ep = parameters[i].e;
         unsigned psize = paramsize(ep, stackalign);
+        if (config.exe == EX_WIN64)
+        {
+            //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
+            assert(psize <= REGSIZE);
+            psize = REGSIZE;
+        }
         //printf("[%d] size = %u, numpara = %d ", i, psize, numpara); WRTYxx(ep->Ety); printf("\n");
         if (fpr.alloc(ep->ET, ep->Ety, &parameters[i].reg, &parameters[i].reg2))
         {
             if (config.exe == EX_WIN64)
-            {   assert(psize <= REGSIZE);
                 numpara += REGSIZE;             // allocate stack space for it anyway
-            }
             continue;   // goes in register, not stack
         }
 
@@ -2557,6 +2561,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
         {   unsigned newnumpara = (numpara + (alignsize - 1)) & ~(alignsize - 1);
             parameters[i].numalign = newnumpara - numpara;
             numpara = newnumpara;
+            assert(config.exe != EX_WIN64);
         }
         numpara += psize;
     }
@@ -2590,7 +2595,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     assert(stackpush == stackpushsave);
     if (config.exe == EX_WIN64)
     {
-        //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
+        printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
     }
 
