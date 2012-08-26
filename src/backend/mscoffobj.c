@@ -791,7 +791,7 @@ void MsCoffObj::term()
 
                 symbol *s = r->targsym;
                 const char *rs = r->rtype == RELaddr ? "addr" : "rel";
-                printf("%d:x%04lx : tseg %d tsym %s REL%s\n", seg, r->offset, r->targseg, s ? s->Sident : "0", rs);
+                //printf("%d:x%04lx : tseg %d tsym %s REL%s\n", seg, r->offset, r->targseg, s ? s->Sident : "0", rs);
                 if (s)
                 {
                     //printf("Relocation\n");
@@ -800,7 +800,7 @@ void MsCoffObj::term()
                     {
                         if (I64)
                         {
-printf("test1\n");
+//printf("test1\n");
 #if 1
                             rel.r_type = (r->rtype == RELrel)
                                     ? IMAGE_REL_AMD64_REL32
