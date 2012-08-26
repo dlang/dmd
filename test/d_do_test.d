@@ -122,7 +122,7 @@ bool findOutputParameter(string file, string token, ref string result, string se
     auto str = file[istart .. iend];
     str = std.string.strip(str);
     str = std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
-    str = std.regex.replace(str, regex(`(?<=[^/]*)/(?=[^()]*\(\d+\):)`, "g"), sep);
+    str = std.regex.replace(str, regex(`(?<=\w\w*)/(?=\w[\w.]*\(\d+\))`, "g"), sep);
 
     result = str ? str : ""; // keep non-null
     return true;
