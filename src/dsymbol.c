@@ -888,7 +888,7 @@ void ScopeDsymbol::multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2)
     }
     else
     {
-        s1->error(loc, "conflicts with %s %s at %s",
+        s1->error(s1->loc, "conflicts with %s %s at %s",
             s2->kind(),
             s2->toPrettyChars(),
             s2->locToChars());
