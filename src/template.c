@@ -40,6 +40,8 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 
 #define LOG     0
 
+int templateParameterLookup(Type *tparam, TemplateParameters *parameters);
+
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
  * on earlier versions of gcc.
@@ -1590,12 +1592,57 @@ Lretry:
         Type *tb = prmtype->toBasetype();
         switch (tb->ty)
         {
-            // Perhaps we can do better with this, see TypeFunction::callMatch()
+            // 6764 fix - TypeAArray may be TypeSArray have not yet run semantic().
             case Tsarray:
-            {   TypeSArray *tsa = (TypeSArray *)tb;
-                dinteger_t sz = tsa->dim->toInteger();
-                if (sz != nfargs - i)
-                    goto Lnomatch;
+            case Taarray:
+            {   // Perhaps we can do better with this, see TypeFunction::callMatch()
+                if (tb->ty == Tsarray)
+                {   TypeSArray *tsa = (TypeSArray *)tb;
+                    dinteger_t sz = tsa->dim->toInteger();
+                    if (sz != nfargs - i)
+                        goto Lnomatch;
+                }
+                else if (tb->ty == Taarray)
+                {   TypeAArray *taa = (TypeAArray *)tb;
+                    Expression *dim = new IntegerExp(loc, nfargs - i, Type::tsize_t);
+
+                    int i = templateParameterLookup(taa->index, parameters);
+                    if (i == -1)
+                    {   Expression *e;
+                        Type *t;
+                        Dsymbol *s;
+                        taa->index->resolve(loc, sc, &e, &t, &s);
+                        if (!e)
+                            goto Lnomatch;
+                        e = e->optimize(WANTvalue | WANTinterpret);
+                        e = e->implicitCastTo(sc, Type::tsize_t);
+                        e = e->optimize(WANTvalue);
+                        if (!dim->equals(e))
+                            goto Lnomatch;
+                    }
+                    else
+                    {   // This code matches code in TypeInstance::deduceType()
+                        TemplateParameter *tprm = parameters->tdata()[i];
+                        TemplateValueParameter *tvp = tprm->isTemplateValueParameter();
+                        if (!tvp)
+                            goto Lnomatch;
+                        Expression *e = (Expression *)dedtypes[i];
+                        if (e)
+                        {
+                            if (!dim->equals(e))
+                                goto Lnomatch;
+                        }
+                        else
+                        {
+                            Type *vt = tvp->valType->semantic(0, sc);
+                            MATCH m = (MATCH)dim->implicitConvTo(vt);
+                            if (!m)
+                                goto Lnomatch;
+                            dedtypes[i] = dim;
+                        }
+                    }
+                }
+                /* fall through */
             }
             case Tarray:
             {   TypeArray *ta = (TypeArray *)tb;
@@ -2313,12 +2360,14 @@ int templateIdentifierLookup(Identifier *id, TemplateParameters *parameters)
 
 int templateParameterLookup(Type *tparam, TemplateParameters *parameters)
 {
-    assert(tparam->ty == Tident);
-    TypeIdentifier *tident = (TypeIdentifier *)tparam;
-    //printf("\ttident = '%s'\n", tident->toChars());
-    if (tident->idents.dim == 0)
+    if (tparam->ty == Tident)
     {
-        return templateIdentifierLookup(tident->ident, parameters);
+        TypeIdentifier *tident = (TypeIdentifier *)tparam;
+        //printf("\ttident = '%s'\n", tident->toChars());
+        if (tident->idents.dim == 0)
+        {
+            return templateIdentifierLookup(tident->ident, parameters);
+        }
     }
     return -1;
 }
