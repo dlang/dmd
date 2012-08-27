@@ -639,10 +639,6 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::init)
     {
-        if (ty == Tvoid)
-            error(loc, "void does not have an initializer");
-        if (ty == Tfunction)
-            error(loc, "function does not have an initializer");
         e = defaultInit(loc);
     }
     else if (ident == Id::mangleof)
