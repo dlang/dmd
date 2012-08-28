@@ -586,7 +586,7 @@ void test8198()
         return f => x => f(n(f)(x));
     }
 
-    auto n = &zero!uint;
+    uint delegate(uint) delegate(uint delegate(uint)) n = &zero!uint;
     foreach (i; 0..10)
     {
         assert(n(x => x + 1)(0) == i);
