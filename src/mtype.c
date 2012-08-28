@@ -5103,6 +5103,13 @@ const char *TypeFunction::kind()
     return "function";
 }
 
+TypeFunction *TypeFunction::copy()
+{
+    TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
+    memcpy(tf, this, sizeof(TypeFunction));
+    return tf;
+}
+
 Type *TypeFunction::syntaxCopy()
 {
     Type *treturn = next ? next->syntaxCopy() : NULL;
@@ -5538,8 +5545,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
      * This can produce redundant copies if inferring return type,
      * as semantic() will get called again on this.
      */
-    TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
-    memcpy(tf, this, sizeof(TypeFunction));
+    TypeFunction *tf = copy();
     if (parameters)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
