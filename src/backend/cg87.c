@@ -3186,11 +3186,10 @@ code *cdscale(elem *e,regm_t *pretregs)
 
 code *neg87(elem *e,regm_t *pretregs)
 {
-        regm_t retregs;
-        code *c1,*c2;
-        int op;
+        //printf("neg87()\n");
 
         assert(*pretregs);
+        int op;
         switch (e->Eoper)
         {   case OPneg:  op = 0xE0;     break;
             case OPabs:  op = 0xE1;     break;
@@ -3201,10 +3200,10 @@ code *neg87(elem *e,regm_t *pretregs)
             default:
                 assert(0);
         }
-        retregs = mST0;
-        c1 = codelem(e->E1,&retregs,FALSE);
+        regm_t retregs = mST0;
+        code *c1 = codelem(e->E1,&retregs,FALSE);
         c1 = genf2(c1,0xD9,op);                 // FCHS/FABS/FSQRT/FSIN/FCOS/FRNDINT
-        c2 = fixresult87(e,mST0,pretregs);
+        code *c2 = fixresult87(e,mST0,pretregs);
         return cat(c1,c2);
 }
 
@@ -3542,10 +3541,16 @@ code *cload87(elem *e, regm_t *pretregs)
 #if __DMC__
 __in
 {
-    assert(I32 && config.inline8087);
-    elem_debug(e);
-    assert(*pretregs & (mST01 | mPSW));
-    assert(!(*pretregs & ~(mST01 | mPSW)));
+    //printf("e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
+    //elem_print(e);
+    assert(!I16);
+    if (I32)
+    {
+        assert(config.inline8087);
+        elem_debug(e);
+        assert(*pretregs & (mST01 | mPSW));
+        assert(!(*pretregs & ~(mST01 | mPSW)));
+    }
 }
 __out (result)
 {

@@ -2595,7 +2595,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
     assert(stackpush == stackpushsave);
     if (config.exe == EX_WIN64)
     {
-        printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
+        //printf("np = %d, numpara = %d, stackpush = %d\n", np, numpara, stackpush);
         assert(numpara == ((np < 4) ? 4 * REGSIZE : np * REGSIZE));
     }
 

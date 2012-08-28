@@ -4247,6 +4247,7 @@ code *cdabs( elem *e, regm_t *pretregs)
   tym_t tyml;
   code *c,*c1,*cg;
 
+  //printf("cdabs(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
   if (*pretregs == 0)
         return codelem(e->E1,pretregs,FALSE);
   tyml = tybasic(e->E1->Ety);
