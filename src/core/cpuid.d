@@ -589,7 +589,7 @@ void getCpuInfo0B()
 void cpuidX86()
 {
     char * venptr = vendorID.ptr;
-    uint a, b, c, d, a2, ext;
+    uint a, b, c, d, a2;
     version(D_InlineAsm_X86)
     {
         asm {
@@ -637,15 +637,20 @@ void cpuidX86()
     features = d;
     miscfeatures = c;
 
-    asm
+    if (max_cpuid >= 7)
     {
-        mov EAX, 7; // Structured extended feature leaf.
-        mov ECX, 0; // Main leaf.
-        cpuid;
-        mov ext, EBX; // HLE, AVX2, RTM, etc.
-    }
+        uint ext;
 
-    extfeatures = ext;
+        asm
+        {
+            mov EAX, 7; // Structured extended feature leaf.
+            mov ECX, 0; // Main leaf.
+            cpuid;
+            mov ext, EBX; // HLE, AVX2, RTM, etc.
+        }
+
+        extfeatures = ext;
+    }
 
     if (miscfeatures & OSXSAVE_BIT)
     {
