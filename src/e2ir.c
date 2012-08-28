@@ -123,6 +123,7 @@ elem *callfunc(Loc loc,
         ty = fd->toSymbol()->Stype->Tty;
     reverse = tyrevfunc(ty);
     ep = NULL;
+    op = (ec->Eoper == OPvar) ? intrinsic_op(ec->EV.sp.Vsym->Sident) : -1;
     if (arguments)
     {
         // j=1 if _arguments[] is first argument
@@ -148,7 +149,7 @@ elem *callfunc(Loc loc,
                     goto L1;
                 }
             }
-            if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE)
+            if (config.exe == EX_WIN64 && arg->type->size(arg->loc) > REGSIZE && op == -1)
             {   /* Copy to a temporary, and make the argument a pointer
                  * to that temporary.
                  */
@@ -209,10 +210,9 @@ elem *callfunc(Loc loc,
 
     if (fd && fd->isMember2())
     {
-        Symbol *sfunc;
-        AggregateDeclaration *ad;
+        assert(op == -1);       // members should not be intrinsics
 
-        ad = fd->isThis();
+        AggregateDeclaration *ad = fd->isThis();
         if (ad)
         {
             ethis = ec;
@@ -226,7 +226,7 @@ elem *callfunc(Loc loc,
             // Evaluate ec for side effects
             eside = ec;
         }
-        sfunc = fd->toSymbol();
+        Symbol *sfunc = fd->toSymbol();
 
         if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
@@ -265,7 +265,7 @@ if (I32) assert(tysize[TYnptr] == 4);
     tyret = tret->totym();
 
     // Look for intrinsic functions
-    if (ec->Eoper == OPvar && (op = intrinsic_op(ec->EV.sp.Vsym->Sident)) != -1)
+    if (ec->Eoper == OPvar && op != -1)
     {
         el_free(ec);
         if (OTbinary(op))
