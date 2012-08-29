@@ -1,4 +1,4 @@
-/**
+﻿/**
  * The thread module provides support for thread creation and management.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
@@ -694,7 +694,7 @@ class Thread
             // Solution: Create the thread in suspended state and then
             //       add and resume it with slock acquired
             assert(m_sz <= uint.max, "m_sz must be less than or equal to uint.max");
-            m_hndl = cast(HANDLE) _beginthreadex( null, m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
+            m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
             if( cast(size_t) m_hndl == 0 )
                 throw new ThreadException( "Error creating thread" );
         }
