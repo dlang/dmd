@@ -2670,14 +2670,14 @@ CEXTERN elem * elstruct(elem *e)
                     goto L1;
                 }
             }
-            if (config.exe == EX_WIN64)
-                goto Ldefault;
-            if (targ1 && !targ2)
-                goto L1;
             if (I64 && ty == TYstruct)
             {   tym = TYucent;
                 goto L1;
             }
+            if (config.exe == EX_WIN64)
+                goto Ldefault;
+            if (targ1 && !targ2)
+                goto L1;
             goto Ldefault;
 
         L1:
