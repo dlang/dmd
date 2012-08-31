@@ -3923,6 +3923,8 @@ elem *CastExp::toElem(IRState *irs)
 
         if (fsize != tsize)
         {   // Array element sizes do not match, so we must adjust the dimensions
+            if (config.exe == EX_WIN64)
+                e = addressElem(e, t, true);
             elem *ep = el_params(e, el_long(TYsize_t, fsize), el_long(TYsize_t, tsize), NULL);
             e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCAST]), ep);
         }
