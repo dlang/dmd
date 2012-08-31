@@ -334,6 +334,9 @@ void outdata(symbol *s)
 #if ELFOBJ || MACHOBJ
         || s->Sclass == SCstatic
 #endif
+#if OMFOBJ
+        || (s->Sclass == SCstatic && I64)
+#endif
         )
         objmod->pubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
     assert(s->Sseg != UNKNOWN);

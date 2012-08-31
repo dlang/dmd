@@ -2542,6 +2542,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
         if (config.exe == EX_WIN64)
         {
             //printf("[%d] size = %u, numpara = %d ep = %p ", i, psize, numpara, ep); WRTYxx(ep->Ety); printf("\n");
+#ifdef DEBUG
+            if (psize > REGSIZE) elem_print(e);
+#endif
             assert(psize <= REGSIZE);
             psize = REGSIZE;
         }

@@ -68,8 +68,12 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
             break;
 
         default:
-            error(loc, "MS-Coff object module %s has magic = %x, should be %x",
-                    module_name, header->f_magic, IMAGE_FILE_MACHINE_AMD64);
+            if (buf[0] == 0x80)
+                error(loc, "Object module %s is 32 bit OMF, but it should be 64 bit MS-Coff",
+                        module_name);
+            else
+                error(loc, "MS-Coff object module %s has magic = %x, should be %x",
+                        module_name, header->f_magic, IMAGE_FILE_MACHINE_AMD64);
             return;
     }
 

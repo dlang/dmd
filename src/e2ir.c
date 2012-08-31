@@ -781,7 +781,7 @@ elem *SymbolExp::toElem(IRState *irs)
         nrvo = 1;
     }
 
-    if (s->Sclass == SCauto || s->Sclass == SCparameter)
+    if (s->Sclass == SCauto || s->Sclass == SCparameter || s->Sclass == SCshadowreg)
     {
         if (fd && fd != irs->getFunc())
         {   // 'var' is a variable in an enclosing function.
@@ -941,7 +941,7 @@ elem *VarExp::toElem(IRState *irs)
         nrvo = 1;
     }
 
-    if (s->Sclass == SCauto || s->Sclass == SCparameter)
+    if (s->Sclass == SCauto || s->Sclass == SCparameter || s->Sclass == SCshadowreg)
     {
         if (fd && fd != irs->getFunc())
         {   // 'var' is a variable in an enclosing function.
@@ -1064,7 +1064,7 @@ elem *SymOffExp::toElem(IRState *irs)
     assert(!var->isImportedSymbol());
 
     // This code closely parallels that in VarExp::toElem()
-    if (s->Sclass == SCauto || s->Sclass == SCparameter)
+    if (s->Sclass == SCauto || s->Sclass == SCparameter || s->Sclass == SCshadowreg)
     {
         if (fd && fd != irs->getFunc())
         {   // 'var' is a variable in an enclosing function.

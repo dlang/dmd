@@ -51,6 +51,8 @@ elem *callfunc(Loc loc,
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
 StructDeclaration *needsPostblit(Type *t);
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+
 
 #define elem_setLoc(e,loc)      ((e)->Esrcpos.Sfilename = (char *)(loc).filename, \
                                  (e)->Esrcpos.Slinnum = (loc).linnum)
@@ -1010,7 +1012,9 @@ void SwitchStatement::toIR(IRState *irs)
         /* Call:
          *      _d_switch_string(string[] si, string econd)
          */
-        elem *eparam = el_param(econd, el_var(si));
+        if (config.exe == EX_WIN64)
+            econd = addressElem(econd, condition->type, true);
+        elem *eparam = el_param(econd, (config.exe == EX_WIN64) ? el_ptr(si) : el_var(si));
         switch (condition->type->nextOf()->ty)
         {
             case Tchar:
