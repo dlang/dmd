@@ -523,7 +523,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int reverse;
     int has_arguments;
 
-    printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+    //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
     EEcontext *ee = env->getEEcontext();
