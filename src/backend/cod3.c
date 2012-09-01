@@ -3716,6 +3716,10 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     objmod->pubdef(cseg,sthunk,sthunk->Soffset);
 #endif
+#if TARGET_WINDOS
+    if (config.exe == EX_WIN64)
+        objmod->pubdef(cseg,sthunk,sthunk->Soffset);
+#endif
     searchfixlist(sthunk);              /* resolve forward refs */
 }
 

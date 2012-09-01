@@ -429,6 +429,7 @@ Symbol *FuncDeclaration::toThunkSymbol(int offset)
     s->Stype->Tcount++;
 #endif
     sthunk = symbol_generate(SCstatic, csym->Stype);
+    //printf("FuncDeclaration::toThunkSymbol(%s)\n", sthunk->Sident);
     sthunk->Sflags |= SFLimplem;
     cod3_thunk(sthunk, csym, 0, TYnptr, -offset, -1, 0);
     return sthunk;

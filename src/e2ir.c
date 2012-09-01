@@ -158,6 +158,11 @@ elem *callfunc(Loc loc,
                 goto L1;
             }
             ea = arg->toElem(irs);
+            if (config.exe == EX_WIN64 && tybasic(ea->Ety) == TYcfloat)
+            {   /* Treat a cfloat like it was a struct { float re,im; }
+                 */
+                ea->Ety = TYllong;
+            }
         L1:
             if (tybasic(ea->Ety) == TYstruct)
             {
