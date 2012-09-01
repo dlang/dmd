@@ -6,12 +6,15 @@
  * Authors:   Robert Klotzner
  */
 module core.sys.linux.sys.xattr;
+
 import core.sys.posix.sys.types;
 
 version (linux):
 
 extern (C):
+@system:
 nothrow:
+
 enum {
 	XATTR_CREATE=1, /* set value, fail if attr already exists.  */
 	XATTR_REPLACE=2 /* set value, fail if attr does not exist.  */
