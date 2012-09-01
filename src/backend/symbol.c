@@ -287,6 +287,7 @@ symbol * symbol_generate(int sclass,type *t)
 {   char name[10];
     static int tmpnum;
 
+    //printf("symbol_generate(_TMP%d)\n", tmpnum);
     sprintf(name,"_TMP%d",tmpnum++);
 #ifdef DEBUG
     symbol *s = symbol_name(name,sclass,t);

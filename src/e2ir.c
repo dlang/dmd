@@ -160,6 +160,11 @@ elem *callfunc(Loc loc,
                 goto L1;
             }
             ea = arg->toElem(irs);
+            if (config.exe == EX_WIN64 && tybasic(ea->Ety) == TYcfloat)
+            {   /* Treat a cfloat like it was a struct { float re,im; }
+                 */
+                ea->Ety = TYllong;
+            }
         L1:
             if (tybasic(ea->Ety) == TYstruct || tybasic(ea->Ety) == TYarray)
             {
@@ -213,10 +218,7 @@ elem *callfunc(Loc loc,
 
     if (fd && fd->isMember2())
     {
-        Symbol *sfunc;
-        AggregateDeclaration *ad;
-
-        ad = fd->isThis();
+        AggregateDeclaration *ad = fd->isThis();
         if (ad)
         {
             ethis = ec;
@@ -230,7 +232,7 @@ elem *callfunc(Loc loc,
             // Evaluate ec for side effects
             eside = ec;
         }
-        sfunc = fd->toSymbol();
+        Symbol *sfunc = fd->toSymbol();
 
         if (!fd->isVirtual() ||
             directcall ||               // BUG: fix

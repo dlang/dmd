@@ -47,8 +47,8 @@ struct ObjSymbol
  */
 int ObjSymbol_cmp(const void *p, const void *q)
 {
-    ObjSymbol *s1 = (ObjSymbol *)p;
-    ObjSymbol *s2 = (ObjSymbol *)q;
+    ObjSymbol *s1 = *(ObjSymbol **)p;
+    ObjSymbol *s2 = *(ObjSymbol **)q;
     return strcmp(s1->name, s2->name);
 }
 
@@ -198,6 +198,16 @@ struct ObjModule
     unsigned file_mode;
     int scan;                   // 1 means scan for symbols
 };
+
+/*********
+ * Do module offset comparison of ObjSymbol's for qsort()
+ */
+int ObjSymbol_offset_cmp(const void *p, const void *q)
+{
+    ObjSymbol *s1 = *(ObjSymbol **)p;
+    ObjSymbol *s2 = *(ObjSymbol **)q;
+    return s1->om->offset - s2->om->offset;
+}
 
 struct Header
 {
@@ -709,10 +719,14 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     sputl(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
+    // Sort objsymbols[] in module offset order
+    qsort(objsymbols.data, objsymbols.dim, sizeof(objsymbols.data[0]), &ObjSymbol_offset_cmp);
+
     unsigned long lastoffset;
     for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
+        //printf("objsymbols[%d] = '%s', offset = %u\n", i, os->name, os->om->offset);
         if (i)
             // Should be sorted in module order
             assert(lastoffset <= os->om->offset);
@@ -775,7 +789,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     if (libbuf->offset & 1)
         libbuf->writeByte('\n');
 
-    printf("libbuf %x longnames %x\n", (int)libbuf->offset, (int)LongnamesMemberOffset);
+    //printf("libbuf %x longnames %x\n", (int)libbuf->offset, (int)LongnamesMemberOffset);
     assert(libbuf->offset == LongnamesMemberOffset);
 
     // header
