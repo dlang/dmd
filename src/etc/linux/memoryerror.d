@@ -235,7 +235,11 @@ version(X86_64) {
 	
 	// The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
 	REG_TYPE[2] restore_registers() {
-		return [saved_EAX, saved_EDX];
+		REG_TYPE[2] restore;
+		restore[0] = saved_EAX;
+		restore[1] = saved_EDX;
+		
+		return restore;
 	}
 }
 
