@@ -116,6 +116,7 @@ struct syment
 /* Values for n_sclass  */
 #define IMAGE_SYM_CLASS_EXTERNAL        2
 #define IMAGE_SYM_CLASS_STATIC          3
+#define IMAGE_SYM_CLASS_LABEL           6
 #define IMAGE_SYM_CLASS_FUNCTION        101
 #define IMAGE_SYM_CLASS_FILE            103
 
