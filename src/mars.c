@@ -1012,6 +1012,8 @@ int tryMain(int argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("unittest");
     if (global.params.useAssert)
         VersionCondition::addPredefinedGlobalIdent("assert");
+    if (noboundscheck)
+        VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 #endif
 
     // Initialization
