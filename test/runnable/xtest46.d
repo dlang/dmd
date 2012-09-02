@@ -53,6 +53,15 @@ void test3()
     {
         printf("no unittest!\n");
     }
+
+    version (assert)
+    {
+        printf("assert!\n");
+    }
+    else
+    {
+        printf("no assert!\n");
+    }
 }
 
 

@@ -944,10 +944,13 @@ Condition *Parser::parseVersionCondition()
 #if DMDV2
         /* Allow:
          *    version (unittest)
-         * even though unittest is a keyword
+         *    version (assert)
+         * even though they are keywords
          */
         else if (token.value == TOKunittest)
             id = Lexer::idPool(Token::toChars(TOKunittest));
+        else if (token.value == TOKassert)
+            id = Lexer::idPool(Token::toChars(TOKassert));
 #endif
         else
             error("identifier or integer expected, not %s", token.toChars());
