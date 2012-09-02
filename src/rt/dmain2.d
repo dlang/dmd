@@ -30,12 +30,13 @@ version (Windows)
 
     extern (Windows) alias int function() FARPROC;
     extern (Windows) FARPROC    GetProcAddress(void*, in char*);
-    extern (Windows) void*      LoadLibraryA(in char*);
+    extern (Windows) void*      LoadLibraryW(in wchar_t*);
     extern (Windows) int        FreeLibrary(void*);
     extern (Windows) void*      LocalFree(void*);
     extern (Windows) wchar_t*   GetCommandLineW();
     extern (Windows) wchar_t**  CommandLineToArgvW(wchar_t*, int*);
     extern (Windows) export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int*);
+    extern (Windows) export int MultiByteToWideChar(uint, uint, in char*, int, wchar_t*, int);
     extern (Windows) int        IsDebuggerPresent();
     pragma(lib, "shell32.lib"); // needed for CommandLineToArgvW
 }
@@ -121,20 +122,37 @@ extern (C) void* rt_loadLibrary(in char[] name)
 {
     version (Windows)
     {
+        if (name.length == 0) return null;
         // Load a DLL at runtime
-        char[260] temp = void;
-        temp[0 .. name.length] = name[];
-        temp[name.length] = cast(char) 0;
-        // BUG: LoadLibraryA() call calls rt_init(), which fails if proxy is not set!
-        void* ptr = LoadLibraryA(temp.ptr);
-        if (ptr is null)
-            return ptr;
-        gcSetFn gcSet = cast(gcSetFn) GetProcAddress(ptr, "gc_setProxy");
+        enum CP_UTF8 = 65001;
+        auto len = MultiByteToWideChar(
+            CP_UTF8, 0, name.ptr, name.length, null, 0);
+        if (len == 0)
+            return null;
+        
+        auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
+        if (buf is null)
+            return null;
+        scope (exit)
+            free(buf);
+        
+        len = MultiByteToWideChar(
+            CP_UTF8, 0, name.ptr, name.length, buf, len);
+        if (len == 0)
+            return null;
+        
+        buf[len] = '\0';
+        
+        // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
+        auto mod = LoadLibraryW(buf);
+        if (mod is null)
+            return mod;
+        gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
         if (gcSet !is null)
         {   // BUG: Set proxy, but too late
             gcSet(gc_getProxy());
         }
-        return ptr;
+        return mod;
 
     }
     else version (Posix)
