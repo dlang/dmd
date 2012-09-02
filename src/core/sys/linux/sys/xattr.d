@@ -21,10 +21,15 @@ enum {
 }
 
 enum XATTR_OS2_PREFIX = "os2.";
+enum XATTR_OS2_PREFIX_LEN = XATTR_OS2_PREFIX.length;
 enum XATTR_SECURITY_PREFIX = "security.";
+enum XATTR_SECURITY_PREFIX_LEN = XATTR_SECURITY_PREFIX.length;
 enum XATTR_SYSTEM_PREFIX = "system.";
+enum XATTR_SYSTEM_PREFIX_LEN = XATTR_SYSTEM_PREFIX.length;
 enum XATTR_TRUSTED_PREFIX = "trusted.";
+enum XATTR_TRUSTED_PREFIX_LEN = XATTR_TRUSTED_PREFIX.length;
 enum XATTR_USER_PREFIX = "user.";
+enum XATTR_USER_PREFIX_LEN = XATTR_USER_PREFIX.length;
 
 /* Security namespace */
 enum XATTR_SELINUX_SUFFIX = "selinux.";
