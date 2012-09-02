@@ -131,6 +131,8 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
         {   case IMAGE_SYM_DEBUG:
                 continue;
             case IMAGE_SYM_ABSOLUTE:
+                if (strcmp(p, "@comp.id") == 0)
+                    continue;
                 break;
             case IMAGE_SYM_UNDEFINED:
                 // A non-zero value indicates a common block
@@ -146,15 +148,15 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
             case IMAGE_SYM_CLASS_EXTERNAL:
                 break;
             case IMAGE_SYM_CLASS_STATIC:
-                if (n->n_value == 0)            // if its a section name
+                if (n->n_value == 0)            // if it's a section name
                     continue;
                 break;
             case IMAGE_SYM_CLASS_FUNCTION:
-                continue;
             case IMAGE_SYM_CLASS_FILE:
+            case IMAGE_SYM_CLASS_LABEL:
                 continue;
             default:
-                break;
+                continue;
         }
         (*pAddSymbol)(pctx, p, 1);
     }

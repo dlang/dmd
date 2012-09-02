@@ -168,6 +168,7 @@ void LibMSCoff::addLibrary(void *buf, size_t buflen)
 /*****************************************************************************/
 /*****************************************************************************/
 
+// Little endian
 void sputl(int value, void* buffer)
 {
     unsigned char *p = (unsigned char*)buffer;
@@ -177,10 +178,28 @@ void sputl(int value, void* buffer)
     p[0] = (unsigned char)(value);
 }
 
+// Little endian
 int sgetl(void* buffer)
 {
     unsigned char *p = (unsigned char*)buffer;
     return (((((p[3] << 8) | p[2]) << 8) | p[1]) << 8) | p[0];
+}
+
+// Big endian
+void sputl_big(int value, void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    p[0] = (unsigned char)(value >> 24);
+    p[1] = (unsigned char)(value >> 16);
+    p[2] = (unsigned char)(value >> 8);
+    p[3] = (unsigned char)(value);
+}
+
+// Big endian
+int sgetl_big(void* buffer)
+{
+    unsigned char *p = (unsigned char*)buffer;
+    return (((((p[0] << 8) | p[1]) << 8) | p[2]) << 8) | p[3];
 }
 
 
@@ -621,6 +640,8 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     printf("LibElf::WriteLibToBuffer()\n");
 #endif
 
+    assert(sizeof(Header) == 60);
+
     /************* Scan Object Modules for Symbols ******************/
 
     for (size_t i = 0; i < objmodules.dim; i++)
@@ -716,7 +737,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     libbuf->write(&h, sizeof(h));
 
     char buf[4];
-    sputl(objsymbols.dim, buf);
+    sputl_big(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
     // Sort objsymbols[] in module offset order
@@ -731,7 +752,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
             // Should be sorted in module order
             assert(lastoffset <= os->om->offset);
         lastoffset = os->om->offset;
-        sputl(lastoffset, buf);
+        sputl_big(lastoffset, buf);
         libbuf->write(buf, 4);
     }
 
