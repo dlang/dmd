@@ -100,6 +100,7 @@ MANIFEST= \
 	src/core/sys/freebsd/sys/event.d \
 	\
 	src/core/sys/linux/execinfo.d \
+	src/core/sys/linux/sys/xattr.d \
 	\
 	src/core/sys/osx/execinfo.d \
 	src/core/sys/osx/pthread.d \
@@ -463,6 +464,7 @@ COPY=\
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
 	$(IMPDIR)/core/sys/linux/execinfo.d \
+	$(IMPDIR)/core/sys/linux/sys/xattr.d \
 	\
 	$(IMPDIR)/core/sys/osx/execinfo.d \
 	$(IMPDIR)/core/sys/osx/pthread.d \
@@ -565,6 +567,7 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
 	-mkdir -p $(IMPDIR)/core/sys/linux
+	-mkdir -p $(IMPDIR)/core/sys/linux/sys
 
 copy: $(COPY)
 
