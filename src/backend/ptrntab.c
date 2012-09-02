@@ -112,6 +112,10 @@ OPTABLE0(RDPMC,   0x0f33, _I386 | _modaxdx);
 OPTABLE0(RDTSC,   0x0f31, _I386 | _modaxdx);
 OPTABLE0(WRMSR,   0x0f30, _I386);
 OPTABLE0(RSM,     0x0faa,_i64_bit | _I386);
+OPTABLE0(XACQUIRE, 0xf2, _I386);
+OPTABLE0(XRELEASE, 0xf3, _I386);
+OPTABLE0(XEND, 0x0f01d5, _I386);
+OPTABLE0(XTEST, 0x0f01d6, _I386);
 
 //
 // Now come the one operand instructions
@@ -396,6 +400,17 @@ PTRNTAB1  aptb1CMPXCH8B[] = /* CMPXCH8B */ {
 
 PTRNTAB1  aptb1CMPXCH16B[] = /* CMPXCH16B */ {
     { 0x0fc7, _1 | _modaxdx | _64_bit, _m64 },
+        { ASM_END }
+};
+
+PTRNTAB1 aptb1XABORT[]= /* XABORT */ {
+        { 0xc6f8,   _I386 | _modax, _imm8 },
+        { ASM_END }
+};
+
+PTRNTAB1 aptb1XBEGIN[] = /* XBEGIN */ {
+        { 0x0fc8,   _I386, _rel16 },
+        { 0x0fc8,   _I386, _rel32 },
         { ASM_END }
 };
 
@@ -5654,14 +5669,19 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("wrfsbase",       1,              (P) aptb1WRFSBASE )             \
         X("wrgsbase",       1,              (P) aptb1WRGSBASE )             \
         X("wrmsr",          0,              aptb0WRMSR )                    \
+        X("xabort",         1,              (P) aptb1XABORT )               \
+        X("xacquire",       0,              aptb0XACQUIRE )                 \
         X("xadd",           2,              (P) aptb2XADD )                 \
+        X("xbegin",         ITjump | 1,     (P) aptb1XBEGIN )               \
         X("xchg",           2,              (P) aptb2XCHG )                 \
+        X("xend",           0,              aptb0XEND )                     \
         X("xgetbv",         0,              aptb0XGETBV)                    \
         X("xlat",           ITopt | 1,      (P) aptb1XLAT )                 \
         X("xlatb",          0,              aptb0XLATB )                    \
         X("xor",            2,              (P) aptb2XOR )                  \
         X("xorpd",          2,              (P) aptb2XORPD )                \
         X("xorps",          2,              (P) aptb2XORPS )                \
+        X("xrelease",       0,              aptb0XRELEASE )                 \
         X("xrstor",         ITfloat | 1,    (P) aptb1XRSTOR )               \
         X("xrstor64",       ITfloat | 1,    (P) aptb1XRSTOR64 )             \
         X("xsave",          ITfloat | 1,    (P) aptb1XSAVE )                \
@@ -5669,6 +5689,7 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("xsaveopt",       ITfloat | 1,    (P) aptb1XSAVEOPT )             \
         X("xsaveopt64",     ITfloat | 1,    (P) aptb1XSAVEOPT64 )           \
         X("xsetbv",         0,              aptb0XSETBV)                    \
+        X("xtest",          0,              aptb0XTEST )                    \
 
 #endif
 
