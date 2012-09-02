@@ -102,7 +102,7 @@ version(X86_64) {
 	
 	// All handler functions must be called with faulting address in RDI and original RIP in RSI.
 	
-	// This functionis called when the segfault's cause is to call an invalid function pointer.
+	// This function is called when the segfault's cause is to call an invalid function pointer.
 	void sigsegv_code_handler() {
 		asm {
 			naked;
@@ -190,7 +190,7 @@ version(X86_64) {
 	
 	// All handler functions must be called with faulting address in EAX and original EIP in EDX.
 	
-	// This functionis called when the segfault's cause is to call an invalid function pointer.
+	// This function is called when the segfault's cause is to call an invalid function pointer.
 	void sigsegv_code_handler() {
 		asm {
 			naked;
@@ -258,7 +258,7 @@ void sigsegv_userspace_process(void* address) {
 public :
 
 /**
- * Thrown on posix system when a signal is recieved. Is only throw for SIGSEGV.
+ * Thrown on POSIX systems when a SIGSEGV signal is received.
  */
 class InvalidPointerError : Error {
 	this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
@@ -271,7 +271,7 @@ class InvalidPointerError : Error {
 }
 
 /**
- * Throw on null pointer dereferences.
+ * Thrown on null pointer dereferences.
  */
 class NullPointerError : InvalidPointerError {
 	this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
