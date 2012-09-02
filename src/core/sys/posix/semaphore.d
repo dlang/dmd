@@ -64,7 +64,17 @@ else version( OSX )
 }
 else version( FreeBSD )
 {
-    alias void* sem_t;
+    // FBSD-9.0 definition
+    struct sem_t
+    {
+        uint _magic;
+        struct _usem
+        {
+            shared uint _has_waiters;
+            shared uint _count;
+            uint _flags;
+        } _usem _kern;
+    }
 
     enum SEM_FAILED = cast(sem_t*) null;
 }
