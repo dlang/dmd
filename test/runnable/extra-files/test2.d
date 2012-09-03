@@ -1,7 +1,7 @@
 
 import object;
 import std.c.stdio;
-import std.string;
+import std.algorithm;
 
 /* ================================ */
 
@@ -280,7 +280,7 @@ void test13()
     char[] s2;
 
     s2 = tolower13(s1);
-    assert(std.string.cmp(s2, "fol") == 0);
+    assert(std.algorithm.cmp(s2, "fol") == 0);
     assert(s2 == s1);
 }
 

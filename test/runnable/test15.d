@@ -1,5 +1,6 @@
 // REQUIRED_ARGS:
 
+import std.array;
 import core.stdc.math : cos, fabs, sin, sqrt, rint;
 import core.vararg;
 import std.math: rndtol;
@@ -359,7 +360,7 @@ void test25()
 
 void test26()
 {
-    string[] instructions = std.string.split("a;b;c", ";");
+    string[] instructions = std.array.split("a;b;c", ";");
 
     foreach(ref string instr; instructions)
     {
