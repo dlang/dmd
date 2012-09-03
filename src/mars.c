@@ -1010,6 +1010,10 @@ int tryMain(int argc, char *argv[])
 #if DMDV2
     if (global.params.useUnitTests)
         VersionCondition::addPredefinedGlobalIdent("unittest");
+    if (global.params.useAssert)
+        VersionCondition::addPredefinedGlobalIdent("assert");
+    if (noboundscheck)
+        VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 #endif
 
     // Initialization

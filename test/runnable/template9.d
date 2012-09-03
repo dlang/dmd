@@ -307,6 +307,15 @@ void test2246(){
 }
 
 /**********************************/
+// 2296
+
+void foo2296(uint D)(int[D] i...){}
+void test2296()
+{
+    foo2296(1, 2, 3);
+}
+
+/**********************************/
 // 1684
 
 template Test1684( uint memberOffset ){}
@@ -741,6 +750,26 @@ void test6994()
     foo.get!int();      // OK
     foo.func1!int();    // OK
     foo.func2!int();    // NG
+}
+
+/**********************************/
+// 6764
+
+enum N6764 = 1; //use const for D1
+
+alias size_t[N6764] T6764; //workaround
+void f6764()(T6764 arr...) { }
+
+void g6764()(size_t[1] arr...) { }
+
+void h6764()(size_t[N6764] arr...) { }
+
+void test6764()
+{
+    f6764(0);    //good
+    g6764(0);    //good
+    h6764!()(0); //good
+    h6764(0);    //Error: template main.f() does not match any function template declaration
 }
 
 /**********************************/
@@ -1482,6 +1511,7 @@ int main()
     test3608();
     test6404();
     test2246();
+    test2296();
     bug4984();
     test2579();
     test5886();
@@ -1499,6 +1529,7 @@ int main()
     test6780();
     test6891();
     test6994();
+    test6764();
     test3467();
     test4413();
     test5525();

@@ -1002,6 +1002,25 @@ void test8133()
 }
 
 /**************************************/
+// 8522
+
+struct Point8522
+{
+    bool opEquals(R)(R rhs) { return true; }
+    bool opEquals(R)(R rhs) const { return true; }
+}
+
+void test8522()
+{
+    Point8522 mp;
+    const Point8522 cp;
+    assert(mp == mp);
+    assert(mp == cp);
+    assert(cp == mp);   // doesn't work
+    assert(cp == cp);   // doesn't work
+}
+
+/**************************************/
 
 int main()
 {
@@ -1026,6 +1045,7 @@ int main()
     test4953d();
     test4993();
     test8133();
+    test8522();
 
     printf("Success\n");
     return 0;
