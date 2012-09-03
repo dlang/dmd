@@ -566,7 +566,6 @@ copydir:
 	-mkdir -p $(IMPDIR)/core/sys/posix/netinet
 	-mkdir -p $(IMPDIR)/core/sys/osx/mach
 	-mkdir -p $(IMPDIR)/core/sys/freebsd/sys
-	-mkdir -p $(IMPDIR)/core/sys/linux
 	-mkdir -p $(IMPDIR)/core/sys/linux/sys
 
 copy: $(COPY)
