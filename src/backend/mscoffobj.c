@@ -578,7 +578,19 @@ void build_syment_table()
 
         union auxent aux;
         memset(&aux, 0, sizeof(aux));
-        aux.x_section.length = psechdr->s_size;
+
+        // s_size is not set yet
+        //aux.x_section.length = psechdr->s_size;
+        if (pseg->SDbuf && pseg->SDbuf->size())
+            aux.x_section.length = pseg->SDbuf->size();
+        else
+            aux.x_section.length = pseg->SDoffset;
+
+        if (pseg->SDrel)
+            aux.x_section.NumberOfRelocations = pseg->SDrel->size() / sizeof(struct Relocation);
+
+        if (psechdr->s_flags & IMAGE_SCN_LNK_COMDAT)
+            aux.x_section.Selection = IMAGE_COMDAT_SELECT_ANY;
 
         syment_buf->write(&aux, sizeof(aux));
         //printf("%d %d %d %d %d %d\n", sizeof(aux.x_fd), sizeof(aux.x_bf), sizeof(aux.x_ef),
@@ -1418,7 +1430,7 @@ segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
         if (!(flags & IMAGE_SCN_LNK_COMDAT) &&
             strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
         {
-            printf("\t%s\n", seg);
+            printf("\t%s\n", sectname);
             return seg;         // return existing segment
         }
     }
