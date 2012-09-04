@@ -61,6 +61,9 @@
  */
 module core.cpuid;
 
+@trusted:
+nothrow:
+
 // If optimizing for a particular processor, it is generally better
 // to identify based on features rather than model. NOTE: Normally
 // it's only worthwhile to optimise for the latest Intel and AMD CPU,
@@ -112,6 +115,15 @@ struct CacheInfo
 }
 
 public:
+    /// $(RED Scheduled for deprecation. Please use $(D dataCaches) instead.)
+    // Note: When we deprecate it, we simply make it private.
+    __gshared CacheInfo[5] datacache;
+
+    @property {
+    /// The data caches. If there are fewer than 5 physical caches levels,
+    /// the remaining levels are set to size_t.max (== entire memory space)
+    const(CacheInfo)[5] dataCaches() { return datacache; }
+
     /// Returns vendor string, for display purposes only.
     /// Do NOT use this to determine features!
     /// Note that some CPUs have programmable vendorIDs.
@@ -119,10 +131,6 @@ public:
     /// Returns processor string, for display purposes only
     string processor()  {return processorName;}
 
-    /// The data caches. If there are fewer than 5 physical caches levels,
-    /// the remaining levels are set to size_t.max (== entire memory space)
-    __gshared CacheInfo[5] datacache;
-    @property {
     /// Does it have an x87 FPU on-chip?
     bool x87onChip()    {return (features&FPU_BIT)!=0;}
     /// Is MMX supported?
@@ -161,6 +169,12 @@ public:
     bool fma()          {return avx() && (miscfeatures&FMA_BIT)!=0;}
     /// Is FP16C supported
     bool fp16c()        {return avx() && (miscfeatures&FP16C_BIT)!=0;}
+    /// Is AVX2 supported
+    bool avx2()         {return avx() && (extfeatures & AVX2_BIT) != 0;}
+    /// Is HLE (hardware lock elision) supported
+    bool hle()          {return (extfeatures & HLE_BIT) != 0;}
+    /// Is RTM (restricted transactional memory) supported
+    bool rtm()          {return (extfeatures & RTM_BIT) != 0;}
     /// Is AMD 3DNOW supported?
     bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
     /// Is AMD 3DNOW Ext supported?
@@ -210,20 +224,25 @@ public:
     uint coresPerCPU()      {return maxCores;}
 
     /// Optimisation hints for assembly code.
+    ///
     /// For forward compatibility, the CPU is compared against different
-    /// microarchitectures. For 32-bit X86, comparisons are made against
+    /// microarchitectures. For 32-bit x86, comparisons are made against
     /// the Intel PPro/PII/PIII/PM family.
     ///
     /// The major 32-bit x86 microarchitecture 'dynasties' have been:
-    /// (1) Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2).
-    /// (2) AMD Athlon (K7, K8, K10).
-    /// (3) Intel NetBurst (Pentium 4, Pentium D).
-    /// (4) In-order Pentium (Pentium1, PMMX, Atom)
+    ///
+    /// * Intel P6 (PentiumPro, PII, PIII, PM, Core, Core2).
+    /// * AMD Athlon (K7, K8, K10).
+    /// * Intel NetBurst (Pentium 4, Pentium D).
+    /// * In-order Pentium (Pentium1, PMMX, Atom)
+    ///
     /// Other early CPUs (Nx586, AMD K5, K6, Centaur C3, Transmeta,
-    ///   Cyrix, Rise) were mostly in-order.
+    /// Cyrix, Rise) were mostly in-order.
+    ///
     /// Some new processors do not fit into the existing categories:
-    /// Intel Atom 230/330 (family 6, model 0x1C) is an in-order core.
-    /// Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core.
+    ///
+    /// * Intel Atom 230/330 (family 6, model 0x1C) is an in-order core.
+    /// * Centaur Isiah = VIA Nano (family 6, model F) is an out-of-order core.
     ///
     /// Within each dynasty, the optimisation techniques are largely
     /// identical (eg, use instruction pairing for group 4). Major
@@ -240,10 +259,15 @@ public:
 __gshared:
     // All these values are set only once, and never subsequently modified.
 public:
+    /// $(RED Warning: This field will be turned into a property in a future release.)
+    ///
     /// Processor type (vendor-dependent).
     /// This should be visible ONLY for display purposes.
     uint stepping, model, family;
+    /// $(RED This field has been deprecated. Please use $(D cacheLevels) instead.)
     uint numCacheLevels = 1;
+    /// The number of cache levels in the CPU.
+    @property uint cacheLevels() { return numCacheLevels; }
 private:
     bool probablyIntel; // true = _probably_ an Intel processor, might be faking
     bool probablyAMD; // true = _probably_ an AMD processor
@@ -252,6 +276,7 @@ private:
     char [48] processorNameBuffer;
     uint features = 0;     // mmx, sse, sse2, hyperthreading, etc
     uint miscfeatures = 0; // sse3, etc.
+    uint extfeatures = 0;  // HLE, AVX2, RTM, etc.
     uint amdfeatures = 0;  // 3DNow!, mmxext, etc
     uint amdmiscfeatures = 0; // sse4a, sse5, svm, etc
     ulong xfeatures = 0;   // XFEATURES_ENABLED_MASK
@@ -293,6 +318,19 @@ private:
         AVX_BIT = 1<<28,
         FP16C_BIT = 1<<29,
         RDRAND_BIT = 1<<30,
+    }
+    // Feature flags for cpuid.{EAX = 7, ECX = 0}.EBX.
+    enum : uint
+    {
+        FSGSBASE_BIT = 1 << 1,
+        BMI1_BIT = 1 << 4,
+        HLE_BIT = 1 << 5,
+        AVX2_BIT = 1 << 6,
+        SMEP_BIT = 1 << 8,
+        BMI2_BIT = 1 << 9,
+        ERMS_BIT = 1 << 10,
+        INVPCID_BIT = 1 << 11,
+        RTM_BIT = 1 << 12,
     }
     // feature flags XFEATURES_ENABLED_MASK
     enum : ulong
@@ -599,6 +637,21 @@ void cpuidX86()
     features = d;
     miscfeatures = c;
 
+    if (max_cpuid >= 7)
+    {
+        uint ext;
+
+        asm
+        {
+            mov EAX, 7; // Structured extended feature leaf.
+            mov ECX, 0; // Main leaf.
+            cpuid;
+            mov ext, EBX; // HLE, AVX2, RTM, etc.
+        }
+
+        extfeatures = ext;
+    }
+
     if (miscfeatures & OSXSAVE_BIT)
     {
         asm {
@@ -813,6 +866,7 @@ bool hasCPUID()
     }
 }
 
+/*
 // TODO: Implement this function with OS support
 void cpuidPPC()
 {
@@ -850,7 +904,7 @@ void cpuidSparc()
     // UltraSparcIV+ : L1 = 64,  4way. L2 = 2048, L3=32*1024.
     // Sparc64V      : L1 = 128, 2way. L2 = 4096 4way.
 }
-
+*/
 
 shared static this()
 {
