@@ -150,7 +150,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
             case IMAGE_SYM_CLASS_STATIC:
                 if (n->n_value == 0)            // if it's a section name
                     continue;
-                break;
+                continue;
             case IMAGE_SYM_CLASS_FUNCTION:
             case IMAGE_SYM_CLASS_FILE:
             case IMAGE_SYM_CLASS_LABEL:

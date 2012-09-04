@@ -636,7 +636,17 @@ void build_syment_table()
                 break;
         }
         sym.n_type = tyfunc(s->Stype->Tty) ? 0x20 : 0;
-        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
+        switch (s->Sclass)
+        {
+            case SCstatic:
+            case SClocstat:
+                sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
+                break;
+
+            default:
+                sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
+                break;
+        }
         sym.n_numaux = 0;
 
         syment_buf->write(&sym, sizeof(sym));

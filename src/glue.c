@@ -635,6 +635,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             objmod->ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
+            if (!I64)
             objmod->external_def("__acrtused_con");
 #endif
             objmod->includelib(libname);

@@ -709,7 +709,10 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
         moffset += moffset & 1;
         om->offset = moffset;
-        moffset += sizeof(Header) + om->length;
+        if (om->scan)
+            moffset += sizeof(Header) + om->length;
+        else
+            moffset += om->length;
     }
 
     libbuf->reserve(moffset);
@@ -843,10 +846,17 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
         //printf("libbuf %x om %x\n", (int)libbuf->offset, (int)om->offset);
         assert(libbuf->offset == om->offset);
 
-        OmToHeader(&h, om);
-        libbuf->write(&h, sizeof(h));   // module header
+        if (om->scan)
+        {
+            OmToHeader(&h, om);
+            libbuf->write(&h, sizeof(h));   // module header
 
-        libbuf->write(om->base, om->length);    // module contents
+            libbuf->write(om->base, om->length);    // module contents
+        }
+        else
+        {   // Header is included in om->base[0..length]
+            libbuf->write(om->base, om->length);    // module contents
+        }
     }
 
 #if LOG
