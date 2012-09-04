@@ -942,7 +942,7 @@ void test44()
 
 /**************************************/
 
-import std.string;
+import std.algorithm;
 
 struct Shell
 {
@@ -950,7 +950,7 @@ struct Shell
 
     const int opCmp(ref const Shell s)
     {
-	return std.string.cmp(this.str, s.str);
+	return std.algorithm.cmp(this.str, s.str);
     }
 }
 
