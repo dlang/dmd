@@ -631,7 +631,8 @@ void FuncDeclaration::toObjFile(int multiobj)
             objmod->ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
-            objmod->external_def("__acrtused_con");
+            if (!I64)
+                objmod->external_def("__acrtused_con");
 #endif
             objmod->includelib(libname);
             s->Sclass = SCglobal;
@@ -646,8 +647,8 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             else
             {
-            objmod->external_def("__acrtused_con");        // bring in C startup code
-            objmod->includelib("snn.lib");          // bring in C runtime library
+                objmod->external_def("__acrtused_con"); // bring in C startup code
+                objmod->includelib("snn.lib");          // bring in C runtime library
             }
 #endif
             s->Sclass = SCglobal;
