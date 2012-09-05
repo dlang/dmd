@@ -21,7 +21,7 @@ void testfp()
     auto fp2 = &func2;
     static assert(typeof(fp1).stringof == "int function(int n = 1)");
     static assert(typeof(fp2).stringof == "int function(int n)");
-    static assert(!is(typeof(fp1())));     // OK
+    static assert( is(typeof(fp1())));     // OK
     static assert(!is(typeof(fp2())));     // NG
 
     alias typeof(fp1) Fp1;
@@ -35,7 +35,7 @@ void testfp()
     static assert(is(typeof(fp3) == typeof(fp4)));
     static assert(typeof(fp3).stringof == "int function(int n = 1)");
     static assert(typeof(fp4).stringof == "int function(int n)");
-    static assert(!is(typeof(fp3())));     // OK
+    static assert( is(typeof(fp3())));     // OK
     static assert(!is(typeof(fp4())));     // NG
 
     alias typeof(fp3) Fp3;
@@ -46,7 +46,7 @@ void testfp()
 
     auto fplit1 = function(int n = 1) { return n; };
     auto fplit2 = function(int n    ) { return n; };
-    static assert(!is(typeof(fplit1())));   // OK
+    static assert( is(typeof(fplit1())));   // OK
     static assert(!is(typeof(fplit2())));   // NG
 }
 
@@ -69,7 +69,7 @@ void testdg()
     auto dg2 = &nest2;
     static assert(typeof(dg1).stringof == "int delegate(int n = 1)");
     static assert(typeof(dg2).stringof == "int delegate(int n)");
-    static assert(!is(typeof(dg1())));     // OK
+    static assert( is(typeof(dg1())));     // OK
     static assert(!is(typeof(dg2())));     // NG
 
     alias typeof(dg1) Dg1;
@@ -82,7 +82,7 @@ void testdg()
     typeof(dg2) dg4 = dg2;
     static assert(typeof(dg3).stringof == "int delegate(int n = 1)");
     static assert(typeof(dg4).stringof == "int delegate(int n)");
-    static assert(!is(typeof(dg3())));     // OK
+    static assert( is(typeof(dg3())));     // OK
     static assert(!is(typeof(dg4())));     // NG
 
     alias typeof(dg3) Dg3;
@@ -93,7 +93,7 @@ void testdg()
 
     auto dglit1 = delegate(int n = 1) { return n; };
     auto dglit2 = delegate(int n    ) { return n; };
-    static assert(!is(typeof(dglit1())));   // OK
+    static assert( is(typeof(dglit1())));   // OK
     static assert(!is(typeof(dglit2())));   // NG
 }
 
@@ -145,15 +145,15 @@ void testxx()
 
     // f will inherit default args from its initializer, if it's declared with 'auto'
     auto f1 = (int n = 10){ return 10; };
-    static assert(!is(typeof(f1())));
+    assert(f1() == 10);
 
     // what is the actual default arg of f?
     int function(int n = 10) f2 = (int n = 20){ return n; };
     int function(int n     ) f3 = (int n = 30){ return n; };
     int function(int n = 40) f4 = (int n     ){ return n; };
-    static assert(!is(typeof(f2())));
+    assert(f2() == 10);
     static assert(!is(typeof(f3())));
-    static assert(!is(typeof(f4())));
+    assert(f4() == 40);
 
     // conditional expression and the type of its result
     auto f5 = true ? (int n = 10){ return n; }
@@ -165,12 +165,27 @@ void testxx()
 
     int function(int n = 10) f7;    // default arg of the first parameter is 10
     f7 = (int n = 20){ return n; }; // function literal's default arg will be ignored
-    static assert(!is(typeof(f7())));
+    assert(f7() == 10);
 
     // returning function pointer/delegate type can have default args
     int delegate(int n = 10) foo(int x) { return n => n + x; }
     auto f = foo(1);
-    static assert(!is(typeof(f())));
+    assert(f() == 11);
+}
+
+/***************************************************/
+// 3866
+
+void test3866()
+{
+
+    auto foo = (int a = 1) { return a; };
+    auto bar = (int a) { return a; };
+
+    assert(foo() == 1);
+    static assert(!is(typeof(bar())));
+    assert(foo(2) == 2);
+    assert(bar(3) == 3);
 }
 
 /***************************************************/
@@ -182,6 +197,7 @@ int main()
     testda();
     testti();
     testxx();
+    test3866();
 
     printf("Success\n");
     return 0;
