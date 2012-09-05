@@ -570,6 +570,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\libmscoff.c"
+				>
+			</File>
+			<File
 				RelativePath=".\libomf.c"
 				>
 			</File>
@@ -643,6 +647,10 @@
 			</File>
 			<File
 				RelativePath=".\s2ir.c"
+				>
+			</File>
+			<File
+				RelativePath=".\scanmscoff.c"
 				>
 			</File>
 			<File
@@ -1029,14 +1037,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\backend\html.c"
-					>
-				</File>
-				<File
-					RelativePath=".\backend\html.h"
-					>
-				</File>
-				<File
 					RelativePath=".\backend\iasm.h"
 					>
 				</File>
@@ -1058,6 +1058,14 @@
 				</File>
 				<File
 					RelativePath=".\backend\melf.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\mscoff.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\mscoffobj.c"
 					>
 				</File>
 				<File
@@ -1333,7 +1341,8 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\dmgcmem.c"					>
+					RelativePath=".\root\dmgcmem.c"
+					>
 					<FileConfiguration
 						Name="Debug|Win32"
 						ExcludedFromBuild="true"
@@ -1384,7 +1393,8 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\man.c"					>
+					RelativePath=".\root\man.c"
+					>
 				</File>
 				<File
 					RelativePath=".\root\port.c"
