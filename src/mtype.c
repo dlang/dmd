@@ -154,6 +154,13 @@ const char *Type::kind()
     return NULL;
 }
 
+Type *Type::copy()
+{
+    Type *t = (Type *)mem.malloc(sizeTy[ty]);
+    memcpy(t, this, sizeTy[ty]);
+    return t;
+}
+
 Type *Type::syntaxCopy()
 {
     print();
@@ -1176,10 +1183,15 @@ Type *Type::pointerTo()
     if (ty == Terror)
         return this;
     if (!pto)
-    {   Type *t;
-
-        t = new TypePointer(this);
-        pto = t->merge();
+    {
+        Type *t = new TypePointer(this);
+        if (ty == Tfunction)
+        {
+            t->deco = t->merge()->deco;
+            pto = t;
+        }
+        else
+            pto = t->merge();
     }
     return pto;
 }
@@ -1597,6 +1609,85 @@ char *Type::modToChars()
 }
 
 /************************************
+ * Strip all parameter's idenfiers and their default arguments for merging types.
+ * If some of parameter types or return type are function pointer, delegate, or
+ * the types which contains either, then strip also from them.
+ */
+
+Type *stripDefaultArgs(Type *t)
+{
+  struct N
+  {
+    static Parameters *stripParams(Parameters *arguments)
+    {
+        Parameters *args = arguments;
+        if (args && args->dim > 0)
+        {
+            for (size_t i = 0; i < args->dim; i++)
+            {
+                Parameter *a = (*args)[i];
+                Type *ta = stripDefaultArgs(a->type);
+                if (ta != a->type || a->defaultArg || a->ident)
+                {
+                    if (args == arguments)
+                    {
+                        args = new Parameters();
+                        args->setDim(arguments->dim);
+                        for (size_t j = 0; j < args->dim; j++)
+                            (*args)[j] = (*arguments)[j];
+                    }
+                    (*args)[i] = new Parameter(a->storageClass, ta, NULL, NULL);
+                }
+            }
+        }
+        return args;
+    }
+  };
+
+    if (t == NULL)
+        return t;
+
+    if (t->ty == Tfunction)
+    {
+        TypeFunction *tf = (TypeFunction *)t;
+        Type *tret = stripDefaultArgs(tf->next);
+        Parameters *args = N::stripParams(tf->parameters);
+        if (tret == tf->next && args == tf->parameters)
+            goto Lnot;
+        tf = (TypeFunction *)tf->copy();
+        tf->parameters = args;
+        tf->next = tret;
+        //printf("strip %s\n   <- %s\n", tf->toChars(), t->toChars());
+        t = tf;
+    }
+    else if (t->ty == Ttuple)
+    {
+        TypeTuple *tt = (TypeTuple *)t;
+        Parameters *args = N::stripParams(tt->arguments);
+        if (args == tt->arguments)
+            goto Lnot;
+        t = new TypeTuple(args);
+    }
+    else if (t->ty == Tenum)
+    {
+        // TypeEnum::nextOf() may be != NULL, but it's not necessary here.
+        goto Lnot;
+    }
+    else
+    {
+        Type *tn = t->nextOf();
+        Type *n = stripDefaultArgs(tn);
+        if (n == tn)
+            goto Lnot;
+        t = t->copy();
+        ((TypeNext *)t)->next = n;
+    }
+    //printf("strip %s\n", t->toChars());
+Lnot:
+    return t;
+}
+
+/************************************
  */
 
 Type *Type::merge()
@@ -1633,8 +1724,8 @@ Type *Type::merge()
         }
         else
         {
-            sv->ptrvalue = this;
-            deco = (char *)sv->toDchars();
+            sv->ptrvalue = (t = stripDefaultArgs(t));
+            deco = t->deco = (char *)sv->toDchars();
             //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
         }
     }
@@ -4394,6 +4485,7 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
     }
     else
         index = index->semantic(loc,sc);
+    index = index->merge2();
 
     if (index->nextOf() && !index->nextOf()->isImmutable())
     {
@@ -4420,7 +4512,7 @@ printf("index->ito->ito = x%x\n", index->ito->ito);
         case Terror:
             return Type::terror;
     }
-    next = next->semantic(loc,sc);
+    next = next->semantic(loc,sc)->merge2();
     transitive();
 
     switch (next->toBasetype()->ty)
@@ -4723,7 +4815,7 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     {   transitive();
         return merge();
     }
-#if 1
+#if 0
     return merge();
 #else
     deco = merge()->deco;
@@ -4966,13 +5058,6 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
 const char *TypeFunction::kind()
 {
     return "function";
-}
-
-TypeFunction *TypeFunction::copy()
-{
-    TypeFunction *tf = (TypeFunction *)mem.malloc(sizeof(TypeFunction));
-    memcpy(tf, this, sizeof(TypeFunction));
-    return tf;
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -5406,7 +5491,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
      * This can produce redundant copies if inferring return type,
      * as semantic() will get called again on this.
      */
-    TypeFunction *tf = copy();
+    TypeFunction *tf = (TypeFunction *)copy();
     if (parameters)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
@@ -6123,7 +6208,7 @@ Type *TypeDelegate::semantic(Loc loc, Scope *sc)
      * be removed from next before the merge.
      */
 
-#if 1
+#if 0
     return merge();
 #else
     /* Don't return merge(), because arg identifiers and default args

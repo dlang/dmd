@@ -13056,6 +13056,7 @@ Expression *CondExp::semantic(Scope *sc)
             e2 = e2->castTo(sc, type);
         }
     }
+    type = type->merge2();
 #if 0
     printf("res: %s\n", type->toChars());
     printf("e1 : %s\n", e1->type->toChars());
