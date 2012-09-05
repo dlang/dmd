@@ -174,6 +174,38 @@ void testxx()
 }
 
 /***************************************************/
+// 3646
+
+int bar3646(int x = 10) { printf("bar %d\n", x); return x; }
+int bam3646(int y)      { printf("bam %d\n", y); return y; }
+
+int qux3646()      { printf("quux\n");       return 20; }
+int qux3646(int i) { printf("quux %d\n", i); return 30; }
+
+void foo3646a(Fn)(Fn fn)
+{
+    fn();
+}
+
+void foo3646b(alias fn)(int res1, int res2)
+{
+    assert(fn() == res1);
+    assert(fn(42) == res2);
+}
+
+void test3646()
+{
+    static assert(!is(typeof(foo3646(&bar3646))));
+    static assert(!is(typeof(foo3646(&bam3646))));
+    static assert(typeof(&bar3646).stringof == "int function(int x = 10)");
+    static assert(typeof(&bam3646).stringof == "int function(int y)");
+
+    foo3646b!bar3646(10, 42);
+    static assert(!is(typeof(foo3646b!bam3646(0, 0))));
+    foo3646b!qux3646(20, 30);
+}
+
+/***************************************************/
 // 3866
 
 void test3866()
@@ -197,6 +229,7 @@ int main()
     testda();
     testti();
     testxx();
+    test3646();
     test3866();
 
     printf("Success\n");
