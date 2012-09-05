@@ -221,6 +221,30 @@ void test3866()
 }
 
 /***************************************************/
+// 8579
+
+void test8579()
+{
+    static void func1(int i, double j = 1.0) {}
+    static void func2(int x, double y) {}
+    auto fn1 = &func1;
+    auto fn2 = &func2;
+    static assert(is(typeof(fn1) == typeof(fn2)));
+           assert(   typeid(fn1) is typeid(fn2) );
+    static assert(typeof(fn1).stringof == "void function(int i, double j = " ~ (1.0).stringof ~ ")");
+    static assert(typeof(fn2).stringof == "void function(int x, double y)");
+
+    static int func3(int x, double y) { return 0; }
+    static int func4(int i, double j = 1.0) { return 0; }
+    auto fn3 = &func3;
+    auto fn4 = &func4;
+    static assert(is(typeof(fn3) == typeof(fn4)));
+           assert(   typeid(fn3) is typeid(fn4) );
+    static assert(typeof(fn3).stringof == "int function(int x, double y)");
+    static assert(typeof(fn4).stringof == "int function(int i, double j = " ~ (1.0).stringof ~ ")");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -231,6 +255,7 @@ int main()
     testxx();
     test3646();
     test3866();
+    test8579();
 
     printf("Success\n");
     return 0;
