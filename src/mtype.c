@@ -2183,7 +2183,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
 #else
     sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
 #endif
-    if (global.params.isWindows)
+    if (global.params.isWindows && !global.params.is64bit)
         name++;                 // C mangling will add it back in
     //printf("name = %s\n", name);
     id = Lexer::idPool(name);
