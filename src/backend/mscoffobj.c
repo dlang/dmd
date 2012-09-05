@@ -1666,19 +1666,22 @@ char *obj_mangle2(Symbol *s,char *dest)
         case mTYman_cpp:
         case mTYman_d:
         case mTYman_sys:
+        case mTYman_c:
         case 0:
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);
             memcpy(dest,name,len+1);// copy in name and trailing 0
             break;
 
+#if 0
         case mTYman_c:
+            // Prepend _ to identifier
             if (len >= DEST_LEN - 1)
                 dest = (char *)mem_malloc(1 + len + 1);
             dest[0] = '_';
             memcpy(dest + 1,name,len+1);// copy in name and trailing 0
             break;
-
+#endif
 
         default:
 #ifdef DEBUG

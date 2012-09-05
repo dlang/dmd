@@ -626,13 +626,20 @@ void FuncDeclaration::toObjFile(int multiobj)
         // Pull in RTL startup code (but only once)
         if (func->isMain() && onlyOneMain(loc))
         {
-            objmod->external_def("_main");
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+            objmod->external_def("_main");
             objmod->ehsections();   // initialize exception handling sections
 #endif
 #if TARGET_WINDOS
-            if (!I64)
+            if (I64)
+            {
+                objmod->external_def("main");
+            }
+            else
+            {
+                objmod->external_def("_main");
                 objmod->external_def("__acrtused_con");
+            }
 #endif
             objmod->includelib(libname);
             s->Sclass = SCglobal;

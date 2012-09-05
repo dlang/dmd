@@ -1409,10 +1409,11 @@ void ThrowStatement::toIR(IRState *irs)
     incUsage(irs, loc);
     elem *e = exp->toElem(irs);
 #if TARGET_WINDOS
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW]),e);
+    int rtl = config.exe == EX_WIN64 ? RTLSYM_THROWC : RTLSYM_THROW;
 #else
-    e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
+    int rtl = RTLSYM_THROWC;
 #endif
+    e = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]),e);
     block_appendexp(blx->curblock, e);
 }
 
