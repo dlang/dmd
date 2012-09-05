@@ -3042,9 +3042,9 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             desttype = ((TypeArray *)desttype)->next;
 #if DMDV2
-            if (srctype == desttype->castMod(0))
+            if (srctype->equals(desttype->castMod(0)))
 #else
-            if (srctype == desttype)
+            if (srctype->equals(desttype))
 #endif
             {
                 isBlockAssignment = true;
@@ -3064,7 +3064,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     bool wantRef = false;
     bool wantLvalueRef = false;
 
-    if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
+    if (!fp && this->e1->type->toBasetype()->equals(this->e2->type->toBasetype()) &&
         (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type)
              || e1->type->toBasetype()->ty == Tclass)
          //  e = *x is never a reference, because *x is always a value
@@ -4089,10 +4089,10 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
                 existingAE->type->ty == Tarray);
 #if DMDV2
         Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
-        bool directblk = (e2->type->toBasetype()->castMod(0)) == desttype;
+        bool directblk = (e2->type->toBasetype()->castMod(0))->equals(desttype);
 #else
         Type *desttype = ((TypeArray *)existingAE->type)->next;
-        bool directblk = (e2->type->toBasetype()) == desttype;
+        bool directblk = (e2->type->toBasetype())->equals(desttype);
 #endif
         bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
             || newval->op == TOKstring);
@@ -5268,7 +5268,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             e->type = type;
             return e;
         }
-        if (e1->op == TOKindex && ((IndexExp *)e1)->e1->type != e1->type)
+        if (e1->op == TOKindex && !((IndexExp *)e1)->e1->type->equals(e1->type))
         {   // type painting operation
             IndexExp *ie = (IndexExp *)e1;
             e = new IndexExp(e1->loc, ie->e1, ie->e2);
@@ -5661,7 +5661,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
                  * CastExp.
                  */
                 if (goal == ctfeNeedLvalue && e->op == TOKindex &&
-                    e->type == type &&
+                    e->type->equals(type) &&
                     isPointer(type) )
                     return e;
                 // ...Otherwise, just return the (simplified) dotvar expression

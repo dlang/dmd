@@ -1483,7 +1483,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     arg = arg->implicitCastTo(sc, p->type->substWildTo(wildmatch));
                     arg = arg->optimize(WANTvalue, p->storageClass & STCref);
                 }
-                else if (p->type != arg->type)
+                else if (!p->type->equals(arg->type))
                 {
                     //printf("arg->type = %s, p->type = %s\n", arg->type->toChars(), p->type->toChars());
                     if (arg->op == TOKtype)
