@@ -498,6 +498,8 @@ void TemplateDeclaration::semantic(Scope *sc)
     if (!parent)
         parent = sc->parent;
 
+    protection = sc->protection;
+
     if (global.params.doDocComments)
     {
         origParameters = new TemplateParameters();
