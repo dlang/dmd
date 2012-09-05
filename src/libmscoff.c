@@ -211,7 +211,7 @@ struct ObjModule
     unsigned short index;       // index in Second Linker Member
     char *name;                 // module name (file name)
     int name_offset;            // if not -1, offset into string table of name
-    time_t file_time;           // file time
+    long file_time;             // file time
     unsigned user_id;
     unsigned group_id;
     unsigned file_mode;
@@ -609,7 +609,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     {   /* Mock things up for the object module file that never was
          * actually written out.
          */
-        time(&om->file_time);
+        om->file_time = time(NULL);
         om->user_id = 0;                // meaningless on Windows
         om->group_id = 0;               // meaningless on Windows
         om->file_mode = 0100644;
@@ -726,7 +726,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     om.length = 4 + objsymbols.dim * 4 + slength;
     om.offset = 8;
     om.name = (char*)"";
-    ::time(&om.file_time);
+    om.file_time = ::time(NULL);
     om.user_id = 0;
     om.group_id = 0;
     om.file_mode = 0;

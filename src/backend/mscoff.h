@@ -17,7 +17,7 @@ struct filehdr
 #define IMAGE_FILE_MACHINE_I386    0x14C        // x86
 #define IMAGE_FILE_MACHINE_AMD64   0x8664       // x86_64
         unsigned short f_nscns; // number of sections (96 is max)
-        time_t f_timdat;        // creation date, number of seconds since 1970
+        long f_timdat;        // creation date, number of seconds since 1970
         long f_symptr;          // file offset of symbol table
         long f_nsyms;           // number of entried in the symbol table
         unsigned short f_opthdr; // optional header size (0)
