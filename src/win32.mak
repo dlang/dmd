@@ -149,7 +149,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj intrange.obj \
+	interpret.obj traits.obj aliasthis.obj intrange.obj assertpred.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
@@ -194,7 +194,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c canthrow.c sideeffect.c libmscoff.c scanmscoff.c
+	apply.c canthrow.c sideeffect.c libmscoff.c scanmscoff.c assertpred.c
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -634,6 +634,7 @@ aliasthis.obj : $(TOTALH) aliasthis.h aliasthis.c
 apply.obj : $(TOTALH) apply.c
 argtypes.obj : $(TOTALH) mtype.h argtypes.c
 arrayop.obj : $(TOTALH) identifier.h declaration.h arrayop.c
+assertpred.obj : $(TOTALH) expression.h assertpred.c
 attrib.obj : $(TOTALH) dsymbol.h identifier.h declaration.h attrib.h attrib.c
 builtin.obj : $(TOTALH) builtin.c
 canthrow.obj : $(TOTALH) canthrow.c

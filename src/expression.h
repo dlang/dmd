@@ -48,6 +48,7 @@ struct Symbol;          // back end symbol
 struct OverloadSet;
 struct Initializer;
 struct StringExp;
+struct AssertExp;
 
 enum TOK;
 
@@ -85,6 +86,7 @@ Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope);
 int checkPostblit(Loc loc, Type *t);
 #endif
+Expression* transformToAssertPred(AssertExp* assert_exp, Scope *sc);
 
 /* Interpreter: what form of return value expression is required?
  */
