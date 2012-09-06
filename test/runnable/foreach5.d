@@ -388,6 +388,26 @@ void test7814()
 }
 
 /***************************************/
+// 8595
+
+struct OpApply8595
+{
+    int opApply(int delegate(ref int) dg)
+    {
+        assert(0);
+    }
+}
+
+string test8595()
+{
+    foreach (elem; OpApply8595.init)
+    {
+        static assert(is(typeof(return) == string));
+    }
+    assert(0);
+}
+
+/***************************************/
 
 int main()
 {
