@@ -634,6 +634,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             if (I64)
             {
                 objmod->external_def("main");
+                objmod->ehsections();   // initialize exception handling sections
             }
             else
             {

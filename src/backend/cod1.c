@@ -872,7 +872,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #endif
              ) ||
              (e12->Eoper == OPconst && !I16 && !e1->Ecount && (!I64 || el_signx32(e12)))) &&
-            !(I64 && config.flags3 & CFG3pic) &&
+            !(I64 && (config.flags3 & CFG3pic || config.exe == EX_WIN64)) &&
             e1->Ecount == e1->Ecomsub &&
 #if TARGET_SEGMENTED
             (!e1->Ecount || (~keepmsk & ALLREGS & mMSW) || (e1ty != TYfptr && e1ty != TYhptr)) &&
