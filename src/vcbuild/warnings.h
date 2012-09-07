@@ -28,3 +28,4 @@
 #define MARS     1
 #define UNITTEST 1
 #define _M_I86   1
+#define DM_TARGET_CPU_X86 1
