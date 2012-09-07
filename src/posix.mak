@@ -33,20 +33,14 @@ MODEL=32
 
 ifeq (OSX,$(TARGET))
     SDKDIR=/Developer/SDKs
-    ifeq "$(wildcard $(SDKDIR) )" ""
+    ifeq "$(wildcard $(SDKDIR))" ""
         SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
     endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    ifneq ($(filter 11.%, $(OSVER)), "")
-        SDK:=$(SDKDIR)/MacOSX10.7.sdk
-    else
-        ifneq ($(filter 11.%, $(OSVER)), "")
-            SDK:=$(SDKDIR)/MacOSX10.6.sdk
-        else
-            SDK:=$(SDKDIR)/MacOSX10.5.sdk
-        endif
-    endif
+    SDKVERS:=7 6 5 4 3 2 1
+    SDKFILES=$(foreach SDKVER, $(SDKVERS), $(wildcard $(SDKDIR)/MacOSX10.$(SDKVER).sdk))
+    SDK=$(firstword $(SDKFILES))
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
