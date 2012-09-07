@@ -2835,6 +2835,11 @@ elem *AssignExp::toElem(IRState *irs)
                 // Generate:
                 //      _d_arraycopy(eto, efrom, esize)
 
+                if (config.exe == EX_WIN64)
+                {
+                    eto   = addressElem(eto,   Type::tvoid->arrayOf());
+                    efrom = addressElem(efrom, Type::tvoid->arrayOf());
+                }
                 ep = el_params(eto, efrom, esize, NULL);
                 e = el_bin(OPcall, type->totym(), el_var(rtlsym[RTLSYM_ARRAYCOPY]), ep);
             }

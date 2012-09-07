@@ -645,6 +645,8 @@ void build_syment_table()
 
             default:
                 sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
+                if (sym.n_scnum != IMAGE_SYM_UNDEFINED)
+                    sym.n_value = s->Soffset;
                 break;
         }
         sym.n_numaux = 0;
@@ -818,7 +820,7 @@ void MsCoffObj::term()
                 {
                     //printf("Relocation\n");
                     //symbol_print(s);
-                    if (1 || pseg->isCode())
+                    if (pseg->isCode())
                     {
                         if (I64)
                         {
@@ -866,7 +868,10 @@ void MsCoffObj::term()
                     }
                     else
                     {
-printf("test2\n");
+//printf("test2\n");
+                        rel.r_type = IMAGE_REL_AMD64_ADDR64;
+                        rel.r_vaddr = r->offset;
+                        rel.r_symndx = s->Sxtrnnum;
 #if 0
                         if (s->Sclass == SCextern ||
                             s->Sclass == SCcomdef ||
@@ -1311,19 +1316,19 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _eh_beg that sits just before the .minfodt segment
      */
-    symbol *eh_beg = symbol_name("_deh_beg", SCstatic, tspvoid);
+    symbol *eh_beg = symbol_name("_deh_beg", SCglobal, tspvoid);
     eh_beg->Sseg = segdeh_bg;
     eh_beg->Soffset = 0;
     symbuf->write(&eh_beg, sizeof(eh_beg));
-    Obj::bytes(segdeh_bg, 0, I64 ? 8 * 3 : 4 * 3, NULL);
+    MsCoffObj::bytes(segdeh_bg, 0, I64 ? 8 * 3 : 4 * 3, NULL);
 
     /* Create symbol _eh_end that sits just after the ._deh_eh segment
      */
-    symbol *eh_end = symbol_name("_deh_end", SCstatic, tspvoid);
+    symbol *eh_end = symbol_name("_deh_end", SCglobal, tspvoid);
     eh_end->Sseg = segdeh_en;
     eh_end->Soffset = 0;
     symbuf->write(&eh_end, sizeof(eh_end));
-    Obj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
+    MsCoffObj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
 
     /*************************************************************************/
 
@@ -1343,19 +1348,19 @@ void MsCoffObj::ehsections()
 
     /* Create symbol _minfo_beg that sits just before the .minfodt segment
      */
-    symbol *minfo_beg = symbol_name("_minfo_beg", SCstatic, tspvoid);
+    symbol *minfo_beg = symbol_name("_minfo_beg", SCglobal, tspvoid);
     minfo_beg->Sseg = segbg;
     minfo_beg->Soffset = 0;
     symbuf->write(&minfo_beg, sizeof(minfo_beg));
-    Obj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
+    MsCoffObj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
 
     /* Create symbol _minfo_end that sits just after the .minfodt segment
      */
-    symbol *minfo_end = symbol_name("_minfo_end", SCstatic, tspvoid);
+    symbol *minfo_end = symbol_name("_minfo_end", SCglobal, tspvoid);
     minfo_end->Sseg = segen;
     minfo_end->Soffset = 0;
     symbuf->write(&minfo_end, sizeof(minfo_end));
-    Obj::bytes(segen, 0, I64 ? 8 : 4, NULL);
+    MsCoffObj::bytes(segen, 0, I64 ? 8 : 4, NULL);
 }
 
 /*********************************
@@ -1721,7 +1726,7 @@ segidx_t MsCoffObj::data_start(Symbol *sdata, targ_size_t datasize, segidx_t seg
 {
     targ_size_t alignbytes;
 
-    printf("MsCoffObj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
+    //printf("MsCoffObj::data_start(%s,size %d,seg %d)\n",sdata->Sident,datasize,seg);
     //symbol_print(sdata);
 
     assert(sdata->Sseg);
@@ -2104,7 +2109,7 @@ void MsCoffObj::reftodatseg(segidx_t seg,targ_size_t offset,targ_size_t val,
     Outbuffer *buf = SegData[seg]->SDbuf;
     int save = buf->size();
     buf->setsize(offset);
-#if 1
+#if 0
     printf("MsCoffObj::reftodatseg(seg:offset=%d:x%llx, val=x%llx, targetdatum %x, flags %x )\n",
         seg,offset,val,targetdatum,flags);
 #endif
@@ -2296,7 +2301,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         Outbuffer *buf = SegData[seg]->SDbuf;
         int save = buf->size();
         buf->setsize(offset);
-        printf("offset = x%llx, val = x%llx\n", offset, val);
+        //printf("offset = x%llx, val = x%llx\n", offset, val);
         if (retsize == 8)
             buf->write64(val);
         else
