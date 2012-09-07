@@ -377,7 +377,7 @@ bool operator!=(longdouble x, longdouble y)
 
 int _isnan(longdouble ld)
 {
-    return (ld.exponent == 0x7fff && ld.mantissa != 0);
+    return (ld.exponent == 0x7fff && ld.mantissa != 0 && ld.mantissa != (1LL << 63)); // exclude pseudo-infinity and infinity, but not FP Indefinite
 }
 
 longdouble fabsl(longdouble ld)

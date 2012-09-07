@@ -119,7 +119,8 @@ int seg_data::isCode()
 }
 
 
-seg_data **SegData;
+// already in cgobj.c (should be part of objmod?):
+// seg_data **SegData;
 int seg_count;
 int seg_max;
 segidx_t seg_tlsseg = UNKNOWN;
@@ -711,7 +712,7 @@ void MsCoffObj::term()
 
     header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
     header.f_nscns = scnhdr_cnt;
-    time(&header.f_timdat);
+    header.f_timdat = time(NULL);
     header.f_symptr = 0;        // offset to symbol table
     header.f_nsyms = 0;
     header.f_opthdr = 0;
