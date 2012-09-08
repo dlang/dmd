@@ -196,7 +196,21 @@ Symbol *VarDeclaration::toSymbol()
         else if (storage_class & STClazy)
             t = type_fake(TYdelegate);          // Tdelegate as C type
         else if (isParameter())
-            t = type->toCParamtype();
+        {
+            if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
+            {
+                if (global.params.symdebug)
+                {
+                    t = type_alloc(TYnptr);         // should be TYref, but problems in back end
+                    t->Tnext = type->toCtype();
+                    t->Tnext->Tcount++;
+                }
+                else
+                    t = type_fake(TYnptr);
+            }
+            else
+                t = type->toCParamtype();
+        }
         else
             t = type->toCtype();
         t->Tcount++;

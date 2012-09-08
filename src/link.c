@@ -172,6 +172,8 @@ int runLINK()
             cmdbuf.writestring("/DEBUG");
         }
 
+        cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
+
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
             cmdbuf.writeByte(' ');

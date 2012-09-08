@@ -2963,6 +2963,7 @@ code* prolog_gen_win64_varargs()
 
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
 {
+    //printf("prolog_loadparams()\n");
 #ifdef DEBUG
     for (SYMIDX si = 0; si < globsym.top; si++)
     {   symbol *s = globsym.tab[si];
