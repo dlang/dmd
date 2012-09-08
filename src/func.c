@@ -714,19 +714,23 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!type || type->ty != Tfunction)
         return;
     f = (TypeFunction *)(type);
+    if (!inferRetType && f->next->ty == Terror)
+        return;
 
+#if DMDV1
     // Check the 'throws' clause
     if (fthrows)
     {
         for (int i = 0; i < fthrows->dim; i++)
         {
-            Type *t = (Type *)fthrows->data[i];
+            Type *t = (*fthrows)[i];
 
             t = t->semantic(loc, sc);
             if (!t->isClassHandle())
                 error("can only throw classes, not %s", t->toChars());
         }
     }
+#endif
 
     if (!fbody && inferRetType && !type->nextOf())
     {
@@ -738,7 +742,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     {
         for (int i = 0; i < foverrides.dim; i++)
         {
-            FuncDeclaration *fdv = (FuncDeclaration *)foverrides.data[i];
+            FuncDeclaration *fdv = foverrides[i];
 
             if (fdv->fbody && !fdv->frequire)
             {
