@@ -3924,23 +3924,26 @@ private:
         //       global context list.
         Thread.remove( m_ctxt );
 
-        import core.sys.posix.sys.mman; // munmap
-
         static if( __traits( compiles, VirtualAlloc ) )
         {
             VirtualFree( m_pmem, 0, MEM_RELEASE );
         }
-        else static if( __traits( compiles, mmap ) )
+        else
         {
-            munmap( m_pmem, m_size );
-        }
-        else static if( __traits( compiles, valloc ) )
-        {
-            free( m_pmem );
-        }
-        else static if( __traits( compiles, malloc ) )
-        {
-            free( m_pmem );
+            import core.sys.posix.sys.mman; // munmap
+
+            static if( __traits( compiles, mmap ) )
+            {
+                munmap( m_pmem, m_size );
+            }
+            else static if( __traits( compiles, valloc ) )
+            {
+                free( m_pmem );
+            }
+            else static if( __traits( compiles, malloc ) )
+            {
+                free( m_pmem );
+            }
         }
         m_pmem = null;
         m_ctxt = null;
