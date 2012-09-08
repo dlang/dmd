@@ -2000,6 +2000,9 @@ bool evalinregister(elem *e)
         unsigned i;
         unsigned sz;
 
+        if (config.exe == EX_WIN64 && e->Eoper == OPrelconst)
+            return TRUE;
+
         if (e->Ecount == 0)             /* elem is not a CSE, therefore */
                                         /* we don't need to evaluate it */
                                         /* in a register                */
