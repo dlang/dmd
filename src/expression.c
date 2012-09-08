@@ -10250,8 +10250,9 @@ Expression *AssignExp::semantic(Scope *sc)
     if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        int olderrors = global.errors;
         dti->e1 = dti->e1->semantic(sc);
-        if (!global.errors && dti->e1->type)
+        if (global.errors == olderrors && dti->e1->type)
         {
             unsigned errors = global.startGagging();
             e1 = dti->semantic(sc, 1);
@@ -10264,8 +10265,9 @@ Expression *AssignExp::semantic(Scope *sc)
     else if (e1->op == TOKdot)
     {
         DotIdExp *die = (DotIdExp *)e1;
+        int olderrors = global.errors;
         die->e1 = die->e1->semantic(sc);
-        if (!global.errors && die->e1->type)
+        if (global.errors == olderrors && die->e1->type)
         {
             unsigned errors = global.startGagging();
             e1 = die->semantic(sc, 1);
