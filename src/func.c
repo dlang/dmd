@@ -847,6 +847,8 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!type || type->ty != Tfunction)
         return;
     f = (TypeFunction *)(type);
+    if (!inferRetType && f->next->ty == Terror)
+        return;
 
 #if 0
     // Check the 'throws' clause
