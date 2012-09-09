@@ -10687,7 +10687,10 @@ Ltupleassign:
         {
             checkPostblit(e2->loc, t2->nextOf());
         }
-        e2 = e2->implicitCastTo(sc, e1->type->constOf());
+        if (op == TOKconstruct)
+            e2 = e2->castTo(sc, e1->type->constOf());
+        else
+            e2 = e2->implicitCastTo(sc, e1->type->constOf());
     }
     else
     {
