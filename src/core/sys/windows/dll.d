@@ -320,6 +320,10 @@ public:
      */
     bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex )
     {
+        version (Win64)
+            return true;                // fixed
+        else
+        {
         /* If the OS has allocated a TLS slot for us, we don't have to do anything
          * tls_index 0 means: the OS has not done anything, or it has allocated slot 0
          * Vista and later Windows systems should do this correctly and not need
@@ -355,6 +359,7 @@ public:
         ldrMod.LoadCount = -1; // prevent unloading of the DLL,
                                // since XP does not keep track of used TLS entries
         return true;
+        }
     }
 
     // fixup TLS storage, initialize runtime and attach to threads
@@ -380,7 +385,7 @@ public:
                     {
                         thread_attachByAddr( id );
                         thread_moduleTlsCtor( id );
-		    }
+                    }
                 }
                 return true;
             }, null );
@@ -421,7 +426,7 @@ public:
     bool dll_thread_attach( bool attach_thread = true, bool initTls = true )
     {
         // if the OS has not prepared TLS for us, don't attach to the thread
-	//  (happened when running under x64 OS)
+        //  (happened when running under x64 OS)
         if( !GetTlsDataAddress( GetCurrentThreadId() ) )
             return false;
         if( !thread_findByAddr( GetCurrentThreadId() ) )

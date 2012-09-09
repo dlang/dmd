@@ -2,16 +2,14 @@
  * This module contains all functions related to an object's lifetime:
  * allocation, resizing, deallocation, and finalization.
  *
- * Copyright: Copyright Digital Mars 2000 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2000 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly, Steven Schveighoffer
+ * Source: $(DRUNTIMESRC src/rt/_lifetime.d)
  */
 
-/*          Copyright Digital Mars 2000 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE.txt or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.lifetime;
 
 private
@@ -930,9 +928,17 @@ void[] _d_newarrayOpT(alias op)(const TypeInfo ti, size_t ndims, va_list q)
                     va_list ap2;
                     va_copy(ap2, ap);
                 }
+                else version(Win64)
+                {
+                    va_list ap2;
+                    va_copy(ap2, ap);
+                }
                 for (size_t i = 0; i < dim; i++)
                 {
-                    version(X86_64)
+                    version (Win64)
+                    {
+                    }
+                    else version(X86_64)
                     {
                         __va_list argsave = *cast(__va_list*)ap;
                         va_list ap2 = &argsave;
@@ -977,6 +983,8 @@ extern (C) void[] _d_newarraymT(const TypeInfo ti, size_t ndims, ...)
         va_list q;
         version(X86)
             va_start(q, ndims);
+        else version(Win64)
+            va_start(q, ndims);
         else version(X86_64)
             va_start(q, __va_argsave);
         else
@@ -999,6 +1007,8 @@ extern (C) void[] _d_newarraymiT(const TypeInfo ti, size_t ndims, ...)
     {
         va_list q;
         version(X86)
+            va_start(q, ndims);
+        else version(Win64)
             va_start(q, ndims);
         else version(X86_64)
             va_start(q, __va_argsave);
@@ -1762,6 +1772,11 @@ extern (C) void[] _d_arrayappendcT(const TypeInfo ti, ref byte[] x, ...)
         byte *argp = cast(byte*)(&ti + 2);
         return _d_arrayappendT(ti, x, argp[0..1]);
     }
+    else version(Win64)
+    {
+        byte *argp = cast(byte*)(&ti + 2);
+        return _d_arrayappendT(ti, x, argp[0..1]);
+    }
     else version(X86_64)
     {
         // This code copies the element twice, which is annoying
@@ -2052,6 +2067,16 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
             length += b.length;
         }
     }
+    else version(Win64)
+    {
+        byte[]* p = cast(byte[]*)(&n + 1);
+
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b = *p++;
+            length += b.length;
+        }
+    }
     else
     {
         __va_list argsave = __va_argsave.va;
@@ -2075,6 +2100,21 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     void *a = __arrayStart (info);
 
     version(X86)
+    {
+        p = cast(byte[]*)(&n + 1);
+
+        size_t j = 0;
+        for (auto i = 0; i < n; i++)
+        {
+            byte[] b = *p++;
+            if (b.length)
+            {
+                memcpy(a + j, b.ptr, b.length * size);
+                j += b.length * size;
+            }
+        }
+    }
+    else version (Win64)
     {
         p = cast(byte[]*)(&n + 1);
 
@@ -2175,6 +2215,16 @@ extern (C) void* _d_arrayliteralT(const TypeInfo ti, size_t length, ...)
                 }
             }
 
+            va_end(q);
+        }
+        else version (Win64)
+        {
+            va_list q;
+            va_start(q, length);
+            for (size_t i = 0; i < length; i++)
+            {
+                va_arg(q, cast()ti.next, result + i * sizeelem);
+            }
             va_end(q);
         }
         else

@@ -668,7 +668,12 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
     else
     {
         va_list q;
-        version(X86_64) va_start(q, __va_argsave); else va_start(q, length);
+        version (Win64)
+            va_start(q, length);
+        else version(X86_64)
+            va_start(q, __va_argsave);
+        else
+            va_start(q, length);
 
         result = new BB();
         result.keyti = keyti;

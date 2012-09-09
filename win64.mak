@@ -1,4 +1,4 @@
-# Makefile to build D runtime library druntime.lib for Win64
+# Makefile to build D runtime library druntime64.lib for Win64
 
 MODEL=64
 
@@ -35,6 +35,7 @@ MANIFEST= \
 	README \
 	posix.mak \
 	win32.mak \
+	win64.mak \
 	\
 	src\object_.d \
 	src\object.di \
@@ -306,7 +307,7 @@ SRCS= \
 	src\rt\arrayshort.d \
 	src\rt\cast_.d \
 	src\rt\cover.d \
-	src\rt\deh.d \
+	src\rt\deh2.d \
 	src\rt\dmain2.d \
 	src\rt\invariant.d \
 	src\rt\invariant_.d \
@@ -864,7 +865,7 @@ $(IMPDIR)\core\sys\windows\windows.d : src\core\sys\windows\windows.d
 ################### C\ASM Targets ############################
 
 errno_c.obj : src\core\stdc\errno.c
-	$(CC) -c $(CFLAGS) src\core\stdc\errno.c -oerrno_c.obj
+	$(CC) -c $(CFLAGS) src\core\stdc\errno.c -Foerrno_c.obj
 
 complex.obj : src\rt\complex.c
 	$(CC) -c $(CFLAGS) src\rt\complex.c
@@ -885,7 +886,7 @@ $(GCSTUB) : src\gcstub\gc.d win$(MODEL).mak
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win32.mak
+$(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d

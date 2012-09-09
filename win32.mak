@@ -1,3 +1,6 @@
+# Makefile to build D runtime library druntime.lib for Win32
+
+MODEL=32
 
 DMD=dmd
 
@@ -6,8 +9,8 @@ CC=dmc
 DOCDIR=doc
 IMPDIR=import
 
-DFLAGS=-O -release -inline -w -Isrc -Iimport -property
-UDFLAGS=-O -release -w -Isrc -Iimport -property
+DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -Iimport -property
+UDFLAGS=-m$(MODEL) -O -release -w -Isrc -Iimport -property
 DDOCFLAGS=-c -w -o- -Isrc -Iimport
 
 CFLAGS=
@@ -25,6 +28,7 @@ MANIFEST= \
 	README \
 	posix.mak \
 	win32.mak \
+	win64.mak \
 	\
 	src\object_.d \
 	src\object.di \
@@ -870,12 +874,12 @@ monitor.obj : src\rt\monitor.c
 
 ################### gcstub generation #########################
 
-$(GCSTUB) : src\gcstub\gc.d win32.mak
+$(GCSTUB) : src\gcstub\gc.d win$(MODEL).mak
 	$(DMD) -c -of$(GCSTUB) src\gcstub\gc.d $(DFLAGS)
 
 ################### Library generation #########################
 
-$(DRUNTIME): $(OBJS) $(SRCS) win32.mak
+$(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d

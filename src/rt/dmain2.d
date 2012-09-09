@@ -126,23 +126,23 @@ extern (C) void* rt_loadLibrary(in char[] name)
         // Load a DLL at runtime
         enum CP_UTF8 = 65001;
         auto len = MultiByteToWideChar(
-            CP_UTF8, 0, name.ptr, name.length, null, 0);
+            CP_UTF8, 0, name.ptr, cast(int)name.length, null, 0);
         if (len == 0)
             return null;
-        
+
         auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
         if (buf is null)
             return null;
         scope (exit)
             free(buf);
-        
+
         len = MultiByteToWideChar(
-            CP_UTF8, 0, name.ptr, name.length, buf, len);
+            CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
         if (len == 0)
             return null;
-        
+
         buf[len] = '\0';
-        
+
         // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
         auto mod = LoadLibraryW(buf);
         if (mod is null)
