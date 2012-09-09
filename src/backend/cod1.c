@@ -2889,8 +2889,11 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #if 1
             s = rtlsym[RTLSYM_ALLOCA];
             makeitextern(s);
-            c1 = cat(c1,getregs(mCX));
-            c1 = genc(c1,0x8D,modregrm(2,CX,BPRM),FLallocatmp,0,0,0);  // LEA CX,&localsize[BP]
+            int areg = CX;
+            if (config.exe == EX_WIN64)
+                areg = DX;
+            c1 = cat(c1,getregs(mask[areg]));
+            c1 = genc(c1,0x8D,modregrm(2,areg,BPRM),FLallocatmp,0,0,0);  // LEA areg,&localsize[BP]
             if (I64)
                 code_orrex(c1, REX_W);
             usedalloca = 2;             // new way
@@ -3068,7 +3071,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     retregs = regmask(e->Ety, tym1);
 
     // If stack needs cleanup
-    if (OTbinary(e->Eoper) &&
+    if ((OTbinary(e->Eoper) || config.exe == EX_WIN64) &&
         (!typfunc(tym1) || config.exe == EX_WIN64) &&
       !(s && s->Sflags & SFLexit))
     {
