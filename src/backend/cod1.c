@@ -2808,7 +2808,11 @@ code *cdfunc(elem *e,regm_t *pretregs)
 
 #ifdef DEBUG
     if (numpara != stackpush - stackpushsave)
+    {
+        printf("function %s\n", funcsym_p->Sident);
         printf("numpara = %d, stackpush = %d, stackpushsave = %d\n", numpara, stackpush, stackpushsave);
+        elem_print(e);
+    }
 #endif
     assert(numpara == stackpush - stackpushsave);
 

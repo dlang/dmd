@@ -2685,8 +2685,8 @@ CEXTERN elem * elstruct(elem *e)
             {   // This needs to match what TypeFunction::retStyle() does
                 if (config.exe == EX_WIN64)
                 {
-                    if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
-                        goto Ldefault;
+                    //if (e->ET->Ttag->Sstruct->Sflags & STRnotpod)
+                        //goto Ldefault;
                 }
                 // If a struct is a wrapper for another type, prefer that other type
                 else if (targ1 && !targ2)

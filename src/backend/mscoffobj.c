@@ -364,6 +364,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
     cseg = CODE;
     fobjbuf = objbuf;
+    assert(objbuf->size() == 0);
 
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
@@ -465,6 +466,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
 
 //    if (config.fulltypes)
 //        dwarf_initfile(filename);
+    assert(objbuf->size() == 0);
     return obj;
 }
 
@@ -677,6 +679,7 @@ void MsCoffObj::termfile()
 void MsCoffObj::term()
 {
     //printf("MsCoffObj::term()\n");
+    assert(fobjbuf->size() == 0);
 #if SCPP
     if (!errcnt)
 #endif
@@ -734,7 +737,10 @@ void MsCoffObj::term()
     {
         seg_data *pseg = SegData[seg];
         scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
-        foffset = elf_align(pseg->SDalignment, foffset);
+
+        if (pseg->SDalignment > 1)
+            foffset = (foffset + pseg->SDalignment - 1) & ~(pseg->SDalignment - 1);
+
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
             int align = pseg->SDalignment;
@@ -768,6 +774,7 @@ void MsCoffObj::term()
         }
     }
 
+    assert(fobjbuf->size() == 0);
 
     // Write the header
     fobjbuf->write(&header, sizeof(header));
