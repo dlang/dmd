@@ -3011,9 +3011,11 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     {   Expression *ee1 = (*ae1->elements)[lo1 + i];
         Expression *ee2 = (*ae2->elements)[lo2 + i];
         if (needCmp)
-        {   int c = ee1->toInteger() - ee2->toInteger();
-            if (c)
-                return c;
+        {   dinteger_t c = ee1->toInteger() - ee2->toInteger();
+            if (c > 0)
+                return 1;
+            if (c < 0)
+                return 1;
         }
         else
         {   if (ctfeRawCmp(loc, ee1, ee2))
@@ -3069,7 +3071,7 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     }
     if (e1->type->isintegral())
     {
-        return e1->toInteger() - e2->toInteger();
+        return e1->toInteger() != e2->toInteger();
     }
     real_t r1;
     real_t r2;
