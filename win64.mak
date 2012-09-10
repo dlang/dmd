@@ -368,7 +368,7 @@ SRCS= \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= errno_c.obj complex.obj src\rt\minit.obj monitor.obj critical.obj
+OBJS= errno_c.obj complex.obj monitor.obj critical.obj
 OBJS_TO_DELETE= errno_c.obj complex.obj monitor.obj critical.obj
 
 DOCS=\
