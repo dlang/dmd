@@ -515,18 +515,6 @@ elem *array_toDarray(Type *t, elem *e)
     return el_combine(ef, e);
 }
 
-/*****************************************
- * Evaluate elem and convert to dynamic array suitable as a function argument.
- */
-
-elem *eval_Darray(IRState *irs, Expression *e)
-{
-    elem *ex;
-
-    ex = e->toElem(irs);
-    return array_toDarray(e->type, ex);
-}
-
 /************************************
  */
 
@@ -1902,6 +1890,21 @@ elem *MinExp::toElem(IRState *irs)
     return e;
 }
 
+/*****************************************
+ * Evaluate elem and convert to dynamic array suitable for a function argument.
+ */
+
+elem *eval_Darray(IRState *irs, Expression *e)
+{
+    elem *ex = e->toElem(irs);
+    ex = array_toDarray(e->type, ex);
+    if (config.exe == EX_WIN64)
+    {
+        ex = addressElem(ex, Type::tvoid->arrayOf());
+    }
+    return ex;
+}
+
 /***************************************
  */
 
@@ -2180,10 +2183,9 @@ elem *EqualExp::toElem(IRState *irs)
              (t2->ty == Tarray || t2->ty == Tsarray))
     {
         Type *telement = t1->nextOf()->toBasetype();
-        elem *ea1 = e1->toElem(irs);
-        ea1 = array_toDarray(t1, ea1);
-        elem *ea2 = e2->toElem(irs);
-        ea2 = array_toDarray(t2, ea2);
+
+        elem *ea1 = eval_Darray(irs, e1);
+        elem *ea2 = eval_Darray(irs, e2);
 
 #if DMDV2
         elem *ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
@@ -2819,9 +2821,9 @@ elem *CatAssignExp::toElem(IRState *irs)
             tb1n->equals(tb2->nextOf()->toBasetype()))
         {   // Append array
             e1 = el_una(OPaddr, TYnptr, e1);
-            if (config.exe == EX_WIN64 && this->e2->type->size(0) > REGSIZE)
-                e2 = addressElem(e2, this->e2->type);
-            if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
+            if (config.exe == EX_WIN64)
+                e2 = addressElem(e2, tb2);
+            else if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
             {
                 e2 = el_una(OPstrpar, TYstruct, e2);
                 e2->ET = e2->E1->ET;
