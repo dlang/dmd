@@ -3015,7 +3015,7 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
             if (c > 0)
                 return 1;
             if (c < 0)
-                return 1;
+                return -1;
         }
         else
         {   if (ctfeRawCmp(loc, ee1, ee2))
@@ -3186,6 +3186,31 @@ Expression *ctfeIdentity(Loc loc, enum TOK op, Type *type, Expression *e1, Expre
 
 Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
 {
+    if (e1->type->isString() && e2->type->isString())
+    {
+        int cmp = ctfeRawCmp(loc, e1, e2);
+        dinteger_t n;
+        switch (op)
+        {
+            case TOKlt: n = cmp <  0;   break;
+            case TOKle: n = cmp <= 0;   break;
+            case TOKgt: n = cmp >  0;   break;
+            case TOKge: n = cmp >= 0;   break;
+
+            case TOKleg:   n = 1;               break;
+            case TOKlg:    n = cmp != 0;        break;
+            case TOKunord: n = 0;               break;
+            case TOKue:    n = cmp == 0;        break;
+            case TOKug:    n = cmp >  0;        break;
+            case TOKuge:   n = cmp >= 0;        break;
+            case TOKul:    n = cmp <  0;        break;
+            case TOKule:   n = cmp <= 0;        break;
+
+            default:
+                assert(0);
+        }
+        return new IntegerExp(loc, n, type);
+    }
     return Cmp(op, type, e1, e2);
 }
 
