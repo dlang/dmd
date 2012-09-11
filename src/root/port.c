@@ -607,6 +607,11 @@ double Port::pow(double x, double y)
     return ::pow(x, y);
 }
 
+longdouble Port::fmodl(longdouble x, longdouble y)
+{
+    return ::fmodl(x, y);
+}   
+
 unsigned long long Port::strtoull(const char *p, char **pend, int base)
 {
     return ::strtoull(p, pend, base);
