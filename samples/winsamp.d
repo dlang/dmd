@@ -102,7 +102,7 @@ int myWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int
 
 int* p;
 extern(Windows)
-LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam)
+LRESULT WindowProc(HWND hWnd, UINT message, WPARAM wParam, LPARAM lParam) nothrow
 {
     switch (message)
     {
