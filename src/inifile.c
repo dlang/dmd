@@ -32,7 +32,7 @@
 #include        <alloca.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include "gnuc.h"
 #endif
 
