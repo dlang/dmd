@@ -869,13 +869,12 @@ Lfail:
 #if _WIN32
 int os_critsecsize32()
 {
-    return sizeof(CRITICAL_SECTION);
+    return 24;  // sizeof(CRITICAL_SECTION) for 32 bit Windows
 }
 
 int os_critsecsize64()
 {
-    assert(0);
-    return 0;
+    return 40;  // sizeof(CRITICAL_SECTION) for 64 bit Windows
 }
 #endif
 
