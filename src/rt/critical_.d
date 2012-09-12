@@ -84,6 +84,11 @@ version( Windows )
 
     extern (C) void _d_criticalenter(D_CRITICAL_SECTION *dcs)
     {
+        if (!dcs_list)
+        {
+            _STI_critical_init();
+            atexit(&_STD_critical_term);
+        }
         debug(PRINTF) printf("_d_criticalenter(dcs = x%x)\n", dcs);
         if (!dcs.next)
         {

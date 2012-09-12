@@ -272,11 +272,8 @@ extern (C) __gshared bool rt_trapExceptions = true;
 
 void _d_criticalInit()
 {
-    version (Posix)
-    {
-        _STI_monitor_staticctor();
-        _STI_critical_init();
-    }
+  _STI_monitor_staticctor();
+  _STI_critical_init();
 }
 
 alias void delegate(Throwable) ExceptionHandler;
@@ -309,11 +306,8 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
 
 void _d_criticalTerm()
 {
-    version (Posix)
-    {
-        _STD_critical_term();
-        _STD_monitor_staticdtor();
-    }
+  _STD_critical_term();
+  _STD_monitor_staticdtor();
 }
 
 extern (C) bool rt_term(ExceptionHandler dg = null)
@@ -381,11 +375,8 @@ extern (C) int main(int argc, char** argv)
         }
     }
 
-    version (Posix)
-    {
-        _STI_monitor_staticctor();
-        _STI_critical_init();
-    }
+    _STI_monitor_staticctor();
+    _STI_critical_init();
 
     version (Windows)
     {
@@ -561,10 +552,8 @@ extern (C) int main(int argc, char** argv)
 
     tryExec(&runAll);
 
-    version (Posix)
-    {
-        _STD_critical_term();
-        _STD_monitor_staticdtor();
-    }
+    _STD_critical_term();
+    _STD_monitor_staticdtor();
+
     return result;
 }
