@@ -75,6 +75,15 @@ type *TypeSArray::toCParamtype()
 #endif
 }
 
+type *TypeVector::toCtype()
+{
+    if (!ctype)
+    {   ctype = type_fake(totym());
+        ctype->Tcount++;
+    }
+    return ctype;
+}
+
 type *TypeSArray::toCtype()
 {
     if (!ctype)
