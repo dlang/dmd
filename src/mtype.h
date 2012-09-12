@@ -434,6 +434,8 @@ struct TypeVector : Type
     int isZeroInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
     TypeTuple *toArgTypes();
+
+    type *toCtype();
 };
 
 struct TypeArray : TypeNext
