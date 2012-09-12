@@ -191,7 +191,7 @@ unittest
  */
 uint bswap(uint v) pure;
 
-@system // not pure
+version (DigitalMars) @system // not pure
 {
     /**
      * Reads I/O port at port_address.
