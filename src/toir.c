@@ -46,6 +46,9 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
+bool ISREF(Declaration *var, Type *tb);
+
+
 /*********************************************
  * Produce elem which increments the usage count for a particular line.
  * Used to implement -cov switch (coverage analysis).
@@ -703,7 +706,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 memalignsize = memsize;
                 xalign = global.structalign;
             }
-            else if (v->isRef() || v->isOut())
+            else if (ISREF(v, NULL))
             {    // reference parameters are just pointers
                 memsize = PTRSIZE;
                 memalignsize = memsize;
@@ -761,7 +764,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
 #if !SARRAYVALUE
                 v->type->toBasetype()->ty == Tsarray ||
 #endif
-                v->isOut() || v->isRef())
+                ISREF(v, NULL))
                 tym = TYnptr;   // reference parameters are just pointers
 #if DMDV2
             else if (v->storage_class & STClazy)
@@ -827,7 +830,7 @@ enum RET TypeFunction::retStyle()
             if (!sd->isPOD())
                 return RETstack;
         }
-        if (sz <= 64 && !(sz & (sz - 1)))
+        if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;
         return RETstack;
     }

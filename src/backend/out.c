@@ -210,7 +210,7 @@ void outdata(symbol *s)
                     if (s->Sclass == SCglobal || s->Sclass == SCstatic) // if a pubdef to be done
 #endif
 #if OMFOBJ
-                    if (s->Sclass == SCglobal)          // if a pubdef to be done
+                    if (s->Sclass == SCglobal || (s->Sclass == SCstatic && I64)) // if a pubdef to be done
 #endif
                         objmod->pubdefsize(s->Sseg,s,s->Soffset,datasize);   // do the definition
                     searchfixlist(s);
@@ -338,7 +338,9 @@ void outdata(symbol *s)
         || (s->Sclass == SCstatic && I64)
 #endif
         )
+    {
         objmod->pubdefsize(seg,s,s->Soffset,datasize);    /* do the definition            */
+    }
     assert(s->Sseg != UNKNOWN);
     if (config.fulltypes &&
         !(s->Sclass == SCstatic && funcsym_p)) // not local static
