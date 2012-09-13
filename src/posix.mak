@@ -16,7 +16,11 @@ ifeq (,$(TARGET))
                     ifeq (Solaris,$(OS))
                         TARGET=SOLARIS
                     else
-                        $(error Unrecognized or unsupported OS for uname: $(OS))
+                        ifeq (SunOS,$(OS))
+                            TARGET=SOLARIS
+                        else
+                            $(error Unrecognized or unsupported OS for uname: $(OS))
+                        endif
                     endif
                 endif
             endif

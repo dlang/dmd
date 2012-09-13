@@ -10,7 +10,7 @@
 #include <time.h>
 #include <assert.h>
 
-#if __sun&&__SVR4
+#if __sun
 #include <alloca.h>
 #endif
 

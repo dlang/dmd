@@ -7,7 +7,7 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#define POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)
+#define POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 #include <assert.h>
 #include <ctype.h>
 
-#if (defined (__SVR4) && defined (__sun))
+#if defined (__sun)
 #include <alloca.h>
 #endif
 

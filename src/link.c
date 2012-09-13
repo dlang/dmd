@@ -19,7 +19,7 @@
 #include        <process.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
@@ -372,7 +372,7 @@ int runLINK()
         }
         return status;
     }
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
@@ -390,7 +390,7 @@ int runLINK()
     // add the "-dynamiclib" flag
     if (global.params.dll)
         argv.push((char *) "-dynamiclib");
-#elif linux || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __FreeBSD__ || __OpenBSD__ || __sun
     if (global.params.dll)
         argv.push((char *) "-shared");
 #endif
@@ -530,6 +530,10 @@ int runLINK()
         strcpy(buf + 2, libname);
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
+
+#ifdef __sun
+    argv.push((char *)"-mt");
+#endif
 
 //    argv.push((void *)"-ldruntime");
     argv.push((char *)"-lpthread");
@@ -687,7 +691,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     char *full;
     int cmdl = strlen(cmd);
 
@@ -750,7 +754,7 @@ int runProgram()
     else
         ex = global.params.exefile;
     return spawnv(0,ex,argv.tdata());
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 

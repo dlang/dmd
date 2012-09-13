@@ -31,7 +31,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-#if _MSC_VER
+#if _MSC_VER || __sun
 #include        <alloca.h>
 #endif
 
