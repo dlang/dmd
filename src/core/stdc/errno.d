@@ -381,7 +381,7 @@ else version( FreeBSD )
 }
 else version (Solaris)
 {
-enum EPERM =  1       /* Not super-user                       */;
+    enum EPERM =  1       /* Not super-user                       */;
     enum ENOENT = 2       /* No such file or directory            */;
     enum ESRCH =  3       /* No such process                      */;
     enum EINTR =  4       /* interrupted system call              */;
