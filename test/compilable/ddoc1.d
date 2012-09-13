@@ -7,7 +7,7 @@
  * Copyright: Copyright &copy; $(YEAR)
  */
 
-module abc;
+module ddoc1;
 
 string foos = "foo";
 

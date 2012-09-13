@@ -23,7 +23,7 @@
 /*
  */
 
-module std.test;
+module ddoc2;
 
 /// A base class for stream exceptions.
 class StreamException: Exception {
