@@ -95,7 +95,7 @@ private
         {
             extern __gshared
             {
-                int etext;
+                int __dso_handle;
                 int _end;
             }
         }
@@ -135,7 +135,7 @@ void initStaticDataGC()
     }
     else version( Solaris )
     {
-        gc_addRange( &etext, cast(size_t) &_end - cast(size_t) &etext );
+        gc_addRange(&__dso_handle, cast(size_t)&_end - cast(size_t)&__dso_handle);
     }
     else
     {
