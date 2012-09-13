@@ -1364,10 +1364,10 @@ else version( FreeBSD )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
-version (OSX)
+else version (OSX)
 {
 }
-version (Solaris)
+else version (Solaris)
 {
     struct sigevent
     {
