@@ -1,6 +1,66 @@
 /**
- * The memory module provides an interface to the garbage collector and to
- * any other OS or API-level memory management facilities.
+ * This module provides an interface to the garbage collector used by
+ * applications written in the D programming language. It allows the
+ * garbage collector in the runtime to be swapped without affecting
+ * binary compatibility of applications.
+ *
+ * -------
+ *
+ * Notes to implementors:
+ *
+ * * On POSIX systems, the signals SIGUSR1 and SIGUSR2 and reserved
+ *   by this module for use in the garbage collector implementation.
+ *   Typically, they will be used to stop and resume other threads
+ *   when performing a collection, but an implementation may choose
+ *   not to use this mechanism (or not stop the world at all, in the
+ *   case of concurrent garbage collectors).
+ * * Roots are always scanned conservatively. Roots include registers,
+ *   the stack, TLS variables, and any other memory locations added
+ *   through the GC.addRoot and GC.addRange functions. This means that
+ *   even if a variable is e.g. of type float, it will still be
+ *   scanned for possible GC pointers. And, if the word-interpreted
+ *   representation of the variable matches a GC-managed memory
+ *   block's address, that memory block is considered live.
+ * * Implementations are free to scan the non-root heap in a precise
+ *   manner, so that fields of types like float will not be considered
+ *   relevant when scanning the heap. Thus, casting a GC pointer to an
+ *   integral type (e.g. size_t) and storing it in a field of that
+ *   type inside the GC heap may mean that it will not be recognized
+ *   if the memory block was allocated with precise type info or with
+ *   the GC.BlkAttr.NO_SCAN attribute.
+ * * Destructors will always be executed while other threads are
+ *   active; that is, an implementation that stops the world must not
+ *   execute destructors until the world has been resumed.
+ * * A destructor of an object must not access object references
+ *   within the object. This means that an implementation is free to
+ *   optimize based on this rule.
+ * * An implementation is free to perform heap compaction and copying
+ *   so long as no valid GC pointers are invalidated in the process.
+ *   However, memory allocated with GC.BlkAttr.NO_MOVE must not be
+ *   moved/copied.
+ * * Implementations must support interior pointers. That is, if the
+ *   only reference to a GC-managed memory block points into the
+ *   middle of the block rather than the beginning (for example), the
+ *   GC must consider the memory block live. The exception to this
+ *   rule is when a memory block is allocated with the
+ *   GC.BlkAttr.NO_INTERIOR attribute; it is the user's responsibility
+ *   to make sure such memory blocks have a proper pointer to them
+ *   when they should be considered live.
+ * * It is acceptable for an implementation to store bit flags into
+ *   pointer values and GC-managed memory blocks, so long as such a
+ *   trick is not visible to the application. In practice, this means
+ *   that only a stop-the-world collector can do this.
+ * * Implementations are free to assume that GC pointers are only
+ *   stored on word boundaries. Unaligned pointers may be ignored
+ *   entirely.
+ * * Implementations are free to run collections at any point. It is,
+ *   however, recommendable to only do so when an allocation attempt
+ *   happens and there is insufficient memory available.
+ *
+ * -------
+ *
+ * Using this module is not necessary in typical D code. It is mostly
+ * useful when doing low-level memory management.
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
@@ -123,7 +183,7 @@ struct GC
         NONE        = 0b0000_0000, /// No attributes set.
         FINALIZE    = 0b0000_0001, /// Finalize the data in this block on collect.
         NO_SCAN     = 0b0000_0010, /// Do not scan through this block on collect.
-        NO_MOVE     = 0b0000_0100,  /// Do not move this memory block on collect.
+        NO_MOVE     = 0b0000_0100, /// Do not move this memory block on collect.
         APPENDABLE  = 0b0000_1000, /// This block contains the info to allow appending.
 
         /**
