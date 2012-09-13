@@ -2095,16 +2095,12 @@ elem *CmpExp::toElem(IRState *irs)
              (t1->ty == Tarray || t1->ty == Tsarray) &&
              (t2->ty == Tarray || t2->ty == Tsarray))
     {
-        elem *ea1;
-        elem *ea2;
         elem *ep;
         Type *telement = t1->nextOf()->toBasetype();
         int rtlfunc;
 
-        ea1 = e1->toElem(irs);
-        ea1 = array_toDarray(t1, ea1);
-        ea2 = e2->toElem(irs);
-        ea2 = array_toDarray(t2, ea2);
+        elem *ea1 = eval_Darray(irs, e1);
+        elem *ea2 = eval_Darray(irs, e2);
 
 #if DMDV2
         ep = el_params(telement->arrayOf()->getInternalTypeInfo(NULL)->toElem(irs),
@@ -4558,7 +4554,6 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 {
     //printf("AssocArrayLiteralExp::toElem() %s\n", toChars());
     size_t dim = keys->dim;
-    elem *e;
 
     if (I64)
     {   // call _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
@@ -4573,8 +4568,14 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
         symbol *svalues;
         elem *evalues = ExpressionsToStaticArray(irs, loc, values, ta->nextOf(), &svalues);
 
-        e = el_params(el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues)),
-                      el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  )),
+        elem *ev = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(svalues));
+        elem *ek = el_pair(TYdarray, el_long(TYsize_t, dim), el_ptr(skeys  ));
+        if (config.exe == EX_WIN64)
+        {
+            ev = addressElem(ev, Type::tvoid->arrayOf());
+            ek = addressElem(ek, Type::tvoid->arrayOf());
+        }
+        elem *e = el_params(ev, ek,
                       ta->getTypeInfo(NULL)->toElem(irs),
                       NULL);
 
@@ -4584,10 +4585,11 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
 
         e = el_combine(evalues, e);
         e = el_combine(ekeys, e);
+        return e;
     }
     else // Keep for binary backwards compatibility
     {    // call _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
-        e = el_long(TYsize_t, dim);
+        elem *e = el_long(TYsize_t, dim);
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (Expression *)keys->data[i];
 
@@ -4617,9 +4619,8 @@ elem *AssocArrayLiteralExp::toElem(IRState *irs)
         e = el_bin(OPcall,TYnptr,el_var(rtlsym[RTLSYM_ASSOCARRAYLITERALT]),e);
         e->Eflags |= EFLAGS_variadic;
         el_setLoc(e,loc);
+        return e;
     }
-
-    return e;
 }
 
 

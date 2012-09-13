@@ -736,7 +736,7 @@ enum RET TypeFunction::retStyle()
             if (!sd->isPOD())
                 return RETstack;
         }
-        if (sz <= 64 && !(sz & (sz - 1)))
+        if (sz <= 16 && !(sz & (sz - 1)))
             return RETregs;
         return RETstack;
     }
