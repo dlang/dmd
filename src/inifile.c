@@ -23,16 +23,16 @@
 #include        <sys/syslimits.h>
 #endif
 
-#if __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if __FreeBSD__ || __OpenBSD__ || __sun
 // for PATH_MAX
 #include        <limits.h>
 #endif
 
-#if __sun&&__SVR4
+#if __sun
 #include        <alloca.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include "gnuc.h"
 #endif
 
@@ -113,12 +113,12 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
-#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4   // This fix by Thomas Kuehne
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
                      */
-#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
                     char resolved_name[PATH_MAX + 1];
                     char* real_argv0 = realpath(argv0, resolved_name);
 #else

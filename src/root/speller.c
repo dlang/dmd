@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if __sun&&__SVR4 || _MSC_VER
+#if __sun || _MSC_VER
 #include <alloca.h>
 #endif
 

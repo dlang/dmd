@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if (defined (__SVR4) && defined (__sun))
+#if defined (__sun)
 #include <alloca.h>
 #endif
 
