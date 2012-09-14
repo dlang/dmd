@@ -1660,7 +1660,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
                     VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
                     if (arg->storageClass & STCref)
                         v->storage_class |= STCref | STCforeach;
-                    if (e->isConst() || e->op == TOKstring)
+                    if (e->isConst() || e->op == TOKstring ||
+                        e->op == TOKstructliteral || e->op == TOKarrayliteral)
                     {   if (v->storage_class & STCref)
                             error("constant value %s cannot be ref", ie->toChars());
                         else
