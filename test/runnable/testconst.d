@@ -2717,6 +2717,19 @@ void test8099()
 }
 
 /************************************/
+// 8201
+
+void test8201()
+{
+    uint[2] msa;
+    immutable uint[2] isa = msa;
+
+    ubyte[] buffer = [0, 1, 2, 3, 4, 5];
+    immutable ubyte[4] iArr = buffer[0 .. 4];
+}
+
+/************************************/
+// 8212
 
 struct S8212 { int x; }
 
@@ -2846,6 +2859,7 @@ int main()
     test7757();
     test8098();
     test8099();
+    test8201();
     test8212();
 
     printf("Success\n");
