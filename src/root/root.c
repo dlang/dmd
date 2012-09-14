@@ -7,7 +7,7 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#define POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4)
+#define POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -18,7 +18,7 @@
 #include <assert.h>
 #include <ctype.h>
 
-#if (defined (__SVR4) && defined (__sun))
+#if defined (__sun)
 #include <alloca.h>
 #endif
 
@@ -1275,7 +1275,7 @@ err:
 void File::readv()
 {
     if (read())
-        error("Error reading file '%s'\n",name->toChars());
+        error("Error reading file '%s'",name->toChars());
 }
 
 /**************************************
@@ -1290,13 +1290,13 @@ void File::mmreadv()
 void File::writev()
 {
     if (write())
-        error("Error writing file '%s'\n",name->toChars());
+        error("Error writing file '%s'",name->toChars());
 }
 
 void File::appendv()
 {
     if (write())
-        error("Error appending to file '%s'\n",name->toChars());
+        error("Error appending to file '%s'",name->toChars());
 }
 
 /*******************************************

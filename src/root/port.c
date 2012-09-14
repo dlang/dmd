@@ -514,7 +514,7 @@ char *Port::strupr(char *s)
 
 #endif
 
-#if __sun&&__SVR4
+#if __sun
 
 #define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #include <math.h>
@@ -605,6 +605,11 @@ double Port::floor(double d)
 double Port::pow(double x, double y)
 {
     return ::pow(x, y);
+}
+
+longdouble Port::fmodl(longdouble x, longdouble y)
+{
+    return ::fmodl(x, y);
 }
 
 unsigned long long Port::strtoull(const char *p, char **pend, int base)

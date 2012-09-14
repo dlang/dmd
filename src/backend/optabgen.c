@@ -724,9 +724,27 @@ void fltables()
 #endif
 
 /* Segment registers    */
+/* The #undefs are to appease the compiler on Solaris because
+   it, for some reason, ends up including regset.h in standard
+   C/POSIX headers, polluting the global namespace */
+#ifdef ES
+#undef ES
+#endif
 #define ES      0
+
+#ifdef CS
+#undef CS
+#endif
 #define CS      1
+
+#ifdef SS
+#undef SS
+#endif
 #define SS      2
+
+#ifdef DS
+#undef DS
+#endif
 #define DS      3
 
         for (i = 0; i < FLMAX; i++)

@@ -22,7 +22,7 @@
 #include        <malloc.h>
 #endif
 
-#if __sun&&__SVR4
+#if __sun
 #include        <alloca.h>
 #endif
 

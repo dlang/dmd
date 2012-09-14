@@ -46,6 +46,11 @@ enum // #defining R12-R15 interfere with setjmps' _JUMP_BUFFER members
 /* There are also XMM8..XMM14 */
 #define XMM15   31
 
+/* See Solaris note in optabgen.c */
+#ifdef ES
+#undef ES
+#endif
+
 #define ES      24
 
 #define NUMGENREGS 16
