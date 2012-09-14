@@ -3889,7 +3889,7 @@ private:
         }
         else
         {
-            import core.sys.posix.sys.mman; // mmap
+            version (Posix) import core.sys.posix.sys.mman; // mmap
 
             static if( __traits( compiles, mmap ) )
             {
