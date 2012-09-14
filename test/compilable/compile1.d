@@ -90,6 +90,30 @@ template Bug6599(X)
 static assert(!is(typeof(Bug6599!int)));
 
 /**************************************************
+    8422    TypeTuple of tuples can't be read at compile time
+**************************************************/
+
+template TypeTuple8422(TList...)
+{
+    alias TList TypeTuple8422;
+}
+
+struct S8422 { int x; }
+
+void test8422()
+{
+    enum a = S8422(1);
+    enum b = S8422(2);
+    enum c = [1,2,3];
+    foreach(t; TypeTuple8422!(b, a)) {
+        enum u = t;
+    }
+    foreach(t; TypeTuple8422!(c)) {
+        enum v = t;
+    }
+}
+
+/**************************************************
     6096    ICE(el.c) with -O
 **************************************************/
 
