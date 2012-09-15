@@ -173,6 +173,7 @@ int runLINK()
         }
 
         cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
+        cmdbuf.writestring(" /MERGE:._deh_bg=._deh_eh /MERGE:._deh_en=._deh_eh");
 
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
@@ -627,6 +628,11 @@ int executecmd(char *cmd, char *args, int useenv)
         fflush(stdout);
     }
 
+    if (global.params.is64bit)
+    {
+    }
+    else
+    {
     if ((len = strlen(args)) > 255)
     {   char *q;
         static char envname[] = "@_CMDLINE";
@@ -645,6 +651,7 @@ int executecmd(char *cmd, char *args, int useenv)
         {
         L1:
             error(0, "command line length of %d is too long",len);
+            }
         }
     }
 
