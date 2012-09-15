@@ -19,7 +19,7 @@
 #include        <process.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
@@ -173,6 +173,7 @@ int runLINK()
         }
 
         cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
+        cmdbuf.writestring(" /MERGE:._deh_bg=._deh_eh /MERGE:._deh_en=._deh_eh");
 
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
@@ -372,7 +373,7 @@ int runLINK()
         }
         return status;
     }
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 
@@ -390,7 +391,7 @@ int runLINK()
     // add the "-dynamiclib" flag
     if (global.params.dll)
         argv.push((char *) "-dynamiclib");
-#elif linux || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __FreeBSD__ || __OpenBSD__ || __sun
     if (global.params.dll)
         argv.push((char *) "-shared");
 #endif
@@ -531,6 +532,10 @@ int runLINK()
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
 
+#ifdef __sun
+    argv.push((char *)"-mt");
+#endif
+
 //    argv.push((void *)"-ldruntime");
     argv.push((char *)"-lpthread");
     argv.push((char *)"-lm");
@@ -623,24 +628,30 @@ int executecmd(char *cmd, char *args, int useenv)
         fflush(stdout);
     }
 
-    if ((len = strlen(args)) > 255)
-    {   char *q;
-        static char envname[] = "@_CMDLINE";
+    if (global.params.is64bit)
+    {
+    }
+    else
+    {
+        if ((len = strlen(args)) > 255)
+        {   char *q;
+            static char envname[] = "@_CMDLINE";
 
-        envname[0] = '@';
-        switch (useenv)
-        {   case 0:     goto L1;
-            case 2: envname[0] = '%';   break;
-        }
-        q = (char *) alloca(sizeof(envname) + len + 1);
-        sprintf(q,"%s=%s", envname + 1, args);
-        status = putenv(q);
-        if (status == 0)
-            args = envname;
-        else
-        {
-        L1:
-            error(0, "command line length of %d is too long",len);
+            envname[0] = '@';
+            switch (useenv)
+            {   case 0:     goto L1;
+                case 2: envname[0] = '%';   break;
+            }
+            q = (char *) alloca(sizeof(envname) + len + 1);
+            sprintf(q,"%s=%s", envname + 1, args);
+            status = putenv(q);
+            if (status == 0)
+                args = envname;
+            else
+            {
+            L1:
+                error(0, "command line length of %d is too long",len);
+            }
         }
     }
 
@@ -687,7 +698,7 @@ int executearg0(char *cmd, char *args)
     //printf("spawning '%s'\n",file);
 #if _WIN32
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     char *full;
     int cmdl = strlen(cmd);
 
@@ -750,7 +761,7 @@ int runProgram()
     else
         ex = global.params.exefile;
     return spawnv(0,ex,argv.tdata());
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
     int status;
 

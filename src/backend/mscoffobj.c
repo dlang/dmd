@@ -644,6 +644,7 @@ void build_syment_table()
             case SCstatic:
             case SClocstat:
                 sym.n_sclass = IMAGE_SYM_CLASS_STATIC;
+                sym.n_value = s->Soffset;
                 break;
 
             default:
@@ -1262,7 +1263,7 @@ void MsCoffObj::funcptr(Symbol *s)
 
 void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 {
-    //dbg_printf("MsCoffObj::ehtables(%s) \n",sfunc->Sident);
+    //printf("MsCoffObj::ehtables(func = %s, handler table = %s) \n",sfunc->Sident, ehsym->Sident);
 
     /* BUG: this should go into a COMDAT if sfunc is in a COMDAT
      * otherwise the duplicates aren't removed.
