@@ -2340,6 +2340,10 @@ void MsCoffObj::far16thunk(Symbol *s)
 void MsCoffObj::fltused()
 {
     //dbg_printf("MsCoffObj::fltused()\n");
+    /* Otherwise, we'll get the dreaded
+     *    "runtime error R6002 - floating point support not loaded"
+     */
+    external_def("_fltused");
 }
 
 
