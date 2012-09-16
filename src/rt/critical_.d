@@ -74,6 +74,9 @@ private
 
 version( Windows )
 {
+    version (Win32)
+        pragma(lib, "snn.lib");
+
     /******************************************
      * Enter/exit critical section.
      */

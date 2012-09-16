@@ -43,6 +43,8 @@ private
 
     version( Windows )
     {
+        version (Win32)
+            pragma(lib, "snn.lib");
         import core.sys.windows.windows;
 
         struct Monitor
