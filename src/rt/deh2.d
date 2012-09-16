@@ -130,10 +130,28 @@ FuncTable *__eh_finddata(void *address)
         auto pend   = cast(FuncTable *)&_deh_end;
     }
     debug printf("_deh_beg = %p, _deh_end = %p\n", pstart, pend);
-    for (auto ft = pstart; ft < pend; ft++)
+
+    for (auto ft = pstart; 1; ft++)
     {
-      debug printf("\tft = %p, fptr = %p, fsize = x%03x, handlertable = %p\n",
-              ft, ft.fptr, ft.fsize, ft.handlertable);
+     Lagain:
+        if (ft >= pend)
+            break;
+
+        version (Win64)
+        {
+            /* The MS Linker has an inexplicable and erratic tendency to insert
+             * 8 zero bytes between sections generated from different .obj
+             * files. This kludge tries to skip over them.
+             */
+            if (ft.fptr == null)
+            {
+                ft = cast(FuncTable *)(cast(void**)ft + 1);
+                goto Lagain;
+            }
+        }
+
+        debug printf("  ft = %p, fptr = %p, handlertable = %p, fsize = x%03x\n",
+              ft, ft.fptr, ft.handlertable, ft.fsize);
 
         if (ft.fptr <= address &&
             address < cast(void *)(cast(char *)ft.fptr + ft.fsize))
