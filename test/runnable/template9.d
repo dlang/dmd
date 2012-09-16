@@ -1563,6 +1563,72 @@ void test8238()
 }
 
 /**********************************/
+// 8669
+
+struct X8669
+{
+    void mfoo(this T)()
+    {
+        static assert(is(typeof(this) == T));
+    }
+    void cfoo(this T)() const
+    {
+        static assert(is(typeof(this) == const(T)));
+    }
+    void sfoo(this T)() shared
+    {
+        static assert(is(typeof(this) == shared(T)));
+    }
+    void scfoo(this T)() shared const
+    {
+        static assert(is(typeof(this) == shared(const(T))));
+    }
+    void ifoo(this T)() immutable
+    {
+        static assert(is(typeof(this) == immutable(T)));
+    }
+}
+
+void test8669()
+{
+                 X8669 mx;
+           const X8669 cx;
+      immutable  X8669 ix;
+          shared X8669 sx;
+    shared const X8669 scx;
+
+     mx.mfoo();
+     cx.mfoo();
+     ix.mfoo();
+     sx.mfoo();
+    scx.mfoo();
+
+     mx.cfoo();
+     cx.cfoo();
+     ix.cfoo();
+     sx.cfoo();
+    scx.cfoo();
+
+    static assert(!is(typeof(  mx.sfoo() )));
+    static assert(!is(typeof(  cx.sfoo() )));
+     ix.sfoo();
+     sx.sfoo();
+    scx.sfoo();
+
+    static assert(!is(typeof(  mx.scfoo() )));
+    static assert(!is(typeof(  cx.scfoo() )));
+     ix.scfoo();
+     sx.scfoo();
+    scx.scfoo();
+
+    static assert(!is(typeof(  mx.ifoo() )));
+    static assert(!is(typeof(  cx.ifoo() )));
+     ix.ifoo();
+    static assert(!is(typeof(  sx.ifoo() )));
+    static assert(!is(typeof( scx.ifoo() )));
+}
+
+/**********************************/
 // 8976
 
 void f8976(ref int) { }
@@ -2039,6 +2105,7 @@ int main()
     test14();
     test8129();
     test8238();
+    test8669();
     test8976();
     test8940();
     test9026();

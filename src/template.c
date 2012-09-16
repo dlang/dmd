@@ -32,6 +32,7 @@
 #include "identifier.h"
 #include "hdrgen.h"
 #include "id.h"
+#include "attrib.h"
 
 #if WINDOWS_SEH
 #include <windows.h>
@@ -1368,15 +1369,17 @@ L2:
 #if DMDV2
     if (ethis)
     {
+        bool hasttp = false;
+
         // Match 'ethis' to any TemplateThisParameter's
         for (size_t i = 0; i < parameters->dim; i++)
         {   TemplateParameter *tp = (*parameters)[i];
             TemplateThisParameter *ttp = tp->isTemplateThisParameter();
             if (ttp)
-            {   MATCH m;
+            {   hasttp = true;
 
                 Type *t = new TypeIdentifier(0, ttp->ident);
-                m = ethis->type->deduceType(paramscope, t, parameters, &dedtypes);
+                MATCH m = ethis->type->deduceType(paramscope, t, parameters, &dedtypes);
                 if (!m)
                     goto Lnomatch;
                 if (m < match)
@@ -1387,7 +1390,6 @@ L2:
         // Match attributes of ethis against attributes of fd
         if (fd->type && !fd->isCtorDeclaration())
         {
-            Type *tthis = ethis->type;
             unsigned mod = fd->type->mod;
             StorageClass stc = scope->stc | fd->storage_class2;
             // Propagate parent storage class (see bug 5504)
@@ -1411,9 +1413,13 @@ L2:
                 mod = MODimmutable;
             if (mod & MODconst)
                 mod &= ~STCwild;
-            if (tthis->mod != mod)
+
+            unsigned thismod = ethis->type->mod;
+            if (hasttp)
+                mod = MODmerge(thismod, mod);
+            if (thismod != mod)
             {
-                if (!MODmethodConv(tthis->mod, mod))
+                if (!MODmethodConv(thismod, mod))
                     goto Lnomatch;
                 if (MATCHconst < match)
                     match = MATCHconst;
@@ -2232,6 +2238,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
     if (!fd_best)
+        goto Lerror;
+    if (!((TypeFunction*)fd_best->type)->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? ethis : NULL, fargs))
         goto Lerror;
 
     if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
@@ -5035,6 +5043,36 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     // Copy the syntax trees from the TemplateDeclaration
     members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    // todo for TemplateThisParameter
+    for (size_t i = 0; i < tempdecl->parameters->dim; i++)
+    {
+        if ((*tempdecl->parameters)[i]->isTemplateThisParameter() == NULL)
+            continue;
+        Type *t = isType((*tiargs)[i]);
+        assert(t);
+
+        StorageClass stc = 0;
+        if (t->mod & MODimmutable)
+            stc |= STCimmutable;
+        else
+        {
+            if (t->mod & MODconst)
+                stc |= STCconst;
+            else if (t->mod & MODwild)
+                stc |= STCwild;
+
+            if (t->mod & MODshared)
+                stc |= STCshared;
+        }
+        if (stc != 0)
+        {
+            //printf("t = %s, stc = x%llx\n", t->toChars(), stc);
+            Dsymbols *s = new Dsymbols();
+            s->push(new StorageClassDeclaration(stc, members));
+            members = s;
+        }
+        break;
+    }
 
     // Create our own scope for the template parameters
     Scope *scope = tempdecl->scope;
