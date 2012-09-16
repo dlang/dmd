@@ -64,6 +64,8 @@ typedef ArrayBase<struct CompoundStatement> CompoundStatements;
 
 typedef ArrayBase<struct GotoCaseStatement> GotoCaseStatements;
 
+typedef ArrayBase<struct ReturnStatement> ReturnStatements;
+
 typedef ArrayBase<struct TemplateInstance> TemplateInstances;
 
 //typedef ArrayBase<char> Strings;

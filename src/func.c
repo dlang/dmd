@@ -92,6 +92,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     tookAddressOf = 0;
     flags = 0;
 #endif
+    returns = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -1176,7 +1177,19 @@ void FuncDeclaration::semantic3(Scope *sc)
                     ((TypeFunction *)type)->next = Type::tvoid;
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
-                f = (TypeFunction *)type;
+                else if (returns && f->next->ty != Tvoid)
+                {
+                    for (size_t i = 0; i < returns->dim; i++)
+                    {   Expression *exp = (*returns)[i]->exp;
+                        if (!f->next->invariantOf()->equals(exp->type->invariantOf()))
+                        {   exp = exp->castTo(sc2, f->next);
+                            exp = exp->optimize(WANTvalue);
+                            (*returns)[i]->exp = exp;
+                        }
+                        //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
+                    }
+                }
+                assert(type == f);
             }
 
             if (isStaticCtorDeclaration())

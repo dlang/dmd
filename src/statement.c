@@ -3894,6 +3894,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
             }
             if (fd->returnLabel)
                 eorg = exp;
+
+            if (!fd->returns)
+                fd->returns = new ReturnStatements();
+            fd->returns->push(this);
         }
         else if (tbret->ty != Tvoid)
         {
