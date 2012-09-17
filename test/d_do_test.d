@@ -298,7 +298,7 @@ int main(string[] args)
 
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
-    string output_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
+    string log_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".log";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     TestArgs testArgs;
@@ -326,10 +326,10 @@ int main(string[] args)
     else
         write("\n");
 
-    if (std.file.exists(output_file))
-        std.file.remove(output_file);
+    if (std.file.exists(log_file))
+        std.file.remove(log_file);
 
-    auto f = File(output_file, "a");
+    auto f = File(log_file, "a");
 
     foreach(i, c; combinations(testArgs.permuteArgs))
     {
@@ -427,10 +427,10 @@ int main(string[] args)
             f.close();
 
             writeln("Test failed.  The logged output:");
-            if (std.file.exists(output_file))
+            if (std.file.exists(log_file))
             {
-                writeln(cast(string)std.file.read(output_file));
-                std.file.remove(output_file);
+                writeln(cast(string)std.file.read(log_file));
+                std.file.remove(log_file);
             }
             return 1;
         }
