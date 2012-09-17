@@ -30,7 +30,7 @@ extern (C):
 @system:
 nothrow:
 
-version( Windows )
+version( Win32 )
 {
     enum
     {
@@ -43,6 +43,23 @@ version( Windows )
     }
 
     enum int     _NFILE     = 60;       // non-standard
+    enum string  _P_tmpdir  = "\\"; // non-standard
+    enum wstring _wP_tmpdir = "\\"; // non-standard
+    enum int     L_tmpnam   = _P_tmpdir.length + 12;
+}
+else version( Win64 )
+{
+    enum
+    {
+        BUFSIZ       = 512,
+        EOF          = -1,
+        FOPEN_MAX    = 20,
+        FILENAME_MAX = 260,
+        TMP_MAX      = 32767,
+        _SYS_OPEN    = 20,      // non-standard
+    }
+
+    enum int     _NFILE     = 512;       // non-standard
     enum string  _P_tmpdir  = "\\"; // non-standard
     enum wstring _wP_tmpdir = "\\"; // non-standard
     enum int     L_tmpnam   = _P_tmpdir.length + 12;
@@ -122,7 +139,7 @@ enum
     SEEK_END
 }
 
-version( Windows )
+version( Win32 )
 {
     struct _iobuf
     {
@@ -134,6 +151,20 @@ version( Windows )
         int   _charbuf;
         int   _bufsiz;
         char* __tmpnum;
+    }
+}
+else version( Win64 )
+{
+    struct _iobuf
+    {
+        char* _ptr;
+        int   _cnt;
+        char* _base;
+        int   _flag;
+        int   _file;
+        int   _charbuf;
+        int   _bufsiz;
+        char* _tmpfname;
     }
 }
 else version( linux )
@@ -253,7 +284,7 @@ enum
     _F_TERM = 0x0200, // non-standard
 }
 
-version( Windows )
+version( Win32 )
 {
     enum
     {
@@ -280,6 +311,33 @@ version( Windows )
     shared stderr = &_iob[2];
     shared stdaux = &_iob[3];
     shared stdprn = &_iob[4];
+}
+else version( Win64 )
+{
+    enum
+    {
+        _IOFBF   = 0,
+        _IOLBF   = 0x40,
+        _IONBF   = 4,
+        _IOREAD  = 1,     // non-standard
+        _IOWRT   = 2,     // non-standard
+        _IOMYBUF = 8,     // non-standard
+        _IOEOF   = 0x10,  // non-standard
+        _IOERR   = 0x20,  // non-standard
+        _IOSTRG  = 0x40,  // non-standard
+        _IORW    = 0x80,  // non-standard
+        _IOAPP   = 0x200, // non-standard
+    }
+
+    extern shared void function() _fcloseallp;
+
+    private extern shared FILE[_NFILE] _iob;
+
+    shared(FILE)* __iob_func();
+
+    shared FILE* stdin;  // = &__iob_func()[0];
+    shared FILE* stdout; // = &__iob_func()[1];
+    shared FILE* stderr; // = &__iob_func()[2];
 }
 else version( linux )
 {
@@ -404,7 +462,7 @@ size_t fwrite(in void* ptr, size_t size, size_t nmemb, FILE* stream);
     c_long ftell(FILE* stream);
 }
 
-version( Windows )
+version( Win32 )
 {
   // No unsafe pointer manipulation.
   extern (D) @trusted
@@ -419,6 +477,46 @@ version( Windows )
 
     int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
     alias _vsnprintf vsnprintf;
+}
+else version( Win64 )
+{
+  // No unsafe pointer manipulation.
+  extern (D) @trusted
+  {
+    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
+    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+  }
+    int   _snprintf(char* s, size_t n, in char* fmt, ...);
+    alias _snprintf snprintf;
+
+    int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    alias _vsnprintf vsnprintf;
+
+    int fwide(FILE* fp, int mode) { return mode; }
+
+    int _filbuf(FILE *fp);
+    int _flsbuf(int c, FILE *fp);
+
+    int _fputc_nolock(int c, FILE *fp)
+    {
+        if (--fp._cnt >= 0)
+            return *fp._ptr++ = cast(char)c;
+        else
+            return _flsbuf(c, fp);
+    }
+
+    int _fgetc_nolock(FILE *fp)
+    {
+        if (--fp._cnt >= 0)
+            return *fp._ptr++;
+        else
+            return _filbuf(fp);
+    }
+
+    int _lock_file(FILE *fp);
+    int _unlock_file(FILE *fp);
 }
 else version( linux )
 {
