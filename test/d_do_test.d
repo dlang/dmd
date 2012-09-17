@@ -245,10 +245,16 @@ version(Windows)
     }
 }
 
+void removeIfExists(in char[] filename)
+{
+    if (std.file.exists(filename))
+        std.file.remove(filename);
+}
+
 string execute(ref File f, string command, bool expectpass)
 {
     auto filename = genTempFilename();
-    scope(exit) if (std.file.exists(filename)) std.file.remove(filename);
+    scope(exit) removeIfExists(filename);
 
     f.writeln(command);
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
@@ -326,8 +332,7 @@ int main(string[] args)
     else
         write("\n");
 
-    if (std.file.exists(log_file))
-        std.file.remove(log_file);
+    removeIfExists(log_file);
 
     auto f = File(log_file, "a");
 
