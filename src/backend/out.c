@@ -806,7 +806,7 @@ void out_regcand(symtab_t *psymtab)
     if (addrparam)                      // if took address of a parameter
     {
         for (si = 0; si < psymtab->top; si++)
-            if (psymtab->tab[si]->Sclass == SCparameter)
+            if (psymtab->tab[si]->Sclass == SCparameter || psymtab->tab[si]->Sclass == SCshadowreg)
                 psymtab->tab[si]->Sflags &= ~(SFLunambig | GTregcand);
     }
 
@@ -856,6 +856,7 @@ STATIC void out_regcand_walk(elem *e)
                 {
                     case SCregpar:
                     case SCparameter:
+                    case SCshadowreg:
                         addrparam = TRUE;       // taking addr of param list
                         break;
                     case SCauto:

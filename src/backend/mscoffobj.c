@@ -98,6 +98,8 @@ static int jumpTableSeg;                // segment index for __jump_table
 static Outbuffer *indirectsymbuf2;      // indirect symbol table of Symbol*'s
 static int pointersSeg;                 // segment index for __pointers
 
+static int floatused;
+
 /* If an MsCoffObj::external_def() happens, set this to the string index,
  * to be added last to the symbol table.
  * Obviously, there can be only one.
@@ -365,6 +367,8 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     cseg = CODE;
     fobjbuf = objbuf;
     assert(objbuf->size() == 0);
+
+    floatused = 0;
 
     seg_tlsseg = UNKNOWN;
     seg_tlsseg_bss = UNKNOWN;
@@ -2343,7 +2347,11 @@ void MsCoffObj::fltused()
     /* Otherwise, we'll get the dreaded
      *    "runtime error R6002 - floating point support not loaded"
      */
-    external_def("_fltused");
+    if (!floatused)
+    {
+        external_def("_fltused");
+        floatused = 1;
+    }
 }
 
 
