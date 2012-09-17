@@ -432,11 +432,8 @@ int main(string[] args)
             f.close();
 
             writeln("Test failed.  The logged output:");
-            if (std.file.exists(log_file))
-            {
-                writeln(cast(string)std.file.read(log_file));
-                std.file.remove(log_file);
-            }
+            writeln(cast(string)std.file.read(log_file));
+            std.file.remove(log_file);
             return 1;
         }
     }
