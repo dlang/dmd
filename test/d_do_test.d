@@ -251,10 +251,10 @@ void removeIfExists(in char[] filename)
         std.file.remove(filename);
 }
 
-string execute(ref File f, string command, bool expectpass)
+string execute(ref File f, string command, string outputFile, bool expectpass)
 {
-    auto filename = genTempFilename();
-    scope(exit) removeIfExists(filename);
+    auto filename = outputFile ? outputFile : genTempFilename();
+    scope(exit) if(!outputFile) removeIfExists(filename);
 
     f.writeln(command);
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
@@ -304,7 +304,9 @@ int main(string[] args)
 
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
-    string log_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".log";
+    string output_file_base  = output_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
+    string out_file          = output_file_base ~ ".out";
+    string log_file          = output_file_base ~ ".log";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
 
     TestArgs testArgs;
@@ -332,6 +334,7 @@ int main(string[] args)
     else
         write("\n");
 
+    removeIfExists(out_file);
     removeIfExists(log_file);
 
     auto f = File(log_file, "a");
@@ -360,7 +363,7 @@ int main(string[] args)
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                compile_output = execute(f, command, null, testArgs.mode != TestMode.FAIL_COMPILE);
             }
             else
             {
@@ -372,7 +375,7 @@ int main(string[] args)
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
-                    compile_output ~= execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output ~= execute(f, command, null, testArgs.mode != TestMode.FAIL_COMPILE);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -384,7 +387,7 @@ int main(string[] args)
                     // add after building the command so that before now, it's purely the .o's involved
                     toCleanup ~= test_app_dmd;
 
-                    execute(f, command, true);
+                    execute(f, command, null, true);
                 }
             }
 
@@ -403,14 +406,16 @@ int main(string[] args)
                 string command = test_app_dmd;
                 if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                execute(f, command, true);
+                execute(f, command, testArgs.postScript ? out_file : null, true);
             }
 
             if (testArgs.postScript)
             {
                 f.write("Executing post-test script: ");
                 version (Windows) testArgs.postScript = "bash " ~ testArgs.postScript;
-                execute(f, testArgs.postScript, true);
+                execute(f, testArgs.postScript, null, true);
+                if (testArgs.mode == TestMode.RUN)
+                    std.file.remove(out_file);
             }
 
             // cleanup
