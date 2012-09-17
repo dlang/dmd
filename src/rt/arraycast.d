@@ -17,11 +17,12 @@ module rt.arraycast;
  * Runtime helper to convert dynamic array of one
  * type to dynamic array of another.
  * Adjusts the length of the array.
- * Throws exception if new length is not aligned.
+ * Throws an error if new length is not aligned.
  */
 
 extern (C)
 
+@trusted nothrow
 void[] _d_arraycast(size_t tsize, size_t fsize, void[] a)
 {
     auto length = a.length;
@@ -29,7 +30,7 @@ void[] _d_arraycast(size_t tsize, size_t fsize, void[] a)
     auto nbytes = length * fsize;
     if (nbytes % tsize != 0)
     {
-    throw new Exception("array cast misalignment");
+        throw new Error("array cast misalignment");
     }
     length = nbytes / tsize;
     *cast(size_t *)&a = length; // jam new length
@@ -56,20 +57,21 @@ unittest
  * Runtime helper to convert dynamic array of bits
  * dynamic array of another.
  * Adjusts the length of the array.
- * Throws exception if new length is not aligned.
+ * Throws an error if new length is not aligned.
  */
 
 version (none)
 {
 extern (C)
 
+@trusted nothrow
 void[] _d_arraycast_frombit(uint tsize, void[] a)
 {
     uint length = a.length;
 
     if (length & 7)
     {
-    throw new Exception("bit[] array cast misalignment");
+       throw new Error("bit[] array cast misalignment");
     }
     length /= 8 * tsize;
     *cast(size_t *)&a = length; // jam new length

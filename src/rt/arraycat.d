@@ -19,7 +19,7 @@ private
     debug import core.stdc.stdio;
 }
 
-extern (C):
+extern (C) @trusted nothrow:
 
 byte[] _d_arraycopy(size_t size, byte[] from, byte[] to)
 {
@@ -28,7 +28,7 @@ byte[] _d_arraycopy(size_t size, byte[] from, byte[] to)
 
     if (to.length != from.length)
     {
-        throw new Exception("lengths don't match for array copy");
+        throw new Error("lengths don't match for array copy");
     }
     else if (to.ptr + to.length * size <= from.ptr ||
              from.ptr + from.length * size <= to.ptr)
@@ -37,7 +37,7 @@ byte[] _d_arraycopy(size_t size, byte[] from, byte[] to)
     }
     else
     {
-        throw new Exception("overlapping array copy");
+        throw new Error("overlapping array copy");
     }
     return to;
 }

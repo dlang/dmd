@@ -40,6 +40,7 @@ else
 
 //version = log;
 
+@trusted pure nothrow
 bool disjoint(T)(T[] a, T[] b)
 {
     return (a.ptr + a.length <= b.ptr || b.ptr + b.length <= a.ptr);
@@ -47,7 +48,7 @@ bool disjoint(T)(T[] a, T[] b)
 
 alias int T;
 
-extern (C):
+extern (C) @trusted nothrow:
 
 /* ======================================================================== */
 
