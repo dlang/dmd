@@ -10,7 +10,8 @@
  */
 module etc.linux.memoryerror;
 
-version(linux) {
+version(linux)
+{
 
 private :
 import core.sys.posix.signal;
@@ -70,7 +71,8 @@ version(X86_64) {
 
 // Init
 
-shared static this() {
+shared static this()
+{
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
     action.sa_flags = SA_SIGINFO;
@@ -81,11 +83,13 @@ shared static this() {
 
 alias typeof({ucontext_t uc; return uc.uc_mcontext.gregs[0];}()) REG_TYPE;
 
-version(X86_64) {
+version(X86_64)
+{
     static REG_TYPE saved_RDI, saved_RSI;
     
     extern(C)
-    void handleSignal(int signum, siginfo_t* info, void* contextPtr) {
+    void handleSignal(int signum, siginfo_t* info, void* contextPtr)
+    {
         auto context = cast(ucontext_t*)contextPtr;
         
         // Save registers into global thread local, to allow recovery.
@@ -103,8 +107,10 @@ version(X86_64) {
     // All handler functions must be called with faulting address in RDI and original RIP in RSI.
     
     // This function is called when the segfault's cause is to call an invalid function pointer.
-    void sigsegv_code_handler() {
-        asm {
+    void sigsegv_code_handler()
+    {
+        asm
+        {
             naked;
             
             // Handle the stack for an invalid function call (segfault at RIP).
@@ -116,8 +122,10 @@ version(X86_64) {
         }
     }
     
-    void sigsegv_data_handler() {
-        asm {
+    void sigsegv_data_handler()
+    {
+        asm
+        {
             naked;
             
             push RSI;   // return address (original RIP).
@@ -162,18 +170,23 @@ version(X86_64) {
     }
     
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE restore_RDI() {
+    REG_TYPE restore_RDI()
+    {
         return saved_RDI;
     }
     
-    REG_TYPE restore_RSI() {
+    REG_TYPE restore_RSI()
+    {
         return saved_RSI;
     }
-} else version(X86) {
+}
+else version(X86)
+{
     static REG_TYPE saved_EAX, saved_EDX;
     
     extern(C)
-    void handleSignal(int signum, siginfo_t* info, void* contextPtr) {
+    void handleSignal(int signum, siginfo_t* info, void* contextPtr)
+    {
         auto context = cast(ucontext_t*)contextPtr;
         
         // Save registers into global thread local, to allow recovery.
@@ -191,8 +204,10 @@ version(X86_64) {
     // All handler functions must be called with faulting address in EAX and original EIP in EDX.
     
     // This function is called when the segfault's cause is to call an invalid function pointer.
-    void sigsegv_code_handler() {
-        asm {
+    void sigsegv_code_handler()
+    {
+        asm
+        {
             naked;
             
             // Handle the stack for an invalid function call (segfault at EIP).
@@ -205,8 +220,10 @@ version(X86_64) {
         }
     }
     
-    void sigsegv_data_handler() {
-        asm {
+    void sigsegv_data_handler()
+    {
+        asm
+        {
             naked;
             
             // We jump directly here if we are in a valid function call case.
@@ -234,7 +251,8 @@ version(X86_64) {
     }
     
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE[2] restore_registers() {
+    REG_TYPE[2] restore_registers()
+    {
         REG_TYPE[2] restore;
         restore[0] = saved_EAX;
         restore[1] = saved_EDX;
@@ -250,9 +268,11 @@ enum PAGE_SIZE = 4096;
 enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 
 // User space handler
-void sigsegv_userspace_process(void* address) {
+void sigsegv_userspace_process(void* address)
+{
     // The first page is protected to detect null dereferences.
-    if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE) {
+    if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE)
+    {
         throw new NullPointerError();
     }
     
@@ -264,12 +284,15 @@ public :
 /**
  * Thrown on POSIX systems when a SIGSEGV signal is received.
  */
-class InvalidPointerError : Error {
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
+class InvalidPointerError : Error
+{
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
         super("", file, line, next);
     }
     
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__) {
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
         super("", file, line, next);
     }
 }
@@ -277,12 +300,15 @@ class InvalidPointerError : Error {
 /**
  * Thrown on null pointer dereferences.
  */
-class NullPointerError : InvalidPointerError {
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null) {
+class NullPointerError : InvalidPointerError
+{
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
         super(file, line, next);
     }
     
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__) {
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
         super(file, line, next);
     }
 }
