@@ -81,10 +81,10 @@ version( X86 )
         dest = src;
     }
 }
-else version( Windows )  // Win64
-{
-    /* This will likely need modification as all parameters that don't fit in a register
-     * are passed by ref, not by value.
+else version (Windows) // Win64
+{   /* Win64 is characterized by all arguments fitting into a register size.
+     * Smaller ones are padded out to register size, and larger ones are passed by
+     * reference.
      */
 
     /*********************
@@ -94,12 +94,11 @@ else version( Windows )  // Win64
 
     /**********
      * Initialize ap.
-     * For 32 bit code, parmn should be the last named parameter.
-     * For 64 bit code, parmn should be __va_argsave.
+     * parmn should be the last named parameter.
      */
     void va_start(T)(out va_list ap, ref T parmn)
     {
-        ap = cast(va_list)( cast(void*) &parmn + ( ( T.sizeof + int.sizeof - 1 ) & ~( int.sizeof - 1 ) ) );
+        ap = cast(va_list)(cast(void*)&parmn + ((size_t.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
     }
 
     /************
@@ -108,8 +107,11 @@ else version( Windows )  // Win64
      */
     T va_arg(T)(ref va_list ap)
     {
-        T arg = *cast(T*) ap;
-        ap = cast(va_list)( cast(void*) ap + ( ( T.sizeof + int.sizeof - 1 ) & ~( int.sizeof - 1 ) ) );
+        static if (T.sizeof > size_t.sizeof)
+            T arg = **cast(T**)ap;
+        else
+            T arg = *cast(T*)ap;
+        ap = cast(va_list)(cast(void*)ap + ((size_t.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
         return arg;
     }
 
@@ -119,8 +121,11 @@ else version( Windows )  // Win64
      */
     void va_arg(T)(ref va_list ap, ref T parmn)
     {
-        parmn = *cast(T*)ap;
-        ap = cast(va_list)(cast(void*)ap + ((T.sizeof + int.sizeof - 1) & ~(int.sizeof - 1)));
+        static if (T.sizeof > size_t.sizeof)
+            parmn = **cast(T**)ap;
+        else
+            parmn = *cast(T*)ap;
+        ap = cast(va_list)(cast(void*)ap + ((size_t.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
     }
 
     /*************
@@ -134,8 +139,9 @@ else version( Windows )  // Win64
         //auto p = cast(void*)(cast(size_t)ap + talign - 1) & ~(talign - 1);
         auto p = ap;
         auto tsize = ti.tsize();
-        ap = cast(void*)(cast(size_t)p + ((tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
-        parmn[0..tsize] = p[0..tsize];
+        ap = cast(void*)(cast(size_t)p + ((size_t.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1)));
+        void* q = (tsize > size_t.sizeof) ? *cast(void**)p : p;
+        parmn[0..tsize] = q[0..tsize];
     }
 
     /***********************
