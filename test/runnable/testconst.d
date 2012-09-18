@@ -2744,6 +2744,20 @@ void test8212()
 }
 
 /************************************/
+// 8688
+
+void test8688()
+{
+    alias TypeTuple!(int) T;
+    foreach (i; TypeTuple!(0))
+    {
+        alias const(T[i]) X;
+        static assert(!is(X == int));           // fails
+        static assert( is(X == const(int)));    // fails
+    }
+}
+
+/************************************/
 
 int main()
 {
@@ -2861,6 +2875,7 @@ int main()
     test8099();
     test8201();
     test8212();
+    test8688();
 
     printf("Success\n");
     return 0;
