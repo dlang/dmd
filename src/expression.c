@@ -8983,6 +8983,11 @@ Expression *CastExp::semantic(Scope *sc)
             to = to->semantic(loc, sc);
         if (to == Type::terror)
             return new ErrorExp();
+        if (to->ty == Ttuple)
+        {
+            error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
+            return new ErrorExp();
+        }
 
         if (!to->equals(e1->type))
         {
