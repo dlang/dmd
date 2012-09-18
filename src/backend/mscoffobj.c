@@ -146,7 +146,7 @@ struct Relocation
     unsigned char rtype;   // RELxxxx
 #define RELaddr 0       // straight address
 #define RELrel  1       // relative to location to be fixed up
-    short val;          // 0, -1, -2, -4
+    short val;          // 0, -1, -2, -3, -4, -5
 };
 
 
@@ -312,7 +312,7 @@ symbol * MsCoffObj::sym_cdata(tym_t ty,char *p,int len)
         alignOffset(CDATA, tysize(ty));
         s = symboldata(CDoffset, ty);
         s->Sseg = CDATA;
-        //MsCoffObj::pubdef(CDATA, s, CDoffset);
+        MsCoffObj::pubdef(CDATA, s, CDoffset);
         MsCoffObj::bytes(CDATA, CDoffset, len, p);
     }
 
@@ -837,7 +837,7 @@ void MsCoffObj::term()
                     {
                         if (I64)
                         {
-//printf("test1\n");
+//printf("test1 %s %d\n", s->Sident, r->val);
 #if 1
                             rel.r_type = (r->rtype == RELrel)
                                     ? IMAGE_REL_AMD64_REL32
@@ -2195,9 +2195,9 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
 #if 0
-    dbg_printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
+    printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
-    printf("retsize = %d\n", retsize);
+    //printf("retsize = %d\n", retsize);
     //dbg_printf("Sseg = %d, Sxtrnnum = %d\n",s->Sseg,s->Sxtrnnum);
     //symbol_print(s);
 #endif
@@ -2214,7 +2214,10 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
                 //val += s->Soffset;
             int v = 0;
             if (flags & CFpc32)
-                v = (int)val;
+            {
+                v = -((flags & CFREL) >> 24);
+                assert(v >= -5 && v <= 0);
+            }
             if (flags & CFselfrel)
             {
                 MsCoffObj::addrel(seg, offset, s, 0, RELrel, v);
