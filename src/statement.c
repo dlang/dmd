@@ -4947,8 +4947,17 @@ Statement *ThrowStatement::semantic(Scope *sc)
 int ThrowStatement::blockExit(bool mustNotThrow)
 {
     if (mustNotThrow)
-        error("%s is thrown but not caught", exp->type->toChars());
-    return BEthrow;  // obviously
+    {
+        ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+        assert(cd);
+
+        // Bugzilla 8675
+        // Throwing Errors is allowed even if mustNotThrow
+        if (cd != ClassDeclaration::errorException &&
+            !ClassDeclaration::errorException->isBaseOf(cd, NULL))
+            error("%s is thrown but not caught", exp->type->toChars());
+    }
+    return BEthrow;
 }
 
 
