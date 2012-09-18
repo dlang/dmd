@@ -40,7 +40,7 @@ extern targ_size_t retsize;
 STATIC void pinholeopt_unittest();
 STATIC void do8bit (enum FL,union evc *);
 STATIC void do16bit (enum FL,union evc *,int);
-STATIC void do32bit (enum FL,union evc *,int,targ_size_t = 0);
+STATIC void do32bit (enum FL,union evc *,int,int = 0);
 STATIC void do64bit (enum FL,union evc *,int);
 
 #if ELFOBJ || MACHOBJ
@@ -4091,7 +4091,7 @@ void assignaddrc(code *c)
         {
 #if OMFOBJ
             case FLdata:
-                if (s->Sclass == SCcomdat)
+                if (I64 || s->Sclass == SCcomdat)
                 {   c->IFL1 = FLextern;
                     goto do2;
                 }
@@ -4103,7 +4103,12 @@ void assignaddrc(code *c)
                 c->IEVpointer1 += s->Soffset;
                 c->IFL1 = FLdatseg;
                 goto do2;
+
             case FLudata:
+                if (I64)
+                {   c->IFL1 = FLextern;
+                    goto do2;
+                }
 #if MARS
                 c->IEVseg1 = s->Sseg;
 #else
@@ -5625,8 +5630,8 @@ unsigned codout(code *c)
                                         val = -8;
                                 }
 #if TARGET_OSX || TARGET_WINDOS
-                                /* Mach-O and Win64 linkage already take the 4 byte size
-                                 * into account
+                                /* Mach-O and Win64 fixups already take the 4 byte size
+                                 * into account, so bias by 4
         `                        */
                                 val += 4;
 #endif
@@ -5895,7 +5900,7 @@ STATIC void do64bit(enum FL fl,union evc *uev,int flags)
 }
 
 
-STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
+STATIC void do32bit(enum FL fl,union evc *uev,int flags, int val)
 { char *p;
   symbol *s;
   targ_size_t ad;
@@ -5949,7 +5954,20 @@ STATIC void do32bit(enum FL fl,union evc *uev,int flags, targ_size_t val)
 #endif
         FLUSH();
         s = uev->sp.Vsym;               /* symbol pointer               */
-        objmod->reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
+#if TARGET_WINDOS
+        if (I64 && (flags & CFpc32))
+        {
+            /* This is for those funky fixups where the location to be fixed up
+             * is a 'val' amount back from the current RIP, biased by adding 4.
+             */
+            assert(val >= -5 && val <= 0);
+            flags |= (-val & 7) << 24;          // set CFREL value
+            assert(CFREL == (7 << 24));
+            objmod->reftoident(cseg,offset,s,uev->sp.Voffset,flags);
+        }
+        else
+#endif
+            objmod->reftoident(cseg,offset,s,uev->sp.Voffset + val,flags);
         break;
 
 #if TARGET_OSX

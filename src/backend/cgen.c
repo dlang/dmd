@@ -36,6 +36,7 @@ inline void ccheck(code *cs)
 //    if (cs->Iop == LEA && (cs->Irm & 0x3F) == 0x34 && cs->Isib == 7) *(char*)0=0;
 //    if (cs->Iop == 0x31) *(char*)0=0;
 //    if (cs->Irm == 0x3D) *(char*)0=0;
+//    if (cs->Iop == LEA && cs->Irm == 0xCB) *(char*)0=0;
 }
 
 /*****************************

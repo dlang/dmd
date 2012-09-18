@@ -388,6 +388,11 @@ struct code
 
 #define CFjmp5      0x400000    // always a 5 byte jmp
 
+/* These are for CFpc32 fixups, they're the negative of the offset of the fixup
+ * from the program counter
+ */
+#define CFREL       0x7000000
+
 #define CFPREFIX (CFSEG | CFopsize | CFaddrsize)
 #define CFSEG   (CFes | CFss | CFds | CFcs | CFfs | CFgs)
 
