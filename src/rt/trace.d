@@ -1,7 +1,7 @@
 /**
  * Contains support code for code profiling.
  *
- * Copyright: Copyright Digital Mars 1995 - 2011.
+ * Copyright: Copyright Digital Mars 1995 - 2012.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -21,6 +21,9 @@ private
     import core.stdc.stdlib;
     import core.stdc.string;
     import rt.util.string;
+
+    version (Win64)
+        alias core.stdc.stdlib._strtoui64 strtoull;
 }
 
 extern (C):
@@ -513,6 +516,8 @@ static void trace_sympair_add(SymPair** psp, Symbol* s, uint count)
 
 static void trace_pro(char[] id)
 {
+    //printf("trace_pro(ptr = %p, length = %lld)\n", id.ptr, id.length);
+    //printf("trace_pro(id = '%.*s')\n", id.length, id.ptr);
     Stack* n;
     Symbol* s;
     timer_t starttime;
@@ -906,6 +911,51 @@ void _trace_pro_n()
                 ret                             ;
             }
         }
+        else version (Win64)
+        {
+            asm
+            {   naked                           ;
+                push    RAX                     ;
+                push    RCX                     ;
+                push    RDX                     ;
+                push    RSI                     ;
+                push    RDI                     ;
+                push    R8                      ;
+                push    R9                      ;
+                push    R10                     ;
+                push    R11                     ;
+                mov     RCX,9*8[RSP]            ;
+                xor     RAX,RAX                 ;
+                mov     AL,[RCX]                ;
+                cmp     AL,0xFF                 ;
+                jne     L1                      ;
+                cmp     byte ptr 1[RCX],0       ;
+                jne     L1                      ;
+                mov     AX,2[RCX]               ;
+                add     9*8[RSP],3              ;
+                add     RCX,3                   ;
+            L1: inc     RAX                     ;
+                inc     RCX                     ;
+                add     9*8[RSP],RAX            ;
+                dec     RAX                     ;
+                sub     RSP,0x20                ;
+                mov     16[RSP],RCX             ;
+                mov     8[RSP],RAX              ;
+                lea     RCX,8[RSP]              ;
+                call    trace_pro               ;
+                add     RSP,0x20                ;
+                pop     R11                     ;
+                pop     R10                     ;
+                pop     R9                      ;
+                pop     R8                      ;
+                pop     RDI                     ;
+                pop     RSI                     ;
+                pop     RDX                     ;
+                pop     RCX                     ;
+                pop     RAX                     ;
+                ret                             ;
+            }
+        }
         else version (D_InlineAsm_X86_64)
         {
             asm
@@ -1105,7 +1155,7 @@ void _trace_epi_n()
 }
 
 
-version (Win32)
+version (Windows)
 {
     extern (Windows)
     {

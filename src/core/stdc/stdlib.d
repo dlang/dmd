@@ -1,17 +1,15 @@
 /**
  * D header file for C99.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Sean Kelly 2005 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly
  * Standards: ISO/IEC 9899:1999 (E)
+ * Source: $(DRUNTIMESRC src/core/stdc/_stdlib.d)
  */
 
-/*          Copyright Sean Kelly 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.stdc.stdlib;
 
 private import core.stdc.config;
@@ -113,3 +111,13 @@ version( DigitalMars )
     // See malloc comment about @trusted.
     void* alloca(size_t size); // non-standard
 }
+
+version (Win64)
+{
+    ulong  _strtoui64(in char *,char **,int);
+    ulong  _wcstoui64(in wchar *,wchar **,int);
+
+    long  _strtoi64(in char *,char **,int);
+    long  _wcstoi64(in wchar *,wchar **,int);
+}
+
