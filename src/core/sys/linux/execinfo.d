@@ -8,7 +8,6 @@
 module core.sys.linux.execinfo;
 
 version (linux):
-
 extern (C):
 
 int backtrace(void** buffer, int size);

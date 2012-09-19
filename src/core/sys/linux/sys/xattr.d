@@ -10,7 +10,6 @@ module core.sys.linux.sys.xattr;
 import core.sys.posix.sys.types;
 
 version (linux):
-
 extern (C):
 @system:
 nothrow:
