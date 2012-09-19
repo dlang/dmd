@@ -9,6 +9,7 @@
 module core.sys.freebsd.execinfo;
 
 version (FreeBSD):
+extern (C):
 
 import core.sys.freebsd.dlfcn;
 
