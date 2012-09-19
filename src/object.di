@@ -138,11 +138,13 @@ class TypeInfo_AssociativeArray : TypeInfo
 class TypeInfo_Function : TypeInfo
 {
     TypeInfo next;
+    string deco;
 }
 
 class TypeInfo_Delegate : TypeInfo
 {
     TypeInfo next;
+    string deco;
 }
 
 class TypeInfo_Class : TypeInfo
