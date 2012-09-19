@@ -20,6 +20,7 @@ public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 public import core.sys.posix.sys.stat;  // for S_IFMT, etc.
 
+version (Posix):
 extern (C):
 
 //
@@ -326,12 +327,9 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( Posix )
-{
-    //int creat(in char*, mode_t);
-    int fcntl(int, int, ...);
-    //int open(in char*, int, ...);
-}
+//int creat(in char*, mode_t);
+int fcntl(int, int, ...);
+//int open(in char*, int, ...);
 
 //
 // Advisory Information (ADV)

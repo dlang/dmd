@@ -17,13 +17,11 @@ module core.sys.posix.config;
 
 public import core.stdc.config;
 
+version (Posix):
 extern (C):
 
-version (Posix)
-{
-    enum _XOPEN_SOURCE     = 600;
-    enum _POSIX_C_SOURCE   = 200112L;
-}
+enum _XOPEN_SOURCE     = 600;
+enum _POSIX_C_SOURCE   = 200112L;
 
 version (linux)
 {

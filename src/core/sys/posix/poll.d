@@ -16,6 +16,7 @@ module core.sys.posix.poll;
 
 private import core.sys.posix.config;
 
+version (Posix):
 extern (C):
 
 //

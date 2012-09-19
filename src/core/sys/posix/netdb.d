@@ -20,6 +20,7 @@ public import core.sys.posix.netinet.in_; // for in_port_t, in_addr_t
 public import core.sys.posix.sys.types;   // for ino_t
 public import core.sys.posix.sys.socket;  // for socklen_t
 
+version (Posix):
 extern (C):
 
 //
@@ -479,30 +480,27 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( Posix )
-{
-    void         endhostent();
-    void         endnetent();
-    void         endprotoent();
-    void         endservent();
-    void         freeaddrinfo(addrinfo*);
-    const(char)* gai_strerror(int);
-    int          getaddrinfo(const(char)*, const(char)*, const(addrinfo)*, addrinfo**);
-    hostent*     gethostbyaddr(const(void)*, socklen_t, int);
-    hostent*     gethostbyname(const(char)*);
-    hostent*     gethostent();
-    int          getnameinfo(const(sockaddr)*, socklen_t, char*, socklen_t, char*, socklen_t, int);
-    netent*      getnetbyaddr(uint32_t, int);
-    netent*      getnetbyname(const(char)*);
-    netent*      getnetent();
-    protoent*    getprotobyname(const(char)*);
-    protoent*    getprotobynumber(int);
-    protoent*    getprotoent();
-    servent*     getservbyname(const(char)*, const(char)*);
-    servent*     getservbyport(int, const(char)*);
-    servent*     getservent();
-    void         sethostent(int);
-    void         setnetent(int);
-    void         setprotoent(int);
-    void         setservent(int);
-}
+void         endhostent();
+void         endnetent();
+void         endprotoent();
+void         endservent();
+void         freeaddrinfo(addrinfo*);
+const(char)* gai_strerror(int);
+int          getaddrinfo(const(char)*, const(char)*, const(addrinfo)*, addrinfo**);
+hostent*     gethostbyaddr(const(void)*, socklen_t, int);
+hostent*     gethostbyname(const(char)*);
+hostent*     gethostent();
+int          getnameinfo(const(sockaddr)*, socklen_t, char*, socklen_t, char*, socklen_t, int);
+netent*      getnetbyaddr(uint32_t, int);
+netent*      getnetbyname(const(char)*);
+netent*      getnetent();
+protoent*    getprotobyname(const(char)*);
+protoent*    getprotobynumber(int);
+protoent*    getprotoent();
+servent*     getservbyname(const(char)*, const(char)*);
+servent*     getservbyport(int, const(char)*);
+servent*     getservent();
+void         sethostent(int);
+void         setnetent(int);
+void         setprotoent(int);
+void         setservent(int);

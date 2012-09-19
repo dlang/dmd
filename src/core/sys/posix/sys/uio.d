@@ -17,6 +17,7 @@ module core.sys.posix.sys.uio;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for ssize_t, size_t
 
+version (Posix):
 extern (C):
 
 //

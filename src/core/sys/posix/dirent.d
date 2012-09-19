@@ -18,6 +18,7 @@ module core.sys.posix.dirent;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for ino_t
 
+version (Posix):
 extern (C):
 
 //
@@ -172,13 +173,10 @@ else
     static assert(false, "Unsupported platform");
 }
 
-version( Posix )
-{
-    int     closedir(DIR*);
-    DIR*    opendir(in char*);
-    //dirent* readdir(DIR*);
-    void    rewinddir(DIR*);
-}
+int     closedir(DIR*);
+DIR*    opendir(in char*);
+//dirent* readdir(DIR*);
+void    rewinddir(DIR*);
 
 //
 // Thread-Safe Functions (TSF)

@@ -21,6 +21,7 @@ public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for pid_t
 //public import core.sys.posix.time;      // for timespec, now defined here
 
+version (Posix):
 extern (C):
 
 //

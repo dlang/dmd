@@ -17,6 +17,7 @@ module core.sys.posix.pwd;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 
+version (Posix):
 extern (C):
 
 //

@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 public import core.stdc.stdio;
 public import core.sys.posix.sys.types; // for off_t
 
+version (Posix):
 extern (C):
 
 //

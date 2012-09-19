@@ -12,6 +12,7 @@ private import core.stdc.config;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types;
 
+version (Posix):
 extern (C) :
 
 version(linux) {
@@ -68,7 +69,7 @@ version(linux) {
         }
     }
 }
-else version (Posix) 
+else
 {
     struct statvfs_t
     {
@@ -92,8 +93,5 @@ else version (Posix)
     }
 }
 
-version(Posix) 
-{
-    extern int statvfs (const char * file, statvfs_t* buf);
-    extern int fstatvfs (int fildes, statvfs_t *buf); 
-}
+int statvfs (const char * file, statvfs_t* buf);
+int fstatvfs (int fildes, statvfs_t *buf); 

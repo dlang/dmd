@@ -20,6 +20,7 @@ public import core.stdc.time;
 public import core.sys.posix.sys.types;
 public import core.sys.posix.signal; // for sigevent
 
+version (Posix):
 extern (C):
 
 //
