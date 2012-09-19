@@ -13,11 +13,10 @@
 module core.sys.osx.mach.dyld;
 
 version (OSX):
+extern (C):
 
 public import core.stdc.stdint; // for intptr_t
 public import core.sys.osx.mach.loader;
-
-extern (C):
 
 uint         _dyld_image_count();
 const(char)* _dyld_get_image_name(uint image_index);
