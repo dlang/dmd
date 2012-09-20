@@ -227,6 +227,9 @@ void TypedefDeclaration::toDebug()
 {
     //printf("TypedefDeclaration::toDebug('%s')\n", toChars());
 
+    if (I64 && config.fulltypes == CVNONE)
+        return;
+
     assert(config.fulltypes >= CV4);
 
     // If it is a member, it is handled by cvMember()
@@ -257,6 +260,9 @@ void TypedefDeclaration::toDebug()
 void EnumDeclaration::toDebug()
 {
     //printf("EnumDeclaration::toDebug('%s')\n", toChars());
+
+    if (I64 && config.fulltypes == CVNONE)
+        return;
 
     assert(config.fulltypes >= CV4);
 
@@ -326,6 +332,9 @@ void StructDeclaration::toDebug()
     idx_t typidx = 0;
 
     //printf("StructDeclaration::toDebug('%s')\n", toChars());
+
+    if (I64 && config.fulltypes == CVNONE)
+        return;
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
@@ -452,6 +461,9 @@ void ClassDeclaration::toDebug()
     idx_t typidx = 0;
 
     //printf("ClassDeclaration::toDebug('%s')\n", toChars());
+
+    if (I64 && config.fulltypes == CVNONE)
+        return;
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
