@@ -605,10 +605,15 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             Lcondition:
                 {
-                    Loc lookingForElseSave = lookingForElse;
-                    lookingForElse = loc;
-                    a = parseBlock();
-                    lookingForElse = lookingForElseSave;
+                    if (token.value == TOKcolon)
+                        a = parseBlock();
+                    else
+                    {
+                        Loc lookingForElseSave = lookingForElse;
+                        lookingForElse = loc;
+                        a = parseBlock();
+                        lookingForElse = lookingForElseSave;
+                    }
                 }
                 aelse = NULL;
                 if (token.value == TOKelse)
