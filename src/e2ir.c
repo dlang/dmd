@@ -2004,10 +2004,13 @@ elem *AssertExp::toElem(IRState *irs)
         {
             ts = symbol_genauto(t1->toCtype());
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM__DINVARIANT]), el_var(ts));
+            int rtl = RTLSYM__DINVARIANT;
+#elif TARGET_WINDOS
+            int rtl = I64 ? RTLSYM__DINVARIANT : RTLSYM_DINVARIANT;
 #else
-            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT]), el_var(ts));
+            int rtl = RTLSYM_DINVARIANT;
 #endif
+            einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
         }
         // If e1 is a struct object, call the struct invariant on it
         else if (global.params.useInvariants &&
