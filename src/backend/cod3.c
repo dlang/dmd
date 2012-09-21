@@ -25,6 +25,7 @@
 #include        "tinfo.h"
 #include        "melf.h"
 #include        "outbuf.h"
+#include        "xmm.h"
 #if SCPP
 #include        "exh.h"
 #endif
@@ -3317,19 +3318,32 @@ void epilog(block *b)
      * by the prolog code. Remember to do them in the reverse
      * order they were pushed.
      */
-    reg = I64 ? R15 : DI;
-    regm = 1 << reg;
     topop = fregsaved & ~mfuncreg;
 #ifdef DEBUG
-    if (topop & ~0xFFFF)
+    if (topop & ~(XMMREGS | 0xFFFF))
         printf("fregsaved = %s, mfuncreg = %s\n",regm_str(fregsaved),regm_str(mfuncreg));
 #endif
-    assert(!(topop & ~0xFFFF));
+    assert(!(topop & ~(XMMREGS | 0xFFFF)));
+    reg = I64 ? XMM7 : DI;
+    if (!(topop & XMMREGS))
+        reg = R15;
+    regm = 1 << reg;
     while (topop)
     {   if (topop & regm)
-        {   c = gen1(c,0x58 + (reg & 7));         // POP reg
-            if (reg & 8)
-                code_orrex(c, REX_B);
+        {
+            if (reg >= XMM0)
+            {
+                // MOVUPD xmm,8[RSP]
+                c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
+                // ADD RSP,16
+                c = cod3_stackadj(c, -16);
+            }
+            else
+            {
+                c = gen1(c,0x58 + (reg & 7));         // POP reg
+                if (reg & 8)
+                    code_orrex(c, REX_B);
+            }
             topop &= ~regm;
         }
         regm >>= 1;
