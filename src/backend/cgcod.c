@@ -28,6 +28,7 @@
 #include        "global.h"
 #include        "type.h"
 #include        "exh.h"
+#include        "xmm.h"
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
@@ -832,18 +833,30 @@ Lagain:
     while (topush)                      /* while registers to push      */
     {   unsigned reg = findreg(topush);
         topush &= ~mask[reg];
-        c = genpush(c, reg);
-        EBPtoESP += REGSIZE;
-        spoff += REGSIZE;
-#if ELFOBJ || MACHOBJ
-        if (config.fulltypes)
-        {   // Emit debug_frame data giving location of saved register
-            // relative to 0[EBP]
-            pinholeopt(c, NULL);
-            dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-            dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+        if (reg >= XMM0)
+        {
+            // SUB RSP,16
+            c = cod3_stackadj(c, 16);
+            // MOVUPD 8[RSP],xmm
+            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
+            EBPtoESP += 16;
+            spoff += 16;
         }
+        else
+        {
+            c = genpush(c, reg);
+            EBPtoESP += REGSIZE;
+            spoff += REGSIZE;
+#if ELFOBJ || MACHOBJ
+            if (config.fulltypes)
+            {   // Emit debug_frame data giving location of saved register
+                // relative to 0[EBP]
+                pinholeopt(c, NULL);
+                dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
+                dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+            }
 #endif
+        }
     }
 
 Lcont:

@@ -409,7 +409,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                 else
                     c1 = codelem(e11,&retregs,FALSE);
             }
-            rretregs = ALLREGS & ~retregs;
+            rretregs = ALLREGS & ~retregs & ~mBP;
             c2 = scodelem(ebase,&rretregs,retregs,TRUE);
             {
                 regm_t sregs = *pretregs & ~rretregs;

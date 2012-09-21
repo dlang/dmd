@@ -3875,7 +3875,7 @@ code *loaddata(elem *e,regm_t *pretregs)
                 ce = loadea(e,&cs,0x8B,reg,0,0,0);  /* MOV reg,data */
                 c = cat(c,ce);
                 // remove sign bit, so that -0.0 == 0.0
-                ce = gen2(CNIL,0xD1,modregrm(3,4,reg));        // SHL reg,1
+                ce = gen2(CNIL,0xD1,modregrmx(3,4,reg));        // SHL reg,1
                 code_orrex(ce, REX_W);
                 c = cat(c,ce);
             }
