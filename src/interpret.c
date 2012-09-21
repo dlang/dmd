@@ -5320,6 +5320,9 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
             if (pthis->op == TOKvar)
             {   assert(((VarExp*)thisval)->var->isVarDeclaration());
                 thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
+                // If it is a reference, resolve it
+                if (thisval->op != TOKnull && thisval->op != TOKclassreference)
+                    thisval = pthis->interpret(istate);
             }
             // Get the function from the vtable of the original class
             ClassDeclaration *cd;
