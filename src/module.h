@@ -140,6 +140,9 @@ struct Module : Package
     static void clearCache();
     int imports(Module *m);
 
+    Declaration *unitTestArr; //Static array of UnitTests (see druntime)
+    UnitTestDeclarations *unitTests; //All unitTests in this module
+
     // Back end
 
     int doppelganger;           // sub-module

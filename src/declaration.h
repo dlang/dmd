@@ -880,6 +880,8 @@ struct UnitTestDeclaration : FuncDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJsonBuffer(OutBuffer *buf);
 
+    char* name; //Not used yet
+    ExpInitializer *toUnitTestStruct();
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };
 

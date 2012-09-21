@@ -3963,6 +3963,7 @@ static Identifier *unitTestId(Loc loc)
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc)
     : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
 {
+    name = (char*)"";
 }
 
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
@@ -4008,6 +4009,30 @@ void UnitTestDeclaration::semantic(Scope *sc)
         m->needmoduleinfo = 1;
     }
 #endif
+}
+
+/*Mirrored with druntime
+ *struct UnitTest
+ *{
+ *   ushort version = 1;
+ *   string name; //Not used yet
+ *   string fileName;
+ *   uint line;
+ *   void function() testFunc;
+ *}
+ */
+ExpInitializer *UnitTestDeclaration::toUnitTestStruct()
+{
+    Expressions *inits = new Expressions();
+    inits->push(new IntegerExp(loc, 1, TypeBasic::tuns16)); //version=1
+    inits->push(new StringExp(loc, name)); //name
+    inits->push(new StringExp(loc, (char*)loc.filename)); //fileName
+    inits->push(new IntegerExp(loc, loc.linnum, TypeBasic::tuns32)); //line
+    inits->push(new AddrExp(loc, new VarExp(loc, this))); //testFunc
+
+    StructLiteralExp *exp = new StructLiteralExp(loc, StructDeclaration::UnitTest,
+        inits, StructDeclaration::UnitTest->type);
+    return new ExpInitializer(loc, exp);
 }
 
 AggregateDeclaration *UnitTestDeclaration::isThis()

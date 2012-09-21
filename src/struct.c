@@ -22,6 +22,7 @@
 #include "template.h"
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
+StructDeclaration *StructDeclaration::UnitTest;
 
 /********************************* AggregateDeclaration ****************************/
 
@@ -343,6 +344,8 @@ int AggregateDeclaration::numFieldsInUnion(int firstIndex)
 StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     : AggregateDeclaration(loc, id)
 {
+    static char msg[] = "only object.d can define this reserved class name";
+
     zeroInit = 0;       // assume false until we do semantic processing
 #if DMDV2
     hasIdentityAssign = 0;
@@ -358,6 +361,16 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
 
     // For forward references
     type = new TypeStruct(this);
+
+    if(id)
+    {
+        // Look for special struct names
+        if (id == Id::UnitTest)
+        {   if (UnitTest)
+                UnitTest->error("%s", msg);
+            UnitTest = this;
+        }
+    }
 }
 
 Dsymbol *StructDeclaration::syntaxCopy(Dsymbol *s)

@@ -60,6 +60,7 @@ Msgtable msgtable[] =
     { "offset" },
     { "offsetof" },
     { "ModuleInfo" },
+    { "UnitTest" },
     { "ClassInfo" },
     { "classinfo" },
     { "typeinfo" },
