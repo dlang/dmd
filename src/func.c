@@ -4019,16 +4019,22 @@ void UnitTestDeclaration::semantic(Scope *sc)
  *   string fileName;
  *   uint line;
  *   void function() testFunc;
+ *   bool disabled;
  *}
  */
 ExpInitializer *UnitTestDeclaration::toUnitTestStruct()
 {
     Expressions *inits = new Expressions();
+
+    bool disabled = storage_class & STCdisable;
+
     inits->push(new IntegerExp(loc, 1, TypeBasic::tuns16)); //version=1
     inits->push(new StringExp(loc, name)); //name
     inits->push(new StringExp(loc, (char*)loc.filename)); //fileName
     inits->push(new IntegerExp(loc, loc.linnum, TypeBasic::tuns32)); //line
-    inits->push(new AddrExp(loc, new VarExp(loc, this))); //testFunc
+    inits->push(disabled ? (Expression*)new NullExp(loc)
+        : (Expression*)new AddrExp(loc, new VarExp(loc, this))); //testFunc
+    inits->push(new IntegerExp(loc, disabled, TypeBasic::tbool)); //disabled
 
     StructLiteralExp *exp = new StructLiteralExp(loc, StructDeclaration::UnitTest,
         inits, StructDeclaration::UnitTest->type);
