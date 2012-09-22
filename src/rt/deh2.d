@@ -248,6 +248,17 @@ extern (C) void _d_throwc(Object *h)
             continue;
         }
         auto funcoffset = cast(size_t)func_table.fptr;
+        version (Win64)
+        {
+            /* If linked with /DEBUG, the linker rewrites it so the function pointer points
+             * to a JMP to the actual code. The address will be in the actual code, so we
+             * need to follow the JMP.
+             */
+            if ((cast(ubyte*)funcoffset)[0] == 0xE9)
+            {   // JMP target = RIP of next instruction + signed 32 bit displacement
+                funcoffset = funcoffset + 5 + *cast(int*)(funcoffset + 1);
+            }
+        }
         auto spoff = handler_table.espoffset;
         auto retoffset = handler_table.retoffset;
 
