@@ -49,6 +49,7 @@ code* prolog_frameadj2(tym_t tyf, unsigned xlocalsize, bool* pushalloc) { assert
 code* prolog_setupalloca() { assert(0); return NULL; }
 code* prolog_trace(bool farfunc, unsigned* regsaved) { assert(0); return NULL; }
 code* prolog_genvarargs(symbol* sv, regm_t* namedargs) { assert(0); return NULL; }
+code* prolog_gen_win64_varargs() { assert(0); return NULL; }
 code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs) { assert(0); return NULL; }
 targ_size_t cod3_spoff() { assert(0); }
 
