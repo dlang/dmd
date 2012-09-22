@@ -3786,8 +3786,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         FuncLiteralDeclaration *fld = fd->isFuncLiteralDeclaration();
         if (tret)
             exp = exp->inferType(tbret);
-        else if (fld && fld->treq && fld->treq->nextOf())
-            exp = exp->inferType(fld->treq->nextOf());
+        else if (fld && fld->treq)
+            exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
         if (!((TypeFunction *)fd->type)->isref)
