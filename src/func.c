@@ -174,6 +174,13 @@ void FuncDeclaration::semantic(Scope *sc)
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
+    FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
+    if (fld && fld->treq)
+        linkage = ((TypeFunction *)fld->treq->nextOf())->linkage;
+    else
+        linkage = sc->linkage;
+    protection = sc->protection;
+
     if (!originalType)
         originalType = type;
     if (!type->deco)
@@ -191,6 +198,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
+
+        sc->linkage = linkage;
 
         /* Apply const, immutable, wild and shared storage class
          * to the function type. Do this before type semantic.
@@ -259,9 +268,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     f = (TypeFunction *)(type);
     size_t nparams = Parameter::dim(f->parameters);
-
-    linkage = sc->linkage;
-    protection = sc->protection;
 
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
