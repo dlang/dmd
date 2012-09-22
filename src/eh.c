@@ -40,8 +40,10 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
  */
 #if (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
 #define OUREH 1
+#define WIN64EH 0
 #elif TARGET_WINDOS
 #define OUREH I64
+#define WIN64EH OUREH
 #else
 #error fix
 #endif
@@ -101,7 +103,7 @@ void except_fillInEHTable(symbol *s)
     dt_t **pdt = &s->Sdt;
 
     /*
-        void*           pointer to start of function
+        void*           pointer to start of function (except for WIN64EH)
         unsigned        offset of ESP from EBP
         unsigned        offset from start of function to return code
         unsigned nguards;       // dimension of guard[] (Linux)
@@ -125,10 +127,16 @@ void except_fillInEHTable(symbol *s)
 
     int sz = 0;
 
-    // Address of start of function
-    symbol_debug(funcsym_p);
-    pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
-    sz += fsize;
+    if (WIN64EH)
+    {
+    }
+    else
+    {
+        // Address of start of function
+        symbol_debug(funcsym_p);
+        pdt = dtxoff(pdt,funcsym_p,0,TYnptr);
+        sz += fsize;
+    }
 
     //printf("ehtables: func = %s, offset = x%x, startblock->Boffset = x%x\n", funcsym_p->Sident, funcsym_p->Soffset, startblock->Boffset);
 
@@ -225,7 +233,10 @@ void except_fillInEHTable(symbol *s)
                 if (OUREH)
                 {
                     assert(bhandler->Boffset > startblock->Boffset);
-                    pdt = dtxoff(pdt,funcsym_p,bhandler->Boffset - startblock->Boffset, TYnptr);
+                    if (WIN64EH)
+                        pdt = dtsize_t(pdt,bhandler->Boffset - startblock->Boffset);    // finally handler offset
+                    else
+                        pdt = dtxoff(pdt,funcsym_p,bhandler->Boffset - startblock->Boffset, TYnptr);
                 }
                 else
                     pdt = dtcoff(pdt,bhandler->Boffset);
@@ -309,7 +320,10 @@ void except_fillInEHTable(symbol *s)
                 if (OUREH)
                 {
                     assert(foffset > startblock->Boffset);
-                    pdt = dtxoff(pdt,funcsym_p,foffset - startblock->Boffset, TYnptr);    // finally handler offset
+                    if (WIN64EH)
+                        pdt = dtsize_t(pdt,foffset - startblock->Boffset);    // finally handler offset
+                    else
+                        pdt = dtxoff(pdt,funcsym_p,foffset - startblock->Boffset, TYnptr);    // finally handler offset
                 }
                 else
                     pdt = dtcoff(pdt,foffset);  // finally handler address
@@ -356,7 +370,10 @@ void except_fillInEHTable(symbol *s)
                 if (OUREH)
                 {
                     assert(bcatch->Boffset > startblock->Boffset);
-                    pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);
+                    if (WIN64EH)
+                        pdt = dtsize_t(pdt,bcatch->Boffset - startblock->Boffset);  // catch handler offset
+                    else
+                        pdt = dtxoff(pdt,funcsym_p,bcatch->Boffset - startblock->Boffset, TYnptr);
                 }
                 else
                     pdt = dtcoff(pdt,bcatch->Boffset);
