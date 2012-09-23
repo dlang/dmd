@@ -1901,10 +1901,6 @@ elem *eval_Darray(IRState *irs, Expression *e)
 {
     elem *ex = e->toElem(irs);
     ex = array_toDarray(e->type, ex);
-    if (config.exe == EX_WIN64)
-    {
-        ex = addressElem(ex, Type::tvoid->arrayOf());
-    }
     return ex;
 }
 
