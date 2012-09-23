@@ -2069,12 +2069,12 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     }
     else version(Win64)
     {
-        byte[]* p = cast(byte[]*)(&n + 1);
+        byte[]** p = cast(byte[]**)(cast(void*)&n + 8);
 
         for (auto i = 0; i < n; i++)
         {
-            byte[] b = *p++;
-            length += b.length;
+            byte[]* b = *p++;
+            length += (*b).length;
         }
     }
     else
@@ -2116,12 +2116,12 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     }
     else version (Win64)
     {
-        p = cast(byte[]*)(&n + 1);
+        p = cast(byte[]**)(cast(void*)&n + 8);
 
         size_t j = 0;
         for (auto i = 0; i < n; i++)
         {
-            byte[] b = *p++;
+            byte[] b = *(*p++);
             if (b.length)
             {
                 memcpy(a + j, b.ptr, b.length * size);
