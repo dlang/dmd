@@ -2,48 +2,48 @@
 
 dir=${RESULTS_DIR}/runnable
 dmddir=${RESULTS_DIR}${SEP}runnable
-output_file=${dir}/test39.sh.out
+log_file=${dir}/test39.sh.log
 
-rm -f ${output_file}
+rm -f ${log_file}
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${output_file}
+$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/extra-files/test39.d >> ${log_file}
 if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
+    cat ${log_file}
+    rm -f ${log_file}
     exit 1
 fi
 
-$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${output_file}
+$DMD -m${MODEL} -Irunnable -od${dmddir} -c runnable/imports/test39a.d >> ${log_file}
 if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
+    cat ${log_file}
+    rm -f ${log_file}
     exit 1
 fi
 
 if [ ${OS} == "win32" ]; then
-    lib -c ${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
+    lib -c ${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${log_file} 2>&1
     LIBEXT=.lib
 else
-    ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${output_file} 2>&1
+    ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${log_file} 2>&1
     LIBEXT=.a
 fi
 if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
+    cat ${log_file}
+    rm -f ${log_file}
     exit 1
 fi
 
-$DMD -m${MODEL} -of${dmddir}${SEP}test39 ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${output_file}
+$DMD -m${MODEL} -of${dmddir}${SEP}test39 ${dir}/test39${OBJ} ${dir}/test39a${LIBEXT} >> ${log_file}
 if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
+    cat ${log_file}
+    rm -f ${log_file}
     exit 1
 fi
 
-./${dir}/test39 >> ${output_file}
+./${dir}/test39 >> ${log_file}
 if [ $? -ne 0 ]; then
-    cat ${output_file}
-    rm -f ${output_file}
+    cat ${log_file}
+    rm -f ${log_file}
     exit 1
 fi
 

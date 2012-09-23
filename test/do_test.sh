@@ -32,11 +32,11 @@ shopt -s extglob
 
 input_file=${input_dir}/${test_name}.${test_extension}
 output_dir=${RESULTS_DIR}${SEP}${input_dir}
-output_file=${RESULTS_DIR}/${input_dir}/${test_name}.${test_extension}.out
+log_file=${RESULTS_DIR}/${input_dir}/${test_name}.${test_extension}.log
 test_app_dmd=${output_dir}${SEP}${test_name}
 test_app_exe=${RESULTS_DIR}/${input_dir}/${test_name}
 
-rm -f ${output_file}
+rm -f ${log_file}
 
 r_args=`grep REQUIRED_ARGS ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${r_args}" ]; then
@@ -107,20 +107,20 @@ printf " ... %-25s %s%s(%s)\n" "${input_file}" "${r_args}" "${extra_space}" "${p
 ${RESULTS_DIR}/combinations ${p_args} | while read x; do
 
     if [ ${separate} -ne 0 ]; then
-        echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file}
-             ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${output_file} 2>&1
+        echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${log_file}
+             ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -of${test_app_dmd} ${extra_compile_args} ${all_sources[*]} >> ${log_file} 2>&1
         if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
-            cat ${output_file}
-            rm -f ${output_file}
+            cat ${log_file}
+            rm -f ${log_file}
             exit 1
         fi
     else
         for file in ${all_sources[*]}; do
-            echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file}
-                 ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${output_file} 2>&1
+            echo ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${log_file}
+                 ${DMD} -m${MODEL} -I${input_dir} ${r_args} $x -od${output_dir} -c $file >> ${log_file} 2>&1
             if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
-                cat ${output_file}
-                rm -f ${output_file}
+                cat ${log_file}
+                rm -f ${log_file}
                 exit 1
             fi
         done
@@ -130,39 +130,39 @@ ${RESULTS_DIR}/combinations ${p_args} | while read x; do
         all_os=(${all_os[*]/#/${RESULTS_DIR}${SEP}})
 
         if [ "${input_dir}" = "runnable" ]; then
-            echo ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file}
-                 ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${output_file} 2>&1
+            echo ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${log_file}
+                 ${DMD} -m${MODEL} -od${output_dir} -of${test_app_dmd} ${all_os[*]} >> ${log_file} 2>&1
             if [ $? -eq ${expect_compile_rc} -o $? -gt 125 ]; then
-                cat ${output_file}
-                rm -f ${output_file}
+                cat ${log_file}
+                rm -f ${log_file}
                 exit 1
             fi
         fi
     fi
 
     if [ "${input_dir}" = "runnable" ]; then
-        echo ${test_app_exe} ${e_args} >> ${output_file}
-             ${test_app_exe} ${e_args} >> ${output_file} 2>&1
+        echo ${test_app_exe} ${e_args} >> ${log_file}
+             ${test_app_exe} ${e_args} >> ${log_file} 2>&1
         if [ $? -ne 0 ]; then
-            cat ${output_file}
-            rm -f ${output_file}
+            cat ${log_file}
+            rm -f ${log_file}
             exit 1
         fi
     fi
 
     if [ ! -z ${post_script} ]; then
-        echo "Executing post-test script: ${post_script}" >> ${output_file}
-        ${post_script} >> ${output_file} 2>&1
+        echo "Executing post-test script: ${post_script}" >> ${log_file}
+        ${post_script} >> ${log_file} 2>&1
         if [ $? -ne 0 ]; then
-            cat ${output_file}
-            rm -f ${output_file}
+            cat ${log_file}
+            rm -f ${log_file}
             exit 1
         fi
     fi
 
     rm -f ${test_app_exe} ${test_app_exe}${OBJ} ${all_os[*]}
 
-    echo >> ${output_file}
+    echo >> ${log_file}
 done
 
 
