@@ -3437,7 +3437,7 @@ int CtorDeclaration::addPostInvariant()
 
 #if DMDV2
 PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
-    : FuncDeclaration(loc, endloc, id ? id : Id::_postblit, stc, NULL)
+    : FuncDeclaration(loc, endloc, id, stc, NULL)
 {
 }
 
