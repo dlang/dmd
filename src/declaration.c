@@ -524,7 +524,7 @@ void AliasDeclaration::semantic(Scope *sc)
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
-        ScopeDsymbol::multiplyDefined(0, this, overnext);
+        ScopeDsymbol::multiplyDefined(0, overnext, this);
     this->inSemantic = 0;
 
     if (global.gag && errors != global.errors)
@@ -550,14 +550,14 @@ void AliasDeclaration::semantic(Scope *sc)
             {
                 FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
                 if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(0, f, overnext);
+                    ScopeDsymbol::multiplyDefined(0, overnext, f);
                 overnext = NULL;
                 s = fa;
                 s->parent = sc->parent;
             }
         }
         if (overnext)
-            ScopeDsymbol::multiplyDefined(0, this, overnext);
+            ScopeDsymbol::multiplyDefined(0, overnext, this);
         if (s == this)
         {
             assert(global.errors);
