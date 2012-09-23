@@ -1673,8 +1673,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
                     kind(), parent->toPrettyChars(), ident->toChars(),
                     bufa.toChars(), buf.toChars());
         else
-            error("cannot deduce template function from argument types !(%s)(%s)",
-                bufa.toChars(), buf.toChars());
+            error(loc, "cannot deduce template function from argument types !(%s)(%s)",
+                  bufa.toChars(), buf.toChars());
     }
     return NULL;
 }
