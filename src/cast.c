@@ -1988,7 +1988,7 @@ Lagain:
 
             if (tf1->purity != tf2->purity)
                 d->purity = PUREimpure;
-            assert(d->purity != PUREfwdref);
+            //assert(d->purity != PUREfwdref);
 
             d->isnothrow = (tf1->isnothrow && tf2->isnothrow);
 
