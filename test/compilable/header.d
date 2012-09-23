@@ -349,3 +349,14 @@ void foo6591()()
 {
     import std.stdio : writeln, F = File;
 }
+
+
+// 8081
+version(unittest) {
+    pure nothrow unittest {}
+    pure nothrow unittest {}
+
+    public unittest {}
+    extern(C) unittest {}
+    align unittest {}
+}
