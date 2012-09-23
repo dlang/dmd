@@ -760,8 +760,7 @@ struct CtorDeclaration : FuncDeclaration
 #if DMDV2
 struct PostBlitDeclaration : FuncDeclaration
 {
-    PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc = STCundefined);
-    PostBlitDeclaration(Loc loc, Loc endloc, Identifier *id);
+    PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc = STCundefined, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
