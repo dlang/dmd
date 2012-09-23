@@ -256,7 +256,7 @@ string execute(ref File f, string command, bool expectpass)
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
     string output = readText(filename);
-    f.rawWrite(output);
+    f.write(output);
 
     if (WIFSIGNALED(rc))
     {
@@ -405,7 +405,6 @@ int main(string[] args)
             if (testArgs.postScript)
             {
                 f.write("Executing post-test script: ");
-                f.flush();
                 version (Windows) testArgs.postScript = "bash " ~ testArgs.postScript;
                 execute(f, testArgs.postScript, true);
             }
