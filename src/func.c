@@ -1239,7 +1239,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #if DMDV2
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
-                int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
+                int blockexit = fbody->blockExit(f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
@@ -1313,7 +1313,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #if DMDV2
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
-                int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
+                int blockexit = fbody->blockExit(f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
