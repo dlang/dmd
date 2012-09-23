@@ -654,6 +654,7 @@ struct TypeTypedef : Type
     void toDecoBuffer(OutBuffer *buf);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident);
     int isbit();
     int isintegral();

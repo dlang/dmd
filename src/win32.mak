@@ -132,8 +132,8 @@ BFLAGS=
 
 LINKN=$(SCROOT)\bin\link /de
 
-CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx
+CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
 
 # Makerules:
 .c.obj:
@@ -329,15 +329,15 @@ zip: detab tolf $(MAKEFILES)
 
 elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c : \
 	$C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c
-	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DTARGET_CPU_X86=1 -I$(TK) $(WINLIBS) #-L$(LINKS)
+	$(CC) -cpp -ooptabgen.exe $C\optabgen -DMARS -DDM_TARGET_CPU_X86=1 -I$(TK) $(WINLIBS) #-L$(LINKS)
 	optabgen
 
 impcnvtab.c : impcnvgen.c
-	$(CC) -I$(ROOT) -cpp -DTARGET_CPU_X86=1 impcnvgen
+	$(CC) -I$(ROOT) -cpp -DDM_TARGET_CPU_X86=1 impcnvgen
 	impcnvgen
 
 id.h id.c : idgen.c
-	$(CC) -cpp -DTARGET_CPU_X86=1 idgen
+	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
 
 ############################# Intermediate Rules ############################
