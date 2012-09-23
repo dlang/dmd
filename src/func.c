@@ -3436,20 +3436,15 @@ int CtorDeclaration::addPostInvariant()
 /********************************* PostBlitDeclaration ****************************/
 
 #if DMDV2
-PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc)
-    : FuncDeclaration(loc, endloc, Id::_postblit, stc, NULL)
-{
-}
-
-PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, Identifier *id)
-    : FuncDeclaration(loc, endloc, id, STCundefined, NULL)
+PostBlitDeclaration::PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
+    : FuncDeclaration(loc, endloc, id, stc, NULL)
 {
 }
 
 Dsymbol *PostBlitDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    PostBlitDeclaration *dd = new PostBlitDeclaration(loc, endloc, ident);
+    PostBlitDeclaration *dd = new PostBlitDeclaration(loc, endloc, storage_class, ident);
     return FuncDeclaration::syntaxCopy(dd);
 }
 

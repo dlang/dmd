@@ -2325,6 +2325,30 @@ void test8356()
 }
 
 /**********************************/
+// 8475
+
+T func8475(T)(T x) @safe pure
+{
+    return T();
+}
+
+template X8475(bool something)
+{
+    struct XY
+    {
+        this(this) @safe pure {}
+        void func(XY x) @safe pure
+        {
+            XY y = x; //Error: see below
+            func8475(x);
+            func8475(y);
+        }
+    }
+}
+
+alias X8475!(true).XY Xtrue;
+
+/**********************************/
 
 int main()
 {

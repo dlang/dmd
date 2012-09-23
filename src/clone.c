@@ -567,8 +567,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, Lexer::idPool("__fieldPostBlit"));
-        dd->storage_class |= stc;
+        PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, stc, Lexer::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(0, e);
         postblits.shift(dd);
         members->push(dd);
@@ -598,8 +597,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 ex = new CallExp(0, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, Lexer::idPool("__aggrPostBlit"));
-            dd->storage_class |= stc;
+            PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, stc, Lexer::idPool("__aggrPostBlit"));
             dd->fbody = new ExpStatement(0, e);
             members->push(dd);
             dd->semantic(sc);
