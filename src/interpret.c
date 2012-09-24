@@ -1982,9 +1982,10 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
          */
         if (v->ident == Id::ctfe)
             return new IntegerExp(loc, 1, Type::tbool);
-        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && v->init && !v->hasValue())
+        if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
+            && v->init && !v->hasValue() && !v->isCTFE())
 #else
-        if (v->isConst() && v->init)
+        if (v->isConst() && v->init && !v->isCTFE())
 #endif
         {   e = v->init->toExpression();
             if (e && (e->op == TOKconstruct || e->op == TOKblit))
