@@ -771,8 +771,12 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
 #endif
                 if (config.flags2 & CFG2seh)
                     c = cat(c,nteh_unwind(0,toindex));
-#if MARS && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS)
-                else if (toindex + 1 <= fromindex)
+#if MARS
+                else if (
+#if TARGET_WINDOS
+                         config.exe == EX_WIN64 &&
+#endif
+                         toindex + 1 <= fromindex)
                 {
                     //c = cat(c, linux_unwind(0, toindex));
                     block *bt;
