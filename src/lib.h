@@ -15,9 +15,8 @@
 #pragma once
 #endif /* __DMC__ */
 
-class Library
+struct Library
 {
-  public:
     static Library *factory();
 
     virtual void setFilename(char *dir, char *filename) = 0;
