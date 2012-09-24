@@ -10,7 +10,7 @@
 #include <time.h>
 #include <assert.h>
 
-#if __sun&&__SVR4
+#if __sun
 #include <alloca.h>
 #endif
 
@@ -46,6 +46,8 @@ Environment *benv;
 void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
+
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 
 #define STATICCTOR      0
 
@@ -390,10 +392,18 @@ void Module::genobjfile(int multiobj)
         sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
-        elem *e;
 
-        e = el_params(el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov)),
-                      el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov)),
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov));
+        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov));
+
+        if (config.exe == EX_WIN64)
+        {
+            ecov  = addressElem(ecov,  Type::tvoid->arrayOf(), false);
+            ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
+        }
+
+        elem *e = el_params(ecov,
+                      ebcov,
                       toEfilename(),
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
@@ -555,7 +565,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        printf("function  %s\n",func->toChars());
+        printf("function  %s\n",func->toPrettyChars());
 
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
