@@ -1246,6 +1246,23 @@ int sdfgasf()
 static assert(sdfgasf() == 1);
 
 /**************************************************
+   8608 ICE
+**************************************************/
+
+void bug8608(ref int m) {}
+void test8608()
+{
+    int z;
+    int foo(bool b)
+    {
+        if (b)  bug8608(z);
+        return 1;
+    }
+    static assert( is(typeof(compiles!( foo(false) ))));
+    static assert(!is(typeof(compiles!( foo(true) ))));
+}
+
+/**************************************************
    Bug 7770
 **************************************************/
 

@@ -245,11 +245,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = parseCtor();
                 break;
 
-#if 0 // dead end, use this(this){} instead
-            case TOKassign:
-                s = parsePostBlit();
-                break;
-#endif
             case TOKtilde:
                 s = parseDtor();
                 break;
@@ -605,10 +600,15 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             Lcondition:
                 {
-                    Loc lookingForElseSave = lookingForElse;
-                    lookingForElse = loc;
-                    a = parseBlock();
-                    lookingForElse = lookingForElseSave;
+                    if (token.value == TOKcolon)
+                        a = parseBlock();
+                    else
+                    {
+                        Loc lookingForElseSave = lookingForElse;
+                        lookingForElse = loc;
+                        a = parseBlock();
+                        lookingForElse = lookingForElseSave;
+                    }
                 }
                 aelse = NULL;
                 if (token.value == TOKelse)
@@ -1014,7 +1014,7 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         check(TOKrparen);
         StorageClass stc = parsePostfix();
-        PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0, stc);
+        PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0, stc, Id::_postblit);
         parseContracts(f);
         return f;
     }
@@ -1056,26 +1056,6 @@ Dsymbol *Parser::parseCtor()
     tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
-    parseContracts(f);
-    return f;
-}
-
-/*****************************************
- * Parse a postblit definition:
- *      =this() { body }
- * Current token is '='.
- */
-
-PostBlitDeclaration *Parser::parsePostBlit()
-{
-    Loc loc = this->loc;
-
-    nextToken();
-    check(TOKthis);
-    check(TOKlparen);
-    check(TOKrparen);
-
-    PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0);
     parseContracts(f);
     return f;
 }

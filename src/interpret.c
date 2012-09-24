@@ -2111,9 +2111,13 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
         {   error("variable %s cannot be referenced at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
-        else if (v && !v->hasValue() && !v->isCTFE() && v->isDataseg())
-        {   error("static variable %s cannot be referenced at compile time", v->toChars());
-                return EXP_CANT_INTERPRET;
+        else if (v && !v->hasValue())
+        {
+            if (!v->isCTFE() && v->isDataseg())
+                error("static variable %s cannot be referenced at compile time", v->toChars());
+            else     // CTFE initiated from inside a function
+                error("variable %s cannot be read at compile time", v->toChars());
+            return EXP_CANT_INTERPRET;
         }
         return this;
     }
