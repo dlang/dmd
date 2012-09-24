@@ -47,6 +47,8 @@ void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
 
+elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+
 #define STATICCTOR      0
 
 typedef ArrayBase<symbol> symbols;
@@ -390,10 +392,18 @@ void Module::genobjfile(int multiobj)
         sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
         localgot = ictorlocalgot;
-        elem *e;
 
-        e = el_params(el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov)),
-                      el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov)),
+        elem *ecov  = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(cov));
+        elem *ebcov = el_pair(TYdarray, el_long(TYsize_t, numlines), el_ptr(bcov));
+
+        if (config.exe == EX_WIN64)
+        {
+            ecov  = addressElem(ecov,  Type::tvoid->arrayOf(), false);
+            ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
+        }
+
+        elem *e = el_params(ecov,
+                      ebcov,
                       toEfilename(),
                       NULL);
         e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
@@ -1108,6 +1118,9 @@ unsigned Type::totym()
 
         case Tident:
         case Ttypeof:
+#ifdef DEBUG
+            printf("ty = %d, '%s'\n", ty, toChars());
+#endif
             error(0, "forward reference of %s", toChars());
             t = TYint;
             break;
@@ -1288,7 +1301,7 @@ elem *Module::toEfilename()
         outdata(sfilename);
     }
 
-    efilename = el_var(sfilename);
+    efilename = (config.exe == EX_WIN64) ? el_ptr(sfilename) : el_var(sfilename);
     return efilename;
 }
 
