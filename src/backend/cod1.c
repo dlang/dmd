@@ -2029,6 +2029,10 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     Y(mST0,"_U64_LDBL"),                // CLIBu64_ldbl
     Y(mST0|mAX|mDX,"__LDBLULLNG"),      // CLIBld_u64
+
+
+    Y(DOUBLEREGS_32,"__DBLULLNG"),      // CLIBdblullng_win64
+    Y(DOUBLEREGS_32,"__ULLNGDBL"),      // CLIBullngdbl_win64
   };
 #endif
 
@@ -2121,6 +2125,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 
     {mST0,mST0,0,INF32|INF64|INFfloat,2,1},   // _U64_LDBL
     {0,mDX|mAX,0,INF32|INF64|INFfloat,1,2},   // __LDBLULLNG
+
+#if TARGET_WINDOS
+    {0,mAX,0,INFfloat,2,2},                   // __DBLULLNG   CLIBdblullng_win64
+    {0,mAX,0,INFfloat,1,1},                   // __ULLNGDBL   CLIBullngdbl_win64
+#endif
   };
 
   if (!clib_inited)                             /* if not initialized   */
@@ -2178,6 +2187,17 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #undef Z
 
   assert(clib < CLIBMAX);
+#if TARGET_WINDOS
+  if (config.exe == EX_WIN64)
+  {
+        switch (clib)
+        {
+            case CLIBdblullng:  clib = CLIBdblullng_win64; break;
+            case CLIBullngdbl:  clib = CLIBullngdbl_win64; break;
+            case CLIBu64_ldbl:  assert(0); break;
+        }
+  }
+#endif
   symbol *s = &lib[clib];
   if (I16)
         assert(!(info[clib].flags & (INF32 | INF64)));

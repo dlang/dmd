@@ -3955,7 +3955,44 @@ STATIC elem * elbyteint(elem *e)
     }
     return e;
 }
-
+
+/****************************
+ * Handle OPu64_d
+ */
+
+STATIC elem *elu64_d(elem *e)
+{
+    if (e->E1->Eoper != OPconst && (I64 || (I32 && config.inline8087)))
+    {
+        /* Rewrite as:
+         *    u >= 0 ? OPi64_d(u) : OPi64_d(u & 0x7FFF_FFFF_FFFF_FFFF) + 0x8000_0000_0000_0000
+         */
+        elem *u = e->E1;
+        u->Ety = TYllong;
+        elem *u1 = el_copytree(u);
+        if (EOP(u))
+            fixside(&u, &u1);
+        elem *u2 = el_copytree(u1);
+
+        u = el_bin(OPge, TYint, u, el_long(TYllong, 0));
+
+        u1 = el_una(OPs64_d, e->Ety, u1);
+
+        u2 = el_bin(OPand, TYllong, u2, el_long(TYllong, 0x7FFFFFFFFFFFFFFFLL));
+        u2 = el_una(OPs64_d, e->Ety, u2);
+        elem *eadjust = el_una(OPu64_d, e->Ety, el_long(TYullong, 0x8000000000000000LL));
+        u2 = el_bin(OPadd, e->Ety, u2, eadjust);
+
+        e->Eoper = OPcond;
+        e->E1 = u;
+        e->E2 = el_bin(OPcolon, e->Ety, u1, u2);
+        return optelem(e, TRUE);
+    }
+    else
+        return evalu8(e);
+}
+
+
 /************************
  * Handle <<, OProl and OPror
  */
@@ -4430,6 +4467,8 @@ beg:
                 ex = ex->E1;
             if (ex->Eoper == OPbit)
                 ex->E1 = optelem(ex->E1, leftgoal);
+            else if (e1->Eoper == OPu64_d)
+                e1->E1 = optelem(e1->E1, leftgoal);
             else
                 e1 = e->E1 = optelem(e1,leftgoal);
         }

@@ -3436,6 +3436,7 @@ Lret:
             c = genc2(c,0xC2,0,4);                      // RET 4
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
+                 config.exe == EX_WIN64 ||
                  Poffset == 0)                          // or nothing pushed on the stack anyway
         {   op++;                                       // to a regular RET
             c = gen1(c,op);
