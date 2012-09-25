@@ -42,8 +42,6 @@
 struct Escape
 {
     const char *strings[256];
-
-    static const char *escapeChar(unsigned c);
 };
 
 struct Section
@@ -191,7 +189,7 @@ DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
-DDOC_PSYMBOL    = $(U $0)\n\
+DDOC_PSYMBOL    = $(U $1)\n\
 DDOC_KEYWORD    = $(B $0)\n\
 DDOC_PARAM      = $(I $0)\n\
 \n\
@@ -297,12 +295,36 @@ void Module::gendocfile()
         emitMemberComments(sc);
     }
 
-    //printf("BODY= '%.*s'\n", buf.offset, buf.data);
-    Macro::define(&macrotable, (unsigned char *)"BODY", 4, buf.data, buf.offset);
+    // if I did the character encoding right here, I think we'd be in business
+    OutBuffer bufEncoded;
+    if(escapetable != NULL)
+    {
+        bufEncoded.reserve(buf.offset);
+        for(unsigned where = 0; where < buf.offset; where++)
+        {
+            unsigned char c = buf.data[where];
+            const char* replacement = escapetable->strings[c];
+            if (replacement == NULL)
+                bufEncoded.writeByte(c);
+            else
+                bufEncoded.writestring(replacement);
+        }
+    }
+    else
+    {
+        bufEncoded.reserve(buf.offset);
+        for(unsigned where = 0; where < buf.offset; where++)
+        	bufEncoded.writeByte(buf.data[where]);
+    }
+
+    // printf("BODY= '%.*s'\n", bufEncoded.offset, bufEncoded.data);
+    // printf("BODY= '%.*s'\n", buf.offset, buf.data);
+    Macro::define(&macrotable, (unsigned char *)"BODY", 4, bufEncoded.data, bufEncoded.offset);
 
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
     unsigned end = buf2.offset;
+
     macrotable->expand(&buf2, 0, &end, NULL, 0);
 
 #if 1
@@ -916,7 +938,7 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 #if 0
         emitProtection(buf, protection);
 #endif
-        buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars() + strlen(this->getModule()->toChars()) + 1);
         buf->writestring(";\n");
     }
 }
@@ -940,7 +962,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
-            buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1);
         }
         buf->writestring(";\n");
     }
@@ -967,7 +989,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         {
             if (isAbstract())
                 buf->writestring("abstract ");
-            buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+            buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1);
         }
         int any = 0;
         for (size_t i = 0; i < baseclasses->dim; i++)
@@ -1004,7 +1026,7 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
-        buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+        buf->printf("%s $(DDOC_PSYMBOL %s, %s)", kind(), toChars(), toPrettyChars()  + strlen(this->getModule()->toChars()) + 1  );
         buf->writestring(";\n");
     }
 }
@@ -1519,6 +1541,9 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, u
     unsigned char *p = textstart;
     unsigned char *pend = p + textlen;
 
+    // By default, set null everywhere so no character is escaped.
+    memset(escapetable, 0, sizeof(*escapetable));
+
     while (1)
     {
         while (1)
@@ -1807,73 +1832,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                 iLineStart = i + 1;
                 break;
 
-            case '<':
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                p = &buf->data[i];
-
-                // Skip over comments
-                if (p[1] == '!' && p[2] == '-' && p[3] == '-')
-                {   unsigned j = i + 4;
-                    p += 4;
-                    while (1)
-                    {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '-' && p[1] == '-' && p[2] == '>')
-                        {
-                            i = j + 2;  // place on closing '>'
-                            break;
-                        }
-                        j++;
-                        p++;
-                    }
-                    break;
-                }
-
-                // Skip over HTML tag
-                if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
-                {   unsigned j = i + 2;
-                    p += 2;
-                    while (1)
-                    {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '>')
-                        {
-                            i = j;      // place on closing '>'
-                            break;
-                        }
-                        j++;
-                        p++;
-                    }
-                    break;
-                }
-
             L1:
-                // Replace '<' with '&lt;' character entity
-                se = Escape::escapeChar('<');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
-                break;
-
-            case '>':
-                leadingBlank = 0;
-                if (inCode)
-                    break;
-                // Replace '>' with '&gt;' character entity
-                se = Escape::escapeChar('>');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
                 break;
 
             case '&':
@@ -1883,14 +1842,6 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                 p = &buf->data[i];
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
-                // Replace '&' with '&amp;' character entity
-                se = Escape::escapeChar('&');
-                if (se)
-                {   size_t len = strlen(se);
-                    buf->remove(i, 1);
-                    i = buf->insert(i, se, len);
-                    i--;        // point to ';'
-                }
                 break;
 
             case '-':
@@ -2028,20 +1979,21 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
+    const char *fullyQualifiedName = s->toPrettyChars() + strlen(s->getModule()->toChars()) + 1;
+    int total = strlen(fullyQualifiedName);
+    char *terminator = (char*) malloc(total + 3);
+    terminator[0] = ','; // end the first argument
+    strncpy(terminator + 1, fullyQualifiedName, total);
+    ++total; // because of the comma
+    terminator[total] = ')'; // to close the DDOC_PSYMBOL macro
+    terminator[total + 1] = 0; // terminate the string
+
     //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
     for (unsigned i = offset; i < buf->offset; i++)
     {   unsigned char c = buf->data[i];
         const char *se;
 
-        se = Escape::escapeChar(c);
-        if (se)
-        {
-            size_t len = strlen(se);
-            buf->remove(i, 1);
-            i = buf->insert(i, se, len);
-            i--;                // point to ';'
-        }
-        else if (isIdStart(&buf->data[i]))
+        if (isIdStart(&buf->data[i]))
         {   unsigned j;
 
             j = skippastident(buf, i);
@@ -2049,7 +2001,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
             {
                 if (cmp(sid, buf->data + i, j - i) == 0)
                 {
-                    i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, ")") - 1;
+                    i = buf->bracket(i, "$(DDOC_PSYMBOL ", j, terminator) - 1;
                     continue;
                 }
                 else if (f)
@@ -2065,6 +2017,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
             }
         }
     }
+
+    free(terminator);
 }
 
 /****************************************
@@ -2073,10 +2027,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 void highlightCode3(OutBuffer *buf, unsigned char *p, unsigned char *pend)
 {
     for (; p < pend; p++)
-    {   const char *s = Escape::escapeChar(*p);
-        if (s)
-            buf->writestring(s);
-        else
+    {
             buf->writeByte(*p);
     }
 }
@@ -2150,31 +2101,6 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     buf->setsize(offset);
     buf->write(&res);
     global.errors = errorsave;
-}
-
-/***************************************
- * Find character string to replace c with.
- */
-
-const char *Escape::escapeChar(unsigned c)
-{   const char *s;
-
-    switch (c)
-    {
-        case '<':
-            s = "&lt;";
-            break;
-        case '>':
-            s = "&gt;";
-            break;
-        case '&':
-            s = "&amp;";
-            break;
-        default:
-            s = NULL;
-            break;
-    }
-    return s;
 }
 
 /****************************************
