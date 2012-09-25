@@ -605,7 +605,7 @@ void dotab()
         case OPd_s64:   X("d_s64",      evalu8, cdcnvt);
         case OPs64_d:   X("s64_d",      evalu8, cdcnvt);
         case OPd_u64:   X("d_u64",      evalu8, cdcnvt);
-        case OPu64_d:   X("u64_d",      evalu8, cdcnvt);
+        case OPu64_d:   X("u64_d",      elu64_d, cdcnvt);
         case OPld_u64:  X("ld_u64",     evalu8, cdcnvt);
         case OPparam:   X("param",      elparam, cderr);
         case OPsizeof:  X("sizeof",     elzot,  cderr);

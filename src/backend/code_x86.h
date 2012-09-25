@@ -352,6 +352,12 @@ enum CLIB
         CLIBu64_ldbl,
         CLIBld_u64,
 
+#if TARGET_WINDOS
+        // Win64 versions
+        CLIBdblullng_win64,
+        CLIBullngdbl_win64,
+#endif
+
         CLIBMAX
 };
 
