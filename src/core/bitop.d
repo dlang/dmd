@@ -22,6 +22,11 @@ version( D_InlineAsm_X86_64 )
 else version( D_InlineAsm_X86 )
     version = AsmX86;
 
+version (X86_64)
+    version = AnyX86;
+else version (X86)
+    version = AnyX86;
+
 /**
  * Scans the bits in v starting with bit 0, looking
  * for the first set bit.
@@ -191,7 +196,7 @@ unittest
  */
 uint bswap(uint v) pure;
 
-@system // not pure
+version (DigitalMars) version (AnyX86) @system // not pure
 {
     /**
      * Reads I/O port at port_address.
