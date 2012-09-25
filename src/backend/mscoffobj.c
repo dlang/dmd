@@ -1458,7 +1458,7 @@ segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
         if (!(flags & IMAGE_SCN_LNK_COMDAT) &&
             strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
         {
-            printf("\t%s\n", sectname);
+            //printf("\t%s\n", sectname);
             return seg;         // return existing segment
         }
     }
@@ -1466,7 +1466,7 @@ segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
     segidx_t seg = getsegment2(addScnhdr(sectname, flags));
 
     //printf("\tseg_count = %d\n", seg_count);
-    printf("\tseg = %d, %d, %s\n", seg, SegData[seg]->SDshtidx, ScnhdrTab[SegData[seg]->SDshtidx].s_name);
+    //printf("\tseg = %d, %d, %s\n", seg, SegData[seg]->SDshtidx, ScnhdrTab[SegData[seg]->SDshtidx].s_name);
     return seg;
 }
 
