@@ -334,12 +334,13 @@ int main(string[] args)
 
     foreach(i, c; combinations(testArgs.permuteArgs))
     {
-        string[] toCleanup;
-
         string test_app_dmd = test_app_dmd_base ~ to!string(i) ~ envData.exe;
 
         try
         {
+            string[] toCleanup;
+            scope(exit) foreach (file; toCleanup) collectException(std.file.remove(file));
+
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -408,10 +409,6 @@ int main(string[] args)
                 version (Windows) testArgs.postScript = "bash " ~ testArgs.postScript;
                 execute(f, testArgs.postScript, true);
             }
-
-            // cleanup
-            foreach (file; toCleanup)
-                collectException(std.file.remove(file));
 
             f.writeln();
 
