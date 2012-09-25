@@ -31,12 +31,15 @@
 #                        default: the make variable ARGS (see below)
 #
 #   POST_SCRIPT:         name of script to execute after test run
+#                        note: arguments to the script may be included after the name.
+#                              additionally, the name of the file that contains the output
+#                              of the compile/link/run steps is added as the last parameter.
 #                        default: (none)
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
 #
-#  DISABLED:             text describing why the test is disabled (if empty, the test is
+#   DISABLED:            text describing why the test is disabled (if empty, the test is
 #                        considered to be enabled).
 #                        default: (none, enabled)
 

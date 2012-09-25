@@ -341,6 +341,16 @@ int main(string[] args)
             string[] toCleanup;
             scope(exit) foreach (file; toCleanup) collectException(std.file.remove(file));
 
+            auto thisRunName = genTempFilename();
+            auto fThisRun = File(thisRunName, "w");
+            scope(exit)
+            {
+                fThisRun.close();
+                f.write(readText(thisRunName));
+                f.writeln();
+                removeIfExists(thisRunName);
+            }
+
             string compile_output;
             if (!testArgs.compileSeparately)
             {
@@ -357,7 +367,7 @@ int main(string[] args)
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
             }
             else
             {
@@ -369,7 +379,7 @@ int main(string[] args)
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
-                    compile_output ~= execute(f, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -381,7 +391,7 @@ int main(string[] args)
                     // add after building the command so that before now, it's purely the .o's involved
                     toCleanup ~= test_app_dmd;
 
-                    execute(f, command, true);
+                    execute(fThisRun, command, true);
                 }
             }
 
@@ -400,18 +410,17 @@ int main(string[] args)
                 string command = test_app_dmd;
                 if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                execute(f, command, true);
+                execute(fThisRun, command, true);
             }
+
+            fThisRun.close();
 
             if (testArgs.postScript)
             {
                 f.write("Executing post-test script: ");
                 version (Windows) testArgs.postScript = "bash " ~ testArgs.postScript;
-                execute(f, testArgs.postScript, true);
+                execute(f, testArgs.postScript ~ " " ~ thisRunName, true);
             }
-
-            f.writeln();
-
         }
         catch(Exception e)
         {
