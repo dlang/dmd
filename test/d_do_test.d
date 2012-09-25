@@ -252,10 +252,10 @@ string execute(ref File f, string command, bool expectpass)
     auto filename = genTempFilename();
     scope(exit) removeIfExists(filename);
 
-    f.writeln(command);
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
 
     string output = readText(filename);
+    f.writeln(command);
     f.write(output);
 
     if (WIFSIGNALED(rc))
