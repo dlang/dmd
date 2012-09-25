@@ -3849,7 +3849,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (!fd->nrvo_can &&
             exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
         {
-            exp = callCpCtor(exp->loc, sc, exp, 1);
+            exp = callCpCtor(exp->loc, sc, exp, true);
         }
 
         if (fd->inferRetType)

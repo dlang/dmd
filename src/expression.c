@@ -691,7 +691,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e = new ErrorExp();
         }
 
-        e = callCpCtor(e->loc, sc, e, 1);
+        e = callCpCtor(e->loc, sc, e, true);
 
         if (t0)
         {   if (t0 != e->type)
@@ -1156,7 +1156,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (tb->ty == Tsarray)
                 {
                     // call copy constructor of each element
-                    arg = callCpCtor(loc, sc, arg, 1);
+                    arg = callCpCtor(loc, sc, arg, true);
                 }
 #if DMDV2
                 else if (tb->ty == Tstruct)
