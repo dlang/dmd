@@ -16,3 +16,12 @@ float distance(point2 a, point2 b)
   d[0] = b[0] - a[0]; // if I comment out this line it won't crash
   return 0.0f;
 }
+
+class A3836
+{
+    void fun() {}
+}
+class B3836 : A3836
+{
+    void fun() {}
+}

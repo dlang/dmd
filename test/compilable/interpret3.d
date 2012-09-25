@@ -3440,11 +3440,11 @@ class SomeClass : TheBase, SomeInterface
     int fab;
     int a = 17;
     int b = 23;
-    int foo() { return gab + a; }
-    float bar(char c) { return 2.6; }
+    override int foo() { return gab + a; }
+    override float bar(char c) { return 2.6; }
     int something() { return 0; }
-    int daz() { return 0; }
-    int baz() { return 0; }
+    override int daz() { return 0; }
+    override int baz() { return 0; }
 }
 
 class Unrelated : TheBase {

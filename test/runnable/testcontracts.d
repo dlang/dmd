@@ -365,7 +365,7 @@ class P7699
 }
 class D7699 : P7699
 {
-    void f(int n) in { } body { }
+    override void f(int n) in { } body { }
 }
 
 /*******************************************/
