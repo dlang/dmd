@@ -3616,8 +3616,13 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
         else if (thunkty == TYjfunc || (I64 && thunkty == TYnfunc))
         {                                       // ADD EAX,d
             c = CNIL;
+            int rm = AX;
+            if (config.exe == EX_WIN64)
+                rm = CX;
+            else if (I64)
+                rm = DI;
             if (d)
-                c = genc2(c,0x81,modregrm(3,reg,I64 ? DI : AX),d);
+                c = genc2(c,0x81,modregrm(3,reg,rm),d);
         }
         else
         {
@@ -4977,6 +4982,8 @@ void simplify_code(code* c)
         //printf("replacing 0x%02x, val = x%lx\n",c->Iop,c->IEV2.Vlong);
         c->Iop = regop[(c->Irm & modregrm(0,7,0)) >> 3] | (c->Iop & 1);
         code_newreg(c, reg);
+        if (I64 && !(c->Iop & 1) && (reg & 4))
+            c->Irex |= REX;
     }
 }
 
