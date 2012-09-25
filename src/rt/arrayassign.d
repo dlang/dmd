@@ -36,7 +36,7 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
         char[10] tmp = void;
         string msg = "lengths don't match for array copy,"c;
         msg ~= tmp.intToString(to.length) ~ " = " ~ tmp.intToString(from.length);
-        throw new Exception(msg);
+        throw new Error(msg);
     }
 
     auto element_size = ti.tsize();
@@ -92,7 +92,7 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
         char[10] tmp = void;
         string msg = "lengths don't match for array initialization,"c;
         msg ~= tmp.intToString(to.length) ~ " = " ~ tmp.intToString(from.length);
-        throw new Exception(msg);
+        throw new Error(msg);
     }
 
     auto element_size = ti.tsize();
