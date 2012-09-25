@@ -241,7 +241,9 @@ MANIFEST= \
 	src\rt\util\console.d \
 	src\rt\util\hash.d \
 	src\rt\util\string.d \
-	src\rt\util\utf.d
+	src\rt\util\utf.d \
+	\
+	src\etc\linux\memoryerror.d
 
 SRCS= \
 	src\object_.d \
@@ -503,7 +505,9 @@ COPY=\
 	$(IMPDIR)\core\sys\windows\dll.d \
 	$(IMPDIR)\core\sys\windows\stacktrace.d \
 	$(IMPDIR)\core\sys\windows\threadaux.d \
-	$(IMPDIR)\core\sys\windows\windows.d
+	$(IMPDIR)\core\sys\windows\windows.d \
+	\
+	$(IMPDIR)\etc\linux\memoryerror.d
 
 ######################## Doc .html file generation ##############################
 
@@ -605,6 +609,7 @@ copydir: $(IMPDIR)
 	mkdir $(IMPDIR)\core\sys\osx\mach
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys
+	mkdir $(IMPDIR)\etc\linux
 	mkdir $(IMPDIR)\core\stdc
 
 copy: $(COPY)
