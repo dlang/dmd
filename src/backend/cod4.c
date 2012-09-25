@@ -2590,6 +2590,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
             Lcnvt87:
                 return cnvt87(e,pretregs);
             case OPd_u32:               // use subroutine, not 8087
+                if (I64 && config.fpxmmregs)
+                    return xmmcnvt(e,pretregs);
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
                 retregs = mST0;
 #else
