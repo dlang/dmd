@@ -17,14 +17,25 @@ private :
 import core.sys.posix.signal;
 import core.sys.posix.ucontext;
 
-// Init
+// Register and unregister memory error handler.
+private shared sigaction_t old_sigaction;
 
-shared static this()
+int register_memory_error_handler()
 {
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
     action.sa_flags = SA_SIGINFO;
-    sigaction(SIGSEGV, &action, null);
+    
+    auto oldptr = cast(sigaction_t*) &old_sigaction;
+
+    return sigaction(SIGSEGV, &action, oldptr);
+}
+
+int unregister_memory_error_handler()
+{
+    auto oldptr = cast(sigaction_t*) &old_sigaction;
+
+    return sigaction(SIGSEGV, oldptr, null);
 }
 
 // Sighandler space
@@ -218,6 +229,7 @@ enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 // User space handler
 void sigsegv_userspace_process(void* address)
 {
+    // SEGV_MAPERR, SEGV_ACCERR.
     // The first page is protected to detect null dereferences.
     if((cast(size_t) address) < MEMORY_RESERVED_FOR_NULL_DEREFERENCE)
     {
