@@ -101,6 +101,7 @@ MANIFEST= \
 	src/core/sys/freebsd/sys/event.d \
 	\
 	src/core/sys/linux/execinfo.d \
+	src/core/sys/linux/epoll.d \
 	src/core/sys/linux/sys/xattr.d \
 	\
 	src/core/sys/osx/execinfo.d \
@@ -465,6 +466,7 @@ COPY=\
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
 	$(IMPDIR)/core/sys/linux/execinfo.d \
+	$(IMPDIR)/core/sys/linux/epoll.d \
 	$(IMPDIR)/core/sys/linux/sys/xattr.d \
 	\
 	$(IMPDIR)/core/sys/osx/execinfo.d \
