@@ -559,6 +559,22 @@ void patch(seg_data *pseg, targ_size_t offset, int seg, targ_size_t value)
  * Store them in syment_buf.
  */
 
+static void syment_set_name(syment *sym, const char *name)
+{
+    size_t len = strlen(name);
+    if (len > 8)
+    {   // Use offset into string table
+        IDXSTR idx = MsCoffObj::addstr(string_table, name);
+        sym->n_zeroes = 0;
+        sym->n_offset = idx;
+    }
+    else
+    {   memcpy(sym->n_name, name, len);
+        if (len < 8)
+            memset(sym->n_name + len, 0, 8 - len);
+    }
+}
+
 void build_syment_table()
 {
     /* The @comp.id symbol appears to be the version of VC that generated the .obj file.
@@ -617,19 +633,7 @@ void build_syment_table()
 
         struct syment sym;
 
-        const char *name = s->Sident;
-        size_t len = strlen(name);
-        if (len > 8)
-        {   // Use offset into string table
-            IDXSTR idx = MsCoffObj::addstr(string_table, name);
-            sym.n_zeroes = 0;
-            sym.n_offset = idx;
-        }
-        else
-        {   memcpy(sym.n_name, name, len);
-            if (len < 8)
-                memset(sym.n_name + len, 0, 8 - len);
-        }
+        syment_set_name(&sym, s->Sident);
 
         sym.n_value = 0;
         switch (s->Sclass)
@@ -640,6 +644,10 @@ void build_syment_table()
 
             default:
                 sym.n_scnum = SegData[s->Sseg]->SDshtidx;
+                break;
+
+            case SCcomdef:
+                assert(0);      // comdef's should be in comdef_symbuf[]
                 break;
         }
         sym.n_type = tyfunc(s->Stype->Tty) ? 0x20 : 0;
@@ -657,6 +665,29 @@ void build_syment_table()
                     sym.n_value = s->Soffset;
                 break;
         }
+        sym.n_numaux = 0;
+
+        syment_buf->write(&sym, sizeof(sym));
+    }
+
+    /* Add comdef symbols from comdef_symbuf[]
+     */
+
+    dim = comdef_symbuf->size() / sizeof(Comdef);
+    for (size_t i = 0; i < dim; i++)
+    {   Comdef *c = ((Comdef *)comdef_symbuf->buf) + i;
+        symbol *s = c->sym;
+        s->Sxtrnnum = syment_buf->size() / sizeof(syment);
+        n++;
+
+        struct syment sym;
+
+        syment_set_name(&sym, s->Sident);
+
+        sym.n_scnum = IMAGE_SYM_UNDEFINED;
+        sym.n_type = 0;
+        sym.n_sclass = IMAGE_SYM_CLASS_EXTERNAL;
+        sym.n_value = c->size * c->count;
         sym.n_numaux = 0;
 
         syment_buf->write(&sym, sizeof(sym));
@@ -1904,15 +1935,25 @@ int MsCoffObj::common_block(Symbol *s,targ_size_t size,targ_size_t count)
     // can't have code or thread local comdef's
     assert(!(s->ty() & mTYthread));
 
+    /* A common block looks like this in the symbol table:
+     *  n_name    = s->Sident
+     *  n_value   = size * count
+     *  n_scnum   = IMAGE_SYM_UNDEFINED
+     *  n_type    = x0000
+     *  n_sclass  = IMAGE_SYM_CLASS_EXTERNAL
+     *  n_numaux  = 0
+     */
+
     struct Comdef comdef;
     comdef.sym = s;
     comdef.size = size;
     comdef.count = count;
     comdef_symbuf->write(&comdef, sizeof(comdef));
+
     s->Sxtrnnum = 1;
     if (!s->Sseg)
         s->Sseg = UDATA;
-    return 0;           // should return void
+    return 1;           // should return void
 }
 
 int MsCoffObj::common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count)

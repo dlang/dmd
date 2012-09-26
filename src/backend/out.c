@@ -484,22 +484,26 @@ void outcommon(symbol *s,targ_size_t n)
             objmod->common_block(s, 0, n, 1);
 #endif
 #if OMFOBJ
-#if TARGET_SEGMENTED
-            s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
-#else
-            s->Sxtrnnum = objmod->common_block(s,true,n,1);
-#endif
-            s->Sseg = UNKNOWN;
-#if TARGET_SEGMENTED
-            if (s->ty() & mTYfar)
-                s->Sfl = FLfardata;
+            if (I64)
+                objmod->common_block(s, 0, n, 1);
             else
-#endif
+            {
+#if TARGET_SEGMENTED
+                s->Sxtrnnum = objmod->common_block(s,(s->ty() & mTYfar) == 0,n,1);
+                if (s->ty() & mTYfar)
+                    s->Sfl = FLfardata;
+                else
+                    s->Sfl = FLextern;
+#else
+                s->Sxtrnnum = objmod->common_block(s,true,n,1);
                 s->Sfl = FLextern;
-            pstate.STflags |= PFLcomdef;
-#if SCPP
-            ph_comdef(s);               // notify PH that a COMDEF went out
 #endif
+                s->Sseg = UNKNOWN;
+                pstate.STflags |= PFLcomdef;
+#if SCPP
+                ph_comdef(s);               // notify PH that a COMDEF went out
+#endif
+            }
 #endif
         }
         if (config.fulltypes)
