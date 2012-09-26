@@ -93,12 +93,10 @@ void test4()
 {
     byte* p;
 
-    version(X86)
-        assert(p.sizeof == 4);
-    else version(X86_64)
+    version(D_LP64)
         assert(p.sizeof == 8);
     else
-        assert(false, "unknown platform");
+        assert(p.sizeof == 4);
 }
 
 

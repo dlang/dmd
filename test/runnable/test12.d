@@ -683,18 +683,16 @@ class Qwert32
     void foo()
     {
         printf("yuiop = %d, asdfg = %d\n", Qwert32.yuiop.offsetof, Qwert32.asdfg.offsetof);
-        version(X86)
-        {
-            assert(Qwert32.yuiop.offsetof == 8);
-            assert(Qwert32.asdfg.offsetof == 12);
-        }
-        else version (X86_64)
+        version(D_LP64)
         {
             assert(Qwert32.yuiop.offsetof == 16);
             assert(Qwert32.asdfg.offsetof == 20);
         }
         else
-            assert(0);
+        {
+            assert(Qwert32.yuiop.offsetof == 8);
+            assert(Qwert32.asdfg.offsetof == 12);
+        }
     }
 }
 
@@ -780,12 +778,10 @@ void test36()
     printf("%d\n", a.c);
     printf("%d\n", a.d);
 
-    version(X86)
-        assert(a.classinfo.init.length == 28);
-    else version(X86_64)
+    version(D_LP64)
         assert(a.classinfo.init.length == 36);
     else
-        assert(0);
+        assert(a.classinfo.init.length == 28);
     assert(a.s == 1);
     assert(a.a == 2);
     assert(a.b == 3);

@@ -9,12 +9,10 @@ void test1()
 {   
     size_t array[2];
     uint x;
-version (X86)
-    size_t bitToUse = 35;
-else version (X86_64)
+version (D_LP64)
     size_t bitToUse = 67;
 else
-    static assert(0);
+    size_t bitToUse = 35;
 
     array[0] = 2;
     array[1] = 0x100;
