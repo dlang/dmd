@@ -2396,6 +2396,8 @@ static int type_jparam2(type *t, tym_t ty)
 
     if (tyfloating(ty))
         ;
+    else if (config.exe == EX_WIN64)
+        return 1;
     else if (ty == TYstruct || ty == TYarray)
     {
         type_debug(t);
