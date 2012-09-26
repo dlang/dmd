@@ -15,7 +15,7 @@
 module core.sys.windows.windows;
 
 version (Windows):
-extern (Windows)
+extern (Windows):
 nothrow:
 
     alias uint ULONG;
