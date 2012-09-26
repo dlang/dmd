@@ -51,6 +51,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 typedef ArrayBase<elem> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
+elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
 elem *array_toPtr(Type *t, elem *e);
 elem *exp2_copytotemp(elem *e);
 
@@ -421,7 +422,7 @@ elem *array_toPtr(Type *t, elem *e)
 }
 
 /*****************************************
- * Convert array to a dynamic array suitable as a function argument.
+ * Convert array to a dynamic array.
  */
 
 elem *array_toDarray(Type *t, elem *e)
@@ -510,8 +511,6 @@ elem *array_toDarray(Type *t, elem *e)
             e = el_pair(TYdarray, el_long(TYsize_t, dim), e);
             break;
     }
-    if (config.exe == EX_WIN64)
-        e = addressElem(e, Type::tvoid->arrayOf());
     return el_combine(ef, e);
 }
 
@@ -1897,10 +1896,14 @@ elem *MinExp::toElem(IRState *irs)
  * Evaluate elem and convert to dynamic array suitable for a function argument.
  */
 
-elem *eval_Darray(IRState *irs, Expression *e)
+elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy)
 {
     elem *ex = e->toElem(irs);
     ex = array_toDarray(e->type, ex);
+    if (config.exe == EX_WIN64)
+    {
+        ex = addressElem(ex, Type::tvoid->arrayOf(), alwaysCopy);
+    }
     return ex;
 }
 
