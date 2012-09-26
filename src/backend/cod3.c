@@ -2712,8 +2712,8 @@ code* prolog_frameadj(tym_t tyf, unsigned xlocalsize, bool enter, bool* pushallo
             code_orflag(csub, CFtarg2);
             gen2sib(csub, 0x85, modregrm(0,SP,4),modregrm(0,4,SP));
             if (I64)
-            {   gen2(csub, 0xFF, (REX_W << 16) | modregrmx(3,0,R11));   // DEC R11
-                genc2(csub,JNE,0,(targ_uns)-14);
+            {   gen2(csub, 0xFF, modregrmx(3,1,R11));   // DEC R11D
+                genc2(csub,JNE,0,(targ_uns)-15);
             }
             else
             {   gen1(csub, 0x48 + DX);                  // DEC EDX
