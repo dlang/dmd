@@ -538,6 +538,47 @@ Expression *TraitsExp::semantic(Scope *sc)
         else
             goto Lfalse;
     }
+    else if (ident == Id::isKeyword)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+
+        Object *o = (*args)[0];
+        Expression *e = isExpression(o);
+
+        e = e->ctfeInterpret();
+
+        if (!e)
+        {
+            error("argument is not an expression");
+            goto Lfalse;
+        }
+
+        StringExp *se = e->toString();
+
+        if (!se || !se->length())
+        {
+            error("argument must be a non-zero length string");
+            goto Lfalse;
+        }
+
+        se = se->toUTF8(sc);
+
+        if (se->sz != 1)
+        {
+            error("string must consist of chars");
+            goto Lfalse;
+        }
+
+        Identifier *ident = Lexer::idPool((char *)se->string);
+        Token* tok = new Token();
+        tok->value = (enum TOK)ident->value;
+
+        if (tok->isKeyword())
+            goto Ltrue;
+        else
+            goto Lfalse;
+    }
     else
     {   error("unrecognized trait %s", ident->toChars());
         goto Lfalse;
