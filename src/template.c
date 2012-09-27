@@ -1752,7 +1752,7 @@ Lmatch:
                         goto Lnomatch;
                 }
             }
-            declareParameter(paramscope, tparam, oded);
+            oded = declareParameter(paramscope, tparam, oded);
             (*dedargs)[i] = oded;
         }
     }
@@ -1857,7 +1857,7 @@ Lnomatch:
  * Declare template parameter tp with value o, and install it in the scope sc.
  */
 
-void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Object *o)
+Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Object *o)
 {
     //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
 
@@ -1867,6 +1867,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     Tuple *va = isTuple(o);
 
     Dsymbol *s;
+    VarDeclaration *v = NULL;
 
     // See if tp->ident already exists with a matching definition
     Dsymbol *scopesym;
@@ -1879,7 +1880,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
             tup.objects = *td->objects;
             if (match(va, &tup, this, sc))
             {
-                return;
+                return o;
             }
         }
     }
@@ -1916,7 +1917,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
 
         Type *t = tvp ? tvp->valType : NULL;
 
-        VarDeclaration *v = new VarDeclaration(loc, t, tp->ident, init);
+        v = new VarDeclaration(loc, t, tp->ident, init);
         v->storage_class = STCmanifest;
         s = v;
     }
@@ -1935,6 +1936,11 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     if (!sc->insert(s))
         error("declaration %s is already defined", tp->ident->toChars());
     s->semantic(sc);
+    /* So the caller's o gets updated with the result of semantic() being run on o
+     */
+    if (v)
+        return (Object *)v->init->toExpression();
+    return o;
 }
 
 /**************************************
@@ -4557,7 +4563,7 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
-        /* If you remove this dummy variable declaration, 
+        /* If you remove this dummy variable declaration,
          * running test/fail_compilation/fail281.d stops dmd without error message.
          * It seems to me that is dmc's SEH code generation bug.
          */
