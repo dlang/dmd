@@ -4469,7 +4469,7 @@ beg:
                 ex->E1 = optelem(ex->E1, leftgoal);
             else if (e1->Eoper == OPu64_d)
                 e1->E1 = optelem(e1->E1, leftgoal);
-            else if (e1->Eoper == OPd_ld && e1->E1->Eoper == OPu64_d)
+            else if ((e1->Eoper == OPd_ld || e1->Eoper == OPd_f) && e1->E1->Eoper == OPu64_d)
                 e1->E1->E1 = optelem(e1->E1->E1, leftgoal);
             else
                 e1 = e->E1 = optelem(e1,leftgoal);
