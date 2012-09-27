@@ -260,8 +260,6 @@ unsigned AggregateDeclaration::placeField(
             ;
         else if (8 < memalignsize)
             memalignsize = 8;
-        else if (alignment < memalignsize)
-            memalignsize = alignment;
     }
     else
     {
