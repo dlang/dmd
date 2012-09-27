@@ -1313,6 +1313,7 @@ Lmatch:
                 if (!oded)
                     goto Lnomatch;
             }
+            oded =
             declareParameter(paramscope, tp, oded);
             dedargs->data[i] = (void *)oded;
         }
@@ -1418,7 +1419,7 @@ Lnomatch:
  * Declare template parameter tp with value o, and install it in the scope sc.
  */
 
-void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Object *o)
+Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Object *o)
 {
     //printf("TemplateDeclaration::declareParameter('%s', o = %p)\n", tp->ident->toChars(), o);
 
@@ -1428,6 +1429,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     Tuple *va = isTuple(o);
 
     Dsymbol *s;
+    VarDeclaration *v = NULL;
 
     // See if tp->ident already exists with a matching definition
     Dsymbol *scopesym;
@@ -1440,7 +1442,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
             tup.objects = *td->objects;
             if (match(va, &tup, this, sc))
             {
-                return;
+                return o;
             }
         }
     }
@@ -1468,7 +1470,7 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
         TemplateValueParameter *tvp = tp->isTemplateValueParameter();
         assert(tvp);
 
-        VarDeclaration *v = new VarDeclaration(loc, tvp->valType, tp->ident, init);
+        v = new VarDeclaration(loc, tvp->valType, tp->ident, init);
         v->storage_class = STCconst;
         s = v;
     }
@@ -1487,6 +1489,11 @@ void TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, Obj
     if (!sc->insert(s))
         error("declaration %s is already defined", tp->ident->toChars());
     s->semantic(sc);
+    /* So the caller's o gets updated with the result of semantic() being run on o
+     */
+    if (v)
+        return (Object *)v->init->toExpression();
+    return o;
 }
 
 /**************************************
