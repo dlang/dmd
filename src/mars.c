@@ -373,6 +373,7 @@ Usage:\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
+  -versions      list all predefined version identifiers and exit\n\
   -vtls          list all variables going into thread local storage\n\
   -w             warnings as errors (compilation will halt)\n\
   -wi            warnings as messages (compilation will continue)\n\
@@ -537,6 +538,22 @@ int tryMain(size_t argc, char *argv[])
         printf("argv[%d] = '%s'\n", i, argv[i]);
     }
 #endif
+
+    // we must print predefined version identifiers
+    // before processing other arguments (that could
+    // add more identifiers)
+    for (size_t i = 1; i < argc; i++)
+    {
+        p = argv[i];
+
+        if (strcmp(p, "-versions") == 0)
+        {
+            for (size_t j = 0; j < global.params.versionids->dim; j++)
+                printf("%s\n", (*global.params.versionids)[j]);
+
+            exit(EXIT_SUCCESS);
+        }
+    }
 
     for (size_t i = 1; i < argc; i++)
     {
