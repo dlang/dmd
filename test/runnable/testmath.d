@@ -7,6 +7,11 @@ import std.math;
 
 extern (C) int sprintf(char*, in char*, ...);
 
+static if(real.sizeof > double.sizeof)
+    enum uint useDigits = 16;
+else
+    enum uint useDigits = 15;
+
 /******************************************
  * Compare floating point numbers to n decimal digits of precision.
  * Returns:
@@ -124,35 +129,35 @@ void testldexp2()
 
 void testacos()
 {
-    assert(equals(acos(0.5), std.math.PI / 3, 16));
+    assert(equals(acos(0.5), std.math.PI / 3, useDigits));
 }
 
 /*************************************************/
 
 void testasin()
 {
-    assert(equals(asin(0.5), PI / 6, 16));
+    assert(equals(asin(0.5), PI / 6, useDigits));
 }
 
 /*************************************************/
 
 void testatan()
 {
-    assert(equals(atan(std.math.sqrt(3.0)), PI / 3, 16));
+    assert(equals(atan(std.math.sqrt(3.0)), PI / 3, useDigits));
 }
 
 /*************************************************/
 
 void testatan2()
 {
-    assert(equals(atan2(1.0L, std.math.sqrt(3.0L)), PI / 6, 16));
+    assert(equals(atan2(1.0L, std.math.sqrt(3.0L)), PI / 6, useDigits));
 }
 
 /*************************************************/
 
 void testtan()
 {
-    assert(equals(tan(PI / 3), std.math.sqrt(3.0), 16));
+    assert(equals(tan(PI / 3), std.math.sqrt(3.0), useDigits));
 }
 
 /*************************************************/
@@ -162,6 +167,13 @@ void testfrexp()
     int exp;
     real mantissa = frexp(123.456, exp);
     assert(equals(mantissa * pow(2.0L, cast(real)exp), 123.456, 19));
+
+    assert(frexp(-real.nan, exp) && exp == int.min);
+    assert(frexp(real.nan, exp) && exp == int.min);
+    assert(frexp(-real.infinity, exp) == -real.infinity && exp == int.min);
+    assert(frexp(real.infinity, exp) == real.infinity && exp == int.max);
+    assert(frexp(-0.0, exp) == -0.0 && exp == 0);
+    assert(frexp(0.0, exp) == 0.0 && exp == 0);
 }
 
 /*************************************************/
@@ -213,7 +225,7 @@ void testlog1p()
 void testexp()
 {
     printf("exp(3.0) = %Lg, %Lg\n", exp(3.0), E * E * E);
-    assert(equals(exp(3.0), E * E * E, 16));
+    assert(equals(exp(3.0), E * E * E, useDigits));
 }
 
 /*************************************************/
@@ -227,14 +239,14 @@ void testpow()
 
 void testcosh()
 {
-    assert(equals(cosh(1.0), (E + 1.0 / E) / 2, 16));
+    assert(equals(cosh(1.0), (E + 1.0 / E) / 2, useDigits));
 }
 
 /*************************************************/
 
 void testsinh()
 {
-    assert(equals(sinh(1.0), (E - 1.0 / E) / 2, 16));
+    assert(equals(sinh(1.0), (E - 1.0 / E) / 2, useDigits));
 }
 
 /*************************************************/
@@ -249,7 +261,7 @@ void testtanh()
 void testacosh()
 {
     assert(isnan(acosh(0.5)));
-    assert(equals(acosh(cosh(3.0)), 3, 16));
+    assert(equals(acosh(cosh(3.0)), 3, useDigits));
 }
 
 /*************************************************/
@@ -257,7 +269,7 @@ void testacosh()
 void testasinh()
 {
     assert(asinh(0.0) == 0);
-    assert(equals(asinh(sinh(3.0)), 3, 16));
+    assert(equals(asinh(sinh(3.0)), 3, useDigits));
 }
 
 /*************************************************/
@@ -265,7 +277,7 @@ void testasinh()
 void testatanh()
 {
     assert(atanh(0.0) == 0);
-    assert(equals(atanh(tanh(0.5L)), 0.5, 16));
+    assert(equals(atanh(tanh(0.5L)), 0.5, useDigits));
 }
 
 /*************************************************/
