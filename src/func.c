@@ -1305,6 +1305,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {   // Initialize _argptr to point past non-variadic arg
                     VarDeclaration *p;
                     unsigned offset = 0;
+                    Expression *e;
 
                     Expression *e1 = new VarExp(0, argptr);
                     // Find the last non-ref parameter
@@ -1330,15 +1331,32 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                     else
                         p = v_arguments;            // last parameter is _arguments[]
-                    if (p->storage_class & STClazy)
+                    if (global.params.is64bit && global.params.isWindows)
+                    {   offset += PTRSIZE;
+                        if (p->storage_class & STClazy)
+                        {
+                            /* Necessary to offset the extra level of indirection the Win64
+                             * ABI demands
+                             */
+                            e = new SymOffExp(0,p,0);
+                            e->type = Type::tvoidptr;
+                            e = new AddrExp(0, e);
+                            e->type = Type::tvoidptr;
+                            e = new AddExp(0, e, new IntegerExp(offset));
+                            e->type = Type::tvoidptr;
+                            goto L1;
+                        }
+                    }
+                    else if (p->storage_class & STClazy)
                         // If the last parameter is lazy, it's the size of a delegate
                         offset += PTRSIZE * 2;
                     else
                         offset += p->type->size();
                     offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
-                    Expression *e = new SymOffExp(0, p, offset);
+                    e = new SymOffExp(0, p, offset);
                     e->type = Type::tvoidptr;
                     //e = e->semantic(sc);
+                L1:
                     e = new AssignExp(0, e1, e);
                     e->type = t;
                     a->push(new ExpStatement(0, e));

@@ -60,7 +60,7 @@ elem *exp2_copytotemp(elem *e);
 
 bool ISREF(Declaration *var)
 {
-    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
+    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && (var->type->size(0) > REGSIZE || var->storage_class & STClazy))))
             || var->isOut() || var->isRef();
 }
 
