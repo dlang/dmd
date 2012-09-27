@@ -1288,8 +1288,11 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
                         reg_t preg = s->Spreg;
                         if (e->EV.sp.Voffset == REGSIZE)
                             preg = s->Spreg2;
-                        assert(preg != NOREG);
-                        if (regcon.params & mask[preg])
+                        /* preg could be NOREG if it's a variadic function and we're
+                         * in Win64 shadow regs and we're offsetting to get to the start
+                         * of the variadic args.
+                         */
+                        if (preg != NOREG && regcon.params & mask[preg])
                         {
                             pcs->Irm = modregrm(3,0,preg & 7);
                             if (preg & 8)
