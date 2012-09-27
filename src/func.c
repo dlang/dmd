@@ -480,8 +480,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 doesoverride = TRUE;
 #if DMDV2
-                if (!isOverride())
-                    warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+                if (!isOverride() && !global.params.useDeprecated)
+                    ::error(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
 #endif
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
@@ -1236,6 +1236,19 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             if (isCtorDeclaration() && ad)
             {
+#if DMDV2
+                // Check for errors related to 'nothrow'.
+                int nothrowErrors = global.errors;
+                int blockexit = fbody->blockExit(f->isnothrow);
+                if (f->isnothrow && (global.errors != nothrowErrors) )
+                    error("'%s' is nothrow yet may throw", toChars());
+                if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    flags &= ~FUNCFLAGnothrowInprocess;
+                    if (!(blockexit & BEthrow))
+                        f->isnothrow = TRUE;
+                }
+#endif
                 //printf("callSuper = x%x\n", sc2->callSuper);
 
                 ClassDeclaration *cd = ad->isClassDeclaration();
@@ -1300,7 +1313,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 #if DMDV2
                 // Check for errors related to 'nothrow'.
                 int nothrowErrors = global.errors;
-                int blockexit = fbody ? fbody->blockExit(f->isnothrow) : BEfallthru;
+                int blockexit = fbody->blockExit(f->isnothrow);
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)

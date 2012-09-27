@@ -696,7 +696,7 @@ class EE
 
 class FF : EE
 {
-    final int YYY() { return 4; }
+    final override int YYY() { return 4; }
 }
 
 static assert(__traits(isVirtualMethod, FF.YYY));
