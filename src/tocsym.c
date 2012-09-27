@@ -195,7 +195,7 @@ Symbol *VarDeclaration::toSymbol()
         }
         else if (storage_class & STClazy)
         {
-            if (config.exe == EX_WIN64)
+            if (config.exe == EX_WIN64 && isParameter())
                 t = type_fake(TYnptr);
             else
                 t = type_fake(TYdelegate);          // Tdelegate as C type
