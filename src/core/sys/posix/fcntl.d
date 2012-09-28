@@ -126,7 +126,7 @@ version( linux )
         pid_t   l_pid;
     }
 
-    static if( __USE_LARGEFILE64 )
+    static if( __USE_FILE_OFFSET64 )
     {
         int   creat64(in char*, mode_t);
         alias creat64 creat;
