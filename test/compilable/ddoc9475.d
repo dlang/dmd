@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -w -o- -c -Ddtest_results/compilable -o-
+// REQUIRED_ARGS: -D -w -o- -c -Dd${RESULTS_DIR}/compilable -o-
 // POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 9475
 
 module ddoc9475;
