@@ -401,7 +401,24 @@ void test20()
 }
 
 /* ================================ */
+// 8128
 
+int flag8128 = 0;
+
+interface I8128
+{
+    unittest
+    {
+        printf("utest, flag8128 = %d\n", flag8128);
+        flag8128 = 1;
+    }
+}
+
+void test8128()
+{
+    printf("main, flag8128 = %d\n", flag8128);
+    assert(flag8128 == 1);
+}
 
 int main()
 {
