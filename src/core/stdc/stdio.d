@@ -494,8 +494,6 @@ else version( Win64 )
     int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
     alias _vsnprintf vsnprintf;
 
-    int fwide(FILE* fp, int mode) { return mode; }
-
     int _filbuf(FILE *fp);
     int _flsbuf(int c, FILE *fp);
 
