@@ -420,6 +420,8 @@ void test8128()
     assert(flag8128 == 1);
 }
 
+/* ================================ */
+
 int main()
 {
     test1();
@@ -442,6 +444,8 @@ int main()
     test18();
     test19();
     test20();
+    test8128();
+
     printf("Success\n");
     return 0;
 }
