@@ -7143,7 +7143,24 @@ Expression *Type::voidInitLiteral(VarDeclaration *var)
 
 Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
 {
-    return createBlockDuplicatedArrayLiteral(var->loc, this, next->voidInitLiteral(var), dim->toInteger());
+    Expression *elem = next->voidInitLiteral(var);
+
+    // For aggregate value types (structs, static arrays) we must
+    // create an a separate copy for each element.
+    bool mustCopy = (elem->op == TOKarrayliteral || elem->op == TOKstructliteral);
+
+    Expressions *elements = new Expressions();
+    size_t d = dim->toInteger();
+    elements->setDim(d);
+    for (size_t i = 0; i < d; i++)
+    {   if (mustCopy)
+            elem  = copyLiteral(elem);
+        (*elements)[i] = elem;
+    }
+    ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
+    ae->type = this;
+    ae->ownedByCtfe = true;
+    return ae;
 }
 
 Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
@@ -7152,7 +7169,6 @@ Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
     exps->setDim(sym->fields.dim);
     for (size_t i = 0; i < sym->fields.dim; i++)
     {
-        //(*exps)[i] = new VoidInitExp(var, sym->fields[i]->type);
         (*exps)[i] = sym->fields[i]->type->voidInitLiteral(var);
     }
     StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
