@@ -66,7 +66,15 @@ extern (D) @trusted
 @trusted
 {
     wint_t ungetwc(wint_t c, FILE* stream);
-    int    fwide(FILE* stream, int mode);
+    version( Win64 )
+    {
+        // MSVC defines this as an inline function.
+        int fwide(FILE* stream, int mode) { return mode; }
+    }
+    else
+    {
+        int    fwide(FILE* stream, int mode);
+    }
 }
 
 double  wcstod(in wchar_t* nptr, wchar_t** endptr);
