@@ -1711,6 +1711,13 @@ BaseClasses *Parser::parseBaseClasses()
                 protection = PROTpublic;
                 nextToken();
                 break;
+            case TOKdot:
+                BaseClass *b = new BaseClass(parseBasicType(), protection);
+                baseclasses->push(b);
+                if (token.value == TOKcomma)
+                    continue;
+                else
+                    return baseclasses;
         }
         if (prot && !global.params.useDeprecated)
             error("use of base class protection is deprecated");
