@@ -1,4 +1,5 @@
 
+/***************************************************/
 // 6265.
 
 pure nothrow @safe int h6265() {
@@ -24,6 +25,7 @@ pure nothrow @safe int i6265c() {
     }();
 }
 
+/***************************************************/
 // Make sure a function is not infered as pure if it isn't.
 
 int fNPa() {
@@ -37,6 +39,7 @@ static assert(!__traits(compiles, function int () pure    { return gNPa(); }));
 static assert(!__traits(compiles, function int () nothrow { return gNPa(); }));
 static assert(!__traits(compiles, function int () @safe   { return gNPa(); }));
 
+/***************************************************/
 // Need to ensure the comment in Expression::checkPurity is not violated.
 
 void fECPa() {
@@ -59,6 +62,7 @@ void fECPb() {
     static assert( is(typeof(&g!()) == void delegate()));
 }
 
+/***************************************************/
 // 5936
 
 auto bug5936c(R)(R i) @safe pure nothrow {
@@ -66,6 +70,7 @@ auto bug5936c(R)(R i) @safe pure nothrow {
 }
 static assert( bug5936c(0) );
 
+/***************************************************/
 // 6351
 
 void bug6351(alias dg)()
@@ -78,6 +83,21 @@ void test6351()
     void delegate(int[] a...) deleg6351 = (int[] a...){};
     alias bug6351!(deleg6351) baz6531;
 }
+
+/***************************************************/
+// 8751
+
+alias bool delegate(in int) pure Bar8751;
+Bar8751 foo8751a(immutable int x) pure
+{
+    return y => x > y; // OK
+}
+Bar8751 foo8751b(const int x) pure
+{
+    return y => x > y; // error -> OK
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
