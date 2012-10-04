@@ -597,12 +597,18 @@ int tryMain(int argc, char *argv[])
                     case 'd':
                         if (!p[3])
                             goto Lnoarg;
+#if TARGET_WINDOS
+                        toWinPath(p + 3);
+#endif
                         global.params.objdir = p + 3;
                         break;
 
                     case 'f':
                         if (!p[3])
                             goto Lnoarg;
+#if TARGET_WINDOS
+                        toWinPath(p + 3);
+#endif
                         global.params.objname = p + 3;
                         break;
 
