@@ -2450,17 +2450,14 @@ if (arguments)
         OutBuffer buf;
 
         buf.writeByte('(');
-        if (arguments)
+        if (arguments && arguments->dim)
         {
             HdrGenState hgs;
-
             argExpTypesToCBuffer(&buf, arguments, &hgs);
-            buf.writeByte(')');
-            if (ethis)
-                ethis->type->modToBuffer(&buf);
         }
-        else
-            buf.writeByte(')');
+        buf.writeByte(')');
+        if (ethis)
+            ethis->type->modToBuffer(&buf);
 
         if (m.last == MATCHnomatch)
         {
