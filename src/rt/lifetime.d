@@ -407,7 +407,7 @@ void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked)
     // called after the mark routine to eliminate block cache data when it
     // might be ready to sweep
 
-    debug(PRINTF) printf("processing GC Marks, %x\n", tls.ptr);
+    debug(PRINTF) printf("processing GC Marks, %x\n", cache);
     if(cache)
     {
         debug(PRINTF) foreach(i; 0 .. N_CACHE_BLOCKS)
