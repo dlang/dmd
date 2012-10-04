@@ -564,6 +564,20 @@ void test8400()
 }
 
 /************************************/
+// 8753
+
+void test8753()
+{
+    static assert(is(typeof({
+        int mx = void;
+        const int cx = void;
+        immutable int ix = void;
+        mx = cx;
+        mx = ix;
+    })));
+}
+
+/************************************/
 
 int main()
 {
@@ -572,6 +586,7 @@ int main()
     test3();
     test6077();
     test8400();
+    test8753();
 
     printf("Success\n");
     return 0;
