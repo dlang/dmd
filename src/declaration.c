@@ -1781,7 +1781,6 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         Type *tv = t->toBasetype();
         while (tv->ty == Tsarray)
         {
-            TypeSArray *ta = (TypeSArray *)tv;
             tv = tv->nextOf()->toBasetype();
         }
         if (tv->ty == Tstruct)
