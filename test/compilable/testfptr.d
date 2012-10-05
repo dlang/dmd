@@ -378,6 +378,27 @@ void bug3833dg()
     static assert( is(typeof( arr ) == typeof(func)[]) );
 }
 
+void bug4838()
+{
+    void delegate() const dgc;
+    static assert(typeof(dgc).stringof == "void delegate() const");
+
+    void delegate() immutable dgi;
+    static assert(typeof(dgi).stringof == "void delegate() immutable");
+
+    void delegate() shared dgs;
+    static assert(typeof(dgs).stringof == "void delegate() shared");
+
+    void delegate() shared const dgsc;
+    static assert(typeof(dgsc).stringof == "void delegate() shared const");
+
+    void delegate() inout dgw;
+    static assert(typeof(dgw).stringof == "void delegate() inout");
+
+    void delegate() shared inout dgsw;
+    static assert(typeof(dgsw).stringof == "void delegate() shared inout");
+}
+
 void main()
 {
     static assert(is(typeof(&main) P : U*, U));
