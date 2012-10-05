@@ -191,6 +191,7 @@ DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
+DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
 DDOC_PSYMBOL    = $(U $0)\n\
 DDOC_KEYWORD    = $(B $0)\n\
 DDOC_PARAM      = $(I $0)\n\
@@ -776,6 +777,26 @@ void EnumMember::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_e);
 }
 
+static void emitAnchorName(OutBuffer *buf, Dsymbol *s, bool dot = false)
+{
+    if (s && !s->isPackage() && !s->isModule())
+    {
+        emitAnchorName(buf, s->parent, true);
+        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
+         * We don't want the template parameter list and constraints. */
+        buf->writestring(s->Dsymbol::toChars());
+        if (dot)
+            buf->writeByte('.');
+    }
+}
+
+static void emitAnchor(OutBuffer *buf, Dsymbol *s)
+{
+    buf->writestring("$(DDOC_ANCHOR ");
+    emitAnchorName(buf, s);
+    buf->writeByte(')');
+}
+
 /******************************* toDocBuffer **********************************/
 
 void Dsymbol::toDocBuffer(OutBuffer *buf)
@@ -913,6 +934,7 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
+        emitAnchor(buf, this);
 #if 0
         emitProtection(buf, protection);
 #endif
@@ -940,6 +962,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
+            emitAnchor(buf, this);
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         }
         buf->writestring(";\n");
@@ -965,6 +988,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
+            emitAnchor(buf, this);
             if (isAbstract())
                 buf->writestring("abstract ");
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
@@ -1004,6 +1028,7 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
+        emitAnchor(buf, this);
         buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         buf->writestring(";\n");
     }
@@ -2025,6 +2050,12 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
 void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 {
+    OutBuffer ancbuf;
+    
+    emitAnchor(&ancbuf, s);
+    buf->insert(offset, (char*)ancbuf.data, ancbuf.offset);
+    offset += ancbuf.offset;
+
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
