@@ -1774,6 +1774,29 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         ad->sizeok = SIZEOKfwd;             // cannot finish; flag as forward referenced
         return;
     }
+#if DMDV2
+    else
+    if (t->ty == Tsarray)
+    {
+        Type *tv = t->toBasetype();
+        while (tv->ty == Tsarray)
+        {
+            TypeSArray *ta = (TypeSArray *)tv;
+            tv = tv->nextOf()->toBasetype();
+        }
+        if (tv->ty == Tstruct)
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
+            StructDeclaration *sd = ts->sym;
+
+            if (ad == sd)
+            {
+                ad->error("cannot have field %s with same struct type", toChars());
+                return;
+            }
+        }
+    }
+#endif
 
     unsigned memsize      = t->size(loc);            // size of member
     unsigned memalignsize = t->alignsize();          // size of member for alignment purposes
