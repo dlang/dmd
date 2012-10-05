@@ -136,7 +136,7 @@ void util_progress(int linnum)
 
 #endif
 
-void toWinPath(char* src)
+void toWinPath(char *src)
 {
     if (src == NULL)
         return;
