@@ -1775,8 +1775,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         return;
     }
 #if DMDV2
-    else
-    if (t->ty == Tsarray)
+    else if (t->ty == Tsarray)
     {
         Type *tv = t->toBasetype();
         while (tv->ty == Tsarray)
