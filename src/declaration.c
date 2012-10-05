@@ -1785,9 +1785,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
-            StructDeclaration *sd = ts->sym;
-
-            if (ad == sd)
+            if (ad == ts->sym)
             {
                 ad->error("cannot have field %s with same struct type", toChars());
                 return;
