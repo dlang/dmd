@@ -5584,6 +5584,11 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     e = e->semantic(argsc);
                 }
                 e = e->implicitCastTo(argsc, fparam->type);
+
+                // default arg must be an lvalue
+                if (fparam->storageClass & (STCout | STCref))
+                    e = e->toLvalue(argsc, e);
+
                 fparam->defaultArg = e;
             }
 
