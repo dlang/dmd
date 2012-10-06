@@ -18,6 +18,7 @@ test/test_results
 src/idgen.exe
 src/dmd.exe
 src/impcnvgen.exe
+src/optabgen.exe
 *.map
 .DS_Store
 trace.def
