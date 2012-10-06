@@ -8146,7 +8146,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
         }
     }
     else if (sym->aliasthis)
-        m = aliasthisOf()->implicitConvTo(to);
+        m = fallbackMatch(aliasthisOf()->implicitConvTo(to));
     else
         m = MATCHnomatch;       // no match
     return m;
@@ -8609,7 +8609,7 @@ MATCH TypeClass::implicitConvTo(Type *to)
 
     m = MATCHnomatch;
     if (sym->aliasthis)
-        m = aliasthisOf()->implicitConvTo(to);
+        m = fallbackMatch(aliasthisOf()->implicitConvTo(to));
 
     return m;
 }

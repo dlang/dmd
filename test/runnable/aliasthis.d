@@ -405,6 +405,32 @@ struct Derived2787
 }
 
 /***********************************/
+// 5363
+
+struct S5363
+{
+    int dummy;
+    alias dummy this;
+}
+
+int foo5363(int){ return 1; }
+int foo5363(const(S5363)){ return 2; }
+
+int bar5363(int){ return 1; }
+int bar5363(const(int)){ return 2; }
+
+void test5363()
+{
+          S5363  ms;
+    const(S5363) cs;
+
+    assert(foo5363(ms) == 2);
+
+    assert(bar5363(ms) == 1);
+    assert(bar5363(cs) == 2);
+}
+
+/***********************************/
 // 6508
 
 void test6508()
@@ -875,6 +901,7 @@ int main()
     test6736();
     test2777a();
     test2777b();
+    test5363();
     test6508();
     test6369a();
     test6369b();
