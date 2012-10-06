@@ -1,12 +1,8 @@
 // PERMUTE_ARGS:
 // EXECUTE_ARGS: 1000
 
-extern(C)
-{
-    int printf(const char*, ...);
-    int sscanf(const char*, const char*, ...);
-    int time(int*);
-}
+import core.stdc.stdio;
+import core.stdc.time;
 
 const int LONG_TIME=4000;
 
@@ -16,7 +12,7 @@ int q;
 
 int main(char[][] args)
 {
-	int startime, endtime;
+	time_t startime, endtime;
 	int i;
 
 	if (args.length == 2) {
@@ -60,7 +56,7 @@ int main(char[][] args)
 	for (i = 1; i <= q; i++)
 	printf("%d",cast(int)(p[i]));
 	printf("\n");
-	printf("%ld seconds to compute pi with a precision of %d digits.\n",endtime-startime,q);
+	printf("%lld seconds to compute pi with a precision of %d digits.\n", cast(long)(endtime-startime),q);
 
 	return 0;
 }
