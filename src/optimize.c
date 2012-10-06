@@ -71,6 +71,12 @@ Expression *expandVar(int result, VarDeclaration *v)
                         v->error("recursive initialization of constant");
                     goto L1;
                 }
+                if (!(result & WANTinterpret) &&
+                    !(v->storage_class & STCmanifest) &&
+                    v->init->isVoidInitializer())
+                {   // don't expand void initializer if it's not necessary
+                    goto L1;
+                }
                 Expression *ei = v->init->toExpression();
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
