@@ -103,7 +103,6 @@ else version (Windows) // Win64
 
     /************
      * Retrieve and return the next value that is type T.
-     * Should use the other va_arg instead, as this won't work for 64 bit code.
      */
     T va_arg(T)(ref va_list ap)
     {
