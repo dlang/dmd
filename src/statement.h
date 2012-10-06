@@ -92,6 +92,7 @@ struct Statement : Object
 
     void error(const char *format, ...);
     void warning(const char *format, ...);
+    void deprecation(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int incontract;
     virtual ScopeStatement *isScopeStatement() { return NULL; }
