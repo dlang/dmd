@@ -163,7 +163,7 @@ private:
                 buf = cast(char*) core.stdc.stdlib.malloc(sz);
                 if(!buf)
                     return false;
-                rc = (*fn)( SystemProcessInformation, buf, sz, &retLength );
+                rc = fn( SystemProcessInformation, buf, sz, &retLength );
                 if( rc != STATUS_INFO_LENGTH_MISMATCH )
                     break;
                 core.stdc.stdlib.free( buf );
