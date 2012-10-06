@@ -1,17 +1,19 @@
 /**
- * Implementation of exception handling support routines for Windows.
+ * Implementation of exception handling support routines for Win32.
  *
- * Copyright: Copyright Digital Mars 1999 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 1999 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright
+ * Source: $(DRUNTIMESRC src/rt/_deh.d)
  */
 
-/*          Copyright Digital Mars 1999 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.deh;
+
+version (Win32)
+{
+
 import core.sys.windows.windows;
 //import core.stdc.stdio;
 
@@ -982,4 +984,6 @@ void _d_monitor_epilog(void *x, void *y, Object h)
         pop     EDX;
         pop     EAX;
     }
+}
+
 }

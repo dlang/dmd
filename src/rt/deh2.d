@@ -1,6 +1,6 @@
 /**
  * Written in the D programming language.
- * Implementation of exception handling support routines for Posix.
+ * Implementation of exception handling support routines for Posix and Win64.
  *
  * Copyright: Copyright Digital Mars 2000 - 2012.
  * License: Distributed under the
@@ -11,6 +11,20 @@
  */
 
 module rt.deh2;
+
+version (Posix)
+{
+    version = deh2;
+}
+else version (Win64)
+{
+    version = deh2;
+}
+
+// Use deh.d for Win32
+
+version (deh2)
+{
 
 //debug=1;
 debug import core.stdc.stdio : printf;
@@ -471,4 +485,6 @@ extern (C) void _d_throwc(Object *h)
         }
     }
     terminate();
+}
+
 }
