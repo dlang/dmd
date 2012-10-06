@@ -9,9 +9,11 @@ src/id.c
 src/id.h
 src/idgen
 src/impcnvgen
+src/impcnvgen.exe
 src/impcnvtab.c
 src/optab.c
 src/optabgen
+src/optabgen.exe
 src/tytab.c
 test/test_results
 *.obj
