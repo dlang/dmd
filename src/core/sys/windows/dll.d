@@ -124,104 +124,88 @@ private:
             ubyte* fn = cast(ubyte*) GetProcAddress( hnd, "LdrInitializeThunk" );
             assert( fn, "cannot find LdrInitializeThunk in ntdll" );
 
-            try
-            {
-                void* pLdrpInitialize = findCodeReference( fn, 20, jmp_LdrpInitialize, true );
-                void* p_LdrpInitialize = findCodeReference( pLdrpInitialize, 40, jmp__LdrpInitialize, true );
-                if( !p_LdrpInitialize )
-                    p_LdrpInitialize = findCodeSequence( pLdrpInitialize, 40, jmp__LdrpInitialize_xp64 );
-                void* pLdrpInitializeThread = findCodeReference( p_LdrpInitialize, 200, call_LdrpInitializeThread, true );
-                void* pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 40, call_LdrpAllocateTls, true );
-                if(!pLdrpAllocateTls)
-                    pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 100, call_LdrpAllocateTls_svr03, true );
-                void* pBodyAllocateTls = findCodeReference( pLdrpAllocateTls, 40, jne_LdrpAllocateTls, true );
+            void* pLdrpInitialize = findCodeReference( fn, 20, jmp_LdrpInitialize, true );
+            void* p_LdrpInitialize = findCodeReference( pLdrpInitialize, 40, jmp__LdrpInitialize, true );
+            if( !p_LdrpInitialize )
+                p_LdrpInitialize = findCodeSequence( pLdrpInitialize, 40, jmp__LdrpInitialize_xp64 );
+            void* pLdrpInitializeThread = findCodeReference( p_LdrpInitialize, 200, call_LdrpInitializeThread, true );
+            void* pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 40, call_LdrpAllocateTls, true );
+            if(!pLdrpAllocateTls)
+                pLdrpAllocateTls = findCodeReference( pLdrpInitializeThread, 100, call_LdrpAllocateTls_svr03, true );
+            void* pBodyAllocateTls = findCodeReference( pLdrpAllocateTls, 40, jne_LdrpAllocateTls, true );
 
-                int* pLdrpNumberOfTlsEntries = cast(int*) findCodeReference( pBodyAllocateTls, 60, mov_LdrpNumberOfTlsEntries, false );
-                pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag, false );
-                if(!pNtdllBaseTag)
-                    pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag_srv03, false );
-                LdrpTlsListEntry* pLdrpTlsList = cast(LdrpTlsListEntry*)findCodeReference( pBodyAllocateTls, 80, mov_LdrpTlsList, false );
+            int* pLdrpNumberOfTlsEntries = cast(int*) findCodeReference( pBodyAllocateTls, 60, mov_LdrpNumberOfTlsEntries, false );
+            pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag, false );
+            if(!pNtdllBaseTag)
+                pNtdllBaseTag = cast(int*) findCodeReference( pBodyAllocateTls, 30, mov_NtdllBaseTag_srv03, false );
+            LdrpTlsListEntry* pLdrpTlsList = cast(LdrpTlsListEntry*)findCodeReference( pBodyAllocateTls, 80, mov_LdrpTlsList, false );
 
-                if( !pLdrpNumberOfTlsEntries || !pNtdllBaseTag || !pLdrpTlsList )
-                    return null;
-
-                fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
-                if( !fnAlloc )
-                    return null;
-
-                // allocate new TlsList entry (adding 0xC0000 to the tag is obviously a flag also usesd by
-                //  the nt-loader, could be the result of HEAP_MAKE_TAG_FLAGS(0,HEAP_NO_SERIALIZE|HEAP_GROWABLE)
-                //  but this is not documented in the msdn entry for RtlAlloateHeap
-                void* heap = peb[6];
-                LdrpTlsListEntry* entry = cast(LdrpTlsListEntry*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, LdrpTlsListEntry.sizeof );
-                if( !entry )
-                    return null;
-
-                // fill entry
-                entry.tlsstart = tlsstart;
-                entry.tlsend = tlsend;
-                entry.ptr_tlsindex = tlsindex;
-                entry.callbacks = tls_callbacks_a;
-                entry.zerofill = null;
-                entry.tlsindex = *pLdrpNumberOfTlsEntries;
-
-                // and add it to the end of TlsList
-                *tlsindex = *pLdrpNumberOfTlsEntries;
-                entry.next = pLdrpTlsList;
-                entry.prev = pLdrpTlsList.prev;
-                pLdrpTlsList.prev.next = entry;
-                pLdrpTlsList.prev = entry;
-                (*pLdrpNumberOfTlsEntries)++;
-
-                return entry;
-            }
-            catch( Exception e )
-            {
-                // assert( false, e.msg );
+            if( !pLdrpNumberOfTlsEntries || !pNtdllBaseTag || !pLdrpTlsList )
                 return null;
-            }
+
+            fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
+            if( !fnAlloc )
+                return null;
+
+            // allocate new TlsList entry (adding 0xC0000 to the tag is obviously a flag also usesd by
+            //  the nt-loader, could be the result of HEAP_MAKE_TAG_FLAGS(0,HEAP_NO_SERIALIZE|HEAP_GROWABLE)
+            //  but this is not documented in the msdn entry for RtlAlloateHeap
+            void* heap = peb[6];
+            LdrpTlsListEntry* entry = cast(LdrpTlsListEntry*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, LdrpTlsListEntry.sizeof );
+            if( !entry )
+                return null;
+
+            // fill entry
+            entry.tlsstart = tlsstart;
+            entry.tlsend = tlsend;
+            entry.ptr_tlsindex = tlsindex;
+            entry.callbacks = tls_callbacks_a;
+            entry.zerofill = null;
+            entry.tlsindex = *pLdrpNumberOfTlsEntries;
+
+            // and add it to the end of TlsList
+            *tlsindex = *pLdrpNumberOfTlsEntries;
+            entry.next = pLdrpTlsList;
+            entry.prev = pLdrpTlsList.prev;
+            pLdrpTlsList.prev.next = entry;
+            pLdrpTlsList.prev = entry;
+            (*pLdrpNumberOfTlsEntries)++;
+
+            return entry;
         }
 
         // reallocate TLS array and create a copy of the TLS data section
         static bool addTlsData( void** teb, void* tlsstart, void* tlsend, int tlsindex ) nothrow
         {
-            try
-            {
-                HANDLE hnd = GetModuleHandleA( "NTDLL" );
-                assert( hnd, "cannot get module handle for ntdll" );
+            HANDLE hnd = GetModuleHandleA( "NTDLL" );
+            assert( hnd, "cannot get module handle for ntdll" );
 
-                fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
-                if( !fnAlloc || !pNtdllBaseTag )
-                    return false;
-
-                void** peb = cast(void**) teb[12];
-                void* heap = peb[6];
-
-                auto sz = tlsend - tlsstart;
-                void* tlsdata = cast(void*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, sz );
-                if( !tlsdata )
-                    return false;
-
-                // no relocations! not even self-relocations. Windows does not do them.
-                core.stdc.string.memcpy( tlsdata, tlsstart, sz );
-
-                // create copy of tls pointer array
-                void** array = cast(void**) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, (tlsindex + 1) * (void*).sizeof );
-                if( !array )
-                    return false;
-
-                if( tlsindex > 0 && teb[11] )
-                    core.stdc.string.memcpy( array, teb[11], tlsindex * (void*).sizeof);
-                array[tlsindex] = tlsdata;
-                teb[11] = cast(void*) array;
-
-                // let the old array leak, in case a oncurrent thread is still relying on it
-            }
-            catch( Exception e )
-            {
-                // assert( false, e.msg );
+            fnRtlAllocateHeap* fnAlloc = cast(fnRtlAllocateHeap*) GetProcAddress( hnd, "RtlAllocateHeap" );
+            if( !fnAlloc || !pNtdllBaseTag )
                 return false;
-            }
+
+            void** peb = cast(void**) teb[12];
+            void* heap = peb[6];
+
+            auto sz = tlsend - tlsstart;
+            void* tlsdata = cast(void*) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, sz );
+            if( !tlsdata )
+                return false;
+
+            // no relocations! not even self-relocations. Windows does not do them.
+            core.stdc.string.memcpy( tlsdata, tlsstart, sz );
+
+            // create copy of tls pointer array
+            void** array = cast(void**) (*fnAlloc)( heap, *pNtdllBaseTag | 0xc0000, (tlsindex + 1) * (void*).sizeof );
+            if( !array )
+                return false;
+
+            if( tlsindex > 0 && teb[11] )
+                core.stdc.string.memcpy( array, teb[11], tlsindex * (void*).sizeof);
+            array[tlsindex] = tlsdata;
+            teb[11] = cast(void*) array;
+
+            // let the old array leak, in case a oncurrent thread is still relying on it
             return true;
         }
 
@@ -283,21 +267,13 @@ private:
 
         static bool setDllTlsUsage( HINSTANCE hInstance, void** peb ) nothrow
         {
-            try
-            {
-                LDR_MODULE *thisMod = findLdrModule( hInstance, peb );
-                if( !thisMod )
-                    return false;
-
-                thisMod.TlsIndex = -1;  // uses TLS (not the index itself)
-                thisMod.LoadCount = -1; // never unload
-                return true;
-            }
-            catch( Exception e )
-            {
-                // assert( false, e.msg );
+            LDR_MODULE *thisMod = findLdrModule( hInstance, peb );
+            if( !thisMod )
                 return false;
-            }
+
+            thisMod.TlsIndex = -1;  // uses TLS (not the index itself)
+            thisMod.LoadCount = -1; // never unload
+            return true;
         }
     }
 
