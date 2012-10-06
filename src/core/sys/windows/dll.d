@@ -56,10 +56,10 @@ private:
         }
 
         alias extern(Windows)
-        void* fnRtlAllocateHeap(void* HeapHandle, uint Flags, size_t Size);
+        void* fnRtlAllocateHeap(void* HeapHandle, uint Flags, size_t Size) nothrow;
 
         // find a code sequence and return the address after the sequence
-        static void* findCodeSequence( void* adr, int len, ref ubyte[] pattern )
+        static void* findCodeSequence( void* adr, int len, ref ubyte[] pattern ) nothrow
         {
             if( !adr )
                 return null;
@@ -77,7 +77,7 @@ private:
         }
 
         // find a code sequence and return the (relative) address that follows
-        static void* findCodeReference( void* adr, int len, ref ubyte[] pattern, bool relative )
+        static void* findCodeReference( void* adr, int len, ref ubyte[] pattern, bool relative ) nothrow
         {
             if( !adr )
                 return null;
@@ -117,7 +117,7 @@ private:
         static __gshared ubyte[] mov_NtdllBaseTag_srv03 = [ 0x50, 0xA1 ]; // push eax; mov eax, _NtdllBaseTag
         static __gshared ubyte[] mov_LdrpTlsList = [ 0x8B, 0x3D ]; // mov edi, _LdrpTlsList
 
-        static LdrpTlsListEntry* addTlsListEntry( void** peb, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex )
+        static LdrpTlsListEntry* addTlsListEntry( void** peb, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex ) nothrow
         {
             HANDLE hnd = GetModuleHandleA( "NTDLL" );
             assert( hnd, "cannot get module handle for ntdll" );
@@ -183,7 +183,7 @@ private:
         }
 
         // reallocate TLS array and create a copy of the TLS data section
-        static bool addTlsData( void** teb, void* tlsstart, void* tlsend, int tlsindex )
+        static bool addTlsData( void** teb, void* tlsstart, void* tlsend, int tlsindex ) nothrow
         {
             try
             {
@@ -268,7 +268,7 @@ private:
             LIST_ENTRY      InInitializationOrderModuleList;
         }
 
-        static LDR_MODULE* findLdrModule( HINSTANCE hInstance, void** peb )
+        static LDR_MODULE* findLdrModule( HINSTANCE hInstance, void** peb ) nothrow
         {
             PEB_LDR_DATA* ldrData = cast(PEB_LDR_DATA*) peb[3];
             LIST_ENTRY* root = &ldrData.InLoadOrderModuleList;
@@ -281,7 +281,7 @@ private:
             return null;
         }
 
-        static bool setDllTlsUsage( HINSTANCE hInstance, void** peb )
+        static bool setDllTlsUsage( HINSTANCE hInstance, void** peb ) nothrow
         {
             try
             {
@@ -318,7 +318,7 @@ public:
      *
      * _tls_index is initialized by the compiler to 0, so we can use this as a test.
      */
-    bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex )
+    bool dll_fixTLS( HINSTANCE hInstance, void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex ) nothrow
     {
         version (Win64)
             return true;                // fixed
@@ -349,7 +349,7 @@ public:
             return false;
 
         if( !enumProcessThreads(
-            function (uint id, void* context) {
+            function (uint id, void* context) nothrow {
                 dll_aux.LdrpTlsListEntry* entry = cast(dll_aux.LdrpTlsListEntry*) context;
                 return dll_aux.addTlsData( getTEB( id ), entry.tlsstart, entry.tlsend, entry.tlsindex );
             }, entry ) )
