@@ -327,6 +327,7 @@ else version( Win64 )
         _IOSTRG  = 0x40,  // non-standard
         _IORW    = 0x80,  // non-standard
         _IOAPP   = 0x200, // non-standard
+        _IOAPPEND = 0x200, // non-standard
     }
 
     extern shared void function() _fcloseallp;
@@ -487,6 +488,7 @@ else version( Win64 )
     pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
     pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
     pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+    pure int  fileno(FILE* stream)   { return stream._file;                              }
   }
     int   _snprintf(char* s, size_t n, in char* fmt, ...);
     alias _snprintf snprintf;
