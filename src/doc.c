@@ -842,7 +842,56 @@ void Declaration::toDocBuffer(OutBuffer *buf)
     declarationToDocBuffer(this, buf, NULL);
 }
 
-void AliasDeclaration::toDocBuffer(OutBuffer *buf)
+void printRetroTree(OutBuffer *buf, Dsymbol *s)
+{
+    if (s && !s->isPackage() && !s->isModule())
+    {
+        printRetroTree(buf, s->parent);
+        buf->writestring(s->toChars());
+        buf->writestring(".");
+    }
+}
+
+bool inSameModule(Dsymbol *s, Dsymbol *p)
+{
+    for ( ; s ; s = s->parent)
+    {
+        if (s->isModule())
+            break;
+    }
+
+    for ( ; p ; p = p->parent)
+    {
+        if (p->isModule())
+            break;
+    }
+
+    return s == p;
+}
+
+void prettyPrintDsymbol(OutBuffer *buf, Dsymbol *s, Dsymbol *parent)
+{
+    if (s->parent && (s->parent == parent))  // in current scope -> naked name
+    {
+        buf->writestring(s->toChars());
+    }
+    else
+    if (!inSameModule(s, parent)) // in another module -> full name
+    {
+        buf->writestring(s->toPrettyChars());
+    }
+    else // nested in a type in this module -> full name w/o module name
+    {
+        // if alias nested add module-scope lookup
+        if (!parent->isModule() && !parent->isPackage())
+            buf->writestring(".");
+
+        printRetroTree(buf, s->parent);
+        buf->writestring(s->toChars());
+    }
+}
+
+void AliasDeclaration::toDocBuffer(OutBuffer* buf)
 {
     //printf("AliasDeclaration::toDocbuffer() %s\n", toChars());
     if (ident)
@@ -852,6 +901,29 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf)
 
         emitProtection(buf, protection);
         buf->writestring("alias ");
+
+        if (Type *type = getType())  // type alias
+        {
+            // cannot extract toDsymbol from these types
+            if (type->ty == Ttypeof || type->ty == Tinstance)
+            {
+                buf->writestring(type->toChars());
+            }
+            else if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
+            {
+                prettyPrintDsymbol(buf, s, parent);
+            }
+            else  // fundamental type
+            {
+                buf->writestring(type->toChars());
+            }
+        }
+        else if (Dsymbol *s = aliassym)  // ident alias
+        {
+            prettyPrintDsymbol(buf, s, parent);
+        }
+
+        buf->writestring(" ");
         buf->writestring(toChars());
         buf->writestring(";\n");
     }
