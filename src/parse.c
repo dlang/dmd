@@ -3754,9 +3754,7 @@ Statement *Parser::parseStatement(int flags)
             if (!(flags & PSsemi_ok))
             {
                 if (flags & PSsemi)
-                {   if (global.params.warnings)
-                        warning(loc, "use '{ }' for an empty statement, not a ';'");
-                }
+                    warning(loc, "use '{ }' for an empty statement, not a ';'");
                 else
                     error("use '{ }' for an empty statement, not a ';'");
             }

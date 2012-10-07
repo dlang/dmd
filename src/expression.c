@@ -5129,7 +5129,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
 #if (BUG6652 == 1)
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && global.params.warnings)
+    if (v && (v->storage_class & STCbug6652))
         warning("Variable modified in foreach body requires ref storage class");
 #elif (BUG6652 == 2)
     VarDeclaration *v = var->isVarDeclaration();

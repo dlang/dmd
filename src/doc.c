@@ -432,8 +432,7 @@ void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
                 if (par_open == 0)
                 {
                     //stray ')'
-                    if (global.params.warnings)
-                        warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output."
+                    warning(loc, "Ddoc: Stray ')'. This may cause incorrect Ddoc output."
                         " Use $(RPAREN) instead for unpaired right parentheses.");
                     buf->remove(u, 1); //remove the )
                     buf->insert(u, "$(RPAREN)", 9); //insert this instead
@@ -468,8 +467,7 @@ void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
                     if (par_open == 0)
                     {
                         //stray '('
-                        if (global.params.warnings)
-                            warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output."
+                        warning(loc, "Ddoc: Stray '('. This may cause incorrect Ddoc output."
                             " Use $(LPAREN) instead for unpaired left parentheses.");
                         buf->remove(u, 1); //remove the (
                         buf->insert(u, "$(LPAREN)", 9); //insert this instead
