@@ -67,6 +67,7 @@ Scope::Scope()
     this->protection = PROTpublic;
     this->explicitProtection = 0;
     this->stc = 0;
+    this->depmsg = NULL;
     this->offset = 0;
     this->inunion = 0;
     this->incontract = 0;
@@ -114,6 +115,7 @@ Scope::Scope(Scope *enclosing)
     this->linkage = enclosing->linkage;
     this->protection = enclosing->protection;
     this->explicitProtection = enclosing->explicitProtection;
+    this->depmsg = enclosing->depmsg;
     this->stc = enclosing->stc;
     this->offset = 0;
     this->inunion = enclosing->inunion;
