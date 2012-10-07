@@ -192,33 +192,51 @@ void errorSupplemental(Loc loc, const char *format, ...)
     va_end( ap );
 }
 
-void verror(Loc loc, const char *format, va_list ap, const char *p1, const char *p2)
+void deprecation(Loc loc, const char *format, ...)
+{
+    va_list ap;
+    va_start(ap, format);
+    vdeprecation(loc, format, ap);
+
+    va_end( ap );
+}
+
+// Just print, doesn't care about gagging
+void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
+		const char *p1, const char *p2)
+{
+    char *p = loc.toChars();
+
+    if (*p)
+        fprintf(stdmsg, "%s: ", p);
+    mem.free(p);
+
+    fputs(header, stdmsg);
+    if (p1)
+        fprintf(stdmsg, "%s ", p1);
+    if (p2)
+        fprintf(stdmsg, "%s ", p2);
+#if _MSC_VER
+    // MS doesn't recognize %zu format
+    OutBuffer tmp;
+    tmp.vprintf(format, ap);
+    fprintf(stdmsg, "%s", tmp.toChars());
+#else
+    vfprintf(stdmsg, format, ap);
+#endif
+    fprintf(stdmsg, "\n");
+    fflush(stdmsg);
+}
+
+// header is "Error: " by default (see mars.h)
+void verror(Loc loc, const char *format, va_list ap,
+		const char *p1, const char *p2, const char *header)
 {
     if (!global.gag)
     {
-        char *p = loc.toChars();
-
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Error: ");
-        if (p1)
-            fprintf(stdmsg, "%s ", p1);
-        if (p2)
-            fprintf(stdmsg, "%s ", p2);
-#if _MSC_VER
-        // MS doesn't recognize %zu format
-        OutBuffer tmp;
-        tmp.vprintf(format, ap);
-        fprintf(stdmsg, "%s", tmp.toChars());
-#else
-        vfprintf(stdmsg, format, ap);
-#endif
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-        if (global.errors >= 20)        // moderate blizzard of cascading messages
-            fatal();
+        verrorPrint(loc, header, format, ap, p1, p2);
+	if (global.errors >= 20)        // moderate blizzard of cascading messages
+		fatal();
 //halt();
     }
     else
@@ -232,46 +250,25 @@ void verror(Loc loc, const char *format, va_list ap, const char *p1, const char 
 void verrorSupplemental(Loc loc, const char *format, va_list ap)
 {
     if (!global.gag)
-    {
-        fprintf(stdmsg, "%s:        ", loc.toChars());
-#if _MSC_VER
-        // MS doesn't recognize %zu format
-        OutBuffer tmp;
-        tmp.vprintf(format, ap);
-        fprintf(stdmsg, "%s", tmp.toChars());
-#else
-        vfprintf(stdmsg, format, ap);
-#endif
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
-    }
+        verrorPrint(loc, "       ", format, ap);
 }
 
 void vwarning(Loc loc, const char *format, va_list ap)
 {
     if (global.params.warnings && !global.gag)
     {
-        char *p = loc.toChars();
-
-        if (*p)
-            fprintf(stdmsg, "%s: ", p);
-        mem.free(p);
-
-        fprintf(stdmsg, "Warning: ");
-#if _MSC_VER
-        // MS doesn't recognize %zu format
-        OutBuffer tmp;
-        tmp.vprintf(format, ap);
-        fprintf(stdmsg, "%s", tmp.toChars());
-#else
-        vfprintf(stdmsg, format, ap);
-#endif
-        fprintf(stdmsg, "\n");
-        fflush(stdmsg);
+        verrorPrint(loc, "Warning: ", format, ap);
 //halt();
         if (global.params.warnings == 1)
             global.warnings++;  // warnings don't count if gagged
     }
+}
+
+void vdeprecation(Loc loc, const char *format, va_list ap,
+		const char *p1, const char *p2)
+{
+    if (!global.params.useDeprecated)
+        verror(loc, format, ap, p1, p2, "Deprecation: ");
 }
 
 /***************************************
