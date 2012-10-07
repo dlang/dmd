@@ -963,6 +963,7 @@ void PragmaDeclaration::setScope(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp* se = e->toString();
@@ -997,6 +998,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
+                e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
                 if (e->op == TOKerror)
@@ -1024,6 +1026,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
@@ -1066,6 +1069,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             e = (*args)[1];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             e = e->toString();
             if (e && ((StringExp *)e)->sz == 1)
@@ -1088,6 +1092,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -1115,6 +1120,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
                     e = e->semantic(sc);
+                    e = resolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");

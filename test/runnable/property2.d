@@ -272,6 +272,84 @@ void test7722b()
 }
 
 /*******************************************/
+// 7174
+
+void test7174()
+{
+    @property bool foo7174() { return true; }
+    static if (foo7174) {}
+}
+
+/***************************************************/
+// 7274
+
+@property foo7274(){ return "test"; }
+@property bar7274(){ return "kernel32.lib"; }
+
+pragma(msg, "decl: ", foo7274);   // print "decl: foo", not "decl: test"
+version(Windows) pragma(lib, bar7274); // Error: pragma lib string expected for library name, not 'bar'
+
+void test7274()
+{
+    pragma(msg, "stmt: ", foo7274);  // print "stmt: foo", not "stmt: test"
+    //pragma(lib, bar);   // Error: pragma(lib) not allowed as statement
+}
+
+/***************************************************/
+// 7275
+
+void test7275()
+{
+    @property int bar1() { return 0; }
+    @property int bar2() { return 1; }
+    @property int bar3() { return 2; }
+
+    switch (0){
+        case bar1:  break;
+        case bar2: ..
+        case bar3:  break;
+        default:    break;
+    }
+}
+
+/*****************************************/
+// 8251
+
+struct S8251
+{
+    static @property int min() { return 123; }
+}
+@property int T8251_Min() { return 456; }
+
+template T8251a (int v)             { int T8251a  = v; }
+
+template T8251b1(int v = S8251.min) { int T8251b1 = v; }
+template T8251b2(int v = T8251_Min) { int T8251b2 = v; }
+
+template T8251c1(int v : S8251.min) { int T8251c1 = v; }
+template T8251c2(int v : T8251_Min) { int T8251c2 = v; }
+
+void test8251()
+{
+    static assert(S8251.min == 123);    // OK
+    static assert(T8251_Min == 456);    // OK
+    int a0 = T8251a!(S8251.min());      // OK
+    int b0 = T8251a!(T8251_Min());      // OK
+
+    // TemplateValueParameter
+    int a1 = T8251a!(S8251.min);        // NG
+    int b1 = T8251a!(T8251_Min);        // NG
+
+    // TemplateValueParameterDefault
+    int a2 = T8251b1!();                // NG
+    int b2 = T8251b2!();                // NG
+
+    // TemplateValueParameterSpecialization
+    int a3 = T8251c1!(123);             // NG
+    int b3 = T8251c2!(456);             // NG
+}
+
+/*****************************************/
 
 int main()
 {
@@ -279,6 +357,10 @@ int main()
     test7722();
     test7722a();
     test7722b();
+    test7174();
+    test7274();
+    test7275();
+    test8251();
 
     printf("Success\n");
     return 0;

@@ -4167,7 +4167,18 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     Type *vt;
 
     if (!ei && oarg)
-        goto Lnomatch;
+    {
+        Dsymbol *si = isDsymbol(oarg);
+        if (si && si->isFuncDeclaration())
+        {
+            ei = new VarExp(loc, (FuncDeclaration *)si);
+            ei = ei->semantic(sc);
+            ei = resolveProperties(sc, ei);
+            ei = ei->ctfeInterpret();
+        }
+        else
+            goto Lnomatch;
+    }
 
     if (ei && ei->op == TOKvar)
     {   // Resolve const variables that we had skipped earlier
@@ -4195,6 +4206,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
         Expression *e = specValue;
 
         e = e->semantic(sc);
+        e = resolveProperties(sc, e);
         e = e->implicitCastTo(sc, vt);
         e = e->ctfeInterpret();
 
@@ -4294,6 +4306,7 @@ Object *TemplateValueParameter::defaultArg(Loc loc, Scope *sc)
     {
         e = e->syntaxCopy();
         e = e->semantic(sc);
+        e = resolveProperties(sc, e);
 #if DMDV2
         e = e->resolveLoc(loc, sc);
 #endif
