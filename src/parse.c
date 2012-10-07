@@ -183,13 +183,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 break;
             }
 
-            case TOKstruct:
-            case TOKunion:
-            case TOKclass:
-            case TOKinterface:
-                s = parseAggregate();
-                break;
-
             case TOKimport:
                 s = parseImport(decldefs, 0);
                 break;
@@ -233,6 +226,10 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKtypeof:
             case TOKdot:
             case TOKvector:
+            case TOKstruct:
+            case TOKunion:
+            case TOKclass:
+            case TOKinterface:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
                 decldefs->append(a);
@@ -2750,6 +2747,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     Dsymbols *a;
     enum TOK tok = TOKreserved;
     enum LINK link = linkage;
+    unsigned structalign = 0;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
@@ -2853,6 +2851,25 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 link = parseLinkage();
                 continue;
 
+            case TOKalign:
+            {
+                nextToken();
+                if (token.value == TOKlparen)
+                {
+                    nextToken();
+                    if (token.value == TOKint32v && token.uns64value > 0)
+                        structalign = (unsigned)token.uns64value;
+                    else
+                    {   error("positive integer expected, not %s", token.toChars());
+                        structalign = 1;
+                    }
+                    nextToken();
+                    check(TOKrparen);
+                }
+                else
+                    structalign = global.structalign;   // default
+                continue;
+            }
             default:
                 break;
         }
@@ -2869,12 +2886,28 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
         return parseAutoDeclarations(storage_class, comment);
     }
 
-    if (token.value == TOKclass)
+    if (token.value == TOKstruct ||
+        token.value == TOKunion ||
+        token.value == TOKclass ||
+        token.value == TOKinterface)
     {
-        AggregateDeclaration *s = (AggregateDeclaration *)parseAggregate();
-        s->storage_class |= storage_class;
+        Dsymbol *s = parseAggregate();
         Dsymbols *a = new Dsymbols();
         a->push(s);
+
+        if (storage_class)
+        {
+            s = new StorageClassDeclaration(storage_class, a);
+            a = new Dsymbols();
+            a->push(s);
+        }
+        if (structalign != 0)
+        {
+            s = new AlignDeclaration(structalign, a);
+            a = new Dsymbols();
+            a->push(s);
+        }
+
         addComment(s, comment);
         return a;
     }
@@ -3477,7 +3510,6 @@ void Parser::checkDanglingElse(Loc elseloc)
 
 Statement *Parser::parseStatement(int flags)
 {   Statement *s;
-    Token *t;
     Condition *condition;
     Statement *ifbody;
     Statement *elsebody;
@@ -3492,10 +3524,10 @@ Statement *Parser::parseStatement(int flags)
     switch (token.value)
     {
         case TOKidentifier:
-            /* A leading identifier can be a declaration, label, or expression.
+        {   /* A leading identifier can be a declaration, label, or expression.
              * The easiest case to check first is label:
              */
-            t = peek(&token);
+            Token *t = peek(&token);
             if (t->value == TOKcolon)
             {   // It's a label
 
@@ -3507,6 +3539,7 @@ Statement *Parser::parseStatement(int flags)
                 break;
             }
             // fallthrough to TOKdot
+        }
         case TOKdot:
         case TOKtypeof:
         case TOKvector:
@@ -3581,16 +3614,6 @@ Statement *Parser::parseStatement(int flags)
                 condition = parseStaticIfCondition();
                 goto Lcondition;
             }
-            if (t->value == TOKstruct || t->value == TOKunion || t->value == TOKclass)
-            {
-                nextToken();
-                Dsymbols *a = parseBlock();
-                Dsymbol *d = new StorageClassDeclaration(STCstatic, a);
-                s = new ExpStatement(loc, d);
-                if (flags & PSscope)
-                    s = new ScopeStatement(loc, s);
-                break;
-            }
             if (t->value == TOKimport)
             {   nextToken();
                 Dsymbols *imports = new Dsymbols();
@@ -3618,7 +3641,9 @@ Statement *Parser::parseStatement(int flags)
         case TOKalias:
         case TOKconst:
         case TOKauto:
+        case TOKabstract:
         case TOKextern:
+        case TOKalign:
         case TOKinvariant:
 #if DMDV2
         case TOKimmutable:
@@ -3631,6 +3656,10 @@ Statement *Parser::parseStatement(int flags)
         case TOKgshared:
         case TOKat:
 #endif
+        case TOKstruct:
+        case TOKunion:
+        case TOKclass:
+        case TOKinterface:
         Ldeclaration:
         {   Dsymbols *a;
 
@@ -3659,17 +3688,6 @@ Statement *Parser::parseStatement(int flags)
             break;
         }
 
-        case TOKstruct:
-        case TOKunion:
-        case TOKclass:
-        case TOKinterface:
-        {   Dsymbol *d;
-
-            d = parseAggregate();
-            s = new ExpStatement(loc, d);
-            break;
-        }
-
         case TOKenum:
         {   /* Determine if this is a manifest constant declaration,
              * or a conventional enum.
@@ -3694,7 +3712,7 @@ Statement *Parser::parseStatement(int flags)
         }
 
         case TOKmixin:
-        {   t = peek(&token);
+        {   Token *t = peek(&token);
             if (t->value == TOKlparen)
             {   // mixin(string)
                 Expression *e = parseAssignExp();
@@ -4235,6 +4253,10 @@ Statement *Parser::parseStatement(int flags)
         {   Expression *exp;
             Statement *body;
 
+            Token *t = peek(&token);
+            if (skipAttributes(t, &t) && t->value == TOKclass)
+                goto Ldeclaration;
+
             nextToken();
             if (token.value == TOKlparen)
             {
@@ -4362,7 +4384,7 @@ Statement *Parser::parseStatement(int flags)
                         if (!toklist)
                         {
                             // Look ahead to see if it is a label
-                            t = peek(&token);
+                            Token *t = peek(&token);
                             if (t->value == TOKcolon)
                             {   // It's a label
                                 label = token.ident;
