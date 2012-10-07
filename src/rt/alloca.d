@@ -1,17 +1,29 @@
 /**
  * Implementation of alloca() standard C routine.
  *
- * Copyright: Copyright Digital Mars 1990 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2000 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright
+ * Source: $(DRUNTIMESRC src/rt/_alloca.d)
  */
 
-/*          Copyright Digital Mars 1990 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.alloca;
+
+version (Posix)
+{
+    version = alloca;
+}
+else version (Win64)
+{
+    version = alloca;
+}
+
+// Use DMC++'s alloca() for Win32
+
+version (alloca)
+{
 
 /+
 #if DOS386
@@ -257,3 +269,4 @@ extern (C) void* __alloca(int nbytes)
         static assert(0);
 }
 
+}

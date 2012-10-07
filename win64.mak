@@ -295,6 +295,7 @@ SRCS= \
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
 	src\rt\adi.d \
+	src\rt\alloca.d \
 	src\rt\arrayassign.d \
 	src\rt\arraybyte.d \
 	src\rt\arraycast.d \
