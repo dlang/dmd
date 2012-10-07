@@ -998,12 +998,10 @@ class TypeInfo_Struct : TypeInfo
         assert(p);
         if (xtoHash)
         {
-            debug(PRINTF) printf("getHash() using xtoHash\n");
             return (*xtoHash)(p);
         }
         else
         {
-            debug(PRINTF) printf("getHash() using default hash\n");
             return hashOf(p, init().length);
         }
     }
