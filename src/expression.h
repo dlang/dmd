@@ -335,6 +335,7 @@ struct ThisExp : Expression
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    Expression *modifiableLvalue(Scope *sc, Expression *e);
 
     int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
