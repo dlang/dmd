@@ -61,7 +61,7 @@ struct AttribDeclaration : Dsymbol
     void toObjFile(int multiobj);                       // compile to .obj file
 };
 
-struct StorageClassDeclaration: AttribDeclaration
+struct StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
 
@@ -73,6 +73,16 @@ struct StorageClassDeclaration: AttribDeclaration
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
+};
+
+struct DeprecatedDeclaration : StorageClassDeclaration
+{
+    Expression *msg;
+
+    DeprecatedDeclaration(Expression *msg, Dsymbols *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
 struct LinkDeclaration : AttribDeclaration
