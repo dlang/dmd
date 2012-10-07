@@ -2147,8 +2147,6 @@ done:
                 f = FLAGS_unsigned;
                 goto L1;
 
-            case 'l':
-                error("'l' is not a valid suffix, did you mean 'L'?");
             case 'L':
                 f = FLAGS_long;
             L1:
