@@ -2683,7 +2683,7 @@ CEXTERN elem * elstruct(elem *e)
                     goto L1;
                 }
             }
-            if (I64 && ty == TYstruct)
+            if (I64 && (ty == TYstruct || (ty == TYarray && config.exe == EX_WIN64)))
             {   tym = TYucent;
                 goto L1;
             }
