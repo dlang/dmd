@@ -364,7 +364,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKoverride:     stc = STCoverride;     goto Lstc;
             case TOKabstract:     stc = STCabstract;     goto Lstc;
             case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-            case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
 #if DMDV2
             case TOKnothrow:      stc = STCnothrow;      goto Lstc;
             case TOKpure:         stc = STCpure;         goto Lstc;
@@ -411,13 +410,17 @@ Dsymbols *Parser::parseDeclDefs(int once)
                             stc = STCimmutable;
                         }
                         goto Lstc;
+                    case TOKdeprecated:
+                        if (peek(&token)->value == TOKlparen)
+                            break;
+                        stc = STCdeprecated;
+                        goto Lstc;
                     case TOKfinal:        stc = STCfinal;        goto Lstc;
                     case TOKauto:         stc = STCauto;         goto Lstc;
                     case TOKscope:        stc = STCscope;        goto Lstc;
                     case TOKoverride:     stc = STCoverride;     goto Lstc;
                     case TOKabstract:     stc = STCabstract;     goto Lstc;
                     case TOKsynchronized: stc = STCsynchronized; goto Lstc;
-                    case TOKdeprecated:   stc = STCdeprecated;   goto Lstc;
                     case TOKnothrow:      stc = STCnothrow;      goto Lstc;
                     case TOKpure:         stc = STCpure;         goto Lstc;
                     case TOKref:          stc = STCref;          goto Lstc;
@@ -462,6 +465,22 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 a = parseBlock();
                 s = new StorageClassDeclaration(storageClass, a);
                 break;
+
+            case TOKdeprecated:
+                if (peek(&token)->value != TOKlparen)
+                {
+                    stc = STCdeprecated;
+                    goto Lstc;
+                }
+            {
+                nextToken();
+                check(TOKlparen);
+                Expression *e = parseAssignExp();
+                check(TOKrparen);
+                a = parseBlock();
+                s = new DeprecatedDeclaration(e, a);
+                break;
+            }
 
             case TOKextern:
                 if (peek(&token)->value != TOKlparen)
