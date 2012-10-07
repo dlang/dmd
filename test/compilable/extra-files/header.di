@@ -20,7 +20,7 @@ int i = cast(int)f;
 writeln((i , 1),2);
 writeln(cast(int)(float).max);
 assert(i == cast(int)(float).max);
-assert(i == -2147483648u);
+assert(i == 2147483648u);
 return 0;
 }
 template Foo(T,int V)

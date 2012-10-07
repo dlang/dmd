@@ -2236,7 +2236,7 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
             case Tuns32:
             L3:
-                buf->printf("%du", (unsigned)v);
+                buf->printf("%uu", (unsigned)v);
                 break;
 
             case Tint64:
