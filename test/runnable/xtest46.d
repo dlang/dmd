@@ -3922,6 +3922,38 @@ void test2774()
 }
 
 /***************************************************/
+// 3733
+
+class C3733
+{
+    int foo()        { return 1; }
+    int foo() shared { return 2; }
+
+    int bar()        { return foo(); }
+}
+void test3733()
+{
+    auto c = new C3733();
+    assert(c.bar() == 1);
+}
+
+/***************************************************/
+// 4392
+
+class C4392
+{
+    int foo() const { return 1; }
+    int foo()       { return 2; }
+
+    int bar() const { return foo(); }
+}
+void test4392()
+{
+    auto c = new C4392();
+    assert(c.bar() == 1);
+}
+
+/***************************************************/
 // 6220
 
 void test6220() {
@@ -5576,6 +5608,8 @@ int main()
     test6335();
     test6228();
     test2774();
+    test3733();
+    test4392();
     test6220();
     test5799();
     test157();
