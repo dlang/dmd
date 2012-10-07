@@ -61,7 +61,7 @@ char *obj_mangle2(Symbol *s,char *dest);
 /******************************************
  */
 
-static long elf_align(targ_size_t size, long offset);
+static long elf_align(int size, long offset);
 
 // The object file is built ib several separate pieces
 
@@ -765,6 +765,7 @@ void MsCoffObj::term()
     header.f_nsyms = syment_buf->size() / sizeof(struct syment);
     foffset += header.f_nsyms * sizeof(struct syment);  // symbol table
 
+    unsigned string_table_offset = foffset;
     foffset += string_table->size();            // string table
 
     // Compute file offsets of all the section data
@@ -774,17 +775,14 @@ void MsCoffObj::term()
         seg_data *pseg = SegData[seg];
         scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
 
-        if (pseg->SDalignment > 1)
-            foffset = (foffset + pseg->SDalignment - 1) & ~(pseg->SDalignment - 1);
+        int align = pseg->SDalignment;
+        if (align > 1)
+            foffset = (foffset + align - 1) & ~(align - 1);
 
         if (pseg->SDbuf && pseg->SDbuf->size())
         {
-            int align = pseg->SDalignment;
-            if (align > 1)
-            {
-                foffset = (foffset + align - 1) & ~(align - 1);
-            }
             psechdr->s_scnptr = foffset;
+            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_scnptr);
             psechdr->s_size = pseg->SDbuf->size();
             foffset += psechdr->s_size;
         }
@@ -800,10 +798,12 @@ void MsCoffObj::term()
         if (pseg->SDrel)
         {
             foffset = (foffset + 3) & ~3;
+            assert(psechdr->s_relptr == 0);
             unsigned nreloc = pseg->SDrel->size() / sizeof(struct Relocation);
             if (nreloc)
             {
                 psechdr->s_relptr = foffset;
+                //printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_relptr);
                 psechdr->s_nreloc = nreloc;
                 foffset += nreloc * sizeof(struct reloc);
             }
@@ -821,10 +821,12 @@ void MsCoffObj::term()
     foffset += ScnhdrBuf->size();
 
     // Write the symbol table
+    assert(foffset == header.f_symptr);
     fobjbuf->write(syment_buf);
     foffset += syment_buf->size();
 
     // Write the string table
+    assert(foffset == string_table_offset);
     *(unsigned *)(string_table->buf) = string_table->size();
     fobjbuf->write(string_table);
     foffset += string_table->size();
@@ -836,7 +838,11 @@ void MsCoffObj::term()
         scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
         foffset = elf_align(pseg->SDalignment, foffset);
         if (pseg->SDbuf && pseg->SDbuf->size())
-        {   fobjbuf->write(pseg->SDbuf);
+        {
+            //printf("seg = %2d SDshtidx = %2d psechdr = %p s_scnptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_scnptr, (unsigned)foffset);
+            assert(pseg->SDbuf->size() == psechdr->s_size);
+            assert(foffset == psechdr->s_scnptr);
+            fobjbuf->write(pseg->SDbuf);
             foffset += pseg->SDbuf->size();
         }
     }
@@ -849,8 +855,14 @@ void MsCoffObj::term()
         scnhdr *psechdr = &ScnhdrTab[pseg->SDshtidx];   // corresponding section
         if (pseg->SDrel)
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
-            Relocation *rend = (Relocation *)(pseg->SDrel->buf + pseg->SDrel->size());
+            size_t sz = pseg->SDrel->size();
+            Relocation *rend = (Relocation *)(pseg->SDrel->buf + sz);
             foffset = elf_align(4, foffset);
+#ifdef DEBUG
+            if (sz && foffset != psechdr->s_relptr)
+                printf("seg = %d SDshtidx = %d psechdr = %p s_relptr = x%x, foffset = x%x\n", seg, pseg->SDshtidx, psechdr, (unsigned)psechdr->s_relptr, (unsigned)foffset);
+#endif
+            assert(sz == 0 || foffset == psechdr->s_relptr);
             for (; r != rend; r++)
             {   reloc rel;
                 rel.r_vaddr = 0;
@@ -1039,6 +1051,8 @@ printf("test4\n");
                     }
 #endif
                 }
+                assert(rel.r_symndx <= 20000);
+                assert(rel.r_type <= 0x10);
                 fobjbuf->write(&rel, sizeof(rel));
                 foffset += sizeof(rel);
             }
@@ -1461,7 +1475,9 @@ int MsCoffObj::comdat(Symbol *s)
     }
                                 // find or create new segment
     if (s->Salignment > align)
-        SegData[s->Sseg]->SDalignment = s->Salignment;
+    {   SegData[s->Sseg]->SDalignment = s->Salignment;
+        assert(s->Salignment >= -1);
+    }
     s->Soffset = SegData[s->Sseg]->SDoffset;
     if (s->Sfl == FLdata || s->Sfl == FLtlsdata)
     {   // Code symbols are 'published' by MsCoffObj::func_start()
@@ -2399,11 +2415,12 @@ void MsCoffObj::fltused()
 }
 
 
-long elf_align(targ_size_t size, long foffset)
+long elf_align(int size, long foffset)
 {
     if (size <= 1)
         return foffset;
     long offset = (foffset + size - 1) & ~(size - 1);
+    //printf("offset = x%lx, foffset = x%lx, size = x%lx\n", offset, foffset, (long)size);
     if (offset > foffset)
         fobjbuf->writezeros(offset - foffset);
     return offset;
