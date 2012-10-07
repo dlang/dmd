@@ -22,7 +22,7 @@ version( Windows )
     public import core.thread;
 
     extern(Windows)
-    HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId);
+    HANDLE OpenThread(DWORD dwDesiredAccess, BOOL bInheritHandle, DWORD dwThreadId) nothrow;
 
     extern (C) extern __gshared int _tls_index;
 
@@ -63,7 +63,7 @@ private:
         }
 
         alias extern(Windows)
-        HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength );
+        HRESULT fnNtQuerySystemInformation( uint SystemInformationClass, void* info, uint infoLength, uint* ReturnLength ) nothrow;
 
         enum ThreadBasicInformation = 0;
 
@@ -79,7 +79,7 @@ private:
         }
 
         alias extern(Windows)
-        int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength );
+        int fnNtQueryInformationThread( HANDLE ThreadHandle, uint ThreadInformationClass, void* buf, uint size, uint* ReturnLength ) nothrow;
 
         enum SYNCHRONIZE = 0x00100000;
         enum THREAD_GET_CONTEXT = 8;
@@ -88,7 +88,7 @@ private:
 
         ///////////////////////////////////////////////////////////////////
         // get the thread environment block (TEB) of the thread with the given handle
-        static void** getTEB( HANDLE hnd )
+        static void** getTEB( HANDLE hnd ) nothrow
         {
             HANDLE nthnd = GetModuleHandleA( "NTDLL" );
             assert( nthnd, "cannot get module handle for ntdll" );
@@ -103,7 +103,7 @@ private:
         }
 
         // get the thread environment block (TEB) of the thread with the given identifier
-        static void** getTEB( uint id )
+        static void** getTEB( uint id ) nothrow
         {
             HANDLE hnd = OpenThread( THREAD_QUERY_INFORMATION, FALSE, id );
             assert( hnd, "OpenThread failed" );
@@ -114,7 +114,7 @@ private:
         }
 
         // get linear address of TEB of current thread
-        static void** getTEB()
+        static void** getTEB() nothrow
         {
             asm
             {
@@ -125,21 +125,21 @@ private:
         }
 
         // get the stack bottom (the top address) of the thread with the given handle
-        static void* getThreadStackBottom( HANDLE hnd )
+        static void* getThreadStackBottom( HANDLE hnd ) nothrow
         {
             void** teb = getTEB( hnd );
             return teb[1];
         }
 
         // get the stack bottom (the top address) of the thread with the given identifier
-        static void* getThreadStackBottom( uint id )
+        static void* getThreadStackBottom( uint id ) nothrow
         {
             void** teb = getTEB( id );
             return teb[1];
         }
 
         // create a thread handle with full access to the thread with the given identifier
-        static HANDLE OpenThreadHandle( uint id )
+        static HANDLE OpenThreadHandle( uint id ) nothrow
         {
             return OpenThread( SYNCHRONIZE|THREAD_GET_CONTEXT|THREAD_QUERY_INFORMATION|THREAD_SUSPEND_RESUME, FALSE, id );
         }
@@ -163,7 +163,7 @@ private:
                 buf = cast(char*) core.stdc.stdlib.malloc(sz);
                 if(!buf)
                     return false;
-                rc = (*fn)( SystemProcessInformation, buf, sz, &retLength );
+                rc = fn( SystemProcessInformation, buf, sz, &retLength );
                 if( rc != STATUS_INFO_LENGTH_MISMATCH )
                     break;
                 core.stdc.stdlib.free( buf );
@@ -232,7 +232,7 @@ public:
     alias thread_aux.enumProcessThreads enumProcessThreads;
 
     // get the start of the TLS memory of the thread with the given handle
-    void* GetTlsDataAddress( HANDLE hnd )
+    void* GetTlsDataAddress( HANDLE hnd ) nothrow
     {
         if( void** teb = getTEB( hnd ) )
             if( void** tlsarray = cast(void**) teb[11] )
@@ -241,7 +241,7 @@ public:
     }
 
     // get the start of the TLS memory of the thread with the given identifier
-    void* GetTlsDataAddress( uint id )
+    void* GetTlsDataAddress( uint id ) nothrow
     {
         HANDLE hnd = OpenThread( thread_aux.THREAD_QUERY_INFORMATION, FALSE, id );
         assert( hnd, "OpenThread failed" );
