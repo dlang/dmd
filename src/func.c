@@ -712,32 +712,6 @@ void FuncDeclaration::semantic(Scope *sc)
         }
     }
 
-    if (ident == Id::assign && (sd || cd))
-    {   // Disallow identity assignment operator.
-
-        // opAssign(...)
-        if (nparams == 0)
-        {   if (f->varargs == 1)
-                goto Lassignerr;
-        }
-        else
-        {
-            Parameter *arg0 = Parameter::getNth(f->parameters, 0);
-            Type *t0 = arg0->type->toBasetype();
-            Type *tb = sd ? sd->type : cd->type;
-            if (arg0->type->implicitConvTo(tb) ||
-                (sd && t0->ty == Tpointer && t0->nextOf()->implicitConvTo(tb))
-               )
-            {
-                if (nparams == 1)
-                    goto Lassignerr;
-                Parameter *arg1 = Parameter::getNth(f->parameters, 1);
-                if (arg1->defaultArg)
-                    goto Lassignerr;
-            }
-        }
-    }
-
     if (isVirtual() && semanticRun != PASSsemanticdone)
     {
         /* Rewrite contracts as nested functions, then call them.
@@ -803,14 +777,6 @@ Ldone:
     scope = new Scope(*sc);
     scope->setNoFree();
     return;
-
-Lassignerr:
-    if (sd)
-    {
-        sd->hasIdentityAssign = 1;      // don't need to generate it
-        goto Ldone;
-    }
-    error("identity assignment operator overload is illegal");
 }
 
 void FuncDeclaration::semantic2(Scope *sc)

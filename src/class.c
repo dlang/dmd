@@ -27,6 +27,7 @@
 #include "module.h"
 #include "expression.h"
 #include "statement.h"
+#include "template.h"
 
 /********************************* ClassDeclaration ****************************/
 
@@ -776,7 +777,30 @@ void ClassDeclaration::semantic(Scope *sc)
     Module::dprogress++;
 
     dtor = buildDtor(sc);
+    if (Dsymbol *assign = search_function(this, Id::assign))
+    {
+        Expression *e = new NullExp(loc, type); // dummy rvalue
+        Expressions *arguments = new Expressions();
+        arguments->push(e);
 
+        // check identity opAssign exists
+        FuncDeclaration *fd = assign->isFuncDeclaration();
+        if (fd)
+        {   fd = fd->overloadResolve(loc, e, arguments, 1);
+            if (fd && !(fd->storage_class & STCdisable))
+                goto Lassignerr;
+        }
+
+        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
+        {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1+2);
+            if (fd && !(fd->storage_class & STCdisable))
+                goto Lassignerr;
+        }
+
+Lassignerr:
+        if (fd && !(fd->storage_class & STCdisable))
+            error("identity assignment operator overload is illegal");
+    }
     sc->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
