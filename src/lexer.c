@@ -2397,7 +2397,7 @@ done:
             break;
 
         case 'l':
-            deprecation("'l' suffix is deprecated, use 'L' instead");
+            error("'l' suffix is deprecated, use 'L' instead");
         case 'L':
             result = TOKfloat80v;
             p++;
