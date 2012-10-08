@@ -2863,7 +2863,12 @@ private void* getStackBottom()
         version (D_InlineAsm_X86)
             asm { naked; mov EAX, FS:4; ret; }
         else version(D_InlineAsm_X86_64)
-            asm { naked; mov RAX, GS:4; ret; }
+            asm
+            {    naked;
+                 mov RAX, 8;
+                 mov RAX, GS:[RAX];
+                 ret;
+            }
         else
             static assert(false, "Architecture not supported.");
     }
