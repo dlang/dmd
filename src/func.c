@@ -480,8 +480,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 doesoverride = TRUE;
 #if DMDV2
-                if (!isOverride() && !global.params.useDeprecated)
-                    ::error(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
+                if (!isOverride())
+                    ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
 #endif
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();

@@ -5133,8 +5133,8 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
         warning("variable modified in foreach body requires ref storage class");
 #elif (BUG6652 == 2)
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && !global.params.useDeprecated)
-        error("Variable modified in foreach body requires ref storage class");
+    if (v && (v->storage_class & STCbug6652))
+        deprecation("variable modified in foreach body requires ref storage class");
 #endif
 
     checkModifiable(sc);
@@ -5536,7 +5536,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        error("shadowing declaration %s is not allowed", s->toPrettyChars());
+                        deprecation("shadowing declaration %s is deprecated", s->toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -9126,11 +9126,8 @@ Expression *CastExp::semantic(Scope *sc)
             return new VectorExp(loc, e1, to);
         }
 
-        if (tob->isintegral() && t1b->ty == Tarray &&
-            !global.params.useDeprecated)
-        {
-            error("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
-        }
+        if (tob->isintegral() && t1b->ty == Tarray)
+            deprecation("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
     }
     else if (!to)
     {   error("cannot cast tuple");
