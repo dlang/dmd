@@ -2105,7 +2105,7 @@ extern (C)
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
-    hash_t _aaGetHash(void* aa, TypeInfo tiRaw) nothrow;
+    hash_t _aaGetHash(void* aa, const(TypeInfo) tiRaw) nothrow;
 }
 
 struct AssociativeArray(Key, Value)

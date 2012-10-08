@@ -802,15 +802,16 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
 }
 
 
-static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(TypeInfo tiRaw) nothrow
+static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) nothrow
 {
+    const(TypeInfo)* p = &tiRaw;
     TypeInfo_AssociativeArray ti;
     while (true)
     {
-        if ((ti = cast(TypeInfo_AssociativeArray)tiRaw) !is null)
+        if ((ti = cast(TypeInfo_AssociativeArray)*p) !is null)
             break;
 
-        if (auto tiConst = cast(TypeInfo_Const)tiRaw) {
+        if (auto tiConst = cast(TypeInfo_Const)*p) {
             // The member in object_.d and object.di differ. This is to ensure
             //  the file can be compiled both independently in unittest and
             //  collectively in generating the library. Fixing object.di
@@ -818,9 +819,9 @@ static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(TypeInfo tiRaw) nothrow
             //  makes Phobos's unittest fail, so this hack is employed here to
             //  avoid irrelevant changes.
             static if (is(typeof(&tiConst.base) == TypeInfo*))
-                tiRaw = tiConst.base;
+                p = &tiConst.base;
             else
-                tiRaw = tiConst.next;
+                p = &tiConst.next;
         } else
             assert(0);  // ???
     }
@@ -926,7 +927,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
  *      Hash value
  */
 extern (C)
-hash_t _aaGetHash(AA* aa, TypeInfo tiRaw) nothrow
+hash_t _aaGetHash(AA* aa, const(TypeInfo) tiRaw) nothrow
 {
     import rt.util.hash;
 
