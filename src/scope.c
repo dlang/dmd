@@ -255,8 +255,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
             s = sc->scopesym->search(loc, ident, 0);
             if (s)
             {
-                if ((global.params.warnings ||
-                    global.params.Dversion > 1) &&
+                if (global.params.Dversion > 1 &&
                     ident == Id::length &&
                     sc->scopesym->isArrayScopeSymbol() &&
                     sc->enclosing &&

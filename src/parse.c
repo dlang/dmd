@@ -750,8 +750,7 @@ StorageClass Parser::parseTypeCtor()
         {
             case TOKconst:              stc |= STCconst;                break;
             case TOKinvariant:
-                if (!global.params.useDeprecated)
-                    error("use of 'invariant' rather than 'immutable' is deprecated");
+                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:          stc |= STCimmutable;            break;
             case TOKshared:             stc |= STCshared;               break;
             case TOKwild:               stc |= STCwild;                 break;
@@ -3772,9 +3771,7 @@ Statement *Parser::parseStatement(int flags)
             if (!(flags & PSsemi_ok))
             {
                 if (flags & PSsemi)
-                {   if (global.params.warnings)
-                        warning(loc, "use '{ }' for an empty statement, not a ';'");
-                }
+                    warning(loc, "use '{ }' for an empty statement, not a ';'");
                 else
                     error("use '{ }' for an empty statement, not a ';'");
             }

@@ -5129,12 +5129,12 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
 #if (BUG6652 == 1)
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && global.params.warnings)
-        warning("Variable modified in foreach body requires ref storage class");
+    if (v && (v->storage_class & STCbug6652))
+        warning("variable modified in foreach body requires ref storage class");
 #elif (BUG6652 == 2)
     VarDeclaration *v = var->isVarDeclaration();
-    if (v && (v->storage_class & STCbug6652) && !global.params.useDeprecated)
-        error("Variable modified in foreach body requires ref storage class");
+    if (v && (v->storage_class & STCbug6652))
+        deprecation("variable modified in foreach body requires ref storage class");
 #endif
 
     checkModifiable(sc);
@@ -5536,7 +5536,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        error("shadowing declaration %s is not allowed", s->toPrettyChars());
+                        deprecation("shadowing declaration %s is deprecated", s->toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -9126,11 +9126,8 @@ Expression *CastExp::semantic(Scope *sc)
             return new VectorExp(loc, e1, to);
         }
 
-        if (tob->isintegral() && t1b->ty == Tarray &&
-            !global.params.useDeprecated)
-        {
-            error("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
-        }
+        if (tob->isintegral() && t1b->ty == Tarray)
+            deprecation("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
     }
     else if (!to)
     {   error("cannot cast tuple");
@@ -10246,24 +10243,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-#if 0 // Turned off to allow rewriting (a[i]=value) to (a.opIndex(i)=value)
-            else
-            {
-                // Rewrite (a[i] = value) to (a.opIndex(i, value))
-                if (search_function(ad, id))
-                {   Expression *e = new DotIdExp(loc, ae->e1, id);
-
-                    if (1 || !global.params.useDeprecated)
-                    {   error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
-                        return new ErrorExp();
-                    }
-
-                    e = new CallExp(loc, e, (*ae->arguments)[0], e2);
-                    e = e->semantic(sc);
-                    return e;
-                }
-            }
-#endif
         }
 
         // No opIndexAssign found yet, but there might be an alias this to try.

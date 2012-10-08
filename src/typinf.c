@@ -633,19 +633,13 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
             dtxoff(pdt, fd->toSymbol(), 0, TYnptr);
             TypeFunction *tf = (TypeFunction *)fd->type;
             assert(tf->ty == Tfunction);
-            if (global.params.warnings)
-            {
-                /* I'm a little unsure this is the right way to do it. Perhaps a better
-                 * way would to automatically add these attributes to any struct member
-                 * function with the name "toHash".
-                 * So I'm leaving this here as an experiment for the moment.
-                 */
-                if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
-                {   warning(fd->loc, "toHash() must be declared as extern (D) uint toHash() const nothrow @safe, not %s", tf->toChars());
-                    if (global.params.warnings == 1)
-                        global.errors++;
-                }
-            }
+            /* I'm a little unsure this is the right way to do it. Perhaps a better
+             * way would to automatically add these attributes to any struct member
+             * function with the name "toHash".
+             * So I'm leaving this here as an experiment for the moment.
+             */
+            if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
+                warning(fd->loc, "toHash() must be declared as extern (D) uint toHash() const nothrow @safe, not %s", tf->toChars());
         }
         else
         {
