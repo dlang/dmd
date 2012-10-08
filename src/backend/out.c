@@ -193,7 +193,10 @@ void outdata(symbol *s)
                             objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
 #endif
 #if OMFOBJ
-                            pseg->SDoffset += datasize;
+                            if (config.exe == EX_WIN64)
+                                objmod->lidata(pseg->SDseg, pseg->SDoffset, datasize);
+                            else
+                                pseg->SDoffset += datasize;
 #endif
                             s->Sfl = FLtlsdata;
                             break;
