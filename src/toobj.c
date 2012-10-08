@@ -809,15 +809,12 @@ void ClassDeclaration::toObjFile(int multiobj)
                         continue;
                     if (fd->leastAsSpecialized(fd2) || fd2->leastAsSpecialized(fd))
                     {
-                        if (!global.params.useDeprecated)
-                        {
-                            TypeFunction *tf = (TypeFunction *)fd->type;
-                            if (tf->ty == Tfunction)
-                                error("use of %s%s hidden by %s is not allowed", fd->toPrettyChars(),
-                                      Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars());
-                            else
-                                error("use of %s hidden by %s is not allowed", fd->toPrettyChars(), toChars());
-                        }
+                        TypeFunction *tf = (TypeFunction *)fd->type;
+                        if (tf->ty == Tfunction)
+                            deprecation("use of %s%s hidden by %s is deprecated", fd->toPrettyChars(),
+                                    Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars());
+                        else
+                            deprecation("use of %s hidden by %s is deprecated", fd->toPrettyChars(), toChars());
                         s = rtlsym[RTLSYM_DHIDDENFUNC];
                         break;
                     }
