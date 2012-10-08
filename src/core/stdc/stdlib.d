@@ -55,11 +55,22 @@ long    atoll(in char* nptr);
 
 double  strtod(in char* nptr, char** endptr);
 float   strtof(in char* nptr, char** endptr);
-real    strtold(in char* nptr, char** endptr);
 c_long  strtol(in char* nptr, char** endptr, int base);
 long    strtoll(in char* nptr, char** endptr, int base);
 c_ulong strtoul(in char* nptr, char** endptr, int base);
 ulong   strtoull(in char* nptr, char** endptr, int base);
+
+version (Win64)
+{
+    real strtold(in char* nptr, char** endptr)
+    {   // Fake it 'till we make it
+        return strtod(nptr, endptr);
+    }
+}
+else
+{
+    real strtold(in char* nptr, char** endptr);
+}
 
 // No unsafe pointer manipulation.
 @trusted
