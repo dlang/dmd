@@ -306,6 +306,7 @@ SRCS= \
 	src\rt\arrayreal.d \
 	src\rt\arrayshort.d \
 	src\rt\cast_.d \
+	src\rt\cmath2.d \
 	src\rt\cover.d \
 	src\rt\critical_.d \
 	src\rt\deh2.d \
