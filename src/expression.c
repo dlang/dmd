@@ -10243,24 +10243,6 @@ Expression *AssignExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
-#if 0 // Turned off to allow rewriting (a[i]=value) to (a.opIndex(i)=value)
-            else
-            {
-                // Rewrite (a[i] = value) to (a.opIndex(i, value))
-                if (search_function(ad, id))
-                {   Expression *e = new DotIdExp(loc, ae->e1, id);
-
-                    if (1 || !global.params.useDeprecated)
-                    {   error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
-                        return new ErrorExp();
-                    }
-
-                    e = new CallExp(loc, e, (*ae->arguments)[0], e2);
-                    e = e->semantic(sc);
-                    return e;
-                }
-            }
-#endif
         }
 
         // No opIndexAssign found yet, but there might be an alias this to try.
