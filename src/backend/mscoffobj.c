@@ -1355,6 +1355,8 @@ void MsCoffObj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 void MsCoffObj::ehsections()
 {
     //printf("MsCoffObj::ehsections()\n");
+
+  {
     int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
 
     int segdeh_bg =
@@ -1387,11 +1389,15 @@ void MsCoffObj::ehsections()
     eh_end->Soffset = 0;
     symbuf->write(&eh_end, sizeof(eh_end));
     MsCoffObj::bytes(segdeh_en, 0, I64 ? 8 : 4, NULL);
+  }
 
     /*************************************************************************/
 
+  {
     /* Module info sections
      */
+    int align = I64 ? IMAGE_SCN_ALIGN_8BYTES : IMAGE_SCN_ALIGN_4BYTES;
+
     int segbg =
     MsCoffObj::getsegment(".minfobg", IMAGE_SCN_CNT_INITIALIZED_DATA |
                                       align |
@@ -1419,6 +1425,48 @@ void MsCoffObj::ehsections()
     minfo_end->Soffset = 0;
     symbuf->write(&minfo_end, sizeof(minfo_end));
     MsCoffObj::bytes(segen, 0, I64 ? 8 : 4, NULL);
+  }
+
+    /*************************************************************************/
+
+#if 0
+  {
+    /* TLS sections
+     */
+    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_4BYTES;
+
+    int segbg =
+    MsCoffObj::getsegment(".tls$A",   IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ |
+                                      IMAGE_SCN_MEM_WRITE);
+    MsCoffObj::getsegment(".tls$",    IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ |
+                                      IMAGE_SCN_MEM_WRITE);
+    int segen =
+    MsCoffObj::getsegment(".tls$ZZZ", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                      align |
+                                      IMAGE_SCN_MEM_READ |
+                                      IMAGE_SCN_MEM_WRITE);
+
+    /* Create symbol _minfo_beg that sits just before the .minfodt segment
+     */
+    symbol *minfo_beg = symbol_name("_tlsstart", SCglobal, tspvoid);
+    minfo_beg->Sseg = segbg;
+    minfo_beg->Soffset = 0;
+    symbuf->write(&minfo_beg, sizeof(minfo_beg));
+    MsCoffObj::bytes(segbg, 0, I64 ? 8 : 4, NULL);
+
+    /* Create symbol _minfo_end that sits just after the .minfodt segment
+     */
+    symbol *minfo_end = symbol_name("_tlsend", SCglobal, tspvoid);
+    minfo_end->Sseg = segen;
+    minfo_end->Soffset = 0;
+    symbuf->write(&minfo_end, sizeof(minfo_end));
+    MsCoffObj::bytes(segen, 0, I64 ? 8 : 4, NULL);
+  }
+#endif
 }
 
 /*********************************
