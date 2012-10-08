@@ -169,8 +169,8 @@ else version (Win64)
 {
     extern (C)
     {
-        extern void* _minfo_beg;
-        extern void* _minfo_end;
+        extern __gshared void* _minfo_beg;
+        extern __gshared void* _minfo_end;
     }
 }
 else version (OSX)
@@ -246,7 +246,26 @@ body
     }
     else version (Win64)
     {
-        result = (cast(ModuleInfo**)&_minfo_beg)[1 .. &_minfo_end - &_minfo_end];
+        auto m = (cast(ModuleInfo**)&_minfo_beg)[1 .. &_minfo_end - &_minfo_beg];
+        /* Because of alignment inserted by the linker, various null pointers
+         * are there. We need to filter them out.
+         */
+        auto p = m.ptr;
+        auto pend = m.ptr + m.length;
+
+        // count non-null pointers
+        size_t cnt;
+        for (; p < pend; ++p)
+        {
+            if (*p !is null) ++cnt;
+        }
+
+        result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
+
+        p = m.ptr;
+        cnt = 0;
+        for (; p < pend; ++p)
+            if (*p !is null) result[cnt++] = *p;
     }
     else
     {
