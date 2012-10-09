@@ -34,45 +34,33 @@ int Expression::apply(fp_t fp, void *param)
 }
 
 /******************************
- * Perform apply() on an array of Expressions.
+ * Perform apply() on an t if not null
  */
-
-int arrayExpressionApply(Expressions *a, fp_t fp, void *param)
+template<typename T>
+int condApply(T* t, fp_t fp, void* param)
 {
-    //printf("arrayExpressionApply(%p)\n", a);
-    if (a)
-    {
-        for (size_t i = 0; i < a->dim; i++)
-        {   Expression *e = (*a)[i];
-
-            if (e)
-            {
-                if (e->apply(fp, param))
-                    return 1;
-            }
-        }
-    }
-    return 0;
+    return t ? t->apply(fp, param) : 0;
 }
+
 
 int NewExp::apply(int (*fp)(Expression *, void *), void *param)
 {
     //printf("NewExp::apply(): %s\n", toChars());
 
-    return ((thisexp ? thisexp->apply(fp, param) : 0) ||
-            arrayExpressionApply(newargs, fp, param) ||
-            arrayExpressionApply(arguments, fp, param) ||
-            (*fp)(this, param));
+    return condApply(thisexp, fp, param) ||
+           condApply(newargs, fp, param) ||
+           condApply(arguments, fp, param) ||
+           (*fp)(this, param);
 }
 
 int NewAnonClassExp::apply(int (*fp)(Expression *, void *), void *param)
 {
     //printf("NewAnonClassExp::apply(): %s\n", toChars());
 
-    return ((thisexp ? thisexp->apply(fp, param) : 0) ||
-            arrayExpressionApply(newargs, fp, param) ||
-            arrayExpressionApply(arguments, fp, param) ||
-            (*fp)(this, param));
+    return condApply(thisexp, fp, param) ||
+           condApply(newargs, fp, param) ||
+           condApply(arguments, fp, param) ||
+           (*fp)(this, param);
 }
 
 int UnaExp::apply(fp_t fp, void *param)
@@ -92,7 +80,7 @@ int AssertExp::apply(fp_t fp, void *param)
 {
     //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
-           (msg ? msg->apply(fp, param) : 0) ||
+           condApply(msg, fp, param) ||
            (*fp)(this, param);
 }
 
@@ -101,7 +89,7 @@ int CallExp::apply(fp_t fp, void *param)
 {
     //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
-           arrayExpressionApply(arguments, fp, param) ||
+           condApply(arguments, fp, param) ||
            (*fp)(this, param);
 }
 
@@ -110,7 +98,7 @@ int ArrayExp::apply(fp_t fp, void *param)
 {
     //printf("ArrayExp::apply(fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
-           arrayExpressionApply(arguments, fp, param) ||
+           condApply(arguments, fp, param) ||
            (*fp)(this, param);
 }
 
@@ -118,37 +106,37 @@ int ArrayExp::apply(fp_t fp, void *param)
 int SliceExp::apply(fp_t fp, void *param)
 {
     return e1->apply(fp, param) ||
-           (lwr ? lwr->apply(fp, param) : 0) ||
-           (upr ? upr->apply(fp, param) : 0) ||
+           condApply(lwr, fp, param) ||
+           condApply(upr, fp, param) ||
            (*fp)(this, param);
 }
 
 
 int ArrayLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(elements, fp, param) ||
+    return condApply(elements, fp, param) ||
            (*fp)(this, param);
 }
 
 
 int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(keys, fp, param) ||
-           arrayExpressionApply(values, fp, param) ||
+    return condApply(keys, fp, param) ||
+           condApply(values, fp, param) ||
            (*fp)(this, param);
 }
 
 
 int StructLiteralExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(elements, fp, param) ||
+    return condApply(elements, fp, param) ||
            (*fp)(this, param);
 }
 
 
 int TupleExp::apply(fp_t fp, void *param)
 {
-    return arrayExpressionApply(exps, fp, param) ||
+    return condApply(exps, fp, param) ||
            (*fp)(this, param);
 }
 
