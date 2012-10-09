@@ -542,6 +542,44 @@ void StorageClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 
+/********************************* DeprecatedDeclaration ****************************/
+
+DeprecatedDeclaration::DeprecatedDeclaration(Expression *msg, Dsymbols *decl)
+        : StorageClassDeclaration(STCdeprecated, decl)
+{
+    this->msg = msg;
+}
+
+Dsymbol *DeprecatedDeclaration::syntaxCopy(Dsymbol *s)
+{
+    assert(!s);
+    return new DeprecatedDeclaration(msg->syntaxCopy(), Dsymbol::arraySyntaxCopy(decl));
+}
+
+void DeprecatedDeclaration::setScope(Scope *sc)
+{
+    assert(msg);
+    char *depmsg = NULL;
+    StringExp *se = msg->toString();
+    if (se)
+        depmsg = (char *)se->string;
+    else
+        msg->error("string expected, not '%s'", msg->toChars());
+
+    Scope *scx = sc->push();
+    scx->depmsg = depmsg;
+    StorageClassDeclaration::setScope(scx);
+    scx->pop();
+}
+
+void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("deprecated(");
+    msg->toCBuffer(buf, hgs);
+    buf->writestring(") ");
+    AttribDeclaration::toCBuffer(buf, hgs);
+}
+
 /********************************* LinkDeclaration ****************************/
 
 LinkDeclaration::LinkDeclaration(enum LINK p, Dsymbols *decl)
@@ -925,6 +963,7 @@ void PragmaDeclaration::setScope(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp* se = e->toString();
@@ -959,6 +998,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
+                e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
                 if (e->op == TOKerror)
@@ -986,6 +1026,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
@@ -1028,6 +1069,7 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             e = (*args)[1];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             e = e->toString();
             if (e && ((StringExp *)e)->sz == 1)
@@ -1050,6 +1092,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -1077,6 +1120,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
                     e = e->semantic(sc);
+                    e = resolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");

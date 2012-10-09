@@ -260,8 +260,6 @@ unsigned AggregateDeclaration::placeField(
             ;
         else if (8 < memalignsize)
             memalignsize = 8;
-        else if (alignment < memalignsize)
-            memalignsize = alignment;
     }
     else
     {
@@ -638,7 +636,7 @@ void StructDeclaration::semantic(Scope *sc)
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
 
-    buildOpAssign(sc2);
+    hasIdentityAssign = (buildOpAssign(sc2) != NULL);
     hasIdentityEquals = (buildOpEquals(sc2) != NULL);
 
     xeq = buildXopEquals(sc2);

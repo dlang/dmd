@@ -3607,6 +3607,26 @@ deprecated @disable int bug6389;
 static assert(!is(typeof(bug6389 = bug6389)));
 
 /***************************************************/
+// 4596
+
+class NoGo4596
+{
+    void fun()
+    {
+        static assert(!__traits(compiles, this = new NoGo4596));
+        static assert(!__traits(compiles, (1?this:this) = new NoGo4596));
+        static assert(!__traits(compiles, super = new Object));
+        static assert(!__traits(compiles, (1?super:super) = new Object));
+    }
+}
+
+void test4596()
+{
+    auto n = new NoGo4596;
+    n.fun();
+}
+
+/***************************************************/
 
 void test4963()
 {
@@ -3899,6 +3919,38 @@ void test2774()
 {
     int foo2774(int n){ return 0; }
     static assert(foo2774.mangleof == "_D7xtest468test2774FZv7foo2774MFiZi");
+}
+
+/***************************************************/
+// 3733
+
+class C3733
+{
+    int foo()        { return 1; }
+    int foo() shared { return 2; }
+
+    int bar()        { return foo(); }
+}
+void test3733()
+{
+    auto c = new C3733();
+    assert(c.bar() == 1);
+}
+
+/***************************************************/
+// 4392
+
+class C4392
+{
+    int foo() const { return 1; }
+    int foo()       { return 2; }
+
+    int bar() const { return foo(); }
+}
+void test4392()
+{
+    auto c = new C4392();
+    assert(c.bar() == 1);
 }
 
 /***************************************************/
@@ -5542,6 +5594,7 @@ int main()
     test156();
     test4258();
     test4539();
+    test4596();
     test4963();
     test4031();
     test5437();
@@ -5555,6 +5608,8 @@ int main()
     test6335();
     test6228();
     test2774();
+    test3733();
+    test4392();
     test6220();
     test5799();
     test157();

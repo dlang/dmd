@@ -480,8 +480,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 doesoverride = TRUE;
 #if DMDV2
-                if (!isOverride() && !global.params.useDeprecated)
-                    ::error(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
+                if (!isOverride())
+                    ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
 #endif
 
                 FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
@@ -712,32 +712,6 @@ void FuncDeclaration::semantic(Scope *sc)
         }
     }
 
-    if (ident == Id::assign && (sd || cd))
-    {   // Disallow identity assignment operator.
-
-        // opAssign(...)
-        if (nparams == 0)
-        {   if (f->varargs == 1)
-                goto Lassignerr;
-        }
-        else
-        {
-            Parameter *arg0 = Parameter::getNth(f->parameters, 0);
-            Type *t0 = arg0->type->toBasetype();
-            Type *tb = sd ? sd->type : cd->type;
-            if (arg0->type->implicitConvTo(tb) ||
-                (sd && t0->ty == Tpointer && t0->nextOf()->implicitConvTo(tb))
-               )
-            {
-                if (nparams == 1)
-                    goto Lassignerr;
-                Parameter *arg1 = Parameter::getNth(f->parameters, 1);
-                if (arg1->defaultArg)
-                    goto Lassignerr;
-            }
-        }
-    }
-
     if (isVirtual() && semanticRun != PASSsemanticdone)
     {
         /* Rewrite contracts as nested functions, then call them.
@@ -803,14 +777,6 @@ Ldone:
     scope = new Scope(*sc);
     scope->setNoFree();
     return;
-
-Lassignerr:
-    if (sd)
-    {
-        sd->hasIdentityAssign = 1;      // don't need to generate it
-        goto Ldone;
-    }
-    error("identity assignment operator overload is illegal");
 }
 
 void FuncDeclaration::semantic2(Scope *sc)
@@ -2316,6 +2282,8 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 
 /********************************************
  * Decide which function matches the arguments best.
+ *      flags           1: do not issue error message on no match, just return NULL
+ *                      2: do not issue error on ambiguous matches and need explicit this
  */
 
 struct Param2
@@ -2450,17 +2418,14 @@ if (arguments)
         OutBuffer buf;
 
         buf.writeByte('(');
-        if (arguments)
+        if (arguments && arguments->dim)
         {
             HdrGenState hgs;
-
             argExpTypesToCBuffer(&buf, arguments, &hgs);
-            buf.writeByte(')');
-            if (ethis)
-                ethis->type->modToBuffer(&buf);
         }
-        else
-            buf.writeByte(')');
+        buf.writeByte(')');
+        if (ethis)
+            ethis->type->modToBuffer(&buf);
 
         if (m.last == MATCHnomatch)
         {
@@ -2481,6 +2446,8 @@ if (arguments)
         }
         else
         {
+            if ((flags & 2) && m.lastf->needThis() && !ethis)
+                return m.lastf;
 #if 1
             TypeFunction *t1 = (TypeFunction *)m.lastf->type;
             TypeFunction *t2 = (TypeFunction *)m.nextf->type;

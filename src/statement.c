@@ -2967,6 +2967,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->semantic(sc);
+                e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
                 if (e->op == TOKerror)
@@ -2998,6 +2999,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp *se = e->toString();
@@ -3023,6 +3025,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->semantic(sc);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -3352,6 +3355,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 
     //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
@@ -3478,10 +3482,12 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
         error("case ranges not allowed in final switch");
 
     first = first->semantic(sc);
+    first = resolveProperties(sc, first);
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->ctfeInterpret();
 
     last = last->semantic(sc);
+    last = resolveProperties(sc, last);
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 
@@ -3992,11 +3998,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     {
         if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
         {   // Function returns a reference
-            if (tret->isMutable())
-                exp = exp->modifiableLvalue(sc, exp);
-            else
-                exp = exp->toLvalue(sc, exp);
-
+            exp = exp->toLvalue(sc, exp);
             exp->checkEscapeRef();
         }
         else

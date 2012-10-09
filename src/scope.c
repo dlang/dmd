@@ -67,6 +67,7 @@ Scope::Scope()
     this->protection = PROTpublic;
     this->explicitProtection = 0;
     this->stc = 0;
+    this->depmsg = NULL;
     this->offset = 0;
     this->inunion = 0;
     this->incontract = 0;
@@ -114,6 +115,7 @@ Scope::Scope(Scope *enclosing)
     this->linkage = enclosing->linkage;
     this->protection = enclosing->protection;
     this->explicitProtection = enclosing->explicitProtection;
+    this->depmsg = enclosing->depmsg;
     this->stc = enclosing->stc;
     this->offset = 0;
     this->inunion = enclosing->inunion;
@@ -253,8 +255,7 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
             s = sc->scopesym->search(loc, ident, 0);
             if (s)
             {
-                if ((global.params.warnings ||
-                    global.params.Dversion > 1) &&
+                if (global.params.Dversion > 1 &&
                     ident == Id::length &&
                     sc->scopesym->isArrayScopeSymbol() &&
                     sc->enclosing &&

@@ -34,8 +34,9 @@ int StructDeclaration::needOpAssign()
 {
 #define X 0
     if (X) printf("StructDeclaration::needOpAssign() %s\n", toChars());
+
     if (hasIdentityAssign)
-        goto Ldontneed;
+        goto Lneed;         // because has identity==elaborate opAssign
 
     if (dtor || postblit)
         goto Lneed;
@@ -74,24 +75,46 @@ Lneed:
 
 /******************************************
  * Build opAssign for struct.
- *      S* opAssign(S s) { ... }
+ *      ref S opAssign(S s) { ... }
  *
  * Note that s will be constructed onto the stack, probably copy-constructed.
  * Then, the body is:
- *      S tmp = *this;  // bit copy
- *      *this = s;      // bit copy
+ *      S tmp = this;   // bit copy
+ *      this = s;       // bit copy
  *      tmp.dtor();
  * Instead of running the destructor on s, run it on tmp instead.
  */
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 {
+    Dsymbol *assign = search_function(this, Id::assign);
+    if (assign)
+    {
+        Expression *e = new NullExp(loc, type); // dummy rvalue
+        Expressions *arguments = new Expressions();
+        arguments->push(e);
+
+        // check identity opAssign exists
+        FuncDeclaration *fd = assign->isFuncDeclaration();
+        if (fd)
+        {   fd = fd->overloadResolve(loc, e, arguments, 1);
+            if (fd && !(fd->storage_class & STCdisable))
+                return fd;
+        }
+
+        TemplateDeclaration *td = assign->isTemplateDeclaration();
+        if (td)
+        {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
+            if (fd && !(fd->storage_class & STCdisable))
+                return fd;
+        }
+        return NULL;
+    }
+
     if (!needOpAssign())
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
-
-    FuncDeclaration *fop = NULL;
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
@@ -100,7 +123,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     ((TypeFunction *)ftype)->isref = 1;
 #endif
 
-    fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
 
     Expression *e = NULL;
     if (postblit)
@@ -160,7 +183,6 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             AssignExp *ec = new AssignExp(0,
                 new DotVarExp(0, new ThisExp(0), v, 0),
                 new DotVarExp(0, new IdentifierExp(0, Id::p), v, 0));
-            ec->op = TOKblit;
             e = Expression::combine(e, ec);
         }
     }
