@@ -3994,7 +3994,7 @@ if (0 && !(funcsym_p->Sfunc->Fflags3 & Fmember))
             case SCfastpar:
             case SCregister:
             case_auto:
-//printf("s = '%s', Soffset = x%x, Aoff = x%x, BPoff = x%x EBPtoESP = x%x\n", s->Sident, s->Soffset, Aoff, BPoff, EBPtoESP);
+//printf("s = '%s', Soffset = x%x, Aoff = x%x, BPoff = x%x EBPtoESP = x%x\n", s->Sident, (int)s->Soffset, (int)Aoff, (int)BPoff, (int)EBPtoESP);
 //              if (!(funcsym_p->Sfunc->Fflags3 & Fnested))
                     s->Soffset += Aoff + BPoff;
                 break;
