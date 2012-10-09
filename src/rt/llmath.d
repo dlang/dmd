@@ -1,23 +1,15 @@
 /**
  * Support for 64-bit longs.
  *
- * Copyright: Copyright Digital Mars 1993 - 2011.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2000 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
+ * Source: $(DRUNTIMESRC src/rt/_llmath.d)
  */
 
-/*          Copyright Digital Mars 1993 - 2011.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module rt.llmath;
-
-version (Windows)
-{
-}
-else
-{
 
 extern (C):
 
@@ -299,44 +291,6 @@ L12:        jmp     __ULDIV__       ;
         static assert(0);
 }
 
-
-/***************************************
- * Compare [EDX,EAX] with [ECX,EBX]
- * Signed
- * Returns result in flags
- */
-
-version (none) // dmd inlines this now
-{
-void __LCMP__()
-{
-    version (D_InlineAsm_X86)
-    {
-        asm
-        {
-            naked                   ;
-            cmp     EDX,ECX         ;
-            jne     C1              ;
-            push    EDX             ;
-            xor     EDX,EDX         ;
-            cmp     EAX,EBX         ;
-            jz      C2              ;
-            ja      C3              ;
-            dec     EDX             ;
-            pop     EDX             ;
-            ret                     ;
-
-C3:         inc     EDX             ;
-C2:         pop     EDX             ;
-C1:         ret                     ;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-        assert(0);
-    else
-        static assert(0);
-}
-}
 
 
 
@@ -935,7 +889,4 @@ L1:                                                 ;
         else
             static assert(false, "Unsupported platform");
     }
-}
-
-
 }
