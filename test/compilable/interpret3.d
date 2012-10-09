@@ -885,6 +885,25 @@ int evil8624()
 }
 static assert(  evil8624() );
 
+/*******************************************
+        8644 array literal >,<
+*******************************************/
+int bug8644()
+{
+    auto m = "a";
+    auto z = ['b'];
+    auto c = "b7";
+    auto d = ['b', '6'];
+    assert(m < z);
+    assert(z > m);
+    assert(z <= c);
+    assert(c > z);
+    assert(c > d);
+    assert(d >= d);
+    return true;
+}
+
+static assert(bug8644());
 
 /*******************************************
         Bug 6159
