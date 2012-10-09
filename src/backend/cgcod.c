@@ -658,7 +658,11 @@ Lagain:
         // before function parameters were pushed the stack was
         // Aalign byte aligned
         targ_size_t psize = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+        if (config.exe == EX_WIN64)
+            // Parameters always consume multiple of 16 bytes
+            psize = (Poffset + 15) & ~15;
         int sz = psize + -Aoff + Poff + (needframe ? 0 : REGSIZE);
+        //printf("Aalign = %d, psize = x%llx, Poff = x%llx, needframe = %d\n", Aalign, psize, Poff, needframe);
         if (sz & (Aalign - 1))
         {   int adj = Aalign - (sz & (Aalign - 1));
             Aoff -= adj;
@@ -965,7 +969,7 @@ void stackoffsets(int flags)
             if (s->Salignment > 0)
                 alignsize = s->Salignment;
 
-            //printf("symbol '%s', size = x%lx, align = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
+            //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
             if (pass == 1)

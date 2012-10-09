@@ -886,7 +886,7 @@ void MsCoffObj::term()
                                     ? IMAGE_REL_AMD64_REL32
                                     : IMAGE_REL_AMD64_REL32;
 
-                            if (s->Sfl == FLtlsdata)
+                            if (s->Stype->Tty & mTYthread)
                                 rel.r_type = IMAGE_REL_AMD64_SECREL;
 
                             if (r->val == -1)
