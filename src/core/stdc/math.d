@@ -1,17 +1,14 @@
 /**
  * D header file for C99.
  *
- * Copyright: Copyright Sean Kelly 2005 - 2009.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Sean Kelly 2005 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Sean Kelly
- * Standards: ISO/IEC 9899:1999 (E)
+ * Source:    $(DRUNTIMESRC core/stdc/_math.d)
  */
 
-/*          Copyright Sean Kelly 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.stdc.math;
 
 private import core.stdc.config;
@@ -104,8 +101,13 @@ version( none )
     int isunordered(real x, real y);
 }
 
-version( DigitalMars ) version( Windows )
-    version = DigitalMarsWin32;
+version( DigitalMars )
+{
+    version( Win32 )
+        version = DigitalMarsWin32;
+    version( Win64 )
+        version = DigitalMarsWin32;     // just to get it to compile for the moment - fix later
+}
 
 version( DigitalMarsWin32 )
 {
