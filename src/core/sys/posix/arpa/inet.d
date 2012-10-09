@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 public import core.stdc.inttypes; // for uint32_t, uint16_t
 public import core.sys.posix.sys.socket; // for socklen_t
 
+version (Posix):
 extern (C):
 
 //

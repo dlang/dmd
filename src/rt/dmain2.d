@@ -340,9 +340,17 @@ int main(char[][] args);
 
 /***********************************
  * Substitutes for the C main() function.
- * It's purpose is to wrap the call to the D main()
+ * Its purpose is to wrap the call to the D main()
  * function and catch any unhandled exceptions.
  */
+
+version (Solaris) extern (C) int _main(int argc, char** argv)
+{
+    // This is apparently needed on Solaris because the
+    // C tool chain seems to expect the main function
+    // to be called _main.
+    return main(argc, argv);
+}
 
 extern (C) int main(int argc, char** argv)
 {

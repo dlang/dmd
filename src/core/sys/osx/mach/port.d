@@ -14,7 +14,6 @@
 module core.sys.osx.mach.port;
 
 version (OSX):
-
 extern (C):
 
 version( X86 )

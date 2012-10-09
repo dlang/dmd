@@ -8,7 +8,6 @@
 module core.sys.osx.execinfo;
 
 version (OSX):
-
 extern (C):
 
 int backtrace(void** buffer, int size);

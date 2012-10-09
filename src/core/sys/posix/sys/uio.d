@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -17,6 +17,7 @@ module core.sys.posix.sys.uio;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for ssize_t, size_t
 
+version (Posix):
 extern (C):
 
 //
@@ -68,4 +69,19 @@ else version( FreeBSD )
 
     ssize_t readv(int, in iovec*, int);
     ssize_t writev(int, in iovec*, int);
+}
+else version (Solaris)
+{
+    struct iovec
+    {
+        void* iov_base;
+        size_t iov_len;
+    }
+
+    ssize_t readv(int, in iovec*, int);
+    ssize_t writev(int, in iovec*, int);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

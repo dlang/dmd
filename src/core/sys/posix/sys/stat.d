@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -20,6 +20,7 @@ private import core.sys.posix.time;     // for timespec
 public import core.stdc.stddef;          // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
+version (Posix):
 extern (C):
 
 //
@@ -337,6 +338,123 @@ else version( FreeBSD )
     extern (D) bool S_ISLNK( mode_t mode )  { return S_ISTYPE( mode, S_IFLNK );  }
     extern (D) bool S_ISSOCK( mode_t mode ) { return S_ISTYPE( mode, S_IFSOCK ); }
 }
+else version (Solaris)
+{
+    private enum _ST_FSTYPSZ = 16;
+
+    version (D_LP64)
+    {
+        struct stat64_t
+        {
+            dev_t st_dev;
+            ino_t st_ino;
+            mode_t st_mode;
+            nlink_t st_nlink;
+            uid_t st_uid;
+            gid_t st_gid;
+            dev_t st_rdev;
+            off_t st_size;
+            timestruc_t st_atim;
+            timestruc_t st_mtim;
+            timestruc_t st_ctim;
+            blksize_t st_blksize;
+            blkcnt_t st_blocks;
+            char[_ST_FSTYPSZ] st_fstype;
+        }
+
+        alias stat64_t stat32_t;
+    }
+    else
+    {
+        struct stat32_t
+        {
+            dev_t st_dev;
+            c_long[3] st_pad1;
+            ino_t st_ino;
+            mode_t st_mode;
+            nlink_t st_nlink;
+            uid_t st_uid;
+            gid_t st_gid;
+            dev_t st_rdev;
+            c_long[2] st_pad2;
+            off_t st_size;
+            c_long st_pad3;
+            timestruc_t st_atim;
+            timestruc_t st_mtim;
+            timestruc_t st_ctim;
+            blksize_t st_blksize;
+            blkcnt_t st_blocks;
+            char[_ST_FSTYPSZ] st_fstype;
+            c_long[8] st_pad4;
+        }
+
+        struct stat64_t
+        {
+            dev_t st_dev;
+            c_long[3] st_pad1;
+            ino64_t st_ino;
+            mode_t st_mode;
+            nlink_t st_nlink;
+            uid_t st_uid;
+            gid_t st_gid;
+            dev_t st_rdev;
+            c_long[2] st_pad2;
+            off64_t st_size;
+            c_long st_pad3;
+            timestruc_t st_atim;
+            timestruc_t st_mtim;
+            timestruc_t st_ctim;
+            blksize_t st_blksize;
+            blkcnt64_t st_blocks;
+            char[_ST_FSTYPSZ] st_fstype;
+            c_long[8] st_pad4;
+        }
+    }
+
+    static if (__USE_FILE_OFFSET64)
+        alias stat64_t stat_t;
+    else
+        alias stat32_t stat_t;
+
+    enum S_IRUSR = 0x100;
+    enum S_IWUSR = 0x080;
+    enum S_IXUSR = 0x040;
+    enum S_IRWXU = 0x1C0;
+
+    enum S_IRGRP = 0x020;
+    enum S_IWGRP = 0x010;
+    enum S_IXGRP = 0x008;
+    enum S_IRWXG = 0x038;
+
+    enum S_IROTH = 0000004;
+    enum S_IWOTH = 0000002;
+    enum S_IXOTH = 0000001;
+    enum S_IRWXO = 0000007;
+
+    enum S_ISUID = 0x800;
+    enum S_ISGID = 0x400;
+    enum S_ISVTX = 0x200;
+
+    private
+    {   
+        extern (D) bool S_ISTYPE(mode_t mode, uint mask)
+        {
+            return (mode & S_IFMT) == mask;
+        }
+    }
+      
+    extern (D) bool S_ISBLK(mode_t mode) { return S_ISTYPE(mode, S_IFBLK); }
+    extern (D) bool S_ISCHR(mode_t mode) { return S_ISTYPE(mode, S_IFCHR); }
+    extern (D) bool S_ISDIR(mode_t mode) { return S_ISTYPE(mode, S_IFDIR); }
+    extern (D) bool S_ISFIFO(mode_t mode) { return S_ISTYPE(mode, S_IFIFO); }
+    extern (D) bool S_ISREG(mode_t mode) { return S_ISTYPE(mode, S_IFREG); }
+    extern (D) bool S_ISLNK(mode_t mode) { return S_ISTYPE(mode, S_IFLNK); }
+    extern (D) bool S_ISSOCK(mode_t mode) { return S_ISTYPE(mode, S_IFSOCK); }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 version( Posix )
 {
@@ -369,6 +487,26 @@ version( linux )
     int   lstat(in char*, stat_t*);
     int   stat(in char*, stat_t*);
   }
+}
+else version (Solaris)
+{
+    static if (__USE_LARGEFILE64)
+    {
+        int   fstat64(int, stat_t*);
+        alias fstat64 fstat;
+
+        int   lstat64(in char*, stat_t*);
+        alias lstat64 lstat;
+
+        int   stat64(in char*, stat_t*);
+        alias stat64 stat;
+    }
+    else
+    {
+        int fstat(int, stat_t*);
+        int lstat(in char*, stat_t*);
+        int stat(in char*, stat_t*);
+    }
 }
 else version( Posix )
 {
@@ -438,4 +576,21 @@ else version( FreeBSD )
     enum S_IFSOCK   = 0xC000; // octal 0140000
 
     int mknod(in char*, mode_t, dev_t);
+}
+else version (Solaris)
+{
+    enum S_IFMT = 0xF000;
+    enum S_IFBLK = 0x6000;
+    enum S_IFCHR = 0x2000;
+    enum S_IFIFO = 0x1000;
+    enum S_IFREG = 0x8000;
+    enum S_IFDIR = 0x4000;
+    enum S_IFLNK = 0xA000;
+    enum S_IFSOCK = 0xC000;
+
+    int mknod(in char*, mode_t, dev_t);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

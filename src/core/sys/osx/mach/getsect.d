@@ -13,10 +13,9 @@
 module core.sys.osx.mach.getsect;
 
 version (OSX):
+extern (C):
 
 public import core.sys.osx.mach.loader;
-
-extern (C):
 
 const(section)*    getsectbynamefromheader(in mach_header* mhp, in char* segname, in char* sectname);
 const(section_64)* getsectbynamefromheader_64(in mach_header_64* mhp, in char* segname, in char* sectname);

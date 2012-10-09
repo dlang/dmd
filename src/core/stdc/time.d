@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
@@ -107,4 +108,13 @@ else version( FreeBSD )
 {
     void tzset();                            // non-standard
     extern __gshared const(char)*[2] tzname; // non-standard
+}
+else version (Solaris)
+{
+    void tzset();
+    extern __gshared const(char)*[2] tzname;
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

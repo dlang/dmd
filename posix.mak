@@ -14,7 +14,19 @@ ifeq (,$(OS))
             ifeq (FreeBSD,$(OS))
                 OS:=freebsd
             else
-                $(error Unrecognized or unsupported OS for uname: $(OS))
+                ifeq (OpenBSD,$(OS))
+                    TARGET=OPENBSD
+                else
+                    ifeq (Solaris,$(OS))
+                        TARGET=SOLARIS
+                    else
+                        ifeq (SunOS,$(OS))
+                            TARGET=SOLARIS
+                        else
+                            $(error Unrecognized or unsupported OS for uname: $(OS))
+                        endif
+                    endif
+                endif
             endif
         endif
     endif

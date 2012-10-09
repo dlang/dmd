@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 public import core.stdc.stddef;          // for size_t
 public import core.sys.posix.sys.types; // for off_t, mode_t
 
+version (Posix):
 extern (C):
 
 //
@@ -62,6 +63,18 @@ else version( FreeBSD )
     enum POSIX_MADV_WILLNEED    = 3;
     enum POSIX_MADV_DONTNEED    = 4;
 }
+else version (Solaris)
+{
+    enum POSIX_MADV_NORMAL = 0;
+    enum POSIX_MADV_RANDOM = 1;
+    enum POSIX_MADV_SEQUENTIAL = 2;
+    enum POSIX_MADV_WILLNEED = 3;
+    enum POSIX_MADV_DONTNEED = 4;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Memory Mapped Files, Shared Memory Objects, or Memory Protection (MC2)
@@ -93,6 +106,17 @@ else version( FreeBSD )
     enum PROT_READ      = 0x01;
     enum PROT_WRITE     = 0x02;
     enum PROT_EXEC      = 0x04;
+}
+else version (Solaris)
+{
+    enum PROT_NONE = 0x00;
+    enum PROT_READ = 0x01;
+    enum PROT_WRITE = 0x02;
+    enum PROT_EXEC = 0x04;
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -127,6 +151,15 @@ else version( FreeBSD )
 {
     void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
+}
+else version (Solaris)
+{
+    void* mmap(void*, size_t, int, int, int, off_t);
+    int   munmap(void*, size_t);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -193,6 +226,25 @@ else version( FreeBSD )
 
     int msync(void*, size_t, int);
 }
+else version (Solaris)
+{
+    enum MAP_SHARED = 0x0001;
+    enum MAP_PRIVATE = 0x0002;
+    enum MAP_FIXED = 0x0010;
+    enum MAP_ANON = 0x0100;
+
+    enum MAP_FAILED = cast(void*)-1;
+
+    enum MS_SYNC = 0x0004;
+    enum MS_ASYNC = 0x0001;
+    enum MS_INVALIDATE  = 0x0002;
+
+    int msync(void*, size_t, int);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Process Memory Locking (ML)
@@ -230,6 +282,18 @@ else version( FreeBSD )
     int mlockall(int);
     int munlockall();
 }
+else version (Solaris)
+{
+    enum MCL_CURRENT = 0x0001;
+    enum MCL_FUTURE = 0x0002;
+
+    int mlockall(int);
+    int munlockall();
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Range Memory Locking (MLR)
@@ -254,6 +318,15 @@ else version( FreeBSD )
     int mlock(in void*, size_t);
     int munlock(in void*, size_t);
 }
+else version (Solaris)
+{
+    int mlock(in void*, size_t);
+    int munlock(in void*, size_t);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Memory Protection (MPR)
@@ -262,13 +335,25 @@ else version( FreeBSD )
 int mprotect(void*, size_t, int);
 */
 
-version( OSX )
+version (linux)
+{
+    int mprotect(void*, size_t, int);
+}
+else version( OSX )
 {
     int mprotect(void*, size_t, int);
 }
 else version( FreeBSD )
 {
     int mprotect(void*, size_t, int);
+}
+else version (Solaris)
+{
+    int mprotect(void*, size_t, int);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -293,6 +378,15 @@ else version( FreeBSD )
 {
     int shm_open(in char*, int, mode_t);
     int shm_unlink(in char*);
+}
+else version (Solaris)
+{
+    int shm_open(in char*, int, mode_t);
+    int shm_unlink(in char*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //

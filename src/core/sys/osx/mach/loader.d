@@ -13,6 +13,7 @@
 module core.sys.osx.mach.loader;
 
 version (OSX):
+extern (C):
 
 struct mach_header
 {

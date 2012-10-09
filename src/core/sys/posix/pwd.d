@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -17,6 +17,7 @@ module core.sys.posix.pwd;
 private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for gid_t, uid_t
 
+version (Posix):
 extern (C):
 
 //
@@ -82,6 +83,25 @@ else version( FreeBSD )
         int pw_fields;      /* internal: fields filled in */
     }
 }
+else version (Solaris)
+{
+    struct passwd
+    {
+        char* pw_name;
+        char* pw_passwd;
+        uid_t pw_uid;
+        gid_t pw_gid;
+        char* pw_age;
+        char* pw_comment;
+        char* pw_gecos;
+        char* pw_dir;
+        char* pw_shell;
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 version( Posix )
 {
@@ -112,6 +132,16 @@ else version( FreeBSD )
     int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
     int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
 }
+else version (Solaris)
+{
+    int getpwnam_r(in char*, passwd*, char*, size_t, passwd**);
+    int getpwuid_r(uid_t, passwd*, char*, size_t, passwd**);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
 //
 // XOpen (XSI)
 //
@@ -138,4 +168,14 @@ else version ( FreeBSD )
     void    endpwent();
     passwd* getpwent();
     void    setpwent();
+}
+else version (Solaris)
+{
+    void endpwent();
+    passwd* getpwent();
+    void setpwent();
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

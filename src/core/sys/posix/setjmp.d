@@ -17,6 +17,7 @@ module core.sys.posix.setjmp;
 private import core.sys.posix.config;
 private import core.sys.posix.signal; // for sigset_t
 
+version (Posix):
 extern (C):
 
 //

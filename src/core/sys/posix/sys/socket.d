@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 public import core.sys.posix.sys.types; // for ssize_t, size_t
 public import core.sys.posix.sys.uio;   // for iovec
 
+version (Posix):
 extern (C):
 
 //
@@ -610,6 +611,145 @@ else version( FreeBSD )
     int     sockatmark(int);
     int     socketpair(int, int, int, ref int[2]);
 }
+else version (Solaris)
+{
+    alias uint socklen_t;
+    alias ushort sa_family_t;
+
+    struct sockaddr
+    {
+        sa_family_t sa_family;
+        char[14] sa_data;
+    }
+
+    alias double sockaddr_maxalign_t;
+
+    private enum _SS_PAD1SIZE = sockaddr_maxalign_t.sizeof - sa_family_t.sizeof;
+    private enum _SS_PAD2SIZE = 256 - sa_family_t.sizeof + _SS_PAD1SIZE + sockaddr_maxalign_t.sizeof;
+
+    struct sockaddr_storage
+    {
+         sa_family_t ss_family;
+         char[_SS_PAD1SIZE] _ss_pad1;
+         sockaddr_maxalign_t _ss_align;
+         char[_SS_PAD2SIZE] _ss_pad2;
+    }
+
+    struct msghdr
+    {
+        void* msg_name;
+        socklen_t msg_namelen;
+        iovec* msg_iov;
+        int msg_iovlen;
+        void* msg_control;
+        socklen_t msg_controllen;
+        int msg_flags;
+    }
+
+    struct cmsghdr
+    {
+         socklen_t cmsg_len;
+         int cmsg_level;
+         int cmsg_type;
+    }
+
+    enum : uint
+    {
+        SCM_RIGHTS = 0x1011
+    }
+
+    struct linger
+    {
+        int l_onoff;
+        int l_linger;
+    }
+
+    enum
+    {
+        SOCK_STREAM = 2,
+        SOCK_DGRAM = 1,
+        SOCK_RDM = 5,
+        SOCK_SEQPACKET = 6,
+    }
+
+    enum : uint
+    {
+        SOL_SOCKET      = 0xffff
+    }
+
+    enum : uint
+    {
+        SO_ACCEPTCONN = 0x0002,
+        SO_BROADCAST = 0x0020,
+        SO_DEBUG = 0x0001,
+        SO_DONTROUTE = 0x0010,
+        SO_ERROR = 0x1007,
+        SO_KEEPALIVE = 0x0008,
+        SO_LINGER = 0x0080,
+        SO_OOBINLINE = 0x0100,
+        SO_RCVBUF = 0x1002,
+        SO_RCVLOWAT = 0x1004,
+        SO_RCVTIMEO = 0x1006,
+        SO_REUSEADDR = 0x0004,
+        SO_SNDBUF = 0x1001,
+        SO_SNDLOWAT = 0x1003,
+        SO_SNDTIMEO = 0x1005,
+        SO_TYPE = 0x1008
+    }
+
+    enum
+    {
+        SOMAXCONN = 128
+    }
+
+    enum : uint
+    {
+        MSG_CTRUNC = 0x10,
+        MSG_DONTROUTE = 0x4,
+        MSG_EOR = 0x8,
+        MSG_OOB = 0x1,
+        MSG_PEEK = 0x2,
+        MSG_TRUNC = 0x20,
+        MSG_WAITALL = 0x40
+    }
+
+    enum
+    {
+        AF_INET = 2,
+        AF_UNIX = 1,
+        AF_UNSPEC = 0
+    }
+
+    enum
+    {
+        SHUT_RD,
+        SHUT_WR,
+        SHUT_RDWR
+    }
+
+    int accept(int, sockaddr*, socklen_t*);
+    int bind(int, in sockaddr*, socklen_t);
+    int connect(int, in sockaddr*, socklen_t);
+    int getpeername(int, sockaddr*, socklen_t*);
+    int getsockname(int, sockaddr*, socklen_t*);
+    int getsockopt(int, int, int, void*, socklen_t*);
+    int listen(int, int);
+    ssize_t recv(int, void*, size_t, int);
+    ssize_t recvfrom(int, void*, size_t, int, sockaddr*, socklen_t*);
+    ssize_t recvmsg(int, msghdr*, int);
+    ssize_t send(int, in void*, size_t, int);
+    ssize_t sendmsg(int, in msghdr*, int);
+    ssize_t sendto(int, in void*, size_t, int, in sockaddr*, socklen_t);
+    int setsockopt(int, int, int, in void*, socklen_t);
+    int shutdown(int, int);
+    int socket(int, int, int);
+    int sockatmark(int);
+    int socketpair(int, int, int, ref int[2]);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // IPV6 (IP6)
@@ -639,6 +779,17 @@ else version( FreeBSD )
         AF_INET6    = 28
     }
 }
+else version (Solaris)
+{
+    enum
+    {
+        AF_INET6 = 26,
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Raw Sockets (RS)
@@ -667,4 +818,15 @@ else version( FreeBSD )
     {
         SOCK_RAW    = 3
     }
+}
+else version (Solaris)
+{
+    enum
+    {
+        SOCK_RAW = 4,
+    }
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

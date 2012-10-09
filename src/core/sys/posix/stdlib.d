@@ -18,6 +18,7 @@ private import core.sys.posix.config;
 public import core.stdc.stdlib;
 public import core.sys.posix.sys.wait;
 
+version (Posix):
 extern (C):
 
 //

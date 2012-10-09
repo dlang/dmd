@@ -10,9 +10,9 @@ module core.sys.freebsd.dlfcn;
 public import core.sys.posix.dlfcn;
 
 version (FreeBSD):
-enum __BSD_VISIBLE = true;
-
 extern (C):
+
+enum __BSD_VISIBLE = true;
 
 /*
  * Modes and flags for dlopen().

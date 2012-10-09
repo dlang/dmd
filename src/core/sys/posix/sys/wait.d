@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -19,6 +19,7 @@ public import core.sys.posix.sys.types; // for id_t, pid_t
 public import core.sys.posix.signal;    // for siginfo_t (XSI)
 //public import core.sys.posix.resource; // for rusage (XSI)
 
+version (Posix):
 extern (C):
 
 //
@@ -112,6 +113,23 @@ else version( FreeBSD )
     extern (D) int  WSTOPSIG( int status )     { return status >> 8;                     }
     extern (D) int  WTERMSIG( int status )     { return _WSTATUS( status );              }
 }
+else version (Solaris)
+{
+    enum WNOHANG        = 64;
+    enum WUNTRACED      = 4;
+
+    extern (D) int WEXITSTATUS(int status) { return (status >> 8) & 0xff; }
+    extern (D) int WIFCONTINUED(int status) { return (status & 0xffff) == 0xffff; }
+    extern (D) bool WIFEXITED(int status) { return (status & 0xff) == 0;     }
+    extern (D) bool WIFSIGNALED(int status) { return (status & 0xff) > 0 && (status & 0xff00) == 0; }
+    extern (D) bool WIFSTOPPED(int status) { return (status & 0xff) == 0x7f && (status & 0xff00) != 0; }
+    extern (D) int WSTOPSIG(int status) { return (status >> 8) & 0x7f; }
+    extern (D) int WTERMSIG(int status) { return (status & 0x7f); }
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 version( Posix )
 {
@@ -178,4 +196,38 @@ else version (FreeBSD)
 
     // http://www.freebsd.org/projects/c99/
 }
+else version (Solaris)
+{
+    enum WEXITED = 1;
+    enum WTRAPPED = 2;
+    enum WSTOPPED = WUNTRACED;
+    enum WCONTINUED = 8;
+    enum WNOWAIT = 128;
 
+    enum idtype_t
+    {
+        P_PID,          /* A process identifier.                */
+        P_PPID,         /* A parent process identifier.         */
+        P_PGID,         /* A process group (job control group)  */
+                        /* identifier.                          */
+        P_SID,          /* A session identifier.                */
+        P_CID,          /* A scheduling class identifier.       */
+        P_UID,          /* A user identifier.                   */
+        P_GID,          /* A group identifier.                  */
+        P_ALL,          /* All processes.                       */
+        P_LWPID,        /* An LWP identifier.                   */
+        P_TASKID,       /* A task identifier.                   */
+        P_PROJID,       /* A project identifier.                */
+        P_POOLID,       /* A pool identifier.                   */
+        P_ZONEID,       /* A zone identifier.                   */
+        P_CTID,         /* A (process) contract identifier.     */
+        P_CPUID,        /* CPU identifier.                      */
+        P_PSETID,       /* Processor set identifier             */
+    }
+
+    int waitid(idtype_t, id_t, siginfo_t*, int);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
