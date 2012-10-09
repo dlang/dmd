@@ -342,6 +342,21 @@ struct ArrayBase : Array
     {
         return (ArrayBase *)Array::copy();
     }
+
+    typedef int (*ArrayBase_apply_ft_t)(TYPE *, void *);
+    int apply(ArrayBase_apply_ft_t fp, void *param)
+    {
+        for (size_t i = 0; i < dim; i++)
+        {   TYPE *e = (*this)[i];
+
+            if (e)
+            {
+                if (e->apply(fp, param))
+                    return 1;
+            }
+        }
+        return 0;
+    }
 };
 
 // TODO: Remove (only used by disabled GC)
