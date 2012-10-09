@@ -665,8 +665,10 @@ void test31()
     string foo = "hello";
 
     printf("%s\n", foo.ptr);
-    printf("%.*s\n", typeid(typeof(foo.ptr)).toString());
-    printf("%.*s\n", typeid(char*).toString());
+    auto s = typeid(typeof(foo.ptr)).toString();
+    printf("%.*s\n", s.length, s.ptr);
+    s = typeid(char*).toString();
+    printf("%.*s\n", s.length, s.ptr);
     assert(typeid(typeof(foo.ptr)) == typeid(immutable(char)*));
 }
 
