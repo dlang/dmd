@@ -2797,7 +2797,6 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     cr = modEA(&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
-    cs.Irex = 0;
 #if LNGDBLSIZE > 10
     if (tyml == TYldouble || tyml == TYildouble)
         cs.IEVoffset1 += 10 - 1;
