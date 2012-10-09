@@ -358,8 +358,10 @@ extern (C) bool runModuleUnitTests()
 /**
  *
  */
+import core.stdc.stdio;
 Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 {
+    //printf("runtime.defaultTraceHandler()\n");
     static if( __traits( compiles, backtrace ) )
     {
         import core.demangle;
@@ -563,7 +565,18 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
     }
     else static if( __traits( compiles, new StackTrace ) )
     {
-        return new StackTrace;
+        version (Win64)
+        {
+            /* Disabled for the moment, because DbgHelp's stack walking code
+             * does not work with dmd's stack frame.
+             */
+            return null;
+        }
+        else
+        {
+            auto s = new StackTrace;
+            return s;
+        }
     }
     else
     {
