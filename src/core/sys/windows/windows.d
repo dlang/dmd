@@ -1148,6 +1148,34 @@ WORD SUBLANGID(int lgid)     { return cast(WORD)(lgid >> 10); }
 
 version (Win64)
 {
+    enum
+    {
+        CONTEXT_AMD64 =  0x100000,
+
+
+        CONTEXT_CONTROL = (CONTEXT_AMD64 | 0x1L),
+        CONTEXT_INTEGER = (CONTEXT_AMD64 | 0x2L),
+        CONTEXT_SEGMENTS = (CONTEXT_AMD64 | 0x4L),
+        CONTEXT_FLOATING_POINT =  (CONTEXT_AMD64 | 0x8L),
+        CONTEXT_DEBUG_REGISTERS = (CONTEXT_AMD64 | 0x10L),
+
+        CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_FLOATING_POINT),
+
+        CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS),
+
+        CONTEXT_EXCEPTION_ACTIVE = 0x8000000,
+        CONTEXT_SERVICE_ACTIVE = 0x10000000,
+        CONTEXT_EXCEPTION_REQUEST = 0x40000000,
+        CONTEXT_EXCEPTION_REPORTING = 0x80000000,
+
+
+        // Define initial MxCsr and FpCsr control.
+
+        INITIAL_MXCSR = 0x1f80,            // initial MXCSR value
+        INITIAL_FPCSR = 0x027f,            // initial FPCSR value
+    }
+
+
     // Copied from Public Domain w64 mingw-runtime package's winnt.h.
 
     align(16) struct M128A 
