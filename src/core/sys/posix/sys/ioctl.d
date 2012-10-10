@@ -231,6 +231,18 @@ version (linux)
 
     int ioctl(int __fd, c_ulong __request, ...);
 }
+else version (OSX)
+{
+    int ioctl(int fildes, c_ulong request, ...);
+}
+else version (FreeBSD)
+{
+    int ioctl(int, c_ulong, ...);
+}
+else version (Solaris)
+{
+    int ioctl(int fildes, int request, ...);
+}
 else
 {
     static assert(false, "Unsupported platform");
