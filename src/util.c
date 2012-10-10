@@ -136,6 +136,20 @@ void util_progress(int linnum)
 
 #endif
 
+void toWinPath(char *src)
+{
+    if (src == NULL)
+        return;
+
+    while (*src != '\0')
+    {
+        if (*src == '/')
+            *src = '\\';
+
+        src++;
+    }
+}
+
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || _MSC_VER
 void util_progress()
 {

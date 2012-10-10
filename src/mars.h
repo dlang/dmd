@@ -440,6 +440,7 @@ int runProgram();
 const char *inifile(const char *argv0, const char *inifile);
 void halt();
 void util_progress();
+void toWinPath(char *src);
 
 /*** Where to send error messages ***/
 #ifdef IN_GCC
