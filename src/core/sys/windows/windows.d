@@ -1146,43 +1146,6 @@ WORD PRIMARYLANGID(int lgid) { return cast(WORD)(lgid & 0x3ff); }
 WORD SUBLANGID(int lgid)     { return cast(WORD)(lgid >> 10); }
 
 
-struct FLOATING_SAVE_AREA {
-    DWORD   ControlWord;
-    DWORD   StatusWord;
-    DWORD   TagWord;
-    DWORD   ErrorOffset;
-    DWORD   ErrorSelector;
-    DWORD   DataOffset;
-    DWORD   DataSelector;
-    BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
-    DWORD   Cr0NpxState;
-}
-
-enum
-{
-    SIZE_OF_80387_REGISTERS =      80,
-//
-// The following flags control the contents of the CONTEXT structure.
-//
-    CONTEXT_i386 =    0x00010000,    // this assumes that i386 and
-    CONTEXT_i486 =    0x00010000,    // i486 have identical context records
-
-    CONTEXT_CONTROL =         (CONTEXT_i386 | 0x00000001), // SS:SP, CS:IP, FLAGS, BP
-    CONTEXT_INTEGER =         (CONTEXT_i386 | 0x00000002), // AX, BX, CX, DX, SI, DI
-    CONTEXT_SEGMENTS =        (CONTEXT_i386 | 0x00000004), // DS, ES, FS, GS
-    CONTEXT_FLOATING_POINT =  (CONTEXT_i386 | 0x00000008), // 387 state
-    CONTEXT_DEBUG_REGISTERS = (CONTEXT_i386 | 0x00000010), // DB 0-3,6,7
-    CONTEXT_EXTENDED_REGISTERS = (CONTEXT_i386 | 0x00000020L), // cpu specific extensions
-
-    CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS),
-
-    CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | 
-                   CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | 
-                   CONTEXT_EXTENDED_REGISTERS),
-
-    MAXIMUM_SUPPORTED_EXTENSION = 512
-}
-
 version (Win64)
 {
     // Copied from Public Domain w64 mingw-runtime package's winnt.h.
@@ -1292,6 +1255,43 @@ version (Win64)
 }
 else // Win32
 {
+    enum
+    {
+        SIZE_OF_80387_REGISTERS =      80,
+        //
+        // The following flags control the contents of the CONTEXT structure.
+        //
+        CONTEXT_i386 =    0x00010000,    // this assumes that i386 and
+        CONTEXT_i486 =    0x00010000,    // i486 have identical context records
+
+        CONTEXT_CONTROL =         (CONTEXT_i386 | 0x00000001), // SS:SP, CS:IP, FLAGS, BP
+        CONTEXT_INTEGER =         (CONTEXT_i386 | 0x00000002), // AX, BX, CX, DX, SI, DI
+        CONTEXT_SEGMENTS =        (CONTEXT_i386 | 0x00000004), // DS, ES, FS, GS
+        CONTEXT_FLOATING_POINT =  (CONTEXT_i386 | 0x00000008), // 387 state
+        CONTEXT_DEBUG_REGISTERS = (CONTEXT_i386 | 0x00000010), // DB 0-3,6,7
+        CONTEXT_EXTENDED_REGISTERS = (CONTEXT_i386 | 0x00000020L), // cpu specific extensions
+
+        CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS),
+
+        CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | 
+                       CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | 
+                       CONTEXT_EXTENDED_REGISTERS),
+
+        MAXIMUM_SUPPORTED_EXTENSION = 512
+    }
+
+    struct FLOATING_SAVE_AREA {
+        DWORD   ControlWord;
+        DWORD   StatusWord;
+        DWORD   TagWord;
+        DWORD   ErrorOffset;
+        DWORD   ErrorSelector;
+        DWORD   DataOffset;
+        DWORD   DataSelector;
+        BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
+        DWORD   Cr0NpxState;
+    }
+
     struct CONTEXT
     {
         //
