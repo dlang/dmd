@@ -4138,7 +4138,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             assert(ea);
             ea = ea->semantic(sc);
-            ea = ea->ctfeInterpret();
+            {
+                int olderrs = global.errors;
+                ea = ea->ctfeInterpret();
+                if (global.errors != olderrs)
+                    ea = new ErrorExp();
+            }
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
             {   ta = ea->type;
