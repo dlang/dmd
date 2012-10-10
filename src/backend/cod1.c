@@ -2774,6 +2774,9 @@ code *cdfunc(elem *e,regm_t *pretregs)
                     code_orrex(c2, REX_W);
                 c = cat3(c,c1,c2);
             }
+            else if (ep->Eoper == OPstrpar && config.exe == EX_WIN64 && type_size(ep->ET) == 0)
+            {
+            }
             else
             {
                 code *cp = scodelem(ep,&retregs,keepmsk,FALSE);
