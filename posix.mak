@@ -102,6 +102,7 @@ MANIFEST= \
 	\
 	src/core/sys/linux/execinfo.d \
 	src/core/sys/linux/epoll.d \
+	src/core/sys/linux/sys/signalfd.d \
 	src/core/sys/linux/sys/xattr.d \
 	\
 	src/core/sys/osx/execinfo.d \
@@ -467,6 +468,7 @@ COPY=\
 	\
 	$(IMPDIR)/core/sys/linux/execinfo.d \
 	$(IMPDIR)/core/sys/linux/epoll.d \
+	$(IMPDIR)/core/sys/linux/sys/signalfd.d \
 	$(IMPDIR)/core/sys/linux/sys/xattr.d \
 	\
 	$(IMPDIR)/core/sys/osx/execinfo.d \
