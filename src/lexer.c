@@ -121,11 +121,11 @@ const char *Token::toChars()
             break;
 
         case TOKint64v:
-            sprintf(buffer,"%lldL",(intmax_t)int64value);
+            sprintf(buffer,"%lldL",(longlong)int64value);
             break;
 
         case TOKuns64v:
-            sprintf(buffer,"%lluUL",(uintmax_t)uns64value);
+            sprintf(buffer,"%lluUL",(ulonglong)uns64value);
             break;
 
 #ifdef IN_GCC
