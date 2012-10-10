@@ -37,7 +37,7 @@ OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
-DOCFMT=
+DOCFMT=-version=CoreDdoc
 
 target : copydir import copy $(DRUNTIME) doc
 
