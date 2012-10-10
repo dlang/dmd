@@ -525,8 +525,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     printf("\n********\nFuncDeclaration::interpret(istate = %p) %s\n", istate, toChars());
 #endif
     if (semanticRun == PASSsemantic3)
+    {
+        error("circular dependency. Functions cannot be interpreted while being compiled");
         return EXP_CANT_INTERPRET;
-
+    }
     if (semanticRun < PASSsemantic3 && scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
