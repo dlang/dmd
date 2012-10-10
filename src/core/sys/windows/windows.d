@@ -1154,7 +1154,7 @@ struct FLOATING_SAVE_AREA {
     DWORD   ErrorSelector;
     DWORD   DataOffset;
     DWORD   DataSelector;
-    BYTE    RegisterArea[80 ];
+    BYTE    RegisterArea[SIZE_OF_80387_REGISTERS];
     DWORD   Cr0NpxState;
 }
 
@@ -1172,8 +1172,15 @@ enum
     CONTEXT_SEGMENTS =        (CONTEXT_i386 | 0x00000004), // DS, ES, FS, GS
     CONTEXT_FLOATING_POINT =  (CONTEXT_i386 | 0x00000008), // 387 state
     CONTEXT_DEBUG_REGISTERS = (CONTEXT_i386 | 0x00000010), // DB 0-3,6,7
+    CONTEXT_EXTENDED_REGISTERS = (CONTEXT_i386 | 0x00000020L), // cpu specific extensions
 
     CONTEXT_FULL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS),
+
+    CONTEXT_ALL = (CONTEXT_CONTROL | CONTEXT_INTEGER | CONTEXT_SEGMENTS | 
+                   CONTEXT_FLOATING_POINT | CONTEXT_DEBUG_REGISTERS | 
+                   CONTEXT_EXTENDED_REGISTERS),
+
+    MAXIMUM_SUPPORTED_EXTENSION = 512
 }
 
 version (Win64)
@@ -1360,6 +1367,14 @@ else // Win32
         DWORD   EFlags;             // MUST BE SANITIZED
         DWORD   Esp;
         DWORD   SegSs;
+
+        //
+        // This section is specified/returned if the ContextFlags word
+        // contains the flag CONTEXT_EXTENDED_REGISTERS.
+        // The format and contexts are processor specific
+        //
+
+        BYTE    ExtendedRegisters[MAXIMUM_SUPPORTED_EXTENSION];
     }
 }
 
