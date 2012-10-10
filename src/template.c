@@ -5169,7 +5169,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                      ea->op != TOKimport && ea->op != TOKtype &&
                      ea->op != TOKfunction && ea->op != TOKerror &&
                      ea->op != TOKthis && ea->op != TOKsuper)
+            {
+                int olderrs = global.errors;
                 ea = ea->ctfeInterpret();
+                if (global.errors != olderrs)
+                    ea = new ErrorExp();
+            }
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
             {   ta = ea->type;
