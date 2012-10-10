@@ -2424,20 +2424,31 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
     // If struct just wraps another type
     if (tybasic(ty) == TYstruct && tybasic(t->Tty) == TYstruct)
     {
-        type *targ1 = t->Ttag->Sstruct->Sarg1type;
-        type *targ2 = t->Ttag->Sstruct->Sarg2type;
-        if (targ1)
+        if (config.exe == EX_WIN64)
         {
-            t = targ1;
-            ty = t->Tty;
-            if (targ2)
-            {
-                t2 = targ2;
-                ty2 = t2->Tty;
-            }
+            /* Structs occupy a general purpose register, regardless of the struct
+             * size or the number & types of its fields.
+             */
+            t = NULL;
+            ty = TYnptr;
         }
-        else if (I64 && !targ2)
-            return 0;
+        else
+        {
+            type *targ1 = t->Ttag->Sstruct->Sarg1type;
+            type *targ2 = t->Ttag->Sstruct->Sarg2type;
+            if (targ1)
+            {
+                t = targ1;
+                ty = t->Tty;
+                if (targ2)
+                {
+                    t2 = targ2;
+                    ty2 = t2->Tty;
+                }
+            }
+            else if (I64 && !targ2)
+                return 0;
+        }
     }
 
     reg_t *preg = preg1;
