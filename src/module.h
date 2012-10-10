@@ -25,6 +25,7 @@ struct Macro;
 struct Escape;
 struct VarDeclaration;
 class Library;
+struct JsonOut;
 
 // Back end
 #ifdef IN_GCC
@@ -116,7 +117,8 @@ struct Module : Package
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
+    void jsonProperties(JsonOut *json);
     const char *kind();
     void setDocfile();  // set docfile member
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
