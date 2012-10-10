@@ -23,7 +23,7 @@ class TypeInfo_d : TypeInfo
     pure:
     nothrow:
 
-    static equals_t _equals(double f1, double f2)
+    static bool _equals(double f1, double f2)
     {
         return f1 == f2 ||
                 (f1 !<>= f1 && f2 !<>= f2);
@@ -53,7 +53,7 @@ class TypeInfo_d : TypeInfo
         return hashOf(p, double.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return _equals(*cast(double *)p1, *cast(double *)p2);
     }

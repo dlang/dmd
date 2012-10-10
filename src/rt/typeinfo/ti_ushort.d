@@ -29,7 +29,7 @@ class TypeInfo_t : TypeInfo
         return *cast(ushort *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(ushort *)p1 == *cast(ushort *)p2;
     }

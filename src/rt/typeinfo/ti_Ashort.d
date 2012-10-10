@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_As : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -35,7 +35,7 @@ class TypeInfo_As : TypeInfo_Array
         return hashOf(s.ptr, s.length * short.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         short[] s1 = *cast(short[]*)p1;
         short[] s2 = *cast(short[]*)p2;

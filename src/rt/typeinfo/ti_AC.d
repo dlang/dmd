@@ -19,7 +19,7 @@ class TypeInfo_AC : TypeInfo_Array
 {
     override string toString() const { return TypeInfo.toString(); }
 
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -39,7 +39,7 @@ class TypeInfo_AC : TypeInfo_Array
         return hash;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
