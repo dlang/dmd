@@ -36,6 +36,7 @@ struct Expression;
 struct AliasDeclaration;
 struct FuncDeclaration;
 struct HdrGenState;
+struct JsonOut;
 enum MATCH;
 enum PASS;
 
@@ -84,7 +85,7 @@ struct TemplateDeclaration : ScopeDsymbol
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);

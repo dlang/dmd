@@ -33,6 +33,7 @@
 #include "lexer.h"
 #include "lib.h"
 #include "json.h"
+#include "attrib.h"
 
 #if WINDOWS_SEH
 #include <windows.h>
@@ -1016,6 +1017,7 @@ int tryMain(int argc, char *argv[])
     // Initialization
     Type::init();
     Id::initialize();
+    StorageClassDeclaration::initialize();
     Module::init();
     initPrecedence();
 

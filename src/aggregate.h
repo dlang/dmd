@@ -99,7 +99,7 @@ struct AggregateDeclaration : ScopeDsymbol
     int isExport();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf);
 
     // For access checking

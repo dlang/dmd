@@ -475,17 +475,20 @@ void StorageClassDeclaration::semantic(Scope *sc)
     }
 }
 
-void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
+// These are also accessed by json.c's JsonOut::propertyStorageClass
+struct SCstring
 {
-    struct SCstring
-    {
-        StorageClass stc;
-        enum TOK tok;
-        Identifier *id;
-    };
+    StorageClass stc;
+    enum TOK tok;
+    Identifier *id;
+};
 
-    static SCstring table[] =
-    {
+SCstring *SCtable;
+size_t SCtable_len;
+
+void StorageClassDeclaration::initialize()
+{
+    static SCstring table[] = {
         { STCauto,         TOKauto },
         { STCscope,        TOKscope },
         { STCstatic,       TOKstatic },
@@ -500,7 +503,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         { STCalias,        TOKalias },
         { STCout,          TOKout },
         { STCin,           TOKin },
-#if DMDV2
+    #if DMDV2
         { STCmanifest,     TOKenum },
         { STCimmutable,    TOKimmutable },
         { STCshared,       TOKshared },
@@ -514,19 +517,25 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         { STCtrusted,      TOKat,       Id::trusted },
         { STCsystem,       TOKat,       Id::system },
         { STCdisable,      TOKat,       Id::disable },
-#endif
+    #endif
     };
 
-    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
+    SCtable = table;
+    SCtable_len = sizeof(table)/sizeof(SCtable[0]);
+}
+
+void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
+{
+    for (int i = 0; i < SCtable_len; i++)
     {
-        if (stc & table[i].stc)
+        if (stc & SCtable[i].stc)
         {
-            enum TOK tok = table[i].tok;
+            enum TOK tok = SCtable[i].tok;
 #if DMDV2
             if (tok == TOKat)
             {
                 buf->writeByte('@');
-                buf->writestring(table[i].id->toChars());
+                buf->writestring(SCtable[i].id->toChars());
             }
             else
 #endif

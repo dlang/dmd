@@ -20,5 +20,7 @@
 
 void json_generate(Modules *);
 
+struct JsonOut;
+
 #endif /* DMD_JSON_H */
 
