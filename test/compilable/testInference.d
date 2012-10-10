@@ -98,6 +98,24 @@ Bar8751 foo8751b(const int x) pure
 }
 
 /***************************************************/
+// 8793
+
+alias bool delegate(in int) pure Dg8793;
+alias bool function(in int) pure Fp8793;
+
+Dg8793 foo8793fp1(immutable Fp8793 f) pure { return x => (*f)(x); } // OK
+Dg8793 foo8793fp2(    const Fp8793 f) pure { return x => (*f)(x); } // OK
+
+Dg8793 foo8793dg1(immutable Dg8793 f) pure { return x => f(x); } // OK
+Dg8793 foo8793dg2(    const Dg8793 f) pure { return x => f(x); } // error -> OK
+
+Dg8793 foo8793pfp1(immutable Fp8793* f) pure { return x => (*f)(x); } // OK
+Dg8793 foo8793pdg1(immutable Dg8793* f) pure { return x => (*f)(x); } // OK
+
+// general case for the hasPointer type
+Dg8793 foo8793ptr1(immutable int* p) pure { return x => *p == x; } // OK
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
