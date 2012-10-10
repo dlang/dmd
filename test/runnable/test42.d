@@ -668,7 +668,7 @@ int foo45(int i)
 
 void test45()
 {
-   version (Windows)  // this test fails in -release because asserts will be removed
+   version (Win32)  // this test fails in -release because asserts will be removed
    {
    assert(foo45(0)==2);
    try{

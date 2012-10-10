@@ -1070,6 +1070,13 @@ void stackoffsets(int flags)
 
                 case SCshadowreg:
                 case SCparameter:
+                    if (config.exe == EX_WIN64)
+                    {
+                        assert((Poffset & 7) == 0);
+                        s->Soffset = Poffset;
+                        Poffset += 8;
+                        break;
+                    }
                     Poffset = align(REGSIZE,Poffset); /* align on word stack boundary */
                     if (I64 && alignsize == 16 && Poffset & 8)
                         Poffset += 8;

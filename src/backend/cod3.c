@@ -2999,7 +2999,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
 
             type *t = s->Stype;
             type *t2 = NULL;
-            if (tybasic(t->Tty) == TYstruct)
+            if (tybasic(t->Tty) == TYstruct && config.exe != EX_WIN64)
             {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
                 t2 = t->Ttag->Sstruct->Sarg2type;
                 if (targ1)
@@ -3137,7 +3137,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
 
             type *t = s->Stype;
             type *t2 = NULL;
-            if (tybasic(t->Tty) == TYstruct)
+            if (tybasic(t->Tty) == TYstruct && config.exe != EX_WIN64)
             {   type *targ1 = t->Ttag->Sstruct->Sarg1type;
                 t2 = t->Ttag->Sstruct->Sarg2type;
                 if (targ1)
