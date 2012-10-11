@@ -67,6 +67,20 @@ bool ISREF(Declaration *var, Type *tb)
 #endif
 }
 
+/* If variable var of type typ is a reference due to Win64 calling conventions
+ */
+bool ISWIN64REF(Declaration *var)
+{
+#if SARRAYVALUE
+    return (config.exe == EX_WIN64 && var->isParameter() &&
+            (var->type->size(0) > REGSIZE || var->storage_class & STClazy)) &&
+            !(var->isOut() || var->isRef());
+#else
+    return (var->isParameter() && (var->type->toBasetype()->ty != Tsarray && (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
+            && !(var->isOut() || var->isRef());
+#endif
+}
+
 /************************************
  * Call a function.
  */
@@ -813,7 +827,7 @@ elem *SymbolExp::toElem(IRState *irs)
             e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
             if (op == TOKvar)
                 e = el_una(OPind, TYnptr, e);
-            if (ISREF(var, tb))
+            if (ISREF(var, tb) && !ISWIN64REF(var))
                 e = el_una(OPind, s->ty(), e);
             else if (op == TOKsymoff && nrvo)
             {   e = el_una(OPind, TYnptr, e);
@@ -835,7 +849,7 @@ elem *SymbolExp::toElem(IRState *irs)
                 e->ET = type->toCtype();
             el_setLoc(e, loc);
         }
-        if (ISREF(var, tb))
+        if (ISREF(var, tb) && !ISWIN64REF(var))
         {   e->Ety = TYnptr;
             e = el_una(OPind, s->ty(), e);
         }

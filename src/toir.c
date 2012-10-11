@@ -47,6 +47,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
 bool ISREF(Declaration *var, Type *tb);
+bool ISWIN64REF(Declaration *var);
 
 
 /*********************************************
@@ -666,7 +667,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
          *    }
          */
 #endif
-        //printf("FuncDeclaration::buildClosure()\n");
+        //printf("FuncDeclaration::buildClosure() %s\n", toChars());
         Symbol *sclosure;
         sclosure = symbol_name("__closptr",SCauto,Type::tvoidptr->toCtype());
         sclosure->Sflags |= SFLtrue | SFLfree;
@@ -705,6 +706,12 @@ void FuncDeclaration::buildClosure(IRState *irs)
                 memsize = PTRSIZE * 2;
                 memalignsize = memsize;
                 xalign = global.structalign;
+            }
+            else if (ISWIN64REF(v))
+            {
+                memsize = v->type->size();
+                memalignsize = v->type->alignsize();
+                xalign = v->alignment;
             }
             else if (ISREF(v, NULL))
             {    // reference parameters are just pointers
@@ -760,11 +767,15 @@ void FuncDeclaration::buildClosure(IRState *irs)
             if (!v->isParameter())
                 continue;
             tym_t tym = v->type->totym();
-            if (
-#if !SARRAYVALUE
-                v->type->toBasetype()->ty == Tsarray ||
+            bool win64ref = ISWIN64REF(v);
+            if (win64ref)
+            {
+#if DMDV2
+                if (v->storage_class & STClazy)
+                    tym = TYdelegate;
 #endif
-                ISREF(v, NULL))
+            }
+            else if (ISREF(v, NULL))
                 tym = TYnptr;   // reference parameters are just pointers
 #if DMDV2
             else if (v->storage_class & STClazy)
@@ -772,15 +783,23 @@ void FuncDeclaration::buildClosure(IRState *irs)
 #endif
             ex = el_bin(OPadd, TYnptr, el_var(sclosure), el_long(TYsize_t, v->offset));
             ex = el_una(OPind, tym, ex);
+            elem *ev = el_var(v->toSymbol());
+            if (win64ref)
+            {
+                ev->Ety = TYnptr;
+                ev = el_una(OPind, v->type->totym(), ev);
+                if (tybasic(ev->Ety) == TYstruct || tybasic(ev->Ety) == TYarray)
+                    ev->ET = v->type->toCtype();
+            }
             if (tybasic(ex->Ety) == TYstruct || tybasic(ex->Ety) == TYarray)
             {
                 ::type *t = v->type->toCtype();
                 ex->ET = t;
-                ex = el_bin(OPstreq, tym, ex, el_var(v->toSymbol()));
+                ex = el_bin(OPstreq, tym, ex, ev);
                 ex->ET = t;
             }
             else
-                ex = el_bin(OPeq, tym, ex, el_var(v->toSymbol()));
+                ex = el_bin(OPeq, tym, ex, ev);
 
             e = el_combine(e, ex);
         }
