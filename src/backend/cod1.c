@@ -2455,28 +2455,34 @@ int FuncParamRegs::alloc(type *t, tym_t ty, reg_t *preg1, reg_t *preg2)
     int regcntsave = regcnt;
     int xmmcntsave = xmmcnt;
 
-    if (I64 &&
-        (tybasic(ty) == TYcent || tybasic(ty) == TYucent) &&
-        numintegerregs - regcnt >= 2 &&
-        config.exe != EX_WIN64)
+    if (config.exe == EX_WIN64)
     {
-        // Allocate to register pair
-        *preg1 = argregs[regcnt];
-        *preg2 = argregs[regcnt + 1];
-        regcnt += 2;
-        return 1;
+        if (tybasic(ty) == TYcfloat)
+        {
+            ty = TYnptr;                // treat like a struct
+        }
     }
-
-    if (I64 &&
-        config.exe != EX_WIN64 &&
-        tybasic(ty) == TYcdouble &&
-        numfloatregs - xmmcnt >= 2)
+    else if (I64)
     {
-        // Allocate to register pair
-        *preg1 = floatregs[xmmcnt];
-        *preg2 = floatregs[xmmcnt + 1];
-        xmmcnt += 2;
-        return 1;
+        if ((tybasic(ty) == TYcent || tybasic(ty) == TYucent) &&
+            numintegerregs - regcnt >= 2)
+        {
+            // Allocate to register pair
+            *preg1 = argregs[regcnt];
+            *preg2 = argregs[regcnt + 1];
+            regcnt += 2;
+            return 1;
+        }
+
+        if (tybasic(ty) == TYcdouble &&
+            numfloatregs - xmmcnt >= 2)
+        {
+            // Allocate to register pair
+            *preg1 = floatregs[xmmcnt];
+            *preg2 = floatregs[xmmcnt + 1];
+            xmmcnt += 2;
+            return 1;
+        }
     }
 
     for (int j = 0; j < 2; j++)
