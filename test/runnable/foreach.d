@@ -211,7 +211,7 @@ void test7()
     a["bar"] = 4;
     foreach (string s, uint v; a)
     {
-        printf("a[%.*s] = %d\n", s, v);
+        printf("a[%.*s] = %d\n", s.length, s.ptr, v);
         if (s == "bar")
             assert(v == 4);
         else if (s == "foo")
