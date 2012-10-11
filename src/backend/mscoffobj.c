@@ -1055,7 +1055,12 @@ printf("test4\n");
                     }
 #endif
                 }
-                assert(rel.r_symndx <= 20000);
+
+                /* Some programs do generate a lot of symbols.
+                 * Note that MS-Link can get pretty slow with large numbers of symbols.
+                 */
+                //assert(rel.r_symndx <= 20000);
+
                 assert(rel.r_type <= 0x10);
                 fobjbuf->write(&rel, sizeof(rel));
                 foffset += sizeof(rel);

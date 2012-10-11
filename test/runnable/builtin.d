@@ -22,7 +22,10 @@ void test1()
     writefln("%a", tan(6.8));
     f = 6.8L;
     writefln("%a", tan(f));
-    assert(tan(f) == tan(6.8));
+    version (Win64)
+    { }
+    else
+	assert(tan(f) == tan(6.8));
     static assert(tan(6.8) == 0x1.22fd752af75cd08cp-1);
 }
 
