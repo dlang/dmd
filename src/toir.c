@@ -787,7 +787,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
             if (win64ref)
             {
                 ev->Ety = TYnptr;
-                ev = el_una(OPind, v->type->totym(), ev);
+                ev = el_una(OPind, tym, ev);
                 if (tybasic(ev->Ety) == TYstruct || tybasic(ev->Ety) == TYarray)
                     ev->ET = v->type->toCtype();
             }

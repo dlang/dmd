@@ -827,7 +827,7 @@ elem *SymbolExp::toElem(IRState *irs)
             e = el_bin(OPadd, TYnptr, ethis, el_long(TYnptr, soffset));
             if (op == TOKvar)
                 e = el_una(OPind, TYnptr, e);
-            if (ISREF(var, tb) && !ISWIN64REF(var))
+            if (ISREF(var, tb) && !(ISWIN64REF(var) && v && v->offset))
                 e = el_una(OPind, s->ty(), e);
             else if (op == TOKsymoff && nrvo)
             {   e = el_una(OPind, TYnptr, e);
