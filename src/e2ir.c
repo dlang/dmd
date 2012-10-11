@@ -2848,6 +2848,11 @@ elem *AssignExp::toElem(IRState *irs)
                  */
                 el_free(esize);
                 Expression *ti = t1->nextOf()->toBasetype()->getTypeInfo(NULL);
+                if (config.exe == EX_WIN64)
+                {
+                    eto   = addressElem(eto,   Type::tvoid->arrayOf());
+                    efrom = addressElem(efrom, Type::tvoid->arrayOf());
+                }
                 ep = el_params(eto, efrom, ti->toElem(irs), NULL);
                 int rtl = (op == TOKconstruct) ? RTLSYM_ARRAYCTOR : RTLSYM_ARRAYASSIGN;
                 e = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
@@ -5134,6 +5139,11 @@ elem *StructLiteralExp::toElem(IRState *irs)
                         elem *esize = el_long(TYsize_t, ((TypeSArray *)t1b)->dim->toInteger());
                         e1 = el_pair(TYdarray, esize, e1);
                         ep = el_pair(TYdarray, el_copytree(esize), array_toPtr(el->type, ep));
+                        if (config.exe == EX_WIN64)
+                        {
+                            e1 = addressElem(e1, Type::tvoid->arrayOf());
+                            ep = addressElem(ep, Type::tvoid->arrayOf());
+                        }
                         ep = el_params(e1, ep, ti->toElem(irs), NULL);
                         int rtl = RTLSYM_ARRAYCTOR;
                         e1 = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
