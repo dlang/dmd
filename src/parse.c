@@ -1313,7 +1313,7 @@ BaseClasses *Parser::parseBaseClasses()
         }
         //if (prot && !global.params.useDeprecated)
             //error("use of base class protection is deprecated");
-        if (token.value == TOKidentifier)
+        if (token.value == TOKidentifier || token.value == TOKdot)
         {
             BaseClass *b = new BaseClass(parseBasicType(), protection);
             baseclasses->push(b);
