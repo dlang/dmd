@@ -498,6 +498,21 @@ void test7929()
 }
 
 /********************************************/
+// 7021
+
+struct S7021
+{
+    @disable this();
+}
+
+void test7021()
+{
+  static assert(!is(typeof({
+    auto s = S7021();
+  })));
+}
+
+/********************************************/
 
 int main()
 {
@@ -519,6 +534,7 @@ int main()
     test5885();
     test5889();
     test7929();
+    test7021();
 
     printf("Success\n");
     return 0;
