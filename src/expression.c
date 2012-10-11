@@ -7888,7 +7888,7 @@ Lagain:
             ad = ((TypeStruct *)t1)->sym;
 #if DMDV2
             // First look for constructor
-            if (e1->op == TOKtype && ad->ctor && arguments && arguments->dim)
+            if (e1->op == TOKtype && ad->ctor && (ad->noDefaultCtor || arguments && arguments->dim))
             {
                 // Create variable that will get constructed
                 Identifier *idtmp = Lexer::uniqueId("__ctmp");
