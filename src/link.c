@@ -80,6 +80,53 @@ void writeFilename(OutBuffer *buf, const char *filename)
 }
 
 /*****************************
+ * Check to see if the linker error is the lack of _dmain, which means the
+ * user failed to specify a main function. Print that error if so.
+ */
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+int findNoMainError(int fd) {
+    char nmeErrorMessage[] = "  \"__Dmain\", referenced from:";
+    FILE *stream;
+    int nmeFound;
+    
+    stream = fdopen(fd, "rb");
+    nmeFound = 0;
+    
+    if (stream == NULL)
+    {
+        perror("failed to open pipe");
+    }
+    
+    while (1)
+    { Ltop_outer:
+        char buffer[sizeof(nmeErrorMessage)];
+        
+        if (feof(stream)) break;
+        fgets(buffer, sizeof(buffer), stream);
+        if (strcmp(nmeErrorMessage, buffer) == 0)
+        {
+            nmeFound = 1;
+            break;
+        }
+        fputs(buffer, stderr);
+        while (!feof(stream))
+        {
+            char ch;
+            ch = fgetc(stream);
+            fputc(ch, stderr);
+            if (ch == '\n') goto Ltop_outer;
+        }
+    }
+    
+    while (!feof(stream)) {
+        fputc(fgetc(stream), stderr);
+    }
+    
+    return nmeFound;
+}
+#endif
+
+/*****************************
  * Run the linker.  Return status of execution.
  */
 
@@ -554,17 +601,22 @@ int runLINK()
     }
 
     argv.push(NULL);
-#if HAS_POSIX_SPAWN
-    int spawn_err = posix_spawnp(&childpid, argv[0], NULL, NULL, argv.tdata(), environ);
-    if (spawn_err != 0)
+    
+    // set up pipes
+    int fds[2];
+    
+    if (pipe(fds) == -1)
     {
-        perror(argv[0]);
-        return -1;
+        perror("Unable to create pipe to linker");
     }
-#else
+    
     childpid = fork();
     if (childpid == 0)
     {
+        // pipe linker stderr to fds[0]
+        dup2(fds[1], STDERR_FILENO);
+        close(fds[0]);
+        
         execvp(argv[0], argv.tdata());
         perror(argv[0]);           // failed to execute
         return -1;
@@ -574,7 +626,7 @@ int runLINK()
         perror("Unable to fork");
         return -1;
     }
-#endif
+    close(fds[1]);
 
     waitpid(childpid, &status, 0);
 
@@ -582,7 +634,13 @@ int runLINK()
     {
         status = WEXITSTATUS(status);
         if (status)
-            printf("--- errorlevel %d\n", status);
+        {
+            int nme = findNoMainError(fds[0]);
+            printf("--- errorlevel %d\n", status);            
+            
+            if (nme)
+                error(0, "no main function specified");
+        }
     }
     else if (WIFSIGNALED(status))
     {
