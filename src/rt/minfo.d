@@ -171,6 +171,9 @@ else version (Win64)
     {
         extern __gshared void* _minfo_beg;
         extern __gshared void* _minfo_end;
+
+        // Dummy so Win32 code can still call it
+        extern(C) void _minit() { }
     }
 }
 else version (OSX)
