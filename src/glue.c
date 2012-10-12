@@ -667,7 +667,6 @@ void FuncDeclaration::toObjFile(int multiobj)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
-                objmod->ehsections();   // initialize exception handling sections
             }
             else
             {
@@ -689,7 +688,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             else
             {
-            objmod->external_def("__acrtused");
+                objmod->external_def("__acrtused");
             }
             objmod->includelib(libname);
             s->Sclass = SCglobal;
@@ -707,7 +706,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             }
             else
             {
-            objmod->external_def("__acrtused_dll");
+                objmod->external_def("__acrtused_dll");
             }
             objmod->includelib(libname);
             s->Sclass = SCglobal;
