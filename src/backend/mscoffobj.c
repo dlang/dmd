@@ -1823,7 +1823,9 @@ char *obj_mangle2(Symbol *s,char *dest)
 
 void MsCoffObj::export_symbol(Symbol *s,unsigned argsize)
 {
-    //dbg_printf("MsCoffObj::export_symbol(%s,%d)\n",s->Sident,argsize);
+    //printf("MsCoffObj::export_symbol(%s,%d)\n",s->Sident,argsize);
+    SegData[segidx_drectve]->SDbuf->write(" /EXPORT:", 9);
+    SegData[segidx_drectve]->SDbuf->write(s->Sident, strlen(s->Sident));
 }
 
 /*******************************
