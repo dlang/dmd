@@ -662,7 +662,6 @@ void FuncDeclaration::toObjFile(int multiobj)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
-                objmod->ehsections();   // initialize exception handling sections
             }
             else
             {

@@ -172,6 +172,12 @@ int runLINK()
             cmdbuf.writestring("/DEBUG");
         }
 
+        if (global.params.dll)
+        {
+            cmdbuf.writeByte(' ');
+            cmdbuf.writestring("/DLL");
+        }
+
         cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
         cmdbuf.writestring(" /MERGE:._deh_bg=._deh_eh /MERGE:._deh_en=._deh_eh");
 
