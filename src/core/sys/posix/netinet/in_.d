@@ -19,6 +19,7 @@ public import core.stdc.inttypes; // for uint32_t, uint16_t, uint8_t
 public import core.sys.posix.arpa.inet;
 public import core.sys.posix.sys.socket; // for sa_family_t
 
+version (Posix):
 extern (C):
 
 //

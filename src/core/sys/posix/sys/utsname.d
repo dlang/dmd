@@ -1,5 +1,7 @@
 module core.sys.posix.sys.utsname;
 
+version (Posix):
+
 extern (C)
 {
     version(linux)

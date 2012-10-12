@@ -14,7 +14,19 @@ ifeq (,$(OS))
             ifeq (FreeBSD,$(OS))
                 OS:=freebsd
             else
-                $(error Unrecognized or unsupported OS for uname: $(OS))
+                ifeq (OpenBSD,$(OS))
+                    TARGET=OPENBSD
+                else
+                    ifeq (Solaris,$(OS))
+                        TARGET=SOLARIS
+                    else
+                        ifeq (SunOS,$(OS))
+                            TARGET=SOLARIS
+                        else
+                            $(error Unrecognized or unsupported OS for uname: $(OS))
+                        endif
+                    endif
+                endif
             endif
         endif
     endif
@@ -37,7 +49,7 @@ OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 
-DOCFMT=
+DOCFMT=-version=CoreDdoc
 
 target : copydir import copy $(DRUNTIME) doc
 

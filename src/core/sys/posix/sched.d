@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -18,6 +19,7 @@ private import core.sys.posix.config;
 public import core.sys.posix.time;
 public import core.sys.posix.sys.types;
 
+version (Posix):
 extern (C):
 
 //
@@ -82,6 +84,27 @@ else version( FreeBSD )
     enum SCHED_OTHER    = 2;
     enum SCHED_RR       = 3;
 }
+else version (Solaris)
+{
+    struct sched_param
+    {
+        int sched_priority;
+        int[8] sched_pad;
+    }
+
+    enum SCHED_OTHER = 0;
+    enum SCHED_FIFO = 1;
+    enum SCHED_RR = 2;
+    enum SCHED_SYS = 3;
+    enum SCHED_IA = 4;
+    enum SCHED_FSS = 5;
+    enum SCHED_FX = 6;
+    enum _SCHED_NEXT = 7;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 version( Posix )
 {
@@ -110,6 +133,14 @@ else version( FreeBSD )
 {
     int sched_yield();
 }
+else version (Solaris)
+{
+    int sched_yield();
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Scheduling (TPS)
@@ -137,4 +168,14 @@ else version( FreeBSD )
     int sched_get_priority_min(int);
     int sched_get_priority_max(int);
     int sched_rr_get_interval(pid_t, timespec*);
+}
+else version (Solaris)
+{
+    int sched_get_priority_max(int);
+    int sched_get_priority_min(int);
+    int sched_rr_get_interval(pid_t, timespec*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

@@ -14,8 +14,9 @@
  */
 module core.sys.posix.sys.un;
 
-version (Posix) public import core.sys.posix.sys.socket: sa_family_t;
+public import core.sys.posix.sys.socket: sa_family_t;
 
+version (Posix):
 extern(C):
 
 //

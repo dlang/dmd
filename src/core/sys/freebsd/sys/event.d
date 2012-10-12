@@ -13,10 +13,11 @@
  */
 module core.sys.freebsd.sys.event;
 
+version (FreeBSD):
+extern (C):
+
 import core.stdc.stdint;    // intptr_t, uintptr_t
 import core.sys.posix.time; // timespec
-
-extern(C):
 
 enum
 {
@@ -47,7 +48,7 @@ struct kevent_t
     uint        fflags;
     intptr_t      data;
     void        *udata; /* opaque user data identifier */
-};
+}
 
 enum
 {

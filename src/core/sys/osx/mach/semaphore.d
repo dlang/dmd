@@ -14,11 +14,10 @@
 module core.sys.osx.mach.semaphore;
 
 version (OSX):
+extern (C):
 
 public import core.sys.osx.mach.kern_return;
 public import core.sys.osx.mach.port;
-
-extern (C):
 
 alias mach_port_t   task_t;
 alias mach_port_t   thread_t;

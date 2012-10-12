@@ -16,6 +16,7 @@ module core.sys.posix.net.if_;
 
 private import core.sys.posix.config;
 
+version (Posix):
 extern (C):
 
 //

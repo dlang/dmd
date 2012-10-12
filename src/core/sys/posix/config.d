@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -16,13 +17,11 @@ module core.sys.posix.config;
 
 public import core.stdc.config;
 
+version (Posix):
 extern (C):
 
-version (Posix)
-{
-    enum _XOPEN_SOURCE     = 600;
-    enum _POSIX_C_SOURCE   = 200112L;
-}
+enum _XOPEN_SOURCE     = 600;
+enum _POSIX_C_SOURCE   = 200112L;
 
 version (linux)
 {
@@ -53,4 +52,23 @@ version (linux)
         enum __WORDSIZE=64;
     else
         enum __WORDSIZE=32;
+}
+else version (Solaris)
+{
+    enum _FILE_OFFSET_BITS = 64;
+    enum __REDIRECT = false;
+
+    enum __USE_FILE_OFFSET64 = _FILE_OFFSET_BITS == 64;
+    enum __USE_LARGEFILE = __USE_FILE_OFFSET64 && !__REDIRECT;
+    enum __USE_LARGEFILE64 = __USE_FILE_OFFSET64 && !__REDIRECT;
+
+    enum __USE_XOPEN2K = _XOPEN_SOURCE >= 600;
+    enum __USE_XOPEN2KXSI = _XOPEN_SOURCE >= 600;
+    enum __USE_XOPEN2K8 = _XOPEN_SOURCE >= 700;
+    enum __USE_XOPEN2K8XSI = _XOPEN_SOURCE >= 700;
+
+    version (D_LP64)
+        enum __WORDSIZE = 64;
+    else
+        enum __WORDSIZE = 32;
 }

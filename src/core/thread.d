@@ -1737,6 +1737,8 @@ version (D_LP64)
         static assert(__traits(classInstanceSize, Thread) == 312);
     else version (OSX)
         static assert(__traits(classInstanceSize, Thread) == 320);
+    else version (Solaris)
+        static assert(__traits(classInstanceSize, Thread) == 176);
     else version (Posix)
         static assert(__traits(classInstanceSize, Thread) == 184);
     else
@@ -2840,6 +2842,7 @@ extern (C)
 {
     version (linux) int pthread_getattr_np(pthread_t thread, pthread_attr_t* attr);
     version (FreeBSD) int pthread_attr_get_np(pthread_t thread, pthread_attr_t* attr);
+    version (Solaris) int thr_stksegment(stack_t* stk);
 }
 
 
@@ -2897,6 +2900,13 @@ private void* getStackBottom()
         pthread_attr_getstack(&attr, &addr, &size);
         pthread_attr_destroy(&attr);
         return addr + size;
+    }
+    else version (Solaris)
+    {
+        stack_t stk;
+
+        thr_stksegment(&stk);
+        return stk.ss_sp;
     }
     else
         static assert(false, "Platform not supported.");
@@ -3879,7 +3889,7 @@ private:
         }
         else
         {
-            import core.sys.posix.sys.mman; // mmap
+            version (Posix) import core.sys.posix.sys.mman; // mmap
 
             static if( __traits( compiles, mmap ) )
             {

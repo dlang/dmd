@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: ISO/IEC 9899:1999 (E)
  */
 
@@ -126,6 +127,23 @@ else version ( FreeBSD )
         char[128]   _mbstate8;
         long        _mbstateL;
     }
+}
+else version (Solaris)
+{
+    enum
+    {
+        BUFSIZ = 1024,
+        EOF = -1,
+        FOPEN_MAX = _NFILE,
+        FILENAME_MAX = 1024,
+        TMP_MAX = 17576,
+        L_tmpnam = 25,
+    }
+
+    version (X86)
+        enum int _NFILE = 60;
+    else
+        enum int _NFILE = 20;
 }
 else
 {
@@ -261,6 +279,23 @@ else version( FreeBSD )
         __mbstate_t     _mbstate;
     }
 }
+else version (Solaris)
+{
+    align (1) struct _iobuf
+    {
+        char* _ptr;
+        int _cnt;
+        char* _base;
+        char _flag;
+        char _magic;
+        ushort __flags; // __orientation:2
+                        // __ionolock:1
+                        // __seekable:1
+                        // __extendedfd:1
+                        // __xf_nocheck:1
+                        // __filler:10
+    }
+}
 else
 {
     static assert( false, "Unsupported platform" );
@@ -386,6 +421,27 @@ else version( FreeBSD )
     alias __stdinp  stdin;
     alias __stdoutp stdout;
     alias __stderrp stderr;
+}
+else version (Solaris)
+{
+    enum
+    {
+        _IOFBF = 0x00,
+        _IOLBF = 0x40,
+        _IONBF = 0x04,
+        _IOEOF = 0x20,
+        _IOERR = 0x40,
+        _IOREAD = 0x01,
+        _IOWRT = 0x02,
+        _IORW = 0x80,
+        _IOMYBUF = 0x08,
+    }
+
+    private extern shared FILE[_NFILE] __iob;
+
+    shared stdin = &__iob[0];
+    shared stdout = &__iob[1];
+    shared stderr = &__iob[2];
 }
 else
 {
@@ -549,6 +605,21 @@ else version( OSX )
     int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
 }
 else version( FreeBSD )
+{
+  // No unsafe pointer manipulation.
+  @trusted
+  {
+    void rewind(FILE*);
+    pure void clearerr(FILE*);
+    pure int  feof(FILE*);
+    pure int  ferror(FILE*);
+    int  fileno(FILE*);
+  }
+
+    int  snprintf(char* s, size_t n, in char* format, ...);
+    int  vsnprintf(char* s, size_t n, in char* format, va_list arg);
+}
+else version (Solaris)
 {
   // No unsafe pointer manipulation.
   @trusted

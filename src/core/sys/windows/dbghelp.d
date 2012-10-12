@@ -14,9 +14,9 @@
  */
 module core.sys.windows.dbghelp;
 
+version (Windows):
 
 import core.sys.windows.windows;
-
 
 alias CHAR TCHAR;
 

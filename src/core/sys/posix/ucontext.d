@@ -17,6 +17,7 @@ module core.sys.posix.ucontext;
 private import core.sys.posix.config;
 public import core.sys.posix.signal; // for sigset_t, stack_t
 
+version (Posix):
 extern (C):
 
 //

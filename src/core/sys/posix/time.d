@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -19,6 +20,7 @@ public import core.stdc.time;
 public import core.sys.posix.sys.types;
 public import core.sys.posix.signal; // for sigevent
 
+version (Posix):
 extern (C):
 
 //
@@ -47,6 +49,14 @@ else version( OSX )
 else version( FreeBSD )
 {
     time_t timegm(tm*); // non-standard
+}
+else version (Solaris)
+{
+    // Not supported.
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -94,6 +104,10 @@ else version (FreeBSD)
 else version (OSX)
 {
     // No CLOCK_MONOTONIC defined
+}
+else version (Solaris)
+{
+    enum CLOCK_MONOTONIC = 4;
 }
 else version (Windows)
 {
@@ -218,7 +232,36 @@ else version( FreeBSD )
     int timer_getoverrun(timer_t);
     int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
 }
+else version (Solaris)
+{
+    struct itimerspec
+    {
+        timespec it_interval;
+        timespec it_value;
+    }
 
+    enum TIMER_ABSOLUTE = 0x1;
+
+    alias int clockid_t;
+    alias int timer_t;
+
+    int clock_getres(clockid_t, timespec*);
+    int clock_gettime(clockid_t, timespec*);
+    int clock_settime(clockid_t, in timespec*);
+    int clock_nanosleep(clockid_t, int, in timespec*, timespec*);
+
+    int nanosleep(in timespec*, timespec*);
+
+    int timer_create(clockid_t, sigevent*, timer_t*);
+    int timer_delete(timer_t);
+    int timer_getoverrun(timer_t);
+    int timer_gettime(timer_t, itimerspec*);
+    int timer_settime(timer_t, int, in itimerspec*, itimerspec*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Thread-Safe Functions (TSF)
@@ -250,6 +293,17 @@ else version( FreeBSD )
     char* ctime_r(in time_t*, char*);
     tm*   gmtime_r(in time_t*, tm*);
     tm*   localtime_r(in time_t*, tm*);
+}
+else version (Solaris)
+{
+    char* asctime_r(in tm*, char*);
+    char* ctime_r(in time_t*, char*);
+    tm* gmtime_r(in time_t*, tm*);
+    tm* localtime_r(in time_t*, tm*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -286,11 +340,16 @@ else version( FreeBSD )
     //tm*   getdate(in char*);
     char* strptime(in char*, in char*, tm*);
 }
-else version( Solaris )
+else version (Solaris)
 {
-    extern __gshared c_long timezone;
+    extern __gshared c_long timezone, altzone;
+    extern __gshared int daylight;
 
-    //tm*   getdate(in char*);
-    char* strptime(in char*, in char*, tm*);
+    tm* getdate(in char*);
+    char* __strptime_dontzero(in char*, in char*, tm*);
+    alias __strptime_dontzero strptime;
 }
-
+else
+{
+    static assert(false, "Unsupported platform");
+}

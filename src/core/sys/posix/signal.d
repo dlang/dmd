@@ -3,7 +3,8 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly,
+              Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -20,6 +21,7 @@ public import core.stdc.stddef;         // for size_t
 public import core.sys.posix.sys.types; // for pid_t
 //public import core.sys.posix.time;      // for timespec, now defined here
 
+version (Posix):
 extern (C):
 
 //
@@ -181,6 +183,28 @@ else version( FreeBSD )
     enum SIGUSR2    = 31;
     enum SIGURG     = 16;
 }
+else version (Solaris)
+{
+    enum SIGALRM = 14;
+    enum SIGBUS = 10;
+    enum SIGCHLD = 18;
+    enum SIGCONT = 25;
+    enum SIGHUP = 1;
+    enum SIGKILL = 9;
+    enum SIGPIPE = 13;
+    enum SIGQUIT = 3;
+    enum SIGSTOP = 23;
+    enum SIGTSTP = 24;
+    enum SIGTTIN = 26;
+    enum SIGTTOU = 27;
+    enum SIGUSR1 = 16;
+    enum SIGUSR2 = 17;
+    enum SIGURG = 21;
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 version( FreeBSD )
 {
@@ -195,8 +219,22 @@ version( FreeBSD )
         sigset_t sa_mask;
     }
 }
-else
-version( Posix )
+else version (Solaris)
+{
+    struct sigaction_t
+    {
+        int sa_flags;
+
+        union
+        {
+            sigfn_t sa_handler;
+            sigactfn_t sa_sigaction;
+        }
+
+        sigset_t sa_mask;
+    }
+}
+else version( Posix )
 {
     struct sigaction_t
     {
@@ -219,6 +257,10 @@ version( Posix )
         void function() sa_restorer;
         }
     }
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -524,6 +566,119 @@ else version( FreeBSD )
     int sigprocmask(int, in sigset_t*, sigset_t*);
     int sigsuspend(in sigset_t *);
     int sigwait(in sigset_t*, int*);
+}
+else version (Solaris)
+{
+    enum SIG_HOLD = cast(sigfn_t)2;
+
+    struct sigset_t
+    {
+        uint __bits[4];
+    }
+
+    struct siginfo_t
+    {
+        int si_signo;
+        int si_code;
+        int si_errno;
+
+        version (D_LP64)
+            int si_pad;
+
+        union ___data
+        {
+            version (D_LP64)
+                int si_pad[(256 / int.sizeof) - 4];
+            else
+                int si_pad[(128 / int.sizeof) - 3];
+
+            struct ___proc
+            {
+                pid_t __pid;
+
+                union ___pdata
+                {
+                    struct ___kill
+                    {
+                        uid_t __uid;
+                        sigval __value;
+                    }
+
+                    ___kill __kill;
+
+                    struct ___cld
+                    {
+                        clock_t __utime;
+                        int __status;
+                        clock_t __stime;
+                    }
+
+                    ___cld __cld;
+                }
+
+                ___pdata __pdata;
+                ctid_t __ctid;
+                zoneid_t __zoneid;
+            }
+
+            ___proc __proc;
+
+            struct ___fault
+            {
+                void* __addr;
+                int __trapno;
+                caddr_t __pc;
+            }
+
+            ___fault __fault;
+
+            struct ___file
+            {
+                int __fd;
+                c_long __band;
+            }
+
+            ___file __file;
+
+            struct ___prof
+            {
+                caddr_t __faddr;
+                timestruc_t __tstamp;
+                short __syscall;
+                char __nsysarg;
+                char __fault;
+                c_long __sysarg[8];
+                int __mstate[10];
+            }
+
+            ___prof __prof;
+
+            struct ___rctl
+            {
+                int __entity;
+            }
+
+            ___rctl __rctl;
+        }
+
+        ___data __data;
+    }
+
+    int kill(pid_t, int);
+    int sigaction(int, in sigaction_t*, sigaction_t*);
+    int sigaddset(sigset_t*, int);
+    int sigdelset(sigset_t*, int);
+    int sigemptyset(sigset_t*);
+    int sigfillset(sigset_t*);
+    int sigismember(in sigset_t*, int);
+    int sigpending(sigset_t*);
+    int sigprocmask(int, in sigset_t*, sigset_t*);
+    int sigsuspend(in sigset_t*);
+    int sigwait(in sigset_t*, int*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 
@@ -955,6 +1110,130 @@ else version( FreeBSD )
     int sigpause(int);
     int sigrelse(int);
 }
+else version (Solaris)
+{
+    enum SIGPOLL = 22;
+    enum SIGPROF = 29;
+    enum SIGSYS = 12;
+    enum SIGTRAP = 5;
+    enum SIGVTALRM = 31;
+    enum SIGXCPU = 30;
+    enum SIGXFSZ = 25;
+
+    enum
+    {
+        SA_ONSTACK = 0x00001,
+        SA_RESTART = 0x00004,
+        SA_RESETHAND = 0x00002,
+        SA_NODEFER = 0x00010,
+        SA_NOCLDWAIT = 0x10000,
+        SA_SIGINFO = 0x00008,
+    }
+
+    enum
+    {
+        SS_ONSTACK = 0x0001,
+        SS_DISABLE = 0x0002,
+    }
+
+    enum MINSIGSTKSZ = 2048;
+    enum SIGSTKSZ = 8192;
+
+    struct stack_t
+    {
+        void* ss_sp;
+        size_t ss_size;
+        int ss_flags;
+    }
+
+    struct sigstack
+    {
+        void* ss_sp;
+        int ss_onstack;
+    }
+
+    enum
+    {
+        ILL_ILLOPC = 1,
+        ILL_ILLOPN,
+        ILL_ILLADR,
+        ILL_ILLTRP,
+        ILL_PRVOPC,
+        ILL_PRVREG,
+        ILL_COPROC,
+        ILL_BADSTK,
+    }
+
+    enum
+    {
+        BUS_ADRALN = 1,
+        BUS_ADRERR,
+        BUS_OBJERR,
+    }
+
+    enum
+    {
+        SEGV_MAPERR = 1,
+        SEGV_ACCERR,
+    }
+
+    enum
+    {
+        FPE_INTDIV = 1,
+        FPE_INTOVF,
+        FPE_FLTDIV,
+        FPE_FLTOVF,
+        FPE_FLTUND,
+        FPE_FLTRES,
+        FPE_FLTINV,
+        FPE_FLTSUB,
+        FPE_FLTDEN,
+    }
+
+    enum
+    {
+        TRAP_BRKPT = 1,
+        TRAP_TRACE,
+        TRAP_RWATCH,
+        TRAP_WWATCH,
+        TRAP_XWATCH,
+        TRAP_DTRACE,
+    }
+
+    enum
+    {
+        CLD_EXITED = 1,
+        CLD_KILLED,
+        CLD_DUMPED,
+        CLD_TRAPPED,
+        CLD_STOPPED,
+        CLD_CONTINUED,
+    }
+
+    enum
+    {
+        POLL_IN = 1,
+        POLL_OUT,
+        POLL_MSG,
+        POLL_ERR,
+        POLL_PRI,
+        POLL_HUP,
+    }
+
+    sigfn_t sigset(int sig, sigfn_t func);
+
+    int killpg(pid_t, int);
+    int sigaltstack(in stack_t*, stack_t*);
+    int sighold(int);
+    int sigignore(int);
+    int siginterrupt(int, int);
+    int sigpause(int);
+    int sigrelse(int);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // Timer (TMR)
@@ -993,6 +1272,20 @@ else version( FreeBSD )
         time_t  tv_sec;
         c_long  tv_nsec;
     }
+}
+else version (Solaris)
+{
+    struct timespec
+    {
+        time_t tv_sec;
+        c_long tv_nsec;
+    }
+
+    alias timespec timestruc_t;
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 //
@@ -1072,6 +1365,30 @@ else version( FreeBSD )
     int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
     int sigwaitinfo(in sigset_t*, siginfo_t*);
 }
+else version (OSX)
+{
+}
+else version (Solaris)
+{
+    struct sigevent
+    {
+        int sigev_notify;
+        int sigev_signo;
+        sigval sigev_value;
+        void function(sigval) sigev_notify_function;
+        pthread_attr_t* sigev_notify_attributes;
+        int __sigev_pad2;
+    }
+
+    int sigqueue(pid_t, int, in sigval);
+    int sigtimedwait(in sigset_t*, siginfo_t*, in timespec*);
+    int sigwaitinfo(in sigset_t*, siginfo_t*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
+
 //
 // Threads (THR)
 //
@@ -1094,4 +1411,13 @@ else version( FreeBSD )
 {
     int pthread_kill(pthread_t, int);
     int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
+else version (Solaris)
+{
+    int pthread_kill(pthread_t, int);
+    int pthread_sigmask(int, in sigset_t*, sigset_t*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }

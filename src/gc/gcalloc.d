@@ -163,7 +163,7 @@ else static if (is(typeof(malloc))) // else version (GC_Use_Alloc_Malloc)
     //       after PAGESIZE bytes used by the GC.
 
 
-    private import gcx : PAGESIZE;
+    private import gc.gcx;
 
 
     const size_t PAGE_MASK = PAGESIZE - 1;
