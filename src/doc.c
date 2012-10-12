@@ -102,7 +102,7 @@ unsigned skiptoident(OutBuffer *buf, size_t i);
 unsigned skippastident(OutBuffer *buf, size_t i);
 unsigned skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor = true);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
 
@@ -1351,7 +1351,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     else
                         buf->write(namestart, namelen);
                     escapeStrayParenthesis(buf, o, s->loc);
-                    highlightCode(sc, s, buf, o);
+                    highlightCode(sc, s, buf, o, false);
                 buf->writestring(")\n");
 
                 buf->writestring("$(DDOC_PARAM_DESC ");
@@ -2048,14 +2048,16 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
  * Highlight code for DDOC section.
  */
 
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor)
 {
-    OutBuffer ancbuf;
-    
-    emitAnchor(&ancbuf, s);
-    buf->insert(offset, (char*)ancbuf.data, ancbuf.offset);
-    offset += ancbuf.offset;
+    if (anchor)
+    {
+        OutBuffer ancbuf;
 
+        emitAnchor(&ancbuf, s);
+        buf->insert(offset, (char *)ancbuf.data, ancbuf.offset);
+        offset += ancbuf.offset;
+    }
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
