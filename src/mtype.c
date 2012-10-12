@@ -6081,6 +6081,11 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     if (p->storageClass & (STCscope | STClazy))
         return FALSE;
 
+    /* If haven't inferred the return type yet, assume it escapes
+     */
+    if (!nextOf())
+        return TRUE;
+
     if (purity)
     {   /* With pure functions, we need only be concerned if p escapes
          * via any return statement.

@@ -14,6 +14,14 @@ template T5996(T)
 static assert(!is(typeof(T5996!(int).bug5996())));
 
 /**************************************************
+    8532    segfault(mtype.c) - type inference + pure
+**************************************************/
+auto segfault8532(Y, R ...)(R r, Y val) pure
+{ return segfault8532(r, val); }
+
+static assert(!is(typeof( segfault8532(1,2,3))));
+
+/**************************************************
     5932    ICE(s2ir.c)
     6675    ICE(glue.c)
 **************************************************/
