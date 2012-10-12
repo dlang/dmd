@@ -667,6 +667,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             {
                 objmod->includelib("LIBCMT");
                 objmod->includelib("OLDNAMES");
+                objmod->ehsections();   // initialize exception handling sections
             }
             else
             {
@@ -679,7 +680,17 @@ void FuncDeclaration::toObjFile(int multiobj)
 #if TARGET_WINDOS
         else if (func->isWinMain() && onlyOneMain(loc))
         {
+            if (I64)
+            {
+                objmod->includelib("uuid");
+                objmod->includelib("LIBCMT");
+                objmod->includelib("OLDNAMES");
+                objmod->ehsections();   // initialize exception handling sections
+            }
+            else
+            {
             objmod->external_def("__acrtused");
+            }
             objmod->includelib(libname);
             s->Sclass = SCglobal;
         }
@@ -687,7 +698,17 @@ void FuncDeclaration::toObjFile(int multiobj)
         // Pull in RTL startup code
         else if (func->isDllMain() && onlyOneMain(loc))
         {
+            if (I64)
+            {
+                objmod->includelib("uuid");
+                objmod->includelib("LIBCMT");
+                objmod->includelib("OLDNAMES");
+                objmod->ehsections();   // initialize exception handling sections
+            }
+            else
+            {
             objmod->external_def("__acrtused_dll");
+            }
             objmod->includelib(libname);
             s->Sclass = SCglobal;
         }
