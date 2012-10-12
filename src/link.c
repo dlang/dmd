@@ -95,6 +95,7 @@ int findNoMainError(int fd) {
     if (stream == NULL)
     {
         perror("failed to open pipe");
+        return -1;
     }
     
     while (1)
@@ -106,6 +107,7 @@ int findNoMainError(int fd) {
         if (strcmp(nmeErrorMessage, buffer) == 0)
         {
             nmeFound = 1;
+            fputs(buffer, stderr);
             break;
         }
         fputs(buffer, stderr);
@@ -121,6 +123,7 @@ int findNoMainError(int fd) {
     while (!feof(stream)) {
         fputc(fgetc(stream), stderr);
     }
+    fprintf(stderr, "\n");
     
     return nmeFound;
 }
@@ -608,6 +611,7 @@ int runLINK()
     if (pipe(fds) == -1)
     {
         perror("Unable to create pipe to linker");
+        return -1;
     }
     
     childpid = fork();
