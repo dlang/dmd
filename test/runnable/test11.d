@@ -125,25 +125,25 @@ int i7 = 3;
 
 void test7()
 {
-     switch (i7)
-     {
-	default: assert(0);
-	case 3:
-         int x;
+    switch (i7)
+    {
+    default: assert(0);
+    case 3:
+        int x;
 
-         x = 4;
-     }
+        x = 4;
+    }
 }
 
 /**************************************/
 
 void test8()
 {
-	string a = "a
+    string a = "a
 b
 c";
-	assert(a.length == 5);
-	assert(a[1] == '\n');
+    assert(a.length == 5);
+    assert(a[1] == '\n');
 }
 
 /**************************************/
@@ -284,7 +284,7 @@ class Foo15
    void dothis()
    {
      if (func1)
-	func1(4);
+        func1(4);
      else
         x = 3;
    }
@@ -617,19 +617,19 @@ void test31()
 
 class Foo32
 {
-   struct Bar
-   {
-	int x;
-   }
+    struct Bar
+    {
+        int x;
+    }
 }
 
 void test32()
 {
-   with (new Foo32)
-   {
-      Bar z;
-      z.x = 5;
-   }
+    with (new Foo32)
+    {
+        Bar z;
+        z.x = 5;
+    }
 }
 
 
@@ -816,7 +816,7 @@ struct A42
 
     B42 *findPool()
     {
-	return null;
+        return null;
     }
 
 }
@@ -825,7 +825,7 @@ struct B42
 {
     int cmp(B42 *p2)
     {
-	return 0;
+        return 0;
     }
 }
 
@@ -902,7 +902,7 @@ void test46()
 
     with (f)
     {
-	x = 3;
+        x = 3;
     }
     assert(f.x == 3);
 }
@@ -954,12 +954,12 @@ class A51
 {
     static typeof(this) foo()
     {
-	return new A51();
+        return new A51();
     }
 
     this()
     {
-	bar = 3;
+        bar = 3;
     }
 
     int bar;
@@ -1017,18 +1017,18 @@ void test52()
 
 struct A53
 {
-        int b() { return 1; }
+    int b() { return 1; }
 }
 
 int x53()
 {
-        A53 a;
-        return a.b;
+    A53 a;
+    return a.b;
 }
 
 void test53()
 {
-	assert(x53() == 1);
+    assert(x53() == 1);
 }
 
 /**************************************/
@@ -1037,12 +1037,12 @@ class A54
 {
     void a()
     {
-	printf("A54.a\n");
+        printf("A54.a\n");
     }
 
     void b()
     {
-	typeof(this).a();
+        typeof(this).a();
     }
 }
 
@@ -1050,8 +1050,8 @@ class B54 : A54
 {
     override void a()
     {
-	printf("B54.a\n");
-	assert(0);
+        printf("B54.a\n");
+        assert(0);
     }
 }
 
@@ -1086,8 +1086,8 @@ class A56
 {
     int foo(int x = 5)
     {
-	printf("A56.x = %d\n", x);
-	return x;
+        printf("A56.x = %d\n", x);
+        return x;
     }
 }
 
@@ -1095,8 +1095,8 @@ class B56 : A56
 {
     override int foo(int x = 7)
     {
-	printf("B56.x = %d\n", x);
-	return x;
+        printf("B56.x = %d\n", x);
+        return x;
     }
 }
 
@@ -1134,16 +1134,16 @@ void test58()
 
     static class S
     {
-	static this()
-	{
-	    printf ("static constructor\n");
-	    x = 10;
-	}
+        static this()
+        {
+            printf ("static constructor\n");
+            x = 10;
+        }
 
-	this()
-	{
-	    printf ("class constructor\n");
-	}
+        this()
+        {
+            printf ("class constructor\n");
+        }
     }
 
     assert(x == 10);
@@ -1176,7 +1176,7 @@ void test61()
 class A62
 {
     static A62 test(int q=0) {
-	return null;
+        return null;
     }
 }
 
@@ -1215,11 +1215,11 @@ void test64()
 {
     debug(5)
     {
-	assert(0);
+        assert(0);
     }
     debug(3)
     {
-	int x = 3;
+        int x = 3;
     }
     assert(x == 3);
 }
@@ -1232,11 +1232,11 @@ void test65()
 {
     version(5)
     {
-	assert(0);
+        assert(0);
     }
     version(3)
     {
-	int x = 3;
+        int x = 3;
     }
     assert(x == 3);
 }
