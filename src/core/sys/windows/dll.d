@@ -1,15 +1,12 @@
 /**
  * This module provides OS specific helper function for DLL support
  *
- * Copyright: Copyright Digital Mars 2010 - 2010.
- * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
+ * Copyright: Copyright Digital Mars 2010 - 2012.
+ * License: Distributed under the
+ *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
+ *    (See accompanying file LICENSE)
  * Authors:   Rainer Schuetze
- */
-
-/*          Copyright Digital Mars 2010 - 2010.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
+ * Source: $(DRUNTIMESRC src/core/sys/windows/_dll.d)
  */
 
 module core.sys.windows.dll;
@@ -27,10 +24,13 @@ version( Windows )
 
     extern (C)
     {
-        extern __gshared void* _tlsstart;
-        extern __gshared void* _tlsend;
-        extern __gshared int   _tls_index;
-        extern __gshared void* _tls_callbacks_a;
+        version (Win32)
+        {
+            extern __gshared void* _tlsstart;
+            extern __gshared void* _tlsend;
+            extern __gshared void* _tls_callbacks_a;
+            extern __gshared int   _tls_index;
+        }
     }
 
     extern (C) // rt.minfo
@@ -40,6 +40,8 @@ version( Windows )
     }
 
 private:
+    version (Win32)
+    {
     struct dll_aux
     {
         // don't let symbols leak into other modules
@@ -276,6 +278,7 @@ private:
             return true;
         }
     }
+    }
 
 public:
     /* *****************************************************
@@ -343,8 +346,11 @@ public:
     bool dll_process_attach( HINSTANCE hInstance, bool attach_threads,
                              void* tlsstart, void* tlsend, void* tls_callbacks_a, int* tlsindex )
     {
-        if( !dll_fixTLS( hInstance, tlsstart, tlsend, tls_callbacks_a, tlsindex ) )
-            return false;
+        version (Win32)
+        {
+            if( !dll_fixTLS( hInstance, tlsstart, tlsend, tls_callbacks_a, tlsindex ) )
+                return false;
+        }
 
         Runtime.initialize();
 
@@ -370,8 +376,16 @@ public:
     // same as above, but only usable if druntime is linked statically
     bool dll_process_attach( HINSTANCE hInstance, bool attach_threads = true )
     {
-        return dll_process_attach( hInstance, attach_threads,
-                                   &_tlsstart, &_tlsend, &_tls_callbacks_a, &_tls_index );
+        version (Win64)
+        {
+            return dll_process_attach( hInstance, attach_threads,
+                                       null, null, null, null );
+        }
+        else
+        {
+            return dll_process_attach( hInstance, attach_threads,
+                                       &_tlsstart, &_tlsend, &_tls_callbacks_a, &_tls_index );
+        }
     }
 
     // to be called from DllMain with reason DLL_PROCESS_DETACH
