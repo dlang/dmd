@@ -7853,7 +7853,6 @@ L1:
 
     if (s->getType())
     {
-        //return new DotTypeExp(e->loc, e, s);
         return new TypeExp(e->loc, s->getType());
     }
 
@@ -8435,9 +8434,7 @@ L1:
 
     if (s->getType())
     {
-//      if (e->op == TOKtype)
-            return new TypeExp(e->loc, s->getType());
-//      return new DotTypeExp(e->loc, e, s);
+        return new TypeExp(e->loc, s->getType());
     }
 
     EnumMember *em = s->isEnumMember();
