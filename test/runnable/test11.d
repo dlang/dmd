@@ -1242,6 +1242,82 @@ void test65()
 }
 
 /**************************************/
+// 8809
+
+void test8809()
+{
+    static class B
+    {
+        char foo() { return 'B'; }
+    }
+    static class C : B
+    {
+        char test1Bx() { return B.foo(); }
+        char test1Cx() { return C.foo(); }
+        char test1Dx() { return   foo(); }
+        char test1By() { return this.B.foo(); }
+        char test1Cy() { return this.C.foo(); }   // cannot compile -> OK
+        char test1Dy() { return this.  foo(); }
+        char test1Bz() { return typeof(super).foo(); }
+        char test1Cz() { return typeof(this). foo(); }
+      //char test1Dz();
+
+        char test2Bx() { return { return B.foo(); }(); }
+        char test2Cx() { return { return C.foo(); }(); }
+        char test2Dx() { return { return   foo(); }(); }
+        char test2By() { return { return this.B.foo(); }(); }
+        char test2Cy() { return { return this.C.foo(); }(); }   // cannot compile -> OK
+        char test2Dy() { return { return this.  foo(); }(); }
+        char test2Bz() { return { return typeof(super).foo(); }(); }
+        char test2Cz() { return { return typeof(this). foo(); }(); }
+      //char test2Dz();
+
+        char test3Bx() { return (new class Object { char bar() { return B.foo(); } }).bar(); }
+        char test3Cx() { return (new class Object { char bar() { return C.foo(); } }).bar(); }
+        char test3Dx() { return (new class Object { char bar() { return   foo(); } }).bar(); }
+        char test3By() { return (new class Object { char bar() { return this.outer.B.foo(); } }).bar(); }
+        char test3Cy() { return (new class Object { char bar() { return this.outer.C.foo(); } }).bar(); }
+        char test3Dy() { return (new class Object { char bar() { return this.outer.  foo(); } }).bar(); }
+
+        override char foo() { return 'C'; }
+    }
+    static class D : C
+    {
+        override char foo() { return 'D'; }
+    }
+
+    C c = new D();
+
+    assert(c.test1Bx() == 'B');
+    assert(c.test1Cx() == 'C');
+    assert(c.test1Dx() == 'D');
+    assert(c.test1By() == 'B');
+    assert(c.test1Cy() == 'C');
+    assert(c.test1Dy() == 'D');
+    assert(c.test1Bz() == 'B'); // NG('D') -> OK
+    assert(c.test1Cz() == 'C');
+  //assert(c.test1Dz() == 'D');
+
+    assert(c.test2Bx() == 'B'); // NG('D') -> OK
+    assert(c.test2Cx() == 'C'); // NG('D') -> OK
+    assert(c.test2Dx() == 'D');
+    assert(c.test2By() == 'B');
+    assert(c.test2Cy() == 'C');
+    assert(c.test2Dy() == 'D');
+    assert(c.test2Bz() == 'B'); // NG('D') -> OK
+    assert(c.test2Cz() == 'C'); // NG('D') -> OK
+  //assert(c.test2Dz() == 'D');
+
+    assert(c.test3Bx() == 'B'); // NG('D') -> OK
+    assert(c.test3Cx() == 'C'); // NG('D') -> OK
+    assert(c.test3Dx() == 'D');
+
+    assert(c.test3By() == 'B');
+    assert(c.test3Cy() == 'C');
+    assert(c.test3Dy() == 'D');
+}
+
+/**************************************/
 
 int main(string[] argv)
 {
@@ -1307,6 +1383,7 @@ int main(string[] argv)
     test63();
     test64();
     test65();
+    test8809();
 
     printf("Success\n");
     return 0;

@@ -8331,11 +8331,16 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
 L1:
     if (!s)
     {
-        // See if it's a base class
-        if (Dsymbol *cbase = sym->searchBase(e->loc, ident))
+        // See if it's 'this' class or a base class
+        if (e->op != TOKtype)
         {
-            e = new DotTypeExp(0, e, cbase);
-            return e;
+            Dsymbol *cbase = sym->ident == ident ?
+                             sym : sym->searchBase(e->loc, ident);
+            if (cbase)
+            {
+                e = new DotTypeExp(0, e, cbase);
+                return e;
+            }
         }
 
         if (ident == Id::classinfo)
@@ -8510,37 +8515,77 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && (hasThis(sc) || !(sc->intypeof || d->isFuncDeclaration())))
+
+        FuncDeclaration *fdthis = hasThis(sc);
+        if (d->needThis() && fdthis)
         {
-            if (sc->func)
+            if (d->isFuncDeclaration())
             {
-                ClassDeclaration *thiscd;
-                thiscd = sc->func->toParent()->isClassDeclaration();
-
-                if (thiscd)
+                // This is almost same as getRightThis() in expression.c
+                Expression *e1 = new VarExp(e->loc, fdthis->vthis);
+                e1 = e1->semantic(sc);
+            L2:
+                Type *t = e1->type->toBasetype();
+                ClassDeclaration *cd = e->type->isClassHandle();
+                ClassDeclaration *tcd = t->isClassHandle();
+                if (cd && tcd && (tcd == cd || cd->isBaseOf(tcd, NULL)))
                 {
-                    ClassDeclaration *cd = e->type->isClassHandle();
+                    e = new DotTypeExp(e1->loc, e1, cd);
+                    e = new DotVarExp(e->loc, e, d);
+                    e = e->semantic(sc);
+                    return e;
+                }
+                if (tcd && tcd->isNested())
+                {   /* e1 is the 'this' pointer for an inner class: tcd.
+                     * Rewrite it as the 'this' pointer for the outer class.
+                     */
 
-                    if (cd == thiscd)
-                    {
-                        e = new ThisExp(e->loc);
-                        e = new DotTypeExp(e->loc, e, cd);
-                        DotVarExp *de = new DotVarExp(e->loc, e, d);
-                        e = de->semantic(sc);
-                        return e;
+                    e1 = new DotVarExp(e->loc, e1, tcd->vthis);
+                    e1->type = tcd->vthis->type;
+                    e1->type = e1->type->addMod(t->mod);
+                    // Do not call checkNestedRef()
+                    //e1 = e1->semantic(sc);
+
+                    // Skip up over nested functions, and get the enclosing
+                    // class type.
+                    int n = 0;
+                    Dsymbol *s;
+                    for (s = tcd->toParent();
+                         s && s->isFuncDeclaration();
+                         s = s->toParent())
+                    {   FuncDeclaration *f = s->isFuncDeclaration();
+                        if (f->vthis)
+                        {
+                            //printf("rewriting e1 to %s's this\n", f->toChars());
+                            n++;
+                            e1 = new VarExp(e->loc, f->vthis);
+                        }
+                        else
+                        {
+                            e = new VarExp(e->loc, d, 1);
+                            return e;
+                        }
                     }
-                    else if ((!cd || !cd->isBaseOf(thiscd, NULL)) &&
-                             !d->isFuncDeclaration())
-                        e->error("'this' is required, but %s is not a base class of %s", e->type->toChars(), thiscd->toChars());
+                    if (s && s->isClassDeclaration())
+                    {   e1->type = s->isClassDeclaration()->type;
+                        e1->type = e1->type->addMod(t->mod);
+                        if (n > 1)
+                            e1 = e1->semantic(sc);
+                    }
+                    else
+                        e1 = e1->semantic(sc);
+                    goto L2;
                 }
             }
-
-            /* Rewrite as:
-             *  this.d
-             */
-            DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = de->semantic(sc);
-            return e;
+            else
+            {
+                /* Rewrite as:
+                 *  this.d
+                 */
+                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                e = de->semantic(sc);
+                return e;
+            }
         }
         VarExp *ve = new VarExp(e->loc, d, 1);
         if (d->isVarDeclaration() && d->needThis())
