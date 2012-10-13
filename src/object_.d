@@ -62,8 +62,8 @@ else
     alias int   sizediff_t;
 }
 
-alias size_t hash_t;
-alias bool equals_t;
+alias size_t hash_t; //For backwards compatibility only.
+alias bool equals_t; //For backwards compatibility only.
 
 alias immutable(char)[]  string;
 alias immutable(wchar)[] wstring;
