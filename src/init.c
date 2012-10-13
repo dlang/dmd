@@ -445,6 +445,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         return this;
     sem = 1;
     type = t;
+    Initializer *aa = NULL;
     t = t->toBasetype();
     switch (t->ty)
     {
@@ -452,6 +453,11 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         case Tsarray:
         case Tarray:
             break;
+
+        case Taarray:
+            // was actually an associative array literal
+            aa = toAssocArrayInitializer();
+            return aa->semantic(sc, t, needInterpret);
 
         default:
             error(loc, "cannot use array to initialize %s", type->toChars());
@@ -564,7 +570,12 @@ Expression *ArrayInitializer::toExpression()
         for (size_t i = 0, j = 0; i < value.dim; i++, j++)
         {
             if (index[i])
-                j = index[i]->toInteger();
+            {
+                if (index[i]->op == TOKint64)
+                    j = index[i]->toInteger();
+                else
+                    goto Lno;
+            }
             if (j >= edim)
                 edim = j + 1;
         }
