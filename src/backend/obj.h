@@ -186,6 +186,9 @@ struct MsCoffObj : Obj
         unsigned targseg, int rtype, int val);
 //    static void addrel(int seg, targ_size_t offset, unsigned type,
 //                                        unsigned symidx, targ_size_t val);
+
+    static int seg_pdata();
+    static int seg_xdata();
 };
 
 #undef VIRTUAL

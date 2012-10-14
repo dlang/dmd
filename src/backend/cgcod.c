@@ -107,6 +107,7 @@ unsigned cstop;                 /* # of entries in CSE table (csextab[])   */
 unsigned csmax;                 /* amount of space in csextab[]         */
 
 targ_size_t     funcoffset;     // offset of start of function
+targ_size_t     prolog_allocoffset;     // offset past adj of stack allocation
 targ_size_t     startoffset;    // size of function entry code
 targ_size_t     retoffset;      /* offset from start of func to ret code */
 targ_size_t     retsize;        /* size of function return              */
@@ -501,6 +502,11 @@ tryagain:
         /* Instead, try offset to cleanup code  */
         objmod->linnum(funcsym_p->Sfunc->Fendline,funcoffset + retoffset);
 
+#if TARGET_WINDOS && MARS
+    if (config.exe == EX_WIN64)
+        win64_pdata(funcsym_p);
+#endif
+
 #if MARS
     if (usednteh & NTEH_try)
     {
@@ -759,18 +765,23 @@ Lagain:
         hasframe = 1;
     }
 
-    if (config.flags & CFGstack)        /* if stack overflow check      */
-        goto Ladjstack;
-
-    if (needframe)                      /* if variables or parameters   */
+    /* Subtract from stack pointer the size of the local stack frame
+     */
+    {
+    code *cstackadj = CNIL;
+    if (config.flags & CFGstack)        // if stack overflow check
+    {
+        cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
+        if (usedalloca)
+            cstackadj = cat(cstackadj, prolog_setupalloca());
+    }
+    else if (needframe)                      /* if variables or parameters   */
     {
         if (xlocalsize)                 /* if any stack offset          */
         {
-        Ladjstack:
-            c = cat(c, prolog_frameadj(tyf, xlocalsize, enter, &pushalloc));
-
+            cstackadj = prolog_frameadj(tyf, xlocalsize, enter, &pushalloc);
             if (usedalloca)
-                c = cat(c, prolog_setupalloca());
+                cstackadj = cat(cstackadj, prolog_setupalloca());
         }
         else
             assert(usedalloca == 0);
@@ -778,12 +789,23 @@ Lagain:
     else if (xlocalsize)
     {
         assert(I32);
-        c = cat(c, prolog_frameadj2(tyf, xlocalsize, &pushalloc));
+        cstackadj = prolog_frameadj2(tyf, xlocalsize, &pushalloc);
         BPoff += REGSIZE;
     }
     else
         assert((localsize | usedalloca) == 0 || (usednteh & NTEHjmonitor));
     EBPtoESP += xlocalsize;
+    c = cat(c, cstackadj);
+    }
+
+    /* Win64 unwind needs the amount of code generated so far
+     */
+    if (config.exe == EX_WIN64)
+    {
+        pinholeopt(c, NULL);
+        prolog_allocoffset = calcblksize(c);
+    }
+
 
     /*  The idea is to generate trace for all functions if -Nc is not thrown.
      *  If -Nc is thrown, generate trace only for global COMDATs, because those

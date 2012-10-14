@@ -2510,6 +2510,9 @@ code *genjmp(code *c,unsigned op,unsigned fltarg,block *targ)
     return cat(c,cj);
 }
 
+/*********************************************
+ * Generate first part of prolog for interrupt function.
+ */
 code* prolog_ifunc(tym_t* tyf)
 {
     static unsigned char ops2[] = { 0x60,0x1E,0x06,0 };
@@ -2614,6 +2617,17 @@ code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds)
 
     return c;
 }
+
+/**********************************************
+ * Set up frame register.
+ * Input:
+ *      *xlocalsize     amount of local variables
+ * Output:
+ *      *enter          set to TRUE if ENTER instruction can be used, FALSE otherwise
+ *      *xlocalsize     amount to be subtracted from stack pointer
+ * Returns:
+ *      generated code
+ */
 
 code* prolog_frame(unsigned farfunc, unsigned* xlocalsize, bool* enter)
 {

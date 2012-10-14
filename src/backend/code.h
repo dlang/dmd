@@ -196,7 +196,10 @@ extern  unsigned cstop;
 #if TX86
 extern  bool floatreg;
 #endif
+extern  targ_size_t prolog_allocoffset;
+extern  targ_size_t startoffset;
 extern  targ_size_t retoffset;
+extern  targ_size_t retsize;
 extern  unsigned stackpush;
 extern  int stackchanged;
 extern  int refparam;

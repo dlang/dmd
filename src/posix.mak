@@ -111,6 +111,7 @@ DMD_OBJS = \
 	builtin.o clone.o aliasthis.o intrange.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o \
+	pdata.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
@@ -155,7 +156,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h \
+	$C/xmm.h $C/obj.h $C/pdata.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
@@ -513,6 +514,9 @@ outbuf.o: $C/outbuf.c $C/outbuf.h
 
 parse.o: parse.c
 	$(CC) -c $(CFLAGS) $<
+
+pdata.o: $C/pdata.c
+	$(CC) -c $(MFLAGS) $<
 
 ph.o: ph.c
 	$(CC) -c $(MFLAGS) $<
