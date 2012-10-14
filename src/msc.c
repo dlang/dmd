@@ -250,6 +250,7 @@ void util_set64()
     {   tysize[TYenum + i] = LONGSIZE;
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
+        tysize[TYjhandle + i] = 8;
         tysize[TYnptr + i] = 8;
         tysize[TYnref + i] = 8;
         tysize[TYldouble + i] = REALSIZE;
@@ -260,6 +261,7 @@ void util_set64()
         tyalignsize[TYint  + i] = LONGSIZE;
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = 8;
+        tyalignsize[TYjhandle + i] = 8;
         tyalignsize[TYnptr + i] = 8;
         tyalignsize[TYnref + i] = 8;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || TARGET_WINDOS

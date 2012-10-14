@@ -43,9 +43,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 // Convert from SFL protections to CV4 protections
 #define SFLtoATTR(sfl)  (4 - (((sfl) & SFLpmask) >> 5))
 
-extern targ_size_t startoffset; // size of function entry code
-extern targ_size_t retoffset;   // offset from start of func to ret code
-
 /* Dynamic array of debtyp_t's  */
 static debtyp_t **debtyp;
 static unsigned debtyptop;      // # of used entries in debtyp[]

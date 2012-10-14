@@ -2427,9 +2427,11 @@ int FuncDeclaration::isExport()
 
 int FuncDeclaration::isImportedSymbol()
 {
-    //printf("isImportedSymbol()\n");
-    //printf("protection = %d\n", protection);
-    return (protection == PROTexport) && !fbody;
+    //printf("isImportedSymbol() %s\n", toChars());
+    //printf("\tprotection = %d, fbody = %p\n", protection, fbody);
+    int r = (protection == PROTexport) && !fbody;
+    //printf("\t%d\n", r);
+    return r;
 }
 
 // Determine if function goes into virtual function pointer table
