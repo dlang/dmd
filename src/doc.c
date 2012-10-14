@@ -777,17 +777,26 @@ void EnumMember::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_e);
 }
 
-static void emitAnchorName(OutBuffer *buf, Dsymbol *s, bool dot = false)
+static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
 {
-    if (s && !s->isPackage() && !s->isModule())
-    {
-        emitAnchorName(buf, s->parent, true);
-        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
-         * We don't want the template parameter list and constraints. */
-        buf->writestring(s->Dsymbol::toChars());
-        if (dot)
-            buf->writeByte('.');
-    }
+    if (!s || s->isPackage() || s->isModule())
+        return false;
+
+    TemplateDeclaration *td;
+    bool dot;
+    
+    // Add parent names first
+    dot = emitAnchorName(buf, s->parent);
+    // Eponymous template members can share the parent anchor name
+    if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
+        td->onemember == s)
+        return dot;
+    if (dot)
+        buf->writeByte('.');
+    /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
+     * We don't want the template parameter list and constraints. */
+    buf->writestring(s->Dsymbol::toChars());
+    return true;
 }
 
 static void emitAnchor(OutBuffer *buf, Dsymbol *s)
