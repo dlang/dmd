@@ -245,17 +245,9 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         PROT protection = s->prot();
 
-        const char *protName =
-              protection == PROTundefined ? ""
-            : protection == PROTnone      ? "none"
-            : protection == PROTprivate   ? "private"
-            : protection == PROTpackage   ? "package"
-            : protection == PROTprotected ? "protected"
-            : protection == PROTpublic    ? "public"
-            : protection == PROTexport    ? "export"
-            : (assert(0), ""); // unknown
+        const char *protName = Pprotectionnames[protection];
 
-        StringExp *se = new StringExp(loc, (char*) protName);
+        StringExp *se = new StringExp(loc, (char *) protName);
         return se->semantic(sc);
     }
 

@@ -44,7 +44,6 @@ const char Ptype[] = "type";
 const char Pcomment[] = "comment";
 const char Pmembers[] = "members";
 const char Pprotection[] = "protection";
-const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
 void JsonRemoveComma(OutBuffer *buf);
 
