@@ -5120,6 +5120,11 @@ Expression *VarExp::toLvalue(Scope *sc, Expression *e)
     {   error("lazy variables cannot be lvalues");
         return new ErrorExp();
     }
+    if (var->ident == Id::ctfe)
+    {
+        error("compiler-generated variable __ctfe is not an lvalue");
+        return new ErrorExp();
+    }
     return this;
 }
 
@@ -10816,6 +10821,10 @@ Ltupleassign:
         op == TOKassign)
     {
         error("cannot rebind scope variables");
+    }
+    if (e1->op == TOKvar && ((VarExp*)e1)->var->ident == Id::ctfe)
+    {
+        error("cannot modify compiler-generated variable __ctfe");
     }
 
     type = e1->type;
