@@ -29,7 +29,7 @@ class TypeInfo_As : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "short[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         short[] s = *cast(short[]*)p;
         return hashOf(s.ptr, s.length * short.sizeof);

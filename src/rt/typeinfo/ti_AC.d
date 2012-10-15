@@ -26,10 +26,10 @@ class TypeInfo_AC : TypeInfo_Array
     //pure:
     //nothrow:
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         Object[] s = *cast(Object[]*)p;
-        hash_t hash = 0;
+        size_t hash = 0;
 
         foreach (Object o; s)
         {

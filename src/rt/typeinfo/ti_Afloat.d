@@ -29,7 +29,7 @@ class TypeInfo_Af : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "float[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         float[] s = *cast(float[]*)p;
         return hashOf(s.ptr, s.length * float.sizeof);

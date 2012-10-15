@@ -49,7 +49,7 @@ class TypeInfo_c : TypeInfo
 
     override string toString() const pure nothrow @safe { return "creal"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return hashOf(p, creal.sizeof);
     }
