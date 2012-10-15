@@ -26,7 +26,7 @@ class TypeInfo_D : TypeInfo
     pure:
     nothrow:
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return hashOf(p, dg.sizeof);
     }

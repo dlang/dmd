@@ -31,7 +31,7 @@ alias immutable(dchar)[] dstring;
 class Object
 {
     string   toString();
-    hash_t   toHash() @trusted nothrow;
+    size_t   toHash() @trusted nothrow;
     int      opCmp(Object o);
     bool     opEquals(Object o);
     bool     opEquals(Object lhs, Object rhs);
@@ -66,7 +66,7 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    hash_t   getHash(in void* p) @trusted nothrow const;
+    size_t   getHash(in void* p) @trusted nothrow const;
     bool     equals(in void* p1, in void* p2) const;
     int      compare(in void* p1, in void* p2) const;
     @property size_t   tsize() nothrow pure const @safe;
@@ -104,7 +104,7 @@ class TypeInfo_Array : TypeInfo
 {
     override string toString() const;
     override bool opEquals(Object o);
-    override hash_t getHash(in void* p) @trusted const;
+    override size_t getHash(in void* p) @trusted const;
     override bool equals(in void* p1, in void* p2) const;
     override int compare(in void* p1, in void* p2) const;
     override @property size_t tsize() nothrow pure const;
@@ -394,7 +394,7 @@ private:
     struct Slot
     {
         Slot *next;
-        hash_t hash;
+        size_t hash;
         Key key;
         Value value;
     }

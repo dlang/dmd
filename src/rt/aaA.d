@@ -75,7 +75,7 @@ struct Array
 struct aaA
 {
     aaA *next;
-    hash_t hash;
+    size_t hash;
     /* key   */
     /* value */
 }
@@ -143,7 +143,7 @@ private int _aaCmpAh_x(aaA *e1, aaA *e2)
 
 private void _aaInvAh_x(aaA *e)
 {
-    hash_t key_hash;
+    size_t key_hash;
     aaA *e1;
     aaA *e2;
 

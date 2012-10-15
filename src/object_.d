@@ -85,10 +85,10 @@ class Object
     /**
      * Compute hash function for Object.
      */
-    hash_t toHash() @trusted nothrow
+    size_t toHash() @trusted nothrow
     {
         // BUG: this prevents a compacting GC from working, needs to be fixed
-        return cast(hash_t)cast(void*)this;
+        return cast(size_t)cast(void*)this;
     }
 
     /**
@@ -246,7 +246,7 @@ class TypeInfo
         return (cast()super).toString();
     }
 
-    override hash_t toHash() @trusted const
+    override size_t toHash() @trusted const
     {
         try
         {
@@ -258,7 +258,7 @@ class TypeInfo
             // This should never happen; remove when toString() is made nothrow
 
             // BUG: this prevents a compacting GC from working, needs to be fixed
-            return cast(hash_t)cast(void*)this;
+            return cast(size_t)cast(void*)this;
         }
     }
 
@@ -285,7 +285,7 @@ class TypeInfo
     }
 
     /// Returns a hash of the instance of a type.
-    hash_t getHash(in void* p) @trusted nothrow const { return cast(hash_t)p; }
+    size_t getHash(in void* p) @trusted nothrow const { return cast(size_t)p; }
 
     /// Compares two instances for equality.
     bool equals(in void* p1, in void* p2) const { return p1 == p2; }
@@ -357,7 +357,7 @@ class TypeInfo_Vector : TypeInfo
         return c && this.base == c.base;
     }
 
-    override hash_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(in void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -390,7 +390,7 @@ class TypeInfo_Typedef : TypeInfo
                     this.base == c.base;
     }
 
-    override hash_t getHash(in void* p) const { return base.getHash(p); }
+    override size_t getHash(in void* p) const { return base.getHash(p); }
     override bool equals(in void* p1, in void* p2) const { return base.equals(p1, p2); }
     override int compare(in void* p1, in void* p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -431,9 +431,9 @@ class TypeInfo_Pointer : TypeInfo
         return c && this.m_next == c.m_next;
     }
 
-    override hash_t getHash(in void* p) @trusted const
+    override size_t getHash(in void* p) @trusted const
     {
-        return cast(hash_t)*cast(void**)p;
+        return cast(size_t)*cast(void**)p;
     }
 
     override bool equals(in void* p1, in void* p2) const
@@ -481,7 +481,7 @@ class TypeInfo_Array : TypeInfo
         return c && this.value == c.value;
     }
 
-    override hash_t getHash(in void* p) @trusted const
+    override size_t getHash(in void* p) @trusted const
     {
         void[] a = *cast(void[]*)p;
         return hashOf(a.ptr, a.length * value.tsize);
@@ -571,10 +571,10 @@ class TypeInfo_StaticArray : TypeInfo
                     this.value == c.value;
     }
 
-    override hash_t getHash(in void* p) @trusted const
+    override size_t getHash(in void* p) @trusted const
     {
         size_t sz = value.tsize;
-        hash_t hash = 0;
+        size_t hash = 0;
         for (size_t i = 0; i < len; i++)
             hash += value.getHash(p + i * sz);
         return hash;
@@ -801,7 +801,7 @@ class TypeInfo_Class : TypeInfo
         return c && this.info.name == c.info.name;
     }
 
-    override hash_t getHash(in void* p) @trusted const
+    override size_t getHash(in void* p) @trusted const
     {
         auto o = *cast(Object*)p;
         return o ? o.toHash() : 0;
@@ -928,7 +928,7 @@ class TypeInfo_Interface : TypeInfo
         return c && this.info.name == c.classinfo.name;
     }
 
-    override hash_t getHash(in void* p) @trusted const
+    override size_t getHash(in void* p) @trusted const
     {
         Interface* pi = **cast(Interface ***)*cast(void**)p;
         Object o = cast(Object)(*cast(void**)p - pi.offset);
@@ -993,7 +993,7 @@ class TypeInfo_Struct : TypeInfo
                     this.init().length == s.init().length;
     }
 
-    override hash_t getHash(in void* p) @safe pure nothrow const
+    override size_t getHash(in void* p) @safe pure nothrow const
     {
         assert(p);
         if (xtoHash)
@@ -1068,7 +1068,7 @@ class TypeInfo_Struct : TypeInfo
 
   @safe pure nothrow
   {
-    hash_t   function(in void*)           xtoHash;
+    size_t   function(in void*)           xtoHash;
     bool     function(in void*, in void*) xopEquals;
     int      function(in void*, in void*) xopCmp;
     char[]   function(in void*)           xtoString;
@@ -1144,7 +1144,7 @@ class TypeInfo_Tuple : TypeInfo
         return false;
     }
 
-    override hash_t getHash(in void* p) const
+    override size_t getHash(in void* p) const
     {
         assert(0);
     }
@@ -1210,7 +1210,7 @@ class TypeInfo_Const : TypeInfo
         return base.opEquals(t.base);
     }
 
-    override hash_t getHash(in void *p) const { return base.getHash(p); }
+    override size_t getHash(in void *p) const { return base.getHash(p); }
     override bool equals(in void *p1, in void *p2) const { return base.equals(p1, p2); }
     override int compare(in void *p1, in void *p2) const { return base.compare(p1, p2); }
     override @property size_t tsize() nothrow pure const { return base.tsize; }
@@ -2066,7 +2066,7 @@ private:
     struct Slot
     {
         Slot *next;
-        hash_t hash;
+        size_t hash;
         Key key;
         Value value;
     }

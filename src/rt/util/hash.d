@@ -23,7 +23,7 @@ version( AnyX86 )
 
 
 @trusted pure nothrow
-hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
+size_t hashOf( const (void)* buf, size_t len, size_t seed = 0 )
 {
     /*
      * This is Paul Hsieh's SuperFastHash algorithm, described here:
@@ -98,12 +98,12 @@ hash_t hashOf( const (void)* buf, size_t len, hash_t seed = 0 )
 // Check that hashOf works with CTFE
 unittest
 {
-    hash_t ctfeHash(string x)
+    size_t ctfeHash(string x)
     {
         return hashOf(x.ptr, x.length);
     }
 
     enum test_str = "Sample string";
-    enum hash_t hashVal = ctfeHash(test_str);
+    enum size_t hashVal = ctfeHash(test_str);
     assert(hashVal == hashOf(test_str.ptr, test_str.length));
 }

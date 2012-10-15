@@ -30,7 +30,7 @@ class TypeInfo_Ag : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "byte[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         byte[] s = *cast(byte[]*)p;
         return hashOf(s.ptr, s.length * byte.sizeof);
@@ -143,10 +143,10 @@ class TypeInfo_Aa : TypeInfo_Ag
 
     override string toString() const pure nothrow @safe { return "char[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         char[] s = *cast(char[]*)p;
-        hash_t hash = 0;
+        size_t hash = 0;
 
 version (all)
 {

@@ -29,7 +29,7 @@ class TypeInfo_Ai : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "int[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         int[] s = *cast(int[]*)p;
         return hashOf(s.ptr, s.length * int.sizeof);

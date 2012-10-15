@@ -24,7 +24,7 @@ class TypeInfo_v : TypeInfo
 
     override string toString() const pure nothrow @safe { return "void"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         assert(0);
     }

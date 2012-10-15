@@ -29,7 +29,7 @@ class TypeInfo_Al : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "long[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         long[] s = *cast(long[]*)p;
         return hashOf(s.ptr, s.length * long.sizeof);

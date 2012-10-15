@@ -29,7 +29,7 @@ class TypeInfo_Ar : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "cdouble[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         cdouble[] s = *cast(cdouble[]*)p;
         return hashOf(s.ptr, s.length * cdouble.sizeof);

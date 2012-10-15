@@ -29,7 +29,7 @@ class TypeInfo_Ae : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "real[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         real[] s = *cast(real[]*)p;
         return hashOf(s.ptr, s.length * real.sizeof);

@@ -24,7 +24,7 @@ class TypeInfo_s : TypeInfo
 
     override string toString() const pure nothrow @safe { return "short"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return *cast(short *)p;
     }
