@@ -106,7 +106,7 @@ version( CoreDdoc )
      * Returns:
      *  The value of 'val'.
      */
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq,T)( ref const shared T val ) nothrow
+    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq,T)( ref const shared T val ) nothrow
     {
         return HeadUnshared!(T).init;
     }
@@ -120,7 +120,7 @@ version( CoreDdoc )
      *  val    = The target variable.
      *  newval = The value to store.
      */
-    void atomicStore(msync ms = msync.seq,T,V1)( ref shared T val, V1 newval ) nothrow
+    void atomicStore(MemoryOrder ms = MemoryOrder.seq,T,V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
 
@@ -128,15 +128,17 @@ version( CoreDdoc )
 
 
     /**
-     *
+     * Specifies the memory ordering semantics of an atomic operation.
      */
-    enum msync
+    enum MemoryOrder
     {
-        raw,    /// not sequenced
-        acq,    /// hoist-load + hoist-store barrier
-        rel,    /// sink-load + sink-store barrier
-        seq,    /// fully sequenced (acq + rel)
+        raw,    /// Not sequenced.
+        acq,    /// Hoist-load + hoist-store barrier.
+        rel,    /// Sink-load + sink-store barrier.
+        seq,    /// Fully sequenced (acquire + release).
     }
+
+    deprecated alias MemoryOrder msync; /// Deprecated. Please use MemoryOrder instead.
 
     /**
      * Inserts a full load/store memory fence (on platforms that need it). This ensures
@@ -172,7 +174,7 @@ else version( AsmX86_32 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(MemoryOrder.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -188,7 +190,7 @@ else version( AsmX86_32 )
 
             do
             {
-                get = set = atomicLoad!(msync.raw)( val );
+                get = set = atomicLoad!(MemoryOrder.raw)( val );
                 mixin( "set " ~ op ~ " mod;" );
             } while( !cas( &val, get, set ) );
             return set;
@@ -308,29 +310,30 @@ else version( AsmX86_32 )
     }
 
 
-
-    enum msync
+    enum MemoryOrder
     {
-        raw,    /// not sequenced
-        acq,    /// hoist-load + hoist-store barrier
-        rel,    /// sink-load + sink-store barrier
-        seq,    /// fully sequenced (acq + rel)
+        raw,
+        acq,
+        rel,
+        seq,
     }
+
+    deprecated alias MemoryOrder msync;
 
 
     private
     {
-        template isHoistOp(msync ms)
+        template isHoistOp(MemoryOrder ms)
         {
-            enum bool isHoistOp = ms == msync.acq ||
-                                  ms == msync.seq;
+            enum bool isHoistOp = ms == MemoryOrder.acq ||
+                                  ms == MemoryOrder.seq;
         }
 
 
-        template isSinkOp(msync ms)
+        template isSinkOp(MemoryOrder ms)
         {
-            enum bool isSinkOp = ms == msync.rel ||
-                                 ms == msync.seq;
+            enum bool isSinkOp = ms == MemoryOrder.rel ||
+                                 ms == MemoryOrder.seq;
         }
 
 
@@ -346,24 +349,24 @@ else version( AsmX86_32 )
         //       of loads in some instances.
         //
         //       For reference, the old behavior (acquire semantics for loads)
-        //       required a memory barrier if: ms == msync.seq || isSinkOp!(ms)
-        template needsLoadBarrier( msync ms )
+        //       required a memory barrier if: ms == MemoryOrder.seq || isSinkOp!(ms)
+        template needsLoadBarrier( MemoryOrder ms )
         {
-            const bool needsLoadBarrier = ms != msync.raw;
+            enum bool needsLoadBarrier = ms != MemoryOrder.raw;
         }
 
 
         // NOTE: x86 stores implicitly have release semantics so a memory
         //       barrier is only necessary on acquires.
-        template needsStoreBarrier( msync ms )
+        template needsStoreBarrier( MemoryOrder ms )
         {
-            const bool needsStoreBarrier = ms == msync.seq ||
-                                                 isHoistOp!(ms);
+            enum bool needsStoreBarrier = ms == MemoryOrder.seq ||
+                                                isHoistOp!(ms);
         }
     }
 
 
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
+    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) nothrow
     if(!__traits(isFloating, T))
     {
         static if( T.sizeof == byte.sizeof )
@@ -471,7 +474,7 @@ else version( AsmX86_32 )
         }
     }
 
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval ) nothrow
+    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
@@ -644,7 +647,7 @@ else version( AsmX86_64 )
                    op == "==" || op == "!=" || op == "<"  || op == "<="  ||
                    op == ">"  || op == ">=" )
         {
-            HeadUnshared!(T) get = atomicLoad!(msync.raw)( val );
+            HeadUnshared!(T) get = atomicLoad!(MemoryOrder.raw)( val );
             mixin( "return get " ~ op ~ " mod;" );
         }
         else
@@ -660,7 +663,7 @@ else version( AsmX86_64 )
 
             do
             {
-                get = set = atomicLoad!(msync.raw)( val );
+                get = set = atomicLoad!(MemoryOrder.raw)( val );
                 mixin( "set " ~ op ~ " mod;" );
             } while( !cas( &val, get, set ) );
             return set;
@@ -773,28 +776,30 @@ else version( AsmX86_64 )
     }
 
 
-    enum msync
+    enum MemoryOrder
     {
-        raw,    /// not sequenced
-        acq,    /// hoist-load + hoist-store barrier
-        rel,    /// sink-load + sink-store barrier
-        seq,    /// fully sequenced (acq + rel)
+        raw,
+        acq,
+        rel,
+        seq,
     }
+
+    deprecated alias MemoryOrder msync;
 
 
     private
     {
-        template isHoistOp(msync ms)
+        template isHoistOp(MemoryOrder ms)
         {
-            enum bool isHoistOp = ms == msync.acq ||
-                                  ms == msync.seq;
+            enum bool isHoistOp = ms == MemoryOrder.acq ||
+                                  ms == MemoryOrder.seq;
         }
 
 
-        template isSinkOp(msync ms)
+        template isSinkOp(MemoryOrder ms)
         {
-            enum bool isSinkOp = ms == msync.rel ||
-                                 ms == msync.seq;
+            enum bool isSinkOp = ms == MemoryOrder.rel ||
+                                 ms == MemoryOrder.seq;
         }
 
 
@@ -810,24 +815,24 @@ else version( AsmX86_64 )
         //       of loads in some instances.
         //
         //       For reference, the old behavior (acquire semantics for loads)
-        //       required a memory barrier if: ms == msync.seq || isSinkOp!(ms)
-        template needsLoadBarrier( msync ms )
+        //       required a memory barrier if: ms == MemoryOrder.seq || isSinkOp!(ms)
+        template needsLoadBarrier( MemoryOrder ms )
         {
-            const bool needsLoadBarrier = ms != msync.raw;
+            enum bool needsLoadBarrier = ms != MemoryOrder.raw;
         }
 
 
         // NOTE: x86 stores implicitly have release semantics so a memory
         //       barrier is only necessary on acquires.
-        template needsStoreBarrier( msync ms )
+        template needsStoreBarrier( MemoryOrder ms )
         {
-            const bool needsStoreBarrier = ms == msync.seq ||
-                                                 isHoistOp!(ms);
+            enum bool needsStoreBarrier = ms == MemoryOrder.seq ||
+                                                isHoistOp!(ms);
         }
     }
 
 
-    HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
+    HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) nothrow
     if(!__traits(isFloating, T)) {
         static if( T.sizeof == byte.sizeof )
         {
@@ -940,7 +945,7 @@ else version( AsmX86_64 )
     }
 
 
-    void atomicStore(msync ms = msync.seq, T, V1)( ref shared T val, V1 newval ) nothrow
+    void atomicStore(MemoryOrder ms = MemoryOrder.seq, T, V1)( ref shared T val, V1 newval ) nothrow
         if( __traits( compiles, { val = newval; } ) )
     {
         static if( T.sizeof == byte.sizeof )
@@ -1071,7 +1076,7 @@ else version( AsmX86_64 )
 // floats and doubles to ints and longs, atomically loads them, then puns
 // them back.  This is necessary so that they get returned in floating
 // point instead of integer registers.
-HeadUnshared!(T) atomicLoad(msync ms = msync.seq, T)( ref const shared T val ) nothrow
+HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) nothrow
 if(__traits(isFloating, T))
 {
     static if(T.sizeof == int.sizeof)
@@ -1120,7 +1125,7 @@ version( unittest )
         assert( atom is val, T.stringof );
     }
 
-    void testLoadStore(msync ms = msync.seq, T)( T val = T.init + 1 ) pure nothrow
+    void testLoadStore(MemoryOrder ms = MemoryOrder.seq, T)( T val = T.init + 1 ) pure nothrow
     {
         T         base = cast(T) 0;
         shared(T) atom = cast(T) 0;
@@ -1138,8 +1143,8 @@ version( unittest )
     void testType(T)( T val = T.init + 1 ) pure nothrow
     {
         testCAS!(T)( val );
-        testLoadStore!(msync.seq, T)( val );
-        testLoadStore!(msync.raw, T)( val );
+        testLoadStore!(MemoryOrder.seq, T)( val );
+        testLoadStore!(MemoryOrder.raw, T)( val );
     }
 
 
