@@ -53,14 +53,14 @@ version(D_LP64)
 {
     alias ulong size_t;
     alias long  ptrdiff_t;
-    alias long  sizediff_t;
 }
 else
 {
     alias uint  size_t;
     alias int   ptrdiff_t;
-    alias int   sizediff_t;
 }
+
+alias ptrdiff_t sizediff_t; //For backwards compatibility only.
 
 alias size_t hash_t; //For backwards compatibility only.
 alias bool equals_t; //For backwards compatibility only.
