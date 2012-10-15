@@ -399,6 +399,18 @@ void bug4838()
     static assert(typeof(dgsw).stringof == "void delegate() shared inout");
 }
 
+void test8822()
+{
+    struct S { void foo() const {} }
+    S s;
+    void delegate() const dg = &s.foo;      // OK
+
+    void foo(void delegate() const dg){}    // OK
+
+    struct Foo(T) {}
+    alias Foo!(void delegate() const) X;    // NG -> OK
+}
+
 void main()
 {
     static assert(is(typeof(&main) P : U*, U));

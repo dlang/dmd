@@ -4754,6 +4754,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
                 t = peek(t);
                 if (!isParameters(&t))
                     return FALSE;
+                skipAttributes(t, &t);
                 continue;
         }
         break;
