@@ -23,7 +23,7 @@ class TypeInfo_c : TypeInfo
     pure:
     nothrow:
 
-    static equals_t _equals(creal f1, creal f2)
+    static bool _equals(creal f1, creal f2)
     {
         return f1 == f2;
     }
@@ -54,7 +54,7 @@ class TypeInfo_c : TypeInfo
         return hashOf(p, creal.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return _equals(*cast(creal *)p1, *cast(creal *)p2);
     }

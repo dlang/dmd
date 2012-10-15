@@ -31,7 +31,7 @@ class TypeInfo_m : TypeInfo
         return hashOf(p, ulong.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(ulong *)p1 == *cast(ulong *)p2;
     }

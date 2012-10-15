@@ -29,7 +29,7 @@ class TypeInfo_v : TypeInfo
         assert(0);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(byte *)p1 == *cast(byte *)p2;
     }

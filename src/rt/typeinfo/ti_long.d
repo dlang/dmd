@@ -31,7 +31,7 @@ class TypeInfo_l : TypeInfo
         return hashOf(p, long.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(long *)p1 == *cast(long *)p2;
     }

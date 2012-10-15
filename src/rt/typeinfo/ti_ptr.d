@@ -27,7 +27,7 @@ class TypeInfo_P : TypeInfo
         return cast(uint)*cast(void* *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(void* *)p1 == *cast(void* *)p2;
     }
