@@ -267,8 +267,11 @@ void vwarning(Loc loc, const char *format, va_list ap)
 void vdeprecation(Loc loc, const char *format, va_list ap,
 		const char *p1, const char *p2)
 {
-    if (!global.params.useDeprecated)
-        verror(loc, format, ap, p1, p2, "Deprecation: ");
+    static const char *header = "Deprecation: ";
+    if (global.params.useDeprecated == 0)
+        verror(loc, format, ap, p1, p2, header);
+    else if (global.params.useDeprecated == 2 && !global.gag)
+        verrorPrint(loc, header, format, ap, p1, p2);
 }
 
 /***************************************
@@ -323,6 +326,7 @@ Usage:\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
   -d             allow deprecated features\n\
+  -di            show use of deprecated features as warnings\n\
   -debug         compile in debug code\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
@@ -527,6 +531,8 @@ int tryMain(int argc, char *argv[])
         {
             if (strcmp(p + 1, "d") == 0)
                 global.params.useDeprecated = 1;
+            else if (strcmp(p + 1, "di") == 0)
+                global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;
             else if (strcmp(p + 1, "cov") == 0)

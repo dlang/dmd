@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -di
 // REQUIRED_ARGS: -H -Hdtest_results/compilable
 // POST_SCRIPT: compilable/extra-files/header-postscript.sh
 // REQUIRED_ARGS: -d
