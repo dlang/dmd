@@ -249,7 +249,7 @@ body
 
     if (!aa.a)
     {   aa.a = new BB();
-        aa.a.b = aa.a.binit;
+        aa.a.b = aa.a.binit[];
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
