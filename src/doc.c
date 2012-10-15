@@ -793,9 +793,16 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
         return dot;
     if (dot)
         buf->writeByte('.');
-    /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
-     * We don't want the template parameter list and constraints. */
-    buf->writestring(s->Dsymbol::toChars());
+    // Use "this" not "__ctor"
+    if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
+        td->onemember && td->onemember->isCtorDeclaration()))
+        buf->writestring("this");
+    else
+    {
+        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
+         * We don't want the template parameter list and constraints. */
+        buf->writestring(s->Dsymbol::toChars());
+    }
     return true;
 }
 
