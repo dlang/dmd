@@ -19,10 +19,11 @@ private
 
 alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
-alias ptrdiff_t                             sizediff_t;
 
-alias size_t hash_t;
-alias bool equals_t;
+alias ptrdiff_t sizediff_t; //For backwards compatibility only.
+
+alias size_t hash_t; //For backwards compatibility only.
+alias bool equals_t; //For backwards compatibility only.
 
 alias immutable(char)[]  string;
 alias immutable(wchar)[] wstring;
