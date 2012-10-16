@@ -5800,6 +5800,10 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
                 ilwr+ofs, iupr+ofs, len);
             return EXP_CANT_INTERPRET;
         }
+        if (ofs != 0)
+        {   lwr = new IntegerExp(loc, ilwr+ofs, lwr->type);
+            upr = new IntegerExp(loc, iupr+ofs, upr->type);
+        }
         e = new SliceExp(loc, agg, lwr, upr);
         e->type = type;
         return e;
