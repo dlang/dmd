@@ -551,16 +551,22 @@ static void trace_pro(char[] id)
     //  trace_tos.ohd,trace_ohd,t,starttime);
 }
 
+void _c_trace_pro(size_t idlen, char* idptr)
+{
+    char[] id = idptr[0 .. idlen];
+    trace_pro(id);
+}
+
 /////////////////////////////////////////
 //
 
-static void trace_epi()
+void _c_trace_epi()
 {   Stack* n;
     timer_t endtime;
     timer_t t;
     timer_t ohd;
 
-    //printf("trace_epi()\n");
+    //printf("_c_trace_epi()\n");
     if (trace_tos)
     {
         timer_t starttime;
@@ -1045,7 +1051,7 @@ void _trace_epi_n()
                 pushad          ;
                 sub     ESP,12  ;
             }
-            trace_epi();
+            _c_trace_epi();
             asm
             {
                 add     ESP,12  ;
@@ -1070,10 +1076,10 @@ void _trace_epi_n()
                 movdqu  0*16[RSP], XMM0;
                 movdqu  1*16[RSP], XMM1;
                 /* Don't worry about saving ST0/1
-                 * Hope trace_epi() doesn't change them
+                 * Hope _c_trace_epi() doesn't change them
                  */
             }
-            trace_epi();
+            _c_trace_epi();
             asm
             {
                 movdqu  XMM0, 0*16[RSP];
@@ -1103,7 +1109,7 @@ void _trace_epi_n()
                 naked           ;
                 pushad          ;
             }
-            trace_epi();
+            _c_trace_epi();
             asm
             {
                 popad           ;
@@ -1128,10 +1134,10 @@ void _trace_epi_n()
                 movdqu  0*16[RSP], XMM0;
                 movdqu  1*16[RSP], XMM1;
                 /* Don't worry about saving ST0/1
-                 * Hope trace_epi() doesn't change them
+                 * Hope _c_trace_epi() doesn't change them
                  */
             }
-            trace_epi();
+            _c_trace_epi();
             asm
             {
                 movdqu  XMM0, 0*16[RSP];
