@@ -24,12 +24,12 @@ class TypeInfo_w : TypeInfo
 
     override string toString() const pure nothrow @safe { return "dchar"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return *cast(dchar *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(dchar *)p1 == *cast(dchar *)p2;
     }

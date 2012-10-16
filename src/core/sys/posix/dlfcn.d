@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -45,6 +45,16 @@ version( linux )
     char* dlerror();
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
+    int   dladdr(void* addr, Dl_info* info);
+    void* dlvsym(void* handle, in char* symbol, in char* version_);
+
+    struct Dl_info
+    {
+        const(char)* dli_fname;
+        void*        dli_fbase;
+        const(char)* dli_sname;
+        void*        dli_saddr;
+    }
 }
 else version( OSX )
 {
@@ -57,6 +67,15 @@ else version( OSX )
     char* dlerror();
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
+    int   dladdr(void* addr, Dl_info* info);
+
+    struct Dl_info
+    {
+        const(char)* dli_fname;
+        void*        dli_fbase;
+        const(char)* dli_sname;
+        void*        dli_saddr;
+    }
 }
 else version( FreeBSD )
 {
@@ -69,4 +88,13 @@ else version( FreeBSD )
     char* dlerror();
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
+    int   dladdr(const(void)* addr, Dl_info* info);
+
+    struct Dl_info
+    {
+        const(char)* dli_fname;
+        void*        dli_fbase;
+        const(char)* dli_sname;
+        void*        dli_saddr;
+    }
 }

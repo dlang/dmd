@@ -19,10 +19,11 @@ private
 
 alias typeof(int.sizeof)                    size_t;
 alias typeof(cast(void*)0 - cast(void*)0)   ptrdiff_t;
-alias ptrdiff_t                             sizediff_t;
 
-alias size_t hash_t;
-alias bool equals_t;
+alias ptrdiff_t sizediff_t; //For backwards compatibility only.
+
+alias size_t hash_t; //For backwards compatibility only.
+alias bool equals_t; //For backwards compatibility only.
 
 alias immutable(char)[]  string;
 alias immutable(wchar)[] wstring;
@@ -31,10 +32,10 @@ alias immutable(dchar)[] dstring;
 class Object
 {
     string   toString();
-    hash_t   toHash() @trusted nothrow;
+    size_t   toHash() @trusted nothrow;
     int      opCmp(Object o);
-    equals_t opEquals(Object o);
-    equals_t opEquals(Object lhs, Object rhs);
+    bool     opEquals(Object o);
+    bool     opEquals(Object lhs, Object rhs);
 
     interface Monitor
     {
@@ -66,8 +67,8 @@ struct OffsetTypeInfo
 
 class TypeInfo
 {
-    hash_t   getHash(in void* p) @trusted nothrow const;
-    equals_t equals(in void* p1, in void* p2) const;
+    size_t   getHash(in void* p) @trusted nothrow const;
+    bool     equals(in void* p1, in void* p2) const;
     int      compare(in void* p1, in void* p2) const;
     @property size_t   tsize() nothrow pure const @safe;
     void     swap(void* p1, void* p2) const;
@@ -103,9 +104,9 @@ class TypeInfo_Pointer : TypeInfo
 class TypeInfo_Array : TypeInfo
 {
     override string toString() const;
-    override equals_t opEquals(Object o);
-    override hash_t getHash(in void* p) @trusted const;
-    override equals_t equals(in void* p1, in void* p2) const;
+    override bool opEquals(Object o);
+    override size_t getHash(in void* p) @trusted const;
+    override bool equals(in void* p1, in void* p2) const;
     override int compare(in void* p1, in void* p2) const;
     override @property size_t tsize() nothrow pure const;
     override void swap(void* p1, void* p2) const;
@@ -190,7 +191,7 @@ class TypeInfo_Struct : TypeInfo
   @safe pure nothrow
   {
     uint function(in void*)               xtoHash;
-    equals_t function(in void*, in void*) xopEquals;
+    bool function(in void*, in void*) xopEquals;
     int function(in void*, in void*)      xopCmp;
     string function(in void*)             xtoString;
 
@@ -394,7 +395,7 @@ private:
     struct Slot
     {
         Slot *next;
-        hash_t hash;
+        size_t hash;
         Key key;
         Value value;
     }

@@ -23,7 +23,7 @@ class TypeInfo_e : TypeInfo
     pure:
     nothrow:
 
-    static equals_t _equals(real f1, real f2)
+    static bool _equals(real f1, real f2)
     {
         return f1 == f2 ||
                 (f1 !<>= f1 && f2 !<>= f2);
@@ -48,12 +48,12 @@ class TypeInfo_e : TypeInfo
 
     override string toString() const pure nothrow @safe { return "real"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return hashOf(p, real.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return _equals(*cast(real *)p1, *cast(real *)p2);
     }

@@ -24,12 +24,12 @@ class TypeInfo_h : TypeInfo
 
     override string toString() const pure nothrow @safe { return "ubyte"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return *cast(ubyte *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(ubyte *)p1 == *cast(ubyte *)p2;
     }

@@ -22,13 +22,13 @@ class TypeInfo_C : TypeInfo
     //pure:
     //nothrow:
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         Object o = *cast(Object*)p;
         return o ? o.toHash() : 0;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         Object o1 = *cast(Object*)p1;
         Object o2 = *cast(Object*)p2;

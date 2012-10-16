@@ -24,12 +24,12 @@ class TypeInfo_u : TypeInfo
 
     override string toString() { return "wchar"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return *cast(wchar *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return *cast(wchar *)p1 == *cast(wchar *)p2;
     }

@@ -21,7 +21,7 @@ class TypeInfo_f : TypeInfo
     pure:
     nothrow:
 
-    static equals_t _equals(float f1, float f2)
+    static bool _equals(float f1, float f2)
     {
         return f1 == f2 ||
                 (f1 !<>= f1 && f2 !<>= f2);
@@ -46,12 +46,12 @@ class TypeInfo_f : TypeInfo
 
     override string toString() const pure nothrow @safe { return "float"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return *cast(uint *)p;
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return _equals(*cast(float *)p1, *cast(float *)p2);
     }

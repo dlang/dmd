@@ -23,7 +23,7 @@ class TypeInfo_q : TypeInfo
     pure:
     nothrow:
 
-    static equals_t _equals(cfloat f1, cfloat f2)
+    static bool _equals(cfloat f1, cfloat f2)
     {
         return f1 == f2;
     }
@@ -49,12 +49,12 @@ class TypeInfo_q : TypeInfo
 
     override string toString() const pure nothrow @safe { return "cfloat"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         return hashOf(p, cfloat.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         return _equals(*cast(cfloat *)p1, *cast(cfloat *)p2);
     }

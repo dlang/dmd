@@ -20,7 +20,7 @@ private import rt.util.hash;
 
 class TypeInfo_Ae : TypeInfo_Array
 {
-    override equals_t opEquals(Object o) { return TypeInfo.opEquals(o); }
+    override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
     @trusted:
     const:
@@ -29,13 +29,13 @@ class TypeInfo_Ae : TypeInfo_Array
 
     override string toString() const pure nothrow @safe { return "real[]"; }
 
-    override hash_t getHash(in void* p)
+    override size_t getHash(in void* p)
     {
         real[] s = *cast(real[]*)p;
         return hashOf(s.ptr, s.length * real.sizeof);
     }
 
-    override equals_t equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2)
     {
         real[] s1 = *cast(real[]*)p1;
         real[] s2 = *cast(real[]*)p2;
