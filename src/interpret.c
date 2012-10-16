@@ -7153,7 +7153,7 @@ Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
     size_t d = dim->toInteger();
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
-    {   if (mustCopy)
+    {   if (mustCopy && i > 0)
             elem  = copyLiteral(elem);
         (*elements)[i] = elem;
     }
