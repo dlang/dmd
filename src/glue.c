@@ -886,6 +886,30 @@ void FuncDeclaration::toObjFile(int multiobj)
         bx.member = func;
         bx.module = getModule();
         irs.blx = &bx;
+
+        /* If profiling, insert call to the profiler here.
+         *      _c_trace_pro(char* funcname);
+         */
+        if (global.params.trace)
+        {
+            dt_t *dt = NULL;
+
+            char *id = s->Sident;
+            size_t len = strlen(id);
+            dtnbytes(&dt, len + 1, id);
+
+            Symbol *sfuncname = symbol_generate(SCstatic,type_fake(TYchar));
+            sfuncname->Sdt = dt;
+            sfuncname->Sfl = FLdata;
+            out_readonly(sfuncname);
+            outdata(sfuncname);
+            elem *efuncname = el_ptr(sfuncname);
+
+            elem *eparam = el_params(efuncname, el_long(TYsize_t, len), NULL);
+            elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_TRACE_CPRO]), eparam);
+            block_appendexp(bx.curblock, e);
+        }
+
 #if DMDV2
         buildClosure(&irs);
 #endif

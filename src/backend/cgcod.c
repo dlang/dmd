@@ -806,7 +806,7 @@ Lagain:
         prolog_allocoffset = calcblksize(c);
     }
 
-
+#if SCPP
     /*  The idea is to generate trace for all functions if -Nc is not thrown.
      *  If -Nc is thrown, generate trace only for global COMDATs, because those
      *  are relevant to the FUNCTIONS statement in the linker .DEF file.
@@ -840,6 +840,7 @@ Lagain:
             c = cod3_stackadj(c, -spalign);
         useregs((ALLREGS | mBP | mES) & ~regsaved);
     }
+#endif
 
 #if MARS
     if (usednteh & NTEHjmonitor)
