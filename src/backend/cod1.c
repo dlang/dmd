@@ -2785,7 +2785,7 @@ code *cdfunc(elem *e,regm_t *pretregs)
                 code *c1 = getregs(retregs);
                 // LEA preg,np[RSP]
                 unsigned np = stackpush - ep->EV.Vuns;   // stack delta to parameter
-                code *c2 = genc1(CNIL,0x8D,
+                code *c2 = genc1(CNIL,LEA,
                         (modregrm(0,4,SP) << 8) | modregxrm(2,preg,4), FLconst,np);
                 if (I64)
                     code_orrex(c2, REX_W);

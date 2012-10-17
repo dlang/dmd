@@ -52,7 +52,7 @@ dt_t *unwind_data();
 
 void win64_pdata(Symbol *sf)
 {
-return; // doesn't work yet
+    return; // doesn't work yet
 
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
@@ -208,9 +208,15 @@ dt_t *unwind_data()
     ui.Version = 1;
     //ui.Flags = 0;
     ui.SizeOfProlog = startoffset;
+#if 0
+    ui.CountOfCodes = strategy + 1;
+    ui.FrameRegister = 0;
+    ui.FrameOffset = 0;
+#else
     ui.CountOfCodes = strategy + 2;
     ui.FrameRegister = BP;
     ui.FrameOffset = cod3_spoff() / 16;
+#endif
 
     switch (strategy)
     {
@@ -241,13 +247,15 @@ dt_t *unwind_data()
             break;
     }
 
+#if 1
     ui.UnwindCode[strategy].op.CodeOffset = 4;
     ui.UnwindCode[strategy].op.UnwindOp = UWOP_SET_FPREG;
     ui.UnwindCode[strategy].op.OpInfo = 0;
+#endif
 
-    ui.UnwindCode[strategy+1].op.CodeOffset = 1;
-    ui.UnwindCode[strategy+1].op.UnwindOp = UWOP_PUSH_NONVOL;
-    ui.UnwindCode[strategy+1].op.OpInfo = BP;
+    ui.UnwindCode[ui.CountOfCodes-1].op.CodeOffset = 1;
+    ui.UnwindCode[ui.CountOfCodes-1].op.UnwindOp = UWOP_PUSH_NONVOL;
+    ui.UnwindCode[ui.CountOfCodes-1].op.OpInfo = BP;
 
     dt_t *dt = NULL;
     dt_t **pdt = &dt;
