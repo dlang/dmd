@@ -3070,11 +3070,11 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     {
         uinteger_t len1 = resolveArrayLength(e1);
         uinteger_t len2 = resolveArrayLength(e2);
-        if (len1 != len2) // only for equality
+        uinteger_t len = (len1 < len2 ? len1 : len2);
+        int res = len == 0 ? 0 : ctfeCmpArrays(loc, e1, e2, len);
+        if (res == 0) // if equal, the longer is greater
             return len1 - len2;
-        if (len1 == 0 || len2 == 0)
-            return len1 - len2;  // Equal - both are empty
-        return ctfeCmpArrays(loc, e1, e2, len1);
+        return res;
     }
     if (e1->type->isintegral())
     {
