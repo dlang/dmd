@@ -52,7 +52,7 @@ dt_t *unwind_data();
 
 void win64_pdata(Symbol *sf)
 {
-    return; // doesn't work yet
+//    return; // doesn't work yet
 
     //printf("win64_pdata()\n");
     assert(config.exe == EX_WIN64);
@@ -81,7 +81,7 @@ void win64_pdata(Symbol *sf)
     pdt = dtxoff(pdt,sf,retoffset + retsize,TYint);
     pdt = dtxoff(pdt,sunwind,0,TYint);
 
-    spdata->Sseg = MsCoffObj::seg_pdata();
+    spdata->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_pdata_comdat() : MsCoffObj::seg_pdata();
     spdata->Salignment = 4;
     outdata(spdata);
 }
@@ -108,7 +108,7 @@ Symbol *win64_unwind(Symbol *sf)
     symbol_debug(sunwind);
 
     sunwind->Sdt = unwind_data();
-    sunwind->Sseg = MsCoffObj::seg_xdata();
+    sunwind->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_xdata_comdat() : MsCoffObj::seg_xdata();
     sunwind->Salignment = 1;
     outdata(sunwind);
     return sunwind;
@@ -213,11 +213,13 @@ dt_t *unwind_data()
     ui.FrameRegister = 0;
     ui.FrameOffset = 0;
 #else
+    strategy = 0;
     ui.CountOfCodes = strategy + 2;
     ui.FrameRegister = BP;
-    ui.FrameOffset = cod3_spoff() / 16;
+    ui.FrameOffset = 0; //cod3_spoff() / 16;
 #endif
 
+#if 0
     switch (strategy)
     {
         case 0:
@@ -246,11 +248,12 @@ dt_t *unwind_data()
             ui.UnwindCode[2].FrameOffset = sz / 0x10000;
             break;
     }
+#endif
 
 #if 1
-    ui.UnwindCode[strategy].op.CodeOffset = 4;
-    ui.UnwindCode[strategy].op.UnwindOp = UWOP_SET_FPREG;
-    ui.UnwindCode[strategy].op.OpInfo = 0;
+    ui.UnwindCode[ui.CountOfCodes-2].op.CodeOffset = 4;
+    ui.UnwindCode[ui.CountOfCodes-2].op.UnwindOp = UWOP_SET_FPREG;
+    ui.UnwindCode[ui.CountOfCodes-2].op.OpInfo = 0;
 #endif
 
     ui.UnwindCode[ui.CountOfCodes-1].op.CodeOffset = 1;

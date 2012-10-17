@@ -860,6 +860,7 @@ void MsCoffObj::term()
         if (pseg->SDrel)
         {   Relocation *r = (Relocation *)pseg->SDrel->buf;
             size_t sz = pseg->SDrel->size();
+            bool pdata = (strcmp(psechdr->s_name, ".pdata") == 0);
             Relocation *rend = (Relocation *)(pseg->SDrel->buf + sz);
             foffset = elf_align(4, foffset);
 #ifdef DEBUG
@@ -933,7 +934,7 @@ void MsCoffObj::term()
                     else
                     {
 //printf("test2\n");
-                        if (seg == segidx_pdata)
+                        if (pdata)
                             rel.r_type = IMAGE_REL_AMD64_ADDR32NB;
                         else
                             rel.r_type = IMAGE_REL_AMD64_ADDR64;
@@ -1724,6 +1725,24 @@ segidx_t MsCoffObj::seg_pdata()
 segidx_t MsCoffObj::seg_xdata()
 {
     return segidx_xdata;
+}
+
+segidx_t MsCoffObj::seg_pdata_comdat()
+{
+    segidx_t seg = MsCoffObj::getsegment(".pdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                          IMAGE_SCN_ALIGN_4BYTES |
+                                          IMAGE_SCN_MEM_READ |
+                                          IMAGE_SCN_LNK_COMDAT);
+    return seg;
+}
+
+segidx_t MsCoffObj::seg_xdata_comdat()
+{
+    segidx_t seg = MsCoffObj::getsegment(".xdata", IMAGE_SCN_CNT_INITIALIZED_DATA |
+                                          IMAGE_SCN_ALIGN_4BYTES |
+                                          IMAGE_SCN_MEM_READ |
+                                          IMAGE_SCN_LNK_COMDAT);
+    return seg;
 }
 
 /*******************************

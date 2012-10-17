@@ -95,8 +95,8 @@ void cod3_set32() { assert(0); }
 void cod3_set64() { assert(0); }
 void cod3_thunk(symbol* sthunk, symbol* sfunc, unsigned p, tym_t thisty, targ_size_t d, int i, targ_size_t d2) { assert(0); }
 void genEEcode() { assert(0); }
-void gensaverestore(regm_t regm, code** csave, code** crestore) { assert(0); }
-void gensaverestore2(regm_t regm, code** csave, code** crestore) { assert(0); }
+unsigned gensaverestore(regm_t regm, code** csave, code** crestore) { assert(0); return 0; }
+unsigned gensaverestore2(regm_t regm, code** csave, code** crestore) { assert(0); return 0; }
 
 const unsigned char* getintegerparamsreglist(tym_t tyf, size_t* num) { assert(0); *num = 0; return NULL; }
 const unsigned char* getfloatparamsreglist(tym_t tyf, size_t* num) { assert(0); *num = 0; return NULL; }
