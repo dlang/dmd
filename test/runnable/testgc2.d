@@ -13,6 +13,7 @@ void test1()
     try
     {
         long[] l = new long[ptrdiff_t.max];
+        printf("%lu\n", cast(ulong)l.capacity); // Make sure l is not optimized out.
         assert(0);
     }
     catch (OutOfMemoryError o)
@@ -23,6 +24,7 @@ void test1()
     try
     {
         byte[] b = new byte[size_t.max / 3];
+        printf("%lu\n", cast(ulong)b.capacity); // Make sure b is not optimized out.
         version (Windows)
             assert(0);
     }
