@@ -2766,7 +2766,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
              */
             tok = token.value;
             nextToken();
-            if (token.value == TOKidentifier && peek(&token)->value == TOKthis)
+            if (token.value == TOKidentifier && peekNext() == TOKthis)
             {
                 AliasThis *s = new AliasThis(loc, token.ident);
                 nextToken();
@@ -2778,9 +2778,24 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 return a;
             }
             /* Look for:
+             *  alias this = identifier;
+             */
+            if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
+            {
+                check(TOKthis);
+                check(TOKassign);
+                AliasThis *s = new AliasThis(loc, token.ident);
+                nextToken();
+                check(TOKsemicolon);
+                a = new Dsymbols();
+                a->push(s);
+                addComment(s, comment);
+                return a;
+            }
+            /* Look for:
              *  alias identifier = type;
              */
-            if (token.value == TOKidentifier && peek(&token)->value == TOKassign)
+            if (token.value == TOKidentifier && peekNext() == TOKassign)
             {
                 a = new Dsymbols();
                 while (1)

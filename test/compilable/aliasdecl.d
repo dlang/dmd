@@ -23,4 +23,13 @@ void main()
     alias Y4 = void delegate() const, Y5 = Test!int;
     static assert(is(Y4 == void delegate() const));
     static assert(is(Y5.Type == int));
+
+    struct S
+    {
+        int value;
+        alias this = value;
+    }
+    auto s = S(10);
+    int n = s;
+    assert(n == 10);
 }
