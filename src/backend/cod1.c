@@ -298,12 +298,15 @@ void genEEcode()
 
 /********************************************
  * Gen a save/restore sequence for mask of registers.
+ * Returns:
+ *      amount of stack consumed
  */
 
-void gensaverestore2(regm_t regm,code **csave,code **crestore)
+unsigned gensaverestore2(regm_t regm,code **csave,code **crestore)
 {
     code *cs1 = *csave;
     code *cs2 = *crestore;
+    unsigned stackused = 0;
 
     //printf("gensaverestore2(%s)\n", regm_str(regm));
     regm &= mBP | mES | ALLREGS | XMMREGS | mST0 | mST01;
@@ -313,6 +316,7 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
         {
             if (i == ES)
             {
+                stackused += REGSIZE;
                 cs1 = gen1(cs1, 0x06);                  // PUSH ES
                 cs2 = cat(gen1(CNIL, 0x07),cs2);        // POP  ES
             }
@@ -320,13 +324,14 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
             {
                 gensaverestore87(1 << i, &cs1, &cs2);
             }
-            else if (i >= XMM0)
+            else if (i >= XMM0 || I64)
             {   unsigned idx;
                 cs1 = regsave.save(cs1, i, &idx);
                 cs2 = regsave.restore(cs2, i, idx);
             }
             else
             {
+                stackused += REGSIZE;
                 cs1 = gen1(cs1,0x50 + (i & 7));         // PUSH i
                 code *c = gen1(NULL, 0x58 + (i & 7));   // POP  i
                 if (i & 8)
@@ -340,13 +345,14 @@ void gensaverestore2(regm_t regm,code **csave,code **crestore)
     }
     *csave = cs1;
     *crestore = cs2;
+    return stackused;
 }
 
-void gensaverestore(regm_t regm,code **csave,code **crestore)
+unsigned gensaverestore(regm_t regm,code **csave,code **crestore)
 {
     *csave = NULL;
     *crestore = NULL;
-    gensaverestore2(regm, csave, crestore);
+    return gensaverestore2(regm, csave, crestore);
 }
 
 /****************************************

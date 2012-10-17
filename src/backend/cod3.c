@@ -200,7 +200,7 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
         i = idx;
         idx += 16;
         // MOVD idx[RBP],xmm
-        c = genc1(c,0xF20F11,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
+        c = genc1(c,STOSD,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
     }
     else
     {
@@ -226,7 +226,7 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
     {
         assert(alignment == 16);
         // MOVD xmm,idx[RBP]
-        c = genc1(c,0xF20F10,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        c = genc1(c,LODSD,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
     }
     else
     {   // MOV reg,idx[RBP]
@@ -805,9 +805,9 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         code *cr;
                         int nalign = 0;
 
-                        gensaverestore(retregs,&cs,&cr);
+                        unsigned npush = gensaverestore(retregs,&cs,&cr);
                         if (STACKALIGN == 16)
-                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                        {   npush += REGSIZE;
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                                 cs = cod3_stackadj(cs, nalign);
@@ -998,9 +998,9 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         code *cr;
                         int nalign = 0;
 
-                        gensaverestore(retregs,&cs,&cr);
+                        unsigned npush = gensaverestore(retregs,&cs,&cr);
                         if (STACKALIGN == 16)
-                        {   int npush = (numbitsset(retregs) + 1) * REGSIZE;
+                        {   npush += REGSIZE;
                             if (npush & (STACKALIGN - 1))
                             {   nalign = STACKALIGN - (npush & (STACKALIGN - 1));
                                 cs = cod3_stackadj(cs, nalign);
@@ -2802,6 +2802,39 @@ code* prolog_setupalloca()
     if (I64)
         code_orrex(c, REX_W);
 
+    return c;
+}
+
+code* prolog_saveregs(code *c, regm_t topush)
+{
+    while (topush)                      /* while registers to push      */
+    {   unsigned reg = findreg(topush);
+        topush &= ~mask[reg];
+        if (reg >= XMM0)
+        {
+            // SUB RSP,16
+            c = cod3_stackadj(c, 16);
+            // MOVUPD 8[RSP],xmm
+            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
+            EBPtoESP += 16;
+            spoff += 16;
+        }
+        else
+        {
+            c = genpush(c, reg);
+            EBPtoESP += REGSIZE;
+            spoff += REGSIZE;
+#if ELFOBJ || MACHOBJ
+            if (config.fulltypes)
+            {   // Emit debug_frame data giving location of saved register
+                // relative to 0[EBP]
+                pinholeopt(c, NULL);
+                dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
+                dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
+            }
+#endif
+        }
+    }
     return c;
 }
 
