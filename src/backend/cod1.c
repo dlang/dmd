@@ -1554,8 +1554,8 @@ code *tstresult(regm_t regm,tym_t tym,unsigned saveflag)
 
 #ifdef DEBUG
   //if (!(regm & (mBP | ALLREGS)))
-  //      printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
-  //          regm_str(regm),tym,saveflag);
+        //printf("tstresult(regm = %s, tym = x%x, saveflag = %d)\n",
+            //regm_str(regm),tym,saveflag);
 #endif
   assert(regm & (XMMREGS | mBP | ALLREGS));
   tym = tybasic(tym);
@@ -1838,8 +1838,8 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
         }
         c = cat(c,ce);
         cssave(e,retregs | *pretregs,opsflag);
-        forregs = 0;                    /* don't care about result in reg  */
-                                        /* cuz we have real result in rreg */
+        // Commented out due to Bugzilla 8840
+        //forregs = 0;    // don't care about result in reg cuz real result is in rreg
         retregs = *pretregs & ~mPSW;
   }
   if (forccs)                           /* if return result in flags    */
@@ -4230,7 +4230,7 @@ code *loaddata(elem *e,regm_t *pretregs)
             ce->Iflags |= CFopsize;                     /* seg is 16 bits */
         c = cat(c,ce);
         reg = findreglsw(forregs);
-        ce = loadea(e,&cs,0x8B,reg,0,forregs,0);
+        ce = loadea(e,&cs,0x8B,reg,0,forregs,0);        // MOV reg,data
         c = cat(c,ce);
     }
     else if (sz >= 8)

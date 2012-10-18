@@ -1965,17 +1965,22 @@ code *cse_flush(int do87)
  *      e       the subexpression
  *      regm    mask of registers holding it
  *      opsflag if != 0 then regcon.cse.mops gets set too
+ * Returns:
+ *      false   not saved as a CSE
+ *      true    saved as a CSE
  */
 
-void cssave(elem *e,regm_t regm,unsigned opsflag)
-{ unsigned i;
+bool cssave(elem *e,regm_t regm,unsigned opsflag)
+{
 
-  /*if (e->Ecount && e->Ecount == e->Ecomsub)*/
-  if (e->Ecount && e->Ecomsub)
-  {
+    bool result = false;
+
+    /*if (e->Ecount && e->Ecount == e->Ecomsub)*/
+    if (e->Ecount && e->Ecomsub)
+    {
         //printf("cssave(e = %p, regm = x%x, opsflag = %d)\n", e, regm, opsflag);
         if (!opsflag && pass != PASSfinal && (I32 || I64))
-            return;
+            return false;
 
         //printf("cssave(e = %p, regm = x%x, opsflag = x%x)\n", e, regm, opsflag);
         regm &= mBP | ALLREGS | mES;    /* just to be sure              */
@@ -1987,10 +1992,9 @@ void cssave(elem *e,regm_t regm,unsigned opsflag)
         /* variables for scratch.                                       */
         if (opsflag || !(regm & regcon.mvar))
 #endif
-            for (i = 0; regm; i++)
-            {   regm_t mi;
-
-                mi = mask[i];
+            for (unsigned i = 0; regm; i++)
+            {
+                regm_t mi = mask[i];
                 if (regm & mi)
                 {
                     regm &= ~mi;
@@ -2006,9 +2010,11 @@ void cssave(elem *e,regm_t regm,unsigned opsflag)
                         regcon.cse.mops |= mi;
                     //printf("cssave set: regcon.cse.value[%s] = %p\n",regstring[i],e);
                     regcon.cse.value[i] = e;
+                    result = true;
                 }
             }
-  }
+    }
+    return result;
 }
 
 /*************************************

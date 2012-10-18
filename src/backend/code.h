@@ -233,7 +233,7 @@ code *cse_flush(int);
 bool cse_simple(code *c, elem *e);
 code* gen_testcse(code *c, unsigned sz, targ_uns i);
 code* gen_loadcse(code *c, unsigned reg, targ_uns i);
-void cssave (elem *e , regm_t regm , unsigned opsflag );
+bool cssave (elem *e , regm_t regm , unsigned opsflag );
 bool evalinregister (elem *e );
 regm_t getscratch();
 code *codelem (elem *e , regm_t *pretregs , bool constflag );
