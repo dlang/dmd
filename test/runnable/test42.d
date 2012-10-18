@@ -5239,6 +5239,21 @@ void test8496()
 
 /***************************************************/
 
+long foo8840() { return 4; }
+
+int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
+
+void test8840()
+{
+    long f1 = foo8840();    
+    long f2 = foo8840();
+
+    long f = (f1 < f2 ? f1 : f2);
+    int len = (f == 0 ? 0 : bar8840(f));
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5502,6 +5517,7 @@ int main()
     test8454();
     test8423();
     test8496();
+    test8840();
 
     writefln("Success");
     return 0;
