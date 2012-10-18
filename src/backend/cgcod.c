@@ -53,7 +53,7 @@ int AAoff;                      // offset of alloca temporary
 targ_size_t Aoffset;            // offset of automatics and registers
 targ_size_t Toffset;            // offset of temporaries
 targ_size_t EEoffset;           // offset of SCstack variables from ESP
-int Aalign;                     // alignment for Aoffset
+int Aalign;                     // alignment for locals
 
 REGSAVE regsave;
 
@@ -572,6 +572,7 @@ tryagain:
  * Generate code for a function start.
  * Input:
  *      Coffset         address of start of code
+ *      Aalign
  * Output:
  *      Coffset         adjusted for size of code generated
  *      EBPtoESP
@@ -657,7 +658,7 @@ Lagain:
     Toff = NDPoff - align(0,Toffset);
 
     if (Foffset > Aalign)
-        Aalign = Foffset;
+        Aalign = Foffset;               // floatreg must be aligned, too
     if (Aalign > REGSIZE)
     {
         // Adjust Aoff so that it is Aalign byte aligned, assuming that
@@ -684,9 +685,8 @@ Lagain:
     localsize = -Toff;
 
     regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
-    int npush = 0;                      // number of registers that need saving
-    for (regm_t x = topush; x; x >>= 1)
-        npush += x & 1;
+    int npush = numbitsset(topush);            // number of registers that need saving
+    npush += numbitsset(topush & XMMREGS);     // XMM regs take 16 bytes, so count them twice
 
     // Keep the stack aligned by 8 for any subsequent function calls
     if (!I16 && calledafunc &&
@@ -857,36 +857,17 @@ Lagain:
     }
 #endif
 
-    while (topush)                      /* while registers to push      */
-    {   unsigned reg = findreg(topush);
-        topush &= ~mask[reg];
-        if (reg >= XMM0)
-        {
-            // SUB RSP,16
-            c = cod3_stackadj(c, 16);
-            // MOVUPD 8[RSP],xmm
-            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
-            EBPtoESP += 16;
-            spoff += 16;
-        }
-        else
-        {
-            c = genpush(c, reg);
-            EBPtoESP += REGSIZE;
-            spoff += REGSIZE;
-#if ELFOBJ || MACHOBJ
-            if (config.fulltypes)
-            {   // Emit debug_frame data giving location of saved register
-                // relative to 0[EBP]
-                pinholeopt(c, NULL);
-                dwarf_CFA_set_loc(calcblksize(c));  // address after PUSH reg
-                dwarf_CFA_offset(reg, -EBPtoESP - REGSIZE);
-            }
-#endif
-        }
-    }
+    c = prolog_saveregs(c, topush);
 
 Lcont:
+
+    if (config.exe == EX_WIN64)
+    {
+        if (variadic(funcsym_p->Stype))
+            c = cat(c, prolog_gen_win64_varargs());
+        c = cat(c, prolog_loadparams(tyf, pushalloc, &namedargs));
+        return c;
+    }
 
     c = cat(c, prolog_ifunc2(tyf, tym, pushds));
 
@@ -895,20 +876,13 @@ Lcont:
         c = cat(c,nteh_setsp(0x89));            // MOV __context[EBP].esp,ESP
 #endif
 
-    if (I64 && variadic(funcsym_p->Stype) && config.exe == EX_WIN64)
-    {
-        /* The Microsoft scheme.
-         */
-        c = cat(c, prolog_gen_win64_varargs());
-    }
-
     // Load register parameters off of the stack. Do not use
     // assignaddr(), as it will replace the stack reference with
     // the register!
     c = cat(c, prolog_loadparams(tyf, pushalloc, &namedargs));
 
-    // Special prolog setup for variadic functions
-    if (I64 && variadic(funcsym_p->Stype) && config.exe != EX_WIN64)
+    // Special Intel 64 bit ABI prolog setup for variadic functions
+    if (I64 && variadic(funcsym_p->Stype))
     {
         /* The Intel 64 bit ABI scheme.
          * abi_sysV_amd64.pdf
@@ -1460,9 +1434,8 @@ STATIC void cgcod_eh()
  */
 
 int numbitsset(regm_t regm)
-{   int n;
-
-    n = 0;
+{
+    int n = 0;
     if (regm)
         do
             n++;
@@ -2645,11 +2618,14 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 }
                 assert(j < 8);
             }
-            else                        /* else use stack               */
+            else                        // else use memory
             {
-                stackchanged = 1;
-                adjesp += REGSIZE;
-                gensaverestore2(mask[i], &cs1, &cs2);
+                unsigned size = gensaverestore2(mask[i], &cs1, &cs2);
+                if (size)
+                {
+                    stackchanged = 1;
+                    adjesp += size;
+                }
             }
             cs3 = cat(getregs(mi),cs3);
             tosave &= ~mi;
