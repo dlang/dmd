@@ -5774,6 +5774,8 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         Expression *e;
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
+        ilwr += ofs;
+        iupr += ofs;
         if (agg->op == TOKnull)
         {
             if (iupr == ilwr)
@@ -5794,15 +5796,15 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
         dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
         //Type *pointee = ((TypePointer *)agg->type)->next;
-        if ((ilwr + ofs) < 0 || (iupr+ofs) > (len + 1) || iupr < ilwr)
+        if (ilwr < 0 || iupr > (len + 1) || iupr < ilwr)
         {
             error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
-                ilwr+ofs, iupr+ofs, len);
+                ilwr, iupr, len);
             return EXP_CANT_INTERPRET;
         }
         if (ofs != 0)
-        {   lwr = new IntegerExp(loc, ilwr+ofs, lwr->type);
-            upr = new IntegerExp(loc, iupr+ofs, upr->type);
+        {   lwr = new IntegerExp(loc, ilwr, lwr->type);
+            upr = new IntegerExp(loc, iupr, upr->type);
         }
         e = new SliceExp(loc, agg, lwr, upr);
         e->type = type;
