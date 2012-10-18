@@ -21,8 +21,9 @@
 
 #include "macro.h"
 
-#define isidstart(c) (isalpha(c) || (c) == '_')
-#define isidchar(c)  (isalnum(c) || (c) == '_')
+int isIdStart(unsigned char *p);
+int isIdTail(unsigned char *p);
+int utfStride(unsigned char *p);
 
 unsigned char *memdup(unsigned char *p, size_t len)
 {
@@ -331,7 +332,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
         /* A valid start of macro expansion is $(c, where c is
          * an id start character, and not $$(c.
          */
-        if (p[u] == '$' && p[u + 1] == '(' && isidstart(p[u + 2]))
+        if (p[u] == '$' && p[u + 1] == '(' && isIdStart(p+u+2))
         {
             //printf("\tfound macro start '%c'\n", p[u + 2]);
             unsigned char *name = p + u + 2;
@@ -344,10 +345,10 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
             /* Scan forward to find end of macro name and
              * beginning of macro argument (marg).
              */
-            for (v = u + 2; v < end; v++)
+            for (v = u + 2; v < end; v+=utfStride(p+v))
             {   unsigned char c = p[v];
 
-                if (!isidchar(c))
+                if (!isIdTail(p+v))
                 {   // We've gone past the end of the macro name.
                     namelen = v - (u + 2);
                     break;
