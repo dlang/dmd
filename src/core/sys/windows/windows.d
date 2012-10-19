@@ -141,7 +141,7 @@ else // Win32
     alias DWORD   *LPCOLORREF;
     alias WORD    ATOM;
 
-version (none)
+version (all)
 {   // Properly prototyped versions
     alias BOOL function(HWND, UINT, WPARAM, LPARAM) DLGPROC;
     alias VOID function(HWND, UINT, UINT_PTR, DWORD) TIMERPROC;
