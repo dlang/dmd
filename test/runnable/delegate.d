@@ -187,6 +187,29 @@ void test9()
 }
 
 /********************************************************/
+// 8257
+
+struct S8257 {
+    static int g() {
+        return 6;
+    }
+}
+
+void test8257()
+{
+     S8257 s;
+     int w = 2;
+     S8257 func() { ++w; return s; }
+     auto k = &(func()).g;
+     // check that the call to func() still happened
+     assert(w == 3);
+     assert( k() == 6);
+}
+
+auto f8257(string m)() { return &__traits(getMember, S8257.init, m); }
+static assert (__traits(compiles, f8257!"g"()));
+
+/********************************************************/
 
 void foo10(int delegate() dg)
 {
@@ -318,6 +341,7 @@ int main()
     test12();
     test13();
     test2472();
+    test8257();
 
     printf("Success\n");
     return 0;

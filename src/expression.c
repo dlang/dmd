@@ -8565,7 +8565,12 @@ Expression *AddrExp::semantic(Scope *sc)
             {
                 if (!dve->hasOverloads)
                     f->tookAddressOf++;
-                Expression *e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+
+                Expression *e;
+                if ( f->needThis())
+                    e = new DelegateExp(loc, dve->e1, f, dve->hasOverloads);
+                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
+                    e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
                 e = e->semantic(sc);
                 return e;
             }
