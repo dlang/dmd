@@ -91,6 +91,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     ssharedctor = NULL;
     sshareddtor = NULL;
     stest = NULL;
+    unitTestArr = NULL;
+    unitTests = NULL;
     sfilename = NULL;
     root = 0;
     importedFrom = NULL;

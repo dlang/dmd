@@ -92,9 +92,11 @@ void Module::genmoduleinfo()
     #define MIdtor            0x40
     #define MIxgetMembers     0x80
     #define MIictor           0x100
+    //deprecated
     #define MIunitTest        0x200
     #define MIimportedModules 0x400
     #define MIlocalClasses    0x800
+    #define MInewUnitTest     0x1000
     #define MInew             0x80000000   // it's the "new" layout
 
     unsigned flags = MInew;
@@ -112,6 +114,8 @@ void Module::genmoduleinfo()
         flags |= MIictor;
     if (stest)
         flags |= MIunitTest;
+    if (unitTestArr)
+        flags |= MInewUnitTest;
     if (aimports_dim)
         flags |= MIimportedModules;
     if (aclasses.dim)
@@ -137,6 +141,14 @@ void Module::genmoduleinfo()
         dtxoff(&dt, sictor, 0, TYnptr);
     if (flags & MIunitTest)
         dtxoff(&dt, stest, 0, TYnptr);
+    if (flags & MInewUnitTest)
+    {
+        //Put out unittests
+        unitTestArr->toObjFile(0);
+        //UnitTest[]
+        dtsize_t(&dt, unitTests->dim);
+        dtxoff(&dt, unitTestArr->toSymbol(), 0, TYnptr);
+    }
     if (flags & MIimportedModules)
     {
         dtsize_t(&dt, aimports_dim);

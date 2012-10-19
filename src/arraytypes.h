@@ -26,6 +26,8 @@ typedef ArrayBase<struct Statement> Statements;
 
 typedef ArrayBase<struct BaseClass> BaseClasses;
 
+typedef ArrayBase<struct UnitTestDeclaration> UnitTestDeclarations;
+
 typedef ArrayBase<struct ClassDeclaration> ClassDeclarations;
 
 typedef ArrayBase<struct Dsymbol> Dsymbols;

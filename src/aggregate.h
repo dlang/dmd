@@ -130,6 +130,8 @@ struct AnonymousAggregateDeclaration : AggregateDeclaration
 
 struct StructDeclaration : AggregateDeclaration
 {
+    static StructDeclaration *UnitTest;
+
     int zeroInit;               // !=0 if initialize with 0 fill
 #if DMDV2
     int hasIdentityAssign;      // !=0 if has identity opAssign
