@@ -84,10 +84,18 @@ void writeFilename(OutBuffer *buf, const char *filename)
  * user failed to specify a main function. Print that error if so.
  */
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#define NME_MAX_OFFSET 100
+
+#if __APPLE__
+#define NME_ERROR_MSG "\"__Dmain\", referenced from:"
+#else
+#define NME_ERROR_MSG "undefined reference to `_Dmain'"
+#endif
+
 int findNoMainError(int fd) {
-    char nmeErrorMessage[] = "  \"__Dmain\", referenced from:";
     FILE *stream;
     int nmeFound;
+    char ch;
     
     stream = fdopen(fd, "rb");
     nmeFound = 0;
@@ -99,32 +107,50 @@ int findNoMainError(int fd) {
     }
     
     while (1)
-    { Ltop_outer:
-        char buffer[sizeof(nmeErrorMessage)];
+    {
+        char buffer[NME_MAX_OFFSET+1];
+        size_t buffer_i;
         
         if (feof(stream)) break;
-        fgets(buffer, sizeof(buffer), stream);
-        if (strcmp(nmeErrorMessage, buffer) == 0)
+        
+        // read into buffer while forwarding
+        buffer_i = 0;
+        while (!feof(stream) 
+                && buffer_i < NME_MAX_OFFSET)
         {
-            nmeFound = 1;
-            fputs(buffer, stderr);
-            break;
-        }
-        fputs(buffer, stderr);
-        while (!feof(stream))
-        {
-            char ch;
             ch = fgetc(stream);
             fputc(ch, stderr);
-            if (ch == '\n') goto Ltop_outer;
+            if (ch == '\n') break;
+            buffer[buffer_i] = ch;
+            buffer_i++;
+        }
+        buffer[buffer_i] = 0;
+        
+        // check for nme
+        if (strstr(buffer, NME_ERROR_MSG) != NULL)
+        {
+            nmeFound = 1;
+            break;
+        }
+        
+        // output the rest of the line
+        while (ch != '\n' && !feof(stream))
+        {
+            ch = fgetc(stream);
+            fputc(ch, stderr);
         }
     }
     
-    while (!feof(stream)) {
-        fputc(fgetc(stream), stderr);
-    }
-    fprintf(stderr, "\n");
+    // output the rest
+    if (feof(stream)) goto Lend;
     
+    while (1) {
+        ch = fgetc(stream);
+        if (feof(stream)) break;
+        fputc(ch, stderr);
+    }
+    
+  Lend:
     return nmeFound;
 }
 #endif
