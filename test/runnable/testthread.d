@@ -3,10 +3,16 @@
 import std.c.stdio;
 import core.thread;
 
-extern (C)
+version (Posix)
 {
-    extern __thread int _tlsstart;
-    extern __thread int _tlsend;
+}
+else
+{
+    extern (C)
+    {
+        extern __thread int _tlsstart;
+        extern __thread int _tlsend;
+    }
 }
 
 int tlsx;
@@ -22,7 +28,7 @@ class Foo
 	tlsx = 5;
         Thread t = Thread.getThis();
 
-	version (OSX)
+	version (Posix)
 	{
 	}
 	else
