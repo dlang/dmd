@@ -550,6 +550,19 @@ struct GC
 
 
     /**
+     * Removes the memory block referenced by p from an internal list of roots
+     * to be scanned during a collection.  If p is null or does not represent
+     * a value previously passed to add(void*) then no operation is performed.
+     *
+     *  p  = A pointer to a valid memory address or to null.
+     */
+    static void removeRoot( in void* p ) nothrow /* FIXME pure */
+    {
+        gc_removeRoot( p );
+    }
+
+
+    /**
      * Adds the memory block referenced by p and of size sz to an internal list
      * of ranges to be scanned during a collection.  If p is null, no operation
      * is performed.
@@ -562,19 +575,6 @@ struct GC
     static void addRange( in void* p, size_t sz ) nothrow /* FIXME pure */
     {
         gc_addRange( p, sz );
-    }
-
-
-    /**
-     * Removes the memory block referenced by p from an internal list of roots
-     * to be scanned during a collection.  If p is null or does not represent
-     * a value previously passed to add(void*) then no operation is performed.
-     *
-     *  p  = A pointer to a valid memory address or to null.
-     */
-    static void removeRoot( in void* p ) nothrow /* FIXME pure */
-    {
-        gc_removeRoot( p );
     }
 
 
