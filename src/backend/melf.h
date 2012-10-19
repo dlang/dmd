@@ -104,6 +104,7 @@ typedef struct
         #define SHF_WRITE       (1 << 0)    /* Writable during execution */
         #define SHF_ALLOC       (1 << 1)    /* In memory during execution */
         #define SHF_EXECINSTR   (1 << 2)    /* Executable machine instructions*/
+        #define SHF_GROUP       (1 << 9)    /* Member of a section group */
         #define SHF_TLS         (1 << 10)   /* Thread local */
         #define SHF_MASKPROC    0xf0000000  /* Mask for processor-specific */
   elf_add_f32   sh_addr;                /* Starting virtual memory address */

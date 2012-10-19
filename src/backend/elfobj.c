@@ -58,6 +58,13 @@ char *obj_mangle2(Symbol *s,char *dest);
 #define cpp_mangle(s) ((s)->Sident)
 #endif
 
+/**
+ * If set the compiler requires full druntime support of the new
+ * section registration and will no longer create global bracket
+ * symbols (_deh_beg,_deh_end,_tlsstart,_tlsend).
+ */
+#define REQUIRE_DSO_REGISTRY 0
+
 /***************************************************
  * Correspondence of relocation types
  *      386             32 bit in 64      64 in 64
@@ -101,6 +108,9 @@ STATIC char * objmodtoseg (const char *modname);
 STATIC void objfixupp (struct FIXUP *);
 STATIC void ledata_new (int seg,targ_size_t offset);
 void obj_tlssections();
+#if MARS
+static void obj_rtinit();
+#endif
 
 static IDXSYM elf_addsym(IDXSTR sym, targ_size_t val, unsigned sz,
                         unsigned typ,unsigned bind,IDXSEC sec);
@@ -922,6 +932,16 @@ void *elf_renumbersyms()
     {                           // Map indicies in the segment table
         seg_data *pseg = SegData[i];
         pseg->SDsymidx = sym_map[pseg->SDsymidx];
+
+        if (SecHdrTab[pseg->SDshtidx].sh_type == SHT_GROUP)
+        {   // map symbol index of group section header
+            unsigned oidx = SecHdrTab[pseg->SDshtidx].sh_info;
+            assert(oidx < symbol_idx);
+            // we only have one symbol table
+            assert(SecHdrTab[pseg->SDshtidx].sh_link == SHI_SYMTAB);
+            SecHdrTab[pseg->SDshtidx].sh_info = sym_map[oidx];
+        }
+
         if (pseg->SDrel)
         {
             if (I64)
@@ -987,6 +1007,10 @@ void Obj::term()
     {
         dwarf_termfile();
     }
+
+#if MARS
+    obj_rtinit();
+#endif
 
 #if SCPP
     if (errcnt)
@@ -2967,15 +2991,25 @@ long elf_align(targ_size_t size,long foffset)
 }
 
 /***************************************
- * Stuff pointer to ModuleInfo in its own segment.
+ * Stuff pointer to ModuleInfo in its own segment (.minfo). Always
+ * bracket them in .minfo_beg/.minfo_end segments.  As the section
+ * names are non-standard the linker will map their order to the
+ * output sections.
  */
 
 #if MARS
 
 void Obj::moduleinfo(Symbol *scc)
 {
-//    if (I64) return;          // for now, until Phobos64 works
+    {
+        ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+        const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+        ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+        SegData[seg]->SDoffset +=
+            reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
+    }
 
+#if !REQUIRE_DSO_REGISTRY
     int codeOffset, refOffset;
 
     /* Put in the ModuleReference. */
@@ -3022,9 +3056,300 @@ void Obj::moduleinfo(Symbol *scc)
         buf->write32(codeOffset);
     }
     SegData[seg]->SDoffset += NPTRSIZE;
+#endif // !REQUIRE_DSO_REGISTRY
 }
 
+
+/***************************************
+ * Create startup/shutdown code to register an executable/shared
+ * library (DSO) with druntime. Create one for each object file and
+ * put the sections into a COMDAT group. This will ensure that each
+ * DSO gets registered only once.
+ */
+
+static void obj_rtinit()
+{
+    // create brackets for .deh_eh and .minfo sections
+    IDXSYM deh_beg, deh_end, minfo_beg, minfo_end, dso_rec;
+    IDXSTR namidx;
+    int seg;
+
+    {
+    seg = ElfObj::getsegment(".deh_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    deh_beg = MAP_SEG2SYMIDX(seg);
+
+    ElfObj::getsegment(".deh_eh", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+
+    seg = ElfObj::getsegment(".deh_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    deh_end = MAP_SEG2SYMIDX(seg);
+
+
+    seg = ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    minfo_beg = MAP_SEG2SYMIDX(seg);
+
+    ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+
+    seg = ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
+    minfo_end = MAP_SEG2SYMIDX(seg);
+    }
+
+    // create section group
+    const int groupseg = ElfObj::getsegment(".group.d_dso", NULL, SHT_GROUP, 0, 0);
+
+    SegData[groupseg]->SDbuf->write32(0x1); // GRP_COMDAT
+
+    {
+        /*
+         *  Create a DSO instance on stack. The DSORec is writeable
+         *  and allows the runtime to store information.
+         *
+         * typedef union
+         * {
+         *     size_t        id;
+         *     void       *data;
+         * } DSORec;
+         *
+         * typedef struct
+         * {
+         *     size_t                version;
+         *     DSORec               *dso_rec;
+         *     void   *minfo_beg, *minfo_end;
+         *     void       *deh_beg, *deh_end;
+         * } DSO;
+         *
+         */
+        seg = ElfObj::getsegment(".data.d_dso_rec", NULL, SHT_PROGDEF,
+                         SHF_ALLOC|SHF_WRITE|SHF_GROUP, NPTRSIZE);
+        dso_rec = MAP_SEG2SYMIDX(seg);
+        Obj::bytes(seg, 0, NPTRSIZE, NULL);
+        // add to section group
+        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(seg));
+
+        int codseg;
+        {
+            codseg = ElfObj::getsegment(".text.d_dso_init", NULL, SHT_PROGDEF,
+                                    SHF_ALLOC|SHF_EXECINSTR|SHF_GROUP, NPTRSIZE);
+            // add to section group
+            SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(codseg));
+
+#if DEBUG
+            // adds a local symbol (name) to the code, useful to set a breakpoint
+            namidx = ElfObj::addstr(symtab_strings, "__d_dso_init");
+            elf_addsym(namidx, 0, 0, STT_FUNC, STB_LOCAL, MAP_SEG2SECIDX(codseg));
 #endif
+        }
+        Outbuffer *buf = SegData[codseg]->SDbuf;
+        assert(!buf->size());
+        size_t off = 0;
+
+        {
+            // 16-byte align for call
+            const size_t sizeof_dso = 6 * NPTRSIZE;
+            const size_t align = -(2 * NPTRSIZE + sizeof_dso) & 0xF;
+
+            // enter align, 0
+            buf->writeByte(0xC8);
+            buf->writeByte(align & 0xFF);
+            buf->writeByte(align >> 8 & 0xFF);
+            buf->writeByte(0);
+            off += 4;
+        }
+
+        int reltype = I64 ? R_X86_64_PC32 : RI_TYPE_SYM32;
+        const IDXSYM syms[] = {dso_rec, minfo_beg, minfo_end, deh_beg, deh_end};
+        for (size_t i = sizeof(syms) / sizeof(syms[0]); i--; )
+        {
+            const IDXSYM sym = syms[i];
+
+            if (I64)
+            {  // lea RAX, sym[RIP]
+                buf->writeByte(REX | REX_W);
+                buf->writeByte(0x8D);
+                buf->writeByte(modregrm(0,AX,5));
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 3, reltype, syms[i], -4);
+                off += 7;
+            }
+            else
+            {  // mov EAX, sym
+                buf->writeByte(0xB8 + AX);
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 1, reltype, syms[i], 0);
+                off += 5;
+            }
+
+            // push RAX
+            buf->writeByte(0x50 + AX);
+            off += 1;
+        }
+        // Pass a version flag to simplify future extensions.
+        static const size_t ver = 1;
+        // push imm8
+        assert(!(ver & ~0xFF));
+        buf->writeByte(0x6A);
+        buf->writeByte(ver);
+        off += 2;
+
+        if (I64)
+        {   // mov RDI, DSO*
+            buf->writeByte(REX | REX_W);
+            buf->writeByte(0x8B);
+            buf->writeByte(modregrm(3,DI,SP));
+            off += 3;
+        }
+        else
+        {   // mov EAX, DSO*
+            buf->writeByte(0x8B);
+            buf->writeByte(modregrm(3,AX,SP));
+            off += 2;
+        }
+
+#if REQUIRE_DSO_REGISTRY
+
+        // call _d_dso_registry@PLT
+        buf->writeByte(0xE8);
+        buf->write32(0);
+
+        reltype = I64 ? R_X86_64_PLT32 : RI_TYPE_PLT32;
+        ElfObj::addrel(codseg, off + 1, reltype, Obj::external("_d_dso_registry"), -4);
+        off += 5;
+
+#else
+
+        // use a weak reference for _d_dso_registry
+        namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
+        const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHT_UNDEF);
+
+        if (config.flags3 & CFG3pic)
+        {
+            if (I64)
+            {
+                // cmp foo@GOT[RIP], 0
+                buf->writeByte(REX | REX_W);
+                buf->writeByte(0x83);
+                buf->writeByte(modregrm(0,7,5));
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 3, R_X86_64_GOTPCREL, symidx, -5);
+                buf->writeByte(0);
+                off += 8;
+            }
+            else
+            {  // see cod3_load_got() for reference
+                // call L1
+                buf->writeByte(0xE8);
+                buf->write32(0);
+                // L1: pop ECX (now contains EIP)
+                buf->writeByte(0x58 + CX);
+                off += 6;
+
+                // add ECX,_GLOBAL_OFFSET_TABLE_+3
+                buf->writeByte(0x81);
+                buf->writeByte(modregrm(3,0,CX));
+                buf->write32(3);
+                ElfObj::addrel(codseg, off + 2, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 0);
+                off += 6;
+
+                // cmp foo[GOT], 0
+                buf->writeByte(0x81);
+                buf->writeByte(modregrm(2,7,CX));
+                buf->write32(0);
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 2, RI_TYPE_GOT32, symidx, 0);
+                off += 10;
+            }
+            // jz +5
+            buf->writeByte(0x74);
+            buf->writeByte(0x05);
+            off += 2;
+
+            // call foo@PLT[RIP]
+            buf->writeByte(0xE8);
+            if (I64)
+            {
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
+            }
+            else
+            {
+                buf->write32(-4);
+                ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
+            }
+            off += 5;
+        }
+        else
+        {
+            // mov ECX, offset foo
+            buf->writeByte(0xB8 + CX);
+            buf->write32(0);
+            reltype = I64 ? R_X86_64_32 : RI_TYPE_SYM32;
+            ElfObj::addrel(codseg, off + 1, reltype, symidx, 0);
+            off += 5;
+
+            // test ECX, ECX
+            buf->writeByte(0x85);
+            buf->writeByte(modregrm(3,CX,CX));
+
+            // jz +5 (skip call)
+            buf->writeByte(0x74);
+            buf->writeByte(0x05);
+            off += 4;
+
+            // call _d_dso_registry[RIP]
+            buf->writeByte(0xE8);
+            if (I64)
+            {
+                buf->write32(0);
+                ElfObj::addrel(codseg, off + 1, R_X86_64_PC32, symidx, -4);
+            }
+            else
+            {
+                buf->write32(-4);
+                ElfObj::addrel(codseg, off + 1, RI_TYPE_PC32, symidx, -4);
+            }
+            off += 5;
+        }
+
+#endif // REQUIRE_DSO_REGISTRY
+
+        // leave
+        buf->writeByte(0xC9);
+        // ret
+        buf->writeByte(0xC3);
+        off += 2;
+        Offset(codseg) = off;
+
+        // put a reference into .ctors/.dtors each
+        const char *p[] = {".dtors.d_dso_dtor", ".ctors.d_dso_ctor"};
+        const int flags = SHF_ALLOC|SHF_GROUP;
+        for (size_t i = 0; i < 2; ++i)
+        {
+            seg = ElfObj::getsegment(p[i], NULL, SHT_PROGDEF, flags, NPTRSIZE);
+            assert(!SegData[seg]->SDbuf->size());
+
+            // add to section group
+            SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(seg));
+
+            // relocation
+            if (I64)
+                reltype = (config.flags3 & CFG3pic) ? R_X86_64_64 : R_X86_64_32;
+            else
+                reltype = RI_TYPE_SYM32;
+
+            ElfObj::addrel(seg, 0, reltype, MAP_SEG2SYMIDX(codseg), 0);
+            SegData[seg]->SDbuf->writezeros(NPTRSIZE);
+            SegData[seg]->SDoffset += NPTRSIZE;
+        }
+    }
+    // set group section infos
+    Offset(groupseg) = SegData[groupseg]->SDbuf->size();
+    Elf32_Shdr *p = MAP_SEG2SEC(groupseg);
+    p->sh_link    = SHI_SYMTAB;
+    p->sh_info    = dso_rec; // set the dso_rec as group symbol
+    p->sh_entsize = sizeof(IDXSYM);
+    p->sh_size    = Offset(groupseg);
+}
+
+#endif // MARS
 
 /*************************************
  */
