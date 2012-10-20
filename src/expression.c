@@ -1594,7 +1594,7 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
     // See if this expression is a modifiable lvalue (i.e. not const)
 #if DMDV2
     if (type && !type->isMutable())
-    {   error("%s is not mutable", e->toChars());
+    {   e->error("%s is not mutable", e->toChars());
         return new ErrorExp();
     }
 #endif
