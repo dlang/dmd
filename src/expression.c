@@ -3690,7 +3690,7 @@ Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 
 Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
 {
-    error("Cannot modify '%s'", toChars());
+    e->error("Cannot modify '%s'", toChars());
     return new ErrorExp();
 }
 
