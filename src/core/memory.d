@@ -536,12 +536,49 @@ struct GC
 
 
     /**
-     * Adds the memory address referenced by p to an internal list of roots to
-     * be scanned during a collection.  If p is null, no operation is
-     * performed.
+     * Adds an internal root pointing to the GC memory block referenced by p.
+     * As a result, the block referenced by p itself and any blocks accessible
+     * via it will be considered live until the root is removed again.
+     *
+     * If p is null, no operation is performed.
      *
      * Params:
-     *  p = A pointer to a valid memory address or to null.
+     *  p = A pointer into a GC-managed memory block or null.
+     *
+     * Example:
+     * ---
+     * // Typical C-style callback mechanism; the passed function
+     * // is invoked with the user-supplied context pointer at a
+     * // later point.
+     * extern(C) void addCallback(void function(void*), void*);
+     *
+     * // Allocate an object on the GC heap (this would usually be
+     * // some application-specific context data).
+     * auto context = new Object;
+     *
+     * // Make sure that it is not collected even if it is no
+     * // longer referenced from D code (stack, GC heap, …).
+     * GC.addRoot(cast(void*)context);
+     *
+     * // Also ensure that a moving collector does not relocate
+     * // the object.
+     * GC.setAttr(cast(void*)context, GC.BlkAttr.NO_MOVE);
+     *
+     * // Now context can be safely passed to the C library.
+     * addCallback(&myHandler, cast(void*)context);
+     *
+     * extern(C) void myHandler(void* ctx)
+     * {
+     *     // Assuming that the callback is invoked only once, the
+     *     // added root can be removed again now to allow the GC
+     *     // to collect it later.
+     *     GC.removeRoot(ctx);
+     *     GC.clrAttr(ctx, GC.BlkAttr.NO_MOVE);
+     *
+     *     auto context = cast(Object)ctx;
+     *     // Use context here…
+     * }
+     * ---
      */
     static void addRoot( in void* p ) nothrow /* FIXME pure */
     {
@@ -551,10 +588,11 @@ struct GC
 
     /**
      * Removes the memory block referenced by p from an internal list of roots
-     * to be scanned during a collection.  If p is null or does not represent
-     * a value previously passed to add(void*) then no operation is performed.
+     * to be scanned during a collection.  If p is null or is not a value
+     * previously passed to addRoot() then no operation is performed.
      *
-     *  p  = A pointer to a valid memory address or to null.
+     * Params:
+     *  p = A pointer into a GC-managed memory block or null.
      */
     static void removeRoot( in void* p ) nothrow /* FIXME pure */
     {
@@ -563,14 +601,30 @@ struct GC
 
 
     /**
-     * Adds the memory block referenced by p and of size sz to an internal list
-     * of ranges to be scanned during a collection.  If p is null, no operation
-     * is performed.
+     * Adds $(D p[0 .. sz]) to the list of memory ranges to be scanned for
+     * pointers during a collection. If p is null, no operation is performed.
+     *
+     * Note that $(D p[0 .. sz]) is treated as an opaque range of memory assumed
+     * to be suitably managed by the caller. In particular, if p points into a
+     * GC-managed memory block, addRange does $(I not) mark this block as live.
      *
      * Params:
      *  p  = A pointer to a valid memory address or to null.
-     *  sz = The size in bytes of the block to add.  If sz is zero then the
-     *       no operation will occur.  If p is null then sz must be zero.
+     *  sz = The size in bytes of the block to add. If sz is zero then the
+     *       no operation will occur. If p is null then sz must be zero.
+     *
+     * Example:
+     * ---
+     * // Allocate a piece of memory on the C heap.
+     * enum size = 1_000;
+     * auto rawMemory = core.stdc.stdlib.malloc(size);
+     *
+     * // Add it as a GC range.
+     * GC.addRange(rawMemory, size);
+     *
+     * // Now, pointers to GC-managed memory stored in
+     * // rawMemory will be recognized on collection.
+     * ---
      */
     static void addRange( in void* p, size_t sz ) nothrow /* FIXME pure */
     {
@@ -579,9 +633,9 @@ struct GC
 
 
     /**
-     * Removes the memory block referenced by p from an internal list of ranges
-     * to be scanned during a collection.  If p is null or does not represent
-     * a value previously passed to add(void*, size_t) then no operation is
+     * Removes the memory range starting at p from an internal list of ranges
+     * to be scanned during a collection. If p is null or does not represent
+     * a value previously passed to addRange() then no operation is
      * performed.
      *
      * Params:
