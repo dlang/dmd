@@ -2787,6 +2787,21 @@ void test6504()
     }
 }
 
+// 8818 regression
+void test8818()
+{
+    static bool test()
+    {
+        string op1 = "aa";
+        string op2 = "b";
+        assert("b" >= "aa");
+        assert(op2 >= op1);
+        return true;
+    }
+    static assert(test());
+    assert(test());
+}
+
 
 int main()
 {
@@ -2894,7 +2909,8 @@ int main()
     test102();
     test103();
     test6504();
-
+    test8818();
+    
     writefln("Success");
     return 0;
 }

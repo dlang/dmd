@@ -3070,11 +3070,17 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     {
         uinteger_t len1 = resolveArrayLength(e1);
         uinteger_t len2 = resolveArrayLength(e2);
-        if (len1 != len2) // only for equality
-            return len1 - len2;
-        if (len1 == 0 || len2 == 0)
-            return len1 - len2;  // Equal - both are empty
-        return ctfeCmpArrays(loc, e1, e2, len1);
+        // workaround for dmc optimizer bug calculating wrong len for
+        // uinteger_t len = (len1 < len2 ? len1 : len2);
+        // if(len == 0) ...
+        if(len1 > 0 && len2 > 0)
+        {
+            uinteger_t len = (len1 < len2 ? len1 : len2);
+            int res = ctfeCmpArrays(loc, e1, e2, len);
+            if (res != 0)
+                return res;
+        }
+        return len1 - len2;
     }
     if (e1->type->isintegral())
     {
