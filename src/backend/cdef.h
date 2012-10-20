@@ -147,9 +147,9 @@ One and only one of these macros must be set by the makefile:
 #ifndef CDEF_H
 #define CDEF_H  1
 
-#define VERSION "8.54.0"        // for banner and imbedding in .OBJ file
-#define VERSIONHEX "0x854"      // for __DMC__ macro
-#define VERSIONINT 0x854        // for precompiled headers and DLL version
+#define VERSION "8.55.0"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x855"      // for __DMC__ macro
+#define VERSIONINT 0x855        // for precompiled headers and DLL version
 
 
 /***********************************
@@ -617,15 +617,15 @@ typedef int bool;
 #define COPYRIGHT "Copyright © 2001 Digital Mars"
 #else
 #ifdef DEBUG
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2012.  All Rights Reserved.\n\
 Written by Walter Bright\n\
 *****BETA TEST VERSION*****"
 #else
 #if linux
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2012.  All Rights Reserved.\n\
 Written by Walter Bright, Linux version by Pat Nelson"
 #else
-#define COPYRIGHT "Copyright (C) Digital Mars 2000-2010.  All Rights Reserved.\n\
+#define COPYRIGHT "Copyright (C) Digital Mars 2000-2012.  All Rights Reserved.\n\
 Written by Walter Bright"
 #endif
 #endif
