@@ -219,7 +219,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename->toChars());
         }
 
-        char *linkcmd = getenv("LINKCMD");
+        char *linkcmd = getenv("LINKCMD64");
         if (!linkcmd)
         {
             if (vcinstalldir)
@@ -639,24 +639,24 @@ int executecmd(char *cmd, char *args, int useenv)
     }
     else
     {
-        if ((len = strlen(args)) > 255)
-        {   char *q;
-            static char envname[] = "@_CMDLINE";
+    if ((len = strlen(args)) > 255)
+    {   char *q;
+        static char envname[] = "@_CMDLINE";
 
-            envname[0] = '@';
-            switch (useenv)
-            {   case 0:     goto L1;
-                case 2: envname[0] = '%';   break;
-            }
-            q = (char *) alloca(sizeof(envname) + len + 1);
-            sprintf(q,"%s=%s", envname + 1, args);
-            status = putenv(q);
-            if (status == 0)
-                args = envname;
-            else
-            {
-            L1:
-                error(0, "command line length of %d is too long",len);
+        envname[0] = '@';
+        switch (useenv)
+        {   case 0:     goto L1;
+            case 2: envname[0] = '%';   break;
+        }
+        q = (char *) alloca(sizeof(envname) + len + 1);
+        sprintf(q,"%s=%s", envname + 1, args);
+        status = putenv(q);
+        if (status == 0)
+            args = envname;
+        else
+        {
+        L1:
+            error(0, "command line length of %d is too long",len);
             }
         }
     }
