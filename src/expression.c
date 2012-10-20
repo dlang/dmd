@@ -8150,6 +8150,8 @@ Lagain:
                         error("constructor calls not allowed in loops or after labels");
                     if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
                         error("multiple constructor calls");
+                    if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
+                        error("an earlier return statement skips constructor");
                     sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
                 }
 
@@ -8190,6 +8192,8 @@ Lagain:
                     error("constructor calls not allowed in loops or after labels");
                 if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
                     error("multiple constructor calls");
+                if ((sc->callSuper & CSXreturn) && !(sc->callSuper & CSXany_ctor))
+                    error("an earlier return statement skips constructor");
                 sc->callSuper |= CSXany_ctor | CSXthis_ctor;
             }
 

@@ -4019,13 +4019,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
     }
 
-    /* BUG: need to issue an error on:
-     *  this
-     *  {   if (x) return;
-     *      super();
-     *  }
-     */
-
+    // If any branches have called a ctor, but this branch hasn't, it's an error
     if (sc->callSuper & CSXany_ctor &&
         !(sc->callSuper & (CSXthis_ctor | CSXsuper_ctor)))
         error("return without calling constructor");
