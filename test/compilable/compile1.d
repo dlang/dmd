@@ -200,6 +200,110 @@ struct Foo1099 {
 }
 
 /**************************************************
+    8788 - super() and return
+**************************************************/
+
+class B8788 {
+        this ( ) { }
+}
+
+class C8788(int test) : B8788
+{
+    this ( int y )
+    {   // TESTS WHICH SHOULD PASS
+        static if (test == 1) {
+            if (y == 3) {
+                super();
+                return;
+            }
+            super();
+            return;
+        } else static if (test == 2) {
+            if (y == 3) {
+                super();
+                return;
+            }
+            super();
+        } else static if (test == 3) {
+            if (y > 3) {
+                if (y == 7) {
+                   super();
+                   return;
+                }
+                super();
+                return;
+            }
+            super();
+        } else static if (test == 4) {
+            if (y > 3) {
+                if (y == 7) {
+                   super();
+                   return;
+                }
+                else if (y> 5)
+                    super();
+                else super();
+                return;
+            }
+            super();
+        }
+        // TESTS WHICH SHOULD FAIL
+        else static if (test == 5) {
+            if (y == 3) {
+                super();
+                return;
+            }
+            return; // no super
+        } else static if (test == 6) {
+            if (y > 3) {
+                if (y == 7) {
+                   super();
+                   return;
+                }
+                super();
+            }
+            super(); // two calls
+        } else static if (test == 7) {
+            if (y == 3) {
+                return; // no super
+            }
+            super();
+        } else static if (test == 8) {
+            if (y > 3) {
+                if (y == 7) {
+                   return; // no super
+                }
+                super();
+                return;
+            }
+            super();
+        } else static if (test == 9) {
+            if (y > 3) {
+                if (y == 7) {
+                   super();
+                   return;
+                }
+                else if (y> 5)
+                    super();
+                else return; // no super
+                return;
+            }
+            super();
+        }
+    }
+}
+
+static assert( is(typeof( { new C8788!(1)(0); } )));
+static assert( is(typeof( { new C8788!(2)(0); } )));
+static assert( is(typeof( { new C8788!(3)(0); } )));
+static assert( is(typeof( { new C8788!(4)(0); } )));
+static assert(!is(typeof( { new C8788!(5)(0); } )));
+static assert(!is(typeof( { new C8788!(6)(0); } )));
+static assert(!is(typeof( { new C8788!(7)(0); } )));
+static assert(!is(typeof( { new C8788!(8)(0); } )));
+static assert(!is(typeof( { new C8788!(9)(0); } )));
+
+/**************************************************
     4967, 7058
 **************************************************/
 
