@@ -4445,6 +4445,10 @@ Statement *Parser::parseStatement(int flags)
             break;
         }
 
+        case TOKtemplate:
+            error("template definitions aren't allowed inside functions");
+            goto Lerror;
+
         default:
             error("found '%s' instead of statement", token.toChars());
             goto Lerror;
