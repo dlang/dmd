@@ -219,7 +219,7 @@ int runLINK()
                 sprintf(p, "@%s", lnkfilename->toChars());
         }
 
-        char *linkcmd = getenv("LINKCMD");
+        char *linkcmd = getenv("LINKCMD64");
         if (!linkcmd)
         {
             if (vcinstalldir)
