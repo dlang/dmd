@@ -2033,6 +2033,16 @@ elem *AssertExp::toElem(IRState *irs)
     Type *t1 = e1->type->toBasetype();
 
     //printf("AssertExp::toElem() %s\n", toChars());
+    OutBuffer buf;
+    if (msg)
+        buf.printf("assert(%s), %s", e1->toChars(), msg->toChars());
+    else
+        buf.writestring(toChars());
+
+    Expression * msgExpr = new StringExp(0, (char *)buf.extractData());
+    msgExpr = msgExpr->semantic(NULL);
+    msgExpr->type = Type::tchar->arrayOf();
+
     if (global.params.useAssert)
     {
         e = e1->toElem(irs);
@@ -2077,10 +2087,7 @@ elem *AssertExp::toElem(IRState *irs)
         FuncDeclaration *fd = irs->getFunc();
         UnitTestDeclaration *ud = fd ? fd->isUnitTestDeclaration() : NULL;
 
-        /* If the source file name has changed, probably due
-         * to a #line directive.
-         */
-        if (loc.filename && (msg || strcmp(loc.filename, mname) != 0))
+        if (loc.filename)
         {
             /* Cache values.
              */
@@ -2112,16 +2119,9 @@ elem *AssertExp::toElem(IRState *irs)
             elem *efilename = (config.exe == EX_WIN64) ? el_ptr(assertexp_sfilename)
                                                        : el_var(assertexp_sfilename);
 
-            if (msg)
-            {   elem *emsg = eval_Darray(irs, msg, false);
-                ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
-                ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
-            }
-            else
-            {
-                ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST : RTLSYM_DASSERT]);
-                ea = el_bin(OPcall, TYvoid, ea, el_param(el_long(TYint, loc.linnum), efilename));
-            }
+            elem *emsg = eval_Darray(irs, msgExpr, false);
+            ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
+            ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
         }
         else
         {
