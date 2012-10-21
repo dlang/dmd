@@ -7245,7 +7245,17 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
         {
             return getProperty(e->loc, ident);
         }
-        return sym->memtype->dotExp(sc, e, ident);
+
+        unsigned oldGagged = global.gaggedErrors;
+        global.startGagging();
+        Expression* exp = sym->memtype->dotExp(sc, e, ident);
+        if (global.endGagging(oldGagged))
+        {
+            e->error("no property '%s' for type '%s'", ident->toChars(), toChars());
+            return new ErrorExp();
+        }
+
+        return exp;
     }
     EnumMember *m = s->isEnumMember();
     Expression *em = m->value->copy();
