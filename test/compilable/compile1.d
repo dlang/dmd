@@ -22,6 +22,12 @@ auto segfault8532(Y, R ...)(R r, Y val) pure
 static assert(!is(typeof( segfault8532(1,2,3))));
 
 /**************************************************
+    8801    ICE assigning to __ctfe
+**************************************************/
+static assert(!is(typeof( { bool __ctfe= true; })));
+static assert(!is(typeof( { __ctfe |= true; })));
+
+/**************************************************
     5932    ICE(s2ir.c)
     6675    ICE(glue.c)
 **************************************************/
