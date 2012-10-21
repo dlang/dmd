@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -217,6 +217,53 @@ else version( FreeBSD )
 
     int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
     int select(int, fd_set*, fd_set*, fd_set*, timeval*);
+}
+else version (Solaris)
+{
+    private
+    {
+        alias c_long fds_mask;
+
+        enum _NBBY = 8;
+        enum FD_NFDBITS = fds_mask.sizeof * _NBBY;
+    }
+
+    version (D_LP64)
+        enum uint FD_SETSIZE = 65536;
+    else
+        enum uint FD_SETSIZE = 1024;
+
+    struct fd_set
+    {
+        c_long[(FD_SETSIZE + (FD_NFDBITS - 1)) / FD_NFDBITS] fds_bits;
+    }
+
+    extern (D) void FD_SET(int __n, fd_set* __p)
+    {
+        __p.fds_bits[__n / FD_NFDBITS] |= 1 << (__n % FD_NFDBITS);
+    }
+
+    extern (D) void FD_CLR(int __n, fd_set* __p)
+    {
+        __p.fds_bits[__n / FD_NFDBITS] &= ~(1 << (__n % FD_NFDBITS));
+    }
+
+    extern (D) bool FD_ISSET(int __n, const(fd_set)* __p)
+    {
+        return (__p.fds_bits[__n / FD_NFDBITS] & (1 << (__n % FD_NFDBITS))) != 0;
+    }
+
+    extern (D) void FD_ZERO(fd_set* __p)
+    {
+        __p.fds_bits[0 .. $] = 0;
+    }
+
+    int select(int, fd_set*, fd_set*, fd_set*, timeval*);
+    int pselect(int, fd_set*, fd_set*, fd_set*, in timespec*, in sigset_t*);
+}
+else
+{
+    static assert(false, "Unsupported platform");
 }
 
 unittest
