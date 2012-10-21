@@ -7133,8 +7133,6 @@ bool isCtfeValueValid(Expression *newval)
         assert(se->lwr && se->lwr != EXP_CANT_INTERPRET && se->lwr->op == TOKint64);
         assert(se->upr && se->upr != EXP_CANT_INTERPRET && se->upr->op == TOKint64);
         assert(se->e1->op == TOKarrayliteral || se->e1->op == TOKstring);
-        if (se->e1->op == TOKarrayliteral)
-            assert(((ArrayLiteralExp *)se->e1)->ownedByCtfe);
         return true;
     }
     if (newval->op == TOKvoid)
