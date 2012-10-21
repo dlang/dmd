@@ -80,6 +80,81 @@ void writeFilename(OutBuffer *buf, const char *filename)
 }
 
 /*****************************
+ * Check to see if the linker error is the lack of _dmain, which means the
+ * user failed to specify a main function. Print that error if so.
+ */
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#define NME_MAX_OFFSET 100
+
+#if __APPLE__
+#define NME_ERROR_MSG "\"__Dmain\", referenced from:"
+#else
+#define NME_ERROR_MSG "undefined reference to `_Dmain'"
+#endif
+
+int findNoMainError(int fd) {
+    FILE *stream;
+    int nmeFound;
+    int ch;
+
+    stream = fdopen(fd, "rb");
+    nmeFound = 0;
+
+    if (stream == NULL)
+    {
+        perror("failed to open pipe");
+        return -1;
+    }
+
+    while (1)
+    {
+        char buffer[NME_MAX_OFFSET+1];
+        size_t buffer_i;
+
+        // read into buffer while forwarding
+        buffer_i = 0;
+        while (buffer_i < NME_MAX_OFFSET)
+        {
+            ch = fgetc(stream);
+            if (ch == EOF) break;
+            fputc(ch, stderr);
+            if (ch == '\n') break;
+            buffer[buffer_i] = ch;
+            buffer_i++;
+        }
+        buffer[buffer_i] = 0;
+
+        // check for nme
+        if (strstr(buffer, NME_ERROR_MSG) != NULL)
+        {
+            nmeFound = 1;
+            break;
+        }
+
+        if (ch == EOF) break;
+
+        // output the rest of the line
+        while (ch != '\n')
+        {
+            ch = fgetc(stream);
+            if (ch == EOF) goto Lend;
+            fputc(ch, stderr);
+        }
+    }
+
+    // output the rest
+    while (1) {
+        ch = fgetc(stream);
+        if (ch == EOF) break;
+        fputc(ch, stderr);
+    }
+
+  Lend:
+    return nmeFound;
+}
+#endif
+
+/*****************************
  * Run the linker.  Return status of execution.
  */
 
@@ -560,17 +635,23 @@ int runLINK()
     }
 
     argv.push(NULL);
-#if HAS_POSIX_SPAWN
-    int spawn_err = posix_spawnp(&childpid, argv[0], NULL, NULL, argv.tdata(), environ);
-    if (spawn_err != 0)
+
+    // set up pipes
+    int fds[2];
+
+    if (pipe(fds) == -1)
     {
-        perror(argv[0]);
+        perror("Unable to create pipe to linker");
         return -1;
     }
-#else
+
     childpid = fork();
     if (childpid == 0)
     {
+        // pipe linker stderr to fds[0]
+        dup2(fds[1], STDERR_FILENO);
+        close(fds[0]);
+
         execvp(argv[0], argv.tdata());
         perror(argv[0]);           // failed to execute
         return -1;
@@ -580,7 +661,7 @@ int runLINK()
         perror("Unable to fork");
         return -1;
     }
-#endif
+    close(fds[1]);
 
     waitpid(childpid, &status, 0);
 
@@ -588,7 +669,13 @@ int runLINK()
     {
         status = WEXITSTATUS(status);
         if (status)
+        {
+            int nme = findNoMainError(fds[0]);
             printf("--- errorlevel %d\n", status);
+
+            if (nme)
+                error(0, "no main function specified");
+        }
     }
     else if (WIFSIGNALED(status))
     {
