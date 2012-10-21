@@ -144,6 +144,8 @@ void tfun4c(T)(T f){}
 void test4()
 {
     int v;
+    static void sfoo() {}
+           void nfoo() {}
 
     // parameter type inference + overload resolution
     assert(foo4((a)   => a * 2) == 20);
@@ -158,8 +160,13 @@ void test4()
     // function/delegate inference + overload resolution
     assert(nbaz4({ }) == 1);
     assert(nbaz4({ v = 1; }) == 2);
+    assert(nbaz4({ sfoo(); }) == 1);    // Bugzilla 8836
+    assert(nbaz4({ nfoo(); }) == 2);
+
     assert(tbaz4({ }) == 1);
     assert(tbaz4({ v = 1; }) == 2);
+    assert(tbaz4({ sfoo(); }) == 1);
+    assert(tbaz4({ nfoo(); }) == 2);
 
     // template function deduction
     static assert(is(typeof(thoo4({ })) : void function()));

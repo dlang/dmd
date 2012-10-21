@@ -767,7 +767,9 @@ MATCH FuncExp::implicitConvTo(Type *t)
 {
     //printf("FuncExp::implicitConvTo type = %p %s, t = %s\n", type, type ? type->toChars() : NULL, t->toChars());
     Expression *e = inferType(t, 1);
-    if (e)
+    if (e &&
+        (t->ty == Tdelegate ||
+         t->ty == Tpointer && t->nextOf()->ty == Tfunction))
     {
         if (e != this)
             return e->implicitConvTo(t);
@@ -775,13 +777,10 @@ MATCH FuncExp::implicitConvTo(Type *t)
         /* MATCHconst:   Conversion from implicit to explicit function pointer
          * MATCHconvert: Conversion from impliict funciton pointer to delegate
          */
-        if (tok == TOKreserved && type->ty == Tpointer &&
-            (t->ty == Tpointer || t->ty == Tdelegate))
+        if (fd->tok == TOKreserved &&   // fbody doesn't have a frame pointer
+            (type->equals(t) || type->nextOf()->covariant(t->nextOf()) == 1))
         {
-            if (type == t)
-                return MATCHexact;
-            if (type->nextOf()->covariant(t->nextOf()) == 1)
-                return t->ty == Tpointer ? MATCHconst : MATCHconvert;
+            return t->ty == Tpointer ? MATCHconst : MATCHconvert;
         }
     }
     return Expression::implicitConvTo(t);
