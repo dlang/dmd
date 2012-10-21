@@ -520,14 +520,13 @@ size_t flarray_max;
  * Add to the fix list.
  */
 
-void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flags)
-{       fixlist *ln;
+size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flags)
+{
         static char zeros[8];
-        int numbytes;
 
         //printf("addtofixlist(%p '%s')\n",s,s->Sident);
         assert(flags);
-        ln = (fixlist *) mem_calloc(sizeof(fixlist));
+        fixlist *ln = (fixlist *) mem_calloc(sizeof(fixlist));
         //ln->Lsymbol = s;
         ln->Loffset = soffset;
         ln->Lseg = seg;
@@ -568,6 +567,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         ln->Lnext = *pv;
         *pv = ln;
 
+        size_t numbytes;
 #if TARGET_SEGMENTED
         switch (flags & (CFoff | CFseg))
         {
@@ -586,6 +586,7 @@ void addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int flag
         assert(numbytes <= sizeof(zeros));
 #endif
         objmod->bytes(seg,soffset,numbytes,zeros);
+        return numbytes;
 }
 
 /****************************

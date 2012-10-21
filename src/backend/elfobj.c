@@ -2691,10 +2691,13 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
         }
     }
 
+    buf = SegData[seg]->SDbuf;
+    int save = buf->size();
+    buf->setsize(offset);
+
     switch (s->Sclass)
     {
         case SClocstat:
-            buf = SegData[seg]->SDbuf;
             if (I64)
             {
                 if (s->Sfl == FLtlsdata)
@@ -2727,17 +2730,15 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             {
                 relinfo = R_X86_64_64;
                 ElfObj::addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
-                buf->write64(0);
+                retsize = 8;
+                val = 0;
             }
             else
             {
                 ElfObj::addrel(seg,offset,relinfo,STI_RODAT,v);
-                if (retsize == 8)
-                    buf->write64(val + s->Soffset);
-                else
-                    buf->write32(val + s->Soffset);
+                val = val + s->Soffset;
             }
-            break;
+            goto outaddrval;
 
         case SCcomdat:
         case_SCcomdat:
@@ -2759,15 +2760,12 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             if (!s->Sxtrnnum)
             {   // not in symbol table yet - class might change
                 //dbg_printf("\tadding %s to fixlist\n",s->Sident);
-                addtofixlist(s,offset,seg,val,flags);
+                size_t numbyteswritten = addtofixlist(s,offset,seg,val,flags);
+                assert(numbyteswritten == retsize);
                 return retsize;
             }
             else
             {
-                int save;
-                buf = SegData[seg]->SDbuf;
-                save = buf->size();
-                buf->setsize(offset);
                 if (flags & CFselfrel)
                 {               // only for function references within code segments
                     if (!external &&            // local definition found
@@ -2901,8 +2899,11 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 outaddrval:
                 if (retsize == 8)
                     buf->write64(val);
-                else
+                else if (retsize == 4)
                     buf->write32(val);
+                else
+                    assert(0);
+
                 if (save > offset + retsize)
                     buf->setsize(save);
             }
