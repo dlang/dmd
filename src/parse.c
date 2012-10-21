@@ -4084,7 +4084,7 @@ Statement *Parser::parseStatement(int flags)
             check(TOKlparen);
             Expression *condition = parseExpression();
             check(TOKrparen);
-            Statement *body = parseStatement(PSscope);
+            Statement *body = parseStatement(PSscope | PScurly);
             s = new SwitchStatement(loc, condition, body, isfinal);
             break;
         }
