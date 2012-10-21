@@ -7374,7 +7374,12 @@ Expression *AddrExp::semantic(Scope *sc)
             FuncDeclaration *f = dve->var->isFuncDeclaration();
 
             if (f)
-            {   Expression *e = new DelegateExp(loc, dve->e1, f);
+            {
+                Expression *e;
+                if ( f->needThis())
+                    e = new DelegateExp(loc, dve->e1, f);
+                else // It is a function pointer. Convert &v.f() --> (v, &V.f())
+                    e = new CommaExp(loc, dve->e1, new AddrExp(loc, new VarExp(loc, f)));
                 e = e->semantic(sc);
                 return e;
             }
