@@ -2574,7 +2574,8 @@ enum : HWND
     HWND_DESKTOP = cast(HWND)0,
 }
 
-export ATOM RegisterClassA(WNDCLASSA *lpWndClass);
+export ATOM RegisterClassA(in WNDCLASSA *lpWndClass);
+export ATOM RegisterClassExA(in WNDCLASSEXA *lpWndClass);
 
 export HWND CreateWindowExA(
     DWORD dwExStyle,
