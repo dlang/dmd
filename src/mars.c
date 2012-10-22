@@ -1013,6 +1013,8 @@ int tryMain(int argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
 #endif
 
+    VersionCondition::addPredefinedGlobalIdent("D_HardFloat");
+
     // Initialization
     Type::init();
     Id::initialize();
