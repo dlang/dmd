@@ -27,12 +27,14 @@
 
 #include        "el.h"
 #include        "oper.h"                /* for OPMAX            */
-#include        "code.h"
 #include        "token.h"
 
 #if SCPP
 #include        "parser.h"
 #include        "cpp.h"
+#define mBP 0x20
+#else
+#include        "code.h"
 #endif
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
