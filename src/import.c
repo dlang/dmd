@@ -280,7 +280,9 @@ void Import::semantic(Scope *sc)
         escapePath(ob, sc->module->srcfile->toChars());
         ob->writestring(") : ");
 
-        ProtDeclaration::protectionToCBuffer(ob, sc->protection);
+        // use protection instead of sc->protection because it couldn't be
+        // resolved yet, see the comment above
+        ProtDeclaration::protectionToCBuffer(ob, protection);
         if (isstatic)
             StorageClassDeclaration::stcToCBuffer(ob, STCstatic);
         ob->writestring(": ");
