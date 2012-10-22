@@ -1557,7 +1557,7 @@ code *orth87(elem *e,regm_t *pretregs)
     }
     if (*pretregs & mST0)
         note87(e,0,0);
-    //printf("orth87(-e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("orth87(-e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     return cat4(c1,c2,c3,c4);
 }
 
@@ -2788,7 +2788,7 @@ code *cdnegass87(elem *e,regm_t *pretregs)
     elem *e1;
     int sz;
 
-    //printf("cdnegass87(e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("cdnegass87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     e1 = e->E1;
     tyml = tybasic(e1->Ety);            // type of lvalue
     sz = tysize[tyml];
@@ -2942,7 +2942,7 @@ code *cnvt87(elem *e,regm_t *pretregs)
         int sz;
         int szoff;
 
-        //printf("cnvt87(e = %p, *pretregs = x%x)\n", e, *pretregs);
+        //printf("cnvt87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         assert(*pretregs);
         tym = e->Ety;
         sz = tysize(tym);
@@ -3232,7 +3232,7 @@ code *neg_complex87(elem *e,regm_t *pretregs)
 code *cdind87(elem *e,regm_t *pretregs)
 {   code *c,*ce,cs;
 
-    //printf("cdind87(e = %p, *pretregs = x%x)\n",e,*pretregs);
+    //printf("cdind87(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
 
     c = getlvalue(&cs,e,0);             // get addressing mode
     if (*pretregs)
