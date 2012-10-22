@@ -422,11 +422,14 @@ typedef uint64_t StorageClass;
 
 
 void warning(Loc loc, const char *format, ...);
+void deprecation(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
-void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
+void verror(Loc loc, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
 void vwarning(Loc loc, const char *format, va_list);
 void verrorSupplemental(Loc loc, const char *format, va_list);
+void verrorPrint(Loc loc, const char *header, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL);
+void vdeprecation(Loc loc, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL);
 void fatal();
 void err_nomem();
 int runLINK();

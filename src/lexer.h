@@ -305,6 +305,7 @@ struct Lexer
     TOK inreal(Token *t);
     void error(const char *format, ...);
     void error(Loc loc, const char *format, ...);
+    void deprecation(const char *format, ...);
     void pragma();
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
