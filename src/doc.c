@@ -102,7 +102,7 @@ unsigned skiptoident(OutBuffer *buf, size_t i);
 unsigned skippastident(OutBuffer *buf, size_t i);
 unsigned skippastURL(OutBuffer *buf, size_t i);
 void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor = true);
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
 Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
 
@@ -191,6 +191,7 @@ DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
+DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
 DDOC_PSYMBOL    = $(U $0)\n\
 DDOC_KEYWORD    = $(B $0)\n\
 DDOC_PARAM      = $(I $0)\n\
@@ -774,6 +775,42 @@ void EnumMember::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_e);
 }
 
+static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
+{
+    if (!s || s->isPackage() || s->isModule())
+        return false;
+
+    TemplateDeclaration *td;
+    bool dot;
+    
+    // Add parent names first
+    dot = emitAnchorName(buf, s->parent);
+    // Eponymous template members can share the parent anchor name
+    if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
+        td->onemember == s)
+        return dot;
+    if (dot)
+        buf->writeByte('.');
+    // Use "this" not "__ctor"
+    if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
+        td->onemember && td->onemember->isCtorDeclaration()))
+        buf->writestring("this");
+    else
+    {
+        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
+         * We don't want the template parameter list and constraints. */
+        buf->writestring(s->Dsymbol::toChars());
+    }
+    return true;
+}
+
+static void emitAnchor(OutBuffer *buf, Dsymbol *s)
+{
+    buf->writestring("$(DDOC_ANCHOR ");
+    emitAnchorName(buf, s);
+    buf->writeByte(')');
+}
+
 /******************************* toDocBuffer **********************************/
 
 void Dsymbol::toDocBuffer(OutBuffer *buf)
@@ -911,6 +948,7 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
+        emitAnchor(buf, this);
 #if 0
         emitProtection(buf, protection);
 #endif
@@ -938,6 +976,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
+            emitAnchor(buf, this);
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         }
         buf->writestring(";\n");
@@ -963,6 +1002,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf)
         }
         else
         {
+            emitAnchor(buf, this);
             if (isAbstract())
                 buf->writestring("abstract ");
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
@@ -1002,6 +1042,7 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf)
 {
     if (ident)
     {
+        emitAnchor(buf, this);
         buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         buf->writestring(";\n");
     }
@@ -1324,7 +1365,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     else
                         buf->write(namestart, namelen);
                     escapeStrayParenthesis(buf, o, s->loc);
-                    highlightCode(sc, s, buf, o);
+                    highlightCode(sc, s, buf, o, false);
                 buf->writestring(")\n");
 
                 buf->writestring("$(DDOC_PARAM_DESC ");
@@ -2021,8 +2062,16 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
  * Highlight code for DDOC section.
  */
 
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor)
 {
+    if (anchor)
+    {
+        OutBuffer ancbuf;
+
+        emitAnchor(&ancbuf, s);
+        buf->insert(offset, (char *)ancbuf.data, ancbuf.offset);
+        offset += ancbuf.offset;
+    }
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
 
