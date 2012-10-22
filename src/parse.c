@@ -2739,6 +2739,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     enum TOK tok = TOKreserved;
     enum LINK link = linkage;
     unsigned structalign = 0;
+    Loc loc = this->loc;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
@@ -2757,9 +2758,9 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
              */
             tok = token.value;
             nextToken();
-            if (token.value == TOKidentifier && peek(&token)->value == TOKthis)
+            if (token.value == TOKidentifier && peekNext() == TOKthis)
             {
-                AliasThis *s = new AliasThis(this->loc, token.ident);
+                AliasThis *s = new AliasThis(loc, token.ident);
                 nextToken();
                 check(TOKthis);
                 check(TOKsemicolon);
@@ -2768,6 +2769,62 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 addComment(s, comment);
                 return a;
             }
+            /* Look for:
+             *  alias this = identifier;
+             */
+            if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
+            {
+                check(TOKthis);
+                check(TOKassign);
+                AliasThis *s = new AliasThis(loc, token.ident);
+                nextToken();
+                check(TOKsemicolon);
+                a = new Dsymbols();
+                a->push(s);
+                addComment(s, comment);
+                return a;
+            }
+            /* Look for:
+             *  alias identifier = type;
+             */
+            if (token.value == TOKidentifier && peekNext() == TOKassign)
+            {
+                a = new Dsymbols();
+                while (1)
+                {
+                    ident = token.ident;
+                    nextToken();
+                    check(TOKassign);
+                    t = parseType();
+                    Declaration *v = new AliasDeclaration(loc, ident, t);
+                    a->push(v);
+                    switch (token.value)
+                    {   case TOKsemicolon:
+                            nextToken();
+                            addComment(v, comment);
+                            break;
+                        case TOKcomma:
+                            nextToken();
+                            addComment(v, comment);
+                            if (token.value != TOKidentifier)
+                            {   error("Identifier expected following comma, not %s", token.toChars());
+                                break;
+                            }
+                            else if (peek(&token)->value != TOKassign)
+                            {   error("= expected following identifier");
+                                nextToken();
+                                break;
+                            }
+                            continue;
+                        default:
+                            error("semicolon expected to close %s declaration", Token::toChars(tok));
+                            break;
+                    }
+                    break;
+                }
+                return a;
+            }
+
             break;
         case TOKtypedef:
             deprecation("use of typedef is deprecated; use alias instead");
@@ -2935,7 +2992,7 @@ L2:
 
     while (1)
     {
-        Loc loc = this->loc;
+        loc = this->loc;
         TemplateParameters *tpl = NULL;
 
         ident = NULL;
