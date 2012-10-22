@@ -1,0 +1,781 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="src">
+      <UniqueIdentifier>{6b846289-f779-413a-b14c-51ac8055587b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\backend">
+      <UniqueIdentifier>{853090e1-9436-40d8-b439-b8dbbc2c7fa1}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\tk">
+      <UniqueIdentifier>{2db94531-cc9e-4df8-bd77-c22e38022b15}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\root">
+      <UniqueIdentifier>{f109049a-11c8-4419-bdda-9d44c65b2900}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\root\gc">
+      <UniqueIdentifier>{93137d89-fe84-4502-818f-e8f38fcffb3b}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\gen">
+      <UniqueIdentifier>{8f21dd4e-1670-48be-9a72-1dccf0c17166}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\generated">
+      <UniqueIdentifier>{6deaa83b-2b97-4159-a330-266507006483}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\no_win">
+      <UniqueIdentifier>{b8c9d61e-7fef-4d7e-83e8-c230ccf89ef5}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="src\vcbuild">
+      <UniqueIdentifier>{5fa9d849-fc22-4664-bb36-8ed7e1bff041}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="access.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="aliasthis.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="apply.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="argtypes.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="arrayop.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="attrib.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="builtin.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="canthrow.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="cast.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="class.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="clone.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="cond.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="constfold.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="cppmangle.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="declaration.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="delegatize.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="doc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dsymbol.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="dump.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="e2ir.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="eh.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="entity.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="enum.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="expression.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="func.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="glue.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="hdrgen.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="iasm.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="identifier.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="imphint.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="import.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="inifile.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="init.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="inline.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="interpret.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="intrange.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="irstate.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="json.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="lexer.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libmscoff.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="libomf.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="link.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="macro.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mangle.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mars.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="module.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="msc.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="mtype.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="opover.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="optimize.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="parse.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="ph.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="s2ir.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="scanmscoff.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="scope.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="sideeffect.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="statement.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="staticassert.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="struct.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="template.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tk.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tocsym.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="toctype.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="tocvdebug.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="todt.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="toelfdebug.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="toir.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="toobj.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="traits.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="typinf.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="unialpha.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="unittests.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="utf.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="util.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="version.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\aa.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\bcomplex.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\blockopt.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cg.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cg87.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgcod.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgcs.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgcv.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgelem.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgen.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgobj.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgreg.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgsched.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cgxmm.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cod1.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cod2.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cod3.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cod4.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cod5.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\code.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cppman.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\debug.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\dt.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\dwarf.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ee.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\el.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\elfobj.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\evalu8.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\gdag.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\gflow.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\glocal.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\gloop.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\go.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\gother.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\machobj.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\md5.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\mscoffobj.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\newman.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\nteh.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\os.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\out.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\outbuf.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ptrntab.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\rtlsym.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\strtold.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\symbol.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ti_achar.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ti_pvoid.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\type.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\var.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="tk\filespec.c">
+      <Filter>src\tk</Filter>
+    </ClCompile>
+    <ClCompile Include="tk\list.c">
+      <Filter>src\tk</Filter>
+    </ClCompile>
+    <ClCompile Include="tk\mem.c">
+      <Filter>src\tk</Filter>
+    </ClCompile>
+    <ClCompile Include="tk\vec.c">
+      <Filter>src\tk</Filter>
+    </ClCompile>
+    <ClCompile Include="root\aav.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\array.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\async.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\dmgcmem.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gnuc.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\longdouble.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\man.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\port.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\response.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\rmem.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\root.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\speller.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\stringtable.c">
+      <Filter>src\root</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gc\bits.c">
+      <Filter>src\root\gc</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gc\gc.c">
+      <Filter>src\root\gc</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gc\testgc.c">
+      <Filter>src\root\gc</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gc\win32.c">
+      <Filter>src\root\gc</Filter>
+    </ClCompile>
+    <ClCompile Include="cdxxx.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="debtab.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="elxxx.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="fltables.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="id.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="impcnvtab.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="optab.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="tytab.c">
+      <Filter>src\generated</Filter>
+    </ClCompile>
+    <ClCompile Include="libelf.c">
+      <Filter>src\no_win</Filter>
+    </ClCompile>
+    <ClCompile Include="libmach.c">
+      <Filter>src\no_win</Filter>
+    </ClCompile>
+    <ClCompile Include="root\gc\linux.c">
+      <Filter>src\no_win</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aggregate.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="aliasthis.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="arraytypes.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="attrib.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="complex_t.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="cond.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="declaration.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="doc.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="dsymbol.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="enum.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="expression.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="hdrgen.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="identifier.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="import.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="init.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="intrange.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="irstate.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="json.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="lexer.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="lib.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="macro.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="mars.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="module.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="mtype.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="objfile.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="parse.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="scope.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="statement.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="staticassert.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="template.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="toir.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="total.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="utf.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="version.h">
+      <Filter>src</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\aa.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\bcomplex.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cc.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cdef.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cdeflnx.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cgcv.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\code.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cpp.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\cv4.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\dt.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\dwarf.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\dwarf2.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\el.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\exh.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\global.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\go.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\iasm.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\mach.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\md5.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\melf.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\mscoff.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\oper.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\outbuf.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\rtlsym.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\tassert.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\tinfo.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\token.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\ty.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="backend\type.h">
+      <Filter>src\backend</Filter>
+    </ClInclude>
+    <ClInclude Include="tk\filespec.h">
+      <Filter>src\tk</Filter>
+    </ClInclude>
+    <ClInclude Include="tk\list.h">
+      <Filter>src\tk</Filter>
+    </ClInclude>
+    <ClInclude Include="tk\mem.h">
+      <Filter>src\tk</Filter>
+    </ClInclude>
+    <ClInclude Include="tk\vec.h">
+      <Filter>src\tk</Filter>
+    </ClInclude>
+    <ClInclude Include="root\aav.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\async.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gnuc.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\longdouble.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\port.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\rmem.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\root.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\speller.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\stringtable.h">
+      <Filter>src\root</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gc\bits.h">
+      <Filter>src\root\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gc\gc.h">
+      <Filter>src\root\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gc\gccbitops.h">
+      <Filter>src\root\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gc\mscbitops.h">
+      <Filter>src\root\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="root\gc\os.h">
+      <Filter>src\root\gc</Filter>
+    </ClInclude>
+    <ClInclude Include="id.h">
+      <Filter>src\generated</Filter>
+    </ClInclude>
+    <ClInclude Include="vcbuild\alloca.h">
+      <Filter>src\vcbuild</Filter>
+    </ClInclude>
+    <ClInclude Include="vcbuild\fenv.h">
+      <Filter>src\vcbuild</Filter>
+    </ClInclude>
+    <ClInclude Include="vcbuild\stdint.h">
+      <Filter>src\vcbuild</Filter>
+    </ClInclude>
+    <ClInclude Include="vcbuild\warnings.h">
+      <Filter>src\vcbuild</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuildStep Include="vcbuild\ldfpu.asm">
+      <Filter>src\vcbuild</Filter>
+    </CustomBuildStep>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="idgen.c">
+      <Filter>src\gen</Filter>
+    </CustomBuild>
+    <CustomBuild Include="impcnvgen.c">
+      <Filter>src\gen</Filter>
+    </CustomBuild>
+    <CustomBuild Include="backend\optabgen.c">
+      <Filter>src\gen</Filter>
+    </CustomBuild>
+  </ItemGroup>
+</Project>

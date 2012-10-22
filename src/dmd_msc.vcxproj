@@ -1,0 +1,512 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|Win32">
+      <Configuration>Debug</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Debug|x64">
+      <Configuration>Debug</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|Win32">
+      <Configuration>Release</Configuration>
+      <Platform>Win32</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|x64">
+      <Configuration>Release</Configuration>
+      <Platform>x64</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <ProjectGuid>{BAE0389D-7D3F-4D5E-AE0E-C871776E8432}</ProjectGuid>
+    <RootNamespace>dmd</RootNamespace>
+    <Keyword>Win32Proj</Keyword>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
+    <ConfigurationType>Application</ConfigurationType>
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <ImportGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="PropertySheets">
+    <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup>
+    <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">vcbuild\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(OutDir)</IntDir>
+    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">vcbuild\$(Platform)\$(Configuration)\</OutDir>
+    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(OutDir)</IntDir>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/TP %(AdditionalOptions)</AdditionalOptions>
+      <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
+      <StructMemberAlignment>1Byte</StructMemberAlignment>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <ForcedIncludeFiles>vcbuild\warnings.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/LARGEADDRESSAWARE %(AdditionalOptions)</AdditionalOptions>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>false</OptimizeReferences>
+      <EnableCOMDATFolding>false</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+    <ClCompile>
+      <AdditionalOptions>/TP %(AdditionalOptions)</AdditionalOptions>
+      <Optimization>Full</Optimization>
+      <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <OmitFramePointers>true</OmitFramePointers>
+      <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <RuntimeLibrary>MultiThreaded</RuntimeLibrary>
+      <StructMemberAlignment>1Byte</StructMemberAlignment>
+      <BufferSecurityCheck>false</BufferSecurityCheck>
+      <WarningLevel>Level4</WarningLevel>
+      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
+      <CompileAs>Default</CompileAs>
+      <ForcedIncludeFiles>vcbuild\warnings.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
+    </ClCompile>
+    <Link>
+      <AdditionalOptions>/LARGEADDRESSAWARE %(AdditionalOptions)</AdditionalOptions>
+      <OutputFile>$(OutDir)$(ProjectName).exe</OutputFile>
+      <GenerateDebugInformation>true</GenerateDebugInformation>
+      <OptimizeReferences>true</OptimizeReferences>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="access.c" />
+    <ClCompile Include="aliasthis.c" />
+    <ClCompile Include="apply.c" />
+    <ClCompile Include="argtypes.c" />
+    <ClCompile Include="arrayop.c" />
+    <ClCompile Include="attrib.c" />
+    <ClCompile Include="builtin.c" />
+    <ClCompile Include="canthrow.c" />
+    <ClCompile Include="cast.c" />
+    <ClCompile Include="class.c" />
+    <ClCompile Include="clone.c" />
+    <ClCompile Include="cond.c" />
+    <ClCompile Include="constfold.c" />
+    <ClCompile Include="cppmangle.c" />
+    <ClCompile Include="declaration.c" />
+    <ClCompile Include="delegatize.c" />
+    <ClCompile Include="doc.c" />
+    <ClCompile Include="dsymbol.c" />
+    <ClCompile Include="dump.c" />
+    <ClCompile Include="e2ir.c" />
+    <ClCompile Include="eh.c" />
+    <ClCompile Include="entity.c" />
+    <ClCompile Include="enum.c" />
+    <ClCompile Include="expression.c" />
+    <ClCompile Include="func.c" />
+    <ClCompile Include="glue.c" />
+    <ClCompile Include="hdrgen.c" />
+    <ClCompile Include="iasm.c" />
+    <ClCompile Include="identifier.c" />
+    <ClCompile Include="imphint.c" />
+    <ClCompile Include="import.c" />
+    <ClCompile Include="inifile.c" />
+    <ClCompile Include="init.c" />
+    <ClCompile Include="inline.c" />
+    <ClCompile Include="interpret.c" />
+    <ClCompile Include="intrange.c" />
+    <ClCompile Include="irstate.c" />
+    <ClCompile Include="json.c" />
+    <ClCompile Include="lexer.c" />
+    <ClCompile Include="libmscoff.c" />
+    <ClCompile Include="libomf.c" />
+    <ClCompile Include="link.c" />
+    <ClCompile Include="macro.c" />
+    <ClCompile Include="mangle.c" />
+    <ClCompile Include="mars.c" />
+    <ClCompile Include="module.c" />
+    <ClCompile Include="msc.c" />
+    <ClCompile Include="mtype.c" />
+    <ClCompile Include="opover.c" />
+    <ClCompile Include="optimize.c" />
+    <ClCompile Include="parse.c" />
+    <ClCompile Include="ph.c" />
+    <ClCompile Include="s2ir.c" />
+    <ClCompile Include="scanmscoff.c" />
+    <ClCompile Include="scope.c" />
+    <ClCompile Include="sideeffect.c" />
+    <ClCompile Include="statement.c" />
+    <ClCompile Include="staticassert.c" />
+    <ClCompile Include="struct.c" />
+    <ClCompile Include="template.c" />
+    <ClCompile Include="tk.c" />
+    <ClCompile Include="tocsym.c" />
+    <ClCompile Include="toctype.c" />
+    <ClCompile Include="tocvdebug.c" />
+    <ClCompile Include="todt.c" />
+    <ClCompile Include="toelfdebug.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="toir.c" />
+    <ClCompile Include="toobj.c" />
+    <ClCompile Include="traits.c" />
+    <ClCompile Include="typinf.c" />
+    <ClCompile Include="unialpha.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="unittests.c" />
+    <ClCompile Include="utf.c" />
+    <ClCompile Include="util.c" />
+    <ClCompile Include="version.c" />
+    <ClCompile Include="backend\aa.c" />
+    <ClCompile Include="backend\bcomplex.c" />
+    <ClCompile Include="backend\blockopt.c" />
+    <ClCompile Include="backend\cg.c" />
+    <ClCompile Include="backend\cg87.c" />
+    <ClCompile Include="backend\cgcod.c" />
+    <ClCompile Include="backend\cgcs.c" />
+    <ClCompile Include="backend\cgcv.c" />
+    <ClCompile Include="backend\cgelem.c" />
+    <ClCompile Include="backend\cgen.c" />
+    <ClCompile Include="backend\cgobj.c" />
+    <ClCompile Include="backend\cgreg.c" />
+    <ClCompile Include="backend\cgsched.c" />
+    <ClCompile Include="backend\cgxmm.c" />
+    <ClCompile Include="backend\cod1.c" />
+    <ClCompile Include="backend\cod2.c" />
+    <ClCompile Include="backend\cod3.c" />
+    <ClCompile Include="backend\cod4.c" />
+    <ClCompile Include="backend\cod5.c" />
+    <ClCompile Include="backend\code.c" />
+    <ClCompile Include="backend\cppman.c" />
+    <ClCompile Include="backend\debug.c" />
+    <ClCompile Include="backend\dt.c" />
+    <ClCompile Include="backend\dwarf.c" />
+    <ClCompile Include="backend\ee.c" />
+    <ClCompile Include="backend\el.c" />
+    <ClCompile Include="backend\elfobj.c" />
+    <ClCompile Include="backend\evalu8.c" />
+    <ClCompile Include="backend\gdag.c" />
+    <ClCompile Include="backend\gflow.c" />
+    <ClCompile Include="backend\glocal.c" />
+    <ClCompile Include="backend\gloop.c" />
+    <ClCompile Include="backend\go.c" />
+    <ClCompile Include="backend\gother.c" />
+    <ClCompile Include="backend\machobj.c" />
+    <ClCompile Include="backend\md5.c" />
+    <ClCompile Include="backend\mscoffobj.c" />
+    <ClCompile Include="backend\newman.c" />
+    <ClCompile Include="backend\nteh.c" />
+    <ClCompile Include="backend\os.c" />
+    <ClCompile Include="backend\out.c" />
+    <ClCompile Include="backend\outbuf.c" />
+    <ClCompile Include="backend\ptrntab.c" />
+    <ClCompile Include="backend\rtlsym.c" />
+    <ClCompile Include="backend\strtold.c" />
+    <ClCompile Include="backend\symbol.c" />
+    <ClCompile Include="backend\ti_achar.c" />
+    <ClCompile Include="backend\ti_pvoid.c" />
+    <ClCompile Include="backend\type.c" />
+    <ClCompile Include="backend\var.c" />
+    <ClCompile Include="tk\filespec.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tk\list.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tk\mem.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tk\vec.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\aav.c" />
+    <ClCompile Include="root\array.c" />
+    <ClCompile Include="root\async.c" />
+    <ClCompile Include="root\dmgcmem.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\gnuc.c" />
+    <ClCompile Include="root\longdouble.c" />
+    <ClCompile Include="root\man.c" />
+    <ClCompile Include="root\port.c" />
+    <ClCompile Include="root\response.c" />
+    <ClCompile Include="root\rmem.c" />
+    <ClCompile Include="root\root.c" />
+    <ClCompile Include="root\speller.c" />
+    <ClCompile Include="root\stringtable.c" />
+    <ClCompile Include="root\gc\bits.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\gc\gc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\gc\testgc.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\gc\win32.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <CustomBuild Include="idgen.c">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
+if errorlevel 1 goto VCReportError
+$(IntDir)%(Filename).exe
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">idgen.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
+if errorlevel 1 goto VCReportError
+$(IntDir)%(Filename).exe
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">idgen.c;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="impcnvgen.c">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
+if errorlevel 1 goto VCReportError
+$(IntDir)%(Filename).exe
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mtype.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">impcnvtab.c;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
+if errorlevel 1 goto VCReportError
+$(IntDir)%(Filename).exe
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">mtype.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">impcnvtab.c;%(Outputs)</Outputs>
+    </CustomBuild>
+    <CustomBuild Include="backend\optabgen.c">
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
+if errorlevel 1 goto VCReportError
+"$(IntDir)%(Filename).exe"
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cc.h;oper.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c;%(Outputs)</Outputs>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
+if errorlevel 1 goto VCReportError
+"$(IntDir)%(Filename).exe"</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cc.h;oper.h;%(AdditionalInputs)</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c;%(Outputs)</Outputs>
+    </CustomBuild>
+    <ClCompile Include="cdxxx.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="debtab.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="elxxx.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="fltables.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="id.c" />
+    <ClCompile Include="impcnvtab.c" />
+    <ClCompile Include="optab.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="tytab.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libelf.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="libmach.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+    <ClCompile Include="root\gc\linux.c">
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="aggregate.h" />
+    <ClInclude Include="aliasthis.h" />
+    <ClInclude Include="arraytypes.h" />
+    <ClInclude Include="attrib.h" />
+    <ClInclude Include="complex_t.h" />
+    <ClInclude Include="cond.h" />
+    <ClInclude Include="declaration.h" />
+    <ClInclude Include="doc.h" />
+    <ClInclude Include="dsymbol.h" />
+    <ClInclude Include="enum.h" />
+    <ClInclude Include="expression.h" />
+    <ClInclude Include="hdrgen.h" />
+    <ClInclude Include="identifier.h" />
+    <ClInclude Include="import.h" />
+    <ClInclude Include="init.h" />
+    <ClInclude Include="intrange.h" />
+    <ClInclude Include="irstate.h" />
+    <ClInclude Include="json.h" />
+    <ClInclude Include="lexer.h" />
+    <ClInclude Include="lib.h" />
+    <ClInclude Include="macro.h" />
+    <ClInclude Include="mars.h" />
+    <ClInclude Include="module.h" />
+    <ClInclude Include="mtype.h" />
+    <ClInclude Include="objfile.h" />
+    <ClInclude Include="parse.h" />
+    <ClInclude Include="scope.h" />
+    <ClInclude Include="statement.h" />
+    <ClInclude Include="staticassert.h" />
+    <ClInclude Include="template.h" />
+    <ClInclude Include="toir.h" />
+    <ClInclude Include="total.h" />
+    <ClInclude Include="utf.h" />
+    <ClInclude Include="version.h" />
+    <ClInclude Include="backend\aa.h" />
+    <ClInclude Include="backend\bcomplex.h" />
+    <ClInclude Include="backend\cc.h" />
+    <ClInclude Include="backend\cdef.h" />
+    <ClInclude Include="backend\cdeflnx.h" />
+    <ClInclude Include="backend\cgcv.h" />
+    <ClInclude Include="backend\code.h" />
+    <ClInclude Include="backend\cpp.h" />
+    <ClInclude Include="backend\cv4.h" />
+    <ClInclude Include="backend\dt.h" />
+    <ClInclude Include="backend\dwarf.h" />
+    <ClInclude Include="backend\dwarf2.h" />
+    <ClInclude Include="backend\el.h" />
+    <ClInclude Include="backend\exh.h" />
+    <ClInclude Include="backend\global.h" />
+    <ClInclude Include="backend\go.h" />
+    <ClInclude Include="backend\iasm.h" />
+    <ClInclude Include="backend\mach.h" />
+    <ClInclude Include="backend\md5.h" />
+    <ClInclude Include="backend\melf.h" />
+    <ClInclude Include="backend\mscoff.h" />
+    <ClInclude Include="backend\oper.h" />
+    <ClInclude Include="backend\outbuf.h" />
+    <ClInclude Include="backend\rtlsym.h" />
+    <ClInclude Include="backend\tassert.h" />
+    <ClInclude Include="backend\tinfo.h" />
+    <ClInclude Include="backend\token.h" />
+    <ClInclude Include="backend\ty.h" />
+    <ClInclude Include="backend\type.h" />
+    <ClInclude Include="tk\filespec.h" />
+    <ClInclude Include="tk\list.h" />
+    <ClInclude Include="tk\mem.h" />
+    <ClInclude Include="tk\vec.h" />
+    <ClInclude Include="root\aav.h" />
+    <ClInclude Include="root\async.h" />
+    <ClInclude Include="root\gnuc.h" />
+    <ClInclude Include="root\longdouble.h" />
+    <ClInclude Include="root\port.h" />
+    <ClInclude Include="root\rmem.h" />
+    <ClInclude Include="root\root.h" />
+    <ClInclude Include="root\speller.h" />
+    <ClInclude Include="root\stringtable.h" />
+    <ClInclude Include="root\gc\bits.h" />
+    <ClInclude Include="root\gc\gc.h" />
+    <ClInclude Include="root\gc\gccbitops.h" />
+    <ClInclude Include="root\gc\mscbitops.h" />
+    <ClInclude Include="root\gc\os.h" />
+    <ClInclude Include="id.h" />
+    <ClInclude Include="vcbuild\alloca.h" />
+    <ClInclude Include="vcbuild\fenv.h" />
+    <ClInclude Include="vcbuild\stdint.h" />
+    <ClInclude Include="vcbuild\warnings.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuildStep Include="vcbuild\ldfpu.asm">
+      <FileType>Document</FileType>
+      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
+    </CustomBuildStep>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

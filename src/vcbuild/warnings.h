@@ -13,9 +13,18 @@
 #pragma warning(disable:4189) // local variable is initialized but not referenced
 #pragma warning(disable:4102) // unreferenced label
 #pragma warning(disable:4800) // forcing value to bool 'true' or 'false' (performance warning)
+#pragma warning(disable:4804) // '+=' : unsafe use of type 'bool' in operation
 #pragma warning(disable:4390) // ';' : empty controlled statement found; is this the intent?
 #pragma warning(disable:4702) // unreachable code
 #pragma warning(disable:4703) // potentially uninitialized local pointer variable 'm' used
+#pragma warning(disable:4063) // case '0' is not a valid value for switch of enum
+#pragma warning(disable:4305) // 'initializing' : truncation from 'double' to 'float'
+#pragma warning(disable:4309) // 'initializing' : truncation of constant value
+#pragma warning(disable:4310) // cast truncates constant value
+#pragma warning(disable:4806) // '^' : unsafe operation: no value of type 'bool' promoted to type 'int' can equal the given constant
+#pragma warning(disable:4060) // switch statement contains no 'case' or 'default' labels
+#pragma warning(disable:4099) // type name first seen using 'struct' now seen using 'class'
+#pragma warning(disable:4725) // instruction may be inaccurate on some Pentiums
  
 #ifdef _WIN64
 #pragma warning(disable:4366) // The result of the unary '&' operator may be unaligned
