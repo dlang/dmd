@@ -27,6 +27,7 @@
 
 #include        "el.h"
 #include        "oper.h"                /* for OPMAX            */
+#include        "code.h"
 #include        "token.h"
 
 #if SCPP
@@ -360,13 +361,10 @@ void symbol_func(symbol *s)
     symbol_debug(s);
     s->Sfl = FLfunc;
     // Interrupt functions modify all registers
-#if TX86
     // BUG: do interrupt functions really save BP?
-    #define mBP 0x20
     // Note that fregsaved may not be set yet
     s->Sregsaved = (s->Stype && tybasic(s->Stype->Tty) == TYifunc) ? mBP : fregsaved;
     s->Sseg = UNKNOWN;          // don't know what segment it is in
-#endif
     if (!s->Sfunc)
         s->Sfunc = func_calloc();
 }
