@@ -33,9 +33,10 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
 
     if (to.length != from.length)
     {
-        char[10] tmp = void;
-        string msg = "lengths don't match for array copy,"c;
-        msg ~= tmp.intToString(to.length) ~ " = " ~ tmp.intToString(from.length);
+        char[10] tmp1 = void;
+        char[10] tmp2 = void;
+        string msg = "lengths don't match for array copy, "c;
+        msg ~= tmp1.intToString(to.length) ~ " = " ~ tmp2.intToString(from.length);
         throw new Error(msg);
     }
 
