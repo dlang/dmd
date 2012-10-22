@@ -19,20 +19,8 @@
 #include        <float.h>
 #include        <time.h>
 
-#if defined __OpenBSD__
-    #include <sys/param.h>
-    #if OpenBSD < 201111 // 5.0
-        #define HAVE_FENV_H 0
-    #else
-        #define HAVE_FENV_H 1
-    #endif
-#elif _MSC_VER
-    #define HAVE_FENV_H 0
-#else
-    #define HAVE_FENV_H 1
-#endif
-
-#if HAVE_FENV_H
+#if !defined(__OpenBSD__)
+// Mysteriously missing from OpenBSD
 #include        <fenv.h>
 #endif
 
@@ -60,34 +48,17 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if HAVE_FENV_H
-    #define HAVE_FLOAT_EXCEPT 1
+#if linux || __APPLE__ || __FreeBSD__ || __sun
+int _status87()
+{
+    return fetestexcept(FE_ALL_EXCEPT);
+}
 
-    static int testFE()
-    {
-        return fetestexcept(FE_ALL_EXCEPT);
-    }
-
-    static void clearFE()
-    {
-        feclearexcept(FE_ALL_EXCEPT);
-    }
-#elif defined _MSC_VER && TX86
-    #define HAVE_FLOAT_EXCEPT 1
-
-    static int testFE()
-    {
-        return _status87() & 0x3F;
-    }
-
-    static void clearFE()
-    {
-        _clear87();
-    }
-#else
-    #define HAVE_FLOAT_EXCEPT 0
+void _clear87()
+{
+    feclearexcept(FE_ALL_EXCEPT);
+}
 #endif
-
 
 CEXTERN elem * evalu8(elem *);
 
@@ -634,8 +605,8 @@ elem * evalu8(elem *e)
             return e;
 #endif
         esave = *e;
-#if HAVE_FLOAT_EXCEPT
-        clearFE();
+#if TX86 && !__OpenBSD__
+        _clear87();
 #endif
     }
     else
@@ -2021,10 +1992,10 @@ elem * evalu8(elem *e)
 
     if (!ignore_exceptions &&
         (config.flags4 & CFG4fastfloat) == 0 &&
-#if HAVE_FLOAT_EXCEPT
-        testFE()
+#if __OpenBSD__
+        1                    // until OpenBSD supports C standard fenv.h
 #else
-        1
+        _status87() & 0x3F
 #endif
        )
     {

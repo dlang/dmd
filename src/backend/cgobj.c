@@ -3395,8 +3395,7 @@ int Obj::reftoident(int seg,targ_size_t offset,Symbol *s,targ_size_t val,
             else
             {   // Don't know yet, worry about it later
              Ladd:
-                size_t byteswritten = addtofixlist(s,offset,seg,val,flags);
-                assert(byteswritten == numbytes);
+                addtofixlist(s,offset,seg,val,flags);
                 return numbytes;
             }
             break;

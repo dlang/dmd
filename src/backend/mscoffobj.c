@@ -2360,8 +2360,7 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
     assert(seg > 0);
     if (s->Sclass != SClocstat && !s->Sxtrnnum)
     {   // It may get defined later as public or local, so defer
-        size_t numbyteswritten = addtofixlist(s, offset, seg, val, flags);
-        assert(numbyteswritten == retsize);
+        addtofixlist(s, offset, seg, val, flags);
     }
     else
     {
