@@ -4819,9 +4819,18 @@ int TryFinallyStatement::usesEH()
 
 int TryFinallyStatement::blockExit(bool mustNotThrow)
 {
+    int result = BEfallthru;
     if (body)
-        return body->blockExit(mustNotThrow);
-    return BEfallthru;
+        result = body->blockExit(mustNotThrow);
+    // check finally body as well, it may throw (bug #4082)
+    if (finalbody)
+    {
+        int finalresult = finalbody->blockExit(mustNotThrow);
+        if (!(finalresult & BEfallthru))
+            result &= ~BEfallthru;
+        result |= finalresult & ~BEfallthru;
+    }
+    return result;
 }
 
 
