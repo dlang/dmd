@@ -3634,7 +3634,7 @@ code *cdstreq(elem *e,regm_t *pretregs)
     unsigned numbytes = type_size(e->ET);              // # of bytes in structure/union
     unsigned char rex = I64 ? REX_W : 0;
 
-    //printf("cdstreq(e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("cdstreq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
 
     /* First, load pointer to rvalue into SI                            */
     srcregs = mSI;                      /* source is DS:SI              */

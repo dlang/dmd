@@ -549,8 +549,8 @@ code *loadea(elem *e,code *cs,unsigned op,unsigned reg,targ_size_t offset,
 
 #ifdef DEBUG
   if (debugw)
-    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=x%x desmsk=x%x\n",
-            e,cs,op,reg,(unsigned long long)offset,keepmsk,desmsk);
+    printf("loadea: e=%p cs=%p op=x%x reg=%d offset=%lld keepmsk=%s desmsk=%s\n",
+            e,cs,op,reg,(unsigned long long)offset,regm_str(keepmsk),regm_str(desmsk));
 #endif
 
   assert(e);
@@ -774,7 +774,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
   tym_t e1ty;
   symbol *s;
 
-  //printf("getlvalue(e = %p, keepmsk = x%x)\n",e,(unsigned)keepmsk);
+  //printf("getlvalue(e = %p, keepmsk = %s)\n",e,regm_str(keepmsk));
   //elem_print(e);
   assert(e);
   elem_debug(e);
@@ -834,7 +834,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
 #endif
     case FLoper:
 #ifdef DEBUG
-        if (debugw) printf("getlvalue(e = %p, km = x%x)\n",e,keepmsk);
+        if (debugw) printf("getlvalue(e = %p, keepmsk = %s)\n", e, regm_str(keepmsk));
 #endif
         switch (e->Eoper)
         {
@@ -1767,7 +1767,7 @@ code *fixresult(elem *e,regm_t retregs,regm_t *pretregs)
             }
             else
 #ifdef DEBUG
-                printf("retregs = x%x, forregs = x%x\n",retregs,forregs),
+                printf("retregs = %s, forregs = %s\n", regm_str(retregs), regm_str(forregs)),
 #endif
                 assert(0);
             if (EOP(e))
@@ -2901,7 +2901,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
     regm_t retregs;
     symbol *s;
 
-    //printf("funccall(e = %p, *pretregs = x%x, numpara = %d, numalign = %d)\n",e,*pretregs,numpara,numalign);
+    //printf("funccall(e = %p, *pretregs = %s, numpara = %d, numalign = %d)\n",e,regm_str(*pretregs),numpara,numalign);
     calledafunc = 1;
     /* Determine if we need frame for function prolog/epilog    */
 #if TARGET_WINDOS
@@ -4152,7 +4152,7 @@ code *loaddata(elem *e,regm_t *pretregs)
 #ifdef DEBUG
         if (!(forregs & BYTEREGS))
         {       elem_print(e);
-                printf("forregs = x%x\n",forregs);
+                printf("forregs = %s\n", regm_str(forregs));
         }
 #endif
         int op = 0x8A;                                  // byte MOV

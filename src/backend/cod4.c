@@ -774,7 +774,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   unsigned varreg;
   unsigned cflags;
 
-  //printf("cdaddass(e=%p, *pretregs = x%x)\n",e,*pretregs);
+  //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
   op = e->Eoper;
   retregs = 0;
   reverse = 0;
@@ -1725,7 +1725,7 @@ code *cdcmp(elem *e,regm_t *pretregs)
   int fl;
   int flag;
 
-  //printf("cdcmp(e = %p, retregs = %s)\n",e,regm_str(*pretregs));
+  //printf("cdcmp(e = %p, pretregs = %s)\n",e,regm_str(*pretregs));
   // Collect extra parameter. This is pretty ugly...
   flag = cdcmp_flag;
   cdcmp_flag = 0;
@@ -3037,7 +3037,7 @@ code *cdlngsht(elem *e,regm_t *pretregs)
 #ifdef DEBUG
   if (!(!*pretregs || retregs))
         WROP(e->Eoper),
-        printf(" *pretregs = x%x, retregs = x%x, e = %p\n",*pretregs,retregs,e);
+        printf(" *pretregs = %s, retregs = %s, e = %p\n",regm_str(*pretregs),regm_str(retregs),e);
 #endif
   assert(!*pretregs || retregs);
   return cat(c,fixresult(e,retregs,pretregs));  /* lsw only             */
@@ -3411,7 +3411,7 @@ code *cdpair(elem *e, regm_t *pretregs)
         return cat(c1,codelem(e->E2,pretregs,FALSE));
     }
 
-    //printf("\ncdpair(e = %p, *pretregs = x%x)\n", e, *pretregs);
+    //printf("\ncdpair(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
     //printf("Ecount = %d\n", e->Ecount);
     retregs = *pretregs & allregs;
     if  (!retregs)
@@ -3423,7 +3423,7 @@ code *cdpair(elem *e, regm_t *pretregs)
         regs1 = regs2;
         regs2 = retregs & (mLSW | mBP);
     }
-    //printf("1: regs1 = x%x, regs2 = x%x\n", regs1, regs2);
+    //printf("1: regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     c1 = codelem(e->E1, &regs1, FALSE);
     c2 = scodelem(e->E2, &regs2, regs1, FALSE);
 
@@ -3433,7 +3433,7 @@ code *cdpair(elem *e, regm_t *pretregs)
     if (e->E2->Ecount)
         cg = cat(cg, getregs(regs2));
 
-    //printf("regs1 = x%x, regs2 = x%x\n", regs1, regs2);
+    //printf("regs1 = %s, regs2 = %s\n", regm_str(regs1), regm_str(regs2));
     return cat4(c1,c2,cg,fixresult(e,regs1 | regs2,pretregs));
 }
 
