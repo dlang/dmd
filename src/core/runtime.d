@@ -37,6 +37,7 @@ private
     extern (C) void* thread_stackBottom();
 
     extern (C) string[] rt_args();
+    extern (C) CArgs rt_cArgs();
 
     // backtrace
     version( linux )
@@ -130,6 +131,17 @@ struct Runtime
         return rt_args();
     }
 
+    /**
+     * Returns the unprocessed C arguments supplied when the process was
+     * started. Use this when you need to supply argc and argv to C libraries.
+     *
+     * Returns:
+     *  The arguments supplied when this process was started.
+     */
+    static @property CArgs cArgs()
+    {
+        return rt_cArgs();
+    }
 
     /**
      * Locates a dynamic library with the supplied library name and dynamically
@@ -253,6 +265,15 @@ private:
     __gshared ModuleUnitTester sm_moduleUnitTester = null;
 }
 
+/**
+ * This struct stores the unprocessed arguments supplied when the
+ * process was started.
+ */
+struct CArgs
+{
+    int argc;
+    char** argv;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Overridable Callbacks
