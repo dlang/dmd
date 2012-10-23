@@ -16,11 +16,15 @@ ifeq (,$(TARGET))
                     ifeq (Solaris,$(OS))
                         TARGET=SOLARIS
                     else
+                        ifeq (SunOS,$(OS))
+                            TARGET=SOLARIS
+                        else
                         $(error Unrecognized or unsupported OS for uname: $(OS))
                     endif
                 endif
             endif
         endif
+    endif
     endif
 endif
 
@@ -52,7 +56,7 @@ endif
 
 ifeq (OSX,$(TARGET))
     SDKDIR=/Developer/SDKs
-    ifeq "$(wildcard $(SDKDIR) )" ""
+    ifeq "$(wildcard $(SDKDIR))" ""
         SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
     endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
@@ -109,7 +113,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
     html.o unialpha.o \
-	pdata.o \
+	pdata.o cv8.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
@@ -154,7 +158,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c \
     $C/html.h $C/html.c $C/unialpha.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
@@ -327,6 +331,9 @@ cond.o: cond.c
 
 cppmangle.o: cppmangle.c
 	$(CC) -c $(CFLAGS) $<
+
+cv8.o: $C/cv8.c
+	$(CC) -c $(MFLAGS) $<
 
 debug.o: $C/debug.c
 	$(CC) -c $(MFLAGS) -I. $<

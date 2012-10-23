@@ -171,7 +171,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
-	ti_pvoid.obj mscoffobj.obj pdata.obj \
+	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj \
 	html.obj
 
 # Root package
@@ -205,7 +205,6 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c \
 	unialpha.c
 
-# From C++ compiler
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -226,7 +225,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
-	$C\mscoffobj.c $C\obj.h $C\pdata.c \
+	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c \
 	$C\backend.txt \
 	$C\html.h $C\html.c
 
@@ -422,6 +421,9 @@ irstate.obj : irstate.h irstate.c
 
 csymbol.obj : $C\symbol.c
 	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj
+
+cv8.obj : $C\cv8.c
+	$(CC) -c $(MFLAGS) $C\cv8
 
 debug.obj : $C\debug.c
 	$(CC) -c $(MFLAGS) -I. $C\debug
