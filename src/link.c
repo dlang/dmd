@@ -93,12 +93,7 @@ void writeFilename(OutBuffer *buf, const char *filename)
 #endif
 
 int findNoMainError(int fd) {
-    FILE *stream;
-    int nmeFound;
-    int ch;
-    
-    stream = fdopen(fd, "rb");
-    nmeFound = 0;
+    FILE *stream = fdopen(fd, "rb");
     
     if (stream == NULL)
     {
@@ -106,13 +101,13 @@ int findNoMainError(int fd) {
         return -1;
     }
     
-    while (1)
+    int nmeFound = false;
+    while (true)
     {
-        char buffer[NME_MAX_OFFSET+1];
-        size_t buffer_i;
-        
         // read into buffer while forwarding
-        buffer_i = 0;
+        char buffer[NME_MAX_OFFSET+1];
+        size_t buffer_i = 0;
+        int ch;
         while (buffer_i < NME_MAX_OFFSET)
         {
             ch = fgetc(stream);
@@ -127,7 +122,7 @@ int findNoMainError(int fd) {
         // check for nme
         if (strstr(buffer, NME_ERROR_MSG) != NULL)
         {
-            nmeFound = 1;
+            nmeFound = true;
             break;
         }
         
@@ -143,7 +138,7 @@ int findNoMainError(int fd) {
     }
     
     // output the rest
-    while (1) {
+    while (true) {
         ch = fgetc(stream);
         if (ch == EOF) break;
         fputc(ch, stderr);
