@@ -51,6 +51,20 @@ void printCtfePerformanceStats();
 
 static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
+/** Normalize path by turning forward slashes into backslashes */
+void toWinPath(char *src)
+{
+    if (src == NULL)
+        return;
+
+    while (*src != '\0')
+    {
+        if (*src == '/')
+            *src = '\\';
+        src++;
+    }
+}
+
 Global global;
 
 void Global::init()
@@ -683,12 +697,18 @@ Language changes listed by -transition=id:\n\
                     case 'd':
                         if (!p[3])
                             goto Lnoarg;
+#if _WIN32
+                        toWinPath(p + 3);
+#endif
                         global.params.objdir = p + 3;
                         break;
 
                     case 'f':
                         if (!p[3])
                             goto Lnoarg;
+#if _WIN32
+                        toWinPath(p + 3);
+#endif
                         global.params.objname = p + 3;
                         break;
 
