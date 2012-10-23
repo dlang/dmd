@@ -147,7 +147,7 @@ int findNoMainError(int fd) {
     
     // output the rest
     while (true) {
-        ch = fgetc(stream);
+        char ch = fgetc(stream);
         if (ferror(stream)) return -1;
         if (ch == EOF) break;
         
