@@ -79,10 +79,6 @@ void writeFilename(OutBuffer *buf, const char *filename)
     writeFilename(buf, filename, strlen(filename));
 }
 
-/*****************************
- * Check to see if the linker error is the lack of _dmain, which means the
- * user failed to specify a main function. Print that error if so.
- */
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #define NME_MAX_OFFSET 100
 
@@ -92,16 +88,21 @@ void writeFilename(OutBuffer *buf, const char *filename)
 #define NME_ERROR_MSG "undefined reference to `_Dmain'"
 #endif
 
+/*****************************
+ * As it forwards the linker error message to stderr, checks for the presence
+ * of an error indicating lack of a main function (NME_ERR_MSG).
+ *
+ * Returns:
+ *      1 if there is a no main error
+ *     -1 if there is an IO error
+ *      0 otherwise
+ */
 int findNoMainError(int fd) {
     FILE *stream = fdopen(fd, "rb");
     
-    if (stream == NULL)
-    {
-        perror("failed to open pipe");
-        return -1;
-    }
+    if (stream == NULL) return -1;
     
-    int nmeFound = false;
+    int nmeFound = 0;
     while (true)
     {
         // read into buffer while forwarding
@@ -111,8 +112,12 @@ int findNoMainError(int fd) {
         while (buffer_i < NME_MAX_OFFSET)
         {
             ch = fgetc(stream);
+            if (ferror(stream)) return -1;
             if (ch == EOF) break;
+            
             fputc(ch, stderr);
+            if (ferror(stream)) return -1;
+            
             if (ch == '\n') break;
             buffer[buffer_i] = ch;
             buffer_i++;
@@ -122,7 +127,7 @@ int findNoMainError(int fd) {
         // check for nme
         if (strstr(buffer, NME_ERROR_MSG) != NULL)
         {
-            nmeFound = true;
+            nmeFound = 1;
             break;
         }
         
@@ -132,16 +137,22 @@ int findNoMainError(int fd) {
         while (ch != '\n')
         {
             ch = fgetc(stream);
+            if (ferror(stream)) return -1;
             if (ch == EOF) goto Lend;
+            
             fputc(ch, stderr);
+            if (ferror(stream)) return -1;
         }
     }
     
     // output the rest
     while (true) {
         ch = fgetc(stream);
+        if (ferror(stream)) return -1;
         if (ch == EOF) break;
+        
         fputc(ch, stderr);
+        if (ferror(stream)) return -1;
     }
     
   Lend:
@@ -666,10 +677,16 @@ int runLINK()
         if (status)
         {
             int nme = findNoMainError(fds[0]);
-            printf("--- errorlevel %d\n", status);            
-            
-            if (nme)
-                error(0, "no main function specified");
+            if (nme == -1)
+            {
+                perror("Error with the linker pipe");
+                return -1;
+            }
+            else
+            {
+                printf("--- errorlevel %d\n", status);            
+                if (nme == 1) error(0, "no main function specified");
+            }
         }
     }
     else if (WIFSIGNALED(status))
