@@ -109,7 +109,7 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o \
+	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
     html.o unialpha.o \
@@ -140,7 +140,7 @@ SRC = win32.mak posix.mak \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
-	scanmscoff.c \
+	scanmscoff.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
@@ -320,6 +320,9 @@ code.o: $C/code.c
 constfold.o: constfold.c
 	$(CC) -c $(CFLAGS) $<
 
+ctfeexpr.o: ctfeexpr.c ctfe.h
+	$(CC) -c $(CFLAGS) $<
+
 irstate.o: irstate.c irstate.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
@@ -449,7 +452,7 @@ init.o: init.c
 inline.o: inline.c
 	$(CC) -c $(CFLAGS) $<
 
-interpret.o: interpret.c
+interpret.o: interpret.c ctfe.h
 	$(CC) -c $(CFLAGS) $<
 
 intrange.o: intrange.h intrange.c
@@ -666,6 +669,7 @@ gcov:
 	gcov init.c
 	gcov inline.c
 	gcov interpret.c
+	gcov ctfeexpr.c
 	gcov irstate.c
 	gcov json.c
 	gcov lexer.c
