@@ -461,8 +461,8 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
     SegData[segidx_drectve]->SDbuf->setsize(0);
     SegData[segidx_drectve]->SDbuf->write("  ", 2);
 
-//    if (config.fulltypes)
-//        dwarf_initfile(filename);
+    if (config.fulltypes)
+        cv8_initfile(filename);
     assert(objbuf->size() == 0);
     return obj;
 }
@@ -494,8 +494,8 @@ void MsCoffObj::initfile(const char *filename, const char *csegname, const char 
             elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, newsecidx);
     }
 #endif
-//    if (config.fulltypes)
-//        dwarf_initmodule(filename, modname);
+    if (config.fulltypes)
+        cv8_initmodule(filename, modname);
 }
 
 /************************************
@@ -697,7 +697,7 @@ void MsCoffObj::termfile()
     //dbg_printf("MsCoffObj::termfile\n");
     if (configv.addlinenumbers)
     {
-        //dwarf_termmodule();
+        cv8_termmodule();
     }
 }
 
@@ -718,7 +718,7 @@ void MsCoffObj::term()
 
     if (configv.addlinenumbers)
     {
-        //dwarf_termfile();
+        cv8_termfile();
     }
 
 #if SCPP
@@ -1074,7 +1074,7 @@ printf("test4\n");
 
 /***************************
  * Record file and line number at segment and offset.
- * The actual .debug_line segment is put out by dwarf_termfile().
+ * The actual .debug_line segment is put out by cv8_termfile().
  * Input:
  *      cseg    current code segment
  */
@@ -1928,8 +1928,8 @@ void MsCoffObj::func_start(Symbol *sfunc)
     MsCoffObj::pubdef(cseg, sfunc, Coffset);
     sfunc->Soffset = Coffset;
 
-//    if (config.fulltypes)
-//        dwarf_func_start(sfunc);
+    if (config.fulltypes)
+        cv8_func_start(sfunc);
 }
 
 /*******************************
@@ -1948,8 +1948,8 @@ void MsCoffObj::func_term(Symbol *sfunc)
     else
         SymbolTable[sfunc->Sxtrnnum].st_size = Coffset - sfunc->Soffset;
 #endif
-//    if (config.fulltypes)
-//        dwarf_func_term(sfunc);
+    if (config.fulltypes)
+        cv8_func_term(sfunc);
 }
 
 /********************************

@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -70,6 +70,15 @@ unsigned char cv4_callconv(type *t);
 
 #define DEBSYM  5               /* segment of symbol info               */
 #define DEBTYP  6               /* segment of type info                 */
+
+/* ======================== Added for Codeview 8 =========================== */
+
+void cv8_initfile(const char *filename);
+void cv8_termfile();
+void cv8_initmodule(const char *filename, const char *modulename);
+void cv8_termmodule();
+void cv8_func_start(Symbol *sfunc);
+void cv8_func_term(Symbol *sfunc);
 
 
 #endif

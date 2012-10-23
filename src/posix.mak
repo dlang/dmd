@@ -108,10 +108,11 @@ DMD_OBJS = \
 	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o clone.o aliasthis.o intrange.o \
+	builtin.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o canthrow.o sideeffect.o \
-	pdata.o \
+	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
+	intrange.o canthrow.o \
+	pdata.o cv8.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
@@ -128,7 +129,7 @@ SRC = win32.mak posix.mak \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h intrange.h \
+	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c \
@@ -137,7 +138,8 @@ SRC = win32.mak posix.mak \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c intrange.c apply.c canthrow.c sideeffect.c \
+	argtypes.c apply.c sideeffect.c \
+	intrange.h intrange.c canthrow.c \
 	scanmscoff.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
@@ -156,7 +158,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
@@ -328,6 +330,9 @@ cond.o: cond.c
 
 cppmangle.o: cppmangle.c
 	$(CC) -c $(CFLAGS) $<
+
+cv8.o: $C/cv8.c
+	$(CC) -c $(MFLAGS) $<
 
 debug.o: $C/debug.c
 	$(CC) -c $(MFLAGS) -I. $<

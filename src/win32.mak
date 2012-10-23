@@ -149,12 +149,13 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj intrange.obj \
+	interpret.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
-	json.obj unittests.obj imphint.obj argtypes.obj apply.obj canthrow.obj \
-	sideeffect.obj libmscoff.obj scanmscoff.obj
+	json.obj unittests.obj imphint.obj argtypes.obj apply.obj \
+	sideeffect.obj libmscoff.obj scanmscoff.obj \
+    intrange.obj canthrow.obj
 
 # D back end
 OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -164,7 +165,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	debug.obj code.obj cg87.obj cgxmm.obj cgsched.obj ee.obj csymbol.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
-	ti_pvoid.obj mscoffobj.obj pdata.obj \
+	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj \
 
 
 # Root package
@@ -188,14 +189,16 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	eh.c toctype.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c \
 	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
-	identifier.h parse.h scope.h enum.h import.h intrange.h \
+	identifier.h parse.h scope.h enum.h import.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
-	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c intrange.c \
+	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c canthrow.c sideeffect.c libmscoff.c scanmscoff.c
+	apply.c sideeffect.c libmscoff.c scanmscoff.c \
+	intrange.h intrange.c canthrow.c
+
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -216,7 +219,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
 	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
-	$C\mscoffobj.c $C\obj.h $C\pdata.c \
+	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c \
 	$C\backend.txt \
 	$C\html.h $C\html.c
 
@@ -445,6 +448,9 @@ irstate.obj : irstate.h irstate.c
 
 csymbol.obj : $C\symbol.c
 	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj
+
+cv8.obj : $C\cv8.c
+	$(CC) -c $(MFLAGS) $C\cv8
 
 debug.obj : $C\debug.c
 	$(CC) -c $(MFLAGS) -I. $C\debug
