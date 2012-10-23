@@ -60,7 +60,19 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-#if HAVE_FENV_H
+#if __DMC__
+    #define HAVE_FLOAT_EXCEPT 1
+
+    static int testFE()
+    {
+        return _status87() & 0x3F;
+    }
+
+    static void clearFE()
+    {
+        _clear87();
+    }
+#elif HAVE_FENV_H
     #define HAVE_FLOAT_EXCEPT 1
 
     static int testFE()
@@ -86,6 +98,8 @@ extern void error(const char *filename, unsigned linnum, const char *format, ...
     }
 #else
     #define HAVE_FLOAT_EXCEPT 0
+    static int  testFE() { return 1; }
+    static void clearFE() { }
 #endif
 
 
@@ -634,9 +648,7 @@ elem * evalu8(elem *e)
             return e;
 #endif
         esave = *e;
-#if HAVE_FLOAT_EXCEPT
         clearFE();
-#endif
     }
     else
         return e;
@@ -2020,13 +2032,7 @@ elem * evalu8(elem *e)
     int flags;
 
     if (!ignore_exceptions &&
-        (config.flags4 & CFG4fastfloat) == 0 &&
-#if HAVE_FLOAT_EXCEPT
-        testFE()
-#else
-        1
-#endif
-       )
+        (config.flags4 & CFG4fastfloat) == 0 && testFE())
     {
         // Exceptions happened. Do not fold the constants.
         *e = esave;
