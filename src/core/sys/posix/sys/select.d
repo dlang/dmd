@@ -240,17 +240,17 @@ else version (Solaris)
 
     extern (D) void FD_SET(int __n, fd_set* __p)
     {
-        __p.fds_bits[__n / FD_NFDBITS] |= 1 << (__n % FD_NFDBITS);
+        __p.fds_bits[__n / FD_NFDBITS] |= 1UL << (__n % FD_NFDBITS);
     }
 
     extern (D) void FD_CLR(int __n, fd_set* __p)
     {
-        __p.fds_bits[__n / FD_NFDBITS] &= ~(1 << (__n % FD_NFDBITS));
+        __p.fds_bits[__n / FD_NFDBITS] &= ~(1UL << (__n % FD_NFDBITS));
     }
 
     extern (D) bool FD_ISSET(int __n, const(fd_set)* __p)
     {
-        return (__p.fds_bits[__n / FD_NFDBITS] & (1 << (__n % FD_NFDBITS))) != 0;
+        return (__p.fds_bits[__n / FD_NFDBITS] & (1UL << (__n % FD_NFDBITS))) != 0;
     }
 
     extern (D) void FD_ZERO(fd_set* __p)
