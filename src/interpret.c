@@ -5021,7 +5021,7 @@ Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal go
             p4 = p4->interpret(istate);
             if (p4 == EXP_CANT_INTERPRET)
                 return p4;
-            if (exceptionOrCantInterpret(p3))
+            if (exceptionOrCantInterpret(p4))
                 except = p4;
         }
         if (except)
