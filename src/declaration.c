@@ -1535,15 +1535,18 @@ Lnomatch:
             if (!global.errors && !inferred)
             {
                 unsigned errors = global.startGagging();
-                Expression *e;
+                Expression *exp;
                 Initializer *i2 = init;
                 inuse++;
                 if (ei)
                 {
-                    e = ei->exp->syntaxCopy();
-                    e = e->semantic(sc);
-                    e = resolveProperties(sc, e);
+                    exp = ei->exp->syntaxCopy();
+                    exp = exp->semantic(sc);
+                    exp = resolveProperties(sc, exp);
 #if DMDV2
+                    Type *tb = type->toBasetype();
+                    Type *ti = exp->type->toBasetype();
+
                     /* The problem is the following code:
                      *  struct CopyTest {
                      *     double x;
@@ -1555,21 +1558,18 @@ Lnomatch:
                      *  static assert(w.x == 55.0);
                      * because the postblit doesn't get run on the initialization of w.
                      */
-
-                    Type *tb2 = e->type->toBasetype();
-                    if (tb2->ty == Tstruct)
-                    {   StructDeclaration *sd = ((TypeStruct *)tb2)->sym;
-                        Type *typeb = type->toBasetype();
+                    if (ti->ty == Tstruct)
+                    {   StructDeclaration *sd = ((TypeStruct *)ti)->sym;
                         /* Look to see if initializer involves a copy constructor
                          * (which implies a postblit)
                          */
                         if (sd->cpctor &&               // there is a copy constructor
-                            typeb->equals(tb2))          // rvalue is the same struct
+                            tb->equals(ti))             // rvalue is the same struct
                         {
                             // The only allowable initializer is a (non-copy) constructor
-                            if (e->op == TOKcall)
+                            if (exp->op == TOKcall)
                             {
-                                CallExp *ce = (CallExp *)e;
+                                CallExp *ce = (CallExp *)exp;
                                 if (ce->e1->op == TOKdotvar)
                                 {
                                     DotVarExp *dve = (DotVarExp *)ce->e1;
@@ -1578,15 +1578,33 @@ Lnomatch:
                                 }
                             }
                             global.gag--;
-                            error("of type struct %s uses this(this), which is not allowed in static initialization", typeb->toChars());
+                            error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
                             global.gag++;
 
                           LNoCopyConstruction:
                             ;
                         }
                     }
+
+                    // Look for implicit constructor call
+                    if (tb->ty == Tstruct &&
+                        !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
+                        !exp->implicitConvTo(type))
+                    {
+                        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+                        if (sd->ctor)
+                        {   // Look for constructor first
+                            // Rewrite as e1.ctor(arguments)
+                            Expression *e;
+                            e = new StructLiteralExp(loc, sd, NULL, NULL);
+                            e = new DotIdExp(loc, e, Id::ctor);
+                            e = new CallExp(loc, e, exp);
+                            e = e->semantic(sc);
+                            exp = e->ctfeInterpret();
+                        }
+                    }
 #endif
-                    e = e->implicitCastTo(sc, type);
+                    exp = exp->implicitCastTo(sc, type);
                 }
                 else if (si || ai)
                 {   i2 = init->syntaxCopy();
@@ -1605,10 +1623,10 @@ Lnomatch:
                 else if (ei)
                 {
                     if (isDataseg() || (storage_class & STCmanifest))
-                        e = e->ctfeInterpret();
+                        exp = exp->ctfeInterpret();
                     else
-                        e = e->optimize(WANTvalue);
-                    switch (e->op)
+                        exp = exp->optimize(WANTvalue);
+                    switch (exp->op)
                     {
                         case TOKint64:
                         case TOKfloat64:
@@ -1617,7 +1635,7 @@ Lnomatch:
                         case TOKassocarrayliteral:
                         case TOKstructliteral:
                         case TOKnull:
-                            ei->exp = e;            // no errors, keep result
+                            ei->exp = exp;          // no errors, keep result
                             break;
 
                         default:

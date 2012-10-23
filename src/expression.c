@@ -4019,6 +4019,8 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     : Expression(loc, TOKstructliteral, sizeof(StructLiteralExp))
 {
     this->sd = sd;
+    if (!elements)
+        elements = new Expressions();
     this->elements = elements;
     this->stype = stype;
     this->sinit = NULL;
