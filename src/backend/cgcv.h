@@ -79,6 +79,7 @@ void cv8_initmodule(const char *filename, const char *modulename);
 void cv8_termmodule();
 void cv8_func_start(Symbol *sfunc);
 void cv8_func_term(Symbol *sfunc);
+void cv8_linnum(Srcpos srcpos, targ_size_t offset);
 
 
 #endif

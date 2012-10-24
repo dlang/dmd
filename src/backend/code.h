@@ -578,6 +578,7 @@ struct seg_data
     int                  SDrelcnt;      // number of relocations added
     IDXSEC               SDshtidxout;   // final section header table index
     Symbol              *SDsym;         // if !=NULL, comdat symbol
+    segidx_t             SDassocseg;    // for COMDATs, if !=0, this is the "associated" segment
 #endif
 
     unsigned            SDaranges_offset;       // if !=0, offset in .debug_aranges

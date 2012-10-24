@@ -227,7 +227,7 @@ void TypedefDeclaration::toDebug()
 {
     //printf("TypedefDeclaration::toDebug('%s')\n", toChars());
 
-    if (I64 && config.fulltypes == CVNONE)
+    if (I64 && config.fulltypes != CV4)
         return;
 
     assert(config.fulltypes >= CV4);
@@ -261,7 +261,7 @@ void EnumDeclaration::toDebug()
 {
     //printf("EnumDeclaration::toDebug('%s')\n", toChars());
 
-    if (I64 && config.fulltypes == CVNONE)
+    if (I64 && config.fulltypes != CV4)
         return;
 
     assert(config.fulltypes >= CV4);
@@ -333,7 +333,7 @@ void StructDeclaration::toDebug()
 
     //printf("StructDeclaration::toDebug('%s')\n", toChars());
 
-    if (I64 && config.fulltypes == CVNONE)
+    if (I64 && config.fulltypes != CV4)
         return;
 
     assert(config.fulltypes >= CV4);
@@ -462,7 +462,7 @@ void ClassDeclaration::toDebug()
 
     //printf("ClassDeclaration::toDebug('%s')\n", toChars());
 
-    if (I64 && config.fulltypes == CVNONE)
+    if (I64 && config.fulltypes != CV4)
         return;
 
     assert(config.fulltypes >= CV4);
