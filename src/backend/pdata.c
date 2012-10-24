@@ -81,7 +81,7 @@ void win64_pdata(Symbol *sf)
     pdt = dtxoff(pdt,sf,retoffset + retsize,TYint);
     pdt = dtxoff(pdt,sunwind,0,TYint);
 
-    spdata->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_pdata_comdat() : MsCoffObj::seg_pdata();
+    spdata->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_pdata_comdat(sf) : MsCoffObj::seg_pdata();
     spdata->Salignment = 4;
     outdata(spdata);
 }
@@ -108,7 +108,7 @@ Symbol *win64_unwind(Symbol *sf)
     symbol_debug(sunwind);
 
     sunwind->Sdt = unwind_data();
-    sunwind->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_xdata_comdat() : MsCoffObj::seg_xdata();
+    sunwind->Sseg = symbol_iscomdat(sf) ? MsCoffObj::seg_xdata_comdat(sf) : MsCoffObj::seg_xdata();
     sunwind->Salignment = 1;
     outdata(sunwind);
     return sunwind;

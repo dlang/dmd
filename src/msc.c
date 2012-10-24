@@ -170,6 +170,8 @@ void out_config_init()
 #if SYMDEB_CODEVIEW
         if (params->is64bit)
         {
+            configv.addlinenumbers = 1;
+            config.fulltypes = CV8;
         }
         else
         {
@@ -219,6 +221,7 @@ void util_set32()
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
         tysize[TYjhandle + i] = LONGSIZE;
+        tysize[TYnullptr + i] = LONGSIZE;
         tysize[TYnptr + i] = LONGSIZE;
         tysize[TYnref + i] = LONGSIZE;
     }
@@ -228,6 +231,7 @@ void util_set32()
         tyalignsize[TYint  + i] = LONGSIZE;
         tyalignsize[TYuint + i] = LONGSIZE;
         tyalignsize[TYnullptr + i] = LONGSIZE;
+        tyalignsize[TYjhandle + i] = LONGSIZE;
         tyalignsize[TYnptr + i] = LONGSIZE;
         tyalignsize[TYnref + i] = LONGSIZE;
     }
@@ -250,6 +254,7 @@ void util_set64()
     {   tysize[TYenum + i] = LONGSIZE;
         tysize[TYint  + i] = LONGSIZE;
         tysize[TYuint + i] = LONGSIZE;
+        tysize[TYnullptr + i] = 8;
         tysize[TYjhandle + i] = 8;
         tysize[TYnptr + i] = 8;
         tysize[TYnref + i] = 8;

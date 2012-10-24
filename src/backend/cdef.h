@@ -684,6 +684,7 @@ struct Config
 #define CVDWARF_C 5             // Dwarf in C format
 #define CVDWARF_D 6             // Dwarf in D format
 #define CVSTABS 7               // Elf Stabs in C format
+#define CV8     8               // Codeview 8 symbolic info
 
     unsigned wflags;            // flags for Windows code generation
 #       define WFwindows 1      // generating code for Windows app or DLL
