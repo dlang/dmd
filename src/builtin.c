@@ -24,16 +24,6 @@
 #include "id.h"
 #include "module.h"
 
-#if __FreeBSD__
-extern "C"
-{
-    longdouble sinl(longdouble);
-    longdouble cosl(longdouble);
-    longdouble tanl(longdouble);
-    longdouble sqrtl(longdouble);
-}
-#endif
-
 #if DMDV2
 
 /**********************************
