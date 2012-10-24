@@ -91,7 +91,8 @@ private struct Demangle
     {
         //throw new ParseException( msg );
         debug(info) printf( "error: %.*s\n", cast(int) msg.length, msg.ptr );
-        throw cast(ParseException) cast(void*) ParseException.classinfo.init;
+        throw __ctfe ? new ParseException(msg)
+                     : cast(ParseException) cast(void*) ParseException.classinfo.init;
 
     }
 
@@ -150,9 +151,13 @@ private struct Demangle
 
     static bool contains( const(char)[] a, const(char)[] b )
     {
-        return a.length &&
-               b.ptr >= a.ptr &&
-               b.ptr + b.length <= a.ptr + a.length;
+        if (a.length && b.length)
+        {
+            auto bend = b.ptr + b.length;
+            auto aend = a.ptr + a.length;
+            return a.ptr <= b.ptr && bend <= aend;
+        }
+        return false;
     }
 
 
@@ -1087,11 +1092,11 @@ private struct Demangle
                 auto a = ascii2hex( tok() ); next();
                 auto b = ascii2hex( tok() ); next();
                 auto v = cast(char)((a << 4) | b);
-                put( (cast(char*) &v)[0 .. 1] );
+                put( __ctfe ? [v] : (cast(char*) &v)[0 .. 1] );
             }
             put( "\"" );
             if( 'a' != t )
-                put( (cast(char*) &t)[0 .. 1] );
+                put( __ctfe ? [t] : (cast(char*) &t)[0 .. 1] );
             return;
         case 'A':
             // NOTE: This is kind of a hack.  An associative array literal
@@ -1206,7 +1211,7 @@ private struct Demangle
                     if( num >= 0x20 && num < 0x7F )
                     {
                         put( "'" );
-                        put( (cast(char*) &num)[0 .. 1] );
+                        put( __ctfe ? [cast(char)num] : (cast(char*) &num)[0 .. 1] );
                         put( "'" );
                         return;
                     }
@@ -1483,9 +1488,9 @@ char[] demangle( const(char)[] buf, char[] dst = null )
 }
 
 
-unittest
+version(unittest)
 {
-    static string[2][] table =
+    immutable string[2][] table =
     [
         ["printf", "printf"],
         ["_foo", "_foo"],
@@ -1519,11 +1524,29 @@ unittest
         ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"]
     ];
 
+    template staticIota(int x)
+    {
+        template Seq(T...){ alias T Seq; }
+
+        static if (x == 0)
+            alias Seq!() staticIota;
+        else
+            alias Seq!(staticIota!(x - 1), x - 1) staticIota;
+    }
+}
+unittest
+{
     foreach( i, name; table )
     {
         auto r = demangle( name[0] );
         assert( r == name[1],
                 "demangled \"" ~ name[0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ name[1] ~ "\"");
+    }
+    foreach( i; staticIota!(table.length) )
+    {
+        enum r = demangle( table[i][0] );
+        static assert( r == table[i][1],
+                "demangled \"" ~ table[i][0] ~ "\" as \"" ~ r ~ "\" but expected \"" ~ table[i][1] ~ "\"");
     }
 }
 
