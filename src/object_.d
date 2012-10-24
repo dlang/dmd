@@ -1304,6 +1304,17 @@ class MemberInfo_function : MemberInfo
 ///////////////////////////////////////////////////////////////////////////////
 
 
+/**
+ * The base class of all thrown objects.
+ *
+ * All thrown objects must inherit from Throwable. Class $(D Exception), which
+ * derives from this class, represents the category of thrown objects that are
+ * safe to catch and handle. In principle, one should not catch Throwable
+ * objects that are not derived from $(D Exception), as they represent
+ * unrecoverable runtime errors. Certain runtime guarantees may fail to hold
+ * when these errors are thrown, making it unsafe to continue execution after
+ * catching them.
+ */
 class Throwable : Object
 {
     interface TraceInfo
@@ -1313,10 +1324,28 @@ class Throwable : Object
         string toString() const;
     }
 
-    string      msg;
+    string      msg;    /// A message describing the error.
+
+    /**
+     * The _file name and line number of the D source code corresponding with
+     * where the error was thrown from.
+     */
     string      file;
-    size_t      line;
+    size_t      line;   /// ditto
+
+    /**
+     * The stack trace of where the error happened. This is an opaque object
+     * that can either be converted to $(D string), or iterated over with $(D
+     * foreach) to extract the items in the stack trace (as strings).
+     */
     TraceInfo   info;
+
+    /**
+     * A reference to the _next error in the list. This is used when a new
+     * $(D Throwable) is thrown from inside a $(D catch) block. The originally
+     * caught $(D Exception) will be chained to the new $(D Throwable) via this
+     * field.
+     */
     Throwable   next;
 
     @safe pure nothrow this(string msg, Throwable next = null)
@@ -1414,9 +1443,23 @@ extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null)
 }
 
 
+/**
+ * The base class of all errors that are safe to catch and handle.
+ *
+ * In principle, only thrown objects derived from this class are safe to catch
+ * inside a $(D catch) block. Thrown objects not derived from Exception
+ * represent runtime errors that should not be caught, as certain runtime
+ * guarantees may not hold, making it unsafe to continue program execution.
+ */
 class Exception : Throwable
 {
 
+    /**
+     * Creates a new instance of Exception. The next parameter is used
+     * internally and should be always be $(D null) when passed by user code.
+     * This constructor does not automatically throw the newly-created
+     * Exception; the $(D throw) statement should be used for that purpose.
+     */
     @safe pure nothrow this(string msg, string file = __FILE__, size_t line = __LINE__, Throwable next = null)
     {
         super(msg, file, line, next);
