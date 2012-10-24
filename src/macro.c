@@ -301,18 +301,16 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
             }
             else
             {
-                // Replace '$1' with '\xFF{arg\xFF}'
-                //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], marglen, marg);
-                buf->data[u] = 0xFF;
-                buf->data[u + 1] = '{';
-                buf->insert(u + 2, marg, marglen);
-                buf->insert(u + 2 + marglen, "\xFF}", 2);
-                end += -2 + 2 + marglen + 2;
+                // Replace '$1' with 'arg'
+                //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);
+                buf->remove(u, 2);
+                buf->insert(u, marg, marglen);
+                end += -2 + marglen;
 
                 // Scan replaced text for further expansion
-                unsigned mend = u + 2 + marglen;
-                expand(buf, u + 2, &mend, NULL, 0);
-                end += mend - (u + 2 + marglen);
+                unsigned mend = u + marglen;
+                expand(buf, u, &mend, NULL, 0);
+                end += mend - (u + marglen);
                 u = mend;
             }
             //printf("u = %d, end = %d\n", u, end);
