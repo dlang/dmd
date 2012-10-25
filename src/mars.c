@@ -508,9 +508,9 @@ int tryMain(size_t argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifilename = inifile(argv[0], "sc.ini");
+    inifilename = inifile(argv[0], "sc.ini", "Environment");
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd.conf");
+    inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
 #endif
@@ -892,6 +892,8 @@ int tryMain(size_t argc, char *argv[])
     {   usage();
         return EXIT_FAILURE;
     }
+
+    inifile(argv[0], inifilename, global.params.is64bit ? "Environment32" : "Environment64");
 
     if (!setdebuglib)
         global.params.debuglibname = global.params.defaultlibname;

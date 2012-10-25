@@ -68,7 +68,7 @@ char *strupr(char *s)
  *      Note: this is a memory leak
  */
 
-const char *inifile(const char *argv0x, const char *inifilex)
+const char *inifile(const char *argv0x, const char *inifilex, const char* section)
 {
     char *argv0 = (char *)argv0x;
     char *inifile = (char *)inifilex;   // do const-correct later
@@ -76,6 +76,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
     char *filename;
     OutBuffer buf;
     int envsection = 0;
+    int sectionlen = strlen(section);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -284,8 +285,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 p = skipspace(p + 1);
                 for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
-                if (pn - p == 11 &&
-                    memicmp(p, "Environment", 11) == 0 &&
+                if (pn - p == sectionlen &&
+                    memicmp(p, section, sectionlen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;
