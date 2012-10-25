@@ -5520,6 +5520,13 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             wildreturn = TRUE;
     }
 
+    // don't return static array by value in extern(C)/extern(C++) function
+    if (((tf->linkage == LINKc) || (tf->linkage == LINKcpp))
+        && !tf->isref && (tf->next && tf->next->toBasetype()->ty == Tsarray))
+    {
+        error(loc, "Return type (%s) cannot be returned by value in %s function", tf->next->toChars(), ((tf->linkage == LINKc) ? "extern(C)" : "extern(C++)"));
+    }
+
     bool wildparams = FALSE;
     if (tf->parameters)
     {
@@ -5533,7 +5540,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         size_t dim = Parameter::dim(tf->parameters);
         for (size_t i = 0; i < dim; i++)
         {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
-
             tf->inuse++;
             fparam->type = fparam->type->semantic(loc, argsc);
             if (tf->inuse == 1) tf->inuse--;
@@ -5547,6 +5553,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             Type *t = fparam->type->toBasetype();
+
+            // don't pass static array by value in extern(C) function
+            if (((tf->linkage == LINKc) || (tf->linkage == LINKcpp))
+                && !(fparam->storageClass & (STCout | STCref))
+                && (t->ty == Tsarray))
+            {
+                error(loc, "param '%s' of type (%s) cannot be passed by value in %s function",
+                      fparam->ident->toChars(), t->toChars(), ((tf->linkage == LINKc) ? "extern(C)" : "extern(C++)"));
+            }
 
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
