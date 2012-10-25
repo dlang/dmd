@@ -893,7 +893,7 @@ int tryMain(size_t argc, char *argv[])
         return EXIT_FAILURE;
     }
 
-    inifile(argv[0], inifilename, global.params.is64bit ? "Environment32" : "Environment64");
+    inifile(argv[0], inifilename, global.params.is64bit ? "Environment64" : "Environment32");
 
     if (!setdebuglib)
         global.params.debuglibname = global.params.defaultlibname;
