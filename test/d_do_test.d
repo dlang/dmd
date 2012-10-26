@@ -418,8 +418,9 @@ int main(string[] args)
             if (testArgs.postScript)
             {
                 f.write("Executing post-test script: ");
-                version (Windows) testArgs.postScript = "bash " ~ testArgs.postScript;
-                execute(f, testArgs.postScript ~ " " ~ thisRunName, true);
+                string prefix = "";
+                version (Windows) prefix = "bash ";
+                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true);
             }
         }
         catch(Exception e)
