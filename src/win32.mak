@@ -149,7 +149,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	module.obj scope.obj dump.obj cond.obj inline.obj opover.obj \
 	entity.obj class.obj mangle.obj attrib.obj impcnvtab.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
-	interpret.obj traits.obj aliasthis.obj \
+	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
 	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
@@ -193,7 +193,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
-	delegatize.c toir.h toir.c interpret.c traits.c builtin.c \
+	delegatize.c toir.h toir.c interpret.c ctfeexpr.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c \
@@ -666,7 +666,8 @@ import.obj : $(TOTALH) dsymbol.h import.h import.c
 inifile.obj : $(TOTALH) inifile.c
 init.obj : $(TOTALH) init.h init.c
 inline.obj : $(TOTALH) inline.c
-interpret.obj : $(TOTALH) interpret.c declaration.h expression.h
+interpret.obj : $(TOTALH) interpret.c declaration.h expression.h ctfe.h
+ctfexpr.obj : $(TOTALH) ctfeexpr.c ctfe.h
 intrange.obj : $(TOTALH) intrange.h intrange.c
 json.obj : $(TOTALH) json.h json.c
 lexer.obj : $(TOTALH) lexer.c
