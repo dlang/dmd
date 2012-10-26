@@ -277,7 +277,7 @@ L1:
         //printf("\t%x\n", *(unsigned *)(p + u));
         if (off == *(unsigned *)(p + u))
         {
-            printf("\tfound %x\n", u);
+            //printf("\tfound %x\n", u);
             return u;
         }
         u += 4;
