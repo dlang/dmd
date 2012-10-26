@@ -120,6 +120,26 @@ enum { B9845 = 1 }
 const int A9846 = B9846;
 enum { B9846 = 1 }
 
+enum E : string { a = "first", b = "second", c = "third" }
+
+void test7()  // Issue 2950
+{
+    E en = E.b;
+    final switch (en)
+    {
+        case E.a: assert(0);
+        case E.b: break;
+        case E.c: assert(0);
+    }
+
+    switch (en)
+    {
+        case E.a: assert(0);
+        case E.c: assert(0);
+        default: break;
+    }
+}
+
 /**********************************************/
 
 int main()
@@ -130,6 +150,7 @@ int main()
     test4();
     test5();
     test6();
+    test7();
 
     printf("Success\n");
     return 0;
