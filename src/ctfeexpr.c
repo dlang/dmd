@@ -1325,8 +1325,13 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *defaultElem = elemType->defaultInitLiteral(loc);
     Expressions *elements = new Expressions();
     elements->setDim(newlen);
+
+    // Resolve slices
+    size_t indxlo = 0;
     if (oldval->op == TOKslice)
-        oldval = resolveSlice(oldval);
+    {   indxlo = ((SliceExp *)oldval)->lwr->toInteger();
+        oldval = ((SliceExp *)oldval)->e1;
+    }
     size_t copylen = oldlen < newlen ? oldlen : newlen;
     if (oldval->op == TOKstring)
     {
@@ -1338,9 +1343,9 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         {
             switch (oldse->sz)
             {
-                case 1:     s[elemi] = defaultValue; break;
-                case 2:     ((unsigned short *)s)[elemi] = defaultValue; break;
-                case 4:     ((unsigned *)s)[elemi] = defaultValue; break;
+                case 1:     s[indxlo + elemi] = defaultValue; break;
+                case 2:     ((unsigned short *)s)[indxlo + elemi] = defaultValue; break;
+                case 4:     ((unsigned *)s)[indxlo + elemi] = defaultValue; break;
                 default:    assert(0);
             }
         }
@@ -1357,7 +1362,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
             assert(oldval->op == TOKarrayliteral);
         ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
         for (size_t i = 0; i < copylen; i++)
-            (*elements)[i] = ae->elements->tdata()[i];
+            (*elements)[i] = (*ae->elements)[indxlo + i];
         if (elemType->ty == Tstruct || elemType->ty == Tsarray)
         {   /* If it is an aggregate literal representing a value type,
              * we need to create a unique copy for each element
@@ -1370,7 +1375,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
             for (size_t i = copylen; i < newlen; i++)
                 (*elements)[i] = defaultElem;
         }
-        ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
+        ArrayLiteralExp *aae = new ArrayLiteralExp(loc, elements);
         aae->type = arrayType;
         aae->ownedByCtfe = true;
         return aae;
