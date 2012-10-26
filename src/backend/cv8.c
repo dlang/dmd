@@ -239,6 +239,8 @@ void cv8_linnum(Srcpos srcpos, targ_size_t offset)
 
 unsigned cv8_addfile(const char *filename)
 {
+    //printf("cv8_addfile('%s')\n", filename);
+
     /* The algorithms here use a linear search. This is acceptable only
      * because we expect only 1 or 2 files to appear.
      * Unlike C, there won't be lots of .h source files to be accounted for.
@@ -252,8 +254,10 @@ unsigned cv8_addfile(const char *filename)
     while (off + len < length)
     {
         if (memcmp(p + off, filename, len + 1) == 0)
-            // Already there
+        {   // Already there
+            //printf("\talready there at %x\n", off);
             goto L1;
+        }
         off += strlen((const char *)(p + off)) + 1;
     }
     off = length;
@@ -268,10 +272,14 @@ L1:
     p = F4_buf->buf;
 
     unsigned u = 0;
-    while (u + 8 < length)
+    while (u + 8 <= length)
     {
+        //printf("\t%x\n", *(unsigned *)(p + u));
         if (off == *(unsigned *)(p + u))
+        {
+            printf("\tfound %x\n", u);
             return u;
+        }
         u += 4;
         unsigned short type = *(unsigned short *)(p + u);
         u += 2;
@@ -292,6 +300,7 @@ L1:
     // 2 bytes of pad
     F4_buf->writeShort(0);
 
+    //printf("\tadded %x\n", length);
     return length;
 }
 
