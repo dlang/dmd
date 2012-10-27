@@ -1496,7 +1496,7 @@ Lnomatch:
                             ei->exp = new CommaExp(loc, e, ei->exp);
                         }
                         else
-                        /* Look for opCall
+                        /* Look for static opCall
                          * See bugzilla 2702 for more discussion
                          */
                         // Don't cast away invariant or mutability in initializer
@@ -1505,8 +1505,8 @@ Lnomatch:
                              */
                             !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
                         {   // Rewrite as e1.call(arguments)
-                            Expression * eCall = new DotIdExp(loc, e1, Id::call);
-                            ei->exp = new CallExp(loc, eCall, ei->exp);
+                            Expression *e = typeDotIdExp(ei->exp->loc, t, Id::call);
+                            ei->exp = new CallExp(loc, e, ei->exp);
                         }
                     }
                 }
