@@ -40,7 +40,6 @@ Statement::Statement(Loc loc)
 {
     // If this is an in{} contract scope statement (skip for determining
     //  inlineStatus of a function body for header content)
-    incontract = 0;
 }
 
 Statement *Statement::syntaxCopy()

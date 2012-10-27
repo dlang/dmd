@@ -1509,7 +1509,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 else if (fpreinv)
                     freq = new CompoundStatement(0, freq, fpreinv);
 
-                freq->incontract = 1;
                 a->push(freq);
             }
 
