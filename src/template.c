@@ -2119,8 +2119,28 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
     if (!td_best)
     {
         if (!(flags & 1))
-            ::error(loc, "%s %s.%s does not match any function template declaration",
+        {
+            ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
                     kind(), parent->toPrettyChars(), ident->toChars());
+
+            // Display candidate template functions
+            int numToDisplay = 5; // sensible number to display
+            for (TemplateDeclaration *td = this; td; td = td->overnext)
+            {
+                ::errorSupplemental(td->loc, "%s", td->toPrettyChars());
+                if (!global.params.verbose && --numToDisplay == 0)
+                {
+                    // Too many overloads to sensibly display.
+                    // Just show count of remaining overloads.
+                    int remaining = 0;
+                    for (; td; td = td->overnext)
+                        ++remaining;
+                    if (remaining > 0)
+                        ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
+                    break;
+                }
+            }
+        }
         goto Lerror;
     }
     if (td_ambig)
@@ -2337,6 +2357,18 @@ char *TemplateDeclaration::toChars()
         tp->toCBuffer(&buf, &hgs);
     }
     buf.writeByte(')');
+
+    if (onemember && onemember->toAlias())
+    {
+        FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
+        if (fd && fd->type)
+        {
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            char const* args = Parameter::argsTypesToChars(tf->parameters, tf->varargs);
+            buf.writestring(args);
+        }
+    }
+
 #if DMDV2
     if (constraint)
     {   buf.writestring(" if (");
