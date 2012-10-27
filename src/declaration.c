@@ -853,11 +853,11 @@ void VarDeclaration::semantic(Scope *sc)
          * declarations.
          */
         storage_class &= ~STCauto;
-        originalType = type;
+        originalType = type->syntaxCopy();
     }
     else
     {   if (!originalType)
-            originalType = type;
+            originalType = type->syntaxCopy();
         type = type->semantic(loc, sc);
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
