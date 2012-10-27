@@ -1705,13 +1705,13 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
-                    outerfunc->toChars(), f->toChars());
+                    outerfunc->toPrettyChars(), f->toPrettyChars());
         }
     }
 #else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
         error("pure function '%s' cannot call impure function '%s'",
-            sc->func->toChars(), f->toChars());
+            sc->func->toPrettyChars(), f->toPrettyChars());
 #endif
 }
 
@@ -1805,8 +1805,13 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
         !f->isSafe() && !f->isTrusted())
     {
         if (sc->func->setUnsafe())
+        {
+            if (loc.linnum == 0)  // e.g. implicitly generated dtor
+                loc = sc->func->loc;
+
             error("safe function '%s' cannot call system function '%s'",
-                sc->func->toChars(), f->toChars());
+                sc->func->toPrettyChars(), f->toPrettyChars());
+        }
     }
 }
 #endif
@@ -8326,12 +8331,12 @@ Lagain:
         if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
         {
             if (sc->func->setImpure())
-                error("pure function '%s' cannot call impure %s '%s'", sc->func->toChars(), p, e1->toChars());
+                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
         if (sc->func && tf->trust <= TRUSTsystem)
         {
             if (sc->func->setUnsafe())
-                error("safe function '%s' cannot call system %s '%s'", sc->func->toChars(), p, e1->toChars());
+                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
 
         if (!tf->callMatch(NULL, arguments))
