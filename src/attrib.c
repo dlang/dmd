@@ -1426,7 +1426,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
            {
                Dsymbol *s = (*d)[i];
 
-               s->setScope(sc);
+               s->setScope(scope);
            }
         }
         return d;
