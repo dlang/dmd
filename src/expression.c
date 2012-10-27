@@ -2904,8 +2904,6 @@ Lagain:
     FuncDeclaration *f;
     FuncLiteralDeclaration *fld;
     OverloadSet *o;
-    ClassDeclaration *cd;
-    ClassDeclaration *thiscd = NULL;
     Import *imp;
     Package *pkg;
     Type *t;
@@ -2921,9 +2919,6 @@ Lagain:
     //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
     if (s != olds && !s->isFuncDeclaration())
         checkDeprecated(sc, s);
-
-    if (sc->func)
-        thiscd = sc->func->parent->isClassDeclaration();
 
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
@@ -3031,15 +3026,6 @@ Lagain:
     if (o)
     {   //printf("'%s' is an overload set\n", o->toChars());
         return new OverExp(o);
-    }
-    cd = s->isClassDeclaration();
-    if (cd && thiscd && cd->isBaseOf(thiscd, NULL) && sc->func->needThis())
-    {
-        // We need to add an implicit 'this' if cd is this class or a base class.
-        DotTypeExp *dte;
-
-        dte = new DotTypeExp(loc, new ThisExp(loc), s);
-        return dte->semantic(sc);
     }
     imp = s->isImport();
     if (imp)
