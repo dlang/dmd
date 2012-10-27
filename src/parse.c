@@ -2094,11 +2094,7 @@ Objects *Parser::parseTemplateArgumentList2()
             else
             {   // Template argument is an expression
                 Expression *ea = parseAssignExp();
-
-                if (ea->op == TOKfunction && ((FuncExp *)ea)->td)
-                    tiargs->push(((FuncExp *)ea)->td);
-                else
-                    tiargs->push(ea);
+                tiargs->push(ea);
             }
             if (token.value != TOKcomma)
                 break;
