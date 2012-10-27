@@ -3364,17 +3364,14 @@ void CtorDeclaration::semantic(Scope *sc)
         tret = tret->addMod(type->mod);
     }
     tf->next = tret;
+    if (!originalType)
+        originalType = type->syntaxCopy();
     type = type->semantic(loc, sc);
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
-    {   if (!originalType)
-            originalType = type->syntaxCopy();
         ((TypeFunction *)type)->isref = 1;
-    }
 #endif
-    if (!originalType)
-        originalType = type;
 
     // Append:
     //  return this;
