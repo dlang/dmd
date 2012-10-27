@@ -208,7 +208,7 @@ struct TestStruct
 {
 	void add(...)
 	{
-		TestStruct other = *cast(TestStruct*)(_argptr);
+		TestStruct other = va_arg!TestStruct(_argptr);
 		foreach(int value; other)
 		{
 			foo();

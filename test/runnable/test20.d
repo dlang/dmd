@@ -594,7 +594,7 @@ void test30()
 
 void foo31(...)
 {
-    byte b = *cast(byte*)_argptr;
+    byte b = va_arg!byte(_argptr);
     assert(b == 8);
 }
 
