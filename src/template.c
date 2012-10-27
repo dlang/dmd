@@ -427,6 +427,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
         e = constraint->syntaxCopy();
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
     td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
+    td->literal = literal;
     return td;
 }
 
@@ -5189,6 +5190,13 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     fe->fd->tok = TOKfunction;
                     fe->fd->vthis = NULL;
                 }
+                else if (fe->td)
+                {   /* If template argument is a template lambda,
+                     * get template declaration itself. */
+                    ea = NULL;
+                    (*tiargs)[j] = sa = fe->td;
+                    goto Lsa;
+                }
             }
             if (ea->op == TOKtuple)
             {   // Expand tuple
@@ -5205,6 +5213,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         }
         else if (sa)
         {
+		Lsa:
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             if (td && !td->semanticRun && td->literal)
                 td->semantic(sc);

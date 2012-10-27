@@ -668,6 +668,26 @@ void test8397()
 }
 
 /***************************************************/
+// 8575
+
+template tfunc8575(func...)
+{
+    auto tfunc8575(U)(U u) { return func[0](u); }
+}
+auto bar8575(T)(T t)
+{
+    return tfunc8575!(a => a)(t);
+}
+void foo8575a() { assert(bar8575(uint.init + 1) == +1); }
+void foo8575b() { assert(bar8575( int.init - 1) == -1); }
+
+void test8575()
+{
+    foo8575a();
+    foo8575b();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -706,6 +726,7 @@ int main()
     test8242();
     test8315();
     test8397();
+    test8575();
 
     printf("Success\n");
     return 0;
