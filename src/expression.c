@@ -1847,12 +1847,9 @@ void Expression::checkModifiable(Scope *sc)
             }
             else
             {
-                const char *p =
-                    type->isImmutable() ? "immutable" :
-                    type->isConst() ? "const" :
-                    type->isWild() ? "wild" : NULL;
-                assert(p);
-                error("cannot modify %s expression %s", p, toChars());
+                OutBuffer buf;
+                MODtoBuffer(&buf, type->mod);
+                error("cannot modify %s expression %s", buf.toChars(), toChars());
             }
         }
     }
@@ -7585,14 +7582,9 @@ Expression *CallExp::resolveUFCS(Scope *sc)
                 return new ErrorExp();
             }
             if (!e->type->isMutable())
-            {   const char *p = NULL;
-                if (e->type->isConst())
-                    p = "const";
-                else if (e->type->isImmutable())
-                    p = "immutable";
-                else
-                    p = "inout";
-                error("cannot remove key from %s associative array %s", p, e->toChars());
+            {   OutBuffer buf;
+                MODtoBuffer(&buf, e->type->mod);
+                error("cannot remove key from %s associative array %s", buf.toChars(), e->toChars());
                 return new ErrorExp();
             }
             Expression *key = (*arguments)[0];

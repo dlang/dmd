@@ -1234,7 +1234,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                              *    as delegating calls to other constructors
                              */
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
-                                error("missing initializer for final field %s", v->toChars());
+                            {
+                                OutBuffer buf;
+                                MODtoBuffer(&buf, v->type->mod);
+                                error("missing initializer for %s field %s", buf.toChars(), v->toChars());
+                            }
                             else if (v->storage_class & STCnodefaultctor)
                                 error("field %s must be initialized in constructor", v->toChars());
                         }
