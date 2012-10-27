@@ -804,7 +804,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
 
-    //printf(" sc->incontract = %d\n", sc->incontract);
+    //printf(" sc->incontract = %d\n", (sc->flags & SCOPEcontract));
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
@@ -880,7 +880,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
-        sc2->incontract = 0;
+        sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;
         sc2->noctor = 0;
 
@@ -1336,18 +1336,14 @@ void FuncDeclaration::semantic3(Scope *sc)
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
-            sc2->incontract++;
+            sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPErequire;
 
             // BUG: need to error if accessing out parameters
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
-            DsymbolTable *labtab_save = labtab;
-            labtab = NULL;              // so in contract can't refer to out/body labels
             freq = freq->semantic(sc2);
-            labtab = labtab_save;
 
-            sc2->incontract--;
             sc2 = sc2->pop();
 
             if (!global.params.useIn)
@@ -1366,16 +1362,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 buildResultVar();
 
             sc2 = scout;    //push
-            sc2->incontract++;
+            sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPEensure;
 
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
-            DsymbolTable *labtab_save = labtab;
-            labtab = NULL;              // so out contract can't refer to in/body labels
             fens = fens->semantic(sc2);
-            labtab = labtab_save;
 
-            sc2->incontract--;
             sc2 = sc2->pop();
 
             if (!global.params.useOut)
@@ -3911,7 +3903,7 @@ void InvariantDeclaration::semantic(Scope *sc)
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
     sc->stc |= STCconst;                // invariant() is always const
-    sc->incontract++;
+    sc->flags = (sc->flags & ~SCOPEcontract) | SCOPEinvariant;
     sc->linkage = LINKd;
 
     FuncDeclaration::semantic(sc);

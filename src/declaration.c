@@ -132,10 +132,10 @@ enum PROT Declaration::prot()
 
 int Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
-    if (sc->incontract && isParameter())
+    if ((sc->flags & SCOPEcontract) && isParameter())
         error(loc, "cannot modify parameter '%s' in contract", toChars());
 
-    if (sc->incontract && isResult())
+    if ((sc->flags & SCOPEcontract) && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
     if (isCtorinit() && !t->isMutable() ||
