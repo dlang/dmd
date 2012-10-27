@@ -782,7 +782,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
 
     TemplateDeclaration *td;
     bool dot;
-    
+
     // Add parent names first
     dot = emitAnchorName(buf, s->parent);
     // Eponymous template members can share the parent anchor name
@@ -830,18 +830,20 @@ void prefix(OutBuffer *buf, Dsymbol *s)
     if (d)
     {
         emitProtection(buf, d->protection);
-        if (d->isAbstract())
-            buf->writestring("abstract ");
+
         if (d->isStatic())
             buf->writestring("static ");
+        else if (d->isFinal())
+            buf->writestring("final ");
+        else if (d->isAbstract())
+            buf->writestring("abstract ");
+
         if (d->isConst())
             buf->writestring("const ");
 #if DMDV2
         if (d->isImmutable())
             buf->writestring("immutable ");
 #endif
-        if (d->isFinal())
-            buf->writestring("final ");
         if (d->isSynchronized())
             buf->writestring("synchronized ");
     }
