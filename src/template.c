@@ -4576,12 +4576,6 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
-        /* If you remove this dummy variable declaration,
-         * running test/fail_compilation/fail281.d stops dmd without error message.
-         * It seems to me that is dmc's SEH code generation bug.
-         */
-        bool dummy = 0;
-
         // do not catch at every nesting level, because generating the output error might cause more stack
         //  errors in the __except block otherwise
         __try
