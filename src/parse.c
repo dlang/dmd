@@ -3316,7 +3316,6 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKcase:
         {   Expression *exp;
-            Statements *statements;
             Array cases;        // array of Expression's
 
             while (1)
@@ -3343,15 +3342,20 @@ Statement *Parser::parseStatement(int flags)
             }
 #endif
 
-            statements = new Statements();
-            while (token.value != TOKcase &&
-                   token.value != TOKdefault &&
-                   token.value != TOKeof &&
-                   token.value != TOKrcurly)
+            if (flags & PScurlyscope)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                Statements *statements = new Statements();
+                while (token.value != TOKcase &&
+                       token.value != TOKdefault &&
+                       token.value != TOKeof &&
+                       token.value != TOKrcurly)
+                {
+                    statements->push(parseStatement(PSsemi | PScurlyscope));
+                }
+                s = new CompoundStatement(loc, statements);
             }
-            s = new CompoundStatement(loc, statements);
+            else
+                s = parseStatement(PSsemi | PScurlyscope);
             s = new ScopeStatement(loc, s);
 
             // Keep cases in order by building the case statements backwards
@@ -3365,20 +3369,23 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKdefault:
         {
-            Statements *statements;
-
             nextToken();
             check(TOKcolon, "default");
 
-            statements = new Statements();
-            while (token.value != TOKcase &&
-                   token.value != TOKdefault &&
-                   token.value != TOKeof &&
-                   token.value != TOKrcurly)
+            if (flags & PScurlyscope)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                Statements *statements = new Statements();
+                while (token.value != TOKcase &&
+                       token.value != TOKdefault &&
+                       token.value != TOKeof &&
+                       token.value != TOKrcurly)
+                {
+                    statements->push(parseStatement(PSsemi | PScurlyscope));
+                }
+                s = new CompoundStatement(loc, statements);
             }
-            s = new CompoundStatement(loc, statements);
+            else
+                s = parseStatement(PSsemi | PScurlyscope);
             s = new ScopeStatement(loc, s);
             s = new DefaultStatement(loc, s);
             break;
