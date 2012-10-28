@@ -605,6 +605,8 @@ struct FuncDeclaration : Declaration
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
+    ReturnStatements *returns;
+
 #if DMDV2
     enum BUILTIN builtin;               // set if this is a known, builtin
                                         // function we can evaluate at compile
