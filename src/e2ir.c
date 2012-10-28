@@ -3726,26 +3726,7 @@ elem *DeleteExp::toElem(IRState *irs)
     {
         IndexExp *ae = (IndexExp *)(e1);
         tb = ae->e1->type->toBasetype();
-        if (tb->ty == Taarray)
-        {
-            TypeAArray *taa = (TypeAArray *)tb;
-            elem *ea = ae->e1->toElem(irs);
-            elem *ekey = ae->e2->toElem(irs);
-            elem *ep;
-            elem *keyti;
-
-            if (tybasic(ekey->Ety) == TYstruct || tybasic(ekey->Ety) == TYarray)
-            {
-                ekey = el_una(OPstrpar, TYstruct, ekey);
-                ekey->ET = ekey->E1->ET;
-            }
-
-            Symbol *s = taa->aaGetSymbol("Del", 0);
-            keyti = taa->index->getInternalTypeInfo(NULL)->toElem(irs);
-            ep = el_params(ekey, keyti, ea, NULL);
-            e = el_bin(OPcall, TYnptr, el_var(s), ep);
-            goto Lret;
-        }
+        assert(tb->ty != Taarray);
     }
     //e1->type->print();
     e = e1->toElem(irs);

@@ -1939,18 +1939,13 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     {
         e = new IntegerExp(loc, size(loc), Type::tsize_t);
     }
-    else if (ident == Id::size)
-    {
-        error(loc, ".size property should be replaced with .sizeof");
-        e = new ErrorExp();
-    }
     else if (ident == Id::__xalignof)
     {
         e = new IntegerExp(loc, alignsize(), Type::tsize_t);
     }
     else if (ident == Id::typeinfo)
     {
-        deprecation(loc, ".typeinfo deprecated, use typeid(type)");
+        error(loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(NULL);
     }
     else if (ident == Id::init)
@@ -2020,7 +2015,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     {
         if (ident == Id::offset)
         {
-            deprecation(e->loc, ".offset deprecated, use .offsetof");
+            error(e->loc, ".offset deprecated, use .offsetof");
             goto Loffset;
         }
         else if (ident == Id::offsetof)
@@ -2046,7 +2041,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     if (ident == Id::typeinfo)
     {
-        deprecation(e->loc, ".typeinfo deprecated, use typeid(type)");
+        error(e->loc, ".typeinfo deprecated, use typeid(type)");
         e = getTypeInfo(sc);
     }
     else if (ident == Id::stringof)
@@ -2851,8 +2846,8 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident)
             case Tcomplex80:
             case Timaginary80:
             case Tfloat80:
-                                // For backwards compatibility - eventually, deprecate
-                                goto Lmin_normal;
+                warning(loc, "min property is deprecated, use min_normal instead");
+                goto Lmin_normal;
         }
     }
     else if (ident == Id::min_normal)
@@ -8411,7 +8406,7 @@ L1:
 
         if (ident == Id::typeinfo)
         {
-            deprecation(e->loc, ".typeinfo deprecated, use typeid(type)");
+            error(e->loc, ".typeinfo deprecated, use typeid(type)");
             return getTypeInfo(sc);
         }
         if (ident == Id::outer && sym->vthis)

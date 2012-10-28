@@ -5521,7 +5521,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                     s->toPrettyChars(), sc->func->toChars());
                 return new ErrorExp();
             }
-            else if (!global.params.useDeprecated)
+            else
             {   // Disallow shadowing
 
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
@@ -5531,7 +5531,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        deprecation("shadowing declaration %s is deprecated", s->toPrettyChars());
+                        error("is shadowing declaration %s", s->toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -8985,7 +8985,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-            deprecation("delete aa[key] deprecated, use aa.remove(key)");
+            error("delete aa[key] deprecated, use aa.remove(key)");
     }
 
     return this;

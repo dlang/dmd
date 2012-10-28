@@ -578,7 +578,7 @@ void Lexer::scan(Token *t)
                 t->postfix = 0;
                 t->value = TOKstring;
 #if DMDV2
-                deprecation("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
+                error("Escape String literal %.*s is deprecated, use double quoted string literal \"%.*s\" instead", p - pstart, pstart, p - pstart, pstart);
 #endif
                 return;
             }
@@ -2147,8 +2147,6 @@ done:
                 f = FLAGS_unsigned;
                 goto L1;
 
-            case 'l':
-                error("'l' is not a valid suffix, did you mean 'L'?");
             case 'L':
                 f = FLAGS_long;
             L1:
@@ -2399,7 +2397,7 @@ done:
             break;
 
         case 'l':
-            deprecation("'l' suffix is deprecated, use 'L' instead");
+            error("'l' suffix is deprecated, use 'L' instead");
         case 'L':
             result = TOKfloat80v;
             p++;
@@ -2408,7 +2406,7 @@ done:
     if (*p == 'i' || *p == 'I')
     {
         if (*p == 'I')
-            deprecation("'I' suffix is deprecated, use 'i' instead");
+            error("'I' suffix is deprecated, use 'i' instead");
         p++;
         switch (result)
         {
