@@ -1364,31 +1364,30 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 }
                 assert(ad);
 
-                Dsymbol *dsym = search_function(ad, Id::opDollar);
-                if (!dsym)  // no dollar exists -- search in higher scope
+                Dsymbol *s = ad->search(loc, Id::opDollar, 0);
+                if (!s)  // no dollar exists -- search in higher scope
                     return NULL;
+                s = s->toAlias();
 
-                // Check for multi-dimensional opDollar(dim)(). Only for ArrayExp.
+                Expression *e;
                 TemplateDeclaration *td;
-                if (exp->op == TOKarray && (td = dsym->isTemplateDeclaration()))
-                {   ArrayExp *ae = (ArrayExp *)exp;
+                // Check for multi-dimensional opDollar(dim)(). Only for ArrayExp.
+                if (exp->op == TOKarray && (td = s->isTemplateDeclaration()))
+                {
+                    ArrayExp *ae = (ArrayExp *)exp;
                     // Instantiate opDollar!(dim) with the index as a template argument
                     Objects *tdargs = new Objects();
-                    tdargs->setDim(1);
-
-                    Expression *x = new IntegerExp(0, ae->currentDimension, Type::tsize_t);
-                    x = x->semantic(sc);
-                    tdargs->data[0] = x;
+                    Expression *dim = new IntegerExp(0, ae->currentDimension, Type::tsize_t);
+                    dim = dim->semantic(sc);
+                    tdargs->push(dim);
 
                     //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
                     //ti->semantic(sc);
 
-                    DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(loc, ae->e1, td->ident, tdargs);
-
-                    v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, dte));
+                    e = new DotTemplateInstanceExp(loc, ae->e1, td->ident, tdargs);
                 }
                 else
-                {   /* opDollar exists, but it's a function, not a template.
+                {   /* opDollar exists, but it's not a template.
                      * This is acceptable ONLY for single-dimension indexing.
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
@@ -1398,12 +1397,16 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                         exp->error("%s only defines opDollar for one dimension", ad->toChars());
                         return NULL;
                     }
-                    FuncDeclaration *fd = dsym->isFuncDeclaration();
-                    assert(fd);
-                    Expression * x = new DotVarExp(loc, ce, fd);
-
-                    v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, x));
+                    Declaration *d = s->isDeclaration();
+                    assert(d);
+                    e = new DotVarExp(loc, ce, d);
                 }
+                e = e->semantic(sc);
+                if (!e->type)
+                    exp->error("%s has no value", e->toChars());
+                if ((t = e->type->toBasetype()) && t->ty == Tfunction)
+                    e = new CallExp(e->loc, e);
+                v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, e));
             }
             else
             {   /* For arrays, $ will either be a compile-time constant

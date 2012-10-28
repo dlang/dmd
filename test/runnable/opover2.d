@@ -1,3 +1,4 @@
+// PERMUTE_ARGS: -inline -O -property
 
 // Test operator overloading
 
@@ -881,6 +882,23 @@ void test18()
     assert((slice[0 .. $]     += 2) == [2, 0, 8]);
     assert((slice[0 .. $-1]   += 2) == [2, 0, 7]);
     assert((slice[$-3 .. $-1] += 2) == [2, 5, 7]);
+
+    // test different kinds of opDollar
+    auto dollar(string opDollar)()
+    {
+        static struct Dollar
+        {
+            size_t opIndex(size_t a) { return a; }
+            mixin(opDollar);
+        }
+        Dollar d;
+        return d[$];
+    }
+    assert(dollar!q{@property size_t opDollar() { return 8; }}() == 8);
+    assert(dollar!q{template opDollar(size_t dim) { enum opDollar = dim; }}() == 0);
+    assert(dollar!q{const size_t opDollar = 8;}() == 8);
+    assert(dollar!q{enum opDollar = 8;}() == 8);
+    assert(dollar!q{size_t length() { return 8; } alias length opDollar;}() == 8);
 }
 
 /**************************************/
