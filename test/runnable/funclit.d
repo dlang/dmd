@@ -668,6 +668,18 @@ void test8397()
 }
 
 /***************************************************/
+// 8496
+
+void test8496()
+{
+    alias extern (C) void function() Func;
+
+    Func fp = (){};
+
+    fp = (){};
+}
+
+/***************************************************/
 // 8575
 
 template tfunc8575(func...)
@@ -726,6 +738,7 @@ int main()
     test8242();
     test8315();
     test8397();
+    test8496();
     test8575();
 
     printf("Success\n");
