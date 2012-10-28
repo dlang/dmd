@@ -440,7 +440,7 @@ void err_nomem();
 int runLINK();
 void deleteExeFile();
 int runProgram();
-const char *inifile(const char *argv0, const char *inifile, const char* section);
+const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 void util_progress();
 
