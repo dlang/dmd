@@ -248,6 +248,8 @@ void Type::init()
     mangleChar[Tslice] = '@';
     mangleChar[Treturn] = '@';
     mangleChar[Tvector] = '@';
+    mangleChar[Tint128] = '@';
+    mangleChar[Tuns128] = '@';
 
     mangleChar[Tnull] = 'n';    // same as TypeNone
 
@@ -260,6 +262,7 @@ void Type::init()
     // Set basic types
     static TY basetab[] =
         { Tvoid, Tint8, Tuns8, Tint16, Tuns16, Tint32, Tuns32, Tint64, Tuns64,
+          Tint128, Tuns128,
           Tfloat32, Tfloat64, Tfloat80,
           Timaginary32, Timaginary64, Timaginary80,
           Tcomplex32, Tcomplex64, Tcomplex80,
@@ -330,6 +333,12 @@ unsigned Type::alignsize()
 
 Type *Type::semantic(Loc loc, Scope *sc)
 {
+    if (ty == Tint128 || ty == Tuns128)
+    {
+        error(loc, "cent and ucent types not implemented");
+        return terror;
+    }
+
     return merge();
 }
 
@@ -2617,6 +2626,14 @@ TypeBasic::TypeBasic(TY ty)
                         flags |= TFLAGSintegral | TFLAGSunsigned | TFLAGSvector;
                         break;
 
+        case Tint128:   d = Token::toChars(TOKint128);
+                        flags |= TFLAGSintegral;
+                        break;
+
+        case Tuns128:   d = Token::toChars(TOKuns128);
+                        flags |= TFLAGSintegral | TFLAGSunsigned;
+                        break;
+
         case Tfloat64:  d = Token::toChars(TOKfloat64);
                         flags |= TFLAGSfloating | TFLAGSreal | TFLAGSvector;
                         break;
@@ -2720,6 +2737,8 @@ d_uns64 TypeBasic::size(Loc loc)
         case Tcomplex32:
                         size = 8;               break;
         case Tcomplex64:
+        case Tint128:
+        case Tuns128:
                         size = 16;              break;
         case Tcomplex80:
                         size = REALSIZE * 2;    break;
