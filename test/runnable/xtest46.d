@@ -5422,6 +5422,39 @@ class Cgi8437
 }
 
 /***************************************************/
+// 8665
+
+auto foo8665a(bool val)
+{
+    if (val)
+        return 42;
+    else
+        return 1.5;
+}
+auto foo8665b(bool val)
+{
+    if (!val)
+        return 1.5;
+    else
+        return 42;
+}
+
+void test8665()
+{
+    static assert(is(typeof(foo8665a(true))  == double));
+    static assert(is(typeof(foo8665b(false)) == double));
+    assert(foo8665a(true) == 42); // assertion failure
+    assert(foo8665b(true) == 42); // assertion failure
+    assert(foo8665a(false) == 1.5);
+    assert(foo8665b(false) == 1.5);
+
+    static assert(foo8665a(true) == 42);
+    static assert(foo8665b(true) == 42);
+    static assert(foo8665a(false) == 1.5);
+    static assert(foo8665b(false) == 1.5);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5669,6 +5702,7 @@ int main()
     test8283();
     test8395();
     test160();
+    test8665();
 
     printf("Success\n");
     return 0;
