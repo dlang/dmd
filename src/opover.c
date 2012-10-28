@@ -1344,7 +1344,10 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
         for (size_t u = 0; u < arguments->dim; u++)
         {   Parameter *arg = (*arguments)[u];
             if (arg->type)
+            {
                 arg->type = arg->type->semantic(loc, sc);
+                arg->type = arg->type->addStorageClass(arg->storageClass);
+            }
         }
 
         Expression *ethis;
@@ -1395,11 +1398,17 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             if (arguments->dim == 2)
             {
                 if (!arg->type)
+                {
                     arg->type = Type::tsize_t;  // key type
+                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                }
                 arg = (*arguments)[1];
             }
             if (!arg->type && tab->ty != Ttuple)
+            {
                 arg->type = tab->nextOf();      // value type
+                arg->type = arg->type->addStorageClass(arg->storageClass);
+            }
             break;
 
         case Taarray:
@@ -1408,11 +1417,17 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
             if (arguments->dim == 2)
             {
                 if (!arg->type)
+                {
                     arg->type = taa->index;     // key type
+                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                }
                 arg = (*arguments)[1];
             }
             if (!arg->type)
+            {
                 arg->type = taa->next;          // value type
+                arg->type = arg->type->addStorageClass(arg->storageClass);
+            }
             break;
         }
 
@@ -1439,7 +1454,10 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                         // Resolve inout qualifier of front type
                         arg->type = fd->type->nextOf();
                         if (arg->type)
+                        {
                             arg->type = arg->type->substWildTo(tab->mod);
+                            arg->type = arg->type->addStorageClass(arg->storageClass);
+                        }
                     }
                     else if (s && s->isTemplateDeclaration())
                         ;
@@ -1559,7 +1577,10 @@ static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flag
                 goto Lnomatch;
         }
         else if (!flags)
+        {
             arg->type = param->type;
+            arg->type = arg->type->addStorageClass(arg->storageClass);
+        }
     }
   Lmatch:
     return 1;

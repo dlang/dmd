@@ -3908,13 +3908,54 @@ Statement *Parser::parseStatement(int flags)
                 Type *at;
 
                 StorageClass storageClass = 0;
-                if (token.value == TOKref
+            Lagain:
+                switch (token.value)
+                {
+                    case TOKref:
 #if D1INOUT
-                        || token.value == TOKinout
+                    case TOKinout:
 #endif
-                   )
-                {   storageClass = STCref;
-                    nextToken();
+                        storageClass |= STCref;
+                        nextToken();
+                        goto Lagain;
+
+                    case TOKconst:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCconst;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKinvariant:
+                    case TOKimmutable:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCimmutable;
+                            if (token.value == TOKinvariant)
+                                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKshared:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCshared;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKwild:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCwild;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    default:
+                        break;
                 }
                 if (token.value == TOKidentifier)
                 {
