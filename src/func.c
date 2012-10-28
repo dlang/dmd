@@ -3911,7 +3911,6 @@ void InvariantDeclaration::semantic(Scope *sc)
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
-    sc->stc |= STCconst;                // invariant() is always const
     sc->incontract++;
     sc->linkage = LINKd;
 
