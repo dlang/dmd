@@ -4728,4 +4728,47 @@ struct S74 {
 
 enum Test74 = S74.test();
 
+/******************************************************/
+
+static bool bug8865()
+in
+{
+    int x = 0;
+label:
+    foreach (i; (++x)..3)
+    {
+        if (i == 1)
+            continue label;     // doesn't work.
+        else
+            break label;        // doesn't work.
+    }
+}
+out
+{
+    int x = 0;
+label:
+    foreach (i; (++x)..3)
+    {
+        if (i == 1)
+            continue label;     // doesn't work.
+        else
+            break label;        // doesn't work.
+    }
+}
+body
+{
+    int x = 0;
+label:
+    foreach (i; (++x)..3)
+    {
+        if (i == 1)
+            continue label;     // works.
+        else
+            break label;        // works.
+    }
+
+    return true;
+}
+static assert(bug8865());
+
 

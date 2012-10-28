@@ -33,6 +33,27 @@
 extern int os_critsecsize32();
 extern int os_critsecsize64();
 
+Identifier *fixupLabelName(Scope *sc, Identifier *ident)
+{
+    unsigned flags = (sc->flags & SCOPEcontract);
+    if (flags && flags != SCOPEinvariant &&
+        !(ident->string[0] == '_' && ident->string[1] == '_'))
+    {
+        /* CTFE requires FuncDeclaration::labtab for the interpretation.
+         * So fixing the label name inside in/out contracts is necessary
+         * for the uniqueness in labtab.
+         */
+        const char *prefix = flags == SCOPErequire ? "__in_" : "__out_";
+        OutBuffer buf;
+        buf.printf("%s%s", prefix, ident->toChars());
+        buf.writeByte(0);
+
+        const char *name = (const char *)buf.extractData();
+        ident = Lexer::idPool(name);
+    }
+    return ident;
+}
+
 /******************************** Statement ***************************/
 
 Statement::Statement(Loc loc)
@@ -40,7 +61,6 @@ Statement::Statement(Loc loc)
 {
     // If this is an in{} contract scope statement (skip for determining
     //  inlineStatus of a function body for header content)
-    incontract = 0;
 }
 
 Statement *Statement::syntaxCopy()
@@ -3761,7 +3781,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         exp = new IntegerExp(0);
     }
 
-    if (sc->incontract || scx->incontract)
+    if ((sc->flags & SCOPEcontract) || (scx->flags & SCOPEcontract))
         error("return statements cannot be in contracts");
     if (sc->tf || scx->tf)
         error("return statements cannot be in finally, scope(exit) or scope(success) bodies");
@@ -4103,6 +4123,8 @@ Statement *BreakStatement::semantic(Scope *sc)
     //  break Identifier;
     if (ident)
     {
+        ident = fixupLabelName(sc, ident);
+
         Scope *scx;
         FuncDeclaration *thisfunc = sc->func;
 
@@ -4194,6 +4216,8 @@ Statement *ContinueStatement::semantic(Scope *sc)
     //printf("ContinueStatement::semantic() %p\n", this);
     if (ident)
     {
+        ident = fixupLabelName(sc, ident);
+
         Scope *scx;
         FuncDeclaration *thisfunc = sc->func;
 
@@ -5111,6 +5135,8 @@ Statement *GotoStatement::semantic(Scope *sc)
 {   FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     //printf("GotoStatement::semantic()\n");
+    ident = fixupLabelName(sc, ident);
+
     tf = sc->tf;
     label = fd->searchLabel(ident);
     if (!label->statement && sc->fes)
@@ -5172,6 +5198,8 @@ Statement *LabelStatement::semantic(Scope *sc)
     FuncDeclaration *fd = sc->parent->isFuncDeclaration();
 
     //printf("LabelStatement::semantic()\n");
+    ident = fixupLabelName(sc, ident);
+
     ls = fd->searchLabel(ident);
     if (ls->statement)
         error("Label '%s' already defined", ls->toChars());
