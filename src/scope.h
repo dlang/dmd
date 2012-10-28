@@ -62,7 +62,6 @@ struct Scope
                                 // set in a pass after semantic() on all fields so they can be
                                 // semantic'd in any order.
     int inunion;                // we're processing members of a union
-    int incontract;             // we're inside contract code
     int nofree;                 // set if shouldn't free it
     int noctor;                 // set if constructor calls aren't allowed
     int intypeof;               // in typeof(exp)
@@ -95,6 +94,11 @@ struct Scope
 #define SCOPEfree       4       // is on free list
 #define SCOPEstaticassert 8     // inside static assert
 #define SCOPEdebug      0x10    // inside debug conditional
+
+#define SCOPEinvariant  0x20    // inside invariant code
+#define SCOPErequire    0x40    // inside in contract code
+#define SCOPEensure     0x60    // inside out contract code
+#define SCOPEcontract   0x60    // [mask] we're inside contract code
 
 #ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
