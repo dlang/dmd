@@ -10320,11 +10320,6 @@ Expression *AssignExp::semantic(Scope *sc)
         }
     }
 
-    e2 = e2->semantic(sc);
-    if (e2->op == TOKerror)
-        return new ErrorExp();
-    e2 = resolveProperties(sc, e2);
-
     /* With UFCS, e.f = value
      * Could mean:
      *      .f(e, value)
@@ -10361,7 +10356,6 @@ Expression *AssignExp::semantic(Scope *sc)
             }
         }
     }
-Le1:
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
         return new ErrorExp();
@@ -10400,6 +10394,11 @@ Le1:
         ethis  = NULL;
     L3:
     {
+        e2 = e2->semantic(sc);
+        if (e2->op == TOKerror)
+            return new ErrorExp();
+        e2 = resolveProperties(sc, e2);
+
         assert(td);
         Expressions a;
         a.push(e2);
@@ -10427,6 +10426,11 @@ Le1:
         ethis = NULL;
     L4:
     {
+        e2 = e2->semantic(sc);
+        if (e2->op == TOKerror)
+            return new ErrorExp();
+        e2 = resolveProperties(sc, e2);
+
         assert(fd);
         FuncDeclaration *f = fd;
         Expressions a;
@@ -10471,6 +10475,16 @@ Le1:
     }
 
     assert(e1->type);
+    Type *t1 = e1->type->toBasetype();
+
+    e2 = e2->inferType(t1);
+    if (!e2->rvalue())
+        return new ErrorExp();
+
+    e2 = e2->semantic(sc);
+    if (e2->op == TOKerror)
+        return new ErrorExp();
+    e2 = resolveProperties(sc, e2);
 
     /* Rewrite tuple assignment as a tuple of assignments.
      */
@@ -10553,8 +10567,6 @@ Ltupleassign:
         if (v->storage_class & (STCout | STCref))
             refinit = 1;
     }
-
-    Type *t1 = e1->type->toBasetype();
 
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
@@ -10699,10 +10711,6 @@ Ltupleassign:
             t1 = e1->type->toBasetype();
         }
     }
-
-    e2 = e2->inferType(t1);
-    if (!e2->rvalue())
-        return new ErrorExp();
 
     if (e1->op == TOKarraylength)
     {
