@@ -1369,22 +1369,32 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     return NULL;
                 s = s->toAlias();
 
-                Expression *e;
-                TemplateDeclaration *td;
-                // Check for multi-dimensional opDollar(dim)(). Only for ArrayExp.
-                if (exp->op == TOKarray && (td = s->isTemplateDeclaration()))
+                Expression *e = NULL;
+                // Check for multi-dimensional opDollar(dim) template.
+                if (TemplateDeclaration *td = s->isTemplateDeclaration())
                 {
-                    ArrayExp *ae = (ArrayExp *)exp;
-                    // Instantiate opDollar!(dim) with the index as a template argument
+                    dinteger_t dim;
+                    if (exp->op == TOKarray)
+                    {
+                        dim = ((ArrayExp *)exp)->currentDimension;
+                        e = ((ArrayExp *)exp)->e1;
+                    }
+                    else if (exp->op == TOKslice)
+                    {
+                        dim = 0; // slices are currently always one-dimensional
+                        e = ((SliceExp *)exp)->e1;
+                    }
+                    assert(e);
+
                     Objects *tdargs = new Objects();
-                    Expression *dim = new IntegerExp(0, ae->currentDimension, Type::tsize_t);
-                    dim = dim->semantic(sc);
-                    tdargs->push(dim);
+                    Expression *edim = new IntegerExp(0, dim, Type::tsize_t);
+                    edim = edim->semantic(sc);
+                    tdargs->push(edim);
 
                     //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
                     //ti->semantic(sc);
 
-                    e = new DotTemplateInstanceExp(loc, ae->e1, td->ident, tdargs);
+                    e = new DotTemplateInstanceExp(loc, e, td->ident, tdargs);
                 }
                 else
                 {   /* opDollar exists, but it's not a template.
