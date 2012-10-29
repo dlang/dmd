@@ -155,7 +155,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj \
 	sideeffect.obj libmscoff.obj scanmscoff.obj \
-    intrange.obj canthrow.obj
+	intrange.obj canthrow.obj
 
 # D back end
 OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -196,7 +196,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	delegatize.c toir.h toir.c interpret.c ctfeexpr.c traits.c builtin.c \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
-	apply.c sideeffect.c libmscoff.c scanmscoff.c \
+	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
 	intrange.h intrange.c canthrow.c
 
 
