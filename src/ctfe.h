@@ -196,6 +196,10 @@ TypeAArray *toBuiltinAAType(Type *t);
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 
 
+/// Return true if non-pointer expression e can be compared
+/// with >,is, ==, etc, using ctfeCmp, ctfeEquals, ctfeIdentity
+bool isCtfeComparable(Expression *e);
+
 /// Evaluate ==, !=.  Resolves slices before comparing
 Expression *ctfeEqual(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2);
 
