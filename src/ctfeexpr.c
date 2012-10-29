@@ -763,6 +763,25 @@ int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger
 
 /******** Constant folding, with support for CTFE ***************************/
 
+/// Return true if non-pointer expression e can be compared
+/// with >,is, ==, etc, using ctfeCmp, ctfeEquals, ctfeIdentity
+bool isCtfeComparable(Expression *e)
+{
+    Expression *x = e;
+    if (x->op == TOKslice)
+        x = ((SliceExp *)e)->e1;
+
+    if (x->isConst() != 1 &&
+        x->op != TOKnull &&
+        x->op != TOKstring &&
+        x->op != TOKarrayliteral &&
+        x->op != TOKstructliteral &&
+        x->op != TOKclassreference)
+    {
+        return false;
+    }
+    return true;
+}
 
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2);
 

@@ -1094,8 +1094,6 @@ Expression *SwitchStatement::interpret(InterState *istate)
     Expression *econdition = condition->interpret(istate);
     if (exceptionOrCantInterpret(econdition))
         return econdition;
-    if (econdition->op == TOKslice)
-        econdition = resolveSlice(econdition);
 
     Statement *s = NULL;
     if (cases)
@@ -2013,8 +2011,6 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
      */
     for (size_t i = 1; i < keysx->dim; i++)
     {   Expression *ekey = keysx->tdata()[i - 1];
-        if (ekey->op == TOKslice)
-            ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
             Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
@@ -2381,42 +2377,23 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
-    if (e1->op == TOKslice)
-        e1 = resolveSlice(e1);
-
-    if (e1->isConst() != 1 &&
-        e1->op != TOKnull &&
-        e1->op != TOKstring &&
-        e1->op != TOKarrayliteral &&
-        e1->op != TOKstructliteral &&
-        e1->op != TOKclassreference)
+    if (!isCtfeComparable(e1))
     {
         error("cannot compare %s at compile time", e1->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
-
     e2 = this->e2->interpret(istate);
     if (exceptionOrCantInterpret(e2))
         return e2;
-    if (e2->op == TOKslice)
-        e2 = resolveSlice(e2);
-    if (e2->isConst() != 1 &&
-        e2->op != TOKnull &&
-        e2->op != TOKstring &&
-        e2->op != TOKarrayliteral &&
-        e2->op != TOKstructliteral &&
-        e2->op != TOKclassreference)
+    if (!isCtfeComparable(e2))
     {
         error("cannot compare %s at compile time", e2->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
     e = (*fp)(loc, op, type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
 }
 
 #define BIN_INTERPRET2(op, opfunc) \
