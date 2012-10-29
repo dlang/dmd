@@ -159,6 +159,26 @@ version( linux )
         speed_t    c_ospeed;
     }
 
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
+    enum NCC = 8;
+
+    struct termio
+    {
+        ushort c_iflag;
+        ushort c_oflag;
+        ushort c_cflag;
+        ushort c_lflag;
+        ubyte c_line;
+        ubyte[NCC] c_cc;
+    }
+
     enum VEOF       = 4;
     enum VEOL       = 11;
     enum VERASE     = 2;

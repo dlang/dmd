@@ -25,6 +25,7 @@ nothrow:
 version (linux)
 {
     import core.sys.posix.termios; // termios2
+    public import core.sys.posix.termios : termio, winsize;
 
     enum _IOC_NRBITS = 8;
     enum _IOC_TYPEBITS = 8;
@@ -98,26 +99,6 @@ version (linux)
     enum IOC_INOUT = (_IOC_READ | _IOC_WRITE) << _IOC_DIRSHIFT;
     enum IOCSIZE_MASK = _IOC_SIZEMASK << _IOC_DIRSHIFT;
     enum IOCSIZE_SHIFT = _IOC_SIZESHIFT;
-
-    struct winsize
-    {
-        ushort ws_row;
-        ushort ws_col;
-        ushort ws_xpixel;
-        ushort ws_ypixel;
-    }
-
-    enum NCC = 8;
-
-    struct termio
-    {
-        ushort c_iflag;
-        ushort c_oflag;
-        ushort c_cflag;
-        ushort c_lflag;
-        ubyte c_line;
-        ubyte[NCC] c_cc;
-    }
 
     enum TIOCM_LE = 0x001;
     enum TIOCM_DTR = 0x002;
