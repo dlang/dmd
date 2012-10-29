@@ -112,10 +112,10 @@ version( linux )
     enum O_DSYNC        = O_SYNC;
     enum O_RSYNC        = O_SYNC;
 
-    enum O_ACCMODE      = 0003;
-    enum O_RDONLY       = 00;
-    enum O_WRONLY       = 01;
-    enum O_RDWR         = 02;
+    enum O_ACCMODE      = 0x3;
+    enum O_RDONLY       = 0x0;
+    enum O_WRONLY       = 0x1;
+    enum O_RDWR         = 0x2;
 
     struct flock
     {
