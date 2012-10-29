@@ -26,6 +26,79 @@ version (linux)
 {
     import core.sys.posix.termios; // termios2
 
+    enum _IOC_NRBITS = 8;
+    enum _IOC_TYPEBITS = 8;
+    enum _IOC_SIZEBITS = 14;
+    enum _IOC_DIRBITS = 2;
+
+    enum _IOC_NRMASK = (1 << _IOC_NRBITS) - 1;
+    enum _IOC_TYPEMASK = (1 << _IOC_TYPEBITS) - 1;
+    enum _IOC_SIZEMASK = (1 << _IOC_SIZEBITS) - 1;
+    enum _IOC_DIRMASK = (1 << _IOC_DIRBITS) - 1;
+
+    enum _IOC_NRSHIFT = 0;
+    enum _IOC_TYPESHIFT = _IOC_NRSHIFT + _IOC_NRBITS;
+    enum _IOC_SIZESHIFT = _IOC_TYPESHIFT + _IOC_TYPEBITS;
+    enum _IOC_DIRSHIFT = _IOC_SIZESHIFT + _IOC_SIZEBITS;
+
+    enum _IOC_NONE = 0;
+    enum _IOC_WRITE = 1;
+    enum _IOC_READ = 2;
+
+    extern (D) int _IOC(T = typeof(null))(int dir, int type, int nr)
+    {
+        return (dir << _IOC_DIRSHIFT) |
+               (type << _IOC_TYPESHIFT) |
+               (nr << _IOC_NRSHIFT) |
+               (is(T == typeof(null)) ? 0 : T.sizeof << _IOC_SIZESHIFT);
+    }
+
+    extern (D) int _IO(int type, int nr)
+    {
+        return _IOC(_IOC_NONE, type, nr);
+    }
+
+    extern (D) int _IOR(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_READ, type, nr);
+    }
+
+    extern (D) int _IOW(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_WRITE, type, nr);
+    }
+
+    extern (D) int _IOWR(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_READ | _IOC_WRITE, type, nr);
+    }
+
+    extern (D) int _IOC_DIR(int nr)
+    {
+        return (nr >> _IOC_DIRSHIFT) & _IOC_DIRMASK;
+    }
+
+    extern (D) int _IOC_TYPE(int nr)
+    {
+        return (nr >> _IOC_TYPESHIFT) & _IOC_TYPEMASK;
+    }
+
+    extern (D) int _IOC_NR(int nr)
+    {
+        return (nr >> _IOC_NRSHIFT) & _IOC_NRMASK;
+    }
+
+    extern (D) int _IOC_SIZE(int nr)
+    {
+        return (nr >> _IOC_SIZESHIFT) & _IOC_SIZEMASK;
+    }
+
+    enum IOC_IN = _IOC_WRITE << _IOC_DIRSHIFT;
+    enum IOC_OUT = _IOC_READ << _IOC_DIRSHIFT;
+    enum IOC_INOUT = (_IOC_READ | _IOC_WRITE) << _IOC_DIRSHIFT;
+    enum IOCSIZE_MASK = _IOC_SIZEMASK << _IOC_DIRSHIFT;
+    enum IOCSIZE_SHIFT = _IOC_SIZESHIFT;
+
     struct winsize
     {
         ushort ws_row;
