@@ -190,24 +190,24 @@ version (linux)
     enum TIOCCBRK = 0x5428;
     enum TIOCGSID = 0x5429;
 
-    //enum TCGETS2  _IOR('T', 0x2A, struct termios2)
-    //enum TCSETS2  _IOW('T', 0x2B, struct termios2)
-    //enum TCSETSW2 _IOW('T', 0x2C, struct termios2)
-    //enum TCSETSF2 _IOW('T', 0x2D, struct termios2)
+    enum TCGETS2 = _IOR!termios2('T', 0x2A);
+    enum TCSETS2 = _IOR!termios2('T', 0x2B);
+    enum TCSETSW2 = _IOW!termios2('T', 0x2C);
+    enum TCSETSF2 = _IOW!termios2('T', 0x2D);
 
     enum TIOCGRS485 = 0x542E;
     enum TIOCSRS485 = 0x542F;
 
-    //enum TIOCGPTN   _IOR('T', 0x30, unsigned int)
-    //enum TIOCSPTLCK _IOW('T', 0x31, int)
-    //enum TIOCGDEV   _IOR('T', 0x32, unsigned int)
+    enum TIOCGPTN   = _IOR!uint('T', 0x30);
+    enum TIOCSPTLCK = _IOW!int('T', 0x31);
+    enum TIOCGDEV   = _IOR!uint('T', 0x32);
 
     enum TCGETX = 0x5432;
     enum TCSETX = 0x5433;
     enum TCSETXF = 0x5434;
     enum TCSETXW = 0x5435;
 
-    //enum TIOCSIG _IOW('T', 0x36, int)
+    enum TIOCSIG = _IOW!int('T', 0x36);
 
     enum TIOCVHANGUP = 0x5437;
 
