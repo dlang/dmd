@@ -80,15 +80,18 @@ MANIFEST= \
 	\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
+	\
 	src\core\sys\freebsd\sys\event.d \
 	\
 	src\core\sys\linux\execinfo.d \
 	src\core\sys\linux\epoll.d \
+	\
 	src\core\sys\linux\sys\signalfd.d \
 	src\core\sys\linux\sys\xattr.d \
 	\
 	src\core\sys\osx\execinfo.d \
 	src\core\sys\osx\pthread.d \
+	\
 	src\core\sys\osx\mach\dyld.d \
 	src\core\sys\osx\mach\getsect.d \
 	src\core\sys\osx\mach\kern_return.d \
@@ -102,7 +105,6 @@ MANIFEST= \
 	src\core\sys\posix\dlfcn.d \
 	src\core\sys\posix\fcntl.d \
 	src\core\sys\posix\inttypes.d \
-	src\core\sys\posix\net\if_.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
 	src\core\sys\posix\pthread.d \
@@ -121,6 +123,8 @@ MANIFEST= \
 	\
 	src\core\sys\posix\arpa\inet.d \
 	\
+	src\core\sys\posix\net\if_.d \
+	\
 	src\core\sys\posix\netinet\in_.d \
 	src\core\sys\posix\netinet\tcp.d \
 	\
@@ -135,8 +139,8 @@ MANIFEST= \
 	src\core\sys\posix\sys\types.d \
 	src\core\sys\posix\sys\uio.d \
 	src\core\sys\posix\sys\un.d \
-	src\core\sys\posix\sys\wait.d \
 	src\core\sys\posix\sys\utsname.d \
+	src\core\sys\posix\sys\wait.d \
 	\
 	src\core\sys\windows\dbghelp.d \
 	src\core\sys\windows\dll.d \
