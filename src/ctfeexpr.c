@@ -1314,6 +1314,75 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     return newval;
 }
 
+/// Given array literal oldval of type ArrayLiteralExp or StringExp, of length
+/// oldlen, change its length to newlen. If the newlen is longer than oldlen,
+/// all new elements will be set to the default initializer for the element type.
+Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
+    Expression *oldval,  size_t oldlen, size_t newlen)
+{
+    Type *elemType = elemType = arrayType->next;
+    assert(elemType);
+    Expression *defaultElem = elemType->defaultInitLiteral(loc);
+    Expressions *elements = new Expressions();
+    elements->setDim(newlen);
+
+    // Resolve slices
+    size_t indxlo = 0;
+    if (oldval->op == TOKslice)
+    {   indxlo = ((SliceExp *)oldval)->lwr->toInteger();
+        oldval = ((SliceExp *)oldval)->e1;
+    }
+    size_t copylen = oldlen < newlen ? oldlen : newlen;
+    if (oldval->op == TOKstring)
+    {
+        StringExp *oldse = (StringExp *)oldval;
+        unsigned char *s = (unsigned char *)mem.calloc(newlen + 1, oldse->sz);
+        memcpy(s, oldse->string, copylen * oldse->sz);
+        unsigned defaultValue = (unsigned)(defaultElem->toInteger());
+        for (size_t elemi = copylen; elemi < newlen; ++elemi)
+        {
+            switch (oldse->sz)
+            {
+                case 1:     s[indxlo + elemi] = defaultValue; break;
+                case 2:     ((unsigned short *)s)[indxlo + elemi] = defaultValue; break;
+                case 4:     ((unsigned *)s)[indxlo + elemi] = defaultValue; break;
+                default:    assert(0);
+            }
+        }
+        StringExp *se = new StringExp(loc, s, newlen);
+        se->type = arrayType;
+        se->sz = oldse->sz;
+        se->committed = oldse->committed;
+        se->ownedByCtfe = true;
+        return se;
+    }
+    else
+    {
+        if (oldlen !=0)
+            assert(oldval->op == TOKarrayliteral);
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
+        for (size_t i = 0; i < copylen; i++)
+            (*elements)[i] = (*ae->elements)[indxlo + i];
+        if (elemType->ty == Tstruct || elemType->ty == Tsarray)
+        {   /* If it is an aggregate literal representing a value type,
+             * we need to create a unique copy for each element
+             */
+            for (size_t i = copylen; i < newlen; i++)
+                (*elements)[i] = copyLiteral(defaultElem);
+        }
+        else
+        {
+            for (size_t i = copylen; i < newlen; i++)
+                (*elements)[i] = defaultElem;
+        }
+        ArrayLiteralExp *aae = new ArrayLiteralExp(loc, elements);
+        aae->type = arrayType;
+        aae->ownedByCtfe = true;
+        return aae;
+    }
+}
+
+
 /*************************** CTFE Sanity Checks ***************************/
 
 
