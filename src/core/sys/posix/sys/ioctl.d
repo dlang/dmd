@@ -233,10 +233,40 @@ version (linux)
 }
 else version (OSX)
 {
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
+    struct ttysize
+    {
+        ushort ts_lines;
+        ushort ts_cols;
+        ushort ts_xxx;
+        ushort ts_yyy;
+    }
+
     int ioctl(int fildes, c_ulong request, ...);
 }
 else version (FreeBSD)
 {
+    struct fiodgname_arg
+    {
+        int len;
+        void* buf;
+    }
+
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
     int ioctl(int, c_ulong, ...);
 }
 else version (Solaris)
