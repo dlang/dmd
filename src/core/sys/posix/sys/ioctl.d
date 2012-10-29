@@ -24,6 +24,8 @@ nothrow:
 
 version (linux)
 {
+    import core.sys.posix.termios; // termios2
+
     struct winsize
     {
         ushort ws_row;
@@ -233,6 +235,9 @@ version (linux)
 }
 else version (OSX)
 {
+    import core.sys.posix.termios; // termios
+    import core.sys.posix.sys.time; // timeval
+
     struct winsize
     {
         ushort ws_row;
