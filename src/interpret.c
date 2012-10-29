@@ -1094,8 +1094,6 @@ Expression *SwitchStatement::interpret(InterState *istate)
     Expression *econdition = condition->interpret(istate);
     if (exceptionOrCantInterpret(econdition))
         return econdition;
-    if (econdition->op == TOKslice)
-        econdition = resolveSlice(econdition);
 
     Statement *s = NULL;
     if (cases)
@@ -2013,8 +2011,6 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
      */
     for (size_t i = 1; i < keysx->dim; i++)
     {   Expression *ekey = keysx->tdata()[i - 1];
-        if (ekey->op == TOKslice)
-            ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
             Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
