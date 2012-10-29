@@ -554,13 +554,13 @@ SRCS=$(addprefix src/,$(addsuffix .d,$(SRC_D_MODULES)))
 
 COPYDIRS=\
 	$(IMPDIR)/core/stdc \
-	$(IMPDIR)/core/sys/windows \
+	$(IMPDIR)/core/sys/freebsd/sys \
+	$(IMPDIR)/core/sys/osx/mach \
 	$(IMPDIR)/core/sys/posix/arpa \
-	$(IMPDIR)/core/sys/posix/sys \
 	$(IMPDIR)/core/sys/posix/net \
 	$(IMPDIR)/core/sys/posix/netinet \
-	$(IMPDIR)/core/sys/osx/mach \
-	$(IMPDIR)/core/sys/freebsd/sys \
+	$(IMPDIR)/core/sys/posix/sys \
+	$(IMPDIR)/core/sys/windows \
 
 ######################## Doc .html file generation ##############################
 

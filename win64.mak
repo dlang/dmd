@@ -605,16 +605,16 @@ $(IMPDIR)\core\sync\semaphore.di : src\core\sync\semaphore.d
 ######################## Header .di file copy ##############################
 
 copydir: $(IMPDIR)
-	mkdir $(IMPDIR)\core\sys\windows
-	mkdir $(IMPDIR)\core\sys\posix\arpa
-	mkdir $(IMPDIR)\core\sys\posix\sys
-	mkdir $(IMPDIR)\core\sys\posix\net
-	mkdir $(IMPDIR)\core\sys\posix\netinet
-	mkdir $(IMPDIR)\core\sys\osx\mach
+	mkdir $(IMPDIR)\core\stdc
 	mkdir $(IMPDIR)\core\sys\freebsd\sys
 	mkdir $(IMPDIR)\core\sys\linux\sys
+	mkdir $(IMPDIR)\core\sys\osx\mach
+	mkdir $(IMPDIR)\core\sys\posix\arpa
+	mkdir $(IMPDIR)\core\sys\posix\net
+	mkdir $(IMPDIR)\core\sys\posix\netinet
+	mkdir $(IMPDIR)\core\sys\posix\sys
+	mkdir $(IMPDIR)\core\sys\windows
 	mkdir $(IMPDIR)\etc\linux
-	mkdir $(IMPDIR)\core\stdc
 
 copy: $(COPY)
 
