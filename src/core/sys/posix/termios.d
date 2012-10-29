@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -135,9 +135,19 @@ version( linux )
     alias uint  speed_t;
     alias uint  tcflag_t;
 
-    enum NCCS   = 32;
+    enum NCCS   = 19;
 
     struct termios
+    {
+        tcflag_t   c_iflag;
+        tcflag_t   c_oflag;
+        tcflag_t   c_cflag;
+        tcflag_t   c_lflag;
+        cc_t       c_line;
+        cc_t[NCCS] c_cc;
+    }
+
+    struct termios2
     {
         tcflag_t   c_iflag;
         tcflag_t   c_oflag;
