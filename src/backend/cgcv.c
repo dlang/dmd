@@ -94,9 +94,10 @@ STATIC void cv4_func(Funcsym *s);
 inline
 #endif
 int cv_stringbytes(const char *name)
-{   size_t len;
-
-    len = strlen(name);
+{
+    size_t len = strlen(name);
+    if (config.fulltypes == CV8)
+        return len + 1;
     if (len > CVIDMAX)
         len = CVIDMAX;
     return len + ((len > 255) ? 4 : 1);
@@ -109,9 +110,13 @@ int cv_stringbytes(const char *name)
  */
 
 int cv_namestring(unsigned char *p,const char *name)
-{   unsigned len;
-
-    len = strlen(name);
+{
+    size_t len = strlen(name);
+    if (config.fulltypes == CV8)
+    {
+        memcpy(p, name, len + 1);
+        return len + 1;
+    }
     if (len > 255)
     {   p[0] = 0xFF;
         p[1] = 0;
@@ -185,8 +190,15 @@ STATIC int cv_regnum(symbol *s)
 debtyp_t * debtyp_alloc(unsigned length)
 {
     debtyp_t *d;
+    unsigned pad = 0;
 
     //printf("len = %u, x%x\n", length, length);
+    if (config.fulltypes == CV8)
+    {   // length+2 must lie on 4 byte boundary
+        pad = ((length + 2 + 3) & ~3) - (length + 2);
+        length += pad;
+    }
+
 #ifdef DEBUG
     unsigned len = sizeof(debtyp_t) - sizeof(d->data) + length;
     assert(len < 4 * 4096 - 100);
@@ -198,6 +210,11 @@ debtyp_t * debtyp_alloc(unsigned length)
     d = (debtyp_t *) malloc(sizeof(debtyp_t) - sizeof(d->data) + length);
 #endif
     d->length = length;
+    if (pad)
+    {
+        static const unsigned char padx[3] = {0xF3, 0xF2, 0xF1};
+        memcpy(d->data + length - pad, padx + 3 - pad, pad);
+    }
     //printf("debtyp_alloc(%d) = %p\n", length, d);
     return d;
 }
@@ -382,7 +399,7 @@ void cv_init()
     memset(debtyphash,0,sizeof(debtyphash));
 
     /* Reset for different OBJ file formats     */
-    if (I32)
+    if (I32 || I64)
     {
         // Adjust values in old CV tables for 32 bit ints
         dttab[TYenum] = dttab[TYlong];
@@ -393,9 +410,18 @@ void cv_init()
         dttab4[TYenum] = 0x74;
         dttab4[TYint]  = 0x74;
         dttab4[TYuint] = 0x75;
-        dttab4[TYptr]  = 0x400;
-        dttab4[TYnptr] = 0x400;
-        dttab4[TYjhandle] = 0x400;
+        if (I64)
+        {
+            dttab4[TYptr]  = 0x600;
+            dttab4[TYnptr] = 0x600;
+            dttab4[TYjhandle] = 0x600;
+        }
+        else
+        {
+            dttab4[TYptr]  = 0x400;
+            dttab4[TYnptr] = 0x400;
+            dttab4[TYjhandle] = 0x400;
+        }
 #if TARGET_SEGMENTED
         dttab4[TYsptr] = 0x400;
         dttab4[TYcptr] = 0x400;
@@ -419,12 +445,31 @@ void cv_init()
         static unsigned short memmodel[5] = {0,0x100,0x20,0x120,0x120};
         char version[1 + sizeof(VERSION)];
         unsigned char debsym[8 + sizeof(version)];
-        const char *x = "1MYS";
 
         // Put out signature indicating CV4 format
-        cgcv.signature = (config.fulltypes == CV4) ? 1 : *(int *) x;
+        switch (config.fulltypes)
+        {
+            case CV4:
+                cgcv.signature = 1;
+                break;
+
+            case CV8:
+                cgcv.signature = 4;
+                break;
+
+            default:
+            {   const char *x = "1MYS";
+                cgcv.signature = *(int *) x;
+                break;
+            }
+        }
 
         cgcv.deb_offset = 0x1000;
+
+        if (config.fulltypes == CV8)
+        {   cgcv.sz_idx = 4;
+            return;     // figure out rest later
+        }
 
         if (config.fulltypes >= CVSYM)
         {   cgcv.sz_idx = 4;
@@ -563,27 +608,43 @@ idx_t cv4_arglist(type *t,unsigned *pnparam)
         paramidx = DEB_NULL;
     else
     {
-        if (config.fulltypes == CV4)
-        {   d = debtyp_alloc(2 + 2 + nparam * 2);
-            TOWORD(d->data,LF_ARGLIST);
-            TOWORD(d->data + 2,nparam);
+        switch (config.fulltypes)
+        {
+            case CV8:
+                d = debtyp_alloc(2 + 4 + nparam * 4);
+                TOWORD(d->data,0x1201);
+                TOLONG(d->data + 2,nparam);
 
-            p = t->Tparamtypes;
-            for (u = 0; u < nparam; u++)
-            {   TOWORD(d->data + 4 + u * 2,cv4_typidx(p->Ptype));
-                p = p->Pnext;
-            }
-        }
-        else
-        {   d = debtyp_alloc(2 + 4 + nparam * 4);
-            TOWORD(d->data,LF_ARGLIST);
-            TOLONG(d->data + 2,nparam);
+                p = t->Tparamtypes;
+                for (u = 0; u < nparam; u++)
+                {   TOLONG(d->data + 6 + u * 4,cv4_typidx(p->Ptype));
+                    p = p->Pnext;
+                }
+                break;
 
-            p = t->Tparamtypes;
-            for (u = 0; u < nparam; u++)
-            {   TOLONG(d->data + 6 + u * 4,cv4_typidx(p->Ptype));
-                p = p->Pnext;
-            }
+            case CV4:
+                d = debtyp_alloc(2 + 2 + nparam * 2);
+                TOWORD(d->data,LF_ARGLIST);
+                TOWORD(d->data + 2,nparam);
+
+                p = t->Tparamtypes;
+                for (u = 0; u < nparam; u++)
+                {   TOWORD(d->data + 4 + u * 2,cv4_typidx(p->Ptype));
+                    p = p->Pnext;
+                }
+                break;
+
+            default:
+                d = debtyp_alloc(2 + 4 + nparam * 4);
+                TOWORD(d->data,LF_ARGLIST);
+                TOLONG(d->data + 2,nparam);
+
+                p = t->Tparamtypes;
+                for (u = 0; u < nparam; u++)
+                {   TOLONG(d->data + 6 + u * 4,cv4_typidx(p->Ptype));
+                    p = p->Pnext;
+                }
+                break;
         }
         paramidx = cv_debtyp(d);
     }
@@ -1745,20 +1806,21 @@ L1:
 #endif
 
         L2:
-#if 1
-            // This is a hack to duplicate bugs in VC, so that the VC
-            // debugger will work.
-            tymnext = t->Tnext->Tty;
-            if (tymnext & (mTYconst | mTYimmutable | mTYvolatile) &&
-                !tycv &&
-                tyarithmetic(tymnext) &&
-                !(attribute & 0xE0)
-               )
+            if (config.fulltypes == CV4)
             {
-                typidx = dt | dttab4[tybasic(tymnext)];
-                break;
+                // This is a hack to duplicate bugs in VC, so that the VC
+                // debugger will work.
+                tymnext = t->Tnext->Tty;
+                if (tymnext & (mTYconst | mTYimmutable | mTYvolatile) &&
+                    !tycv &&
+                    tyarithmetic(tymnext) &&
+                    !(attribute & 0xE0)
+                   )
+                {
+                    typidx = dt | dttab4[tybasic(tymnext)];
+                    break;
+                }
             }
-#endif
             if ((next & 0xFF00) == 0 && !(attribute & 0xE0))
                 typidx = next | dt;
             else
@@ -1768,59 +1830,106 @@ L1:
                 if (tycv & mTYvolatile)
                     attribute |= 0x200;
                 tycv = 0;
-                if (config.fulltypes == CV4)
-                {   d = debtyp_alloc(6);
-                    TOWORD(d->data,LF_POINTER);
-                    TOWORD(d->data + 2,attribute);
-                    TOWORD(d->data + 4,next);
-                }
-                else
-                {   d = debtyp_alloc(10);
-                    TOWORD(d->data,LF_POINTER);
-                    TOLONG(d->data + 2,attribute);
-                    TOLONG(d->data + 6,next);
+                switch (config.fulltypes)
+                {
+                    case CV4:
+                        d = debtyp_alloc(6);
+                        TOWORD(d->data,LF_POINTER);
+                        TOWORD(d->data + 2,attribute);
+                        TOWORD(d->data + 4,next);
+                        break;
+
+                    case CV8:
+                        d = debtyp_alloc(10);
+                        TOWORD(d->data,0x1002);
+                        TOLONG(d->data + 2,next);
+                        /* BUG: attribute bits are unknown, 0x1000C is maaaagic
+                         */
+                        TOLONG(d->data + 6,attribute | 0x1000C);
+                        break;
+
+                    default:
+                        d = debtyp_alloc(10);
+                        TOWORD(d->data,LF_POINTER);
+                        TOLONG(d->data + 2,attribute);
+                        TOLONG(d->data + 6,next);
+                        break;
                 }
                 typidx = cv_debtyp(d);
             }
             break;
 
         Ldarray:
-            assert(config.fulltypes == CV4);
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    d = debtyp_alloc(18);
+                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data + 2, OEM);
+                    TOLONG(d->data + 4, 1);     // 1 = dynamic array
+                    TOWORD(d->data + 8, 2);     // count of type indices to follow
+                    TOLONG(d->data + 10, 0x23); // index type, T_UQUAD
+                    TOLONG(d->data + 14, next); // element type
+                    break;
+
+                case CV4:
 #if 1
-            d = debtyp_alloc(12);
-            TOWORD(d->data, LF_OEM);
-            TOWORD(d->data + 2, OEM);
-            TOWORD(d->data + 4, 1);     // 1 = dynamic array
-            TOWORD(d->data + 6, 2);     // count of type indices to follow
-            TOWORD(d->data + 8, 0x12);  // index type, T_LONG
-            TOWORD(d->data + 10, next); // element type
+                    d = debtyp_alloc(12);
+                    TOWORD(d->data, LF_OEM);
+                    TOWORD(d->data + 2, OEM);
+                    TOWORD(d->data + 4, 1);     // 1 = dynamic array
+                    TOWORD(d->data + 6, 2);     // count of type indices to follow
+                    TOWORD(d->data + 8, 0x12);  // index type, T_LONG
+                    TOWORD(d->data + 10, next); // element type
 #else
-            d = debtyp_alloc(6);
-            TOWORD(d->data,LF_DYN_ARRAY);
-            TOWORD(d->data + 2, 0x12);  // T_LONG
-            TOWORD(d->data + 4, next);
+                    d = debtyp_alloc(6);
+                    TOWORD(d->data,LF_DYN_ARRAY);
+                    TOWORD(d->data + 2, 0x12);  // T_LONG
+                    TOWORD(d->data + 4, next);
 #endif
+                    break;
+
+                default:
+                    assert(0);
+           }
+
             typidx = cv_debtyp(d);
             break;
 
         Laarray:
-            assert(config.fulltypes == CV4);
 #if MARS
             key = cv4_typidx(t->Tkey);
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    d = debtyp_alloc(18);
+                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data + 2, OEM);
+                    TOLONG(d->data + 4, 2);     // 2 = associative array
+                    TOWORD(d->data + 8, 2);     // count of type indices to follow
+                    TOLONG(d->data + 10, key);  // key type
+                    TOLONG(d->data + 14, next); // element type
+                    break;
+
+                case CV4:
 #if 1
-            d = debtyp_alloc(12);
-            TOWORD(d->data, LF_OEM);
-            TOWORD(d->data + 2, OEM);
-            TOWORD(d->data + 4, 2);     // 2 = associative array
-            TOWORD(d->data + 6, 2);     // count of type indices to follow
-            TOWORD(d->data + 8, key);   // key type
-            TOWORD(d->data + 10, next); // element type
+                    d = debtyp_alloc(12);
+                    TOWORD(d->data, LF_OEM);
+                    TOWORD(d->data + 2, OEM);
+                    TOWORD(d->data + 4, 2);     // 2 = associative array
+                    TOWORD(d->data + 6, 2);     // count of type indices to follow
+                    TOWORD(d->data + 8, key);   // key type
+                    TOWORD(d->data + 10, next); // element type
 #else
-            d = debtyp_alloc(6);
-            TOWORD(d->data,LF_ASSOC_ARRAY);
-            TOWORD(d->data + 2, key);   // key type
-            TOWORD(d->data + 4, next);  // element type
+                    d = debtyp_alloc(6);
+                    TOWORD(d->data,LF_ASSOC_ARRAY);
+                    TOWORD(d->data + 2, key);   // key type
+                    TOWORD(d->data + 4, next);  // element type
 #endif
+                    break;
+                default:
+                    assert(0);
+            }
             typidx = cv_debtyp(d);
 #endif
             break;
@@ -1831,46 +1940,87 @@ L1:
             tv->Tcount++;
             key = cv4_typidx(tv);
             type_free(tv);
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    d = debtyp_alloc(18);
+                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data + 2, OEM);
+                    TOLONG(d->data + 4, 3);     // 3 = delegate
+                    TOWORD(d->data + 8, 2);     // count of type indices to follow
+                    TOLONG(d->data + 10, key);  // key type
+                    TOLONG(d->data + 14, next); // element type
+                    break;
+
+                case CV4:
 #if 1
-            d = debtyp_alloc(12);
-            TOWORD(d->data, LF_OEM);
-            TOWORD(d->data + 2, OEM);
-            TOWORD(d->data + 4, 3);     // 3 = delegate
-            TOWORD(d->data + 6, 2);     // count of type indices to follow
-            TOWORD(d->data + 8, key);   // type of 'this', which is void*
-            TOWORD(d->data + 10, next); // function type
+                    d = debtyp_alloc(12);
+                    TOWORD(d->data, LF_OEM);
+                    TOWORD(d->data + 2, OEM);
+                    TOWORD(d->data + 4, 3);     // 3 = delegate
+                    TOWORD(d->data + 6, 2);     // count of type indices to follow
+                    TOWORD(d->data + 8, key);   // type of 'this', which is void*
+                    TOWORD(d->data + 10, next); // function type
 #else
-            d = debtyp_alloc(6);
-            TOWORD(d->data,LF_DELEGATE);
-            TOWORD(d->data + 2, key);   // type of 'this', which is void*
-            TOWORD(d->data + 4, next);  // function type
+                    d = debtyp_alloc(6);
+                    TOWORD(d->data,LF_DELEGATE);
+                    TOWORD(d->data + 2, key);   // type of 'this', which is void*
+                    TOWORD(d->data + 4, next);  // function type
 #endif
+                    break;
+                default:
+                    assert(0);
+            }
             typidx = cv_debtyp(d);
             break;
+
+        case TYcent:    // treat as long[2]
+            next = dttab4[TYllong];
+            goto Lcent;
+        case TYucent:   // treat as ulong[2]
+            next = dttab4[TYullong];
+        Lcent:
+            size = 16;
+            goto Larray;
 
         case TYarray:
             if (t->Tflags & TFsizeunknown)
                 size = 0;               // don't complain if don't know size
             else
                 size = type_size(t);
+        Larray:
             u = cv4_numericbytes(size);
-            if (config.fulltypes == CV4)
+            unsigned idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
+            if (I64)
+                idxtype = 0x23;                    // T_UQUAD
+            switch (config.fulltypes)
             {
-                d = debtyp_alloc(6 + u + 1);
-                TOWORD(d->data,LF_ARRAY);
-                TOWORD(d->data + 2,next);
-                TOWORD(d->data + 4,I32 ? 0x12 : 0x11);  // T_LONG : T_SHORT
-                d->data[6 + u] = 0;             // no name
-                cv4_storenumeric(d->data + 6,size);
-            }
-            else
-            {
-                d = debtyp_alloc(10 + u + 1);
-                TOWORD(d->data,LF_ARRAY);
-                TOLONG(d->data + 2,next);
-                TOLONG(d->data + 6,I32 ? 0x12 : 0x11);  // T_LONG : T_SHORT
-                d->data[10 + u] = 0;            // no name
-                cv4_storenumeric(d->data + 10,size);
+                case CV8:
+                    d = debtyp_alloc(10 + u + 1);
+                    TOWORD(d->data,0x1503);
+                    TOLONG(d->data + 2,next);
+                    TOLONG(d->data + 6,idxtype);
+                    d->data[10 + u] = 0;             // no name
+                    cv4_storenumeric(d->data + 10,size);
+                    break;
+
+                case CV4:
+                    d = debtyp_alloc(6 + u + 1);
+                    TOWORD(d->data,LF_ARRAY);
+                    TOWORD(d->data + 2,next);
+                    TOWORD(d->data + 4,idxtype);
+                    d->data[6 + u] = 0;             // no name
+                    cv4_storenumeric(d->data + 6,size);
+                    break;
+
+                default:
+                    d = debtyp_alloc(10 + u + 1);
+                    TOWORD(d->data,LF_ARRAY);
+                    TOLONG(d->data + 2,next);
+                    TOLONG(d->data + 6,idxtype);
+                    d->data[10 + u] = 0;            // no name
+                    cv4_storenumeric(d->data + 10,size);
+                    break;
             }
             typidx = cv_debtyp(d);
             break;
@@ -1898,23 +2048,37 @@ L1:
             paramidx = cv4_arglist(t,&nparam);
 
             // Construct an LF_PROCEDURE
-            if (config.fulltypes == CV4)
-            {   d = debtyp_alloc(2 + 2 + 1 + 1 + 2 + 2);
-                TOWORD(d->data,LF_PROCEDURE);
-                TOWORD(d->data + 2,next);               // return type
-                d->data[4] = call;
-                d->data[5] = 0;                 // reserved
-                TOWORD(d->data + 6,nparam);
-                TOWORD(d->data + 8,paramidx);
-            }
-            else
-            {   d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 4);
-                TOWORD(d->data,LF_PROCEDURE);
-                TOLONG(d->data + 2,next);               // return type
-                d->data[6] = call;
-                d->data[7] = 0;                 // reserved
-                TOWORD(d->data + 8,nparam);
-                TOLONG(d->data + 10,paramidx);
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 2);
+                    TOWORD(d->data,LF_PROCEDURE);
+                    TOLONG(d->data + 2,next);       // return type
+                    d->data[6] = call;
+                    d->data[7] = 0;                 // reserved
+                    TOWORD(d->data + 8,nparam);
+                    TOWORD(d->data + 10,paramidx);
+                    break;
+
+                case CV4:
+                    d = debtyp_alloc(2 + 2 + 1 + 1 + 2 + 2);
+                    TOWORD(d->data,LF_PROCEDURE);
+                    TOWORD(d->data + 2,next);               // return type
+                    d->data[4] = call;
+                    d->data[5] = 0;                 // reserved
+                    TOWORD(d->data + 6,nparam);
+                    TOWORD(d->data + 8,paramidx);
+                    break;
+
+                default:
+                    d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 4);
+                    TOWORD(d->data,LF_PROCEDURE);
+                    TOLONG(d->data + 2,next);               // return type
+                    d->data[6] = call;
+                    d->data[7] = 0;                 // reserved
+                    TOWORD(d->data + 8,nparam);
+                    TOLONG(d->data + 10,paramidx);
+                    break;
             }
 
             typidx = cv_debtyp(d);
@@ -1988,19 +2152,28 @@ L1:
 
         modifier = (tycv & (mTYconst | mTYimmutable)) ? 1 : 0;
         modifier |= (tycv & mTYvolatile) ? 2 : 0;
-        if (config.fulltypes == CV4)
+        switch (config.fulltypes)
         {
-            d = debtyp_alloc(6);
-            TOWORD(d->data,LF_MODIFIER);
-            TOWORD(d->data + 2,modifier);
-            TOWORD(d->data + 4,typidx);
-        }
-        else
-        {
-            d = debtyp_alloc(10);
-            TOWORD(d->data,LF_MODIFIER);
-            TOLONG(d->data + 2,modifier);
-            TOLONG(d->data + 6,typidx);
+            case CV8:
+                d = debtyp_alloc(8);
+                TOWORD(d->data,0x1001);
+                TOLONG(d->data + 2,typidx);
+                TOWORD(d->data + 6,modifier);
+                break;
+
+            case CV4:
+                d = debtyp_alloc(6);
+                TOWORD(d->data,LF_MODIFIER);
+                TOWORD(d->data + 2,modifier);
+                TOWORD(d->data + 4,typidx);
+                break;
+
+            default:
+                d = debtyp_alloc(10);
+                TOWORD(d->data,LF_MODIFIER);
+                TOLONG(d->data + 2,modifier);
+                TOLONG(d->data + 6,typidx);
+                break;
         }
         typidx = cv_debtyp(d);
     }
@@ -2530,21 +2703,24 @@ STATIC void cv4_func(Funcsym *s)
  */
 
 void cv_term()
-{   unsigned u;
-
+{
     //printf("cv_term(): debtyptop = %d\n",debtyptop);
-    cv_outlist();
+
+    segidx_t typeseg = objmod->seg_debugT();
+
     switch (config.fulltypes)
     {
         case CV4:
         case CVSYM:
-            objmod->write_bytes(SegData[DEBTYP],4,&cgcv.signature);
-            if (debtyptop != 1)
+            cv_outlist();
+        case CV8:
+            objmod->write_bytes(SegData[typeseg],4,&cgcv.signature);
+            if (debtyptop != 1 || config.fulltypes == CV8)
             {
-                for (u = 0; u < debtyptop; u++)
+                for (unsigned u = 0; u < debtyptop; u++)
                 {   debtyp_t *d = debtyp[u];
 
-                    objmod->write_bytes(SegData[DEBTYP],2 + d->length,(char *)d + sizeof(unsigned));
+                    objmod->write_bytes(SegData[typeseg],2 + d->length,(char *)d + sizeof(unsigned));
 #if TERMCODE || _WIN32 || MARS
                     debtyp_free(d);
 #endif
@@ -2560,6 +2736,7 @@ void cv_term()
 
 #if SYMDEB_TDB
         case CVTDB:
+            cv_outlist();
 #if 1
             tdb_term();
 #else
@@ -2569,7 +2746,7 @@ void cv_term()
 
             // Calculate size of buffer
             len = 4;
-            for (u = 0; u < debtyptop; u++)
+            for (unsigned u = 0; u < debtyptop; u++)
             {   debtyp_t *d = debtyp[u];
 
                 len += 2 + d->length;
@@ -2583,7 +2760,7 @@ void cv_term()
             // Fill the buffer
             TOLONG(buf,cgcv.signature);
             p = buf + 4;
-            for (u = 0; u < debtyptop; u++)
+            for (unsigned u = 0; u < debtyptop; u++)
             {   debtyp_t *d = debtyp[u];
 
                 len = 2 + d->length;
@@ -2647,7 +2824,7 @@ void cv_func(Funcsym *s)
 #if TARGET_WINDOS
 void cv_outsym(symbol *s)
 {
-    //dbg_printf("cv_outsym('%s')\n",s->Sident);
+    //printf("cv_outsym('%s')\n",s->Sident);
     symbol_debug(s);
 #if MARS
     if (s->Sflags & SFLnodebug)
@@ -2659,6 +2836,9 @@ void cv_outsym(symbol *s)
         case CVSYM:
         case CVTDB:
             cv4_outsym(s);
+            break;
+        case CV8:
+            cv8_outsym(s);
             break;
         default:
             assert(0);
@@ -2679,6 +2859,7 @@ unsigned cv_typidx(type *t)
         case CV4:
         case CVTDB:
         case CVSYM:
+        case CV8:
             ti = cv4_typidx(t);
             break;
         default:

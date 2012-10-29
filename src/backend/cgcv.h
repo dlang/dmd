@@ -80,6 +80,7 @@ void cv8_termmodule();
 void cv8_func_start(Symbol *sfunc);
 void cv8_func_term(Symbol *sfunc);
 void cv8_linnum(Srcpos srcpos, targ_size_t offset);
+void cv8_outsym(Symbol *s);
 
 
 #endif

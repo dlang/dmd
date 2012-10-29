@@ -39,6 +39,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #if MARS
 #if TARGET_WINDOS
 
+// The "F1" section, which is the symbols
+static Outbuffer *F1_buf;
+
 // The "F2" section, which is the line numbers
 static Outbuffer *F2_buf;
 
@@ -51,6 +54,16 @@ static Outbuffer *F4_buf;
 static const char *srcfilename;
 static unsigned srcfileoff;
 static Symbol *sfunc;
+
+/* Fixups that go into F1 section
+ */
+struct F1_Fixups
+{
+    Symbol *s;
+    unsigned offset;
+};
+
+static Outbuffer *F1fixup;      // array of F1_Fixups
 
 /* Struct in which to collect per-function data, for later emission
  * into .debug$S.
@@ -86,6 +99,14 @@ void cv8_initfile(const char *filename)
 
     // Recycle buffers; much faster than delete/renew
 
+    if (!F1_buf)
+        F1_buf = new Outbuffer(1024);
+    F1_buf->setsize(0);
+
+    if (!F1fixup)
+        F1fixup = new Outbuffer(1024);
+    F1fixup->setsize(0);
+
     if (!F2_buf)
         F2_buf = new Outbuffer(1024);
     F2_buf->setsize(0);
@@ -108,6 +129,8 @@ void cv8_initfile(const char *filename)
     linepair->setsize(0);
     linepairstart = 0;
     linepairnum = 0;
+
+    cv_init();
 }
 
 void cv8_termfile()
@@ -155,6 +178,22 @@ void cv8_termfile()
 
     // Write out "F4" section
     cv8_writesection(seg, 0xF4, F4_buf);
+
+    // Write out "F1" section
+    unsigned f1offset = SegData[seg]->SDoffset;
+    cv8_writesection(seg, 0xF1, F1_buf);
+
+    // Fixups for "F1" section
+    length = F1fixup->size();
+    p = F1fixup->buf;
+    for (unsigned u = 0; u < length; u += sizeof(F1_Fixups))
+    {   F1_Fixups *f = (F1_Fixups *)(p + u);
+
+        objmod->reftoident(seg, f1offset + 8 + f->offset, f->s, 0, CFseg | CFoff);
+    }
+
+    // Write out .debug$T section
+    cv_term();
 }
 
 /************************************************
@@ -322,6 +361,70 @@ void cv8_writesection(int seg, unsigned type, Outbuffer *buf)
     // Align to 4
     unsigned pad = ((length + 3) & ~3) - length;
     objmod->lidata(seg,off+8+length,pad);
+}
+
+#define S_COMPILAND_V3  0x1101
+#define S_THUNK_V3      0x1102
+#define S_BLOCK_V3      0x1103
+#define S_LABEL_V3      0x1105
+#define S_REGISTER_V3   0x1106
+#define S_CONSTANT_V3   0x1107
+#define S_UDT_V3        0x1108
+#define S_BPREL_V3      0x110B
+#define S_LDATA_V3      0x110C
+#define S_GDATA_V3      0x110D
+#define S_PUB_V3        0x110E
+#define S_LPROC_V3      0x110F
+#define S_GPROC_V3      0x1110
+#define S_BPREL_XXXX_V3 0x1111
+#define S_MSTOOL_V3     0x1116
+#define S_PUB_FUNC1_V3  0x1125
+#define S_PUB_FUNC2_V3  0x1127
+#define S_SECTINFO_V3   0x1136
+#define S_SUBSECTINFO_V3 0x1137
+#define S_ENTRYPOINT_V3 0x1138
+#define S_SECUCOOKIE_V3 0x113A
+#define S_MSTOOLINFO_V3 0x113C
+#define S_MSTOOLENV_V3  0x113D
+
+void cv8_outsym(Symbol *s)
+{
+    //printf("cv8_outsym(s = '%s')\n", s->Sident);
+    //symbol_print(s);
+    if (s->Sflags & SFLnodebug)
+        return;
+return;
+
+    idx_t typidx = cv_typidx(s->Stype);
+    const char *id = s->prettyIdent ? s->prettyIdent : prettyident(s);
+    size_t len = strlen(id);
+
+    F1_Fixups f1f;
+
+    switch (s->Sclass)
+    {
+        case SCglobal:
+            /*
+             *  2       length (not including these 2 bytes)
+             *  2       S_GDATA_V3
+             *  4       typidx
+             *  6       ref to symbol
+             *  n       0 terminated name string
+             */
+            F1_buf->reserve(2 + 2 + 4 + 6 + len + 1);
+            F1_buf->writeWordn(2 + 4 + 6 + len + 1);
+            F1_buf->writeWordn(S_GDATA_V3);
+            F1_buf->write32(typidx);
+
+            f1f.s = s;
+            f1f.offset = F1_buf->size();
+            F1fixup->write(&f1f, sizeof(f1f));
+            F1_buf->write32(0);
+            F1_buf->writeWordn(0);
+
+            F1_buf->writen(id, len + 1);
+            break;
+    }
 }
 
 #endif
