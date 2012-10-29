@@ -903,6 +903,27 @@ void test18()
 
 /**************************************/
 
+void test19()
+{
+    static struct Foo
+    {
+        int[] opSlice(int a, int b)
+        {
+            return [a, b];
+        }
+
+        int opDollar(int dim)()
+        {
+            return dim;
+        }
+    }
+
+    Foo foo;
+    assert(foo[0 .. $] == [0, 0]);
+}
+
+/**************************************/
+
 int main()
 {
     test1();
@@ -926,6 +947,7 @@ int main()
     test7641();
     test8434();
     test18();
+    test19();
 
     printf("Success\n");
     return 0;
