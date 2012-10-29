@@ -427,6 +427,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
         e = constraint->syntaxCopy();
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
     td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
+    td->literal = literal;
     return td;
 }
 
@@ -4576,12 +4577,6 @@ void TemplateInstance::tryExpandMembers(Scope *sc2)
 #if WINDOWS_SEH
     if(nest == 1)
     {
-        /* If you remove this dummy variable declaration,
-         * running test/fail_compilation/fail281.d stops dmd without error message.
-         * It seems to me that is dmc's SEH code generation bug.
-         */
-        bool dummy = 0;
-
         // do not catch at every nesting level, because generating the output error might cause more stack
         //  errors in the __except block otherwise
         __try
@@ -5195,6 +5190,13 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     fe->fd->tok = TOKfunction;
                     fe->fd->vthis = NULL;
                 }
+                else if (fe->td)
+                {   /* If template argument is a template lambda,
+                     * get template declaration itself. */
+                    ea = NULL;
+                    (*tiargs)[j] = sa = fe->td;
+                    goto Lsa;
+                }
             }
             if (ea->op == TOKtuple)
             {   // Expand tuple
@@ -5211,6 +5213,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         }
         else if (sa)
         {
+		Lsa:
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             if (td && !td->semanticRun && td->literal)
                 td->semantic(sc);

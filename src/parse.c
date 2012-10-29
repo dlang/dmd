@@ -281,6 +281,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKeof:
             case TOKrcurly:
+                if (once)
+                    error("Declaration expected, not '%s'", token.toChars());
                 return decldefs;
 
             case TOKstatic:
@@ -2094,11 +2096,7 @@ Objects *Parser::parseTemplateArgumentList2()
             else
             {   // Template argument is an expression
                 Expression *ea = parseAssignExp();
-
-                if (ea->op == TOKfunction && ((FuncExp *)ea)->td)
-                    tiargs->push(((FuncExp *)ea)->td);
-                else
-                    tiargs->push(ea);
+                tiargs->push(ea);
             }
             if (token.value != TOKcomma)
                 break;
@@ -3910,13 +3908,54 @@ Statement *Parser::parseStatement(int flags)
                 Type *at;
 
                 StorageClass storageClass = 0;
-                if (token.value == TOKref
+            Lagain:
+                switch (token.value)
+                {
+                    case TOKref:
 #if D1INOUT
-                        || token.value == TOKinout
+                    case TOKinout:
 #endif
-                   )
-                {   storageClass = STCref;
-                    nextToken();
+                        storageClass |= STCref;
+                        nextToken();
+                        goto Lagain;
+
+                    case TOKconst:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCconst;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKinvariant:
+                    case TOKimmutable:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCimmutable;
+                            if (token.value == TOKinvariant)
+                                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKshared:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCshared;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    case TOKwild:
+                        if (peekNext() != TOKlparen)
+                        {
+                            storageClass |= STCwild;
+                            nextToken();
+                            goto Lagain;
+                        }
+                        break;
+                    default:
+                        break;
                 }
                 if (token.value == TOKidentifier)
                 {
@@ -4012,7 +4051,7 @@ Statement *Parser::parseStatement(int flags)
                     arg = new Parameter(0, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    deprecation("if (v%s e) is deprecated, use if (auto v = e)", t->toChars());
+                    error("if (v; e) is deprecated, use if (auto v = e)");
                 }
             }
 
@@ -4140,7 +4179,6 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKcase:
         {   Expression *exp;
-            Statements *statements;
             Expressions cases;        // array of Expression's
             Expression *last = NULL;
 
@@ -4168,15 +4206,20 @@ Statement *Parser::parseStatement(int flags)
             }
 #endif
 
-            statements = new Statements();
-            while (token.value != TOKcase &&
-                   token.value != TOKdefault &&
-                   token.value != TOKeof &&
-                   token.value != TOKrcurly)
+            if (flags & PScurlyscope)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                Statements *statements = new Statements();
+                while (token.value != TOKcase &&
+                       token.value != TOKdefault &&
+                       token.value != TOKeof &&
+                       token.value != TOKrcurly)
+                {
+                    statements->push(parseStatement(PSsemi | PScurlyscope));
+                }
+                s = new CompoundStatement(loc, statements);
             }
-            s = new CompoundStatement(loc, statements);
+            else
+                s = parseStatement(PSsemi | PScurlyscope);
             s = new ScopeStatement(loc, s);
 
 #if DMDV2
@@ -4199,20 +4242,23 @@ Statement *Parser::parseStatement(int flags)
 
         case TOKdefault:
         {
-            Statements *statements;
-
             nextToken();
             check(TOKcolon);
 
-            statements = new Statements();
-            while (token.value != TOKcase &&
-                   token.value != TOKdefault &&
-                   token.value != TOKeof &&
-                   token.value != TOKrcurly)
+            if (flags & PScurlyscope)
             {
-                statements->push(parseStatement(PSsemi | PScurlyscope));
+                Statements *statements = new Statements();
+                while (token.value != TOKcase &&
+                       token.value != TOKdefault &&
+                       token.value != TOKeof &&
+                       token.value != TOKrcurly)
+                {
+                    statements->push(parseStatement(PSsemi | PScurlyscope));
+                }
+                s = new CompoundStatement(loc, statements);
             }
-            s = new CompoundStatement(loc, statements);
+            else
+                s = parseStatement(PSsemi | PScurlyscope);
             s = new ScopeStatement(loc, s);
             s = new DefaultStatement(loc, s);
             break;
@@ -4504,6 +4550,10 @@ Statement *Parser::parseStatement(int flags)
             s = new ImportStatement(loc, imports);
             break;
         }
+
+        case TOKtemplate:
+            error("template definitions aren't allowed inside functions");
+            goto Lerror;
 
         default:
             error("found '%s' instead of statement", token.toChars());

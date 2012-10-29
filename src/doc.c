@@ -782,7 +782,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
 
     TemplateDeclaration *td;
     bool dot;
-    
+
     // Add parent names first
     dot = emitAnchorName(buf, s->parent);
     // Eponymous template members can share the parent anchor name
@@ -830,18 +830,20 @@ void prefix(OutBuffer *buf, Dsymbol *s)
     if (d)
     {
         emitProtection(buf, d->protection);
-        if (d->isAbstract())
-            buf->writestring("abstract ");
+
         if (d->isStatic())
             buf->writestring("static ");
+        else if (d->isFinal())
+            buf->writestring("final ");
+        else if (d->isAbstract())
+            buf->writestring("abstract ");
+
         if (d->isConst())
             buf->writestring("const ");
 #if DMDV2
         if (d->isImmutable())
             buf->writestring("immutable ");
 #endif
-        if (d->isFinal())
-            buf->writestring("final ");
         if (d->isSynchronized())
             buf->writestring("synchronized ");
     }
@@ -887,11 +889,81 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf)
 
         emitProtection(buf, protection);
         buf->writestring("alias ");
+
+        if (Dsymbol *s = aliassym)  // ident alias
+        {
+            prettyPrintDsymbol(buf, s, parent);
+        }
+        else if (Type *type = getType())  // type alias
+        {
+            if (type->ty == Tclass || type->ty == Tstruct || type->ty == Tenum)
+            {
+                if (Dsymbol *s = type->toDsymbol(NULL))  // elaborate type
+                    prettyPrintDsymbol(buf, s, parent);
+                else
+                    buf->writestring(type->toChars());
+            }
+            else
+            {
+                // simple type
+                buf->writestring(type->toChars());
+            }
+        }
+
+        buf->writestring(" ");
         buf->writestring(toChars());
         buf->writestring(";\n");
     }
 }
 
+void parentToBuffer(OutBuffer *buf, Dsymbol *s)
+{
+    if (s && !s->isPackage() && !s->isModule())
+    {
+        parentToBuffer(buf, s->parent);
+        buf->writestring(s->toChars());
+        buf->writestring(".");
+    }
+}
+
+bool inSameModule(Dsymbol *s, Dsymbol *p)
+{
+    for ( ; s ; s = s->parent)
+    {
+        if (s->isModule())
+            break;
+    }
+
+    for ( ; p ; p = p->parent)
+    {
+        if (p->isModule())
+            break;
+    }
+
+    return s == p;
+}
+
+void prettyPrintDsymbol(OutBuffer *buf, Dsymbol *s, Dsymbol *parent)
+{
+    if (s->parent && (s->parent == parent))  // in current scope -> naked name
+    {
+        buf->writestring(s->toChars());
+    }
+    else
+    if (!inSameModule(s, parent))  // in another module -> full name
+    {
+        buf->writestring(s->toPrettyChars());
+    }
+    else  // nested in a type in this module -> full name w/o module name
+    {
+        // if alias is nested in a user-type use module-scope lookup
+        if (!parent->isModule() && !parent->isPackage())
+            buf->writestring(".");
+
+        parentToBuffer(buf, s->parent);
+        buf->writestring(s->toChars());
+    }
+}
 
 void TypedefDeclaration::toDocBuffer(OutBuffer *buf)
 {

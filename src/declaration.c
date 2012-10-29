@@ -132,10 +132,10 @@ enum PROT Declaration::prot()
 
 int Declaration::checkModify(Loc loc, Scope *sc, Type *t)
 {
-    if (sc->incontract && isParameter())
+    if ((sc->flags & SCOPEcontract) && isParameter())
         error(loc, "cannot modify parameter '%s' in contract", toChars());
 
-    if (sc->incontract && isResult())
+    if ((sc->flags & SCOPEcontract) && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
     if (isCtorinit() && !t->isMutable() ||
@@ -853,11 +853,11 @@ void VarDeclaration::semantic(Scope *sc)
          * declarations.
          */
         storage_class &= ~STCauto;
-        originalType = type;
+        originalType = type->syntaxCopy();
     }
     else
     {   if (!originalType)
-            originalType = type;
+            originalType = type->syntaxCopy();
         type = type->semantic(loc, sc);
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
@@ -1496,7 +1496,7 @@ Lnomatch:
                             ei->exp = new CommaExp(loc, e, ei->exp);
                         }
                         else
-                        /* Look for opCall
+                        /* Look for static opCall
                          * See bugzilla 2702 for more discussion
                          */
                         // Don't cast away invariant or mutability in initializer
@@ -1505,8 +1505,8 @@ Lnomatch:
                              */
                             !(ti->ty == Tstruct && t->toDsymbol(sc) == ti->toDsymbol(sc)))
                         {   // Rewrite as e1.call(arguments)
-                            Expression * eCall = new DotIdExp(loc, e1, Id::call);
-                            ei->exp = new CallExp(loc, eCall, ei->exp);
+                            Expression *e = typeDotIdExp(ei->exp->loc, t, Id::call);
+                            ei->exp = new CallExp(loc, e, ei->exp);
                         }
                     }
                 }

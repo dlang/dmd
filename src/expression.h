@@ -85,6 +85,8 @@ Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope);
 int checkPostblit(Loc loc, Type *t);
 #endif
+struct ArrayExp *resolveOpDollar(Scope *sc, struct ArrayExp *ae);
+struct SliceExp *resolveOpDollar(Scope *sc, struct SliceExp *se);
 
 /* Interpreter: what form of return value expression is required?
  */

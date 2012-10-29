@@ -70,7 +70,6 @@ Scope::Scope()
     this->depmsg = NULL;
     this->offset = 0;
     this->inunion = 0;
-    this->incontract = 0;
     this->nofree = 0;
     this->noctor = 0;
     this->noaccesscheck = 0;
@@ -119,7 +118,6 @@ Scope::Scope(Scope *enclosing)
     this->stc = enclosing->stc;
     this->offset = 0;
     this->inunion = enclosing->inunion;
-    this->incontract = enclosing->incontract;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
     this->noaccesscheck = enclosing->noaccesscheck;
@@ -128,7 +126,7 @@ Scope::Scope(Scope *enclosing)
     this->speculative = enclosing->speculative;
     this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;
-    this->flags = 0;
+    this->flags = (enclosing->flags & SCOPEcontract);
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;

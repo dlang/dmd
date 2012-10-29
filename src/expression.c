@@ -1705,13 +1705,13 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
-                    outerfunc->toChars(), f->toChars());
+                    outerfunc->toPrettyChars(), f->toPrettyChars());
         }
     }
 #else
     if (sc->func && sc->func->isPure() && !sc->intypeof && !f->isPure())
         error("pure function '%s' cannot call impure function '%s'",
-            sc->func->toChars(), f->toChars());
+            sc->func->toPrettyChars(), f->toPrettyChars());
 #endif
 }
 
@@ -1805,8 +1805,13 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
         !f->isSafe() && !f->isTrusted())
     {
         if (sc->func->setUnsafe())
+        {
+            if (loc.linnum == 0)  // e.g. implicitly generated dtor
+                loc = sc->func->loc;
+
             error("safe function '%s' cannot call system function '%s'",
-                sc->func->toChars(), f->toChars());
+                sc->func->toPrettyChars(), f->toPrettyChars());
+        }
     }
 }
 #endif
@@ -1842,12 +1847,9 @@ void Expression::checkModifiable(Scope *sc)
             }
             else
             {
-                const char *p =
-                    type->isImmutable() ? "immutable" :
-                    type->isConst() ? "const" :
-                    type->isWild() ? "wild" : NULL;
-                assert(p);
-                error("cannot modify %s expression %s", p, toChars());
+                OutBuffer buf;
+                MODtoBuffer(&buf, type->mod);
+                error("cannot modify %s expression %s", buf.toChars(), toChars());
             }
         }
     }
@@ -2902,8 +2904,6 @@ Lagain:
     FuncDeclaration *f;
     FuncLiteralDeclaration *fld;
     OverloadSet *o;
-    ClassDeclaration *cd;
-    ClassDeclaration *thiscd = NULL;
     Import *imp;
     Package *pkg;
     Type *t;
@@ -2919,9 +2919,6 @@ Lagain:
     //printf("s = '%s', s->kind = '%s', s->needThis() = %p\n", s->toChars(), s->kind(), s->needThis());
     if (s != olds && !s->isFuncDeclaration())
         checkDeprecated(sc, s);
-
-    if (sc->func)
-        thiscd = sc->func->parent->isClassDeclaration();
 
     // BUG: This should happen after overload resolution for functions, not before
     if (s->needThis())
@@ -3029,15 +3026,6 @@ Lagain:
     if (o)
     {   //printf("'%s' is an overload set\n", o->toChars());
         return new OverExp(o);
-    }
-    cd = s->isClassDeclaration();
-    if (cd && thiscd && cd->isBaseOf(thiscd, NULL) && sc->func->needThis())
-    {
-        // We need to add an implicit 'this' if cd is this class or a base class.
-        DotTypeExp *dte;
-
-        dte = new DotTypeExp(loc, new ThisExp(loc), s);
-        return dte->semantic(sc);
     }
     imp = s->isImport();
     if (imp)
@@ -5533,7 +5521,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                     s->toPrettyChars(), sc->func->toChars());
                 return new ErrorExp();
             }
-            else if (!global.params.useDeprecated)
+            else
             {   // Disallow shadowing
 
                 for (Scope *scx = sc->enclosing; scx && scx->func == sc->func; scx = scx->enclosing)
@@ -5543,7 +5531,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
                         (s2 = scx->scopesym->symtab->lookup(s->ident)) != NULL &&
                         s != s2)
                     {
-                        deprecation("shadowing declaration %s is deprecated", s->toPrettyChars());
+                        error("is shadowing declaration %s", s->toPrettyChars());
                         return new ErrorExp();
                     }
                 }
@@ -7580,14 +7568,9 @@ Expression *CallExp::resolveUFCS(Scope *sc)
                 return new ErrorExp();
             }
             if (!e->type->isMutable())
-            {   const char *p = NULL;
-                if (e->type->isConst())
-                    p = "const";
-                else if (e->type->isImmutable())
-                    p = "immutable";
-                else
-                    p = "inout";
-                error("cannot remove key from %s associative array %s", p, e->toChars());
+            {   OutBuffer buf;
+                MODtoBuffer(&buf, e->type->mod);
+                error("cannot remove key from %s associative array %s", buf.toChars(), e->toChars());
                 return new ErrorExp();
             }
             Expression *key = (*arguments)[0];
@@ -8326,12 +8309,12 @@ Lagain:
         if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
         {
             if (sc->func->setImpure())
-                error("pure function '%s' cannot call impure %s '%s'", sc->func->toChars(), p, e1->toChars());
+                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
         if (sc->func && tf->trust <= TRUSTsystem)
         {
             if (sc->func->setUnsafe())
-                error("safe function '%s' cannot call system %s '%s'", sc->func->toChars(), p, e1->toChars());
+                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
 
         if (!tf->callMatch(NULL, arguments))
@@ -9002,7 +8985,7 @@ Expression *DeleteExp::semantic(Scope *sc)
         IndexExp *ae = (IndexExp *)(e1);
         Type *tb1 = ae->e1->type->toBasetype();
         if (tb1->ty == Taarray)
-            deprecation("delete aa[key] deprecated, use aa.remove(key)");
+            error("delete aa[key] deprecated, use aa.remove(key)");
     }
 
     return this;
@@ -9367,17 +9350,15 @@ Lagain:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
-            e = new DotIdExp(loc, e1, Id::slice);
-
-            if (lwr)
-            {
-                assert(upr);
-                e = new CallExp(loc, e, lwr, upr);
+            SliceExp *se = resolveOpDollar(sc, this);
+            Expressions *a = new Expressions();
+            assert(!se->lwr || se->upr);
+            if (se->lwr)
+            {   a->push(se->lwr);
+                a->push(se->upr);
             }
-            else
-            {   assert(!upr);
-                e = new CallExp(loc, e);
-            }
+            e = new DotIdExp(loc, se->e1, Id::slice);
+            e = new CallExp(loc, e, a);
             e = e->semantic(sc);
             return e;
         }
@@ -10228,33 +10209,13 @@ Expression *AssignExp::semantic(Scope *sc)
           L1:
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
-            {   Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
+            {
                 // Deal with $
-                for (size_t i = 0; i < ae->arguments->dim; i++)
-                {   Expression *x = (*ae->arguments)[i];
-                    // Create scope for '$' variable for this dimension
-                    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
-                    sym->loc = loc;
-                    sym->parent = sc->scopesym;
-                    sc = sc->push(sym);
-                    ae->lengthVar = NULL;       // Create it only if required
-                    ae->currentDimension = i;   // Dimension for $, if required
-
-                    x = x->semantic(sc);
-                    if (!x->type)
-                        ae->error("%s has no value", x->toChars());
-                    if (ae->lengthVar)
-                    {   // If $ was used, declare it now
-                        Expression *av = new DeclarationExp(ae->loc, ae->lengthVar);
-                        x = new CommaExp(0, av, x);
-                        x->semantic(sc);
-                    }
-                    (*ae->arguments)[i] = x;
-                    sc = sc->pop();
-                }
+                ae = resolveOpDollar(sc, ae);
                 Expressions *a = (Expressions *)ae->arguments->copy();
-
                 a->insert(0, e2);
+
+                Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -10302,17 +10263,16 @@ Expression *AssignExp::semantic(Scope *sc)
           L2:
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
-            {   Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
+            {
+                ae = resolveOpDollar(sc, ae);
                 Expressions *a = new Expressions();
-
                 a->push(e2);
+                assert(!ae->lwr || ae->upr);
                 if (ae->lwr)
                 {   a->push(ae->lwr);
-                    assert(ae->upr);
                     a->push(ae->upr);
                 }
-                else
-                    assert(!ae->upr);
+                Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -10336,11 +10296,6 @@ Expression *AssignExp::semantic(Scope *sc)
             }
         }
     }
-
-    e2 = e2->semantic(sc);
-    if (e2->op == TOKerror)
-        return new ErrorExp();
-    e2 = resolveProperties(sc, e2);
 
     /* With UFCS, e.f = value
      * Could mean:
@@ -10378,7 +10333,6 @@ Expression *AssignExp::semantic(Scope *sc)
             }
         }
     }
-Le1:
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
         return new ErrorExp();
@@ -10417,6 +10371,11 @@ Le1:
         ethis  = NULL;
     L3:
     {
+        e2 = e2->semantic(sc);
+        if (e2->op == TOKerror)
+            return new ErrorExp();
+        e2 = resolveProperties(sc, e2);
+
         assert(td);
         Expressions a;
         a.push(e2);
@@ -10444,6 +10403,11 @@ Le1:
         ethis = NULL;
     L4:
     {
+        e2 = e2->semantic(sc);
+        if (e2->op == TOKerror)
+            return new ErrorExp();
+        e2 = resolveProperties(sc, e2);
+
         assert(fd);
         FuncDeclaration *f = fd;
         Expressions a;
@@ -10488,6 +10452,16 @@ Le1:
     }
 
     assert(e1->type);
+    Type *t1 = e1->type->toBasetype();
+
+    e2 = e2->inferType(t1);
+    if (!e2->rvalue())
+        return new ErrorExp();
+
+    e2 = e2->semantic(sc);
+    if (e2->op == TOKerror)
+        return new ErrorExp();
+    e2 = resolveProperties(sc, e2);
 
     /* Rewrite tuple assignment as a tuple of assignments.
      */
@@ -10570,8 +10544,6 @@ Ltupleassign:
         if (v->storage_class & (STCout | STCref))
             refinit = 1;
     }
-
-    Type *t1 = e1->type->toBasetype();
 
     /* If it is an assignment from a 'foreign' type,
      * check for operator overloading.
@@ -10716,10 +10688,6 @@ Ltupleassign:
             t1 = e1->type->toBasetype();
         }
     }
-
-    e2 = e2->inferType(t1);
-    if (!e2->rvalue())
-        return new ErrorExp();
 
     if (e1->op == TOKarraylength)
     {
@@ -12630,4 +12598,76 @@ Expression *LineInitExp::resolveLoc(Loc loc, Scope *sc)
     return e;
 }
 
+/**************************************
+ * Runs semantic on ae->arguments. Declares temporary variables
+ * if '$' was used.
+ */
 
+ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
+{
+    assert(!ae->lengthVar);
+
+    for (size_t i = 0; i < ae->arguments->dim; i++)
+    {
+        // Create scope for '$' variable for this dimension
+        ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
+        sym->loc = ae->loc;
+        sym->parent = sc->scopesym;
+        sc = sc->push(sym);
+        ae->lengthVar = NULL;       // Create it only if required
+        ae->currentDimension = i;   // Dimension for $, if required
+
+        Expression *e = (*ae->arguments)[i];
+        e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+        if (!e->type)
+            ae->error("%s has no value", e->toChars());
+        if (ae->lengthVar)
+        {   // If $ was used, declare it now
+            Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
+            e = new CommaExp(0, de, e);
+            e = e->semantic(sc);
+        }
+        (*ae->arguments)[i] = e;
+        sc = sc->pop();
+    }
+    return ae;
+}
+
+/**************************************
+ * Runs semantic on se->lwr and se->upr. Declares a temporary variable
+ * if '$' was used.
+ */
+
+SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
+{
+    assert(!se->lengthVar);
+    assert(!se->lwr || se->upr);
+
+    if (!se->lwr) return se;
+
+    // create scope for '$'
+    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
+    sym->loc = se->loc;
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+        Expression *e = i == 0 ? se->lwr : se->upr;
+        e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+        if (!e->type)
+            se->error("%s has no value", e->toChars());
+        i == 0 ? se->lwr : se->upr = e;
+    }
+
+    if (se->lengthVar)
+    {   // If $ was used, declare it now
+        Expression *de = new DeclarationExp(se->loc, se->lengthVar);
+        se->lwr = new CommaExp(0, de, se->lwr);
+        se->lwr = se->lwr->semantic(sc);
+    }
+    sc = sc->pop();
+    return se;
+}

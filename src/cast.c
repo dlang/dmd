@@ -1745,7 +1745,7 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
                 FuncLiteralDeclaration *fld = td->onemember->isFuncLiteralDeclaration();
                 assert(fld);
                 if (!fld->type->nextOf() && tfv->next)
-                    fld->treq = tfv;
+                    fld->treq = to;
 
                 TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
                 e = (new ScopeExp(loc, ti))->semantic(td->scope);

@@ -92,6 +92,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     tookAddressOf = 0;
     flags = 0;
 #endif
+    returns = NULL;
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
@@ -174,6 +175,13 @@ void FuncDeclaration::semantic(Scope *sc)
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
+    FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
+    if (fld && fld->treq)
+        linkage = ((TypeFunction *)fld->treq->nextOf())->linkage;
+    else
+        linkage = sc->linkage;
+    protection = sc->protection;
+
     if (!originalType)
         originalType = type;
     if (!type->deco)
@@ -191,6 +199,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (isCtorDeclaration())
             sc->flags |= SCOPEctor;
+
+        sc->linkage = linkage;
 
         /* Apply const, immutable, wild and shared storage class
          * to the function type. Do this before type semantic.
@@ -259,9 +269,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     f = (TypeFunction *)(type);
     size_t nparams = Parameter::dim(f->parameters);
-
-    linkage = sc->linkage;
-    protection = sc->protection;
 
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
@@ -804,7 +811,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     //{ static int x; if (++x == 2) *(char*)0=0; }
     //printf("\tlinkage = %d\n", sc->linkage);
 
-    //printf(" sc->incontract = %d\n", sc->incontract);
+    //printf(" sc->incontract = %d\n", (sc->flags & SCOPEcontract));
     if (semanticRun >= PASSsemantic3)
         return;
     semanticRun = PASSsemantic3;
@@ -880,7 +887,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
-        sc2->incontract = 0;
+        sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;
         sc2->noctor = 0;
 
@@ -1176,7 +1183,19 @@ void FuncDeclaration::semantic3(Scope *sc)
                     ((TypeFunction *)type)->next = Type::tvoid;
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
-                f = (TypeFunction *)type;
+                else if (returns && f->next->ty != Tvoid)
+                {
+                    for (size_t i = 0; i < returns->dim; i++)
+                    {   Expression *exp = (*returns)[i]->exp;
+                        if (!f->next->invariantOf()->equals(exp->type->invariantOf()))
+                        {   exp = exp->castTo(sc2, f->next);
+                            exp = exp->optimize(WANTvalue);
+                            (*returns)[i]->exp = exp;
+                        }
+                        //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
+                    }
+                }
+                assert(type == f);
             }
 
             if (isStaticCtorDeclaration())
@@ -1234,7 +1253,11 @@ void FuncDeclaration::semantic3(Scope *sc)
                              *    as delegating calls to other constructors
                              */
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
-                                error("missing initializer for final field %s", v->toChars());
+                            {
+                                OutBuffer buf;
+                                MODtoBuffer(&buf, v->type->mod);
+                                error("missing initializer for %s field %s", buf.toChars(), v->toChars());
+                            }
                             else if (v->storage_class & STCnodefaultctor)
                                 error("field %s must be initialized in constructor", v->toChars());
                         }
@@ -1332,18 +1355,14 @@ void FuncDeclaration::semantic3(Scope *sc)
             ScopeDsymbol *sym = new ScopeDsymbol();
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
-            sc2->incontract++;
+            sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPErequire;
 
             // BUG: need to error if accessing out parameters
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
             // BUG: verify that all in and ref parameters are read
-            DsymbolTable *labtab_save = labtab;
-            labtab = NULL;              // so in contract can't refer to out/body labels
             freq = freq->semantic(sc2);
-            labtab = labtab_save;
 
-            sc2->incontract--;
             sc2 = sc2->pop();
 
             if (!global.params.useIn)
@@ -1362,16 +1381,12 @@ void FuncDeclaration::semantic3(Scope *sc)
                 buildResultVar();
 
             sc2 = scout;    //push
-            sc2->incontract++;
+            sc2->flags = (sc2->flags & ~SCOPEcontract) | SCOPEensure;
 
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
-            DsymbolTable *labtab_save = labtab;
-            labtab = NULL;              // so out contract can't refer to in/body labels
             fens = fens->semantic(sc2);
-            labtab = labtab_save;
 
-            sc2->incontract--;
             sc2 = sc2->pop();
 
             if (!global.params.useOut)
@@ -1505,7 +1520,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 else if (fpreinv)
                     freq = new CompoundStatement(0, freq, fpreinv);
 
-                freq->incontract = 1;
                 a->push(freq);
             }
 
@@ -3364,17 +3378,14 @@ void CtorDeclaration::semantic(Scope *sc)
         tret = tret->addMod(type->mod);
     }
     tf->next = tret;
+    if (!originalType)
+        originalType = type->syntaxCopy();
     type = type->semantic(loc, sc);
 
 #if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
-    {   if (!originalType)
-            originalType = type->syntaxCopy();
         ((TypeFunction *)type)->isref = 1;
-    }
 #endif
-    if (!originalType)
-        originalType = type;
 
     // Append:
     //  return this;
@@ -3911,7 +3922,7 @@ void InvariantDeclaration::semantic(Scope *sc)
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
     sc->stc |= STCconst;                // invariant() is always const
-    sc->incontract++;
+    sc->flags = (sc->flags & ~SCOPEcontract) | SCOPEinvariant;
     sc->linkage = LINKd;
 
     FuncDeclaration::semantic(sc);

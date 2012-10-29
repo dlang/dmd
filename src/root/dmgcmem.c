@@ -13,7 +13,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include <unistd.h>
 #include <pthread.h>
 #endif
@@ -135,7 +135,7 @@ void Mem::check(void *p)
 
 void Mem::error()
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     assert(0);
 #endif
     printf("Error: out of memory\n");
@@ -288,7 +288,7 @@ void Mem::operator delete(void *p)
 
 /* ===================== linux ================================ */
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 
 #include <pthread.h>
 
