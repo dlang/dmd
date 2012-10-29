@@ -313,6 +313,7 @@ SRC_D_MODULES = \
 	core/sys/posix/sys/stat \
 	core/sys/posix/sys/wait \
 	core/sys/posix/netdb \
+	core/sys/posix/sys/ioctl \
 	core/sys/posix/sys/utsname \
 	core/sys/posix/netinet/in_ \
 	\
