@@ -23,6 +23,7 @@ Features
 The runtime library provides the following:
 
 * The Object class, the root of the class hierarchy.
+* Implementations of array operations.
 * The associative array implementation.
 * Type information and RTTI.
 * Common threading and fiber infrastructure.
@@ -32,11 +33,14 @@ The runtime library provides the following:
 * Program startup and shutdown routines.
 * Low-level math intrinsics and support code.
 * Interfaces to standard C99 functions and types.
+* Interfaces to operating system APIs.
 * Atomic load/store and binary operations.
 * CPU detection/identification for x86.
 * System-independent time/duration functionality.
 * D ABI demangling helpers.
 * Low-level bit operations/intrinsics.
+* Unit test, coverage, and trace support code.
+* Low-level helpers for compiler-inserted calls.
 
 Licensing
 ---------
