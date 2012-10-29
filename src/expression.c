@@ -9350,17 +9350,15 @@ Lagain:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
-            e = new DotIdExp(loc, e1, Id::slice);
-
-            if (lwr)
-            {
-                assert(upr);
-                e = new CallExp(loc, e, lwr, upr);
+            SliceExp *se = resolveOpDollar(sc, this);
+            Expressions *a = new Expressions();
+            assert(!se->lwr || se->upr);
+            if (se->lwr)
+            {   a->push(se->lwr);
+                a->push(se->upr);
             }
-            else
-            {   assert(!upr);
-                e = new CallExp(loc, e);
-            }
+            e = new DotIdExp(loc, se->e1, Id::slice);
+            e = new CallExp(loc, e, a);
             e = e->semantic(sc);
             return e;
         }
@@ -10211,33 +10209,13 @@ Expression *AssignExp::semantic(Scope *sc)
           L1:
             // Rewrite (a[i] = value) to (a.opIndexAssign(value, i))
             if (search_function(ad, Id::indexass))
-            {   Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
+            {
                 // Deal with $
-                for (size_t i = 0; i < ae->arguments->dim; i++)
-                {   Expression *x = (*ae->arguments)[i];
-                    // Create scope for '$' variable for this dimension
-                    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
-                    sym->loc = loc;
-                    sym->parent = sc->scopesym;
-                    sc = sc->push(sym);
-                    ae->lengthVar = NULL;       // Create it only if required
-                    ae->currentDimension = i;   // Dimension for $, if required
-
-                    x = x->semantic(sc);
-                    if (!x->type)
-                        ae->error("%s has no value", x->toChars());
-                    if (ae->lengthVar)
-                    {   // If $ was used, declare it now
-                        Expression *av = new DeclarationExp(ae->loc, ae->lengthVar);
-                        x = new CommaExp(0, av, x);
-                        x->semantic(sc);
-                    }
-                    (*ae->arguments)[i] = x;
-                    sc = sc->pop();
-                }
+                ae = resolveOpDollar(sc, ae);
                 Expressions *a = (Expressions *)ae->arguments->copy();
-
                 a->insert(0, e2);
+
+                Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -10285,17 +10263,16 @@ Expression *AssignExp::semantic(Scope *sc)
           L2:
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
-            {   Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
+            {
+                ae = resolveOpDollar(sc, ae);
                 Expressions *a = new Expressions();
-
                 a->push(e2);
+                assert(!ae->lwr || ae->upr);
                 if (ae->lwr)
                 {   a->push(ae->lwr);
-                    assert(ae->upr);
                     a->push(ae->upr);
                 }
-                else
-                    assert(!ae->upr);
+                Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -12621,4 +12598,76 @@ Expression *LineInitExp::resolveLoc(Loc loc, Scope *sc)
     return e;
 }
 
+/**************************************
+ * Runs semantic on ae->arguments. Declares temporary variables
+ * if '$' was used.
+ */
 
+ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
+{
+    assert(!ae->lengthVar);
+
+    for (size_t i = 0; i < ae->arguments->dim; i++)
+    {
+        // Create scope for '$' variable for this dimension
+        ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, ae);
+        sym->loc = ae->loc;
+        sym->parent = sc->scopesym;
+        sc = sc->push(sym);
+        ae->lengthVar = NULL;       // Create it only if required
+        ae->currentDimension = i;   // Dimension for $, if required
+
+        Expression *e = (*ae->arguments)[i];
+        e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+        if (!e->type)
+            ae->error("%s has no value", e->toChars());
+        if (ae->lengthVar)
+        {   // If $ was used, declare it now
+            Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
+            e = new CommaExp(0, de, e);
+            e = e->semantic(sc);
+        }
+        (*ae->arguments)[i] = e;
+        sc = sc->pop();
+    }
+    return ae;
+}
+
+/**************************************
+ * Runs semantic on se->lwr and se->upr. Declares a temporary variable
+ * if '$' was used.
+ */
+
+SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
+{
+    assert(!se->lengthVar);
+    assert(!se->lwr || se->upr);
+
+    if (!se->lwr) return se;
+
+    // create scope for '$'
+    ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
+    sym->loc = se->loc;
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
+
+    for (size_t i = 0; i < 2; ++i)
+    {
+        Expression *e = i == 0 ? se->lwr : se->upr;
+        e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+        if (!e->type)
+            se->error("%s has no value", e->toChars());
+        i == 0 ? se->lwr : se->upr = e;
+    }
+
+    if (se->lengthVar)
+    {   // If $ was used, declare it now
+        Expression *de = new DeclarationExp(se->loc, se->lengthVar);
+        se->lwr = new CommaExp(0, de, se->lwr);
+        se->lwr = se->lwr->semantic(sc);
+    }
+    sc = sc->pop();
+    return se;
+}

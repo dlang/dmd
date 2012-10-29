@@ -236,6 +236,7 @@ Expression *UnaExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opIndexUnary);
             if (fd)
             {
+                ae = resolveOpDollar(sc, ae);
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, ae->arguments);
@@ -273,12 +274,13 @@ Expression *UnaExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opSliceUnary);
             if (fd)
             {
+                se = resolveOpDollar(sc, se);
                 Expressions *a = new Expressions();
+                assert(!se->lwr || se->upr);
                 if (se->lwr)
                 {   a->push(se->lwr);
                     a->push(se->upr);
                 }
-
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, targsi);
                 e = new CallExp(loc, e, a);
@@ -375,35 +377,12 @@ Expression *ArrayExp::op_overload(Scope *sc)
         Dsymbol *fd = search_function(ad, opId());
         if (fd)
         {
-            for (size_t i = 0; i < arguments->dim; i++)
-            {   Expression *x = (*arguments)[i];
-                // Create scope for '$' variable for this dimension
-                ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, this);
-                sym->loc = loc;
-                sym->parent = sc->scopesym;
-                sc = sc->push(sym);
-                lengthVar = NULL;       // Create it only if required
-                currentDimension = i;   // Dimension for $, if required
-
-                x = x->semantic(sc);
-                x = resolveProperties(sc, x);
-                if (!x->type)
-                    error("%s has no value", x->toChars());
-                if (lengthVar)
-                {   // If $ was used, declare it now
-                    Expression *av = new DeclarationExp(loc, lengthVar);
-                    x = new CommaExp(0, av, x);
-                    x->semantic(sc);
-                }
-                (*arguments)[i] = x;
-                sc = sc->pop();
-            }
-
             /* Rewrite op e1[arguments] as:
              *    e1.opIndex(arguments)
              */
-            Expression *e = new DotIdExp(loc, e1, fd->ident);
-            e = new CallExp(loc, e, arguments);
+            ArrayExp *ae = resolveOpDollar(sc, this);
+            Expression *e = new DotIdExp(loc, ae->e1, fd->ident);
+            e = new CallExp(loc, e, ae->arguments);
             e = e->semantic(sc);
             return e;
         }
@@ -987,10 +966,9 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opIndexOpAssign);
             if (fd)
             {
-                Expressions *a = new Expressions();
-                a->push(e2);
-                for (size_t i = 0; i < ae->arguments->dim; i++)
-                    a->push((*ae->arguments)[i]);
+                ae = resolveOpDollar(sc, ae);
+                Expressions *a = (Expressions *)ae->arguments->copy();
+                a->insert(0, e2);
 
                 Objects *targsi = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, targsi);
@@ -1029,8 +1007,10 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opSliceOpAssign);
             if (fd)
             {
+                se = resolveOpDollar(sc, se);
                 Expressions *a = new Expressions();
                 a->push(e2);
+                assert(!se->lwr || se->upr);
                 if (se->lwr)
                 {   a->push(se->lwr);
                     a->push(se->upr);
@@ -1646,4 +1626,3 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc lo
         m->count = 1;
     }
 }
-
