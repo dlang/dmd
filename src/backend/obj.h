@@ -96,6 +96,9 @@ struct Obj
     static void refGOTsym();
 #endif
 
+#if TARGET_WINDOS
+    VIRTUAL int seg_debugT();           // where the symbolic debug type data goes
+#endif
 };
 
 struct ElfObj : Obj
@@ -193,7 +196,7 @@ struct MsCoffObj : Obj
     static int seg_xdata_comdat(Symbol *sfunc);
 
     static int seg_debugS();
-    static int seg_debugT();
+    VIRTUAL int seg_debugT();
     static int seg_debugS_comdat(Symbol *sfunc);
 };
 

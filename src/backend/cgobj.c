@@ -547,6 +547,11 @@ int Obj::data_readonly(char *p, int len)
     return Obj::data_readonly(p, len, &pseg);
 }
 
+segidx_t Obj::seg_debugT()
+{
+    return DEBTYP;
+}
+
 /******************************
  * Perform initialization that applies to all .obj output files.
  * Input:
