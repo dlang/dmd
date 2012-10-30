@@ -715,7 +715,7 @@ void MsCoffObj::termfile()
  * Terminate package.
  */
 
-void MsCoffObj::term()
+void MsCoffObj::term(const char *objfilename)
 {
     //printf("MsCoffObj::term()\n");
     assert(fobjbuf->size() == 0);
@@ -728,7 +728,7 @@ void MsCoffObj::term()
 
     if (configv.addlinenumbers)
     {
-        cv8_termfile();
+        cv8_termfile(objfilename);
     }
 
 #if SCPP

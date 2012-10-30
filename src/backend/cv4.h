@@ -181,4 +181,27 @@
 #define LF_NESTTYPE_V3          0x1510
 #define LF_ONEMETHOD_V3         0x1511
 
+#define S_COMPILAND_V3          0x1101
+#define S_THUNK_V3              0x1102
+#define S_BLOCK_V3              0x1103
+#define S_LABEL_V3              0x1105
+#define S_REGISTER_V3           0x1106
+#define S_CONSTANT_V3           0x1107
+#define S_UDT_V3                0x1108
+#define S_BPREL_V3              0x110B
+#define S_LDATA_V3              0x110C
+#define S_GDATA_V3              0x110D
+#define S_PUB_V3                0x110E
+#define S_LPROC_V3              0x110F
+#define S_GPROC_V3              0x1110
+#define S_BPREL_XXXX_V3         0x1111
+#define S_MSTOOL_V3             0x1116
+#define S_PUB_FUNC1_V3          0x1125
+#define S_PUB_FUNC2_V3          0x1127
+#define S_SECTINFO_V3           0x1136
+#define S_SUBSECTINFO_V3        0x1137
+#define S_ENTRYPOINT_V3         0x1138
+#define S_SECUCOOKIE_V3         0x113A
+#define S_MSTOOLINFO_V3         0x113C
+#define S_MSTOOLENV_V3          0x113D
 

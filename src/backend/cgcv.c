@@ -605,14 +605,25 @@ idx_t cv4_arglist(type *t,unsigned *pnparam)
 
     // Construct an LF_ARGLIST of those parameters
     if (nparam == 0)
-        paramidx = DEB_NULL;
+    {
+        if (config.fulltypes == CV8)
+        {
+            d = debtyp_alloc(2 + 4 + 4);
+            TOWORD(d->data,LF_ARGLIST_V2);
+            TOLONG(d->data + 2,1);
+            TOLONG(d->data + 6,0);
+            paramidx = cv_debtyp(d);
+        }
+        else
+            paramidx = DEB_NULL;
+    }
     else
     {
         switch (config.fulltypes)
         {
             case CV8:
                 d = debtyp_alloc(2 + 4 + nparam * 4);
-                TOWORD(d->data,0x1201);
+                TOWORD(d->data,LF_ARGLIST_V2);
                 TOLONG(d->data + 2,nparam);
 
                 p = t->Tparamtypes;
@@ -2051,13 +2062,13 @@ L1:
             switch (config.fulltypes)
             {
                 case CV8:
-                    d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 2);
-                    TOWORD(d->data,LF_PROCEDURE);
+                    d = debtyp_alloc(2 + 4 + 1 + 1 + 2 + 4);
+                    TOWORD(d->data,LF_PROCEDURE_V2);
                     TOLONG(d->data + 2,next);       // return type
                     d->data[6] = call;
                     d->data[7] = 0;                 // reserved
                     TOWORD(d->data + 8,nparam);
-                    TOWORD(d->data + 10,paramidx);
+                    TOLONG(d->data + 10,paramidx);
                     break;
 
                 case CV4:
