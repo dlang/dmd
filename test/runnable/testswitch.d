@@ -472,6 +472,32 @@ static assert(!is(typeof(
 
 /*****************************************/
 
+void test7358()
+{
+    static void test7358a()
+    {
+        enum X { A = 1, B = 2 }
+
+        auto x = X.A | X.B;
+
+        final switch(x)
+        {
+        case X.A:
+        case X.B:
+            break;
+        }
+    }
+
+    bool exception;
+    try
+        test7358a();
+    catch (Error)
+        exception = true;
+    assert(exception);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -493,6 +519,7 @@ int main()
     test17();
     test19();
     test20();
+    test7358();
 
     printf("Success\n");
     return 0;
