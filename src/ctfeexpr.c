@@ -761,10 +761,215 @@ int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger
     return cmp;
 }
 
+/***********************************************
+      Primitive integer operations
+***********************************************/
+
+/**   e = OP e
+*/
+void intUnary(TOK op, IntegerExp *e)
+{
+    switch (op)
+    {
+    case TOKneg:
+        e->value = -e->value;
+        break;
+    case TOKtilde:
+        e->value = ~e->value;
+        break;
+    }
+}
+
+/** dest = e1 OP e2;
+*/
+void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2)
+{
+    dinteger_t result;
+    switch (op)
+    {
+    case TOKand:
+        result = e1->value & e2->value;
+        break;
+    case TOKor:
+        result = e1->value | e2->value;
+        break;
+    case TOKxor:
+        result = e1->value ^ e2->value;
+        break;
+    case TOKadd:
+        result = e1->value + e2->value;
+        break;
+    case TOKmin:
+        result = e1->value - e2->value;
+        break;
+    case TOKmul:
+        result = e1->value * e2->value;
+        break;
+    case TOKdiv:
+        {   sinteger_t n1 = e1->value;
+            sinteger_t n2 = e2->value;
+
+            if (n2 == 0)
+            {   e2->error("divide by 0");
+                result = 1;
+            }
+            else if (e1->type->isunsigned() || e2->type->isunsigned())
+                result = ((d_uns64) n1) / ((d_uns64) n2);
+            else
+                result = n1 / n2;
+        }
+        break;
+    case TOKmod:
+        {   sinteger_t n1 = e1->value;
+            sinteger_t n2 = e2->value;
+
+            if (n2 == 0)
+            {   e2->error("divide by 0");
+                n2 = 1;
+            }
+            if (n2 == -1 && !type->isunsigned())
+            {    // Check for int.min % -1
+                if (n1 == 0xFFFFFFFF80000000ULL && type->toBasetype()->ty != Tint64)
+                {
+                    e2->error("integer overflow: int.min % -1");
+                    n2 = 1;
+                }
+                else if (n1 == 0x8000000000000000LL) // long.min % -1
+                {
+                    e2->error("integer overflow: long.min % -1");
+                    n2 = 1;
+                }
+            }
+            if (e1->type->isunsigned() || e2->type->isunsigned())
+                result = ((d_uns64) n1) % ((d_uns64) n2);
+            else
+                result = n1 % n2;
+        }
+        break;
+    case TOKpow:
+        {   dinteger_t n = e2->value;
+            if (!e2->type->isunsigned() && (sinteger_t)n < 0)
+            {
+                e2->error("integer ^^ -integer: total loss of precision");
+                n = 1;
+            }
+            uinteger_t r = e1->value;
+            result = 1;
+            while (n != 0)
+            {
+                if (n & 1)
+                    result = result * r;
+                n >>= 1;
+                r = r * r;
+            }
+        }
+        break;
+    case TOKshl:
+        result = e1->value << e2->value;
+        break;
+    case TOKshr:
+        {   dinteger_t value = e1->value;
+            dinteger_t dcount = e2->value;
+            assert(dcount <= 0xFFFFFFFF);
+            unsigned count = (unsigned)dcount;
+            switch (e1->type->toBasetype()->ty)
+            {
+                case Tint8:
+                    result = (d_int8)(value) >> count;
+                    break;
+
+                case Tuns8:
+                case Tchar:
+                    result = (d_uns8)(value) >> count;
+                    break;
+
+                case Tint16:
+                    result = (d_int16)(value) >> count;
+                    break;
+
+                case Tuns16:
+                case Twchar:
+                    result = (d_uns16)(value) >> count;
+                    break;
+
+                case Tint32:
+                    result = (d_int32)(value) >> count;
+                    break;
+
+                case Tuns32:
+                case Tdchar:
+                    result = (d_uns32)(value) >> count;
+                    break;
+
+                case Tint64:
+                    result = (d_int64)(value) >> count;
+                    break;
+
+                case Tuns64:
+                    result = (d_uns64)(value) >> count;
+                    break;
+                default:
+                    assert(0);
+            }
+        }
+        break;
+    case TOKushr:
+        {   dinteger_t value = e1->value;
+            dinteger_t dcount = e2->value;
+            assert(dcount <= 0xFFFFFFFF);
+            unsigned count = (unsigned)dcount;
+            switch (e1->type->toBasetype()->ty)
+            {
+                case Tint8:
+                case Tuns8:
+                case Tchar:
+                    // Possible only with >>>=. >>> always gets promoted to int.
+                    result = (value & 0xFF) >> count;
+                    break;
+
+                case Tint16:
+                case Tuns16:
+                case Twchar:
+                    // Possible only with >>>=. >>> always gets promoted to int.
+                    result = (value & 0xFFFF) >> count;
+                    break;
+
+                case Tint32:
+                case Tuns32:
+                case Tdchar:
+                    result = (value & 0xFFFFFFFF) >> count;
+                    break;
+
+                case Tint64:
+                case Tuns64:
+                    result = (d_uns64)(value) >> count;
+                    break;
+
+                default:
+                    assert(0);
+            }
+        }
+        break;
+    case TOKequal:
+    case TOKidentity:
+        result = (e1->value == e2->value);
+        break;
+    case TOKnotequal:
+    case TOKnotidentity:
+        result = (e1->value != e2->value);
+        break;
+    default:
+        assert(0);
+    }
+    dest->value = result;
+    dest->type = type;
+}
+
+
 /******** Constant folding, with support for CTFE ***************************/
 
 /// Return true if non-pointer expression e can be compared
-/// with >,is, ==, etc, using ctfeCmp, ctfeEquals, ctfeIdentity
+/// with >,is, ==, etc, using ctfeCmp, ctfeEqual, ctfeIdentity
 bool isCtfeComparable(Expression *e)
 {
     Expression *x = e;
@@ -783,6 +988,132 @@ bool isCtfeComparable(Expression *e)
     return true;
 }
 
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intUnsignedCmp(TOK op, d_uns64 n1, d_uns64 n2)
+{
+    int n;
+    switch (op)
+    {
+        case TOKlt:     n = n1 <  n2;   break;
+        case TOKle:     n = n1 <= n2;   break;
+        case TOKgt:     n = n1 >  n2;   break;
+        case TOKge:     n = n1 >= n2;   break;
+
+        case TOKleg:    n = 1;          break;
+        case TOKlg:     n = n1 != n2;   break;
+        case TOKunord:  n = 0;          break;
+        case TOKue:     n = n1 == n2;   break;
+        case TOKug:     n = n1 >  n2;   break;
+        case TOKuge:    n = n1 >= n2;   break;
+        case TOKul:     n = n1 <  n2;   break;
+        case TOKule:    n = n1 <= n2;   break;
+
+        default:
+            assert(0);
+    }
+    return n;
+}
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int intSignedCmp(TOK op, sinteger_t n1, sinteger_t n2)
+{
+    int n;
+    switch (op)
+    {
+        case TOKlt:     n = n1 <  n2;   break;
+        case TOKle:     n = n1 <= n2;   break;
+        case TOKgt:     n = n1 >  n2;   break;
+        case TOKge:     n = n1 >= n2;   break;
+
+        case TOKleg:    n = 1;          break;
+        case TOKlg:     n = n1 != n2;   break;
+        case TOKunord:  n = 0;          break;
+        case TOKue:     n = n1 == n2;   break;
+        case TOKug:     n = n1 >  n2;   break;
+        case TOKuge:    n = n1 >= n2;   break;
+        case TOKul:     n = n1 <  n2;   break;
+        case TOKule:    n = n1 <= n2;   break;
+
+        default:
+            assert(0);
+    }
+    return n;
+}
+
+/// Returns e1 OP e2; where OP is ==, !=, <, >=, etc. Result is 0 or 1
+int realCmp(TOK op, real_t r1, real_t r2)
+{
+    int n;
+#if __DMC__
+        // DMC is the only compiler I know of that handles NAN arguments
+        // correctly in comparisons.
+        switch (op)
+        {
+            case TOKlt:    n = r1 <  r2;        break;
+            case TOKle:    n = r1 <= r2;        break;
+            case TOKgt:    n = r1 >  r2;        break;
+            case TOKge:    n = r1 >= r2;        break;
+
+            case TOKleg:   n = r1 <>=  r2;      break;
+            case TOKlg:    n = r1 <>   r2;      break;
+            case TOKunord: n = r1 !<>= r2;      break;
+            case TOKue:    n = r1 !<>  r2;      break;
+            case TOKug:    n = r1 !<=  r2;      break;
+            case TOKuge:   n = r1 !<   r2;      break;
+            case TOKul:    n = r1 !>=  r2;      break;
+            case TOKule:   n = r1 !>   r2;      break;
+
+            default:
+                assert(0);
+        }
+#else
+        // Don't rely on compiler, handle NAN arguments separately
+        if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+        {
+            switch (op)
+            {
+                case TOKlt:     n = 0;  break;
+                case TOKle:     n = 0;  break;
+                case TOKgt:     n = 0;  break;
+                case TOKge:     n = 0;  break;
+
+                case TOKleg:    n = 0;  break;
+                case TOKlg:     n = 0;  break;
+                case TOKunord:  n = 1;  break;
+                case TOKue:     n = 1;  break;
+                case TOKug:     n = 1;  break;
+                case TOKuge:    n = 1;  break;
+                case TOKul:     n = 1;  break;
+                case TOKule:    n = 1;  break;
+
+                default:
+                    assert(0);
+            }
+        }
+        else
+        {
+            switch (op)
+            {
+                case TOKlt:     n = r1 <  r2;   break;
+                case TOKle:     n = r1 <= r2;   break;
+                case TOKgt:     n = r1 >  r2;   break;
+                case TOKge:     n = r1 >= r2;   break;
+
+                case TOKleg:    n = 1;          break;
+                case TOKlg:     n = r1 != r2;   break;
+                case TOKunord:  n = 0;          break;
+                case TOKue:     n = r1 == r2;   break;
+                case TOKug:     n = r1 >  r2;   break;
+                case TOKuge:    n = r1 >= r2;   break;
+                case TOKul:     n = r1 <  r2;   break;
+                case TOKule:    n = r1 <= r2;   break;
+
+                default:
+                    assert(0);
+            }
+        }
+#endif
+}
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2);
 
 /* Conceptually the same as memcmp(e1, e2).
@@ -1010,10 +1341,10 @@ Expression *ctfeIdentity(Loc loc, enum TOK op, Type *type, Expression *e1, Expre
 
 Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
 {
+    dinteger_t n;
     if (e1->type->isString() && e2->type->isString())
     {
         int cmp = ctfeRawCmp(loc, e1, e2);
-        dinteger_t n;
         switch (op)
         {
             case TOKlt: n = cmp <  0;   break;
@@ -1033,9 +1364,24 @@ Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression
             default:
                 assert(0);
         }
-        return new IntegerExp(loc, n, type);
     }
-    return Cmp(op, type, e1, e2);
+    else if (e1->type->isreal())
+    {
+        n = realCmp(op, e1->toReal(), e2->toReal());
+    }
+    else if (e1->type->isimaginary())
+    {
+         n = realCmp(op, e1->toImaginary(), e2->toImaginary());
+    }
+    else if (e1->type->isunsigned() || e2->type->isunsigned())
+    {
+         n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
+    }
+    else
+    {
+         n = intSignedCmp(op, e1->toInteger(), e2->toInteger());
+    }
+    return new IntegerExp(loc, n, type);
 }
 
 Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)

@@ -195,6 +195,20 @@ TypeAArray *toBuiltinAAType(Type *t);
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 
+/***********************************************
+      In-place integer operations
+***********************************************/
+
+/// e = OP e
+void intUnary(TOK op, IntegerExp *e);
+
+/// dest = e1 OP e2;
+void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2);
+
+
+/***********************************************
+      COW const-folding operations
+***********************************************/
 
 /// Return true if non-pointer expression e can be compared
 /// with >,is, ==, etc, using ctfeCmp, ctfeEquals, ctfeIdentity
