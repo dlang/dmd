@@ -2814,8 +2814,8 @@ code* prolog_saveregs(code *c, regm_t topush)
         {
             // SUB RSP,16
             c = cod3_stackadj(c, 16);
-            // MOVUPD 8[RSP],xmm
-            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
+            // MOVUPD 0[RSP],xmm
+            c = genc1(c,STOUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
             EBPtoESP += 16;
             spoff += 16;
         }
@@ -3396,8 +3396,8 @@ void epilog(block *b)
         {
             if (reg >= XMM0)
             {
-                // MOVUPD xmm,8[RSP]
-                c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,8);
+                // MOVUPD xmm,0[RSP]
+                c = genc1(c,LODUPD,modregxrm(2,reg-XMM0,4) + 256*modregrm(0,4,SP),FLconst,0);
                 // ADD RSP,16
                 c = cod3_stackadj(c, -16);
             }
