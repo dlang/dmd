@@ -3371,6 +3371,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         }
 
         e = e->implicitCastTo(sc, telem);
+        if (e->op == TOKerror)
+            return e;
 
         elements->data[i] = (void *)e;
     }
