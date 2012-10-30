@@ -74,7 +74,7 @@ unsigned char cv4_callconv(type *t);
 /* ======================== Added for Codeview 8 =========================== */
 
 void cv8_initfile(const char *filename);
-void cv8_termfile();
+void cv8_termfile(const char *objfilename);
 void cv8_initmodule(const char *filename, const char *modulename);
 void cv8_termmodule();
 void cv8_func_start(Symbol *sfunc);

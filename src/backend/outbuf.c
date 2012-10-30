@@ -226,11 +226,14 @@ void Outbuffer::writeString(const char *s)
 
 void Outbuffer::prependBytes(const char *s)
 {
-    size_t len = strlen(s);
+    prepend(s, strlen(s));
+}
 
+void Outbuffer::prepend(const void *b, unsigned len)
+{
     reserve(len);
     memmove(buf + len,buf,p - buf);
-    memcpy(buf,s,len);
+    memcpy(buf,b,len);
     p += len;
 }
 

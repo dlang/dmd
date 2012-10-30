@@ -29,7 +29,7 @@ struct Obj
     static Obj *init(Outbuffer *, const char *filename, const char *csegname);
     VIRTUAL void initfile(const char *filename, const char *csegname, const char *modname);
     VIRTUAL void termfile();
-    VIRTUAL void term();
+    VIRTUAL void term(const char *objfilename);
 
     VIRTUAL size_t mangle(Symbol *s,char *dest);
     VIRTUAL void import(elem *e);
@@ -122,7 +122,7 @@ struct MsCoffObj : Obj
     static MsCoffObj *init(Outbuffer *, const char *filename, const char *csegname);
     VIRTUAL void initfile(const char *filename, const char *csegname, const char *modname);
     VIRTUAL void termfile();
-    VIRTUAL void term();
+    VIRTUAL void term(const char *objfilename);
 
 //    VIRTUAL size_t mangle(Symbol *s,char *dest);
 //    VIRTUAL void import(elem *e);

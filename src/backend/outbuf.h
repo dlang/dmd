@@ -160,6 +160,8 @@ struct Outbuffer
 
     void prependBytes(const char *s);
 
+    void prepend(const void *b, unsigned len);
+
     void bracket(char c1,char c2);
 
     /**
