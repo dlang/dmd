@@ -1094,8 +1094,6 @@ Expression *SwitchStatement::interpret(InterState *istate)
     Expression *econdition = condition->interpret(istate);
     if (exceptionOrCantInterpret(econdition))
         return econdition;
-    if (econdition->op == TOKslice)
-        econdition = resolveSlice(econdition);
 
     Statement *s = NULL;
     if (cases)
@@ -2013,8 +2011,6 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
      */
     for (size_t i = 1; i < keysx->dim; i++)
     {   Expression *ekey = keysx->tdata()[i - 1];
-        if (ekey->op == TOKslice)
-            ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
             Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
@@ -2381,42 +2377,23 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
-    if (e1->op == TOKslice)
-        e1 = resolveSlice(e1);
-
-    if (e1->isConst() != 1 &&
-        e1->op != TOKnull &&
-        e1->op != TOKstring &&
-        e1->op != TOKarrayliteral &&
-        e1->op != TOKstructliteral &&
-        e1->op != TOKclassreference)
+    if (!isCtfeComparable(e1))
     {
         error("cannot compare %s at compile time", e1->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
-
     e2 = this->e2->interpret(istate);
     if (exceptionOrCantInterpret(e2))
         return e2;
-    if (e2->op == TOKslice)
-        e2 = resolveSlice(e2);
-    if (e2->isConst() != 1 &&
-        e2->op != TOKnull &&
-        e2->op != TOKstring &&
-        e2->op != TOKarrayliteral &&
-        e2->op != TOKstructliteral &&
-        e2->op != TOKclassreference)
+    if (!isCtfeComparable(e2))
     {
         error("cannot compare %s at compile time", e2->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
     e = (*fp)(loc, op, type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
 }
 
 #define BIN_INTERPRET2(op, opfunc) \
@@ -2725,66 +2702,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     oldval = oldval->interpret(istate);
                 }
             }
-            if (oldval->op == TOKslice)
-                oldval = resolveSlice(oldval);
             Type *t = e1->type->toBasetype();
             if (t->ty == Tarray)
             {
-                Type *elemType= NULL;
-                elemType = ((TypeArray *)t)->next;
-                assert(elemType);
-                Expression *defaultElem = elemType->defaultInitLiteral(loc);
-
-                Expressions *elements = new Expressions();
-                elements->setDim(newlen);
-                size_t copylen = oldlen < newlen ? oldlen : newlen;
-                if (oldval->op == TOKstring)
-                {
-                    StringExp *oldse = (StringExp *)oldval;
-                    unsigned char *s = (unsigned char *)mem.calloc(newlen + 1, oldse->sz);
-                    memcpy(s, oldse->string, copylen * oldse->sz);
-                    unsigned defaultValue = (unsigned)(defaultElem->toInteger());
-                    for (size_t elemi = copylen; elemi < newlen; ++elemi)
-                    {
-                        switch (oldse->sz)
-                        {
-                            case 1:     s[elemi] = defaultValue; break;
-                            case 2:     ((unsigned short *)s)[elemi] = defaultValue; break;
-                            case 4:     ((unsigned *)s)[elemi] = defaultValue; break;
-                            default:    assert(0);
-                        }
-                    }
-                    StringExp *se = new StringExp(loc, s, newlen);
-                    se->type = t;
-                    se->sz = oldse->sz;
-                    se->committed = oldse->committed;
-                    se->ownedByCtfe = true;
-                    newval = se;
-                }
-                else
-                {
-                    if (oldlen !=0)
-                        assert(oldval->op == TOKarrayliteral);
-                    ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
-                    for (size_t i = 0; i < copylen; i++)
-                        (*elements)[i] = ae->elements->tdata()[i];
-                    if (elemType->ty == Tstruct || elemType->ty == Tsarray)
-                    {   /* If it is an aggregate literal representing a value type,
-                         * we need to create a unique copy for each element
-                         */
-                        for (size_t i = copylen; i < newlen; i++)
-                            (*elements)[i] = copyLiteral(defaultElem);
-                    }
-                    else
-                    {
-                        for (size_t i = copylen; i < newlen; i++)
-                            (*elements)[i] = defaultElem;
-                    }
-                    ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
-                    aae->type = t;
-                    newval = aae;
-                    aae->ownedByCtfe = true;
-                }
+                newval = changeArrayLiteralLength(loc, (TypeArray *)t, oldval,
+                    oldlen,  newlen);
                 // We have changed it into a reference assignment
                 // Note that returnValue is still the new length.
                 wantRef = true;

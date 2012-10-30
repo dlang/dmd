@@ -1084,6 +1084,17 @@ void oddity4001(int q)
 
 static const bug3779 = ["123"][0][$-1];
 
+/*******************************************
+    Bug 8893 ICE with bad struct literal
+*******************************************/
+
+struct Foo8893 {
+    char[3] data;
+}
+int bar8893(Foo8893 f) {
+    return f.data[0];
+}
+static assert( !is(typeof(compiles!( bar8893(Foo8893(['a','b'])) ))));
 
 /*******************************************
     non-Cow struct literals
