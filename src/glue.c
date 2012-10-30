@@ -242,14 +242,15 @@ void obj_start(char *srcfile)
 
 void obj_end(Library *library, File *objfile)
 {
-    objmod->term();
+    const char *objfilename = objfile->name->toChars();
+    objmod->term(objfilename);
     delete objmod;
     objmod = NULL;
 
     if (library)
     {
         // Transfer image to library
-        library->addObject(objfile->name->toChars(), objbuf.buf, objbuf.p - objbuf.buf);
+        library->addObject(objfilename, objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
     }
     else
@@ -258,11 +259,11 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        char *p = FileName::path(objfile->name->toChars());
+        char *p = FileName::path(objfilename);
         FileName::ensurePathExists(p);
         //mem.free(p);
 
-        //printf("write obj %s\n", objfile->name->toChars());
+        //printf("write obj %s\n", objfilename);
         objfile->writev();
     }
     objbuf.pend = NULL;
