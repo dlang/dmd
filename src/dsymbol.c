@@ -1348,7 +1348,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, new ExpInitializer(0, e));
                 v->storage_class |= STCstatic | STCconst;
             }
-            else if (ce->type && (t = ce->type->toBasetype()) &&
+            else if (ce->type && (t = ce->type->toBasetype()) != NULL &&
                      (t->ty == Tstruct || t->ty == Tclass))
             {   // Look for opDollar
                 assert(exp->op == TOKarray || exp->op == TOKslice);
@@ -1414,7 +1414,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 e = e->semantic(sc);
                 if (!e->type)
                     exp->error("%s has no value", e->toChars());
-                if ((t = e->type->toBasetype()) && t->ty == Tfunction)
+                t = e->type->toBasetype();
+                if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, e));
             }

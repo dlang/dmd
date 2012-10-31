@@ -128,6 +128,8 @@ void cv8_initfile(const char *filename)
     linepair->setsize(0);
 
     memset(&currentfuncdata, 0, sizeof(currentfuncdata));
+    currentfuncdata.f1buf = F1_buf;
+    currentfuncdata.f1fixup = F1fixup;
 
     cv_init();
 }
@@ -188,8 +190,8 @@ void cv8_termfile(const char *objfilename)
             cv8_writesection(f2seg, 0xF1, fd->f1buf);
 
             // Fixups for "F1" section
-            length = fd->f1fixup->size();
-            p = fd->f1fixup->buf;
+            unsigned length = fd->f1fixup->size();
+            unsigned char *p = fd->f1fixup->buf;
             for (unsigned u = 0; u < length; u += sizeof(F1_Fixups))
             {   F1_Fixups *f = (F1_Fixups *)(p + u);
 
@@ -315,6 +317,27 @@ void cv8_func_term(Symbol *sfunc)
     buf->writeByte(0);
     buf->writen(id, len + 1);
 
+    // Write local symbol table
+    bool endarg = false;
+    for (SYMIDX si = 0; si < globsym.top; si++)
+    {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
+        symbol *sa = globsym.tab[si];
+        if (endarg == false &&
+            sa->Sclass != SCparameter &&
+            sa->Sclass != SCfastpar &&
+            sa->Sclass != SCshadowreg)
+        {
+            buf->writeWord(2);
+            buf->writeWord(S_ENDARG);
+            endarg = true;
+        }
+        cv8_outsym(sa);
+    }
+
+    /* Put out function return record S_RETURN
+     * (VC doesn't, so we won't bother, either.)
+     */
+
     // Write function end symbol
     buf->writeWord(2);
     buf->writeWord(S_END);
@@ -344,6 +367,17 @@ void cv8_linnum(Srcpos srcpos, targ_size_t offset)
         currentfuncdata.srcfilename = srcpos.Sfilename;
         currentfuncdata.srcfileoff  = cv8_addfile(srcpos.Sfilename);
     }
+
+    static unsigned lastoffset;
+    static unsigned lastlinnum;
+    if (currentfuncdata.linepairnum)
+    {
+        if (offset <= lastoffset || srcpos.Slinnum <= lastlinnum)
+            return;
+    }
+    lastoffset = offset;
+    lastlinnum = srcpos.Slinnum;
+
     linepair->write32((unsigned)offset);
     linepair->write32((unsigned)srcpos.Slinnum | 0x80000000);
     ++currentfuncdata.linepairnum;
@@ -447,17 +481,86 @@ void cv8_outsym(Symbol *s)
     //symbol_print(s);
     if (s->Sflags & SFLnodebug)
         return;
-return;
 
     idx_t typidx = cv_typidx(s->Stype);
     const char *id = s->prettyIdent ? s->prettyIdent : prettyident(s);
     size_t len = strlen(id);
 
     F1_Fixups f1f;
+    Outbuffer *buf = currentfuncdata.f1buf;
 
+    unsigned sr;
+    unsigned base;
     switch (s->Sclass)
     {
+        case SCparameter:
+        case SCregpar:
+            if (s->Sfl == FLreg)
+            {
+                s->Sfl = FLpara;
+                cv8_outsym(s);
+                s->Sfl = FLreg;
+                goto case_register;
+            }
+            base = Poff - BPoff;    // cancel out add of BPoff
+            goto L1;
+        case SCauto:
+            if (s->Sfl == FLreg)
+                goto case_register;
+        case_auto:
+            base = Aoff;
+        L1:
+#if 1
+            // Register relative addressing
+            buf->reserve(2 + 2 + 4 + 4 + 2 + len + 1);
+            buf->writeWordn( 2 + 4 + 4 + 2 + len + 1);
+            buf->writeWordn(0x1111);
+            buf->write32(s->Soffset + base + BPoff);
+            buf->write32(typidx);
+            buf->writeWordn(334);       // relative to RBP
+            buf->writen(id, len + 1);
+#else
+            // This is supposed to work, implicit BP relative addressing, but it does not
+            buf->reserve(2 + 2 + 4 + 4 + len + 1);
+            buf->writeWordn( 2 + 4 + 4 + len + 1);
+            buf->writeWordn(0x1006);
+            buf->write32(s->Soffset + base + BPoff);
+            buf->write32(typidx);
+            buf->writen(id, len + 1);
+#endif
+            break;
+
+        case SCbprel:
+            base = -BPoff;
+            goto L1;
+
+        case SCfastpar:
+        case SCregister:
+        case SCshadowreg:
+            if (s->Sfl != FLreg)
+                goto case_auto;
+        case SCpseudo:
+        case_register:
+            buf->reserve(2 + 2 + 4 + 2 + len + 1);
+            buf->writeWordn( 2 + 4 + 2 + len + 1);
+            buf->writeWordn(S_REGISTER_V3);
+            buf->write32(typidx);
+            buf->writeWordn(cv8_regnum(s));
+            buf->writen(id, len + 1);
+            break;
+
+        case SCextern:
+            return;
+
+        case SCstatic:
+        case SClocstat:
+            sr = S_LDATA_V3;
+            goto Ldata;
         case SCglobal:
+        case SCcomdat:
+        case SCcomdef:
+            sr = S_GDATA_V3;
+        Ldata:
             /*
              *  2       length (not including these 2 bytes)
              *  2       S_GDATA_V3
@@ -465,21 +568,88 @@ return;
              *  6       ref to symbol
              *  n       0 terminated name string
              */
-            F1_buf->reserve(2 + 2 + 4 + 6 + len + 1);
-            F1_buf->writeWordn(2 + 4 + 6 + len + 1);
-            F1_buf->writeWordn(S_GDATA_V3);
-            F1_buf->write32(typidx);
+            if (s->ty() & mTYthread)            // thread local storage
+                sr = (sr == S_GDATA_V3) ? 0x1113 : 0x1112;
+
+            buf->reserve(2 + 2 + 4 + 6 + len + 1);
+            buf->writeWordn(2 + 4 + 6 + len + 1);
+            buf->writeWordn(sr);
+            buf->write32(typidx);
 
             f1f.s = s;
-            f1f.offset = F1_buf->size();
+            f1f.offset = buf->size();
             F1fixup->write(&f1f, sizeof(f1f));
-            F1_buf->write32(0);
-            F1_buf->writeWordn(0);
+            buf->write32(0);
+            buf->writeWordn(0);
 
-            F1_buf->writen(id, len + 1);
+            buf->writen(id, len + 1);
             break;
+
+        default:
+            return;
     }
 }
+
+
+/*******************************************
+ * Put out a name for a user defined type.
+ * Input:
+ *      id      the name
+ *      typidx  and its type
+ */
+void cv8_udt(const char *id, idx_t typidx)
+{
+    //printf("cv8_udt('%s', %x)\n", id, typidx);
+    Outbuffer *buf = currentfuncdata.f1buf;
+    size_t len = strlen(id);
+    buf->reserve(2 + 2 + 4 + len + 1);
+    buf->writeWordn( 2 + 4 + len + 1);
+    buf->writeWordn(S_UDT_V3);
+    buf->write32(typidx);
+    buf->writen(id, len + 1);
+}
+
+/*********************************************
+ * Get Codeview register number for symbol s.
+ */
+int cv8_regnum(Symbol *s)
+{
+    int reg = s->Sreglsw;
+    assert(s->Sfl == FLreg);
+    if (mask[reg] & XMMREGS)
+        return reg - XMM0 + 154;
+    switch (type_size(s->Stype))
+    {
+        case 1:
+            if (reg < 4)
+                reg += 1;
+            else if (reg >= 4 && reg < 8)
+                reg += 324 - 4;
+            else
+                reg += 344 - 4;
+            break;
+        case 2:
+            if (reg < 8)
+                reg += 9;
+            else
+                reg += 352 - 8;
+            break;
+        case 4:
+            if (reg < 8)
+                reg += 17;
+            else
+                reg += 360 - 8;
+            break;
+        case 8:
+            reg += 328;
+            break;
+        default:
+            reg = 0;
+            break;
+    }
+    return reg;
+}
+
 
 #endif
 #endif

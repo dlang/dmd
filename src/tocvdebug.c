@@ -207,7 +207,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
     {
         // Generate fieldlist type record
         debtyp_t *dt = debtyp_alloc(fnamelen);
-        TOWORD(dt->data,(config.fulltypes == CV8) ? 0x1203 : LF_FIELDLIST);
+        TOWORD(dt->data,(config.fulltypes == CV8) ? LF_FIELDLIST_V2 : LF_FIELDLIST);
 
         // And fill it in
         unsigned j = 2;
@@ -260,9 +260,6 @@ void TypedefDeclaration::toDebug()
 {
     //printf("TypedefDeclaration::toDebug('%s')\n", toChars());
 
-    if (config.fulltypes == CV8)
-        return;
-
     assert(config.fulltypes >= CV4);
 
     // If it is a member, it is handled by cvMember()
@@ -271,21 +268,25 @@ void TypedefDeclaration::toDebug()
         if (basetype->ty == Ttuple)
             return;
 
-        unsigned length;
         const char *id = toPrettyChars();
         idx_t typidx = cv4_typidx(basetype->toCtype());
-        unsigned len = strlen(id);
-        unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
+        if (config.fulltypes == CV8)
+            cv8_udt(id, typidx);
+        else
+        {
+            unsigned len = strlen(id);
+            unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
 
-        // Output a 'user-defined type' for the tag name
-        TOWORD(debsym + 2,S_UDT);
-        TOIDX(debsym + 4,typidx);
-        length = 2 + 2 + cgcv.sz_idx;
-        length += cv_namestring(debsym + length,id);
-        TOWORD(debsym,length - 2);
+            // Output a 'user-defined type' for the tag name
+            TOWORD(debsym + 2,S_UDT);
+            TOIDX(debsym + 4,typidx);
+            unsigned length = 2 + 2 + cgcv.sz_idx;
+            length += cv_namestring(debsym + length,id);
+            TOWORD(debsym,length - 2);
 
-        assert(length <= 40 + len);
-        objmod->write_bytes(SegData[DEBSYM],length,debsym);
+            assert(length <= 40 + len);
+            objmod->write_bytes(SegData[DEBSYM],length,debsym);
+        }
     }
 }
 
@@ -294,29 +295,30 @@ void EnumDeclaration::toDebug()
 {
     //printf("EnumDeclaration::toDebug('%s')\n", toChars());
 
-    if (config.fulltypes == CV8)
-        return;
-
     assert(config.fulltypes >= CV4);
 
     // If it is a member, it is handled by cvMember()
     if (!isMember())
     {
-        unsigned length;
         const char *id = toPrettyChars();
         idx_t typidx = cv4_Denum(this);
-        unsigned len = strlen(id);
-        unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
+        if (config.fulltypes == CV8)
+            cv8_udt(id, typidx);
+        else
+        {
+            unsigned len = strlen(id);
+            unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + len);
 
-        // Output a 'user-defined type' for the tag name
-        TOWORD(debsym + 2,S_UDT);
-        TOIDX(debsym + 4,typidx);
-        length = 2 + 2 + cgcv.sz_idx;
-        length += cv_namestring(debsym + length,id);
-        TOWORD(debsym,length - 2);
+            // Output a 'user-defined type' for the tag name
+            TOWORD(debsym + 2,S_UDT);
+            TOIDX(debsym + 4,typidx);
+            unsigned length = 2 + 2 + cgcv.sz_idx;
+            length += cv_namestring(debsym + length,id);
+            TOWORD(debsym,length - 2);
 
-        assert(length <= 40 + len);
-        objmod->write_bytes(SegData[DEBSYM],length,debsym);
+            assert(length <= 40 + len);
+            objmod->write_bytes(SegData[DEBSYM],length,debsym);
+        }
     }
 }
 
@@ -354,9 +356,6 @@ void StructDeclaration::toDebug()
     idx_t typidx = 0;
 
     //printf("StructDeclaration::toDebug('%s')\n", toChars());
-
-    if (config.fulltypes == CV8)
-        return;
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
@@ -412,8 +411,8 @@ void StructDeclaration::toDebug()
     }
     else if (leaf == LF_STRUCTURE_V3)
     {
-        TOWORD(d->data + 10,0);         // dList
-        TOWORD(d->data + 14,0);         // vshape is 0 (no virtual functions)
+        TOLONG(d->data + 10,0);         // dList
+        TOLONG(d->data + 14,0);         // vshape is 0 (no virtual functions)
     }
     TOWORD(d->data,leaf);
 
@@ -483,20 +482,23 @@ void StructDeclaration::toDebug()
 
 //    cv4_outsym(s);
 
-    unsigned length;
+    if (config.fulltypes == CV8)
+        cv8_udt(id, typidx);
+    else
+    {
+        size_t idlen = strlen(id);
+        unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + idlen);
 
-    size_t idlen = strlen(id);
-    unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + idlen);
+        // Output a 'user-defined type' for the tag name
+        TOWORD(debsym + 2,S_UDT);
+        TOIDX(debsym + 4,typidx);
+        unsigned length = 2 + 2 + cgcv.sz_idx;
+        length += cv_namestring(debsym + length,id);
+        TOWORD(debsym,length - 2);
 
-    // Output a 'user-defined type' for the tag name
-    TOWORD(debsym + 2,S_UDT);
-    TOIDX(debsym + 4,typidx);
-    length = 2 + 2 + cgcv.sz_idx;
-    length += cv_namestring(debsym + length,id);
-    TOWORD(debsym,length - 2);
-
-    assert(length <= 40 + idlen);
-    objmod->write_bytes(SegData[DEBSYM],length,debsym);
+        assert(length <= 40 + idlen);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
+    }
 
 //    return typidx;
 }
@@ -507,9 +509,6 @@ void ClassDeclaration::toDebug()
     idx_t typidx = 0;
 
     //printf("ClassDeclaration::toDebug('%s')\n", toChars());
-
-    if (config.fulltypes == CV8)
-        return;
 
     assert(config.fulltypes >= CV4);
     if (isAnonymous())
@@ -582,8 +581,8 @@ void ClassDeclaration::toDebug()
     }
     else if (leaf == LF_CLASS_V2)
     {
-        TOWORD(d->data + 10,0);         // dList
-        TOWORD(d->data + 14,vshapeidx);
+        TOLONG(d->data + 10,0);         // dList
+        TOLONG(d->data + 14,vshapeidx);
     }
     TOWORD(d->data,leaf);
 
@@ -690,20 +689,23 @@ void ClassDeclaration::toDebug()
 
 //    cv4_outsym(s);
 
-    unsigned length;
+    if (config.fulltypes == CV8)
+        cv8_udt(id, typidx);
+    else
+    {
+        size_t idlen = strlen(id);
+        unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + idlen);
 
-    size_t idlen = strlen(id);
-    unsigned char *debsym = (unsigned char *) alloca(39 + IDOHD + idlen);
+        // Output a 'user-defined type' for the tag name
+        TOWORD(debsym + 2,S_UDT);
+        TOIDX(debsym + 4,typidx);
+        unsigned length = 2 + 2 + cgcv.sz_idx;
+        length += cv_namestring(debsym + length,id);
+        TOWORD(debsym,length - 2);
 
-    // Output a 'user-defined type' for the tag name
-    TOWORD(debsym + 2,S_UDT);
-    TOIDX(debsym + 4,typidx);
-    length = 2 + 2 + cgcv.sz_idx;
-    length += cv_namestring(debsym + length,id);
-    TOWORD(debsym,length - 2);
-
-    assert(length <= 40 + idlen);
-    objmod->write_bytes(SegData[DEBSYM],length,debsym);
+        assert(length <= 40 + idlen);
+        objmod->write_bytes(SegData[DEBSYM],length,debsym);
+    }
 
 //    return typidx;
 }
