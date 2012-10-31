@@ -38,12 +38,6 @@ private
 }
 
 
-struct Array
-{
-    size_t  length;
-    void*   ptr;
-}
-
 /**********************************************
  * Reverse array of chars.
  * Handled separately because embedded multibyte encodings should not be
@@ -230,7 +224,7 @@ unittest
 extern (C) void[] _adReverse(void[] a, size_t szelem)
 out (result)
 {
-    assert(result is *cast(void[]*)(&a));
+    assert(result is a);
 }
 body
 {
@@ -269,7 +263,7 @@ body
                 //gc_free(tmp);
         }
     }
-    return *cast(void[]*)(&a);
+    return a;
 }
 
 unittest
