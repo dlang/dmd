@@ -1045,75 +1045,77 @@ int realCmp(TOK op, real_t r1, real_t r2)
 {
     int n;
 #if __DMC__
-        // DMC is the only compiler I know of that handles NAN arguments
-        // correctly in comparisons.
+    // DMC is the only compiler I know of that handles NAN arguments
+    // correctly in comparisons.
+    switch (op)
+    {
+        case TOKlt:    n = r1 <  r2;        break;
+        case TOKle:    n = r1 <= r2;        break;
+        case TOKgt:    n = r1 >  r2;        break;
+        case TOKge:    n = r1 >= r2;        break;
+
+        case TOKleg:   n = r1 <>=  r2;      break;
+        case TOKlg:    n = r1 <>   r2;      break;
+        case TOKunord: n = r1 !<>= r2;      break;
+        case TOKue:    n = r1 !<>  r2;      break;
+        case TOKug:    n = r1 !<=  r2;      break;
+        case TOKuge:   n = r1 !<   r2;      break;
+        case TOKul:    n = r1 !>=  r2;      break;
+        case TOKule:   n = r1 !>   r2;      break;
+
+        default:
+            assert(0);
+    }
+#else
+    // Don't rely on compiler, handle NAN arguments separately
+    if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+    {
         switch (op)
         {
-            case TOKlt:    n = r1 <  r2;        break;
-            case TOKle:    n = r1 <= r2;        break;
-            case TOKgt:    n = r1 >  r2;        break;
-            case TOKge:    n = r1 >= r2;        break;
+            case TOKlt:     n = 0;  break;
+            case TOKle:     n = 0;  break;
+            case TOKgt:     n = 0;  break;
+            case TOKge:     n = 0;  break;
 
-            case TOKleg:   n = r1 <>=  r2;      break;
-            case TOKlg:    n = r1 <>   r2;      break;
-            case TOKunord: n = r1 !<>= r2;      break;
-            case TOKue:    n = r1 !<>  r2;      break;
-            case TOKug:    n = r1 !<=  r2;      break;
-            case TOKuge:   n = r1 !<   r2;      break;
-            case TOKul:    n = r1 !>=  r2;      break;
-            case TOKule:   n = r1 !>   r2;      break;
+            case TOKleg:    n = 0;  break;
+            case TOKlg:     n = 0;  break;
+            case TOKunord:  n = 1;  break;
+            case TOKue:     n = 1;  break;
+            case TOKug:     n = 1;  break;
+            case TOKuge:    n = 1;  break;
+            case TOKul:     n = 1;  break;
+            case TOKule:    n = 1;  break;
 
             default:
                 assert(0);
         }
-#else
-        // Don't rely on compiler, handle NAN arguments separately
-        if (Port::isNan(r1) || Port::isNan(r2)) // if unordered
+    }
+    else
+    {
+        switch (op)
         {
-            switch (op)
-            {
-                case TOKlt:     n = 0;  break;
-                case TOKle:     n = 0;  break;
-                case TOKgt:     n = 0;  break;
-                case TOKge:     n = 0;  break;
+            case TOKlt:     n = r1 <  r2;   break;
+            case TOKle:     n = r1 <= r2;   break;
+            case TOKgt:     n = r1 >  r2;   break;
+            case TOKge:     n = r1 >= r2;   break;
 
-                case TOKleg:    n = 0;  break;
-                case TOKlg:     n = 0;  break;
-                case TOKunord:  n = 1;  break;
-                case TOKue:     n = 1;  break;
-                case TOKug:     n = 1;  break;
-                case TOKuge:    n = 1;  break;
-                case TOKul:     n = 1;  break;
-                case TOKule:    n = 1;  break;
+            case TOKleg:    n = 1;          break;
+            case TOKlg:     n = r1 != r2;   break;
+            case TOKunord:  n = 0;          break;
+            case TOKue:     n = r1 == r2;   break;
+            case TOKug:     n = r1 >  r2;   break;
+            case TOKuge:    n = r1 >= r2;   break;
+            case TOKul:     n = r1 <  r2;   break;
+            case TOKule:    n = r1 <= r2;   break;
 
-                default:
-                    assert(0);
-            }
+            default:
+                assert(0);
         }
-        else
-        {
-            switch (op)
-            {
-                case TOKlt:     n = r1 <  r2;   break;
-                case TOKle:     n = r1 <= r2;   break;
-                case TOKgt:     n = r1 >  r2;   break;
-                case TOKge:     n = r1 >= r2;   break;
-
-                case TOKleg:    n = 1;          break;
-                case TOKlg:     n = r1 != r2;   break;
-                case TOKunord:  n = 0;          break;
-                case TOKue:     n = r1 == r2;   break;
-                case TOKug:     n = r1 >  r2;   break;
-                case TOKuge:    n = r1 >= r2;   break;
-                case TOKul:     n = r1 <  r2;   break;
-                case TOKule:    n = r1 <= r2;   break;
-
-                default:
-                    assert(0);
-            }
-        }
+    }
 #endif
+    return n;
 }
+
 int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2);
 
 /* Conceptually the same as memcmp(e1, e2).
@@ -1295,16 +1297,19 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
     return 0;
 }
 
-// As Equal, but resolves slices before comparing
-Expression *ctfeEqual(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
+
+/// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
+int ctfeEqual(Loc loc, enum TOK op, Expression *e1, Expression *e2)
 {
     int cmp = !ctfeRawCmp(loc, e1, e2);
     if (op == TOKnotequal)
         cmp ^= 1;
-    return new IntegerExp(loc, cmp, type);
+    return cmp;
 }
 
-Expression *ctfeIdentity(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
+
+/// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
+int ctfeIdentity(Loc loc, enum TOK op, Expression *e1, Expression *e2)
 {
     int cmp;
     if (e1->op == TOKnull)
@@ -1336,12 +1341,14 @@ Expression *ctfeIdentity(Loc loc, enum TOK op, Type *type, Expression *e1, Expre
 
     if (op == TOKnotidentity || op == TOKnotequal)
         cmp ^= 1;
-    return new IntegerExp(loc, cmp, type);
+    return cmp;
 }
 
-Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2)
+
+/// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
+int ctfeCmp(Loc loc, enum TOK op, Expression *e1, Expression *e2)
 {
-    dinteger_t n;
+    int n;
     if (e1->type->isString() && e2->type->isString())
     {
         int cmp = ctfeRawCmp(loc, e1, e2);
@@ -1371,18 +1378,19 @@ Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression
     }
     else if (e1->type->isimaginary())
     {
-         n = realCmp(op, e1->toImaginary(), e2->toImaginary());
+        n = realCmp(op, e1->toImaginary(), e2->toImaginary());
     }
     else if (e1->type->isunsigned() || e2->type->isunsigned())
     {
-         n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
+        n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
     }
     else
     {
-         n = intSignedCmp(op, e1->toInteger(), e2->toInteger());
+        n = intSignedCmp(op, e1->toInteger(), e2->toInteger());
     }
-    return new IntegerExp(loc, n, type);
+    return n;
 }
+
 
 Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
 {
@@ -1454,7 +1462,6 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
 
 /*  Given an AA literal 'ae', and a key 'e2':
  *  Return ae[e2] if present, or NULL if not found.
- *  Return EXP_CANT_INTERPRET on error.
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2)
 {
@@ -1464,10 +1471,8 @@ Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2)
     {
         i--;
         Expression *ekey = ae->keys->tdata()[i];
-        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, e2);
-        if (ex == EXP_CANT_INTERPRET)
-            return ex;
-        if (ex->isBool(TRUE))
+        int eq = ctfeEqual(loc, TOKequal, ekey, e2);
+        if (eq)
         {
             return ae->values->tdata()[i];
         }
@@ -1663,10 +1668,8 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     for (size_t j = valuesx->dim; j; )
     {   j--;
         Expression *ekey = aae->keys->tdata()[j];
-        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, index);
-        if (exceptionOrCantInterpret(ex))
-            return ex;
-        if (ex->isBool(TRUE))
+        int eq = ctfeEqual(loc, TOKequal, ekey, index);
+        if (eq)
         {   valuesx->tdata()[j] = newval;
             updated = 1;
         }
