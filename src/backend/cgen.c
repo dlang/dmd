@@ -580,7 +580,11 @@ size_t addtofixlist(symbol *s,targ_size_t soffset,int seg,targ_size_t val,int fl
         numbytes = tysize[TYnptr];
         if (I64 && !(flags & CFoffset64))
             numbytes = 4;
-        assert(!(flags & CFseg));
+
+        /* This can happen when generating CV8 data
+         */
+        if (flags & CFseg)
+            numbytes += 2;
 #endif
 #ifdef DEBUG
         assert(numbytes <= sizeof(zeros));

@@ -2331,6 +2331,8 @@ int MsCoffObj::reftoident(segidx_t seg, targ_size_t offset, Symbol *s, targ_size
         int flags)
 {
     int retsize = (flags & CFoffset64) ? 8 : 4;
+    if (flags & CFseg)
+        retsize += 2;
 #if 0
     printf("\nMsCoffObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
         s->Sident,seg,(unsigned long long)offset,(unsigned long long)val,flags);
