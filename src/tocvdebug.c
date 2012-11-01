@@ -542,9 +542,9 @@ void ClassDeclaration::toDebug()
 #else
     const char *id = isCPPinterface() ? ident->toChars() : toPrettyChars();
 #endif
-    unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V2 : LF_CLASS;
+    unsigned leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
 
-    unsigned numidx = (leaf == LF_CLASS_V2) ? 18 : 12;
+    unsigned numidx = (leaf == LF_CLASS_V3) ? 18 : 12;
     unsigned len = numidx + cv4_numericbytes(size);
     debtyp_t *d = debtyp_alloc(len + cv_stringbytes(id));
     cv4_storenumeric(d->data + numidx,size);
@@ -555,7 +555,7 @@ void ClassDeclaration::toDebug()
     {
         size_t n = vtbl.dim;                   // number of virtual functions
         if (n)
-        {
+        {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
             TOWORD(vshape->data,LF_VTSHAPE);
             TOWORD(vshape->data + 2,1);
@@ -579,7 +579,7 @@ void ClassDeclaration::toDebug()
         TOWORD(d->data + 8,0);          // dList
         TOWORD(d->data + 10,vshapeidx);
     }
-    else if (leaf == LF_CLASS_V2)
+    else if (leaf == LF_CLASS_V3)
     {
         TOLONG(d->data + 10,0);         // dList
         TOLONG(d->data + 14,vshapeidx);
@@ -594,7 +594,7 @@ void ClassDeclaration::toDebug()
 
     if (!members)                       // if reference only
     {
-        if (leaf == LF_CLASS_V2)
+        if (leaf == LF_CLASS_V3)
         {
             TOWORD(d->data + 2,0);          // count: number of fields is 0
             TOLONG(d->data + 6,0);          // field list is 0
