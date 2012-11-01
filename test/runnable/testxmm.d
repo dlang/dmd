@@ -866,6 +866,39 @@ float bug8060(float x) {
 
 /*****************************************/
 
+float4 test5(float4 a, float4 b)
+{
+    a = __simd(XMM.CMPPD, a, b, 0x7A);
+    a = __simd(XMM.CMPSS, a, b, 0x7A);
+    a = __simd(XMM.CMPSD, a, b, 0x7A);
+    a = __simd(XMM.CMPPS, a, b, 0x7A);
+
+    a = __simd(XMM.SHUFPD, a, b, 0xA7);
+    a = __simd(XMM.SHUFPS, a, b, 0x7A);
+
+    a = __simd(XMM.PSHUFD, a, b, 0x7A);
+    a = __simd(XMM.PSHUFHW, a, b, 0x7A);
+    a = __simd(XMM.PSHUFLW, a, b, 0x7A);
+
+    a = __simd(XMM.BLENDPD, a, b, 0x7A);
+    a = __simd(XMM.BLENDPS, a, b, 0x7A);
+
+    a = __simd(XMM.DPPD, a, b, 0x7A);
+    a = __simd(XMM.DPPS, a, b, 0x7A);
+
+    a = __simd(XMM.MPSADBW, a, b, 0x7A);
+    a = __simd(XMM.PBLENDW, a, b, 0x7A);
+
+    a = __simd(XMM.ROUNDPD, a, b, 0x7A);
+    a = __simd(XMM.ROUNDPS, a, b, 0x7A);
+    a = __simd(XMM.ROUNDSD, a, b, 0x7A);
+    a = __simd(XMM.ROUNDSS, a, b, 0x7A);
+
+    return a;
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
