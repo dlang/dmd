@@ -2152,7 +2152,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
   sz = tysize[tym];
   byte = sz == 1;
 
-  if (sz <= REGSIZE)                    // if data will fit in one register
+  if (sz <= REGSIZE || tyvector(tym))                   // if data will fit in one register
   {
         /* First see if it is already in a correct register     */
 
