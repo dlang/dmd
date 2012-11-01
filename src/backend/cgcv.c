@@ -1015,9 +1015,10 @@ printf("fwd struct ref\n");
     else
 #endif
     {
+        unsigned dlen = d->length;      // reread, it might include padding bytes
         d->length = 0;                  // so cv_debtyp() will allocate new
         s->Stypidx = cv_debtyp(d);
-        d->length = len;                // restore length
+        d->length = dlen;               // restore length
     }
 
     if (refonly)                        // if reference only
@@ -1892,7 +1893,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 1);     // 1 = dynamic array
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -1931,7 +1932,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 2);     // 2 = associative array
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -1972,7 +1973,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 3);     // 3 = delegate
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -2025,7 +2026,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(10 + u + 1);
-                    TOWORD(d->data,0x1503);
+                    TOWORD(d->data,LF_ARRAY_V3);
                     TOLONG(d->data + 2,next);
                     TOLONG(d->data + 6,idxtype);
                     d->data[10 + u] = 0;             // no name
