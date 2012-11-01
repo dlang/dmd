@@ -2645,6 +2645,9 @@ CEXTERN elem * elstruct(elem *e)
         targ2 = e->ET->Ttag->Sstruct->Sarg2type;
     }
 
+    if (I64 && ty == TYstruct && type_size(e->ET) <= 16)
+        goto L1;
+
     switch ((int) type_size(e->ET))
     {
         case 1:  tym = TYchar;   goto L1;
@@ -2710,7 +2713,7 @@ CEXTERN elem * elstruct(elem *e)
                         // In-memory only
                         goto Ldefault;
                     }
-                    if (type_size(e->ET) == 16)
+                    if (type_size(e->ET) <= 16)
                         goto Ldefault;
                 }
                 else if (I64 && targ1 && targ2)
