@@ -350,22 +350,37 @@ extern (C) CArgs rt_cArgs()
  * The D main() function supplied by the user's program
  */
 int main(char[][] args);
+alias extern(C) int function(char[][] args) MainFunc;
 
 /***********************************
  * Substitutes for the C main() function.
- * Its purpose is to wrap the call to the D main()
- * function and catch any unhandled exceptions.
+ * Just calls into d_run_main with the default main function.
+ * Applications are free to implement their own
+ * main function and call the _d_run_main function
+ * themselves with any main function.
  */
+extern (C) int main(int argc, char **argv)
+{
+    // main (aka Dmain) is really extern(C), but the DMD
+    // frontend thinks it is extern(D), so we need to cast
+    // as MainFunc needs to reflect the actual linkage.
+    return _d_run_main(argc, argv, cast(MainFunc)&main);
+}
 
 version (Solaris) extern (C) int _main(int argc, char** argv)
 {
     // This is apparently needed on Solaris because the
     // C tool chain seems to expect the main function
-    // to be called _main.
+    // to be called _main. It needs both not just one!
     return main(argc, argv);
 }
 
-extern (C) int main(int argc, char** argv)
+/***********************************
+ * Run the given main function.
+ * Its purpose is to wrap the D main()
+ * function and catch any unhandled exceptions.
+ */
+extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 {
     _cArgs.argc = argc;
     _cArgs.argv = argv;
@@ -563,7 +578,7 @@ extern (C) int main(int argc, char** argv)
 
     void runMain()
     {
-        result = main(args);
+        result = mainFunc(args);
     }
 
     void runAll()
