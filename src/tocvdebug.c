@@ -558,7 +558,7 @@ void ClassDeclaration::toDebug()
         {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
             TOWORD(vshape->data,LF_VTSHAPE);
-            TOWORD(vshape->data + 2,1);
+            TOWORD(vshape->data + 2,config.fulltypes == CV8 ? n : 1); // should always be n?
 
             n = 0;
             unsigned char descriptor = 0;
@@ -918,6 +918,8 @@ int VarDeclaration::cvMember(unsigned char *p)
                 nwritten += 2;
             nwritten += 6 + cv_stringbytes(id);
         }
+        if (config.fulltypes == CV8)
+            nwritten = ((nwritten + 3) & ~3); // 4-byte alignment
     }
     else
     {
@@ -930,8 +932,8 @@ int VarDeclaration::cvMember(unsigned char *p)
                 if (storage_class & STCfield)
                 {
                     TOWORD(p,LF_MEMBER_V3);
-                    TOWORD(p + 2,typidx);
-                    TOLONG(p + 4,attribute);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
                     cv4_storenumeric(p + 8, offset);
                     nwritten = 8 + cv4_numericbytes( offset);
                     nwritten += cv_namestring(p + nwritten, id);
@@ -939,8 +941,8 @@ int VarDeclaration::cvMember(unsigned char *p)
                 else if (isStatic())
                 {
                     TOWORD(p,LF_STMEMBER_V3);
-                    TOWORD(p + 2,typidx);
-                    TOLONG(p + 4,attribute);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
                     nwritten = 8;
                     nwritten += cv_namestring(p + nwritten, id);
                 }
@@ -969,6 +971,10 @@ int VarDeclaration::cvMember(unsigned char *p)
              default:
                 assert(0);
         }
+
+        if (config.fulltypes == CV8)
+            while(nwritten & 3)
+                p[nwritten++] = 0xf4 - (nwritten & 3);
 
 #ifdef DEBUG
         assert(nwritten == cvMember(NULL));
