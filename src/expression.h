@@ -805,8 +805,8 @@ struct BinExp : Expression
 
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
-    Expression *interpretCommon2(InterState *istate, CtfeGoal goal,
-        Expression *(*fp)(Loc, TOK, Type *, Expression *, Expression *));
+    Expression *interpretCompareCommon(InterState *istate, CtfeGoal goal,
+        int (*fp)(Loc, TOK, Expression *, Expression *));
     Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
     Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
