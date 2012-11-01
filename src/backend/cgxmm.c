@@ -773,7 +773,7 @@ unsigned xmmoperator(tym_t tym, unsigned oper)
 
 code *cdvector(elem *e, regm_t *pretregs)
 {
-    /* e should look like:
+    /* e should look like one of:
      *    vector
      *      |
      *    param
@@ -788,7 +788,16 @@ code *cdvector(elem *e, regm_t *pretregs)
         exit(1);
     }
 
+    elem *imm8 = NULL;
     elem *e1 = e->E1;
+    if (e1->Eoper == OPparam &&
+        e1->E1->Eoper == OPparam &&
+        e1->E1->E1->Eoper == OPparam)
+    {
+        imm8 = e1->E2;
+        assert(imm8->Eoper == OPconst);
+        e1 = e1->E1;
+    }
     assert(e1->Eoper == OPparam);
     elem *op2 = e1->E2;
     e1 = e1->E1;
@@ -810,7 +819,11 @@ code *cdvector(elem *e, regm_t *pretregs)
     unsigned rreg = findreg(rretregs);
     code *cg = getregs(retregs);
     unsigned op = el_tolong(eop);
-    code *co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    code *co;
+    if (imm8)
+        co = genc2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0), el_tolong(imm8));
+    else
+        co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
     co = cat(co,fixresult(e,retregs,pretregs));
     return cat4(c,cr,cg,co);
 }
