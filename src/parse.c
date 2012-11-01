@@ -5603,6 +5603,7 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKunion ||
                          token.value == TOKclass ||
                          token.value == TOKsuper ||
+                         token.value == TOKtemplate ||
                          token.value == TOKenum ||
                          token.value == TOKinterface ||
                          token.value == TOKargTypes ||

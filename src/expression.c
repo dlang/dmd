@@ -5821,10 +5821,25 @@ Expression *IsExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
-    Type *t = targ->trySemantic(loc, sc);
-    if (!t)
-        goto Lno;                       // errors, so condition is false
-    targ = t;
+    if (tok2 == TOKtemplate)
+    {
+        Type *t;
+        Expression *e; 
+        Dsymbol *s;
+        targ->resolve(loc, sc, &e, &t, &s);
+        s = s ? s : t ? getDsymbol(t) : getDsymbol(e);
+        if (!s || (!s->isTemplateDeclaration() && !s->toAlias()->isTemplateDeclaration()))
+            goto Lno;
+        
+        tded = targ;
+        goto Lyes;
+    }
+
+    if (Type *t = targ->trySemantic(loc, sc))
+        targ = t;
+    else
+        goto Lno;    // errors, so condition is false
+
     if (tok2 != TOKreserved)
     {
         switch (tok2)
