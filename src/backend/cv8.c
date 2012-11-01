@@ -16,7 +16,6 @@
 #include        <string.h>
 #include        <stdlib.h>
 #include        <time.h>
-#include        <direct.h>
 
 #include        "cc.h"
 #include        "el.h"
@@ -37,6 +36,14 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 #if _MSC_VER || __sun
 #include        <alloca.h>
+#endif
+
+#if _MSC_VER
+#include        <direct.h>
+#endif
+
+#if M_UNIX || M_XENIX || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#include        <unistd.h>
 #endif
 
 #if MARS
