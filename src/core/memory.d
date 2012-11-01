@@ -16,10 +16,9 @@
  *   not to use this mechanism (or not stop the world at all, in the
  *   case of concurrent garbage collectors).)
  *
- * $(LI Roots are always scanned conservatively. Roots include registers,
- *   the stack, TLS variables, and any other memory locations added
- *   through the $(D GC.$(LREF addRoot)) and $(D GC.$(LREF addRange))
- *   functions. This means that even if a variable is e.g. of type $(D float),
+ * $(LI Registers, the stack, and any other memory locations added through
+ *   the $(D GC.$(LREF addRange)) function are always scanned conservatively.
+ *   This means that even if a variable is e.g. of type $(D float),
  *   it will still be scanned for possible GC pointers. And, if the
  *   word-interpreted representation of the variable matches a GC-managed
  *   memory block's address, that memory block is considered live.)
