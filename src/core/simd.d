@@ -190,10 +190,10 @@ version ( D_SIMD )
     ANDPS = 0x0F54,
     ANDNPD = 0x660F55,
     ANDNPS = 0x0F55,
-    //CMPPS = 0x0FC2,
-    //CMPPD = 0x660FC2,
-    //CMPSD = 0xF20FC2,
-    //CMPSS = 0xF30FC2,
+    CMPPS = 0x0FC2,
+    CMPPD = 0x660FC2,
+    CMPSD = 0xF20FC2,
+    CMPSS = 0xF30FC2,
     COMISD = 0x660F2F,
     COMISS = 0x0F2F,
     //CVTDQ2PD = 0xF30FE6,
@@ -249,8 +249,8 @@ version ( D_SIMD )
     RSQRTPS = 0x0F52,
     RSQRTSS = 0xF30F52,
     SQRTPD = 0x660F51,
-    //SHUFPD = 0x660FC6,
-    //SHUFPS = 0x0FC6,
+    SHUFPD = 0x660FC6,
+    SHUFPS = 0x0FC6,
     SQRTPS = 0x0F51,
     SQRTSD = 0xF20F51,
     SQRTSS = 0xF30F51,
@@ -259,9 +259,9 @@ version ( D_SIMD )
     UNPCKLPD = 0x660F14,
     UNPCKLPS = 0x0F14,
 
-    //PSHUFD = 0x660F70,
-    //PSHUFHW = 0xF30F70,
-    //PSHUFLW = 0xF20F70,
+    PSHUFD = 0x660F70,
+    PSHUFHW = 0xF30F70,
+    PSHUFLW = 0xF20F70,
     //PSHUFW = 0x0F70,
     //PSLLDQ = 0x660F73,
     //PSRLDQ = 0x660F73,
@@ -303,17 +303,17 @@ version ( D_SIMD )
 
 // SSE4.1
 
-    //BLENDPD   = 0x660F3A0D,
-    //BLENDPS   = 0x660F3A0C,
+    BLENDPD   = 0x660F3A0D,
+    BLENDPS   = 0x660F3A0C,
     //BLENDVPD  = 0x660F3815,
     //BLENDVPS  = 0x660F3814,
-    //DPPD      = 0x660F3A41,
-    //DPPS      = 0x660F3A40,
+    DPPD      = 0x660F3A41,
+    DPPS      = 0x660F3A40,
     //EXTRACTPS = 0x660F3A17,
     //INSERTPS  = 0x660F3A21,
-    //MPSADBW   = 0x660F3A42,
+    MPSADBW   = 0x660F3A42,
     //PBLENDVB  = 0x660F3810,
-    //PBLENDW   = 0x660F3A0E,
+    PBLENDW   = 0x660F3A0E,
     //PEXTRD    = 0x660F3A16,
     //PEXTRQ    = 0x660F3A16,
     //PINSRB    = 0x660F3A20,
@@ -349,10 +349,10 @@ version ( D_SIMD )
     PMULLD   = 0x660F3840,
     PTEST    = 0x660F3817,
 
-    //ROUNDPD = 0x660F3A09,
-    //ROUNDPS = 0x660F3A08,
-    //ROUNDSD = 0x660F3A0B,
-    //ROUNDSS = 0x660F3A0A,
+    ROUNDPD = 0x660F3A09,
+    ROUNDPS = 0x660F3A08,
+    ROUNDSD = 0x660F3A0B,
+    ROUNDSS = 0x660F3A0A,
 
 // SSE4.2
     //PCMPESTRI  = 0x660F3A61,
@@ -380,10 +380,13 @@ version ( D_SIMD )
    *      opcode  any of the XMM opcodes; it must be a compile time constant
    *      op1     first operand
    *      op2     second operand
+   *      imm8    optional third operand
    * Returns:
    *      result of opcode
    */
   void16 __simd(XMM opcode, void16 op1, void16 op2);
+
+  void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
 
   /* The following use overloading to ensure correct typing.
    * Compile with inlining on for best performance.
