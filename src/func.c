@@ -2371,6 +2371,23 @@ int fp2(void *param, FuncDeclaration *f)
             if (c1 < c2)
                 goto LlastIsBetter;
             }
+
+            /* If the two functions are the same function, like:
+             *    int foo(int);
+             *    int foo(int x) { ... }
+             * then pick the one with the body.
+             */
+            if (tf->equals(m->lastf->type) &&
+                f->storage_class == m->lastf->storage_class &&
+                f->parent == m->lastf->parent &&
+                f->protection == m->lastf->protection &&
+                f->linkage == m->lastf->linkage)
+            {
+                if (f->fbody && !m->lastf->fbody)
+                    goto LfIsBetter;
+                else if (!f->fbody && m->lastf->fbody)
+                    goto LlastIsBetter;
+            }
 #endif
         Lambiguous:
             m->nextf = f;

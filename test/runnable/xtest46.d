@@ -5467,6 +5467,20 @@ void test8665()
 
 /***************************************************/
 
+int foo8108(int, int);
+
+int foo8108(int a, int b)
+{
+    return a + b;
+}
+
+void test8108()
+{
+    foo8108(1,2);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5714,6 +5728,7 @@ int main()
     test8395();
     test160();
     test8665();
+    test8108();
 
     printf("Success\n");
     return 0;
