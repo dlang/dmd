@@ -437,6 +437,7 @@ int intrinsic_op(char *name)
         "4math6yl2xp1FNaNbNfeeZe",
 
         "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
 
         "5bitop2btFNaNbNfxPkkZi",
         "5bitop3bsfFNaNbNfkZi",
@@ -467,6 +468,7 @@ int intrinsic_op(char *name)
         "4math6yl2xp1FNaNbNfeeZe",
 
         "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vZNhG16v",
+        "4simd6__simdFNaNbNfE4core4simd3XMMNhG16vNhG16vhZNhG16v",
 
         "5bitop2btFNaNbNfxPmmZi",
         "5bitop3bsfFNaNbNfmZi",
@@ -496,6 +498,7 @@ int intrinsic_op(char *name)
         OPrndtol,
         OPyl2xp1,
 
+        OPvector,
         OPvector,
 
         OPbt,
