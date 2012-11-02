@@ -28,6 +28,7 @@
     #endif
 #elif _MSC_VER
     #define HAVE_FENV_H 0
+    #define isnan _isnan
 #else
     #define HAVE_FENV_H 1
 #endif

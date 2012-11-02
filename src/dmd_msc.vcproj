@@ -414,6 +414,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ctfeexpr.c"
+				>
+			</File>
+			<File
 				RelativePath=".\declaration.c"
 				>
 			</File>
@@ -957,6 +961,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\cv8.c"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\debug.c"
 					>
 				</File>
@@ -1094,6 +1102,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\outbuf.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\pdata.c"
 					>
 				</File>
 				<File
@@ -1739,7 +1751,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>

@@ -897,6 +897,12 @@ idx_t cv4_struct(Classsym *s,int flags)
         d = debtyp_alloc(len + cv_stringbytes(id));
         cv4_storenumeric(d->data + numidx,size);
     }
+    else if (config.fulltypes == CV8)
+    {   numidx = (st->Sflags & STRunion) ? 10 : 18;
+        len = numidx + cv4_numericbytes(size);
+        d = debtyp_alloc(len + cv_stringbytes(id));
+        cv4_storenumeric(d->data + numidx,size);
+    }
     else
     {   numidx = (st->Sflags & STRunion) ? 10 : 18;
         len = numidx + 4;
@@ -906,16 +912,18 @@ idx_t cv4_struct(Classsym *s,int flags)
     len += cv_namestring(d->data + len,id);
     switch (s->Sclass)
     {   case SCstruct:
-            leaf = LF_STRUCTURE;
+            leaf = config.fulltypes == CV8 ? LF_STRUCTURE_V3 : LF_STRUCTURE;
             if (st->Sflags & STRunion)
-            {   leaf = LF_UNION;
+            {   leaf = config.fulltypes == CV8 ? LF_UNION_V3 : LF_UNION;
                 break;
             }
             if (st->Sflags & STRclass)
-                leaf = LF_CLASS;
+                leaf = config.fulltypes == CV8 ? LF_CLASS_V3 : LF_CLASS;
             goto L1;
-        L1:
-            if (config.fulltypes == CV4)
+L1:
+            if (config.fulltypes == CV8)
+                TOLONG(d->data + 10,0);         // dList
+            else if (config.fulltypes == CV4)
                 TOWORD(d->data + 8,0);          // dList
             else
                 TOLONG(d->data + 10,0);         // dList
@@ -968,7 +976,9 @@ idx_t cv4_struct(Classsym *s,int flags)
         else
 #endif
         {
-            if (config.fulltypes == CV4)
+            if (config.fulltypes == CV8)
+                TOLONG(d->data + 14,0);         // vshape
+            else if (config.fulltypes == CV4)
                 TOWORD(d->data + 10,0);         // vshape
             else
                 TOLONG(d->data + 14,0);         // vshape
@@ -1005,16 +1015,21 @@ printf("fwd struct ref\n");
     else
 #endif
     {
+        unsigned dlen = d->length;      // reread, it might include padding bytes
         d->length = 0;                  // so cv_debtyp() will allocate new
         s->Stypidx = cv_debtyp(d);
-        d->length = len;                // restore length
+        d->length = dlen;               // restore length
     }
 
     if (refonly)                        // if reference only
     {
         //printf("refonly\n");
         TOWORD(d->data + 2,0);          // count: number of fields is 0
-        if (config.fulltypes == CV4)
+        if (config.fulltypes == CV8)
+        {   TOLONG(d->data + 6,0);              // field list is 0
+            TOWORD(d->data + 4,property);
+        }
+        else if (config.fulltypes == CV4)
         {   TOWORD(d->data + 4,0);              // field list is 0
             TOWORD(d->data + 6,property);
         }
@@ -1733,6 +1748,7 @@ unsigned cv4_typidx(type *t)
     unsigned dt;
     unsigned attribute;
     unsigned char call;
+    unsigned idxtype;
 
     //dbg_printf("cv4_typidx(%p)\n",t);
     if (!t)
@@ -1817,6 +1833,7 @@ L1:
 #endif
 
         L2:
+#if 0 // is the hack still necessary? it crashes when building druntime with debug info
             if (config.fulltypes == CV4)
             {
                 // This is a hack to duplicate bugs in VC, so that the VC
@@ -1832,6 +1849,7 @@ L1:
                     break;
                 }
             }
+#endif
             if ((next & 0xFF00) == 0 && !(attribute & 0xE0))
                 typidx = next | dt;
             else
@@ -1875,7 +1893,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 1);     // 1 = dynamic array
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -1914,7 +1932,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 2);     // 2 = associative array
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -1955,7 +1973,7 @@ L1:
             {
                 case CV8:
                     d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
+                    TOWORD(d->data, LF_OEM_V2);
                     TOWORD(d->data + 2, OEM);
                     TOLONG(d->data + 4, 3);     // 3 = delegate
                     TOWORD(d->data + 8, 2);     // count of type indices to follow
@@ -2001,14 +2019,14 @@ L1:
                 size = type_size(t);
         Larray:
             u = cv4_numericbytes(size);
-            unsigned idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
+            idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
             if (I64)
                 idxtype = 0x23;                    // T_UQUAD
             switch (config.fulltypes)
             {
                 case CV8:
                     d = debtyp_alloc(10 + u + 1);
-                    TOWORD(d->data,0x1503);
+                    TOWORD(d->data,LF_ARRAY_V3);
                     TOLONG(d->data + 2,next);
                     TOLONG(d->data + 6,idxtype);
                     d->data[10 + u] = 0;             // no name
