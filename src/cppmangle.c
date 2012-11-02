@@ -133,8 +133,7 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
         {
             s->error("C++ static variables not supported");
         }
-        else
-        if (fd->isConst())
+        else if (fd->type->isConst())
             buf->writeByte('K');
 
         prefix_name(buf, cms, p);
