@@ -40,6 +40,9 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #if MARS
 #if TARGET_WINDOS
 
+#include        <direct.h>
+#include        "root.h"
+
 // The "F1" section, which is the symbols
 static Outbuffer *F1_buf;
 
@@ -401,10 +404,30 @@ unsigned cv8_addfile(const char *filename)
     unsigned char *p = F3_buf->buf;
     size_t len = strlen(filename);
 
+    // ensure the filename is absolute to help the debugger to find the source
+    // without having to know the working directory during compilation
+    static char cwd[260];
+    static unsigned cwdlen;
+    bool abs = FileName::absolute(filename);
+    if (!abs && cwd[0] == 0)
+    {
+        if (getcwd(cwd, sizeof(cwd)))
+        {
+            cwdlen = strlen(cwd);
+            if(cwd[cwdlen - 1] != '\\' && cwd[cwdlen - 1] != '/')
+                cwd[cwdlen++] = '\\';
+        }
+    }
     unsigned off = 1;
     while (off + len < length)
     {
-        if (memcmp(p + off, filename, len + 1) == 0)
+        if (!abs)
+        {
+            if (memcmp(p + off, cwd, cwdlen) == 0 &&
+                memcmp(p + off + cwdlen, filename, len + 1) == 0)
+                goto L1;
+        }
+        else if (memcmp(p + off, filename, len + 1) == 0)
         {   // Already there
             //printf("\talready there at %x\n", off);
             goto L1;
@@ -413,6 +436,8 @@ unsigned cv8_addfile(const char *filename)
     }
     off = length;
     // Add it
+    if(!abs)
+        F3_buf->write(cwd, cwdlen);
     F3_buf->write(filename, len + 1);
 
 L1:
