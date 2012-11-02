@@ -196,9 +196,10 @@ unsigned cv4_Denum(EnumDeclaration *e)
         default:
             assert(0);
     }
+    unsigned length_save = d->length;
     d->length = 0;                      // so cv_debtyp() will allocate new
     idx_t typidx = cv_debtyp(d);
-    d->length = len;                    // restore length
+    d->length = length_save;            // restore length
 
     TOWORD(d->data + 2,nfields);
 
@@ -248,6 +249,30 @@ unsigned cv4_Denum(EnumDeclaration *e)
 
 //    cv4_outsym(s);
     return typidx;
+}
+
+/*************************************
+ * Align and pad.
+ * Returns:
+ *      aligned count
+ */
+unsigned cv_align(unsigned char *p, unsigned n)
+{
+    if (config.fulltypes == CV8)
+    {
+        if (p)
+        {
+            unsigned npad = -n & 3;
+            while (npad)
+            {
+                *p = 0xF0 + npad;
+                ++p;
+                --npad;
+            }
+        }
+        n = (n + 3) & ~3;
+    }
+    return n;
 }
 
 /* ==================================================================== */
@@ -418,9 +443,10 @@ void StructDeclaration::toDebug()
 
     // Assign a number to prevent infinite recursion if a struct member
     // references the same struct.
+    unsigned length_save = d->length;
     d->length = 0;                      // so cv_debtyp() will allocate new
     typidx = cv_debtyp(d);
-    d->length = len;            // restore length
+    d->length = length_save;            // restore length
 
     if (!members)                       // if reference only
     {
@@ -555,10 +581,10 @@ void ClassDeclaration::toDebug()
     {
         size_t n = vtbl.dim;                   // number of virtual functions
         if (n)
-        {
+        {   // 4 bits per descriptor
             debtyp_t *vshape = debtyp_alloc(4 + (n + 1) / 2);
             TOWORD(vshape->data,LF_VTSHAPE);
-            TOWORD(vshape->data + 2,1);
+            TOWORD(vshape->data + 2,n);
 
             n = 0;
             unsigned char descriptor = 0;
@@ -588,9 +614,10 @@ void ClassDeclaration::toDebug()
 
     // Assign a number to prevent infinite recursion if a struct member
     // references the same struct.
+    unsigned length_save = d->length;
     d->length = 0;                      // so cv_debtyp() will allocate new
     typidx = cv_debtyp(d);
-    d->length = len;            // restore length
+    d->length = length_save;            // restore length
 
     if (!members)                       // if reference only
     {
@@ -613,13 +640,23 @@ void ClassDeclaration::toDebug()
     CvMemberCount mc;
     mc.nfields = 0;
     mc.fnamelen = 2;
+
+    /* Adding in the base classes causes VS debugger to refuse to display any
+     * of the fields. I have not been able to determine why.
+     * (Could it be because the base class is "forward referenced"?)
+     */
+#if 0
     // Add in base classes
     for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *bc = (*baseclasses)[i];
 
         mc.nfields++;
-        mc.fnamelen += 4 + cgcv.sz_idx + cv4_numericbytes(bc->offset);
+        unsigned elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc->offset);
+        elementlen = cv_align(NULL, elementlen);
+        mc.fnamelen += elementlen;
     }
+#endif
+
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
         s->apply(&cv_mem_count, &mc);
@@ -638,6 +675,7 @@ void ClassDeclaration::toDebug()
     TOWORD(p,config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     p += 2;
 
+#if 0
     // Add in base classes
     for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *bc = (*baseclasses)[i];
@@ -645,26 +683,30 @@ void ClassDeclaration::toDebug()
         idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
         unsigned attribute = PROTtoATTR(bc->protection);
 
+        unsigned elementlen;
         switch (config.fulltypes)
         {
             case CV8:
                 TOWORD(p, LF_BCLASS_V2);
                 TOWORD(p + 2,attribute);
                 TOLONG(p + 4,typidx);
-                p += 8;
+                elementlen = 8;
                 break;
 
             case CV4:
                 TOWORD(p, LF_BCLASS);
                 TOWORD(p + 2,typidx);
                 TOWORD(p + 4,attribute);
-                p += 6;
+                elementlen = 6;
                 break;
         }
 
-        cv4_storenumeric(p, bc->offset);
-        p += cv4_numericbytes(bc->offset);
+        cv4_storenumeric(p + elementlen, bc->offset);
+        elementlen += cv4_numericbytes(bc->offset);
+        elementlen = cv_align(p + elementlen, elementlen);
+        p += elementlen;
     }
+#endif
 
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
@@ -736,6 +778,7 @@ int cvMember(unsigned char *p, char *id, idx_t typidx)
             if (!p)
             {
                 nwritten += 8;
+                nwritten = cv_align(NULL, nwritten);
             }
             else
             {
@@ -743,6 +786,7 @@ int cvMember(unsigned char *p, char *id, idx_t typidx)
                 TOWORD(p + 2,0);
                 TOLONG(p + 4,typidx);
                 nwritten = 8 + cv_namestring(p + 8, id);
+                nwritten = cv_align(p + nwritten, nwritten);
             }
             break;
 
@@ -798,7 +842,9 @@ int FuncDeclaration::cvMember(unsigned char *p)
 
     if (!p)
     {
-        return 2 + 2 + cgcv.sz_idx + cv_stringbytes(id);
+        nwritten = 2 + 2 + cgcv.sz_idx + cv_stringbytes(id);
+        nwritten = cv_align(NULL, nwritten);
+        return nwritten;
     }
     else
     {
@@ -885,6 +931,7 @@ int FuncDeclaration::cvMember(unsigned char *p)
                     assert(0);
             }
         }
+        nwritten = cv_align(p + nwritten, nwritten);
 #ifdef DEBUG
         assert(nwritten == cvMember(NULL));
 #endif
@@ -918,6 +965,7 @@ int VarDeclaration::cvMember(unsigned char *p)
                 nwritten += 2;
             nwritten += 6 + cv_stringbytes(id);
         }
+        nwritten = cv_align(NULL, nwritten);
     }
     else
     {
@@ -930,8 +978,8 @@ int VarDeclaration::cvMember(unsigned char *p)
                 if (storage_class & STCfield)
                 {
                     TOWORD(p,LF_MEMBER_V3);
-                    TOWORD(p + 2,typidx);
-                    TOLONG(p + 4,attribute);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
                     cv4_storenumeric(p + 8, offset);
                     nwritten = 8 + cv4_numericbytes( offset);
                     nwritten += cv_namestring(p + nwritten, id);
@@ -939,8 +987,8 @@ int VarDeclaration::cvMember(unsigned char *p)
                 else if (isStatic())
                 {
                     TOWORD(p,LF_STMEMBER_V3);
-                    TOWORD(p + 2,typidx);
-                    TOLONG(p + 4,attribute);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
                     nwritten = 8;
                     nwritten += cv_namestring(p + nwritten, id);
                 }
@@ -970,6 +1018,7 @@ int VarDeclaration::cvMember(unsigned char *p)
                 assert(0);
         }
 
+        nwritten = cv_align(p + nwritten, nwritten);
 #ifdef DEBUG
         assert(nwritten == cvMember(NULL));
 #endif
