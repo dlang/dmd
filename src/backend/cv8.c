@@ -650,6 +650,51 @@ int cv8_regnum(Symbol *s)
     return reg;
 }
 
+/***************************************
+ * Put out a forward ref for structs, unions, and classes.
+ * Only put out the real definitions with toDebug().
+ */
+idx_t cv8_fwdref(Symbol *s)
+{
+    assert(config.fulltypes == CV8);
+//    if (s->Stypidx && !global.params.multiobj)
+//      return s->Stypidx;
+    struct_t *st = s->Sstruct;
+    unsigned leaf;
+    unsigned numidx;
+    if (st->Sflags & STRunion)
+    {
+        leaf = LF_UNION_V3;
+        numidx = 10;
+    }
+    else if (st->Sflags & STRclass)
+    {
+        leaf = LF_CLASS_V3;
+        numidx = 18;
+    }
+    else
+    {
+        leaf = LF_STRUCTURE_V3;
+        numidx = 18;
+    }
+    unsigned len = numidx + cv4_numericbytes(0);
+    debtyp_t *d = debtyp_alloc(len + cv_stringbytes(s->Sident));
+    TOWORD(d->data, leaf);
+    TOWORD(d->data + 2, 0);     // number of fields
+    TOWORD(d->data + 4, 0x80);  // property
+    TOLONG(d->data + 6, 0);     // field list
+    if (leaf == LF_CLASS_V3 || leaf == LF_STRUCTURE_V3)
+    {
+        TOLONG(d->data + 10, 0);        // dList
+        TOLONG(d->data + 14, 0);        // vshape
+    }
+    cv4_storenumeric(d->data + numidx, 0);
+    cv_namestring(d->data + len, s->Sident);
+    idx_t typidx = cv_debtyp(d);
+    s->Stypidx = typidx;
+    return typidx;
+}
+
 
 #endif
 #endif

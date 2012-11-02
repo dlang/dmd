@@ -83,6 +83,7 @@ void cv8_linnum(Srcpos srcpos, targ_size_t offset);
 void cv8_outsym(Symbol *s);
 void cv8_udt(const char *id, idx_t typidx);
 int cv8_regnum(Symbol *s);
+idx_t cv8_fwdref(Symbol *s);
 
 #endif
 
