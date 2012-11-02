@@ -243,7 +243,6 @@ void printCtfePerformanceStats()
 Expression * resolveReferences(Expression *e, Expression *thisval);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
-Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -1575,7 +1574,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
                 continue;
             }
             else if (v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
-                  || v->getValue()->op == TOKthis ))
+                  || v->getValue()->op == TOKthis  || v->getValue()->op == TOKvar))
             {
                 e = v->getValue();
                 continue;
@@ -1735,6 +1734,10 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
             else     // CTFE initiated from inside a function
                 error("variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
+        }
+        else if (v && v->hasValue() && v->getValue()->op == TOKvar)
+        {   // A ref of a reference,  is the original reference
+            return v->getValue();
         }
         return this;
     }
@@ -2495,7 +2498,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
         }
     }
+    // If it is a reference type (eg, an array), we need an lvalue.
+    // If it is a reference variable (such as happens in foreach), we
+    // need an lvalue reference. For example if x, y are int[], then
+    // y[0..4] = x[0..4] is an rvalue assignment (all copies in the
+    //   slice are duplicated)
+    // y = x[0..4] is an lvalue assignment (if x[0] changes later,
+    //    y[0] will also change)
+    // ref int [] z = x is an lvalueref assignment (if x itself changes,
+    //   z will also change)
     bool wantRef = false;
+    bool wantLvalueRef = false;
+
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
         (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type)
              || e1->type->toBasetype()->ty == Tclass)
@@ -2534,10 +2548,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         wantRef = true;
     }
     // If it is a construction of a ref variable, it is a ref assignment
+    // (in fact, it is an lvalue reference assignment).
     if (op == TOKconstruct && this->e1->op==TOKvar
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
          wantRef = true;
+         wantLvalueRef = true;
     }
 
     if (fp)
@@ -2765,7 +2781,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // ---------------------------------------
     if (wantRef && !fp && this->e1->op != TOKarraylength)
     {
-        newval = this->e2->interpret(istate, ctfeNeedLvalue);
+        newval = this->e2->interpret(istate,
+            wantLvalueRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
         if (exceptionOrCantInterpret(newval))
             return newval;
         // If it is an assignment from a array function parameter passed by

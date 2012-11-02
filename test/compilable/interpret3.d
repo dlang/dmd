@@ -4109,6 +4109,47 @@ static assert(bug7245(0)==6);
 static assert(bug7245(1)==5);
 
 /**************************************************
+    8498 modifying foreach
+    7658 foreach ref
+    8539 nested funcs, ref param, -inline
+**************************************************/
+
+int bug8498()
+{
+    foreach(i; 0..5)
+    {
+        assert(i == 0);
+        i = 100;
+    }
+    return 1;
+}
+static assert(bug8498());
+
+string bug7658() {
+    string[] children = ["0"];
+    foreach(ref child; children)
+        child = "1";
+    return children[0];
+}
+
+static assert(bug7658() == "1");
+
+int bug8539() {
+    static void one(ref int x) {
+        x = 1;
+    }
+    static void go() {
+        int y;
+        one(y);
+        assert(y == 1); // fails with -inline
+    }
+    go();
+    return 1;
+}
+
+static assert(bug8539());
+
+/**************************************************
     6919
 **************************************************/
 
