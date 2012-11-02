@@ -691,6 +691,29 @@ void TemplateDeclaration::emitComment(Scope *sc)
 
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
+
+    /* get field attributes. errors are ok during
+       semantic for a ddoc generation */
+    if (onemember)
+    {
+        // class(T)/struct(T)-style template
+        ScopeDsymbol *sd = ((ScopeDsymbol *)ss);
+        unsigned errors = global.startGagging();
+        sd->semantic(sc);
+        global.endGagging(errors);
+    }
+    else
+    {
+        // template(T)-style template
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *s = (*members)[i];
+            unsigned errors = global.startGagging();
+            s->semantic(sc);
+            global.endGagging(errors);
+        }
+    }
+
     if (hasmembers)
         ((ScopeDsymbol *)ss)->emitMemberComments(sc);
     buf->writestring(ddoc_decl_dd_e);
@@ -1062,6 +1085,11 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             (td = parent->isTemplateDeclaration()) != NULL &&
             td->onemember == this)
         {   size_t o = buf->offset;
+            if (isAbstract())
+                buf->writestring("abstract ");
+            if (isDeclaration() && isDeclaration()->isSynchronized())
+                buf->writestring("synchronized ");
+
             td->toDocBuffer(buf, sc);
             highlightCode(NULL, this, buf, o);
         }
@@ -1070,6 +1098,9 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             emitAnchor(buf, this);
             if (isAbstract())
                 buf->writestring("abstract ");
+            if (isDeclaration() && isDeclaration()->isSynchronized())
+                buf->writestring("synchronized ");
+
             buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
         }
         int any = 0;
