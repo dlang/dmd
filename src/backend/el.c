@@ -391,6 +391,25 @@ int el_nparams(elem *e)
         return 1;
 }
 
+/******************************************
+ * Fill an array with the parameters.
+ */
+
+void el_paramArray(elem ***parray, elem *e)
+{
+    if (e->Eoper == OPparam)
+    {
+        el_paramArray(parray, e->E1);
+        el_paramArray(parray, e->E2);
+        freenode(e);
+    }
+    else
+    {
+        **parray = e;
+        ++(*parray);
+    }
+}
+
 /*************************************
  * Create a quad word out of two dwords.
  */

@@ -44,26 +44,26 @@ enum
     STOSS  = 0xF30F11,      // MOVSS
     STOSD  = 0xF20F11,
     STOAPS = 0x000F29,
-    STOAPD = 0x660F29,
+    STOAPD = 0x660F29,          // MOVAPD xmm1/mem128, xmm2   66 0F 29 /r
     STODQA = 0x660F7F,
-    STOD   = 0x660F7E,
+    STOD   = 0x660F7E,          // MOVD reg/mem64, xmm   66 0F 7E /r
     STOQ   = 0x660FD6,
 
     LODSS  = 0xF30F10,      // MOVSS
     LODSD  = 0xF20F10,
     LODAPS = 0x000F28,
-    LODAPD = 0x660F28,
+    LODAPD = 0x660F28,          // MOVAPD xmm1, xmm2/mem128   66 0F 28 /r
     LODDQA = 0x660F6F,
-    LODD   = 0x660F6E,
+    LODD   = 0x660F6E,          // MOVD xmm, reg/mem64   66 0F 6E /r
     LODQ   = 0xF30F7E,
 
-    LODDQU   = 0xF30F6F,
-    STODQU   = 0xF30F7F,
-    MOVDQ2Q  = 0xF20FD6,
-    MOVHLPS  = 0x0F12,
+    LODDQU   = 0xF30F6F,        // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
+    STODQU   = 0xF30F7F,        // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
+    MOVDQ2Q  = 0xF20FD6,        // MOVDQ2Q mmx, xmm          F2 0F D6 /r
+    MOVHLPS  = 0x0F12,          // MOVHLPS xmm1, xmm2        0F 12 /r
     LODHPD   = 0x660F16,
-    STOHPD   = 0x660F17,
-    LODHPS   = 0x0F16,
+    STOHPD   = 0x660F17,        // MOVHPD mem64, xmm         66 0F 17 /r
+    LODHPS   = 0x0F16,          // MOVHPD xmm, mem64         66 0F 16 /r
     STOHPS   = 0x0F17,
     MOVLHPS  = 0x0F16,
     LODLPD   = 0x660F12,
@@ -98,14 +98,22 @@ enum
     PCMPGTD = 0x660F66,
     PCMPGTW = 0x660F65,
     PMADDWD = 0x660FF5,
-    PSLLW = 0x660FF1,
-    PSLLD = 0x660FF2,
-    PSLLQ = 0x660FF3,
-    PSRAW = 0x660FE1,
-    PSRAD = 0x660FE2,
-    PSRLW = 0x660FD1,
-    PSRLD = 0x660FD2,
-    PSRLQ = 0x660FD3,
+    PSLLW = 0x660FF1,   // PSLLW xmm1, xmm2/mem128    66 0F F1 /r
+                        // PSLLW xmm, imm8            66 0F 71 /6 ib
+    PSLLD = 0x660FF2,   // PSLLD xmm1, xmm2/mem128    66 0F F2 /r
+                        // PSLLD xmm, imm8            66 0F 72 /6 ib
+    PSLLQ = 0x660FF3,   // PSLLQ xmm1, xmm2/mem128    66 0F F3 /r
+                        // PSLLQ xmm, imm8            66 0F 73 /6 ib
+    PSRAW = 0x660FE1,   // PSRAW xmm1, xmm2/mem128    66 0F E1 /r
+                        // PSRAW xmm, imm8            66 0F 71 /4 ib
+    PSRAD = 0x660FE2,   // PSRAD xmm1, xmm2/mem128    66 0F E2 /r
+                        // PSRAD xmm, imm8            66 0F 72 /4 ib
+    PSRLW = 0x660FD1,   // PSRLW xmm1, xmm2/mem128    66 0F D1 /r
+                        // PSRLW xmm, imm8            66 0F 71 /2 ib
+    PSRLD = 0x660FD2,   // PSRLD xmm1, xmm2/mem128    66 0F D2 /r
+                        // PSRLD xmm, imm8            66 0F 72 /2 ib
+    PSRLQ = 0x660FD3,   // PSRLQ xmm1, xmm2/mem128    66 0F D3 /r
+                        // PSRLQ xmm, imm8            66 0F 73 /2 ib
     PSUBSB = 0x660FE8,
     PSUBSW = 0x660FE9,
     PSUBUSB = 0x660FD8,
@@ -127,48 +135,54 @@ enum
     CMPSS = 0xF30FC2,
     COMISD = 0x660F2F,
     COMISS = 0x0F2F,
-    CVTDQ2PD = 0xF30FE6,
-    CVTDQ2PS = 0x0F5B,
-    CVTPD2DQ = 0xF20FE6,
-    CVTPD2PI = 0x660F2D,
-    CVTPD2PS = 0x660F5A,
-    CVTPI2PD = 0x660F2A,
-    CVTPI2PS = 0x0F2A,
-    CVTPS2DQ = 0x660F5B,
-    CVTPS2PD = 0x0F5A,
-    CVTPS2PI = 0x0F2D,
-    CVTSD2SI = 0xF20F2D,
-    CVTSD2SS = 0xF20F5A,
-    CVTSI2SD = 0xF20F2A,
-    CVTSI2SS = 0xF30F2A,
-    CVTSS2SD = 0xF30F5A,
-    CVTSS2SI = 0xF30F2D,
-    CVTTPD2PI = 0x660F2C,
-    CVTTPD2DQ = 0x660FE6,
-    CVTTPS2DQ = 0xF30F5B,
-    CVTTPS2PI = 0x0F2C,
-    CVTTSD2SI = 0xF20F2C,
-    CVTTSS2SI = 0xF30F2C,
-    MASKMOVDQU = 0x660FF7,
-    MASKMOVQ = 0x0FF7,
-    MAXPD = 0x660F5F,
-    MAXPS = 0x0F5F,
-    MAXSD = 0xF20F5F,
+    CVTDQ2PD = 0xF30FE6,        // CVTDQ2PD   xmm1, xmm2/mem64  F3 0F E6 /r
+    CVTDQ2PS = 0x0F5B,          // CVTDQ2PS   xmm1, xmm2/mem128 0F 5B /r
+    CVTPD2DQ = 0xF20FE6,        // CVTPD2DQ   xmm1, xmm2/mem128 F2 0F E6 /r
+    CVTPD2PI = 0x660F2D,        // CVTPD2PI   mmx, xmm2/mem128  66 0F 2D /r
+    CVTPD2PS = 0x660F5A,        // CVTPD2PS   xmm1, xmm2/mem128 66 0F 5A /r
+    CVTPI2PD = 0x660F2A,        // CVTPI2PD   xmm, mmx/mem64    66 0F 2A /r
+    CVTPI2PS = 0x0F2A,          // CVTPI2PS   xmm, mmx/mem64    0F 2A /r
+    CVTPS2DQ = 0x660F5B,        // CVTPS2DQ   xmm1, xmm2/mem128 66 0F 5B /r
+    CVTPS2PD = 0x0F5A,          // CVTPS2PD   xmm1, xmm2/mem64  0F 5A /r
+    CVTPS2PI = 0x0F2D,          // CVTPS2PI   mmx, xmm/mem64    0F 2D /r
+    CVTSD2SI = 0xF20F2D,        // CVTSD2SI   reg32, xmm/mem64  F2 0F 2D /r
+                                // CVTSD2SI   reg64, xmm/mem64  F2 0F 2D /r
+    CVTSD2SS = 0xF20F5A,        // CVTSD2SS   xmm1, xmm2/mem64  F2 0F 5A /r
+    CVTSI2SD = 0xF20F2A,        // CVTSI2SD   xmm, reg/mem32    F2 0F 2A /r
+                                // CVTSI2SD   xmm, reg/mem64    F2 0F 2A /r
+    CVTSI2SS = 0xF30F2A,        // CVTSI2SS   xmm, reg/mem32    F3 0F 2A /r
+                                // CVTSI2SS   xmm, reg/mem64    F3 0F 2A /r
+    CVTSS2SD = 0xF30F5A,        // CVTSS2SD   xmm1, xmm2/mem32  F3 0F 5A /r
+    CVTSS2SI = 0xF30F2D,        // CVTSS2SI   reg32, xmm2/mem32 F3 0F 2D /r
+                                // CVTSS2SI   reg64, xmm2/mem32 F3 0F 2D /r
+    CVTTPD2PI = 0x660F2C,       // CVTPD2PI   mmx, xmm/mem128   66 0F 2C /r
+    CVTTPD2DQ = 0x660FE6,       // CVTTPD2DQ  xmm1, xmm2/mem128 66 0F E6 /r
+    CVTTPS2DQ = 0xF30F5B,       // CVTTPS2DQ  xmm1, xmm2/mem128 F3 0F 5B /r
+    CVTTPS2PI = 0x0F2C,         // CVTTPS2PI  mmx xmm/mem64     0F 2C /r
+    CVTTSD2SI = 0xF20F2C,       // CVTTSD2SI  reg32, xmm/mem64  F2 0F 2C /r
+                                // CVTTSD2SI  reg64, xmm/mem64  F2 0F 2C /r
+    CVTTSS2SI = 0xF30F2C,       // CVTTSS2SI  reg32, xmm/mem32  F3 0F 2C /r
+                                // CVTTSS2SI  reg64, xmm/mem32  F3 0F 2C /r
+    MASKMOVDQU = 0x660FF7,      // MASKMOVDQU xmm1, xmm2        66 0F F7 /r
+    MASKMOVQ = 0x0FF7,          // MASKMOVQ   mm1,mm2           0F F7 /r
+    MAXPD = 0x660F5F,           // MAXPD      xmm1, xmm2/mem128 66 0F 5F /r
+    MAXPS = 0x0F5F,             // MAXPS      xmm1, xmm2/mem128 0F 5F /r
+    MAXSD = 0xF20F5F,           // MAXSD      xmm1, xmm2/mem64  F2 0F 5F /r
     MAXSS = 0xF30F5F,
     MINPD = 0x660F5D,
     MINPS = 0x0F5D,
     MINSD = 0xF20F5D,
-    MINSS = 0xF30F5D,
+    MINSS = 0xF30F5D,           // MINSS xmm1, xmm2/mem32   F3 0F 5D /r
     ORPD = 0x660F56,
     ORPS = 0x0F56,
     PAVGB = 0x660FE0,
     PAVGW = 0x660FE3,
     PMAXSW = 0x660FEE,
-    PINSRW = 0x660FC4,
+    PINSRW = 0x660FC4,          // PINSRW xmm, reg32/mem16, imm8   66 0F C4 /r ib
     PMAXUB = 0x660FDE,
     PMINSW = 0x660FEA,
     PMINUB = 0x660FDA,
-    PMOVMSKB = 0x660FD7,
+    PMOVMSKB = 0x660FD7,        // PMOVMSKB reg32, xmm   66 0F D7 /r
     PMULHUW = 0x660FE4,
     PMULHW = 0x660FE5,
     PMULUDQ = 0x660FF4,
@@ -187,15 +201,15 @@ enum
     SQRTSS = 0xF30F51,
     UNPCKHPD = 0x660F15,
     UNPCKHPS = 0x0F15,
-    UNPCKLPD = 0x660F14,
+    UNPCKLPD = 0x660F14,        // UNPCKLPD xmm1, xmm2/mem128   66 0F 14 /r
     UNPCKLPS = 0x0F14,
 
     PSHUFD = 0x660F70,
     PSHUFHW = 0xF30F70,
-    PSHUFLW = 0xF20F70,
+    PSHUFLW = 0xF20F70,         // PSHUFLW xmm1, xmm2/mem128, imm8  F2 0F 70 /r ib
     PSHUFW = 0x0F70,
-    PSLLDQ = 0x660F73,
-    PSRLDQ = 0x660F73,
+    PSLLDQ = 0x07660F73,        // PSLLDQ xmm, imm8   66 0F 73 /7 ib
+    PSRLDQ = 0x03660F73,        // PSRLDQ xmm, imm8   66 0F 73 /3 ib
 
     PREFETCH = 0x0F18,
 
