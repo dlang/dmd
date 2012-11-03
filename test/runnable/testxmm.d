@@ -894,6 +894,17 @@ float4 test5(float4 a, float4 b)
     a = __simd(XMM.ROUNDSD, a, b, 0x7A);
     a = __simd(XMM.ROUNDSS, a, b, 0x7A);
 
+    a = __simd_ib(XMM.PSLLD, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSLLQ, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSLLW, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRAD, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRAW, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRLD, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRLQ, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRLW, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSRLDQ, a, cast(ubyte)0x7A);
+    a = __simd_ib(XMM.PSLLDQ, a, cast(ubyte)0x7A);
+
     return a;
 }
 

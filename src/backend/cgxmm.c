@@ -788,25 +788,35 @@ code *cdvector(elem *e, regm_t *pretregs)
         exit(1);
     }
 
-    elem *imm8 = NULL;
-    elem *e1 = e->E1;
-    if (e1->Eoper == OPparam &&
-        e1->E1->Eoper == OPparam &&
-        e1->E1->E1->Eoper == OPparam)
-    {
-        imm8 = e1->E2;
-        assert(imm8->Eoper == OPconst);
-        e1 = e1->E1;
-    }
-    assert(e1->Eoper == OPparam);
-    elem *op2 = e1->E2;
-    e1 = e1->E1;
-    assert(e1->Eoper == OPparam);
-    elem *eop = e1->E1;
-    assert(eop->Eoper == OPconst);
-    elem *op1 = e1->E2;
+    unsigned n = el_nparams(e->E1);
+    elem **params = (elem **)malloc(n * sizeof(elem *));
+    assert(params);
+    elem **tmp = params;
+    el_paramArray(&tmp, e->E1);
 
+#if 0
+    printf("cdvector()\n");
+    for (int i = 0; i < n; i++)
+    {
+        printf("[%d]: ", i);
+        elem_print(params[i]);
+    }
+#endif
+
+    assert(n == 3 || n == 4);
+
+    elem *eop = params[0];
+    elem *op1 = params[1];
+    elem *op2 = params[2];
+    elem *imm8 = NULL;
+    if (n == 4)
+    {   imm8 = params[3];
+        assert(imm8->Eoper == OPconst);
+    }
+
+    unsigned op = el_tolong(eop);
     tym_t ty1 = tybasic(op1->Ety);
+    tym_t ty2 = tybasic(op2->Ety);
     unsigned sz1 = tysize[ty1];
     assert(sz1 == 16);       // float or double
     regm_t retregs = *pretregs & XMMREGS;
@@ -814,17 +824,63 @@ code *cdvector(elem *e, regm_t *pretregs)
         retregs = XMMREGS;
     code *c = codelem(op1,&retregs,FALSE); // eval left leaf
     unsigned reg = findreg(retregs);
-    regm_t rretregs = XMMREGS & ~retregs;
-    code *cr = scodelem(op2, &rretregs, retregs, TRUE);  // eval right leaf
-    unsigned rreg = findreg(rretregs);
-    code *cg = getregs(retregs);
-    unsigned op = el_tolong(eop);
-    code *co;
-    if (imm8)
-        co = genc2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0), el_tolong(imm8));
+
+    code *cr, *cg, *co;
+    if (n == 3 && ty2 == TYuchar && op2->Eoper == OPconst)
+    {
+        int r;
+        switch (op)
+        {
+            case PSLLD:  r = 6; op = 0x660F72;  break;
+            case PSLLQ:  r = 6; op = 0x660F73;  break;
+            case PSLLW:  r = 6; op = 0x660F71;  break;
+            case PSRAD:  r = 4; op = 0x660F72;  break;
+            case PSRAW:  r = 4; op = 0x660F71;  break;
+            case PSRLD:  r = 2; op = 0x660F72;  break;
+            case PSRLQ:  r = 2; op = 0x660F73;  break;
+            case PSRLW:  r = 2; op = 0x660F71;  break;
+            case PSRLDQ: r = 3; op = 0x660F73;  break;
+            case PSLLDQ: r = 7; op = 0x660F73;  break;
+
+            default:
+                printf("op = x%x\n", op);
+                assert(0);
+                break;
+        }
+        cr = CNIL;
+        cg = getregs(retregs);
+        co = genc2(CNIL,op,modregrmx(3,r,reg-XMM0), el_tolong(op2));
+    }
     else
-        co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    {
+        regm_t rretregs = XMMREGS & ~retregs;
+        cr = scodelem(op2, &rretregs, retregs, TRUE);  // eval right leaf
+        unsigned rreg = findreg(rretregs);
+        cg = getregs(retregs);
+        if (imm8)
+        {
+            switch (op)
+            {
+                case CMPPD:   case CMPSS:   case CMPSD:   case CMPPS:
+                case PSHUFD:  case PSHUFHW: case PSHUFLW:
+                case BLENDPD: case BLENDPS: case DPPD:    case DPPS:
+                case MPSADBW: case PBLENDW:
+                case ROUNDPD: case ROUNDPS: case ROUNDSD: case ROUNDSS:
+                case SHUFPD:  case SHUFPS:
+                    break;
+                default:
+                    printf("op = x%x\n", op);
+                    assert(0);
+                    break;
+            }
+            co = genc2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0), el_tolong(imm8));
+        }
+        else
+            co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+    }
     co = cat(co,fixresult(e,retregs,pretregs));
+    free(params);
+    freenode(e);
     return cat4(c,cr,cg,co);
 }
 
