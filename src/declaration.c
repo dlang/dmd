@@ -439,6 +439,7 @@ Dsymbol *AliasDeclaration::syntaxCopy(Dsymbol *s)
         sa = new AliasDeclaration(loc, ident, type->syntaxCopy());
     else
         sa = new AliasDeclaration(loc, ident, aliassym->syntaxCopy(NULL));
+    sa->storage_class = storage_class;
 
     // Syntax copy for header file
     if (!htype)     // Don't overwrite original
