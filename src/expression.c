@@ -8362,6 +8362,30 @@ Lagain:
 
         if (ve->hasOverloads)
             f = f->overloadResolve(loc, NULL, arguments, 2);
+        else
+        {
+            TypeFunction *tf = (TypeFunction *)f->type;
+            if (!tf->callMatch(NULL, arguments))
+            {
+                OutBuffer buf;
+
+                buf.writeByte('(');
+                if (arguments && arguments->dim)
+                {
+                    HdrGenState hgs;
+
+                    argExpTypesToCBuffer(&buf, arguments, &hgs);
+                }
+                buf.writeByte(')');
+
+                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+                ::error(loc, "%s %s is not callable using argument types %s",
+                    e1->toChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                    buf.toChars());
+
+                return new ErrorExp();
+            }
+        }
 
         if (f->needThis())
         {
