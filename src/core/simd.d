@@ -115,7 +115,7 @@ version ( D_SIMD )
     //STOAPS = 0x000F29,
     //STOAPD = 0x660F29,
     //STODQA = 0x660F7F,
-    //STOD   = 0x660F7E,
+    //STOD   = 0x660F7E,        // MOVD reg/mem64, xmm   66 0F 7E /r
     //STOQ   = 0x660FD6,
 
     LODSS  = 0xF30F10,      // MOVSS
@@ -123,16 +123,16 @@ version ( D_SIMD )
     LODAPS = 0x000F28,
     LODAPD = 0x660F28,
     LODDQA = 0x660F6F,
-    //LODD   = 0x660F6E,
+    //LODD   = 0x660F6E,        // MOVD xmm, reg/mem64   66 0F 6E /r
     LODQ   = 0xF30F7E,
 
-    LODDQU   = 0xF30F6F,
-    //STODQU   = 0xF30F7F,
-    //MOVDQ2Q  = 0xF20FD6,
-    //MOVHLPS  = 0x0F12,
+    LODDQU   = 0xF30F6F,        // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
+    //STODQU   = 0xF30F7F,      // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
+    //MOVDQ2Q  = 0xF20FD6,      // MOVDQ2Q mmx, xmm          F2 0F D6 /r
+    //MOVHLPS  = 0x0F12,        // MOVHLPS xmm1, xmm2        0F 12 /r
     LODHPD   = 0x660F16,
-    //STOHPD   = 0x660F17,
-    LODHPS   = 0x0F16,
+    //STOHPD   = 0x660F17,      // MOVHPD mem64, xmm         66 0F 17 /r
+    LODHPS   = 0x0F16,          // MOVHPD xmm, mem64         66 0F 16 /r
     //STOHPS   = 0x0F17,
     //MOVLHPS  = 0x0F16,
     LODLPD   = 0x660F12,
@@ -262,9 +262,9 @@ version ( D_SIMD )
     PSHUFD = 0x660F70,
     PSHUFHW = 0xF30F70,
     PSHUFLW = 0xF20F70,
-    //PSHUFW = 0x0F70,
-    //PSLLDQ = 0x660F73,
-    //PSRLDQ = 0x660F73,
+    PSHUFW = 0x0F70,
+    PSLLDQ = 0x07660F73,
+    PSRLDQ = 0x03660F73,
 
     //PREFETCH = 0x0F18,
 
@@ -386,7 +386,22 @@ version ( D_SIMD )
    */
   void16 __simd(XMM opcode, void16 op1, void16 op2);
 
+  /****
+   * For instructions:
+   * CMPPD, CMPSS, CMPSD, CMPPS,
+   * PSHUFD, PSHUFHW, PSHUFLW,
+   * BLENDPD, BLENDPS, DPPD, DPPS,
+   * MPSADBW, PBLENDW,
+   * ROUNDPD, ROUNDPS, ROUNDSD, ROUNDSS
+   */
   void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
+
+  /***
+   * For instructions with the imm8 version:
+   * PSLLD, PSLLQ, PSLLW, PSRAD, PSRAW, PSRLD, PSRLQ, PSRLW,
+   * PSRLDQ, PSLLDQ
+   */
+  void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);
 
   /* The following use overloading to ensure correct typing.
    * Compile with inlining on for best performance.
