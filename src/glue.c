@@ -1269,6 +1269,7 @@ unsigned TypeFunction::totym()
             break;
 
         case LINKc:
+        case LINKcpp:
             tyf = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && retStyle() == RETstack)
@@ -1278,10 +1279,6 @@ unsigned TypeFunction::totym()
 
         case LINKd:
             tyf = (varargs == 1) ? TYnfunc : TYjfunc;
-            break;
-
-        case LINKcpp:
-            tyf = TYnfunc;
             break;
 
         default:
