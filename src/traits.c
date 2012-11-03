@@ -213,7 +213,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         if (s)
+        {
+            if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
+                s = fd->toAliasFunc();
             s = s->toParent();
+        }
         if (!s)
         {
             error("argument %s has no parent", o->toChars());
