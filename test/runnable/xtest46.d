@@ -4738,7 +4738,7 @@ void test3091(inout int = 0)
 
 template Id6837(T)
 {
-	alias T Id6837;
+    alias T Id6837;
 }
 static assert(is(Id6837!(shared const int) == shared const int));
 static assert(is(Id6837!(shared inout int) == shared inout int));
@@ -5593,22 +5593,42 @@ void test8917()
 }
 
 /***************************************************/
+// 8945
+
+struct S8945 // or `class`, or `union`
+{
+    struct S0(T) { int i; }
+    struct S1(T) { this(int){} }
+}
+
+void test8945()
+{
+    auto cs0a = const S8945.S0!int();  // ok
+    auto cs0b = const S8945.S0!int(1); // ok
+    auto cs1  = const S8945.S1!int(1); // ok
+
+    auto s0a = S8945.S0!int();  // Error: struct S0 does not overload ()
+    auto s0b = S8945.S0!int(1); // Error: struct S0 does not overload ()
+    auto s1  = S8945.S1!int(1); // Error: struct S1 does not overload ()
+}
+
+/***************************************************/
 
 struct S162
 {
     static int generateMethodStubs( Class )()
     {
-	int text;
+        int text;
 
-	foreach( m; __traits( allMembers, Class ) )
-	{
-	    static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
-	    {
-		pragma(msg, __traits( getOverloads, Class, m ));
-	    }
-	}
+        foreach( m; __traits( allMembers, Class ) )
+        {
+            static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
+            {
+                pragma(msg, __traits( getOverloads, Class, m ));
+            }
+        }
 
-	return text;
+        return text;
     }
 
     enum int ttt = generateMethodStubs!( S162 )();
@@ -5916,6 +5936,7 @@ int main()
     test8526();
     test161();
     test8917();
+    test8945();
     test163();
 
     printf("Success\n");
