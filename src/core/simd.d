@@ -110,7 +110,7 @@ version ( D_SIMD )
     XORPD = 0x660F57,
 
     // Use STO and LOD instead of MOV to distinguish the direction
-    //STOSS  = 0xF30F11,      // MOVSS
+    STOSS  = 0xF30F11,      // MOVSS
     //STOSD  = 0xF20F11,
     //STOAPS = 0x000F29,
     //STOAPD = 0x660F29,
@@ -196,7 +196,7 @@ version ( D_SIMD )
     CMPSS = 0xF30FC2,
     COMISD = 0x660F2F,
     COMISS = 0x0F2F,
-    //CVTDQ2PD = 0xF30FE6,
+    CVTDQ2PD = 0xF30FE6,
     CVTDQ2PS = 0x0F5B,
     CVTPD2DQ = 0xF20FE6,
     CVTPD2PI = 0x660F2D,
@@ -218,7 +218,7 @@ version ( D_SIMD )
     //CVTTPS2PI = 0x0F2C,
     //CVTTSD2SI = 0xF20F2C,
     //CVTTSS2SI = 0xF30F2C,
-    //MASKMOVDQU = 0x660FF7,
+    MASKMOVDQU = 0x660FF7,
     //MASKMOVQ = 0x0FF7,
     MAXPD = 0x660F5F,
     MAXPS = 0x0F5F,
@@ -380,7 +380,6 @@ version ( D_SIMD )
    *      opcode  any of the XMM opcodes; it must be a compile time constant
    *      op1     first operand
    *      op2     second operand
-   *      imm8    optional third operand
    * Returns:
    *      result of opcode
    */
@@ -393,6 +392,13 @@ version ( D_SIMD )
    * BLENDPD, BLENDPS, DPPD, DPPS,
    * MPSADBW, PBLENDW,
    * ROUNDPD, ROUNDPS, ROUNDSD, ROUNDSS
+   * Parameters:
+   *      opcode  any of the XMM opcodes; it must be a compile time constant
+   *      op1     first operand
+   *      op2     second operand
+   *      imm8    third operand; must be a compile time constant
+   * Returns:
+   *      result of opcode
    */
   void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
 
@@ -400,8 +406,22 @@ version ( D_SIMD )
    * For instructions with the imm8 version:
    * PSLLD, PSLLQ, PSLLW, PSRAD, PSRAW, PSRLD, PSRLQ, PSRLW,
    * PSRLDQ, PSLLDQ
+   * Parameters:
+   *      opcode  any of the XMM opcodes; it must be a compile time constant
+   *      op1     first operand
+   *      imm8    second operand; must be a compile time constant
+   * Returns:
+   *      result of opcode
    */
   void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);
+
+  /*****
+   * For "store" operations of the form:
+   *    op1 op= op2
+   * Returns:
+   *    op2
+   */
+  void16 __simd_sto(XMM opcode, void16 op1, void16 op2);
 
   /* The following use overloading to ensure correct typing.
    * Compile with inlining on for best performance.
