@@ -5481,6 +5481,25 @@ void test8108()
 
 /***************************************************/
 
+template ParameterTuple(alias func)
+{
+    static if(is(typeof(func) P == __parameters))
+        alias P ParameterTuple;
+    else
+        static assert(0);
+}
+
+int foo161(ref float y);
+
+void test161()
+{
+    alias PT = ParameterTuple!foo161;
+    auto x = __traits(identifier, PT);
+    assert(x == "y");
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5729,6 +5748,7 @@ int main()
     test160();
     test8665();
     test8108();
+    test161();
 
     printf("Success\n");
     return 0;
