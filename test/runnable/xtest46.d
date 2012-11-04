@@ -54,6 +54,15 @@ void test3()
         printf("no unittest!\n");
     }
 
+    version (deprecated)
+    {
+        printf("deprecated!\n");
+    }
+    else
+    {
+        printf("no deprecated!\n");
+    }
+
     version (assert)
     {
         printf("assert!\n");
