@@ -110,47 +110,47 @@ version ( D_SIMD )
     XORPD = 0x660F57,
 
     // Use STO and LOD instead of MOV to distinguish the direction
-    STOSS  = 0xF30F11,      // MOVSS
-    //STOSD  = 0xF20F11,
-    //STOAPS = 0x000F29,
-    //STOAPD = 0x660F29,
-    //STODQA = 0x660F7F,
-    //STOD   = 0x660F7E,        // MOVD reg/mem64, xmm   66 0F 7E /r
-    //STOQ   = 0x660FD6,
+    STOSS  = 0xF30F11,
+    STOSD  = 0xF20F11,
+    STOAPS = 0x000F29,
+    STOAPD = 0x660F29,
+    STODQA = 0x660F7F,
+    STOD   = 0x660F7E,        // MOVD reg/mem64, xmm   66 0F 7E /r
+    STOQ   = 0x660FD6,
 
-    LODSS  = 0xF30F10,      // MOVSS
+    LODSS  = 0xF30F10,
     LODSD  = 0xF20F10,
     LODAPS = 0x000F28,
     LODAPD = 0x660F28,
     LODDQA = 0x660F6F,
-    //LODD   = 0x660F6E,        // MOVD xmm, reg/mem64   66 0F 6E /r
+    LODD   = 0x660F6E,        // MOVD xmm, reg/mem64   66 0F 6E /r
     LODQ   = 0xF30F7E,
 
-    LODDQU   = 0xF30F6F,        // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
-    //STODQU   = 0xF30F7F,      // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
-    //MOVDQ2Q  = 0xF20FD6,      // MOVDQ2Q mmx, xmm          F2 0F D6 /r
-    //MOVHLPS  = 0x0F12,        // MOVHLPS xmm1, xmm2        0F 12 /r
+    LODDQU   = 0xF30F6F,      // MOVDQU xmm1, xmm2/mem128  F3 0F 6F /r
+    STODQU   = 0xF30F7F,      // MOVDQU xmm1/mem128, xmm2  F3 0F 7F /r
+    MOVDQ2Q  = 0xF20FD6,      // MOVDQ2Q mmx, xmm          F2 0F D6 /r
+    MOVHLPS  = 0x0F12,        // MOVHLPS xmm1, xmm2        0F 12 /r
     LODHPD   = 0x660F16,
-    //STOHPD   = 0x660F17,      // MOVHPD mem64, xmm         66 0F 17 /r
-    LODHPS   = 0x0F16,          // MOVHPD xmm, mem64         66 0F 16 /r
-    //STOHPS   = 0x0F17,
-    //MOVLHPS  = 0x0F16,
+    STOHPD   = 0x660F17,      // MOVHPD mem64, xmm         66 0F 17 /r
+    LODHPS   = 0x0F16,
+    STOHPS   = 0x0F17,
+    MOVLHPS  = 0x0F16,
     LODLPD   = 0x660F12,
-    //STOLPD   = 0x660F13,
+    STOLPD   = 0x660F13,
     LODLPS   = 0x0F12,
-    //STOLPS   = 0x0F13,
-    //MOVMSKPD = 0x660F50,
-    //MOVMSKPS = 0x0F50,
-    //MOVNTDQ  = 0x660FE7,
-    //MOVNTI   = 0x0FC3,
-    //MOVNTPD  = 0x660F2B,
-    //MOVNTPS  = 0x0F2B,
-    //MOVNTQ   = 0x0FE7,
-    //MOVQ2DQ  = 0xF30FD6,
+    STOLPS   = 0x0F13,
+    MOVMSKPD = 0x660F50,
+    MOVMSKPS = 0x0F50,
+    MOVNTDQ  = 0x660FE7,
+    MOVNTI   = 0x0FC3,
+    MOVNTPD  = 0x660F2B,
+    MOVNTPS  = 0x0F2B,
+    MOVNTQ   = 0x0FE7,
+    MOVQ2DQ  = 0xF30FD6,
     LODUPD   = 0x660F10,
-    //STOUPD   = 0x660F11,
+    STOUPD   = 0x660F11,
     LODUPS   = 0x0F10,
-    //STOUPS   = 0x0F11,
+    STOUPS   = 0x0F11,
 
     PACKSSDW = 0x660F6B,
     PACKSSWB = 0x660F63,
@@ -205,21 +205,21 @@ version ( D_SIMD )
     CVTPI2PS = 0x0F2A,
     CVTPS2DQ = 0x660F5B,
     CVTPS2PD = 0x0F5A,
-    //CVTPS2PI = 0x0F2D,
-    //CVTSD2SI = 0xF20F2D,
+    CVTPS2PI = 0x0F2D,
+    CVTSD2SI = 0xF20F2D,
     CVTSD2SS = 0xF20F5A,
-    //CVTSI2SD = 0xF20F2A,
-    //CVTSI2SS = 0xF30F2A,
+    CVTSI2SD = 0xF20F2A,
+    CVTSI2SS = 0xF30F2A,
     CVTSS2SD = 0xF30F5A,
-    //CVTSS2SI = 0xF30F2D,
-    //CVTTPD2PI = 0x660F2C,
+    CVTSS2SI = 0xF30F2D,
+    CVTTPD2PI = 0x660F2C,
     CVTTPD2DQ = 0x660FE6,
     CVTTPS2DQ = 0xF30F5B,
-    //CVTTPS2PI = 0x0F2C,
-    //CVTTSD2SI = 0xF20F2C,
-    //CVTTSS2SI = 0xF30F2C,
+    CVTTPS2PI = 0x0F2C,
+    CVTTSD2SI = 0xF20F2C,
+    CVTTSS2SI = 0xF30F2C,
     MASKMOVDQU = 0x660FF7,
-    //MASKMOVQ = 0x0FF7,
+    MASKMOVQ = 0x0FF7,
     MAXPD = 0x660F5F,
     MAXPS = 0x0F5F,
     MAXSD = 0xF20F5F,
@@ -279,12 +279,12 @@ version ( D_SIMD )
     MOVDDUP  = 0xF20F12,
     MOVSHDUP = 0xF30F16,
     MOVSLDUP = 0xF30F12,
-    //LDDQU    = 0xF20FF0,
-    //MONITOR  = 0x0F01C8,
-    //MWAIT    = 0x0F01C9,
+    LDDQU    = 0xF20FF0,
+    MONITOR  = 0x0F01C8,
+    MWAIT    = 0x0F01C9,
 
 // SSSE3
-    //PALIGNR = 0x660F3A0F,
+    PALIGNR = 0x660F3A0F,
     PHADDD = 0x660F3802,
     PHADDW = 0x660F3801,
     PHADDSW = 0x660F3803,
@@ -305,25 +305,25 @@ version ( D_SIMD )
 
     BLENDPD   = 0x660F3A0D,
     BLENDPS   = 0x660F3A0C,
-    //BLENDVPD  = 0x660F3815,
-    //BLENDVPS  = 0x660F3814,
+    BLENDVPD  = 0x660F3815,
+    BLENDVPS  = 0x660F3814,
     DPPD      = 0x660F3A41,
     DPPS      = 0x660F3A40,
-    //EXTRACTPS = 0x660F3A17,
-    //INSERTPS  = 0x660F3A21,
+    EXTRACTPS = 0x660F3A17,
+    INSERTPS  = 0x660F3A21,
     MPSADBW   = 0x660F3A42,
-    //PBLENDVB  = 0x660F3810,
+    PBLENDVB  = 0x660F3810,
     PBLENDW   = 0x660F3A0E,
-    //PEXTRD    = 0x660F3A16,
-    //PEXTRQ    = 0x660F3A16,
-    //PINSRB    = 0x660F3A20,
-    //PINSRD    = 0x660F3A22,
-    //PINSRQ    = 0x660F3A22,
+    PEXTRD    = 0x660F3A16,
+    PEXTRQ    = 0x660F3A16,
+    PINSRB    = 0x660F3A20,
+    PINSRD    = 0x660F3A22,
+    PINSRQ    = 0x660F3A22,
 
-    //MOVNTDQA = 0x660F382A,
+    MOVNTDQA = 0x660F382A,
     PACKUSDW = 0x660F382B,
     PCMPEQQ = 0x660F3829,
-    //PEXTRB = 0x660F3A14,
+    PEXTRB = 0x660F3A14,
     PHMINPOSUW = 0x660F3841,
     PMAXSB = 0x660F383C,
     PMAXSD = 0x660F383D,
@@ -355,12 +355,12 @@ version ( D_SIMD )
     ROUNDSS = 0x660F3A0A,
 
 // SSE4.2
-    //PCMPESTRI  = 0x660F3A61,
-    //PCMPESTRM  = 0x660F3A60,
-    //PCMPISTRI  = 0x660F3A63,
-    //PCMPISTRM  = 0x660F3A62,
+    PCMPESTRI  = 0x660F3A61,
+    PCMPESTRM  = 0x660F3A60,
+    PCMPISTRI  = 0x660F3A63,
+    PCMPISTRM  = 0x660F3A62,
     PCMPGTQ    = 0x660F3837,
-    // CRC32
+    //CRC32
 
 // SSE4a (AMD only)
     // EXTRQ,INSERTQ,MOVNTSD,MOVNTSS
@@ -383,7 +383,14 @@ version ( D_SIMD )
    * Returns:
    *      result of opcode
    */
-  void16 __simd(XMM opcode, void16 op1, void16 op2);
+  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2);
+
+  /**
+   * Unary SIMD instructions.
+   */
+  pure @safe void16 __simd(XMM opcode, void16 op1);
+  pure @safe void16 __simd(XMM opcode, double d);       ///
+  pure @safe void16 __simd(XMM opcode, float f);        ///
 
   /****
    * For instructions:
@@ -393,14 +400,14 @@ version ( D_SIMD )
    * MPSADBW, PBLENDW,
    * ROUNDPD, ROUNDPS, ROUNDSD, ROUNDSS
    * Parameters:
-   *      opcode  any of the XMM opcodes; it must be a compile time constant
+   *      opcode  any of the above XMM opcodes; it must be a compile time constant
    *      op1     first operand
    *      op2     second operand
    *      imm8    third operand; must be a compile time constant
    * Returns:
    *      result of opcode
    */
-  void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
+  pure @safe void16 __simd(XMM opcode, void16 op1, void16 op2, ubyte imm8);
 
   /***
    * For instructions with the imm8 version:
@@ -413,26 +420,29 @@ version ( D_SIMD )
    * Returns:
    *      result of opcode
    */
-  void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);
+  pure @safe void16 __simd_ib(XMM opcode, void16 op1, ubyte imm8);
 
   /*****
    * For "store" operations of the form:
    *    op1 op= op2
    * Returns:
    *    op2
+   * These cannot be market as pure, as semantic() doesn't check them.
    */
-  void16 __simd_sto(XMM opcode, void16 op1, void16 op2);
+  @safe void16 __simd_sto(XMM opcode, void16 op1, void16 op2);
+  @safe void16 __simd_sto(XMM opcode, double op1, void16 op2); ///
+  @safe void16 __simd_sto(XMM opcode, float op1, void16 op2);  ///
 
   /* The following use overloading to ensure correct typing.
    * Compile with inlining on for best performance.
    */
 
-  short8 pcmpeq()(short8 v1, short8 v2)
+  pure @safe short8 pcmpeq()(short8 v1, short8 v2)
   {
       return __simd(XMM.PCMPEQW, v1, v2);
   }
 
-  ushort8 pcmpeq()(ushort8 v1, ushort8 v2)
+  pure @safe ushort8 pcmpeq()(ushort8 v1, ushort8 v2)
   {
       return __simd(XMM.PCMPEQW, v1, v2);
   }
