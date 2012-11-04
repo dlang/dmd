@@ -36,6 +36,7 @@ struct Expression;
 struct AliasDeclaration;
 struct FuncDeclaration;
 struct HdrGenState;
+struct Parameter;
 enum MATCH;
 enum PASS;
 
@@ -368,6 +369,7 @@ Expression *isExpression(Object *o);
 Dsymbol *isDsymbol(Object *o);
 Type *isType(Object *o);
 Tuple *isTuple(Object *o);
+Parameter *isParameter(Object *o);
 int arrayObjectIsError(Objects *args);
 int isError(Object *o);
 Type *getType(Object *o);

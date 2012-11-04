@@ -79,6 +79,14 @@ Tuple *isTuple(Object *o)
     return (Tuple *)o;
 }
 
+Parameter *isParameter(Object *o)
+{
+    //return dynamic_cast<Parameter *>(o);
+    if (!o || o->dyncast() != DYNCAST_PARAMETER)
+        return NULL;
+    return (Parameter *)o;
+}
+
 /**************************************
  * Is this Object an error?
  */
@@ -127,6 +135,9 @@ Type *getType(Object *o)
 
 Dsymbol *getDsymbol(Object *oarg)
 {
+    //printf("getDsymbol()\n");
+    //printf("e %p s %p t %p v %p\n", isExpression(oarg), isDsymbol(oarg), isType(oarg), isTuple(oarg));
+
     Dsymbol *sa;
     Expression *ea = isExpression(oarg);
     if (ea)
@@ -5076,6 +5087,7 @@ void TemplateInstance::semanticTiargs(Scope *sc)
 /**********************************
  * Input:
  *      flags   1: replace const variables with their initializers
+ *              2: don't devolve Parameter to Type
  */
 
 void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags)
@@ -5136,7 +5148,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     {   tiargs->reserve(dim);
                         for (size_t i = 0; i < dim; i++)
                         {   Parameter *arg = (*tt->arguments)[i];
-                            tiargs->insert(j + i, arg->type);
+                            if (flags & 2 && arg->ident)
+                                tiargs->insert(j + i, arg);
+                            else
+                                tiargs->insert(j + i, arg->type);
                         }
                     }
                     j--;
@@ -5213,10 +5228,13 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         }
         else if (sa)
         {
-		Lsa:
+                Lsa:
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             if (td && !td->semanticRun && td->literal)
                 td->semantic(sc);
+        }
+        else if (isParameter(o))
+        {
         }
         else
         {

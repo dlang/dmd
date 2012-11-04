@@ -190,20 +190,32 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::identifier)
     {   // Get identifier for symbol as a string literal
 
-        // Specify 0 for the flags argument to semanticTiargs() so that
-        // a symbol should not be folded to a constant.
-        TemplateInstance::semanticTiargs(loc, sc, args, 0);
+        /* Specify 0 for bit 0 of the flags argument to semanticTiargs() so that
+         * a symbol should not be folded to a constant.
+         * Bit 1 means don't convert Parameter to Type if Parameter has an identifier
+         */
+        TemplateInstance::semanticTiargs(loc, sc, args, 2);
 
         if (dim != 1)
             goto Ldimerror;
         Object *o = (*args)[0];
-        Dsymbol *s = getDsymbol(o);
-        if (!s || !s->ident)
-        {
-            error("argument %s has no identifier", o->toChars());
-            goto Lfalse;
+        Parameter *po = isParameter(o);
+        Identifier *id;
+        if (po)
+        {   id = po->ident;
+            assert(id);
         }
-        StringExp *se = new StringExp(loc, s->ident->toChars());
+        else
+        {
+            Dsymbol *s = getDsymbol(o);
+            if (!s || !s->ident)
+            {
+                error("argument %s has no identifier", o->toChars());
+                goto Lfalse;
+            }
+            id = s->ident;
+        }
+        StringExp *se = new StringExp(loc, id->toChars());
         return se->semantic(sc);
     }
     else if (ident == Id::parent)
