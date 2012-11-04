@@ -188,6 +188,7 @@ STATIC void ecom(elem **pe)
     case OPandass:
     case OPxorass:
     case OPorass:
+    case OPvecsto:
 #if TX86
         /* Reverse order of evaluation for double op=. This is so that  */
         /* the pushing of the address of the second operand is easier.  */

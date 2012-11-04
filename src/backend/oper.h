@@ -228,7 +228,7 @@ enum OPER
         OPframeptr,             // load pointer to base of frame
         OPgot,                  // load pointer to global offset table
         OPvector,               // SIMD vector operations
-        OPvecsto = OPvector,    // SIMD vector store operations
+        OPvecsto,               // SIMD vector store operations
 
         // Jupiter operators
         OParray,                // access Jupiter array, left is handle, right is index

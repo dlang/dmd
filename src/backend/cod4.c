@@ -336,7 +336,7 @@ code *cdeq(elem *e,regm_t *pretregs)
   regm_t retregs = *pretregs;
 
     if (tyxmmreg(tyml) && config.fpxmmregs)
-        return xmmeq(e, pretregs);
+        return xmmeq(e, e->Eoper, e1, e2, pretregs);
 
     if (tyfloating(tyml) && config.inline8087)
     {
