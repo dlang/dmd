@@ -878,10 +878,13 @@ enum RET TypeFunction::retStyle()
         return RETstack;
     }
 
+    bool parentSArray = false;
+
 Lagain:
 #if SARRAYVALUE
     if (tns->ty == Tsarray)
     {
+        parentSArray = true;
         do
         {
             tns = tns->nextOf()->toBasetype();
@@ -919,7 +922,36 @@ L2:
             //printf("  2 RETstack\n");
             return RETstack;            // 32 bit C/C++ structs always on stack
         }
-        if (sd->arg1type && !sd->arg2type)
+        if (global.params.is64bit)
+        {
+            Type *targ1 = sd->arg1type;
+            Type *targ2 = sd->arg2type;
+
+            if (sz > 16 || !sd->isPOD() || !targ1)
+            {   //printf("  3 RETstack\n");
+                return RETstack;
+            }
+
+            tns = targ1;
+            if (!targ2 && tns->ty == Tstruct)
+                goto Lagain;
+
+            // Issue 5570 ?
+            // if ty is a struct inside a static array
+            // Use array rules
+            if (parentSArray)
+                goto L2;
+
+            // TODO mixed return RAX:XMM0 Issue 5570
+            if (targ2 && (targ1->isfloating() != targ2->isfloating()))
+            {
+                //printf("  3.1 RETstack\n");
+                return RETstack;
+            }
+            //printf("  3 RETregs\n");
+            return RETregs;
+        }
+        else if (sd->arg1type && !sd->arg2type)
         {
             tns = sd->arg1type;
 #if SARRAYVALUE
@@ -935,14 +967,15 @@ L2:
                 case 2:
                 case 4:
                 case 8:
-                    //printf("  3 RETregs\n");
+                    //printf("  4 RETregs\n");
                     return RETregs;     // return small structs in regs
                                         // (not 3 byte structs!)
+
                 default:
                     break;
             }
         }
-        //printf("  3 RETstack\n");
+        //printf("  4 RETstack\n");
         return RETstack;
     }
     else if ((global.params.isLinux || global.params.isOSX || global.params.isFreeBSD || global.params.isSolaris) &&
@@ -957,7 +990,7 @@ L2:
     else
     {
         //assert(sz <= 16);
-        //printf("  4 RETregs\n");
+        //printf("  5 RETregs\n");
         return RETregs;
     }
 }

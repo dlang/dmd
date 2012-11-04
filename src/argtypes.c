@@ -290,6 +290,8 @@ TypeTuple *TypeStruct::toArgTypes()
     Type *t2 = NULL;
     d_uns64 sz = size(0);
     assert(sz < 0xFFFFFFFF);
+    if ((unsigned)sz > 16)
+        goto Lmemory;
     switch ((unsigned)sz)
     {
         case 1:
@@ -308,6 +310,9 @@ TypeTuple *TypeStruct::toArgTypes()
             t1 = NULL;                   // could be a TypeVector
             break;
         default:
+            t1 = NULL;
+            if (global.params.is64bit && !global.params.isWindows)
+                break;
             goto Lmemory;
     }
     if (global.params.is64bit && sym->fields.dim)
