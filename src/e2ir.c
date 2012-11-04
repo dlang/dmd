@@ -315,6 +315,33 @@ if (I32) assert(tysize[TYnptr] == 4);
             }
 #endif
         }
+        else if (op == OPvector)
+        {
+            e = ep;
+            /* Recognize store operations as:
+             *  ((op OPparam op1) OPparam op2)
+             * Rewrite as:
+             *  (op1 OPvecsto (op OPparam op2))
+             * A separate operation is used for stores because it
+             * has a side effect, and so takes a different path through
+             * the optimizer.
+             */
+            if (e->Eoper == OPparam &&
+                e->E1->Eoper == OPparam &&
+                e->E1->E1->Eoper == OPconst &&
+                isXMMstore(el_tolong(e->E1->E1)))
+            {
+                //printf("OPvecsto\n");
+                elem *tmp = e->E2;
+                e->E2 = e->E1;
+                e->E1 = e->E2->E2;
+                e->E2->E2 = tmp;
+                e->Eoper = OPvecsto;
+                e->Ety = tyret;
+            }
+            else
+                e = el_una(op,tyret,ep);
+        }
         else
             e = el_una(op,tyret,ep);
     }

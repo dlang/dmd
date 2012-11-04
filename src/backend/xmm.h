@@ -219,7 +219,7 @@ enum
 
 // SSE3 Pentium 4 (Prescott)
 
-    ADDSUBPD = 0x660FD0,
+    ADDSUBPD = 0x660FD0,        // ADDSUBPD xmm1, xmm2/m128
     ADDSUBPS = 0xF20FD0,
     HADDPD   = 0x660F7C,
     HADDPS   = 0xF20F7C,
@@ -251,11 +251,12 @@ enum
     PHSUBSW = 0x660F3807,
 
 // SSE4.1
+// See Intel SSE4 Programming Reference
 
-    BLENDPD   = 0x660F3A0D,
-    BLENDPS   = 0x660F3A0C,
-    BLENDVPD  = 0x660F3815,
-    BLENDVPS  = 0x660F3814,
+    BLENDPD   = 0x660F3A0D,     // 66 0F 3A 0D /r ib  BLENDPD  xmm1, xmm2/m128, imm8
+    BLENDPS   = 0x660F3A0C,     // 66 0F 3A 0C /r ib  BLENDPS  xmm1, xmm2/m128, imm8
+    BLENDVPD  = 0x660F3815,     // 66 0F 38 15 /r     BLENDVPD xmm1, xmm2/m128, <XMM0>
+    BLENDVPS  = 0x660F3814,     // 66 0F 38 14 /r     BLENDVPS xmm1, xmm2/m128, <XMM0>
     DPPD      = 0x660F3A41,
     DPPS      = 0x660F3A40,
     EXTRACTPS = 0x660F3A17,
@@ -265,15 +266,16 @@ enum
     PBLENDW   = 0x660F3A0E,
     PEXTRD    = 0x660F3A16,
     PEXTRQ    = 0x660F3A16,
-    PINSRB    = 0x660F3A20,
+    PINSRB    = 0x660F3A20,     // 66 0F 3A 20 /r ib PINSRB xmm1, r32/m8, imm8
     PINSRD    = 0x660F3A22,
     PINSRQ    = 0x660F3A22,
 
     MOVNTDQA = 0x660F382A,
     PACKUSDW = 0x660F382B,
     PCMPEQQ = 0x660F3829,
-    PEXTRB = 0x660F3A14,
-    PHMINPOSUW = 0x660F3841,
+    PEXTRB = 0x660F3A14,        // 66 0F 3A 14 /r ib       PEXTRB r32/m8, xmm2, imm8
+                                // 66 REX.W 0F 3A 14 /r ib PEXTRB r64/m8, xmm2, imm8
+    PHMINPOSUW = 0x660F3841,    // 66 0F 38 41 /r          PHMINPOSUW xmm1, xmm2/m128
     PMAXSB = 0x660F383C,
     PMAXSD = 0x660F383D,
     PMAXUD = 0x660F383F,
@@ -296,9 +298,9 @@ enum
     PMOVZXDQ = 0x660F3835,
     PMULDQ   = 0x660F3828,
     PMULLD   = 0x660F3840,
-    PTEST    = 0x660F3817,
+    PTEST    = 0x660F3817,      // 66 0F 38 17 /r PTEST xmm1, xmm2/m128
 
-    ROUNDPD = 0x660F3A09,
+    ROUNDPD = 0x660F3A09,       // 66 0F 3A 09 /r ib ROUNDPD xmm1, xmm2/m128, imm8
     ROUNDPS = 0x660F3A08,
     ROUNDSD = 0x660F3A0B,
     ROUNDSS = 0x660F3A0A,

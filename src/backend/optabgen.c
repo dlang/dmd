@@ -45,6 +45,7 @@ int _binary[] =
          OPremquo,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
+         OPvecsto,
 #endif
         };
 int _unary[] =
@@ -80,7 +81,7 @@ int _assoc[] = {OPadd,OPand,OPor,OPxor,OPmul};
 int _assign[] =
         {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
          OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,OPpostinc,OPpostdec,
-         OPnegass,
+         OPnegass,OPvecsto,
         };
 int _wid[] =
         {OPadd,OPmin,OPand,OPor,OPxor,OPcom,OPneg,OPmul,OPaddass,OPnegass,
@@ -109,6 +110,7 @@ int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPcall,OPucall,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPnegass,OPnewarray,OPmultinewarray,
                 OPbtc,OPbtr,OPbts,
+                OPvecsto,
              };
 int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPcall,OPeq,OPstreq,OPpostinc,OPpostdec,
@@ -119,13 +121,14 @@ int _sideff[] = {OPasm,OPucall,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,
                 OPbtc,OPbtr,OPbts,
                 OPhalt,OPdctor,OPddtor,
 #if TX86
-                OPinp,OPoutp,
+                OPinp,OPoutp,OPvecsto,
 #endif
                 };
 int _rtol[] = {OPeq,OPstreq,OPstrcpy,OPmemcpy,OPpostinc,OPpostdec,OPaddass,
                 OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,
                 OPcall,OPcallns,OPinfo,OPmemset,
+                OPvecsto,
                 };
 int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OPabs,OPrndtol,OPrint,
@@ -641,6 +644,7 @@ void dotab()
 
         case OPbswap:   X("bswap",      evalu8, cdbswap);
         case OPvector:  X("vector",     elzot,  cdvector);
+        case OPvecsto:  X("vecsto",     elzot,  cdvecsto);
 
         default:
                 printf("opcode hole x%x\n",i);

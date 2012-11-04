@@ -1184,7 +1184,10 @@ void elimass(elem *n)
 {   elem *e1;
 
     switch (n->Eoper)
-    {   case OPeq:
+    {
+        case OPvecsto:
+            n->E2->Eoper = OPcomma;
+        case OPeq:
         case OPstreq:
             /* (V=e) => (random constant,e)     */
             /* Watch out for (a=b=c) stuff!     */

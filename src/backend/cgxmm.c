@@ -33,6 +33,16 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 unsigned xmmoperator(tym_t tym, unsigned oper);
 
 /*******************************************
+ * Is operator a store operator?
+ */
+
+bool isXMMstore(unsigned op)
+{
+    // Not very efficient
+    return op == STOSS || op == STOSD || op == STOAPS || op == STOAPD || op == STODQA || op == STOQ;
+}
+
+/*******************************************
  * Move constant value into xmm register xreg.
  */
 
@@ -118,6 +128,9 @@ code *orthxmm(elem *e, regm_t *pretregs)
         return c;
     }
 
+    /* We should take advantage of mem addressing modes for OP XMM,MEM
+     * but we do not at the moment.
+     */
     code *cg;
     if (OTrel(e->Eoper))
     {
@@ -141,7 +154,7 @@ code *orthxmm(elem *e, regm_t *pretregs)
  * Generate code for an assignment using XMM registers.
  */
 
-code *xmmeq(elem *e,regm_t *pretregs)
+code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs)
 {
     tym_t tymll;
     unsigned reg;
@@ -153,9 +166,7 @@ code *xmmeq(elem *e,regm_t *pretregs)
     unsigned varreg;
     targ_int postinc;
 
-    //printf("xmmeq(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    elem *e1 = e->E1;
-    elem *e2 = e->E2;
+    //printf("xmmeq(e1 = %p, e2 = %p, *pretregs = %s)\n", e1, e2, regm_str(*pretregs));
     int e2oper = e2->Eoper;
     tym_t tyml = tybasic(e1->Ety);              /* type of lvalue               */
     regm_t retregs = *pretregs;
@@ -163,7 +174,7 @@ code *xmmeq(elem *e,regm_t *pretregs)
     if (!(retregs & XMMREGS))
         retregs = XMMREGS;              // pick any XMM reg
 
-    cs.Iop = xmmstore(tyml);
+    cs.Iop = (op == OPeq) ? xmmstore(tyml) : op;
     regvar = FALSE;
     varregm = 0;
     if (config.flags4 & CFG4optimized)
@@ -803,31 +814,48 @@ code *cdvector(elem *e, regm_t *pretregs)
     }
 #endif
 
-    assert(n == 3 || n == 4);
+    if (*pretregs == 0)
+    {   /* Evaluate for side effects only
+         */
+        code *c = CNIL;
+        for (int i = 0; i < n; i++)
+        {
+            c = cat(c, codelem(params[i], pretregs, FALSE));
+            *pretregs = 0;      // in case they got set
+            return c;
+        }
+    }
+
+    assert(n >= 2 && n <= 4);
 
     elem *eop = params[0];
     elem *op1 = params[1];
-    elem *op2 = params[2];
-    elem *imm8 = NULL;
-    if (n == 4)
-    {   imm8 = params[3];
-        assert(imm8->Eoper == OPconst);
+    elem *op2 = NULL;
+    tym_t ty2 = 0;
+    if (n >= 3)
+    {   op2 = params[2];
+        ty2 = tybasic(op2->Ety);
     }
 
     unsigned op = el_tolong(eop);
+#ifdef DEBUG
+    assert(!isXMMstore(op));
+#endif
     tym_t ty1 = tybasic(op1->Ety);
-    tym_t ty2 = tybasic(op2->Ety);
     unsigned sz1 = tysize[ty1];
-    assert(sz1 == 16);       // float or double
-    regm_t retregs = *pretregs & XMMREGS;
-    if (!retregs)
-        retregs = XMMREGS;
-    code *c = codelem(op1,&retregs,FALSE); // eval left leaf
-    unsigned reg = findreg(retregs);
+//    assert(sz1 == 16);       // float or double
 
+    regm_t retregs;
+    code *c;
     code *cr, *cg, *co;
     if (n == 3 && ty2 == TYuchar && op2->Eoper == OPconst)
-    {
+    {   // Handle: op xmm,imm8
+
+        retregs = *pretregs & XMMREGS;
+        if (!retregs)
+            retregs = XMMREGS;
+        c = codelem(op1,&retregs,FALSE); // eval left leaf
+        unsigned reg = findreg(retregs);
         int r;
         switch (op)
         {
@@ -851,13 +879,71 @@ code *cdvector(elem *e, regm_t *pretregs)
         cg = getregs(retregs);
         co = genc2(CNIL,op,modregrmx(3,r,reg-XMM0), el_tolong(op2));
     }
-    else
-    {
-        regm_t rretregs = XMMREGS & ~retregs;
-        cr = scodelem(op2, &rretregs, retregs, TRUE);  // eval right leaf
-        unsigned rreg = findreg(rretregs);
+    else if (n == 2)
+    {   /* Handle: op xmm,mem
+         * where xmm is written only, not read
+         */
+        code cs;
+
+        if ((op1->Eoper == OPind && !op1->Ecount) || op1->Eoper == OPvar)
+        {
+            c = getlvalue(&cs, op1, RMload);     // get addressing mode
+        }
+        else
+        {
+            regm_t rretregs = XMMREGS;
+            c = codelem(op1, &rretregs, FALSE);
+            unsigned rreg = findreg(rretregs) - XMM0;
+            cs.Irm = modregrm(3,0,rreg & 7);
+            cs.Iflags = 0;
+            cs.Irex = 0;
+            if (rreg & 8)
+                cs.Irex |= REX_B;
+        }
+
+        retregs = *pretregs & XMMREGS;
+        if (!retregs)
+            retregs = XMMREGS;
+        unsigned reg;
+        cr = CNIL;
+        cg = allocreg(&retregs, &reg, e->Ety);
+        code_newreg(&cs, reg - XMM0);
+        cs.Iop = op;
+        co = gen(CNIL,&cs);
+    }
+    else if (n == 3 || n == 4)
+    {   /* Handle:
+         *      op xmm,mem        // n = 3
+         *      op xmm,mem,imm8   // n = 4
+         * Both xmm and mem are operands, evaluate xmm first.
+         */
+
+        code cs;
+
+        retregs = *pretregs & XMMREGS;
+        if (!retregs)
+            retregs = XMMREGS;
+        c = codelem(op1,&retregs,FALSE); // eval left leaf
+        unsigned reg = findreg(retregs);
+
+        if ((op2->Eoper == OPind && !op2->Ecount) || op2->Eoper == OPvar)
+        {
+            cr = getlvalue(&cs, op2, RMload | retregs);     // get addressing mode
+        }
+        else
+        {
+            unsigned rretregs = XMMREGS & ~retregs;
+            cr = scodelem(op2, &rretregs, retregs, TRUE);
+            unsigned rreg = findreg(rretregs) - XMM0;
+            cs.Irm = modregrm(3,0,rreg & 7);
+            cs.Iflags = 0;
+            cs.Irex = 0;
+            if (rreg & 8)
+                cs.Irex |= REX_B;
+        }
+
         cg = getregs(retregs);
-        if (imm8)
+        if (n == 4)
         {
             switch (op)
             {
@@ -873,15 +959,40 @@ code *cdvector(elem *e, regm_t *pretregs)
                     assert(0);
                     break;
             }
-            co = genc2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0), el_tolong(imm8));
+            elem *imm8 = params[3];
+            cs.IFL2 = FLconst;
+            cs.IEV2.Vsize_t = el_tolong(imm8);
         }
-        else
-            co = gen2(CNIL,op,modregxrmx(3,reg-XMM0,rreg-XMM0));
+        code_newreg(&cs, reg - XMM0);
+        cs.Iop = op;
+        co = gen(CNIL,&cs);
     }
+    else
+        assert(0);
     co = cat(co,fixresult(e,retregs,pretregs));
     free(params);
     freenode(e);
     return cat4(c,cr,cg,co);
+}
+
+/***************
+ * Generate code for vector "store" operations.
+ * The tree e must look like:
+ *  (op1 OPvecsto (op OPparam op2))
+ * where op is the store instruction STOxxxx.
+ */
+code *cdvecsto(elem *e, regm_t *pretregs)
+{
+    //printf("cdvecsto()\n");
+    //elem_print(e);
+    elem *op1 = e->E1;
+    elem *op2 = e->E2->E2;
+    elem *eop = e->E2->E1;
+    unsigned op = el_tolong(eop);
+#ifdef DEBUG
+    assert(isXMMstore(op));
+#endif
+    return xmmeq(e, op, op1, op2, pretregs);
 }
 
 #endif // !SPP

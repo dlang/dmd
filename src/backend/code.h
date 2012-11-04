@@ -424,15 +424,17 @@ void cod5_prol_epi();
 void cod5_noprol();
 
 /* cgxmm.c */
+bool isXMMstore(unsigned op);
 code *movxmmconst(unsigned reg, unsigned sz, targ_size_t value, regm_t flags);
 code *orthxmm(elem *e, regm_t *pretregs);
-code *xmmeq(elem *e, regm_t *pretregs);
+code *xmmeq(elem *e, unsigned op, elem *e1, elem *e2,regm_t *pretregs);
 code *xmmcnvt(elem *e,regm_t *pretregs);
 code *xmmopass(elem *e, regm_t *pretregs);
 code *xmmneg(elem *e, regm_t *pretregs);
 unsigned xmmload(tym_t tym);
 unsigned xmmstore(tym_t tym);
 code *cdvector(elem *e, regm_t *pretregs);
+code *cdvecsto(elem *e, regm_t *pretregs);
 
 /* cg87.c */
 void note87(elem *e, unsigned offset, int i);
