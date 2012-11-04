@@ -1254,16 +1254,20 @@ Lnomatch:
     {
         // Provide a default initializer
         //printf("Providing default initializer for '%s'\n", toChars());
-        if (type->ty == Tstruct &&
-            ((TypeStruct *)type)->sym->isnested)
+        if (type->needsNested())
         {
+            Type *tv = type;
+            while (tv->toBasetype()->ty == Tsarray)
+                tv = tv->toBasetype()->nextOf();
+            assert(tv->toBasetype()->ty == Tstruct);
+
             /* Nested struct requires valid enclosing frame pointer.
              * In StructLiteralExp::toElem(), it's calculated.
              */
 
-            checkFrameAccess(loc, sc, ((TypeStruct *)type)->sym);
+            checkFrameAccess(loc, sc, ((TypeStruct *)tv->toBasetype())->sym);
 
-            Expression *e = type->defaultInitLiteral(loc);
+            Expression *e = tv->defaultInitLiteral(loc);
             Expression *e1 = new VarExp(loc, this);
             e = new ConstructExp(loc, e1, e);
             e = e->semantic(sc);

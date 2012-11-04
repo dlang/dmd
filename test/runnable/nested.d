@@ -1798,6 +1798,74 @@ void test8339c()
 }
 
 /*******************************************/
+// 8923
+
+void test8923a()
+{
+    int val;
+
+    struct S  // is nested struct
+    {
+        void foo() { val = 1; }  // access to val through the hidden frame pointer
+    }
+    S    s1a;           s1a.foo();
+    S    s1b = S();     s1b.foo();
+    S[1] s2a;           s2a[0].foo();
+    S[1] s2b = S();     s2b[0].foo();
+
+    static struct U { S s; }
+    U    u1a;           u1a.s.foo();
+    U    u1b = U();     u1b.s.foo();
+    U    u1c = U(s1a);  u1c.s.foo();
+    U[1] u2a;           u2a[0].s.foo();
+    U[1] u2b = U();     u2b[0].s.foo();
+    U[1] u2c = U(s1a);  u2c[0].s.foo();
+    static struct V { S[1] s; }
+    V    v1a;           v1a.s[0].foo();
+    V    v1b = V();     v1b.s[0].foo();
+    V    v1c = V(s1a);  v1c.s[0].foo();
+    V[1] v2a;           v2a[0].s[0].foo();
+    V[1] v2b = V();     v2b[0].s[0].foo();
+    V[1] v2c = V(s1a);  v2c[0].s[0].foo();
+
+    static struct W { S s; this(S s){ this.s = s; } }
+    W    w1a;           w1a.s.foo();
+    W    w1b = W();     w1b.s.foo();
+    W    w1c = W(s1a);  w1c.s.foo();
+    W[1] w2a;           w2a[0].s.foo();
+    W[1] w2b = W();     w2b[0].s.foo();
+    W[1] w2c = W(s1a);  w2c[0].s.foo();
+    static struct X { S[1] s; this(S s){ this.s[] = s; } }
+    X    x1a;           x1a.s[0].foo();
+    X    x1b = X();     x1b.s[0].foo();
+    X    x1c = X(s1a);  x1c.s[0].foo();
+    X[1] x2a;           x2a[0].s[0].foo();
+    X[1] x2b = X();     x2b[0].s[0].foo();
+    X[1] x2c = X(s1a);  x2c[0].s[0].foo();
+
+    // Both declarations, Y and Z should raise errors,
+    // because their ctors don't initialize their field 's'.
+  static assert(!__traits(compiles, {
+    static struct Y { S s; this(S){} }
+  }));
+/+  Y    y1a;         //y1a.s.foo();
+    Y    y1b = Y();     y1b.s.foo();
+    Y    y1c = Y(s1a);//y1c.s.foo();
+    Y[1] y2a;         //y2a[0].s.foo();
+    Y[1] y2b = Y();     y2b[0].s.foo();
+    Y[1] y2c = Y(s1a);//y2c[0].s.foo();  +/
+  static assert(!__traits(compiles, {
+    static struct Z { S[1] s; this(S){} }
+  }));
+/+  Z    z1a;         //z1a.s[0].foo();
+    Z    z1b = Z();     z1b.s[0].foo();
+    Z    z1c = Z(s1a);//z1c.s[0].foo();
+    Z[1] z2a;         //z1a.s[0].foo();
+    Z[1] z2b = Z();     z1b.s[0].foo();
+    Z[1] z2c = Z(s1a);//z1c.s[0].foo();  // +/
+}
+
+/*******************************************/
 
 int main()
 {
@@ -1869,6 +1937,7 @@ int main()
     test8339a();
     test8339b();
     test8339c();
+    test8923a();
 
     printf("Success\n");
     return 0;
