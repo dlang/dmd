@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
@@ -191,7 +190,7 @@ DDOC_PARAM_ID  = $(TD $0)\n\
 DDOC_PARAM_DESC = $(TD $0)\n\
 DDOC_BLANKLINE  = $(BR)$(BR)\n\
 \n\
-DDOC_ANCHOR     = <a name=\"$1\"></a>\n\
+DDOC_ANCHOR     = <a name=\"$0\"></a>\n\
 DDOC_PSYMBOL    = $(U $0)\n\
 DDOC_KEYWORD    = $(B $0)\n\
 DDOC_PARAM      = $(I $0)\n\
