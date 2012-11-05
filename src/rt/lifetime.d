@@ -1258,16 +1258,6 @@ extern (C) void rt_finalize(void* p, bool det = true)
     rt_finalize2(p, det, true);
 }
 
-/**
- * An optimized version of rt_finalize that assumes it's being called from
- * the garbage collector and avoids wasting time on things that are
- * irrelevant in this case.
- */
-extern (C) void rt_finalize_gc(void* p)
-{
-    rt_finalize2(p, false, false);
-}
-
 
 /**
  * Resize dynamic arrays with 0 initializers.

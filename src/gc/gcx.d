@@ -97,7 +97,7 @@ private
     }
 private
 {
-    extern (C) void rt_finalize_gc(void* p);
+    extern (C) void rt_finalize2(void* p, bool det, bool resetMemory);
 
     extern (C) void thread_suspendAll();
     extern (C) void thread_resumeAll();
@@ -2587,7 +2587,7 @@ struct Gcx
 
                         sentinel_Invariant(sentinel_add(p));
                         if (pool.finals.nbits && pool.finals.testClear(biti))
-                            rt_finalize_gc(sentinel_add(p));
+                            rt_finalize2(sentinel_add(p), false, false);
                         clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
@@ -2659,7 +2659,7 @@ struct Gcx
 
                                 pool.freebits.set(biti);
                                 if (pool.finals.nbits && pool.finals.test(biti))
-                                    rt_finalize_gc(sentinel_add(p));
+                                    rt_finalize2(sentinel_add(p), false, false);
                                 toClear |= GCBits.BITS_1 << clearIndex;
 
                                 List *list = cast(List *)p;
