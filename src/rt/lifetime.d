@@ -1212,9 +1212,9 @@ extern (C) CollectHandler rt_getCollectHandler()
 /**
  *
  */
-extern (C) void rt_finalize(void* p, bool det = true)
+extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true)
 {
-    debug(PRINTF) printf("rt_finalize(p = %p)\n", p);
+    debug(PRINTF) printf("rt_finalize2(p = %p)\n", p);
 
     auto ppv = cast(void**) p;
     if(!p || !*ppv)
@@ -1237,8 +1237,11 @@ extern (C) void rt_finalize(void* p, bool det = true)
         if (ppv[1]) // if monitor is not null
             _d_monitordelete(cast(Object) p, det);
 
-        byte[] w = (*pc).init;
-        (cast(byte*) p)[0 .. w.length] = w[];
+        if(resetMemory)
+        {
+            byte[] w = (*pc).init;
+            (cast(byte*) p)[0 .. w.length] = w[];
+        }
     }
     catch (Throwable e)
     {
@@ -1246,8 +1249,13 @@ extern (C) void rt_finalize(void* p, bool det = true)
     }
     finally
     {
-        *ppv = null; // zero vptr
+        *ppv = null; // zero vptr even if `resetMemory` is false
     }
+}
+
+extern (C) void rt_finalize(void* p, bool det = true)
+{
+    rt_finalize2(p, det, true);
 }
 
 /**
