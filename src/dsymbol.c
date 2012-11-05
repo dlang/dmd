@@ -508,6 +508,14 @@ AggregateDeclaration *Dsymbol::isAggregateMember()      // are we a member of an
     return NULL;
 }
 
+AggregateDeclaration *Dsymbol::isAggregateMember2()     // are we a member of an aggregate?
+{
+    Dsymbol *parent = toParent2();
+    if (parent && parent->isAggregateDeclaration())
+        return (AggregateDeclaration *)parent;
+    return NULL;
+}
+
 ClassDeclaration *Dsymbol::isClassMember()      // are we a member of a class?
 {
     AggregateDeclaration *ad = isAggregateMember();

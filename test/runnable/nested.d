@@ -1773,7 +1773,7 @@ template filter8339(alias pred)
     auto filter8339(R)(R r) {
         struct Result {
             R range;
-            this(R r) {}
+            this(R r) { range = r; }
             auto front() { return pred(0); }
         }
         return Result(r);
@@ -1784,7 +1784,7 @@ void test8339b()
     static makefilter() { int n; return filter8339!(a=>n)([]); }
 
     auto r1 = makefilter();
-    static assert(!is(typeof({ filter8339!(a=>a)(r1); })));
+    filter8339!(a=>a)(r1);
 }
 
 void test8339c()
@@ -1865,6 +1865,118 @@ void test8923a()
     Z[1] z2c = Z(s1a);//z1c.s[0].foo();  // +/
 }
 
+struct Tuple8923(int v, T...)
+{
+    T field;
+    static if (v == 1) this(T args) { }    // should be an error
+    static if (v == 2) this(T args) { field = args; }
+    static if (v == 3) this(U...)(U args) { }    // should be an error
+    static if (v == 4) this(U...)(U args) { field = args; }
+    //alias field this;
+}
+void test8923b()
+{
+    int val;
+    struct S { void foo() { val = 1; } }
+
+  static assert(!__traits(compiles, Tuple8923!(1, S)(S()) ));
+  static assert(!__traits(compiles, Tuple8923!(3, S)(S()) ));
+
+    auto tup2 = Tuple8923!(2, S)(S());
+    tup2.field[0].foo();    // correctly initialized
+
+    auto tup4 = Tuple8923!(4, S)(S());
+    tup4.field[0].foo();    // correctly initialized
+}
+
+void test8392c()
+{
+    int val;
+
+    struct S  // is nested struct
+    {
+        void foo() { val = 1; }  // access to val through the hidden frame pointer
+    }
+    S    s1a;           s1a.foo();
+    S    s1b = S();     s1b.foo();
+    S[1] s2a;           s2a[0].foo();
+    S[1] s2b = S();     s2b[0].foo();
+
+    // U,V,W,X are nested struct, but should work same as non-nested.
+    // 1: bare struct object.  2: static array of structs.
+    // a: default construction.
+    // b: construction by literal syntax which has no argument.
+    // c: construction by literal syntax which has one or more arguments.
+
+    struct U
+    {
+        S s;
+        void foo() { val = 2; }
+    }
+    U    u1a;           u1a.foo();      u1a.s.foo();
+    U    u1b = U();     u1b.foo();      u1b.s.foo();
+    U    u1c = U(s1a);  u1c.foo();      u1c.s.foo();
+    U[1] u2a;           u2a[0].foo();   u2a[0].s.foo();
+    U[1] u2b = U();     u2b[0].foo();   u2b[0].s.foo();
+    U[1] u2c = U(s1a);  u2c[0].foo();   u2c[0].s.foo();
+
+    struct V
+    {
+        S[1] s;
+        void foo() { val = 2; }
+    }
+    V    v1a;           v1a.foo();      v1a.s[0].foo();
+    V    v1b = V();     v1b.foo();      v1b.s[0].foo();
+    V    v1c = V(s1a);  v1c.foo();      v1c.s[0].foo();
+    V[1] v2a;           v2a[0].foo();   v2a[0].s[0].foo();
+    V[1] v2b = V();     v2b[0].foo();   v2b[0].s[0].foo();
+    V[1] v2c = V(s1a);  v2c[0].foo();   v2c[0].s[0].foo();
+
+    struct W
+    {
+        S s;
+        this(S s) { this.s = s; }
+        void foo() { val = 2; }
+    }
+    W    w1a;           w1a.foo();      w1a.s.foo();
+    W    w1b = W();     w1b.foo();      w1b.s.foo();
+    W    w1c = W(s1a);  w1c.foo();      w1c.s.foo();
+    W[1] w2a;           w2a[0].foo();   w2a[0].s.foo();
+    W[1] w2b = W();     w2b[0].foo();   w2b[0].s.foo();
+    W[1] w2c = W(s1a);  w2c[0].foo();   w2c[0].s.foo();
+
+    struct X
+    {
+        S[1] s;
+        this(S s) { this.s[] = s; }
+        void foo() { val = 2; }
+    }
+    X    x1a;           x1a.foo();      x1a.s[0].foo();
+    X    x1b = X();     x1b.foo();      x1b.s[0].foo();
+    X    x1c = X(s1a);  x1c.foo();      x1c.s[0].foo();
+    X[1] x2a;           x2a[0].foo();   x2a[0].s[0].foo();
+    X[1] x2b = X();     x2b[0].foo();   x2b[0].s[0].foo();
+    X[1] x2c = X(s1a);  x2c[0].foo();   x2c[0].s[0].foo();
+
+    // Both declarations, Y and Z should raise errors,
+    // because their ctors don't initialize their field 's'.
+  static assert(!__traits(compiles, {
+    struct Y1 { S s; this(S){} void foo() { val = 2; } }
+  }));
+  static assert(!__traits(compiles, {
+    struct Y2 { S s; this(T)(S){} void foo() { val = 2; } }
+    auto y2 = Y2!S(S());    // instantiate ctor
+  }));
+
+  static assert(!__traits(compiles, {
+    struct Z1 { S[1] s; this(S){} void foo() { val = 2; } }
+  }));
+  static assert(!__traits(compiles, {
+    struct Z2 { S[1] s; this(T)(S){} void foo() { val = 2; } }
+    auto z2 = Z2!S(S());    // instantiate ctor
+  }));
+}
+
 /*******************************************/
 
 int main()
@@ -1938,6 +2050,8 @@ int main()
     test8339b();
     test8339c();
     test8923a();
+    test8923b();
+    test8923c();
 
     printf("Success\n");
     return 0;

@@ -4014,6 +4014,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
+    this->ctorinit = 0;
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
@@ -4115,6 +4116,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                     }
                 }
             }
+            else if (v->type->needsNested() && ctorinit)
+                e = v->type->defaultInit(loc);
             else
                 e = v->type->defaultInitLiteral(loc);
             offset = v->offset + v->type->size();
@@ -7882,7 +7885,17 @@ Lagain:
             {
                 // Create variable that will get constructed
                 Identifier *idtmp = Lexer::uniqueId("__ctmp");
-                VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, NULL);
+
+                ExpInitializer *ei = NULL;
+                if (t1->needsNested())
+                {
+                    Expressions *args = new Expressions();
+                    StructLiteralExp *se = new StructLiteralExp(loc, (StructDeclaration *)ad, args);
+                    se->ctorinit = 1;
+                    ei = new ExpInitializer(loc, se);
+                }
+
+                VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, ei);
                 tmp->storage_class |= STCctfe;
                 Expression *av = new DeclarationExp(loc, tmp);
                 av = new CommaExp(loc, av, new VarExp(loc, tmp));
@@ -10538,6 +10551,8 @@ Ltupleassign:
         }
     }
 
+    int ctorinit = e1->checkCtorInit(sc);
+
     // Determine if this is an initialization of a reference
     int refinit = 0;
     if (op == TOKconstruct && e1->op == TOKvar)
@@ -10701,7 +10716,7 @@ Ltupleassign:
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (op == TOKassign && !tn->isMutable() && !e1->checkCtorInit(sc))
+        if (op == TOKassign && !ctorinit && !tn->isMutable())
         {   error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
