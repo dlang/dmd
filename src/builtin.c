@@ -218,6 +218,7 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
             if (arg0->op == TOKint64)
                 e = new IntegerExp(loc, eval_bswap(arg0), arg0->type);
             break;
+        default: break;
     }
     return e;
 }

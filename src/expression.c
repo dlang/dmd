@@ -6719,6 +6719,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             case TOKimport: ds = ((ScopeExp *)e1)->sds;     goto L1;
             case TOKvar:    ds = ((VarExp *)e1)->var;       goto L1;
             case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
+            default: break;
         L1:
                 char* s = ds->mangle();
                 e = new StringExp(loc, s, strlen(s), 'c');
