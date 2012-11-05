@@ -1265,36 +1265,7 @@ extern (C) void rt_finalize(void* p, bool det = true)
  */
 extern (C) void rt_finalize_gc(void* p)
 {
-    debug(PRINTF) printf("rt_finalize_gc(p = %p)\n", p);
-
-    ClassInfo** pc = cast(ClassInfo**)p;
-
-    if (*pc)
-    {
-        ClassInfo c = **pc;
-
-        try
-        {
-            if (collectHandler is null || collectHandler(cast(Object)p))
-            {
-                do
-                {
-                    if (c.destructor)
-                    {
-                        fp_t fp = cast(fp_t)c.destructor;
-                        (*fp)(cast(Object)p); // call destructor
-                    }
-                    c = c.base;
-                } while (c);
-            }
-            if ((cast(void**)p)[1]) // if monitor is not null
-                _d_monitordelete(cast(Object)p, false);
-        }
-        catch (Throwable e)
-        {
-            onFinalizeError(**pc, e);
-        }
-    }
+    rt_finalize2(p, false, false);
 }
 
 
