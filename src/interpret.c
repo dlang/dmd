@@ -3755,13 +3755,13 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
                 result = 1;
             else
             {
-                error("%s does not evaluate to a boolean", e->toChars());
+                e->error("%s does not evaluate to a boolean", e->toChars());
                 e = EXP_CANT_INTERPRET;
             }
         }
         else
         {
-            error("%s cannot be interpreted as a boolean", e->toChars());
+            e->error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -3809,14 +3809,14 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
                     result = 1;
                 else
                 {
-                    error("%s cannot be interpreted as a boolean", e->toChars());
+                    e->error("%s cannot be interpreted as a boolean", e->toChars());
                     e = EXP_CANT_INTERPRET;
                 }
             }
         }
         else
         {
-            error("%s cannot be interpreted as a boolean", e->toChars());
+            e->error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
