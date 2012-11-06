@@ -1611,7 +1611,7 @@ void UserAttributeDeclaration::semantic(Scope *sc)
     if (decl)
     {
         Scope *newsc = sc;
-#if 0
+#if 1
         if (atts && atts->dim)
         {
             // create new one for changes
@@ -1619,10 +1619,16 @@ void UserAttributeDeclaration::semantic(Scope *sc)
             newsc->flags &= ~SCOPEfree;
 
             // Append new atts to old one
-            if (!newsc->userAttributes)
+            if (!newsc->userAttributes || newsc->userAttributes->dim == 0)
                 newsc->userAttributes = atts;
             else
-                newsc->userAttributes->append(atts);
+            {
+                // Create a tuple that combines them
+                Expressions *exps = new Expressions();
+                exps->push(new TupleExp(0, newsc->userAttributes));
+                exps->push(new TupleExp(0, atts));
+                newsc->userAttributes = exps;
+            }
         }
 #endif
         for (size_t i = 0; i < decl->dim; i++)
@@ -1652,10 +1658,16 @@ void UserAttributeDeclaration::setScope(Scope *sc)
             newsc->flags &= ~SCOPEfree;
 
             // Append new atts to old one
-            if (!newsc->userAttributes)
+            if (!newsc->userAttributes || newsc->userAttributes->dim == 0)
                 newsc->userAttributes = atts;
             else
-                newsc->userAttributes->append(atts);
+            {
+                // Create a tuple that combines them
+                Expressions *exps = new Expressions();
+                exps->push(new TupleExp(0, newsc->userAttributes));
+                exps->push(new TupleExp(0, atts));
+                newsc->userAttributes = exps;
+            }
         }
 #endif
         for (size_t i = 0; i < decl->dim; i++)

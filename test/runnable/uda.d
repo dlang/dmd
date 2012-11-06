@@ -83,11 +83,36 @@ void test4()
 
 /************************************************/
 
+pragma(msg, __traits(getAttributes, aa));
+alias Tuple!(__traits(getAttributes, aa)) Taa;
+[10] int aa;
+
+pragma(msg, __traits(getAttributes, bb));
+alias Tuple!(__traits(getAttributes, bb)) Tbb;
+[20] int bb;
+alias Tuple!(__traits(getAttributes, bb)) Tbbc;
+
+[30] int cc;
+pragma(msg, __traits(getAttributes, cc));
+alias Tuple!(__traits(getAttributes, cc)) Tcc;
+
+void test5()
+{
+    assert(Taa[0] == 10);
+    assert(Tbb[0] == 20);
+    assert(Tbbc[0] == 20);
+    assert(Tcc[0] == 30);
+}
+
+/************************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
+    test4();
+    test5();
 
     printf("Success\n");
     return 0;
