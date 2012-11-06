@@ -5266,6 +5266,73 @@ void test8889()
 
 /***************************************************/
 
+struct S8870
+{
+    float x = 0;
+    float y = 0;
+    float z = 0;
+    float w = 0;
+}
+
+void test8870()
+{
+    S8870 r1 = S8870(1,2,3,4);
+    S8870 r2 = S8870(5,6,7,8);
+
+    foo8870(r1, r2, false, 1);
+    bar8870(r1, r2, false, 1);
+}
+
+//extern (C)
+void foo8870(S8870 t1, S8870 t2, bool someBool, float finalFloat)
+{
+    printf("t1: %g %g %g %g\n", t1.x, t1.y, t1.z, t1.w);
+    printf("t2: %g %g %g %g\n", t2.x, t2.y, t2.z, t2.w);
+    printf("someBool: %d\n", someBool);
+    printf("finalFloat: %g\n", finalFloat);
+
+    assert(t1.x == 1 && t1.y == 2 && t1.z == 3 && t1.w == 4);
+    assert(t2.x == 5 && t2.y == 6 && t2.z == 7 && t2.w == 8);
+    assert(someBool == false);
+    assert(finalFloat == 1);
+}
+
+extern (C)
+void bar8870(S8870 t1, S8870 t2, bool someBool, float finalFloat)
+{
+    printf("t1: %g %g %g %g\n", t1.x, t1.y, t1.z, t1.w);
+    printf("t2: %g %g %g %g\n", t2.x, t2.y, t2.z, t2.w);
+    printf("someBool: %d\n", someBool);
+    printf("finalFloat: %g\n", finalFloat);
+
+    assert(t1.x == 1 && t1.y == 2 && t1.z == 3 && t1.w == 4);
+    assert(t2.x == 5 && t2.y == 6 && t2.z == 7 && t2.w == 8);
+    assert(someBool == false);
+    assert(finalFloat == 1);
+}
+
+/***************************************************/
+
+struct S247 { size_t length; size_t ptr; }
+
+S247 foo247()
+{
+    S247 f;
+    f.length = 7;
+    f.ptr = 8;
+    return f;
+}
+
+void test247()
+{
+    S247 f;
+    f = foo247();
+    assert(f.length == 7);
+    assert(f.ptr == 8);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5531,6 +5598,8 @@ int main()
     test8496();
     test8840();
     test8889();
+    test8870();
+    test247();
 
     writefln("Success");
     return 0;
