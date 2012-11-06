@@ -123,7 +123,7 @@ struct Scope
 
     void mergeCallSuper(Loc loc, unsigned cs);
 
-    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
+    Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags=0);
     Dsymbol *search_correct(Identifier *ident);
     Dsymbol *insert(Dsymbol *s);
 

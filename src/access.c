@@ -410,3 +410,19 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
         cd->accessCheck(loc, sc, d);
     }
 }
+
+const char *protectionToChars(enum PROT prot)
+{
+    static const char *names[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+    return names[prot];
+}
+
+enum PROT moduleVisibility(Module *from, Module *to)
+{
+    if (from == to)
+        return PROTprivate;
+    else if (from && to && from->parent && from->parent == to->parent)
+        return PROTpackage;
+    else
+        return PROTpublic;
+}
