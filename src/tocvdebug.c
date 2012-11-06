@@ -641,21 +641,24 @@ void ClassDeclaration::toDebug()
     mc.nfields = 0;
     mc.fnamelen = 2;
 
-    /* Adding in the base classes causes VS debugger to refuse to display any
+    /* Adding in the base classes causes VS 2010 debugger to refuse to display any
      * of the fields. I have not been able to determine why.
      * (Could it be because the base class is "forward referenced"?)
+     * It does work with VS 2012.
      */
-#if 0
-    // Add in base classes
-    for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = (*baseclasses)[i];
+    bool addInBaseClasses = true;
+    if (addInBaseClasses)
+    {
+        // Add in base classes
+        for (size_t i = 0; i < baseclasses->dim; i++)
+        {   BaseClass *bc = (*baseclasses)[i];
 
-        mc.nfields++;
-        unsigned elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc->offset);
-        elementlen = cv_align(NULL, elementlen);
-        mc.fnamelen += elementlen;
+            mc.nfields++;
+            unsigned elementlen = 4 + cgcv.sz_idx + cv4_numericbytes(bc->offset);
+            elementlen = cv_align(NULL, elementlen);
+            mc.fnamelen += elementlen;
+        }
     }
-#endif
 
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
@@ -675,38 +678,39 @@ void ClassDeclaration::toDebug()
     TOWORD(p,config.fulltypes == CV8 ? LF_FIELDLIST_V2 : LF_FIELDLIST);
     p += 2;
 
-#if 0
-    // Add in base classes
-    for (size_t i = 0; i < baseclasses->dim; i++)
-    {   BaseClass *bc = (*baseclasses)[i];
+    if (addInBaseClasses)
+    {
+        // Add in base classes
+        for (size_t i = 0; i < baseclasses->dim; i++)
+        {   BaseClass *bc = (*baseclasses)[i];
 
-        idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
-        unsigned attribute = PROTtoATTR(bc->protection);
+            idx_t typidx = cv4_typidx(bc->base->type->toCtype()->Tnext);
+            unsigned attribute = PROTtoATTR(bc->protection);
 
-        unsigned elementlen;
-        switch (config.fulltypes)
-        {
-            case CV8:
-                TOWORD(p, LF_BCLASS_V2);
-                TOWORD(p + 2,attribute);
-                TOLONG(p + 4,typidx);
-                elementlen = 8;
-                break;
+            unsigned elementlen;
+            switch (config.fulltypes)
+            {
+                case CV8:
+                    TOWORD(p, LF_BCLASS_V2);
+                    TOWORD(p + 2,attribute);
+                    TOLONG(p + 4,typidx);
+                    elementlen = 8;
+                    break;
 
-            case CV4:
-                TOWORD(p, LF_BCLASS);
-                TOWORD(p + 2,typidx);
-                TOWORD(p + 4,attribute);
-                elementlen = 6;
-                break;
+                case CV4:
+                    TOWORD(p, LF_BCLASS);
+                    TOWORD(p + 2,typidx);
+                    TOWORD(p + 4,attribute);
+                    elementlen = 6;
+                    break;
+            }
+
+            cv4_storenumeric(p + elementlen, bc->offset);
+            elementlen += cv4_numericbytes(bc->offset);
+            elementlen = cv_align(p + elementlen, elementlen);
+            p += elementlen;
         }
-
-        cv4_storenumeric(p + elementlen, bc->offset);
-        elementlen += cv4_numericbytes(bc->offset);
-        elementlen = cv_align(p + elementlen, elementlen);
-        p += elementlen;
     }
-#endif
 
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
