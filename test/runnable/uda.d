@@ -1,17 +1,19 @@
 
 import core.stdc.stdio;
 
+template Tuple(T...)
+{
+     alias T Tuple;
+}
+
+
+
 enum EEE = 7;
 ["hello"] struct SSS { }
 
 [3] { [4][EEE][SSS] int foo; }
 
 pragma(msg, __traits(getAttributes, foo));
-
-template Tuple(T...)
-{
-     alias T Tuple;
-}
 
 alias Tuple!(__traits(getAttributes, foo)) TP;
 
@@ -60,6 +62,23 @@ void test3()
     assert(tp[0] == 3);
     assert(tp[1] == 4);
     assert(tp[2] == 7);
+}
+
+/************************************************/
+
+[1] void foo4();
+[2] void foo4(int x);
+
+void test4()
+{
+    int i = 1;
+    foreach (o; __traits(getOverloads, uda, "foo4"))
+    {
+        alias Tuple!(__traits(getAttributes, o)) attrs;
+        pragma(msg, attrs.stringof);
+	assert(attrs[0] == i);
+	++i;
+    }
 }
 
 /************************************************/
