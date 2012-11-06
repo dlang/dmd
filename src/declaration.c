@@ -314,6 +314,7 @@ Dsymbol *TypedefDeclaration::syntaxCopy(Dsymbol *s)
 void TypedefDeclaration::semantic(Scope *sc)
 {
     //printf("TypedefDeclaration::semantic(%s) sem = %d\n", toChars(), sem);
+    userAttributes = sc->userAttributes;
     if (sem == SemanticStart)
     {   sem = SemanticIn;
         parent = sc->parent;
@@ -342,6 +343,7 @@ void TypedefDeclaration::semantic(Scope *sc)
             return;
         }
         storage_class |= sc->stc & STCdeprecated;
+        userAttributes = sc->userAttributes;
     }
     else if (sem == SemanticIn)
     {
@@ -479,6 +481,7 @@ void AliasDeclaration::semantic(Scope *sc)
 
     storage_class |= sc->stc & STCdeprecated;
     protection = sc->protection;
+    userAttributes = sc->userAttributes;
 
     // Given:
     //  alias foo.bar.abc def;
@@ -807,6 +810,8 @@ void VarDeclaration::semantic(Scope *sc)
     storage_class |= (sc->stc & ~STCsynchronized);
     if (storage_class & STCextern && init)
         error("extern symbols cannot have initializers");
+
+    userAttributes = sc->userAttributes;
 
     AggregateDeclaration *ad = isThis();
     if (ad)

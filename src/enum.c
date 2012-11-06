@@ -113,6 +113,7 @@ void EnumDeclaration::semantic(Scope *sc)
 
     if (sc->stc & STCdeprecated)
         isdeprecated = 1;
+    userAttributes = sc->userAttributes;
 
     parent = sc->parent;
     protection = sc->protection;

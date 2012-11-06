@@ -481,6 +481,14 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 break;
             }
 
+            case TOKlbracket:
+            {
+                Expressions *exps = parseArguments();
+                a = parseBlock();
+                s = new UserAttributeDeclaration(exps, a);
+                break;
+            }
+
             case TOKextern:
                 if (peek(&token)->value != TOKlparen)
                 {   stc = STCextern;

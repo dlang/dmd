@@ -1586,3 +1586,101 @@ const char *CompileDeclaration::kind()
 }
 
 
+/***************************** UserAttributeDeclaration *****************************/
+
+UserAttributeDeclaration::UserAttributeDeclaration(Expressions *atts, Dsymbols *decl)
+        : AttribDeclaration(decl)
+{
+    //printf("UserAttributeDeclaration()\n");
+    this->atts = atts;
+}
+
+Dsymbol *UserAttributeDeclaration::syntaxCopy(Dsymbol *s)
+{
+    //printf("UserAttributeDeclaration::syntaxCopy('%s')\n", toChars());
+    assert(!s);
+    Expressions *atts = Expression::arraySyntaxCopy(this->atts);
+    return new UserAttributeDeclaration(atts, Dsymbol::arraySyntaxCopy(decl));
+}
+
+void UserAttributeDeclaration::semantic(Scope *sc)
+{
+    //printf("UserAttributeDeclaration::semantic() %p\n", this);
+    atts = arrayExpressionSemantic(atts, sc);
+
+    if (decl)
+    {
+        Scope *newsc = sc;
+#if 0
+        if (atts && atts->dim)
+        {
+            // create new one for changes
+            newsc = new Scope(*sc);
+            newsc->flags &= ~SCOPEfree;
+
+            // Append new atts to old one
+            if (!newsc->userAttributes)
+                newsc->userAttributes = atts;
+            else
+                newsc->userAttributes->append(atts);
+        }
+#endif
+        for (size_t i = 0; i < decl->dim; i++)
+        {   Dsymbol *s = (*decl)[i];
+
+            s->semantic(newsc);
+        }
+        if (newsc != sc)
+        {
+            sc->offset = newsc->offset;
+            newsc->pop();
+        }
+    }
+}
+
+void UserAttributeDeclaration::setScope(Scope *sc)
+{
+    //printf("UserAttributeDeclaration::setScope() %p\n", this);
+    if (decl)
+    {
+        Scope *newsc = sc;
+#if 1
+        if (atts && atts->dim)
+        {
+            // create new one for changes
+            newsc = new Scope(*sc);
+            newsc->flags &= ~SCOPEfree;
+
+            // Append new atts to old one
+            if (!newsc->userAttributes)
+                newsc->userAttributes = atts;
+            else
+                newsc->userAttributes->append(atts);
+        }
+#endif
+        for (size_t i = 0; i < decl->dim; i++)
+        {   Dsymbol *s = (*decl)[i];
+
+            s->setScope(newsc); // yes, the only difference from semantic()
+        }
+        if (newsc != sc)
+        {
+            sc->offset = newsc->offset;
+            newsc->pop();
+        }
+    }
+}
+
+void UserAttributeDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writeByte('[');
+    argsToCBuffer(buf, atts, hgs);
+    AttribDeclaration::toCBuffer(buf, hgs);
+}
+
+const char *UserAttributeDeclaration::kind()
+{
+    return "UserAttribute";
+}
+
+

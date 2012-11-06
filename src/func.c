@@ -181,6 +181,7 @@ void FuncDeclaration::semantic(Scope *sc)
     else
         linkage = sc->linkage;
     protection = sc->protection;
+    userAttributes = sc->userAttributes;
 
     if (!originalType)
         originalType = type;

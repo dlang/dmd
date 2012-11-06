@@ -123,6 +123,7 @@ struct Dsymbol : Object
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
     char *depmsg;               // customized deprecation message
+    Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
 
     Dsymbol();
     Dsymbol(Identifier *);

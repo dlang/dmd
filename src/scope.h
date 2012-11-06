@@ -103,6 +103,7 @@ struct Scope
 #ifdef IN_GCC
     Expressions *attributes;    // GCC decl/type attributes
 #endif
+    Expressions *userAttributes;        // user defined attributes
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
     unsigned lastoffset;        // offset in docbuf of where to insert next dec

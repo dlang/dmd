@@ -334,6 +334,7 @@ Msgtable msgtable[] =
     { "isSame" },
     { "compiles" },
     { "parameters" },
+    { "getAttributes" },
 };
 
 

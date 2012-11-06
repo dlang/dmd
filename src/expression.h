@@ -87,6 +87,7 @@ int checkPostblit(Loc loc, Type *t);
 #endif
 struct ArrayExp *resolveOpDollar(Scope *sc, struct ArrayExp *ae);
 struct SliceExp *resolveOpDollar(Scope *sc, struct SliceExp *se);
+Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
 /* Interpreter: what form of return value expression is required?
  */

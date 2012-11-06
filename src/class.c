@@ -302,6 +302,7 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         isdeprecated = true;
     }
+    userAttributes = sc->userAttributes;
 
     if (sc->linkage == LINKcpp)
         error("cannot create C++ classes");
@@ -1294,6 +1295,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     {
         isdeprecated = true;
     }
+    userAttributes = sc->userAttributes;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )

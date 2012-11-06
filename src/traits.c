@@ -358,6 +358,23 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return new IntegerExp(loc, cd->structsize, Type::tsize_t);
     }
+    else if (ident == Id::getAttributes)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+            error("first argument is not a symbol");
+            goto Lfalse;
+        }
+        //printf("getAttributes %s, %p\n", s->toChars(), s->userAttributes);
+        if (!s->userAttributes)
+            s->userAttributes = new Expressions();
+        TupleExp *tup = new TupleExp(loc, s->userAttributes);
+        return tup->semantic(sc);
+    }
     else if (ident == Id::allMembers || ident == Id::derivedMembers)
     {
         if (dim != 1)

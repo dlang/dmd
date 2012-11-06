@@ -201,4 +201,20 @@ struct CompileDeclaration : AttribDeclaration
     const char *kind();
 };
 
+/**
+ * User defined attributes look like:
+ *      [ args, ... ]
+ */
+struct UserAttributeDeclaration : AttribDeclaration
+{
+    Expressions *atts;
+
+    UserAttributeDeclaration(Expressions *atts, Dsymbols *decl);
+    Dsymbol *syntaxCopy(Dsymbol *s);
+    void semantic(Scope *sc);
+    void setScope(Scope *sc);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    const char *kind();
+};
+
 #endif /* DMD_ATTRIB_H */
