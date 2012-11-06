@@ -733,7 +733,7 @@ enum RET TypeFunction::retStyle()
 #endif
         if (tns->ty == Tstruct)
         {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
-            if (!sd->isPOD())
+            if (!sd->isPOD() || sz >= 8)
                 return RETstack;
         }
         if (sz <= 16 && !(sz & (sz - 1)))
