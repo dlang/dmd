@@ -475,6 +475,7 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->protection = PROTpublic;
     sc2->explicitProtection = 0;
     sc2->structalign = STRUCTALIGN_DEFAULT;
+    sc2->userAttributes = NULL;
 
     size_t members_dim = members->dim;
 
