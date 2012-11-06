@@ -4225,7 +4225,31 @@ int bug6037outer(){
     bug6037(q, true);
     return 401;
 }
+
 static assert(bug6037outer() == 401);
+
+/**************************************************
+    7940 wrong code for complicated assign
+**************************************************/
+struct Bug7940 {
+    int m;
+}
+
+struct App7940 {
+   Bug7940[] x;
+}
+
+int bug7940() {
+  Bug7940[2] y;
+  App7940 app;
+  app.x = y[0..1];
+  app.x[0].m = 12;
+  assert(y[0].m == 12);
+  assert(app.x[0].m == 12);
+  return 1;
+}
+
+static assert(bug7940());
 
 /**************************************************
     7266 dotvar ref parameters
