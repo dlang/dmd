@@ -450,7 +450,7 @@ csymbol.obj : $C\symbol.c
 	$(CC) -c $(MFLAGS) $C\symbol -ocsymbol.obj
 
 cv8.obj : $C\cv8.c
-	$(CC) -c $(MFLAGS) $C\cv8
+	$(CC) -c $(MFLAGS) -I$(ROOT) $C\cv8
 
 debug.obj : $C\debug.c
 	$(CC) -c $(MFLAGS) -I. $C\debug
