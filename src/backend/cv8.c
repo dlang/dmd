@@ -41,7 +41,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #if TARGET_WINDOS
 
 #include        <direct.h>
-#include        "root.h"
 
 // The "F1" section, which is the symbols
 static Outbuffer *F1_buf;
@@ -408,7 +407,10 @@ unsigned cv8_addfile(const char *filename)
     // without having to know the working directory during compilation
     static char cwd[260];
     static unsigned cwdlen;
-    bool abs = FileName::absolute(filename);
+    bool abs = (*filename == '\\') ||
+               (*filename == '/')  ||
+               (*filename && filename[1] == ':');
+
     if (!abs && cwd[0] == 0)
     {
         if (getcwd(cwd, sizeof(cwd)))
