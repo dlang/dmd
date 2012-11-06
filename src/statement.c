@@ -2487,6 +2487,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     if (arg->type)
     {
         arg->type = arg->type->semantic(loc, sc);
+        arg->type = arg->type->addStorageClass(arg->storageClass);
         lwr = lwr->implicitCastTo(sc, arg->type);
         upr = upr->implicitCastTo(sc, arg->type);
     }
@@ -2499,13 +2500,15 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         {
             /* Just picking the first really isn't good enough.
              */
-            arg->type = lwr->type->mutableOf();
+            arg->type = lwr->type;
+            arg->type = arg->type->addStorageClass(arg->storageClass);
         }
         else
         {
             AddExp ea(loc, lwr, upr);
             Expression *e = ea.typeCombine(sc);
-            arg->type = ea.type->mutableOf();
+            arg->type = ea.type;
+            arg->type = arg->type->addStorageClass(arg->storageClass);
             lwr = ea.e1;
             upr = ea.e2;
         }
@@ -2520,14 +2523,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
      */
 
     ExpInitializer *ie = new ExpInitializer(loc, (op == TOKforeach) ? lwr : upr);
-#if (BUG6652 == 1 || BUG6652 == 2)
-    key = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), ie);
-#else
-    if (arg->storageClass & STCref)
-        key = new VarDeclaration(loc, arg->type, arg->ident, ie);
-    else
-        key = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), ie);
-#endif
+    key = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), ie);
 
     Identifier *id = Lexer::uniqueId("__limit");
     ie = new ExpInitializer(loc, (op == TOKforeach) ? upr : lwr);
@@ -2575,26 +2571,34 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
 
 #if (BUG6652 == 1 || BUG6652 == 2)
-    if (arg->storageClass & STCref)
+    ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+    v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
+    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+#else
+    if ((arg->storageClass & STCref) && arg->type->equals(key->type))
     {
-        AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
-        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
+        TypeIdentifier *tname = new TypeIdentifier(s->loc, key->ident);
+        AliasDeclaration *ad = new AliasDeclaration(loc, arg->ident, tname);
+        body = new CompoundStatement(loc, new ExpStatement(loc, ad), body);
     }
     else
     {
-        ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-        VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
-        v->storage_class |= STCforeach | STCref | STCbug6652;
-        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-    }
-#else
-    if (!(arg->storageClass & STCref))
-    {
-        ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-        VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+        ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
+        VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+        v->storage_class |= STCforeach | (arg->storageClass & STCref);
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
 #endif
+    if (arg->storageClass & STCref)
+    {
+        if (!key->type->invariantOf()->equals(arg->type->invariantOf()) ||
+            !MODimplicitConv(key->type->mod, arg->type->mod))
+        {
+            error("argument type mismatch, %s to ref %s",
+                  key->type->toChars(), arg->type->toChars());
+        }
+    }
 
     ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
     s = fs->semantic(sc);
