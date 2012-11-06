@@ -3266,6 +3266,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOv
         assert(!funcalias->isFuncAliasDeclaration());
         this->hasOverloads = 0;
     }
+    userAttributes = funcalias->userAttributes;
 }
 
 const char *FuncAliasDeclaration::kind()
