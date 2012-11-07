@@ -1889,7 +1889,7 @@ void test8923b()
     tup4.field[0].foo();    // correctly initialized
 }
 
-void test8392c()
+void test8923c()
 {
     int val;
 
