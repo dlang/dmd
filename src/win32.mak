@@ -56,6 +56,7 @@
 # install       - copy build targets to install directory
 # install-clean - delete all files in the install directory
 # zip           - create ZIP archive of source code
+# scp		- copy source files to another directory
 #
 # dmd           - release dmd (legacy target)
 # debdmd        - debug dmd
@@ -82,6 +83,8 @@ CPPUNIT=cppunit-1.12.1
 INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
 INSTALL=..\install
+# Where scp command copies to
+SCPDIR=..\backup
 
 ##### Tools
 
@@ -105,6 +108,8 @@ DETAB=detab
 TOLF=tolf
 # Zip
 ZIP=zip32
+# Copy to another directory
+SCP=$(CP)
 
 ##### User configuration switches
 
@@ -343,6 +348,14 @@ zip: detab tolf $(MAKEFILES)
 	$(ZIP) dmdsrc $(BACKSRC)
 	$(ZIP) dmdsrc $(TKSRC)
 	$(ZIP) dmdsrc $(ROOTSRC)
+
+scp: detab tolf $(MAKEFILES)
+	$(SCP) $(MAKEFILES) $(SCPDIR)/src
+	$(SCP) $(SRCS) $(SCPDIR)/src
+	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
+	$(SCP) $(TKSRC) $(SCPDIR)/src/tk
+	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
+
 
 ############################## Generated Source ##############################
 

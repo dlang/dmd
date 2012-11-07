@@ -203,7 +203,7 @@ void deprecation(Loc loc, const char *format, ...)
 
 // Just print, doesn't care about gagging
 void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
-		const char *p1, const char *p2)
+                const char *p1, const char *p2)
 {
     char *p = loc.toChars();
 
@@ -230,13 +230,13 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
 
 // header is "Error: " by default (see mars.h)
 void verror(Loc loc, const char *format, va_list ap,
-		const char *p1, const char *p2, const char *header)
+                const char *p1, const char *p2, const char *header)
 {
     if (!global.gag)
     {
         verrorPrint(loc, header, format, ap, p1, p2);
-	if (global.errors >= 20)        // moderate blizzard of cascading messages
-		fatal();
+        if (global.errors >= 20)        // moderate blizzard of cascading messages
+                fatal();
 //halt();
     }
     else
@@ -265,7 +265,7 @@ void vwarning(Loc loc, const char *format, va_list ap)
 }
 
 void vdeprecation(Loc loc, const char *format, va_list ap,
-		const char *p1, const char *p2)
+                const char *p1, const char *p2)
 {
     if (!global.params.useDeprecated)
         verror(loc, format, ap, p1, p2, "Deprecation: ");
