@@ -939,6 +939,12 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                 e = e->semantic(sc);
                 return e;
             }
+            else if (typeb->implicitConvTo(tb) == MATCHconst && t == type->constOf())
+            {
+                Expression *e = copy();
+                e->type = t;
+                return e;
+            }
             e = new CastExp(loc, e, tb);
         }
     }
