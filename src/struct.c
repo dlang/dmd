@@ -64,6 +64,13 @@ enum PROT AggregateDeclaration::prot()
     return protection;
 }
 
+void AggregateDeclaration::setScope(Scope *sc)
+{
+    if (sizeok == SIZEOKdone)
+        return;
+    ScopeDsymbol::setScope(sc);
+}
+
 void AggregateDeclaration::semantic2(Scope *sc)
 {
     //printf("AggregateDeclaration::semantic2(%s)\n", toChars());
