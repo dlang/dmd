@@ -1158,7 +1158,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             sym->parent = sc2->scopesym;
             sc2 = sc2->push(sym);
 
-            AggregateDeclaration *ad = isAggregateMember();
+            AggregateDeclaration *ad = isAggregateMember2();
 
             /* If this is a class constructor
              */
@@ -1262,6 +1262,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                             }
                             else if (v->storage_class & STCnodefaultctor)
                                 error("field %s must be initialized in constructor", v->toChars());
+                            else if (v->type->needsNested())
+                                error("field %s must be initialized in constructor, because it is nested struct", v->toChars());
                         }
                     }
                 }
