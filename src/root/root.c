@@ -907,9 +907,20 @@ char *FileName::canonicalName(const char *name)
   #endif
 #elif _WIN32
     /* Apparently, there is no good way to do this on Windows.
-     * GetFullPathName isn't it.
+     * GetFullPathName isn't it, but use it anyway.
      */
-    assert(0);
+    DWORD result = GetFullPathName(name, 0, NULL, NULL);
+    if (result)
+    {
+        char *buf = (char *)malloc(result);
+        result = GetFullPathName(name, result, buf, NULL);
+        if (result == 0)
+        {
+            free(buf);
+            return NULL;
+        }
+        return buf;
+    }
     return NULL;
 #else
     assert(0);
