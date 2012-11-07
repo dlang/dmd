@@ -3003,7 +3003,12 @@ Lagain:
         {
             TemplateInstance *spec = f->isSpeculative();
             int olderrs = global.errors;
+            // If it isn't speculative, we need to show errors
+            unsigned oldgag = global.gag;
+            if (global.gag && !spec)
+                global.gag = 0;
             f->semantic3(f->scope);
+            global.gag = oldgag;
             // Update the template instantiation with the number
             // of errors which occured.
             if (spec && global.errors != olderrs)
