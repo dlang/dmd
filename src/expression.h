@@ -497,6 +497,7 @@ struct StructLiteralExp : Expression
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
+    int ctorinit;
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 

@@ -146,11 +146,11 @@ struct Abc9
 
     int bar(int x)
     {
-	Abc9 *foo() { return &this; }
+        Abc9 *foo() { return &this; }
 
-	Abc9 *p = foo();
-	assert(p == &this);
-	return p.c + x;
+        Abc9 *p = foo();
+        assert(p == &this);
+        return p.c + x;
     }
 }
 
@@ -171,11 +171,11 @@ class Abc10
 
     int bar(int x)
     {
-	Abc10 foo() { return this; }
+        Abc10 foo() { return this; }
 
-	Abc10 p = foo();
-	assert(p == this);
-	return p.c + x;
+        Abc10 p = foo();
+        assert(p == this);
+        return p.c + x;
     }
 
 }
@@ -196,8 +196,8 @@ class Collection
 
     void opApply(void delegate(int) fp)
     {
-	for (int i = 0; i < array.length; i++)
-	    fp(array[i]);
+        for (int i = 0; i < array.length; i++)
+            fp(array[i]);
     }
 }
 
@@ -207,8 +207,8 @@ int func11(Collection c)
 
     void comp_max(int i)
     {
-	if (i > max)
-	    max = i;
+        if (i > max)
+            max = i;
     }
 
     c.opApply(&comp_max);
@@ -270,9 +270,9 @@ void BadMultipleNested ()
     }
 }
 
-/* This one kind of depends upon memory layout.  GlobalScopeSpoof should 
-be called with no "this" pointer; this is trying to ensure that 
-everything is working properly.  Of course, in the DMD calling 
+/* This one kind of depends upon memory layout.  GlobalScopeSpoof should
+be called with no "this" pointer; this is trying to ensure that
+everything is working properly.  Of course, in the DMD calling
 convention it'll fail if the caller passes too much/little data. */
 
 void GlobalScopeSpoof (int x, int y)
@@ -313,8 +313,8 @@ void test13()
 {
     struct Abc
     {
-	int x = 3;
-	int y = 4;
+        int x = 3;
+        int y = 4;
     }
 
     Abc a;
@@ -329,10 +329,10 @@ void test14()
 {
     struct Abc
     {
-	int x = 3;
-	int y = 4;
+        int x = 3;
+        int y = 4;
 
-	int foo() { return y; }
+        int foo() { return y; }
     }
 
     Abc a;
@@ -349,10 +349,10 @@ void test15()
 
     struct Abc
     {
-	int x = 3;
-	int y = 4;
+        int x = 3;
+        int y = 4;
 
-	int foo() { return y + z; }
+        int foo() { return y + z; }
     }
 
     Abc a;
@@ -369,10 +369,10 @@ void test16()
 
     static class Abc
     {
-	int x = 3;
-	int y = 4;
+        int x = 3;
+        int y = 4;
 
-	int foo() { return y + z; }
+        int foo() { return y + z; }
     }
 
     Abc a = new Abc();
@@ -423,8 +423,8 @@ class Collection20
 
     void opApply(void delegate(int) fp)
     {
-	for (int i = 0; i < array.length; i++)
-	    fp(array[i]);
+        for (int i = 0; i < array.length; i++)
+            fp(array[i]);
     }
 }
 
@@ -457,18 +457,18 @@ int bar21(int a)
 
     int foo(int b)
     {
-	b += c;		// 4 is added to b
-	c++;		// bar.c is now 5
-	return b + c;	// 12 is returned
+        b += c;         // 4 is added to b
+        c++;            // bar.c is now 5
+        return b + c;   // 12 is returned
     }
     c = 4;
-    int i = foo(a);	// i is set to 12
-    return i + c;	// returns 17
+    int i = foo(a);     // i is set to 12
+    return i + c;       // returns 17
 }
 
 void test21()
 {
-    int i = bar21(3);	// i is assigned 17
+    int i = bar21(3);   // i is assigned 17
     assert(i == 17);
 }
 
@@ -516,9 +516,9 @@ class Foo23
 
     void fred()
     {
-	printf("%d,%d\n",i,j);
-	assert(i == 12);
-	assert(j == 14);
+        printf("%d,%d\n",i,j);
+        assert(i == 12);
+        assert(j == 14);
     }
 
     frelled(&fred);
@@ -527,9 +527,9 @@ class Foo23
 
 void test23()
 {
-  Foo23 f = new Foo23();
-  
-  f.bar(12);
+    Foo23 f = new Foo23();
+
+    f.bar(12);
 }
 
 
@@ -564,34 +564,31 @@ alias bool delegate(int) callback26;
 
 bool foo26(callback26 a)
 {
-    
-  return a(12);
+    return a(12);
 }
 
 class Bar26
 {
-  
-  int func(int v)
-  {
-    printf("func(v=%d)\n", v);
-    foo26(delegate bool(int a)
-	{
-	    printf("%d %d\n",a,v); return true;
-	    assert(a == 12);
-	    assert(v == 15);
-	    assert(0);
-	} );
-    
-    return v;
-  }
+    int func(int v)
+    {
+        printf("func(v=%d)\n", v);
+        foo26(delegate bool(int a)
+        {
+            printf("%d %d\n",a,v); return true;
+            assert(a == 12);
+            assert(v == 15);
+            assert(0);
+        } );
+        return v;
+    }
 }
 
 
 void test26()
 {
-  Bar26 b = new Bar26();
-  
-  b.func(15);
+    Bar26 b = new Bar26();
+
+    b.func(15);
 }
 
 
@@ -601,12 +598,12 @@ class A27
 {
     uint myFunc()
     {
-	uint myInt = 13;
-	uint mySubFunc()
-	{
-	    return myInt;
-	}
-	return mySubFunc();
+        uint myInt = 13;
+        uint mySubFunc()
+        {
+            return myInt;
+        }
+        return mySubFunc();
     }
 }
 
@@ -630,10 +627,10 @@ class Bar28
 {
     int func()
     {
-	int count = 0;
+        int count = 0;
 
-	Foo28(delegate void() { ++count; } );
-	return count;
+        Foo28(delegate void() { ++count; } );
+        return count;
     }
 }
 
@@ -647,7 +644,7 @@ void test28()
 
 /*******************************************/
 
-class Foo29 
+class Foo29
 {
   void Func(void delegate() call)
   {
@@ -660,11 +657,11 @@ class Bar29
 {
     int Func()
     {
-	int count = 0;
-	Foo29 ic = new Foo29();
+        int count = 0;
+        Foo29 ic = new Foo29();
 
-	ic.Func(delegate void() { ++count; } );
-	return count;
+        ic.Func(delegate void() { ++count; } );
+        return count;
     }
 }
 
@@ -686,13 +683,13 @@ void Func30(Foo30 bar)
 {
     void InnerFunc(int x, int y)
     {
-      int a = bar.arr[y]; // Ok
-    
-      if(bar.arr[y]) // Access violation
-      {
-      }
+        int a = bar.arr[y]; // Ok
+
+        if(bar.arr[y]) // Access violation
+        {
+        }
     }
-    
+
     InnerFunc(5,5);
 }
 
@@ -718,17 +715,17 @@ void call31(int d, void delegate(int d) f)
 void test31()
 {
     call31(100, delegate void(int d1)
-	{
-	    printf("d1 = %d\n", d1);
-	    assert(d1 == 100);
-	    call31(200, delegate void(int d2)
-		{
-		    printf("d1 = %d\n", d1);
-		    printf("d2 = %d\n", d2);
-		    assert(d1 == 100);
-		    assert(d2 == 200);
-		});
-	});
+    {
+        printf("d1 = %d\n", d1);
+        assert(d1 == 100);
+        call31(200, delegate void(int d2)
+        {
+            printf("d1 = %d\n", d1);
+            printf("d2 = %d\n", d2);
+            assert(d1 == 100);
+            assert(d2 == 200);
+        });
+    });
 }
 
 
@@ -744,24 +741,24 @@ void call32(int d, void delegate(int d) f)
 void test32()
 {
     call32(100, delegate void(int d1)
-	{
-	    int a = 3;
-	    int b = 4;
-	    printf("d1 = %d, a = %d, b = %d\n", d1, a, b);
-	    assert(a == 3);
-	    assert(b == 4);
-	    assert(d1 == 100);
+    {
+        int a = 3;
+        int b = 4;
+        printf("d1 = %d, a = %d, b = %d\n", d1, a, b);
+        assert(a == 3);
+        assert(b == 4);
+        assert(d1 == 100);
 
-	    call32(200, delegate void(int d2)
-		{
-		    printf("d1 = %d, a = %d\n", d1, a);
-		    printf("d2 = %d, b = %d\n", d2, b);
-		    assert(a == 3);
-		    assert(b == 4);
-		    assert(d1 == 100);
-		    assert(d2 == 200);
-		});
-	});
+        call32(200, delegate void(int d2)
+        {
+            printf("d1 = %d, a = %d\n", d1, a);
+            printf("d2 = %d, b = %d\n", d2, b);
+            assert(a == 3);
+            assert(b == 4);
+            assert(d1 == 100);
+            assert(d2 == 200);
+        });
+    });
 }
 
 
@@ -771,34 +768,34 @@ void test33()
 {
     extern (C) int Foo1(int a, int b, int c)
     {
-	assert(a == 1);
-	assert(b == 2);
-	assert(c == 3);
-	return 1;
+        assert(a == 1);
+        assert(b == 2);
+        assert(c == 3);
+        return 1;
     }
 
     extern (D) int Foo2(int a, int b, int c)
     {
-	assert(a == 1);
-	assert(b == 2);
-	assert(c == 3);
-	return 2;
+        assert(a == 1);
+        assert(b == 2);
+        assert(c == 3);
+        return 2;
     }
 
     extern (Windows) int Foo3(int a, int b, int c)
     {
-	assert(a == 1);
-	assert(b == 2);
-	assert(c == 3);
-	return 3;
+        assert(a == 1);
+        assert(b == 2);
+        assert(c == 3);
+        return 3;
     }
 
     extern (Pascal) int Foo4(int a, int b, int c)
     {
-	assert(a == 1);
-	assert(b == 2);
-	assert(c == 3);
-	return 4;
+        assert(a == 1);
+        assert(b == 2);
+        assert(c == 3);
+        return 4;
     }
 
     assert(Foo1(1, 2, 3) == 1);
@@ -816,13 +813,14 @@ class Foo34
     int x;
 
     class Bar
-    {	int y;
+    {
+        int y;
 
-	int delegate() getDelegate()
+        int delegate() getDelegate()
         {
-	    assert(y == 8);
-	    auto i = sayHello();
-	    assert(i == 23);
+            assert(y == 8);
+            auto i = sayHello();
+            assert(i == 23);
             return &sayHello;
         }
     }
@@ -830,16 +828,16 @@ class Foo34
 
     int sayHello()
     {
-	printf("Hello\n");
-	assert(x == 47);
-	return 23;
+        printf("Hello\n");
+        assert(x == 47);
+        return 23;
     }
 
     this()
     {
-	x = 47;
+        x = 47;
         bar = new Bar();
-	bar.y = 8;
+        bar.y = 8;
     }
 }
 
@@ -859,16 +857,16 @@ class Foo35
     int x = 42;
     void bar()
     {
-	int y = 43;
+        int y = 43;
         new class Object
         {
             this()
-	    {
-		//writefln("x = %s", x);
-		//writefln("y = %s", y);
-		assert(x == 42);
-		assert(y == 43);
-	    }
+            {
+                //writefln("x = %s", x);
+                //writefln("y = %s", y);
+                assert(x == 42);
+                assert(y == 43);
+            }
         };
     }
 }
@@ -886,16 +884,16 @@ class Foo36
     int x = 42;
     this()
     {
-	int y = 43;
+        int y = 43;
         new class Object
         {
             this()
-	    {
-		//writefln("x = %s", x);
-		//writefln("y = %s", y);
-		assert(x == 42);
-		assert(y == 43);
-	    }
+            {
+                //writefln("x = %s", x);
+                //writefln("y = %s", y);
+                assert(x == 42);
+                assert(y == 43);
+            }
         };
     }
 }
@@ -912,22 +910,22 @@ class Foo37
     int x = 42;
     void bar()
     {
-	int y = 43;
-	void abc()
-	{
-	    new class Object
-	    {
-		this()
-		{
-		    //writefln("x = %s", x);
-		    //writefln("y = %s", y);
-		    assert(x == 42);
-		    assert(y == 43);
-		}
-	    };
-	}
+        int y = 43;
+        void abc()
+        {
+            new class Object
+            {
+                this()
+                {
+                    //writefln("x = %s", x);
+                    //writefln("y = %s", y);
+                    assert(x == 42);
+                    assert(y == 43);
+                }
+            };
+        }
 
-	abc();
+        abc();
     }
 }
 
@@ -945,34 +943,34 @@ void test38()
 
     int delegate() foo()
     {
-	class C
-	{
-	    int dg()
-	    {
-		return ++status;
-	    }
-	}
+        class C
+        {
+            int dg()
+            {
+                return ++status;
+            }
+        }
 
-	C c = new C();
-	
-	return &c.dg;
+        C c = new C();
+
+        return &c.dg;
     }
 
     int delegate() bar = foo();
 
     if(status != 3)
     {
-	    assert(0);
+        assert(0);
     }
 
     if(bar() != 4)
     {
-	    assert(0);
+        assert(0);
     }
 
     if(status != 4)
     {
-	    assert(0);
+        assert(0);
     }
 }
 
@@ -984,31 +982,31 @@ void test39()
 
     int delegate() foo()
     {
-	return &(new class
-	    {
-		int dg()
-		{
-		    return ++status;
-		}
-	    }
-	).dg;
+        return &(new class
+            {
+                int dg()
+                {
+                    return ++status;
+                }
+            }
+        ).dg;
     }
 
     int delegate() bar = foo();
-    
+
     if(status != 0)
     {
-	assert(0);
+        assert(0);
     }
 
     if(bar() != 1)
     {
-	assert(0);
+        assert(0);
     }
 
     if(status != 1)
     {
-	assert(0);
+        assert(0);
     }
 }
 
@@ -1026,13 +1024,13 @@ class C40
     void init()
     {
         I40 i = new class() I40
-	{
+        {
             void get( string s )
-	    {
+            {
                 func();
             }
         };
-	i.get("hello");
+        i.get("hello");
     }
     void func( ){ assert(a == 4); }
 }
@@ -1050,19 +1048,19 @@ class C41
 
     void init()
     {
-	class N
-	{
+        class N
+        {
             void get()
-	    {
+            {
                 func();
             }
-	}
-	N n = new N();
-	n.get();
+        }
+        N n = new N();
+        n.get();
     }
     void func()
     {
-	assert(a == 3);
+        assert(a == 3);
     }
 }
 
@@ -1080,27 +1078,27 @@ class C42
 
     void init()
     {
-	class N
-	{
-	    void init()
-	    {
-		class M
-		{
-		    void get()
-		    {
-			func();
-		    }
-		}
-		M m = new M();
-		m.get();
-	    }
-	}
-	N n = new N();
-	n.init();
+        class N
+        {
+            void init()
+            {
+                class M
+                {
+                    void get()
+                    {
+                        func();
+                    }
+                }
+                M m = new M();
+                m.get();
+            }
+        }
+        N n = new N();
+        n.init();
     }
     void func()
     {
-	assert(a == 3);
+        assert(a == 3);
     }
 }
 
@@ -1121,9 +1119,9 @@ void test43()
 
     void bar()
     {
-	int y = 4;
-	assert(foo43!(x)() == 3);
-	assert(foo43!(y)() == 4);
+        int y = 4;
+        assert(foo43!(x)() == 3);
+        assert(foo43!(y)() == 4);
     }
 
     bar();
@@ -1165,24 +1163,24 @@ class Bar45
 {
     void test()
     {
-	a = 4;
-	Inner i = new Inner;
-	i.foo();
+        a = 4;
+        Inner i = new Inner;
+        i.foo();
     }
 
     class Inner
     {
-	void foo()
-	{
-	    assert(a == 4);
-	    Inner i = new Inner;
-	    i.bar();
-	}
+        void foo()
+        {
+            assert(a == 4);
+            Inner i = new Inner;
+            i.bar();
+        }
 
-	void bar()
-	{
-	    assert(a == 4);
-	}
+        void bar()
+        {
+            assert(a == 4);
+        }
     }
     int a;
 }
@@ -1202,7 +1200,7 @@ class Adapter
 
     int func()
     {
-	return 73;
+        return 73;
     }
 }
 
@@ -1211,20 +1209,21 @@ class Foo46
     int b = 7;
 
     class AnonAdapter : Adapter
-    {	int aa = 8;
+    {
+        int aa = 8;
 
-	this()
-	{
-	    assert(b == 7);
-	    assert(aa == 8);
-	}
+        this()
+        {
+            assert(b == 7);
+            assert(aa == 8);
+        }
     }
 
     void func()
     {
         Adapter a = cast( Adapter )( new AnonAdapter() );
-	assert(a.func() == 73);
-	assert(a.a == 2);
+        assert(a.func() == 73);
+        assert(a.a == 2);
     }
 }
 
@@ -1240,11 +1239,11 @@ void test46()
 void test47()
 {
     void delegate() test =
-	{
-	    struct Foo {int x=3;}
-	    Foo f;
-	    assert(f.x == 3);
-	};
+    {
+        struct Foo {int x=3;}
+        Foo f;
+        assert(f.x == 3);
+    };
     test();
 }
 
@@ -1254,21 +1253,21 @@ struct Outer48
 {
     class Inner
     {
-	this(int i) { b = i; }
-	int b;
+        this(int i) { b = i; }
+        int b;
     }
 
     int a = 6;
 
     void f()
     {
-	int nested()
-	{
-	    auto x = new Inner(a);
-	    return x.b + 1;
-	}
-	int i = nested();
-	assert(i == 7);
+        int nested()
+        {
+            auto x = new Inner(a);
+            return x.b + 1;
+        }
+        int i = nested();
+        assert(i == 7);
     }
 }
 
@@ -1286,32 +1285,33 @@ void test49()
     int j = 10;
     void mainlocal(int x)
     {
-	printf("mainlocal: j = %d, x = %d\n", j, x);
-	assert(j == 10);
-	assert(x == 1);
+        printf("mainlocal: j = %d, x = %d\n", j, x);
+        assert(j == 10);
+        assert(x == 1);
     }
 
     void fun2()
-    {   int k = 20;
-	void fun2local(int x)
-	{
-	    printf("fun2local: k = %d, x = %d\n", k, x);
-	    assert(j == 10);
-	    assert(k == 20);
-	    assert(x == 2);
-	}
+    {
+        int k = 20;
+        void fun2local(int x)
+        {
+            printf("fun2local: k = %d, x = %d\n", k, x);
+            assert(j == 10);
+            assert(k == 20);
+            assert(x == 2);
+        }
 
-	void fun1()
-	{
-	    mainlocal(1);
-	    fun2local(2);
-	}
+        void fun1()
+        {
+            mainlocal(1);
+            fun2local(2);
+        }
 
-	fun1();
+        fun1();
     }
 
     fun2();
-} 
+}
 
 /*******************************************/
 
@@ -1325,9 +1325,9 @@ void funb50(alias pred1)()
 {   int k = 20;
     void funb50local(int x)
     {
-	printf("funb50local: k = %d, x = %d\n", k, x);
-	assert(k == 20);
-	assert(x == 2);
+        printf("funb50local: k = %d, x = %d\n", k, x);
+        assert(k == 20);
+        assert(x == 2);
     }
     funa50!(pred1, funb50local)();
 }
@@ -1337,12 +1337,12 @@ void test50()
     int j = 10;
     void mainlocal(int x)
     {
-	printf("mainlocal: j = %d, x = %d\n", j, x);
-	assert(j == 10);
-	assert(x == 1);
+        printf("mainlocal: j = %d, x = %d\n", j, x);
+        assert(j == 10);
+        assert(x == 1);
     }
     funb50!(mainlocal)();
-} 
+}
 
 /*******************************************/
 
@@ -1356,9 +1356,9 @@ void funb51(alias pred1)()
 {   int k = 20;
     void funb51local(int x)
     {
-	printf("funb51local: k = %d, x = %d\n", k, x);
-	assert(k == 20);
-	assert(x == 2);
+        printf("funb51local: k = %d, x = %d\n", k, x);
+        assert(k == 20);
+        assert(x == 2);
     }
     funa51!(funb51local, pred1)();
 }
@@ -1368,12 +1368,12 @@ void test51()
     int j = 10;
     void mainlocal(int x)
     {
-	printf("mainlocal: j = %d, x = %d\n", j, x);
-	assert(j == 10);
-	assert(x == 1);
+        printf("mainlocal: j = %d, x = %d\n", j, x);
+        assert(j == 10);
+        assert(x == 1);
     }
     funb51!(mainlocal)();
-} 
+}
 
 /*******************************************/
 
@@ -1384,25 +1384,25 @@ class C52
     int index = 7;
     void test1(){
         printf( "this = %p, index = %d\n", this, index );
-	assert(index == 7);
-	assert(this == c52);
+        assert(index == 7);
+        assert(this == c52);
     }
     void test()
     {
         class N
-	{
+        {
             void callI()
-	    {
-		printf("test1\n");
+            {
+                printf("test1\n");
                 test1();
-		printf("test2\n");
+                printf("test2\n");
                 if (index is -1)
-		{   // Access to the outer-super-field triggers the bug
-		    printf("test3\n");
+                {   // Access to the outer-super-field triggers the bug
+                    printf("test3\n");
                 }
             }
         }
-	auto i = new N();
+        auto i = new N();
         i.callI();
     }
 }
@@ -1421,8 +1421,8 @@ void foo53(int i)
 {
     struct SS
     {
-	int x,y;
-	int bar() { return x + i + 1; }
+        int x,y;
+        int bar() { return x + i + 1; }
     }
     SS s;
     s.x = 3;
@@ -1443,19 +1443,19 @@ void test54()
 
     struct A
     {
-	int bar(int i) { return fun(i); }
+        int bar(int i) { return fun(i); }
     }
 
     A makeA()
     {
-	// A a;	return a;
-	return A();
+        // A a; return a;
+        return A();
     }
 
     A makeA2()
     {
-	 A a;	return a;
-	//return A();
+         A a;   return a;
+        //return A();
     }
 
     A a = makeA();
@@ -1524,7 +1524,7 @@ void Y(dg_t delegate (dg_t) y)
   {
     auto abc(dg_t delegate(F) a)
     {
-	return a(F((F b){return y(a(b))();}));
+        return a(F((F b){return y(a(b))();}));
     }
 
     abc((F b){return (){return b.f(b);};});
@@ -1535,12 +1535,12 @@ void Y(dg_t delegate (dg_t) y)
 void test7428(){
     dg_t foo(dg_t self)
     {
-	void bar() { self(); }
-	return &bar;
+        void bar() { self(); }
+        return &bar;
     }
 
     Y(&foo);
-} 
+}
 
 /*******************************************/
 
@@ -1551,7 +1551,7 @@ struct S4841(alias pred)
 
 void abc4841() {
    int w;
-   S4841!(w) m;   
+   S4841!(w) m;
 }
 
 void test4841() {
@@ -1565,10 +1565,10 @@ void index7199()
 {
     void find()
     {
-	bool hay()
-	{
-	    return true;
-	}
+        bool hay()
+        {
+            return true;
+        }
     }
 
     find();
@@ -1773,7 +1773,7 @@ template filter8339(alias pred)
     auto filter8339(R)(R r) {
         struct Result {
             R range;
-            this(R r) {}
+            this(R r) { range = r; }
             auto front() { return pred(0); }
         }
         return Result(r);
@@ -1784,7 +1784,7 @@ void test8339b()
     static makefilter() { int n; return filter8339!(a=>n)([]); }
 
     auto r1 = makefilter();
-    static assert(!is(typeof({ filter8339!(a=>a)(r1); })));
+    filter8339!(a=>a)(r1);
 }
 
 void test8339c()
@@ -1795,6 +1795,186 @@ void test8339c()
 
     struct Pair { C1 t; C2 u; void func(){} }
     Pair pair;
+}
+
+/*******************************************/
+// 8923
+
+void test8923a()
+{
+    int val;
+
+    struct S  // is nested struct
+    {
+        void foo() { val = 1; }  // access to val through the hidden frame pointer
+    }
+    S    s1a;           s1a.foo();
+    S    s1b = S();     s1b.foo();
+    S[1] s2a;           s2a[0].foo();
+    S[1] s2b = S();     s2b[0].foo();
+
+    static struct U { S s; }
+    U    u1a;           u1a.s.foo();
+    U    u1b = U();     u1b.s.foo();
+    U    u1c = U(s1a);  u1c.s.foo();
+    U[1] u2a;           u2a[0].s.foo();
+    U[1] u2b = U();     u2b[0].s.foo();
+    U[1] u2c = U(s1a);  u2c[0].s.foo();
+    static struct V { S[1] s; }
+    V    v1a;           v1a.s[0].foo();
+    V    v1b = V();     v1b.s[0].foo();
+    V    v1c = V(s1a);  v1c.s[0].foo();
+    V[1] v2a;           v2a[0].s[0].foo();
+    V[1] v2b = V();     v2b[0].s[0].foo();
+    V[1] v2c = V(s1a);  v2c[0].s[0].foo();
+
+    static struct W { S s; this(S s){ this.s = s; } }
+    W    w1a;           w1a.s.foo();
+    W    w1b = W();     w1b.s.foo();
+    W    w1c = W(s1a);  w1c.s.foo();
+    W[1] w2a;           w2a[0].s.foo();
+    W[1] w2b = W();     w2b[0].s.foo();
+    W[1] w2c = W(s1a);  w2c[0].s.foo();
+    static struct X { S[1] s; this(S s){ this.s[] = s; } }
+    X    x1a;           x1a.s[0].foo();
+    X    x1b = X();     x1b.s[0].foo();
+    X    x1c = X(s1a);  x1c.s[0].foo();
+    X[1] x2a;           x2a[0].s[0].foo();
+    X[1] x2b = X();     x2b[0].s[0].foo();
+    X[1] x2c = X(s1a);  x2c[0].s[0].foo();
+
+    // Both declarations, Y and Z should raise errors,
+    // because their ctors don't initialize their field 's'.
+  static assert(!__traits(compiles, {
+    static struct Y { S s; this(S){} }
+  }));
+/+  Y    y1a;         //y1a.s.foo();
+    Y    y1b = Y();     y1b.s.foo();
+    Y    y1c = Y(s1a);//y1c.s.foo();
+    Y[1] y2a;         //y2a[0].s.foo();
+    Y[1] y2b = Y();     y2b[0].s.foo();
+    Y[1] y2c = Y(s1a);//y2c[0].s.foo();  +/
+  static assert(!__traits(compiles, {
+    static struct Z { S[1] s; this(S){} }
+  }));
+/+  Z    z1a;         //z1a.s[0].foo();
+    Z    z1b = Z();     z1b.s[0].foo();
+    Z    z1c = Z(s1a);//z1c.s[0].foo();
+    Z[1] z2a;         //z1a.s[0].foo();
+    Z[1] z2b = Z();     z1b.s[0].foo();
+    Z[1] z2c = Z(s1a);//z1c.s[0].foo();  // +/
+}
+
+struct Tuple8923(int v, T...)
+{
+    T field;
+    static if (v == 1) this(T args) { }    // should be an error
+    static if (v == 2) this(T args) { field = args; }
+    static if (v == 3) this(U...)(U args) { }    // should be an error
+    static if (v == 4) this(U...)(U args) { field = args; }
+    //alias field this;
+}
+void test8923b()
+{
+    int val;
+    struct S { void foo() { val = 1; } }
+
+  static assert(!__traits(compiles, Tuple8923!(1, S)(S()) ));
+  static assert(!__traits(compiles, Tuple8923!(3, S)(S()) ));
+
+    auto tup2 = Tuple8923!(2, S)(S());
+    tup2.field[0].foo();    // correctly initialized
+
+    auto tup4 = Tuple8923!(4, S)(S());
+    tup4.field[0].foo();    // correctly initialized
+}
+
+void test8392c()
+{
+    int val;
+
+    struct S  // is nested struct
+    {
+        void foo() { val = 1; }  // access to val through the hidden frame pointer
+    }
+    S    s1a;           s1a.foo();
+    S    s1b = S();     s1b.foo();
+    S[1] s2a;           s2a[0].foo();
+    S[1] s2b = S();     s2b[0].foo();
+
+    // U,V,W,X are nested struct, but should work same as non-nested.
+    // 1: bare struct object.  2: static array of structs.
+    // a: default construction.
+    // b: construction by literal syntax which has no argument.
+    // c: construction by literal syntax which has one or more arguments.
+
+    struct U
+    {
+        S s;
+        void foo() { val = 2; }
+    }
+    U    u1a;           u1a.foo();      u1a.s.foo();
+    U    u1b = U();     u1b.foo();      u1b.s.foo();
+    U    u1c = U(s1a);  u1c.foo();      u1c.s.foo();
+    U[1] u2a;           u2a[0].foo();   u2a[0].s.foo();
+    U[1] u2b = U();     u2b[0].foo();   u2b[0].s.foo();
+    U[1] u2c = U(s1a);  u2c[0].foo();   u2c[0].s.foo();
+
+    struct V
+    {
+        S[1] s;
+        void foo() { val = 2; }
+    }
+    V    v1a;           v1a.foo();      v1a.s[0].foo();
+    V    v1b = V();     v1b.foo();      v1b.s[0].foo();
+    V    v1c = V(s1a);  v1c.foo();      v1c.s[0].foo();
+    V[1] v2a;           v2a[0].foo();   v2a[0].s[0].foo();
+    V[1] v2b = V();     v2b[0].foo();   v2b[0].s[0].foo();
+    V[1] v2c = V(s1a);  v2c[0].foo();   v2c[0].s[0].foo();
+
+    struct W
+    {
+        S s;
+        this(S s) { this.s = s; }
+        void foo() { val = 2; }
+    }
+    W    w1a;           w1a.foo();      w1a.s.foo();
+    W    w1b = W();     w1b.foo();      w1b.s.foo();
+    W    w1c = W(s1a);  w1c.foo();      w1c.s.foo();
+    W[1] w2a;           w2a[0].foo();   w2a[0].s.foo();
+    W[1] w2b = W();     w2b[0].foo();   w2b[0].s.foo();
+    W[1] w2c = W(s1a);  w2c[0].foo();   w2c[0].s.foo();
+
+    struct X
+    {
+        S[1] s;
+        this(S s) { this.s[] = s; }
+        void foo() { val = 2; }
+    }
+    X    x1a;           x1a.foo();      x1a.s[0].foo();
+    X    x1b = X();     x1b.foo();      x1b.s[0].foo();
+    X    x1c = X(s1a);  x1c.foo();      x1c.s[0].foo();
+    X[1] x2a;           x2a[0].foo();   x2a[0].s[0].foo();
+    X[1] x2b = X();     x2b[0].foo();   x2b[0].s[0].foo();
+    X[1] x2c = X(s1a);  x2c[0].foo();   x2c[0].s[0].foo();
+
+    // Both declarations, Y and Z should raise errors,
+    // because their ctors don't initialize their field 's'.
+  static assert(!__traits(compiles, {
+    struct Y1 { S s; this(S){} void foo() { val = 2; } }
+  }));
+  static assert(!__traits(compiles, {
+    struct Y2 { S s; this(T)(S){} void foo() { val = 2; } }
+    auto y2 = Y2!S(S());    // instantiate ctor
+  }));
+
+  static assert(!__traits(compiles, {
+    struct Z1 { S[1] s; this(S){} void foo() { val = 2; } }
+  }));
+  static assert(!__traits(compiles, {
+    struct Z2 { S[1] s; this(T)(S){} void foo() { val = 2; } }
+    auto z2 = Z2!S(S());    // instantiate ctor
+  }));
 }
 
 /*******************************************/
@@ -1869,6 +2049,9 @@ int main()
     test8339a();
     test8339b();
     test8339c();
+    test8923a();
+    test8923b();
+    test8923c();
 
     printf("Success\n");
     return 0;

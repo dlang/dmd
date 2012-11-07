@@ -1778,6 +1778,15 @@ int Type::needsDestruction()
 }
 
 /*********************************
+ *
+ */
+
+int Type::needsNested()
+{
+    return FALSE;
+}
+
+/*********************************
  * Check type to see if it is based on a deprecated symbol.
  */
 
@@ -4071,6 +4080,15 @@ int TypeSArray::isZeroInit(Loc loc)
 int TypeSArray::needsDestruction()
 {
     return next->needsDestruction();
+}
+
+/*********************************
+ *
+ */
+
+int TypeSArray::needsNested()
+{
+    return next->needsNested();
 }
 
 Expression *TypeSArray::defaultInitLiteral(Loc loc)
@@ -7357,6 +7375,11 @@ int TypeEnum::needsDestruction()
     return sym->memtype->needsDestruction();
 }
 
+int TypeEnum::needsNested()
+{
+    return sym->memtype ? sym->memtype->needsNested() : FALSE;
+}
+
 MATCH TypeEnum::implicitConvTo(Type *to)
 {   MATCH m;
 
@@ -7564,6 +7587,11 @@ int TypeTypedef::checkBoolean()
 int TypeTypedef::needsDestruction()
 {
     return sym->basetype->needsDestruction();
+}
+
+int TypeTypedef::needsNested()
+{
+    return sym->basetype->needsNested();
 }
 
 Type *TypeTypedef::toBasetype()
@@ -8061,6 +8089,21 @@ int TypeStruct::checkBoolean()
 int TypeStruct::needsDestruction()
 {
     return sym->dtor != NULL;
+}
+
+int TypeStruct::needsNested()
+{
+    if (sym->isnested)
+        return true;
+
+    for (size_t i = 0; i < sym->fields.dim; i++)
+    {
+        Dsymbol *s = sym->fields[i];
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (vd && !vd->isDataseg() && vd->type->needsNested())
+            return true;
+    }
+    return false;
 }
 
 int TypeStruct::isAssignable(int blit)

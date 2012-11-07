@@ -175,6 +175,7 @@ struct Dsymbol : Object
     virtual void defineRef(Dsymbol *s);
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
+    AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
     ClassDeclaration *isClassMember();          // are we a member of a class?
     virtual int isExport();                     // is Dsymbol exported?
     virtual int isImportedSymbol();             // is Dsymbol imported?

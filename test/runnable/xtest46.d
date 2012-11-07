@@ -2895,7 +2895,7 @@ void test139()
     T a = void;
     auto b = map!"a"(x);
     auto c = [map!"a"(x)];
-    T[3] d;
+    T[3] d = void;
 }
 
 
