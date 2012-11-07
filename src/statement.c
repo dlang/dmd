@@ -1751,6 +1751,7 @@ Lagain:
                 int i = (dim == 1) ? 0 : 1;     // index of value
                 arg = (*arguments)[i];
                 arg->type = arg->type->semantic(loc, sc);
+                arg->type = arg->type->addStorageClass(arg->storageClass);
                 tnv = arg->type->toBasetype();
                 if (tnv->ty != tn->ty &&
                     (tnv->ty == Tchar || tnv->ty == Twchar || tnv->ty == Tdchar))
@@ -1769,30 +1770,31 @@ Lagain:
             for (size_t i = 0; i < dim; i++)
             {   // Declare args
                 Parameter *arg = (*arguments)[i];
-                Type *argtype = arg->type->semantic(loc, sc);
+                arg->type = arg->type->semantic(loc, sc);
+                arg->type = arg->type->addStorageClass(arg->storageClass);
                 VarDeclaration *var;
 
                 if (dim == 2 && i == 0)
                 {
-#if (BUG6652 == 1 || BUG6652 == 2)
-                    var = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), NULL);
-                    var->storage_class |= arg->storageClass & (STCin | STCout | STC_TYPECTOR);
-#else
-                    if (arg->storageClass & STCref)
-                        var = new VarDeclaration(loc, argtype, arg->ident, NULL);
-                    else
-                        var = new VarDeclaration(loc, arg->type, Lexer::uniqueId("__key"), NULL);
-                    var->storage_class |= arg->storageClass & (STCin | STCout | STC_TYPECTOR);
-#endif
+                    var = new VarDeclaration(loc, arg->type->mutableOf(), Lexer::uniqueId("__key"), NULL);
                     var->storage_class |= STCforeach;
                     if (var->storage_class & (STCref | STCout))
                         var->storage_class |= STCnodtor;
 
                     key = var;
+                    if (arg->storageClass & STCref)
+                    {
+                        if (!var->type->invariantOf()->equals(arg->type->invariantOf()) ||
+                            !MODimplicitConv(var->type->mod, arg->type->mod))
+                        {
+                            error("key type mismatch, %s to ref %s",
+                                  var->type->toChars(), arg->type->toChars());
+                        }
+                    }
                 }
                 else
                 {
-                    var = new VarDeclaration(loc, argtype, arg->ident, NULL);
+                    var = new VarDeclaration(loc, arg->type, arg->ident, NULL);
                     var->storage_class |= STCforeach;
                     var->storage_class |= arg->storageClass & (STCin | STCout | STCref | STC_TYPECTOR);
                     if (var->storage_class & (STCref | STCout))
@@ -1807,11 +1809,11 @@ Lagain:
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
-                        if (!t->invariantOf()->equals(argtype->invariantOf()) ||
-                            !MODimplicitConv(t->mod, argtype->mod))
+                        if (!t->invariantOf()->equals(arg->type->invariantOf()) ||
+                            !MODimplicitConv(t->mod, arg->type->mod))
                         {
                             error("argument type mismatch, %s to ref %s",
-                                  t->toChars(), argtype->toChars());
+                                  t->toChars(), arg->type->toChars());
                         }
                     }
                 }
@@ -1872,8 +1874,7 @@ Lagain:
 
             if (dim == 2)
             {   Parameter *arg = (*arguments)[0];
-#if (BUG6652 == 1 || BUG6652 == 2)
-                if ((*arguments)[0]->storageClass & STCref)
+                if ((arg->storageClass & STCref) && arg->type->equals(key->type))
                 {
                     AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
@@ -1881,18 +1882,14 @@ Lagain:
                 else
                 {
                     ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
-                    v->storage_class |= STCforeach | STCref | STCbug6652;
-                    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-                }
+                    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+#if (BUG6652 == 1 || BUG6652 == 2)
+                    v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
 #else
-                if (!(arg->storageClass & STCref))
-                {
-                    ExpInitializer *ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, arg->ident, ie);
+                    v->storage_class |= STCforeach | (arg->storageClass & STCref);
+#endif
                     body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
                 }
-#endif
             }
             body = new CompoundStatement(loc, ds, body);
 
@@ -2140,6 +2137,7 @@ Lagain:
                 Identifier *id;
 
                 arg->type = arg->type->semantic(loc, sc);
+                arg->type = arg->type->addStorageClass(arg->storageClass);
                 if (tfld)
                 {   Parameter *prm = Parameter::getNth(tfld->parameters, i);
                     //printf("\tprm = %s%s\n", (prm->storageClass&STCref?"ref ":""), prm->ident->toChars());
@@ -2570,26 +2568,22 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         //increment = new AddAssignExp(loc, new VarExp(loc, key), new IntegerExp(1));
         increment = new PreExp(TOKpreplusplus, loc, new VarExp(loc, key));
 
-#if (BUG6652 == 1 || BUG6652 == 2)
-    ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
-    VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
-    v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
-    body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
-#else
     if ((arg->storageClass & STCref) && arg->type->equals(key->type))
     {
-        TypeIdentifier *tname = new TypeIdentifier(s->loc, key->ident);
-        AliasDeclaration *ad = new AliasDeclaration(loc, arg->ident, tname);
-        body = new CompoundStatement(loc, new ExpStatement(loc, ad), body);
+        AliasDeclaration *v = new AliasDeclaration(loc, arg->ident, key);
+        body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
     else
     {
         ie = new ExpInitializer(loc, new IdentifierExp(loc, key->ident));
         VarDeclaration *v = new VarDeclaration(loc, arg->type, arg->ident, ie);
+#if (BUG6652 == 1 || BUG6652 == 2)
+        v->storage_class |= STCforeach | STCref | (arg->storageClass & STCref ? 0 : STCbug6652);
+#else
         v->storage_class |= STCforeach | (arg->storageClass & STCref);
+#endif
         body = new CompoundStatement(loc, new ExpStatement(loc, v), body);
     }
-#endif
     if (arg->storageClass & STCref)
     {
         if (!key->type->invariantOf()->equals(arg->type->invariantOf()) ||
