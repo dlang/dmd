@@ -765,6 +765,22 @@ void test7858()
 }
 
 /********************************************************/
+// 8971
+
+template Tuple8971(TL...){ alias TL Tuple8971; }
+
+class A8971
+{
+    void bar() {}
+
+    void connect()
+    {
+        alias Tuple8971!(__traits(getOverloads, typeof(this), "bar")) overloads;
+        static assert(__traits(isSame, overloads[0], bar));
+    }
+}
+
+/********************************************************/
 
 int main()
 {
