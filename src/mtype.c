@@ -4546,7 +4546,7 @@ void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             // Rewrite as a static array
 
             TypeSArray *tsa = new TypeSArray(next, e);
-            return tsa->resolve(loc, sc, pe, pt, ps);
+            return tsa->addMod(this->mod)->resolve(loc, sc, pe, pt, ps);
         }
         else if (t)
             index = t;
