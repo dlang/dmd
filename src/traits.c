@@ -64,7 +64,10 @@ static int fptraits(void *param, FuncDeclaration *f)
 
     if (p->e1->op == TOKdotvar)
     {   DotVarExp *dve = (DotVarExp *)p->e1;
-        e = new DotVarExp(0, dve->e1, new FuncAliasDeclaration(f, 0));
+        if (dve->e1->op == TOKdottype)
+            e = new DsymbolExp(0, new FuncAliasDeclaration(f, 0));
+        else
+            e = new DotVarExp(0, dve->e1, new FuncAliasDeclaration(f, 0));
     }
     else
         e = new DsymbolExp(0, new FuncAliasDeclaration(f, 0));
