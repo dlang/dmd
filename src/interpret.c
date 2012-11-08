@@ -1780,7 +1780,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         {
             ExpInitializer *ie = v->init->isExpInitializer();
             if (ie)
-                e = ie->exp->interpret(istate);
+                e = ie->exp->interpret(istate, goal);
             else if (v->init->isVoidInitializer())
             {
                 e = v->type->voidInitLiteral(v);
@@ -2795,12 +2795,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
 
         if (newval->op == TOKassocarrayliteral || newval->op == TOKstring ||
-            newval->op==TOKarrayliteral)
+            newval->op == TOKarrayliteral)
         {
             if (needToCopyLiteral(newval))
                 newval = copyLiteral(newval);
         }
-        returnValue = newval;
+
+        // Get the value to return. Note that 'newval' is an Lvalue,
+        // so if we need an Rvalue, we have to interpret again.
+        if (goal == ctfeNeedRvalue)
+            returnValue = newval->interpret(istate);
+        else
+            returnValue = newval;
     }
 
     // ---------------------------------------
