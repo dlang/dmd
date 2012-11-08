@@ -1104,10 +1104,8 @@ Expression *SwitchStatement::interpret(InterState *istate)
             Expression * caseExp = cs->exp->interpret(istate);
             if (exceptionOrCantInterpret(caseExp))
                 return caseExp;
-            e = ctfeEqual(caseExp->loc, TOKequal, Type::tint32, econdition, caseExp);
-            if (exceptionOrCantInterpret(e))
-                return e;
-            if (e->isBool(TRUE))
+            int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
+            if (eq)
             {   s = cs;
                 break;
             }
@@ -2013,10 +2011,8 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     {   Expression *ekey = keysx->tdata()[i - 1];
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
-            Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
-            if (ex == EXP_CANT_INTERPRET)
-                goto Lerr;
-            if (ex->isBool(TRUE))       // if a match
+            int eq = ctfeEqual(loc, TOKequal, ekey, ekey2);
+            if (eq)       // if a match
             {
                 // Remove ekey
                 if (keysx == keys)
@@ -2340,11 +2336,11 @@ BIN_INTERPRET(Pow)
 #endif
 
 
-typedef Expression *(*fp2_t)(Loc loc, enum TOK, Type *, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, enum TOK, Expression *, Expression *);
 
 
-Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
-{   Expression *e;
+Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
+{
     Expression *e1;
     Expression *e2;
 
@@ -2390,16 +2386,14 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
         error("cannot compare %s at compile time", e2->toChars());
         return EXP_CANT_INTERPRET;
     }
-    e = (*fp)(loc, op, type, e1, e2);
-    if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
-    return e;
+    int cmp = (*fp)(loc, op, e1, e2);
+    return new IntegerExp(loc, cmp, type);
 }
 
 #define BIN_INTERPRET2(op, opfunc) \
 Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
 {                                                                  \
-    return interpretCommon2(istate, goal, &opfunc);                \
+    return interpretCompareCommon(istate, goal, &opfunc);                \
 }
 
 BIN_INTERPRET2(Equal, ctfeEqual)
@@ -5038,10 +5032,8 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     size_t removed = 0;
     for (size_t j = 0; j < valuesx->dim; ++j)
     {   Expression *ekey = keysx->tdata()[j];
-        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, index);
-        if (exceptionOrCantInterpret(ex))
-            return ex;
-        if (ex->isBool(TRUE))
+        int eq = ctfeEqual(loc, TOKequal, ekey, index);
+        if (eq)
             ++removed;
         else if (removed != 0)
         {   keysx->tdata()[j - removed] = ekey;

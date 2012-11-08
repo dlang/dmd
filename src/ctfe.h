@@ -195,19 +195,33 @@ TypeAArray *toBuiltinAAType(Type *t);
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 
+/***********************************************
+      In-place integer operations
+***********************************************/
+
+/// e = OP e
+void intUnary(TOK op, IntegerExp *e);
+
+/// dest = e1 OP e2;
+void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp *e2);
+
+
+/***********************************************
+      COW const-folding operations
+***********************************************/
 
 /// Return true if non-pointer expression e can be compared
 /// with >,is, ==, etc, using ctfeCmp, ctfeEquals, ctfeIdentity
 bool isCtfeComparable(Expression *e);
 
-/// Evaluate ==, !=.  Resolves slices before comparing
-Expression *ctfeEqual(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2);
+/// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
+int ctfeEqual(Loc loc, enum TOK op, Expression *e1, Expression *e2);
 
-/// Evaluate is, !is.  Resolves slices before comparing
-Expression *ctfeIdentity(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2);
+/// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
+int ctfeIdentity(Loc loc, enum TOK op, Expression *e1, Expression *e2);
 
-/// Evaluate >,<=, etc. Resolves slices before comparing
-Expression *ctfeCmp(Loc loc, enum TOK op, Type *type, Expression *e1, Expression *e2);
+/// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
+int ctfeCmp(Loc loc, enum TOK op, Expression *e1, Expression *e2);
 
 /// Returns e1 ~ e2. Resolves slices before concatenation.
 Expression *ctfeCat(Type *type, Expression *e1, Expression *e2);
