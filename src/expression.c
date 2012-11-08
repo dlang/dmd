@@ -1326,7 +1326,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
         {   Expression *e = (*expressions)[i];
 
             if (i)
-                buf->writeByte(',');
+                buf->writestring(", ");
             if (e)
                 expToCBuffer(buf, hgs, e, PREC_assign);
         }

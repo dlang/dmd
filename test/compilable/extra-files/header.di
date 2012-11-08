@@ -17,13 +17,13 @@ body
 {
 float f = (float).infinity;
 int i = cast(int)f;
-writeln((i , 1),2);
+writeln((i , 1), 2);
 writeln(cast(int)(float).max);
 assert(i == cast(int)(float).max);
 assert(i == 2147483648u);
 return 0;
 }
-template Foo(T,int V)
+template Foo(T, int V)
 {
 int bar(double d, int x)
 {
@@ -124,7 +124,7 @@ while (x < 10);try
 {
 try
 {
-bar(1,2);
+bar(1, 2);
 }
 catch(Object o)
 {
@@ -157,7 +157,7 @@ class xFoo : iFoo
 }
 class Foo3
 {
-    this(int a,...);
+    this(int a, ...);
     this(int* a)
 {
 }
