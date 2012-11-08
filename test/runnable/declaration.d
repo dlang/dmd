@@ -104,6 +104,29 @@ void test8410()
 }
 
 /***************************************************/
+// 8942
+
+alias const int A8942_0;
+static assert(is(A8942_0 == const int)); // passes
+
+void test8942()
+{
+    alias const int A8942_1;
+    static assert(is(A8942_1 == const int)); // passes
+
+    static struct S { int i; }
+    foreach (Unused; typeof(S.tupleof))
+    {
+        alias const(int) A8942_2;
+        static assert(is(A8942_2 == const int)); // also passes
+
+        alias const int A8942_3;
+        static assert(is(A8942_3 == const int)); // fails
+        // Error: static assert  (is(int == const(int))) is false
+    }
+}
+
+/***************************************************/
 
 int main()
 {
@@ -112,6 +135,7 @@ int main()
     test8123();
     test8147();
     test8410();
+    test8942();
 
     printf("Success\n");
     return 0;
