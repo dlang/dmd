@@ -5520,6 +5520,36 @@ void test8917()
 
 /***************************************************/
 
+struct S162
+{
+    static int generateMethodStubs( Class )()
+    {
+	int text;
+
+	foreach( m; __traits( allMembers, Class ) )
+	{
+	    static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
+	    {
+		pragma(msg, __traits( getOverloads, Class, m ));
+	    }
+	}
+
+	return text;
+    }
+
+    enum int ttt = generateMethodStubs!( S162 )();
+
+    float height();
+    int get( int );
+    int get( long );
+    void clear();
+
+    void draw( int );
+    void draw( long );
+}
+
+/***************************************************/
+
 int main()
 {
     test1();

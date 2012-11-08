@@ -112,7 +112,6 @@ Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)
     return f;
 }
 
-
 // Do the semantic analysis on the external interface to the function.
 
 void FuncDeclaration::semantic(Scope *sc)

@@ -1326,7 +1326,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *expressions, HdrGenState *hgs)
         {   Expression *e = (*expressions)[i];
 
             if (i)
-                buf->writestring(", ");
+                buf->writeByte(',');
             if (e)
                 expToCBuffer(buf, hgs, e, PREC_assign);
         }
@@ -2987,7 +2987,7 @@ Lagain:
     }
     f = s->isFuncDeclaration();
     if (f)
-    {   //printf("'%s' is a function\n", f->toChars());
+    {   f = f->toAliasFunc();
 
         if (!f->originalType && f->scope)       // semantic not yet run
         {
@@ -3025,7 +3025,7 @@ Lagain:
             error("forward reference to %s", toChars());
             return new ErrorExp();
         }
-        return new VarExp(loc, f, hasOverloads);
+        return new VarExp(loc, s->isFuncDeclaration(), hasOverloads);
     }
     o = s->isOverloadSet();
     if (o)
