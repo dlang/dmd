@@ -49,6 +49,9 @@ void g7452c() pure nothrow @safe
 
 auto f6332a()() { return 1; }
 int f6332b()() { return 1; }
+
+alias f6332a!() F6332a;
+
 void g6332() pure nothrow @safe
 {
     auto x = f6332b();
