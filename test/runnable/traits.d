@@ -781,6 +781,20 @@ class A8971
 }
 
 /********************************************************/
+// 8972
+
+struct A8972
+{
+    void foo() {}
+
+    void connect()
+    {
+        alias Tuple8971!(__traits(getOverloads, typeof(this), "foo")) overloads;
+        static assert(__traits(isSame, overloads[0], foo));
+    }
+}
+
+/********************************************************/
 
 int main()
 {
