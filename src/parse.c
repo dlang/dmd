@@ -220,6 +220,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKeof:
             case TOKrcurly:
+                if (once)
+                    error("Declaration expected, not '%s'", token.toChars());
                 return decldefs;
 
             case TOKstatic:
