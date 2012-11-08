@@ -1898,10 +1898,10 @@ Expression *ArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *expsx = NULL;
 
 #if LOG
-    printf("ArrayLiteralExp::interpret() %s\n", toChars());
+    printf("%s ArrayLiteralExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (ownedByCtfe) // We've already interpreted all the elements
-        return copyLiteral(this);
+        return this;
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
