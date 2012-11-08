@@ -726,20 +726,36 @@ idx_t cv8_fwdref(Symbol *s)
 }
 
 /****************************************
- * Return type index for a darray.
+ * Return type index for a darray of type E[]
  * Input:
- *      tnext   element type
- *      etypidx type index for pointer to element
+ *      t       darray type
+ *      etypidx type index for E
  */
-idx_t cv8_darray(type *tnext, idx_t etypidx)
+idx_t cv8_darray(type *t, idx_t etypidx)
 {
     //printf("cv8_darray(etypidx = %x)\n", etypidx);
     /* Put out a struct:
-     *    struct S {
+     *    struct dArray {
      *      size_t length;
-     *      T* ptr;
+     *      E* ptr;
      *    }
      */
+
+#if 0
+    d = debtyp_alloc(18);
+    TOWORD(d->data, 0x100F);
+    TOWORD(d->data + 2, OEM);
+    TOWORD(d->data + 4, 1);     // 1 = dynamic array
+    TOLONG(d->data + 6, 2);     // count of type indices to follow
+    TOLONG(d->data + 10, 0x23); // index type, T_UQUAD
+    TOLONG(d->data + 14, next); // element type
+    return cv_debtyp(d);
+#endif
+
+    type *tp = type_allocn(TYnptr, t->Tnext);
+    idx_t ptridx = cv4_typidx(tp);
+    type_free(tp);
+
     static const unsigned char fl[0x26] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
@@ -759,11 +775,11 @@ idx_t cv8_darray(type *tnext, idx_t etypidx)
 
     debtyp_t *f = debtyp_alloc(0x26);
     memcpy(f->data,fl,0x26);
-    TOLONG(f->data + 26, etypidx);
+    TOLONG(f->data + 26, ptridx);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id;
-    switch (tnext->Tty)
+    switch (t->Tnext->Tty)
     {
         case mTYimmutable | TYchar:
             id = "string";
@@ -792,6 +808,140 @@ idx_t cv8_darray(type *tnext, idx_t etypidx)
     TOWORD(d->data + 18, 16);   // size
     cv_namestring(d->data + 20, id);
 
+    return cv_debtyp(d);
+}
+
+/****************************************
+ * Return type index for a delegate
+ * Input:
+ *      t          delegate type
+ *      functypidx type index for pointer to function
+ */
+idx_t cv8_ddelegate(type *t, idx_t functypidx)
+{
+    //printf("cv8_ddelegate(functypidx = %x)\n", functypidx);
+    /* Put out a struct:
+     *    struct dDelegate {
+     *      void* ptr;
+     *      function* funcptr;
+     *    }
+     */
+
+    type *tv = type_fake(TYnptr);
+    tv->Tcount++;
+    idx_t pvidx = cv4_typidx(tv);
+    type_free(tv);
+
+    type *tp = type_allocn(TYnptr, t->Tnext);
+    idx_t ptridx = cv4_typidx(tp);
+    type_free(tp);
+
+#if 0
+    debtyp_t *d = debtyp_alloc(18);
+    TOWORD(d->data, 0x100F);
+    TOWORD(d->data + 2, OEM);
+    TOWORD(d->data + 4, 3);     // 3 = delegate
+    TOLONG(d->data + 6, 2);     // count of type indices to follow
+    TOLONG(d->data + 10, key);  // void* type
+    TOLONG(d->data + 14, functypidx); // function type
+#else
+    static const unsigned char fl[0x27] =
+    {
+        0x03, 0x12,             // LF_FIELDLIST_V2
+        0x0d, 0x15,             // LF_MEMBER_V3
+        0x03, 0x00,             // attribute
+        0x00, 0x00, 0x00, 0x00, // void*
+        0x00, 0x00,             // offset
+        'p','t','r',0,          // "ptr"
+        0xf3, 0xf2, 0xf1,
+        0x0d, 0x15,
+        0x03, 0x00,
+        0x00, 0x00, 0x00, 0x00, // ptrtypidx
+        0x08, 0x00,
+        'f', 'u','n','c','p','t','r', 0,        // "funcptr"
+        0xf2, 0xf1,
+    };
+
+    debtyp_t *f = debtyp_alloc(sizeof(fl));
+    memcpy(f->data,fl,sizeof(fl));
+    TOLONG(f->data + 6, pvidx);
+    TOLONG(f->data + 23, ptridx);
+    idx_t fieldlist = cv_debtyp(f);
+
+    const char *id = "dDelegate";
+
+    debtyp_t *d = debtyp_alloc(20 + cv_stringbytes(id));
+    TOWORD(d->data, LF_STRUCTURE_V3);
+    TOWORD(d->data + 2, 2);     // count
+    TOWORD(d->data + 4, 0);     // property
+    TOLONG(d->data + 6, fieldlist);
+    TOLONG(d->data + 10, 0);    // dList
+    TOLONG(d->data + 14, 0);    // vtshape
+    TOWORD(d->data + 18, 16);   // size
+    cv_namestring(d->data + 20, id);
+#endif
+    return cv_debtyp(d);
+}
+
+/****************************************
+ * Return type index for a aarray of type Value[Key]
+ * Input:
+ *      t          associative array type
+ *      keyidx     key type
+ *      validx     value type
+ */
+idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
+{
+    //printf("cv8_daarray(keyidx = %x, validx = %x)\n", keyidx, validx);
+    /* Put out a struct:
+     *    struct dAssocArray {
+     *      void* ptr;
+     *    }
+     */
+
+#if 0
+    debtyp_t *d = debtyp_alloc(18);
+    TOWORD(d->data, 0x100F);
+    TOWORD(d->data + 2, OEM);
+    TOWORD(d->data + 4, 2);     // 2 = associative array
+    TOLONG(d->data + 6, 2);     // count of type indices to follow
+    TOLONG(d->data + 10, keyidx);  // key type
+    TOLONG(d->data + 14, validx);  // element type
+#else
+    type *tv = type_fake(TYnptr);
+    tv->Tcount++;
+    idx_t pvidx = cv4_typidx(tv);
+    type_free(tv);
+
+    static const unsigned char fl[] =
+    {
+        0x03, 0x12,             // LF_FIELDLIST_V2
+        0x0d, 0x15,             // LF_MEMBER_V3
+        0x03, 0x00,             // attribute
+        0x00, 0x00, 0x00, 0x00, // void*
+        0x00, 0x00,             // offset
+        'p','t','r',0,          // "ptr"
+        0xf3, 0xf2, 0xf1,
+    };
+
+    debtyp_t *f = debtyp_alloc(sizeof(fl));
+    memcpy(f->data,fl,sizeof(fl));
+    TOLONG(f->data + 6, pvidx);
+    idx_t fieldlist = cv_debtyp(f);
+
+    const char *id = "dAssocArray";
+
+    debtyp_t *d = debtyp_alloc(20 + cv_stringbytes(id));
+    TOWORD(d->data, LF_STRUCTURE_V3);
+    TOWORD(d->data + 2, 1);     // count
+    TOWORD(d->data + 4, 0);     // property
+    TOLONG(d->data + 6, fieldlist);
+    TOLONG(d->data + 10, 0);    // dList
+    TOLONG(d->data + 14, 0);    // vtshape
+    TOWORD(d->data + 18, 16);   // size
+    cv_namestring(d->data + 20, id);
+
+#endif
     return cv_debtyp(d);
 }
 

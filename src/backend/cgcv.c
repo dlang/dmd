@@ -1876,21 +1876,8 @@ L1:
             {
 #if MARS
                 case CV8:
-                {   // Make next a pointer to next
-                    type *tp = type_allocn(TYnptr, t->Tnext);
-                    idx_t pnext = cv4_typidx(tp);
-                    type_free(tp);
-                    typidx = cv8_darray(t->Tnext, pnext);
-                    return typidx;
-#if 0
-                    d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
-                    TOWORD(d->data + 2, OEM);
-                    TOWORD(d->data + 4, 1);     // 1 = dynamic array
-                    TOLONG(d->data + 6, 2);     // count of type indices to follow
-                    TOLONG(d->data + 10, 0x23); // index type, T_UQUAD
-                    TOLONG(d->data + 14, next); // element type
-#endif
+                {
+                    typidx = cv8_darray(t, next);
                     break;
                 }
 #endif
@@ -1909,13 +1896,13 @@ L1:
                     TOWORD(d->data + 2, 0x12);  // T_LONG
                     TOWORD(d->data + 4, next);
 #endif
+                    typidx = cv_debtyp(d);
                     break;
 
                 default:
                     assert(0);
-           }
+            }
 
-            typidx = cv_debtyp(d);
             break;
 
         Laarray:
@@ -1924,13 +1911,7 @@ L1:
             switch (config.fulltypes)
             {
                 case CV8:
-                    d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
-                    TOWORD(d->data + 2, OEM);
-                    TOWORD(d->data + 4, 2);     // 2 = associative array
-                    TOLONG(d->data + 6, 2);     // count of type indices to follow
-                    TOLONG(d->data + 10, key);  // key type
-                    TOLONG(d->data + 14, next); // element type
+                    typidx = cv8_daarray(t, key, next);
                     break;
 
                 case CV4:
@@ -1948,32 +1929,26 @@ L1:
                     TOWORD(d->data + 2, key);   // key type
                     TOWORD(d->data + 4, next);  // element type
 #endif
+                    typidx = cv_debtyp(d);
                     break;
                 default:
                     assert(0);
             }
-            typidx = cv_debtyp(d);
 #endif
             break;
 
         Ldelegate:
-            tv = type_fake(TYnptr);
-            tv->Tcount++;
-            key = cv4_typidx(tv);
-            type_free(tv);
             switch (config.fulltypes)
             {
                 case CV8:
-                    d = debtyp_alloc(18);
-                    TOWORD(d->data, 0x100F);
-                    TOWORD(d->data + 2, OEM);
-                    TOWORD(d->data + 4, 3);     // 3 = delegate
-                    TOLONG(d->data + 6, 2);     // count of type indices to follow
-                    TOLONG(d->data + 10, key);  // key type
-                    TOLONG(d->data + 14, next); // element type
+                    typidx = cv8_ddelegate(t, next);
                     break;
 
                 case CV4:
+                    tv = type_fake(TYnptr);
+                    tv->Tcount++;
+                    key = cv4_typidx(tv);
+                    type_free(tv);
 #if 1
                     d = debtyp_alloc(12);
                     TOWORD(d->data, LF_OEM);
@@ -1988,11 +1963,11 @@ L1:
                     TOWORD(d->data + 2, key);   // type of 'this', which is void*
                     TOWORD(d->data + 4, next);  // function type
 #endif
+                    typidx = cv_debtyp(d);
                     break;
                 default:
                     assert(0);
             }
-            typidx = cv_debtyp(d);
             break;
 
         case TYcent:

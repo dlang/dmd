@@ -85,6 +85,8 @@ void cv8_udt(const char *id, idx_t typidx);
 int cv8_regnum(Symbol *s);
 idx_t cv8_fwdref(Symbol *s);
 idx_t cv8_darray(type *tnext, idx_t etypidx);
+idx_t cv8_ddelegate(type *t, idx_t functypidx);
+idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx);
 
 #endif
 
