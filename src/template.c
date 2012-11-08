@@ -1751,7 +1751,7 @@ char *TemplateDeclaration::toChars()
     {
         TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
         if (i)
-            buf.writeByte(',');
+            buf.writestring(", ");
         tp->toCBuffer(&buf, &hgs);
     }
     buf.writeByte(')');

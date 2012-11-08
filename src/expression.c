@@ -861,7 +861,7 @@ void argsToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *hgs)
 
             if (arg)
             {   if (i)
-                    buf->writeByte(',');
+                    buf->writestring(", ");
                 expToCBuffer(buf, hgs, arg, PREC_assign);
             }
         }
@@ -878,12 +878,12 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
     {   OutBuffer argbuf;
 
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *arg = (Expression *)arguments->data[i];
+        {   Expression *e = (*arguments)[i];
 
             if (i)
                 buf->writeByte(',');
             argbuf.reset();
-            arg->type->toCBuffer2(&argbuf, hgs, 0);
+            e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
         }
     }
