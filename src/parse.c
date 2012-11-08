@@ -370,17 +370,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKtls:          stc = STCtls;          goto Lstc;
             case TOKgshared:      stc = STCgshared;      goto Lstc;
             //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
-            case TOKat:
-                if (peek(&token)->value == TOKlparen)   // @( ArgumentList )
-                {
-                    nextToken();
-                    Expressions *exps = parseArguments();
-                    a = parseBlock();
-                    s = new UserAttributeDeclaration(exps, a);
-                    break;
-                }
-                stc = parseAttribute();
-                goto Lstc;
+            case TOKat:           stc = parseAttribute(); goto Lstc;
 #endif
 
             Lstc:
