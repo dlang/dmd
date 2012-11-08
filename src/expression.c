@@ -2429,8 +2429,11 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      * to decimal then back again. If it matches, use it.
      * If it doesn't, fall back to hex, which is
      * always exact.
+     * Longest string is for -real.max:
+     * "-1.18973e+4932\0".length == 17
+     * "-0xf.fffffffffffffffp+16380\0".length == 28
      */
-    char buffer[25];
+    char buffer[32];
     ld_sprint(buffer, 'g', value);
     assert(strlen(buffer) < sizeof(buffer));
 #if _WIN32 && __DMC__
