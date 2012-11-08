@@ -80,11 +80,27 @@ void test7552()
 }
 
 /***************************************************/
+// 8943
+
+void test8943()
+{
+    struct S
+    {
+        void foo();
+    }
+
+    alias TypeTuple!(__traits(getOverloads, S, "foo")) Overloads;
+    alias TypeTuple!(__traits(parent, Overloads[0])) P; // fail
+    static assert(is(P[0] == S));
+}
+
+/***************************************************/
 
 int main()
 {
     test7418();
     test7552();
+    test8943();
 
     printf("Success\n");
     return 0;
