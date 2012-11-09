@@ -3183,21 +3183,34 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 TemplateParameter *tp = (*parameters)[j];
                 // BUG: use tp->matchArg() instead of the following
                 TemplateValueParameter *tv = tp->isTemplateValueParameter();
-                if (!tv)
-                    goto Lnomatch;
-                Expression *e = (Expression *)(*dedtypes)[j];
-                if (e)
+                TemplateAliasParameter *ta = tp->isTemplateAliasParameter();
+                if (tv)
                 {
-                    if (!e1->equals(e))
-                        goto Lnomatch;
+                    Expression *e = (Expression *)(*dedtypes)[j];
+                    if (e)
+                    {
+                        if (!e1->equals(e))
+                            goto Lnomatch;
+                    }
+                    else
+                    {   Type *vt = tv->valType->semantic(0, sc);
+                        MATCH m = (MATCH)e1->implicitConvTo(vt);
+                        if (!m)
+                            goto Lnomatch;
+                        (*dedtypes)[j] = e1;
+                    }
                 }
-                else
-                {   Type *vt = tv->valType->semantic(0, sc);
-                    MATCH m = (MATCH)e1->implicitConvTo(vt);
-                    if (!m)
-                        goto Lnomatch;
+                else if (ta)
+                {
+                    if (ta->specType)
+                    {
+                        if (!e1->type->equals(ta->specType))
+                            goto Lnomatch;
+                    }
                     (*dedtypes)[j] = e1;
                 }
+                else
+                    goto Lnomatch;
             }
             else if (s1 && s2)
             {
