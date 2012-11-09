@@ -426,6 +426,33 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     return e;
 }
 
+/*********************************
+ * Attempt to find a type property. If failed, attempt to find
+ * UFCS property. If no matching property found,
+ * print the error message for the missing type property.
+ */
+Expression *resolveProperty(Expression *_this, Scope *sc, Expression *e1, Expression *e2, UnaExp *une)
+{
+    Type *t1 = une->e1->type;  // store
+    if (e1->op == TOKdotti)
+        e1 = ((DotTemplateInstanceExp *)une)->semantic(sc, 1);
+    else if (e1->op == TOKdot)
+        e1 = ((DotIdExp *)une)->semantic(sc, 1);
+
+    unsigned errors = global.startGagging();
+    e1 = resolveUFCSProperties(sc, une, e2);
+    if (global.endGagging(errors))
+    {
+        une->e1->type = t1;  // restore
+        if (e1->op == TOKdotti)
+            e1 = ((DotTemplateInstanceExp *)une)->semantic(sc, 1);
+        else if (e1->op == TOKdot)
+            e1 = ((DotIdExp *)une)->semantic(sc, 1);
+    }
+
+    return e1;
+}
+
 /******************************
  * Perform semantic() on an array of Expressions.
  */
@@ -6994,7 +7021,14 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
+            errors = global.startGagging();
             e = resolveUFCSProperties(sc, this);
+            if (global.endGagging(errors))
+            {
+                // both lookups failed, but look up property again without gagging errors
+                e1->type = t1;  // drey
+                e = t1->dotExp(sc, e1, ident);
+            }
         }
         e = e->semantic(sc);
         return e;
@@ -7317,10 +7351,21 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
         }
 
         unsigned errors = global.startGagging();
+        Type *t = e->type;  // backup type
         e = die->semantic(sc, 1);
         if (global.endGagging(errors))
         {
-            return resolveUFCSProperties(sc, this);
+            errors = global.startGagging();
+            e = resolveUFCSProperties(sc, this);
+            if (global.endGagging(errors))
+            {
+                e->type = t;  // drey
+                e = die->semantic(sc, 1);
+            }
+            else
+            {
+                return e;
+            }
         }
     }
 
@@ -10332,35 +10377,13 @@ Expression *AssignExp::semantic(Scope *sc)
      * or:
      *      .f(e) = value
      */
-    if (e1->op == TOKdotti)
+    if (e1->op == TOKdotti || e1->op == TOKdot)
     {
-        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        UnaExp *une = (UnaExp *)e1;
         int olderrors = global.errors;
-        dti->e1 = dti->e1->semantic(sc);
-        if (global.errors == olderrors && dti->e1->type)
-        {
-            unsigned errors = global.startGagging();
-            e1 = dti->semantic(sc, 1);
-            if (global.endGagging(errors) || e1->op == TOKerror)
-            {
-                return resolveUFCSProperties(sc, dti, e2);
-            }
-        }
-    }
-    else if (e1->op == TOKdot)
-    {
-        DotIdExp *die = (DotIdExp *)e1;
-        int olderrors = global.errors;
-        die->e1 = die->e1->semantic(sc);
-        if (global.errors == olderrors && die->e1->type)
-        {
-            unsigned errors = global.startGagging();
-            e1 = die->semantic(sc, 1);
-            if (global.endGagging(errors) || e1->op == TOKerror)
-            {
-                return resolveUFCSProperties(sc, die, e2);
-            }
-        }
+        une->e1 = une->e1->semantic(sc);
+        if (global.errors == olderrors && une->e1->type)
+            e1 = resolveProperty(this, sc, e1, e2, une);
     }
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
