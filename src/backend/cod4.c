@@ -871,7 +871,10 @@ code *cdaddass(elem *e,regm_t *pretregs)
             case LLONGSIZE:
                 if (I16)
                     assert(0);                      // not implemented yet
-                goto neg_2reg;
+                if (I32)
+                    goto neg_2reg;
+                c = gen(CNIL,&cs);
+                break;
 
             default:
                 assert(0);
