@@ -1685,8 +1685,9 @@ void UserAttributeDeclaration::setScope(Scope *sc)
 
 void UserAttributeDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writeByte('[');
+    buf->writestring("@(");
     argsToCBuffer(buf, atts, hgs);
+    buf->writeByte(')');
     AttribDeclaration::toCBuffer(buf, hgs);
 }
 

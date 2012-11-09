@@ -9,9 +9,9 @@ template Tuple(T...)
 
 
 enum EEE = 7;
-["hello"] struct SSS { }
+@("hello") struct SSS { }
 
-[3] { [4][EEE][SSS] int foo; }
+@(3) { @(4)@(EEE)@(SSS) int foo; }
 
 pragma(msg, __traits(getAttributes, foo));
 
@@ -27,13 +27,13 @@ alias Tuple!(__traits(getAttributes, typeof(a))) TT;
 
 pragma(msg, TT);
 
-['c'] string s;
+@('c') string s;
 pragma(msg, __traits(getAttributes, s));
 
 /************************************************/
 
 enum FFF;
-[FFF] int x1;
+@(FFF) int x1;
 pragma(msg, __traits(getAttributes, x1));
 
 void test1()
@@ -66,8 +66,8 @@ void test3()
 
 /************************************************/
 
-[1] void foo4();
-[2] void foo4(int x);
+@(1) void foo4();
+@(2) void foo4(int x);
 
 void test4()
 {
@@ -85,14 +85,14 @@ void test4()
 
 pragma(msg, __traits(getAttributes, aa));
 alias Tuple!(__traits(getAttributes, aa)) Taa;
-[10] int aa;
+@(10) int aa;
 
 pragma(msg, __traits(getAttributes, bb));
 alias Tuple!(__traits(getAttributes, bb)) Tbb;
-[20] int bb;
+@(20) int bb;
 alias Tuple!(__traits(getAttributes, bb)) Tbbc;
 
-[30] int cc;
+@(30) int cc;
 pragma(msg, __traits(getAttributes, cc));
 alias Tuple!(__traits(getAttributes, cc)) Tcc;
 
