@@ -354,7 +354,20 @@ Expression *StructInitializer::toExpression()
             if (!(*elements)[i])
             {   // Default initialize
                 if (vd->init)
-                    (*elements)[i] = vd->init->toExpression();
+                {
+                    if (vd->scope)
+                    {   // Do deferred semantic analysis
+                        Initializer *i2 = vd->init->syntaxCopy();
+                        i2 = i2->semantic(vd->scope, vd->type, INITinterpret);
+                        (*elements)[i] = i2->toExpression();
+                        if (!global.gag)
+                        {   vd->scope = NULL;
+                            vd->init = i2;  // save result
+                        }
+                    }
+                    else
+                        (*elements)[i] = vd->init->toExpression();
+                }
                 else
                     (*elements)[i] = vd->type->defaultInit();
             }

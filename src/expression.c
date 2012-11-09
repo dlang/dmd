@@ -974,7 +974,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         t = t->semantic(loc, sc);
                         bool isSafe = fd ? fd->isSafe() : tf->trust == TRUSTsafe;
                         VarDeclaration *v = new VarDeclaration(loc, t, id,
-                            isSafe ? NULL : new VoidInitializer(loc));
+                            (isSafe && sc->func) ? NULL : new VoidInitializer(loc));
                         v->storage_class |= STCctfe;
                         v->semantic(sc);
                         v->parent = sc->parent;
@@ -2498,8 +2498,11 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      * to decimal then back again. If it matches, use it.
      * If it doesn't, fall back to hex, which is
      * always exact.
+     * Longest string is for -real.max:
+     * "-1.18973e+4932\0".length == 17
+     * "-0xf.fffffffffffffffp+16380\0".length == 28
      */
-    char buffer[25];
+    char buffer[32];
     ld_sprint(buffer, 'g', value);
     assert(strlen(buffer) < sizeof(buffer));
 #if _WIN32 && __DMC__
@@ -2999,7 +3002,8 @@ Lagain:
         }
 
         // if inferring return type, sematic3 needs to be run
-        if (f->inferRetType && f->scope && f->type && !f->type->nextOf())
+        if (f->scope && (f->inferRetType && f->type && !f->type->nextOf() ||
+                         getFuncTemplateDecl(f)))
         {
             TemplateInstance *spec = f->isSpeculative();
             int olderrs = global.errors;
@@ -4117,7 +4121,9 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                         // remove v->scope (see bug 3426)
                         // but not if gagged, for we might be called again.
                         if (!global.gag)
-                            v->scope = NULL;
+                        {   v->scope = NULL;
+                            v->init = i2;   // save result
+                        }
                     }
                 }
             }
@@ -4527,6 +4533,8 @@ Lagain:
     {
         TypeClass *tc = (TypeClass *)(tb);
         ClassDeclaration *cd = tc->sym->isClassDeclaration();
+        if (cd->scope)
+            cd->semantic(NULL);
         if (cd->isInterfaceDeclaration())
         {   error("cannot create instance of interface %s", cd->toChars());
             goto Lerr;
@@ -4705,8 +4713,8 @@ Lagain:
     {
         TypeStruct *ts = (TypeStruct *)tb;
         StructDeclaration *sd = ts->sym;
-        TypeFunction *tf;
-
+        if (sd->scope)
+            sd->semantic(NULL);
         if (sd->noDefaultCtor && (!arguments || !arguments->dim))
         {   error("default construction is disabled for type %s", sd->toChars());
             goto Lerr;
@@ -4722,7 +4730,7 @@ Lagain:
 
             sd->accessCheck(loc, sc, member);
 
-            tf = (TypeFunction *)f->type;
+            TypeFunction *tf = (TypeFunction *)f->type;
             type = tf->next;
 
             if (!arguments)
@@ -4754,7 +4762,7 @@ Lagain:
             allocator = f->isNewDeclaration();
             assert(allocator);
 
-            tf = (TypeFunction *)f->type;
+            TypeFunction *tf = (TypeFunction *)f->type;
             unsigned olderrors = global.errors;
             functionParameters(loc, sc, tf, NULL, newargs, f);
             if (olderrors != global.errors)
