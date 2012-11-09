@@ -422,6 +422,43 @@ void test8073()
 }
 
 /*******************************************/
+// 8093
+
+void test8093()
+{
+    static int g = 10;
+    static int* p;
+
+    enum fbody = q{
+        static struct S {
+            int opApply(scope int delegate(ref int) dg) { return dg(g); }
+        }
+        S s;
+        foreach (ref e; s)
+            return g;
+        assert(0);
+    };
+
+    ref int foo_ref1() out(r) { assert(&r is &g && r == 10); }
+    body { mixin(fbody); }
+
+    ref int foo_ref2()
+    body { mixin(fbody); }
+
+    { auto q = &foo_ref1(); assert(q is &g && *q == 10); }
+    { auto q = &foo_ref2(); assert(q is &g && *q == 10); }
+
+    int foo_val1() out(r) { assert(&r !is &g && r == 10); }
+    body { mixin(fbody); }
+
+    int foo_val2()
+    body { mixin(fbody); }
+
+    { auto n = foo_val1(); assert(&n !is &g && n == 10); }
+    { auto n = foo_val2(); assert(&n !is &g && n == 10); }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -437,6 +474,7 @@ int main()
     test4785();
     test7218();
     test8073();
+    test8093();
 
     printf("Success\n");
     return 0;
