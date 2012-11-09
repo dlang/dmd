@@ -1495,6 +1495,31 @@ void test8129()
 }
 
 /**********************************/
+// 8976
+
+void f8976(ref int) { }
+
+void g8976()()
+{
+    f8976(0); // line 5
+}
+
+
+void h8976()()
+{
+    g8976!()();
+}
+
+static assert(! __traits(compiles, h8976!()() ) ); // causes error
+static assert(!is(typeof(          h8976!()() )));
+
+void test8976()
+{
+    static assert(! __traits(compiles, h8976!()() ) );
+    static assert(!is(typeof(          h8976!()() )));
+}
+
+/**********************************/
 
 int main()
 {
@@ -1556,6 +1581,7 @@ int main()
     test13();
     test14();
     test8129();
+    test8976();
 
     printf("Success\n");
     return 0;
