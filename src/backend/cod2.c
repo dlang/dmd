@@ -1858,7 +1858,7 @@ code *cdcond(elem *e,regm_t *pretregs)
         if (!retregs)
             retregs = ALLREGS;
         c2 = codelem(e22,&retregs,FALSE);
-        c2 = cat(c1, fixresult(e22,retregs,pretregs));
+        c2 = cat(c2, fixresult(e22,retregs,pretregs));
   }
   else
         c2 = codelem(e22,&retregs,FALSE); /* use same regs as E1 */
