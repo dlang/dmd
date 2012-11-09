@@ -2925,7 +2925,11 @@ elem *AssignExp::toElem(IRState *irs)
             e = e2->toElem(irs);
             e = addressElem(e, e2->type);
 #endif
-            elem *es = el_var(s->toSymbol());
+            elem *es = e1->toElem(irs);
+            if (es->Eoper == OPind)
+                es = es->E1;
+            else
+                es = el_una(OPaddr, TYnptr, es);
             es->Ety = TYnptr;
             e = el_bin(OPeq, TYnptr, es, e);
 // BUG: type is struct, and e2 is TOKint64

@@ -5500,6 +5500,28 @@ void test8108()
 }
 
 /***************************************************/
+// 8526
+
+void test8526()
+{
+    static void call(void delegate() dg) { dg(); }
+
+    foreach (i, j; [0])
+    {
+        call({
+            assert(i == 0); // fails, i is corrupted
+        });
+    }
+
+    foreach (n; 0..1)
+    {
+        call({
+            assert(n == 0); // fails, n is corrupted
+        });
+    }
+}
+
+/***************************************************/
 
 template ParameterTuple(alias func)
 {
@@ -5819,6 +5841,7 @@ int main()
     test160();
     test8665();
     test8108();
+    test8526();
     test161();
     test8917();
 
