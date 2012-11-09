@@ -3991,7 +3991,9 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (!fd->vresult)
             {   // Declare vresult
                 Scope *sco = fd->scout ? fd->scout : scx;
-                VarDeclaration *v = new VarDeclaration(loc, tret, Id::result, NULL);
+                if (!fd->outId)
+                    fd->outId = Id::result;
+                VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
                 v->noscope = 1;
                 v->storage_class |= STCresult;
                 if (((TypeFunction *)fd->type)->isref)
