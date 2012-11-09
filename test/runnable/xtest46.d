@@ -5500,6 +5500,60 @@ void test8108()
 }
 
 /***************************************************/
+// 6141 + 8526
+
+void test6141()
+{
+    static void takeADelegate(void delegate()) {}
+    auto items = new int[1];
+    items[0] = 17;
+    foreach (ref item; items)
+    {
+        // both asserts fail
+        assert(item == 17);
+        assert(&item == items.ptr);
+
+        takeADelegate({ auto x = &item; });
+    }
+
+    foreach(ref val; [3])
+    {
+        auto dg = { int j = val; };
+        assert(&val != null); // Assertion failure
+        assert(val == 3);
+    }
+
+    static void f(lazy int) {}
+    int i = 0;
+    auto dg = { int j = i; };
+    foreach(ref val; [3])
+    {
+        f(val);
+        assert(&val != null); // Assertion failure
+        assert(val == 3);
+    }
+}
+
+void test8526()
+{
+    static void call(void delegate() dg) { dg(); }
+
+    foreach (i, j; [0])
+    {
+        call({
+            assert(i == 0); // fails, i is corrupted
+        });
+    }
+
+    foreach (n; 0..1)
+    {
+        call({
+            assert(n == 0); // fails, n is corrupted
+        });
+    }
+}
+
+/***************************************************/
 
 template ParameterTuple(alias func)
 {
@@ -5819,6 +5873,8 @@ int main()
     test160();
     test8665();
     test8108();
+    test6141();
+    test8526();
     test161();
     test8917();
 
