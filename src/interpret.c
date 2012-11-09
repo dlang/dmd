@@ -243,7 +243,6 @@ void printCtfePerformanceStats()
 Expression * resolveReferences(Expression *e, Expression *thisval);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
 VarDeclaration *findParentVar(Expression *e, Expression *thisval);
-Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -272,7 +271,7 @@ Expression *Expression::ctfeInterpret()
 Expression *FuncDeclaration::interpret(InterState *istate, Expressions *arguments, Expression *thisarg)
 {
 #if LOG
-    printf("\n********\nFuncDeclaration::interpret(istate = %p) %s\n", istate, toChars());
+    printf("\n********\n%s FuncDeclaration::interpret(istate = %p) %s\n", loc.toChars(), istate, toChars());
 #endif
     if (semanticRun == PASSsemantic3)
     {
@@ -539,7 +538,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
 Expression *Statement::interpret(InterState *istate)
 {
 #if LOG
-    printf("Statement::interpret()\n");
+    printf("%s Statement::interpret()\n", loc.toChars());
 #endif
     START()
     error("Statement %s cannot be interpreted at compile time", this->toChars());
@@ -549,7 +548,7 @@ Expression *Statement::interpret(InterState *istate)
 Expression *ExpStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ExpStatement::interpret(%s)\n", exp ? exp->toChars() : "");
+    printf("%s ExpStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
 #endif
     START()
     if (exp)
@@ -570,7 +569,7 @@ Expression *CompoundStatement::interpret(InterState *istate)
 {   Expression *e = NULL;
 
 #if LOG
-    printf("CompoundStatement::interpret()\n");
+    printf("%s CompoundStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -588,7 +587,7 @@ Expression *CompoundStatement::interpret(InterState *istate)
         }
     }
 #if LOG
-    printf("-CompoundStatement::interpret() %p\n", e);
+    printf("%s -CompoundStatement::interpret() %p\n", loc.toChars(), e);
 #endif
     return e;
 }
@@ -597,7 +596,7 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate)
 {   Expression *e = NULL;
 
 #if LOG
-    printf("UnrolledLoopStatement::interpret()\n");
+    printf("%s UnrolledLoopStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -636,7 +635,7 @@ Expression *UnrolledLoopStatement::interpret(InterState *istate)
 Expression *IfStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("IfStatement::interpret(%s)\n", condition->toChars());
+    printf("%s IfStatement::interpret(%s)\n", loc.toChars(), condition->toChars());
 #endif
 
     if (istate->start == this)
@@ -673,7 +672,7 @@ Expression *IfStatement::interpret(InterState *istate)
 Expression *ScopeStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ScopeStatement::interpret()\n");
+    printf("%s ScopeStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -815,7 +814,7 @@ bool scrubArray(Loc loc, Expressions *elems, bool structlit)
 Expression *ReturnStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ReturnStatement::interpret(%s)\n", exp ? exp->toChars() : "");
+    printf("%s ReturnStatement::interpret(%s)\n", loc.toChars(), exp ? exp->toChars() : "");
 #endif
     START()
     if (!exp)
@@ -878,7 +877,7 @@ Expression *ReturnStatement::interpret(InterState *istate)
 Expression *BreakStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("BreakStatement::interpret()\n");
+    printf("%s BreakStatement::interpret()\n", loc.toChars());
 #endif
     START()
     if (ident)
@@ -902,7 +901,7 @@ Expression *BreakStatement::interpret(InterState *istate)
 Expression *ContinueStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ContinueStatement::interpret()\n");
+    printf("%s ContinueStatement::interpret()\n", loc.toChars());
 #endif
     START()
     if (ident)
@@ -932,7 +931,7 @@ Expression *WhileStatement::interpret(InterState *istate)
 Expression *DoStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("DoStatement::interpret()\n");
+    printf("%s DoStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -985,7 +984,7 @@ Expression *DoStatement::interpret(InterState *istate)
 Expression *ForStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ForStatement::interpret()\n");
+    printf("%s ForStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -1066,7 +1065,7 @@ Expression *ForeachRangeStatement::interpret(InterState *istate)
 Expression *SwitchStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("SwitchStatement::interpret()\n");
+    printf("%s SwitchStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -1094,8 +1093,6 @@ Expression *SwitchStatement::interpret(InterState *istate)
     Expression *econdition = condition->interpret(istate);
     if (exceptionOrCantInterpret(econdition))
         return econdition;
-    if (econdition->op == TOKslice)
-        econdition = resolveSlice(econdition);
 
     Statement *s = NULL;
     if (cases)
@@ -1106,10 +1103,8 @@ Expression *SwitchStatement::interpret(InterState *istate)
             Expression * caseExp = cs->exp->interpret(istate);
             if (exceptionOrCantInterpret(caseExp))
                 return caseExp;
-            e = ctfeEqual(caseExp->loc, TOKequal, Type::tint32, econdition, caseExp);
-            if (exceptionOrCantInterpret(e))
-                return e;
-            if (e->isBool(TRUE))
+            int eq = ctfeEqual(caseExp->loc, TOKequal, econdition, caseExp);
+            if (eq)
             {   s = cs;
                 break;
             }
@@ -1139,7 +1134,7 @@ Expression *SwitchStatement::interpret(InterState *istate)
 Expression *CaseStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("CaseStatement::interpret(%s) this = %p\n", exp->toChars(), this);
+    printf("%s CaseStatement::interpret(%s) this = %p\n", loc.toChars(), exp->toChars(), this);
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -1152,7 +1147,7 @@ Expression *CaseStatement::interpret(InterState *istate)
 Expression *DefaultStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("DefaultStatement::interpret()\n");
+    printf("%s DefaultStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -1165,7 +1160,7 @@ Expression *DefaultStatement::interpret(InterState *istate)
 Expression *GotoStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("GotoStatement::interpret()\n");
+    printf("%s GotoStatement::interpret()\n", loc.toChars());
 #endif
     START()
     assert(label && label->statement);
@@ -1176,7 +1171,7 @@ Expression *GotoStatement::interpret(InterState *istate)
 Expression *GotoCaseStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("GotoCaseStatement::interpret()\n");
+    printf("%s GotoCaseStatement::interpret()\n", loc.toChars());
 #endif
     START()
     assert(cs);
@@ -1187,7 +1182,7 @@ Expression *GotoCaseStatement::interpret(InterState *istate)
 Expression *GotoDefaultStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("GotoDefaultStatement::interpret()\n");
+    printf("%s GotoDefaultStatement::interpret()\n", loc.toChars());
 #endif
     START()
     assert(sw && sw->sdefault);
@@ -1198,7 +1193,7 @@ Expression *GotoDefaultStatement::interpret(InterState *istate)
 Expression *LabelStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("LabelStatement::interpret()\n");
+    printf("%s LabelStatement::interpret()\n", loc.toChars());
 #endif
     if (istate->start == this)
         istate->start = NULL;
@@ -1209,7 +1204,7 @@ Expression *LabelStatement::interpret(InterState *istate)
 Expression *TryCatchStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("TryCatchStatement::interpret()\n");
+    printf("%s TryCatchStatement::interpret()\n", loc.toChars());
 #endif
     START()
     Expression *e = body ? body->interpret(istate) : NULL;
@@ -1281,7 +1276,7 @@ ThrownExceptionExp *chainExceptions(ThrownExceptionExp *oldest, ThrownExceptionE
 Expression *TryFinallyStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("TryFinallyStatement::interpret()\n");
+    printf("%s TryFinallyStatement::interpret()\n", loc.toChars());
 #endif
     START()
     Expression *e = body ? body->interpret(istate) : NULL;
@@ -1303,7 +1298,7 @@ Expression *TryFinallyStatement::interpret(InterState *istate)
 Expression *ThrowStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("ThrowStatement::interpret()\n");
+    printf("%s ThrowStatement::interpret()\n", loc.toChars());
 #endif
     START()
     Expression *e = exp->interpret(istate);
@@ -1322,7 +1317,7 @@ Expression *OnScopeStatement::interpret(InterState *istate)
 Expression *WithStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("WithStatement::interpret()\n");
+    printf("%s WithStatement::interpret()\n", loc.toChars());
 #endif
     START()
     Expression *e = exp->interpret(istate);
@@ -1343,7 +1338,7 @@ Expression *WithStatement::interpret(InterState *istate)
 Expression *AsmStatement::interpret(InterState *istate)
 {
 #if LOG
-    printf("AsmStatement::interpret()\n");
+    printf("%s AsmStatement::interpret()\n", loc.toChars());
 #endif
     START()
     error("asm statements cannot be interpreted at compile time");
@@ -1366,7 +1361,7 @@ Expression *ImportStatement::interpret(InterState *istate)
 Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("Expression::interpret() %s\n", toChars());
+    printf("%s Expression::interpret() %s\n", loc.toChars(), toChars());
     printf("type = %s\n", type->toChars());
     dump(0);
 #endif
@@ -1394,7 +1389,7 @@ Expression *NullExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *IntegerExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("IntegerExp::interpret() %s\n", toChars());
+    printf("%s IntegerExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     return this;
 }
@@ -1402,7 +1397,7 @@ Expression *IntegerExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *RealExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("RealExp::interpret() %s\n", toChars());
+    printf("%s RealExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     return this;
 }
@@ -1415,7 +1410,7 @@ Expression *ComplexExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("StringExp::interpret() %s\n", toChars());
+    printf("%s StringExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     /* In both D1 and D2, attempts to modify string literals are prevented
      * in BinExp::interpretAssignCommon.
@@ -1438,7 +1433,7 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("FuncExp::interpret() %s\n", toChars());
+    printf("%s FuncExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     return this;
 }
@@ -1446,7 +1441,7 @@ Expression *FuncExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("SymOffExp::interpret() %s\n", toChars());
+    printf("%s SymOffExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (var->isFuncDeclaration() && offset == 0)
     {
@@ -1522,7 +1517,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("AddrExp::interpret() %s\n", toChars());
+    printf("%s AddrExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     // For reference types, we need to return an lvalue ref.
     TY tb = e1->type->toBasetype()->ty;
@@ -1539,7 +1534,7 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("DelegateExp::interpret() %s\n", toChars());
+    printf("%s DelegateExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     return this;
 }
@@ -1579,7 +1574,7 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
                 continue;
             }
             else if (v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
-                  || v->getValue()->op == TOKthis ))
+                  || v->getValue()->op == TOKthis  || v->getValue()->op == TOKvar))
             {
                 e = v->getValue();
                 continue;
@@ -1723,7 +1718,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("VarExp::interpret() %s\n", toChars());
+    printf("%s VarExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (goal == ctfeNeedLvalueRef)
     {
@@ -1740,6 +1735,10 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
                 error("variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
+        else if (v && v->hasValue() && v->getValue()->op == TOKvar)
+        {   // A ref of a reference,  is the original reference
+            return v->getValue();
+        }
         return this;
     }
     Expression *e = getVarExp(loc, istate, var, goal);
@@ -1752,7 +1751,7 @@ Expression *VarExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("DeclarationExp::interpret() %s\n", toChars());
+    printf("%s DeclarationExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expression *e;
     VarDeclaration *v = declaration->isVarDeclaration();
@@ -1846,7 +1845,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("TupleExp::interpret() %s\n", toChars());
+    printf("%s TupleExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expressions *expsx = NULL;
 
@@ -1962,7 +1961,7 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     Expressions *valuesx = values;
 
 #if LOG
-    printf("AssocArrayLiteralExp::interpret() %s\n", toChars());
+    printf("%s AssocArrayLiteralExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (ownedByCtfe) // We've already interpreted all the elements
         return copyLiteral(this);
@@ -2013,14 +2012,10 @@ Expression *AssocArrayLiteralExp::interpret(InterState *istate, CtfeGoal goal)
      */
     for (size_t i = 1; i < keysx->dim; i++)
     {   Expression *ekey = keysx->tdata()[i - 1];
-        if (ekey->op == TOKslice)
-            ekey = resolveSlice(ekey);
         for (size_t j = i; j < keysx->dim; j++)
         {   Expression *ekey2 = keysx->tdata()[j];
-            Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, ekey2);
-            if (ex == EXP_CANT_INTERPRET)
-                goto Lerr;
-            if (ex->isBool(TRUE))       // if a match
+            int eq = ctfeEqual(loc, TOKequal, ekey, ekey2);
+            if (eq)       // if a match
             {
                 // Remove ekey
                 if (keysx == keys)
@@ -2057,7 +2052,7 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expressions *expsx = NULL;
 
 #if LOG
-    printf("StructLiteralExp::interpret() %s\n", toChars());
+    printf("%s StructLiteralExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     /* We don't know how to deal with overlapping fields
      */
@@ -2153,7 +2148,7 @@ Expression *recursivelyCreateArrayLiteral(Loc loc, Type *newtype, InterState *is
 Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("NewExp::interpret() %s\n", toChars());
+    printf("%s NewExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (newtype->ty == Tarray && arguments)
         return recursivelyCreateArrayLiteral(loc, newtype, istate, arguments, 0);
@@ -2235,7 +2230,7 @@ Expression *UnaExp::interpretCommon(InterState *istate,  CtfeGoal goal, Expressi
     Expression *e1;
 
 #if LOG
-    printf("UnaExp::interpretCommon() %s\n", toChars());
+    printf("%s UnaExp::interpretCommon() %s\n", loc.toChars(), toChars());
 #endif
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
@@ -2264,7 +2259,7 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     Expression *e2;
 
 #if LOG
-    printf("BinExp::interpretCommon() %s\n", toChars());
+    printf("%s BinExp::interpretCommon() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer && op == TOKmin)
     {
@@ -2344,16 +2339,16 @@ BIN_INTERPRET(Pow)
 #endif
 
 
-typedef Expression *(*fp2_t)(Loc loc, enum TOK, Type *, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, enum TOK, Expression *, Expression *);
 
 
-Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp)
-{   Expression *e;
+Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
+{
     Expression *e1;
     Expression *e2;
 
 #if LOG
-    printf("BinExp::interpretCommon2() %s\n", toChars());
+    printf("%s BinExp::interpretCommon2() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer)
     {
@@ -2381,48 +2376,27 @@ Expression *BinExp::interpretCommon2(InterState *istate, CtfeGoal goal, fp2_t fp
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
-    if (e1->op == TOKslice)
-        e1 = resolveSlice(e1);
-
-    if (e1->isConst() != 1 &&
-        e1->op != TOKnull &&
-        e1->op != TOKstring &&
-        e1->op != TOKarrayliteral &&
-        e1->op != TOKstructliteral &&
-        e1->op != TOKclassreference)
+    if (!isCtfeComparable(e1))
     {
         error("cannot compare %s at compile time", e1->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
-
     e2 = this->e2->interpret(istate);
     if (exceptionOrCantInterpret(e2))
         return e2;
-    if (e2->op == TOKslice)
-        e2 = resolveSlice(e2);
-    if (e2->isConst() != 1 &&
-        e2->op != TOKnull &&
-        e2->op != TOKstring &&
-        e2->op != TOKarrayliteral &&
-        e2->op != TOKstructliteral &&
-        e2->op != TOKclassreference)
+    if (!isCtfeComparable(e2))
     {
         error("cannot compare %s at compile time", e2->toChars());
-        goto Lcant;
+        return EXP_CANT_INTERPRET;
     }
-    e = (*fp)(loc, op, type, e1, e2);
-    if (e == EXP_CANT_INTERPRET)
-        error("%s cannot be interpreted at compile time", toChars());
-    return e;
-
-Lcant:
-    return EXP_CANT_INTERPRET;
+    int cmp = (*fp)(loc, op, e1, e2);
+    return new IntegerExp(loc, cmp, type);
 }
 
 #define BIN_INTERPRET2(op, opfunc) \
 Expression *op##Exp::interpret(InterState *istate, CtfeGoal goal)  \
 {                                                                  \
-    return interpretCommon2(istate, goal, &opfunc);                \
+    return interpretCompareCommon(istate, goal, &opfunc);                \
 }
 
 BIN_INTERPRET2(Equal, ctfeEqual)
@@ -2482,7 +2456,7 @@ VarDeclaration * findParentVar(Expression *e, Expression *thisval)
 Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post)
 {
 #if LOG
-    printf("BinExp::interpretAssignCommon() %s\n", toChars());
+    printf("%s BinExp::interpretAssignCommon() %s\n", loc.toChars(), toChars());
 #endif
     Expression *returnValue = EXP_CANT_INTERPRET;
     Expression *e1 = this->e1;
@@ -2524,7 +2498,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             }
         }
     }
+    // If it is a reference type (eg, an array), we need an lvalue.
+    // If it is a reference variable (such as happens in foreach), we
+    // need an lvalue reference. For example if x, y are int[], then
+    // y[0..4] = x[0..4] is an rvalue assignment (all copies in the
+    //   slice are duplicated)
+    // y = x[0..4] is an lvalue assignment (if x[0] changes later,
+    //    y[0] will also change)
+    // ref int [] z = x is an lvalueref assignment (if x itself changes,
+    //   z will also change)
     bool wantRef = false;
+    bool wantLvalueRef = false;
+
     if (!fp && this->e1->type->toBasetype() == this->e2->type->toBasetype() &&
         (e1->type->toBasetype()->ty == Tarray || isAssocArray(e1->type)
              || e1->type->toBasetype()->ty == Tclass)
@@ -2563,10 +2548,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         wantRef = true;
     }
     // If it is a construction of a ref variable, it is a ref assignment
+    // (in fact, it is an lvalue reference assignment).
     if (op == TOKconstruct && this->e1->op==TOKvar
         && ((VarExp*)this->e1)->var->storage_class & STCref)
     {
          wantRef = true;
+         wantLvalueRef = true;
     }
 
     if (fp)
@@ -2725,66 +2712,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     oldval = oldval->interpret(istate);
                 }
             }
-            if (oldval->op == TOKslice)
-                oldval = resolveSlice(oldval);
             Type *t = e1->type->toBasetype();
             if (t->ty == Tarray)
             {
-                Type *elemType= NULL;
-                elemType = ((TypeArray *)t)->next;
-                assert(elemType);
-                Expression *defaultElem = elemType->defaultInitLiteral(loc);
-
-                Expressions *elements = new Expressions();
-                elements->setDim(newlen);
-                size_t copylen = oldlen < newlen ? oldlen : newlen;
-                if (oldval->op == TOKstring)
-                {
-                    StringExp *oldse = (StringExp *)oldval;
-                    unsigned char *s = (unsigned char *)mem.calloc(newlen + 1, oldse->sz);
-                    memcpy(s, oldse->string, copylen * oldse->sz);
-                    unsigned defaultValue = (unsigned)(defaultElem->toInteger());
-                    for (size_t elemi = copylen; elemi < newlen; ++elemi)
-                    {
-                        switch (oldse->sz)
-                        {
-                            case 1:     s[elemi] = defaultValue; break;
-                            case 2:     ((unsigned short *)s)[elemi] = defaultValue; break;
-                            case 4:     ((unsigned *)s)[elemi] = defaultValue; break;
-                            default:    assert(0);
-                        }
-                    }
-                    StringExp *se = new StringExp(loc, s, newlen);
-                    se->type = t;
-                    se->sz = oldse->sz;
-                    se->committed = oldse->committed;
-                    se->ownedByCtfe = true;
-                    newval = se;
-                }
-                else
-                {
-                    if (oldlen !=0)
-                        assert(oldval->op == TOKarrayliteral);
-                    ArrayLiteralExp *ae = (ArrayLiteralExp *)oldval;
-                    for (size_t i = 0; i < copylen; i++)
-                        (*elements)[i] = ae->elements->tdata()[i];
-                    if (elemType->ty == Tstruct || elemType->ty == Tsarray)
-                    {   /* If it is an aggregate literal representing a value type,
-                         * we need to create a unique copy for each element
-                         */
-                        for (size_t i = copylen; i < newlen; i++)
-                            (*elements)[i] = copyLiteral(defaultElem);
-                    }
-                    else
-                    {
-                        for (size_t i = copylen; i < newlen; i++)
-                            (*elements)[i] = defaultElem;
-                    }
-                    ArrayLiteralExp *aae = new ArrayLiteralExp(0, elements);
-                    aae->type = t;
-                    newval = aae;
-                    aae->ownedByCtfe = true;
-                }
+                newval = changeArrayLiteralLength(loc, (TypeArray *)t, oldval,
+                    oldlen,  newlen);
                 // We have changed it into a reference assignment
                 // Note that returnValue is still the new length.
                 wantRef = true;
@@ -2849,7 +2781,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // ---------------------------------------
     if (wantRef && !fp && this->e1->op != TOKarraylength)
     {
-        newval = this->e2->interpret(istate, ctfeNeedLvalue);
+        newval = this->e2->interpret(istate,
+            wantLvalueRef ? ctfeNeedLvalueRef : ctfeNeedLvalue);
         if (exceptionOrCantInterpret(newval))
             return newval;
         // If it is an assignment from a array function parameter passed by
@@ -3606,7 +3539,7 @@ BIN_ASSIGN_INTERPRET(Pow)
 Expression *PostExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("PostExp::interpret() %s\n", toChars());
+    printf("%s PostExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expression *e;
     if (op == TOKplusplus)
@@ -3789,7 +3722,7 @@ Expression *BinExp::interpretFourPointerRelation(InterState *istate, CtfeGoal go
 Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("AndAndExp::interpret() %s\n", toChars());
+    printf("%s AndAndExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     // Check for an insidePointer expression, evaluate it if so
@@ -3840,7 +3773,7 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("OrOrExp::interpret() %s\n", toChars());
+    printf("%s OrOrExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     // Check for an insidePointer expression, evaluate it if so
@@ -3944,7 +3877,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
-    printf("CallExp::interpret() %s\n", toChars());
+    printf("%s CallExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     Expression * pthis = NULL;
@@ -4137,7 +4070,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("CommaExp::interpret() %s\n", toChars());
+    printf("%s CommaExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     CommaExp * firstComma = this;
@@ -4206,7 +4139,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("CondExp::interpret() %s\n", toChars());
+    printf("%s CondExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expression *e;
     if ( isPointer(econd->type) )
@@ -4239,7 +4172,7 @@ Expression *ArrayLengthExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e1;
 
 #if LOG
-    printf("ArrayLengthExp::interpret() %s\n", toChars());
+    printf("%s ArrayLengthExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     e1 = this->e1->interpret(istate);
     assert(e1);
@@ -4265,7 +4198,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e2;
 
 #if LOG
-    printf("IndexExp::interpret() %s\n", toChars());
+    printf("%s IndexExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->toBasetype()->ty == Tpointer)
     {
@@ -4408,7 +4341,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *upr;
 
 #if LOG
-    printf("SliceExp::interpret() %s\n", toChars());
+    printf("%s SliceExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     if (this->e1->type->toBasetype()->ty == Tpointer)
@@ -4574,7 +4507,7 @@ Expression *InExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
-    printf("InExp::interpret() %s\n", toChars());
+    printf("%s InExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expression *e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
@@ -4607,7 +4540,7 @@ Expression *CatExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e2;
 
 #if LOG
-    printf("CatExp::interpret() %s\n", toChars());
+    printf("%s CatExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
@@ -4640,7 +4573,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e1;
 
 #if LOG
-    printf("CastExp::interpret() %s\n", toChars());
+    printf("%s CastExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     e1 = this->e1->interpret(istate, goal);
     if (exceptionOrCantInterpret(e1))
@@ -4813,7 +4746,7 @@ Expression *AssertExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e1;
 
 #if LOG
-    printf("AssertExp::interpret() %s\n", toChars());
+    printf("%s AssertExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 #if DMDV2
     e1 = this->e1->interpret(istate);
@@ -4863,7 +4796,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
-    printf("PtrExp::interpret() %s\n", toChars());
+    printf("%s PtrExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     // Constant fold *(&structliteral + offset)
     if (e1->op == TOKadd)
@@ -4995,7 +4928,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 {   Expression *e = EXP_CANT_INTERPRET;
 
 #if LOG
-    printf("DotVarExp::interpret() %s\n", toChars());
+    printf("%s DotVarExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
 
     Expression *ex = e1->interpret(istate);
@@ -5099,7 +5032,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
 {
 #if LOG
-    printf("RemoveExp::interpret() %s\n", toChars());
+    printf("%s RemoveExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
     Expression *agg = e1->interpret(istate);
     if (exceptionOrCantInterpret(agg))
@@ -5116,10 +5049,8 @@ Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
     size_t removed = 0;
     for (size_t j = 0; j < valuesx->dim; ++j)
     {   Expression *ekey = keysx->tdata()[j];
-        Expression *ex = ctfeEqual(loc, TOKequal, Type::tbool, ekey, index);
-        if (exceptionOrCantInterpret(ex))
-            return ex;
-        if (ex->isBool(TRUE))
+        int eq = ctfeEqual(loc, TOKequal, ekey, index);
+        if (eq)
             ++removed;
         else if (removed != 0)
         {   keysx->tdata()[j - removed] = ekey;
