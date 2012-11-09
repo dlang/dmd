@@ -5500,7 +5500,39 @@ void test8108()
 }
 
 /***************************************************/
-// 8526
+// 6141 + 8526
+
+void test6141()
+{
+    static void takeADelegate(void delegate()) {}
+    auto items = new int[1];
+    items[0] = 17;
+    foreach (ref item; items)
+    {
+        // both asserts fail
+        assert(item == 17);
+        assert(&item == items.ptr);
+
+        takeADelegate({ auto x = &item; });
+    }
+
+    foreach(ref val; [3])
+    {
+        auto dg = { int j = val; };
+        assert(&val != null); // Assertion failure
+        assert(val == 3);
+    }
+
+    static void f(lazy int) {}
+    int i = 0;
+    auto dg = { int j = i; };
+    foreach(ref val; [3])
+    {
+        f(val);
+        assert(&val != null); // Assertion failure
+        assert(val == 3);
+    }
+}
 
 void test8526()
 {
@@ -5841,6 +5873,7 @@ int main()
     test160();
     test8665();
     test8108();
+    test6141();
     test8526();
     test161();
     test8917();
