@@ -529,6 +529,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKexport:
                         error("redundant protection attribute");
                         break;
+                    default: break;
                 }
                 a = parseBlock();
                 s = new ProtDeclaration(prot, a);
@@ -1744,6 +1745,7 @@ BaseClasses *Parser::parseBaseClasses()
                 protection = PROTpublic;
                 nextToken();
                 break;
+            default: break;
         }
         if (prot)
             deprecation("use of base class protection is deprecated");
@@ -2728,6 +2730,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                 *pt = tf;
                 break;
             }
+            default: break;
         }
         break;
     }
@@ -2847,6 +2850,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
             tok = token.value;
             nextToken();
             break;
+        default: break;
     }
 
     storage_class = STCundefined;
@@ -4884,6 +4888,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
                     return FALSE;
                 skipAttributes(t, &t);
                 continue;
+            default: break;
         }
         break;
     }
