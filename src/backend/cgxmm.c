@@ -822,8 +822,8 @@ code *cdvector(elem *e, regm_t *pretregs)
         {
             c = cat(c, codelem(params[i], pretregs, FALSE));
             *pretregs = 0;      // in case they got set
-            return c;
         }
+        return c;
     }
 
     assert(n >= 2 && n <= 4);
