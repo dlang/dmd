@@ -1780,7 +1780,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
         {
             ExpInitializer *ie = v->init->isExpInitializer();
             if (ie)
-                e = ie->exp->interpret(istate);
+                e = ie->exp->interpret(istate, goal);
             else if (v->init->isVoidInitializer())
             {
                 e = v->type->voidInitLiteral(v);
@@ -2795,12 +2795,18 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         }
 
         if (newval->op == TOKassocarrayliteral || newval->op == TOKstring ||
-            newval->op==TOKarrayliteral)
+            newval->op == TOKarrayliteral)
         {
             if (needToCopyLiteral(newval))
                 newval = copyLiteral(newval);
         }
-        returnValue = newval;
+
+        // Get the value to return. Note that 'newval' is an Lvalue,
+        // so if we need an Rvalue, we have to interpret again.
+        if (goal == ctfeNeedRvalue)
+            returnValue = newval->interpret(istate);
+        else
+            returnValue = newval;
     }
 
     // ---------------------------------------
@@ -3755,13 +3761,13 @@ Expression *AndAndExp::interpret(InterState *istate, CtfeGoal goal)
                 result = 1;
             else
             {
-                error("%s does not evaluate to a boolean", e->toChars());
+                e->error("%s does not evaluate to a boolean", e->toChars());
                 e = EXP_CANT_INTERPRET;
             }
         }
         else
         {
-            error("%s cannot be interpreted as a boolean", e->toChars());
+            e->error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
@@ -3809,14 +3815,14 @@ Expression *OrOrExp::interpret(InterState *istate, CtfeGoal goal)
                     result = 1;
                 else
                 {
-                    error("%s cannot be interpreted as a boolean", e->toChars());
+                    e->error("%s cannot be interpreted as a boolean", e->toChars());
                     e = EXP_CANT_INTERPRET;
                 }
             }
         }
         else
         {
-            error("%s cannot be interpreted as a boolean", e->toChars());
+            e->error("%s cannot be interpreted as a boolean", e->toChars());
             e = EXP_CANT_INTERPRET;
         }
     }
