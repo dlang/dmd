@@ -1755,6 +1755,10 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
 
                 TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
                 e = (new ScopeExp(loc, ti))->semantic(td->scope);
+
+                // Reset inference target for the later re-semantic
+                fld->treq = NULL;
+
                 if (e->op == TOKfunction)
                 {   FuncExp *fe = (FuncExp *)e;
                     assert(fe->td == NULL);

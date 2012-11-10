@@ -1549,6 +1549,27 @@ void test8976()
     static assert(!is(typeof(          h8976!()() )));
 }
 
+/****************************************/
+// 8940
+
+const int n8940; // or `immutable`
+static this() { n8940 = 3; }
+
+void f8940(T)(ref int val)
+{
+    assert(val == 3);
+    ++val;
+}
+
+static assert(!__traits(compiles,  f8940!void(n8940))); // fails
+void test8940()
+{
+    assert(n8940 == 3);
+    static assert(!__traits(compiles, f8940!void(n8940)));
+    //assert(n8940 == 3); // may pass as compiler caches comparison result
+    //assert(n8940 != 4); // may pass but likely will fail
+}
+
 /**********************************/
 
 int main()
@@ -1612,6 +1633,7 @@ int main()
     test14();
     test8129();
     test8976();
+    test8940();
 
     printf("Success\n");
     return 0;
