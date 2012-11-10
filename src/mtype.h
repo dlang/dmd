@@ -703,6 +703,7 @@ struct TypeQualified : Type
 struct TypeIdentifier : TypeQualified
 {
     Identifier *ident;
+    Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
     TypeIdentifier(Loc loc, Identifier *ident);
     Type *syntaxCopy();
@@ -1015,5 +1016,6 @@ void MODtoBuffer(OutBuffer *buf, unsigned char mod);
 int MODimplicitConv(unsigned char modfrom, unsigned char modto);
 int MODmethodConv(unsigned char modfrom, unsigned char modto);
 int MODmerge(unsigned char mod1, unsigned char mod2);
+void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs);
 
 #endif /* DMD_MTYPE_H */
