@@ -6597,7 +6597,6 @@ TypeIdentifier::TypeIdentifier(Loc loc, Identifier *ident)
     : TypeQualified(Tident, loc)
 {
     this->ident = ident;
-    this->originalSymbol = NULL;
 }
 
 
@@ -6627,17 +6626,7 @@ void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-
-    if (hgs->ddoc)
-    {
-        if (originalSymbol)
-            originalSymbol->emitIdentifier(buf, hgs);
-        else
-            identifierToDocBuffer(ident, buf, hgs);
-    }
-    else
-        buf->writestring(this->ident->toChars());
-
+    buf->writestring(this->ident->toChars());
     toCBuffer2Helper(buf, hgs);
 }
 
@@ -6678,9 +6667,6 @@ void TypeIdentifier::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsy
     }
 
     Dsymbol *s = sc->search(loc, ident, &scopesym);
-
-    this->originalSymbol = s;
-
     resolveHelper(loc, sc, s, scopesym, pe, pt, ps);
     if (*pt)
         (*pt) = (*pt)->addMod(mod);
@@ -7274,7 +7260,7 @@ void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    sym->emitIdentifier(buf, hgs);
+    buf->writestring(sym->toChars());
 }
 
 Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -7807,7 +7793,7 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     if (ti && ti->toAlias() == sym)
         buf->writestring(ti->toChars());
     else
-        sym->emitIdentifier(buf, hgs);
+        buf->writestring(sym->toChars());
 }
 
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -8325,7 +8311,7 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     {   toCBuffer3(buf, hgs, mod);
         return;
     }
-    sym->emitIdentifier(buf, hgs);
+    buf->writestring(sym->toChars());
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
@@ -9478,27 +9464,4 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
     if (pn)
         *pn = n; // update index
     return result;
-}
-
-/* Try to search a symbol in the global scope.
- * In most cases this is the correct guess.
- * We don't search if the length is 1 because it's probably
- * a template parameter (like E, which would incorrectly resolve to Math.E).
- */
-void identifierToDocBuffer(Identifier* ident, OutBuffer *buf, HdrGenState *hgs) {
-    Dsymbol *s = NULL;
-
-    if (ident->len > 1)
-    {
-        Dsymbol *scopesym;
-        Loc loc;
-        unsigned errors = global.startGagging();
-        s = hgs->scope->search(loc, ident, &scopesym);
-        global.endGagging(errors);
-    }
-
-    if (s)
-        s->emitIdentifier(buf, hgs);
-    else
-        buf->writestring(ident->toChars());
 }
