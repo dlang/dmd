@@ -61,10 +61,9 @@ ifeq (OSX,$(TARGET))
     endif
     ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
     ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    #SDK=$(SDKDIR)/MacOSX10.4u.sdk #doesn't work because can't find <stdarg.h>
-    #SDK=$(SDKDIR)/MacOSX10.5.sdk
-    #SDK=$(SDKDIR)/MacOSX10.6.sdk
-    SDK:=$(if $(filter 11.%, $(OSVER)), $(SDKDIR)/MacOSX10.6.sdk, $(SDKDIR)/MacOSX10.5.sdk)
+    SDKVERS:=1 2 3 4 5 6 7 8
+    SDKFILES=$(foreach SDKVER, $(SDKVERS), $(wildcard $(SDKDIR)/MacOSX10.$(SDKVER).sdk))
+    SDK=$(firstword $(SDKFILES))
     TARGET_CFLAGS=-isysroot ${SDK}
     #-syslibroot is only passed to libtool, not ld.
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
