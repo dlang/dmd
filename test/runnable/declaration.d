@@ -21,6 +21,44 @@ void test6475()
 }
 
 /***************************************************/
+// 7019
+
+struct S7019
+{
+    int store;
+    this(int n)
+    {
+        store = n << 3;
+    }
+}
+
+S7019 rt_gs = 2;
+enum S7019 ct_gs = 2;
+pragma(msg, ct_gs, ", ", ct_gs.store);
+
+void test7019()
+{
+    S7019 rt_ls = 3; // this compiles fine
+    enum S7019 ct_ls = 3;
+    pragma(msg, ct_ls, ", ", ct_ls.store);
+
+    static class C
+    {
+        S7019 rt_fs = 4;
+        enum S7019 ct_fs = 4;
+        pragma(msg, ct_fs, ", ", ct_fs.store);
+    }
+
+    auto c = new C;
+    assert(rt_gs == S7019(2) && rt_gs.store == 16);
+    assert(rt_ls == S7019(3) && rt_ls.store == 24);
+    assert(c.rt_fs == S7019(4) && c.rt_fs.store == 32);
+    static assert(ct_gs == S7019(2) && ct_gs.store == 16);
+    static assert(ct_ls == S7019(3) && ct_ls.store == 24);
+    static assert(C.ct_fs == S7019(4) && C.ct_fs.store == 32);
+}
+
+/***************************************************/
 // 7239
 
 struct vec7239
@@ -131,6 +169,7 @@ void test8942()
 int main()
 {
     test6475();
+    test7019();
     test7239();
     test8123();
     test8147();
