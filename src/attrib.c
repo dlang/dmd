@@ -723,17 +723,10 @@ void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
 {
     const char *p;
 
-    switch (protection)
-    {
-        case PROTprivate:       p = "private";          break;
-        case PROTpackage:       p = "package";          break;
-        case PROTprotected:     p = "protected";        break;
-        case PROTpublic:        p = "public";           break;
-        case PROTexport:        p = "export";           break;
-        default:
-            assert(0);
-            break;
-    }
+    p = Pprotectionnames[protection];
+
+    assert(p);
+
     buf->writestring(p);
     buf->writeByte(' ');
 }
