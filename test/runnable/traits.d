@@ -796,6 +796,75 @@ struct A8972
 
 /********************************************************/
 
+private   struct TestProt1 {}
+package   struct TestProt2 {}
+protected struct TestProt3 {}
+public    struct TestProt4 {}
+export    struct TestProt5 {}
+
+void getProtection()
+{
+    class Test
+    {
+        private   { int va; void fa(){} }
+        package   { int vb; void fb(){} }
+        protected { int vc; void fc(){} }
+        public    { int vd; void fd(){} }
+        export    { int ve; void fe(){} }
+    }
+    Test t;
+
+    // TOKvar and VarDeclaration
+    static assert(__traits(getProtection, Test.va) == "private");
+    static assert(__traits(getProtection, Test.vb) == "package");
+    static assert(__traits(getProtection, Test.vc) == "protected");
+    static assert(__traits(getProtection, Test.vd) == "public");
+    static assert(__traits(getProtection, Test.ve) == "export");
+
+    // TOKdotvar and VarDeclaration
+    static assert(__traits(getProtection, t.va) == "private");
+    static assert(__traits(getProtection, t.vb) == "package");
+    static assert(__traits(getProtection, t.vc) == "protected");
+    static assert(__traits(getProtection, t.vd) == "public");
+    static assert(__traits(getProtection, t.ve) == "export");
+
+    // TOKvar and FuncDeclaration
+    static assert(__traits(getProtection, Test.fa) == "private");
+    static assert(__traits(getProtection, Test.fb) == "package");
+    static assert(__traits(getProtection, Test.fc) == "protected");
+    static assert(__traits(getProtection, Test.fd) == "public");
+    static assert(__traits(getProtection, Test.fe) == "export");
+
+    // TOKdotvar and FuncDeclaration
+    static assert(__traits(getProtection, t.fa) == "private");
+    static assert(__traits(getProtection, t.fb) == "package");
+    static assert(__traits(getProtection, t.fc) == "protected");
+    static assert(__traits(getProtection, t.fd) == "public");
+    static assert(__traits(getProtection, t.fe) == "export");
+
+    // TOKtype
+    static assert(__traits(getProtection, TestProt1) == "private");
+    static assert(__traits(getProtection, TestProt2) == "package");
+    static assert(__traits(getProtection, TestProt3) == "protected");
+    static assert(__traits(getProtection, TestProt4) == "public");
+    static assert(__traits(getProtection, TestProt5) == "export");
+
+    // This specific pattern is important to ensure it always works
+    // through reflection, however that becomes implemented
+    static assert(__traits(getProtection, __traits(getMember, t, "va")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, t, "vb")) == "package");
+    static assert(__traits(getProtection, __traits(getMember, t, "vc")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, t, "vd")) == "public");
+    static assert(__traits(getProtection, __traits(getMember, t, "ve")) == "export");
+    static assert(__traits(getProtection, __traits(getMember, t, "fa")) == "private");
+    static assert(__traits(getProtection, __traits(getMember, t, "fb")) == "package");
+    static assert(__traits(getProtection, __traits(getMember, t, "fc")) == "protected");
+    static assert(__traits(getProtection, __traits(getMember, t, "fd")) == "public");
+    static assert(__traits(getProtection, __traits(getMember, t, "fe")) == "export");
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
