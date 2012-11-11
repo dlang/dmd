@@ -22,6 +22,7 @@
 #include "mtype.h"
 #include "hdrgen.h"
 #include "template.h"
+#include "id.h"
 
 /********************************** Initializer *******************************/
 
@@ -893,6 +894,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
     }
 
     Type *tb = t->toBasetype();
+    Type *ti = exp->type->toBasetype();
 
     if (exp->op == TOKtuple &&
         expandTuples &&
@@ -905,7 +907,7 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
      * Allow this by doing an explicit cast, which will lengthen the string
      * literal.
      */
-    if (exp->op == TOKstring && tb->ty == Tsarray && exp->type->ty == Tsarray)
+    if (exp->op == TOKstring && tb->ty == Tsarray && ti->ty == Tsarray)
     {   StringExp *se = (StringExp *)exp;
 
         if (!se->committed && se->type->ty == Tsarray &&
@@ -917,10 +919,30 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         }
     }
 
+    // Look for implicit constructor call
+    if (tb->ty == Tstruct &&
+        !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
+        !exp->implicitConvTo(t))
+    {
+        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+        if (sd->ctor)
+        {   // Rewrite as S().ctor(exp)
+            Expression *e;
+            e = new StructLiteralExp(loc, sd, NULL);
+            e = new DotIdExp(loc, e, Id::ctor);
+            e = new CallExp(loc, e, exp);
+            e = e->semantic(sc);
+            if (needInterpret)
+                exp = e->ctfeInterpret();
+            else
+                exp = e->optimize(WANTvalue);
+        }
+    }
+
     // Look for the case of statically initializing an array
     // with a single member.
     if (tb->ty == Tsarray &&
-        !tb->nextOf()->equals(exp->type->toBasetype()->nextOf()) &&
+        !tb->nextOf()->equals(ti->toBasetype()->nextOf()) &&
         exp->implicitConvTo(tb->nextOf())
        )
     {
