@@ -241,7 +241,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                         s = dv->var->isDeclaration();
                 }
             }
-        }        
+        }
         if(!s)
         {
             bool gagError = false;

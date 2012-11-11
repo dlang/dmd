@@ -558,7 +558,7 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
 
 void emitProtection(OutBuffer *buf, PROT prot)
 {
-    const char *p = Pprotectionnames[prot];
+    const char *p = (prot == PROTpublic) ? NULL : Pprotectionnames[prot];
 
     if (p)
         buf->printf("%s ", p);
