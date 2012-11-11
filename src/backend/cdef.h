@@ -606,7 +606,7 @@ typedef int bool;
 
 // gcc defines this for us, dmc doesn't, so look for it's __I86__
 #if ! (defined(LITTLE_ENDIAN) || defined(BIG_ENDIAN) )
-#if defined(__I86__) || defined(i386) || defined(__x86_64__)
+#if defined(__I86__) || defined(i386) || defined(__x86_64__) || defined(_M_IX86) || defined(_M_X64) || defined(_M_I86) || defined(_M_AMD64)
 #define LITTLE_ENDIAN 1
 #else
 #error unknown platform, so unknown endianness

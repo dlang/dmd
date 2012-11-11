@@ -4,7 +4,7 @@
 
 #ifdef _MSC_VER
 #pragma pack(push,1)
-#else
+#elif defined(__DMC__)
 #pragma ZTC align 1
 #endif
 
@@ -257,6 +257,6 @@ union auxent
 
 #ifdef _MSC_VER
 #pragma pack(pop)
-#else
+#elif defined(__DMC__)
 #pragma ZTC align
 #endif

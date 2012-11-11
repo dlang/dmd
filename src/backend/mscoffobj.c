@@ -754,7 +754,9 @@ void MsCoffObj::term(const char *objfilename)
 
     header.f_magic = I64 ? IMAGE_FILE_MACHINE_AMD64 : IMAGE_FILE_MACHINE_I386;
     header.f_nscns = scnhdr_cnt;
-    header.f_timdat = time(NULL);
+    time_t f_timedat = 0;
+    time(&f_timedat);
+    header.f_timdat = (long)f_timedat;
     header.f_symptr = 0;        // offset to symbol table
     header.f_nsyms = 0;
     header.f_opthdr = 0;

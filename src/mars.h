@@ -450,7 +450,7 @@ void util_progress();
 #endif
 
 struct Dsymbol;
-struct Library;
+class Library;
 struct File;
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);

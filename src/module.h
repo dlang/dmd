@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -24,7 +24,7 @@ struct ModuleDeclaration;
 struct Macro;
 struct Escape;
 struct VarDeclaration;
-struct Library;
+class Library;
 
 // Back end
 #ifdef IN_GCC
