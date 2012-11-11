@@ -560,15 +560,8 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
 
 void emitProtection(OutBuffer *buf, PROT prot)
 {
-    const char *p;
+    const char *p = (prot == PROTpublic) ? NULL : Pprotectionnames[prot];
 
-    switch (prot)
-    {
-        case PROTpackage:       p = "package";   break;
-        case PROTprotected:     p = "protected"; break;
-        case PROTexport:        p = "export";    break;
-        default:                p = NULL;        break;
-    }
     if (p)
         buf->printf("%s ", p);
 }

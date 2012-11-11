@@ -94,6 +94,9 @@ enum PROT
     PROTexport,
 };
 
+// this is used for printing the protection in json, traits, docs, etc.
+static const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+
 /* State of symbol in winding its way through the passes of the compiler
  */
 enum PASS
