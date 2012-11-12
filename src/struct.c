@@ -288,6 +288,7 @@ unsigned AggregateDeclaration::placeField(
 
 int AggregateDeclaration::isNested()
 {
+    assert((isnested & ~1) == 0);
     return isnested;
 }
 
