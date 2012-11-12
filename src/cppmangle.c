@@ -410,38 +410,51 @@ void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
     }
 }
 
+struct ArgsCppMangleCtx
+{
+    OutBuffer *buf;
+    CppMangleState *cms;
+    size_t cnt;
+};
 
+static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
+{
+    ArgsCppMangleCtx *p = (ArgsCppMangleCtx *)ctx;
+
+    Type *t = arg->type;
+    if (arg->storageClass & (STCout | STCref))
+        t = t->referenceTo();
+    else if (arg->storageClass & STClazy)
+    {   // Mangle as delegate
+        Type *td = new TypeFunction(NULL, t, 0, LINKd);
+        td = new TypeDelegate(td);
+        t = t->merge();
+    }
+    if (t->ty == Tsarray)
+    {   // Mangle static arrays as pointers
+        t = t->pointerTo();
+    }
+
+    /* If it is a basic, enum or struct type,
+     * then don't mark it const
+     */
+    if ((t->ty == Tenum || t->ty == Tstruct || t->isTypeBasic()) && t->isConst())
+        t->mutableOf()->toCppMangle(p->buf, p->cms);
+    else
+        t->toCppMangle(p->buf, p->cms);
+
+    p->cnt++;
+    return 0;
+}
 
 void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs)
-{   int n = 0;
+{
+    size_t n = 0;
     if (arguments)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {   Parameter *arg = (*arguments)[i];
-            Type *t = arg->type;
-            if (arg->storageClass & (STCout | STCref))
-                t = t->referenceTo();
-            else if (arg->storageClass & STClazy)
-            {   // Mangle as delegate
-                Type *td = new TypeFunction(NULL, t, 0, LINKd);
-                td = new TypeDelegate(td);
-                t = t->merge();
-            }
-            if (t->ty == Tsarray)
-            {   // Mangle static arrays as pointers
-                t = t->pointerTo();
-            }
-
-            /* If it is a basic, enum or struct type,
-             * then don't mark it const
-             */
-            if ((t->ty == Tenum || t->ty == Tstruct || t->isTypeBasic()) && t->isConst())
-                t->mutableOf()->toCppMangle(buf, cms);
-            else
-                t->toCppMangle(buf, cms);
-
-            n++;
-        }
+        ArgsCppMangleCtx ctx = { buf, cms, 0 };
+        foreach(arguments, &argsCppMangleDg, &ctx);
+        n = ctx.cnt;
     }
     if (varargs)
         buf->writestring("z");
