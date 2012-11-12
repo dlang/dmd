@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// PERMUTE_ARGS: -d -di
 // On DMD0.165 fails only with typedef, not alias
 
 typedef foo bar;
