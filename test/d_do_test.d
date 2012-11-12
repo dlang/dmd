@@ -161,7 +161,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(file, "EXTRA_SOURCES", extraSourcesStr);
     testArgs.sources = [input_file];
     // prepend input_dir to each extra source file
-    foreach(s; split(extraSourcesStr, " "))
+    foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
 
     // swap / with $SEP
@@ -184,7 +184,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 string[] combinations(string argstr)
 {
     string[] results;
-    string[] args = split(argstr, " ");
+    string[] args = split(argstr);
     long combinations = 1 << args.length;
     for (size_t i = 0; i < combinations; i++)
     {
