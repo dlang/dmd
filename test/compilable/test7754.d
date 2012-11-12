@@ -1,7 +1,6 @@
-// PERMUTE_ARGS:
 // REQUIRED_ARGS: -H -Hdtest_results/compilable
 // POST_SCRIPT: compilable/extra-files/test7754-postscript.sh
-// REQUIRED_ARGS: -d
+// PERMUTE_ARGS: -d -di
 
 struct Foo(T)
 {

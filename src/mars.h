@@ -158,7 +158,9 @@ struct Param
     char isOPenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
-    char useDeprecated; // allow use of deprecated features
+    char useDeprecated; // 0: don't allow use of deprecated features
+                        // 1: silently allow use of deprecated features
+                        // 2: warn about the use of deprecated features
     char useAssert;     // generate runtime code for assert()'s
     char useInvariants; // generate class invariant checks
     char useIn;         // generate precondition checks

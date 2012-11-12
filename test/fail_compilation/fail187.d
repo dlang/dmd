@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -d
+// PERMUTE_ARGS: -d -di
 // On DMD 2.000 bug only with typedef, not alias
 
 typedef Exception A;
