@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -99,7 +99,7 @@ struct Statement : Object
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
     virtual int hasBreak();
-    virtual int hasContinue();
+    virtual bool hasContinue();
     virtual int usesEH();
     virtual int blockExit(bool mustNotThrow);
     virtual int comeFrom();
@@ -230,7 +230,7 @@ struct UnrolledLoopStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -255,7 +255,7 @@ struct ScopeStatement : Statement
     ScopeStatement *isScopeStatement() { return this; }
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -279,7 +279,7 @@ struct WhileStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -300,7 +300,7 @@ struct DoStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -326,7 +326,7 @@ struct ForStatement : Statement
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -362,7 +362,7 @@ struct ForeachStatement : Statement
     int inferAggregate(Scope *sc, Dsymbol *&sapply);
     int inferApplyArgTypes(Scope *sc, Dsymbol *&sapply);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -390,7 +390,7 @@ struct ForeachRangeStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     int comeFrom();
@@ -660,7 +660,7 @@ struct SynchronizedStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -737,7 +737,7 @@ struct TryFinallyStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     int hasBreak();
-    int hasContinue();
+    bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);

@@ -151,7 +151,7 @@ int Statement::hasBreak()
     return FALSE;
 }
 
-int Statement::hasContinue()
+bool Statement::hasContinue()
 {
     return FALSE;
 }
@@ -907,7 +907,7 @@ int UnrolledLoopStatement::hasBreak()
     return TRUE;
 }
 
-int UnrolledLoopStatement::hasContinue()
+bool UnrolledLoopStatement::hasContinue()
 {
     return TRUE;
 }
@@ -1017,7 +1017,7 @@ int ScopeStatement::hasBreak()
     return statement ? statement->hasBreak() : FALSE;
 }
 
-int ScopeStatement::hasContinue()
+bool ScopeStatement::hasContinue()
 {
     return statement ? statement->hasContinue() : FALSE;
 }
@@ -1089,7 +1089,7 @@ int WhileStatement::hasBreak()
     return TRUE;
 }
 
-int WhileStatement::hasContinue()
+bool WhileStatement::hasContinue()
 {
     return TRUE;
 }
@@ -1185,7 +1185,7 @@ int DoStatement::hasBreak()
     return TRUE;
 }
 
-int DoStatement::hasContinue()
+bool DoStatement::hasContinue()
 {
     return TRUE;
 }
@@ -1438,7 +1438,7 @@ int ForStatement::hasBreak()
     return TRUE;
 }
 
-int ForStatement::hasContinue()
+bool ForStatement::hasContinue()
 {
     return TRUE;
 }
@@ -2372,7 +2372,7 @@ int ForeachStatement::hasBreak()
     return TRUE;
 }
 
-int ForeachStatement::hasContinue()
+bool ForeachStatement::hasContinue()
 {
     return TRUE;
 }
@@ -2629,7 +2629,7 @@ int ForeachRangeStatement::hasBreak()
     return TRUE;
 }
 
-int ForeachRangeStatement::hasContinue()
+bool ForeachRangeStatement::hasContinue()
 {
     return TRUE;
 }
@@ -4432,7 +4432,7 @@ int SynchronizedStatement::hasBreak()
     return FALSE; //TRUE;
 }
 
-int SynchronizedStatement::hasContinue()
+bool SynchronizedStatement::hasContinue()
 {
     return FALSE; //TRUE;
 }
@@ -4835,7 +4835,7 @@ int TryFinallyStatement::hasBreak()
     return FALSE; //TRUE;
 }
 
-int TryFinallyStatement::hasContinue()
+bool TryFinallyStatement::hasContinue()
 {
     return FALSE; //TRUE;
 }
