@@ -609,7 +609,7 @@ void Dsymbol::deprecation(Loc loc, const char *format, ...)
 
 void Dsymbol::checkDeprecated(Loc loc, Scope *sc)
 {
-    if (!global.params.useDeprecated && isDeprecated())
+    if (global.params.useDeprecated != 1 && isDeprecated())
     {
         // Don't complain if we're inside a deprecated symbol's scope
         for (Dsymbol *sp = sc->parent; sp; sp = sp->parent)

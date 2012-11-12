@@ -127,7 +127,7 @@ struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct ArrayBase;
-//typedef ArrayBase<struct Identifier> Identifiers;
+typedef ArrayBase<struct Identifier> Identifiers;
 typedef ArrayBase<char> Strings;
 
 // Put command line switches in here
@@ -156,7 +156,9 @@ struct Param
     char isOPenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
-    char useDeprecated; // allow use of deprecated features
+    char useDeprecated; // 0: don't allow use of deprecated features
+                        // 1: silently allow use of deprecated features
+                        // 2: warn about the use of deprecated features
     char useAssert;     // generate runtime code for assert()'s
     char useInvariants; // generate class invariant checks
     char useIn;         // generate precondition checks
@@ -406,6 +408,7 @@ enum DYNCAST
     DYNCAST_TYPE,
     DYNCAST_IDENTIFIER,
     DYNCAST_TUPLE,
+    DYNCAST_PARAMETER,
 };
 
 enum MATCH
@@ -447,7 +450,7 @@ void util_progress();
 #endif
 
 struct Dsymbol;
-struct Library;
+class Library;
 struct File;
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
