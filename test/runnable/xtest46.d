@@ -5624,6 +5624,39 @@ struct S162
 
 /***************************************************/
 
+void test163() {
+    static class C { int x; int y; }
+
+    immutable C c = new C();
+    shared C c2 = new C();
+    shared const C c3 = new C();
+
+    class D { int x; int y; }
+    immutable D d;
+    assert(!__traits(compiles, d = new D()));
+
+    static struct S { int x; int y; }
+
+    immutable S* s = new S();
+    shared S* s2 = new S();
+    shared const S* s3 = new S();
+
+    shared S* s4;
+    assert(!__traits(compiles, s4 = new immutable(S)()));
+
+    struct T { int x; int y; }
+    immutable T* t;
+    assert(!__traits(compiles, t = new T()));
+
+    immutable int* pi = new int();
+    immutable void* pv = new int();
+
+    immutable int[] ai = new int[1];
+    immutable void[] av = new int[2];
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5877,6 +5910,7 @@ int main()
     test8526();
     test161();
     test8917();
+    test163();
 
     printf("Success\n");
     return 0;
