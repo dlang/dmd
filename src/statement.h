@@ -102,7 +102,7 @@ struct Statement : Object
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
-    virtual int hasBreak();
+    virtual bool hasBreak();
     virtual bool hasContinue();
     virtual int usesEH();
     virtual int blockExit(bool mustNotThrow);
@@ -218,7 +218,7 @@ struct UnrolledLoopStatement : Statement
     UnrolledLoopStatement(Loc loc, Statements *statements);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -243,7 +243,7 @@ struct ScopeStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ScopeStatement *isScopeStatement() { return this; }
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -267,7 +267,7 @@ struct WhileStatement : Statement
     WhileStatement(Loc loc, Expression *c, Statement *b);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -288,7 +288,7 @@ struct DoStatement : Statement
     DoStatement(Loc loc, Statement *b, Expression *c);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -312,7 +312,7 @@ struct ForStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     void scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -346,7 +346,7 @@ struct ForeachStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -374,7 +374,7 @@ struct ForeachRangeStatement : Statement
         Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -471,7 +471,7 @@ struct SwitchStatement : Statement
     SwitchStatement(Loc loc, Expression *c, Statement *b);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     int usesEH();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
@@ -640,7 +640,7 @@ struct SynchronizedStatement : Statement
     SynchronizedStatement(Loc loc, Expression *exp, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);
@@ -681,7 +681,7 @@ struct TryCatchStatement : Statement
     TryCatchStatement(Loc loc, Statement *body, Catches *catches);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     int usesEH();
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
@@ -717,7 +717,7 @@ struct TryFinallyStatement : Statement
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
-    int hasBreak();
+    bool hasBreak();
     bool hasContinue();
     int usesEH();
     int blockExit(bool mustNotThrow);

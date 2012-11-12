@@ -124,7 +124,7 @@ void Statement::deprecation(const char *format, ...)
     va_end( ap );
 }
 
-int Statement::hasBreak()
+bool Statement::hasBreak()
 {
     //printf("Statement::hasBreak()\n");
     return FALSE;
@@ -787,7 +787,7 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-int UnrolledLoopStatement::hasBreak()
+bool UnrolledLoopStatement::hasBreak()
 {
     return TRUE;
 }
@@ -894,7 +894,7 @@ Statement *ScopeStatement::semantic(Scope *sc)
     return this;
 }
 
-int ScopeStatement::hasBreak()
+bool ScopeStatement::hasBreak()
 {
     //printf("ScopeStatement::hasBreak() %s\n", toChars());
     return statement ? statement->hasBreak() : FALSE;
@@ -967,7 +967,7 @@ Statement *WhileStatement::semantic(Scope *sc)
     return s;
 }
 
-int WhileStatement::hasBreak()
+bool WhileStatement::hasBreak()
 {
     return TRUE;
 }
@@ -1063,7 +1063,7 @@ Statement *DoStatement::semantic(Scope *sc)
     return this;
 }
 
-int DoStatement::hasBreak()
+bool DoStatement::hasBreak()
 {
     return TRUE;
 }
@@ -1192,7 +1192,7 @@ void ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexcepti
         Statement::scopeCode(sc, sentry, sexception, sfinally);
 }
 
-int ForStatement::hasBreak()
+bool ForStatement::hasBreak()
 {
     //printf("ForStatement::hasBreak()\n");
     return TRUE;
@@ -1911,7 +1911,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
     return s;
 }
 
-int ForeachStatement::hasBreak()
+bool ForeachStatement::hasBreak()
 {
     return TRUE;
 }
@@ -2119,7 +2119,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 #endif
 }
 
-int ForeachRangeStatement::hasBreak()
+bool ForeachRangeStatement::hasBreak()
 {
     return TRUE;
 }
@@ -2751,7 +2751,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     return this;
 }
 
-int SwitchStatement::hasBreak()
+bool SwitchStatement::hasBreak()
 {
     return TRUE;
 }
@@ -3735,7 +3735,7 @@ Lbody:
     return this;
 }
 
-int SynchronizedStatement::hasBreak()
+bool SynchronizedStatement::hasBreak()
 {
     return FALSE; //TRUE;
 }
@@ -3930,7 +3930,7 @@ Statement *TryCatchStatement::semantic(Scope *sc)
     return this;
 }
 
-int TryCatchStatement::hasBreak()
+bool TryCatchStatement::hasBreak()
 {
     return FALSE; //TRUE;
 }
@@ -4110,7 +4110,7 @@ void TryFinallyStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-int TryFinallyStatement::hasBreak()
+bool TryFinallyStatement::hasBreak()
 {
     return FALSE; //TRUE;
 }
