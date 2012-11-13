@@ -79,6 +79,7 @@ Dsymbols obj_symbols_towrite;
 
 void obj_append(Dsymbol *s)
 {
+    //printf("deferred: %s\n", s->toChars());
     obj_symbols_towrite.push(s);
 }
 
@@ -357,6 +358,7 @@ void Module::genobjfile(int multiobj)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *member = (*members)[i];
+        //printf("toObjFile %s %s\n", member->kind(), member->toChars());
         member->toObjFile(multiobj);
     }
 
