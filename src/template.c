@@ -5751,8 +5751,15 @@ Identifier *TemplateInstance::genIdent(Objects *args)
           Lsa:
             buf.writeByte('S');
             Declaration *d = sa->isDeclaration();
+          Lsa2:
             if (d && (!d->type || !d->type->deco))
-            {   error("forward reference of %s", d->toChars());
+            {
+                FuncAliasDeclaration *fad = d->isFuncAliasDeclaration();
+                if (fad)
+                {   d = fad->toAliasFunc();
+                    goto Lsa2;
+                }
+                error("forward reference of %s %s", d->kind(), d->toChars());
                 continue;
             }
 #if 0
