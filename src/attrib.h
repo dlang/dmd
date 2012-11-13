@@ -63,6 +63,17 @@ struct AttribDeclaration : Dsymbol
     void toObjFile(int multiobj);                       // compile to .obj file
 };
 
+
+struct SCstring
+{
+    StorageClass stc;
+    enum TOK tok;
+    const char *id;
+};
+
+extern const SCstring SCtable[];
+extern size_t SCtable_len;
+
 struct StorageClassDeclaration : AttribDeclaration
 {
     StorageClass stc;
@@ -74,6 +85,7 @@ struct StorageClassDeclaration : AttribDeclaration
     int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    static void initialize();
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 
