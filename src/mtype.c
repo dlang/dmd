@@ -8071,7 +8071,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     /* Copy from the initializer symbol for larger symbols,
      * otherwise the literals expressed as code get excessively large.
      */
-    if (size(loc) > PTRSIZE * 4 && !sym->isnested)
+    if (size(loc) > PTRSIZE * 4 && !needsNested())
         structinit->sinit = sym->toInitializer();
 
     // Why doesn't the StructLiteralExp constructor do this, when
