@@ -1459,7 +1459,7 @@ Lretry:
             if (!inferparams || !prmtype->reliesOnTident(inferparams))
             {
                 // should copy prmtype to avoid affecting semantic result
-                prmtype = prmtype->syntaxCopy()->semantic(loc, paramscope);
+                prmtype = prmtype->syntaxCopy()->semantic(fd->loc, paramscope);
             }
 
 #if DMDV2
