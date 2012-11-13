@@ -9116,6 +9116,8 @@ Expression *CastExp::semantic(Scope *sc)
             error("cannot cast %s to tuple type %s", e1->toChars(), to->toChars());
             return new ErrorExp();
         }
+        if (e1->type->ty == Terror)
+            return new ErrorExp();
 
         if (!to->equals(e1->type))
         {
