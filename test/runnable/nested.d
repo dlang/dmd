@@ -1978,6 +1978,78 @@ void test8923c()
 }
 
 /*******************************************/
+// 9003
+
+void test9003()
+{
+    int i;
+    struct NS {
+        int n1;    // Comment to pass all asserts
+        int n2;    // Uncomment to fail assert on line 19
+        int f() { return i; }
+    }
+
+    static struct SS1 {
+        NS ns;
+    }
+    SS1 ss1;
+    assert(ss1.ns != NS.init);
+
+    static struct SS2 {
+        NS ns1, ns2;
+    }
+    SS2 ss2;
+    assert(ss2.ns1 != NS.init); // line 19
+    assert(ss2.ns2 != NS.init);
+
+    static struct SS3 {
+        int i;
+        NS ns;
+    }
+
+    SS3 ss3;
+    assert(ss3.ns != NS.init);
+
+    static struct SS4 {
+        int i;
+        NS ns1, ns2;
+    }
+
+    SS4 ss4;
+    assert(ss4.ns1 != NS.init); // fails
+    assert(ss4.ns2 != NS.init); // fails
+}
+
+/*******************************************/
+// 9006
+
+void test9006()
+{
+    int i;
+    struct NS
+    {
+        int n;
+        int[3] a; // Uncomment to fail assert on line 20 and pass on line 23
+        int f() { return i; }
+    }
+    NS ns;
+    assert(ns != NS.init);
+    ns = NS.init;
+    assert(ns == NS.init);
+
+    static struct SS { NS ns; }
+    assert(SS.init.ns == NS.init); // fails
+    assert(SS.init.ns != NS());    // fails
+
+    SS s;
+    assert(s.ns != NS.init); // line 20
+    assert(s != SS.init);    // fails
+    s = SS.init;
+    assert(s.ns == NS.init); // line 23, fails
+    assert(s == SS.init);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2052,6 +2124,8 @@ int main()
     test8923a();
     test8923b();
     test8923c();
+    test9003();
+    test9006();
 
     printf("Success\n");
     return 0;
