@@ -983,7 +983,7 @@ void Module::runDeferredSemantic()
     static int nested;
     if (nested)
         return;
-    //if (deferred.dim) printf("+Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
+    //if (deferred.dim) printf("+Module::runDeferredSemantic(), len = %d\n", deferred.dim);
     nested++;
 
     size_t len;
@@ -1018,7 +1018,7 @@ void Module::runDeferredSemantic()
         //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
     } while (deferred.dim < len || dprogress);  // while making progress
     nested--;
-    //printf("-Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
+    //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
 }
 
 /************************************
