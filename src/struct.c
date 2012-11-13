@@ -388,7 +388,9 @@ void StructDeclaration::semantic(Scope *sc)
 
     assert(type);
     if (!members)                       // if forward reference
+    {
         return;
+    }
 
     if (symtab)
     {   if (sizeok == SIZEOKdone || !scope)

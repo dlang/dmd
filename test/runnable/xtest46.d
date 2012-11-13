@@ -5663,6 +5663,39 @@ enum E9000 = S9000.init;
 
 /***************************************************/
 
+mixin template DefineCoreType(string type)
+{
+    struct Faulty
+    {
+        static int x;
+
+        static void instance()
+        {
+	    x = 3;
+        }
+
+	X164!() xxx;
+    }
+}
+
+mixin DefineCoreType!("");
+
+
+mixin template A164()
+{
+    static this()
+    {
+    }
+}
+
+struct X164()
+{
+    mixin A164!();
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
