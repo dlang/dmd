@@ -638,7 +638,6 @@
 							"kind" : "int",
 							"pretty" : "int"
 						},
-						"offset" : 32,
 						"alignment" : -1
 					},
 					{
@@ -903,7 +902,6 @@
 									"kind" : "int",
 									"pretty" : "int"
 								},
-								"offset" : 4,
 								"alignment" : -1
 							},
 							{
