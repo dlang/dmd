@@ -1129,7 +1129,7 @@ L2:
         }
         else
         {
-            Expression *farg = fargs->tdata()[i];
+            Expression *farg = (*fargs)[i];
 
             // Check invalid arguments to detect errors early.
             if (farg->op == TOKerror || farg->type->ty == Terror)
@@ -1147,7 +1147,7 @@ L2:
             if (farg->op == TOKstring)
             {   StringExp *se = (StringExp *)farg;
                 if (!se->committed && argtype->ty == Tarray &&
-                    fparam->type->toBasetype()->ty == Tsarray)
+                    prmtype->toBasetype()->ty == Tsarray)
                 {
                     argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
                     argtype = argtype->semantic(se->loc, NULL);
@@ -1229,7 +1229,7 @@ L2:
             {   TypeArray *ta = (TypeArray *)tb;
                 for (; i < nfargs; i++)
                 {
-                    Expression *arg = (Expression *)fargs->data[i];
+                    Expression *arg = (*fargs)[i];
                     assert(arg);
                     MATCH m;
                     /* If lazy array of delegates,
@@ -1278,13 +1278,13 @@ Lmatch:
      */
     for (size_t i = nargsi; i < dedargs->dim; i++)
     {
-        TemplateParameter *tp = (TemplateParameter *)parameters->data[i];
+        TemplateParameter *tp = (*parameters)[i];
         //printf("tp[%d] = %s\n", i, tp->ident->toChars());
         /* For T:T*, the dedargs is the T*, dedtypes is the T
          * But for function templates, we really need them to match
          */
-        Object *oarg = (Object *)dedargs->data[i];
-        Object *oded = (Object *)dedtypes.data[i];
+        Object *oarg = (*dedargs)[i];
+        Object *oded = dedtypes[i];
         //printf("1dedargs[%d] = %p, dedtypes[%d] = %p\n", i, oarg, i, oded);
         //if (oarg) printf("oarg: %s\n", oarg->toChars());
         //if (oded) printf("oded: %s\n", oded->toChars());
@@ -1297,14 +1297,14 @@ Lmatch:
                      * the oded == oarg
                      */
                     Declaration *sparam;
-                    dedargs->data[i] = (void *)oded;
+                    (*dedargs)[i] = oded;
                     MATCH m2 = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam, 0);
                     //printf("m2 = %d\n", m2);
                     if (!m2)
                         goto Lnomatch;
                     if (m2 < match)
                         match = m2;             // pick worst match
-                    if (dedtypes.data[i] != oded)
+                    if (dedtypes[i] != oded)
                         error("specialization not allowed for deduced parameter %s", tp->ident->toChars());
                 }
             }
@@ -1315,7 +1315,7 @@ Lmatch:
             }
             oded =
             declareParameter(paramscope, tp, oded);
-            dedargs->data[i] = (void *)oded;
+            (*dedargs)[i] = oded;
         }
     }
 
