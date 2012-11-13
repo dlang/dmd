@@ -1968,8 +1968,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     }
     else if (ident == Id::init)
     {
-        if (toBasetype()->ty == Tstruct &&
-            ((TypeStruct *)toBasetype())->sym->isNested())
+        Type *tb = toBasetype();
+        if (tb->ty == Tstruct && tb->needsNested())
         {
             e = defaultInit(loc);
         }

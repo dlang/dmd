@@ -2021,6 +2021,35 @@ void test9003()
 }
 
 /*******************************************/
+// 9006
+
+void test9006()
+{
+    int i;
+    struct NS
+    {
+        int n;
+        int[3] a; // Uncomment to fail assert on line 20 and pass on line 23
+        int f() { return i; }
+    }
+    NS ns;
+    assert(ns != NS.init);
+    ns = NS.init;
+    assert(ns == NS.init);
+
+    static struct SS { NS ns; }
+    assert(SS.init.ns == NS.init); // fails
+    assert(SS.init.ns != NS());    // fails
+
+    SS s;
+    assert(s.ns != NS.init); // line 20
+    assert(s != SS.init);    // fails
+    s = SS.init;
+    assert(s.ns == NS.init); // line 23, fails
+    assert(s == SS.init);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2096,6 +2125,7 @@ int main()
     test8923b();
     test8923c();
     test9003();
+    test9006();
 
     printf("Success\n");
     return 0;
