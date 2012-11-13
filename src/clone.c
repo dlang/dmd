@@ -375,6 +375,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
      * }
      */
 
+    Loc loc = 0;    // Set no-location to stop funny coverage output. See Bugzilla 9010.
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
