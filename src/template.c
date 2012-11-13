@@ -5048,9 +5048,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             AggregateDeclaration *ad = sd->isAggregateDeclaration();
             if (ad)
                 ad->deferred = this;
-            goto Laftersemantic;
+            break;
         }
     }
+    if (Module::deferred.dim)
+        goto Laftersemantic;
 
     /* ConditionalDeclaration may introduce eponymous declaration,
      * so we should find it once again after semantic.
