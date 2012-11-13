@@ -69,14 +69,14 @@ void delnodes(aaA* e)
         {   if (!e->right)
             {   en = e;
                 e = e->left;
-                delete en;
+                delete [] en;
                 continue;
             }
             delnodes(e->left);
         }
         en = e;
         e = e->right;
-        delete en;
+        delete [] en;
     } while (e != NULL);
 }
 
