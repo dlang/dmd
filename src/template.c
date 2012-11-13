@@ -6665,6 +6665,6 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 void TemplateMixin::toObjFile(int multiobj)
 {
     //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile(multiobj);
+    TemplateInstance::toObjFile(0);
 }
 
