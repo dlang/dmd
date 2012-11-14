@@ -2798,10 +2798,7 @@ size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters)
     {
         TypeIdentifier *tident = (TypeIdentifier *)tparam;
         //printf("\ttident = '%s'\n", tident->toChars());
-        if (tident->idents.dim == 0)
-        {
-            return templateIdentifierLookup(tident->ident, parameters);
-        }
+        return templateIdentifierLookup(tident->ident, parameters);
     }
     return IDX_NOTFOUND;
 }
@@ -2862,6 +2859,63 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         }
 
         TemplateParameter *tp = (*parameters)[i];
+
+        TypeIdentifier *tident = (TypeIdentifier *)tparam;
+        if (tident->idents.dim > 0)
+        {
+            //printf("matching %s to %s\n", tparam->toChars(), toChars());
+            Dsymbol *s = this->toDsymbol(sc);
+            for (size_t i = tident->idents.dim; i-- > 0; )
+            {
+                RootObject *id = tident->idents[i];
+                if (id->dyncast() == DYNCAST_IDENTIFIER)
+                {
+                    if (!s || !s->parent)
+                        goto Lnomatch;
+                    Dsymbol *s2 = s->parent->searchX(Loc(), sc, id);
+                    if (!s2)
+                        goto Lnomatch;
+                    s2 = s2->toAlias();
+                    //printf("[%d] s = %s %s, s2 = %s %s\n", i, s->kind(), s->toChars(), s2->kind(), s2->toChars());
+                    if (s != s2)
+                    {
+                        if (Type *t = s2->getType())
+                        {
+                            if (s != t->toDsymbol(sc))
+                                goto Lnomatch;
+                        }
+                        else
+                            goto Lnomatch;
+                    }
+                    s = s->parent;
+                }
+                else
+                    goto Lnomatch;
+            }
+            //printf("[e] s = %s\n", s?s->toChars():"(null)");
+            if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+            {
+                Type *tt = s->getType();
+                if (!tt)
+                    goto Lnomatch;
+                Type *at = (Type *)(*dedtypes)[i];
+                if (!at || tt->equals(at))
+                {
+                    (*dedtypes)[i] = tt;
+                    goto Lexact;
+                }
+            }
+            if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+            {
+                Dsymbol *s2 = (Dsymbol *)(*dedtypes)[i];
+                if (!s2 || s == s2)
+                {
+                    (*dedtypes)[i] = s;
+                    goto Lexact;
+                }
+            }
+            goto Lnomatch;
+        }
 
         // Found the corresponding parameter tp
         if (!tp->isTemplateTypeParameter())

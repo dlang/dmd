@@ -6656,14 +6656,11 @@ Type *TypeIdentifier::reliesOnTident(TemplateParameters *tparams)
 {
     if (tparams)
     {
-        if (idents.dim == 0)
+        for (size_t i = 0; i < tparams->dim; i++)
         {
-            for (size_t i = 0; i < tparams->dim; i++)
-            {   TemplateParameter *tp = (*tparams)[i];
-
-                if (tp->ident->equals(ident))
-                    return this;
-            }
+            TemplateParameter *tp = (*tparams)[i];
+            if (tp->ident->equals(ident))
+                return this;
         }
         return NULL;
     }
