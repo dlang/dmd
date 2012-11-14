@@ -375,15 +375,14 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
      * }
      */
 
-    Loc loc = 0;    // Set no-location to stop funny coverage output. See Bugzilla 9010.
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(loc, sc);
+    tf = (TypeFunction *)tf->semantic(0, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
-    FuncDeclaration *fop = new FuncDeclaration(loc, 0, id, STCstatic, tf);
+    FuncDeclaration *fop = new FuncDeclaration(0, 0, id, STCstatic, tf);
 
     Expression *e = new CallExp(0,
         new DotIdExp(0,
@@ -393,7 +392,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         new PtrExp(0, new CastExp(0,
             new IdentifierExp(0, Id::q), type->pointerTo()->constOf())));
 
-    fop->fbody = new ReturnStatement(loc, e);
+    fop->fbody = new ReturnStatement(0, e);
 
     size_t index = members->dim;
     members->push(fop);
@@ -418,9 +417,9 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
         if (!xerreq)
         {
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
-            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
+            Expression *e = new IdentifierExp(0, Id::empty);
+            e = new DotIdExp(0, e, Id::object);
+            e = new DotIdExp(0, e, Lexer::idPool("_xopEquals"));
             e = e->semantic(sc);
             Dsymbol *s = getDsymbol(e);
             FuncDeclaration *fd = s->isFuncDeclaration();
