@@ -1209,7 +1209,7 @@ assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
 
 private:
 
-    /++
+    /+
         Since we have two versions of toString, we have _toStringImpl
         so that they can share implementations.
       +/
@@ -1303,7 +1303,7 @@ private:
     }
 
 
-    /++
+    /+
         Params:
             hnsecs = The total number of hecto-nanoseconds in this $(D Duration).
       +/
@@ -2758,7 +2758,7 @@ public:
 
 private:
 
-    /++
+    /+
         Since we have two versions of $(D toString), we have $(D _toStringImpl)
         so that they can share implementations.
       +/
@@ -2853,7 +2853,7 @@ private:
     }
 
 
-    /++
+    /+
         Returns whether the given number of hnsecs fits within the range of
         $(D FracSec).
 
@@ -2867,7 +2867,7 @@ private:
     }
 
 
-    /++
+    /+
         Throws:
             $(D TimeException) if $(D valid(hnsecs)) is $(D false).
       +/
@@ -2878,13 +2878,9 @@ private:
     }
 
 
-    /++
+    /+
         Params:
             hnsecs = The number of hnsecs passed the second.
-
-        Throws:
-            $(D TimeException) if the given hnsecs less than 0 or would result
-            in a $(D FracSec) not within the range (-1 second, 1 second).
       +/
     @safe pure nothrow this(int hnsecs)
     {
