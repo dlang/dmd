@@ -50,7 +50,7 @@ private
             extern __gshared
             {
                 int __data_start;
-                int _end;
+                int end;
             }
         }
     }
@@ -106,7 +106,7 @@ void initStaticDataGC()
     }
     else version( linux )
     {
-        gc_addRange( &__data_start, cast(size_t) &_end - cast(size_t) &__data_start );
+        gc_addRange( &__data_start, cast(size_t) &end - cast(size_t) &__data_start );
     }
     else version( OSX )
     {
