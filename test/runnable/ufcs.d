@@ -354,6 +354,21 @@ void test4()
 }
 
 /*******************************************/
+// 9014
+
+@property ref int foo9014(int[] a)
+{
+    return a[0];
+}
+void test9014()
+{
+    int[] bar;
+  static assert(!__traits(compiles, {
+    bar.foo9014 = missing.foo9014;
+  }));
+}
+
+/*******************************************/
 
 int main()
 {
@@ -371,6 +386,7 @@ int main()
     test8453();
     test8503();
     test4();
+    test9014();
 
     printf("Success\n");
     return 0;
