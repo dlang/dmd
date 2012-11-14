@@ -3687,6 +3687,8 @@ Statement *Parser::parseStatement(int flags)
                 Dsymbols *imports = new Dsymbols();
                 parseImport(imports, 1);                // static import ...
                 s = new ImportStatement(loc, imports);
+                if (flags & PSscope)
+                    s = new ScopeStatement(loc, s);
                 break;
             }
             goto Ldeclaration;
@@ -3776,6 +3778,8 @@ Statement *Parser::parseStatement(int flags)
                     goto Ldeclaration;
             }
             s = new ExpStatement(loc, d);
+            if (flags & PSscope)
+                s = new ScopeStatement(loc, s);
             break;
         }
 
@@ -3798,6 +3802,8 @@ Statement *Parser::parseStatement(int flags)
             }
             Dsymbol *d = parseMixin();
             s = new ExpStatement(loc, d);
+            if (flags & PSscope)
+                s = new ScopeStatement(loc, s);
             break;
         }
 
@@ -4155,6 +4161,8 @@ Statement *Parser::parseStatement(int flags)
                 checkDanglingElse(elseloc);
             }
             s = new ConditionalStatement(loc, condition, ifbody, elsebody);
+            if (flags & PSscope)
+                s = new ScopeStatement(loc, s);
             break;
 
         case TOKpragma:
@@ -4570,6 +4578,8 @@ Statement *Parser::parseStatement(int flags)
         {   Dsymbols *imports = new Dsymbols();
             parseImport(imports, 0);
             s = new ImportStatement(loc, imports);
+            if (flags & PSscope)
+                s = new ScopeStatement(loc, s);
             break;
         }
 
