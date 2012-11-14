@@ -783,16 +783,16 @@ void test39()
 
    writeln(foo);       // --> [[1],4.63919e-306]  ack!
    writefln("%s", foo); // --> ditto
-   auto f = std.string.format(foo);
-   assert(f == "[[1],[2]]");
+   auto f = std.string.format("%s", foo);
+   assert(f == "[[1], [2]]");
 
    double[1][2] bar;
    bar[0][0] = 1.0;
    bar[1][0] = 2.0;
 
    writeln(bar);       // Error: Access violation
-   auto r = std.string.format(bar);
-   assert(r == "[[1],[2]]");
+   auto r = std.string.format("%s", bar);
+   assert(r == "[[1], [2]]");
 }
 
 /************************************************/
@@ -802,8 +802,8 @@ void test40()
     int[char] x;
     x['b'] = 123;
     writeln(x);
-    auto r = std.string.format(x);
-    assert(r == "[b:123]");
+    auto r = std.string.format("%s", x);
+    assert(r == "['b':123]");
     writeln(x['b']);
 }
 

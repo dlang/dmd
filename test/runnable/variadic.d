@@ -519,15 +519,15 @@ alias Tuple!(4, 5, Tuple!("hi", "bye")) t2;
 void test26()
 {
     writeln(t2);
-    assert(std.string.format(t2) == "45hibye");
+    assert(std.string.format("%s%s%s%s", t2) == "45hibye");
     writeln(typeid(typeof(t2)));
     version (D_Version2)
     {
-	assert(std.string.format(typeid(typeof(t2))) == "(int,int,immutable(char)[],immutable(char)[])");
+	assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,immutable(char)[],immutable(char)[])");
     }
     else
     {
-	assert(std.string.format(typeid(typeof(t2))) == "(int,int,char[2],char[3])");
+	assert(std.string.format("%s", typeid(typeof(t2))) == "(int,int,char[2],char[3])");
     }
 }
 
@@ -545,9 +545,9 @@ void test27()
 
     writefln("%s %s", dg.ptr, dg.funcptr);
     writeln(typeid(ReturnType!(typeof(dg.funcptr))));
-    assert(std.string.format(typeid(ReturnType!(typeof(dg.funcptr)))) == "int");
+    assert(std.string.format("%s", typeid(ReturnType!(typeof(dg.funcptr)))) == "int");
     writeln(typeid(ParameterTypeTuple!(typeof(dg.funcptr))));
-    assert(std.string.format(typeid(ParameterTypeTuple!(typeof(dg.funcptr)))) == "(int,long)");
+    assert(std.string.format("%s", typeid(ParameterTypeTuple!(typeof(dg.funcptr)))) == "(int,long)");
 }
 
 /***************************************/
@@ -582,13 +582,13 @@ void test29()
 	void bar()
 	{
 	    writeln(tl);
-	    assert(std.string.format(tl) == "00nan");
+	    assert(std.string.format("%s%s%s", tl) == "00nan");
 
 	    tl[0] = 3;
 	    tl[1] = 5;
 	    tl[2] = 6.8;
 	    writeln(tl);
-	    assert(std.string.format(tl) == "356.8");
+	    assert(std.string.format("%s%s%s", tl) == "356.8");
 	}
     }
 
@@ -609,13 +609,13 @@ void test30()
 	void bar()
 	{
 	    writeln(tl);
-	    assert(std.string.format(tl) == "00nan");
+	    assert(std.string.format("%s%s%s", tl) == "00nan");
 
 	    tl[0] = 3;
 	    tl[1] = 5;
 	    tl[2] = 6.8;
 	    writeln(tl);
-	    assert(std.string.format(tl) == "356.8");
+	    assert(std.string.format("%s%s%s", tl) == "356.8");
 	}
     }
 
@@ -637,13 +637,13 @@ void test31()
     Foo foo;
 
     writeln(foo.tl);
-    assert(std.string.format(foo.tl) == "00nan");
+    assert(std.string.format("%s%s%s", foo.tl) == "00nan");
 
     foo.tl[0] = 3;
     foo.tl[1] = 5;
     foo.tl[2] = 6.8;
     writeln(foo.tl);
-    assert(std.string.format(foo.tl) == "356.8");
+    assert(std.string.format("%s%s%s", foo.tl) == "356.8");
 }
 
 /***************************************/

@@ -612,25 +612,25 @@ uint intRes()
 
 void test28()
 {
-	auto s = std.string.format("abc123"[intRes() % $] );
+	auto s = std.string.format("%s", "abc123"[intRes() % $] );
         writefln( "%s", s );
 	assert(s == "2");
 
 	static const char[] foo = "abc123";
-	s = std.string.format(foo[intRes() % $] );
+	s = std.string.format("%s", foo[intRes() % $] );
 	assert(s == "2");
 
 
 	static string bar = "abc123";
-	s = std.string.format(bar[intRes() % $] );
+	s = std.string.format("%s", bar[intRes() % $] );
 	assert(s == "2");
 
 	const char[] abc = "abc123";
-	s = std.string.format(abc[intRes() % $] );
+	s = std.string.format("%s", abc[intRes() % $] );
 	assert(s == "2");
 
 	string def = "abc123";
-	s = std.string.format(def[intRes() % $] );
+	s = std.string.format("%s", def[intRes() % $] );
 	assert(s == "2");
 }
 
@@ -1429,7 +1429,7 @@ void test70()
     }
 
     static const char[0] altsep;
-    string s = std.string.format("test", altsep, "path");
+    string s = std.string.format("test%spath", altsep);
     assert(s == "testpath");
     foo(altsep);
 }
