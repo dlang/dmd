@@ -378,6 +378,9 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
 
         if (e2)
         {
+            // run semantic without gagging
+            e2 = e2->semantic(sc);
+
             /* .f(e1) = e2
              */
             Expression *ex = e->syntaxCopy();
