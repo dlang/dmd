@@ -3029,7 +3029,9 @@ Lagain:
             error("forward reference to %s", toChars());
             return new ErrorExp();
         }
-        return new VarExp(loc, s->isFuncDeclaration(), hasOverloads);
+        FuncDeclaration *fd = s->isFuncDeclaration();
+        fd->type = f->type;
+        return new VarExp(loc, fd, hasOverloads);
     }
     o = s->isOverloadSet();
     if (o)
@@ -8596,7 +8598,14 @@ Expression *AddrExp::semantic(Scope *sc)
              * otherwise the 'pure' is missing from the type assigned to x.
              */
 
-            error("forward reference to %s", e1->toChars());
+            if (e1->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)e1;
+                Declaration *d = ve->var;
+                error("forward reference to %s %s", d->kind(), d->toChars());
+            }
+            else
+                error("forward reference to %s", e1->toChars());
             return new ErrorExp();
         }
 
