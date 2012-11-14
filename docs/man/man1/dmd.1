@@ -32,9 +32,11 @@ directory
 Write documentation file to
 .I filename
 .IP -d
-Allow deprecated features.
-.IP -di
-Show use of deprecated features as warnings.
+Silently allow deprecated features.
+.IP -dw
+Show use of deprecated features as warnings (default).
+.IP -de
+Show use of deprecated features as errors (halt compilation).
 .IP -debug
 Compile in debug code
 .IP -debug=\fIlevel\fR

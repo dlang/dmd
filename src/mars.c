@@ -325,8 +325,9 @@ Usage:\n\
   -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
-  -d             allow deprecated features\n\
-  -di            show use of deprecated features as warnings\n\
+  -d             silently allow deprecated features\n\
+  -dw            show use of deprecated features as warnings (default)\n\
+  -de            show use of deprecated features as errors (halt compilation)\n\
   -debug         compile in debug code\n\
   -debug=level   compile in debug code <= level\n\
   -debug=ident   compile in debug code identified by ident\n\
@@ -445,6 +446,7 @@ int tryMain(int argc, char *argv[])
     global.params.obj = 1;
     global.params.Dversion = 2;
     global.params.quiet = 1;
+    global.params.useDeprecated = 2;
 
     global.params.linkswitches = new Strings();
     global.params.libfiles = new Strings();
@@ -529,9 +531,11 @@ int tryMain(int argc, char *argv[])
         p = argv[i];
         if (*p == '-')
         {
-            if (strcmp(p + 1, "d") == 0)
+            if (strcmp(p + 1, "de") == 0)
+                global.params.useDeprecated = 0;
+            else if (strcmp(p + 1, "d") == 0)
                 global.params.useDeprecated = 1;
-            else if (strcmp(p + 1, "di") == 0)
+            else if (strcmp(p + 1, "dw") == 0)
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;

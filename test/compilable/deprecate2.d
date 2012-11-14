@@ -1,5 +1,5 @@
 ﻿// REQUIRED_ARGS: -d
-// PERMUTE_ARGS: -di
+// PERMUTE_ARGS: -dw
 
 // Test cases using deprecated features
 

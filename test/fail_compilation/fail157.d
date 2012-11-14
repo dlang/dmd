@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -d -di
+// PERMUTE_ARGS: -d -dw
 
 typedef int myint = 4;
 

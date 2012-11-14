@@ -1,6 +1,6 @@
 // COMPILE_SEPARATELY
 // EXTRA_SOURCES: imports/test55a.d
-// PERMUTE_ARGS: -di
+// PERMUTE_ARGS: -dw
 // REQUIRED_ARGS: -d
 
 public import imports.test55a;
