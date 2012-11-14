@@ -49,19 +49,10 @@ private
         {
             extern __gshared
             {
-                int _data;
                 int __data_start;
-                int _end;
-                int _data_start__;
-                int _data_end__;
-                int _bss_start__;
-                int _bss_end__;
-                int __fini_array_end;
+                int end;
             }
         }
-
-            alias __data_start  Data_Start;
-            alias _end          Data_End;
     }
     else version( OSX )
     {
@@ -115,7 +106,7 @@ void initStaticDataGC()
     }
     else version( linux )
     {
-        gc_addRange( &__data_start, cast(size_t) &_end - cast(size_t) &__data_start );
+        gc_addRange( &__data_start, cast(size_t) &end - cast(size_t) &__data_start );
     }
     else version( OSX )
     {
