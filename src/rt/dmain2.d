@@ -459,12 +459,28 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     else version (Posix)
     {
+        size_t totalArgsLength = 0;
         foreach(i, ref arg; args)
+        {
             arg = argv[i][0 .. strlen(argv[i])];
+            totalArgsLength += arg.length;
+        }
     }
     else
         static assert(0);
-    _d_args = cast(string[]) args;
+
+    {
+        auto buff = cast(char[]*) alloca(argc * (char[]).sizeof + totalArgsLength);
+
+        char[][] argsCopy = buff[0 .. argc];
+        auto argBuff = cast(char*) (buff + argc);
+        foreach(i, arg; args)
+        {
+            argsCopy[i] = (argBuff[0 .. arg.length] = arg[]);
+            argBuff += arg.length;
+        }
+        _d_args = cast(string[]) argsCopy;
+    }
 
     bool trapExceptions = rt_trapExceptions;
 
