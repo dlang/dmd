@@ -497,8 +497,9 @@ Expression *CallExp::optimize(int result)
     //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
     Expression *e = this;
 
-    // Optimize parameters
-    if (arguments)
+    // Don't optimize parameters here, because it is already done
+    // in functionParameters() by considering parameter ref-ness.
+    if (0 && arguments)
     {
         for (size_t i = 0; i < arguments->dim; i++)
         {   Expression *e = (*arguments)[i];

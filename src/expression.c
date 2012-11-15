@@ -1203,6 +1203,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
             }
 #endif
+            if (!(p->storageClass & (STCref | STCout)))
+                arg = arg->optimize(WANTvalue);
         }
         else
         {
@@ -1263,8 +1265,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 }
             }
             arg->rvalue();
+            arg = arg->optimize(WANTvalue);
         }
-        arg = arg->optimize(WANTvalue);
     L3:
         (*arguments)[i] =  arg;
     }

@@ -142,7 +142,7 @@ bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
 
 Expression *CtfeStack::getValue(VarDeclaration *v)
 {
-    if (v->isDataseg() && !v->isCTFE())
+    if ((v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE())
     {
         assert(v->ctfeAdrOnStack >= 0 &&
         v->ctfeAdrOnStack < globalValues.dim);
@@ -206,7 +206,7 @@ void CtfeStack::popAll(size_t stackpointer)
 void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 {
 #if DMDV2
-     assert( v->init && (v->isConst() || v->isImmutable()) && !v->isCTFE());
+     assert( v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
 #else
      assert( v->init && v->isConst() && !v->isCTFE());
 #endif
@@ -1650,7 +1650,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             else
                 e = v->type->defaultInitLiteral(loc);
         }
-        else if (!v->isDataseg() && !v->isCTFE() && !istate)
+        else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
         {   error(loc, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
