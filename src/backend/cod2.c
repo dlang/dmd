@@ -2521,7 +2521,9 @@ code *cdind(elem *e,regm_t *pretregs)
         {
             if (*pretregs & mST0)
                 return cdind87(e, pretregs);
-            if (tycomplex(tym))
+            if (I64 && tym == TYcfloat && *pretregs & (ALLREGS | mBP))
+                ;
+            else if (tycomplex(tym))
                 return cload87(e, pretregs);
             if (*pretregs & mPSW)
                 return cdind87(e, pretregs);
