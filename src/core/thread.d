@@ -3285,9 +3285,10 @@ private
                 push R13;
                 push R14;
                 push R15;
-                push qword ptr GS:[0];
-                push qword ptr GS:[8];
-                push qword ptr GS:[16];
+                xor  RCX,RCX;
+                push qword ptr GS:[RCX];
+                push qword ptr GS:8[RCX];
+                push qword ptr GS:16[RCX];
 
                 // store oldp
                 mov [RDI], RSP;
@@ -3295,9 +3296,9 @@ private
                 mov RSP, RSI;
 
                 // load saved state from new stack
-                pop qword ptr GS:[16];
-                pop qword ptr GS:[8];
-                pop qword ptr GS:[0];
+                pop qword ptr GS:16[RCX];
+                pop qword ptr GS:8[RCX];
+                pop qword ptr GS:[RCX];
                 pop R15;
                 pop R14;
                 pop R13;
