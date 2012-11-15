@@ -9192,7 +9192,7 @@ Expression *CastExp::semantic(Scope *sc)
         }
 
         if (tob->isintegral() && t1b->ty == Tarray)
-            deprecation("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
+            error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
     }
     else if (!to)
     {   error("cannot cast tuple");
