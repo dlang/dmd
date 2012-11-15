@@ -588,6 +588,33 @@ void test8939()
     foo8939(ls8939), bar8939(ls8939);
 }
 
+class C8939regression
+{
+    const int n1 = 0;
+    const int n2 = 0;
+    const int n3 = 0;
+    const int n4 = 1;
+
+    int refValue(V)(ref V var)
+    {
+        return 0;
+    }
+
+    void foo()
+    {
+        string[2] str;
+        refValue(str[n1]);
+
+        int[] da;
+        refValue(da[n2]);
+
+        int n; int* p = &n;
+        refValue(*cast(int*)(p + n3));
+
+        refValue([1,2,n4].ptr[0]);
+    }
+}
+
 /************************************/
 
 int main()
