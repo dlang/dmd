@@ -34,8 +34,8 @@ version (Windows)
         int        FreeLibrary(void*);
         void*      LocalFree(void*);
         wchar_t*   GetCommandLineW();
-        wchar_t**  CommandLineToArgvW(wchar_t*, int*);
-        export int WideCharToMultiByte(uint, uint, wchar_t*, int, char*, int, char*, int*);
+        wchar_t**  CommandLineToArgvW(in wchar_t*, int*);
+        export int WideCharToMultiByte(uint, uint, in wchar_t*, int, char*, int, in char*, int*);
         export int MultiByteToWideChar(uint, uint, in char*, int, wchar_t*, int);
         int        IsDebuggerPresent();
     }
@@ -386,7 +386,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 {
     _cArgs.argc = argc;
     _cArgs.argv = argv;
-    char[][] args;
     int result;
 
     version (OSX)
@@ -427,32 +426,34 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     _STI_monitor_staticctor();
     _STI_critical_init();
 
+    char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
     version (Windows)
     {
-        wchar_t*  wcbuf = GetCommandLineW();
-        size_t    wclen = wcslen(wcbuf);
-        int       wargc = 0;
-        wchar_t** wargs = CommandLineToArgvW(wcbuf, &wargc);
+        const wchar_t* wCommandLine = GetCommandLineW();
+        immutable size_t wCommandLineLength = wcslen(wCommandLine);
+        int wargc;
+        wchar_t** wargs = CommandLineToArgvW(wCommandLine, &wargc);
         assert(wargc == argc);
 
         // This is required because WideCharToMultiByte requires int as input.
-        assert(wclen <= int.max, "wclen must not exceed int.max");
+        assert(wCommandLineLength <= cast(size_t) int.max, "Wide char command line length must not exceed int.max");
 
-        char*     cargp = null;
-        size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, cast(int)wclen, null, 0, null, null);
-
-        cargp = cast(char*) alloca(cargl);
-        args  = ((cast(char[]*) alloca(wargc * (char[]).sizeof)))[0 .. wargc];
-
-        for (size_t i = 0, p = 0; i < wargc; i++)
+        immutable size_t totalArgsLength = WideCharToMultiByte(65001, 0, wCommandLine, cast(int)wCommandLineLength, null, 0, null, null);
         {
-            size_t wlen = wcslen(wargs[i]);
-            assert(wlen <= int.max, "wlen cannot exceed int.max");
-            int clen = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, null, 0, null, null);
-            args[i]  = cargp[p .. p+clen];
-            if (clen==0) continue;
-            p += clen; assert(p <= cargl);
-            WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int)wlen, &args[i][0], clen, null, null);
+            char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
+            int j = 0;
+            foreach (i; 0 .. wargc)
+            {
+                immutable size_t wlen = wcslen(wargs[i]);
+                assert(wlen <= cast(size_t) int.max, "wlen cannot exceed int.max");
+                immutable int len = WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int) wlen, null, 0, null, null);
+                args[i] = totalArgsBuff[j .. j + len];
+                if (len == 0)
+                    continue;
+                j += len;
+                assert(j <= totalArgsLength);
+                WideCharToMultiByte(65001, 0, &wargs[i][0], cast(int) wlen, &args[i][0], len, null, null);
+            }
         }
         LocalFree(wargs);
         wargs = null;
@@ -460,17 +461,28 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     else version (Posix)
     {
-        char[]* am = cast(char[]*) malloc(argc * (char[]).sizeof);
-        scope(exit) free(am);
-
-        for (size_t i = 0; i < argc; i++)
+        size_t totalArgsLength = 0;
+        foreach(i, ref arg; args)
         {
-            auto len = strlen(argv[i]);
-            am[i] = argv[i][0 .. len];
+            arg = argv[i][0 .. strlen(argv[i])];
+            totalArgsLength += arg.length;
         }
-        args = am[0 .. argc];
     }
-    _d_args = cast(string[]) args;
+    else
+        static assert(0);
+
+    {
+        auto buff = cast(char[]*) alloca(argc * (char[]).sizeof + totalArgsLength);
+
+        char[][] argsCopy = buff[0 .. argc];
+        auto argBuff = cast(char*) (buff + argc);
+        foreach(i, arg; args)
+        {
+            argsCopy[i] = (argBuff[0 .. arg.length] = arg[]);
+            argBuff += arg.length;
+        }
+        _d_args = cast(string[]) argsCopy;
+    }
 
     bool trapExceptions = rt_trapExceptions;
 
