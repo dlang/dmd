@@ -1212,86 +1212,50 @@ extern (C) CollectHandler rt_getCollectHandler()
 /**
  *
  */
-extern (C) void rt_finalize(void* p, bool det = true)
+extern (C) void rt_finalize2(void* p, bool det = true, bool resetMemory = true)
 {
-    debug(PRINTF) printf("rt_finalize(p = %p)\n", p);
+    debug(PRINTF) printf("rt_finalize2(p = %p)\n", p);
 
-    if (p)
+    auto ppv = cast(void**) p;
+    if(!p || !*ppv)
+        return;
+
+    auto pc = cast(ClassInfo*) *ppv;
+    try
     {
-        ClassInfo** pc = cast(ClassInfo**)p;
-
-        if (*pc)
+        if (det || collectHandler is null || collectHandler(cast(Object) p))
         {
-            ClassInfo c = **pc;
-            byte[]    w = c.init;
-
-            try
+            auto c = *pc;
+            do
             {
-                if (det || collectHandler is null || collectHandler(cast(Object)p))
-                {
-                    do
-                    {
-                        if (c.destructor)
-                        {
-                            fp_t fp = cast(fp_t)c.destructor;
-                            (*fp)(cast(Object)p); // call destructor
-                        }
-                        c = c.base;
-                    } while (c);
-                }
-                if ((cast(void**)p)[1]) // if monitor is not null
-                    _d_monitordelete(cast(Object)p, det);
-                (cast(byte*) p)[0 .. w.length] = w[];
+                if (c.destructor)
+                    (cast(fp_t) c.destructor)(cast(Object) p); // call destructor
             }
-            catch (Throwable e)
-            {
-                onFinalizeError(**pc, e);
-            }
-            finally
-            {
-                *pc = null; // zero vptr
-            }
+            while ((c = c.base) !is null);
         }
+
+        if (ppv[1]) // if monitor is not null
+            _d_monitordelete(cast(Object) p, det);
+
+        if(resetMemory)
+        {
+            byte[] w = (*pc).init;
+            (cast(byte*) p)[0 .. w.length] = w[];
+        }
+    }
+    catch (Throwable e)
+    {
+        onFinalizeError(*pc, e);
+    }
+    finally
+    {
+        *ppv = null; // zero vptr even if `resetMemory` is false
     }
 }
 
-/**
- * An optimized version of rt_finalize that assumes it's being called from
- * the garbage collector and avoids wasting time on things that are
- * irrelevant in this case.
- */
-extern (C) void rt_finalize_gc(void* p)
+extern (C) void rt_finalize(void* p, bool det = true)
 {
-    debug(PRINTF) printf("rt_finalize_gc(p = %p)\n", p);
-
-    ClassInfo** pc = cast(ClassInfo**)p;
-
-    if (*pc)
-    {
-        ClassInfo c = **pc;
-
-        try
-        {
-            if (collectHandler is null || collectHandler(cast(Object)p))
-            {
-                do
-                {
-                    if (c.destructor)
-                    {
-                        fp_t fp = cast(fp_t)c.destructor;
-                        (*fp)(cast(Object)p); // call destructor
-                    }
-                    c = c.base;
-                } while (c);
-            }
-            if ((cast(void**)p)[1]) // if monitor is not null
-                _d_monitordelete(cast(Object)p, false);
-        }
-        catch (Throwable e)
-        {
-            onFinalizeError(**pc, e);
-        }
-    }
+    rt_finalize2(p, det, true);
 }
 
 
