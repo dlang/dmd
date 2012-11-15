@@ -473,8 +473,8 @@ static assert(is(typeof(C8.x) == int));
 int foo9() {
    int u = cast(int)(0x1_0000_0000L);
    while (u) {
-      if (u) { 
-         assert(u!=0); 
+      if (u) {
+         assert(u!=0);
         }
       assert(u!=0);
    }
@@ -564,6 +564,31 @@ void test8400()
 }
 
 /************************************/
+// 8939
+
+void foo8939(T)(ref T) { } // same for `auto ref`
+void bar8939(ref const int) { }
+void bar8939(ref const S8939) { }
+
+static struct S8939 { int n; }
+
+const gn8939 = 1; // or `immutable`
+const gs8939 = S8939(3);
+static assert(__traits(compiles, foo8939(gn8939), bar8939(gn8939)));
+static assert(__traits(compiles, foo8939(gs8939), bar8939(gs8939)));
+
+void test8939()
+{
+    foo8939(gn8939), bar8939(gn8939);
+    foo8939(gs8939), bar8939(gs8939);
+
+    const ln8939 = 1;
+    const ls8939 = S8939(3);
+    foo8939(ln8939), bar8939(ln8939);
+    foo8939(ls8939), bar8939(ls8939);
+}
+
+/************************************/
 
 int main()
 {
@@ -572,6 +597,7 @@ int main()
     test3();
     test6077();
     test8400();
+    test8939();
 
     printf("Success\n");
     return 0;
