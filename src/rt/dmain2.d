@@ -348,8 +348,13 @@ extern (C) CArgs rt_cArgs()
 
 /***********************************
  * The D main() function supplied by the user's program
+ *
+ * It always has `_Dmain` symbol name and uses C calling convention.
+ * But DMD frontend returns its type as `extern(D)` because of Issue @@@9028@@@.
+ * As we need to deal with actual calling convention we have to mark it
+ * as `extern(C)` and use its symbol name.
  */
-int main(char[][] args);
+extern(C) int _Dmain(char[][] args);
 alias extern(C) int function(char[][] args) MainFunc;
 
 /***********************************
@@ -361,10 +366,7 @@ alias extern(C) int function(char[][] args) MainFunc;
  */
 extern (C) int main(int argc, char **argv)
 {
-    // main (aka Dmain) is really extern(C), but the DMD
-    // frontend thinks it is extern(D), so we need to cast
-    // as MainFunc needs to reflect the actual linkage.
-    return _d_run_main(argc, argv, cast(MainFunc)&main);
+    return _d_run_main(argc, argv, &_Dmain);
 }
 
 version (Solaris) extern (C) int _main(int argc, char** argv)
