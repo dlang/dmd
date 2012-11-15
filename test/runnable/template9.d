@@ -1598,6 +1598,39 @@ static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert pass
 static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert fails
 
 /**********************************/
+// 9026
+
+mixin template node9026()
+{
+    static if (is(this == struct))
+        alias typeof(this)* E;
+    else
+        alias typeof(this) E;
+    E prev, next;
+}
+
+struct list9026(alias N)
+{
+    N.E head;
+    N.E tail;
+}
+
+class A9026
+{
+    mixin node9026 L1;
+    mixin node9026 L2;
+}
+
+list9026!(A9026.L1) g9026_l1;
+list9026!(A9026.L2) g9026_l2;
+
+void test9026()
+{
+    list9026!(A9026.L1) l9026_l1;
+    list9026!(A9026.L2) l9026_l2;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1661,6 +1694,7 @@ int main()
     test8129();
     test8976();
     test8940();
+    test9026();
 
     printf("Success\n");
     return 0;
