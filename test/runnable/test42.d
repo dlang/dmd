@@ -5366,6 +5366,29 @@ void test8376() {
 
 /***************************************************/
 
+// Don't call, compile only
+void test8987(){
+    int last = 0;
+    int count = 0;
+    int d;
+
+    for (int x = 0; count < 100; x++){
+        d = 3;
+
+        while (x / d)
+	    d += 2;
+
+        if (x & d) {
+            last = x;
+            count++;
+        }
+    }
+
+    printf("Last: %d\n", last);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();

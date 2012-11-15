@@ -2039,7 +2039,9 @@ bool evalinregister(elem *e)
         if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
                                         /* to be generated              */
         {
-            if ((I32 || I64) && pass == PASSfinal && sz <= REGSIZE)
+            if ((I32 || I64) &&
+                //pass == PASSfinal && // bug 8987
+                sz <= REGSIZE)
             {
                 // Do it only if at least 2 registers are available
                 regm_t m;
