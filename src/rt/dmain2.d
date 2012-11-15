@@ -364,7 +364,8 @@ extern (C) int main(int argc, char **argv)
     // main (aka Dmain) is really extern(C), but the DMD
     // frontend thinks it is extern(D), so we need to cast
     // as MainFunc needs to reflect the actual linkage.
-    return _d_run_main(argc, argv, cast(MainFunc)&main);
+    int function(char[][]) dmain = &main;
+    return _d_run_main(argc, argv, cast(MainFunc) dmain);
 }
 
 version (Solaris) extern (C) int _main(int argc, char** argv)
