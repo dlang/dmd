@@ -569,6 +569,40 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             error(loc, "array initializer has %u elements, but array length is %lld", dim, edim);
             goto Lerr;
         }
+
+        ArrayInitializer* rhs = this;
+        Type* lhs = t;
+
+        while (1)
+        {
+            lhs = lhs->nextOf()->toBasetype();
+
+            if ((lhs->ty == Tsarray) || (lhs->ty == Tarray))
+            {
+                for (i = 0; i < rhs->index.dim; i++)
+                {
+                    if (rhs->value[i]->isArrayInitializer())
+                    {
+                        continue;
+                    }
+                    else
+                    if (ExpInitializer* ei = rhs->value[i]->isExpInitializer())
+                    {
+                        if (ei->exp->type->isString())
+                            continue;
+                    }
+
+                    error(loc, "cannot implicitly convert array literal %s to %s", toChars(), t->toChars());
+                    goto Lerr;
+                }
+
+                rhs = rhs->value[0]->isArrayInitializer();
+            }
+            else
+            {
+                break;
+            }
+        }
     }
 
     if ((unsigned long) dim * t->nextOf()->size() >= amax)
