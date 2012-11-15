@@ -384,7 +384,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 {
     _cArgs.argc = argc;
     _cArgs.argv = argv;
-    char[][] args;
     int result;
 
     version (OSX)
@@ -425,6 +424,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     _STI_monitor_staticctor();
     _STI_critical_init();
 
+    char[][] args = (cast(char[]*) alloca(argc * (char[]).sizeof))[0 .. argc];
     version (Windows)
     {
         wchar_t*  wcbuf = GetCommandLineW();
@@ -440,7 +440,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         size_t    cargl = WideCharToMultiByte(65001, 0, wcbuf, cast(int)wclen, null, 0, null, null);
 
         cargp = cast(char*) alloca(cargl);
-        args  = ((cast(char[]*) alloca(wargc * (char[]).sizeof)))[0 .. wargc];
 
         for (size_t i = 0, p = 0; i < wargc; i++)
         {
@@ -458,16 +457,11 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
     else version (Posix)
     {
-        char[]* am = cast(char[]*) malloc(argc * (char[]).sizeof);
-        scope(exit) free(am);
-
-        for (size_t i = 0; i < argc; i++)
-        {
-            auto len = strlen(argv[i]);
-            am[i] = argv[i][0 .. len];
-        }
-        args = am[0 .. argc];
+        foreach(i, ref arg; args)
+            arg = argv[i][0 .. strlen(argv[i])];
     }
+    else
+        static assert(0);
     _d_args = cast(string[]) args;
 
     bool trapExceptions = rt_trapExceptions;
