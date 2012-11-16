@@ -5030,6 +5030,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     //printf("isnested = %d, sc->parent = %s\n", isnested, sc->parent->toChars());
     sc2->parent = /*isnested ? sc->parent :*/ this;
     sc2->tinst = this;
+    sc2->speculative = speculative;
 
     tryExpandMembers(sc2);
 
