@@ -127,7 +127,7 @@ struct File : Object
 {
     int ref;                    // != 0 if this is a reference to someone else's buffer
     unsigned char *buffer;      // data for our file
-    unsigned len;               // amount of data in buffer[]
+    size_t len;                 // amount of data in buffer[]
     void *touchtime;            // system time to use for file
 
     FileName *name;             // name of our file
@@ -217,7 +217,7 @@ struct File : Object
     /* Set buffer
      */
 
-    void setbuffer(void *buffer, unsigned len)
+    void setbuffer(void *buffer, size_t len)
     {
         this->buffer = (unsigned char *)buffer;
         this->len = len;
