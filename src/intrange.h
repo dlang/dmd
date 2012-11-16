@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by KennyTM
 // http://www.digitalmars.com
@@ -44,6 +44,10 @@ struct SignExtendedNumber
 
     /// Get the minimum or maximum value of a sign-extended number.
     static SignExtendedNumber extreme(bool minimum);
+
+    // These names probably shouldn't be used anyway, as they are common macros
+#undef max
+#undef min
     static SignExtendedNumber max();
     static SignExtendedNumber min() { return SignExtendedNumber(0, true); }
 

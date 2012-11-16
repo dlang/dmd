@@ -329,10 +329,10 @@ void compdom()
  * Return !=0 if block A dominates block B.
  */
 
-HINT dom(block *A,block *B)
+bool dom(block *A,block *B)
 {
   assert(A && B && dfo && dfo[A->Bdfoidx] == A);
-  return vec_testbit(A->Bdfoidx,B->Bdom);
+  return vec_testbit(A->Bdfoidx,B->Bdom) != 0;
 }
 
 /**********************

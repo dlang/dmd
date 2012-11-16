@@ -153,12 +153,9 @@ char *mem_strdup_debug(const char *s,const char *file,int line)
 #else
 char *mem_strdup(const char *s)
 {
-        char *p;
-        int len;
-
         if (s)
-        {   len = strlen(s) + 1;
-            p = (char *) mem_malloc(len);
+        {   size_t len = strlen(s) + 1;
+            char *p = (char *) mem_malloc(len);
             if (p)
                 return (char *)memcpy(p,s,len);
         }
@@ -279,8 +276,8 @@ void __cdecl operator delete[](void *p)
 
 #if MEM_DEBUG
 
-static long mem_maxalloc;       /* max # of bytes allocated             */
-static long mem_numalloc;       /* current # of bytes allocated         */
+static size_t mem_maxalloc;       /* max # of bytes allocated             */
+static size_t mem_numalloc;       /* current # of bytes allocated         */
 
 #define BEFOREVAL       0x4F464542      /* value to detect underrun     */
 #define AFTERVAL        0x45544641      /* value to detect overrun      */
@@ -318,7 +315,7 @@ static struct mem_debug
     struct mem_debug *Mprev;    /* previous value in list               */
     const char *Mfile;          /* filename of where allocated          */
     int Mline;                  /* line number of where allocated       */
-    unsigned Mnbytes;           /* size of the allocation               */
+    size_t Mnbytes;             /* size of the allocation               */
     unsigned long Mbeforeval;   /* detect underrun of data              */
     char data[1];               /* the data actually allocated          */
 } mem_alloclist =
@@ -383,17 +380,17 @@ static void mem_fillin(const char *fil, int lin)
  * called.
  */
 
-void *mem_calloc(unsigned u)
+void *mem_calloc(size_t u)
 {
         return mem_calloc_debug(u,__FILE__,__LINE__);
 }
 
-void *mem_malloc(unsigned u)
+void *mem_malloc(size_t u)
 {
         return mem_malloc_debug(u,__FILE__,__LINE__);
 }
 
-void *mem_realloc(void *p, unsigned u)
+void *mem_realloc(void *p, size_t u)
 {
         return mem_realloc_debug(p,u,__FILE__,__LINE__);
 }
@@ -415,7 +412,7 @@ void mem_freefp(void *p)
  * Debug versions of mem_calloc(), mem_free() and mem_realloc().
  */
 
-void *mem_malloc_debug(unsigned n, const char *fil, int lin)
+void *mem_malloc_debug(size_t n, const char *fil, int lin)
 {   void *p;
 
     p = mem_calloc_debug(n,fil,lin);
@@ -424,7 +421,7 @@ void *mem_malloc_debug(unsigned n, const char *fil, int lin)
     return p;
 }
 
-void *mem_calloc_debug(unsigned n, const char *fil, int lin)
+void *mem_calloc_debug(size_t n, const char *fil, int lin)
 {
     struct mem_debug *dl;
 
@@ -517,7 +514,7 @@ err:
  * Debug version of mem_realloc().
  */
 
-void *mem_realloc_debug(void *oldp, unsigned n, const char *fil, int lin)
+void *mem_realloc_debug(void *oldp, size_t n, const char *fil, int lin)
 {   void *p;
     struct mem_debug *dl;
 
@@ -613,7 +610,7 @@ L1:
 
 /***************************/
 
-void *mem_malloc(unsigned numbytes)
+void *mem_malloc(size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
@@ -637,7 +634,7 @@ void *mem_malloc(unsigned numbytes)
 
 /***************************/
 
-void *mem_calloc(unsigned numbytes)
+void *mem_calloc(size_t numbytes)
 {       void *p;
 
         if (numbytes == 0)
@@ -661,7 +658,7 @@ void *mem_calloc(unsigned numbytes)
 
 /***************************/
 
-void *mem_realloc(void *oldmem_ptr,unsigned newnumbytes)
+void *mem_realloc(void *oldmem_ptr,size_t newnumbytes)
 {   void *p;
 
     if (oldmem_ptr == NULL)
@@ -705,7 +702,7 @@ static size_t heapleft;
 
 #if 0 && __SC__ && __INTSIZE == 4 && __I86__ && !_DEBUG_TRACE && _WIN32 && (SCC || SCPP || JAVA)
 
-__declspec(naked) void *mem_fmalloc(unsigned numbytes)
+__declspec(naked) void *mem_fmalloc(size_t numbytes)
 {
     __asm
     {
@@ -750,7 +747,7 @@ L18:    add     heap,EBX
 
 #else
 
-void *mem_fmalloc(unsigned numbytes)
+void *mem_fmalloc(size_t numbytes)
 {   void *p;
 
     //printf("fmalloc(%d)\n",numbytes);
@@ -806,7 +803,7 @@ L1:
 
 /***************************/
 
-void *mem_fcalloc(unsigned numbytes)
+void *mem_fcalloc(size_t numbytes)
 {   void *p;
 
     p = mem_fmalloc(numbytes);
@@ -817,12 +814,9 @@ void *mem_fcalloc(unsigned numbytes)
 
 char *mem_fstrdup(const char *s)
 {
-        char *p;
-        int len;
-
         if (s)
-        {   len = strlen(s) + 1;
-            p = (char *) mem_fmalloc(len);
+        {   size_t len = strlen(s) + 1;
+            char *p = (char *) mem_fmalloc(len);
             if (p)
                 return (char *)memcpy(p,s,len);
         }
