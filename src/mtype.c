@@ -159,8 +159,8 @@ int Type::equals(Object *o)
     t = (Type *)o;
     //printf("Type::equals(%s, %s)\n", toChars(), t->toChars());
     if (this == o ||
-        (t && deco == t->deco) &&               // deco strings are unique
-         deco != NULL)                          // and semantic() has been run
+        ((t && deco == t->deco) &&               // deco strings are unique
+          deco != NULL))                         // and semantic() has been run
     {
         //printf("deco = '%s', t->deco = '%s'\n", deco, t->deco);
         return 1;
@@ -8953,7 +8953,7 @@ void TypeTuple::toDecoBuffer(OutBuffer *buf, int flag)
     Type::toDecoBuffer(buf, flag);
     OutBuffer buf2;
     Parameter::argsToDecoBuffer(&buf2, arguments);
-    unsigned len = buf2.offset;
+    int len = (int)buf2.offset;
     buf->printf("%d%.*s", len, len, (char *)buf2.extractData());
 }
 

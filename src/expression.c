@@ -46,7 +46,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "doc.h"
 
 
-Expression *createTypeInfoArray(Scope *sc, Expression *args[], unsigned dim);
+Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
 
 #define LOGSEMANTIC     0
@@ -577,7 +577,7 @@ int expandAliasThisTuples(Expressions *exps, int starti)
                 printf("\texps[%d] e = %s %s\n", i, Token::tochars[e->op], e->toChars());
             }
     #endif
-            return u;
+            return (int)u;
         }
     }
 
@@ -628,7 +628,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
     Type *t0 = NULL;
     Expression *e0;
-    int j0;
+    size_t j0;
     for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (*exps)[i];
 
@@ -884,7 +884,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             spec->errors = global.errors - olderrs;
     }
 
-    unsigned n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
+    size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
     unsigned wildmatch = 0;
     if (ethis && tf->isWild())
@@ -3628,10 +3628,10 @@ int StringExp::compare(Object *obj)
 
     assert(se2->op == TOKstring);
 
-    int len1 = len;
-    int len2 = se2->len;
+    size_t len1 = len;
+    size_t len2 = se2->len;
 
-    //printf("sz = %d, len1 = %d, len2 = %d\n", sz, len1, len2);
+    //printf("sz = %d, len1 = %d, len2 = %d\n", sz, (int)len1, (int)len2);
     if (len1 == len2)
     {
         switch (sz)
@@ -3640,11 +3640,11 @@ int StringExp::compare(Object *obj)
                 return memcmp((char *)string, (char *)se2->string, len1);
 
             case 2:
-            {   unsigned u;
+            {
                 d_wchar *s1 = (d_wchar *)string;
                 d_wchar *s2 = (d_wchar *)se2->string;
 
-                for (u = 0; u < len; u++)
+                for (size_t u = 0; u < len; u++)
                 {
                     if (s1[u] != s2[u])
                         return s1[u] - s2[u];
@@ -3652,11 +3652,11 @@ int StringExp::compare(Object *obj)
             }
 
             case 4:
-            {   unsigned u;
+            {
                 d_dchar *s1 = (d_dchar *)string;
                 d_dchar *s2 = (d_dchar *)se2->string;
 
-                for (u = 0; u < len; u++)
+                for (size_t u = 0; u < len; u++)
                 {
                     if (s1[u] != s2[u])
                         return s1[u] - s2[u];
@@ -3668,7 +3668,7 @@ int StringExp::compare(Object *obj)
                 assert(0);
         }
     }
-    return len1 - len2;
+    return (int)(len1 - len2);
 }
 
 int StringExp::isBool(int result)
@@ -3764,7 +3764,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
     unsigned c;
     size_t u;
     unsigned char *q;
-    unsigned qlen;
+    size_t qlen;
 
     /* Write string in UTF-8 format
      */
@@ -3805,7 +3805,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
     }
     buf->reserve(1 + 11 + 2 * qlen);
     buf->writeByte(m);
-    buf->printf("%d_", qlen); // nbytes <= 11
+    buf->printf("%d_", (int)qlen); // nbytes <= 11
 
     for (unsigned char *p = buf->data + buf->offset, *pend = p + 2 * qlen;
          p < pend; p += 2, ++q)
@@ -4194,7 +4194,7 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
                 uinteger_t length = tsa->dim->toInteger();
                 Expressions *z = new Expressions;
                 z->setDim(length);
-                for (int q = 0; q < length; ++q)
+                for (size_t q = 0; q < length; ++q)
                     (*z)[q] = e->copy();
                 e = new ArrayLiteralExp(loc, z);
                 e->type = type;
@@ -4231,7 +4231,7 @@ int StructLiteralExp::getFieldIndex(Type *type, unsigned offset)
             {   Expression *e = (*elements)[i];
                 if (e)
                 {
-                    return i;
+                    return (int)i;
                 }
                 break;
             }
@@ -7310,15 +7310,15 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
     DotIdExp *die = new DotIdExp(loc, e1, ti->name);
 
     if (flag || !e1->type || e1->op == TOKtype ||
-        e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule())
+        (e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule()))
     {
         e = die->semantic(sc, 1);
     }
     else
     {
         Type *t1b = e1->type->toBasetype();
-        if ((t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
-             t1b->ty == Tnull  || t1b->isTypeBasic() && t1b->ty != Tvoid))
+        if (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
+            t1b->ty == Tnull  || (t1b->isTypeBasic() && t1b->ty != Tvoid))
         {
             /* No built-in type has templatized property, so can short cut.
              */
@@ -7628,7 +7628,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
         }
     }
     else if (t->ty == Tarray || t->ty == Tsarray ||
-             t->ty == Tnull  || t->isTypeBasic() && t->ty != Tvoid)
+             t->ty == Tnull  || (t->isTypeBasic() && t->ty != Tvoid))
     {
         /* In basic, built-in types don't have normal and templatized
          * member functions. So can short cut.
@@ -9516,7 +9516,7 @@ Lagain:
                 {   Expression *e = (*te->exps)[j1 + i];
                     (*exps)[i] = e;
                 }
-                if (j1 > 0 && j2 - j1 > 0 && sc->func && (*te->exps)[0]->op == TOKdotvar)
+                if (j1 > 0 && j1 != j2 && sc->func && (*te->exps)[0]->op == TOKdotvar)
                 {
                     Expression *einit = ((DotVarExp *)(*te->exps)[0])->e1->isTemp();
                     if (einit)
@@ -12213,10 +12213,12 @@ Expression *CmpExp::semantic(Scope *sc)
     if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
         (t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
     {
-        if (t1->nextOf()->implicitConvTo(t2->nextOf()) < MATCHconst &&
-            t2->nextOf()->implicitConvTo(t1->nextOf()) < MATCHconst &&
-            (t1->nextOf()->ty != Tvoid && t2->nextOf()->ty != Tvoid))
-            error("array comparison type mismatch, %s vs %s", t1->nextOf()->toChars(), t2->nextOf()->toChars());
+        Type *t1next = t1->nextOf();
+        Type *t2next = t2->nextOf();
+        if (t1next->implicitConvTo(t2next) < MATCHconst &&
+            t2next->implicitConvTo(t1next) < MATCHconst &&
+            (t1next->ty != Tvoid && t2next->ty != Tvoid))
+            error("array comparison type mismatch, %s vs %s", t1next->toChars(), t2next->toChars());
         e = this;
     }
     else if (t1->ty == Tstruct || t2->ty == Tstruct ||

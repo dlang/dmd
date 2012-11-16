@@ -915,7 +915,7 @@ int TypeClass::builtinTypeInfo()
  * Used to supply hidden _arguments[] value for variadic D functions.
  */
 
-Expression *createTypeInfoArray(Scope *sc, Expression *exps[], unsigned dim)
+Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
 {
 #if 1
     /*
