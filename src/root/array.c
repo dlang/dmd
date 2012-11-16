@@ -59,16 +59,15 @@ Array::~Array()
 }
 
 void Array::mark()
-{   unsigned u;
-
+{
     mem.mark(data);
-    for (u = 0; u < dim; u++)
+    for (size_t u = 0; u < dim; u++)
         mem.mark(data[u]);      // BUG: what if arrays of Object's?
 }
 
-void Array::reserve(unsigned nentries)
+void Array::reserve(size_t nentries)
 {
-    //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", dim, allocdim, nentries);
+    //printf("Array::reserve: dim = %d, allocdim = %d, nentries = %d\n", (int)dim, (int)allocdim, (int)nentries);
     if (allocdim - dim < nentries)
     {
         if (allocdim == 0)
@@ -95,7 +94,7 @@ void Array::reserve(unsigned nentries)
     }
 }
 
-void Array::setDim(unsigned newdim)
+void Array::setDim(size_t newdim)
 {
     if (dim < newdim)
     {
@@ -141,7 +140,7 @@ void Array::shift(void *ptr)
     dim++;
 }
 
-void Array::insert(unsigned index, void *ptr)
+void Array::insert(size_t index, void *ptr)
 {
     reserve(1);
     memmove(data + index + 1, data + index, (dim - index) * sizeof(*data));
@@ -150,12 +149,11 @@ void Array::insert(unsigned index, void *ptr)
 }
 
 
-void Array::insert(unsigned index, Array *a)
+void Array::insert(size_t index, Array *a)
 {
     if (a)
-    {   unsigned d;
-
-        d = a->dim;
+    {
+        size_t d = a->dim;
         reserve(d);
         if (dim != index)
             memmove(data + index + d, data + index, (dim - index) * sizeof(*data));
@@ -174,7 +172,7 @@ void Array::append(Array *a)
     insert(dim, a);
 }
 
-void Array::remove(unsigned i)
+void Array::remove(size_t i)
 {
     if (dim - i - 1)
         memmove(data + i, data + i + 1, (dim - i - 1) * sizeof(data[0]));
@@ -183,8 +181,8 @@ void Array::remove(unsigned i)
 
 char *Array::toChars()
 {
-    unsigned len;
-    unsigned u;
+    size_t len;
+    size_t u;
     char **buf;
     char *str;
     char *p;

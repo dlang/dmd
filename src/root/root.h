@@ -271,11 +271,11 @@ struct OutBuffer : Object
 
 struct Array : Object
 {
-    unsigned dim;
+    size_t dim;
     void **data;
 
   private:
-    unsigned allocdim;
+    size_t allocdim;
     #define SMALLARRAYCAP       1
     void *smallarray[SMALLARRAYCAP];    // inline storage for small arrays
 
@@ -286,16 +286,16 @@ struct Array : Object
     void mark();
     char *toChars();
 
-    void reserve(unsigned nentries);
-    void setDim(unsigned newdim);
+    void reserve(size_t nentries);
+    void setDim(size_t newdim);
     void fixDim();
     void push(void *ptr);
     void *pop();
     void shift(void *ptr);
-    void insert(unsigned index, void *ptr);
-    void insert(unsigned index, Array *a);
+    void insert(size_t index, void *ptr);
+    void insert(size_t index, Array *a);
     void append(Array *a);
-    void remove(unsigned i);
+    void remove(size_t i);
     void zero();
     void *tos();
     void sort();

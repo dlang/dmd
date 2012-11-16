@@ -66,8 +66,8 @@
 
 struct Narg
 {
-    int argc;   /* arg count      */
-    int argvmax;   /* dimension of nargv[]   */
+    size_t argc;      // arg count
+    size_t argvmax;   // dimension of nargv[]
     char **argv;
 };
 
@@ -91,17 +91,16 @@ static int addargp(struct Narg *n, char *p)
     return 0;
 }
 
-int response_expand(int *pargc, char ***pargv)
+int response_expand(size_t *pargc, char ***pargv)
 {
     struct Narg n;
-    int i;
     char *cp;
     int recurse = 0;
 
     n.argc = 0;
     n.argvmax = 0;      /* dimension of n.argv[]      */
     n.argv = NULL;
-    for(i=0; i<*pargc; ++i)
+    for (size_t i = 0; i < *pargc; ++i)
     {
         cp = (*pargv)[i];
         if (*cp == '@')

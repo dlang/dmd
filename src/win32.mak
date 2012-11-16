@@ -235,15 +235,18 @@ TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
-	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
-	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
-	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
-	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
-	$(ROOT)\speller.h $(ROOT)\speller.c \
-	$(ROOT)\aav.h $(ROOT)\aav.c \
-	$(ROOT)\longdouble.h $(ROOT)\longdouble.c \
-	$(ROOT)\dmgcmem.c
+ROOTSRCC=$(ROOT)\root.c $(ROOT)\array.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
+	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
+	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c
+ROOTSRC= $(ROOT)\root.h \
+	$(ROOT)\rmem.h $(ROOT)\port.h \
+	$(ROOT)\stringtable.h \
+	$(ROOT)\gnuc.h $(ROOT)\gnuc.c \
+	$(ROOT)\async.h \
+	$(ROOT)\speller.h \
+	$(ROOT)\aav.h \
+	$(ROOT)\longdouble.h \
+	$(ROOTSRCC)
 # Removed garbage collector bits (look in history)
 #	$(ROOT)\gc\bits.c $(ROOT)\gc\gc.c $(ROOT)\gc\gc.h $(ROOT)\gc\mscbitops.h \
 #	$(ROOT)\gc\bits.h $(ROOT)\gc\gccbitops.h $(ROOT)\gc\linux.c $(ROOT)\gc\os.h \
@@ -360,9 +363,9 @@ scp: detab tolf $(MAKEFILES)
 
 pvs:
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(SRCS) --source-file $(SRCS)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRC) --source-file $(ROOTSRC)
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) $(BACKSRC) --source-file $(BACKSRC)
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) $(TKSRCC) --source-file $(TKSRCC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) $(TKSRCC) --source-file $(TKSRCC)
 
 
 ############################## Generated Source ##############################
