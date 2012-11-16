@@ -1582,6 +1582,22 @@ struct B8990(T) { A8990!T* a; }
 struct C8990    { B8990!C8990* b; }
 
 /**********************************/
+// 9018
+
+template Inst9018(alias Template, T)
+{
+    alias Template!T Inst;
+}
+
+template Template9018(T)
+{
+    enum Template9018 = T;
+}
+
+static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert passes
+static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert fails
+
+/**********************************/
 
 int main()
 {
