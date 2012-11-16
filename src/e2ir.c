@@ -281,7 +281,7 @@ if (I32) assert(tysize[TYnptr] == 4);
     else if (fd && fd->isNested())
     {
         assert(!ethis);
-        ethis = getEthis(0, irs, fd);
+        ethis = getEthis(loc, irs, fd);
     }
 
     ep = el_param(ep, ethis);
