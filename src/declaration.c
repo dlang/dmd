@@ -1010,7 +1010,7 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (storage_class & (STCfield | STCout | STCref | STCstatic) || !fd)
         {
-            error("globals, statics, fields, ref and out parameters cannot be auto");
+            error("globals, statics, fields, ref and out parameters cannot be scope");
         }
 
         if (!(storage_class & STCscope))
