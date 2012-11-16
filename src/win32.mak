@@ -110,6 +110,8 @@ TOLF=tolf
 ZIP=zip32
 # Copy to another directory
 SCP=$(CP)
+# PVS-Studio command line executable
+PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 ##### User configuration switches
 
@@ -229,8 +231,8 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\html.h $C\html.c
 
 # Toolkit
-TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
-	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
+TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
+TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
 ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
@@ -355,6 +357,12 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(BACKSRC) $(SCPDIR)/src/backend
 	$(SCP) $(TKSRC) $(SCPDIR)/src/tk
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
+
+pvs:
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(SRCS) --source-file $(SRCS)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRC) --source-file $(ROOTSRC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) $(BACKSRC) --source-file $(BACKSRC)
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) $(TKSRCC) --source-file $(TKSRCC)
 
 
 ############################## Generated Source ##############################
