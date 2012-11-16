@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -2372,15 +2372,14 @@ static NameId* namesTable[] = {
         namesS, namesT, namesU, namesV, namesW, namesX, namesY, namesZ, NULL
 };
 
-int HtmlNamedEntity(unsigned char *p, int length)
+int HtmlNamedEntity(unsigned char *p, size_t length)
 {
     int tableIndex = tolower(*p) - 'a';
     if (tableIndex >= 0 && tableIndex < 26)
     {
         NameId* names = namesTable[tableIndex];
-        int i;
 
-        for (i = 0; names[i].name; i++)
+        for (size_t i = 0; names[i].name; i++)
         {
             if (strncmp(names[i].name, (char *)p, length) == 0)
                 return names[i].value;

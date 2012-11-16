@@ -531,7 +531,7 @@ void ClassDeclaration::semantic(Scope *sc)
          */
         if (vthis)              // if inheriting from nested class
         {   // Use the base class's 'this' member
-            isnested = 1;
+            isnested = true;
             if (storage_class & STCstatic)
                 error("static class cannot inherit from nested class %s", baseClass->toChars());
             if (toParent2() != baseClass->toParent2() &&
@@ -552,7 +552,7 @@ void ClassDeclaration::semantic(Scope *sc)
                         baseClass->toChars(),
                         baseClass->toParent2()->toChars());
                 }
-                isnested = 0;
+                isnested = false;
             }
         }
         else if (!(storage_class & STCstatic))
@@ -564,7 +564,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
 
                 if (ad || fd)
-                {   isnested = 1;
+                {   isnested = true;
                     Type *t;
                     if (ad)
                         t = ad->handle;

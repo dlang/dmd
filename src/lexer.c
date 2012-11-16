@@ -35,7 +35,7 @@
 extern "C" char * __cdecl __locale_decpoint;
 #endif
 
-extern int HtmlNamedEntity(unsigned char *p, int length);
+extern int HtmlNamedEntity(unsigned char *p, size_t length);
 
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator

@@ -30,7 +30,7 @@ struct StringValue
         char *string;
     };
 private:
-    unsigned length;
+    size_t length;
 
 #ifndef IN_GCC
     // Disable warning about nonstandard extension
@@ -39,33 +39,33 @@ private:
     char lstring[];
 
 public:
-    unsigned len() const { return length; }
+    size_t len() const { return length; }
     const char *toDchars() const { return lstring; }
 
 private:
     friend struct StringEntry;
     StringValue();  // not constructible
     // This is more like a placement new c'tor
-    void ctor(const char *p, unsigned length);
+    void ctor(const char *p, size_t length);
 };
 
 struct StringTable
 {
 private:
     void **table;
-    unsigned count;
-    unsigned tabledim;
+    size_t count;
+    size_t tabledim;
 
 public:
-    void init(unsigned size = 37);
+    void init(size_t size = 37);
     ~StringTable();
 
-    StringValue *lookup(const char *s, unsigned len);
-    StringValue *insert(const char *s, unsigned len);
-    StringValue *update(const char *s, unsigned len);
+    StringValue *lookup(const char *s, size_t len);
+    StringValue *insert(const char *s, size_t len);
+    StringValue *update(const char *s, size_t len);
 
 private:
-    void **search(const char *s, unsigned len);
+    void **search(const char *s, size_t len);
 };
 
 #endif

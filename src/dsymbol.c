@@ -790,7 +790,7 @@ void Dsymbol::addComment(unsigned char *comment)
     if (!this->comment)
         this->comment = comment;
 #if 1
-    else if (comment && strcmp((char *)comment, (char *)this->comment))
+    else if (comment && strcmp((char *)comment, (char *)this->comment) == 0)
     {   // Concatenate the two
         this->comment = Lexer::combineComments(this->comment, comment);
     }

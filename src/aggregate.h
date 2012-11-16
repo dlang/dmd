@@ -56,7 +56,7 @@ struct AggregateDeclaration : ScopeDsymbol
     bool isdeprecated;          // !=0 if deprecated
 
 #if DMDV2
-    int isnested;               // !=0 if is nested
+    bool isnested;              // !=0 if is nested
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
@@ -254,7 +254,7 @@ struct ClassDeclaration : AggregateDeclaration
     int isscope;                         // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
 #if DMDV1
-    int isnested;                       // !=0 if is nested
+    bool isnested;                      // !=0 if is nested
     VarDeclaration *vthis;              // 'this' parameter if this class is nested
 #endif
     int inuse;                          // to prevent recursive attempts

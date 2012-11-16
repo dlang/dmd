@@ -1781,9 +1781,9 @@ int Type::needsDestruction()
  *
  */
 
-int Type::needsNested()
+bool Type::needsNested()
 {
-    return FALSE;
+    return false;
 }
 
 /*********************************
@@ -2176,7 +2176,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     OutBuffer buf;
     Identifier *id;
     char *name;
-    int len;
+    size_t len;
 
     if (internal)
     {   buf.writeByte(mangleChar[ty]);
@@ -4086,7 +4086,7 @@ int TypeSArray::needsDestruction()
  *
  */
 
-int TypeSArray::needsNested()
+bool TypeSArray::needsNested()
 {
     return next->needsNested();
 }
@@ -4168,9 +4168,8 @@ unsigned TypeDArray::alignsize()
 }
 
 Type *TypeDArray::semantic(Loc loc, Scope *sc)
-{   Type *tn = next;
-
-    tn = next->semantic(loc,sc);
+{
+    Type *tn = next->semantic(loc,sc);
     Type *tbn = tn->toBasetype();
     switch (tbn->ty)
     {
@@ -5796,7 +5795,7 @@ void TypeFunction::purityLevel()
  *      MATCHxxxx
  */
 
-int TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
+MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
@@ -6611,13 +6610,11 @@ Type *TypeIdentifier::syntaxCopy()
 }
 
 void TypeIdentifier::toDecoBuffer(OutBuffer *buf, int flag)
-{   unsigned len;
-    char *name;
-
+{
     Type::toDecoBuffer(buf, flag);
-    name = ident->toChars();
-    len = strlen(name);
-    buf->printf("%d%s", len, name);
+    const char *name = ident->toChars();
+    size_t len = strlen(name);
+    buf->printf("%u%s", (unsigned)len, name);
 }
 
 void TypeIdentifier::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
@@ -6716,7 +6713,7 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
         if (t->ty == Ttypedef)
         {   TypeTypedef *tt = (TypeTypedef *)t;
 
-            if (tt->sym->sem == 1)
+            if (tt->sym->sem == SemanticIn)
                 error(loc, "circular reference of typedef %s", tt->toChars());
         }
         t = t->addMod(mod);
@@ -7378,9 +7375,9 @@ int TypeEnum::needsDestruction()
     return sym->memtype->needsDestruction();
 }
 
-int TypeEnum::needsNested()
+bool TypeEnum::needsNested()
 {
-    return sym->memtype ? sym->memtype->needsNested() : FALSE;
+    return sym->memtype ? sym->memtype->needsNested() : false;
 }
 
 MATCH TypeEnum::implicitConvTo(Type *to)
@@ -7592,7 +7589,7 @@ int TypeTypedef::needsDestruction()
     return sym->basetype->needsDestruction();
 }
 
-int TypeTypedef::needsNested()
+bool TypeTypedef::needsNested()
 {
     return sym->basetype->needsNested();
 }
@@ -8096,7 +8093,7 @@ int TypeStruct::needsDestruction()
     return sym->dtor != NULL;
 }
 
-int TypeStruct::needsNested()
+bool TypeStruct::needsNested()
 {
     if (sym->isnested)
         return true;

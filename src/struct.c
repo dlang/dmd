@@ -46,7 +46,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 
     stag = NULL;
     sinit = NULL;
-    isnested = 0;
+    isnested = false;
     vthis = NULL;
 
 #if DMDV2
@@ -452,7 +452,7 @@ void StructDeclaration::semantic(Scope *sc)
 
                 TemplateInstance *ti;
                 if (ad && (ti = ad->parent->isTemplateInstance()) != NULL && ti->isnested || fd)
-                {   isnested = 1;
+                {   isnested = true;
                     Type *t;
                     if (ad)
                         t = ad->handle;

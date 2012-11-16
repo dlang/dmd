@@ -362,8 +362,9 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp mtype.c --source-file mtype.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(SRCS) --source-file $(SRCS)
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRCC) --source-file $(ROOTSRCC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) $(BACKSRC) --source-file $(BACKSRC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) $(TKSRCC) --source-file $(TKSRCC)
 

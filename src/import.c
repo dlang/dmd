@@ -169,15 +169,17 @@ void Import::importAll(Scope *sc)
 {
     if (!mod)
     {
-       load(sc);
-       mod->importAll(0);
+        load(sc);
+        if (mod)                // if successfully loaded module
+        {   mod->importAll(0);
 
-       if (!isstatic && !aliasId && !names.dim)
-       {
-           if (sc->explicitProtection)
-               protection = sc->protection;
-           sc->scopesym->importScope(mod, protection);
-       }
+            if (!isstatic && !aliasId && !names.dim)
+            {
+                if (sc->explicitProtection)
+                    protection = sc->protection;
+                sc->scopesym->importScope(mod, protection);
+            }
+        }
     }
 }
 

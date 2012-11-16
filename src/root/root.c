@@ -1479,7 +1479,7 @@ void OutBuffer::mark()
     mem.mark(data);
 }
 
-void OutBuffer::reserve(unsigned nbytes)
+void OutBuffer::reserve(size_t nbytes)
 {
     //printf("OutBuffer::reserve: size = %d, offset = %d, nbytes = %d\n", size, offset, nbytes);
     if (size - offset < nbytes)
@@ -1494,12 +1494,12 @@ void OutBuffer::reset()
     offset = 0;
 }
 
-void OutBuffer::setsize(unsigned size)
+void OutBuffer::setsize(size_t size)
 {
     offset = size;
 }
 
-void OutBuffer::write(const void *data, unsigned nbytes)
+void OutBuffer::write(const void *data, size_t nbytes)
 {
     reserve(nbytes);
     memcpy(this->data + offset, data, nbytes);
@@ -1517,9 +1517,8 @@ void OutBuffer::writestring(const char *string)
 }
 
 void OutBuffer::prependstring(const char *string)
-{   unsigned len;
-
-    len = strlen(string);
+{
+    size_t len = strlen(string);
     reserve(len);
     memmove(data + len, data, offset);
     memcpy(data, string, len);
@@ -1651,17 +1650,16 @@ void OutBuffer::write(Object *obj)
     }
 }
 
-void OutBuffer::fill0(unsigned nbytes)
+void OutBuffer::fill0(size_t nbytes)
 {
     reserve(nbytes);
     memset(data + offset,0,nbytes);
     offset += nbytes;
 }
 
-void OutBuffer::align(unsigned size)
-{   unsigned nbytes;
-
-    nbytes = ((offset + size - 1) & ~(size - 1)) - offset;
+void OutBuffer::align(size_t size)
+{
+    size_t nbytes = ((offset + size - 1) & ~(size - 1)) - offset;
     fill0(nbytes);
 }
 
@@ -1763,7 +1761,7 @@ void OutBuffer::bracket(char left, char right)
  * Return index just past right.
  */
 
-unsigned OutBuffer::bracket(unsigned i, const char *left, unsigned j, const char *right)
+size_t OutBuffer::bracket(size_t i, const char *left, size_t j, const char *right)
 {
     size_t leftlen = strlen(left);
     size_t rightlen = strlen(right);
@@ -1773,7 +1771,7 @@ unsigned OutBuffer::bracket(unsigned i, const char *left, unsigned j, const char
     return j + leftlen + rightlen;
 }
 
-void OutBuffer::spread(unsigned offset, unsigned nbytes)
+void OutBuffer::spread(size_t offset, size_t nbytes)
 {
     reserve(nbytes);
     memmove(data + offset + nbytes, data + offset,
@@ -1785,14 +1783,14 @@ void OutBuffer::spread(unsigned offset, unsigned nbytes)
  * Returns: offset + nbytes
  */
 
-unsigned OutBuffer::insert(unsigned offset, const void *p, unsigned nbytes)
+size_t OutBuffer::insert(size_t offset, const void *p, size_t nbytes)
 {
     spread(offset, nbytes);
     memmove(data + offset, p, nbytes);
     return offset + nbytes;
 }
 
-void OutBuffer::remove(unsigned offset, unsigned nbytes)
+void OutBuffer::remove(size_t offset, size_t nbytes)
 {
     memmove(data + offset, data + offset + nbytes, this->offset - (offset + nbytes));
     this->offset -= nbytes;

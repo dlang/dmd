@@ -310,8 +310,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%s D Compiler %s\n%s %s\n",
-        sizeof(size_t) == 4 ? "32" : "64",
+    printf("DMD%d D Compiler %s\n%s %s\n",
+        sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://www.dlang.org/index.html\n\
@@ -402,7 +402,7 @@ int tryMain(size_t argc, char *argv[])
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
-    int argcstart = argc;
+    size_t argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
         int setdefaultlib = 0;
@@ -746,7 +746,7 @@ int tryMain(size_t argc, char *argv[])
                 else
                     global.params.debuglevel = 1;
             }
-            else if (memcmp(p + 1, "version", 5) == 0)
+            else if (memcmp(p + 1, "version", 7) == 0)
             {
                 // Parse:
                 //      -version=number

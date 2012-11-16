@@ -21,7 +21,7 @@ struct Identifier : Object
 {
     int value;
     const char *string;
-    unsigned len;
+    size_t len;
 
     Identifier(const char *string, int value);
     int equals(Object *o);
