@@ -621,6 +621,32 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
     return TRUE;
 }
 
+bool TemplateDeclaration::needsTemplateArgs()
+{
+    if (!parameters || parameters->dim == 0)
+        return false;
+    for (size_t i = 0; i < parameters->dim; i++)
+    {
+        TemplateParameter *tp = (*parameters)[i];
+        if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+        {
+            if (!ttp->defaultType)
+                return true;
+        }
+        else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+        {
+            if (!tap->defaultAlias)
+                return true;
+        }
+        else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
+        {
+            if (!tvp->defaultValue)
+                return true;
+        }
+    }
+    return false;
+}
+
 /****************************
  * Declare all the function parameters as variables
  * and add them to the scope

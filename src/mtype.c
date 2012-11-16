@@ -6721,15 +6721,24 @@ Type *TypeIdentifier::semantic(Loc loc, Scope *sc)
         }
         t = t->addMod(mod);
     }
+    else if (s)
+    {
+        if (TemplateDeclaration *td = s->isTemplateDeclaration())
+        {
+            if (td->onemember && !td->needsTemplateArgs())
+            {
+                // Bugzilla 1012 - allow using template type without !()
+                TemplateInstance *inst = new TemplateInstance(loc, td, new Objects());
+                TypeInstance *ti = new TypeInstance(loc, inst);
+                return ti->semantic(loc, sc);
+            }
+        }
+        s->error(loc, "is used as a type");
+        t = terror;
+    }
     else
     {
-        if (s)
-        {
-            s->error(loc, "is used as a type");
-            //halt();
-        }
-        else
-            error(loc, "%s is used as a type", toChars());
+        error(loc, "%s is used as a type", toChars());
         t = terror;
     }
     //t->print();
