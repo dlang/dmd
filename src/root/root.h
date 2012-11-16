@@ -231,18 +231,18 @@ struct File : Object
 struct OutBuffer : Object
 {
     unsigned char *data;
-    unsigned offset;
-    unsigned size;
+    size_t offset;
+    size_t size;
 
     OutBuffer();
     ~OutBuffer();
     char *extractData();
     void mark();
 
-    void reserve(unsigned nbytes);
-    void setsize(unsigned size);
+    void reserve(size_t nbytes);
+    void setsize(size_t size);
     void reset();
-    void write(const void *data, unsigned nbytes);
+    void write(const void *data, size_t nbytes);
     void writebstring(unsigned char *string);
     void writestring(const char *string);
     void prependstring(const char *string);
@@ -256,15 +256,15 @@ struct OutBuffer : Object
     void write4(unsigned w);
     void write(OutBuffer *buf);
     void write(Object *obj);
-    void fill0(unsigned nbytes);
-    void align(unsigned size);
+    void fill0(size_t nbytes);
+    void align(size_t size);
     void vprintf(const char *format, va_list args);
     void printf(const char *format, ...);
     void bracket(char left, char right);
-    unsigned bracket(unsigned i, const char *left, unsigned j, const char *right);
-    void spread(unsigned offset, unsigned nbytes);
-    unsigned insert(unsigned offset, const void *data, unsigned nbytes);
-    void remove(unsigned offset, unsigned nbytes);
+    size_t bracket(size_t i, const char *left, size_t j, const char *right);
+    void spread(size_t offset, size_t nbytes);
+    size_t insert(size_t offset, const void *data, size_t nbytes);
+    void remove(size_t offset, size_t nbytes);
     char *toChars();
     char *extractString();
 };
