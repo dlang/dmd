@@ -52,8 +52,8 @@
 /**********************/
 
 char * filespecaddpath(const char *path,const char *filename)
-{   register char *filespec;
-    register unsigned pathlen;
+{   char *filespec;
+    size_t pathlen;
 
     if (!path || (pathlen = strlen(path)) == 0)
         filespec = mem_strdup(filename);
@@ -194,8 +194,8 @@ char * filespecrootpath(char *filespec)
 /**********************/
 
 char * filespecdotext(const char *filespec)
-{   register const char *p;
-    register int len;
+{   const char *p;
+    size_t len;
 
     if ((p = filespec) != NULL)
     {   p += (len = strlen(p));
@@ -246,12 +246,12 @@ char * filespecforceext(const char *filespec,const char *ext)
 {   register char *p;
     register const char *pext;
 
-    if (*ext == '.')
+    if (ext && *ext == '.')
         ext++;
     if ((p = (char *)filespec) != NULL)
     {   pext = filespecdotext(filespec);
         if (ext)
-        {   int n = pext - filespec;
+        {   size_t n = pext - filespec;
             p = (char *) mem_malloc(n + 1 + strlen(ext) + 1);
             if (p)
             {   memcpy(p,filespec,n);
@@ -277,7 +277,7 @@ char * filespecdefaultext(const char *filespec,const char *ext)
             p = mem_strdup(filespec);
         }
         else
-        {   int n = pext - filespec;
+        {   size_t n = pext - filespec;
             p = (char *) mem_malloc(n + 1 + strlen(ext) + 1);
             if (p)
             {

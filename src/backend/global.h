@@ -451,7 +451,7 @@ int elemisone(elem *);
 /* msc.c */
 targ_size_t size(tym_t);
 Symbol *symboldata(targ_size_t offset,tym_t ty);
-int dom(block *A , block *B);
+bool dom(block *A , block *B);
 unsigned revop(unsigned op);
 unsigned invrel(unsigned op);
 int binary(const char *p, const char ** tab, int high);

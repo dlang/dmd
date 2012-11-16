@@ -1,4 +1,4 @@
-/*_ vec.h   Mon Oct 31 1994 */
+/*_ vec.h */
 
 #ifndef VEC_H
 #define VEC_H
@@ -7,7 +7,9 @@
 #pragma once
 #endif
 
-typedef unsigned vec_base_t;                    /* base type of vector  */
+#include <stdio.h>   // for size_t
+
+typedef size_t vec_base_t;                     /* base type of vector  */
 typedef vec_base_t *vec_t;
 
 #define vec_numbits(v)  ((v)[-1])
@@ -15,24 +17,24 @@ typedef vec_base_t *vec_t;
 
 #define VECBITS (sizeof(vec_base_t)*8)          /* # of bits per entry  */
 #define VECMASK (VECBITS - 1)                   /* mask for bit position */
-#define VECSHIFT ((VECBITS == 16) ? 4 : 5)      /* # of bits in VECMASK */
+#define VECSHIFT ((VECBITS == 16) ? 4 : (VECBITS == 32 ? 5 : 6))   /* # of bits in VECMASK */
 
 void vec_init (void);
 void vec_term (void);
-vec_t vec_calloc (unsigned numbits);
+vec_t vec_calloc (size_t numbits);
 vec_t vec_clone (vec_t v);
 void vec_free (vec_t v);
-vec_t vec_realloc (vec_t v , unsigned numbits);
+vec_t vec_realloc (vec_t v , size_t numbits);
 #if _M_I86 && __INTSIZE == 4 && __SC__
-void __pascal vec_setbit (unsigned b , vec_t v);
-void __pascal vec_clearbit (unsigned b , vec_t v);
-int  __pascal vec_testbit (unsigned b , vec_t v);
+void __pascal vec_setbit (size_t b , vec_t v);
+void __pascal vec_clearbit (size_t b , vec_t v);
+size_t  __pascal vec_testbit (size_t b , vec_t v);
 #else
-void vec_setbit (unsigned b , vec_t v);
-void vec_clearbit (unsigned b , vec_t v);
-int  vec_testbit (unsigned b , vec_t v);
+void vec_setbit (size_t b , vec_t v);
+void vec_clearbit (size_t b , vec_t v);
+size_t vec_testbit (size_t b , vec_t v);
 #endif
-unsigned vec_index (unsigned b , vec_t vec);
+size_t vec_index (size_t b , vec_t vec);
 void vec_andass (vec_t v1 , vec_t v2);
 void vec_and (vec_t v1 , vec_t v2 , vec_t v3);
 void vec_xorass (vec_t v1 , vec_t v2);

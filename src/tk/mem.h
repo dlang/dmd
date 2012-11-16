@@ -1,5 +1,5 @@
 /*_ mem.h */
-/* Copyright 1986-1997 by Walter Bright         */
+/* Copyright 1986-2012 by Walter Bright         */
 /* All Rights Reserved                          */
 /* Written by Walter Bright                     */
 
@@ -9,6 +9,8 @@
 #if __SC__
 #pragma once
 #endif
+
+#include <stdio.h> // for size_t
 
 /*
  * Memory management routines.
@@ -133,8 +135,8 @@ void mem_checkptr(void *ptr);
 /***************************
  * Allocate and return a pointer to numbytes of storage.
  * Use:
- *      void *mem_malloc(unsigned numbytes);
- *      void *mem_calloc(unsigned numbytes); allocated memory is cleared
+ *      void *mem_malloc(size_t numbytes);
+ *      void *mem_calloc(size_t numbytes); allocated memory is cleared
  * Input:
  *      numbytes        Number of bytes to allocate
  * Returns:
@@ -144,16 +146,16 @@ void mem_checkptr(void *ptr);
  *              return NULL
  */
 
-void *mem_malloc(unsigned);
-void *mem_calloc(unsigned);
+void *mem_malloc(size_t);
+void *mem_calloc(size_t);
 
 /*****************************
  * Reallocate memory.
  * Use:
- *      void *mem_realloc(void *ptr,unsigned numbytes);
+ *      void *mem_realloc(void *ptr,size_t numbytes);
  */
 
-void *mem_realloc(void *,unsigned);
+void *mem_realloc(void *,size_t);
 
 /*****************************
  * Free memory allocated by mem_malloc(), mem_calloc() or mem_realloc().
@@ -202,8 +204,8 @@ void mem_term(void);
 #define mem_ffree       mem_free
 #define mem_fstrdup     mem_strdup
 #else
-void *mem_fmalloc(unsigned);
-void *mem_fcalloc(unsigned);
+void *mem_fmalloc(size_t);
+void *mem_fcalloc(size_t);
 #define mem_ffree(p)    ((void)0)
 char *mem_fstrdup(const char *);
 #endif
@@ -251,9 +253,9 @@ extern char *__mem_file;
 #define mem_free(p)     mem_free_debug((p),__FILE__,__LINE__)
 
 char *mem_strdup_debug  (const char *,const char *,int);
-void *mem_calloc_debug  (unsigned,const char *,int);
-void *mem_malloc_debug  (unsigned,const char *,int);
-void *mem_realloc_debug (void *,unsigned,const char *,int);
+void *mem_calloc_debug  (size_t,const char *,int);
+void *mem_malloc_debug  (size_t,const char *,int);
+void *mem_realloc_debug (void *,size_t,const char *,int);
 void  mem_free_debug    (void *,const char *,int);
 void  mem_freefp        (void *);
 

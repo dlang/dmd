@@ -1,5 +1,4 @@
-/*_ vec.c   Mon Oct 31 1994 */
-/* Copyright (C) 1986-2000 by Digital Mars              */
+/* Copyright (C) 1986-2012 by Digital Mars              */
 /* Written by Walter Bright                             */
 /* Bit vector package                                   */
 
@@ -18,10 +17,10 @@ static int vec_initcount = 0;   /* # of times package is initialized    */
 static vec_t vecfreelist[VECMAX];
 
 #if 1
-#define MASK(b)         (1 << ((b) & VECMASK))
+#define MASK(b)         ((vec_base_t)1 << ((b) & VECMASK))
 #else
 #define MASK(b)         bmask[(b) & VECMASK]
-static unsigned bmask[VECMASK + 1] =
+static vec_base_t bmask[VECMASK + 1] =
 {
         1,2,4,8,0x10,0x20,0x40,0x80,
         0x100,0x200,0x400,0x800,0x1000,0x2000,0x4000,0x8000,
@@ -39,7 +38,9 @@ static unsigned bmask[VECMASK + 1] =
 
 void vec_init()
 {
-    assert(sizeof(vec_base_t)==2&&VECSHIFT==4||sizeof(vec_base_t)==4&&VECSHIFT== 5);
+    assert(sizeof(vec_base_t)==2 && VECSHIFT==4 ||
+           sizeof(vec_base_t)==4 && VECSHIFT==5 ||
+           sizeof(vec_base_t)==8 && VECSHIFT==6);
     if (vec_initcount++ == 0)
             vec_count = 0;
 }
@@ -63,7 +64,7 @@ void vec_term()
         assert(vec_count == 0);
 #endif
 #if TERMCODE
-        int i;
+        size_t i;
         for (i = 0; i < VECMAX; i++)
         {   void **v;
             void **vn;
@@ -84,9 +85,9 @@ void vec_term()
  * Clear the vector.
  */
 
-vec_t vec_calloc(unsigned numbits)
+vec_t vec_calloc(size_t numbits)
 { vec_t v;
-  int dim;
+  size_t dim;
 
   if (numbits == 0)
         return (vec_t) NULL;
@@ -131,8 +132,8 @@ vec_t vec_calloc(unsigned numbits)
 
 vec_t vec_clone(vec_t v)
 {   vec_t vc;
-    int dim;
-    unsigned nbytes;
+    size_t dim;
+    size_t nbytes;
 
     if (v)
     {   dim = vec_dim(v);
@@ -167,7 +168,7 @@ void vec_free(vec_t v)
 {
     /*printf("vec_free(%p)\n",v);*/
     if (v)
-    {   int dim = vec_dim(v);
+    {   size_t dim = vec_dim(v);
 
         v -= 2;
         if (dim < VECMAX)
@@ -186,9 +187,9 @@ void vec_free(vec_t v)
  * Extra bits are set to 0.
  */
 
-vec_t vec_realloc(vec_t v,unsigned numbits)
+vec_t vec_realloc(vec_t v, size_t numbits)
 {       vec_t newv;
-        unsigned vbits;
+        size_t vbits;
 
         /*printf("vec_realloc(%p,%d)\n",v,numbits);*/
         if (!v)
@@ -202,7 +203,7 @@ vec_t vec_realloc(vec_t v,unsigned numbits)
             return v;
         newv = vec_calloc(numbits);
         if (newv)
-        {   unsigned nbytes;
+        {   size_t nbytes;
 
             nbytes = (vec_dim(v) < vec_dim(newv)) ? vec_dim(v) : vec_dim(newv);
             memcpy(newv,v,nbytes * sizeof(vec_base_t));
@@ -219,7 +220,7 @@ vec_t vec_realloc(vec_t v,unsigned numbits)
 #ifndef vec_setbit
 
 #if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) void __pascal vec_setbit(unsigned b,vec_t v)
+__declspec(naked) void __pascal vec_setbit(size_t b,vec_t v)
 {
     _asm
     {
@@ -230,7 +231,7 @@ __declspec(naked) void __pascal vec_setbit(unsigned b,vec_t v)
     }
 }
 #else
-void vec_setbit(unsigned b,vec_t v)
+void vec_setbit(size_t b,vec_t v)
 {
 #ifdef DEBUG
   if (!(v && b < vec_numbits(v)))
@@ -251,7 +252,7 @@ void vec_setbit(unsigned b,vec_t v)
 #ifndef vec_clearbit
 
 #if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) void __pascal vec_clearbit(unsigned b,vec_t v)
+__declspec(naked) void __pascal vec_clearbit(size_t b,vec_t v)
 {
     _asm
     {
@@ -262,7 +263,7 @@ __declspec(naked) void __pascal vec_clearbit(unsigned b,vec_t v)
     }
 }
 #else
-void vec_clearbit(unsigned b,vec_t v)
+void vec_clearbit(size_t b,vec_t v)
 {
   assert(v && b < vec_numbits(v));
   *(v + (b >> VECSHIFT)) &= ~MASK(b);
@@ -278,7 +279,7 @@ void vec_clearbit(unsigned b,vec_t v)
 #ifndef vec_testbit
 
 #if _M_I86 && __INTSIZE == 4 && __SC__
-__declspec(naked) int __pascal vec_testbit(unsigned b,vec_t v)
+__declspec(naked) size_t __pascal vec_testbit(size_t b,vec_t v)
 {
     _asm
     {
@@ -292,7 +293,7 @@ __declspec(naked) int __pascal vec_testbit(unsigned b,vec_t v)
     }
 }
 #else
-int vec_testbit(unsigned b,vec_t v)
+size_t vec_testbit(size_t b,vec_t v)
 {
   if (!v)
         return 0;
@@ -300,7 +301,7 @@ int vec_testbit(unsigned b,vec_t v)
   if (b >= vec_numbits(v))
   {     printf("vec_testbit(v = %p,b = %d): numbits = %d dim = %d\n",
             v,b,vec_numbits(v),vec_dim(v));
-        b = (unsigned)-1;
+        b = (size_t)-1;
   }
 #endif
   assert(b < vec_numbits(v));
@@ -342,10 +343,10 @@ int vec_testbit(unsigned b,vec_t v)
  * If no bit is found, return vec_numbits(v).
  */
 
-unsigned vec_index(unsigned b,vec_t vec)
-{       register unsigned starv;
+size_t vec_index(size_t b,vec_t vec)
+{       register size_t starv;
         register vec_t v,vtop;
-        unsigned bit;
+        size_t bit;
 
     if (!vec)
         return 0;
@@ -622,7 +623,7 @@ int vec_disjoint(vec_t v1,vec_t v2)
  */
 
 void vec_clearextrabits(vec_t v)
-{   unsigned n;
+{   size_t n;
 
     assert(v);
     n = vec_numbits(v);
@@ -648,7 +649,7 @@ void vec_print(vec_t v)
   printf(" Vec %p, numbits %d dim %d",v,vec_numbits(v),vec_dim(v));
   if (v)
   {     fputc('\t',stdout);
-        for (unsigned i = 0; i < vec_numbits(v); i++)
+        for (size_t i = 0; i < vec_numbits(v); i++)
                 fputc((vec_testbit(i,v)) ? '1' : '0',stdout);
   }
 #endif

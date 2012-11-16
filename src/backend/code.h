@@ -82,15 +82,6 @@ void code_term(void);
 
 #define code_next(c)    ((c)->next)
 
-/**********************************
- * Set value in regimmed for reg.
- * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
- *      value.
- */
-
-#define regimmed_set(reg,e) \
-        (regcon.immed.value[reg] = (e),regcon.immed.mval |= 1 << (reg))
-
 extern con_t regcon;
 
 /****************************
@@ -645,6 +636,24 @@ inline regm_t Symbol::Spregm()
     return mask[Spreg] | (Spreg2 == NOREG ? 0 : mask[Spreg2]);
 }
 
+
+/**********************************
+ * Set value in regimmed for reg.
+ * NOTE: For 16 bit generator, this is always a (targ_short) sign-extended
+ *      value.
+ */
+
+#if 1
+inline void regimmed_set(int reg, targ_size_t e)
+{
+    regcon.immed.value[reg] = e;
+    regcon.immed.mval |= 1 << (reg);
+    //printf("regimmed_set %s %d\n", regm_str(mask[reg]), (int)e);
+}
+#else
+#define regimmed_set(reg,e) \
+        (regcon.immed.value[reg] = (e),regcon.immed.mval |= 1 << (reg))
+#endif
 
 #if __cplusplus && TX86
 }
