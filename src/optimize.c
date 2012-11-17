@@ -379,7 +379,7 @@ Expression *AddrExp::optimize(int result)
                 && !ve->var->isImportedSymbol())
             {
                 TypeSArray *ts = (TypeSArray *)ve->type;
-                dinteger_t dim = ts->dim->toInteger();
+                sinteger_t dim = ts->dim->toInteger();
                 if (index < 0 || index >= dim)
                     error("array index %lld is out of bounds [0..%lld]", index, dim);
                 e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
@@ -677,7 +677,7 @@ Expression *BinExp::optimize(int result)
     {
         if (e2->isConst() == 1)
         {
-            dinteger_t i2 = e2->toInteger();
+            sinteger_t i2 = e2->toInteger();
             d_uns64 sz = e1->type->size() * 8;
             if (i2 < 0 || i2 >= sz)
             {   error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
@@ -772,7 +772,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
     e->e2 = e->e2->optimize(result);
     if (e->e2->isConst() == 1)
     {
-        dinteger_t i2 = e->e2->toInteger();
+        sinteger_t i2 = e->e2->toInteger();
         d_uns64 sz = e->e1->type->size() * 8;
         if (i2 < 0 || i2 >= sz)
         {   e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
@@ -948,17 +948,15 @@ Expression *ArrayLengthExp::optimize(int result)
 }
 
 Expression *EqualExp::optimize(int result)
-{   Expression *e;
-
+{
     //printf("EqualExp::optimize(result = %x) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue | (result & WANTinterpret));
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
-    e = this;
 
     Expression *e1 = fromConstInitializer(result, this->e1);
     Expression *e2 = fromConstInitializer(result, this->e2);
 
-    e = Equal(op, type, e1, e2);
+    Expression *e = Equal(op, type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         e = this;
     return e;
