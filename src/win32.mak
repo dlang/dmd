@@ -362,7 +362,7 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp expression.c --source-file expression.c
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp lexer.c --source-file lexer.c
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(SRCS) --source-file $(SRCS)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRCC) --source-file $(ROOTSRCC)
 #	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) $(BACKSRC) --source-file $(BACKSRC)
