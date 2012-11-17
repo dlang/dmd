@@ -281,7 +281,7 @@ struct Lexer
     int commentToken;           // !=0 means comments are TOKcomment's
 
     Lexer(Module *mod,
-        unsigned char *base, unsigned begoffset, unsigned endoffset,
+        unsigned char *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken);
 
     static void initKeywords();

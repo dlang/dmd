@@ -544,7 +544,7 @@ TupleDeclaration *isAliasThisTuple(Expression *e)
     return NULL;
 }
 
-int expandAliasThisTuples(Expressions *exps, int starti)
+int expandAliasThisTuples(Expressions *exps, size_t starti)
 {
     if (!exps || exps->dim == 0)
         return -1;

@@ -92,7 +92,7 @@ struct ArrayInitializer : Initializer
 {
     Expressions index;  // indices
     Initializers value; // of Initializer *'s
-    unsigned dim;       // length of array being initialized
+    size_t dim;         // length of array being initialized
     Type *type;         // type that array will be used to initialize
     int sem;            // !=0 if semantic() is run
 

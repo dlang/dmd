@@ -783,10 +783,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
 
     Symbol **params;
-    unsigned pi;
 
     // Estimate number of parameters, pi
-    pi = (v_arguments != NULL);
+    size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
     // Allow extra 2 for sthis and shidden
@@ -1337,11 +1336,8 @@ elem *Module::toEfilename()
     if (!sfilename)
     {
         dt_t *dt = NULL;
-        char *id;
-        int len;
-
-        id = srcfile->toChars();
-        len = strlen(id);
+        char *id = srcfile->toChars();
+        size_t len = strlen(id);
         dtsize_t(&dt, len);
         dtabytes(&dt,TYnptr, 0, len + 1, id);
 

@@ -154,7 +154,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         t = t->nextOf()->toBasetype();
     if (t->ty == Tstruct)
     {
-        unsigned fieldi = 0;
+        size_t fieldi = 0;
 
         TypeStruct *ts = (TypeStruct *)t;
         ad = ts->sym;
@@ -292,7 +292,7 @@ Expression *StructInitializer::toExpression()
     {
         (*elements)[i] = NULL;
     }
-    unsigned fieldi = 0;
+    size_t fieldi = 0;
     for (size_t i = 0; i < value.dim; i++)
     {
         Identifier *id = field[i];
@@ -482,8 +482,8 @@ void ArrayInitializer::addInit(Expression *index, Initializer *value)
 }
 
 Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
-{   unsigned i;
-    unsigned length;
+{
+    size_t length;
     const unsigned amax = 0x80000000;
 
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
@@ -515,7 +515,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     }
 
     length = 0;
-    for (i = 0; i < index.dim; i++)
+    for (size_t i = 0; i < index.dim; i++)
     {
         Expression *idx = index[i];
         if (idx)
@@ -571,8 +571,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         }
     }
 
-    if ((unsigned long) dim * t->nextOf()->size() >= amax)
-    {   error(loc, "array dimension %u exceeds max of %u", dim, amax / t->nextOf()->size());
+    if ((uinteger_t) dim * t->nextOf()->size() >= amax)
+    {   error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
         goto Lerr;
     }
     return this;

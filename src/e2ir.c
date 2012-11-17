@@ -3836,7 +3836,7 @@ elem *VectorExp::toElem(IRState *irs)
     e->Eoper = OPconst;
     e->Ety = type->totym();
 
-    for (unsigned i = 0; i < dim; i++)
+    for (size_t i = 0; i < dim; i++)
     {   Expression *elem;
 
         if (e1->op == TOKarrayliteral)
@@ -4802,7 +4802,7 @@ elem *TupleExp::toElem(IRState *irs)
 }
 
 #if DMDV2
-elem *tree_insert(Elems *args, int low, int high)
+elem *tree_insert(Elems *args, size_t low, size_t high)
 {
     assert(low < high);
     if (low + 1 == high)

@@ -196,8 +196,6 @@ dt_t *ArrayInitializer::toDt()
     Type *tn = tb->nextOf()->toBasetype();
 
     Dts dts;
-    unsigned size;
-    unsigned length;
     dt_t *dt;
     dt_t *d;
     dt_t **pdtend;
@@ -206,20 +204,18 @@ dt_t *ArrayInitializer::toDt()
     dts.setDim(dim);
     dts.zero();
 
-    size = tn->size();
+    unsigned size = tn->size();
 
-    length = 0;
+    unsigned length = 0;
     for (size_t i = 0; i < index.dim; i++)
-    {   Expression *idx;
-        Initializer *val;
-
-        idx = index[i];
+    {
+        Expression *idx = index[i];
         if (idx)
             length = idx->toInteger();
         //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
 
         assert(length < dim);
-        val = value[i];
+        Initializer *val = value[i];
         dt = val->toDt();
         if (dts[length])
             error(loc, "duplicate initializations for index %d", length);
@@ -229,7 +225,7 @@ dt_t *ArrayInitializer::toDt()
 
     Expression *edefault = tb->nextOf()->defaultInit();
 
-    unsigned n = 1;
+    size_t n = 1;
     for (Type *tbn = tn; tbn->ty == Tsarray; tbn = tbn->nextOf()->toBasetype())
     {   TypeSArray *tsa = (TypeSArray *)tbn;
 
@@ -252,7 +248,7 @@ dt_t *ArrayInitializer::toDt()
     switch (tb->ty)
     {
         case Tsarray:
-        {   unsigned tadim;
+        {   size_t tadim;
             TypeSArray *ta = (TypeSArray *)tb;
 
             tadim = ta->dim->toInteger();
@@ -697,7 +693,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                     error("zero length array %s has non-zero length initializer", v->toChars());
                 }
 
-                unsigned dim = 1;
+                size_t dim = 1;
                 Type *vt;
                 for (vt = v->type->toBasetype();
                      vt->ty == Tsarray;
@@ -810,7 +806,7 @@ dt_t **FuncExp::toDt(dt_t **pdt)
 dt_t **VectorExp::toDt(dt_t **pdt)
 {
     //printf("VectorExp::toDt() %s\n", toChars());
-    for (unsigned i = 0; i < dim; i++)
+    for (size_t i = 0; i < dim; i++)
     {   Expression *elem;
 
         if (e1->op == TOKarrayliteral)
@@ -1011,7 +1007,7 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 
 dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
 {
-    unsigned len;
+    size_t len;
 
     //printf("TypeSArray::toDtElem()\n");
     len = dim->toInteger();

@@ -38,8 +38,8 @@ struct Macro
   public:
     static Macro *define(Macro **ptable, unsigned char *name, size_t namelen, unsigned char *text, size_t textlen);
 
-    void expand(OutBuffer *buf, unsigned start, unsigned *pend,
-        unsigned char *arg, unsigned arglen);
+    void expand(OutBuffer *buf, size_t start, size_t *pend,
+        unsigned char *arg, size_t arglen);
 };
 
 #endif

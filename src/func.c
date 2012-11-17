@@ -373,7 +373,7 @@ void FuncDeclaration::semantic(Scope *sc)
 
     cd = parent->isClassDeclaration();
     if (cd)
-    {   int vi;
+    {   size_t vi;
         CtorDeclaration *ctor;
         DtorDeclaration *dtor;
         InvariantDeclaration *inv;
@@ -550,7 +550,7 @@ void FuncDeclaration::semantic(Scope *sc)
          * If this function is covariant with any members of those interface
          * functions, set the tintro.
          */
-        for (int i = 0; i < cd->interfaces_dim; i++)
+        for (size_t i = 0; i < cd->interfaces_dim; i++)
         {
             BaseClass *b = cd->interfaces[i];
             vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
@@ -637,7 +637,7 @@ void FuncDeclaration::semantic(Scope *sc)
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
          */
-        for (int i = 0; i < cd->interfaces_dim; i++)
+        for (size_t i = 0; i < cd->interfaces_dim; i++)
         {
             BaseClass *b = cd->interfaces[i];
             if (b->base)
@@ -827,7 +827,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     // Check the 'throws' clause
     if (fthrows)
     {
-        for (int i = 0; i < fthrows->dim; i++)
+        for (size_t i = 0; i < fthrows->dim; i++)
         {
             Type *t = (*fthrows)[i];
 
@@ -846,7 +846,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (frequire)
     {
-        for (int i = 0; i < foverrides.dim; i++)
+        for (size_t i = 0; i < foverrides.dim; i++)
         {
             FuncDeclaration *fdv = foverrides[i];
 
@@ -1444,7 +1444,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     // Find the last non-ref parameter
                     if (parameters && parameters->dim)
                     {
-                        int lastNonref = parameters->dim -1;
+                        size_t lastNonref = parameters->dim -1;
                         p = (*parameters)[lastNonref];
                         /* The trouble with out and ref parameters is that taking
                          * the address of it doesn't work, because later processing
@@ -1452,9 +1452,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                          */
                         while (p->storage_class & (STCout | STCref))
                         {
-                            --lastNonref;
                             offset += PTRSIZE;
-                            if (lastNonref < 0)
+                            if (lastNonref-- == 0)
                             {
                                 p = v_arguments;
                                 break;
@@ -1905,7 +1904,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
      *     a stack local, allocate that local immediately following the exception
      *     handler block, so it is always at the same offset from EBP.
      */
-    for (int i = 0; i < foverrides.dim; i++)
+    for (size_t i = 0; i < foverrides.dim; i++)
     {
         FuncDeclaration *fdv = foverrides[i];
 
@@ -1961,7 +1960,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
      * list for the 'this' pointer, something that would need an unknown amount
      * of tweaking of various parts of the compiler that I'd rather leave alone.
      */
-    for (int i = 0; i < foverrides.dim; i++)
+    for (size_t i = 0; i < foverrides.dim; i++)
     {
         FuncDeclaration *fdv = foverrides[i];
 
@@ -2554,7 +2553,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
      */
     Expressions args;
     args.setDim(nfparams);
-    for (int u = 0; u < nfparams; u++)
+    for (size_t u = 0; u < nfparams; u++)
     {
         Parameter *p = Parameter::getNth(tf->parameters, u);
         Expression *e;
@@ -3138,12 +3137,12 @@ int FuncDeclaration::needsClosure()
      */
 
     //printf("FuncDeclaration::needsClosure() %s\n", toChars());
-    for (int i = 0; i < closureVars.dim; i++)
+    for (size_t i = 0; i < closureVars.dim; i++)
     {   VarDeclaration *v = closureVars[i];
         assert(v->isVarDeclaration());
         //printf("\tv = %s\n", v->toChars());
 
-        for (int j = 0; j < v->nestedrefs.dim; j++)
+        for (size_t j = 0; j < v->nestedrefs.dim; j++)
         {   FuncDeclaration *f = v->nestedrefs[j];
             assert(f != this);
 

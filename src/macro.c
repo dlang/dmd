@@ -98,7 +98,7 @@ Macro *Macro::define(Macro **ptable, unsigned char *name, size_t namelen, unsign
  *              -1:     get 2nd through end
  */
 
-unsigned extractArgN(unsigned char *p, unsigned end, unsigned char **pmarg, unsigned *pmarglen, int n)
+unsigned extractArgN(unsigned char *p, size_t end, unsigned char **pmarg, size_t *pmarglen, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.
@@ -237,8 +237,8 @@ unsigned extractArgN(unsigned char *p, unsigned end, unsigned char **pmarg, unsi
  * Only look at the text in buf from start to end.
  */
 
-void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
-        unsigned char *arg, unsigned arglen)
+void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
+        unsigned char *arg, size_t arglen)
 {
 #if 0
     printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, arglen, arg);
@@ -250,14 +250,14 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
         return;
     nest++;
 
-    unsigned end = *pend;
+    size_t end = *pend;
     assert(start <= end);
     assert(end <= buf->offset);
 
     /* First pass - replace $0
      */
     arg = memdup(arg, arglen);
-    for (unsigned u = start; u + 1 < end; )
+    for (size_t u = start; u + 1 < end; )
     {
         unsigned char *p = buf->data;   // buf->data is not loop invariant
 
@@ -277,7 +277,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
             int n = (c == '+') ? -1 : c - '0';
 
             unsigned char *marg;
-            unsigned marglen;
+            size_t marglen;
             extractArgN(arg, arglen, &marg, &marglen, n);
             if (marglen == 0)
             {   // Just remove macro invocation
@@ -294,7 +294,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
                 end += marglen - 2;
 
                 // Scan replaced text for further expansion
-                unsigned mend = u + marglen;
+                size_t mend = u + marglen;
                 expand(buf, u, &mend, NULL, 0);
                 end += mend - (u + marglen);
                 u = mend;
@@ -310,7 +310,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
                 end += -2 + 2 + marglen + 2;
 
                 // Scan replaced text for further expansion
-                unsigned mend = u + 2 + marglen;
+                size_t mend = u + 2 + marglen;
                 expand(buf, u + 2, &mend, NULL, 0);
                 end += mend - (u + 2 + marglen);
                 u = mend;
@@ -325,7 +325,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 
     /* Second pass - replace other macros
      */
-    for (unsigned u = start; u + 4 < end; )
+    for (size_t u = start; u + 4 < end; )
     {
         unsigned char *p = buf->data;   // buf->data is not loop invariant
 
@@ -336,12 +336,12 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
         {
             //printf("\tfound macro start '%c'\n", p[u + 2]);
             unsigned char *name = p + u + 2;
-            unsigned namelen = 0;
+            size_t namelen = 0;
 
             unsigned char *marg;
-            unsigned marglen;
+            size_t marglen;
 
-            unsigned v;
+            size_t v;
             /* Scan forward to find end of macro name and
              * beginning of macro argument (marg).
              */
@@ -403,7 +403,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 
                         // Scan replaced text for further expansion
                         m->inuse++;
-                        unsigned mend = v + 1 + 2+m->textlen+2;
+                        size_t mend = v + 1 + 2+m->textlen+2;
                         expand(buf, v + 1, &mend, marg, marglen);
                         end += mend - (v + 1 + 2+m->textlen+2);
                         m->inuse--;
@@ -418,7 +418,7 @@ void Macro::expand(OutBuffer *buf, unsigned start, unsigned *pend,
 
                         // Scan replaced text for further expansion
                         m->inuse++;
-                        unsigned mend = v + 1 + m->textlen;
+                        size_t mend = v + 1 + m->textlen;
                         expand(buf, v + 1, &mend, marg, marglen);
                         end += mend - (v + 1 + m->textlen);
                         m->inuse--;

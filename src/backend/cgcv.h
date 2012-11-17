@@ -23,12 +23,12 @@ unsigned cv_typidx ( type *t );
 void cv_outsym ( Symbol *s );
 void cv_func ( Symbol *s );
 void cv_term ( void );
-unsigned long cv4_struct(Classsym *,int);
+unsigned cv4_struct(Classsym *,int);
 
 
 /* =================== Added for MARS compiler ========================= */
 
-typedef unsigned long idx_t;    // type of type index
+typedef unsigned idx_t;        // type of type index
 
 /* Data structure for a type record     */
 
@@ -45,7 +45,7 @@ typedef struct DEBTYP_T
 
 struct Cgcv
 {
-    long signature;
+    unsigned signature;
     symlist_t list;             // deferred list of symbols to output
     idx_t deb_offset;           // offset added to type index
     unsigned sz_idx;            // size of stored type index

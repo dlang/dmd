@@ -1,5 +1,5 @@
 // Copyright (C) 1994-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -23,40 +23,39 @@ struct Outbuffer
     unsigned char *buf;         // the buffer itself
     unsigned char *pend;        // pointer past the end of the buffer
     unsigned char *p;           // current position in buffer
-    unsigned len;               // size of buffer
-    unsigned inc;               // default increment size
+    size_t len;                 // size of buffer
+    size_t inc;                 // default increment size
 
     Outbuffer();
-    Outbuffer(unsigned inc);
+    Outbuffer(size_t inc);
     ~Outbuffer();
     void reset();
 
     // Reserve nbytes in buffer
-    void reserve(unsigned nbytes);
+    void reserve(size_t nbytes);
 
     // Write n zeros; return pointer to start of zeros
-    void *writezeros(unsigned n);
+    void *writezeros(size_t n);
 
     // Position buffer to accept the specified number of bytes at offset
-    int position(unsigned offset, unsigned nbytes);
+    size_t position(size_t offset, size_t nbytes);
 
     // Write an array to the buffer, no reserve check
-    void writen(const void *b, int len)
+    void writen(const void *b, size_t len)
     {
         memcpy(p,b,len);
         p += len;
     }
 
     // Clear bytes, no reserve check
-    void clearn(int len)
+    void clearn(size_t len)
     {
-        int i;
-        for (i=0; i< len; i++)
+        for (size_t i = 0; i < len; i++)
             *p++ = 0;
     }
 
     // Write an array to the buffer.
-    void write(const void *b, int len);
+    void write(const void *b, size_t len);
 
     void write(Outbuffer *b) { write(b->buf,b->p - b->buf); }
 
@@ -160,20 +159,20 @@ struct Outbuffer
 
     void prependBytes(const char *s);
 
-    void prepend(const void *b, unsigned len);
+    void prepend(const void *b, size_t len);
 
     void bracket(char c1,char c2);
 
     /**
      * Returns the number of bytes written.
      */
-    int size()
+    size_t size()
     {
         return p - buf;
     }
 
     char *toString();
-    void setsize(unsigned size);
+    void setsize(size_t size);
 
     void writesLEB128(int value);
     void writeuLEB128(unsigned value);

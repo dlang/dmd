@@ -55,7 +55,7 @@
 // Support D1 inout
 #define D1INOUT         0
 
-Parser::Parser(Module *module, unsigned char *base, unsigned length, int doDocComment)
+Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComment)
     : Lexer(module, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
@@ -5480,32 +5480,26 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKstring:
-        {   unsigned char *s;
-            unsigned len;
-            unsigned char postfix;
-
+        {
             // cat adjacent strings
-            s = token.ustring;
-            len = token.len;
-            postfix = token.postfix;
+            unsigned char *s = token.ustring;
+            size_t len = token.len;
+            unsigned char postfix = token.postfix;
             while (1)
             {
                 nextToken();
                 if (token.value == TOKstring)
-                {   unsigned len1;
-                    unsigned len2;
-                    unsigned char *s2;
-
+                {
                     if (token.postfix)
                     {   if (token.postfix != postfix)
                             error("mismatched string literal postfixes '%c' and '%c'", postfix, token.postfix);
                         postfix = token.postfix;
                     }
 
-                    len1 = len;
-                    len2 = token.len;
+                    size_t len1 = len;
+                    size_t len2 = token.len;
                     len = len1 + len2;
-                    s2 = (unsigned char *)mem.malloc((len + 1) * sizeof(unsigned char));
+                    unsigned char *s2 = (unsigned char *)mem.malloc((len + 1) * sizeof(unsigned char));
                     memcpy(s2, s, len1 * sizeof(unsigned char));
                     memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(unsigned char));
                     s = s2;

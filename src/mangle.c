@@ -51,10 +51,10 @@ char *mangle(Declaration *sthis)
             else
             {
                 id = s->ident->toChars();
-                int len = strlen(id);
+                size_t len = strlen(id);
                 char tmp[sizeof(len) * 3 + 1];
                 buf.prependstring(id);
-                sprintf(tmp, "%d", len);
+                sprintf(tmp, "%d", (int)len);
                 buf.prependstring(tmp);
             }
         }

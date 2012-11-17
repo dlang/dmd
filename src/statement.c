@@ -784,7 +784,7 @@ Statement *CompoundDeclarationStatement::syntaxCopy()
 
 void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    int nwritten = 0;
+    bool anywritten = false;
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         ExpStatement *ds;
@@ -802,7 +802,7 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                  * that does not print the type.
                  * Should refactor this.
                  */
-                if (nwritten)
+                if (anywritten)
                 {
                     buf->writeByte(',');
                     buf->writestring(v->ident->toChars());
@@ -829,7 +829,7 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             }
             else
                 d->toCBuffer(buf, hgs);
-            nwritten++;
+            anywritten = true;
         }
     }
     buf->writeByte(';');
@@ -2158,7 +2158,7 @@ Lagain:
                 {   // Make a copy of the ref argument so it isn't
                     // a reference.
                 LcopyArg:
-                    id = Lexer::uniqueId("__applyArg", i);
+                    id = Lexer::uniqueId("__applyArg", (int)i);
 
                     Initializer *ie = new ExpInitializer(0, new IdentifierExp(0, id));
                     VarDeclaration *v = new VarDeclaration(0, arg->type, arg->ident, ie);
@@ -2216,7 +2216,7 @@ Lagain:
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
                 size_t keysize = taa->index->size();
-                keysize = (keysize + (PTRSIZE-1)) & ~(PTRSIZE-1);
+                keysize = (keysize + ((size_t)PTRSIZE-1)) & ~((size_t)PTRSIZE-1);
                 exps->push(new IntegerExp(0, keysize, Type::tsize_t));
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);

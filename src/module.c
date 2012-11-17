@@ -408,7 +408,7 @@ void Module::parse()
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
     unsigned char *buf = srcfile->buffer;
-    unsigned buflen = srcfile->len;
+    size_t buflen = srcfile->len;
 
     if (buflen >= 2)
     {
@@ -995,6 +995,7 @@ void Module::runDeferredSemantic()
             break;
 
         Dsymbol **todo;
+        Dsymbol **todoalloc = NULL;
         Dsymbol *tmp;
         if (len == 1)
         {
@@ -1002,8 +1003,9 @@ void Module::runDeferredSemantic()
         }
         else
         {
-            todo = (Dsymbol **)alloca(len * sizeof(Dsymbol *));
+            todo = (Dsymbol **)malloc(len * sizeof(Dsymbol *));
             assert(todo);
+            todoalloc = todo;
         }
         memcpy(todo, deferred.tdata(), len * sizeof(Dsymbol *));
         deferred.setDim(0);
@@ -1016,6 +1018,8 @@ void Module::runDeferredSemantic()
             //printf("deferred: %s, parent = %s\n", s->toChars(), s->parent->toChars());
         }
         //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
+        if (todoalloc)
+            free(todoalloc);
     } while (deferred.dim < len || dprogress);  // while making progress
     nested--;
     //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);

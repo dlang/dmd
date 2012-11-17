@@ -68,7 +68,7 @@ struct Parser : Lexer
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
 
-    Parser(Module *module, unsigned char *base, unsigned length, int doDocComment);
+    Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
     Dsymbols *parseDeclDefs(int once);

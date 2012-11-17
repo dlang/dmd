@@ -925,7 +925,7 @@ void SwitchStatement::toIR(IRState *irs)
      */
     mystate.defaultBlock = sdefault ? block_calloc(blx) : mystate.breakBlock;
 
-    int numcases = 0;
+    size_t numcases = 0;
     if (cases)
         numcases = cases->dim;
 
@@ -942,7 +942,7 @@ void SwitchStatement::toIR(IRState *irs)
             econd = e->E2;
         }
 
-        for (int i = 0; i < numcases; i++)
+        for (size_t i = 0; i < numcases; i++)
         {   CaseStatement *cs = (*cases)[i];
 
             elem *ecase = cs->exp->toElemDtor(&mystate);
@@ -975,7 +975,7 @@ void SwitchStatement::toIR(IRState *irs)
     if (condition->type->isString())
     {
         // Number the cases so we can unscramble things after the sort()
-        for (int i = 0; i < numcases; i++)
+        for (size_t i = 0; i < numcases; i++)
         {   CaseStatement *cs = (*cases)[i];
             cs->index = i;
         }
@@ -990,7 +990,7 @@ void SwitchStatement::toIR(IRState *irs)
         dtsize_t(&dt, numcases);
         dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
 
-        for (int i = 0; i < numcases; i++)
+        for (size_t i = 0; i < numcases; i++)
         {   CaseStatement *cs = (*cases)[i];
 
             if (cs->exp->op != TOKstring)
@@ -1049,7 +1049,7 @@ void SwitchStatement::toIR(IRState *irs)
      * CaseStatement::toIR() will fill in
      * the second entry for each pair with the block.
      */
-    for (int i = 0; i < numcases; i++)
+    for (size_t i = 0; i < numcases; i++)
     {
         CaseStatement *cs = (*cases)[i];
         if (string)

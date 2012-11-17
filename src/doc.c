@@ -49,10 +49,10 @@ struct Escape
 struct Section
 {
     unsigned char *name;
-    unsigned namelen;
+    size_t namelen;
 
     unsigned char *body;
-    unsigned bodylen;
+    size_t bodylen;
 
     int nooutput;
 
@@ -86,8 +86,8 @@ struct DocComment
     { }
 
     static DocComment *parse(Scope *sc, Dsymbol *s, unsigned char *comment);
-    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, unsigned mlen);
-    static void parseEscapes(Escape **pescapetable, unsigned char *textstart, unsigned textlen);
+    static void parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, size_t mlen);
+    static void parseEscapes(Escape **pescapetable, unsigned char *textstart, size_t textlen);
 
     void parseSections(unsigned char *comment);
     void writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf);
@@ -98,13 +98,13 @@ int cmp(const char *stringz, void *s, size_t slen);
 int icmp(const char *stringz, void *s, size_t slen);
 int isDitto(unsigned char *comment);
 unsigned char *skipwhitespace(unsigned char *p);
-unsigned skiptoident(OutBuffer *buf, size_t i);
-unsigned skippastident(OutBuffer *buf, size_t i);
-unsigned skippastURL(OutBuffer *buf, size_t i);
-void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor = true);
-void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset);
-Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len);
+size_t skiptoident(OutBuffer *buf, size_t i);
+size_t skippastident(OutBuffer *buf, size_t i);
+size_t skippastURL(OutBuffer *buf, size_t i);
+void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor = true);
+void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
+Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len);
 
 int isIdStart(unsigned char *p);
 int isIdTail(unsigned char *p);
@@ -303,7 +303,7 @@ void Module::gendocfile()
 
     OutBuffer buf2;
     buf2.writestring("$(DDOC)\n");
-    unsigned end = buf2.offset;
+    size_t end = buf2.offset;
     macrotable->expand(&buf2, 0, &end, NULL, 0);
 
 #if 1
@@ -314,7 +314,7 @@ void Module::gendocfile()
         buf.setsize(0);
         buf.reserve(buf2.offset);
         unsigned char *p = buf2.data;
-        for (unsigned j = 0; j < buf2.offset; j++)
+        for (size_t j = 0; j < buf2.offset; j++)
         {
             unsigned char c = p[j];
             if (c == 0xFF && j + 1 < buf2.offset)
@@ -349,9 +349,9 @@ void Module::gendocfile()
 #else
     /* Remove all the escape sequences from buf2
      */
-    {   unsigned i = 0;
+    {   size_t i = 0;
         unsigned char *p = buf2.data;
-        for (unsigned j = 0; j < buf2.offset; j++)
+        for (size_t j = 0; j < buf2.offset; j++)
         {
             if (p[j] == 0xFF && j + 1 < buf2.offset)
             {
@@ -382,9 +382,9 @@ void Module::gendocfile()
  * to preserve text literally. This also means macros in the
  * text won't be expanded.
  */
-void escapeDdocString(OutBuffer *buf, unsigned start)
+void escapeDdocString(OutBuffer *buf, size_t start)
 {
-    for (unsigned u = start; u < buf->offset; u++)
+    for (size_t u = start; u < buf->offset; u++)
     {
         unsigned char c = buf->data[u];
         switch(c)
@@ -416,11 +416,11 @@ void escapeDdocString(OutBuffer *buf, unsigned start)
 
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
+void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
 {
     unsigned par_open = 0;
 
-    for (unsigned u = start; u < buf->offset; u++)
+    for (size_t u = start; u < buf->offset; u++)
     {
         unsigned char c = buf->data[u];
         switch(c)
@@ -455,7 +455,7 @@ void escapeStrayParenthesis(OutBuffer *buf, unsigned start, Loc loc)
 
     if (par_open)                       // if any unmatched lparens
     {   par_open = 0;
-        for (unsigned u = buf->offset; u > start;)
+        for (size_t u = buf->offset; u > start;)
         {   u--;
             unsigned char c = buf->data[u];
             switch(c)
@@ -491,7 +491,7 @@ void Dsymbol::emitDitto(Scope *sc)
 {
     //printf("Dsymbol::emitDitto() %s %s\n", kind(), toChars());
     OutBuffer *buf = sc->docbuf;
-    unsigned o;
+    size_t o;
     OutBuffer b;
 
     b.writestring("$(DDOC_DITTO ");
@@ -590,7 +590,7 @@ void Declaration::emitComment(Scope *sc)
 
     OutBuffer *buf = sc->docbuf;
     DocComment *dc = DocComment::parse(sc, this, comment);
-    unsigned o;
+    size_t o;
 
     if (!dc)
     {
@@ -672,7 +672,7 @@ void TemplateDeclaration::emitComment(Scope *sc)
 
     OutBuffer *buf = sc->docbuf;
     DocComment *dc = DocComment::parse(sc, this, com);
-    unsigned o;
+    size_t o;
 
     if (!dc)
     {
@@ -747,7 +747,7 @@ void EnumMember::emitComment(Scope *sc)
 
     OutBuffer *buf = sc->docbuf;
     DocComment *dc = DocComment::parse(sc, this, comment);
-    unsigned o;
+    size_t o;
 
     if (!dc)
     {
@@ -985,7 +985,7 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             td->onemember == this)
         {   /* It's a function template
              */
-            unsigned o = buf->offset;
+            size_t o = buf->offset;
 
             declarationToDocBuffer(this, buf, td);
 
@@ -1035,7 +1035,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         if (parent &&
             (td = parent->isTemplateDeclaration()) != NULL &&
             td->onemember == this)
-        {   unsigned o = buf->offset;
+        {   size_t o = buf->offset;
             td->toDocBuffer(buf, sc);
             highlightCode(NULL, this, buf, o);
         }
@@ -1061,7 +1061,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         if (parent &&
             (td = parent->isTemplateDeclaration()) != NULL &&
             td->onemember == this)
-        {   unsigned o = buf->offset;
+        {   size_t o = buf->offset;
             td->toDocBuffer(buf, sc);
             highlightCode(NULL, this, buf, o);
         }
@@ -1166,10 +1166,10 @@ void DocComment::parseSections(unsigned char *comment)
     unsigned char *pstart;
     unsigned char *pend;
     unsigned char *idstart;
-    unsigned idlen;
+    size_t idlen;
 
     unsigned char *name = NULL;
-    unsigned namelen = 0;
+    size_t namelen = 0;
 
     //printf("parseSections('%s')\n", comment);
     p = comment;
@@ -1292,7 +1292,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             else
             {
                 buf->writestring("$(DDOC_SUMMARY ");
-                    unsigned o = buf->offset;
+                    size_t o = buf->offset;
                     buf->write(sec->body, sec->bodylen);
                     escapeStrayParenthesis(buf, o, s->loc);
                     highlightText(sc, s, buf, o);
@@ -1320,7 +1320,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                 "RETURNS", "SEE_ALSO", "STANDARDS", "THROWS",
                 "VERSION" };
 
-        for (int i = 0; i < sizeof(table) / sizeof(table[0]); i++)
+        for (size_t i = 0; i < sizeof(table) / sizeof(table[0]); i++)
         {
             if (icmp(table[i], name, namelen) == 0)
             {
@@ -1332,8 +1332,8 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         buf->writestring("$(DDOC_SECTION ");
             // Replace _ characters with spaces
             buf->writestring("$(DDOC_SECTION_H ");
-            unsigned o = buf->offset;
-            for (unsigned u = 0; u < namelen; u++)
+            size_t o = buf->offset;
+            for (size_t u = 0; u < namelen; u++)
             {   unsigned char c = name[u];
                 buf->writeByte((c == '_') ? ' ' : c);
             }
@@ -1345,7 +1345,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
         buf->writestring("$(DDOC_DESCRIPTION ");
     }
   L1:
-    unsigned o = buf->offset;
+    size_t o = buf->offset;
     buf->write(body, bodylen);
     escapeStrayParenthesis(buf, o, s->loc);
     highlightText(sc, s, buf, o);
@@ -1358,19 +1358,19 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     unsigned char *p = body;
-    unsigned len = bodylen;
+    size_t len = bodylen;
     unsigned char *pend = p + len;
 
     unsigned char *tempstart;
-    unsigned templen;
+    size_t templen;
 
     unsigned char *namestart;
-    unsigned namelen = 0;       // !=0 if line continuation
+    size_t namelen = 0;       // !=0 if line continuation
 
     unsigned char *textstart;
-    unsigned textlen;
+    size_t textlen;
 
-    unsigned o;
+    size_t o;
     Parameter *arg;
 
     buf->writestring("$(DDOC_PARAMS \n");
@@ -1488,20 +1488,20 @@ void MacroSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
  *      name2 = value2
  */
 
-void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, unsigned mlen)
+void DocComment::parseMacros(Escape **pescapetable, Macro **pmacrotable, unsigned char *m, size_t mlen)
 {
     unsigned char *p = m;
-    unsigned len = mlen;
+    size_t len = mlen;
     unsigned char *pend = p + len;
 
     unsigned char *tempstart;
-    unsigned templen;
+    size_t templen;
 
     unsigned char *namestart;
-    unsigned namelen = 0;       // !=0 if line continuation
+    size_t namelen = 0;       // !=0 if line continuation
 
     unsigned char *textstart;
-    unsigned textlen;
+    size_t textlen;
 
     while (p < pend)
     {
@@ -1613,7 +1613,7 @@ Ldone:
  * by whitespace and/or commas.
  */
 
-void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, unsigned textlen)
+void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, size_t textlen)
 {   Escape *escapetable = *pescapetable;
 
     if (!escapetable)
@@ -1722,7 +1722,7 @@ unsigned char *skipwhitespace(unsigned char *p)
  *      end of buf
  */
 
-unsigned skiptoident(OutBuffer *buf, size_t i)
+size_t skiptoident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
     {   dchar_t c;
@@ -1749,7 +1749,7 @@ unsigned skiptoident(OutBuffer *buf, size_t i)
  * Scan forward past end of identifier.
  */
 
-unsigned skippastident(OutBuffer *buf, size_t i)
+size_t skippastident(OutBuffer *buf, size_t i)
 {
     while (i < buf->offset)
     {   dchar_t c;
@@ -1781,10 +1781,10 @@ unsigned skippastident(OutBuffer *buf, size_t i)
  *      index just past it if it is a URL
  */
 
-unsigned skippastURL(OutBuffer *buf, size_t i)
-{   unsigned length = buf->offset - i;
+size_t skippastURL(OutBuffer *buf, size_t i)
+{   size_t length = buf->offset - i;
     unsigned char *p = &buf->data[i];
-    unsigned j;
+    size_t j;
     unsigned sawdot = 0;
 
     if (length > 7 && memicmp((char *)p, "http://", 7) == 0)
@@ -1825,7 +1825,7 @@ Lno:
 /****************************************************
  */
 
-int isKeyword(unsigned char *p, unsigned len)
+int isKeyword(unsigned char *p, size_t len)
 {
     static const char *table[] = { "true", "false", "null" };
 
@@ -1840,7 +1840,7 @@ int isKeyword(unsigned char *p, unsigned len)
 /****************************************************
  */
 
-Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
+Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
 
@@ -1875,7 +1875,7 @@ Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, unsigned len)
  * Highlight text section.
  */
 
-void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
+void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
     //printf("highlightText()\n");
     const char *sid = s->ident->toChars();
@@ -1886,11 +1886,11 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
     int leadingBlank = 1;
     int inCode = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
-    unsigned iCodeStart;                // start of code section
+    size_t iCodeStart;                    // start of code section
 
-    unsigned iLineStart = offset;
+    size_t iLineStart = offset;
 
-    for (unsigned i = offset; i < buf->offset; i++)
+    for (size_t i = offset; i < buf->offset; i++)
     {   unsigned char c = buf->data[i];
 
      Lcont:
@@ -1919,7 +1919,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
                 // Skip over comments
                 if (p[1] == '!' && p[2] == '-' && p[3] == '-')
-                {   unsigned j = i + 4;
+                {   size_t j = i + 4;
                     p += 4;
                     while (1)
                     {
@@ -1938,7 +1938,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
 
                 // Skip over HTML tag
                 if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
-                {   unsigned j = i + 2;
+                {   size_t j = i + 2;
                     p += 2;
                     while (1)
                     {
@@ -2002,8 +2002,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
                  * inCode tells us if it is start or end of a code section.
                  */
                 if (leadingBlank)
-                {   int istart = i;
-                    int eollen = 0;
+                {   size_t istart = i;
+                    size_t eollen = 0;
 
                     leadingBlank = 0;
                     while (1)
@@ -2074,12 +2074,11 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
             default:
                 leadingBlank = 0;
                 if (sc && !inCode && isIdStart(&buf->data[i]))
-                {   unsigned j;
-
-                    j = skippastident(buf, i);
+                {
+                    size_t j = skippastident(buf, i);
                     if (j > i)
                     {
-                        unsigned k = skippastURL(buf, i);
+                        size_t k = skippastURL(buf, i);
                         if (k > i)
                         {   i = k - 1;
                             break;
@@ -2127,7 +2126,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
  * Highlight code for DDOC section.
  */
 
-void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool anchor)
+void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool anchor)
 {
     if (anchor)
     {
@@ -2141,7 +2140,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool 
     FuncDeclaration *f = s->isFuncDeclaration();
 
     //printf("highlightCode(s = '%s', kind = %s)\n", sid, s->kind());
-    for (unsigned i = offset; i < buf->offset; i++)
+    for (size_t i = offset; i < buf->offset; i++)
     {   unsigned char c = buf->data[i];
         const char *se;
 
@@ -2154,9 +2153,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset, bool 
             i--;                // point to ';'
         }
         else if (isIdStart(&buf->data[i]))
-        {   unsigned j;
-
-            j = skippastident(buf, i);
+        {
+            size_t j = skippastident(buf, i);
             if (j > i)
             {
                 if (cmp(sid, buf->data + i, j - i) == 0)
@@ -2198,7 +2196,7 @@ void highlightCode3(OutBuffer *buf, unsigned char *p, unsigned char *pend)
  */
 
 
-void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, unsigned offset)
+void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
     char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();

@@ -1248,7 +1248,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (committed)
         goto Lcast;
 
-#define X(tf,tt)        ((tf) * 256 + (tt))
+#define X(tf,tt)        ((int)(tf) * 256 + (int)(tt))
     {
     OutBuffer buffer;
     size_t newlen = 0;
@@ -1374,12 +1374,9 @@ L2:
         if (dim2 != se->len)
         {
             // Copy when changing the string literal
-            unsigned newsz = se->sz;
-            void *s;
-            int d;
-
-            d = (dim2 < se->len) ? dim2 : se->len;
-            s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
+            size_t newsz = se->sz;
+            size_t d = (dim2 < se->len) ? dim2 : se->len;
+            void *s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
             memcpy(s, se->string, d * newsz);
             // Extend with 0, add terminating 0
             memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);
@@ -2294,16 +2291,16 @@ Lagain:
 Lcc:
         while (1)
         {
-            int i1 = e2->implicitConvTo(t1);
-            int i2 = e1->implicitConvTo(t2);
+            MATCH i1 = e2->implicitConvTo(t1);
+            MATCH i2 = e1->implicitConvTo(t2);
 
             if (i1 && i2)
             {
                 // We have the case of class vs. void*, so pick class
                 if (t1->ty == Tpointer)
-                    i1 = 0;
+                    i1 = MATCHnomatch;
                 else if (t2->ty == Tpointer)
-                    i2 = 0;
+                    i2 = MATCHnomatch;
             }
 
             if (i2)
@@ -2370,8 +2367,8 @@ Lcc:
             if (!ts1->sym->aliasthis && !ts2->sym->aliasthis)
                 goto Lincompatible;
 
-            int i1 = 0;
-            int i2 = 0;
+            MATCH i1 = MATCHnomatch;
+            MATCH i2 = MATCHnomatch;
 
             Expression *e1b = NULL;
             Expression *e2b = NULL;

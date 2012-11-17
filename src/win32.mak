@@ -362,11 +362,12 @@ scp: detab tolf $(MAKEFILES)
 	$(SCP) $(ROOTSRC) $(SCPDIR)/src/root
 
 pvs:
-	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp lexer.c --source-file lexer.c
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(SRCS) --source-file $(SRCS)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) $(ROOTSRCC) --source-file $(ROOTSRCC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) $(BACKSRC) --source-file $(BACKSRC)
-#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) $(TKSRCC) --source-file $(TKSRCC)
+	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp doc.c --source-file doc.c
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /I$C /I$(TK) /Tp tocvdebug.c --source-file tocvdebug.c
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(SRCS) --source-file $(SRCS)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(ROOT) /Tp $(ROOTSRCC) --source-file $(ROOTSRCC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$C;$(TK) /Tp $(BACKSRC) --source-file $(BACKSRC)
+#	$(PVS) --cfg PVS-Studio.cfg --cl-params /I$(TK) /Tp $(TKSRCC) --source-file $(TKSRCC)
 
 
 ############################## Generated Source ##############################

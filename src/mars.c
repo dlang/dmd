@@ -401,7 +401,6 @@ int tryMain(size_t argc, char *argv[])
     Strings libmodules;
     char *p;
     Module *m;
-    int status = EXIT_SUCCESS;
     size_t argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
@@ -1458,6 +1457,7 @@ int tryMain(size_t argc, char *argv[])
     if (global.errors)
         fatal();
 
+    int status = EXIT_SUCCESS;
     if (!global.params.objfiles->dim)
     {
         if (global.params.link)

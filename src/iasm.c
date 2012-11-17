@@ -3523,9 +3523,9 @@ STATIC code *asm_da_parse(OP *pop)
 
 STATIC code *asm_db_parse(OP *pop)
 {
-    unsigned usSize;
-    unsigned usMaxbytes;
-    unsigned usBytes;
+    size_t usSize;
+    size_t usMaxbytes;
+    size_t usBytes;
     union DT
     {   targ_ullong ul;
         targ_float f;
@@ -3637,7 +3637,7 @@ STATIC code *asm_db_parse(OP *pop)
 
                             case OPdi:
                             case OPdl:
-                                *(long *)p = *q;
+                                *(int *)p = *q;
                                 break;
 
                             default:

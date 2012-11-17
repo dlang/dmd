@@ -15,7 +15,7 @@
 #pragma once
 #endif /* __DMC__ */
 
-void escapeDdocString(OutBuffer *buf, unsigned start);
+void escapeDdocString(OutBuffer *buf, size_t start);
 void parentToBuffer(OutBuffer *buf, Dsymbol *s);
 bool inSameModule(Dsymbol *s, Dsymbol *p);
 void prettyPrintDsymbol(OutBuffer *buf, Dsymbol *s, Dsymbol *parent);

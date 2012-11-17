@@ -205,7 +205,6 @@ const char *inifile(const char *argv0x, const char *inifilex)
         // The line is file.buffer[linestart..i]
         char *line;
         size_t len;
-        char *p;
         char *pn;
 
         line = (char *)&file.buffer[linestart];
@@ -224,6 +223,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 {
                     if (line[j] == '%')
                     {
+                        char *p = NULL;
+                        char *palloc = NULL;
                         if (j - k == 3 && memicmp(&line[k + 1], "@P", 2) == 0)
                         {
                             // %@P% is special meaning the path to the .ini file
@@ -238,7 +239,9 @@ const char *inifile(const char *argv0x, const char *inifilex)
                             if (len2 <= sizeof(tmp))
                                 p = tmp;
                             else
-                                p = (char *)alloca(len2);
+                            {   p = (char *)malloc(len2);
+                                palloc = p;
+                            }
                             len2--;
                             memcpy(p, &line[k + 1], len2);
                             p[len2] = 0;
@@ -248,6 +251,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                                 p = (char *)"";
                         }
                         buf.writestring(p);
+                        if (palloc)
+                            free(palloc);
                         k = j;
                         goto L1;
                     }
@@ -262,7 +267,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
         while (buf.offset && isspace(buf.data[buf.offset - 1]))
             buf.offset--;
 
-        p = buf.toChars();
+        {
+        char *p = buf.toChars();
 
         // The expanded line is in p.
         // Now parse it for meaning.
@@ -315,6 +321,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 #endif
                 }
                 break;
+        }
         }
 
      Lskip:

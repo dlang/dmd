@@ -195,7 +195,7 @@ hash_t String::hashCode()
     return calcHash(str, strlen(str));
 }
 
-unsigned String::len()
+size_t String::len()
 {
     return strlen(str);
 }
