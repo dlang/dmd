@@ -1940,10 +1940,11 @@ L1:
         Ldelegate:
             switch (config.fulltypes)
             {
+#if MARS
                 case CV8:
                     typidx = cv8_ddelegate(t, next);
                     break;
-
+#endif
                 case CV4:
                     tv = type_fake(TYnptr);
                     tv->Tcount++;

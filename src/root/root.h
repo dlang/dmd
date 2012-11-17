@@ -84,7 +84,7 @@ struct String : Object
     static hash_t calcHash(const char *str, size_t len);
     static hash_t calcHash(const char *str);
     hash_t hashCode();
-    unsigned len();
+    size_t len();
     int equals(Object *obj);
     int compare(Object *obj);
     char *toChars();
