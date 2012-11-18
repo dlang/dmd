@@ -98,7 +98,7 @@ Macro *Macro::define(Macro **ptable, unsigned char *name, size_t namelen, unsign
  *              -1:     get 2nd through end
  */
 
-unsigned extractArgN(unsigned char *p, size_t end, unsigned char **pmarg, size_t *pmarglen, int n)
+size_t extractArgN(unsigned char *p, size_t end, unsigned char **pmarg, size_t *pmarglen, int n)
 {
     /* Scan forward for matching right parenthesis.
      * Nest parentheses.
@@ -115,7 +115,7 @@ unsigned extractArgN(unsigned char *p, size_t end, unsigned char **pmarg, size_t
     unsigned inexp = 0;
     unsigned argn = 0;
 
-    unsigned v = 0;
+    size_t v = 0;
 
   Largstart:
 #if 1

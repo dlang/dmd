@@ -214,6 +214,7 @@ SignExtendedNumber SignExtendedNumber::operator<<(const SignExtendedNumber& a) c
     // compute base-2 log of 'v' to determine the maximum allowed bits to shift.
     // Ref: http://graphics.stanford.edu/~seander/bithacks.html#IntegerLog
 
+    // Why is this a size_t? Looks like a bug.
     size_t r, s;
 
     r = (v > 0xFFFFFFFFULL) << 5; v >>= r;

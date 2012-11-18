@@ -78,7 +78,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     }
 
     // Get string table:  string_table[0..string_len]
-    unsigned off = header->f_symptr;
+    size_t off = header->f_symptr;
     if (off == 0)
     {
         error(loc, "MS-Coff object module %s has no string table", module_name);
@@ -89,7 +89,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     {   reason = __LINE__;
         goto Lcorrupt;
     }
-    unsigned long string_len = *(unsigned long *)(buf + off);
+    unsigned string_len = *(unsigned *)(buf + off);
     char *string_table = (char *)(buf + off + 4);
     if (off + string_len > buflen)
     {   reason = __LINE__;
@@ -97,7 +97,7 @@ void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, 
     }
     string_len -= 4;
 
-    for (long i = 0; i < header->f_nsyms; i++)
+    for (int i = 0; i < header->f_nsyms; i++)
     {   struct syment *n;
         char s[8 + 1];
         char *p;

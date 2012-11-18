@@ -73,7 +73,7 @@ void json_generate(Modules *modules)
     }
     else if (arg[0] == '-' && arg[1] == 0)
     {   // Write to stdout; assume it succeeds
-        int n = fwrite(buf.data, 1, buf.offset, stdout);
+        size_t n = fwrite(buf.data, 1, buf.offset, stdout);
         assert(n == buf.offset);        // keep gcc happy about return values
         return;
     }

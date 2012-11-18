@@ -996,7 +996,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
     {
         unsigned char   recTyp;
         unsigned short  recLen;
-        long            trailerPosn;
+        unsigned        trailerPosn;
         unsigned short  ndicpages;
         unsigned char   flags;
         char            filler[ 6 ];
