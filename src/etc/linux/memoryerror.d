@@ -1,5 +1,5 @@
 /**
- * Handle page protection error using Errors. NullPointerError is throw when deferencing null. A system dependant error is throw in other cases.
+ * Handle page protection error using errors. NullPointerError is thrown when dereferencing null. A system-dependant error is thrown in other cases.
  * Note: Only x86 and x86_64 are supported for now.
  *
  * License: Distributed under the
