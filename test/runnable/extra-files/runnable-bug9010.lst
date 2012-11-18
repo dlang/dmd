@@ -1,0 +1,23 @@
+       |// PERMUTE_ARGS: 
+       |// POST_SCRIPT: runnable/extra-files/bug9010-postscript.sh 
+       |// REQUIRED_ARGS: -cov 
+       | 
+       |struct A
+       |{
+       |    bool opEquals(A o) const
+       |    {
+      1|        return false;
+       |    }
+       |    
+       |}
+       |
+       |extern(C) void dmd_coverDestPath(string pathname); 
+       |
+       |void main()
+       |{
+      1|    dmd_coverDestPath("test_results/runnable"); 
+       |
+      1|    auto a = A();
+      1|    auto b = A();
+      1|    assert(a != b);
+       |}
