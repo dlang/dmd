@@ -996,6 +996,13 @@ void dwarf_func_start(Symbol *sfunc)
 void dwarf_func_term(Symbol *sfunc)
 {
    //printf("dwarf_func_term(sfunc = '%s')\n", sfunc->Sident);
+
+#if MARS
+    const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
+    if (!filename)
+        return;
+#endif
+
    unsigned funcabbrevcode;
 
     /* Put out the start of the debug_frame entry for this function
@@ -1092,7 +1099,6 @@ void dwarf_func_term(Symbol *sfunc)
     seg_data *sd = SegData[seg];
 
 #if MARS
-    const char* filename = sfunc->Sfunc->Fstartline.Sfilename;
     int filenum = dwarf_line_addfile(filename);
 #else
     int filenum = 1;
