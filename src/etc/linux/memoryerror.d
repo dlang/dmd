@@ -1,5 +1,5 @@
 /**
- * Handle page protection error using errors. NullPointerError is thrown when dereferencing null. A system-dependant error is thrown in other cases.
+ * Handle page protection error using errors. $(D NullPointerError) is thrown when dereferencing null. A system-dependant error is thrown in other cases.
  * Note: Only x86 and x86_64 are supported for now.
  *
  * License: Distributed under the
@@ -13,38 +13,38 @@ module etc.linux.memoryerror;
 version(linux)
 {
 
-private :
+private:
 import core.sys.posix.signal;
 import core.sys.posix.ucontext;
 
 // Register and unregister memory error handler.
-private shared sigaction_t old_sigaction;
+private __gshared sigaction_t old_sigaction;
 
-int register_memory_error_handler()
+int registerMemoryErrorHandler()
 {
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
     action.sa_flags = SA_SIGINFO;
     
-    auto oldptr = cast(sigaction_t*) &old_sigaction;
+    auto oldptr = &old_sigaction;
 
     return sigaction(SIGSEGV, &action, oldptr);
 }
 
-int unregister_memory_error_handler()
+int unregisterMemoryErrorHandler()
 {
-    auto oldptr = cast(sigaction_t*) &old_sigaction;
+    auto oldptr = &old_sigaction;
 
     return sigaction(SIGSEGV, oldptr, null);
 }
 
 // Sighandler space
 
-alias typeof({ucontext_t uc; return uc.uc_mcontext.gregs[0];}()) REG_TYPE;
+alias typeof(ucontext_t.init.uc_mcontext.gregs[0]) REG_TYPE;
 
 version(X86_64)
 {
-    static REG_TYPE saved_RDI, saved_RSI;
+    static REG_TYPE savedRDI, savedRSI;
 
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr)
@@ -52,21 +52,21 @@ version(X86_64)
         auto context = cast(ucontext_t*)contextPtr;
 
         // Save registers into global thread local, to allow recovery.
-        saved_RDI = context.uc_mcontext.gregs[REG_RDI];
-        saved_RSI = context.uc_mcontext.gregs[REG_RSI];
+        savedRDI = context.uc_mcontext.gregs[REG_RDI];
+        savedRSI = context.uc_mcontext.gregs[REG_RSI];
 
         // Hijack current context so we call our handler.
         auto rip = context.uc_mcontext.gregs[REG_RIP];
         auto addr = cast(REG_TYPE) info.si_addr;
         context.uc_mcontext.gregs[REG_RDI] = addr;
         context.uc_mcontext.gregs[REG_RSI] = rip;
-        context.uc_mcontext.gregs[REG_RIP] = (rip != addr)?(cast(REG_TYPE) &sigsegv_data_handler):(cast(REG_TYPE) &sigsegv_code_handler);
+        context.uc_mcontext.gregs[REG_RIP] = cast(REG_TYPE) ((rip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in RDI and original RIP in RSI.
 
     // This function is called when the segfault's cause is to call an invalid function pointer.
-    void sigsegv_code_handler()
+    void sigsegvCodeHandler()
     {
         asm
         {
@@ -77,11 +77,11 @@ version(X86_64)
             push RBP;
             mov RBP, RSP;
 
-            jmp sigsegv_data_handler;
+            jmp sigsegvDataHandler;
         }
     }
 
-    void sigsegv_data_handler()
+    void sigsegvDataHandler()
     {
         asm
         {
@@ -101,13 +101,13 @@ version(X86_64)
             push R11;    // With 10 pushes, the stack is still aligned.
 
             // Parameter address is already set as RAX.
-            call sigsegv_userspace_process;
+            call sigsegvUserspaceProcess;
 
             // Restore RDI and RSI values.
-            call restore_RDI;
+            call restoreRDI;
             push RAX;   // RDI is in RAX. It is pushed and will be poped back to RDI.
 
-            call restore_RSI;
+            call restoreRSI;
             mov RSI, RAX;
 
             pop RDI;
@@ -129,19 +129,19 @@ version(X86_64)
     }
 
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE restore_RDI()
+    REG_TYPE restoreRDI()
     {
-        return saved_RDI;
+        return savedRDI;
     }
 
-    REG_TYPE restore_RSI()
+    REG_TYPE restoreRSI()
     {
-        return saved_RSI;
+        return savedRSI;
     }
 }
 else version(X86)
 {
-    static REG_TYPE saved_EAX, saved_EDX;
+    static REG_TYPE savedEAX, savedEDX;
 
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr)
@@ -149,21 +149,21 @@ else version(X86)
         auto context = cast(ucontext_t*)contextPtr;
 
         // Save registers into global thread local, to allow recovery.
-        saved_EAX = context.uc_mcontext.gregs[REG_EAX];
-        saved_EDX = context.uc_mcontext.gregs[REG_EDX];
+        savedEAX = context.uc_mcontext.gregs[REG_EAX];
+        savedEDX = context.uc_mcontext.gregs[REG_EDX];
 
         // Hijack current context so we call our handler.
         auto eip = context.uc_mcontext.gregs[REG_EIP];
         auto addr = cast(REG_TYPE) info.si_addr;
         context.uc_mcontext.gregs[REG_EAX] = addr;
         context.uc_mcontext.gregs[REG_EDX] = eip;
-        context.uc_mcontext.gregs[REG_EIP] = (eip != addr)?(cast(REG_TYPE) &sigsegv_code_handler + 0x03):(cast(REG_TYPE) &sigsegv_data_handler);
+        context.uc_mcontext.gregs[REG_EIP] = cast(REG_TYPE) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in EAX and original EIP in EDX.
 
     // This function is called when the segfault's cause is to call an invalid function pointer.
-    void sigsegv_code_handler()
+    void sigsegvCodeHandler()
     {
         asm
         {
@@ -175,11 +175,11 @@ else version(X86)
             mov 8[ESP], EBP;
             mov EBP, ESP;
 
-            jmp sigsegv_data_handler;
+            jmp sigsegvDataHandler;
         }
     }
 
-    void sigsegv_data_handler()
+    void sigsegvDataHandler()
     {
         asm
         {
@@ -195,10 +195,10 @@ else version(X86)
                         // 4 pushes have been done. The stack is aligned.
 
             // Parameter address is already set as EAX.
-            call sigsegv_userspace_process;
+            call sigsegvUserspaceProcess;
 
             // Restore register values and return.
-            call restore_registers;
+            call restoreRegisters;
 
             pop ECX;
             popfd;      // Restore flags.
@@ -210,11 +210,11 @@ else version(X86)
     }
 
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE[2] restore_registers()
+    REG_TYPE[2] restoreRegisters()
     {
         REG_TYPE[2] restore;
-        restore[0] = saved_EAX;
-        restore[1] = saved_EDX;
+        restore[0] = savedEAX;
+        restore[1] = savedEDX;
 
         return restore;
     }
@@ -227,7 +227,7 @@ enum PAGE_SIZE = 4096;
 enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 
 // User space handler
-void sigsegv_userspace_process(void* address)
+void sigsegvUserspaceProcess(void* address)
 {
     // SEGV_MAPERR, SEGV_ACCERR.
     // The first page is protected to detect null dereferences.
@@ -239,7 +239,7 @@ void sigsegv_userspace_process(void* address)
     throw new InvalidPointerError();
 }
 
-public :
+public:
 
 /**
  * Thrown on POSIX systems when a SIGSEGV signal is received.
