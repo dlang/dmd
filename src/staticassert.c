@@ -79,6 +79,11 @@ void StaticAssert::semantic2(Scope *sc)
             msg = msg->semantic(sc);
             msg = msg->ctfeInterpret();
             hgs.console = 1;
+            StringExp * s = msg->toString();
+            if (s)
+            {   s->postfix = 0; // Don't display a trailing 'c'
+                msg = s;
+            }
             msg->toCBuffer(&buf, &hgs);
             error("%s", buf.toChars());
         }
