@@ -8661,14 +8661,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 if (search_function(ad, id))
                 {   Expression *e = new DotIdExp(loc, ae->e1, id);
 
-                    if (1 || !global.params.useDeprecated)
-                    {   deprecation("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
-                        return new ErrorExp();
-                    }
-
-                    e = new CallExp(loc, e, (Expression *)ae->arguments->data[0], e2);
-                    e = e->semantic(sc);
-                    return e;
+                    error("operator [] assignment overload with opIndex(i, value) illegal, use opIndexAssign(value, i)");
+                    return new ErrorExp();
                 }
             }
         }
