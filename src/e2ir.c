@@ -4814,6 +4814,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
+    if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
+    {   // Convert void[n] to ubyte[n]
+        tb = new TypeSArray(Type::tuns8, ((TypeSArray *)tb)->dim);
+        tb = tb->semantic(loc, NULL);
+    }
     if (elements)
     {
         /* Instead of passing the initializers on the stack, allocate the
