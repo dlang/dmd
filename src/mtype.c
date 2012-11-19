@@ -7416,7 +7416,10 @@ Expression *TypeEnum::defaultInit(Loc loc)
         error(loc, "forward reference of %s.init", toChars());
         return new ErrorExp();
     }
-    return sym->defaultval;
+    Expression *e = sym->defaultval;
+    e = e->copy();
+    e->type = this;
+    return e;
 }
 
 int TypeEnum::isZeroInit(Loc loc)
@@ -8071,9 +8074,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     if (size(loc) > PTRSIZE * 4 && !needsNested())
         structinit->sinit = sym->toInitializer();
 
-    // Why doesn't the StructLiteralExp constructor do this, when
-    // sym->type != NULL ?
-    structinit->type = sym->type;
+    structinit->type = this;
     return structinit;
 }
 
