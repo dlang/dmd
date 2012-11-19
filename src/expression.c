@@ -1670,7 +1670,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
-    if (sc->func)
+    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
     {
         /* Given:
          * void f()
@@ -1685,27 +1685,60 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
          * g() can call h() but not f()
          * i() can call h() and g() but not f()
          */
-        FuncDeclaration *outerfunc = sc->func;
+
         // Find the closest pure parent of the calling function
-        while (outerfunc->toParent2() &&
-                !outerfunc->isPureBypassingInference() &&
+        FuncDeclaration *outerfunc = sc->func;
+        while ( outerfunc->toParent2() &&
+               !outerfunc->isPureBypassingInference() &&
                 outerfunc->toParent2()->isFuncDeclaration())
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
         }
+
         // Find the closest pure parent of the called function
+        if (getFuncTemplateDecl(f))
+        {   // The closest pure parent of instantiated template function is
+            // always itself.
+            if (!f->isPure() && outerfunc->setImpure())
+                error("pure function '%s' cannot call impure function '%s'",
+                    outerfunc->toChars(), f->toChars());
+            return;
+        }
         FuncDeclaration *calledparent = f;
-        while (calledparent->toParent2() && !calledparent->isPureBypassingInference()
-            && calledparent->toParent2()->isFuncDeclaration() )
+        while ( calledparent->toParent2() &&
+               !calledparent->isPureBypassingInference() &&
+                calledparent->toParent2()->isFuncDeclaration())
         {
             calledparent = calledparent->toParent2()->isFuncDeclaration();
         }
+
+        /* Both escape!allocator and escapeImpl!allocator are impure at [a],
+         * but they are nested template function that instantiated in test().
+         * Then calling them from [a] doesn't break purity.
+         * It's similar to normal impure nested function inside pure function.
+         *
+         *   auto escapeImpl(alias fun)() {
+         *     return fun();
+         *   }
+         *   auto escape(alias fun)() {
+         *     return escape!fun();
+         *   }
+         *   pure string test() {
+         *     char[] allocator() { return new char[1]; }  // impure
+         *     return escape!allocator();	// [a]
+         *   }
+         */
+        if (getFuncTemplateDecl(outerfunc) &&
+            outerfunc->toParent2() == calledparent &&
+            f != calledparent)
+        {
+            return;
+        }
+
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
         if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
-            !sc->intypeof &&
-            !(sc->flags & SCOPEdebug) &&
-            !(f->isPure() || (calledparent == outerfunc)))
+            !f->isPure() && calledparent != outerfunc)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
