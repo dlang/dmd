@@ -2050,6 +2050,35 @@ void test9006()
 }
 
 /*******************************************/
+// 9035
+
+void test9035()
+{
+    static struct S {}
+
+    void f(T)(auto ref T t)
+    {
+        static assert(!__traits(isRef, t));
+    }
+
+    f(S.init); // ok, rvalue
+    f(S());    // ok, rvalue
+
+    int i;
+    struct Nested
+    {
+        int j = 0; void f() { ++i; }
+    }
+
+    f(Nested());    // ok, rvalue
+    f(Nested.init); // fails, lvalue
+
+    assert(Nested.init.j == 0);
+    (ref n) { n.j = 5; }(Nested.init);
+    assert(Nested.init.j == 0); // fails, j is 5
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2126,6 +2155,7 @@ int main()
     test8923c();
     test9003();
     test9006();
+    test9035();
 
     printf("Success\n");
     return 0;

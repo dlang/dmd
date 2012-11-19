@@ -4236,6 +4236,12 @@ Expression *StructLiteralExp::getField(Type *type, unsigned offset)
                 e = e->copy();
                 e->type = type;
             }
+            if (sinit && e->op == TOKstructliteral &&
+                e->type->needsNested())
+            {
+                StructLiteralExp *se = (StructLiteralExp *)e;
+                se->sinit = se->sd->toInitializer();
+            }
         }
     }
     return e;
