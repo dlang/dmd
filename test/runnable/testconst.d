@@ -2758,45 +2758,6 @@ void test8688()
 }
 
 /************************************/
-// 9046
-
-void test9046()
-{
-    foreach (T; TypeTuple!(byte, ubyte, short, ushort, int, uint, long, ulong, char, wchar, dchar,
-                           float, double, real, ifloat, idouble, ireal, cfloat, cdouble, creal))
-    foreach (U; TypeTuple!(T, const T, immutable T, shared T, shared const T, inout T, shared inout T))
-    {
-        static assert(is(typeof(U.init) == U));
-    }
-
-    foreach (T; TypeTuple!(int[], const(char)[], immutable(string[]), shared(const(int)[])[],
-                           int[1], const(char)[1], immutable(string[1]), shared(const(int)[1])[],
-                           int[int], const(char)[long], immutable(string[string]), shared(const(int)[double])[]))
-    foreach (U; TypeTuple!(T, const T, immutable T, shared T, shared const T, inout T, shared inout T))
-    {
-        static assert(is(typeof(U.init) == U));
-    }
-
-    int i;
-    enum E { x, y }
-    static struct S {}
-    static class  C {}
-    struct NS { void f(){ i++; } }
-    class  NC { void f(){ i++; } }
-    foreach (T; TypeTuple!(E, S, C, NS, NC))
-    foreach (U; TypeTuple!(T, const T, immutable T, shared T, shared const T, inout T, shared inout T))
-    {
-        static assert(is(typeof(U.init) == U));
-    }
-
-    alias TL = TypeTuple!(int, string, int[int]);
-    foreach (U; TypeTuple!(TL, const TL, immutable TL, shared TL, shared const TL, inout TL, shared inout TL))
-    {
-        static assert(is(typeof(U.init) == U));
-    }
-}
-
-/************************************/
 
 int main()
 {
@@ -2915,7 +2876,6 @@ int main()
     test8201();
     test8212();
     test8688();
-    test9046();
 
     printf("Success\n");
     return 0;
