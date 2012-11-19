@@ -1491,7 +1491,7 @@ int tryMain(size_t argc, char *argv[])
     return status;
 }
 
-int main(size_t argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int status = -1;
 #if WINDOWS_SEH
