@@ -4219,6 +4219,37 @@ void test5696()
 }
 
 /***************************************************/
+// 5933
+
+int dummyfunc();
+alias typeof(dummyfunc) FuncType;
+
+struct S5933a { auto x() { return 0; } }
+static assert(is(typeof(&S5933a.init.x) == int delegate()));
+
+struct S5933b { auto x() { return 0; } }
+static assert(is(typeof(S5933b.init.x) == FuncType));
+
+struct S5933c { auto x() { return 0; } }
+static assert(is(typeof(&S5933c.x) == int function()));
+
+struct S5933d { auto x() { return 0; } }
+static assert(is(typeof(S5933d.x) == FuncType));
+
+
+class C5933a { auto x() { return 0; } }
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
+
+class C5933b { auto x() { return 0; } }
+static assert(is(typeof((new C5933b()).x) == FuncType));
+
+class C5933c { auto x() { return 0; } }
+static assert(is(typeof(&C5933c.x) == int function()));
+
+class C5933d { auto x() { return 0; } }
+static assert(is(typeof(C5933d.x) == FuncType));
+
+/***************************************************/
 // 6084
 
 template TypeTuple6084(T...){ alias T TypeTuple6084; }
@@ -4828,6 +4859,18 @@ void test7150()
 {
     auto a = A7150(5, 5); // Error: template instance constructtest.A.__ctor!(int) error instantiating
     assert(A7150.cnt == 2);
+}
+
+/***************************************************/
+// 7159
+
+class HomeController7159 {
+    void* foo() {
+        return cast(void*)&HomeController7159.displayDefault;
+    }
+    auto displayDefault() {
+        return 1;
+    }
 }
 
 /***************************************************/
