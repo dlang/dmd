@@ -85,6 +85,81 @@ void test6351()
 }
 
 /***************************************************/
+// 7017
+
+template map7017(fun...) if (fun.length >= 1)
+{
+    auto map7017()
+    {
+        struct Result {
+            this(int dummy){}   // impure member function
+        }
+        return Result(0);   // impure call
+    }
+}
+
+int foo7017(immutable int x) pure nothrow { return 1; }
+
+void test7017a() pure
+{
+    int bar7017(immutable int x) pure nothrow { return 1; }
+
+    static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
+    static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
+    static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
+    static assert(!__traits(compiles, map7017!bar7017()));  // should pass, but fails
+}
+
+/***************************************************/
+// 7017 (little simpler cases)
+
+auto map7017a(alias fun)() { return fun();     }    // depends on purity of fun
+auto map7017b(alias fun)() { return;           }    // always pure
+auto map7017c(alias fun)() { return yyy7017(); }    // always impure
+
+int xxx7017() pure { return 1; }
+int yyy7017() { return 1; }
+
+void test7017b() pure
+{
+    static assert( __traits(compiles, map7017a!xxx7017() ));
+    static assert(!__traits(compiles, map7017a!yyy7017() ));
+
+    static assert( __traits(compiles, map7017b!xxx7017() ));
+    static assert( __traits(compiles, map7017b!yyy7017() ));
+
+    static assert(!__traits(compiles, map7017c!xxx7017() ));
+    static assert(!__traits(compiles, map7017c!yyy7017() ));
+}
+
+/***************************************************/
+// Test case from std.process
+
+auto escapeArgumentImpl(alias allocator)()
+{
+    return allocator();
+}
+
+auto escapeShellArgument(alias allocator)()
+{
+    return escapeArgumentImpl!allocator();
+}
+
+pure string escapeShellArguments()
+{
+    char[] allocator()
+    {
+        return new char[1];
+    }
+
+    /* Both escape!allocator and escapeImpl!allocator are impure,
+     * but they are nested template function that instantiated here.
+     * Then calling them from here doesn't break purity.
+     */
+    return escapeShellArgument!allocator();
+}
+
+/***************************************************/
 // 8751
 
 alias bool delegate(in int) pure Bar8751;
