@@ -1313,8 +1313,6 @@ BaseClasses *Parser::parseBaseClasses()
                 nextToken();
                 break;
         }
-        //if (prot)
-            //deprecation("use of base class protection is deprecated");
         if (token.value == TOKidentifier || token.value == TOKdot)
         {
             BaseClass *b = new BaseClass(parseBasicType(), protection);
@@ -3208,7 +3206,7 @@ Statement *Parser::parseStatement(int flags)
                     arg = new Parameter(STCin, NULL, token.ident, NULL);
                     nextToken();
                     nextToken();
-                    deprecation("if (v; e) is deprecated, use if (auto v = e)");
+                    error("if (v; e) is no longer valid, use if (auto v = e)");
                 }
             }
 
