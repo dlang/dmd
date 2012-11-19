@@ -1631,6 +1631,41 @@ void test9026()
 }
 
 /**********************************/
+// 9038
+
+mixin template Foo9038()
+{
+    string data = "default";
+}
+
+class Bar9038
+{
+    string data;
+    mixin Foo9038 f;
+}
+
+void check_data9038(alias M, T)(T obj)
+{
+    //writeln(M.stringof);
+    assert(obj.data == "Bar");
+    assert(obj.f.data == "F");
+}
+
+void test9038()
+{
+    auto bar = new Bar9038;
+    bar.data = "Bar";
+    bar.f.data = "F";
+
+    assert(bar.data == "Bar");
+    assert(bar.f.data == "F");
+
+    check_data9038!(Bar9038)(bar);
+    check_data9038!(Bar9038.f)(bar);
+    check_data9038!(bar.f)(bar);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1695,6 +1730,7 @@ int main()
     test8976();
     test8940();
     test9026();
+    test9038();
 
     printf("Success\n");
     return 0;
