@@ -2079,6 +2079,40 @@ void test9035()
 }
 
 /*******************************************/
+// 9036
+
+void test9036()
+{
+    static int i;
+    static struct S
+    {
+        this(this) { ++i; }
+    }
+
+    S s = S.init;
+    assert(i == 0); // postblit not called
+    s = S.init;
+    assert(i == 0); // postblit not called
+
+    int k;
+    static int j = 0;
+    struct N
+    {
+        this(this)
+        {
+            ++j;
+            assert(this.tupleof[$-1] != null); // fails
+        }
+        void f() { ++k; }
+    }
+
+    N n = N.init;
+    assert(j == 0); // fails, j = 1, postblit called
+    n = N.init;
+    assert(j == 0); // fails, j = 2, postblit called
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2156,6 +2190,7 @@ int main()
     test9003();
     test9006();
     test9035();
+    test9036();
 
     printf("Success\n");
     return 0;
