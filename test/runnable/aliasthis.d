@@ -409,7 +409,6 @@ struct Derived2787
 
 void test5679()
 {
-/+
     class Foo {}
 
     class Base
@@ -424,7 +423,6 @@ void test5679()
     Derived[] dl;
     Derived d = new Derived();
     dl ~= d; // Error: cannot append type alias_test.Base to type Derived[]
-+/
 }
 
 /***********************************/
