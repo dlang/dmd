@@ -689,6 +689,11 @@ class TypeInfo_AssociativeArray : TypeInfo
                     this.value == c.value;
     }
 
+    override hash_t getHash(in void* p) nothrow @trusted
+    {
+        return _aaGetHash(cast(void*)p, this);
+    }
+
     // BUG: need to add the rest of the functions
 
     override @property size_t tsize() nothrow pure const
@@ -2100,6 +2105,7 @@ extern (C)
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
+    hash_t _aaGetHash(void* aa, const(TypeInfo) tiRaw) nothrow;
 }
 
 struct AssociativeArray(Key, Value)
