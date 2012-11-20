@@ -607,8 +607,9 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     if (e1->op == TOKstructliteral &&
         e1->type->implicitConvTo(type) >= MATCHconst)
     {
+        e1->type = type;
         if (X) printf(" returning2 %s\n", e1->toChars());
-        goto L1;
+        return e1;
     }
 
     /* The first test here is to prevent infinite loops
@@ -618,8 +619,9 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     if (e1->op == TOKnull &&
         (type->ty == Tpointer || type->ty == Tclass || type->ty == Tarray))
     {
+        e1->type = type;
         if (X) printf(" returning3 %s\n", e1->toChars());
-        goto L1;
+        return e1;
     }
 
     if (result & WANTflags && type->ty == Tclass && e1->type->ty == Tclass)
@@ -633,16 +635,18 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
         cdto   = type->isClassHandle();
         if (cdto->isBaseOf(cdfrom, &offset) && offset == 0)
         {
+            e1->type = type;
             if (X) printf(" returning4 %s\n", e1->toChars());
-            goto L1;
+            return e1;
         }
     }
 
     // We can convert 'head const' to mutable
     if (to->mutableOf()->constOf()->equals(e1->type->mutableOf()->constOf()))
     {
+        e1->type = type;
         if (X) printf(" returning5 %s\n", e1->toChars());
-        goto L1;
+        return e1;
     }
 
     Expression *e;
@@ -654,7 +658,8 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
             if (type->size() == e1->type->size() &&
                 type->toBasetype()->ty != Tsarray)
             {
-                goto L1;
+                e1->type = type;
+                return e1;
             }
             return this;
         }
@@ -666,10 +671,6 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     else
         e = this;
     if (X) printf(" returning6 %s\n", e->toChars());
-    return e;
-L1: // Returning e1 with changing its type
-    e = (e1old == e1 ? e1->copy() : e1);
-    e->type = type;
     return e;
 #undef X
 }
