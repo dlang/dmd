@@ -1681,49 +1681,6 @@ void FuncDeclaration::semantic3(Scope *sc)
     //fflush(stdout);
 }
 
-bool FuncDeclaration::functionSemantic(Scope *sc)
-{
-    if (!originalType && scope)     // semantic not yet run
-    {
-        unsigned oldgag = global.gag;
-        if (global.isSpeculativeGagging() && !isSpeculative())
-            global.gag = 0;
-        semantic(scope);
-        global.gag = oldgag;
-    }
-
-    // if inferring return type, sematic3 needs to be run
-    if (scope && (inferRetType && type && !type->nextOf() ||
-                  getFuncTemplateDecl(this)))
-    {
-        TemplateInstance *spec = isSpeculative();
-        int olderrs = global.errors;
-        // If it isn't speculative, we need to show errors
-        unsigned oldgag = global.gag;
-        if (global.gag && !spec)
-            global.gag = 0;
-        semantic3(scope);
-        global.gag = oldgag;
-        // Update the template instantiation with the number
-        // of errors which occured.
-        if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
-    }
-
-    if (isUnitTestDeclaration())
-    {
-        error("cannot call unittest function %s", toChars());
-        return false;
-    }
-    if (!type->deco)
-    {
-        error("forward reference to %s", toChars());
-        return false;
-    }
-
-    return true;
-}
-
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());

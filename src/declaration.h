@@ -632,7 +632,6 @@ struct FuncDeclaration : Declaration
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
-    bool functionSemantic(Scope *sc);
     // called from semantic3
     void varArgs(Scope *sc, TypeFunction*, VarDeclaration *&, VarDeclaration *&);
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
