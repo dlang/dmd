@@ -27,21 +27,21 @@ void test1()
 
     int[6] foo = 1;
     for (i = 0; i < foo.length; i++)
-        assert(foo[i] == 1);
+	assert(foo[i] == 1);
 
     int[10] bar;
     for (i = 0; i < bar.length; i++)
-        assert(bar[i] == 0);
+	assert(bar[i] == 0);
 
     foo[3] = 4;
     int[6] abc = foo;
     for (i = 0; i < abc.length; i++)
-        assert(abc[i] == foo[i]);
+	assert(abc[i] == foo[i]);
 
     abc[2] = 27;
-    foo = abc;
+    foo[] = abc;
     for (i = 0; i < abc.length; i++)
-        assert(abc[i] == foo[i]);
+	assert(abc[i] == foo[i]);
 }
 
 /* ================================ */
@@ -64,32 +64,32 @@ void test2()
 
     printf("test2()\n");
     for (i = 0; i < foo1.length; i++)
-        assert(foo1[i] == 0);
+	assert(foo1[i] == 0);
     for (i = 0; i < foo2.length; i++)
-    {   printf("foo2[%d] = %d\n", i, foo2[i]);
-        assert(foo2[i] == 0);
+    {	printf("foo2[%d] = %d\n", i, foo2[i]);
+	assert(foo2[i] == 0);
     }
     for (i = 0; i < foo3.length; i++)
-        assert(foo3[i] == 0);
+	assert(foo3[i] == 0);
     for (i = 0; i < foo4.length; i++)
-        assert(foo4[i] == 0);
+	assert(foo4[i] == 0);
     for (i = 0; i < foo5.length; i++)
     {
-        printf("foo5[%d] = %d\n", i, foo5[i]);
-        assert(foo5[i] == 0);
+	printf("foo5[%d] = %d\n", i, foo5[i]);
+	assert(foo5[i] == 0);
     }
     for (i = 0; i < foo6.length; i++)
-        assert(foo6[i] == 0);
+	assert(foo6[i] == 0);
     for (i = 0; i < foo7.length; i++)
-        assert(foo7[i] == 0);
+	assert(foo7[i] == 0);
     for (i = 0; i < foo8.length; i++)
-        assert(foo8[i] == 0);
+	assert(foo8[i] == 0);
     for (i = 0; i < foo9.length; i++)
-        assert(isnan(foo9[i]));
+	assert(isnan(foo9[i]));
     for (i = 0; i < foo10.length; i++)
-        assert(isnan(foo10[i]));
+	assert(isnan(foo10[i]));
     for (i = 0; i < foo11.length; i++)
-        assert(isnan(foo11[i]));
+	assert(isnan(foo11[i]));
 }
 
 /* ================================ */
@@ -111,27 +111,27 @@ void test3()
     int i;
 
     for (i = 0; i < foo1.length; i++)
-        assert(foo1[i] == 20);
+	assert(foo1[i] == 20);
     for (i = 0; i < foo2.length; i++)
-        assert(foo2[i] == 21);
+	assert(foo2[i] == 21);
     for (i = 0; i < foo3.length; i++)
-        assert(foo3[i] == 22);
+	assert(foo3[i] == 22);
     for (i = 0; i < foo4.length; i++)
-        assert(foo4[i] == 23);
+	assert(foo4[i] == 23);
     for (i = 0; i < foo5.length; i++)
-        assert(foo5[i] == 24);
+	assert(foo5[i] == 24);
     for (i = 0; i < foo6.length; i++)
-        assert(foo6[i] == 25);
+	assert(foo6[i] == 25);
     for (i = 0; i < foo7.length; i++)
-        assert(foo7[i] == 26);
+	assert(foo7[i] == 26);
     for (i = 0; i < foo8.length; i++)
-        assert(foo8[i] == 27);
+	assert(foo8[i] == 27);
     for (i = 0; i < foo9.length; i++)
-        assert(foo9[i] == 28);
+	assert(foo9[i] == 28);
     for (i = 0; i < foo10.length; i++)
-        assert(foo10[i] == 29);
+	assert(foo10[i] == 29);
     for (i = 0; i < foo11.length; i++)
-        assert(foo11[i] == 30);
+	assert(foo11[i] == 30);
 }
 
 /* ================================ */
@@ -155,9 +155,9 @@ void test4()
     int j;
     for (j = 0; j < 3; j++)
     {
-        assert(c[j].b.length == 6);
-        i = cmp(c[j].b, "string");
-        assert(i == 0);
+	assert(c[j].b.length == 6);
+	i = cmp(c[j].b, "string");
+	assert(i == 0);
     }
 }
 
@@ -185,8 +185,8 @@ void test5()
     int i;
     for (i = 0; i < 5; i++)
     {
-        assert(foo5[i].c == 0);
-        assert(cmp(foo5[i].b, "string") == 0);
+	assert(foo5[i].c == 0);
+	assert(cmp(foo5[i].b, "string") == 0);
     }
 }
 
@@ -199,11 +199,11 @@ struct TRECT6
     union {
       struct
       {
-        int Left = 3, Top = 4, Right = 5, Bottom = 6;
+	int Left = 3, Top = 4, Right = 5, Bottom = 6;
       }
       struct
       {
-        long TopLeft, BottomRight;
+	long TopLeft, BottomRight;
       }
     }
 
@@ -269,20 +269,20 @@ struct TestVectors
 
 TestVectors tva[] =
 [
-  {  pattern:"(a)\\1",  input:"abaab",  result:"y", format:"&", replace:"aa" },
-  {  pattern:"abc",     input:"abc",    result:"y", format:"&", replace:"abc" },
+  {  pattern:"(a)\\1",	input:"abaab",	result:"y",	format:"&",	replace:"aa" },
+  {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
 ];
 
 TestVectors tvs[2] =
 [
-  {  pattern:"(a)\\1",  input:"abaab",  result:"y", format:"&", replace:"aa" },
-  {  pattern:"abc",     input:"abc",    result:"y", format:"&", replace:"abc" },
+  {  pattern:"(a)\\1",	input:"abaab",	result:"y",	format:"&",	replace:"aa" },
+  {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
 ];
 
 TestVectors* tvp =
 [
-  {  pattern:"(a)\\1",  input:"abaab",  result:"y", format:"&", replace:"aa" },
-  {  pattern:"abc",     input:"abc",    result:"y", format:"&", replace:"abc" },
+  {  pattern:"(a)\\1",	input:"abaab",	result:"y",	format:"&",	replace:"aa" },
+  {  pattern:"abc",	input:"abc",	result:"y",	format:"&",	replace:"abc" },
 ];
 
 void test7()
@@ -416,17 +416,17 @@ class X13 { }
 
 class A13
 {
-    X13 B(X13 x, out int i)
-    {
-        i = 666;
-        return new X13;
-    }
+     X13 B(X13 x, out int i)
+     {
+	i = 666;
+	return new X13;
+     }
 
-    X13 B(X13 x)
-    {
-        int j;
-        return B(x, j);
-    }
+     X13 B(X13 x)
+     {
+	int j;
+	return B(x, j);
+     }
 }
 
 void test13()
@@ -448,11 +448,11 @@ int testx14(int x)
 {
     try
     {
-        return 3;
+	return 3;
     }
     finally
     {
-        foo14();
+	foo14();
     }
 }
 
@@ -461,8 +461,8 @@ class bar
     int y;
     synchronized int sync(int x)
     {
-        printf("in sync(%d) = %d\n", x, y + 3);
-        return y + 3;
+	printf("in sync(%d) = %d\n", x, y + 3);
+	return y + 3;
     }
 }
 
@@ -484,9 +484,9 @@ int foo15(int i)
 {
     switch (i)
     {
-        case 7:
-        case 8:
-            return i;
+	case 7:
+	case 8:
+	    return i;
     }
     return 0;
 }
@@ -496,12 +496,12 @@ void test15()
     int i = 0;
     try
     {
-        foo15(3);
+	foo15(3);
     }
     catch (SwitchError sw)
     {
-        //printf("caught switch error\n");
-        i = 1;
+	//printf("caught switch error\n");
+	i = 1;
     }
     assert(i == 1);
 }
@@ -512,10 +512,10 @@ void test15()
 
 struct GUID {          // size is 16
     align(1):
-        uint    Data1;
-        ushort  Data2;
-        ushort  Data3;
-        ubyte   Data4[8];
+	uint    Data1;
+	ushort  Data2;
+	ushort  Data3;
+	ubyte   Data4[8];
 }
 
 
@@ -599,7 +599,7 @@ void test19()
     int i;
 
     for (i = 0; i < 0xffff; i++)
-        assert(foo19[i] == 0);
+	assert(foo19[i] == 0);
 }
 
 /* ================================ */
@@ -692,21 +692,21 @@ struct Foo23
 
     int abc()
     {
-        def23(3, 4);
-        a *= b;
-        bar();
-        return a;
+	def23(3, 4);
+	a *= b;
+	bar();
+	return a;
     }
 
     int bar()
     {
-        a *= 2;
-        return a;
+	a *= 2;
+	return a;
     }
 
     invariant()
     {
-        assert(c == 9);
+	assert(c == 9);
     }
 }
 
@@ -724,8 +724,8 @@ void test23()
 
 struct Foo24
 {
-    int x, y;
-    int[] z;
+	int x, y;
+	int[] z;
 }
 
 void test24()
@@ -755,9 +755,9 @@ void test25()
 
     for (int i = 0; i < a.length - 1; i++)
     {
-        //printf("i = %d", i);
-        //printf(" %d %d\n", a[i], a[i + 1]);
-        assert(a[i] <= a[i + 1]);
+	//printf("i = %d", i);
+	//printf(" %d %d\n", a[i], a[i + 1]);
+	assert(a[i] <= a[i + 1]);
     }
 }
 
@@ -778,12 +778,12 @@ class Foo29
 {
     ~this()
     {
-        x29 = bar();
+	x29 = bar();
     }
 
     int bar()
     {
-        return 3;
+	return 3;
     }
 }
 
@@ -812,13 +812,13 @@ struct GC30
     void *malloc()
     {   void *p;
 
-        synchronized (gcLock)
-        {
-            p = test();
-            if (!p)
-                return null;
-        }
-        return p;
+	synchronized (gcLock)
+	{
+	    p = test();
+	    if (!p)
+		return null;
+	}
+	return p;
     }
 
     void *test() { return null; }
@@ -843,7 +843,7 @@ void test31()
     int i = 3;
 
     while (i--)
-        bar = foo[];
+        bar = foo;
 }
 
 /* ================================ */
@@ -894,7 +894,7 @@ void test34()
 
     foo34(x);
 
-    y = x[];
+    y = x;
     foo34(y);
 
     z = x.ptr;
@@ -907,10 +907,10 @@ class X35
 {
     final synchronized void foo()
     {
-        for(;;)
-        {
-            break;
-        }
+	for(;;)
+	{
+	    break;
+	}
     }
 }
 
@@ -948,25 +948,25 @@ void test38()
 {
     version (D_Bits)
     {
-        bit a[];
-        a.length=3;
-        a[0]=false;
-        a[1]=true;
-        a[2]=false;
+	bit a[];
+	a.length=3;
+	a[0]=false;
+	a[1]=true;
+	a[2]=false;
 
-        bit[] b=a.sort;
+	bit[] b=a.sort;
 
-        assert(a.length==3);
-        assert(!a[0]);
-        assert(!a[1]);
-        assert(a[2]);
+	assert(a.length==3);
+	assert(!a[0]);
+	assert(!a[1]);
+	assert(a[2]);
 
-        assert(b.length==3);
-        assert(!b[0]);
-        assert(!b[1]);
-        assert(b[2]);
-
-        assert(&a != &b);
+	assert(b.length==3);
+	assert(!b[0]);
+	assert(!b[1]);
+	assert(b[2]);
+	
+	assert(&a != &b);
     }
 }
 
@@ -974,14 +974,14 @@ void test38()
 
 void test39()
 {
-    char[] array;
-    array.length=4;
-    char letter = 'a';
-    array[0..4]=letter;
-    assert(array[0]=='a');
-    assert(array[1]=='a');
-    assert(array[2]=='a');
-    assert(array[3]=='a');
+	char[] array;
+	array.length=4;
+	char letter = 'a';
+	array[0..4]=letter;
+	assert(array[0]=='a');
+	assert(array[1]=='a');
+	assert(array[2]=='a');
+	assert(array[3]=='a');
 }
 
 /* ================================ */
@@ -990,17 +990,17 @@ int dummyJob;
 
 int dummy()
 {
-    return ++dummyJob;
+	return ++dummyJob;
 }
 
 void bar40(){
-    return cast(void)dummy();
+	return cast(void)dummy();
 }
 
 int foo40()
 {
-    bar40();
-    return dummyJob-1;
+	bar40();
+	return dummyJob-1;
 }
 
 void test40()
@@ -1014,33 +1014,33 @@ int status;
 
 void check()
 {
-    assert(status==1);
-    void main(int dummy){
-        assert(status==3);
-        status+=5;
-    }
-    status+=2;
-    assert(status==3);
-    main(2);
-    assert(status==8);
-    status+=7;
+	assert(status==1);
+	void main(int dummy){
+		assert(status==3);
+		status+=5;
+	}
+	status+=2;
+	assert(status==3);
+	main(2);
+	assert(status==8);
+	status+=7;
 }
 
 void test41()
 {
-    status++;
-    assert(status==1);
-    check();
-    assert(status==15);
+	status++;
+	assert(status==1);
+	check();
+	assert(status==15);
 }
 
 /* ================================ */
 
 void test42()
 {
-    real[10] array;
-    real[] copy = array.dup;
-    copy.sort;
+	real[10] array;
+	real[] copy = array.dup;
+	copy.sort;
 }
 
 /* ================================ */
@@ -1074,10 +1074,10 @@ alias int MyInt;
 
 void test45()
 {
-    MyInt test(string c="x"){
-        return 2;
-    }
-    assert(test("abc")==2);
+	MyInt test(string c="x"){
+		return 2;
+	}
+	assert(test("abc")==2);
 }
 
 /* ================================ */
@@ -1086,31 +1086,31 @@ int status46;
 
 class Check46
 {
-    void sum(byte[] b){
-        status46++;
-    }
+	void sum(byte[] b){
+		status46++;
+	}
 
-    void add(byte b){
-        assert(0);
-    }
+	void add(byte b){
+		assert(0);
+	}	
 
-    alias sum write;
-    alias add write;
-
-    void test(){
-        byte[] buffer;
-        write(buffer);
-    }
+	alias sum write;
+	alias add write;
+	
+	void test(){
+		byte[] buffer;
+		write(buffer);
+	}
 }
 
 
 void test46()
 {
-    Check46 c = new Check46();
-    status46=0;
-    assert(status46==0);
-    c.test();
-    assert(status46==1);
+	Check46 c = new Check46();
+	status46=0;
+	assert(status46==0);
+	c.test();
+	assert(status46==1);
 }
 
 /* ================================ */
@@ -1122,46 +1122,46 @@ int foo47(int arg)
 loop:
     while(1)
     {
-        try
-        {
-            try
-            {
-                if (arg == 1)
-                {
-                    break loop;
-                }
-            }
-            finally
-            {
-                assert(status47==0);
-                status47+=2;
-            }
+	try
+	{
+	    try
+	    {
+		if (arg == 1)
+		{
+		    break loop;
+		}
+	    }
+	    finally
+	    {
+		assert(status47==0);
+		status47+=2;
+	    }
 
-            try
-            {
-                assert(0);
-            }
-            finally
-            {
-                assert(0);
-            }
-        }
-        finally
-        {
-            assert(status47==2);
-            status47+=3;
-        }
-        assert(0);
-        return 0;
+	    try
+	    {
+		assert(0);
+	    }
+	    finally
+	    {
+		assert(0);
+	    }
+	}
+	finally
+	{
+	    assert(status47==2);
+	    status47+=3;
+	}
+	assert(0);
+	return 0;
     }
     return -1;
 }
 
 void test47()
 {
-    assert(status47 == 0);
-    assert(foo47(1) == -1);
-    assert(status47 == 5);
+	assert(status47 == 0);
+	assert(foo47(1) == -1);
+	assert(status47 == 5);
 }
 
 /* ================================ */
@@ -1173,21 +1173,21 @@ int foo48(int arg)
 
 loop:
     while(1){
-        try{
-            try{
-                if(arg == 1)
-                {
-                    break loop;
-                }
-            }finally{
-                assert(status48==0);
-                status48+=2;
-            }
-        }finally{
-            assert(status48==2);
-            status48+=3;
-        }
-        return 0;
+	try{
+	    try{
+		if(arg == 1)
+		{
+		    break loop;
+		}
+	    }finally{
+		assert(status48==0);
+		status48+=2;
+	    }
+	}finally{
+	    assert(status48==2);
+	    status48+=3;
+	}
+	return 0;
     }
     return -1;
 }
@@ -1203,7 +1203,7 @@ void test48()
 
 int getch49()
 {
-    return 0;
+	return 0;
 }
 
 void writefln49(...)
@@ -1211,68 +1211,68 @@ void writefln49(...)
 }
 
 class Cout{
-    Cout set(int x){
-        return this;
-    }
-    alias set opShl;
+	Cout set(int x){
+		return this;
+	}
+	alias set opShl;
 }
 
 void test49()
 {
-    Cout cout = new Cout;
-    cout << 5 << 4;
-    writefln49,getch49;
+	Cout cout = new Cout;
+	cout << 5 << 4;
+	writefln49,getch49;
 }
 
 /* ================================ */
 
 struct S50{
-    int i;
+	int i;
 }
 
 class C50{
-    static S50 prop(){
-        S50 s;
-        return s;
-    }
+	static S50 prop(){
+		S50 s;
+		return s;
+	}
 
-    static void prop(S50 s){
-    }
+	static void prop(S50 s){
+	}
 }
 
 void test50()
 {
-    C50 c = new C50();
-    c.prop = true ? C50.prop : C50.prop;
-    assert(c.prop.i == 0);
-    c.prop.i = 7;
-    assert(c.prop.i != 7);
+	C50 c = new C50();
+	c.prop = true ? C50.prop : C50.prop;
+	assert(c.prop.i == 0);
+	c.prop.i = 7;
+	assert(c.prop.i != 7);
 }
 
 /* ================================ */
 
 void func1()
 {
-    static class foo {
-        public int a;
-    }
+	static class foo {
+		public int a;
+	}
 }
 
 void test51()
 {
-    static class foo {
-        public int b;
-    }
+	static class foo {
+		public int b;
+	}
 
-    foo bar = new foo();
-    bar.b = 255;
+	foo bar = new foo();
+	bar.b = 255;
 }
 
 /* ================================ */
 
 struct S52
 {
-    int i;
+	int i;
 }
 
 const int a52 = 3;
@@ -1292,40 +1292,40 @@ const int b53 = a53 + 1;
 
 void test53()
 {
-    assert(a53==1);
-    assert(b53==2);
-    assert(c53==3);
+	assert(a53==1);
+	assert(b53==2);
+	assert(c53==3);
 }
 
 /* ================================ */
 void test54()
 {
-    int status=0;
+	int status=0;
 
-    try
-    {
-        try
-        {
-            status++;
-            assert(status==1);
-            throw new Exception("first");
-        }
-        finally
-        {
-            printf("finally\n");
-            status++;
-            assert(status==2);
-            status++;
-            throw new Exception("second");
-        }
-    }
-    catch(Exception e)
-    {
-        printf("catch %.*s\n", e.msg.length, e.msg.ptr);
-        assert(e.msg == "first");
-        assert(e.next.msg == "second");
-    }
-    printf("success54\n");
+	try
+	{
+		try
+		{
+			status++;
+			assert(status==1);
+			throw new Exception("first");
+		}
+		finally
+		{
+			printf("finally\n");
+			status++;
+			assert(status==2);
+			status++;
+			throw new Exception("second");
+		}
+	}
+	catch(Exception e)
+	{
+		printf("catch %.*s\n", e.msg.length, e.msg.ptr);
+                assert(e.msg == "first");
+                assert(e.next.msg == "second");
+	}
+	printf("success54\n");
 }
 
 /* ================================ */
@@ -1334,44 +1334,44 @@ void foo55()
 {
     try
     {
-        Exception x = new Exception("second");
-        printf("inner throw %p\n", x);
-        throw x;
+	Exception x = new Exception("second");
+	printf("inner throw %p\n", x);
+	throw x;
     }
     catch (Exception e)
     {
-        printf("inner catch %p\n", e);
-        printf("e.msg == %.*s\n", e.msg.length, e.msg.ptr);
-        assert(e.msg == "second");
-        //assert(e.msg == "first");
-        //assert(e.next.msg == "second");
+	printf("inner catch %p\n", e);
+	printf("e.msg == %.*s\n", e.msg.length, e.msg.ptr);
+	assert(e.msg == "second");
+	//assert(e.msg == "first");
+	//assert(e.next.msg == "second");
     }
 }
 
 void test55()
 {
-    int status=0;
-    try{
-        try{
-            status++;
-            assert(status==1);
-            Exception x = new Exception("first");
-            printf("outer throw %p\n", x);
-            throw x;
-        }finally{
-            printf("finally\n");
-            status++;
-            assert(status==2);
-            status++;
-            foo55();
-            printf("finally2\n");
-        }
-    }catch(Exception e){
-        printf("outer catch %p\n", e);
-        assert(e.msg == "first");
-        assert(status==3);
-    }
-    printf("success55\n");
+	int status=0;
+	try{
+		try{
+			status++;
+			assert(status==1);
+			Exception x = new Exception("first");
+			printf("outer throw %p\n", x);
+			throw x;
+		}finally{
+			printf("finally\n");
+			status++;
+			assert(status==2);
+			status++;
+			foo55();
+			printf("finally2\n");
+		}
+	}catch(Exception e){
+		printf("outer catch %p\n", e);
+		assert(e.msg == "first");
+		assert(status==3);
+	}
+	printf("success55\n");
 }
 
 /* ================================ */
@@ -1395,15 +1395,15 @@ void test57()
   {
     void displayb(char[] name, bit[] x)
     {
-        writef("%-5s: ", name);
-        foreach(bit b; x)
-            writef("%d",b);
-        writefln("");
+	writef("%-5s: ", name);
+	foreach(bit b; x)
+	    writef("%d",b);
+	writefln("");        
     }
 
     bit[] a;
     bit[] b;
-
+    
     a.length = 7;
     a[0] = 0;
     a[1] = 1;
@@ -1412,25 +1412,25 @@ void test57()
     a[4] = 0;
     a[5] = 1;
     a[6] = 0;
-
+    
     displayb("a", a);
-
+    
     b ~= a;
     displayb("b1", b);
-
+    
     b ~= a;
     displayb("b2", b);
 
     for (int i = 0; i < a.length; i++)
     {
-        assert(b[i] == a[i]);
-        assert(b[i+7] == a[i]);
+	assert(b[i] == a[i]);
+	assert(b[i+7] == a[i]);
     }
 
-    b.length = 0;
+    b.length = 0;    
     b ~= a;
     displayb("b3", b);
-
+    
     b.length = b.length + 7;
     for(int i = 0; i < a.length; i++)
         b[i+7] = a[i];
@@ -1438,8 +1438,8 @@ void test57()
 
     for (int i = 0; i < a.length; i++)
     {
-        assert(b[i] == a[i]);
-        assert(b[i+7] == a[i]);
+	assert(b[i] == a[i]);
+	assert(b[i+7] == a[i]);
     }
   }
 }

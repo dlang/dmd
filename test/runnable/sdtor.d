@@ -458,7 +458,7 @@ void foo20()
     S20 s;
     S20[3] a;
     assert(S20.r == "");
-    a[] = s;
+    a = s;
     assert(S20.r == "=~=~=~");
 }
 
@@ -512,7 +512,7 @@ void foo22()
     S22[3] s;
     S22[3][2] a;
     assert(S22.r == "");
-    a[] = s;
+    a = s;
     assert(S22.r == "===~~~===~~~");
     S22.r = null;
 }

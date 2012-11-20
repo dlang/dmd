@@ -10786,17 +10786,17 @@ Ltupleassign:
                 e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                 e2 = e2->semantic(sc);
             }
-            else if (!global.params.useDeprecated && op == TOKassign &&
+            else if (global.params.warnings && !global.gag && op == TOKassign &&
                      e2->op != TOKarrayliteral && e2->op != TOKstring)
             {   // Disallow sa = da (Converted to sa[] = da[])
                 // Disallow sa = e  (Converted to sa[] = e)
                 const char* e1str = e1->toChars();
                 const char* e2str = e2->toChars();
                 if (e2->op == TOKslice || t2->implicitConvTo(t1->nextOf()))
-                    error("implicit element-wise assignment %s = %s is deprecated, instead use (%s)[] = %s",
+                    warning("explicit element-wise assignment (%s)[] = %s is better than %s = %s",
                         e1str, e2str, e1str, e2str);
                 else
-                    error("implicit element-wise assignment %s = %s is deprecated, instead use (%s)[] = (%s)[]",
+                    warning("explicit element-wise assignment (%s)[] = (%s)[] is better than %s = %s",
                         e1str, e2str, e1str, e2str);
                 return new ErrorExp();
             }
@@ -10884,7 +10884,7 @@ Ltupleassign:
         {
             checkPostblit(e2->loc, t2->nextOf());
         }
-        if (!global.params.useDeprecated && op == TOKassign &&
+        if (global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
             e2->op != TOKarrayliteral && e2->op != TOKstring &&
             !(e2->op == TOKadd || e2->op == TOKmin ||
@@ -10898,7 +10898,7 @@ Ltupleassign:
         {
             const char* e1str = e1->toChars();
             const char* e2str = e2->toChars();
-            error("implicit element-wise assignment %s = %s is deprecated, instead use %s = (%s)[]",
+            warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s",
                 e1str, e2str, e1str, e2str);
             return new ErrorExp();
         }
@@ -10909,7 +10909,7 @@ Ltupleassign:
     }
     else
     {
-        if (!global.params.useDeprecated && op == TOKassign &&
+        if (global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
             e2->op != TOKslice && //e2->op != TOKarrayliteral &&
             t2->implicitConvTo(t1))
@@ -10917,7 +10917,7 @@ Ltupleassign:
             // Disallow da   = sa (Converted to da   = sa[])
             const char* e1str = e1->toChars();
             const char* e2str = e2->toChars();
-            error("implicit %s assignment %s = %s is deprecated, instead use %s = (%s)[]",
+            warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
                 e1->op == TOKslice ? "element-wise" : "slice",
                 e1str, e2str, e1str, e2str);
             return new ErrorExp();

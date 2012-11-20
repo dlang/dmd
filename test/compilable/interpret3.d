@@ -638,14 +638,14 @@ immutable int[1][1] bug5147imm = bug5147();
 // Index referencing
 int[2][2] indexref() {
     int[2][2] a = 2;
-    a[0][]=7;
+    a[0]=7;
 
     int[][] b = [null, null];
     b[0..$] = a[0][0..2];
     assert(b[0][0]==7);
     assert(b[0][1]==7);
     int [] w;
-    w = a[0][];
+    w = a[0];
     assert(w[0]==7);
     w[0..$] = 5;
     assert(a[0]!=[7,7]);
@@ -655,7 +655,7 @@ int[2][2] indexref() {
 }
 int[2][2] indexref2() {
     int[2][2] a = 2;
-    a[0][]=7;
+    a[0]=7;
 
     int[][2] b = null;
     b[0..$] = a[0];
@@ -663,7 +663,7 @@ int[2][2] indexref2() {
     assert(b[0][1]==7);
     assert(b == [[7,7], [7,7]]);
     int [] w;
-    w = a[0][];
+    w = a[0];
     assert(w[0]==7);
     w[0..$] = 5;
     assert(a[0]!=[7,7]);
@@ -673,14 +673,14 @@ int[2][2] indexref2() {
 }
 int[2][2] indexref3() {
     int[2][2] a = 2;
-    a[0][]=7;
+    a[0]=7;
 
     int[][2] b = [null, null];
     b[0..$] = a[0];
     assert(b[0][0]==7);
     assert(b[0][1]==7);
     int [] w;
-    w = a[0][];
+    w = a[0];
     assert(w[0]==7);
     w[0..$] = 5;
     assert(a[0]!=[7,7]);
@@ -690,14 +690,14 @@ int[2][2] indexref3() {
 }
 int[2][2] indexref4() {
     int[2][2] a = 2;
-    a[0][]=7;
+    a[0]=7;
 
     int[][2] b =[[1,2,3],[1,2,3]]; // wrong code
-    b[0] = a[0][];
+    b[0] = a[0];
     assert(b[0][0]==7);
     assert(b[0][1]==7);
     int [] w;
-    w = a[0][]; //[0..$];
+    w = a[0]; //[0..$];
     assert(w[0]==7);
     w[0..$] = 5;
     assert(a[0]!=[7,7]);
@@ -1126,11 +1126,11 @@ int quop()
     int [] heap = new int[5];
     heap[] = 738;
     Zadok pong;
-    pong.z[] = 3;
+    pong.z = 3;
     int [] w = pong.z;
     assert(w[0]==3);
     Zadok phong;
-    phong.z[] = 61;
+    phong.z = 61;
     pong = phong;
     assert(w[0]==61);
     Vug b = Vug(Zadok(17, "abcd"));
@@ -1140,7 +1140,7 @@ int quop()
     char [] y = b.p.s;
     assert(y[2]=='c');
     phong.s = ['z','x','f', 'g'];
-    w = b.p.z[];
+    w = b.p.z;
     assert(y[2]=='c');
     assert(w[0]==17);
     b.p = phong;
@@ -1576,9 +1576,9 @@ static assert(bug6052());
 bool bug6052b() {
     int[][1] arr;
     int[1] z = [7];
-    arr[0] = z[];
+    arr[0] = z;
     assert(arr[0][0] == 7);
-    arr[0] = z[];
+    arr[0] = z;
     z[0] = 3;
     assert(arr[0][0] == 3);
     return true;

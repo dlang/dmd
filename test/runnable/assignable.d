@@ -1086,105 +1086,9 @@ void test6286()
     int[4] dst;
     dst = src;
     dst[] = src[];
-    dst[] = 4;
+    dst = 4;
     int[4][4] x;
-    x[] = dst;
-}
-
-/***************************************************/
-// 7444
-
-bool rejected(string code, D, S)(ref D dst, ref S src)
-{
-    return !__traits(compiles, {
-        mixin(code);
-    });
-}
-bool sliceAssign(string code, D, S)(ref D dst, ref S src)
-{
-    static if (is(D == int[]))
-        dst = new int[](2);
-
-    mixin(code);
-    return dst.ptr == src.ptr;
-}
-bool elemAssign(string code, D, S)(ref D dst, ref S src)
-{
-    static if (is(D == int[]))
-        dst = new int[](2);
-
-    mixin(code);
-    return dst.ptr != src.ptr && dst[] == src[];
-}
-void test7444()
-{
-    int[2] sa, saSrc = [0, 0];
-    int[]  da, daSrc = [0, 0];
-    int    e;
-
-    {
-        // X: Changed accepts-invalid to rejects-invalid by this issue
-        // a: slice assginment
-        // b: element-wise assignment
-
-        static assert(!__traits(compiles, { sa   = e; }));      // X
-        static assert( __traits(compiles, { sa[] = e; }));      // b
-        static assert(!__traits(compiles, { da   = e; }));
-        static assert( __traits(compiles, { da[] = e; }));      // b
-
-        // lhs is static array
-        static assert( __traits(compiles, { sa   = sa;   }));   // b == identity assign
-        static assert(!__traits(compiles, { sa   = sa[]; }));   // X
-        static assert(!__traits(compiles, { sa[] = sa;   }));   // X
-        static assert( __traits(compiles, { sa[] = sa[]; }));   // b
-
-        static assert(!__traits(compiles, { sa   = da;   }));   // X
-        static assert(!__traits(compiles, { sa   = da[]; }));   // X
-        static assert(!__traits(compiles, { sa[] = da;   }));   // X
-        static assert( __traits(compiles, { sa[] = da[]; }));   // b
-
-        // lhs is dynamic array
-        static assert(!__traits(compiles, { da   = sa;   }));   // X
-        static assert( __traits(compiles, { da   = sa[]; }));   // a
-        static assert(!__traits(compiles, { da[] = sa;   }));   // X
-        static assert( __traits(compiles, { da[] = sa[]; }));   // b
-
-        static assert( __traits(compiles, { da   = da;   }));   // a == identity assign
-        static assert( __traits(compiles, { da   = da[]; }));   // a
-        static assert(!__traits(compiles, { da[] = da;   }));   // X
-        static assert( __traits(compiles, { da[] = da[]; }));   // b
-    }
-
-    // Add runtime check that an assignment is really by slice or element-wise
-    {
-        // distributed assign
-        assert(!__traits(compiles, { sa   = e; })); // X
-        assert( __traits(compiles, { sa[] = e; }));
-        assert(!__traits(compiles, { da   = e; }));
-        assert( __traits(compiles, { da[] = e; }));
-
-        // lhs is static array
-        assert( elemAssign!q{ dst   = src;   }(sa, saSrc)); //    identity assign
-        assert(   rejected!q{ dst   = src[]; }(sa, saSrc)); // X
-        assert(   rejected!q{ dst[] = src;   }(sa, saSrc)); // X
-        assert( elemAssign!q{ dst[] = src[]; }(sa, saSrc));
-
-        assert(   rejected!q{ dst   = src;   }(sa, daSrc)); // X, identity assign
-        assert(   rejected!q{ dst   = src[]; }(sa, daSrc)); // X
-        assert(   rejected!q{ dst[] = src;   }(sa, daSrc)); // X
-        assert( elemAssign!q{ dst[] = src[]; }(sa, daSrc));
-
-        // lhs is dynamic array
-        assert(   rejected!q{ dst   = src;   }(da, saSrc)); // X
-        assert(sliceAssign!q{ dst   = src[]; }(da, saSrc));
-        assert(   rejected!q{ dst[] = src;   }(da, saSrc)); // X
-        assert( elemAssign!q{ dst[] = src[]; }(da, saSrc));
-
-        assert(sliceAssign!q{ dst   = src;   }(da, daSrc)); //    identity assign
-        assert(sliceAssign!q{ dst   = src[]; }(da, daSrc));
-        assert(   rejected!q{ dst[] = src;   }(da, daSrc)); // X
-        assert( elemAssign!q{ dst[] = src[]; }(da, daSrc));
-    }
+    x = dst;
 }
 
 /***************************************************/
@@ -1234,7 +1138,6 @@ int main()
     test6216c();
     test6286();
     test6336();
-    test7444();
 
     printf("Success\n");
     return 0;
