@@ -46,10 +46,10 @@ struct ClassReferenceExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
     ClassDeclaration *originalClass();
-    VarDeclaration *getFieldAt(int index);
+    VarDeclaration *getFieldAt(unsigned index);
 
     /// Return index of the field, or -1 if not found
-    int getFieldIndex(Type *fieldtype, size_t fieldoffset);
+    int getFieldIndex(Type *fieldtype, unsigned fieldoffset);
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);

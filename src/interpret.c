@@ -142,7 +142,7 @@ bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
 
 Expression *CtfeStack::getValue(VarDeclaration *v)
 {
-    if (v->isDataseg() && !v->isCTFE())
+    if ((v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE())
     {
         assert(v->ctfeAdrOnStack >= 0 &&
         v->ctfeAdrOnStack < globalValues.dim);
@@ -168,7 +168,7 @@ void CtfeStack::push(VarDeclaration *v)
         values[v->ctfeAdrOnStack] = NULL;
         return;
     }
-    savedId.push((void *)(v->ctfeAdrOnStack));
+    savedId.push((void *)(size_t)(v->ctfeAdrOnStack));
     v->ctfeAdrOnStack = values.dim;
     vars.push(v);
     values.push(NULL);
@@ -179,7 +179,7 @@ void CtfeStack::pop(VarDeclaration *v)
     assert(!v->isDataseg() || v->isCTFE());
     assert(!(v->storage_class & (STCref | STCout)));
     int oldid = v->ctfeAdrOnStack;
-    v->ctfeAdrOnStack = (size_t)(savedId[oldid]);
+    v->ctfeAdrOnStack = (int)(size_t)(savedId[oldid]);
     if (v->ctfeAdrOnStack == values.dim - 1)
     {
         values.pop();
@@ -192,7 +192,7 @@ void CtfeStack::popAll(size_t stackpointer)
 {
     if (stackPointer() > maxStackPointer)
         maxStackPointer = stackPointer();
-    assert(values.dim >= stackpointer && stackpointer >= 0);
+    assert(values.dim >= stackpointer);
     for (size_t i = stackpointer; i < values.dim; ++i)
     {
         VarDeclaration *v = vars[i];
@@ -206,7 +206,7 @@ void CtfeStack::popAll(size_t stackpointer)
 void CtfeStack::saveGlobalConstant(VarDeclaration *v, Expression *e)
 {
 #if DMDV2
-     assert( v->init && (v->isConst() || v->isImmutable()) && !v->isCTFE());
+     assert( v->init && (v->isConst() || v->isImmutable() || v->storage_class & STCmanifest) && !v->isCTFE());
 #else
      assert( v->init && v->isConst() && !v->isCTFE());
 #endif
@@ -1565,18 +1565,19 @@ Expression * resolveReferences(Expression *e, Expression *thisval)
                 break;
             if (v->ctfeAdrOnStack == (size_t)-1) // If not on the stack, can't possibly be a ref.
                 break;
-            if (v->getValue() && (v->getValue()->op == TOKslice))
+            Expression *val = v->getValue();
+            if (val && (val->op == TOKslice))
             {
-                SliceExp *se = (SliceExp *)v->getValue();
+                SliceExp *se = (SliceExp *)val;
                 if (se->e1->op == TOKarrayliteral || se->e1->op == TOKassocarrayliteral || se->e1->op == TOKstring)
                     break;
-                e = v->getValue();
+                e = val;
                 continue;
             }
-            else if (v->getValue() && (v->getValue()->op==TOKindex || v->getValue()->op == TOKdotvar
-                  || v->getValue()->op == TOKthis  || v->getValue()->op == TOKvar))
+            else if (val && (val->op==TOKindex || val->op == TOKdotvar
+                  || val->op == TOKthis  || val->op == TOKvar))
             {
-                e = v->getValue();
+                e = val;
                 continue;
             }
         }
@@ -1650,7 +1651,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             else
                 e = v->type->defaultInitLiteral(loc);
         }
-        else if (!v->isDataseg() && !v->isCTFE() && !istate)
+        else if (!(v->isDataseg() || v->storage_class & STCmanifest) && !v->isCTFE() && !istate)
         {   error(loc, "variable %s cannot be read at compile time", v->toChars());
             return EXP_CANT_INTERPRET;
         }
@@ -1762,7 +1763,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             TupleDeclaration *td =v->toAlias()->isTupleDeclaration();
             if (!td->objects)
                 return NULL;
-            for(int i= 0; i < td->objects->dim; ++i)
+            for(size_t i= 0; i < td->objects->dim; ++i)
             {
                 Object * o = td->objects->tdata()[i];
                 Expression *ex = isExpression(o);
@@ -3343,7 +3344,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (aggregate->op == TOKslice)
         {   // Slice of a slice --> change the bounds
             SliceExp *sexpold = (SliceExp *)aggregate;
-            dinteger_t hi = upperbound + sexpold->lwr->toInteger();
+            sinteger_t hi = upperbound + sexpold->lwr->toInteger();
             firstIndex = lowerbound + sexpold->lwr->toInteger();
             if (hi > sexpold->upr->toInteger())
             {
@@ -3364,7 +3365,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 error("cannot slice null pointer %s", sexp->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            dinteger_t hi = upperbound + ofs;
+            sinteger_t hi = upperbound + ofs;
             firstIndex = lowerbound + ofs;
             if (firstIndex < 0 || hi > dim)
             {
@@ -4215,7 +4216,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         e2 = this->e2->interpret(istate);
         if (exceptionOrCantInterpret(e2))
             return e2;
-        dinteger_t indx = e2->toInteger();
+        sinteger_t indx = e2->toInteger();
 
         dinteger_t ofs;
         Expression *agg = getAggregateFromPointer(e1, &ofs);
@@ -4400,7 +4401,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
         assert(agg->op == TOKarrayliteral || agg->op == TOKstring);
         dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
         //Type *pointee = ((TypePointer *)agg->type)->next;
-        if (ilwr < 0 || iupr > (len + 1) || iupr < ilwr)
+        if (iupr > (len + 1) || iupr < ilwr)
         {
             error("pointer slice [%lld..%lld] exceeds allocated memory block [0..%lld]",
                 ilwr, iupr, len);
@@ -4497,7 +4498,7 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
     if (e1->op == TOKarrayliteral
         || e1->op == TOKstring)
     {
-        if (iupr < ilwr || ilwr < 0 || iupr > dollar)
+        if (iupr < ilwr || iupr > dollar)
         {
             error("slice [%lld..%lld] exceeds array bounds [0..%lld]",
                 ilwr, iupr, dollar);
@@ -5256,7 +5257,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
 
         if (ale)
         {   // If it is an array literal, copy the code points into the buffer
-            int buflen = 1; // #code points in the buffer
+            size_t buflen = 1; // #code points in the buffer
             size_t n = 1;   // #code points in this char
             size_t sz = ale->type->nextOf()->size();
 
@@ -5278,7 +5279,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 }
                 else
                     buflen = (indx + 4 > len) ? len - indx : 4;
-                for (int i=0; i < buflen; ++i)
+                for (int i = 0; i < buflen; ++i)
                 {
                     Expression * r = ale->elements->tdata()[indx + i];
                     assert(r->op == TOKint64);

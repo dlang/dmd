@@ -50,10 +50,10 @@ ClassDeclaration *ClassReferenceExp::originalClass()
     return value->sd->isClassDeclaration();
 }
 
-VarDeclaration *ClassReferenceExp::getFieldAt(int index)
+VarDeclaration *ClassReferenceExp::getFieldAt(unsigned index)
 {
     ClassDeclaration *cd = originalClass();
-    size_t fieldsSoFar = 0;
+    unsigned fieldsSoFar = 0;
     while (index - fieldsSoFar >= cd->fields.dim)
     {   fieldsSoFar += cd->fields.dim;
         cd = cd->baseClass;
@@ -62,10 +62,10 @@ VarDeclaration *ClassReferenceExp::getFieldAt(int index)
 }
 
 // Return index of the field, or -1 if not found
-int ClassReferenceExp::getFieldIndex(Type *fieldtype, size_t fieldoffset)
+int ClassReferenceExp::getFieldIndex(Type *fieldtype, unsigned fieldoffset)
 {
     ClassDeclaration *cd = originalClass();
-    size_t fieldsSoFar = 0;
+    unsigned fieldsSoFar = 0;
     for (size_t j = 0; j < value->elements->dim; j++)
     {   while (j - fieldsSoFar >= cd->fields.dim)
         {   fieldsSoFar += cd->fields.dim;
@@ -139,7 +139,7 @@ int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v)
 ThrownExceptionExp::ThrownExceptionExp(Loc loc, ClassReferenceExp *victim) : Expression(loc, TOKthrownexception, sizeof(ThrownExceptionExp))
 {
     this->thrown = victim;
-    this->type = type;
+    this->type = victim->type;
 }
 
 Expression *ThrownExceptionExp::interpret(InterState *istate, CtfeGoal)
@@ -475,7 +475,7 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
 {
     unsigned char *s;
     s = (unsigned char *)mem.calloc(dim + 1, sz);
-    for (size_t elemi=0; elemi<dim; ++elemi)
+    for (size_t elemi = 0; elemi < dim; ++elemi)
     {
         switch (sz)
         {
@@ -581,12 +581,11 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
         assert(v);
         StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
         // We can't use getField, because it makes a copy
-        int i = -1;
+        unsigned i;
         if (ex->op == TOKclassreference)
             i = ((ClassReferenceExp *)ex)->getFieldIndex(e->type, v->offset);
         else
             i = se->getFieldIndex(e->type, v->offset);
-        assert(i != -1);
         e = se->elements->tdata()[i];
     }
     if (e->op == TOKindex)
@@ -670,7 +669,7 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
 
     Expression *val = agg1;
     TypeArray *tar = (TypeArray *)val->type;
-    dinteger_t indx = ofs1;
+    sinteger_t indx = ofs1;
     if (op == TOKadd || op == TOKaddass || op == TOKplusplus)
         indx = indx + ofs2/sz;
     else if (op == TOKmin || op == TOKminass || op == TOKminusminus)
@@ -1164,7 +1163,7 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     {   Expression *ee1 = (*ae1->elements)[lo1 + i];
         Expression *ee2 = (*ae2->elements)[lo2 + i];
         if (needCmp)
-        {   dinteger_t c = ee1->toInteger() - ee2->toInteger();
+        {   sinteger_t c = ee1->toInteger() - ee2->toInteger();
             if (c > 0)
                 return 1;
             if (c < 0)
@@ -1929,7 +1928,8 @@ void showCtfeExpr(Expression *e, int level)
         {   Expression *z = NULL;
             Dsymbol *s = NULL;
             if (i > 15) {
-                printf("...(total %d elements)\n", elements->dim);
+                int nelements = elements->dim;
+                printf("...(total %d elements)\n", nelements);
                 return;
             }
             if (sd)
@@ -1944,8 +1944,8 @@ void showCtfeExpr(Expression *e, int level)
                     printf(" BASE CLASS: %s\n", cd->toChars());
                 }
                 s = cd->fields[i - fieldsSoFar];
+                assert((elements->dim + i) >= (fieldsSoFar + cd->fields.dim));
                 size_t indx = (elements->dim - fieldsSoFar)- cd->fields.dim + i;
-                assert(indx >= 0);
                 assert(indx < elements->dim);
                 z = (*elements)[indx];
             }
