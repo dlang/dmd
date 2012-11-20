@@ -267,7 +267,7 @@ struct VarDeclaration : Declaration
 
     // When interpreting, these point to the value (NULL if value not determinable)
     // The index of this variable on the CTFE stack, -1 if not allocated
-    size_t ctfeAdrOnStack;
+    int ctfeAdrOnStack;
     // The various functions are used only to detect compiler CTFE bugs
     Expression *getValue();
     bool hasValue();
