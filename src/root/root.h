@@ -234,6 +234,8 @@ struct OutBuffer : Object
     size_t offset;
     size_t size;
 
+    int doindent, level, linehead;
+
     OutBuffer();
     ~OutBuffer();
     char *extractData();
