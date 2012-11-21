@@ -177,6 +177,7 @@ Expression *fromConstInitializer(int result, Expression *e1)
                 !(v->storage_class & STCtemplateparameter))
             {
                 e1->error("variable %s cannot be read at compile time", v->toChars());
+                e = e->copy();
                 e->type = Type::terror;
             }
         }
