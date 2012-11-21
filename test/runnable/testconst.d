@@ -534,7 +534,7 @@ struct S40
 void test40()
 {
     assert(S40.sizeof == 8);
-    assert(S40.b == 3);
+    assert(S40.init.b == 3);
 }
 
 /************************************/
@@ -595,8 +595,8 @@ void test42()
     const(int)*p;
     p = &c.b;
     assert(*p == 2);
-//    p = &c.c;
-//    assert(*p == 3);
+    p = &c.c;
+    assert(*p == 3);
     p = &c.d;
     assert(*p == 4);
     p = &c.e;
