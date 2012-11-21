@@ -32,9 +32,9 @@ int main(string[] args)
 
     if (n == 1000)
     {
-	assert(t.patients == 102515);
-	assert(t.hospitalTime == 33730654);
-	assert(t.hospitalVisits == 106371);
+        assert(t.patients == 102515);
+        assert(t.hospitalTime == 33730654);
+        assert(t.hospitalVisits == 106371);
     }
     return 0;
 }
@@ -67,7 +67,7 @@ public:
     }
 
 private:
-    const int LEVELS = 5, DISTRICTS = 4;
+    enum int LEVELS = 5, DISTRICTS = 4;
     HealthcareRegion[] districts;
     Hospital localHospital;
 
@@ -115,9 +115,9 @@ package:
         TriagePatients();
 
         if(genRandom(1.0) > 0.7)
-	{   Patient p = new Patient();
-	    NewArrival(p);
-	}
+        {   Patient p = new Patient();
+            NewArrival(p);
+        }
     }
 
     Patient[] RegionalTransferPatients()
@@ -162,7 +162,7 @@ private:
             if(!p.remainingTime)
             {
                 availableStaff++;
-		treatment = treatment[0..i] ~ treatment[i+1..$];
+                treatment = treatment[0..i] ~ treatment[i+1..$];
                 discharged.Plus(p);
             }
         }
@@ -197,7 +197,7 @@ private:
     }
 
     void TriagePatients()
-    {	
+    {
         for(ptrdiff_t i = triage.length-1; i >= 0; i--)
         {
             Patient p = triage[i];

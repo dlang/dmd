@@ -4982,7 +4982,7 @@ mixin template mix7974()
 
 struct Foo7974
 {
-    immutable Foo7974 fa = Foo7974(0);
+    static immutable Foo7974 fa = Foo7974(0);
 
     this(uint x)
     {
