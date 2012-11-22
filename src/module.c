@@ -345,7 +345,17 @@ bool Module::read(Loc loc)
 {
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     if (srcfile->read())
-    {   error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+    {
+        if (!strcmp(srcfile->toChars(), "object.d"))
+        {
+            ::error(loc, "cannot find source code for runtime library file 'object.d'");
+            errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
+        }
+        else
+        {
+            error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+        }
+
         if (!global.gag)
         {   /* Print path
              */
