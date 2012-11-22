@@ -1720,6 +1720,14 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
                 error("can only initialize %sconst member %s inside %sconstructor",
                     p, var->toChars(), p);
             }
+            else if (var && !var->type->isMutable() && (var->storage_class & STCinit) &&
+                     !var->toParent2()->isFuncDeclaration())
+            {
+                error("cannot modify %s %s %s, because it is already initialized",
+                    var->type->isImmutable() ? "immutable" : "const",
+                    var->storage_class & STCfield ? "field" : "member",
+                    var->toChars());
+            }
             else
             {
                 error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
@@ -7252,8 +7260,9 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
            )
         {
             var->ctorinit = 1;
-            //printf("setting ctorinit\n");
-            return TRUE;
+            //printf("%s setting ctorinit %d %d\n", var->toChars(),
+            //    (var->storage_class & (STCconst|STCimmutable)) != 0, (var->storage_class & STCinit) != 0);
+            return var->type->isMutable() || (var->storage_class & STCinit) == 0;
         }
         else
         {

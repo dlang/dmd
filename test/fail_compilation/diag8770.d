@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8770.d(3): Error: cannot modify immutable expression 1
-fail_compilation/diag8770.d(6): Error: constant this.f is not an lvalue
+fail_compilation/diag8770.d(6): Error: cannot modify immutable field f, because it is already initialized
 ---
 */
 
