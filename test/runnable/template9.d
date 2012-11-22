@@ -243,6 +243,29 @@ template _ElemType(T) {
 }
 
 /**********************************/
+// 5893
+
+class C5893
+{
+    int concatAssign(C5893 other) { return 1; }
+    int concatAssign(int other) { return 2; } // to demonstrate overloading
+
+    template opOpAssign(string op) if (op == "~")
+    { alias concatAssign opOpAssign; }
+
+    int opOpAssign(string op)(int other) if (op == "+") { return 3; }
+}
+
+void test5893()
+{
+    auto c = new C5893;
+    assert(c.opOpAssign!"~"(c) == 1); // works
+    assert(c.opOpAssign!"~"(1) == 2); // works
+    assert((c ~= 1) == 2);
+    assert((c += 1) == 3);  // overload
+}
+
+/**********************************/
 // 6404
 
 // receive only rvalue
@@ -1680,6 +1703,7 @@ int main()
     test9();
     test1780();
     test3608();
+    test5893();
     test6404();
     test2246();
     test2296();

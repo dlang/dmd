@@ -2035,8 +2035,48 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
-            error("is not a function template");
-            goto Lerror;
+            if (!targsi)
+                targsi = new Objects();
+            TemplateInstance *ti = new TemplateInstance(loc, td, targsi);
+
+            Objects dedtypes;
+            dedtypes.setDim(td->parameters->dim);
+            assert(td->semanticRun);
+            MATCH m2 = td->matchWithInstance(ti, &dedtypes, fargs, 0);
+            //printf("matchWithInstance = %d\n", m2);
+            if (!m2 || m2 < m_best2)        // no match or less match
+                continue;
+
+            ti->semantic(sc, fargs);
+            if (!ti->inst)                  // if template failed to expand
+                continue;
+
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *fd = s->isFuncDeclaration();
+            if (!fd)
+            {
+                td->error("is not a function template");
+                goto Lerror;
+            }
+            fd = fd->overloadResolve(loc, ethis, fargs, flags);
+            if (!fd)
+                continue;
+
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            MATCH m = (MATCH) tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? ethis : NULL, fargs);
+            if (m < m_best)
+                continue;
+
+            // td is the new best match
+            td_ambig = NULL;
+            assert((size_t)td->scope > 0x10000);
+            td_best = td;
+            fd_best = fd;
+            m_best = m;
+            m_best2 = m2;
+            tdargs->setDim(dedtypes.dim);
+            memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
+            continue;
         }
 
         MATCH m, m2;
@@ -2164,6 +2204,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
                 td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
                 td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
+
+    if (!td_best->onemember || !td_best->onemember->toAlias()->isFuncDeclaration())
+        return fd_best;
 
     /* The best match is td_best with arguments tdargs.
      * Now instantiate the template.
