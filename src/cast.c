@@ -113,8 +113,13 @@ fflush(stdout);
 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
 //type = type->semantic(loc, sc);
 //printf("type %s t %s\n", type->deco, t->deco);
-        error("cannot implicitly convert expression (%s) of type %s to %s",
-            toChars(), type->toChars(), t->toChars());
+        if ((type->ty == Tpointer && type->nextOf()->ty == Tfunction || type->ty == Tdelegate)
+            && (t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
+            error("cannot implicitly convert expression (%s) of type:\n  %s\nto:\n  %s",
+                toChars(), type->toChars(), t->toChars());
+        else
+            error("cannot implicitly convert expression (%s) of type %s to %s",
+                toChars(), type->toChars(), t->toChars());
     }
     return new ErrorExp();
 }
