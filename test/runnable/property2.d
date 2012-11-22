@@ -4,8 +4,8 @@ extern (C) int printf(const char* fmt, ...);
 
 // Is -property option specified?
 enum enforceProperty = !__traits(compiles, {
-    int prop(){ return 1; }
-    int n = prop;
+    void prop(int n) {}
+    prop = 10;
 });
 
 /*******************************************/
@@ -192,21 +192,21 @@ void test7722a()
 
     check!(1, 1, x =>    foo(4)     );      check!(1, 1, x =>    baz(4)     );
     check!(1, 1, x =>  4.foo()      );      check!(1, 1, x =>  4.baz()      );
-    check!(0, 1, x =>  4.foo        );      check!(0, 1, x =>  4.baz        );
+    check!(1, 1, x =>  4.foo        );      check!(1, 1, x =>  4.baz        );
     check!(2, 2, x =>    foo(4, 2)  );      check!(2, 2, x =>    baz(4, 2)  );
     check!(2, 2, x =>  4.foo(2)     );      check!(2, 2, x =>  4.baz(2)     );
     check!(0, 2, x => (4.foo = 2)   );      check!(0, 2, x => (4.baz = 2)   );
 
     check!(1, 1, x =>    goo(a)     );      check!(1, 1, x =>    baz(a)     );
     check!(1, 1, x =>  a.goo()      );      check!(1, 1, x =>  a.baz()      );
-    check!(0, 1, x =>  a.goo        );      check!(0, 1, x =>  a.baz        );
+    check!(1, 1, x =>  a.goo        );      check!(1, 1, x =>  a.baz        );
     check!(2, 2, x =>    goo(a, 2)  );      check!(2, 2, x =>    baz(a, 2)  );
     check!(2, 2, x =>  a.goo(2)     );      check!(2, 2, x =>  a.baz(2)     );
     check!(0, 2, x => (a.goo = 2)   );      check!(0, 2, x => (a.baz = 2)   );
 
     check!(1, 1, x =>    bar(s)     );      check!(1, 1, x =>    baz(s)     );
     check!(1, 1, x =>  s.bar()      );      check!(1, 1, x =>  s.baz()      );
-    check!(0, 1, x =>  s.bar        );      check!(0, 1, x =>  s.baz        );
+    check!(1, 1, x =>  s.bar        );      check!(1, 1, x =>  s.baz        );
     check!(2, 2, x =>    bar(s, 2)  );      check!(2, 2, x =>    baz(s, 2)  );
     check!(2, 2, x =>  s.bar(2)     );      check!(2, 2, x =>  s.baz(2)     );
     check!(0, 2, x => (s.bar = 2)   );      check!(0, 2, x => (s.baz = 2)   );
@@ -244,21 +244,21 @@ void test7722b()
 
     check!(1, 1, x =>    hoo!int(4)     );  check!(1, 1, x =>    vaz!int(4)     );
     check!(1, 1, x =>  4.hoo!int()      );  check!(1, 1, x =>  4.vaz!int()      );
-    check!(0, 1, x =>  4.hoo!int        );  check!(0, 1, x =>  4.vaz!int        );
+    check!(1, 1, x =>  4.hoo!int        );  check!(1, 1, x =>  4.vaz!int        );
     check!(2, 2, x =>    hoo!int(4, 2)  );  check!(2, 2, x =>    vaz!int(4, 2)  );
     check!(2, 2, x =>  4.hoo!int(2)     );  check!(2, 2, x =>  4.vaz!int(2)     );
     check!(0, 2, x => (4.hoo!int = 2)   );  check!(0, 2, x => (4.vaz!int = 2)   );
 
     check!(1, 1, x =>    koo!int(a)     );  check!(1, 1, x =>    vaz!int(a)     );
     check!(1, 1, x =>  a.koo!int()      );  check!(1, 1, x =>  a.vaz!int()      );
-    check!(0, 1, x =>  a.koo!int        );  check!(0, 1, x =>  a.vaz!int        );
+    check!(1, 1, x =>  a.koo!int        );  check!(1, 1, x =>  a.vaz!int        );
     check!(2, 2, x =>    koo!int(a, 2)  );  check!(2, 2, x =>    vaz!int(a, 2)  );
     check!(2, 2, x =>  a.koo!int(2)     );  check!(2, 2, x =>  a.vaz!int(2)     );
     check!(0, 2, x => (a.koo!int = 2)   );  check!(0, 2, x => (a.vaz!int = 2)   );
 
     check!(1, 1, x =>    var!int(s)     );  check!(1, 1, x =>    vaz!int(s)     );
     check!(1, 1, x =>  s.var!int()      );  check!(1, 1, x =>  s.vaz!int()      );
-    check!(0, 1, x =>  s.var!int        );  check!(0, 1, x =>  s.vaz!int        );
+    check!(1, 1, x =>  s.var!int        );  check!(1, 1, x =>  s.vaz!int        );
     check!(2, 2, x =>    var!int(s, 2)  );  check!(2, 2, x =>    vaz!int(s, 2)  );
     check!(2, 2, x =>  s.var!int(2)     );  check!(2, 2, x =>  s.vaz!int(2)     );
     check!(0, 2, x => (s.var!int = 2)   );  check!(0, 2, x => (s.vaz!int = 2)   );
@@ -333,8 +333,16 @@ void test8251()
 {
     static assert(S8251.min == 123);    // OK
     static assert(T8251_Min == 456);    // OK
-    int a0 = T8251a!(S8251.min());      // OK
-    int b0 = T8251a!(T8251_Min());      // OK
+    static if (enforceProperty)
+    {
+        static assert(!__traits(compiles, { int a0 = T8251a!(S8251.min()); })); // NG
+        static assert(!__traits(compiles, { int b0 = T8251a!(T8251_Min()); })); // NG
+    }
+    else
+    {
+        int a0 = T8251a!(S8251.min());
+        int b0 = T8251a!(T8251_Min());
+    }
 
     // TemplateValueParameter
     int a1 = T8251a!(S8251.min);        // NG

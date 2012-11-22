@@ -247,11 +247,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         if (fd && fd->type)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
-            if (!tf->isproperty && global.params.enforcePropertySyntax)
-            {   error(e->loc, "not a property %s", e->toChars());
-                return new ErrorExp();
-            }
-            e = new CallExp(e->loc, e);
+            e = new CallExp(e->loc, e, PROPmemget);
             e = e->semantic(sc);
         }
         goto return_expr;
@@ -264,13 +260,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
 
         if (t->ty == Tfunction || e->op == TOKoverloadset)
         {
-            if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
-                global.params.enforcePropertySyntax)
-            {
-                error(e->loc, "not a property %s", e->toChars());
-                return new ErrorExp();
-            }
-            e = new CallExp(e->loc, e);
+            e = new CallExp(e->loc, e, PROPmemget);
             e = e->semantic(sc);
         }
 
@@ -301,42 +291,6 @@ return_expr:
         e->type = new TypeError();
     }
     return e;
-}
-
-/******************************
- * Check the tail CallExp is really property function call.
- */
-
-void checkPropertyCall(Expression *e, Expression *emsg)
-{
-    while (e->op == TOKcomma)
-        e = ((CommaExp *)e)->e2;
-
-    if (e->op == TOKcall)
-    {   CallExp *ce = (CallExp *)e;
-        TypeFunction *tf;
-        if (ce->f)
-        {
-            tf = (TypeFunction *)ce->f->type;
-            /* If a forward reference to ce->f, try to resolve it
-             */
-            if (!tf->deco && ce->f->scope)
-            {   ce->f->semantic(ce->f->scope);
-                tf = (TypeFunction *)ce->f->type;
-            }
-        }
-        else if (ce->e1->type->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type;
-        else if (ce->e1->type->ty == Tdelegate)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else if (ce->e1->type->ty == Tpointer && ce->e1->type->nextOf()->ty == Tfunction)
-            tf = (TypeFunction *)ce->e1->type->nextOf();
-        else
-            assert(0);
-
-        if (!tf->isproperty && global.params.enforcePropertySyntax)
-            ce->e1->error("not a property %s", emsg->toChars());
-    }
 }
 
 /******************************
@@ -387,7 +341,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             Expressions *a1 = new Expressions();
             a1->setDim(1);
             (*a1)[0] = eleft;
-            ex = new CallExp(loc, ex, a1);
+            ex = new CallExp(loc, ex, a1, PROPufcset);
             ex = ex->trySemantic(sc);
 
             /* .f(e1, e2)
@@ -396,12 +350,12 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             a2->setDim(2);
             (*a2)[0] = eleft;
             (*a2)[1] = e2;
-            e = new CallExp(loc, e, a2);
+            e = new CallExp(loc, e, a2, PROPufcset);
             if (ex)
             {   // if fallback setter exists, gag errors
                 e = e->trySemantic(sc);
                 if (!e)
-                {   checkPropertyCall(ex, e1);
+                {
                     ex = new AssignExp(loc, ex, e2);
                     return ex->semantic(sc);
                 }
@@ -410,7 +364,6 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             {   // strict setter prints errors if fails
                 e = e->semantic(sc);
             }
-            checkPropertyCall(e, e1);
             return e;
         }
         else
@@ -420,9 +373,8 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
             Expressions *arguments = new Expressions();
             arguments->setDim(1);
             (*arguments)[0] = eleft;
-            e = new CallExp(loc, e, arguments);
+            e = new CallExp(loc, e, arguments, PROPufcget);
             e = e->semantic(sc);
-            checkPropertyCall(e, e1);
             return e->semantic(sc);
         }
     }
@@ -7531,20 +7483,23 @@ void DotTypeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-CallExp::CallExp(Loc loc, Expression *e, Expressions *exps)
+CallExp::CallExp(Loc loc, Expression *e, Expressions *exps, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = exps;
     this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e)
+CallExp::CallExp(Loc loc, Expression *e, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     this->arguments = NULL;
+    this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
+CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     Expressions *arguments = new Expressions();
@@ -7553,9 +7508,11 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1)
         (*arguments)[0] = earg1;
     }
     this->arguments = arguments;
+    this->f = NULL;
+    this->prop = prop;
 }
 
-CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
+CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2, PROP prop)
         : UnaExp(loc, TOKcall, sizeof(CallExp), e)
 {
     Expressions *arguments = new Expressions();
@@ -7564,11 +7521,13 @@ CallExp::CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2)
     (*arguments)[1] = earg2;
 
     this->arguments = arguments;
+    this->f = NULL;
+    this->prop = prop;
 }
 
 Expression *CallExp::syntaxCopy()
 {
-    return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
+    return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments), prop);
 }
 
 
@@ -8483,6 +8442,42 @@ Lagain:
     }
     assert(t1->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)(t1);
+
+    if (f && global.params.enforcePropertySyntax)
+    {
+        if (!tf->isproperty)
+        {
+            switch (prop)
+            {
+                case PROPnone:
+                case PROPufcget:    // e1.func;      -> .func(e1);
+                case PROPmemget:    // e1.func       -> e1.func()
+                    break;
+
+                case PROPufcset:    // e1.func = e2; -> .func(e1, e2);
+                case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                    e1->error("not a property %s", e1->toChars());
+                    break;
+            }
+            //return new ErrorExp();
+        }
+        else
+        {
+            switch (prop)
+            {
+                case PROPnone:
+                    e1->error("is a property %s", e1->toChars());
+                    break;
+
+                case PROPufcget:    // e1.func;      -> .func(e1);
+                case PROPufcset:    // e1.func = e2; -> .func(e1, e2);
+                case PROPmemget:    // e1.func       -> e1.func
+                case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                    break;
+            }
+            //return new ErrorExp();
+        }
+    }
 
     if (!arguments)
         arguments = new Expressions();
@@ -10530,19 +10525,13 @@ Expression *AssignExp::semantic(Scope *sc)
     Lsetter:
         assert(fd->type->ty == Tfunction);
         tf = (TypeFunction *)fd->type;
-        if (!tf->isproperty && global.params.enforcePropertySyntax)
-            goto Leprop;
-        e = new CallExp(loc, e1, e2);
+        e = new CallExp(loc, e1, e2, PROPmemset);
         return e->semantic(sc);
 
     Lgetter:
         assert(fd->type->ty == Tfunction);
         tf = (TypeFunction *)fd->type;
-        if (!tf->isref)
-            goto Leprop;
-        if (!tf->isproperty && global.params.enforcePropertySyntax)
-            goto Leprop;
-        e = new CallExp(loc, e1);
+        e = new CallExp(loc, e1, PROPmemset);
         e = new AssignExp(loc, e, e2);
         return e->semantic(sc);
 

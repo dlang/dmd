@@ -951,15 +951,25 @@ struct DotTypeExp : UnaExp
     elem *toElem(IRState *irs);
 };
 
+enum PROP
+{
+    PROPnone,       // func(...) or e1.func(...)
+    PROPmemget,     // e1.func       -> e1.func()
+    PROPmemset,     // e1.func = e2; -> e1.func(e2);
+    PROPufcget,     // e1.func;      -> .func(e1);
+    PROPufcset,     // e1.func = e2; -> .func(e1, e2);
+};
+
 struct CallExp : UnaExp
 {
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
+    PROP prop;
 
-    CallExp(Loc loc, Expression *e, Expressions *exps);
-    CallExp(Loc loc, Expression *e);
-    CallExp(Loc loc, Expression *e, Expression *earg1);
-    CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2);
+    CallExp(Loc loc, Expression *e, Expressions *exps, PROP prop = PROPnone);
+    CallExp(Loc loc, Expression *e, PROP prop = PROPnone);
+    CallExp(Loc loc, Expression *e, Expression *earg1, PROP prop = PROPnone);
+    CallExp(Loc loc, Expression *e, Expression *earg1, Expression *earg2, PROP prop = PROPnone);
 
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
