@@ -187,11 +187,11 @@ class Condition
             while( val > maxWaitMillis )
             {
                 if( timedWait( cast(uint)
-                               maxWaitMillis.total!("msecs")() ) )
+                               maxWaitMillis.total!"msecs" ) )
                     return true;
                 val -= maxWaitMillis;
             }
-            return timedWait( cast(uint) val.total!("msecs")() );
+            return timedWait( cast(uint) val.total!"msecs" );
         }
         else version( Posix )
         {

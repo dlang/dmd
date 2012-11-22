@@ -46,7 +46,7 @@ extern (C) void[] _adSort(void[] a, TypeInfo ti)
   auto stack = stackbuf[0..$];    // stack
   auto sp = stack.ptr;                 // stack pointer
 
-  auto width = ti.tsize();
+  auto width = ti.tsize;
   auto base = cast(byte *)a.ptr;
   auto thresh = _maxspan * width;        // size of _maxspan elements in bytes
   auto limit = base + a.length * width;  // pointer past end of array

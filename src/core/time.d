@@ -1048,17 +1048,17 @@ assert(dur!"nsecs"(-62_127).fracSec == FracSec.from!"nsecs"(-62_100));
 
         Examples:
 --------------------
-assert(dur!"weeks"(12).total!"weeks"() == 12);
-assert(dur!"weeks"(12).total!"days"() == 84);
+assert(dur!"weeks"(12).total!"weeks" == 12);
+assert(dur!"weeks"(12).total!"days" == 84);
 
-assert(dur!"days"(13).total!"weeks"() == 1);
-assert(dur!"days"(13).total!"days"() == 13);
+assert(dur!"days"(13).total!"weeks" == 1);
+assert(dur!"days"(13).total!"days" == 13);
 
-assert(dur!"hours"(49).total!"days"() == 2);
-assert(dur!"hours"(49).total!"hours"() == 49);
+assert(dur!"hours"(49).total!"days" == 2);
+assert(dur!"hours"(49).total!"hours" == 49);
 
-assert(dur!"nsecs"(2007).total!"hnsecs"() == 20);
-assert(dur!"nsecs"(2007).total!"nsecs"() == 2000);
+assert(dur!"nsecs"(2007).total!"hnsecs" == 20);
+assert(dur!"nsecs"(2007).total!"nsecs" == 2000);
 --------------------
       +/
     @property long total(string units)() @safe const pure nothrow
@@ -1332,26 +1332,26 @@ private:
     Examples:
 --------------------
 // Generic
-assert(dur!"weeks"(142).total!"weeks"() == 142);
-assert(dur!"days"(142).total!"days"() == 142);
-assert(dur!"hours"(142).total!"hours"() == 142);
-assert(dur!"minutes"(142).total!"minutes"() == 142);
-assert(dur!"seconds"(142).total!"seconds"() == 142);
-assert(dur!"msecs"(142).total!"msecs"() == 142);
-assert(dur!"usecs"(142).total!"usecs"() == 142);
-assert(dur!"hnsecs"(142).total!"hnsecs"() == 142);
-assert(dur!"nsecs"(142).total!"nsecs"() == 100);
+assert(dur!"weeks"(142).total!"weeks" == 142);
+assert(dur!"days"(142).total!"days" == 142);
+assert(dur!"hours"(142).total!"hours" == 142);
+assert(dur!"minutes"(142).total!"minutes" == 142);
+assert(dur!"seconds"(142).total!"seconds" == 142);
+assert(dur!"msecs"(142).total!"msecs" == 142);
+assert(dur!"usecs"(142).total!"usecs" == 142);
+assert(dur!"hnsecs"(142).total!"hnsecs" == 142);
+assert(dur!"nsecs"(142).total!"nsecs" == 100);
 
 // Non-generic
-assert(weeks(142).total!"weeks"() == 142);
-assert(days(142).total!"days"() == 142);
-assert(hours(142).total!"hours"() == 142);
-assert(minutes(142).total!"minutes"() == 142);
-assert(seconds(142).total!"seconds"() == 142);
-assert(msecs(142).total!"msecs"() == 142);
-assert(usecs(142).total!"usecs"() == 142);
-assert(hnsecs(142).total!"hnsecs"() == 142);
-assert(nsecs(142).total!"nsecs"() == 100);
+assert(weeks(142).total!"weeks" == 142);
+assert(days(142).total!"days" == 142);
+assert(hours(142).total!"hours" == 142);
+assert(minutes(142).total!"minutes" == 142);
+assert(seconds(142).total!"seconds" == 142);
+assert(msecs(142).total!"msecs" == 142);
+assert(usecs(142).total!"usecs" == 142);
+assert(hnsecs(142).total!"hnsecs" == 142);
+assert(nsecs(142).total!"nsecs" == 100);
 --------------------
 
     Params:
@@ -1386,41 +1386,41 @@ alias dur!"nsecs"   nsecs;   /// Ditto
 unittest
 {
     // Generic
-    assert(dur!"weeks"(142).total!"weeks"() == 142);
-    assert(dur!"days"(142).total!"days"() == 142);
-    assert(dur!"hours"(142).total!"hours"() == 142);
-    assert(dur!"minutes"(142).total!"minutes"() == 142);
-    assert(dur!"seconds"(142).total!"seconds"() == 142);
-    assert(dur!"msecs"(142).total!"msecs"() == 142);
-    assert(dur!"usecs"(142).total!"usecs"() == 142);
-    assert(dur!"hnsecs"(142).total!"hnsecs"() == 142);
-    assert(dur!"nsecs"(142).total!"nsecs"() == 100);
+    assert(dur!"weeks"(142).total!"weeks" == 142);
+    assert(dur!"days"(142).total!"days" == 142);
+    assert(dur!"hours"(142).total!"hours" == 142);
+    assert(dur!"minutes"(142).total!"minutes" == 142);
+    assert(dur!"seconds"(142).total!"seconds" == 142);
+    assert(dur!"msecs"(142).total!"msecs" == 142);
+    assert(dur!"usecs"(142).total!"usecs" == 142);
+    assert(dur!"hnsecs"(142).total!"hnsecs" == 142);
+    assert(dur!"nsecs"(142).total!"nsecs" == 100);
 
     // Non-generic
-    assert(weeks(142).total!"weeks"() == 142);
-    assert(days(142).total!"days"() == 142);
-    assert(hours(142).total!"hours"() == 142);
-    assert(minutes(142).total!"minutes"() == 142);
-    assert(seconds(142).total!"seconds"() == 142);
-    assert(msecs(142).total!"msecs"() == 142);
-    assert(usecs(142).total!"usecs"() == 142);
-    assert(hnsecs(142).total!"hnsecs"() == 142);
-    assert(nsecs(142).total!"nsecs"() == 100);
+    assert(weeks(142).total!"weeks" == 142);
+    assert(days(142).total!"days" == 142);
+    assert(hours(142).total!"hours" == 142);
+    assert(minutes(142).total!"minutes" == 142);
+    assert(seconds(142).total!"seconds" == 142);
+    assert(msecs(142).total!"msecs" == 142);
+    assert(usecs(142).total!"usecs" == 142);
+    assert(hnsecs(142).total!"hnsecs" == 142);
+    assert(nsecs(142).total!"nsecs" == 100);
 }
 
 unittest
 {
     foreach(D; _TypeTuple!(Duration, const Duration, immutable Duration))
     {
-        assert(dur!"weeks"(7).total!"weeks"() == 7);
-        assert(dur!"days"(7).total!"days"() == 7);
-        assert(dur!"hours"(7).total!"hours"() == 7);
-        assert(dur!"minutes"(7).total!"minutes"() == 7);
-        assert(dur!"seconds"(7).total!"seconds"() == 7);
-        assert(dur!"msecs"(7).total!"msecs"() == 7);
-        assert(dur!"usecs"(7).total!"usecs"() == 7);
-        assert(dur!"hnsecs"(7).total!"hnsecs"() == 7);
-        assert(dur!"nsecs"(7).total!"nsecs"() == 0);
+        assert(dur!"weeks"(7).total!"weeks" == 7);
+        assert(dur!"days"(7).total!"days" == 7);
+        assert(dur!"hours"(7).total!"hours" == 7);
+        assert(dur!"minutes"(7).total!"minutes" == 7);
+        assert(dur!"seconds"(7).total!"seconds" == 7);
+        assert(dur!"msecs"(7).total!"msecs" == 7);
+        assert(dur!"usecs"(7).total!"usecs" == 7);
+        assert(dur!"hnsecs"(7).total!"hnsecs" == 7);
+        assert(dur!"nsecs"(7).total!"nsecs" == 0);
 
         assert(dur!"weeks"(1007) == weeks(1007));
         assert(dur!"days"(1007) == days(1007));
