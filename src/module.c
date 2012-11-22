@@ -12,7 +12,7 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if (defined (__SVR4) && defined (__sun))
+#if defined (__sun)
 #include <alloca.h>
 #endif
 
@@ -350,7 +350,17 @@ bool Module::read(Loc loc)
 {
     //printf("Module::read('%s') file '%s'\n", toChars(), srcfile->toChars());
     if (srcfile->read())
-    {   error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+    {
+        if (!strcmp(srcfile->toChars(), "object.d"))
+        {
+            ::error(loc, "cannot find source code for runtime library file 'object.d'");
+            errorSupplemental(loc, "dmd might not be correctly installed. Run 'dmd -man' for installation instructions.");
+        }
+        else
+        {
+            error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+        }
+
         if (!global.gag)
         {   /* Print path
              */
@@ -413,7 +423,7 @@ void Module::parse()
     //printf("Module::parse(srcname = '%s')\n", srcname);
 
     unsigned char *buf = srcfile->buffer;
-    unsigned buflen = srcfile->len;
+    size_t buflen = srcfile->len;
 
     if (buflen >= 2)
     {
@@ -1011,6 +1021,7 @@ void Module::runDeferredSemantic()
             break;
 
         Dsymbol **todo;
+        Dsymbol **todoalloc = NULL;
         Dsymbol *tmp;
         if (len == 1)
         {
@@ -1018,8 +1029,9 @@ void Module::runDeferredSemantic()
         }
         else
         {
-            todo = (Dsymbol **)alloca(len * sizeof(Dsymbol *));
+            todo = (Dsymbol **)malloc(len * sizeof(Dsymbol *));
             assert(todo);
+            todoalloc = todo;
         }
         memcpy(todo, deferred.tdata(), len * sizeof(Dsymbol *));
         deferred.setDim(0);
@@ -1032,6 +1044,8 @@ void Module::runDeferredSemantic()
             //printf("deferred: %s, parent = %s\n", s->toChars(), s->parent->toChars());
         }
         //printf("\tdeferred.dim = %d, len = %d, dprogress = %d\n", deferred.dim, len, dprogress);
+        if (todoalloc)
+            free(todoalloc);
     } while (deferred.dim < len || dprogress);  // while making progress
     nested--;
     //printf("-Module::runDeferredSemantic('%s'), len = %d\n", toChars(), deferred.dim);
@@ -1046,7 +1060,6 @@ void Module::runDeferredSemantic()
 int Module::imports(Module *m)
 {
     //printf("%s Module::imports(%s)\n", toChars(), m->toChars());
-    int aimports_dim = aimports.dim;
 #if 0
     for (size_t i = 0; i < aimports.dim; i++)
     {   Module *mi = (Module *)aimports.data[i];
