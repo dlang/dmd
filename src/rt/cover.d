@@ -354,7 +354,7 @@ bool readFile( string name, ref char[] buf )
     else version( Posix )
     {
         char[]  namez = new char[name.length + 1];
-                        namez[0 .. name.length] = name;
+                        namez[0 .. name.length] = name[];
                         namez[$ - 1] = 0;
         int     file = open( namez.ptr, O_RDONLY );
 
