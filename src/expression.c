@@ -8456,7 +8456,8 @@ Lagain:
 
                 case PROPufcset:    // e1.func = e2; -> .func(e1, e2);
                 case PROPmemset:    // e1.func = e2; -> e1.func(e2);
-                    e1->error("not a property %s", e1->toChars());
+                    if (f->ident != Id::opDispatch)
+                        e1->error("not a property %s", e1->toChars());
                     break;
             }
             //return new ErrorExp();

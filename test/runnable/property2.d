@@ -391,6 +391,58 @@ static assert(foo9063);
 
 /*****************************************/
 
+struct S2A
+{
+    template opDispatch(string name)
+    {
+        static if (name == "prop")
+        {
+            @property int prop() { return 1; }
+            @property void prop(int n) {}
+            alias prop opDispatch;
+        }
+
+        static if (name == "func")
+        {
+            int func() { return 1; }
+            void func(int n) {}
+            alias func opDispatch;
+        }
+    }
+}
+struct S2B
+{
+    auto opDispatch(string name)()
+    {
+        return 1;
+    }
+
+    auto opDispatch(string name, T)(T n)
+    {
+    }
+}
+
+void test2()
+{
+    S2A a;
+    a.func();
+    a.func(1);
+    a.func;     // still OK
+    static assert(__traits(compiles, a.func = 1) == !enforceProperty);
+    static assert(__traits(compiles, a.prop()  ) == !enforceProperty);
+    static assert(__traits(compiles, a.prop(1) ) == !enforceProperty);
+    a.prop;
+    a.prop = 1;
+
+    S2B b;
+    b.foo();
+    b.foo(1);
+    b.prop;
+    b.prop = 1;
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -402,6 +454,7 @@ int main()
     test7275();
     test8251();
     test9062();
+    test2();
 
     printf("Success\n");
     return 0;
