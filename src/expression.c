@@ -8595,9 +8595,10 @@ void CallExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-AddrExp::AddrExp(Loc loc, Expression *e)
+AddrExp::AddrExp(Loc loc, Expression *e, bool resolveProp)
         : UnaExp(loc, TOKaddress, sizeof(AddrExp), e)
 {
+    this->resolveProp = resolveProp;
 }
 
 Expression *AddrExp::semantic(Scope *sc)
@@ -8608,6 +8609,8 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
+        if (resolveProp)
+            e1 = resolveProperties(sc, e1);
         Expression *olde1 = e1;
         if (e1->type == Type::terror)
             return new ErrorExp();

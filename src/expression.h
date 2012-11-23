@@ -982,7 +982,9 @@ struct CallExp : UnaExp
 
 struct AddrExp : UnaExp
 {
-    AddrExp(Loc loc, Expression *e);
+    bool resolveProp;
+
+    AddrExp(Loc loc, Expression *e, bool resolveProp = false);
     Expression *semantic(Scope *sc);
     void checkEscape();
     elem *toElem(IRState *irs);

@@ -132,7 +132,7 @@ struct Parser : Lexer
 
     Expression *parseExpression();
     Expression *parsePrimaryExp();
-    Expression *parseUnaryExp();
+    Expression *parseUnaryExp(bool* parenthesized = NULL);
     Expression *parsePostExp(Expression *e);
     Expression *parseMulExp();
     Expression *parseAddExp();

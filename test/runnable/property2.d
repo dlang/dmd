@@ -350,6 +350,32 @@ void test8251()
 }
 
 /*****************************************/
+// 9062
+
+void test9062()
+{
+    struct S
+    {
+        static int g;
+
+        @property ref int foo() { return g; }
+        @property     int bar() { return 1; }
+        @property ref int baz() const { return g; }
+    }
+
+    S s;
+    static assert(    typeof(& s.foo ).stringof == "int delegate() @property ref");
+    static assert(    typeof(&(s.foo)).stringof == "int*");
+    static assert(    typeof(& s.bar ).stringof == "int delegate() @property");
+    static assert(!is(typeof(&(s.bar))));   // Error, s.bar() is not an lvalue
+
+    static assert(typeof(&        S .baz ).stringof == "int function() const @property ref");
+    static assert(typeof(& (const S).baz ).stringof == "int function() const @property ref");
+    static assert(typeof(&(       S .baz)).stringof == "int*");
+    static assert(typeof(&((const S).baz)).stringof == "int*");
+}
+
+/*****************************************/
 // 9063
 
 @property bool foo9063(){ return true; }
@@ -367,6 +393,7 @@ int main()
     test7274();
     test7275();
     test8251();
+    test9062();
 
     printf("Success\n");
     return 0;

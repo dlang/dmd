@@ -5965,18 +5965,20 @@ Expression *Parser::parsePostExp(Expression *e)
     }
 }
 
-Expression *Parser::parseUnaryExp()
+Expression *Parser::parseUnaryExp(bool* parenthesized)
 {   Expression *e;
     Loc loc = this->loc;
 
     switch (token.value)
     {
         case TOKand:
+        {
             nextToken();
-            e = parseUnaryExp();
-            e = new AddrExp(loc, e);
+            bool resolveProp = false;
+            e = parseUnaryExp(&resolveProp);
+            e = new AddrExp(loc, e, resolveProp);
             break;
-
+        }
         case TOKplusplus:
             nextToken();
             e = parseUnaryExp();
@@ -6203,7 +6205,10 @@ Expression *Parser::parseUnaryExp()
             }
 #endif
             e = parsePrimaryExp();
+            Expression *eold = e;
             e = parsePostExp(e);
+            if (e == eold && parenthesized)
+                *parenthesized = true;
             break;
         }
         default:
