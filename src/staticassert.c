@@ -57,6 +57,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->semantic(sc);
+    e = resolveProperties(sc, e);
     sc = sc->pop();
     if (!e->type->checkBoolean())
     {
@@ -77,6 +78,7 @@ void StaticAssert::semantic2(Scope *sc)
             OutBuffer buf;
 
             msg = msg->semantic(sc);
+            msg = resolveProperties(sc, msg);
             msg = msg->ctfeInterpret();
             hgs.console = 1;
             StringExp * s = msg->toString();
