@@ -162,15 +162,15 @@ public:
         return (xfeatures & mask) == mask && (miscfeatures&AVX_BIT)!=0;
     }
     /// Is VEX-Encoded AES supported
-    bool vaes()         {return avx() && aes();}
+    bool vaes()         {return avx && aes;}
     /// Is vpclmulqdq supported
-    bool hasVpclmulqdq(){return avx() && hasPclmulqdq(); }
+    bool hasVpclmulqdq(){return avx && hasPclmulqdq; }
     /// Is FMA supported
-    bool fma()          {return avx() && (miscfeatures&FMA_BIT)!=0;}
+    bool fma()          {return avx && (miscfeatures&FMA_BIT)!=0;}
     /// Is FP16C supported
-    bool fp16c()        {return avx() && (miscfeatures&FP16C_BIT)!=0;}
+    bool fp16c()        {return avx && (miscfeatures&FP16C_BIT)!=0;}
     /// Is AVX2 supported
-    bool avx2()         {return avx() && (extfeatures & AVX2_BIT) != 0;}
+    bool avx2()         {return avx && (extfeatures & AVX2_BIT) != 0;}
     /// Is HLE (hardware lock elision) supported
     bool hle()          {return (extfeatures & HLE_BIT) != 0;}
     /// Is RTM (restricted transactional memory) supported

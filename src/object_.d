@@ -1225,7 +1225,7 @@ class TypeInfo_Const : TypeInfo
     override @property uint flags() nothrow pure const { return base.flags; }
     override const(void)[] init() nothrow pure const { return base.init(); }
 
-    override @property size_t talign() nothrow pure const { return base.talign(); }
+    override @property size_t talign() nothrow pure const { return base.talign; }
 
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2)
     {

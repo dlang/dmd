@@ -193,7 +193,7 @@ class Semaphore
             while( val > maxWaitMillis )
             {
                 auto rc = WaitForSingleObject( m_hndl, cast(uint)
-                                                       maxWaitMillis.total!("msecs")() );
+                                                       maxWaitMillis.total!"msecs" );
                 switch( rc )
                 {
                 case WAIT_OBJECT_0:
@@ -205,7 +205,7 @@ class Semaphore
                     throw new SyncException( "Unable to wait for semaphore" );
                 }
             }
-            switch( WaitForSingleObject( m_hndl, cast(uint) val.total!("msecs")() ) )
+            switch( WaitForSingleObject( m_hndl, cast(uint) val.total!"msecs" ) )
             {
             case WAIT_OBJECT_0:
                 return true;
@@ -220,14 +220,14 @@ class Semaphore
             mach_timespec_t t = void;
             (cast(byte*) &t)[0 .. t.sizeof] = 0;
 
-            if( val.total!("seconds")() > t.tv_sec.max )
+            if( val.total!"seconds" > t.tv_sec.max )
             {
                 t.tv_sec  = t.tv_sec.max;
                 t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
             }
             else
             {
-                t.tv_sec  = cast(typeof(t.tv_sec)) val.total!("seconds")();
+                t.tv_sec  = cast(typeof(t.tv_sec)) val.total!"seconds";
                 t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
             }
             while( true )

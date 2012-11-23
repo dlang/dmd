@@ -35,7 +35,7 @@ void main()
     shared(int) i;
     cas( &i, 0, 1 ); // atomic
     auto b = bsf( 0 ); // bitop
-    mmx(); // cpuid
+    mmx; // cpuid
     demangle( "" ); // demangle
     setAssertHandler( null ); // exception
     // SES - disabled because you cannot enable the GC without disabling it.

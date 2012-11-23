@@ -29,7 +29,7 @@ private
  */
 extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
 {
-    debug(PRINTF) printf("_d_arrayassign(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize());
+    debug(PRINTF) printf("_d_arrayassign(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize);
 
     if (to.length != from.length)
     {
@@ -40,7 +40,7 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
         throw new Error(msg);
     }
 
-    auto element_size = ti.tsize();
+    auto element_size = ti.tsize;
 
     /* Need a temporary buffer tmp[] big enough to hold one element
      */
@@ -86,7 +86,7 @@ extern (C) void[] _d_arrayassign(TypeInfo ti, void[] from, void[] to)
  */
 extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
 {
-    debug(PRINTF) printf("_d_arrayctor(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize());
+    debug(PRINTF) printf("_d_arrayctor(from = %p,%d, to = %p,%d) size = %d\n", from.ptr, from.length, to.ptr, to.length, ti.tsize);
 
     if (to.length != from.length)
     {
@@ -96,7 +96,7 @@ extern (C) void[] _d_arrayctor(TypeInfo ti, void[] from, void[] to)
         throw new Error(msg);
     }
 
-    auto element_size = ti.tsize();
+    auto element_size = ti.tsize;
 
     size_t i;
     try
@@ -131,7 +131,7 @@ extern (C) void* _d_arraysetassign(void* p, void* value, int count, TypeInfo ti)
 {
     void* pstart = p;
 
-    auto element_size = ti.tsize();
+    auto element_size = ti.tsize;
 
     //Need a temporary buffer tmp[] big enough to hold one element
     void[16] buf = void;
@@ -161,7 +161,7 @@ extern (C) void* _d_arraysetassign(void* p, void* value, int count, TypeInfo ti)
 extern (C) void* _d_arraysetctor(void* p, void* value, int count, TypeInfo ti)
 {
     void* pstart = p;
-    auto element_size = ti.tsize();
+    auto element_size = ti.tsize;
 
     try
     {

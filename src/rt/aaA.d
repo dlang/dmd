@@ -245,7 +245,7 @@ body
     aaA *e;
     //printf("keyti = %p\n", keyti);
     //printf("aa = %p\n", aa);
-    immutable keytitsize = keyti.tsize();
+    immutable keytitsize = keyti.tsize;
 
     if (!aa.a)
     {   aa.a = new BB();
@@ -310,7 +310,7 @@ void* _aaGetRvalueX(AA aa, TypeInfo keyti, size_t valuesize, void* pkey)
     if (!aa.a)
         return null;
 
-    auto keysize = aligntsize(keyti.tsize());
+    auto keysize = aligntsize(keyti.tsize);
     auto len = aa.a.b.length;
 
     if (len)
@@ -373,7 +373,7 @@ body
                 {
                     auto c = keyti.compare(pkey, e + 1);
                     if (c == 0)
-                        return cast(void *)(e + 1) + aligntsize(keyti.tsize());
+                        return cast(void *)(e + 1) + aligntsize(keyti.tsize);
                 }
                 e = e.next;
             }
@@ -524,7 +524,7 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
     if (!len)
         return null;
     auto res = (cast(byte*) gc_malloc(len * keysize,
-                                 !(aa.a.keyti.flags() & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
+                                 !(aa.a.keyti.flags & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
     size_t resi = 0;
     foreach (e; aa.a.b)
     {
@@ -655,9 +655,9 @@ int _aaApply2(AA aa, size_t keysize, dg2_t dg)
 extern (C)
 BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
 {
-    auto valuesize = ti.next.tsize();           // value size
+    auto valuesize = ti.next.tsize;             // value size
     auto keyti = ti.key;
-    auto keysize = keyti.tsize();               // key size
+    auto keysize = keyti.tsize;                 // key size
     BB* result;
 
     //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
@@ -736,9 +736,9 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
 extern (C)
 BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
 {
-    auto valuesize = ti.next.tsize();           // value size
+    auto valuesize = ti.next.tsize;             // value size
     auto keyti = ti.key;
-    auto keysize = keyti.tsize();               // key size
+    auto keysize = keyti.tsize;                 // key size
     auto length = keys.length;
     BB* result;
 
@@ -861,7 +861,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
 
     auto keyti = ti.key;
     auto valueti = ti.next;
-    const keysize = aligntsize(keyti.tsize());
+    const keysize = aligntsize(keyti.tsize);
     const len2 = e2.a.b.length;
 
     int _aaKeys_x(aaA* e)
@@ -938,7 +938,7 @@ hash_t _aaGetHash(AA* aa, const(TypeInfo) tiRaw) nothrow
     TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
     auto keyti = ti.key;
     auto valueti = ti.next;
-    const keysize = aligntsize(keyti.tsize());
+    const keysize = aligntsize(keyti.tsize);
 
     foreach (e; aa.a.b)
     {

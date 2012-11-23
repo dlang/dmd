@@ -24,10 +24,10 @@ version (unittest)
      */
     int cpuid;
     const int CPUID_MAX = 5;
-    bool mmx()      { return cpuid == 1 && core.cpuid.mmx(); }
-    bool sse()      { return cpuid == 2 && core.cpuid.sse(); }
-    bool sse2()     { return cpuid == 3 && core.cpuid.sse2(); }
-    bool amd3dnow() { return cpuid == 4 && core.cpuid.amd3dnow(); }
+    @property bool mmx()      { return cpuid == 1 && core.cpuid.mmx; }
+    @property bool sse()      { return cpuid == 2 && core.cpuid.sse; }
+    @property bool sse2()     { return cpuid == 3 && core.cpuid.sse2; }
+    @property bool amd3dnow() { return cpuid == 4 && core.cpuid.amd3dnow; }
 }
 else
 {
@@ -77,7 +77,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 333% faster
-        if (sse2() && b.length >= 16)
+        if (sse2 && b.length >= 16)
         {
             auto n = aptr + (b.length & ~15);
 
@@ -190,7 +190,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 324% faster
-        if (sse2() && b.length >= 8)
+        if (sse2 && b.length >= 8)
         {
             auto n = aptr + (b.length & ~7);
 
@@ -302,7 +302,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 305% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -399,7 +399,7 @@ T[] _arrayExpSliceAddass_d(T[] a, T value)
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 114% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
             if (aptr < n)
@@ -502,7 +502,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 183% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -609,7 +609,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 305% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -713,7 +713,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 66% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -814,7 +814,7 @@ T[] _arrayExpSliceMinass_d(T[] a, T value)
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 115% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
             if (aptr < n)
@@ -917,7 +917,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 183% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1024,7 +1024,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 304% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1131,7 +1131,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 329% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1233,7 +1233,7 @@ T[] _arrayExpSliceMulass_d(T[] a, T value)
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 109% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
             if (aptr < n)
@@ -1336,7 +1336,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 205% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1448,7 +1448,7 @@ body
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 299% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1560,7 +1560,7 @@ T[] _arrayExpSliceDivass_d(T[] a, T value)
     version (D_InlineAsm_X86)
     {
         // SSE2 version is 65% faster
-        if (sse2() && a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 

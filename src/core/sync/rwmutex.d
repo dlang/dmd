@@ -415,7 +415,7 @@ version( unittest )
 
         void readerFn()
         {
-            synchronized( mutex.reader() )
+            synchronized( mutex.reader )
             {
                 synchronized( synInfo )
                 {
@@ -456,7 +456,7 @@ version( unittest )
         {
             for( int i = 0; i < numTries; ++i )
             {
-                synchronized( mutex.reader() )
+                synchronized( mutex.reader )
                 {
                     synchronized( synInfo )
                     {
@@ -476,7 +476,7 @@ version( unittest )
         {
             for( int i = 0; i < numTries; ++i )
             {
-                synchronized( mutex.writer() )
+                synchronized( mutex.writer )
                 {
                     synchronized( synInfo )
                     {

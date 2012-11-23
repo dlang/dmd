@@ -1032,24 +1032,24 @@ class Thread
             while( val > maxSleepMillis )
             {
                 Sleep( cast(uint)
-                       maxSleepMillis.total!("msecs")() );
+                       maxSleepMillis.total!"msecs" );
                 val -= maxSleepMillis;
             }
-            Sleep( cast(uint) val.total!("msecs")() );
+            Sleep( cast(uint) val.total!"msecs" );
         }
         else version( Posix )
         {
             timespec tin  = void;
             timespec tout = void;
 
-            if( val.total!("seconds")() > tin.tv_sec.max )
+            if( val.total!"seconds" > tin.tv_sec.max )
             {
                 tin.tv_sec  = tin.tv_sec.max;
                 tin.tv_nsec = cast(typeof(tin.tv_nsec)) val.fracSec.nsecs;
             }
             else
             {
-                tin.tv_sec  = cast(typeof(tin.tv_sec)) val.total!("seconds")();
+                tin.tv_sec  = cast(typeof(tin.tv_sec)) val.total!"seconds";
                 tin.tv_nsec = cast(typeof(tin.tv_nsec)) val.fracSec.nsecs;
             }
             while( true )

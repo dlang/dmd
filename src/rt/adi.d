@@ -370,7 +370,7 @@ extern (C) int _adEq(void[] a1, void[] a2, TypeInfo ti)
     debug(adi) printf("_adEq(a1.length = %d, a2.length = %d)\n", a1.length, a2.length);
     if (a1.length != a2.length)
         return 0; // not equal
-    auto sz = ti.tsize();
+    auto sz = ti.tsize;
     auto p1 = a1.ptr;
     auto p2 = a2.ptr;
 
@@ -418,7 +418,7 @@ extern (C) int _adCmp(void[] a1, void[] a2, TypeInfo ti)
     auto len = a1.length;
     if (a2.length < len)
         len = a2.length;
-    auto sz = ti.tsize();
+    auto sz = ti.tsize;
     void *p1 = a1.ptr;
     void *p2 = a2.ptr;
 
