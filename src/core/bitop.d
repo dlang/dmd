@@ -289,13 +289,19 @@ unittest
 {
     version (AsmX86)
     {
+        asm { naked; }
+
         version (D_InlineAsm_X86_64)
-        asm { naked; mov EAX, EDI; }
+        {
+            version (Win64)
+                asm { mov EAX, ECX; }
+            else
+                asm { mov EAX, EDI; }
+        }
 
         asm
         {
             // Author: Tiago Gasiba.
-            naked;
             mov EDX, EAX;
             shr EAX, 1;
             and EDX, 0x5555_5555;
