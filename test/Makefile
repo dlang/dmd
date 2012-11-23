@@ -62,11 +62,17 @@ ifeq (,$(OS))
     endif
 else
     ifeq (Windows_NT,$(OS))
-	OS:=win32
-    else
-        ifeq (Win_32,$(OS))
-	    OS:=win32
+        ifeq ($(findstring WOW64, $(shell uname)),WOW64)
+            OS:=win64
+        else
+            OS:=win32
         endif
+    endif
+    ifeq (Win_32,$(OS))
+	OS:=win32
+    endif
+    ifeq (Win_64,$(OS))
+	OS:=win64
     endif
 endif
 export OS
@@ -81,7 +87,7 @@ export RESULTS_DIR=test_results
 export MODEL=32
 export REQUIRED_ARGS=
 
-ifeq ($(OS),win32)
+ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O -unittest
 export DMD=../src/dmd.exe
 export EXE=.exe
@@ -112,6 +118,29 @@ DISABLED_TESTS += dhry
 # 64 bit test failures
 DISABLED_TESTS += test17
 DISABLED_SH_TESTS += test39
+endif
+
+ifeq ($(OS),win64)
+DISABLED_TESTS += dhry
+DISABLED_TESTS += eh
+DISABLED_TESTS += eh2
+DISABLED_TESTS += integrate
+DISABLED_TESTS += statictor
+DISABLED_TESTS += test15
+DISABLED_TESTS += test17
+DISABLED_TESTS += test3
+DISABLED_TESTS += test4
+DISABLED_TESTS += testaa
+DISABLED_TESTS += testargtypes
+DISABLED_TESTS += testthread
+DISABLED_TESTS += testxmm
+DISABLED_TESTS += testzip
+DISABLED_TESTS += variadic
+
+DISABLED_SH_TESTS += test2
+DISABLED_SH_TESTS += test35
+DISABLED_SH_TESTS += test39
+DISABLED_SH_TESTS += test44
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
@@ -184,5 +213,6 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 
 $(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
+	@echo "OS: $(OS)"
 	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
 
