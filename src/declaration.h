@@ -133,6 +133,7 @@ struct Declaration : Dsymbol
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
+    void semantic3(Scope *sc);
     const char *kind();
     unsigned size(Loc loc);
     int checkModify(Loc loc, Scope *sc, Type *t);
