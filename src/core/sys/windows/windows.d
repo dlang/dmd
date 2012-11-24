@@ -101,6 +101,7 @@ else // Win32
     alias HANDLE HINSTANCE;
     alias HINSTANCE HMODULE;
     alias HANDLE HWND;
+    alias HANDLE* PHANDLE;
 
     alias HANDLE HGDIOBJ;
     alias HANDLE HACCEL;
@@ -490,6 +491,7 @@ HANDLE FindFirstFileW(in LPCWSTR lpFileName, WIN32_FIND_DATAW* lpFindFileData);
 BOOL   FindNextFileA(HANDLE hFindFile, WIN32_FIND_DATA* lpFindFileData);
 BOOL   FindNextFileW(HANDLE hFindFile, WIN32_FIND_DATAW* lpFindFileData);
 BOOL   GetExitCodeThread(HANDLE hThread, DWORD *lpExitCode);
+BOOL   GetExitCodeProcess(HANDLE hProcess, DWORD *lpExitCode);
 DWORD  GetLastError();
 DWORD  GetFileAttributesA(in char *lpFileName);
 DWORD  GetFileAttributesW(in wchar *lpFileName);
@@ -3580,6 +3582,91 @@ DWORD TlsAlloc();
 LPVOID TlsGetValue(DWORD);
 BOOL TlsSetValue(DWORD, LPVOID);
 BOOL TlsFree(DWORD);
+
+struct STARTUPINFO
+{
+    DWORD  cb = STARTUPINFO.sizeof;
+    LPSTR  lpReserved;
+    LPSTR  lpDesktop;
+    LPSTR  lpTitle;
+    DWORD  dwX;
+    DWORD  dwY;
+    DWORD  dwXSize;
+    DWORD  dwYSize;
+    DWORD  dwXCountChars;
+    DWORD  dwYCountChars;
+    DWORD  dwFillAttribute;
+    DWORD  dwFlags;
+    WORD   wShowWindow;
+    WORD   cbReserved2;
+    LPBYTE lpReserved2;
+    HANDLE hStdInput;
+    HANDLE hStdOutput;
+    HANDLE hStdError;
+}
+
+struct STARTUPINFO_W
+{
+    DWORD  cb = STARTUPINFO_W.sizeof;
+    LPWSTR lpReserved;
+    LPWSTR lpDesktop;
+    LPWSTR lpTitle;
+    DWORD  dwX;
+    DWORD  dwY;
+    DWORD  dwXSize;
+    DWORD  dwYSize;
+    DWORD  dwXCountChars;
+    DWORD  dwYCountChars;
+    DWORD  dwFillAttribute;
+    DWORD  dwFlags;
+    WORD   wShowWindow;
+    WORD   cbReserved2;
+    LPBYTE lpReserved2;
+    HANDLE hStdInput;
+    HANDLE hStdOutput;
+    HANDLE hStdError;
+}
+
+alias STARTUPINFO *LPSTARTUPINFO;
+alias STARTUPINFO_W *LPSTARTUPINFO_W;
+
+struct PROCESS_INFORMATION
+{
+    HANDLE hProcess;
+    HANDLE hThread;
+    DWORD  dwProcessId;
+    DWORD  dwThreadId;
+}
+
+alias PROCESS_INFORMATION *LPPROCESS_INFORMATION;
+
+export
+{
+    BOOL CreateProcessA(LPCSTR lpApplicationName, LPSTR lpCommandLine,
+        LPSECURITY_ATTRIBUTES lpProcessAttributes,
+        LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles,
+        DWORD dwCreationFlags, LPVOID lpEnvironment, LPCSTR lpCurrentDirectory,
+        LPSTARTUPINFO lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+
+    BOOL CreateProcessW(LPCWSTR lpApplicationName, LPWSTR lpCommandLine,
+        LPSECURITY_ATTRIBUTES lpProcessAttributes,
+        LPSECURITY_ATTRIBUTES lpThreadAttributes, BOOL bInheritHandles,
+        DWORD dwCreationFlags, LPVOID lpEnvironment, LPCWSTR lpCurrentDirectory,
+        LPSTARTUPINFO_W lpStartupInfo, LPPROCESS_INFORMATION lpProcessInformation);
+
+    BOOL CreatePipe(PHANDLE hReadPipe, PHANDLE hWritePipe,
+        LPSECURITY_ATTRIBUTES lpPipeAttributes, DWORD nSize);
+}
+
+enum
+{
+    STARTF_USESTDHANDLES = 0x00000100
+}
+
+enum
+{
+    CREATE_NO_WINDOW = 0x08000000
+}
 
 // shellapi.h
 HINSTANCE ShellExecuteA(HWND hwnd, LPCSTR lpOperation, LPCSTR lpFile, LPCSTR lpParameters, LPCSTR lpDirectory, INT nShowCmd);
