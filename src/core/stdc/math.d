@@ -205,6 +205,13 @@ else version( DigitalMarsWin64 )
     int _finite(double x);
     int _isnan(double x);
     int _fpclass(double x);
+
+    extern(D)
+    {
+        int isnan(float x)          { return _isnanf(x);   }
+        int isnan(double x)         { return _isnan(x);   }
+        int isnan(real x)           { return _isnan(x);   }
+    }
 }
 else version( linux )
 {
