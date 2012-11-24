@@ -69,6 +69,7 @@ struct EnvData
     string exe;
     string os;
     string model;
+    string required_args;
 }
 
 bool findTestParameter(string file, string token, ref string result)
@@ -133,7 +134,9 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     string file = cast(string)std.file.read(input_file);
 
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
-
+    if(envData.required_args.length)
+        testArgs.requiredArgs ~= " " ~ envData.required_args;
+    
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
@@ -297,6 +300,7 @@ int main(string[] args)
     envData.os            = getenv("OS");
     envData.dmd           = replace(getenv("DMD"), "/", envData.sep);
     envData.model         = getenv("MODEL");
+    envData.required_args = getenv("REQUIRED_ARGS");
 
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
@@ -385,7 +389,7 @@ int main(string[] args)
                 if (testArgs.mode == TestMode.RUN)
                 {
                     // link .o's into an executable
-                    string command = format("%s -m%s -od%s -of%s %s", envData.dmd, envData.model, output_dir, test_app_dmd, join(toCleanup, " "));
+                    string command = format("%s -m%s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
                     // add after building the command so that before now, it's purely the .o's involved
