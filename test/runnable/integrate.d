@@ -9,7 +9,7 @@
 
 import std.math, std.stdio, std.string, std.conv;
 
-extern(C) double round(double x);
+//extern(C) double round(double x);
 
 alias fl F;
 struct fl
