@@ -346,7 +346,7 @@ int main(string[] args)
         try
         {
             string[] toCleanup;
-            scope(exit) foreach (file; toCleanup) collectException(std.file.remove(file));
+            scope(success) foreach (file; toCleanup) collectException(std.file.remove(file));
 
             auto thisRunName = genTempFilename(result_path);
             auto fThisRun = File(thisRunName, "w");
@@ -363,9 +363,6 @@ int main(string[] args)
             {
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
                 toCleanup ~= objfile;
-
-                if (testArgs.mode == TestMode.RUN)
-                    toCleanup ~= test_app_dmd;
 
                 string command = format("%s -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir,
@@ -394,9 +391,6 @@ int main(string[] args)
                     string command = format("%s -m%s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
-                    // add after building the command so that before now, it's purely the .o's involved
-                    toCleanup ~= test_app_dmd;
-
                     execute(fThisRun, command, true, result_path);
                 }
             }
@@ -413,6 +407,14 @@ int main(string[] args)
 
             if (testArgs.mode == TestMode.RUN)
             {
+                toCleanup ~= test_app_dmd;
+                version(Windows) 
+                    if(envData.model == "64") 
+                    {
+                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".ilk";
+                        toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
+                    }
+
                 string command = test_app_dmd;
                 if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
