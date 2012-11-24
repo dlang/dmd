@@ -209,7 +209,7 @@ struct ObjModule
     unsigned length;            // in bytes
     unsigned offset;            // offset from start of library
     unsigned short index;       // index in Second Linker Member
-    char *name;                 // module name (file name)
+    const char *name;           // module name (file name)
     int name_offset;            // if not -1, offset into string table of name
     long file_time;             // file time
     unsigned user_id;
@@ -323,7 +323,7 @@ void LibMSCoff::scanObjModule(ObjModule *om)
 
     Context ctx(this, om);
 
-    extern void scanMSCoffObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, char *, Loc loc);
+    extern void scanMSCoffObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
     scanMSCoffObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
@@ -503,17 +503,18 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
                         if (c == 0)
                             break;
                     }
-                    om->name = (char *)malloc(i + 1);
-                    assert(om->name);
-                    memcpy(om->name, longnames + foff, i);
-                    om->name[i] = 0;
+                    char* oname = (char *)malloc(i + 1);
+                    assert(oname);
+                    memcpy(oname, longnames + foff, i);
+                    oname[i] = 0;
+                    om->name = oname;
                     //printf("\tname = '%s'\n", om->name);
                 }
                 else
                 {   /* Pick short name out of header
                      */
-                    om->name = (char *)malloc(OBJECT_NAME_SIZE);
-                    assert(om->name);
+                    char* oname = (char *)malloc(OBJECT_NAME_SIZE);
+                    assert(oname);
                     for (int i = 0; 1; i++)
                     {   if (i == OBJECT_NAME_SIZE)
                         {   reason = __LINE__;
@@ -521,11 +522,12 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
                         }
                         char c = header->object_name[i];
                         if (c == '/')
-                        {   om->name[i] = 0;
+                        {   oname[i] = 0;
                             break;
                         }
-                        om->name[i] = c;
+                        oname[i] = c;
                     }
+                    om->name = oname;
                 }
                 om->file_time = strtoul(header->file_time, &endptr, 10);
                 om->user_id   = strtoul(header->user_id, &endptr, 10);
@@ -590,7 +592,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
     om->base = (unsigned char *)buf;
     om->length = buflen;
     om->offset = 0;
-    om->name = FileName::name(module_name);     // remove path, but not extension
+    om->name = global.params.preservePaths ? module_name : FileName::name(module_name);     // remove path, but not extension
     om->scan = 1;
     if (fromfile)
     {   struct stat statbuf;
