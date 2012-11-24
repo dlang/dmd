@@ -1090,37 +1090,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                if (arg->op == TOKstructliteral)
-                {
-                    Identifier *idtmp = Lexer::uniqueId("__tmpsl");
-                    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(0, arg));
-                    tmp->storage_class |= STCctfe;
-                    Expression *ae = new DeclarationExp(loc, tmp);
-                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-                    e = e->semantic(sc);
-
-                    arg = e;
-                }
-                else if (arg->op == TOKcall)
-                {
-                    CallExp *ce = (CallExp *)arg;
-                    if (ce->e1->op == TOKdotvar &&
-                        ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
-                    {
-                        DotVarExp *dve = (DotVarExp *)ce->e1;
-                        assert(dve->e1->op == TOKcomma);
-                        assert(((CommaExp *)dve->e1)->e2->op == TOKvar);
-                        VarExp *ve = (VarExp *)((CommaExp *)dve->e1)->e2;
-                        VarDeclaration *tmp = ve->var->isVarDeclaration();
-
-                        arg = new CommaExp(arg->loc, arg, new VarExp(loc, tmp));
-                        arg = arg->semantic(sc);
-                    }
-                    else
-                        arg = arg->toLvalue(sc, arg);
-                }
-                else
-                    arg = arg->toLvalue(sc, arg);
+                arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
