@@ -24,15 +24,16 @@ void usage()
           "   example: d_do_test runnable pi d\n"
           "\n"
           "   relevant environment variables:\n"
-          "      ARGS:        set to execute all combinations of\n"
-          "      DMD:         compiler to use, ex: ../src/dmd\n"
-          "      OS:          win32, linux, freebsd, osx\n"
-          "      RESULTS_DIR: base directory for test results\n"
+          "      ARGS:          set to execute all combinations of\n"
+          "      REQUIRED_ARGS: arguments always passed to the compiler\n"
+          "      DMD:           compiler to use, ex: ../src/dmd\n"
+          "      OS:            win32, linux, freebsd, osx\n"
+          "      RESULTS_DIR:   base directory for test results\n"
           "   windows vs non-windows portability env vars:\n"
-          "      DSEP:        \\\\ or /\n"
-          "      SEP:         \\ or /\n"
-          "      OBJ:        .obj or .o\n"
-          "      EXE:        .exe or <null>\n");
+          "      DSEP:          \\\\ or /\n"
+          "      SEP:           \\ or /\n"
+          "      OBJ:          .obj or .o\n"
+          "      EXE:          .exe or <null>\n");
 }
 
 enum TestMode

@@ -38,6 +38,8 @@
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
+#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD) 
+#                              command line (see below)
 #
 #   DISABLED:            text describing why the test is disabled (if empty, the test is
 #                        considered to be enabled).
@@ -77,6 +79,7 @@ endif
 QUIET=@
 export RESULTS_DIR=test_results
 export MODEL=32
+export REQUIRED_ARGS=
 
 ifeq ($(OS),win32)
 export ARGS=-inline -release -g -O -unittest
