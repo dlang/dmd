@@ -419,7 +419,8 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
      * the same order VC puts out just to avoid trouble.
      */
 
-    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
+    int alignText = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
+    int alignData = I64 ? IMAGE_SCN_ALIGN_8BYTES  : IMAGE_SCN_ALIGN_4BYTES;
     addScnhdr(".drectve", IMAGE_SCN_LNK_INFO |
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_LNK_REMOVE);        // linker commands
@@ -428,15 +429,15 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_DISCARDABLE);
     addScnhdr(".data",    IMAGE_SCN_CNT_INITIALIZED_DATA |
-                          IMAGE_SCN_ALIGN_4BYTES |
+                          alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);             // DATA
     addScnhdr(".text",    IMAGE_SCN_CNT_CODE |
-                          align |
+                          alignText |
                           IMAGE_SCN_MEM_EXECUTE |
                           IMAGE_SCN_MEM_READ);              // CODE
     addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
-                          IMAGE_SCN_ALIGN_4BYTES |
+                          alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);        // UDATA
 
