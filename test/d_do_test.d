@@ -346,7 +346,6 @@ int main(string[] args)
         try
         {
             string[] toCleanup;
-            scope(success) foreach (file; toCleanup) collectException(std.file.remove(file));
 
             auto thisRunName = genTempFilename(result_path);
             auto fThisRun = File(thisRunName, "w");
@@ -430,6 +429,8 @@ int main(string[] args)
                 version (Windows) prefix = "bash ";
                 execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
             }
+
+            foreach (file; toCleanup) collectException(std.file.remove(file));
         }
         catch(Exception e)
         {
