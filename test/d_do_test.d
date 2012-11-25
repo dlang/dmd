@@ -304,11 +304,11 @@ int main(string[] args)
     envData.model         = getenv("MODEL");
     envData.required_args = getenv("REQUIRED_ARGS");
 
+    string result_path    = envData.results_dir ~ envData.sep;
     string input_file     = input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension;
-    string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
-    string output_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
+    string output_dir     = result_path ~ input_dir;
+    string output_file    = result_path ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
-    string result_path = envData.results_dir ~ envData.sep;
 
     TestArgs testArgs;
 
@@ -380,8 +380,7 @@ int main(string[] args)
             {
                 foreach (filename; testArgs.sources)
                 {
-                    string newo= envData.results_dir ~ envData.sep ~
-                        replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
+                    string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
