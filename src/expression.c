@@ -233,6 +233,17 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         ethis  = dte->e1;
         goto L1;
     }
+    else if (e->op == TOKimport)
+    {
+        Dsymbol *s = ((ScopeExp *)e)->sds;
+        td = s->isTemplateDeclaration();
+        if (td)
+        {
+            targsi = NULL;
+            ethis  = NULL;
+            goto L1;
+        }
+    }
     else if (e->op == TOKtemplate)
     {
         td     = ((TemplateExp *)e)->td;
