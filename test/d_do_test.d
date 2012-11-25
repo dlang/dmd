@@ -212,9 +212,10 @@ string[] combinations(string argstr)
     return results;
 }
 
-string genTempFilename()
+string genTempFilename(string result_path)
 {
     auto a = appender!string();
+    a.put(result_path);
     foreach (ref e; 0 .. 8)
     {
         formattedWrite(a, "%x", rndGen.front);
@@ -251,9 +252,9 @@ void removeIfExists(in char[] filename)
         std.file.remove(filename);
 }
 
-string execute(ref File f, string command, bool expectpass)
+string execute(ref File f, string command, bool expectpass, string result_path)
 {
-    auto filename = genTempFilename();
+    auto filename = genTempFilename(result_path);
     scope(exit) removeIfExists(filename);
 
     auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
@@ -307,6 +308,7 @@ int main(string[] args)
     string output_dir     = envData.results_dir ~ envData.sep ~ input_dir;
     string output_file    = envData.results_dir ~ envData.sep ~ input_dir ~ envData.sep ~ test_name ~ "." ~ test_extension ~ ".out";
     string test_app_dmd_base = output_dir ~ envData.sep ~ test_name ~ "_";
+    string result_path = envData.results_dir ~ envData.sep;
 
     TestArgs testArgs;
 
@@ -346,7 +348,7 @@ int main(string[] args)
             string[] toCleanup;
             scope(exit) foreach (file; toCleanup) collectException(std.file.remove(file));
 
-            auto thisRunName = genTempFilename();
+            auto thisRunName = genTempFilename(result_path);
             auto fThisRun = File(thisRunName, "w");
             scope(exit)
             {
@@ -372,7 +374,7 @@ int main(string[] args)
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
             }
             else
             {
@@ -384,7 +386,7 @@ int main(string[] args)
 
                     string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -396,7 +398,7 @@ int main(string[] args)
                     // add after building the command so that before now, it's purely the .o's involved
                     toCleanup ~= test_app_dmd;
 
-                    execute(fThisRun, command, true);
+                    execute(fThisRun, command, true, result_path);
                 }
             }
 
@@ -415,7 +417,7 @@ int main(string[] args)
                 string command = test_app_dmd;
                 if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                execute(fThisRun, command, true);
+                execute(fThisRun, command, true, result_path);
             }
 
             fThisRun.close();
@@ -425,7 +427,7 @@ int main(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true);
+                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
             }
         }
         catch(Exception e)
