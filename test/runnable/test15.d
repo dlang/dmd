@@ -1,9 +1,9 @@
 // REQUIRED_ARGS:
 
 import std.array;
-import core.stdc.math : cos, fabs, sin, sqrt, rint;
+import core.stdc.math : cos, fabs, sin, sqrt;
 import core.vararg;
-import std.math: rndtol;
+import std.math: rndtol, rint;
 import std.stream: File;
 import std.string;
 

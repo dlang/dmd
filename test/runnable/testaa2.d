@@ -52,7 +52,7 @@ void foo2()
 
     for (i = 0; i < key.length; i++)
     {
-	printf("c[\"%.*s\"] = %d\n", key[i], value[i]);
+        printf("c[\"%.*s\"] = %d\n", key[i].length, key[i].ptr, value[i]);
     }
 
     assert("foo" in c);

@@ -3,10 +3,7 @@
 import std.c.stdio;
 import core.thread;
 
-version (Posix)
-{
-}
-else
+version (Win32)
 {
     extern (C)
     {
@@ -24,15 +21,12 @@ class Foo
     void bar()
     {
         printf("bar()\n");
-	assert(tlsx == 0);
-	tlsx = 5;
+        assert(tlsx == 0);
+        tlsx = 5;
         Thread t = Thread.getThis();
 
-	version (Posix)
-	{
-	}
-	else
-	    printf("thread ptr=%p, %p &tlsx = %p %p\n", t, &_tlsstart, &tlsx, &_tlsend);
+        version (Win32)
+            printf("thread ptr=%p, %p &tlsx = %p %p\n", t, &_tlsstart, &tlsx, &_tlsend);
         x = 3;
         printf("-bar()\n");
     }
