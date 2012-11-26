@@ -31,9 +31,9 @@ enum FLT_MANT_DIG               = float.mant_dig;
 enum DBL_MANT_DIG               = double.mant_dig;
 enum LDBL_MANT_DIG              = real.mant_dig;
 
-enum FLT_MIN                    = float.min;
-enum DBL_MIN                    = double.min;
-enum LDBL_MIN                   = real.min;
+enum FLT_MIN                    = float.min_normal;
+enum DBL_MIN                    = double.min_normal;
+enum LDBL_MIN                   = real.min_normal;
 
 enum FLT_MAX                    = float.max;
 enum DBL_MAX                    = double.max;
