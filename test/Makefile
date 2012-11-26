@@ -121,26 +121,10 @@ DISABLED_SH_TESTS += test39
 endif
 
 ifeq ($(OS),win64)
-DISABLED_TESTS += dhry
-DISABLED_TESTS += eh
-DISABLED_TESTS += eh2
-DISABLED_TESTS += integrate
-DISABLED_TESTS += statictor
-DISABLED_TESTS += test15
-DISABLED_TESTS += test17
-DISABLED_TESTS += test3
-DISABLED_TESTS += test4
-DISABLED_TESTS += testaa
 DISABLED_TESTS += testargtypes
-DISABLED_TESTS += testthread
 DISABLED_TESTS += testxmm
-DISABLED_TESTS += testzip
-DISABLED_TESTS += variadic
 
-DISABLED_SH_TESTS += test2
-DISABLED_SH_TESTS += test35
 DISABLED_SH_TESTS += test39
-DISABLED_SH_TESTS += test44
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)

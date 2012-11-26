@@ -172,6 +172,8 @@ int runLINK()
     {
         OutBuffer cmdbuf;
 
+        cmdbuf.writestring("/NOLOGO ");
+
         for (size_t i = 0; i < global.params.objfiles->dim; i++)
         {
             if (i)
