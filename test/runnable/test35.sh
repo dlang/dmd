@@ -20,7 +20,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-$DMD -m${MODEL} -of${dmddir}${SEP}test35 ${dir}/test35${OBJ} ${dir}/test35a${OBJ} >> ${output_file}
+$DMD -m${MODEL} -of${dmddir}${SEP}test35${EXE} ${dir}/test35${OBJ} ${dir}/test35a${OBJ} >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}

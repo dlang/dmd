@@ -14,7 +14,7 @@ a[3]='-debug=2 -debug=bar'
 for x in "${a[@]}"; do
     echo "executing with args: $x" >> ${output_file}
 
-    $DMD -m${MODEL} $x -unittest -od${dmddir} -of${dmddir}${SEP}test2 runnable/extra-files/test2.d >> ${output_file}
+    $DMD -m${MODEL} $x -unittest -od${dmddir} -of${dmddir}${SEP}test2${EXE} runnable/extra-files/test2.d >> ${output_file}
     if [ $? -ne 0 ]; then
         cat ${output_file}
         rm -f ${output_file}
