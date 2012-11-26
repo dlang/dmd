@@ -27,7 +27,7 @@ void usage()
           "      ARGS:          set to execute all combinations of\n"
           "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           "      DMD:           compiler to use, ex: ../src/dmd\n"
-          "      OS:            win32, linux, freebsd, osx\n"
+          "      OS:            win32, win64, linux, freebsd, osx\n"
           "      RESULTS_DIR:   base directory for test results\n"
           "   windows vs non-windows portability env vars:\n"
           "      DSEP:          \\\\ or /\n"
@@ -148,8 +148,8 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
 
-    // win32 doesn't support pic, nor does freebsd/64 currently
-    if (envData.os == "win32" || envData.os == "freebsd")
+    // win(32|64) doesn't support pic, nor does freebsd/64 currently
+    if (envData.os == "win32" || envData.os == "win64" || envData.os == "freebsd")
     {
         auto index = std.string.indexOf(testArgs.permuteArgs, "-fPIC");
         if (index != -1)

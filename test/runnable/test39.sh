@@ -20,7 +20,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-if [ ${OS} == "win32" ]; then
+if [ ${OS} == "win32" -o ${OS} == "win64" ]; then
     lib -c ${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
     LIBEXT=.lib
 else
