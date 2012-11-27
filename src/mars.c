@@ -49,7 +49,7 @@ void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
-static bool parse_arch(int argc, char** argv, bool is64bit);
+static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
 Global global;
 
@@ -517,7 +517,7 @@ int tryMain(size_t argc, char *argv[])
 #error "fix this"
 #endif
 
-    int dflags_argc = 0;
+    size_t dflags_argc = 0;
     char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
 
@@ -1639,7 +1639,7 @@ Ldone:
  * to detect the desired architecture.
  */
 
-static bool parse_arch(int argc, char** argv, bool is64bit)
+static bool parse_arch(size_t argc, char** argv, bool is64bit)
 {
     for (size_t i = 0; i < argc; ++i)
     {   char* p = argv[i];
