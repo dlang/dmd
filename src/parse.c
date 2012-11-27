@@ -4475,7 +4475,7 @@ Statement *Parser::parseStatement(int flags)
             nextToken();
             s = parseStatement(PSsemi | PScurlyscope);
 #if DMDV2
-            deprecation("volatile statements deprecated; used synchronized statements instead");
+            deprecation("volatile statements deprecated; use synchronized statements instead");
 #endif
             s = new VolatileStatement(loc, s);
             break;
