@@ -122,11 +122,6 @@ class TypeInfo_Array : TypeInfo
     TypeInfo value;
 }
 
-class TypeInfo_Vector : TypeInfo
-{
-    TypeInfo base;
-}
-
 class TypeInfo_StaticArray : TypeInfo
 {
     TypeInfo value;
@@ -138,6 +133,11 @@ class TypeInfo_AssociativeArray : TypeInfo
     TypeInfo value;
     TypeInfo key;
     TypeInfo impl;
+}
+
+class TypeInfo_Vector : TypeInfo
+{
+    TypeInfo base;
 }
 
 class TypeInfo_Function : TypeInfo
