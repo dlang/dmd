@@ -639,7 +639,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
              * So I'm leaving this here as an experiment for the moment.
              */
             if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
-                warning(fd->loc, "toHash() must be declared as extern (D) uint toHash() const nothrow @safe, not %s", tf->toChars());
+                warning(fd->loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
         }
         else
         {
