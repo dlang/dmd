@@ -22,20 +22,15 @@ class TypeInfo_Ac : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "creal[]"; }
 
-    override string toString() const pure nothrow @safe { return "creal[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         creal[] s = *cast(creal[]*)p;
         return hashOf(s.ptr, s.length * creal.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         creal[] s1 = *cast(creal[]*)p1;
         creal[] s2 = *cast(creal[]*)p2;
@@ -51,7 +46,7 @@ class TypeInfo_Ac : TypeInfo_Array
         return true;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         creal[] s1 = *cast(creal[]*)p1;
         creal[] s2 = *cast(creal[]*)p2;
@@ -72,8 +67,8 @@ class TypeInfo_Ac : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(creal);
+        return cast(inout)typeid(creal);
     }
 }

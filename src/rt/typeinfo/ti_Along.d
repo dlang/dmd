@@ -22,20 +22,15 @@ class TypeInfo_Al : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "long[]"; }
 
-    override string toString() const pure nothrow @safe { return "long[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         long[] s = *cast(long[]*)p;
         return hashOf(s.ptr, s.length * long.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         long[] s1 = *cast(long[]*)p1;
         long[] s2 = *cast(long[]*)p2;
@@ -44,7 +39,7 @@ class TypeInfo_Al : TypeInfo_Array
                memcmp(cast(void *)s1, cast(void *)s2, s1.length * long.sizeof) == 0;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         long[] s1 = *cast(long[]*)p1;
         long[] s2 = *cast(long[]*)p2;
@@ -66,9 +61,9 @@ class TypeInfo_Al : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(long);
+        return cast(inout)typeid(long);
     }
 }
 
@@ -77,14 +72,9 @@ class TypeInfo_Al : TypeInfo_Array
 
 class TypeInfo_Am : TypeInfo_Al
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "ulong[]"; }
 
-    override string toString() const pure nothrow @safe { return "ulong[]"; }
-
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         ulong[] s1 = *cast(ulong[]*)p1;
         ulong[] s2 = *cast(ulong[]*)p2;
@@ -106,8 +96,8 @@ class TypeInfo_Am : TypeInfo_Al
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(ulong);
+        return cast(inout)typeid(ulong);
     }
 }

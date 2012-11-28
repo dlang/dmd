@@ -22,20 +22,15 @@ class TypeInfo_Ae : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "real[]"; }
 
-    override string toString() const pure nothrow @safe { return "real[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         real[] s = *cast(real[]*)p;
         return hashOf(s.ptr, s.length * real.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         real[] s1 = *cast(real[]*)p1;
         real[] s2 = *cast(real[]*)p2;
@@ -51,7 +46,7 @@ class TypeInfo_Ae : TypeInfo_Array
         return true;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         real[] s1 = *cast(real[]*)p1;
         real[] s2 = *cast(real[]*)p2;
@@ -72,9 +67,9 @@ class TypeInfo_Ae : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(real);
+        return cast(inout)typeid(real);
     }
 }
 
@@ -82,15 +77,10 @@ class TypeInfo_Ae : TypeInfo_Array
 
 class TypeInfo_Aj : TypeInfo_Ae
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "ireal[]"; }
 
-    override string toString() const pure nothrow @safe { return "ireal[]"; }
-
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(ireal);
+        return cast(inout)typeid(ireal);
     }
 }

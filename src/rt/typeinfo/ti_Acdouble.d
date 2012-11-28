@@ -22,20 +22,15 @@ class TypeInfo_Ar : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "cdouble[]"; }
 
-    override string toString() const pure nothrow @safe { return "cdouble[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         cdouble[] s = *cast(cdouble[]*)p;
         return hashOf(s.ptr, s.length * cdouble.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         cdouble[] s1 = *cast(cdouble[]*)p1;
         cdouble[] s2 = *cast(cdouble[]*)p2;
@@ -51,7 +46,7 @@ class TypeInfo_Ar : TypeInfo_Array
         return true;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         cdouble[] s1 = *cast(cdouble[]*)p1;
         cdouble[] s2 = *cast(cdouble[]*)p2;
@@ -72,8 +67,8 @@ class TypeInfo_Ar : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() nothrow pure inout
     {
-        return typeid(cdouble);
+        return cast(inout)typeid(cdouble);
     }
 }
