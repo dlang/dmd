@@ -5407,9 +5407,6 @@ Expression *FuncExp::semantic(Scope *sc)
                 (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf()))
             {
                 fd->semantic3(sc);
-
-                if ( (olderrors == global.errors) && global.params.useInline)
-                    fd->inlineScan();
             }
         }
 
@@ -5614,9 +5611,6 @@ Expression *DeclarationExp::semantic(Scope *sc)
         if (global.errors == olderrors)
         {
             declaration->semantic3(sc);
-
-            if ((global.errors == olderrors) && global.params.useInline)
-                declaration->inlineScan();
         }
     }
 
