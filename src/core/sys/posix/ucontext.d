@@ -40,6 +40,33 @@ version( linux )
 
     version( X86_64 )
     {
+        enum
+        {
+            REG_R8 = 0,
+            REG_R9,
+            REG_R10,
+            REG_R11,
+            REG_R12,
+            REG_R13,
+            REG_R14,
+            REG_R15,
+            REG_RDI,
+            REG_RSI,
+            REG_RBP,
+            REG_RBX,
+            REG_RDX,
+            REG_RAX,
+            REG_RCX,
+            REG_RSP,
+            REG_RIP,
+            REG_EFL,
+            REG_CSGSFS,     /* Actually short cs, gs, fs, __pad0.  */
+            REG_ERR,
+            REG_TRAPNO,
+            REG_OLDMASK,
+            REG_CR2
+        }
+
         private
         {
             struct _libc_fpxreg
@@ -95,6 +122,29 @@ version( linux )
     }
     else version( X86 )
     {
+        enum
+        {
+            REG_GS = 0,
+            REG_FS,
+            REG_ES,
+            REG_DS,
+            REG_EDI,
+            REG_ESI,
+            REG_EBP,
+            REG_ESP,
+            REG_EBX,
+            REG_EDX,
+            REG_ECX,
+            REG_EAX,
+            REG_TRAPNO,
+            REG_ERR,
+            REG_EIP,
+            REG_CS,
+            REG_EFL,
+            REG_UESP,
+            REG_SS
+        }
+
         private
         {
             struct _libc_fpreg
