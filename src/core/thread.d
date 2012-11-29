@@ -782,7 +782,7 @@ class Thread
             // NOTE: m_addr must be cleared before m_hndl is closed to avoid
             //       a race condition with isRunning. The operation is done
             //       with atomicStore to prevent compiler reordering.
-            atomicStore!(msync.raw)(*cast(shared)&m_addr, m_addr.init);
+            atomicStore!(MemoryOrder.raw)(*cast(shared)&m_addr, m_addr.init);
             CloseHandle( m_hndl );
             m_hndl = m_hndl.init;
         }
@@ -3202,7 +3202,7 @@ private
         assert( obj );
 
         assert( Thread.getThis().m_curr is obj.m_ctxt );
-        atomicStore!(msync.raw)(*cast(shared)&Thread.getThis().m_lock, false);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&Thread.getThis().m_lock, false);
         obj.m_ctxt.tstack = obj.m_ctxt.bstack;
         obj.m_state = Fiber.State.EXEC;
 
@@ -4231,7 +4231,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, true);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, true);
         tobj.pushContext( m_ctxt );
 
         fiber_switchContext( oldp, newp );
@@ -4239,7 +4239,7 @@ private:
         // NOTE: As above, these operations must be performed in a strict order
         //       to prevent Bad Things from happening.
         tobj.popContext();
-        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, false);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 
@@ -4265,7 +4265,7 @@ private:
         //       that it points to exactly the correct stack location so the
         //       successive pop operations will succeed.
         *oldp = getStackTop();
-        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, true);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, true);
 
         fiber_switchContext( oldp, newp );
 
@@ -4275,7 +4275,7 @@ private:
         //       executing here may be different from the one above, so get the
         //       current thread handle before unlocking, etc.
         tobj = Thread.getThis();
-        atomicStore!(msync.raw)(*cast(shared)&tobj.m_lock, false);
+        atomicStore!(MemoryOrder.raw)(*cast(shared)&tobj.m_lock, false);
         tobj.m_curr.tstack = tobj.m_curr.bstack;
     }
 }
