@@ -847,6 +847,7 @@ struct CompileExp : UnaExp
 {
     CompileExp(Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
+    void resolve(Scope *sc, Expression **pe, Type **pt);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 

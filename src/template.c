@@ -5206,6 +5206,12 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
 
+        if (ea && ea->op == TOKmixin)
+        {
+            ((CompileExp *)ea)->resolve(sc, NULL, &ta);
+            ta->resolve(loc, sc, &ea, &ta, &sa);
+        }
+
         //printf("1: (*tiargs)[%d] = %p, %p, %p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
         if (ta)
         {

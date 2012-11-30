@@ -6490,36 +6490,56 @@ CompileExp::CompileExp(Loc loc, Expression *e)
 {
 }
 
-Expression *CompileExp::semantic(Scope *sc)
+void CompileExp::resolve(Scope *sc, Expression **pe, Type **pt)
 {
-#if LOGSEMANTIC
-    printf("CompileExp::semantic('%s')\n", toChars());
-#endif
+    assert((pe != NULL) != (pt != NULL));
+    if (pe) *pe = NULL;
+    if (pt) *pt = NULL;
+
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKerror)
-        return e1;
+        goto Lerr;
     if (!e1->type->isString())
     {
         error("argument to mixin must be a string type, not %s", e1->type->toChars());
-        return new ErrorExp();
+        goto Lerr;
     }
     e1 = e1->ctfeInterpret();
+  {
     StringExp *se = e1->toString();
     if (!se)
     {   error("argument to mixin must be a string, not (%s)", e1->toChars());
-        return new ErrorExp();
+        goto Lerr;
     }
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
     p.loc = loc;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
-    Expression *e = p.parseExpression();
+    if (pe)
+        *pe = p.parseExpression();
+    else
+        *pt = p.parseType();
     if (p.token.value != TOKeof)
     {   error("incomplete mixin expression (%s)", se->toChars());
-        return new ErrorExp();
+        goto Lerr;
     }
+  }
+    return;
+
+Lerr:
+    if (pe) *pe = new ErrorExp();
+    if (pt) *pt = Type::terror;
+}
+
+Expression *CompileExp::semantic(Scope *sc)
+{
+#if LOGSEMANTIC
+    printf("CompileExp::semantic('%s')\n", toChars());
+#endif
+    Expression *e;
+    resolve(sc, &e, NULL);
     return e->semantic(sc);
 }
 
