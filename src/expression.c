@@ -12215,6 +12215,27 @@ Expression *CmpExp::semantic(Scope *sc)
     if (e->op == TOKerror)
         return e;
 
+    // Error when unsigned type is compared less-than to zero, but not in enum declarations or in static if
+    if ((!(sc->flags & SCOPEstaticif)) && sc->parent && !sc->parent->isEnumDeclaration())
+    {
+        if (eb1->type && eb1->type->isintegral() && eb1->type->isunsigned() && op == TOKlt && eb2->type->isintegral() && eb2->op == TOKint64)
+        {
+            if (eb2->toInteger() == 0)
+            {
+                error("Expression '%s' of unsigned type '%s' can never be less than zero", eb1->toChars(), eb1->type->toChars());
+                return new ErrorExp();
+            }
+        }
+        else if (eb2->type && eb2->type->isintegral() && eb2->type->isunsigned() && op == TOKgt && eb1->type->isintegral() && eb1->op == TOKint64)
+        {
+            if (eb1->toInteger() == 0)
+            {
+                error("Zero can never be greater than expression '%s' of unsigned type '%s'", eb2->toChars(), eb2->type->toChars());
+                return new ErrorExp();
+            }
+        }
+    }
+
 #if 0
     // For integer comparisons, ensure the combined type can hold both arguments.
     if (type && type->isintegral() && (op == TOKlt || op == TOKle ||
