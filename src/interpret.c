@@ -5478,38 +5478,14 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
                 e = EXP_CANT_INTERPRET;
         }
     }
-    /* Horrid hack to retrieve the builtin AA functions after they've been
-     * mashed by the inliner.
-     */
+
     if (!pthis)
     {
         Expression *firstarg =  nargs > 0 ? (Expression *)(arguments->data[0]) : NULL;
-        // Check for the first parameter being a templatized AA. Hack: we assume that
-        // template AA.var is always the AA data itself.
-        Expression *firstdotvar = (firstarg && firstarg->op == TOKdotvar)
-                ?  ((DotVarExp *)firstarg)->e1 : NULL;
         if (nargs==3 && isAssocArray(firstarg->type) && !strcmp(fd->ident->string, "_aaApply"))
             return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
         if (nargs==3 && isAssocArray(firstarg->type) &&!strcmp(fd->ident->string, "_aaApply2"))
             return interpret_aaApply(istate, firstarg, (Expression *)(arguments->data[2]));
-        if (firstdotvar && isAssocArray(firstdotvar->type))
-        {   if (fd->ident == Id::aaLen && nargs == 1)
-                return interpret_length(istate, firstdotvar->interpret(istate));
-            else if (fd->ident == Id::aaKeys && nargs == 2)
-            {
-                Expression *trueAA = firstdotvar->interpret(istate);
-                return interpret_keys(istate, trueAA, toBuiltinAAType(trueAA->type)->index);
-            }
-            else if (fd->ident == Id::aaValues && nargs == 3)
-            {
-                Expression *trueAA = firstdotvar->interpret(istate);
-                return interpret_values(istate, trueAA, toBuiltinAAType(trueAA->type)->nextOf());
-            }
-            else if (fd->ident == Id::aaRehash && nargs == 2)
-            {
-                return firstdotvar->interpret(istate, ctfeNeedLvalue);
-            }
-        }
     }
 #endif
 #if DMDV1
