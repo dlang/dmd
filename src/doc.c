@@ -34,6 +34,7 @@
 #include "id.h"
 #include "module.h"
 #include "scope.h"
+#include "statement.h"
 #include "hdrgen.h"
 #include "doc.h"
 #include "mtype.h"
@@ -542,6 +543,41 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             //printf("\ts = '%s'\n", s->toChars());
+
+            OutBuffer temp;
+            bool foundTest = false;
+            while ((i+1) < members->dim)
+            {
+                UnitTestDeclaration *utd = (*members)[i+1]->isUnitTestDeclaration();
+                if (!utd || (utd->protection == PROTprivate) || !utd->comment || !utd->fbody)
+                    break;
+
+                const char *body = utd->fbody->toChars();
+                if (strlen(body))
+                {
+                    if (!foundTest)
+                    {
+                        foundTest = true;
+                        if (s->comment)
+                            temp.writestring((char*)s->comment);
+
+                        temp.writestring("Examples:");
+                    }
+
+                    temp.printf("\n\n----\n");
+                    temp.writestring(body);
+                    temp.printf("----");
+                }
+
+                i++;
+            }
+
+            if (foundTest)
+            {
+                temp.writebyte(0);
+                s->comment = (unsigned char *)temp.toChars();
+            }
+
             s->emitComment(sc);
         }
         sc->pop();
