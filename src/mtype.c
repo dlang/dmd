@@ -3758,8 +3758,17 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             }
             if (o->dyncast() == DYNCAST_EXPRESSION)
             {
-                *ps = NULL;
-                *pe = (Expression *)o;
+                Expression *e = (Expression *)o;
+                if (e->op == TOKdsymbol)
+                {
+                    *ps = ((DsymbolExp *)e)->s;
+                    *pe = NULL;
+                }
+                else
+                {
+                    *ps = NULL;
+                    *pe = e;
+                }
                 return;
             }
             if (o->dyncast() == DYNCAST_TYPE)
