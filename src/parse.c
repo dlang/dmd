@@ -2891,14 +2891,13 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 addComment(s, comment);
                 return a;
             }
-#if 0
             /* Look for:
-             *  alias this = identifier;
+             *  alias this : identifier;
              */
-            if (token.value == TOKthis && peekNext() == TOKassign && peekNext2() == TOKidentifier)
+            if (token.value == TOKthis && peekNext() == TOKcolon && peekNext2() == TOKidentifier)
             {
                 check(TOKthis);
-                check(TOKassign);
+                check(TOKcolon);
                 AliasThis *s = new AliasThis(loc, token.ident);
                 nextToken();
                 check(TOKsemicolon);
@@ -2907,7 +2906,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 addComment(s, comment);
                 return a;
             }
-#endif
             /* Look for:
              *  alias identifier = type;
              */
