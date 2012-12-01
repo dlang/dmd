@@ -1704,6 +1704,44 @@ void test9076()
 }
 
 /**********************************/
+// 9083
+
+template isFunction9083(X...) if (X.length == 1)
+{
+    enum isFunction9083 = true;
+}
+
+struct S9083
+{
+    static string func(alias Class)()
+    {
+        foreach (m; __traits(allMembers, Class))
+        {
+            pragma(msg, m);  // prints "func"
+            enum x1 = isFunction9083!(mixin(m));  //NG
+            enum x2 = isFunction9083!(func);      //OK
+        }
+        return "";
+    }
+}
+enum nothing9083 = S9083.func!S9083();
+
+class C9083
+{
+    int x;  // some class members
+
+    void func()
+    {
+        void templateFunc(T)(ref const T obj)
+        {
+            enum x1 = isFunction9083!(mixin("x"));  // NG
+            enum x2 = isFunction9083!(x);           // NG
+        }
+        templateFunc(this);
+    }
+}
+
+/**********************************/
 // 9100
 
 template Id(alias A) { alias Id = A; }
