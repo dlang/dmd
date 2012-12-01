@@ -48,6 +48,7 @@ Dsymbol::Dsymbol()
     this->scope = NULL;
     this->errors = false;
     this->userAttributes = NULL;
+    this->unittest = NULL;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -64,6 +65,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
+    this->unittest = NULL;
 }
 
 int Dsymbol::equals(Object *o)

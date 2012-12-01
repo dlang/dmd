@@ -30,6 +30,7 @@
 #include "lexer.h"
 #include "aggregate.h"
 #include "declaration.h"
+#include "statement.h"
 #include "enum.h"
 #include "id.h"
 #include "module.h"
@@ -513,6 +514,34 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
+}
+
+void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
+{
+    static char pre[] = "$(D_CODE \n";
+    OutBuffer *buf = sc->docbuf;
+
+    buf->writestring("$(DDOC_SECTION ");
+    buf->writestring("$(B Example:)");
+    for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
+    {
+        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
+            continue;
+
+        OutBuffer codebuf;
+        const char *body = utd->fbody->toChars();
+        if (strlen(body))
+        {
+            codebuf.writestring(pre);
+            codebuf.writestring(body);
+            codebuf.writestring(")");
+            codebuf.writeByte(0);
+            highlightCode2(sc, s, &codebuf, 0);
+            buf->writestring(codebuf.toChars());
+        }
+    }
+
+    buf->writestring(")");
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -1299,6 +1328,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring(")\n");
             }
         }
+        if (s->unittest)
+            emitUnittestComment(sc, s, s->unittest);
         buf->writestring(")\n");
     }
     else

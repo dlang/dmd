@@ -125,6 +125,7 @@ struct Dsymbol : Object
     bool errors;                // this symbol failed to pass semantic()
     char *depmsg;               // customized deprecation message
     Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
+    UnitTestDeclaration *unittest; // !=NULL means there's a unittest associated with this symbol
 
     Dsymbol();
     Dsymbol(Identifier *);
