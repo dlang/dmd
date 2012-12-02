@@ -6976,7 +6976,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             error("undefined identifier '%s'", ident->toChars());
         return new ErrorExp();
     }
-    else if (t1b->ty == Tpointer &&
+    else if (t1b->ty == Tpointer && e1->type->ty != Tenum &&
              ident != Id::init && ident != Id::__sizeof &&
              ident != Id::__xalignof && ident != Id::offsetof &&
              ident != Id::mangleof && ident != Id::stringof)
