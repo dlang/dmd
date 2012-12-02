@@ -8012,6 +8012,13 @@ Lagain:
 
             f = dve->var->isFuncDeclaration();
             assert(f);
+        #if 1
+            if (prop == PROPnone && global.params.enforcePropertySyntax)
+            if (((TypeFunction *)f->type)->isproperty)
+            {   e1 = resolveProperties(sc, e1);
+                goto Lagain;
+            }
+        #endif
             f = f->overloadResolve(loc, ue1, arguments);
 
             ad = f->toParent()->isAggregateDeclaration();
@@ -8020,6 +8027,15 @@ Lagain:
         {   dte = (DotTemplateExp *)(e1);
             TemplateDeclaration *td = dte->td;
             assert(td);
+        #if 1
+            if (prop == PROPnone && global.params.enforcePropertySyntax)
+            if (td->onemember)
+            if (FuncDeclaration *fd = td->onemember->toAlias()->isFuncDeclaration())
+            if (((TypeFunction *)fd->type)->isproperty)
+            {   e1 = resolveProperties(sc, e1);
+                goto Lagain;
+            }
+        #endif
             if (!arguments)
                 // Should fix deduceFunctionTemplate() so it works on NULL argument
                 arguments = new Expressions();
@@ -8380,6 +8396,14 @@ Lagain:
 
         f = ve->var->isFuncDeclaration();
         assert(f);
+    #if 1
+        if (prop == PROPnone && global.params.enforcePropertySyntax)
+        if (((TypeFunction *)f->type)->isproperty)
+        {   e1 = resolveProperties(sc, e1);
+//printf(" -> e1 = %s %s\n", e1->type->toChars(), e1->toChars());
+            goto Lagain;
+        }
+    #endif
 
         if (ve->hasOverloads)
             f = f->overloadResolve(loc, NULL, arguments, 2);

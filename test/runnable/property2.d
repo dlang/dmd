@@ -443,6 +443,20 @@ void test2()
 
 /*****************************************/
 
+void test3()
+{
+  static if (enforceProperty)
+  {
+    @property foo(){ return (int n) => n * 2; }
+
+    static assert(typeof(&foo).stringof == "int function(int n) pure nothrow @safe delegate() @property");
+    auto n = foo(10);
+    assert(n == 20);
+  }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -455,6 +469,7 @@ int main()
     test8251();
     test9062();
     test2();
+    test3();
 
     printf("Success\n");
     return 0;
