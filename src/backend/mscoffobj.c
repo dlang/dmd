@@ -52,12 +52,6 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define DEST_LEN (IDMAX + IDOHD + 1)
 char *obj_mangle2(Symbol *s,char *dest);
 
-#if MARS
-// C++ name mangling is handled by front end
-#define cpp_mangle(s) ((s)->Sident)
-#endif
-
-
 /******************************************
  */
 
@@ -637,7 +631,9 @@ void build_syment_table()
 
         struct syment sym;
 
-        syment_set_name(&sym, s->Sident);
+        char dest[DEST_LEN+1];
+        char *destr = obj_mangle2(s, dest);
+        syment_set_name(&sym, destr);
 
         sym.n_value = 0;
         switch (s->Sclass)
@@ -686,7 +682,9 @@ void build_syment_table()
 
         struct syment sym;
 
-        syment_set_name(&sym, s->Sident);
+        char dest[DEST_LEN+1];
+        char *destr = obj_mangle2(s, dest);
+        syment_set_name(&sym, destr);
 
         sym.n_scnum = IMAGE_SYM_UNDEFINED;
         sym.n_type = 0;

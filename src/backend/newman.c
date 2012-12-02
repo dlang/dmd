@@ -1016,6 +1016,8 @@ STATIC void cpp_basic_data_type(type *t)
         case TYnptr:
             c = 'P' + cpp_cvidx(t->Tty);
             CHAR(c);
+            if(I64)
+                CHAR('E'); // __ptr64 modifier
             cpp_pointer_type(t);
             break;
         case TYstruct:
