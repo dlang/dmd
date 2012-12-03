@@ -6009,7 +6009,6 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                         {
                             Expression *arg = (*args)[u];
                             assert(arg);
-#if 1
                             if (arg->op == TOKfunction)
                             {
                                 arg = ((FuncExp *)arg)->inferType(tb->nextOf(), 1);
@@ -6024,23 +6023,19 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             if (tret)
                             {
                                 if (ta->next->equals(arg->type))
-                                {   m = MATCHexact;
-                                }
+                                    m = MATCHexact;
+                                else if (tret->toBasetype()->ty == Tvoid)
+                                    m = MATCHconvert;
                                 else
                                 {
                                     m = arg->implicitConvTo(tret);
                                     if (m == MATCHnomatch)
-                                    {
-                                        if (tret->toBasetype()->ty == Tvoid)
-                                            m = MATCHconvert;
-                                    }
+                                        m = arg->implicitConvTo(ta->next);
                                 }
                             }
                             else
                                 m = arg->implicitConvTo(ta->next);
-#else
-                            m = arg->implicitConvTo(ta->next);
-#endif
+
                             if (m == MATCHnomatch)
                                 goto Nomatch;
                             if (m < match)

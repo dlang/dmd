@@ -6,37 +6,38 @@ import std.stdio;
 void ifthen(bool cond, lazy void dg)
 {
     if (cond)
-	dg();
+        dg();
 }
 
 void ifthen(bool cond, lazy void dgthen, lazy void dgelse)
 {
     if (cond)
-	dgthen();
+        dgthen();
     else
-	dgelse();
+        dgelse();
 }
 
 void dotimes(int i, lazy int dg)
 {
     for (int j = 0; j < i; j++)
-	dg();
+        dg();
 }
 
 void switcher(bool delegate()[] cases...)
 {
     foreach (c; cases)
     {
-	if (c())
-	    break;
+        if (c())
+            break;
     }
 }
 
 bool scase(bool b, lazy void dg)
 {
     if (b)
-    {	dg();
-	return true;
+    {
+        dg();
+        return true;
     }
     return false;
 }
@@ -50,7 +51,7 @@ bool sdefault(lazy void dg)
 void whiler(lazy bool cond, lazy void bdy)
 {
     while (cond())
-	bdy();
+        bdy();
 }
 
 void test1()
@@ -66,14 +67,14 @@ void test1()
 
     int v = 2;
     switcher(
-	scase(v == 1, printf("it is 1\n")),
-	scase(v == 2, printf("it is 2\n")),
-	scase(v == 3, printf("it is 3\n")),
-	sdefault( printf("it is default\n"))
+        scase(v == 1, printf("it is 1\n")),
+        scase(v == 2, printf("it is 2\n")),
+        scase(v == 3, printf("it is 3\n")),
+        sdefault( printf("it is default\n"))
     );
 
     whiler( x < 100,
-	(printf("%d\n", x), x *= 2)
+        (printf("%d\n", x), x *= 2)
     );
 }
 
@@ -111,7 +112,6 @@ void abc3(int* p)
 
 void test3()
 {
-
     int x = 3;
     dotimes3(10, abc3(&x));
     dotimes3(10, write(++x));
@@ -143,8 +143,8 @@ void test4()
 {
     void *abc()
     {
-	writeln(cast(void*)&p4);
-	return cast(void*)&p4;
+        writeln(cast(void*)&p4);
+        return cast(void*)&p4;
     }
 
     foo4(&abc, cast(void* delegate())&abc, null, cast(void* delegate())null);
@@ -154,18 +154,18 @@ void test4()
 
 bool nextis(void delegate() dgpositive = {})
 {
-        return true;
+    return true;
 }
 
 bool looping(lazy bool condition)
 {
-        return true;
+    return true;
 }
 
 void test5()
 {
-        looping(nextis({}));
-        looping(nextis({}));
+    looping(nextis({}));
+    looping(nextis({}));
 }
 
 /*********************************************************/
@@ -182,7 +182,7 @@ int bar6() { return 3; }
 
 void test6()
 {
-  foo6(bar6(),"food_for_thought");
+    foo6(bar6(),"food_for_thought");
 }
 
 /*********************************************************/
@@ -233,6 +233,21 @@ void test6682()
 }
 
 /*********************************************************/
+// 9109
+
+void test9109()
+{
+    void foo(int delegate()[] dgs ...)
+    {
+        assert(dgs[0]() + dgs[1]() == 1 + 13);
+    }
+
+    int x = 10;
+    int delegate() dg;
+    foo({ return 1; }, { return 3+x; }, dg, null);
+}
+
+/*********************************************************/
 
 int main()
 {
@@ -246,6 +261,7 @@ int main()
     test5750a();
     test5750b();
     test6682();
+    test9109();
 
     printf("Success\n");
     return 0;
