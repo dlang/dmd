@@ -285,6 +285,39 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return (new DsymbolExp(loc, s))->semantic(sc);
     }
+    else if (ident == Id::codeof)
+    {
+        Object *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+           goto Lfalse;
+        }
+
+        //Resolve function aliases
+        FuncAliasDeclaration *alias = s->isFuncAliasDeclaration();
+        while (alias)
+        {
+            s = alias->toAliasFunc();
+            alias = s->isFuncAliasDeclaration();
+        }
+
+        //Handle lambdas
+        if(strncmp(s->ident->toChars(), "__lambda", 8) == 0)
+        {
+            TemplateDeclaration *td = s->isTemplateDeclaration();
+            if (td)
+            {
+                s = td->onemember;
+            }
+        }
+        OutBuffer outBuffer;
+        HdrGenState hgs;
+        s->toCBuffer(&outBuffer, &hgs);
+        char* code = (char*)malloc(outBuffer.size);
+        strcpy(code, (char*)outBuffer.data);
+        return (new StringExp(loc, code))->semantic(sc);
+    }
 
 #endif
     else if (ident == Id::hasMember ||
