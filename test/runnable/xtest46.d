@@ -3494,6 +3494,29 @@ void test155()
 }
 
 /***************************************************/
+// 2486
+
+void test2486()
+{
+    void foo(ref int[] arr) {}
+
+    int[] arr = [1,2,3];
+    foo(arr);   //OK
+    static assert(!__traits(compiles, foo(arr[1..2]))); // should be NG
+
+    struct S
+    {
+        int[] a;
+        auto ref opSlice(){ return a[]; }  // line 4
+    }
+    S s;
+    s[];
+    // opSlice should return rvalue
+    static assert(is(typeof(&S.opSlice) == int[] function()));
+    static assert(!__traits(compiles, foo(s[])));       // should be NG
+}
+
+/***************************************************/
 // 2521
 
 immutable int val = 23;
@@ -5996,6 +6019,7 @@ int main()
     test8442();
     test86();
     test87();
+    test2486();
     test5554();
     test88();
     test7545();

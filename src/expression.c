@@ -9546,16 +9546,6 @@ void SliceExp::checkEscapeRef()
     e1->checkEscapeRef();
 }
 
-int SliceExp::isLvalue()
-{
-    return 1;
-}
-
-Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
-{
-    return this;
-}
-
 int SliceExp::checkModifiable(Scope *sc, int flag)
 {
     //printf("SliceExp::checkModifiable %s\n", toChars());

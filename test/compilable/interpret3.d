@@ -1108,7 +1108,8 @@ struct Zadok
     int bfg()
     {
         z[0] = 56;
-        fog(z[]) = [56, 6, 8];
+        auto zs = z[];
+        fog(zs) = [56, 6, 8];
         assert(z[1] == 6);
         assert(z[0] == 56);
         return z[2];
