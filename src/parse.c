@@ -5685,6 +5685,10 @@ Expression *Parser::parsePrimaryExp()
             break;
         }
 
+        case TOKnew:
+            e = parseNewExp(NULL);
+            break;
+
         case TOKlparen:
         {   Token *tk = peekPastParen(&token);
             if (skipAttributes(tk, &tk))
@@ -6025,10 +6029,6 @@ Expression *Parser::parseUnaryExp()
             nextToken();
             e = parseUnaryExp();
             e = new DeleteExp(loc, e);
-            break;
-
-        case TOKnew:
-            e = parseNewExp(NULL);
             break;
 
         case TOKcast:                           // cast(type) expression
