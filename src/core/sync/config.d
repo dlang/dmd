@@ -57,14 +57,14 @@ version( Posix )
         //auto val = delta + dur!("seconds")( t.tv_sec ) +
         //                 + dur!("nsecs")( t.tv_nsec );
 
-        if( val.total!("seconds")() > t.tv_sec.max )
+        if( val.total!"seconds" > t.tv_sec.max )
         {
             t.tv_sec  = t.tv_sec.max;
             t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
         }
         else
         {
-            t.tv_sec  = cast(typeof(t.tv_sec)) val.total!("seconds")();
+            t.tv_sec  = cast(typeof(t.tv_sec)) val.total!"seconds";
             t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
         }
     }

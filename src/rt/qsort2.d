@@ -37,7 +37,7 @@ extern (C) void[] _adSort(void[] a, TypeInfo ti)
     synchronized
     {
         tiglobal = ti;
-        qsort(a.ptr, a.length, cast(size_t)ti.tsize(), &cmp);
+        qsort(a.ptr, a.length, cast(size_t)ti.tsize, &cmp);
     }
     return a;
 }
