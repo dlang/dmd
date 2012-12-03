@@ -98,17 +98,18 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         FuncDeclaration *fd = assign->isFuncDeclaration();
         if (fd)
         {   fd = fd->overloadResolve(loc, e, arguments, 1);
-            if (fd && !(fd->storage_class & STCdisable))
-                return fd;
+            if (fd)
+                return (fd->storage_class & STCdisable) ? NULL : fd;
         }
 
         TemplateDeclaration *td = assign->isTemplateDeclaration();
         if (td)
         {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
-            if (fd && !(fd->storage_class & STCdisable))
-                return fd;
+            if (fd)
+                return (fd->storage_class & STCdisable) ? NULL : fd;
         }
-        return NULL;
+        // Even if non-identity opAssign is defined, built-in identity opAssign
+        // will be defined. (Is this an exception of operator overloading rule?)
     }
 
     if (!needOpAssign())
@@ -196,15 +197,24 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     fop->fbody = new CompoundStatement(0, s1, s2);
 
-    members->push(fop);
-    fop->addMember(sc, this, 1);
+    Dsymbol *s = fop;
+    if (assign && assign->isTemplateDeclaration())
+    {
+        // Wrap a template around the function declaration
+        TemplateParameters *tpl = new TemplateParameters();
+        Dsymbols *decldefs = new Dsymbols();
+        decldefs->push(s);
+        TemplateDeclaration *tempdecl =
+            new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs, 0);
+        s = tempdecl;
+    }
+    members->push(s);
+    s->addMember(sc, this, 1);
 
     sc = sc->push();
     sc->stc = 0;
     sc->linkage = LINKd;
-
-    fop->semantic(sc);
-
+    s->semantic(sc);
     sc->pop();
 
     //printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
