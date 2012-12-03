@@ -988,8 +988,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
                         for (size_t u = i; u < nargs; u++)
                         {   Expression *a = (*arguments)[u];
-                            if (tret && !((TypeArray *)tb)->next->equals(a->type))
-                                a = a->toDelegate(sc, tret);
+                            TypeArray *ta = (TypeArray *)tb;
+                            if (tret && !ta->next->equals(a->type))
+                            {   if (tret->toBasetype()->ty == Tvoid ||
+                                    a->implicitConvTo(tret))
+                                {
+                                    a = a->toDelegate(sc, tret);
+                                }
+                            }
 
                             Expression *e = new VarExp(loc, v);
                             e = new IndexExp(loc, e, new IntegerExp(u + 1 - nparams));
