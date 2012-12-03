@@ -615,7 +615,7 @@ void test6174IAFA() // identity assignable & field assignable
             d.x = 100;
             d.y = 100;
         }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
+        @disable void opAssign(typeof(this));   // disable built-in opAssign (this.d = p.d)
         void func()
         {
             static assert(!__traits(compiles, d = D.init));
@@ -672,7 +672,7 @@ void test6174IAFN() // identity assignable & field not assignable
             d.x = 100;
             d.y = 100;
         }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
+        @disable void opAssign(typeof(this));   // disable built-in opAssign (this.d = p.d)
         void func()
         {
             static assert(!__traits(compiles, d = D.init));
@@ -995,8 +995,8 @@ void test6216a()
 /*Xa*/  [true,  true,   true,   true,   true,   false,  false],
 /*Xb*/  [true,  true,   true,   true,   true,   false,  false],
 /*Xc*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xd*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xe*/  [true,  true,   true,   true,   true,   false,  false],
+/*Xd*/  [true,  true,   true,   true,   true,   true,   true ],
+/*Xe*/  [true,  true,   true,   true,   true,   true,   true ],
 /*Xf*/  [false, false,  false,  true,   true,   false,  false],
 /*Xg*/  [false, false,  false,  true,   true,   false,  false]
     ];
@@ -1118,6 +1118,22 @@ void test6336()
     g(s1);
     g(s2);
     // Allow return by ref both S1 and S2
+}
+
+/***************************************************/
+// 9077
+
+struct S9077a
+{
+    void opAssign(int n) {}
+    void test() { typeof(this) s; s = this; }
+    this(this) {}
+}
+struct S9077b
+{
+    void opAssign()(int n) {}
+    void test() { typeof(this) s; s = this; }
+    this(this) {}
 }
 
 /***************************************************/
