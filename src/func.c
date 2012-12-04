@@ -2929,6 +2929,8 @@ enum PURE FuncDeclaration::isPureBypassingInference()
 {
     if (flags & FUNCFLAGpurityInprocess)
         return PUREfwdref;
+    else if (type->nextOf() == NULL)
+        return PUREfwdref;
     else
         return isPure();
 }
