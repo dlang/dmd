@@ -191,6 +191,19 @@ Dg8793 foo8793pdg1(immutable Dg8793* f) pure { return x => (*f)(x); } // OK
 Dg8793 foo8793ptr1(immutable int* p) pure { return x => *p == x; } // OK
 
 /***************************************************/
+// 9072
+
+struct A9072(T)
+{
+    this(U)(U x) {}
+    ~this() {}
+}
+void test9072()
+{
+    A9072!int a = A9072!short();
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
