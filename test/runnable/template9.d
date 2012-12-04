@@ -1689,6 +1689,21 @@ void test9038()
 }
 
 /**********************************/
+// 9076
+
+template forward9076(args...)
+{
+    @property forward9076()(){ return args[0]; }
+}
+
+void test9076()
+{
+    int a = 1;
+    int b = 1;
+    assert(a == forward9076!b);
+}
+
+/**********************************/
 
 int main()
 {
@@ -1755,6 +1770,7 @@ int main()
     test8940();
     test9026();
     test9038();
+    test9076();
 
     printf("Success\n");
     return 0;
