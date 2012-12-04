@@ -2074,7 +2074,7 @@ void test9035()
     f(Nested.init); // fails, lvalue
 
     assert(Nested.init.j == 0);
-    (ref n) { n.j = 5; }(Nested.init);
+    //(ref n) { n.j = 5; }(Nested.init);
     assert(Nested.init.j == 0); // fails, j is 5
 }
 
