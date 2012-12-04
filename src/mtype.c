@@ -1969,12 +1969,12 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
     else if (ident == Id::init)
     {
         Type *tb = toBasetype();
+        e = defaultInitLiteral(loc);
         if (tb->ty == Tstruct && tb->needsNested())
         {
-            e = defaultInit(loc);
+            StructLiteralExp *se = (StructLiteralExp *)e;
+            se->sinit = se->sd->toInitializer();
         }
-        else
-            e = defaultInitLiteral(loc);
     }
     else if (ident == Id::mangleof)
     {   const char *s;
@@ -2047,13 +2047,13 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
         }
         else if (ident == Id::init)
         {
-            if (toBasetype()->ty == Tstruct &&
-                ((TypeStruct *)toBasetype())->sym->isNested())
+            Type *tb = toBasetype();
+            e = defaultInitLiteral(e->loc);
+            if (tb->ty == Tstruct && tb->needsNested())
             {
-                e = defaultInit(e->loc);
+                StructLiteralExp *se = (StructLiteralExp *)e;
+                se->sinit = se->sd->toInitializer();
             }
-            else
-                e = defaultInitLiteral(e->loc);
             goto Lreturn;
         }
     }
