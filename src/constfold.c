@@ -901,6 +901,11 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
                 if (cmp == 0)
                     break;
             }
+            if (cmp && es1->type->needsNested())
+            {
+                if ((es1->sinit != NULL) != (es2->sinit != NULL))
+                    cmp = 0;
+            }
         }
     }
 #if 0 // Should handle this
