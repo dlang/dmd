@@ -2899,7 +2899,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 keysx->push(index);
                 AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(loc, keysx, valuesx);
                 newaae->ownedByCtfe = true;
-                newaae->type = e1->type;
+                newaae->type = ((IndexExp *)e1)->e1->type;
                 newval = newaae;
                 e1 = ((IndexExp *)e1)->e1;
             }
