@@ -4677,6 +4677,27 @@ static assert(!is(typeof(compiles!(bug6681(3)))));
 static assert(!is(typeof(compiles!(bug6681(4)))));
 
 /**************************************************
+    9113 ICE with struct in union
+**************************************************/
+
+union U9113 {
+   struct M {
+        int y;
+   }
+   int xx;
+}
+
+int bug9113(T)()
+{
+    U9113 x;
+    x.M.y = 10; // error, need 'this'
+    return 1;
+}
+
+static assert( !is( typeof( compiles!(bug9113!(int)())) ) );
+
+
+/**************************************************
     6438 void
 **************************************************/
 

@@ -10422,6 +10422,16 @@ Expression *AssignExp::semantic(Scope *sc)
                 return resolveUFCSProperties(sc, die, e2);
             }
         }
+
+        VarDeclaration * vd = NULL;
+        if (e1->op == TOKvar)
+            vd = ((VarExp *)e1)->var->isVarDeclaration();
+
+        if (vd && vd->needThis())
+        {
+            error("need 'this' to access member %s", e1->toChars());
+            return new ErrorExp();
+        }
     }
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
