@@ -2078,6 +2078,20 @@ void test9035()
     assert(Nested.init.j == 0); // fails, j is 5
 }
 
+void test9035a()
+{
+    int x;
+    struct S {
+        // no field
+        void foo() { x = 1; }
+    }
+    S s1;
+    S s2 = S();
+    assert(s1  != S.init);  // OK
+    assert(s2  != S.init);  // OK
+    assert(S() != S.init);  // NG -> OK
+}
+
 /*******************************************/
 // 9036
 
@@ -2190,6 +2204,7 @@ int main()
     test9003();
     test9006();
     test9035();
+    test9035a();
     test9036();
 
     printf("Success\n");
