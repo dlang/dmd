@@ -4250,7 +4250,8 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         }
     }
     e1 = this->e1;
-    if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ownedByCtfe))
+    if (!(e1->op == TOKarrayliteral && ((ArrayLiteralExp *)e1)->ownedByCtfe) &&
+        !(e1->op == TOKassocarrayliteral && ((AssocArrayLiteralExp *)e1)->ownedByCtfe))
         e1 = e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
@@ -5153,6 +5154,10 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
     Type *valueType = fd->parameters->tdata()[numParams-1]->type;
     Type *keyType = numParams == 2 ? fd->parameters->tdata()[0]->type
                                    : Type::tsize_t;
+
+    Parameter *valueArg = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
+    bool wantRefValue = 0 != (valueArg->storageClass & (STCout | STCref));
+
     Expressions args;
     args.setDim(numParams);
 
@@ -5165,6 +5170,11 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
     {
         Expression *ekey = ae->keys->tdata()[i];
         Expression *evalue = ae->values->tdata()[i];
+        if (wantRefValue)
+        {   Type *t = evalue->type;
+            evalue = new IndexExp(deleg->loc, ae, ekey);
+            evalue->type = t;
+        }
         args[numParams - 1] = evalue;
         if (numParams == 2) args[0] = ekey;
 
