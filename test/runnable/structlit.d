@@ -513,6 +513,27 @@ void test7021()
 }
 
 /********************************************/
+// 9116
+
+void test9116()
+{
+    static struct X
+    {
+        int v;
+        this(this) { ++v; }
+    }
+    static struct Y
+    {
+        X x;
+    }
+    X x = X(1);
+    assert(x.v == 1);
+    Y y = Y(X(1));
+    //printf("y.x.v = %d\n", y.x.v);  // print 2, but should 1
+    assert(y.x.v == 1); // fails
+}
+
+/********************************************/
 
 int main()
 {
@@ -535,6 +556,7 @@ int main()
     test5889();
     test7929();
     test7021();
+    test9116();
 
     printf("Success\n");
     return 0;
