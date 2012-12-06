@@ -4753,6 +4753,33 @@ Lagain:
         {   error("default construction is disabled for type %s", sd->toChars());
             goto Lerr;
         }
+
+        if (sd->aggNew)
+        {
+            // Prepend the uint size argument to newargs[]
+            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
+            if (!newargs)
+                newargs = new Expressions();
+            newargs->shift(e);
+
+            FuncDeclaration *f = sd->aggNew->overloadResolve(loc, NULL, newargs);
+            allocator = f->isNewDeclaration();
+            assert(allocator);
+
+            TypeFunction *tf = (TypeFunction *)f->type;
+            unsigned olderrors = global.errors;
+            functionParameters(loc, sc, tf, NULL, newargs, f);
+            if (olderrors != global.errors)
+                return new ErrorExp();
+        }
+        else
+        {
+            if (newargs && newargs->dim)
+            {   error("no allocator for %s", sd->toChars());
+                goto Lerr;
+            }
+        }
+
         FuncDeclaration *f = NULL;
         if (sd->ctor)
             f = resolveFuncCall(sc, loc, sd->ctor, NULL, NULL, arguments, 0);
@@ -4773,49 +4800,32 @@ Lagain:
             functionParameters(loc, sc, tf, NULL, arguments, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
-
         }
-        else
+        else if (arguments && arguments->dim)
         {
-            if (arguments && arguments->dim)
-            {   error("no constructor for %s", sd->toChars());
-                goto Lerr;
-            }
-        }
+            Type *tptr = type->pointerTo();
 
+            /* Rewrite:
+            *   new S(arguments)
+             * as:
+            *   (((S* __newsl = new S()), (*__newsl = S(arguments))), __newsl)
+             */
+            Identifier *id = Lexer::uniqueId("__newsl");
+            ExpInitializer *ei = new ExpInitializer(loc, this);
+            VarDeclaration *v = new VarDeclaration(loc, tptr, id, ei);
+            v->storage_class |= STCctfe;
+            Expression *e = new DeclarationExp(loc, v);
+            Expression *ve = new VarExp(loc, v);
+            Expression *se = new StructLiteralExp(loc, sd, arguments, type);
+            Expression *ae = new ConstructExp(loc, new PtrExp(loc, ve), se);
+            e = new CommaExp(loc, e, ae);
+            e = new CommaExp(loc, e, ve);
 
-        if (sd->aggNew)
-        {
-            // Prepend the uint size argument to newargs[]
-            Expression *e = new IntegerExp(loc, sd->size(loc), Type::tuns32);
-            if (!newargs)
-                newargs = new Expressions();
-            newargs->shift(e);
+            // rewrite this
+            this->arguments = NULL;
+            this->type = tptr;
 
-            f = sd->aggNew->overloadResolve(loc, NULL, newargs);
-            allocator = f->isNewDeclaration();
-            assert(allocator);
-
-            TypeFunction *tf = (TypeFunction *)f->type;
-            unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, newargs, f);
-            if (olderrors != global.errors)
-                return new ErrorExp();
-
-#if 0
-            e = new VarExp(loc, f);
-            e = new CallExp(loc, e, newargs);
-            e = e->semantic(sc);
-            e->type = type->pointerTo();
-            return e;
-#endif
-        }
-        else
-        {
-            if (newargs && newargs->dim)
-            {   error("no allocator for %s", sd->toChars());
-                goto Lerr;
-            }
+            return e->semantic(sc);
         }
 
         type = type->pointerTo();
