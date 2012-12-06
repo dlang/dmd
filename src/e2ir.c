@@ -5189,7 +5189,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
                 /* Call postblit() on e1
                  */
                 StructDeclaration *sd = needsPostblit(v->type);
-                if (sd)
+                if (sd && el->isLvalue())
                 {   FuncDeclaration *fd = sd->postblit;
                     ec = el_copytree(ec);
                     ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
