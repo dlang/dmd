@@ -6002,6 +6002,12 @@ Expression *Parser::parsePrimaryExp()
         case TOKdchar:   t = Type::tdchar; goto LabelX;
         LabelX:
             nextToken();
+            if (token.value == TOKlparen)
+            {
+                e = new TypeExp(loc, t);
+                e = new CallExp(loc, e, parseArguments());
+                break;
+            }
             check(TOKdot, t->toChars());
             if (token.value != TOKidentifier)
             {   error("found '%s' when expecting identifier following '%s.'", token.toChars(), t->toChars());
