@@ -2207,6 +2207,9 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     unsigned char *lastp = buf->data;
     const char *highlight;
 
+    // let things like: string s = "$1$2 $ &#36;4";
+    escapeDdocString(buf, 0);
+
     //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
     res.reserve(buf->offset);
     while (1)
