@@ -70,7 +70,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
         }
 #endif
 #if DMDV2
-        if (match == MATCHconst && t == type->constOf())
+        if (match == MATCHconst && type->constConv(t))
         {
             Expression *e = copy();
             e->type = t;
