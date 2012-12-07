@@ -135,7 +135,7 @@ version( linux )
     alias uint  speed_t;
     alias uint  tcflag_t;
 
-    enum NCCS   = 19;
+    enum NCCS   = 32;
 
     struct termios
     {
