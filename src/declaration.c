@@ -138,8 +138,13 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t)
     if ((sc->flags & SCOPEcontract) && isResult())
         error(loc, "cannot modify result '%s' in contract", toChars());
 
-    if (isCtorinit() && !t->isMutable() ||
-        (storage_class & STCnodefaultctor))
+    if (isCtorinit() && !t->isMutable())
+    {
+        if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
+            return TRUE;
+        return modifyFieldVar(loc, sc, isVarDeclaration(), NULL);
+    }
+    else if (storage_class & STCnodefaultctor)
     {   // It's only modifiable if inside the right constructor
         return modifyFieldVar(loc, sc, isVarDeclaration(), NULL);
     }
