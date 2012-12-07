@@ -353,7 +353,6 @@ Usage:\n\
 "  -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
   -noboundscheck turns off array bounds checking for all functions\n\
-  -nofloat       do not emit reference to floating point\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object & library files to directory objdir\n\
