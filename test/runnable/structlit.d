@@ -480,6 +480,62 @@ void test5889()
 }
 
 /********************************************/
+// 6937
+
+void test6937()
+{
+    static struct S
+    {
+        int x, y;
+    }
+
+    auto s1 = S(1, 2);
+    auto ps1 = new S(1, 2);
+    assert(ps1.x == 1);
+    assert(ps1.y == 2);
+    assert(*ps1 == s1);
+
+    auto ps2 = new S(1);
+    assert(ps2.x == 1);
+    assert(ps2.y == 0);
+    assert(*ps2 == S(1, 0));
+
+    static assert(!__traits(compiles, new S(1,2,3)));
+
+    int v = 0;
+    struct NS
+    {
+        int x;
+        void foo() { v = x; }
+    }
+    auto ns = NS(1);
+    ns.foo();
+    assert(ns.x == 1);
+    assert(v == 1);
+    auto pns = new NS(2);
+    assert(pns.x == 2);
+    pns.foo();
+    assert(v == 2);
+    pns.x = 1;
+    assert(*pns == ns);
+
+    static struct X {
+        int v;
+        this(this) { ++v; }
+    }
+    static struct Y {
+        X x;
+    }
+    Y y = Y(X(1));
+    assert(y.x.v == 1);
+    auto py1 = new Y(X(1));
+    assert(py1.x.v == 1);
+    assert(*py1 == y);
+    auto py2 = new Y(y.x);
+    assert(py2.x.v == 2);
+}
+
+/********************************************/
 // 7929
 
 void test7929()
@@ -554,6 +610,7 @@ int main()
     test3198and1914();
     test5885();
     test5889();
+    test6937();
     test7929();
     test7021();
     test9116();
