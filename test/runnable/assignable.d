@@ -1121,6 +1121,24 @@ void test6336()
 }
 
 /***************************************************/
+// 8783
+
+struct Foo8783
+{
+    int[1] bar;
+}
+
+const Foo8783[1] foos8783;
+
+static this()
+{
+    foreach (i; 0 .. foos8783.length)
+        foos8783[i].bar[i] = 1; // OK
+    foreach (i, ref f; foos8783)
+        f.bar[i] = 1; // line 9, Error
+}
+
+/***************************************************/
 // 9077
 
 struct S9077a
