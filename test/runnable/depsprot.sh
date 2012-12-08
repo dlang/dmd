@@ -32,7 +32,7 @@ grep "^${name}.*${name}_public" ${deps_file} | grep -q public ||
 grep "^${name}.*${name}_private" ${deps_file} | grep -q private||
     die "Private import protection in dependency file should be 'private'"
 
-echo "Dependencies file:"
+echo "Dependencies file:" >> ${output_file}
 cat ${deps_file} >> ${output_file}
 echo >> ${output_file}
 
