@@ -2873,6 +2873,17 @@ void test9046()
 }
 
 /************************************/
+// 9090
+
+void test9090()
+{
+    void test1(T)(auto ref const T[] val) {}
+
+    string a;
+    test1(a);
+}
+
+/************************************/
 
 int main()
 {
@@ -2993,6 +3004,7 @@ int main()
     test8408();
     test8688();
     test9046();
+    test9090();
 
     printf("Success\n");
     return 0;
