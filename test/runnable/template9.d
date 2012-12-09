@@ -1704,6 +1704,100 @@ void test9076()
 }
 
 /**********************************/
+// 9083
+
+template isFunction9083(X...) if (X.length == 1)
+{
+    enum isFunction9083 = true;
+}
+
+struct S9083
+{
+    static string func(alias Class)()
+    {
+        foreach (m; __traits(allMembers, Class))
+        {
+            pragma(msg, m);  // prints "func"
+            enum x1 = isFunction9083!(mixin(m));  //NG
+            enum x2 = isFunction9083!(func);      //OK
+        }
+        return "";
+    }
+}
+enum nothing9083 = S9083.func!S9083();
+
+class C9083
+{
+    int x;  // some class members
+
+    void func()
+    {
+        void templateFunc(T)(ref const T obj)
+        {
+            enum x1 = isFunction9083!(mixin("x"));  // NG
+            enum x2 = isFunction9083!(x);           // NG
+        }
+        templateFunc(this);
+    }
+}
+
+/**********************************/
+// 9100
+
+template Id(alias A) { alias Id = A; }
+template ErrId(alias A) { static assert(0); }
+template TypeTuple9100(TL...) { alias TypeTuple9100 = TL; }
+
+class C9100
+{
+    int value;
+
+    int fun() { return value; }
+    int tfun(T)() { return value; }
+    TypeTuple9100!(int, long) field;
+
+    void test()
+    {
+        this.value = 1;
+        auto c = new C9100();
+        c.value = 2;
+
+        alias t1a = Id!(c.fun);             // OK
+        alias t1b = Id!(this.fun);          // Prints weird error, bad
+        // -> internally given TOKdotvar
+        assert(t1a() == this.value);
+        assert(t1b() == this.value);
+
+        alias t2a = Id!(c.tfun);            // OK
+        static assert(!__traits(compiles, ErrId!(this.tfun)));
+        alias t2b = Id!(this.tfun);         // No error occurs, why?
+        // -> internally given TOKdottd
+        assert(t2a!int() == this.value);
+        assert(t2b!int() == this.value);
+
+        alias t3a = Id!(foo9100);           // OK
+        alias t3b = Id!(mixin("foo9100"));  // Prints weird error, bad
+        // -> internally given TOKtemplate
+        assert(t3a() == 10);
+        assert(t3b() == 10);
+
+        assert(field[0] == 0);
+        alias t4a = TypeTuple9100!(field);              // NG
+        alias t4b = TypeTuple9100!(GetField9100!());    // NG
+        t4a[0] = 1; assert(field[0] == 1);
+        t4b[0] = 2; assert(field[0] == 2);
+    }
+}
+
+int foo9100()() { return 10; }
+template GetField9100() { alias GetField9100 = C9100.field[0]; }
+
+void test9100()
+{
+    (new C9100()).test();
+}
+
+/**********************************/
 
 int main()
 {
@@ -1771,6 +1865,7 @@ int main()
     test9026();
     test9038();
     test9076();
+    test9100();
 
     printf("Success\n");
     return 0;

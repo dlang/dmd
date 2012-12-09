@@ -443,11 +443,11 @@ void test15()
     D15 d = new D15();
 
     foreach (t; __traits(getVirtualFunctions, D15, "foo"))
-	writeln(typeid(typeof(t)));
+        writeln(typeid(typeof(t)));
 
     alias typeof(__traits(getVirtualFunctions, D15, "foo")) b;
     foreach (t; b)
-	writeln(typeid(t));
+        writeln(typeid(t));
 
     auto i = __traits(getVirtualFunctions, d, "foo")[1](1);
     assert(i == 2);
@@ -515,12 +515,12 @@ void test18()
 
 class C19
 {
-        void mutating_method(){}
+    void mutating_method(){}
 
-        const void const_method(){}
+    const void const_method(){}
 
-        void bastard_method(){}
-        const void bastard_method(int){}
+    void bastard_method(){}
+    const void bastard_method(int){}
 }
 
 
@@ -531,7 +531,7 @@ void test19()
     assert(a.length == 9);
 
     foreach( m; __traits(allMembers, C19) )
-	writeln(m);
+        writeln(m);
 }
 
 
@@ -541,23 +541,23 @@ void test20()
 {
     void fooref(ref int x)
     {
-	static assert(__traits(isRef, x));
-	static assert(!__traits(isOut, x));
-	static assert(!__traits(isLazy, x));
+        static assert(__traits(isRef, x));
+        static assert(!__traits(isOut, x));
+        static assert(!__traits(isLazy, x));
     }
 
     void fooout(out int x)
     {
-	static assert(!__traits(isRef, x));
-	static assert(__traits(isOut, x));
-	static assert(!__traits(isLazy, x));
+        static assert(!__traits(isRef, x));
+        static assert(__traits(isOut, x));
+        static assert(!__traits(isLazy, x));
     }
 
     void foolazy(lazy int x)
     {
-	static assert(!__traits(isRef, x));
-	static assert(!__traits(isOut, x));
-	static assert(__traits(isLazy, x));
+        static assert(!__traits(isRef, x));
+        static assert(!__traits(isOut, x));
+        static assert(__traits(isLazy, x));
     }
 }
 
@@ -585,11 +585,11 @@ void test22()
     D22 d = new D22();
 
     foreach (t; __traits(getOverloads, D22, "foo"))
-	writeln(typeid(typeof(t)));
+        writeln(typeid(typeof(t)));
 
     alias typeof(__traits(getOverloads, D22, "foo")) b;
     foreach (t; b)
-	writeln(typeid(t));
+        writeln(typeid(t));
 
     auto i = __traits(getOverloads, d, "foo")[1](1);
     assert(i == 2);
@@ -861,6 +861,30 @@ void getProtection()
     static assert(__traits(getProtection, __traits(getMember, t, "fc")) == "protected");
     static assert(__traits(getProtection, __traits(getMember, t, "fd")) == "public");
     static assert(__traits(getProtection, __traits(getMember, t, "fe")) == "export");
+}
+
+/********************************************************/
+// 9091
+
+template isVariable9091(X...) if (X.length == 1)
+{
+    enum isVariable9091 = true;
+}
+class C9091
+{
+    void func()
+    {
+        enum is_x = isVariable9091!(__traits(getMember, C9091, "x"));
+    }
+    int x;  // some class members
+}
+struct S9091
+{
+    void func()
+    {
+        enum is_x = isVariable9091!(__traits(getMember, S9091, "x"));
+    }
+    int x;  // some struct members
 }
 
 /********************************************************/

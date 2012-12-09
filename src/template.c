@@ -5270,6 +5270,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         }
         else if (ea)
         {
+            //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             ea = ea->semantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
@@ -5283,6 +5284,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 if (global.errors != olderrs)
                     ea = new ErrorExp();
             }
+            //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             (*tiargs)[j] = ea;
             if (ea->op == TOKtype)
             {   ta = ea->type;
@@ -5310,6 +5312,20 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     (*tiargs)[j] = sa = fe->td;
                     goto Lsa;
                 }
+            }
+            if (ea->op == TOKdotvar)
+            {   // translate expression to dsymbol.
+                sa = ((DotVarExp *)ea)->var;
+                goto Ldsym;
+            }
+            if (ea->op == TOKtemplate)
+            {   sa = ((TemplateExp *)ea)->td;
+                goto Ldsym;
+            }
+            if (ea->op == TOKdottd)
+            {   // translate expression to dsymbol.
+                sa = ((DotTemplateExp *)ea)->td;
+                goto Ldsym;
             }
             if (ea->op == TOKtuple)
             {   // Expand tuple
