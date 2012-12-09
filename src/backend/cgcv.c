@@ -1986,7 +1986,7 @@ L1:
             break;
 
         case TYarray:
-            if (t->Tflags & TFsizeunknown)
+        {   if (t->Tflags & TFsizeunknown)
                 size = 0;               // don't complain if don't know size
             else
                 size = type_size(t);
@@ -2026,7 +2026,7 @@ L1:
             }
             typidx = cv_debtyp(d);
             break;
-
+        }
 #if TARGET_SEGMENTED
         case TYffunc:
         case TYfpfunc:
