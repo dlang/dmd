@@ -92,7 +92,7 @@ void test4()
 {
    const char[][] x = ["%s","123"];
    writeln(x);
-   assert(std.string.format(x) == `[%s,123]`);
+   assert(std.string.format("%s", x) == `["%s", "123"]`);
 }
 
 /*************************************************************/
@@ -107,7 +107,7 @@ void test5()
     writefln("%s", foo);
 
     void[0] v;
-    assert(format(v) == "[]");
+    assert(format("%s", v) == "[]");
 }
 
 /*************************************************************/

@@ -778,7 +778,7 @@ void test39()
     void print(string[] strs)
     {
 	writeln(strs);
-	assert(format(strs) == "[Matt,Andrew]");
+	assert(format("%s", strs) == `["Matt", "Andrew"]`);
     }
 
     print(["Matt", "Andrew"]);
