@@ -735,6 +735,7 @@ void ClassDeclaration::semantic(Scope *sc)
         //printf("Creating default this(){} for class %s\n", toChars());
         Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
         CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
+        ctor->isImplicit = true;
         ctor->fbody = new CompoundStatement(0, new Statements());
         members->push(ctor);
         ctor->addMember(sc, this, 1);

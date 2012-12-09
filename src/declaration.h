@@ -755,6 +755,7 @@ struct CtorDeclaration : FuncDeclaration
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
+    bool isImplicit;  // implicitly generated ctor
 
     CtorDeclaration *isCtorDeclaration() { return this; }
 };
