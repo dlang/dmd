@@ -673,7 +673,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                         {
                             TypeFunction *tf = (TypeFunction *)fd->type;
                             if (tf->ty == Tfunction)
-                                warning("%s%s is hidden by %s\n", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars());
+                                warning("%s%s hidden by. Use 'alias %s.%s %s;' to introduce base class overload set.", fd->toPrettyChars(), Parameter::argsTypesToChars(tf->parameters, tf->varargs), toChars(), fd->parent->toChars(), fd->toChars(), fd->toChars());
                             else
                                 warning("%s is hidden by %s\n", fd->toPrettyChars(), toChars());
                         }
