@@ -414,6 +414,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\ctfeexpr.c"
+				>
+			</File>
+			<File
 				RelativePath=".\declaration.c"
 				>
 			</File>
@@ -774,42 +778,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\unialpha.c"
-				>
-				<FileConfiguration
-					Name="Debug|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Debug|x64"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|Win32"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-				<FileConfiguration
-					Name="Release|x64"
-					ExcludedFromBuild="true"
-					>
-					<Tool
-						Name="VCCLCompilerTool"
-					/>
-				</FileConfiguration>
-			</File>
-			<File
 				RelativePath=".\unittests.c"
 				>
 			</File>
@@ -945,6 +913,14 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\code_stub.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\code_x86.h"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\cpp.h"
 					>
 				</File>
@@ -954,6 +930,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\cv4.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\cv8.c"
 					>
 				</File>
 				<File
@@ -1077,6 +1057,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\obj.h"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\oper.h"
 					>
 				</File>
@@ -1094,6 +1078,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\outbuf.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\pdata.c"
 					>
 				</File>
 				<File
@@ -1150,6 +1138,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\var.c"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\xmm.h"
 					>
 				</File>
 			</Filter>
