@@ -61,14 +61,8 @@ static int fptraits(void *param, FuncDeclaration *f)
         return 0;
 
     Expression *e;
-
-    if (p->e1->op == TOKdotvar)
-    {   DotVarExp *dve = (DotVarExp *)p->e1;
-        if (dve->e1->op == TOKdottype || dve->e1->op == TOKthis)
-            e = new DsymbolExp(0, new FuncAliasDeclaration(f, 0));
-        else
-            e = new DotVarExp(0, dve->e1, new FuncAliasDeclaration(f, 0));
-    }
+    if (p->e1)
+        e = new DotVarExp(0, p->e1, new FuncAliasDeclaration(f, 0));
     else
         e = new DsymbolExp(0, new FuncAliasDeclaration(f, 0));
     p->exps->push(e);
@@ -227,34 +221,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
-        if(!s)
+        if (!s)
         {
-            // it might also be a trait getMember or something,
-            // which returns a dot expression rather than a symbol
-            if(o->dyncast() == DYNCAST_EXPRESSION)
-            {
-                Expression *e = (Expression *) o;
-
-                if (e->op == TOKdotvar)
-                {
-                        DotVarExp *dv = (DotVarExp *)e;
-                        s = dv->var->isDeclaration();
-                }
-            }
-        }
-        if(!s)
-        {
-            bool gagError = false;
-            if(o->dyncast() == DYNCAST_EXPRESSION)
-            {
-                Expression *e = (Expression *) o;
-                if(e->op == TOKerror)
-                    gagError = true;
-            }
-
-            if(!gagError)
+            if (!isError(o))
                 error("argument %s has no protection", o->toChars());
-
             goto Lfalse;
         }
 
@@ -265,7 +235,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         StringExp *se = new StringExp(loc, (char *) protName);
         return se->semantic(sc);
     }
-
     else if (ident == Id::parent)
     {
         if (dim != 1)
@@ -285,7 +254,6 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         return (new DsymbolExp(loc, s))->semantic(sc);
     }
-
 #endif
     else if (ident == Id::hasMember ||
              ident == Id::getMember ||
@@ -377,10 +345,15 @@ Expression *TraitsExp::semantic(Scope *sc)
             if (e->op == TOKvar)
             {   VarExp *ve = (VarExp *)e;
                 f = ve->var->isFuncDeclaration();
+                e = NULL;
             }
             else if (e->op == TOKdotvar)
             {   DotVarExp *dve = (DotVarExp *)e;
                 f = dve->var->isFuncDeclaration();
+                if (dve->e1->op == TOKdottype || dve->e1->op == TOKthis)
+                    e = NULL;
+                else
+                    e = dve->e1;
             }
             else
                 f = NULL;
