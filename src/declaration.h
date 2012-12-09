@@ -713,6 +713,7 @@ struct FuncLiteralDeclaration : FuncDeclaration
 struct CtorDeclaration : FuncDeclaration
 {   Parameters *arguments;
     int varargs;
+    bool isImplicit;  // implicitly generated ctor
 
     CtorDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
     Dsymbol *syntaxCopy(Dsymbol *);
