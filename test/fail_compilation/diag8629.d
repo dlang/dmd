@@ -2,7 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8629.d(9): Error: not a property s.gunc
+fail_compilation/diag8629.d(9): Error: no property 'gunc' for type 'S'
 ---
 */
 
