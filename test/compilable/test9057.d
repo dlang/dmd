@@ -7,12 +7,12 @@ struct Bug9057(T)
 }
 
 void test9507() {
-    import imp9057;
+    import imports.imp9057;
     Bug9057!(BugInt) xxx;
 }
 
 void test9507_2() {
-    import imp9057_2;
+    import imports.imp9057_2;
     Bug9057!(BugInt) xxx;
 }
 
