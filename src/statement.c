@@ -5432,6 +5432,7 @@ Statement *ImportStatement::semantic(Scope *sc)
         }
 
         s->semantic(sc);
+        s->semantic2(sc);
         sc->insert(s);
 
         for (size_t i = 0; i < s->aliasdecls.dim; i++)

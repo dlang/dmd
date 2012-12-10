@@ -493,6 +493,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKlbracket:
             {
+                warning(loc, "use @(attributes) instead of [attributes]");
                 Expressions *exps = parseArguments();
                 a = parseBlock();
                 s = new UserAttributeDeclaration(exps, a);
