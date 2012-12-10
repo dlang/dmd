@@ -1043,6 +1043,35 @@ void test9552()
 
 /*************************************************************/
 
+void test9136()
+{
+    int x;
+    struct S1 { void f() { x++; } }
+    struct U1 { void f() { x++; } }
+    static struct S2 { }
+    static struct S3 { S1 s; }
+    static struct U2 { }
+    void f1() { x++; }
+    static void f2() { }
+
+    static assert(__traits(isNested, S1));
+    static assert(__traits(isNested, U1));
+    static assert(!__traits(isNested, S2));
+    static assert(!__traits(isNested, S3));
+    static assert(!__traits(isNested, U2));
+    static assert(!__traits(compiles, __traits(isNested, int) ));
+    static assert(!__traits(compiles, __traits(isNested, f1, f2) ));
+    static assert(__traits(isNested, f1));
+    static assert(!__traits(isNested, f2));
+
+    static class A { static class SC { } class NC { } }
+    static assert(!__traits(isNested, A));
+    static assert(!__traits(isNested, A.SC));
+    static assert(__traits(isNested, A.NC));
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -1075,6 +1104,7 @@ int main()
     test5978();
     test7408();
     test9552();
+    test9136();
 
     writeln("Success");
     return 0;

@@ -307,6 +307,7 @@ Msgtable msgtable[] =
     { "isAssociativeArray" },
     { "isFinalClass" },
     { "isPOD" },
+    { "isNested" },
     { "isFloating" },
     { "isIntegral" },
     { "isScalar" },
