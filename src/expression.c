@@ -440,6 +440,48 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
     return e;
 }
 
+/*********************************
+ * Attempt to find a type property. If failed, attempt to find
+ * UFCS property. If UFCS found, return expression. Otherwise
+ * show type property error message.
+ * Returns non-NULL only if UFCS property found.
+ */
+Expression * resolveProperty(Scope *sc, Expression **e1, Expression *e2)
+{
+    enum TOK op = (*e1)->op;
+    UnaExp *una = (UnaExp *)(*e1);
+    Type *t = una->e1->type;
+    int olderrors = global.errors;
+    una->e1 = una->e1->semantic(sc);
+    if (global.errors == olderrors && una->e1->type)
+    {
+        unsigned errors = global.startGagging();
+        // try property gagged
+        if (op == TOKdotti)
+            *e1 = ((DotTemplateInstanceExp *)una)->semantic(sc, 1);
+        else if (op == TOKdot)
+            *e1 = ((DotIdExp *)una)->semantic(sc, 1);
+
+        if (global.endGagging(errors) || (*e1)->op == TOKerror)
+        {
+            (*e1)->op = op;
+            errors = global.startGagging();  // try UFCS gagged
+            Expression *e = resolveUFCSProperties(sc, una, e2);
+            if (!global.endGagging(errors) && (*e1)->op != TOKerror)
+                return e;  // found UFCS
+
+            // try property non-gagged
+            una->type = t;  // restore type
+            if (op == TOKdotti)
+                *e1 = ((DotTemplateInstanceExp *)una)->semantic(sc, 1);
+            else if (op == TOKdot)
+                *e1 = ((DotIdExp *)una)->semantic(sc, 1);
+        }
+    }
+
+    return NULL;
+}
+
 /******************************
  * Perform semantic() on an array of Expressions.
  */
@@ -7032,7 +7074,14 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
         if (global.endGagging(errors))  // if failed to find the property
         {
             e1->type = t1;              // kludge to restore type
+            errors = global.startGagging();
             e = resolveUFCSProperties(sc, this);
+            if (global.endGagging(errors))
+            {
+                // both lookups failed, lookup property again for better error message
+                e1->type = t1;  // restore type
+                e = t1->dotExp(sc, e1, ident);
+            }
         }
         e = e->semantic(sc);
         return e;
@@ -7356,9 +7405,17 @@ Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
 
         unsigned errors = global.startGagging();
         e = die->semantic(sc, 1);
+        Type *t = e1->type;
         if (global.endGagging(errors))
         {
-            return resolveUFCSProperties(sc, this);
+            errors = global.startGagging();
+            e = resolveUFCSProperties(sc, this);
+            if (!global.endGagging(errors))
+                return e;
+
+            // both lookups failed, lookup property again for better error message
+            e->type = t;  // restore type
+            e = die->semantic(sc, 1);
         }
     }
 
@@ -10405,33 +10462,13 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     if (e1->op == TOKdotti)
     {
-        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
-        int olderrors = global.errors;
-        dti->e1 = dti->e1->semantic(sc);
-        if (global.errors == olderrors && dti->e1->type)
-        {
-            unsigned errors = global.startGagging();
-            e1 = dti->semantic(sc, 1);
-            if (global.endGagging(errors) || e1->op == TOKerror)
-            {
-                return resolveUFCSProperties(sc, dti, e2);
-            }
-        }
+        Expression *e = resolveProperty(sc, &e1, e2);
+        if (e) return e;
     }
     else if (e1->op == TOKdot)
     {
-        DotIdExp *die = (DotIdExp *)e1;
-        int olderrors = global.errors;
-        die->e1 = die->e1->semantic(sc);
-        if (global.errors == olderrors && die->e1->type)
-        {
-            unsigned errors = global.startGagging();
-            e1 = die->semantic(sc, 1);
-            if (global.endGagging(errors) || e1->op == TOKerror)
-            {
-                return resolveUFCSProperties(sc, die, e2);
-            }
-        }
+        Expression *e = resolveProperty(sc, &e1, e2);
+        if (e) return e;
 
         VarDeclaration * vd = NULL;
         if (e1->op == TOKvar)
