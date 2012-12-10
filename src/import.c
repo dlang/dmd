@@ -337,10 +337,13 @@ void Import::semantic(Scope *sc)
 void Import::semantic2(Scope *sc)
 {
     //printf("Import::semantic2('%s')\n", toChars());
-    mod->semantic2();
-    if (mod->needmoduleinfo)
-    {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
-        sc->module->needmoduleinfo = 1;
+    if (mod)
+    {
+        mod->semantic2();
+        if (mod->needmoduleinfo)
+        {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
+            sc->module->needmoduleinfo = 1;
+        }
     }
 }
 
