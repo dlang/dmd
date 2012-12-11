@@ -1798,6 +1798,33 @@ void test9100()
 }
 
 /**********************************/
+// 9124
+
+struct Foo9124(N...)
+{
+    enum SIZE = N[0];
+    private int _val;
+
+    public void opAssign (T) (T other)
+    if (is(T unused == Foo9124!(_N), _N...))
+    {
+        _val = other._val;          // compile error
+        // this._val = other._val;  // explicit this make it work
+    }
+
+    public auto opUnary (string op) () if (op == "~") {
+        Foo9124!(SIZE) result = this;
+        return result;
+    }
+}
+
+void test9124()
+{
+    Foo9124!(28) a;
+    Foo9124!(28) b = ~a;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1866,6 +1893,7 @@ int main()
     test9038();
     test9076();
     test9100();
+    test9124();
 
     printf("Success\n");
     return 0;

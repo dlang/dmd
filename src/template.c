@@ -250,7 +250,16 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
         if (!e2)
             goto Lnomatch;
         if (!e1->equals(e2))
-            goto Lnomatch;
+        {   // e2 might be a enum variable symbol, then optimize and re-try
+            if (!(e2->isConst() && e1->op == TOKvar))
+                goto Lnomatch;
+            VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
+            if (!(v && (v->storage_class & STCmanifest)))
+                goto Lnomatch;
+            e1 = e1->optimize(WANTvalue);
+            if (!e1->equals(e2))
+                goto Lnomatch;
+        }
     }
     else if (s1)
     {
