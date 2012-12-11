@@ -554,6 +554,12 @@ void TemplateDeclaration::semantic(Scope *sc)
         {
             onemember = s;
             s->parent = this;
+            if (sc->stc & STCproperty)
+            if (FuncDeclaration *f = s->isFuncDeclaration())
+            {
+                ((TypeFunction *)f->type)->isproperty = 1;
+                //printf("sc->stc = %llx, f =%s\n\n", sc->stc, f->toChars());
+            }
         }
     }
 

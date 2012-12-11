@@ -1426,7 +1426,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     exp->error("%s has no value", e->toChars());
                 t = e->type->toBasetype();
                 if (t && t->ty == Tfunction)
-                    e = new CallExp(e->loc, e);
+                    e = new CallExp(e->loc, e, PROPmemget);
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, e));
             }
             else
