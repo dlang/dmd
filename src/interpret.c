@@ -2899,7 +2899,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 keysx->push(index);
                 AssocArrayLiteralExp *newaae = new AssocArrayLiteralExp(loc, keysx, valuesx);
                 newaae->ownedByCtfe = true;
-                newaae->type = e1->type;
+                newaae->type = ((IndexExp *)e1)->e1->type;
                 newval = newaae;
                 e1 = ((IndexExp *)e1)->e1;
             }
@@ -5076,8 +5076,6 @@ Expression *interpret_length(InterState *istate, Expression *earg)
 {
     //printf("interpret_length()\n");
     earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
     if (exceptionOrCantInterpret(earg))
         return earg;
     dinteger_t len = 0;
@@ -5088,47 +5086,43 @@ Expression *interpret_length(InterState *istate, Expression *earg)
     return e;
 }
 
-Expression *interpret_keys(InterState *istate, Expression *earg, Type *elemType)
+Expression *interpret_keys(InterState *istate, Expression *earg, Type *returnType)
 {
 #if LOG
     printf("interpret_keys()\n");
 #endif
     earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
     if (exceptionOrCantInterpret(earg))
         return earg;
     if (earg->op == TOKnull)
-        return new NullExp(earg->loc);
+        return new NullExp(earg->loc, returnType);
     if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
     assert(earg->op == TOKassocarrayliteral);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     ArrayLiteralExp *ae = new ArrayLiteralExp(aae->loc, aae->keys);
     ae->ownedByCtfe = aae->ownedByCtfe;
-    ae->type = new TypeSArray(elemType, new IntegerExp(aae->keys->dim));
+    ae->type = returnType;
     return copyLiteral(ae);
 }
 
-Expression *interpret_values(InterState *istate, Expression *earg, Type *elemType)
+Expression *interpret_values(InterState *istate, Expression *earg, Type *returnType)
 {
 #if LOG
     printf("interpret_values()\n");
 #endif
     earg = earg->interpret(istate);
-    if (earg == EXP_CANT_INTERPRET)
-        return NULL;
     if (exceptionOrCantInterpret(earg))
         return earg;
     if (earg->op == TOKnull)
-        return new NullExp(earg->loc);
+        return new NullExp(earg->loc, returnType);
     if (earg->op != TOKassocarrayliteral && earg->type->toBasetype()->ty != Taarray)
         return NULL;
     assert(earg->op == TOKassocarrayliteral);
     AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)earg;
     ArrayLiteralExp *ae = new ArrayLiteralExp(aae->loc, aae->values);
     ae->ownedByCtfe = aae->ownedByCtfe;
-    ae->type = new TypeSArray(elemType, new IntegerExp(aae->values->dim));
+    ae->type = returnType;
     //printf("result is %s\n", e->toChars());
     return copyLiteral(ae);
 }
@@ -5186,12 +5180,12 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
 }
 
 // Helper function: given a function of type A[] f(...),
-// return A.
-Type *returnedArrayElementType(FuncDeclaration *fd)
+// return A[].
+Type *returnedArrayType(FuncDeclaration *fd)
 {
     assert(fd->type->ty == Tfunction);
     assert(fd->type->nextOf()->ty == Tarray);
-    return ((TypeFunction *)fd->type)->nextOf()->nextOf();
+    return ((TypeFunction *)fd->type)->nextOf();
 }
 
 /* Decoding UTF strings for foreach loops. Duplicates the functionality of
@@ -5453,9 +5447,9 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
         if (fd->ident == Id::length &&  nargs==0)
             return interpret_length(istate, pthis);
         else if (fd->ident == Id::keys && nargs==0)
-            return interpret_keys(istate, pthis, returnedArrayElementType(fd));
+            return interpret_keys(istate, pthis, returnedArrayType(fd));
         else if (fd->ident == Id::values && nargs==0)
-            return interpret_values(istate, pthis, returnedArrayElementType(fd));
+            return interpret_values(istate, pthis, returnedArrayType(fd));
         else if (fd->ident == Id::rehash && nargs==0)
             return pthis->interpret(istate, ctfeNeedLvalue);  // rehash is a no-op
     }
@@ -5498,9 +5492,9 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             if (fd->ident == Id::aaLen && nargs == 1)
                 return interpret_length(istate, firstarg);
             else if (fd->ident == Id::aaKeys)
-                return interpret_keys(istate, firstarg, firstAAtype->index);
+                return interpret_keys(istate, firstarg, new TypeDArray(firstAAtype->index));
             else if (fd->ident == Id::aaValues)
-                return interpret_values(istate, firstarg, firstAAtype->nextOf());
+                return interpret_values(istate, firstarg, new TypeDArray(firstAAtype->nextOf()));
             else if (nargs==2 && fd->ident == Id::aaRehash)
                 return firstarg->interpret(istate, ctfeNeedLvalue); //no-op
             else if (nargs==3 && !strcmp(fd->ident->string, "_aaApply"))
