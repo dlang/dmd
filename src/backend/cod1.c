@@ -4191,7 +4191,6 @@ code *loaddata(elem *e,regm_t *pretregs)
     else if (forregs & XMMREGS)
     {
         // Can't load from registers directly to XMM regs
-//printf("test2 %s\n", e->EV.sp.Vsym->Sident);
         //e->EV.sp.Vsym->Sflags &= ~GTregcand;
 
         op = xmmload(tym);

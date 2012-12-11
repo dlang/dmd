@@ -381,6 +381,11 @@ code *cdeq(elem *e,regm_t *pretregs)
                 (!I16 || e11->E1->EV.sp.Vsym->Sregm & IDXREGS)
                )
             {
+                Symbol *s = e11->E1->EV.sp.Vsym;
+                if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
+                {
+                    regcon.params &= ~s->Spregm();
+                }
                 postinc = e11->E2->EV.Vint;
                 if (e11->Eoper == OPpostdec)
                     postinc = -postinc;
@@ -630,6 +635,12 @@ code *cdeq(elem *e,regm_t *pretregs)
         (!I16 || e11->E1->EV.sp.Vsym->Sregm & IDXREGS)
        )
     {
+        Symbol *s = e11->E1->EV.sp.Vsym;
+        if (s->Sclass == SCfastpar || s->Sclass == SCshadowreg)
+        {
+            regcon.params &= ~s->Spregm();
+        }
+
         postinc = e11->E2->EV.Vint;
         if (e11->Eoper == OPpostdec)
             postinc = -postinc;
