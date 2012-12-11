@@ -106,6 +106,123 @@ void test5()
 
 /************************************************/
 
+enum Test6;
+@Test6 int x6;
+pragma(msg, __traits(getAttributes, x6));
+
+void test6()
+{
+    alias Tuple!(__traits(getAttributes, x6)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test6 == tp[0]))
+        assert(0);
+}
+
+/************************************************/
+
+struct Test7
+{
+    int a;
+    string b;
+}
+
+@Test7(3, "foo") int x7;
+pragma(msg, __traits(getAttributes, x7));
+
+void test7()
+{
+    alias Tuple!(__traits(getAttributes, x7)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test7 == typeof(tp[0])))
+        assert(0);
+    
+    assert(tp[0] == Test7(3, "foo"));
+}
+
+/************************************************/
+
+struct Test8 (string foo) {}
+
+@Test8!"foo" int x8;
+pragma(msg, __traits(getAttributes, x8));
+
+void test8()
+{
+    alias Tuple!(__traits(getAttributes, x8)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test8!("foo") == tp[0]))
+        assert(0);
+}
+
+/************************************************/
+
+struct Test9 (string foo) {}
+
+@Test9!("foo") int x9;
+pragma(msg, __traits(getAttributes, x9));
+
+void test9()
+{
+    alias Tuple!(__traits(getAttributes, x9)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test9!("foo") == tp[0]))
+        assert(0);
+}
+
+/************************************************/
+
+struct Test10 (string foo)
+{
+    int a;
+}
+
+@Test10!"foo"(3) int x10;
+pragma(msg, __traits(getAttributes, x10));
+
+void test10()
+{
+    alias Tuple!(__traits(getAttributes, x10)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test10!("foo") == typeof(tp[0])))
+        assert(0);
+
+    assert(tp[0] == Test10!("foo")(3));
+}
+
+/************************************************/
+
+struct Test11 (string foo)
+{
+    int a;
+}
+
+@Test11!("foo")(3) int x11;
+pragma(msg, __traits(getAttributes, x11));
+
+void test11()
+{
+    alias Tuple!(__traits(getAttributes, x11)) tp;
+
+    assert(tp.length == 1);
+
+    if (!is(Test11!("foo") == typeof(tp[0])))
+        assert(0);
+
+    assert(tp[0] == Test11!("foo")(3));
+}
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -113,6 +230,12 @@ int main()
     test3();
     test4();
     test5();
+    test6();
+    test7();
+    test8();
+    test9();
+    test10();
+    test11();
 
     printf("Success\n");
     return 0;
