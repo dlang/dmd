@@ -502,14 +502,24 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
     //printf("CallExp::optimize(result = %d) %s\n", result, toChars());
     Expression *e = this;
 
-    // Don't optimize parameters here, because it is already done
-    // in functionParameters() by considering parameter ref-ness.
-    if (0 && arguments)
+    // Optimize parameters with keeping lvalue-ness
+    if (arguments)
     {
+        Type *t1 = e1->type->toBasetype();
+        if (t1->ty == Tdelegate) t1 = t1->nextOf();
+        assert(t1->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)t1;
+        size_t pdim = Parameter::dim(tf->parameters) - (tf->varargs == 2 ? 1 : 0);
         for (size_t i = 0; i < arguments->dim; i++)
-        {   Expression *e = (*arguments)[i];
-
-            e = e->optimize(WANTvalue);
+        {
+            bool keepLvalue = false;
+            if (i < pdim)
+            {
+                Parameter *p = Parameter::getNth(tf->parameters, i);
+                keepLvalue = ((p->storageClass & (STCref | STCout)) != 0);
+            }
+            Expression *e = (*arguments)[i];
+            e = e->optimize(WANTvalue, keepLvalue);
             (*arguments)[i] = e;
         }
     }

@@ -616,6 +616,24 @@ class C8939regression
 }
 
 /************************************/
+// 9058
+
+template TypeTuple9058(TL...) { alias TypeTuple9058 = TL; }
+template EnumMembers9058(T)
+{
+    alias EnumMembers9058 = TypeTuple9058!(Foo9058.A, Foo9058.B);
+}
+enum Foo9058 { A, B }
+size_t bar9058(size_t n)
+{
+    return 0;
+}
+void test9058()
+{
+    Foo9058 x = [EnumMembers9058!Foo9058][bar9058($)];
+}
+
+/************************************/
 
 int main()
 {
@@ -625,6 +643,7 @@ int main()
     test6077();
     test8400();
     test8939();
+    test9058();
 
     printf("Success\n");
     return 0;
