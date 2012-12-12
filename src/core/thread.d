@@ -5,7 +5,7 @@
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
- * Authors:   Sean Kelly, Walter Bright, Alex Rønne Petersen
+ * Authors:   Sean Kelly, Walter Bright, Alex Rønne Petersen, Martin Nowak
  * Source:    $(DRUNTIMESRC core/_thread.d)
  */
 
@@ -3135,7 +3135,18 @@ private
     else version( PPC )
     {
         version( Posix )
+        {
             version = AsmPPC_Posix;
+            version = AsmExternal;
+        }
+    }
+    else version( MIPS_O32 )
+    {
+        version( Posix )
+        {
+            version = AsmMIPS_O32_Posix;
+            version = AsmExternal;
+        }
     }
 
 
@@ -3147,7 +3158,7 @@ private
         version( AsmX86_Posix )      {} else
         version( AsmX86_64_Windows ) {} else
         version( AsmX86_64_Posix )   {} else
-        version( AsmPPC_Posix )      {} else
+        version( AsmExternal )       {} else
         {
             // NOTE: The ucontext implementation requires architecture specific
             //       data definitions to operate so testing for it must be done
@@ -3223,9 +3234,7 @@ private
     }
 
 
-  // NOTE: If AsmPPC_Posix is defined then the context switch routine will
-  //       be defined externally until inline PPC ASM is supported.
-  version( AsmPPC_Posix )
+  version( AsmExternal )
     extern (C) void fiber_switchContext( void** oldp, void* newp );
   else
     extern (C) void fiber_switchContext( void** oldp, void* newp )
@@ -3385,6 +3394,8 @@ private
             swapcontext( **(cast(ucontext_t***) oldp),
                           *(cast(ucontext_t**)  newp) );
         }
+        else
+            static assert(0, "Not implemented");
     }
 }
 
@@ -4160,6 +4171,47 @@ private:
 
             assert( (cast(size_t) pstack & 0x0f) == 0 );
         }
+        else version( AsmMIPS_O32_Posix )
+        {
+            version (StackGrowsDown) {}
+            else static assert(0);
+
+            /* We keep the FP registers and the return address below
+             * the stack pointer, so they don't get scanned by the
+             * GC. The last frame before swapping the stack pointer is
+             * organized like the following.
+             *
+             *     |-----------|<= frame pointer
+             *     |    $gp    |
+             *     |   $s0-8   |
+             *     |-----------|<= stack pointer
+             *     |    $ra    |
+             *     |  align(8) |
+             *     |  $f20-30  |
+             *     |-----------|
+             *
+             */
+            enum SZ_GP = 10 * size_t.sizeof; // $gp + $s0-8
+            enum SZ_RA = size_t.sizeof;      // $ra
+            version (MIPS_HardFloat)
+            {
+                enum SZ_FP = 6 * 8;          // $f20-30
+                enum ALIGN = -(SZ_FP + SZ_RA) & (8 - 1);
+            }
+            else
+            {
+                enum SZ_FP = 0;
+                enum ALIGN = 0;
+            }
+
+            enum BELOW = SZ_FP + ALIGN + SZ_RA;
+            enum ABOVE = SZ_GP;
+            enum SZ = BELOW + ABOVE;
+
+            (cast(ubyte*)pstack - SZ)[0 .. SZ] = 0;
+            pstack -= ABOVE;
+            *cast(size_t*)(pstack - SZ_RA) = cast(size_t)&fiber_entryPoint;
+        }
         else static if( __traits( compiles, ucontext_t ) )
         {
             getcontext( &m_utxt );
@@ -4170,6 +4222,8 @@ private:
             //       be a pointer to the ucontext_t struct for that fiber.
             push( cast(size_t) &m_utxt );
         }
+        else
+            static assert(0, "Not implemented");
     }
 
 

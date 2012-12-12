@@ -1,13 +1,13 @@
 /**
  * Support code for mutithreading.
  *
- * Copyright: Copyright Mikola Lysenko 2005 - 2009.
+ * Copyright: Copyright Mikola Lysenko 2005 - 2012.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Mikola Lysenko
+ * Authors:   Mikola Lysenko, Martin Nowak
  */
 
 /*
- *          Copyright Mikola Lysenko 2005 - 2009.
+ *          Copyright Mikola Lysenko 2005 - 2012.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE_1_0.txt or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -141,5 +141,77 @@ _fiber_switchContext:
 
     /* Return and switch context */
     blr
+
+#elif defined(__mips__) && _MIPS_SIM == _ABIO32
+/************************************************************************************
+ * MIPS ASM BITS
+ ************************************************************************************/
+
+/**
+ * Performs a context switch.
+ *
+ * $a0 - void** - ptr to old stack pointer
+ * $a1 - void*  - new stack pointer
+ *
+ */
+.text
+.globl fiber_switchContext
+fiber_switchContext:
+    addiu $sp, $sp, -(10 * 4)
+
+    // fp regs and return address are stored below the stack
+    // because we don't want the GC to scan them.
+
+#ifdef __mips_hard_float
+#define ALIGN8(val) (val + (-val & 7))
+#define BELOW (ALIGN8(6 * 8 + 4))
+    sdcl $f20, (0 * 8 - BELOW)($sp)
+    sdcl $f22, (1 * 8 - BELOW)($sp)
+    sdcl $f24, (2 * 8 - BELOW)($sp)
+    sdcl $f26, (3 * 8 - BELOW)($sp)
+    sdcl $f28, (4 * 8 - BELOW)($sp)
+    sdcl $f30, (5 * 8 - BELOW)($sp)
+#endif
+    sw $ra, -4($sp)
+
+    sw $s0, (0 * 4)($sp)
+    sw $s1, (1 * 4)($sp)
+    sw $s2, (2 * 4)($sp)
+    sw $s3, (3 * 4)($sp)
+    sw $s4, (4 * 4)($sp)
+    sw $s5, (5 * 4)($sp)
+    sw $s6, (6 * 4)($sp)
+    sw $s7, (7 * 4)($sp)
+    sw $s8, (8 * 4)($sp)
+    sw $gp, (9 * 4)($sp)
+
+    // swap stack pointer
+    sw $sp, 0($a0)
+    move $sp, $a1
+
+#ifdef __mips_hard_float
+    ldcl $f20, (0 * 8 - BELOW)($sp)
+    ldcl $f22, (1 * 8 - BELOW)($sp)
+    ldcl $f24, (2 * 8 - BELOW)($sp)
+    ldcl $f26, (3 * 8 - BELOW)($sp)
+    ldcl $f28, (4 * 8 - BELOW)($sp)
+    ldcl $f30, (5 * 8 - BELOW)($sp)
+#endif
+    lw $ra, -4($sp)
+
+    lw $s0, (0 * 4)($sp)
+    lw $s1, (1 * 4)($sp)
+    lw $s2, (2 * 4)($sp)
+    lw $s3, (3 * 4)($sp)
+    lw $s4, (4 * 4)($sp)
+    lw $s5, (5 * 4)($sp)
+    lw $s6, (6 * 4)($sp)
+    lw $s7, (7 * 4)($sp)
+    lw $s8, (8 * 4)($sp)
+    lw $gp, (9 * 4)($sp)
+
+    addiu $sp, $sp, (10 * 4)
+
+    jr $ra // return
 
 #endif
