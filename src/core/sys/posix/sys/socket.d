@@ -208,36 +208,73 @@ version( linux )
         int l_linger;
     }
 
-    enum
+    version (MIPS)
     {
-        SOCK_DGRAM      = 2,
-        SOCK_SEQPACKET  = 5,
-        SOCK_STREAM     = 1
-    }
+        enum
+        {
+            SOCK_DGRAM      = 1,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 2,
+        }
 
-    enum
-    {
-        SOL_SOCKET      = 1
-    }
+        enum
+        {
+            SOL_SOCKET      = 0xffff
+        }
 
-    enum
+        enum
+        {
+            SO_ACCEPTCONN   = 0x1009,
+            SO_BROADCAST    = 0x0020,
+            SO_DEBUG        = 0x0001,
+            SO_DONTROUTE    = 0x0010,
+            SO_ERROR        = 0x1007,
+            SO_KEEPALIVE    = 0x0008,
+            SO_LINGER       = 0x0080,
+            SO_OOBINLINE    = 0x0100,
+            SO_RCVBUF       = 0x1002,
+            SO_RCVLOWAT     = 0x1004,
+            SO_RCVTIMEO     = 0x1006,
+            SO_REUSEADDR    = 0x0004,
+            SO_SNDBUF       = 0x1001,
+            SO_SNDLOWAT     = 0x1003,
+            SO_SNDTIMEO     = 0x1005,
+            SO_TYPE         = 0x1008,
+        }
+    }
+    else
     {
-        SO_ACCEPTCONN   = 30,
-        SO_BROADCAST    = 6,
-        SO_DEBUG        = 1,
-        SO_DONTROUTE    = 5,
-        SO_ERROR        = 4,
-        SO_KEEPALIVE    = 9,
-        SO_LINGER       = 13,
-        SO_OOBINLINE    = 10,
-        SO_RCVBUF       = 8,
-        SO_RCVLOWAT     = 18,
-        SO_RCVTIMEO     = 20,
-        SO_REUSEADDR    = 2,
-        SO_SNDBUF       = 7,
-        SO_SNDLOWAT     = 19,
-        SO_SNDTIMEO     = 21,
-        SO_TYPE         = 3
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+
+        enum
+        {
+            SOL_SOCKET      = 1
+        }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 18,
+            SO_RCVTIMEO     = 20,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 19,
+            SO_SNDTIMEO     = 21,
+            SO_TYPE         = 3
+        }
     }
 
     enum
