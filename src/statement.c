@@ -1812,9 +1812,7 @@ Lagain:
                     {
                         /* Reference to immutable data should be marked as const
                          */
-                        if (aggr->checkCtorInit(sc))
-                            var->storage_class |= STCctorinit;
-                        else if (!tn->isMutable())
+                        if (!tn->isMutable())
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
