@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Sean Kelly 2005 - 2009.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Sean Kelly
+ * Authors:   Sean Kelly, Alex Rønne Petersen
  * Standards: The Open Group Base Specifications Issue 6, IEEE Std 1003.1, 2004 Edition
  */
 
@@ -145,8 +145,38 @@ version( linux )
         tcflag_t   c_lflag;
         cc_t       c_line;
         cc_t[NCCS] c_cc;
+    }
+
+    struct termios2
+    {
+        tcflag_t   c_iflag;
+        tcflag_t   c_oflag;
+        tcflag_t   c_cflag;
+        tcflag_t   c_lflag;
+        cc_t       c_line;
+        cc_t[NCCS] c_cc;
         speed_t    c_ispeed;
         speed_t    c_ospeed;
+    }
+
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
+    enum NCC = 8;
+
+    struct termio
+    {
+        ushort c_iflag;
+        ushort c_oflag;
+        ushort c_cflag;
+        ushort c_lflag;
+        ubyte c_line;
+        ubyte[NCC] c_cc;
     }
 
     enum VEOF       = 4;
@@ -161,58 +191,58 @@ version( linux )
     enum VSUSP      = 10;
     enum VTIME      = 5;
 
-    enum BRKINT     = 0000002;
-    enum ICRNL      = 0000400;
-    enum IGNBRK     = 0000001;
-    enum IGNCR      = 0000200;
-    enum IGNPAR     = 0000004;
-    enum INLCR      = 0000100;
-    enum INPCK      = 0000020;
-    enum ISTRIP     = 0000040;
-    enum IXOFF      = 0010000;
-    enum IXON       = 0002000;
-    enum PARMRK     = 0000010;
+    enum BRKINT     = 0x0000002; // 0000002
+    enum ICRNL      = 0x0000100; // 0000400
+    enum IGNBRK     = 0x0000001; // 0000001
+    enum IGNCR      = 0x0000080; // 0000200
+    enum IGNPAR     = 0x0000004; // 0000004
+    enum INLCR      = 0x0000040; // 0000100
+    enum INPCK      = 0x0000010; // 0000020
+    enum ISTRIP     = 0x0000020; // 0000040
+    enum IXOFF      = 0x0001000; // 0010000
+    enum IXON       = 0x0000400; // 0002000
+    enum PARMRK     = 0x0000008; // 0000010
 
-    enum OPOST      = 0000001;
+    enum OPOST      = 0x0000001; // 0000001
 
-    enum B0         = 0000000;
-    enum B50        = 0000001;
-    enum B75        = 0000002;
-    enum B110       = 0000003;
-    enum B134       = 0000004;
-    enum B150       = 0000005;
-    enum B200       = 0000006;
-    enum B300       = 0000007;
-    enum B600       = 0000010;
-    enum B1200      = 0000011;
-    enum B1800      = 0000012;
-    enum B2400      = 0000013;
-    enum B4800      = 0000014;
-    enum B9600      = 0000015;
-    enum B19200     = 0000016;
-    enum B38400     = 0000017;
+    enum B0         = 0x0000000; // 0000000
+    enum B50        = 0x0000001; // 0000001
+    enum B75        = 0x0000002; // 0000002
+    enum B110       = 0x0000003; // 0000003
+    enum B134       = 0x0000004; // 0000004
+    enum B150       = 0x0000005; // 0000005
+    enum B200       = 0x0000006; // 0000006
+    enum B300       = 0x0000007; // 0000007
+    enum B600       = 0x0000008; // 0000010
+    enum B1200      = 0x0000009; // 0000011
+    enum B1800      = 0x000000A; // 0000012
+    enum B2400      = 0x000000B; // 0000013
+    enum B4800      = 0x000000C; // 0000014
+    enum B9600      = 0x000000D; // 0000015
+    enum B19200     = 0x000000E; // 0000016
+    enum B38400     = 0x000000F; // 0000017
 
-    enum CSIZE      = 0000060;
-    enum   CS5      = 0000000;
-    enum   CS6      = 0000020;
-    enum   CS7      = 0000040;
-    enum   CS8      = 0000060;
-    enum CSTOPB     = 0000100;
-    enum CREAD      = 0000200;
-    enum PARENB     = 0000400;
-    enum PARODD     = 0001000;
-    enum HUPCL      = 0002000;
-    enum CLOCAL     = 0004000;
+    enum CSIZE      = 0x0000030; // 0000060
+    enum   CS5      = 0x0000000; // 0000000
+    enum   CS6      = 0x0000010; // 0000020
+    enum   CS7      = 0x0000020; // 0000040
+    enum   CS8      = 0x0000030; // 0000060
+    enum CSTOPB     = 0x0000040; // 0000100
+    enum CREAD      = 0x0000080; // 0000200
+    enum PARENB     = 0x0000100; // 0000400
+    enum PARODD     = 0x0000200; // 0001000
+    enum HUPCL      = 0x0000400; // 0002000
+    enum CLOCAL     = 0x0000800; // 0004000
 
-    enum ECHO       = 0000010;
-    enum ECHOE      = 0000020;
-    enum ECHOK      = 0000040;
-    enum ECHONL     = 0000100;
-    enum ICANON     = 0000002;
-    enum IEXTEN     = 0100000;
-    enum ISIG       = 0000001;
-    enum NOFLSH     = 0000200;
-    enum TOSTOP     = 0000400;
+    enum ECHO       = 0x0000008; // 0000010
+    enum ECHOE      = 0x0000010; // 0000020
+    enum ECHOK      = 0x0000020; // 0000040
+    enum ECHONL     = 0x0000040; // 0000100
+    enum ICANON     = 0x0000002; // 0000002
+    enum IEXTEN     = 0x0008000; // 0100000
+    enum ISIG       = 0x0000001; // 0000001
+    enum NOFLSH     = 0x0000080; // 0000200
+    enum TOSTOP     = 0x0000100; // 0000400
 
     enum TCSANOW    = 0;
     enum TCSADRAIN  = 1;
@@ -496,35 +526,35 @@ pid_t   tcgetsid(int);
 
 version( linux )
 {
-    enum IXANY      = 0004000;
+    enum IXANY      = 0x0000800; // 0004000
 
-    enum ONLCR      = 0000004;
-    enum OCRNL      = 0000010;
-    enum ONOCR      = 0000020;
-    enum ONLRET     = 0000040;
-    enum OFILL      = 0000100;
-    enum NLDLY      = 0000400;
-    enum   NL0      = 0000000;
-    enum   NL1      = 0000400;
-    enum CRDLY      = 0003000;
-    enum   CR0      = 0000000;
-    enum   CR1      = 0001000;
-    enum   CR2      = 0002000;
-    enum   CR3      = 0003000;
-    enum TABDLY     = 0014000;
-    enum   TAB0     = 0000000;
-    enum   TAB1     = 0004000;
-    enum   TAB2     = 0010000;
-    enum   TAB3     = 0014000;
-    enum BSDLY      = 0020000;
-    enum   BS0      = 0000000;
-    enum   BS1      = 0020000;
-    enum VTDLY      = 0040000;
-    enum   VT0      = 0000000;
-    enum   VT1      = 0040000;
-    enum FFDLY      = 0100000;
-    enum   FF0      = 0000000;
-    enum   FF1      = 0100000;
+    enum ONLCR      = 0x0000004; // 0000004
+    enum OCRNL      = 0x0000008; // 0000010
+    enum ONOCR      = 0x0000010; // 0000020
+    enum ONLRET     = 0x0000020; // 0000040
+    enum OFILL      = 0x0000040; // 0000100
+    enum NLDLY      = 0x0000100; // 0000400
+    enum   NL0      = 0x0000000; // 0000000
+    enum   NL1      = 0x0000100; // 0000400
+    enum CRDLY      = 0x0000600; // 0003000
+    enum   CR0      = 0x0000000; // 0000000
+    enum   CR1      = 0x0000200; // 0001000
+    enum   CR2      = 0x0000400; // 0002000
+    enum   CR3      = 0x0000600; // 0003000
+    enum TABDLY     = 0x0001800; // 0014000
+    enum   TAB0     = 0x0000000; // 0000000
+    enum   TAB1     = 0x0000800; // 0004000
+    enum   TAB2     = 0x0001000; // 0010000
+    enum   TAB3     = 0x0001800; // 0014000
+    enum BSDLY      = 0x0002000; // 0020000
+    enum   BS0      = 0x0000000; // 0000000
+    enum   BS1      = 0x0002000; // 0020000
+    enum VTDLY      = 0x0004000; // 0040000
+    enum   VT0      = 0x0000000; // 0000000
+    enum   VT1      = 0x0004000; // 0040000
+    enum FFDLY      = 0x0008000; // 0100000
+    enum   FF0      = 0x0000000; // 0000000
+    enum   FF1      = 0x0008000; // 0100000
 
     pid_t   tcgetsid(int);
 }

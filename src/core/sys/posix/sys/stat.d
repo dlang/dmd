@@ -313,10 +313,10 @@ else version( FreeBSD )
     enum S_IXGRP    = 0x008;  // octal 0000010
     enum S_IRWXG    = 0x038;  // octal 0000070
 
-    enum S_IROTH    = 0000004;
-    enum S_IWOTH    = 0000002;
-    enum S_IXOTH    = 0000001;
-    enum S_IRWXO    = 0000007;
+    enum S_IROTH    = 0x4; // 0000004
+    enum S_IWOTH    = 0x2; // 0000002
+    enum S_IXOTH    = 0x1; // 0000001
+    enum S_IRWXO    = 0x7; // 0000007
 
     enum S_ISUID    = 0x800; // octal 0004000
     enum S_ISGID    = 0x400; // octal 0002000
@@ -426,10 +426,10 @@ else version (Solaris)
     enum S_IXGRP = 0x008;
     enum S_IRWXG = 0x038;
 
-    enum S_IROTH = 0000004;
-    enum S_IWOTH = 0000002;
-    enum S_IXOTH = 0000001;
-    enum S_IRWXO = 0000007;
+    enum S_IROTH = 0x4; // 0000004
+    enum S_IWOTH = 0x2; // 0000002
+    enum S_IXOTH = 0x1; // 0000001
+    enum S_IRWXO = 0x7; // 0000007
 
     enum S_ISUID = 0x800;
     enum S_ISGID = 0x400;

@@ -24,25 +24,81 @@ nothrow:
 
 version (linux)
 {
-    struct winsize
+    import core.sys.posix.termios; // termios2
+    public import core.sys.posix.termios : termio, winsize;
+
+    enum _IOC_NRBITS = 8;
+    enum _IOC_TYPEBITS = 8;
+    enum _IOC_SIZEBITS = 14;
+    enum _IOC_DIRBITS = 2;
+
+    enum _IOC_NRMASK = (1 << _IOC_NRBITS) - 1;
+    enum _IOC_TYPEMASK = (1 << _IOC_TYPEBITS) - 1;
+    enum _IOC_SIZEMASK = (1 << _IOC_SIZEBITS) - 1;
+    enum _IOC_DIRMASK = (1 << _IOC_DIRBITS) - 1;
+
+    enum _IOC_NRSHIFT = 0;
+    enum _IOC_TYPESHIFT = _IOC_NRSHIFT + _IOC_NRBITS;
+    enum _IOC_SIZESHIFT = _IOC_TYPESHIFT + _IOC_TYPEBITS;
+    enum _IOC_DIRSHIFT = _IOC_SIZESHIFT + _IOC_SIZEBITS;
+
+    enum _IOC_NONE = 0;
+    enum _IOC_WRITE = 1;
+    enum _IOC_READ = 2;
+
+    extern (D) int _IOC(T = typeof(null))(int dir, int type, int nr)
     {
-        ushort ws_row;
-        ushort ws_col;
-        ushort ws_xpixel;
-        ushort ws_ypixel;
+        return (dir << _IOC_DIRSHIFT) |
+               (type << _IOC_TYPESHIFT) |
+               (nr << _IOC_NRSHIFT) |
+               (is(T == typeof(null)) ? 0 : T.sizeof << _IOC_SIZESHIFT);
     }
 
-    enum NCC = 8;
-
-    struct termio
+    extern (D) int _IO(int type, int nr)
     {
-        ushort c_iflag;
-        ushort c_oflag;
-        ushort c_cflag;
-        ushort c_lflag;
-        ubyte c_line;
-        ubyte[NCC] c_cc;
+        return _IOC(_IOC_NONE, type, nr);
     }
+
+    extern (D) int _IOR(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_READ, type, nr);
+    }
+
+    extern (D) int _IOW(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_WRITE, type, nr);
+    }
+
+    extern (D) int _IOWR(T)(int type, int nr)
+    {
+        return _IOC!T(_IOC_READ | _IOC_WRITE, type, nr);
+    }
+
+    extern (D) int _IOC_DIR(int nr)
+    {
+        return (nr >> _IOC_DIRSHIFT) & _IOC_DIRMASK;
+    }
+
+    extern (D) int _IOC_TYPE(int nr)
+    {
+        return (nr >> _IOC_TYPESHIFT) & _IOC_TYPEMASK;
+    }
+
+    extern (D) int _IOC_NR(int nr)
+    {
+        return (nr >> _IOC_NRSHIFT) & _IOC_NRMASK;
+    }
+
+    extern (D) int _IOC_SIZE(int nr)
+    {
+        return (nr >> _IOC_SIZESHIFT) & _IOC_SIZEMASK;
+    }
+
+    enum IOC_IN = _IOC_WRITE << _IOC_DIRSHIFT;
+    enum IOC_OUT = _IOC_READ << _IOC_DIRSHIFT;
+    enum IOC_INOUT = (_IOC_READ | _IOC_WRITE) << _IOC_DIRSHIFT;
+    enum IOCSIZE_MASK = _IOC_SIZEMASK << _IOC_DIRSHIFT;
+    enum IOCSIZE_SHIFT = _IOC_SIZESHIFT;
 
     enum TIOCM_LE = 0x001;
     enum TIOCM_DTR = 0x002;
@@ -115,24 +171,24 @@ version (linux)
     enum TIOCCBRK = 0x5428;
     enum TIOCGSID = 0x5429;
 
-    //enum TCGETS2  _IOR('T', 0x2A, struct termios2)
-    //enum TCSETS2  _IOW('T', 0x2B, struct termios2)
-    //enum TCSETSW2 _IOW('T', 0x2C, struct termios2)
-    //enum TCSETSF2 _IOW('T', 0x2D, struct termios2)
+    enum TCGETS2 = _IOR!termios2('T', 0x2A);
+    enum TCSETS2 = _IOR!termios2('T', 0x2B);
+    enum TCSETSW2 = _IOW!termios2('T', 0x2C);
+    enum TCSETSF2 = _IOW!termios2('T', 0x2D);
 
     enum TIOCGRS485 = 0x542E;
     enum TIOCSRS485 = 0x542F;
 
-    //enum TIOCGPTN   _IOR('T', 0x30, unsigned int)
-    //enum TIOCSPTLCK _IOW('T', 0x31, int)
-    //enum TIOCGDEV   _IOR('T', 0x32, unsigned int)
+    enum TIOCGPTN   = _IOR!uint('T', 0x30);
+    enum TIOCSPTLCK = _IOW!int('T', 0x31);
+    enum TIOCGDEV   = _IOR!uint('T', 0x32);
 
     enum TCGETX = 0x5432;
     enum TCSETX = 0x5433;
     enum TCSETXF = 0x5434;
     enum TCSETXW = 0x5435;
 
-    //enum TIOCSIG _IOW('T', 0x36, int)
+    enum TIOCSIG = _IOW!int('T', 0x36);
 
     enum TIOCVHANGUP = 0x5437;
 
@@ -233,10 +289,43 @@ version (linux)
 }
 else version (OSX)
 {
+    import core.sys.posix.termios; // termios
+    import core.sys.posix.sys.time; // timeval
+
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
+    struct ttysize
+    {
+        ushort ts_lines;
+        ushort ts_cols;
+        ushort ts_xxx;
+        ushort ts_yyy;
+    }
+
     int ioctl(int fildes, c_ulong request, ...);
 }
 else version (FreeBSD)
 {
+    struct fiodgname_arg
+    {
+        int len;
+        void* buf;
+    }
+
+    struct winsize
+    {
+        ushort ws_row;
+        ushort ws_col;
+        ushort ws_xpixel;
+        ushort ws_ypixel;
+    }
+
     int ioctl(int, c_ulong, ...);
 }
 else version (Solaris)
