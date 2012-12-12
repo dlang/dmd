@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -c -Icompilable/extra-files b6395
+// REQUIRED_ARGS: -c -Icompilable -Icompilable/extra-files b6395
 
 // 6395
 
