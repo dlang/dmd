@@ -3428,8 +3428,11 @@ void CtorDeclaration::semantic(Scope *sc)
 
     sc->pop();
 
-    // See if it's the default constructor
-    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0)
+    /* See if it's the default constructor
+     * But, template constructor should not become a default constructor.
+     */
+    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0
+        && (!this->parent->isTemplateInstance() || this->parent->isTemplateMixin()))
     {
         StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
@@ -3442,7 +3445,9 @@ void CtorDeclaration::semantic(Scope *sc)
             sd->noDefaultCtor = TRUE;
         }
         else
+        {
             ad->defaultCtor = this;
+        }
     }
 }
 

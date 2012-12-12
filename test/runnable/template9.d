@@ -1825,6 +1825,19 @@ void test9124()
 }
 
 /**********************************/
+// 9101
+
+class Node9101
+{
+    template ForwardCtorNoId()
+    {
+        this() {} // default constructor
+        void foo() { 0 = 1; }    // wrong code
+    }
+}
+enum x9101 = __traits(compiles, Node9101.ForwardCtorNoId!());
+
+/**********************************/
 
 int main()
 {
