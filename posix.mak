@@ -75,6 +75,7 @@ MANIFEST= \
 	src/core/simd.d \
 	src/core/thread.d \
 	src/core/thread.di \
+	src/core/threadasm.S \
 	src/core/time.d \
 	src/core/vararg.d \
 	\
@@ -413,7 +414,7 @@ SRC_D_MODULES = \
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/complex.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o
 
 DOCS=\
 	$(DOCDIR)/object.html \
@@ -616,6 +617,10 @@ $(OBJDIR)/%.o : src/rt/%.c
 $(OBJDIR)/errno_c.o : src/core/stdc/errno.c
 	@mkdir -p $(OBJDIR)
 	$(CC) -c $(CFLAGS) $< -o$@
+
+$(OBJDIR)/threadasm.o : src/core/threadasm.S
+	@mkdir -p $(OBJDIR)
+	$(CC) -Wa,-noexecstack -c $(CFLAGS) $< -o$@
 
 ################### Library generation #########################
 
