@@ -251,7 +251,7 @@ struct VarDeclaration : Declaration
 {
     Initializer *init;
     unsigned offset;
-    int noscope;                 // no auto semantics
+    bool noscope;                // no auto semantics
 #if DMDV2
     FuncDeclarations nestedrefs; // referenced by these lexically nested functions
     bool isargptr;              // if parameter that _argptr points to
@@ -259,8 +259,8 @@ struct VarDeclaration : Declaration
     int nestedref;              // referenced by a lexically nested function
 #endif
     structalign_t alignment;
-    int ctorinit;               // it has been initialized in a ctor
-    int onstack;                // 1: it has been allocated on the stack
+    bool ctorinit;              // it has been initialized in a ctor
+    short onstack;              // 1: it has been allocated on the stack
                                 // 2: on stack, run destructor anyway
     int canassign;              // it can be assigned to
     Dsymbol *aliassym;          // if redone as alias to another symbol
@@ -578,16 +578,16 @@ struct FuncDeclaration : Declaration
     Declaration *overnext;              // next in overload list
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
-    int naked;                          // !=0 if naked
+    bool naked;                         // !=0 if naked
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
     int inlineNest;                     // !=0 if nested inline
-    int isArrayOp;                      // !=0 if array operation
+    bool isArrayOp;                     // !=0 if array operation
     enum PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
-    int introducing;                    // !=0 if 'introducing' function
+    bool introducing;                   // !=0 if 'introducing' function
     Type *tintro;                       // if !=NULL, then this is the type
                                         // of the 'introducing' function
                                         // this one is overriding
@@ -601,7 +601,7 @@ struct FuncDeclaration : Declaration
                                         // 8 if there's inline asm
 
     // Support for NRVO (named return value optimization)
-    int nrvo_can;                       // !=0 means we can do it
+    bool nrvo_can;                      // !=0 means we can do it
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 

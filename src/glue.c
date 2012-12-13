@@ -569,6 +569,15 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
 
+    if (semanticRun == PASSsemanticdone)
+    {
+        /* What happened is this function failed semantic3() with errors,
+         * but the errors were gagged.
+         * Try to reproduce those errors, and then fail.
+         */
+        error("errors compiling the function");
+        return;
+    }
     assert(semanticRun == PASSsemantic3done);
     semanticRun = PASSobj;
 

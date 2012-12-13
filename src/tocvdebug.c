@@ -136,7 +136,7 @@ unsigned cv4_Denum(EnumDeclaration *e)
 {
     //dbg_printf("cv4_Denum(%s)\n", e->toChars());
     unsigned property = 0;
-	if (!e->members || !e->memtype || !e->memtype->isintegral())
+        if (!e->members || !e->memtype || !e->memtype->isintegral())
         property |= 0x80;               // enum is forward referenced or non-integer
 
     // Compute the number of fields, and the length of the fieldlist record

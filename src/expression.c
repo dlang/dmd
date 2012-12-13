@@ -1754,7 +1754,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
          *   }
          *   pure string test() {
          *     char[] allocator() { return new char[1]; }  // impure
-         *     return escape!allocator();	// [a]
+         *     return escape!allocator();       // [a]
          *   }
          */
         if (getFuncTemplateDecl(outerfunc) &&

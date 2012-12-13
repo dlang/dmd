@@ -1670,7 +1670,16 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 
     if (global.gag && global.errors != nerrors)
+    {
+        /* Errors happened when compiling this function.
+         */
         semanticRun = PASSsemanticdone; // Ensure errors get reported again
+        /* Except that re-running semantic3() doesn't always produce errors a second
+         * time through.
+         * See Bugzilla 8348
+         * Need a better way to deal with this than gagging.
+         */
+    }
     else
     {
         semanticRun = PASSsemantic3done;

@@ -84,6 +84,7 @@ void AggregateDeclaration::semantic2(Scope *sc)
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
+            //printf("\t[%d] %s\n", i, s->toChars());
             s->semantic2(sc);
         }
         sc->pop();
