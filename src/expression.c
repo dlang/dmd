@@ -10800,19 +10800,6 @@ Ltupleassign:
     {
         Type *t2 = e2->type->toBasetype();
 
-        if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
-        {   // static array assignment should check their lengths
-            TypeSArray *tsa1 = (TypeSArray *)t1;
-            TypeSArray *tsa2 = (TypeSArray *)t2;
-            uinteger_t dim1 = tsa1->dim->toInteger();
-            uinteger_t dim2 = tsa2->dim->toInteger();
-            if (dim1 != dim2)
-            {
-                error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
-                return new ErrorExp();
-            }
-        }
-
         if (e1->op == TOKindex &&
             ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
         {
@@ -10907,6 +10894,26 @@ Ltupleassign:
         (t2->ty == Tarray || t2->ty == Tsarray) &&
         t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
+        if (((SliceExp *)e1)->lwr == NULL)
+        {
+            Type *tx1 = ((SliceExp *)e1)->e1->type->toBasetype();
+            Type *tx2 = t2;
+            if (e2->op == TOKslice && ((SliceExp *)e2)->lwr == NULL)
+                tx2 = ((SliceExp *)e2)->e1->type->toBasetype();
+            if (tx1->ty == Tsarray && tx2->ty == Tsarray)
+            {   // sa1[] = sa2[];
+                // sa1[] = sa2;
+                TypeSArray *tsa1 = (TypeSArray *)tx1;
+                TypeSArray *tsa2 = (TypeSArray *)tx2;
+                uinteger_t dim1 = tsa1->dim->toInteger();
+                uinteger_t dim2 = tsa2->dim->toInteger();
+                if (dim1 != dim2)
+                {
+                    error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
+                    return new ErrorExp();
+                }
+            }
+        }
         if (op != TOKblit &&
             (e2->op == TOKslice && ((UnaExp *)e2)->e1->isLvalue() ||
              e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
