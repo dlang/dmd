@@ -1864,6 +1864,45 @@ void test9124b()
 }
 
 /**********************************/
+// 9143
+
+struct Foo9143a(bool S, bool L)
+{
+    auto noCall() {
+        Foo9143a!(S, false) x1;         // compiles if this line commented
+        static if(S) Foo9143a!(true,  false) x2;
+        else         Foo9143a!(false, false) x2;
+    }
+    this(T)(T other)        // constructor
+    if (is(T unused == Foo9143a!(P, Q), bool P, bool Q)) { }
+}
+
+struct Foo9143b(bool L, size_t N)
+{
+    void baaz0() {
+        bar!(Foo9143b!(false, N))();    // line 7
+        // -> move to before the baaz semantic
+    }
+    void baaz() {
+        bar!(Foo9143b!(false, 2LU))();  // line 3
+        bar!(Foo9143b!(true, 2LU))();   // line 4
+        bar!(Foo9143b!(L, N))();        // line 5
+        bar!(Foo9143b!(true, N))();     // line 6
+        bar!(Foo9143b!(false, N))();    // line 7
+    }
+    void bar(T)()
+    if (is(T unused == Foo9143b!(_L, _N), bool _L, size_t _N))
+    {}
+}
+
+void test9143()
+{
+    Foo9143a!(false, true) k = Foo9143a!(false, false)();
+
+    auto p = Foo9143b!(true, 2LU)();
+}
+
+/**********************************/
 
 int main()
 {
@@ -1934,6 +1973,7 @@ int main()
     test9100();
     test9124a();
     test9124b();
+    test9143();
 
     printf("Success\n");
     return 0;

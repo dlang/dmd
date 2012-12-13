@@ -3210,13 +3210,10 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 break;
 
             Type *t1 = isType(o1);
-
-            Expression *e1 = isExpression(o1);
-            Expression *e2 = isExpression(o2);
-
             Dsymbol *s1 = isDsymbol(o1);
             Dsymbol *s2 = isDsymbol(o2);
-
+            Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
+            Expression *e2 = isExpression(o2);
             Tuple *v1 = isTuple(o1);
             Tuple *v2 = isTuple(o2);
 #if 0
