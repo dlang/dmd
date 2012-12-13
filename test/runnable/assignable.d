@@ -1123,6 +1123,8 @@ void test6336()
 /***************************************************/
 // 8783
 
+version(none)
+{
 struct Foo8783
 {
     int[1] bar;
@@ -1136,6 +1138,7 @@ static this()
         foos8783[i].bar[i] = 1; // OK
     foreach (i, ref f; foos8783)
         f.bar[i] = 1; // line 9, Error
+}
 }
 
 /***************************************************/
@@ -1152,6 +1155,16 @@ struct S9077b
     void opAssign()(int n) {}
     void test() { typeof(this) s; s = this; }
     this(this) {}
+}
+
+/***************************************************/
+// 9140
+
+immutable(int)[] bar9140()
+out(result) {
+    foreach (ref r; result) {}
+} body {
+    return null;
 }
 
 /***************************************************/
