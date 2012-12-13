@@ -1798,33 +1798,6 @@ void test9100()
 }
 
 /**********************************/
-// 9124
-
-struct Foo9124(N...)
-{
-    enum SIZE = N[0];
-    private int _val;
-
-    public void opAssign (T) (T other)
-    if (is(T unused == Foo9124!(_N), _N...))
-    {
-        _val = other._val;          // compile error
-        // this._val = other._val;  // explicit this make it work
-    }
-
-    public auto opUnary (string op) () if (op == "~") {
-        Foo9124!(SIZE) result = this;
-        return result;
-    }
-}
-
-void test9124()
-{
-    Foo9124!(28) a;
-    Foo9124!(28) b = ~a;
-}
-
-/**********************************/
 // 9101
 
 class Node9101
@@ -1836,6 +1809,59 @@ class Node9101
     }
 }
 enum x9101 = __traits(compiles, Node9101.ForwardCtorNoId!());
+
+/**********************************/
+// 9124
+
+struct Foo9124a(N...)
+{
+    enum SIZE = N[0];
+    private int _val;
+
+    public void opAssign (T) (T other)
+    if (is(T unused == Foo9124a!(_N), _N...))
+    {
+        _val = other._val;          // compile error
+        this._val = other._val;     // explicit this make it work
+    }
+
+    public auto opUnary (string op) () if (op == "~") {
+        Foo9124a!(SIZE) result = this;
+        return result;
+    }
+}
+void test9124a()
+{
+    Foo9124a!(28) a;
+    Foo9124a!(28) b = ~a;
+}
+
+// --------
+
+template Foo9124b(T, U, string OP)
+{
+    enum N = T.SIZE;
+    alias Foo9124b = Foo9124b!(false, true, N);
+}
+struct Foo9124b(bool S, bool L, N...)
+{
+    enum SIZE = 5;
+    long[1] _a = 0;
+    void someFunction() const {
+        auto data1 = _a;        // Does not compile
+        auto data2 = this._a;   // <--- Compiles
+    }
+    auto opBinary(string op, T)(T) {
+        Foo9124b!(typeof(this), T, op) test;
+    }
+}
+void test9124b()
+{
+    auto p = Foo9124b!(false, false, 5)();
+    auto q = Foo9124b!(false, false, 5)();
+    p|q;
+    p&q;
+}
 
 /**********************************/
 
@@ -1906,7 +1932,8 @@ int main()
     test9038();
     test9076();
     test9100();
-    test9124();
+    test9124a();
+    test9124b();
 
     printf("Success\n");
     return 0;

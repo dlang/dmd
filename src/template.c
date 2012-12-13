@@ -167,6 +167,38 @@ Dsymbol *getDsymbol(Object *oarg)
     return sa;
 }
 
+/***********************
+ * Try to get value from manifest constant
+ */
+
+Expression *getValue(Expression *e)
+{
+    if (e && e->op == TOKvar)
+    {
+        VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+        if (v && v->storage_class & STCmanifest)
+        {   ExpInitializer *ei = v->init->isExpInitializer();
+            if (ei)
+                e = ei->exp;
+        }
+    }
+    return e;
+}
+Expression *getValue(Dsymbol *&s)
+{
+    Expression *e = NULL;
+    if (s)
+    {
+        VarDeclaration *v = s->isVarDeclaration();
+        if (v && v->storage_class & STCmanifest)
+        {   ExpInitializer *ei = v->init->isExpInitializer();
+            if (ei)
+                e = ei->exp, s = NULL;
+        }
+    }
+    return e;
+}
+
 /******************************
  * If o1 matches o2, return 1.
  * Else, return 0.
@@ -176,10 +208,10 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
 {
     Type *t1 = isType(o1);
     Type *t2 = isType(o2);
-    Expression *e1 = isExpression(o1);
-    Expression *e2 = isExpression(o2);
     Dsymbol *s1 = isDsymbol(o1);
     Dsymbol *s2 = isDsymbol(o2);
+    Expression *e1 = s1 ? getValue(s1) : getValue(isExpression(o1));
+    Expression *e2 = s2 ? getValue(s2) : getValue(isExpression(o2));
     Tuple *u1 = isTuple(o1);
     Tuple *u2 = isTuple(o2);
 
@@ -190,24 +222,9 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
      * we'll do that another day.
      */
 
-    if (s1)
-    {
-        VarDeclaration *v1 = s1->isVarDeclaration();
-        if (v1 && v1->storage_class & STCmanifest)
-        {   ExpInitializer *ei1 = v1->init->isExpInitializer();
-            if (ei1)
-                e1 = ei1->exp, s1 = NULL;
-        }
-    }
-    if (s2)
-    {
-        VarDeclaration *v2 = s2->isVarDeclaration();
-        if (v2 && v2->storage_class & STCmanifest)
-        {   ExpInitializer *ei2 = v2->init->isExpInitializer();
-            if (ei2)
-                e2 = ei2->exp, s2 = NULL;
-        }
-    }
+    /* Manifest constants should be compared by their values,
+     * at least in template arguments.
+     */
 
     if (t1)
     {
@@ -241,25 +258,14 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
         if (e1 && e2)
         {
             printf("match %d\n", e1->equals(e2));
-            e1->print();
-            e2->print();
-            e1->type->print();
-            e2->type->print();
+            printf("\te1 = %p %s %s %s\n", e1, e1->type->toChars(), Token::toChars(e1->op), e1->toChars());
+            printf("\te2 = %p %s %s %s\n", e2, e2->type->toChars(), Token::toChars(e2->op), e2->toChars());
         }
 #endif
         if (!e2)
             goto Lnomatch;
         if (!e1->equals(e2))
-        {   // e2 might be a enum variable symbol, then optimize and re-try
-            if (!(e2->isConst() && e1->op == TOKvar))
-                goto Lnomatch;
-            VarDeclaration *v = ((VarExp *)e1)->var->isVarDeclaration();
-            if (!(v && (v->storage_class & STCmanifest)))
-                goto Lnomatch;
-            e1 = e1->optimize(WANTvalue);
-            if (!e1->equals(e2))
-                goto Lnomatch;
-        }
+            goto Lnomatch;
     }
     else if (s1)
     {
@@ -5216,7 +5222,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
 
-        //printf("1: (*tiargs)[%d] = %p, %p, %p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
+        //printf("1: (*tiargs)[%d] = %p, s=%p, v=%p, ea=%p, ta=%p\n", j, o, isDsymbol(o), isTuple(o), ea, ta);
         if (ta)
         {
             //printf("type %s\n", ta->toChars());
@@ -5225,6 +5231,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             if (ea)
             {
                 ea = ea->semantic(sc);
+                //printf("-> ea = %s %s\n", Token::toChars(ea->op), ea->toChars());
                 /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
                  * match with an 'alias' parameter. Instead, do the
