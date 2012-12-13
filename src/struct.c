@@ -77,7 +77,8 @@ void AggregateDeclaration::semantic2(Scope *sc)
         sc = sc->push(this);
         for (size_t i = 0; i < members->dim; i++)
         {
-            Dsymbol *s = members->tdata()[i];
+            Dsymbol *s = (*members)[i];
+            //printf("\t[%d] %s\n", i, s->toChars());
             s->semantic2(sc);
         }
         sc->pop();
@@ -122,6 +123,43 @@ unsigned AggregateDeclaration::size(Loc loc)
         error(loc, "unknown size");
     if (sizeok != SIZEOKdone && scope)
         semantic(NULL);
+
+    StructDeclaration *sd = isStructDeclaration();
+    if (sizeok != SIZEOKdone && sd && sd->members)
+    {
+        /* See if enough is done to determine the size,
+         * meaning all the fields are done.
+         */
+        struct SV
+        {
+            static int func(Dsymbol *s, void *param)
+            {   SV *psv = (SV *)param;
+                VarDeclaration *v = s->isVarDeclaration();
+                if (v)
+                {
+                    if (v->scope)
+                        v->semantic(NULL);
+                    if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCconst | STCimmutable | STCmanifest | STCctfe | STCtemplateparameter))
+                        return 0;
+                    if (v->storage_class & STCfield && v->sem >= SemanticDone)
+                        return 0;
+                    return 1;
+                }
+                return 0;
+            }
+        };
+        SV sv;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {   Dsymbol *s = (*members)[i];
+            if (s->apply(&SV::func, &sv))
+                goto L1;
+        }
+        sd->finalizeSize(NULL);
+
+      L1: ;
+    }
+
     if (sizeok != SIZEOKdone)
     {   error(loc, "no size yet for forward reference");
         //*(char*)0=0;
@@ -265,9 +303,12 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     zeroInit = 0;       // assume false until we do semantic processing
 #if DMDV2
     hasIdentityAssign = 0;
+    hasIdentityEquals = 0;
     cpctor = NULL;
     postblit = NULL;
-    eq = NULL;
+
+    xeq = NULL;
+    alignment = 0;
 #endif
     arg1type = NULL;
     arg2type = NULL;
@@ -298,7 +339,9 @@ void StructDeclaration::semantic(Scope *sc)
 
     assert(type);
     if (!members)                       // if forward reference
+    {
         return;
+    }
 
     if (symtab)
     {   if (sizeok == SIZEOKdone || !scope)
@@ -373,6 +416,7 @@ void StructDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members_dim; i++)
     {
         Dsymbol *s = (*members)[i];
+        //printf("test1 [%d] %s %d\n", i, s->toChars(), fields.dim);
         // Ungag errors when not speculative
         unsigned oldgag = global.gag;
         if (global.isSpeculativeGagging() && !isSpeculative())

@@ -52,12 +52,6 @@ static char __file__[] = __FILE__;      // for tassert.h
 #define DEST_LEN (IDMAX + IDOHD + 1)
 char *obj_mangle2(Symbol *s,char *dest);
 
-#if MARS
-// C++ name mangling is handled by front end
-#define cpp_mangle(s) ((s)->Sident)
-#endif
-
-
 /******************************************
  */
 
@@ -419,7 +413,8 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
      * the same order VC puts out just to avoid trouble.
      */
 
-    int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
+    int alignText = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
+    int alignData = I64 ? IMAGE_SCN_ALIGN_8BYTES  : IMAGE_SCN_ALIGN_4BYTES;
     addScnhdr(".drectve", IMAGE_SCN_LNK_INFO |
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_LNK_REMOVE);        // linker commands
@@ -428,15 +423,15 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_DISCARDABLE);
     addScnhdr(".data",    IMAGE_SCN_CNT_INITIALIZED_DATA |
-                          IMAGE_SCN_ALIGN_4BYTES |
+                          alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);             // DATA
     addScnhdr(".text",    IMAGE_SCN_CNT_CODE |
-                          align |
+                          alignText |
                           IMAGE_SCN_MEM_EXECUTE |
                           IMAGE_SCN_MEM_READ);              // CODE
     addScnhdr(".bss",     IMAGE_SCN_CNT_UNINITIALIZED_DATA |
-                          IMAGE_SCN_ALIGN_4BYTES |
+                          alignData |
                           IMAGE_SCN_MEM_READ |
                           IMAGE_SCN_MEM_WRITE);        // UDATA
 
@@ -636,7 +631,9 @@ void build_syment_table()
 
         struct syment sym;
 
-        syment_set_name(&sym, s->Sident);
+        char dest[DEST_LEN+1];
+        char *destr = obj_mangle2(s, dest);
+        syment_set_name(&sym, destr);
 
         sym.n_value = 0;
         switch (s->Sclass)
@@ -685,7 +682,9 @@ void build_syment_table()
 
         struct syment sym;
 
-        syment_set_name(&sym, s->Sident);
+        char dest[DEST_LEN+1];
+        char *destr = obj_mangle2(s, dest);
+        syment_set_name(&sym, destr);
 
         sym.n_scnum = IMAGE_SYM_UNDEFINED;
         sym.n_type = 0;

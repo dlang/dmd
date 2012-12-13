@@ -119,6 +119,8 @@ struct Declaration : Dsymbol
     enum LINK linkage;
     int inuse;                  // used to detect cycles
 
+    enum Semantic sem;
+
     Declaration(Identifier *id);
     void semantic(Scope *sc);
     const char *kind();
@@ -182,10 +184,6 @@ struct TypedefDeclaration : Declaration
 {
     Type *basetype;
     Initializer *init;
-    int sem;                    // 0: semantic() has not been run
-                                // 1: semantic() is in progress
-                                // 2: semantic() has been run
-                                // 3: semantic2() has been run
 
     TypedefDeclaration(Loc loc, Identifier *ident, Type *basetype, Initializer *init);
     Dsymbol *syntaxCopy(Dsymbol *);

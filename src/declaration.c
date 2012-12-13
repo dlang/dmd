@@ -34,6 +34,7 @@ Declaration::Declaration(Identifier *id)
     protection = PROTundefined;
     linkage = LINKdefault;
     inuse = 0;
+    sem = SemanticStart;
 }
 
 void Declaration::semantic(Scope *sc)
@@ -238,7 +239,6 @@ TypedefDeclaration::TypedefDeclaration(Loc loc, Identifier *id, Type *basetype, 
     this->init = init;
     this->htype = NULL;
     this->hbasetype = NULL;
-    this->sem = 0;
     this->loc = loc;
     this->sinit = NULL;
 }
@@ -769,6 +769,10 @@ void VarDeclaration::semantic(Scope *sc)
     //if (strcmp(toChars(), "mul") == 0) halt();
 #endif
 
+//    if (sem > SemanticStart)
+//      return;
+//    sem = SemanticIn;
+
     if (scope)
     {   sc = scope;
         scope = NULL;
@@ -907,7 +911,7 @@ void VarDeclaration::semantic(Scope *sc)
             }
 
             Expression *e = new DsymbolExp(loc, v);
-            exps->data[i] = e;
+            (*exps)[i] = e;
         }
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
         v2->isexp = 1;
@@ -1279,6 +1283,7 @@ void VarDeclaration::semantic(Scope *sc)
         }
         sc = sc->pop();
     }
+    sem = SemanticDone;
 }
 
 ExpInitializer *VarDeclaration::getExpInitializer()
@@ -1339,6 +1344,7 @@ void VarDeclaration::semantic2(Scope *sc)
         init = init->semantic(sc, type, INITinterpret);
         inuse--;
     }
+    sem = Semantic2Done;
 }
 
 void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)

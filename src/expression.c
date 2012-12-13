@@ -3336,18 +3336,12 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (type)
         return this;
 
-    // Run semantic() on each element
-    for (size_t i = 0; i < elements->dim; i++)
-    {   e = (Expression *)elements->data[i];
-        if (!e)
-            continue;
-        e = e->semantic(sc);
-        elements->data[i] = (void *)e;
-    }
+    sd->size(loc);
+    elements = arrayExpressionSemantic(elements, sc);    // Run semantic() on each element
     expandTuples(elements);
     size_t offset = 0;
     for (size_t i = 0; i < elements->dim; i++)
-    {   e = (Expression *)elements->data[i];
+    {   e = (*elements)[i];
         if (!e)
             continue;
 
@@ -3357,10 +3351,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         }
         e = resolveProperties(sc, e);
         if (i >= sd->fields.dim)
-        {   error("more initializers than fields of %s", sd->toChars());
+        {   error("more initializers than fields (%d) of %s", sd->fields.dim, sd->toChars());
             break;
         }
-        Dsymbol *s = (Dsymbol *)sd->fields.data[i];
+        Dsymbol *s = sd->fields[i];
         VarDeclaration *v = s->isVarDeclaration();
         assert(v);
         if (v->offset < offset)
