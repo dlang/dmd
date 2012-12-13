@@ -1012,7 +1012,13 @@ void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
     else if (arr->op == TOKarrayliteral)
         len = ((ArrayLiteralExp *)arr)->elements->dim;
     else
-        return; // we don't know the length yet
+    {
+        Type *t = arr->type->toBasetype();
+        if (t->ty == Tsarray)
+            len = ((TypeSArray *)t)->dim->toInteger();
+        else
+            return; // we don't know the length yet
+    }
 
     Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
     lengthVar->init = new ExpInitializer(0, dollar);
