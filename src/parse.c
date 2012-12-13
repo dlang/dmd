@@ -379,7 +379,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = new UserAttributeDeclaration(exps, a);
                     break;
                 }
-
                 else if (peek(&token)->value == TOKidentifier)
                 {
                     if (isPredefinedAttribute(peek(&token)->ident))
@@ -387,21 +386,16 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         stc = parseAttribute();
                         goto Lstc;
                     }
-
                     else
                     {
                         nextToken();
-
                         Expressions* exprs = new Expressions();
                         Expression* expr = parsePrimaryExp();
-
                         if (token.value == TOKlparen)
                             expr = new CallExp(loc, expr, parseArguments());
-
                         exprs->push(expr);
                         a = parseBlock();
                         s = new UserAttributeDeclaration(exprs, a);
-
                         break;
                     }
                 }
