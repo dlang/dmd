@@ -5525,8 +5525,14 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
         if (!td->semanticRun)
         {
             if (td->scope)
-            {   // Try to fix forward reference
+            {   // Try to fix forward reference. Ungag errors while doing so.
+                int oldgag = global.gag;
+                if (global.isSpeculativeGagging() && !td->isSpeculative())
+                    global.gag = 0;
+
                 td->semantic(td->scope);
+
+                global.gag = oldgag;
             }
             if (!td->semanticRun)
             {
