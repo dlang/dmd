@@ -700,6 +700,23 @@ void test8575()
 }
 
 /***************************************************/
+// 9153
+
+void writeln9153(string s){}
+
+void test9153()
+{
+    auto tbl1 = [
+        (string x) { writeln9153(x); },
+        (string x) { x ~= 'a'; },
+    ];
+    auto tbl2 = [
+        (string x) { x ~= 'a'; },
+        (string x) { writeln9153(x); },
+    ];
+}
+
+/***************************************************/
 
 int main()
 {
@@ -740,6 +757,7 @@ int main()
     test8397();
     test8496();
     test8575();
+    test9153();
 
     printf("Success\n");
     return 0;
