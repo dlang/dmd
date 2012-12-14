@@ -569,7 +569,7 @@ stringtable.o: $(ROOT)/stringtable.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 strtold.o: $C/strtold.c
-	gcc $(MODEL_FLAG) -I$(ROOT) -c $<
+	$(CC) -c -I$(ROOT) $<
 
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
