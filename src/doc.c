@@ -108,6 +108,7 @@ Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len);
 
 int isIdStart(unsigned char *p);
 int isIdTail(unsigned char *p);
+int isIndentWS(unsigned char *p);
 int utfStride(unsigned char *p);
 
 static unsigned char ddoc_default[] = "\
@@ -1175,6 +1176,7 @@ void DocComment::parseSections(unsigned char *comment)
     p = comment;
     while (*p)
     {
+        unsigned char *pstart0 = p;
         p = skipwhitespace(p);
         pstart = p;
         pend = p;
@@ -1190,6 +1192,11 @@ void DocComment::parseSections(unsigned char *comment)
             // Check for start/end of a code section
             if (*p == '-')
             {
+                if (!inCode)
+                {   // restore leading indentation
+                    while (pstart0 < pstart && isIndentWS(pstart-1)) --pstart;
+                }
+
                 int numdash = 0;
                 while (*p == '-')
                 {
@@ -1887,6 +1894,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     int inCode = 0;
     //int inComment = 0;                  // in <!-- ... --> comment
     size_t iCodeStart;                    // start of code section
+    size_t codeIndent = 0;
 
     size_t iLineStart = offset;
 
@@ -2053,6 +2061,30 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                         codebuf.write(buf->data + iCodeStart, i - iCodeStart);
                         codebuf.writeByte(0);
+
+                        // Remove leading indentations from all lines
+                        bool lineStart = true;
+                        unsigned char *endp = codebuf.data + codebuf.offset;
+                        for (unsigned char *p = codebuf.data; p < endp; )
+                        {
+                            if (lineStart)
+                            {
+                                size_t j = codeIndent;
+                                unsigned char *q = p;
+                                while (j-- > 0 && q < endp && isIndentWS(q))
+                                    ++q;
+                                codebuf.remove(p - codebuf.data, q - p);
+                                assert(codebuf.data <= p);
+                                assert(p < codebuf.data + codebuf.offset);
+                                lineStart = false;
+                                endp = codebuf.data + codebuf.offset; // update
+                                continue;
+                            }
+                            if (*p == '\n')
+                                lineStart = true;
+                            ++p;
+                        }
+
                         highlightCode2(sc, s, &codebuf, 0);
                         buf->remove(iCodeStart, i - iCodeStart);
                         i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
@@ -2063,6 +2095,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                     {   static char pre[] = "$(D_CODE \n";
 
                         inCode = 1;
+                        codeIndent = istart - iLineStart;  // save indent count
                         i = buf->insert(i, pre, sizeof(pre) - 1);
                         iCodeStart = i;
                         i--;            // place i on >
@@ -2323,6 +2356,15 @@ int isIdTail(unsigned char *p)
             return 1;
     }
     return 0;
+}
+
+/****************************************
+ * Determine if p points to the indentation space.
+ */
+
+int isIndentWS(unsigned char *p)
+{
+    return (*p == ' ') || (*p == '\t');
 }
 
 /*****************************************

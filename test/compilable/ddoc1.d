@@ -22,7 +22,7 @@ typedef int mytypedefint;
  * #include <stdio.h>
   * void main()
  * {
- *	printf("hello\n");
+ * 	printf("hello\n");
  * }
  * -----
  * Copyright: 1998
