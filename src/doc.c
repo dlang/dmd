@@ -2057,7 +2057,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                         buf->remove(iCodeStart, i - iCodeStart);
                         i = buf->insert(iCodeStart, codebuf.data, codebuf.offset);
                         i = buf->insert(i, ")\n", 2);
-                        i--;
+                        i -= 2; // in next loop, c should be '\n'
                     }
                     else
                     {   static char pre[] = "$(D_CODE \n";
