@@ -236,8 +236,6 @@ struct OutBuffer : Object
 
     int doindent, level, linehead;
 
-    int doindent, level, linehead;
-
     OutBuffer();
     ~OutBuffer();
     char *extractData();

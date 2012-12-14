@@ -2860,17 +2860,9 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (!elsebody->isScopeStatement())
             buf->level++;
         elsebody->toCBuffer(buf, hgs);
-<<<<<<< HEAD
-        if (!elsebody->isScopeStatement())
-            buf->level--;
-    }
-||||||| merged common ancestors
-    }
-=======
          if (!elsebody->isScopeStatement())
             buf->level--;
    }
->>>>>>> Initial DI generation improvements.
 }
 
 /******************************** ConditionalStatement ***************************/
@@ -3134,23 +3126,11 @@ void PragmaStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writenl();
         buf->writeByte('{');
         buf->writenl();
-<<<<<<< HEAD
         buf->level++;
 
-||||||| merged common ancestors
-
-=======
-        buf->level++;
->>>>>>> Initial DI generation improvements.
         body->toCBuffer(buf, hgs);
-<<<<<<< HEAD
 
         buf->level--;
-||||||| merged common ancestors
-
-=======
-        buf->level--;
->>>>>>> Initial DI generation improvements.
         buf->writeByte('}');
         buf->writenl();
     }
