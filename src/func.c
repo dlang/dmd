@@ -1993,7 +1993,25 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
             // Make the call: __ensure(result)
             Expression *eresult = NULL;
             if (outId)
+            {
                 eresult = new IdentifierExp(loc, outId);
+
+                Type *t1 = fdv->type->nextOf()->toBasetype();
+                Type *t2 = this->type->nextOf()->toBasetype();
+                int offset;
+                if (t1->isBaseOf(t2, &offset) && offset != 0)
+                {
+                    /* Making temporary reference variable is necessary
+                     * to match offset difference in covariant return.
+                     * See bugzilla 5204.
+                     */
+                    ExpInitializer *ei = new ExpInitializer(0, eresult);
+                    VarDeclaration *v = new VarDeclaration(0, t1, Lexer::uniqueId("__covres"), ei);
+                    DeclarationExp *de = new DeclarationExp(0, v);
+                    VarExp *ve = new VarExp(0, v);
+                    eresult = new CommaExp(0, de, ve);
+                }
+            }
             Expression *e = new CallExp(loc, new VarExp(loc, fdv->fdensure, 0), eresult);
             Statement *s2 = new ExpStatement(loc, e);
 
