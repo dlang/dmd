@@ -183,5 +183,6 @@ enum PREC
 extern enum PREC precedence[TOKMAX];
 
 void initPrecedence();
+bool isPredefinedAttribute (Identifier* identifier);
 
 #endif /* DMD_PARSE_H */
