@@ -379,8 +379,26 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = new UserAttributeDeclaration(exps, a);
                     break;
                 }
-                stc = parseAttribute();
-                goto Lstc;
+                else if (peek(&token)->value == TOKidentifier)
+                {
+                    if (isPredefinedAttribute(peek(&token)->ident))
+                    {
+                        stc = parseAttribute();
+                        goto Lstc;
+                    }
+                    else
+                    {
+                        nextToken();
+                        Expressions* exprs = new Expressions();
+                        Expression* expr = parsePrimaryExp();
+                        if (token.value == TOKlparen)
+                            expr = new CallExp(loc, expr, parseArguments());
+                        exprs->push(expr);
+                        a = parseBlock();
+                        s = new UserAttributeDeclaration(exprs, a);
+                        break;
+                    }
+                }
 #endif
 
             Lstc:
@@ -6926,4 +6944,11 @@ void initPrecedence()
     precedence[TOKdeclaration] = PREC_expr;
 }
 
-
+bool isPredefinedAttribute (Identifier* identifier)
+{
+    return identifier == Id::property ||
+        identifier == Id::safe ||
+        identifier == Id::trusted ||
+        identifier == Id::system ||
+        identifier == Id::disable;
+}
