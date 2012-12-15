@@ -8708,6 +8708,16 @@ Expression *AssignExp::semantic(Scope *sc)
         return e;
     }
 
+    if (e1->op == TOKvar)
+    {
+        VarDeclaration *vd = ((VarExp *)e1)->var->isVarDeclaration();
+        if (vd && vd->needThis())
+        {
+            error("need 'this' to access member %s", e1->toChars());
+            return new ErrorExp();
+        }
+    }
+
     e2 = resolveProperties(sc, e2);
     assert(e1->type);
 
