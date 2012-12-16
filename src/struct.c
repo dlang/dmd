@@ -153,6 +153,10 @@ unsigned AggregateDeclaration::size(Loc loc)
          */
         struct SV
         {
+            /* Returns:
+             *  0       this member doesn't need further processing to determine struct size
+             *  1       this member does
+             */
             static int func(Dsymbol *s, void *param)
             {   SV *psv = (SV *)param;
                 VarDeclaration *v = s->isVarDeclaration();
@@ -160,7 +164,7 @@ unsigned AggregateDeclaration::size(Loc loc)
                 {
                     if (v->scope)
                         v->semantic(NULL);
-                    if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCconst | STCimmutable | STCmanifest | STCctfe | STCtemplateparameter))
+                    if (v->storage_class & (STCstatic | STCextern | STCtls | STCgshared | STCmanifest | STCctfe | STCtemplateparameter))
                         return 0;
                     if (v->storage_class & STCfield && v->sem >= SemanticDone)
                         return 0;
