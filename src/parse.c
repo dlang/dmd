@@ -5261,7 +5261,55 @@ int Parser::skipAttributes(Token *t, Token **pt)
             case TOKat:
                 t = peek(t);
                 if (t->value == TOKidentifier)
+                {   /* @identifier
+                     * @identifier!arg
+                     * @identifier!(arglist)
+                     * any of the above followed by (arglist)
+                     * @predefined_attribute
+                     */
+                    if (isPredefinedAttribute(t->ident))
+                        break;
+                    t = peek(t);
+                    if (t->value == TOKnot)
+                    {
+                        t = peek(t);
+                        if (t->value == TOKlparen)
+                        {   // @identifier!(arglist)
+                            if (!skipParens(t, &t))
+                                goto Lerror;
+                            // t is on closing parenthesis
+                            t = peek(t);
+                        }
+                        else
+                        {
+                            // @identifier!arg
+                            // Do low rent skipTemplateArgument
+                            if (t->value == TOKvector)
+                            {   // identifier!__vector(type)
+                                t = peek(t);
+                                if (!skipParens(t, &t))
+                                    goto Lerror;
+                            }
+                            t = peek(t);
+                        }
+                    }
+                    if (t->value == TOKlparen)
+                    {
+                        if (!skipParens(t, &t))
+                            goto Lerror;
+                        // t is on closing parenthesis
+                        t = peek(t);
+                        continue;
+                    }
+                    continue;
+                }
+                if (t->value == TOKlparen)
+                {   // @( ArgumentList )
+                    if (!skipParens(t, &t))
+                        goto Lerror;
+                    // t is on closing parenthesis
                     break;
+                }
                 goto Lerror;
             default:
                 goto Ldone;
