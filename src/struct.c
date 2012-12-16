@@ -433,47 +433,11 @@ void StructDeclaration::semantic(Scope *sc)
 
     if (sizeok == SIZEOKnone)            // if not already done the addMember step
     {
-        int hasfunctions = 0;
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             //printf("adding member '%s' to '%s'\n", s->toChars(), this->toChars());
             s->addMember(sc, this, 1);
-            if (s->isFuncDeclaration())
-                hasfunctions = 1;
-        }
-
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        if (hasfunctions && !(storage_class & STCstatic))
-        {   Dsymbol *s = toParent2();
-            if (s)
-            {
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                FuncDeclaration *fd = s->isFuncDeclaration();
-
-                TemplateInstance *ti;
-                if (ad && (ti = ad->parent->isTemplateInstance()) != NULL && ti->isnested || fd)
-                {   isnested = true;
-                    Type *t;
-                    if (ad)
-                        t = ad->handle;
-                    else if (fd)
-                    {   AggregateDeclaration *ad = fd->isMember2();
-                        if (ad)
-                            t = ad->handle;
-                        else
-                            t = Type::tvoidptr;
-                    }
-                    else
-                        assert(0);
-                    if (t->ty == Tstruct)
-                        t = Type::tvoidptr;     // t should not be a ref type
-                    assert(!vthis);
-                    vthis = new ThisDeclaration(loc, t);
-                    //vthis->storage_class |= STCref;
-                    members->push(vthis);
-                }
-            }
         }
     }
 
@@ -488,12 +452,10 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttributes = NULL;
 
-    size_t members_dim = members->dim;
-
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
      */
-    for (size_t i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
         /* There are problems doing this in the general case because
          * Scope keeps track of things like 'offset'
@@ -505,7 +467,7 @@ void StructDeclaration::semantic(Scope *sc)
         }
     }
 
-    for (size_t i = 0; i < members_dim; i++)
+    for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
 
@@ -514,7 +476,7 @@ void StructDeclaration::semantic(Scope *sc)
          * field was processed. The problem is the chicken-and-egg determination
          * of when that is. See Bugzilla 7426 for more info.
          */
-        if (i + 1 == members_dim)
+        if (i + 1 == members->dim)
         {
             if (sizeok == SIZEOKnone && s->isAliasDeclaration())
                 finalizeSize(sc2);
@@ -741,6 +703,45 @@ void StructDeclaration::finalizeSize(Scope *sc)
         structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
     sizeok = SIZEOKdone;
+}
+
+void StructDeclaration::makeNested()
+{
+    if (!isnested && sizeok != SIZEOKdone)
+    {
+        // If nested struct, add in hidden 'this' pointer to outer scope
+        if (!(storage_class & STCstatic))
+        {   Dsymbol *s = toParent2();
+            if (s)
+            {
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                FuncDeclaration *fd = s->isFuncDeclaration();
+
+                TemplateInstance *ti;
+                if (ad && (ti = ad->parent->isTemplateInstance()) != NULL && ti->isnested || fd)
+                {   isnested = true;
+                    Type *t;
+                    if (ad)
+                        t = ad->handle;
+                    else if (fd)
+                    {   AggregateDeclaration *ad = fd->isMember2();
+                        if (ad)
+                            t = ad->handle;
+                        else
+                            t = Type::tvoidptr;
+                    }
+                    else
+                        assert(0);
+                    if (t->ty == Tstruct)
+                        t = Type::tvoidptr;     // t should not be a ref type
+                    assert(!vthis);
+                    vthis = new ThisDeclaration(loc, t);
+                    //vthis->storage_class |= STCref;
+                    members->push(vthis);
+                }
+            }
+        }
+    }
 }
 
 /***************************************
