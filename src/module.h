@@ -64,6 +64,8 @@ struct Module : Package
     File *hdrfile;      // 'header' file
     File *symfile;      // output symbol file
     File *docfile;      // output documentation file
+    File *mxnfile;      // 'mixin' file
+    Loc mxnloc;         // location in mixin file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
     int isDocFile;      // if it is a documentation input file, not D source
@@ -131,6 +133,7 @@ struct Module : Package
     void genobjfile(int multiobj);
     void gensymfile();
     void gendocfile();
+    Loc writeMixin(unsigned char* str, size_t len, Loc loc);
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *symtabInsert(Dsymbol *s);

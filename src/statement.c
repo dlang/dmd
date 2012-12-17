@@ -29,6 +29,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "import.h"
+#include "module.h"
 
 extern int os_critsecsize32();
 extern int os_critsecsize64();
@@ -439,7 +440,11 @@ Statements *CompileStatement::flatten(Scope *sc)
     }
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
-    p.loc = loc;
+    if (global.params.doMxnGeneration)
+        p.loc = sc->module->importedFrom->writeMixin((unsigned char *)se->string, se->len, loc);
+    else
+        p.loc = loc;
+    const size_t linstart = p.loc.linnum;
     p.nextToken();
 
     Statements *a = new Statements();
@@ -449,6 +454,8 @@ Statements *CompileStatement::flatten(Scope *sc)
         if (s)                  // if no parsing errors
             a->push(s);
     }
+    if (global.params.doMxnGeneration)
+        sc->module->importedFrom->mxnloc.linnum += p.loc.linnum - linstart;
     return a;
 }
 

@@ -6568,10 +6568,16 @@ Expression *CompileExp::semantic(Scope *sc)
     }
     se = se->toUTF8(sc);
     Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
-    p.loc = loc;
+    if (global.params.doMxnGeneration)
+        p.loc = sc->module->importedFrom->writeMixin((unsigned char *)se->string, se->len, loc);
+    else
+        p.loc = loc;
+    const size_t linstart = p.loc.linnum;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
     Expression *e = p.parseExpression();
+    if (global.params.doMxnGeneration)
+        sc->module->importedFrom->mxnloc.linnum += p.loc.linnum - linstart;
     if (p.token.value != TOKeof)
     {   error("incomplete mixin expression (%s)", se->toChars());
         return new ErrorExp();

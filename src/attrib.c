@@ -1544,9 +1544,15 @@ void CompileDeclaration::compileIt(Scope *sc)
     {
         se = se->toUTF8(sc);
         Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
-        p.loc = loc;
+        if (global.params.doMxnGeneration)
+            p.loc = sc->module->importedFrom->writeMixin((unsigned char *)se->string, se->len, loc);
+        else
+            p.loc = loc;
+        const size_t linstart = p.loc.linnum;
         p.nextToken();
         decl = p.parseDeclDefs(0);
+        if (global.params.doMxnGeneration)
+            sc->module->importedFrom->mxnloc.linnum += p.loc.linnum - linstart;
         if (p.token.value != TOKeof)
             exp->error("incomplete mixin declaration (%s)", se->toChars());
     }
