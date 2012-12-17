@@ -75,7 +75,7 @@ struct Parser : Lexer
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
     Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
-    StorageClass parseAttribute();
+    StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix();
     StorageClass parseTypeCtor();
     Expression *parseConstraint();
@@ -182,6 +182,5 @@ enum PREC
 extern enum PREC precedence[TOKMAX];
 
 void initPrecedence();
-bool isPredefinedAttribute (Identifier* identifier);
 
 #endif /* DMD_PARSE_H */

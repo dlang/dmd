@@ -223,6 +223,35 @@ void test11()
 
 /************************************************/
 
+void test12()
+{
+    @(1) static struct S1 { }
+    S1 s1;
+    static @(2) struct S2 { }
+    S2 s2;
+    @(1) @(2) struct S3 { }
+
+    @(1) static @(2) struct S { }
+    alias Tuple!(__traits(getAttributes, S)) tps;
+    assert(tps.length == 2);
+    assert(tps[0] == 1);
+    assert(tps[1] == 2);
+
+    @(3) int x;
+    alias Tuple!(__traits(getAttributes, x)) tpx;
+    assert(tpx.length == 1);
+    assert(tpx[0] == 3);
+    x = x + 1;
+
+    @(4) int bar() { return x; }
+    alias Tuple!(__traits(getAttributes, bar)) tpb;
+    assert(tpb.length == 1);
+    assert(tpb[0] == 4);
+    bar();
+}
+
+/************************************************/
+
 int main()
 {
     test1();
@@ -236,6 +265,7 @@ int main()
     test9();
     test10();
     test11();
+    test12();
 
     printf("Success\n");
     return 0;

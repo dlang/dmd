@@ -213,6 +213,7 @@ struct UserAttributeDeclaration : AttribDeclaration
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setScope(Scope *sc);
+    static Expressions *concat(Expressions *udas1, Expressions *udas2);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
 };

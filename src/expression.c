@@ -5587,11 +5587,17 @@ Expression *DeclarationExp::semantic(Scope *sc)
      */
     Dsymbol *s = declaration;
 
-    AttribDeclaration *ad = declaration->isAttribDeclaration();
-    if (ad)
+    while (1)
     {
-        if (ad->decl && ad->decl->dim == 1)
-            s = (*ad->decl)[0];
+        AttribDeclaration *ad = s->isAttribDeclaration();
+        if (ad)
+        {
+            if (ad->decl && ad->decl->dim == 1)
+            {   s = (*ad->decl)[0];
+                continue;
+            }
+        }
+        break;
     }
 
     if (s->isVarDeclaration())

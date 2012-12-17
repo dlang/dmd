@@ -1611,17 +1611,8 @@ void UserAttributeDeclaration::semantic(Scope *sc)
             newsc = new Scope(*sc);
             newsc->flags &= ~SCOPEfree;
 
-            // Append new atts to old one
-            if (!newsc->userAttributes || newsc->userAttributes->dim == 0)
-                newsc->userAttributes = atts;
-            else
-            {
-                // Create a tuple that combines them
-                Expressions *exps = new Expressions();
-                exps->push(new TupleExp(0, newsc->userAttributes));
-                exps->push(new TupleExp(0, atts));
-                newsc->userAttributes = exps;
-            }
+            // Create new uda that is the concatenation of the previous
+            newsc->userAttributes = concat(newsc->userAttributes, atts);
         }
 #endif
         for (size_t i = 0; i < decl->dim; i++)
@@ -1635,6 +1626,25 @@ void UserAttributeDeclaration::semantic(Scope *sc)
             newsc->pop();
         }
     }
+}
+
+Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *udas2)
+{
+    Expressions *udas;
+    if (!udas1 || udas1->dim == 0)
+        udas = udas2;
+    else if (!udas2 || !udas2->dim)
+        udas = udas1;
+    else
+    {
+        /* Create a new tuple that combines them
+         * (do not append to left operand, as this is a copy-on-write operation)
+         */
+        udas = new Expressions();
+        udas->push(new TupleExp(0, udas1));
+        udas->push(new TupleExp(0, udas2));
+    }
+    return udas;
 }
 
 void UserAttributeDeclaration::setScope(Scope *sc)
