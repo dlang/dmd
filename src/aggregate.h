@@ -170,6 +170,7 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *buildCpCtor(Scope *sc);
 
     FuncDeclaration *buildXopEquals(Scope *sc);
+    void makeNested();
 #endif
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 

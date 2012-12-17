@@ -170,7 +170,12 @@ void FuncDeclaration::semantic(Scope *sc)
     storage_class |= sc->stc & ~STCref;
     ad = isThis();
     if (ad)
+    {
         storage_class |= ad->storage_class & (STC_TYPECTOR | STCsynchronized);
+
+        if (StructDeclaration *sd = ad->isStructDeclaration())
+            sd->makeNested();
+    }
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 

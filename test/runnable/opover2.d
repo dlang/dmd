@@ -511,12 +511,12 @@ void test12()
     static int opeq;
 
     // xopEquals OK
-    struct S1a { const bool opEquals(    const typeof(this) rhs) { ++opeq; return false; } }
-    struct S1b { const bool opEquals(ref const typeof(this) rhs) { ++opeq; return false; } }
-    struct S1c { const bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
+    static struct S1a { const bool opEquals(    const typeof(this) rhs) { ++opeq; return false; } }
+    static struct S1b { const bool opEquals(ref const typeof(this) rhs) { ++opeq; return false; } }
+    static struct S1c { const bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
 
     // xopEquals NG
-    struct S2a {       bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
+    static struct S2a {       bool opEquals(          typeof(this) rhs) { ++opeq; return false; } }
 
     foreach (S; Seq!(S1a, S1b, S1c))
     {
