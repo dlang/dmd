@@ -1469,6 +1469,11 @@ Expression *Expression::trySemantic(Scope *sc)
     {
         e = NULL;
     }
+    else if (!e->type || e->type->ty == Terror)
+    {   // Check ungagged errors had occured.
+        // -> Keep error result.
+        //e = NULL;
+    }
     //printf("-trySemantic(%s)\n", toChars());
     return e;
 }
