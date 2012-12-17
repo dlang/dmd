@@ -1694,8 +1694,15 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
     //printf("FuncExp::castTo type = %s, t = %s\n", type->toChars(), t->toChars());
     Expression *e = inferType(t, 1);
     if (e)
-    {   if (e != this)
+    {
+        if (e != this)
             e = e->castTo(sc, t);
+        else if (!e->type->equals(t))
+        {
+            assert(e->type->nextOf()->covariant(t->nextOf()) == 1);
+            e = e->copy();
+            e->type = t;
+        }
         return e;
     }
     return Expression::castTo(sc, t);
