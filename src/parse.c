@@ -795,7 +795,7 @@ StorageClass Parser::parsePostfix()
                 stc |= parseAttribute(&udas);
                 if (udas)
                     // BUG: Should fix this
-                    error("user defined attributes cannot appear as postixes");
+                    error("user defined attributes cannot appear as postfixes");
                 break;
             }
 

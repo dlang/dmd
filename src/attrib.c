@@ -1633,7 +1633,7 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
     Expressions *udas;
     if (!udas1 || udas1->dim == 0)
         udas = udas2;
-    else if (!udas2 || !udas2->dim)
+    else if (!udas2 || udas2->dim == 0)
         udas = udas1;
     else
     {

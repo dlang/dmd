@@ -5407,18 +5407,18 @@ void test8796()
 /***************************************************/
 // 9171
 
-ulong bitcomb(ulong v)
+ulong bitcomb9171(ulong v)
 {
     if(v)
     {
         ulong result;
         if(v & 1)
         {
-            auto r = bitcomb(v >> 1);
+            auto r = bitcomb9171(v >> 1);
 	    printf("r=%016llx\n", r);
 
             auto z = ((r & (r-1) ^ r));
-	    check("str", z>>1);
+	    check9171("str", z>>1);
 //	    printf("z=%016llx\n", z>>1);
             return r;
         }
@@ -5432,26 +5432,14 @@ ulong bitcomb(ulong v)
     return 0;
 }
 
-void check(const char *s, ulong v)
+void check9171(const char *s, ulong v)
 {
     assert(v == 0x80000000);
 }
 
-void nobug()
-{
-    auto r = 0b0111000000000000000100000000000000000000000000000000;
-    printf("r=%016llx\n", r);
-
-    auto z = ((r & (r-1)) ^ r);
-    printf("z=%016llx\n", z>>1);
-}
-
 void test9171()
 {
-    printf("nobug:\n");
-    nobug();
-    printf("bug:\n");
-    bitcomb(0b1110000000000000010000000000000000000000000000000001);
+    bitcomb9171(0b1110000000000000010000000000000000000000000000000001);
 }
 
 /***************************************************/
