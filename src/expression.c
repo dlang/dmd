@@ -928,6 +928,16 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
     {
+        if (fd && fd->semanticRun == PASSsemantic3)
+        {
+            unsigned oldgag = global.gag;
+            global.gag = 0;
+            error(loc, "forward reference of return type deduction %s", fd->toChars());
+            global.gag = oldgag;
+            fd->semanticRun = PASSsemanticdone;
+            ((TypeFunction *)fd->type)->next = Type::terror;    // stop repeating fwdref errors
+            return Type::terror;
+        }
         TemplateInstance *spec = fd->isSpeculative();
         int olderrs = global.errors;
         fd->semantic3(fd->scope);
@@ -1458,6 +1468,11 @@ Expression *Expression::trySemantic(Scope *sc)
     if (global.endGagging(errors))
     {
         e = NULL;
+    }
+    else if (!e->type || e->type->ty == Terror)
+    {   // Check ungagged errors had occured.
+        // -> Keep error result.
+        //e = NULL;
     }
     //printf("-trySemantic(%s)\n", toChars());
     return e;

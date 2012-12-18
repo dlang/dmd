@@ -351,6 +351,10 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     {
         t = NULL;
     }
+    else if (!t || t->ty == Terror)
+    {   // Check ungagged errors had occured.
+        t = NULL;
+    }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
 }
