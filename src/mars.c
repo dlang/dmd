@@ -1294,7 +1294,7 @@ int tryMain(size_t argc, char *argv[])
        m->importAll(0);
     }
     if (global.errors)
-       fatal();
+        fatal();
 
     backend_init();
 
