@@ -4806,6 +4806,22 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s PtrExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
+
+    // Check for int<->float and long<->double casts.
+
+    if ( e1->op == TOKsymoff && ((SymOffExp *)e1)->offset == 0
+        && isFloatIntPaint(type, ((SymOffExp *)e1)->var->type) )
+    {   // *(cast(int*)&v, where v is a float variable
+        return paintFloatInt(getVarExp(loc, istate, ((SymOffExp *)e1)->var, ctfeNeedRvalue),
+            type);
+    }
+    else if (e1->op == TOKcast && ((CastExp *)e1)->e1->op == TOKaddress)
+    {   // *(cast(int *))&x   where x is a float expression
+        Expression *x = ((AddrExp *)(((CastExp *)e1)->e1))->e1;
+        if ( isFloatIntPaint(type, x->type) )
+            return paintFloatInt(x->interpret(istate), type);
+    }
+
     // Constant fold *(&structliteral + offset)
     if (e1->op == TOKadd)
     {   AddExp *ae = (AddExp *)e1;

@@ -760,6 +760,66 @@ int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger
     return cmp;
 }
 
+union UnionFloatInt
+{
+    float f;
+    d_int32 x;
+};
+
+union UnionDoubleLong
+{
+    double f;
+    d_int64 x;
+};
+
+// True if conversion from type 'from' to 'to' involves a reinterpret_cast
+// floating point -> integer or integer -> floating point
+bool isFloatIntPaint(Type *to, Type *from)
+{
+    return (from->size() == to->size()) &&
+        (  (from->isintegral() && to->isfloating())
+        || (from->isfloating() && to->isintegral()) );
+}
+
+// Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
+Expression *paintFloatInt(Expression *fromVal, Type *to)
+{
+    if (exceptionOrCantInterpret(fromVal))
+        return fromVal;
+
+    if (to->size() == 4)
+    {
+        UnionFloatInt u;
+        if (to->isintegral())
+        {
+            u.f = fromVal->toReal();
+            return new IntegerExp(fromVal->loc, u.x, to);
+        }
+        else
+        {
+            u.x = fromVal->toInteger();
+            return new RealExp(fromVal->loc, u.f, to);
+        }
+    }
+    else if (to->size() == 8)
+    {
+        UnionDoubleLong v;
+        if (to->isintegral())
+        {
+            v.f = fromVal->toReal();
+            return new IntegerExp(fromVal->loc, v.x, to);
+        }
+        else
+        {
+            v.x = fromVal->toInteger();
+            return new RealExp(fromVal->loc, v.f, to);
+        }
+    }
+    else
+        assert(0);
+}
+
+
 /***********************************************
       Primitive integer operations
 ***********************************************/
