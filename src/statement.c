@@ -4095,7 +4095,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         return gs;
     }
 
-    if (exp && tbret && tbret->ty == Tvoid && !implicit0)
+    if (exp && tbret->ty == Tvoid && !implicit0)
     {
         /* Replace:
          *      return exp;
