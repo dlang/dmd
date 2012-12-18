@@ -150,7 +150,7 @@ struct Declaration : Dsymbol
     void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
-    char *mangle();
+    char *mangle(bool isv = false);
     int isStatic() { return storage_class & STCstatic; }
     virtual int isDelete();
     virtual int isDataseg();
@@ -208,7 +208,7 @@ struct TypedefDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    char *mangle();
+    char *mangle(bool isv = false);
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -664,7 +664,7 @@ struct FuncDeclaration : Declaration
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
-    char *mangle();
+    char *mangle(bool isv = false);
     const char *toPrettyChars();
     int isMain();
     int isWinMain();
@@ -737,7 +737,7 @@ struct FuncAliasDeclaration : FuncDeclaration
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
     Symbol *toSymbol();
-    char *mangle() { return toAliasFunc()->mangle(); }
+    char *mangle(bool isv = false) { return toAliasFunc()->mangle(isv); }
 
     FuncDeclaration *toAliasFunc();
 };
