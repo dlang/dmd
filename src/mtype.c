@@ -1551,6 +1551,7 @@ char *MODtoChars(unsigned char mod)
  * Name mangling.
  * Input:
  *      flag    0x100   do not do const/invariant
+ *              0x200   do not mangle attributes and return type in TypeFunction
  */
 
 void Type::toDecoBuffer(OutBuffer *buf, int flag)
@@ -5329,7 +5330,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
             assert(0);
     }
     buf->writeByte(mc);
-    if (purity || isnothrow || isproperty || isref || trust)
+    if (!(flag & 0x200) && (purity || isnothrow || isproperty || isref || trust))
     {
         if (purity)
             buf->writestring("Na");
@@ -5354,7 +5355,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
     Parameter::argsToDecoBuffer(buf, parameters);
     //if (buf->data[buf->offset - 1] == '@') halt();
     buf->writeByte('Z' - varargs);      // mark end of arg list
-    if(next != NULL)
+    if (!(flag & 0x200) && next != NULL)
         next->toDecoBuffer(buf);
     inuse--;
 }

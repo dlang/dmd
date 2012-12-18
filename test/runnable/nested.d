@@ -2127,6 +2127,151 @@ void test9036()
 }
 
 /*******************************************/
+// 8847
+
+auto S8847()
+{
+    static struct Result
+    {
+        inout(Result) get() inout { return this; }
+    }
+    return Result();
+}
+
+void test8847a()
+{
+    auto a = S8847();
+    auto b = a.get();
+    alias typeof(a) A;
+    alias typeof(b) B;
+    assert(is(A == B), A.stringof~ " is different from "~B.stringof);
+}
+
+// --------
+
+enum result8847a = "S6nested9iota8847aFZ6Result";
+enum result8847b = "S6nested9iota8847bFZ4iotaMFZ6Result";
+enum result8847c = "C6nested9iota8847cFZ6Result";
+enum result8847d = "C6nested9iota8847dFZ4iotaMFZ6Result";
+
+auto iota8847a()
+{
+    static struct Result
+    {
+        this(int) {}
+        inout(Result) test() inout { return cast(inout)Result(0); }
+    }
+    static assert(Result.mangleof == result8847a);
+    return Result.init;
+}
+auto iota8847b()
+{
+    auto iota()
+    {
+        static struct Result
+        {
+            this(int) {}
+            inout(Result) test() inout { return cast(inout)Result(0); }
+        }
+        static assert(Result.mangleof == result8847b);
+        return Result.init;
+    }
+    return iota();
+}
+auto iota8847c()
+{
+    static class Result
+    {
+        this(int) {}
+        inout(Result) test() inout { return cast(inout)new Result(0); }
+    }
+    static assert(Result.mangleof == result8847c);
+    return Result.init;
+}
+auto iota8847d()
+{
+    auto iota()
+    {
+        static class Result
+        {
+            this(int) {}
+            inout(Result) test() inout { return cast(inout)new Result(0); }
+        }
+        static assert(Result.mangleof == result8847d);
+        return Result.init;
+    }
+    return iota();
+}
+void test8847b()
+{
+    static assert(typeof(iota8847a().test()).mangleof == result8847a);
+    static assert(typeof(iota8847b().test()).mangleof == result8847b);
+    static assert(typeof(iota8847c().test()).mangleof == result8847c);
+    static assert(typeof(iota8847d().test()).mangleof == result8847d);
+}
+
+// --------
+
+struct Test8847
+{
+    enum result1 = "S6nested8Test88478__T3fooZ3fooMFZ6Result";
+    enum result2 = "S6nested8Test88478__T3fooZ3fooMxFiZ6Result";
+
+    auto foo()()
+    {
+        static struct Result
+        {
+            inout(Result) get() inout { return this; }
+        }
+        static assert(Result.mangleof == Test8847.result1);
+        return Result();
+    }
+    auto foo()(int n) const
+    {
+        static struct Result
+        {
+            inout(Result) get() inout { return this; }
+        }
+        static assert(Result.mangleof == Test8847.result2);
+        return Result();
+    }
+}
+void test8847c()
+{
+    static assert(typeof(Test8847().foo( ).get()).mangleof == Test8847.result1);
+    static assert(typeof(Test8847().foo(1).get()).mangleof == Test8847.result2);
+}
+
+// --------
+
+void test8847d()
+{
+    enum resultS = "S6nested9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
+    enum resultX = "S6nested9test8847dFZv3fooMFZ1X";
+    // Return types for test8847d and bar are mangled correctly,
+    // and return types for foo and baz are not mangled correctly.
+
+    auto foo()
+    {
+        struct X { inout(X) get() inout { return inout(X)(); } }
+        string bar()
+        {
+            auto baz()
+            {
+                struct S { inout(S) get() inout { return inout(S)(); } }
+                return S();
+            }
+            static assert(typeof(baz()      ).mangleof == resultS);
+            static assert(typeof(baz().get()).mangleof == resultS);
+            return "";
+        }
+        return X();
+    }
+    static assert(typeof(foo()      ).mangleof == resultX);
+    static assert(typeof(foo().get()).mangleof == resultX);
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }

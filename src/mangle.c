@@ -77,7 +77,9 @@ L1:
     FuncDeclaration *fd = sthis->isFuncDeclaration();
     if (fd && (fd->needThis() || fd->isNested()))
         buf.writeByte(Type::needThisPrefix());
-    if (sthis->type->deco)
+    if (isv && fd && fd->inferRetType)
+        sthis->type->toDecoBuffer(&buf, 0x200);
+    else if (sthis->type->deco)
         buf.writestring(sthis->type->deco);
     else
     {
@@ -181,6 +183,17 @@ char *TypedefDeclaration::mangle(bool isv)
 
 char *AggregateDeclaration::mangle(bool isv)
 {
+#if 1
+    //printf("AggregateDeclaration::mangle() '%s'\n", toChars());
+    if (Dsymbol *p = toParent2())
+    {   if (FuncDeclaration *fd = p->isFuncDeclaration())
+        {   // This might be the Voldemort Type
+            char *id = Dsymbol::mangle(fd->inferRetType);
+            //printf("isv ad %s, %s\n", toChars(), id);
+            return id;
+        }
+    }
+#endif
     return Dsymbol::mangle(isv);
 }
 
