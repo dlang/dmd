@@ -3330,6 +3330,56 @@ static assert(!is(typeof(compiles!(badpointer(7)))));
 static assert(!is(typeof(compiles!(badpointer(8)))));
 
 /**************************************************
+    9170 Allow reinterpret casts float<->int
+**************************************************/
+int f9170(float x) {
+    return *(cast(int*)&x);
+}
+
+float i9170(int x) {
+    return *(cast(float*)&x);
+}
+
+float u9170(uint x) {
+    return *(cast(float*)&x);
+}
+
+int f9170arr(float[] x) {
+    return *(cast(int*)&(x[1]));
+}
+
+long d9170(double x) {
+    return *(cast(long*)&x);
+}
+
+int fref9170(ref float x) {
+    return *(cast(int*)&x);
+}
+
+long dref9170(ref double x) {
+    return *(cast(long*)&x);
+}
+
+bool bug9170()
+{
+    float f = 1.25;
+    double d = 1.25;
+    assert(f9170(f) == 0x3FA0_0000);
+    assert(fref9170(f) == 0x3FA0_0000);
+    assert(d9170(d)==0x3FF4_0000_0000_0000L);
+    assert(dref9170(d)==0x3FF4_0000_0000_0000L);
+    float [3] farr = [0, 1.25, 0];
+    assert(f9170arr(farr) == 0x3FA0_0000);
+    int i = 0x3FA0_0000;
+    assert(i9170(i) == 1.25);
+    uint u = 0x3FA0_0000;
+    assert(u9170(u) == 1.25);
+    return true;
+}
+
+static assert(bug9170());
+
+/**************************************************
     6792 ICE with pointer cast of indexed array
 **************************************************/
 
