@@ -2025,6 +2025,7 @@ code *cdshift(elem *e,regm_t *pretregs)
   regm_t forccs,forregs;
   bool e2isconst;
 
+  //printf("cdshift()\n");
   e1 = e->E1;
   if (*pretregs == 0)                   // if don't want result
   {     c = codelem(e1,pretregs,FALSE); // eval left leaf
@@ -2252,7 +2253,10 @@ code *cdshift(elem *e,regm_t *pretregs)
                         while (shiftcnt--)
                         {   c = gen2(c,0xD1 ^ byte,modregrm(3,s1,resreg));
                             if (sz == 2 * REGSIZE)
+                            {
+                                code_orflag(c,CFpsw);
                                 gen2(c,0xD1,modregrm(3,s2,sreg));
+                            }
                         }
                         if (forccs)
                             code_orflag(c,CFpsw);
