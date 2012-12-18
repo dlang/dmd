@@ -351,10 +351,6 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     {
         t = NULL;
     }
-    else if (!t || t->ty == Terror)
-    {   // Check ungagged errors had occured.
-        t = NULL;
-    }
     //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
     return t;
 }
@@ -1311,7 +1307,12 @@ Type *Type::aliasthisOf()
                     {
                         TemplateInstance *spec = fd->isSpeculative();
                         int olderrs = global.errors;
+                        // If it isn't speculative, we need to show errors
+                        unsigned oldgag = global.gag;
+                        if (global.gag && !spec)
+                            global.gag = 0;
                         fd->semantic3(fd->scope);
+                        global.gag = oldgag;
                         // Update the template instantiation with the number
                         // of errors which occured.
                         if (spec && global.errors != olderrs)
