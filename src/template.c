@@ -390,7 +390,7 @@ Object *objectSyntaxCopy(Object *o)
 /* ======================== TemplateDeclaration ============================= */
 
 TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
-        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, int ismixin)
+        TemplateParameters *parameters, Expression *constraint, Dsymbols *decldefs, int ismixin, bool isFuncTemplate)
     : ScopeDsymbol(id)
 {
 #if LOG
@@ -419,6 +419,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->semanticRun = PASSinit;
     this->onemember = NULL;
     this->literal = 0;
+    this->isFuncTemplate = isFuncTemplate;
     this->ismixin = ismixin;
     this->previous = NULL;
 
@@ -454,7 +455,7 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     if (constraint)
         e = constraint->syntaxCopy();
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
+    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin, isFuncTemplate);
     td->literal = literal;
     return td;
 }
@@ -2043,6 +2044,12 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
     for (TemplateDeclaration *td = this; td; td = td->overnext)
     {
+        if (!td->isFuncTemplate && !targsi)
+        {
+            ::error(loc, "must use !(T) syntax to instantiate template %s", td->toChars());
+            goto Lerror;
+        }
+
         if (!td->semanticRun)
         {
             error("forward reference to template %s", td->toChars());

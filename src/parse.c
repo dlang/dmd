@@ -1149,7 +1149,7 @@ Dsymbol *Parser::parseCtor()
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(f);
         TemplateDeclaration *tempdecl =
-            new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs, 0);
+            new TemplateDeclaration(loc, f->ident, tpl, constraint, decldefs, 0, true);
         return tempdecl;
     }
 
@@ -1752,7 +1752,7 @@ Dsymbol *Parser::parseAggregate()
         Dsymbols *decldefs = new Dsymbols();
         decldefs->push(a);
         TemplateDeclaration *tempdecl =
-                new TemplateDeclaration(loc, id, tpl, constraint, decldefs, 0);
+                new TemplateDeclaration(loc, id, tpl, constraint, decldefs, 0, false);
         return tempdecl;
     }
 
@@ -1866,7 +1866,7 @@ TemplateDeclaration *Parser::parseTemplateDeclaration(int ismixin)
         nextToken();
     }
 
-    tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin);
+    tempdecl = new TemplateDeclaration(loc, id, tpl, constraint, decldefs, ismixin, false);
     return tempdecl;
 
 Lerr:
@@ -3180,7 +3180,7 @@ L2:
                 Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(s);
                 TemplateDeclaration *tempdecl =
-                    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs, 0);
+                    new TemplateDeclaration(loc, s->ident, tpl, constraint, decldefs, 0, true);
                 s = tempdecl;
             }
             if (link != linkage)
@@ -5901,7 +5901,7 @@ Expression *Parser::parsePrimaryExp()
             {   // Wrap a template around function fd
                 Dsymbols *decldefs = new Dsymbols();
                 decldefs->push(fd);
-                td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0);
+                td = new TemplateDeclaration(fd->loc, fd->ident, tpl, NULL, decldefs, 0, true);
                 td->literal = 1;    // it's a template 'literal'
             }
 

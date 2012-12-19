@@ -65,6 +65,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
+    bool isFuncTemplate;        // only function templates can use IFTI
     enum PROT protection;
 
     struct Previous
@@ -75,7 +76,7 @@ struct TemplateDeclaration : ScopeDsymbol
     Previous *previous;         // threaded list of previous instantiation attempts on stack
 
     TemplateDeclaration(Loc loc, Identifier *id, TemplateParameters *parameters,
-        Expression *constraint, Dsymbols *decldefs, int ismixin);
+        Expression *constraint, Dsymbols *decldefs, int ismixin, bool isFuncTemplate);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int overloadInsert(Dsymbol *s);
