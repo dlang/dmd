@@ -5245,7 +5245,7 @@ int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
 
 void test8840()
 {
-    long f1 = foo8840();    
+    long f1 = foo8840();
     long f2 = foo8840();
 
     long f = (f1 < f2 ? f1 : f2);
@@ -5450,6 +5450,14 @@ void test9248()
     void*[] b = [cast(void*)2];
     auto c = a ~ b;
     assert(c == [cast(void*)1, cast(void*)2]);
+}
+
+/***************************************************/
+// 6057
+void test6057()
+{
+    enum Foo { A=1, B=2 }
+    Foo[] bar = [cast(Foo)1];
 }
 
 /***************************************************/
@@ -5907,6 +5915,7 @@ int main()
     test248();
     test249();
     test250();
+    test6057();
 
     writefln("Success");
     return 0;
