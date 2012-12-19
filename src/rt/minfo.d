@@ -366,21 +366,22 @@ struct StackRec
 
 void onCycleError(StackRec[] stack)
 {
+    string msg;
     version (unittest)
     {
         if (_inUnitTest)
             goto Lerror;
     }
 
-    println("Cycle detected between modules with ctors/dtors:");
+    msg ~= "Aborting: Cycle detected between modules with ctors/dtors:\n";
     foreach (e; stack)
     {
-        print(e.mod.name);
-        print(" -> ");
+        msg ~= e.mod.name;
+        msg ~= " -> ";
     }
-    println(stack[0].mod.name);
+    msg ~= stack[0].mod.name;
  Lerror:
-    throw new Exception("Aborting!");
+    throw new Exception(msg);
 }
 
 private void sortCtorsImpl(ref ModuleGroup mgroup, StackRec[] stack)
