@@ -767,6 +767,7 @@ struct OnScopeStatement : Statement
 struct ThrowStatement : Statement
 {
     Expression *exp;
+    bool internalThrow;
 
     ThrowStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
