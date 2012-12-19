@@ -387,5 +387,15 @@ class B6278 : A6278 {
 
 }
 
+@safe int f7803() {
+    scope(success) {/* ... */}
+    return 3;
+}
+
+nothrow int g7803() {
+    scope(success) {/* ... */}
+    return 3;
+}
+
 void main() { } 
 
