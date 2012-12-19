@@ -366,14 +366,14 @@ struct StackRec
 
 void onCycleError(StackRec[] stack)
 {
-    string msg;
+    string msg = "Aborting";
     version (unittest)
     {
         if (_inUnitTest)
             goto Lerror;
     }
 
-    msg ~= "Aborting: Cycle detected between modules with ctors/dtors:\n";
+    msg ~= ": Cycle detected between modules with ctors/dtors:\n";
     foreach (e; stack)
     {
         msg ~= e.mod.name;
