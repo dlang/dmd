@@ -98,6 +98,7 @@ struct Statement : Object
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
+    virtual Statement *getRelatedLabeled() { return this; }
     virtual bool hasBreak();
     virtual bool hasContinue();
     virtual bool usesEH();
@@ -320,11 +321,17 @@ struct ForStatement : Statement
     Statement *body;
     int nest;
 
+    // When wrapped in try/finally clauses, this points to the outermost one,
+    // which may have an associated label. Internal break/continue statements
+    // treat that label as referring to this loop.
+    Statement *relatedLabeled;
+
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
     Statement *semanticInit(Scope *sc);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
+    Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
     bool hasBreak();
     bool hasContinue();
     bool usesEH();
