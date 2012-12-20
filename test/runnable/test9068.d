@@ -1,13 +1,24 @@
 // PERMUTE_ARGS:
 
-import std.range;
-import std.stdio;
-
 struct Foo {
     static int[] destroyed;
     int x;
     ~this() { destroyed ~= x; }
-};
+}
+
+
+struct SimpleCounter {
+    static int destroyedCount;
+    const(int) limit = 5;
+    int counter;
+    ~this() { destroyedCount++; }
+
+    // Range primitives.
+    @property bool empty() const { return counter >= limit; }
+    @property int front() { return counter; }
+    void popFront() { counter++; }
+}
+
 
 // ICE when trying to break outer loop from inside switch statement
 void Bug9068() {
@@ -23,27 +34,27 @@ loop_simple:
     assert(sum == 10);
 
     //----------------------------------------
-    // The test case from the original bug report.
-    auto input = std.stdio.File("runnable/extra-files/test9068.txt", "r");
-    string result;
-X:  foreach (line; input.byLine()) {
-       switch(line.front) {
-           case 'q': break X;
-           default: result ~= line;
+    // There was a bug with loops over ranges.
+    int last = -1;
+X:  foreach (i; SimpleCounter()) {
+       switch(i) {
+           case 3: break X;
+           default: last = i;
        }
     }
-    assert(result == "asdfzxcv", std.conv.text("result is ", result));
+    assert(last == 2);
+    assert(SimpleCounter.destroyedCount == 1);
 
     //----------------------------------------
     // Simpler case: the compiler error had nothing to do with the switch.
-    input.rewind();
-    result = "";
+    last = -1;
 loop_with_range:
-    foreach (line; input.byLine()) {
-        result ~= line;
+    foreach (i; SimpleCounter()) {
+        last = i;
         break loop_with_range;
     }
-    assert(result == "asdf", std.conv.text("result is ", result));
+    assert(last == 0);
+    assert(SimpleCounter.destroyedCount == 2);
 
     //----------------------------------------
     // Test with destructors: the loop is implicitly wrapped into two
@@ -53,8 +64,7 @@ loop_with_dtors:
         if (x.x == 8)
             break loop_with_dtors;
     }
-    assert(Foo.destroyed == [5, 8],
-           std.conv.text("Foo.destroyed is ", Foo.destroyed));
+    assert(Foo.destroyed == [5, 8]);
     Foo.destroyed.clear();
 
     //----------------------------------------
@@ -63,8 +73,7 @@ loop_with_dtors:
         if (x.x == 7)
             break;
     }
-    assert(Foo.destroyed == [5, 7],
-           std.conv.text("Foo.destroyed is ", Foo.destroyed));
+    assert(Foo.destroyed == [5, 7]);
     Foo.destroyed.clear();
 }
 

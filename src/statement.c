@@ -1254,7 +1254,7 @@ ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expr
     this->increment = increment;
     this->body = body;
     this->nest = 0;
-    this->relatedLabeled = 0;
+    this->relatedLabeled = NULL;
 }
 
 Statement *ForStatement::syntaxCopy()
