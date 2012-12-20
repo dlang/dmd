@@ -1254,6 +1254,7 @@ ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expr
     this->increment = increment;
     this->body = body;
     this->nest = 0;
+    this->relatedLabeled = NULL;
 }
 
 Statement *ForStatement::syntaxCopy()
@@ -1343,6 +1344,7 @@ Statement *ForStatement::semanticInit(Scope *sc)
                 //printf("ex {{{\n");
                 s = s->semantic(sc);
                 //printf("}}}\n");
+                this->relatedLabeled = s;
                 statement = s;
 
                 if (init)
@@ -1369,6 +1371,7 @@ Statement *ForStatement::semanticInit(Scope *sc)
                 //printf("fi {{{\n");
                 s = s->semantic(sc);
                 //printf("}}} fi\n");
+                this->relatedLabeled = s;
                 statement = s;
 
                 if (init)
