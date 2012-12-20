@@ -793,12 +793,12 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         if (to->isintegral())
         {
             u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, u.x, to);
+            return new IntegerExp(fromVal->loc, ldouble(u.x), to);
         }
         else
         {
             u.x = fromVal->toInteger();
-            return new RealExp(fromVal->loc, u.f, to);
+            return new RealExp(fromVal->loc, ldouble(u.f), to);
         }
     }
     else if (to->size() == 8)
@@ -812,7 +812,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         else
         {
             v.x = fromVal->toInteger();
-            return new RealExp(fromVal->loc, v.f, to);
+            return new RealExp(fromVal->loc, ldouble(v.f), to);
         }
     }
     else
