@@ -438,6 +438,8 @@ void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL
 
 #if defined(__GNUC__) || defined(__clang__)
 __attribute__((noreturn))
+#elif _MSC_VER
+__declspec(noreturn)
 #endif
 void fatal();
 
