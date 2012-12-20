@@ -59,16 +59,18 @@ char *strupr(char *s)
 #endif
 
 /*****************************
- * Read and analyze .ini file.
+ * Read and analyze .ini file, i.e. write the entries of the specified section 
+ *  into the process environment
  * Input:
- *      argv0   program name (argv[0])
- *      inifile .ini file name
+ *      argv0           program name (argv[0])
+ *      inifile         .ini file name
+ *      envsectionname  name of the section to process
  * Returns:
  *      file name of ini file
  *      Note: this is a memory leak
  */
 
-const char *inifile(const char *argv0x, const char *inifilex)
+const char *inifile(const char *argv0x, const char *inifilex, const char *envsectionname)
 {
     char *argv0 = (char *)argv0x;
     char *inifile = (char *)inifilex;   // do const-correct later
@@ -76,6 +78,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
     char *filename;
     OutBuffer buf;
     int envsection = 0;
+    int envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -284,8 +287,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 p = skipspace(p + 1);
                 for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
-                if (pn - p == 11 &&
-                    memicmp(p, "Environment", 11) == 0 &&
+                if (pn - p == envsectionnamelen &&
+                    memicmp(p, envsectionname, envsectionnamelen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;

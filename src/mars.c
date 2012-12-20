@@ -49,6 +49,8 @@ void obj_end(Library *library, File *objfile);
 
 void printCtfePerformanceStats();
 
+static bool parse_arch(size_t argc, char** argv, bool is64bit);
+
 Global global;
 
 Global::Global()
@@ -507,12 +509,24 @@ int tryMain(size_t argc, char *argv[])
     VersionCondition::addPredefinedGlobalIdent("all");
 
 #if _WIN32
-    inifilename = inifile(argv[0], "sc.ini");
+    inifilename = inifile(argv[0], "sc.ini", "Environment");
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-    inifilename = inifile(argv[0], "dmd.conf");
+    inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
 #endif
+
+    size_t dflags_argc = 0;
+    char** dflags_argv = NULL;
+    getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
+
+    bool is64bit = global.params.is64bit; // use default
+    is64bit = parse_arch(argc, argv, is64bit);
+    is64bit = parse_arch(dflags_argc, dflags_argv, is64bit);
+    global.params.is64bit = is64bit;
+
+    inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
+
     getenv_setargv("DFLAGS", &argc, &argv);
 
 #if 0
@@ -883,6 +897,11 @@ int tryMain(size_t argc, char *argv[])
             files.push(p);
         }
     }
+
+    if(global.params.is64bit != is64bit)
+        error(0, "the architecture must not be changed in the %s section of %s",
+              is64bit ? "Environment64" : "Environment32", inifilename);
+
     if (global.errors)
     {
         fatal();
@@ -1612,6 +1631,28 @@ void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv)
 Ldone:
     *pargc = argc;
     *pargv = argv->tdata();
+}
+
+/***********************************
+ * Parse command line arguments for -m32 or -m64
+ * to detect the desired architecture.
+ */
+
+static bool parse_arch(size_t argc, char** argv, bool is64bit)
+{
+    for (size_t i = 0; i < argc; ++i)
+    {   char* p = argv[i];
+        if (p[0] == '-')
+        {
+            if (strcmp(p + 1, "m32") == 0)
+                is64bit = 0;
+            else if (strcmp(p + 1, "m64") == 0)
+                is64bit = 1;
+            else if (strcmp(p + 1, "run") == 0)
+                break;
+        }
+    }
+    return is64bit;
 }
 
 #if WINDOWS_SEH
