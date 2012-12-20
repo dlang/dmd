@@ -11,6 +11,7 @@
 #include "mtype.h"
 #include "declaration.h"
 #include "irstate.h"
+#include "statement.h"
 
 IRState::IRState(IRState *irs, Statement *s)
 {
@@ -104,16 +105,26 @@ IRState::IRState(Module *m, Dsymbol *s)
 block *IRState::getBreakBlock(Identifier *ident)
 {
     IRState *bc;
-
-    for (bc = this; bc; bc = bc->prev)
-    {
-        if (ident)
-        {
-            if (bc->prev && bc->prev->ident == ident)
+    if (ident) {
+        Statement *related = NULL;
+        block *ret = NULL;
+        for (bc = this; bc; bc = bc->prev) {
+            // The label for a breakBlock may actually be some levels up (e.g.
+            // on a try/finally wrapping a loop). We'll see if this breakBlock
+            // is the one to return once we reach that outer statement (which
+            // in many cases will be this same statement).
+            if (bc->breakBlock) {
+                related = bc->statement->getRelatedLabeled();
+                ret = bc->breakBlock;
+            }
+            if (bc->statement == related && bc->prev->ident == ident)
+                return ret;
+        }
+    } else {
+        for (bc = this; bc; bc = bc->prev) {
+            if (bc->breakBlock)
                 return bc->breakBlock;
         }
-        else if (bc->breakBlock)
-            return bc->breakBlock;
     }
     return NULL;
 }
