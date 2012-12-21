@@ -1,5 +1,5 @@
 // REQUIRED_ARGS: -d
-// PERMUTE_ARGS: -di
+// PERMUTE_ARGS: -dw
 
 import std.stdio;
 import std.c.stdlib;

@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -d -di
+// PERMUTE_ARGS: -d -dw
 // 249
 
 module test1;

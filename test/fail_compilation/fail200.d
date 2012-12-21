@@ -1,3 +1,5 @@
+// REQUIRED_ARGS: -de
+
 import std.stdio;
 
 deprecated interface DepClass {
