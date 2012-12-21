@@ -4307,20 +4307,46 @@ void CtorDeclaration::semantic(Scope *sc)
     /* See if it's the default constructor
      * But, template constructor should not become a default constructor.
      */
-    if (ad && tf->varargs == 0 && Parameter::dim(tf->parameters) == 0
-        && (!this->parent->isTemplateInstance() || this->parent->isTemplateMixin()))
+    if (ad && (!this->parent->isTemplateInstance() || this->parent->isTemplateMixin()))
     {
+        size_t dim = Parameter::dim(tf->parameters);
         StructDeclaration *sd = ad->isStructDeclaration();
         if (sd)
         {
-            if (fbody || !(storage_class & STCdisable))
-            {   error("default constructor for structs only allowed with @disable and no body");
-                storage_class |= STCdisable;
-                fbody = NULL;
+            bool allDefaultedParams = (dim == 0) && tf->varargs == 1;  // c-style: foo(...)
+            bool isDefCtor = dim == 0;
+            for (size_t i = 0; i < dim; i++)
+            {
+                Parameter *arg = Parameter::getNth(tf->parameters, i);
+
+                // note: D-style variadic arguments allowed as a special-case (tf->varargs == 2)
+                if (i + 1 == dim && arg->defaultArg)
+                {
+                    isDefCtor = true;
+                    allDefaultedParams = true;
+                }
+                else
+                {
+                    break;
+                }
             }
-            sd->noDefaultCtor = true;
+
+            if (isDefCtor)
+            {
+                if (allDefaultedParams)  // only warn for now
+                {
+                    warning(loc, "%s %s default constructor for structs only allowed with @disable, no body, and no parameters", kind(), toPrettyChars());
+                }
+                else if (fbody || !(storage_class & STCdisable) || dim)
+                {
+                    error("default constructor for structs only allowed with @disable, no body, and no parameters");
+                    storage_class |= STCdisable;
+                    fbody = NULL;
+                }
+                sd->noDefaultCtor = true;
+            }
         }
-        else
+        else if (dim == 0 && tf->varargs == 0)
         {
             ad->defaultCtor = this;
         }

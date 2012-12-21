@@ -547,3 +547,11 @@ class A12302
 
 A12302 func12302() { return null; }
 enum b12302 = isCallable12302!func12302;
+
+/**************************************************
+    3438
+**************************************************/
+import core.vararg;
+struct S3438_1 { this(int x, int y = 1) { } }
+struct S3438_2 { this(int x, ...) { } }
+struct S3438_3 { this(int x, int[] arr...) { } }
