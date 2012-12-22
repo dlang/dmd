@@ -12,10 +12,8 @@
 
 module rt.minfo;
 
-import core.stdc.stdio;   // printf
 import core.stdc.stdlib;  // alloca
 import core.stdc.string;  // memcpy
-import rt.util.console;   // console
 
 enum
 {
@@ -337,21 +335,6 @@ body
 }
 
 private:
-
-void print(string m)
-{
-    // write message to stderr
-    console(m);
-}
-
-void println(string m)
-{
-    print(m);
-    version (Windows)
-        print("\r\n");
-    else
-        print("\n");
-}
 
 struct StackRec
 {
