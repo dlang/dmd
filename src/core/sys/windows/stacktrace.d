@@ -44,7 +44,7 @@ public:
     this(size_t skip, CONTEXT* context)
     {
         if( initialized )
-            m_trace = trace(skip, cast(CONTEXT*)context);
+            m_trace = trace(skip, context);
     }
 
     int opApply( scope int delegate(ref const(char[])) dg ) const
@@ -59,10 +59,7 @@ public:
     int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
         int result;
-
-        auto traceResult = resolve(m_trace);
-
-        foreach( i, e; traceResult )
+        foreach( i, e; resolve(m_trace) )
         {
             if( (result = dg( i, e )) != 0 )
                 break;
@@ -83,14 +80,14 @@ public:
     }
 
     /**
-     * recieve a stacktrace in form of a address list
+     * Receive a stack trace in the form of an address list.
      * Params:
-     *  skip = how many stackframes should be skipped
-     *  context = The context that should be used, if null the current context is used
+     *  skip = How many stack frames should be skipped.
+     *  context = The context that should be used. If null the current context is used.
      * Returns:
-     *  a list of addresses that can be passed to resolve at a later point in time
+     *  A list of addresses that can be passed to resolve at a later point in time.
      */
-    static long[] trace(size_t skip = 0, CONTEXT* context = null)
+    static ulong[] trace(size_t skip = 0, CONTEXT* context = null)
     {
         synchronized( StackTrace.classinfo )
         {
@@ -99,13 +96,13 @@ public:
     }
 
     /**
-     * Resolve a stacktrace
+     * Resolve a stack trace.
      * Params:
-     *  addresses = a list of addresses to resolve
+     *  addresses = A list of addresses to resolve.
      * Returns:
-     *  an array of strings with the results
+     *  An array of strings with the results.
      */
-    static char[][] resolve(const(long)[] addresses)
+    static char[][] resolve(const(ulong)[] addresses)
     {
         synchronized( StackTrace.classinfo )
         {
@@ -114,14 +111,14 @@ public:
     }
 
 private:
-    long[] m_trace;
+    ulong[] m_trace;
 
 
-    static long[] traceNoSync(size_t skip, CONTEXT* context)
+    static ulong[] traceNoSync(size_t skip, CONTEXT* context)
     {
         auto         dbghelp  = DbgHelp.get();
-        auto         hThread  = GetCurrentThread();
-        auto         hProcess = GetCurrentProcess();
+        HANDLE       hThread  = GetCurrentThread();
+        HANDLE       hProcess = GetCurrentProcess();
         CONTEXT      ctxt;
 
         if(context is null)
@@ -164,7 +161,7 @@ private:
         else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
         else                  static assert(0, "unimplemented");
 
-        long[] result = new long[8];
+        ulong[] result = new ulong[8];
         size_t frameNum = 0;
         
         // do ... while so that we don't skip the first stackframe
@@ -180,9 +177,7 @@ private:
                 size_t index = frameNum - skip;
                 if(index >= result.length)
                 {
-                    auto newResult = new long[result.length * 2];
-                    newResult[0..result.length] = result[];
-                    result = newResult;
+                    result.length = result.length * 2;
                 }
                 result[index] = stackframe.AddrPC.Offset;
             }
@@ -195,10 +190,10 @@ private:
         return [];
     }
 
-    static char[][] resolveNoSync(const(long)[] addresses)
+    static char[][] resolveNoSync(const(ulong)[] addresses)
     {
         auto         dbghelp  = DbgHelp.get();
-        auto         hProcess = GetCurrentProcess();
+        HANDLE       hProcess = GetCurrentProcess();
 
         static struct BufSymbol
         {
@@ -207,7 +202,7 @@ private:
             TCHAR[1024] _buf;
         }
         BufSymbol bufSymbol=void;
-        auto symbol = &bufSymbol._base;
+        IMAGEHLP_SYMBOL64* symbol = &bufSymbol._base;
         symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
         symbol.MaxNameLength = bufSymbol._buf.length;
 
@@ -314,13 +309,13 @@ shared static this()
 
     debug(PRINTF) 
     {
-      auto dbghelpVersion = dbghelp.ImagehlpApiVersion();
-      printf("DbgHelp Version %d.%d.%d\n", dbghelpVersion.MajorVersion, dbghelpVersion.MinorVersion, dbghelpVersion.Revision);
+        API_VERSION* dbghelpVersion = dbghelp.ImagehlpApiVersion();
+        printf("DbgHelp Version %d.%d.%d\n", dbghelpVersion.MajorVersion, dbghelpVersion.MinorVersion, dbghelpVersion.Revision);
     }
 
-    auto hProcess = GetCurrentProcess();
+    HANDLE hProcess = GetCurrentProcess();
 
-    auto symOptions = dbghelp.SymGetOptions();
+    DWORD symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
     symOptions |= SYMOPT_FAIL_CRITICAL_ERRORS;
     symOptions |= SYMOPT_DEFERRED_LOAD;

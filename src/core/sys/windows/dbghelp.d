@@ -171,11 +171,12 @@ struct IMAGEHLP_CBA_READ_MEMORY
     DWORD   *bytesread;
 };
 
-struct API_VERSION {
-  USHORT MajorVersion;
-  USHORT MinorVersion;
-  USHORT Revision;
-  USHORT Reserved;
+struct API_VERSION 
+{
+    USHORT MajorVersion;
+    USHORT MinorVersion;
+    USHORT Revision;
+    USHORT Reserved;
 };
 
 
