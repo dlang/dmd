@@ -7,7 +7,7 @@
  * Source:    $(DRUNTIMESRC core/sys/windows/_stacktrace.d)
  */
 
-/*          Copyright Benjamin Thaut 2010 - 2011.
+/*          Copyright Benjamin Thaut 2010 - 2012.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -36,10 +36,10 @@ class StackTrace : Throwable.TraceInfo
 {
 public:
     /**
-     * constructor
+     * Constructor
      * Params:
-     *  skip = the number of stackframes to skip
-     *  context = the context to recieve the stacktrace from, can be null
+     *  skip = The number of stack frames to skip.
+     *  context = The context to recieve the stack trace from. Can be null.
      */
     this(size_t skip, CONTEXT* context)
     {
@@ -116,7 +116,10 @@ private:
 
     static ulong[] traceNoSync(size_t skip, CONTEXT* context)
     {
-        auto         dbghelp  = DbgHelp.get();
+        auto dbghelp  = DbgHelp.get();
+        if(dbghelp is null)
+            return []; // dbghelp.dll not available
+
         HANDLE       hThread  = GetCurrentThread();
         HANDLE       hProcess = GetCurrentProcess();
         CONTEXT      ctxt;
@@ -192,8 +195,11 @@ private:
 
     static char[][] resolveNoSync(const(ulong)[] addresses)
     {
-        auto         dbghelp  = DbgHelp.get();
-        HANDLE       hProcess = GetCurrentProcess();
+        auto dbghelp  = DbgHelp.get();
+        if(dbghelp is null)
+            return []; // dbghelp.dll not available
+
+        HANDLE hProcess = GetCurrentProcess();
 
         static struct BufSymbol
         {
