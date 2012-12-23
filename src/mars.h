@@ -39,7 +39,7 @@ Macros defined by the compiler, not the code:
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
-        __sun&&__SVR4   Solaris, OpenSolaris (yes, both macros are necessary)
+        __sun           Solaris, OpenSolaris, SunOS, OpenIndiana, etc
 
 For the target systems, there are the target operating system and
 the target object file format:
@@ -438,7 +438,7 @@ void err_nomem();
 int runLINK();
 void deleteExeFile();
 int runProgram();
-const char *inifile(const char *argv0, const char *inifile);
+const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 void util_progress();
 

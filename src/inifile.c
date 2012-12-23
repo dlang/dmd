@@ -23,16 +23,16 @@
 #include        <sys/syslimits.h>
 #endif
 
-#if __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if __FreeBSD__ || __OpenBSD__ || __sun
 // for PATH_MAX
 #include        <limits.h>
 #endif
 
-#if __sun&&__SVR4
+#if __sun
 #include        <alloca.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
 #include "gnuc.h"
 #endif
 
@@ -59,16 +59,18 @@ char *strupr(char *s)
 #endif
 
 /*****************************
- * Read and analyze .ini file.
+ * Read and analyze .ini file, i.e. write the entries of the specified section
+ *  into the process environment
  * Input:
- *      argv0   program name (argv[0])
- *      inifile .ini file name
+ *      argv0           program name (argv[0])
+ *      inifile         .ini file name
+ *      envsectionname  name of the section to process
  * Returns:
  *      file name of ini file
  *      Note: this is a memory leak
  */
 
-const char *inifile(const char *argv0x, const char *inifilex)
+const char *inifile(const char *argv0x, const char *inifilex, const char *envsectionname)
 {
     char *argv0 = (char *)argv0x;
     char *inifile = (char *)inifilex;   // do const-correct later
@@ -76,6 +78,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
     char *filename;
     OutBuffer buf;
     int envsection = 0;
+    int envsectionnamelen = strlen(envsectionname);
 
 #if LOG
     printf("inifile(argv0 = '%s', inifile = '%s')\n", argv0, inifile);
@@ -113,12 +116,12 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
-#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4   // This fix by Thomas Kuehne
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path
                      */
-#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4
+#if __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
                     char resolved_name[PATH_MAX + 1];
                     char* real_argv0 = realpath(argv0, resolved_name);
 #else
@@ -205,7 +208,6 @@ const char *inifile(const char *argv0x, const char *inifilex)
         // The line is file.buffer[linestart..i]
         char *line;
         size_t len;
-        char *p;
         char *pn;
 
         line = (char *)&file.buffer[linestart];
@@ -224,6 +226,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 {
                     if (line[j] == '%')
                     {
+                        char *p = NULL;
+                        char *palloc = NULL;
                         if (j - k == 3 && memicmp(&line[k + 1], "@P", 2) == 0)
                         {
                             // %@P% is special meaning the path to the .ini file
@@ -238,7 +242,9 @@ const char *inifile(const char *argv0x, const char *inifilex)
                             if (len2 <= sizeof(tmp))
                                 p = tmp;
                             else
-                                p = (char *)alloca(len2);
+                            {   p = (char *)malloc(len2);
+                                palloc = p;
+                            }
                             len2--;
                             memcpy(p, &line[k + 1], len2);
                             p[len2] = 0;
@@ -248,6 +254,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                                 p = (char *)"";
                         }
                         buf.writestring(p);
+                        if (palloc)
+                            free(palloc);
                         k = j;
                         goto L1;
                     }
@@ -262,7 +270,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
         while (buf.offset && isspace(buf.data[buf.offset - 1]))
             buf.offset--;
 
-        p = buf.toChars();
+        {
+        char *p = buf.toChars();
 
         // The expanded line is in p.
         // Now parse it for meaning.
@@ -278,8 +287,8 @@ const char *inifile(const char *argv0x, const char *inifilex)
                 p = skipspace(p + 1);
                 for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
-                if (pn - p == 11 &&
-                    memicmp(p, "Environment", 11) == 0 &&
+                if (pn - p == envsectionnamelen &&
+                    memicmp(p, envsectionname, envsectionnamelen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;
@@ -315,6 +324,7 @@ const char *inifile(const char *argv0x, const char *inifilex)
 #endif
                 }
                 break;
+        }
         }
 
      Lskip:
