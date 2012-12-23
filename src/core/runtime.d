@@ -584,8 +584,9 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
 
         return new DefaultTraceInfo;
     }
-    else static if( __traits( compiles, new StackTrace ) )
+    else static if( __traits( compiles, new StackTrace(0, null) ) )
     {
+        static enum FIRSTFRAME = 0;
         version (Win64)
         {
             /* Disabled for the moment, because DbgHelp's stack walking code
@@ -595,7 +596,7 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
         }
         else
         {
-            auto s = new StackTrace;
+            auto s = new StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
             return s;
         }
     }

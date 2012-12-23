@@ -35,12 +35,17 @@ private __gshared immutable bool initialized;
 class StackTrace : Throwable.TraceInfo
 {
 public:
-    this()
+    /**
+     * constructor
+     * Params:
+     *  skip = the number of stackframes to skip
+     *  context = the context to recieve the stacktrace from, can be null
+     */
+    this(size_t skip, CONTEXT* context)
     {
         if( initialized )
-            m_trace = trace();
+            m_trace = trace(skip, cast(CONTEXT*)context);
     }
-
 
     int opApply( scope int delegate(ref const(char[])) dg ) const
     {
@@ -55,7 +60,9 @@ public:
     {
         int result;
 
-        foreach( i, e; m_trace )
+        auto traceResult = resolve(m_trace);
+
+        foreach( i, e; traceResult )
         {
             if( (result = dg( i, e )) != 0 )
                 break;
@@ -64,40 +71,68 @@ public:
     }
 
 
-    @safe override string toString() const pure nothrow
+    override string toString() const
     {
         string result;
 
-        foreach( e; m_trace )
+        foreach( e; this )
         {
             result ~= e ~ "\n";
         }
         return result;
     }
 
-
-private:
-    char[][] m_trace;
-
-
-    static char[][] trace()
+    /**
+     * recieve a stacktrace in form of a address list
+     * Params:
+     *  skip = how many stackframes should be skipped
+     *  context = The context that should be used, if null the current context is used
+     * Returns:
+     *  a list of addresses that can be passed to resolve at a later point in time
+     */
+    static long[] trace(size_t skip = 0, CONTEXT* context = null)
     {
         synchronized( StackTrace.classinfo )
         {
-            return traceNoSync();
+            return traceNoSync(skip, context);
         }
     }
 
+    /**
+     * Resolve a stacktrace
+     * Params:
+     *  addresses = a list of addresses to resolve
+     * Returns:
+     *  an array of strings with the results
+     */
+    static char[][] resolve(const(long)[] addresses)
+    {
+        synchronized( StackTrace.classinfo )
+        {
+            return resolveNoSync(addresses);
+        }
+    }
 
-    static char[][] traceNoSync()
+private:
+    long[] m_trace;
+
+
+    static long[] traceNoSync(size_t skip, CONTEXT* context)
     {
         auto         dbghelp  = DbgHelp.get();
         auto         hThread  = GetCurrentThread();
         auto         hProcess = GetCurrentProcess();
         CONTEXT      ctxt;
 
-        ctxt.ContextFlags = CONTEXT_FULL;
-        RtlCaptureContext(&ctxt);
+        if(context is null)
+        {
+            ctxt.ContextFlags = CONTEXT_FULL;
+            RtlCaptureContext(&ctxt);
+        }
+        else
+        {
+            ctxt = *context;
+        }
 
         //x86
         STACKFRAME64 stackframe;
@@ -125,6 +160,46 @@ private:
             }
         }
 
+        version (X86)         enum imageType = IMAGE_FILE_MACHINE_I386;
+        else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
+        else                  static assert(0, "unimplemented");
+
+        long[] result = new long[8];
+        size_t frameNum = 0;
+        
+        // do ... while so that we don't skip the first stackframe
+        do 
+        {
+            if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
+            {
+                debug(PRINTF) printf("Endless callstack\n");
+                break;
+            }
+            if(frameNum >= skip)
+            {
+                size_t index = frameNum - skip;
+                if(index >= result.length)
+                {
+                    auto newResult = new long[result.length * 2];
+                    newResult[0..result.length] = result[];
+                    result = newResult;
+                }
+                result[index] = stackframe.AddrPC.Offset;
+            }
+            frameNum++;
+        }
+        while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
+                                   &ctxt, null, null, null, null));
+        if(frameNum > skip)
+            return result[0..(frameNum - skip)];
+        return [];
+    }
+
+    static char[][] resolveNoSync(const(long)[] addresses)
+    {
+        auto         dbghelp  = DbgHelp.get();
+        auto         hProcess = GetCurrentProcess();
+
         static struct BufSymbol
         {
         align(1):
@@ -136,23 +211,11 @@ private:
         symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
         symbol.MaxNameLength = bufSymbol._buf.length;
 
-        version (X86)         enum imageType = IMAGE_FILE_MACHINE_I386;
-        else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
-        else                  static assert(0, "unimplemented");
-
         char[][] trace;
-        debug(PRINTF) printf("Callstack:\n");
-        while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
-                                   &ctxt, null, null, null, null))
+        foreach(pc; addresses)
         {
-            if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
+            if( pc != 0 )
             {
-                debug(PRINTF) printf("Endless callstack\n");
-                return trace ~ "...".dup;
-            }
-            else if( stackframe.AddrPC.Offset != 0 )
-            {
-                immutable pc = stackframe.AddrPC.Offset;
                 char[] res;
                 if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
                     *symbol.Name.ptr)
@@ -172,7 +235,6 @@ private:
                 trace ~= res;
             }
         }
-        debug(PRINTF) printf("End of Callstack\n");
         return trace;
     }
 
@@ -243,13 +305,18 @@ extern(Windows) BOOL FixupDebugHeader(HANDLE hProcess, ULONG ActionCode,
     return FALSE;
 }
 
-
 shared static this()
 {
     auto dbghelp = DbgHelp.get();
 
     if( dbghelp is null )
         return; // dbghelp.dll not available
+
+    debug(PRINTF) 
+    {
+      auto dbghelpVersion = dbghelp.ImagehlpApiVersion();
+      printf("DbgHelp Version %d.%d.%d\n", dbghelpVersion.MajorVersion, dbghelpVersion.MinorVersion, dbghelpVersion.Revision);
+    }
 
     auto hProcess = GetCurrentProcess();
 

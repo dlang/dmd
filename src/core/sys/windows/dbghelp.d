@@ -171,32 +171,40 @@ struct IMAGEHLP_CBA_READ_MEMORY
     DWORD   *bytesread;
 };
 
+struct API_VERSION {
+  USHORT MajorVersion;
+  USHORT MinorVersion;
+  USHORT Revision;
+  USHORT Reserved;
+};
+
 
 extern(System)
 {
-    alias BOOL    function(HANDLE hProcess, DWORD64 lpBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead) ReadProcessMemoryProc64;
-    alias PVOID   function(HANDLE hProcess, DWORD64 AddrBase) FunctionTableAccessProc64;
-    alias DWORD64 function(HANDLE hProcess, DWORD64 Address) GetModuleBaseProc64;
-    alias DWORD64 function(HANDLE hProcess, HANDLE hThread, ADDRESS64 *lpaddr) TranslateAddressProc64;
+    alias BOOL         function(HANDLE hProcess, DWORD64 lpBaseAddress, PVOID lpBuffer, DWORD nSize, LPDWORD lpNumberOfBytesRead) ReadProcessMemoryProc64;
+    alias PVOID        function(HANDLE hProcess, DWORD64 AddrBase) FunctionTableAccessProc64;
+    alias DWORD64      function(HANDLE hProcess, DWORD64 Address) GetModuleBaseProc64;
+    alias DWORD64      function(HANDLE hProcess, HANDLE hThread, ADDRESS64 *lpaddr) TranslateAddressProc64;
 
-    alias BOOL    function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess) SymInitializeFunc;
-    alias BOOL    function(HANDLE hProcess) SymCleanupFunc;
-    alias DWORD   function(DWORD SymOptions) SymSetOptionsFunc;
-    alias DWORD   function() SymGetOptionsFunc;
-    alias PVOID   function(HANDLE hProcess, DWORD64 AddrBase) SymFunctionTableAccess64Func;
-    alias BOOL    function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
-                             ReadProcessMemoryProc64 ReadMemoryRoutine, FunctionTableAccessProc64 FunctoinTableAccess,
-                             GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) StackWalk64Func;
-    alias BOOL    function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINE64 *line) SymGetLineFromAddr64Func;
-    alias DWORD64 function(HANDLE hProcess, DWORD64 dwAddr) SymGetModuleBase64Func;
-    alias BOOL    function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULE64 *ModuleInfo) SymGetModuleInfo64Func;
-    alias BOOL    function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOL64 *Symbol) SymGetSymFromAddr64Func;
-    alias DWORD   function(PCTSTR DecoratedName, PTSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) UnDecorateSymbolNameFunc;
-    alias DWORD64 function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
-    alias BOOL    function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;
-    alias BOOL    function(HANDLE hProcess, DWORD64 Address) SymUnloadModule64Func;
-    alias BOOL    function(HANDLE hProcess, ULONG ActionCode, ulong CallbackContext, ulong UserContext) PSYMBOL_REGISTERED_CALLBACK64;
-    alias BOOL    function(HANDLE hProcess, PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction, ulong UserContext) SymRegisterCallback64Func;
+    alias BOOL         function(HANDLE hProcess, PCSTR UserSearchPath, bool fInvadeProcess) SymInitializeFunc;
+    alias BOOL         function(HANDLE hProcess) SymCleanupFunc;
+    alias DWORD        function(DWORD SymOptions) SymSetOptionsFunc;
+    alias DWORD        function() SymGetOptionsFunc;
+    alias PVOID        function(HANDLE hProcess, DWORD64 AddrBase) SymFunctionTableAccess64Func;
+    alias BOOL         function(DWORD MachineType, HANDLE hProcess, HANDLE hThread, STACKFRAME64 *StackFrame, PVOID ContextRecord,
+                                ReadProcessMemoryProc64 ReadMemoryRoutine, FunctionTableAccessProc64 FunctoinTableAccess,
+                                GetModuleBaseProc64 GetModuleBaseRoutine, TranslateAddressProc64 TranslateAddress) StackWalk64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, PDWORD pdwDisplacement, IMAGEHLP_LINE64 *line) SymGetLineFromAddr64Func;
+    alias DWORD64      function(HANDLE hProcess, DWORD64 dwAddr) SymGetModuleBase64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 dwAddr, IMAGEHLP_MODULE64 *ModuleInfo) SymGetModuleInfo64Func;
+    alias BOOL         function(HANDLE hProcess, DWORD64 Address, DWORD64 *Displacement, IMAGEHLP_SYMBOL64 *Symbol) SymGetSymFromAddr64Func;
+    alias DWORD        function(PCTSTR DecoratedName, PTSTR UnDecoratedName, DWORD UndecoratedLength, DWORD Flags) UnDecorateSymbolNameFunc;
+    alias DWORD64      function(HANDLE hProcess, HANDLE hFile, PCSTR ImageName, PCSTR ModuleName, DWORD64 BaseOfDll, DWORD SizeOfDll) SymLoadModule64Func;
+    alias BOOL         function(HANDLE HProcess, PTSTR SearchPath, DWORD SearchPathLength) SymGetSearchPathFunc;
+    alias BOOL         function(HANDLE hProcess, DWORD64 Address) SymUnloadModule64Func;
+    alias BOOL         function(HANDLE hProcess, ULONG ActionCode, ulong CallbackContext, ulong UserContext) PSYMBOL_REGISTERED_CALLBACK64;
+    alias BOOL         function(HANDLE hProcess, PSYMBOL_REGISTERED_CALLBACK64 CallbackFunction, ulong UserContext) SymRegisterCallback64Func;
+    alias API_VERSION* function() ImagehlpApiVersionFunc;
 }
 
 struct DbgHelp
@@ -216,6 +224,7 @@ struct DbgHelp
     SymGetSearchPathFunc     SymGetSearchPath;
     SymUnloadModule64Func    SymUnloadModule64;
     SymRegisterCallback64Func SymRegisterCallback64;
+    ImagehlpApiVersionFunc   ImagehlpApiVersion;
 
     static DbgHelp* get()
     {
@@ -237,11 +246,12 @@ struct DbgHelp
             sm_inst.SymGetSearchPath         = cast(SymGetSearchPathFunc) GetProcAddress(sm_hndl,"SymGetSearchPath");
             sm_inst.SymUnloadModule64        = cast(SymUnloadModule64Func) GetProcAddress(sm_hndl,"SymUnloadModule64");
             sm_inst.SymRegisterCallback64    = cast(SymRegisterCallback64Func) GetProcAddress(sm_hndl, "SymRegisterCallback64");
+            sm_inst.ImagehlpApiVersion       = cast(ImagehlpApiVersionFunc) GetProcAddress(sm_hndl, "ImagehlpApiVersion");
             assert( sm_inst.SymInitialize && sm_inst.SymCleanup && sm_inst.StackWalk64 && sm_inst.SymGetOptions &&
                     sm_inst.SymSetOptions && sm_inst.SymFunctionTableAccess64 && sm_inst.SymGetLineFromAddr64 &&
                     sm_inst.SymGetModuleBase64 && sm_inst.SymGetModuleInfo64 && sm_inst.SymGetSymFromAddr64 &&
                     sm_inst.SymLoadModule64 && sm_inst.SymGetSearchPath && sm_inst.SymUnloadModule64 &&
-                    sm_inst.SymRegisterCallback64);
+                    sm_inst.SymRegisterCallback64 && sm_inst.ImagehlpApiVersion);
 
             return &sm_inst;
         }
