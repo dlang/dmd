@@ -254,23 +254,6 @@ private string generateSearchPath()
     char[2048] temp;
     DWORD len;
 
-    if( (len = GetModuleFileNameA( null, temp.ptr, temp.length )) > 0 )
-    {
-        foreach_reverse( i, ref char e; temp[0 .. len] )
-        {
-            if( e == '\\' || e == '/' || e == ':' )
-            {
-                debug(PRINTF) printf("end at %d\n", i);
-                len = i;
-                break;
-            }
-        }
-        if( len > 0 )
-        {
-            path ~= temp[0 .. len];
-            path ~= ";";
-        }
-    }
     foreach( e; defaultPathList )
     {
         if( (len = GetEnvironmentVariableA( e.ptr, temp.ptr, temp.length )) > 0 )
