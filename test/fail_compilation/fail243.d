@@ -1,3 +1,4 @@
+// REQUIRED_ARGS: -de
 
 deprecated {
     class DepClass {}

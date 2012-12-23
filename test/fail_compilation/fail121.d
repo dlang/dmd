@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -d -di
+// PERMUTE_ARGS: -d -dw
 // segfault on DMD0.150, never failed if use typeid() instead.
 
 struct myobject

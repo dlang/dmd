@@ -1,3 +1,3 @@
-// REQUIRED_ARGS:
+// REQUIRED_ARGS: -de
 
 typedef int y;
