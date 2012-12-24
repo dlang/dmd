@@ -922,9 +922,6 @@ void FuncDeclaration::semantic3(Scope *sc)
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
         {
-#if TARGET_NET
-            varArgs(sc2, f, argptr, _arguments);
-#else
             Type *t;
 
 #ifndef IN_GCC
@@ -974,7 +971,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 sc2->insert(argptr);
                 argptr->parent = this;
             }
-#endif
         }
 
 #if 0

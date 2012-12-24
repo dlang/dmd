@@ -51,7 +51,6 @@ the target object file format:
         TARGET_FREEBSD  Covers 32 and 64 bit FreeBSD
         TARGET_OPENBSD  Covers 32 and 64 bit OpenBSD
         TARGET_SOLARIS  Covers 32 and 64 bit Solaris
-        TARGET_NET      Covers .Net
 
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.

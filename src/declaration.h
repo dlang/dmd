@@ -634,7 +634,6 @@ struct FuncDeclaration : Declaration
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     // called from semantic3
-    void varArgs(Scope *sc, TypeFunction*, VarDeclaration *&, VarDeclaration *&);
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
     int equals(Object *o);
 
