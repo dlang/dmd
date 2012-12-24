@@ -558,6 +558,71 @@ void TemplateDeclaration::semantic(Scope *sc)
         }
     }
 
+    if (parameters->dim > 0 && (ident == Id::opUnary || ident == Id::opBinary || ident == Id::opBinaryRight))
+    {
+        TemplateValueParameter *tvp;
+        if ((tvp = (*parameters)[0]->isTemplateValueParameter()) != NULL)
+        {
+            tvp->semantic(paramscope);
+            if (tvp->valType && tvp->valType->isString() && tvp->specValue && tvp->specValue->op == TOKstring)
+            {
+                char *str = (char*)((StringExp *)tvp->specValue)->string;
+                if (strlen(str) == 0)
+                {
+                    ::error(loc, "Operator specialization is empty in %s operator", ident->toChars());
+                    errors = true;
+                }
+                else if (ident == Id::opUnary)
+                {
+                    if ((strcmp(str, "+") == 0) ||
+                        (strcmp(str, "-") == 0) ||
+                        (strcmp(str, "~") == 0) ||
+                        (strcmp(str, "*") == 0) ||
+                        (strcmp(str, "++") == 0) ||
+                        (strcmp(str, "--") == 0))
+                    { }
+                    else
+                    {
+                        ::error(loc, "Unrecognized %s operator: %s", ident->toChars(), str);
+                        errors = true;
+                    }
+                }
+                else
+                {
+                    if ((strcmp(str, "+") == 0) ||
+                        (strcmp(str, "-") == 0) ||
+                        (strcmp(str, "*") == 0) ||
+                        (strcmp(str, "/") == 0) ||
+                        (strcmp(str, "%") == 0) ||
+                        (strcmp(str, "&") == 0) ||
+                        (strcmp(str, "|") == 0) ||
+                        (strcmp(str, "^") == 0) ||
+                        (strcmp(str, "<<") == 0) ||
+                        (strcmp(str, ">>") == 0) ||
+                        (strcmp(str, ">>>") == 0) ||
+                        (strcmp(str, "~") == 0) ||
+                        (strcmp(str, "in") == 0))
+                    { }
+                    else if ((strcmp(str, "==") == 0) || (strcmp(str, "!=") == 0))
+                    {
+                        ::error(loc, "cannot use %s for equality checks, use opEquals instead", ident->toChars());
+                        errors = true;
+                    }
+                    else if ((strcmp(str, "=") == 0))
+                    {
+                        ::error(loc, "cannot use %s for assignment, use opAssign instead", ident->toChars());
+                        errors = true;
+                    }
+                    else
+                    {
+                        ::error(loc, "Unrecognized %s operator: %s", ident->toChars(), str);
+                        errors = true;
+                    }
+                }
+            }
+        }
+    }
+
     paramscope->pop();
 
     // Compute again

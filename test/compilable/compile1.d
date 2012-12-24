@@ -360,4 +360,72 @@ alias test8163!(ushort, ushort, ushort, ushort) _SSSS;
 alias test8163!(ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte) _BBBBBBBB;
 alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
+/**************************************************
+    3969
+**************************************************/
 
+template TypeTuple(TList...)
+{
+    alias TList TypeTuple;
+}
+
+struct S3969
+{
+    S3969 opUnary(string op : "+")() { return this; }
+    S3969 opUnary(string op : "-")() { return this; }
+    S3969 opUnary(string op : "~")() { return this; }
+    S3969 opUnary(string op : "*")() { return this; }
+    S3969 opUnary(string op : "++")() { return this; }
+    S3969 opUnary(string op : "--")() { return this; }
+
+    bool opBinary(string op : "+")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "-")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "*")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "/")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "%")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "&")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "|")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "^")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "<<")(const ref S3969) { return true; } ;
+    bool opBinary(string op : ">>")(const ref S3969) { return true; } ;
+    bool opBinary(string op : ">>>")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "~")(const ref S3969) { return true; } ;
+    bool opBinary(string op : "in")(const ref S3969) { return true; } ;
+}
+
+struct S3969_2
+{
+    bool opBinaryRight(string op : "+")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "-")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "*")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "/")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "%")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "&")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "|")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "^")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "<<")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : ">>")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : ">>>")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "~")(const ref S3969) { return true; } ;
+    bool opBinaryRight(string op : "in")(const ref S3969) { return true; } ;
+}
+
+void test3969()
+{
+    S3969_2 z;
+    S3969 s1, s2;
+    bool b;
+
+    s2 = +s1;
+    s2 = -s1;
+    s2 = ~s1;
+    s2 = *s1;
+    s2 = ++s1;
+    s2 = --s1;
+
+    foreach (idx, op; TypeTuple!("+", "-", "*", "/", "%", "&", "|", "^", "<<", ">>", ">>>", "~", "in"))
+    {
+        mixin("b = s1 " ~ op ~ " s2;");
+        mixin("b = s1 " ~ op ~ " z;");
+    }
+}
