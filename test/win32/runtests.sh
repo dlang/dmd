@@ -31,9 +31,13 @@ testdyn
 $(MARS) -g -d -ofteststat.exe testmydll2.d mydll2.d
 teststat
 
+$(MARS) -g -d -oftestthrow.exe testthrow.d
+testthrow
+
 del mydll2.obj mydll2.dll mydll2.map mydll2.lib
 del testmydll2.obj testmydll2.exe testmydll2.map
 del testdyn.exe testdyn.obj testdyn.map
 del teststat.exe teststat.obj teststat.map
+del testthrow.exe testthrow.obj testthrow.map
 
 
