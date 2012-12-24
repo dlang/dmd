@@ -297,8 +297,12 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
 
-    if ((f->isConst() || f->isImmutable() || f->isShared() || f->isWild()) && !(isThis() || isNested()))
-        error("without 'this' cannot be const/immutable/shared/inout");
+    if (!f->isNaked() && !(isThis() || isNested()))
+    {
+        OutBuffer buf;
+        MODtoBuffer(&buf, f->mod);
+        error("without 'this' cannot be %s", buf.toChars());
+    }
 
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
