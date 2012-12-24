@@ -6404,7 +6404,7 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident)
         e->type = tvoidptr;
         e = new PtrExp(e->loc, e);
         e->type = next->pointerTo();
-        return e;
+        return e->castTo(sc, tvoidptr);
     }
     else
     {

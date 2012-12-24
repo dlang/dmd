@@ -5245,7 +5245,7 @@ int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
 
 void test8840()
 {
-    long f1 = foo8840();    
+    long f1 = foo8840();
     long f2 = foo8840();
 
     long f = (f1 < f2 ? f1 : f2);
@@ -5440,6 +5440,27 @@ void check9171(const char *s, ulong v)
 void test9171()
 {
     bitcomb9171(0b1110000000000000010000000000000000000000000000000001);
+}
+
+/***************************************************/
+// 3720
+class C_3720 { void foo(){} }
+class D1_3720 : C_3720 { /* void foo(){} */ }
+class D2_3720 : C_3720 { override void foo(){} }
+
+void test3720()
+{
+    auto fp1 = &C_3720.foo;
+    auto fp2 = &D1_3720.foo;
+    auto fp3 = &D2_3720.foo;
+    assert(fp2 == fp1);  // D1_3720.foo does not override C_3720.foo
+    assert(fp3 != fp2);  // D2_3720.foo does override C_3720.foo
+    C_3720 c = new C_3720;
+    D1_3720 d1 = new D1_3720;
+    D2_3720 d2 = new D2_3720;
+    assert((&c.foo).funcptr == fp1);
+    assert((&d1.foo).funcptr == fp2);
+    assert((&d2.foo).funcptr == fp3);
 }
 
 /***************************************************/
@@ -5795,6 +5816,7 @@ int main()
     testdbl_to_ulong();
     testdbl_to_uint();
     testreal_to_ulong();
+    test3720();
 
     writefln("Success");
     return 0;
