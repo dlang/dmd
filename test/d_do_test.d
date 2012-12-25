@@ -123,8 +123,7 @@ bool findOutputParameter(string file, string token, ref string result, string se
 
     auto str = file[istart .. iend];
     str = std.string.strip(str);
-    str = std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
-    str = std.regex.replace(str, regex(`(?<=\w\w*)/(?=\w[\w.]*\(\d+\))`, "g"), sep);
+    str = str.unifyNewLine().unifyDirSep(sep);
 
     result = str ? str : ""; // keep non-null
     return true;
@@ -280,6 +279,23 @@ string execute(ref File f, string command, bool expectpass, string result_path)
     return output;
 }
 
+string unifyNewLine(string str)
+{
+    return std.regex.replace(str, regex(`\r\n|\r|\n`, "g"), "\n");
+}
+
+string unifyDirSep(string str, string sep)
+{
+    return std.regex.replace(str, regex(`(?<=\w\w*)/(?=\w[\w.]*\(\d+\))`, "g"), sep);
+}
+unittest
+{
+    assert(`fail_compilation/test.d(1) Error: dummy error message for 'test'`.unifyDirSep(`\`)
+        == `fail_compilation\test.d(1) Error: dummy error message for 'test'`);
+    assert(`fail_compilation/test.d(1) Error: at fail_compilation/test.d(2)`.unifyDirSep(`\`)
+        == `fail_compilation\test.d(1) Error: at fail_compilation\test.d(2)`);
+}
+
 int main(string[] args)
 {
     if (args.length != 4)
@@ -399,7 +415,7 @@ int main(string[] args)
             if (testArgs.compileOutput !is null)
             {
                 compile_output = std.string.strip(compile_output);
-                compile_output = std.regex.replace(compile_output, regex(`\r\n|\r|\n`, "g"), "\n");
+                compile_output = compile_output.unifyNewLine();
                 compile_output = std.regex.replace(compile_output, regex(`DMD v2\.[0-9]+ DEBUG\n`, ""), "");
                 compile_output = std.regex.replace(compile_output, regex(`\nDMD v2\.[0-9]+ DEBUG`, ""), "");
                 enforce(compile_output == testArgs.compileOutput,
