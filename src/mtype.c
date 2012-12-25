@@ -8746,7 +8746,7 @@ L1:
             if (d->isFuncDeclaration())
             {
                 // This is almost same as getRightThis() in expression.c
-                Expression *e1 = new VarExp(e->loc, fdthis->vthis);
+                Expression *e1 = new ThisExp(e->loc);
                 e1 = e1->semantic(sc);
             L2:
                 Type *t = e1->type->toBasetype();
