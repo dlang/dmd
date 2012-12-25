@@ -1650,7 +1650,7 @@ Type *Type::merge()
     if (ty == Tinstance) return this;
     if (ty == Taarray && !((TypeAArray *)this)->index->merge()->deco)
         return this;
-    if (nextOf() && !nextOf()->merge()->deco)
+    if (nextOf() && !nextOf()->deco)
         return this;
 
     //printf("merge(%s)\n", toChars());
