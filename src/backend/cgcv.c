@@ -2352,7 +2352,14 @@ STATIC void cv4_outsym(symbol *s)
             case SCbprel:
                 base = -BPoff;
                 goto L1;
+
             case SCfastpar:
+                if (s->Sfl != FLreg)
+                {   base = FASToff;
+                    goto L1;
+                }
+                goto case_register;
+
             case SCregister:
                 if (s->Sfl != FLreg)
                     goto case_auto;

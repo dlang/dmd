@@ -1046,7 +1046,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             if (f == FLpara)
                 refparam = TRUE;
-            else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg)
+            else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg || f == FLfast)
                 reflocal = TRUE;
 #if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
@@ -1281,6 +1281,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         goto L2;
 
     case FLauto:
+    case FLfast:
         if (s->Sclass == SCfastpar)
         {
     Lauto:

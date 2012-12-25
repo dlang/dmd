@@ -1074,13 +1074,13 @@ STATIC void writefunc2(symbol *sfunc)
                     assert(s->Spreg2 == NOREG);
                     assert(si == 0);
                     s->Sclass = SCfastpar;
-                    s->Sfl = FLauto;
+                    s->Sfl = FLfast;
                     goto L3;
                 }
                 assert(s->Sclass != SCfastpar);
 #else
             case SCfastpar:
-                s->Sfl = FLauto;
+                s->Sfl = FLfast;
                 goto L3;
             case SCregpar:
             case SCparameter:
@@ -1240,21 +1240,6 @@ STATIC void writefunc2(symbol *sfunc)
     PARSER = 1;
 #endif
     objmod->func_term(sfunc);
-#if MARS
-    /* This is to make uplevel references to SCfastpar variables
-     * from nested functions work.
-     */
-    for (si = 0; si < globsym.top; si++)
-    {
-        Symbol *s = globsym.tab[si];
-
-        switch (s->Sclass)
-        {   case SCfastpar:
-                s->Sclass = SCauto;
-                break;
-        }
-    }
-#endif
     if (eecontext.EEcompile == 1)
         goto Ldone;
     if (sfunc->Sclass == SCglobal)
@@ -1346,6 +1331,19 @@ STATIC void writefunc2(symbol *sfunc)
         cv_func(sfunc);                 // debug info for function
 
 #if MARS
+    /* This is to make uplevel references to SCfastpar variables
+     * from nested functions work.
+     */
+    for (si = 0; si < globsym.top; si++)
+    {
+        Symbol *s = globsym.tab[si];
+
+        switch (s->Sclass)
+        {   case SCfastpar:
+                s->Sclass = SCauto;
+                break;
+        }
+    }
     /* After codgen() and writing debug info for the locals,
      * readjust the offsets of all stack variables so they
      * are relative to the frame pointer.

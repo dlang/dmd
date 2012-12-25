@@ -682,7 +682,7 @@ void fltables()
         char flinsymtab[FLMAX];
 
         static char indatafl[] =        /* is FLxxxx a data type?       */
-        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,
+        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLtmp,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
           FLstack,FLregsave,
 #if TX86
@@ -694,14 +694,14 @@ void fltables()
 #endif
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
-        { FLauto,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+        { FLauto,FLfast,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
 #if TX86
           FLndp,
 #endif
         };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
-        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLpara,FLextern,FLtmp,FLfunc,
+        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLtmp,FLfunc,
           FLtlsdata,FLbprel,FLstack };
 #if TARGET_SEGMENTED
         static char inflinsymtab_s[] = { FLfardata,FLcsdata, };
@@ -763,6 +763,7 @@ void fltables()
                 case FLreg:     segfl[i] = -1;  break;
                 case FLpseudo:  segfl[i] = -1;  break;
                 case FLauto:    segfl[i] = SS;  break;
+                case FLfast:    segfl[i] = SS;  break;
                 case FLstack:   segfl[i] = SS;  break;
                 case FLbprel:   segfl[i] = SS;  break;
                 case FLpara:    segfl[i] = SS;  break;

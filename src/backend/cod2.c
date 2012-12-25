@@ -4135,6 +4135,7 @@ code *getoffset(elem *e,unsigned reg)
         /* register doubles.                                            */
         goto L2;
     case FLauto:
+    case FLfast:
     case FLtmp:
     case FLbprel:
     case FLfltreg:

@@ -278,7 +278,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             sthis->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
             sthis->Spreg = AX;
             sthis->Spreg2 = NOREG;
-            sthis->Sfl = FLauto;
+            sthis->Sfl = (sthis->Sclass == SCshadowreg) ? FLauto : FLfast;
 
             // Call each of the destructors in dtors[]
             // in reverse order
