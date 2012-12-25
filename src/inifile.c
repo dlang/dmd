@@ -59,7 +59,7 @@ char *strupr(char *s)
 #endif
 
 /*****************************
- * Read and analyze .ini file, i.e. write the entries of the specified section 
+ * Read and analyze .ini file, i.e. write the entries of the specified section
  *  into the process environment
  * Input:
  *      argv0           program name (argv[0])

@@ -167,6 +167,7 @@ extern  char needframe,usedalloca,gotref;
 extern  targ_size_t localsize,Toff,Poff,Aoff,
         Poffset,funcoffset,
         framehandleroffset,
+        FASToffset,FASToff,
         Aoffset,Toffset,EEoffset;
 extern  int Aalign;
 extern  segidx_t cseg;

@@ -498,7 +498,7 @@ void Module::genobjfile(int multiobj)
                 fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2);
 
                 sp->Sflags &= ~SFLspill;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLauto;
+                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
                 cstate.CSpsymtab = &ma->Sfunc->Flocsym;
                 symbol_add(sp);
 
@@ -886,7 +886,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             if (fpr.alloc(sp->Stype, sp->Stype->Tty, &sp->Spreg, &sp->Spreg2))
             {
                 sp->Sclass = (config.exe == EX_WIN64) ? SCshadowreg : SCfastpar;
-                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLauto;
+                sp->Sfl = (sp->Sclass == SCshadowreg) ? FLpara : FLfast;
             }
         }
     }

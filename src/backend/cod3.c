@@ -200,7 +200,16 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
         i = idx;
         idx += 16;
         // MOVD idx[RBP],xmm
-        c = genc1(c,STOSD,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
+        unsigned op = STOAPD;
+        if (1)
+            /* This is because the regsave does not get properly aligned
+             * to 16 on 32 bit machines.
+             * Doing so wreaks havoc with the location of vthis, which messes
+             * up testcontracts.d, which is likely broken anyway for this same
+             * reason. Need to fix.
+             */
+            op = STOUPD;
+        c = genc1(c,op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) i);
     }
     else
     {
@@ -226,7 +235,10 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
     {
         assert(alignment == 16);
         // MOVD xmm,idx[RBP]
-        c = genc1(c,LODSD,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
+        unsigned op = LODAPD;
+        if (1)
+            op = LODUPD;
+        c = genc1(c,op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
     }
     else
     {   // MOV reg,idx[RBP]
@@ -1819,7 +1831,7 @@ regm_t cod3_useBP()
         goto Lcant;
 
     stackoffsets(0);
-    localsize = Aoffset;                // an estimate only
+    localsize = Aoffset + FASToffset;                // an estimate only
 //    if (localsize)
     {
         if (!(config.flags4 & CFG4speed) ||
@@ -3078,7 +3090,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             }
             else
             {
-                targ_size_t offset = Aoff + BPoff;
+                targ_size_t offset = FASToff + BPoff;
                 if (s->Sclass == SCshadowreg)
                     offset = Poff;
                 offset += s->Soffset;
@@ -3105,8 +3117,8 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                             }
                             else
                             {
-                                //printf("%s Aoff = %d, BPoff = %d, Soffset = %d, sz = %d\n",
-                                //         s->Sident, (int)Aoff, (int)BPoff, (int)s->Soffset, (int)sz);
+                                //printf("%s FASToff = %d, BPoff = %d, Soffset = %d, sz = %d\n",
+                                //         s->Sident, (int)FASToff, (int)BPoff, (int)s->Soffset, (int)sz);
                                 if (I64 && sz >= 8)
                                     code_orrex(c2, REX_W);
                             }
@@ -4037,7 +4049,7 @@ void cod3_adjSymOffsets()
 
     //printf("cod3_adjSymOffsets()\n");
     for (si = 0; si < globsym.top; si++)
-    {   //printf("globsym.tab[%d] = %p\n",si,globsym.tab[si]);
+    {   //printf("\tglobsym.tab[%d] = %p\n",si,globsym.tab[si]);
         symbol *s = globsym.tab[si];
 
         switch (s->Sclass)
@@ -4055,10 +4067,16 @@ if (0 && !(funcsym_p->Sfunc->Fflags3 & Fmember))
         s->Soffset += REGSIZE;
 }
                 break;
-            case SCauto:
             case SCfastpar:
+//printf("\tfastpar %s %p Soffset %x FASToff %x BPoff %x\n", s->Sident, s, (int)s->Soffset, (int)FASToff, (int)BPoff);
+                s->Soffset += FASToff + BPoff;
+                break;
+            case SCauto:
             case SCregister:
             case_auto:
+                if (s->Sfl == FLfast)
+                    s->Soffset += FASToff + BPoff;
+                else
 //printf("s = '%s', Soffset = x%x, Aoff = x%x, BPoff = x%x EBPtoESP = x%x\n", s->Sident, (int)s->Soffset, (int)Aoff, (int)BPoff, (int)EBPtoESP);
 //              if (!(funcsym_p->Sfunc->Fflags3 & Fnested))
                     s->Soffset += Aoff + BPoff;
@@ -4230,6 +4248,9 @@ void assignaddrc(code *c)
                 c->IEVpointer1 += s->Soffset + EBPtoESP - base - EEoffset;
                 break;
 
+            case FLfast:
+                soff = FASToff;
+                goto L1;
             case FLreg:
             case FLauto:
                 soff = Aoff;
@@ -4382,6 +4403,9 @@ void assignaddrc(code *c)
             case FLpseudo:
                 assert(0);
                 /* NOTREACHED */
+            case FLfast:
+                c->IEVpointer2 += s->Soffset + FASToff + BPoff;
+                break;
             case FLauto:
                 c->IEVpointer2 += s->Soffset + Aoff + BPoff;
                 break;
@@ -4440,6 +4464,9 @@ targ_size_t cod3_bpoffset(symbol *s)
     {
         case FLpara:
             offset += Poff;
+            break;
+        case FLfast:
+            offset += FASToff + BPoff;
             break;
         case FLauto:
             offset += Aoff + BPoff;
@@ -6293,6 +6320,7 @@ void code_hydrate(code **pc)
             case FLdata:
             case FLreg:
             case FLauto:
+            case FLfast:
             case FLbprel:
             case FLpara:
 #if TARGET_SEGMENTED
@@ -6354,6 +6382,7 @@ void code_hydrate(code **pc)
             case FLdata:
             case FLreg:
             case FLauto:
+            case FLfast:
             case FLbprel:
             case FLpara:
 #if TARGET_SEGMENTED
@@ -6468,6 +6497,7 @@ void code_dehydrate(code **pc)
             case FLdata:
             case FLreg:
             case FLauto:
+            case FLfast:
             case FLbprel:
             case FLpara:
 #if TARGET_SEGMENTED
@@ -6528,6 +6558,7 @@ void code_dehydrate(code **pc)
             case FLdata:
             case FLreg:
             case FLauto:
+            case FLfast:
             case FLbprel:
             case FLpara:
 #if TARGET_SEGMENTED
@@ -6681,6 +6712,7 @@ void code::print()
                     printf(" %d.%llx",c->IEVseg1,(unsigned long long)c->IEVpointer1);
                     break;
                 case FLauto:
+                case FLfast:
                 case FLreg:
                 case FLdata:
                 case FLudata:
@@ -6719,6 +6751,7 @@ void code::print()
                 printf(" %d.%llx",c->IEVseg2,(unsigned long long)c->IEVpointer2);
                 break;
             case FLauto:
+            case FLfast:
             case FLreg:
             case FLpara:
             case FLtmp:

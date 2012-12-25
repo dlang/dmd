@@ -843,7 +843,9 @@ elem *SymbolExp::toElem(IRState *irs)
                  */
                 if (fd->vthis)
                 {
-                    soffset -= fd->vthis->toSymbol()->Soffset;
+                    symbol *vs = fd->vthis->toSymbol();
+                    //printf("vs = %s, offset = %x, %p\n", vs->Sident, (int)vs->Soffset, vs);
+                    soffset -= vs->Soffset;
                 }
                 //printf("\tSoffset = x%x, sthis->Soffset = x%x\n", s->Soffset, irs->sthis->Soffset);
             }

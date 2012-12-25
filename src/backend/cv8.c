@@ -565,11 +565,18 @@ void cv8_outsym(Symbol *s)
             goto L1;
 
         case SCfastpar:
+            if (s->Sfl != FLreg)
+            {   base = FASToff;
+                goto L1;
+            }
+            goto L2;
+
         case SCregister:
             if (s->Sfl != FLreg)
                 goto case_auto;
         case SCpseudo:
         case_register:
+        L2:
             buf->reserve(2 + 2 + 4 + 2 + len + 1);
             buf->writeWordn( 2 + 4 + 2 + len + 1);
             buf->writeWordn(S_REGISTER_V3);

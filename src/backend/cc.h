@@ -1411,6 +1411,7 @@ enum FL
         FLreg,          // ref to register variable
         FLpseudo,       // pseuodo register variable
         FLauto,         // ref to automatic variable
+        FLfast,         // ref to variable passed as register
         FLpara,         // ref to function parameter variable
         FLextern,       // ref to external variable
         FLtmp,          // ref to a stack temporary, int contains temp number
