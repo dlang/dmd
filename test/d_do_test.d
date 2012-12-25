@@ -137,7 +137,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
-    
+
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
         if (testArgs.mode != TestMode.FAIL_COMPILE)
@@ -284,6 +284,8 @@ int main(string[] args)
 {
     if (args.length != 4)
     {
+        if (args.length == 2 && args[1] == "-unittest")
+            return 0;
         usage();
         return 1;
     }
@@ -407,8 +409,8 @@ int main(string[] args)
             if (testArgs.mode == TestMode.RUN)
             {
                 toCleanup ~= test_app_dmd;
-                version(Windows) 
-                    if(envData.model == "64") 
+                version(Windows)
+                    if (envData.model == "64")
                     {
                         toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".ilk";
                         toCleanup ~= test_app_dmd_base ~ to!string(i) ~ ".pdb";
