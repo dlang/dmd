@@ -286,7 +286,7 @@ string unifyNewLine(string str)
 
 string unifyDirSep(string str, string sep)
 {
-    return std.regex.replace(str, regex(`(?<=\w\w*)/(?=\w[\w.]*\(\d+\))`, "g"), sep);
+    return std.regex.replace(str, regex(`(?<=\w\w*)/(?=\w[\w/]*\.di?\b)`, "g"), sep);
 }
 unittest
 {
@@ -294,6 +294,11 @@ unittest
         == `fail_compilation\test.d(1) Error: dummy error message for 'test'`);
     assert(`fail_compilation/test.d(1) Error: at fail_compilation/test.d(2)`.unifyDirSep(`\`)
         == `fail_compilation\test.d(1) Error: at fail_compilation\test.d(2)`);
+
+    assert(`fail_compilation/test.d(1) Error: at fail_compilation/imports/test.d(2)`.unifyDirSep(`\`)
+        == `fail_compilation\test.d(1) Error: at fail_compilation\imports\test.d(2)`);
+    assert(`fail_compilation/diag.d(2): Error: fail_compilation/imports/fail.d must be imported`.unifyDirSep(`\`)
+        == `fail_compilation\diag.d(2): Error: fail_compilation\imports\fail.d must be imported`);
 }
 
 int main(string[] args)
