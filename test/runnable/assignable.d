@@ -1168,6 +1168,31 @@ out(result) {
 }
 
 /***************************************************/
+// 9154
+
+struct S9154a
+{
+    int x;
+    void opAssign(ref S9154a s) { }
+}
+struct S9154b
+{
+    int x;
+    void opAssign(X)(ref X s) { }
+}
+struct T9154
+{
+    S9154a member1;
+    S9154b member2;
+}
+
+void test9154()
+{
+    T9154 t1, t2;
+    t1 = t2;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1185,6 +1210,7 @@ int main()
     test6216c();
     test6286();
     test6336();
+    test9154();
 
     printf("Success\n");
     return 0;
