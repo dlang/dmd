@@ -2128,6 +2128,26 @@ void test9036()
 
 /*******************************************/
 
+/+
+auto fun8863(T)(T* ret) { *ret = T(); }
+
+void test8863() {
+    int x = 1;
+    struct A {
+	auto f() {
+	    assert(x == 1);
+	}
+    }
+
+    A a;
+    a.f();
+    fun8863!A(&a);
+    a.f();
+}
++/
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -2206,6 +2226,7 @@ int main()
     test9035();
     test9035a();
     test9036();
+//    test8863();
 
     printf("Success\n");
     return 0;

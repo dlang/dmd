@@ -5655,6 +5655,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
 /*****************************************
  * Determines if a TemplateInstance will need a nested
  * generation of the TemplateDeclaration.
+ * Sets isnested property if so, and returns != 0;
  */
 
 int TemplateInstance::hasNestedArgs(Objects *args)
@@ -5669,6 +5670,23 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
+#if FIXBUG8863
+        /* This does fix 8863, but it causes other complex
+         * failures in Phobos unittests and the test suite.
+         * Not sure why.
+         */
+        Type *ta = isType(o);
+        if (ta && !sa)
+        {
+            Dsymbol *s = ta->toDsymbol(NULL);
+            if (s)
+            {
+                sa = s;
+                goto Lsa;
+            }
+        }
+        else
+#endif
         if (ea)
         {
             if (ea->op == TOKvar)
@@ -5694,8 +5712,12 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         {
           Lsa:
             TemplateDeclaration *td = sa->isTemplateDeclaration();
+            AggregateDeclaration *ad = sa->isAggregateDeclaration();
             Declaration *d = sa->isDeclaration();
             if ((td && td->literal) ||
+#if FIXBUG8863
+                (ad && ad->isNested()) ||
+#endif
                 (d && !d->isDataseg() &&
 #if DMDV2
                  !(d->storage_class & STCmanifest) &&
