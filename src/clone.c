@@ -90,23 +90,26 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     Dsymbol *assign = search_function(this, Id::assign);
     if (assign)
     {
-        Expression *e = new NullExp(loc, type); // dummy rvalue
-        Expressions *arguments = new Expressions();
-        arguments->push(e);
-
-        // check identity opAssign exists
-        FuncDeclaration *fd = assign->isFuncDeclaration();
-        if (fd)
-        {   fd = fd->overloadResolve(loc, e, arguments, 1);
-            if (fd)
-                return (fd->storage_class & STCdisable) ? NULL : fd;
+        /* check identity opAssign exists
+         */
+        Expression *er = new NullExp(loc, type);        // dummy rvalue
+        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        el->type = type;
+        Expressions ar;  ar.push(er);
+        Expressions al;  al.push(el);
+        if (FuncDeclaration *fd = assign->isFuncDeclaration())
+        {
+            FuncDeclaration *f = fd->overloadResolve(loc, er, &ar, 1);
+            if (f == NULL)   f = fd->overloadResolve(loc, er, &al, 1);
+            if (f)
+                return (f->storage_class & STCdisable) ? NULL : f;
         }
-
-        TemplateDeclaration *td = assign->isTemplateDeclaration();
-        if (td)
-        {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
-            if (fd)
-                return (fd->storage_class & STCdisable) ? NULL : fd;
+        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
+        {
+            FuncDeclaration *f = td->deduceFunctionTemplate(sc, loc, NULL, er, &ar, 1);
+            if (f == NULL)   f = td->deduceFunctionTemplate(sc, loc, NULL, er, &al, 1);
+            if (f)
+                return (f->storage_class & STCdisable) ? NULL : f;
         }
         // Even if non-identity opAssign is defined, built-in identity opAssign
         // will be defined. (Is this an exception of operator overloading rule?)
