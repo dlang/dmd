@@ -1253,7 +1253,7 @@ Lnomatch:
         error("manifest constants must have initializers");
 
     enum TOK op = TOKconstruct;
-    if (!init && !sc->inunion && !isStatic() && fd &&
+    if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&
         type->size() != 0)
