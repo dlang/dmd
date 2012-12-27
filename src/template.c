@@ -5764,6 +5764,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
             nested |= hasNestedArgs(&va->objects);
         }
     }
+    //printf("-TemplateInstance::hasNestedArgs('%s') = %d\n", tempdecl->ident->toChars(), nested);
     return nested;
 }
 

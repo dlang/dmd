@@ -614,6 +614,7 @@ struct FuncDeclaration : Declaration
 
     int tookAddressOf;                  // set if someone took the address of
                                         // this function
+    bool requiresClosure;               // this function needs a closure
     VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
