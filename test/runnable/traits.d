@@ -660,11 +660,16 @@ alias T6073!(__traits(parent, S6073)) U6073;    // error
 static assert(__traits(isSame, V6073, U6073));  // same instantiation == same arguemnts
 
 /********************************************************/
+// 7027
 
-struct Foo7027 {
-  int a;
-}
+struct Foo7027 { int a; }
 static assert(!__traits(compiles, { return Foo7027.a; }));
+
+/********************************************************/
+// 9213
+
+class Foo9213 { int a; }
+static assert(!__traits(compiles, { return Foo9213.a; }));
 
 /********************************************************/
 

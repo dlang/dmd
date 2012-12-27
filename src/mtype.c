@@ -8615,6 +8615,16 @@ L1:
             return e;
         }
 
+      #if 1 // Workaround for Bugzilla 9213
+        FuncDeclaration *fd = sc->func;
+        if (d->needThis() && d->isVarDeclaration() && fd && fd->vthis)
+        {
+            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+            e = e->semantic(sc);
+            return e;
+        }
+      #endif
+
         FuncDeclaration *fdthis = hasThis(sc);
         if (d->needThis() && fdthis)
         {
