@@ -1300,7 +1300,7 @@ Type *Type::aliasthisOf()
             {
                 FuncDeclaration *fd = (FuncDeclaration *)d;
                 Expression *ethis = this->defaultInit(0);
-                fd = fd->overloadResolve(0, ethis, NULL);
+                fd = fd->overloadResolve(0, ethis, NULL, 1);
                 if (fd)
                 {   TypeFunction *tf = (TypeFunction *)fd->type;
                     if (!tf->next && fd->inferRetType)
