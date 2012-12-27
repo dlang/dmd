@@ -90,6 +90,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
 #if DMDV2
     builtin = BUILTINunknown;
     tookAddressOf = 0;
+    requiresClosure = false;
     flags = 0;
 #endif
     returns = NULL;
@@ -3172,6 +3173,10 @@ int FuncDeclaration::needsClosure()
      */
 
     //printf("FuncDeclaration::needsClosure() %s\n", toChars());
+
+    if (requiresClosure)
+        goto Lyes;
+
     for (size_t i = 0; i < closureVars.dim; i++)
     {   VarDeclaration *v = closureVars[i];
         assert(v->isVarDeclaration());
@@ -3181,16 +3186,31 @@ int FuncDeclaration::needsClosure()
         {   FuncDeclaration *f = v->nestedrefs[j];
             assert(f != this);
 
-            //printf("\t\tf = %s, %d, %p, %d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
-            if (f->isThis() || f->tookAddressOf)
-                goto Lyes;      // assume f escapes this function's scope
+            //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
 
-            // Look to see if any parents of f that are below this escape
-            for (Dsymbol *s = f->parent; s && s != this; s = s->parent)
+            // Look to see if f or any parents of f that are below this escape
+            for (Dsymbol *s = f; s && s != this; s = s->parent)
             {
-                f = s->isFuncDeclaration();
-                if (f && (f->isThis() || f->tookAddressOf))
+                FuncDeclaration *fx = s->isFuncDeclaration();
+                if (fx && (fx->isThis() || fx->tookAddressOf))
+                {
+                    /* Mark as needing closure any functions between this and f
+                     */
+                    for (Dsymbol *sx = fx; sx != this; sx = sx->parent)
+                    {
+                        if (sx != f)
+                        {   FuncDeclaration *fy = sx->isFuncDeclaration();
+                            if (fy && fy->closureVars.dim)
+                            {
+                                /* fy needs a closure if it has closureVars[],
+                                 * because the frame pointer in the closure will be accessed.
+                                 */
+                                fy->requiresClosure = true;
+                            }
+                        }
+                    }
                     goto Lyes;
+                }
             }
         }
     }

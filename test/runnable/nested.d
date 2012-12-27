@@ -2147,6 +2147,50 @@ void test8863() {
 +/
 
 /*******************************************/
+// 8774 
+
+void popFront8774()
+{
+    int[20] abc;	// smash stack
+}
+
+struct MapResult8774(alias fun)
+{
+    void delegate() front()
+    {
+        return fun(1);
+    }
+}
+
+void test8774() {
+
+    int sliceSize = 100;
+
+    void delegate() foo( int i )
+    {
+        void delegate() closedPartialSum()
+        {
+	    int ii = i ;
+	    void bar()
+            {
+		printf("%d\n", sliceSize);
+		assert(sliceSize == 100);
+	    }
+	    return &bar;
+        }
+        return closedPartialSum();     
+    }
+
+    auto threads = MapResult8774!foo();
+
+    auto dg = threads.front();
+    popFront8774();
+
+    printf("calling dg()\n");
+    dg();
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2227,6 +2271,7 @@ int main()
     test9035a();
     test9036();
 //    test8863();
+    test8774();
 
     printf("Success\n");
     return 0;

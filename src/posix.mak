@@ -137,6 +137,7 @@ SRC = win32.mak posix.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
+	libmscoff.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c \
@@ -159,6 +160,7 @@ SRC = win32.mak posix.mak \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c \
+	$C/md5.c $C/md5.h \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \

@@ -701,6 +701,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
         unsigned offset = PTRSIZE;      // leave room for previous sthis
         for (size_t i = 0; i < closureVars.dim; i++)
         {   VarDeclaration *v = closureVars[i];
+            //printf("closure var %s\n", v->toChars());
             assert(v->isVarDeclaration());
 
 #if DMDV2
