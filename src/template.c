@@ -5100,19 +5100,24 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * on them due to forward references, we cannot run semantic2()
      * or semantic3() yet.
      */
+    bool found_deferred_ad = false;
     for (size_t i = 0; i < Module::deferred.dim; i++)
     {   Dsymbol *sd = Module::deferred[i];
 
-        if (sd->parent == this)
+        AggregateDeclaration *ad = sd->isAggregateDeclaration();
+        if (ad && ad->parent && ad->parent->isTemplateInstance())
         {
-        //printf("deferred %s %s\n", sd->parent->toChars(), sd->toChars());
-            AggregateDeclaration *ad = sd->isAggregateDeclaration();
-            if (ad)
+            //printf("deferred template aggregate: %s %s\n",
+            //        sd->parent->toChars(), sd->toChars());
+            found_deferred_ad = true;
+            if (ad->parent == this)
+            {
                 ad->deferred = this;
-            break;
+                break;
+            }
         }
     }
-    if (Module::deferred.dim)
+    if (found_deferred_ad)
         goto Laftersemantic;
 
     /* ConditionalDeclaration may introduce eponymous declaration,
