@@ -27,6 +27,7 @@ debug(PRINTF) import core.stdc.stdio;
 
 
 extern(Windows) void RtlCaptureContext(CONTEXT* ContextRecord);
+extern(Windows) DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
 
 
 private __gshared immutable bool initialized;
@@ -306,6 +307,29 @@ extern(Windows) BOOL FixupDebugHeader(HANDLE hProcess, ULONG ActionCode,
     return FALSE;
 }
 
+private string generateSearchPath()
+{
+    __gshared string[3] defaultPathList = ["_NT_SYMBOL_PATH",
+                                           "_NT_ALTERNATE_SYMBOL_PATH",
+                                           "SYSTEMROOT"];
+
+    string path;
+    char[2048] temp;
+    DWORD len;
+
+    foreach( e; defaultPathList )
+    {
+        if( (len = GetEnvironmentVariableA( e.ptr, temp.ptr, temp.length )) > 0 )
+        {
+            path ~= temp[0 .. len];
+            path ~= ";";
+        }
+    }
+    path ~= "\0";
+    return path;
+}
+
+
 shared static this()
 {
     auto dbghelp = DbgHelp.get();
@@ -327,7 +351,9 @@ shared static this()
     symOptions |= SYMOPT_DEFERRED_LOAD;
     symOptions  = dbghelp.SymSetOptions( symOptions );
 
-    if (!dbghelp.SymInitialize(hProcess, null, TRUE))
+    debug(PRINTF) printf("Search paths: %s\n", generateSearchPath().ptr);
+
+    if (!dbghelp.SymInitialize(hProcess, generateSearchPath().ptr, TRUE))
         return;
 
     dbghelp.SymRegisterCallback64(hProcess, &FixupDebugHeader, 0);
