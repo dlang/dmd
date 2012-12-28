@@ -815,8 +815,8 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
             return new RealExp(fromVal->loc, ldouble(v.f), to);
         }
     }
-    else
-        assert(0);
+    assert(0);
+    return NULL;    // avoid warning
 }
 
 
