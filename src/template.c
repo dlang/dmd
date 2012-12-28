@@ -4293,11 +4293,13 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     if (!ei && oarg)
     {
         Dsymbol *si = isDsymbol(oarg);
-        if (si && si->isFuncDeclaration())
+        FuncDeclaration *f;
+        if (si && (f = si->isFuncDeclaration()) != NULL)
         {
-            ei = new VarExp(loc, (FuncDeclaration *)si);
+            ei = new VarExp(loc, f);
             ei = ei->semantic(sc);
-            ei = resolveProperties(sc, ei);
+            if (!f->needThis())
+                ei = resolveProperties(sc, ei);
             ei = ei->ctfeInterpret();
         }
         else
