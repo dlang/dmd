@@ -356,6 +356,18 @@ void test8251()
 static assert(foo9063);
 
 /*****************************************/
+// 9234
+
+class Fizz9234
+{
+    void bar() {}
+    Foo9234!bar foobar;
+}
+
+struct Foo9234(alias F) {}
+struct Foo9234(string thunk) {}
+
+/*****************************************/
 
 int main()
 {
