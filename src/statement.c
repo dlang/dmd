@@ -3183,7 +3183,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
     else
     {   condition = condition->integralPromotions(sc);
-        condition->checkIntegral();
+        if (!condition->type->isintegral())
+            error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
     condition = condition->optimize(WANTvalue);
 
