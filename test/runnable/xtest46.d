@@ -1963,20 +1963,24 @@ void test99()
 }
 
 /***************************************************/
+// 5081
 
 void test5081()
 {
     static pure immutable(int[]) x1()
     {
-        return new int[](10);
+        int[] a = new int[](10);
+        return a;
     }
     static pure immutable(int[]) x2(int len)
     {
-        return new int[](len);
+        int[] a = new int[](len);
+        return a;
     }
     static pure immutable(int[]) x3(immutable(int[]) org)
     {
-        return new int[](org.length);
+        int[] a = new int[](org.length);
+        return a;
     }
 
     immutable a1 = x1();

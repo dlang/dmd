@@ -3956,7 +3956,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {
             assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
-            if (!tf->hasMutableIndirectionParams() &&
+            if (fd->isPureBypassingInference() != PUREimpure &&
+                !tf->hasMutableIndirectionParams() &&
                 !exp->type->implicitConvTo(tret) &&
                 exp->type->invariantOf()->implicitConvTo(tret))
             {

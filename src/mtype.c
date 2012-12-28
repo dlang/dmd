@@ -5832,7 +5832,7 @@ void TypeFunction::purityLevel()
  * FIXME: This function is a workaround for fixing Bugzilla 9210.
  * In 2.061, TypeFunction::purityLevel() improved to make more functions
  * strong purity, but immutable conversion on return statemet had broken by that.
- * Because, it is essentially unrelated to PUREstring. This function is
+ * Because, it is essentially unrelated to PUREstrong. This function is
  * necessary to check the convertibility.
  */
 bool TypeFunction::hasMutableIndirectionParams()
