@@ -5828,6 +5828,67 @@ void TypeFunction::purityLevel()
     }
 }
 
+/********************************************
+ * FIXME: This function is a workaround for fixing Bugzilla 9210.
+ * In 2.061, TypeFunction::purityLevel() improved to make more functions
+ * strong purity, but immutable conversion on return statemet had broken by that.
+ * Because, it is essentially unrelated to PUREstring. This function is
+ * necessary to check the convertibility.
+ */
+bool TypeFunction::hasMutableIndirectionParams()
+{
+    TypeFunction *tf = this;
+    size_t dim = Parameter::dim(tf->parameters);
+    for (size_t i = 0; i < dim; i++)
+    {
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        if (fparam->storageClass & STClazy)
+        {
+            return true;
+        }
+        if (fparam->storageClass & STCout)
+        {
+            return true;
+        }
+        if (!fparam->type)
+            continue;
+        if (fparam->storageClass & STCref)
+        {
+            if (!(fparam->type->mod & (MODconst | MODimmutable | MODwild)))
+                return true;
+            if (fparam->type->mod & MODconst)
+                return true;
+        }
+        Type *t = fparam->type->toBasetype();
+        if (!t->hasPointers())
+            continue;
+        if (t->mod & (MODimmutable | MODwild))
+            continue;
+        /* The rest of this is too strict; fix later.
+         * For example, the only pointer members of a struct may be immutable,
+         * which would maintain strong purity.
+         */
+        if (t->mod & MODconst)
+            return true;
+        Type *tn = t->nextOf();
+        if (tn)
+        {   tn = tn->toBasetype();
+            if (tn->ty == Tpointer || tn->ty == Tarray)
+            {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
+                 */
+                if (tn->mod & (MODimmutable | MODwild))
+                    continue;
+                if (tn->mod & MODconst)
+                    return true;
+            }
+        }
+        /* Should catch delegates and function pointers, and fold in their purity
+         */
+        return true;
+    }
+    return false;
+}
+
 
 /********************************
  * 'args' are being matched to function 'this'
