@@ -5677,6 +5677,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
+#define FIXBUG8863 0
 #if FIXBUG8863
         /* This does fix 8863, but it causes other complex
          * failures in Phobos unittests and the test suite.

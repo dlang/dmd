@@ -3194,6 +3194,8 @@ int FuncDeclaration::needsClosure()
                 FuncDeclaration *fx = s->isFuncDeclaration();
                 if (fx && (fx->isThis() || fx->tookAddressOf))
                 {
+                    //printf("\t\tfx = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", fx->toChars(), fx->isVirtual(), fx->isThis(), fx->tookAddressOf);
+
                     /* Mark as needing closure any functions between this and f
                      */
                     for (Dsymbol *sx = fx; sx != this; sx = sx->parent)
@@ -3223,12 +3225,17 @@ int FuncDeclaration::needsClosure()
         Type *tret = ((TypeFunction *)type)->next;
         assert(tret);
         tret = tret->toBasetype();
+        //printf("\t\treturning %s\n", tret->toChars());
         if (tret->ty == Tclass || tret->ty == Tstruct)
         {   Dsymbol *st = tret->toDsymbol(NULL);
+            //printf("\t\treturning class/struct %s\n", tret->toChars());
             for (Dsymbol *s = st->parent; s; s = s->parent)
             {
+                //printf("\t\t\tparent = %s %s\n", s->kind(), s->toChars());
                 if (s == this)
+                {   //printf("\t\treturning local %s\n", st->toChars());
                     goto Lyes;
+                }
             }
         }
     }
