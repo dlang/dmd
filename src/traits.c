@@ -146,6 +146,28 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         ISTYPE(t->toBasetype()->ty == Tclass && ((TypeClass *)t->toBasetype())->sym->storage_class & STCfinal)
     }
+    else if (ident == Id::isPOD)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (*args)[0];
+        Type *t = isType(o);
+        StructDeclaration *sd;
+        if (!t)
+        {
+            error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
+            goto Lfalse;
+        }
+        if (t->toBasetype()->ty == Tstruct
+              && ((sd = (StructDeclaration *)(((TypeStruct *)t->toBasetype())->sym)) != NULL))
+        {
+            if (sd->isPOD())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        goto Ltrue;
+    }
     else if (ident == Id::isAbstractFunction)
     {
         FuncDeclaration *f;
