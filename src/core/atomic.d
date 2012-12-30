@@ -369,7 +369,11 @@ else version( AsmX86_32 )
     HeadUnshared!(T) atomicLoad(MemoryOrder ms = MemoryOrder.seq, T)( ref const shared T val ) nothrow
     if(!__traits(isFloating, T))
     {
-        static if( T.sizeof == byte.sizeof )
+        static if (!__traits(isPOD, T))
+        {
+            static assert( false, "argument to atomicLoad() must be POD" );
+        }
+        else static if( T.sizeof == byte.sizeof )
         {
             //////////////////////////////////////////////////////////////////
             // 1 Byte Load
