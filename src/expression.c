@@ -1633,7 +1633,18 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                arg = arg->toLvalue(sc, arg);
+                if ((p->storageClass & (STCin | STCscope)) && !arg->isLvalue())
+                {
+                    Identifier *idtmp = Lexer::uniqueId("__tmprv");
+                    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(Loc(), arg));
+                    tmp->storage_class |= STCctfe;
+                    Expression *ae = new DeclarationExp(loc, tmp);
+                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+                    arg = e->semantic(sc);
+                    arg = arg->toLvalue(sc, arg);
+                }
+                else
+                    arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {

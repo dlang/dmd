@@ -3063,7 +3063,13 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     {
         Parameter *p = Parameter::getNth(tf->parameters, u);
         Expression *e;
-        if (p->storageClass & (STCref | STCout))
+        if ((p->storageClass & STCref) && (p->storageClass & (STCscope | STCin)))
+        {
+            //     'ref' is more specialized than 'scope ref'
+            // non-'ref' is more specialized than 'scope ref'
+            e = p->type->defaultInitLiteral(Loc());
+        }
+        else if (p->storageClass & (STCref | STCout))
         {
             e = new IdentifierExp(Loc(), p->ident);
             e->type = p->type;

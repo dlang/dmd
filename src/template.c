@@ -1595,6 +1595,8 @@ Lretry:
                     {
                         // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                     }
+                    else if (fparam->storageClass & (STCin | STCscope))
+                        m = MATCHconvert;
                     else
                         goto Lnomatch;
                 }

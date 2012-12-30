@@ -854,6 +854,10 @@ public:
             case STClazy:
                 buf->writeByte('L');
                 break;
+            case STCin | STCref:
+                buf->writeByte('M');    // scope
+                buf->writeByte('K');    // ref
+                break;
             default:
     #ifdef DEBUG
                 printf("storageClass = x%llx\n", p->storageClass & (STCin | STCout | STCref | STClazy));
