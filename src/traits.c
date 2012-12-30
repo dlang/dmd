@@ -152,14 +152,17 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Ldimerror;
         Object *o = (*args)[0];
         Type *t = isType(o);
-        StructDeclaration *sd;
         if (!t)
         {
             error("type expected as second argument of __traits %s instead of %s", ident->toChars(), o->toChars());
             goto Lfalse;
         }
-        if (t->toBasetype()->ty == Tstruct
-              && ((sd = (StructDeclaration *)(((TypeStruct *)t->toBasetype())->sym)) != NULL))
+        Type *tv = t->toBasetype();
+        while (tv->ty == Tsarray)
+            tv = tv->nextOf()->toBasetype();
+        StructDeclaration *sd;
+        if (tv->ty == Tstruct
+              && ((sd = (StructDeclaration *)(((TypeStruct *)tv)->sym)) != NULL))
         {
             if (sd->isPOD())
                 goto Ltrue;

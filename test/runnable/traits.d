@@ -954,6 +954,9 @@ void test9237()
     static assert(__traits(isPOD, int*));
     static assert(__traits(isPOD, int[]));
     static assert(!__traits(compiles, __traits(isPOD, 123) ));
+    static assert(__traits(isPOD, POD1_9237[2]));
+    static assert(__traits(isPOD, C_9273[2]));
+    static assert(!__traits(isPOD, NonPOD1_9237[2]));
 }
 
 int main()
