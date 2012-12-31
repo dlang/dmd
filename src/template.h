@@ -91,20 +91,20 @@ struct TemplateDeclaration : ScopeDsymbol
     enum PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
-    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
-    MATCH leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs);
+    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, int flag);
+    MATCH leastAsSpecialized(TemplateDeclaration *td2);
 
     MATCH deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs, Expression *ethis, Expressions *fargs, Objects *dedargs);
     FuncDeclaration *deduceFunctionTemplate(Loc loc, Scope *sc, Objects *tiargs, Expression *ethis, Expressions *fargs, int flags = 0);
     Object *declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
-    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Expressions *fargs);
+    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
     int isOverloadable();
 
-    void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
+    void makeParamNamesVisibleInConstraint(Scope *paramscope);
 };
 
 struct TemplateParameter
@@ -312,7 +312,6 @@ struct TemplateInstance : ScopeDsymbol
     TemplateInstance(Loc loc, TemplateDeclaration *tempdecl, Objects *tiargs);
     static Objects *arraySyntaxCopy(Objects *objs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    void semantic(Scope *sc, Expressions *fargs);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
@@ -332,7 +331,7 @@ struct TemplateInstance : ScopeDsymbol
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findTemplateDeclaration(Scope *sc);
-    bool findBestMatch(Scope *sc, Expressions *fargs);
+    bool findBestMatch(Scope *sc);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
     Identifier *genIdent(Objects *args);
