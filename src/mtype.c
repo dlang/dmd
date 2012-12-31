@@ -5945,6 +5945,8 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             Type::tindex));
                     targb = targb->semantic(0, NULL);
                 }
+                else if (p->storageClass & STCauto)
+                    m = MATCHconvert;
                 else
                     goto Nomatch;
             }
@@ -9476,12 +9478,15 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
 {
     if (storageClass & STCscope)
         buf->writeByte('M');
-    switch (storageClass & (STCin | STCout | STCref | STClazy))
+    switch (storageClass & (STCin | STCout | STCref | STClazy | STCauto))
     {   case 0:
         case STCin:
             break;
         case STCout:
             buf->writeByte('J');
+            break;
+        case STCauto | STCref:
+            buf->writestring("KK");
             break;
         case STCref:
             buf->writeByte('K');

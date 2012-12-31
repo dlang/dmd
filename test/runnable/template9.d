@@ -108,7 +108,7 @@ int foo6(T...)(auto ref T x)
         if (v == 10)
             assert(__traits(isRef, x[i]));
         else
-            assert(!__traits(isRef, x[i]));
+            assert(__traits(isRef, x[i]));
         result += v;
     }
     return result;
@@ -146,8 +146,8 @@ void test7()
     assert(i == 7);
     min(x, y) = 10;
     assert(x == 10);
-    static assert(!__traits(compiles, min(3, y) = 10));
-    static assert(!__traits(compiles, min(y, 3) = 10));
+    static assert(__traits(compiles, min(3, y) = 10));
+    static assert(__traits(compiles, min(y, 3) = 10));
 }
 
 /**********************************/
@@ -281,16 +281,16 @@ void test6404()
     int n;
 
     static assert(!__traits(compiles, rvalue(n)));
-    static assert( __traits(compiles, rvalue(0)));
+    static assert(!__traits(compiles, rvalue(0)));
 
     static assert( __traits(compiles, lvalue(n)));
-    static assert(!__traits(compiles, lvalue(0)));
+    static assert( __traits(compiles, lvalue(0)));
 
     static assert(!__traits(compiles, rvalueVargs(n)));
-    static assert( __traits(compiles, rvalueVargs(0)));
+    static assert(!__traits(compiles, rvalueVargs(0)));
 
     static assert( __traits(compiles, lvalueVargs(n)));
-    static assert(!__traits(compiles, lvalueVargs(0)));
+    static assert( __traits(compiles, lvalueVargs(0)));
 }
 
 /**********************************/
@@ -581,7 +581,7 @@ void test6208a()
     assert(getRefNonref(rvalue()) == 2);
 
     assert(getAutoRef(lvalue  ) == 1);
-    assert(getAutoRef(rvalue()) == 2);
+    assert(getAutoRef(rvalue()) == 1);
 
     static assert( __traits(compiles, getOut(lvalue  )));
     static assert(!__traits(compiles, getOut(rvalue())));
@@ -951,8 +951,8 @@ void goo10a(T   )(auto ref T)   { static assert(is(T    == const(int[]))); }
 void goo10b(T...)(auto ref T)   { static assert(is(T[0] == const(int[]))); }
 
 // auto ref with rvalue does
-void hoo10a(T   )(auto ref T)   { static assert(is(T    == const(int)[])); }
-void hoo10b(T...)(auto ref T)   { static assert(is(T[0] == const(int)[])); }
+void hoo10a(T   )(auto ref T)   { static assert(is(T    == const(int[]))); }
+void hoo10b(T...)(auto ref T)   { static assert(is(T[0] == const(int[]))); }
 
 void bar10a(T   )(T)            { static assert(is(T    == const(int)*)); }
 void bar10b(T...)(T)            { static assert(is(T[0] == const(int)*)); }

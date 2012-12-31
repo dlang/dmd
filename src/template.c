@@ -1354,8 +1354,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
                      */
                     if ((tt->ty == Tarray || tt->ty == Tpointer) &&
                         !tt->isMutable() &&
-                        (!(fparam->storageClass & STCref) ||
-                         (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                        !(fparam->storageClass & STCref))
                     {
                         tt = tt->mutableOf();
                     }
@@ -1545,8 +1544,7 @@ Lretry:
              */
             if ((argtype->ty == Tarray || argtype->ty == Tpointer) &&
                 !argtype->isMutable() &&
-                (!(fparam->storageClass & STCref) ||
-                 (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                !(fparam->storageClass & STCref))
             {
                 argtype = argtype->mutableOf();
             }
@@ -1609,7 +1607,7 @@ Lretry:
                 }
             }
 
-            if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
+            if (m && (fparam->storageClass & STCref))
             {
                 if (!farg->isLvalue())
                 {
@@ -1619,6 +1617,8 @@ Lretry:
                     else if (farg->op == TOKslice && argtype->ty == Tsarray)
                     {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
                     }
+                    else if (fparam->storageClass & STCauto)
+                        m = MATCHconvert;
                     else
                         goto Lnomatch;
                 }
