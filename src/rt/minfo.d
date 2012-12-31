@@ -12,10 +12,8 @@
 
 module rt.minfo;
 
-import core.stdc.stdio;   // printf
 import core.stdc.stdlib;  // alloca
 import core.stdc.string;  // memcpy
-import rt.util.console;   // console
 
 enum
 {
@@ -338,21 +336,6 @@ body
 
 private:
 
-void print(string m)
-{
-    // write message to stderr
-    console(m);
-}
-
-void println(string m)
-{
-    print(m);
-    version (Windows)
-        print("\r\n");
-    else
-        print("\n");
-}
-
 struct StackRec
 {
     @property ModuleInfo* mod()
@@ -366,21 +349,13 @@ struct StackRec
 
 void onCycleError(StackRec[] stack)
 {
-    string msg = "Aborting";
-    version (unittest)
-    {
-        if (_inUnitTest)
-            goto Lerror;
-    }
-
-    msg ~= ": Cycle detected between modules with ctors/dtors:\n";
+    string msg = "Aborting: Cycle detected between modules with ctors/dtors:\n";
     foreach (e; stack)
     {
         msg ~= e.mod.name;
         msg ~= " -> ";
     }
     msg ~= stack[0].mod.name;
- Lerror:
     throw new Exception(msg);
 }
 
@@ -498,14 +473,8 @@ private void sortCtorsImpl(ref ModuleGroup mgroup, StackRec[] stack)
     }
 }
 
-version (unittest)
-  bool _inUnitTest;
-
 unittest
 {
-    _inUnitTest = true;
-    scope (exit) _inUnitTest = false;
-
     static void assertThrown(T : Throwable, E)(lazy E expr)
     {
         try
