@@ -5245,7 +5245,7 @@ int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
 
 void test8840()
 {
-    long f1 = foo8840();    
+    long f1 = foo8840();
     long f2 = foo8840();
 
     long f = (f1 < f2 ? f1 : f2);
@@ -5440,6 +5440,49 @@ void check9171(const char *s, ulong v)
 void test9171()
 {
     bitcomb9171(0b1110000000000000010000000000000000000000000000000001);
+}
+
+/***************************************************/
+
+void test8765()
+{
+    try
+    {
+        int x = 0;
+        assert(x == 1);
+    }
+    catch (Throwable e)
+    {
+        assert(e.msg == "assert(x == 1)");
+    }
+
+    try
+    {
+        int x = 0;
+        assert(x == 1, "Custom Error");
+    }
+    catch (Throwable e)
+    {
+        assert(e.msg == `assert(x == 1, "Custom Error")`);
+    }
+}
+
+/***************************************************/
+
+void test9255()
+{
+    try
+    {
+        int x = 0;
+        assert(x == 1);
+    }
+    catch (Throwable e)
+    {
+        version(Windows)
+            assert(e.file == r"runnable\test42.d");
+        else
+            assert(e.file == "runnable/test42.d");
+    }
 }
 
 /***************************************************/
@@ -5715,6 +5758,8 @@ int main()
     test8376();
     test8796();
     test9171();
+    test8765();
+    test9255();
 
     writefln("Success");
     return 0;
