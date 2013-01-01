@@ -3,12 +3,10 @@
  * Copyright (c) 2000-2011 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
- * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/eh.c
- * http://www.dsource.org/projects/dmd/browser/trunk/src/eh.c
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
