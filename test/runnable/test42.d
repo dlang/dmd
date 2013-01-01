@@ -5444,6 +5444,16 @@ void test9171()
 
 /***************************************************/
 
+void test9248()
+{
+    void*[] a = [cast(void*)1];
+    void*[] b = [cast(void*)2];
+    auto c = a ~ b;
+    assert(c == [cast(void*)1, cast(void*)2]);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5715,6 +5725,7 @@ int main()
     test8376();
     test8796();
     test9171();
+    test9248();
 
     writefln("Success");
     return 0;

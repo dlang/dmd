@@ -11436,7 +11436,20 @@ Expression *CatExp::semantic(Scope *sc)
         Type *tb1next = tb1->nextOf();
         Type *tb2next = tb2->nextOf();
 
-        if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
+        if (tb1next && tb2next &&
+            (tb1next->implicitConvTo(tb2next) >= MATCHconst ||
+             tb2next->implicitConvTo(tb1next) >= MATCHconst)
+           )
+        {
+            /* Here to avoid the case of:
+             *    void*[] a = [cast(void*)1];
+             *    void*[] b = [cast(void*)2];
+             *    a ~ b;
+             * becoming:
+             *    a ~ [cast(void*)b];
+             */
+        }
+        else if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
             e2->implicitConvTo(tb1next) >= MATCHconvert)
         {
             checkPostblit(e2->loc, tb2);
