@@ -1789,7 +1789,7 @@ elem *toElem(Expression *e, IRState *irs)
                  * to a #line directive.
                  */
                 elem *ea;
-                if (ae->loc.filename && (ae->msg || strcmp(ae->loc.filename, mname) != 0))
+                if (ae->loc.filename)
                 {
                     /* Cache values.
                      */
