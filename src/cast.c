@@ -31,10 +31,12 @@
  * Issue error if it can't be done.
  */
 
-Expression *Expression::implicitCastTo(Scope *sc, Type *t)
+Expression *Expression::implicitCastTo(Scope *sc, Type *t, Loc eloc)
 {
     //printf("Expression::implicitCastTo(%s of type %s) => %s\n", toChars(), type->toChars(), t->toChars());
 
+    if (!eloc.linnum)
+        eloc = this->loc;
     MATCH match = implicitConvTo(t);
     if (match)
     {
@@ -48,7 +50,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
             Expression *e = optimize(WANTflags | WANTvalue);
 
             if (e->op == TOKint64)
-                return e->implicitCastTo(sc, t);
+                return e->implicitCastTo(sc, t, eloc);
             if (tyfrom == Tint32 &&
                 (op == TOKadd || op == TOKmin ||
                  op == TOKand || op == TOKor || op == TOKxor)
@@ -64,7 +66,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
             }
             else
             {
-                warning("implicit conversion of expression (%s) of type %s to %s can cause loss of data",
+                ::warning(eloc, "implicit conversion of expression (%s) of type %s to %s can cause loss of data",
                     toChars(), type->toChars(), t->toChars());
             }
         }
@@ -82,7 +84,7 @@ Expression *Expression::implicitCastTo(Scope *sc, Type *t)
 
     Expression *e = optimize(WANTflags | WANTvalue);
     if (e != this)
-        return e->implicitCastTo(sc, t);
+        return e->implicitCastTo(sc, t, eloc);
 
 #if 0
 printf("ty = %d\n", type->ty);
@@ -105,15 +107,15 @@ fflush(stdout);
              *    }
              * Should eventually make it work.
              */
-            error("forward reference to type %s", t->toChars());
+            ::error(eloc, "forward reference to type %s", t->toChars());
         }
         else if (t->reliesOnTident())
-            error("forward reference to type %s", t->reliesOnTident()->toChars());
+            ::error(eloc, "forward reference to type %s", t->reliesOnTident()->toChars());
 
 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
 //type = type->semantic(loc, sc);
 //printf("type %s t %s\n", type->deco, t->deco);
-        error("cannot implicitly convert expression (%s) of type %s to %s",
+        ::error(eloc, "cannot implicitly convert expression (%s) of type %s to %s",
             toChars(), type->toChars(), t->toChars());
     }
     return new ErrorExp();

@@ -138,7 +138,7 @@ struct Expression : Object
     virtual int isLvalue();
     virtual Expression *toLvalue(Scope *sc, Expression *e);
     virtual Expression *modifiableLvalue(Scope *sc, Expression *e);
-    virtual Expression *implicitCastTo(Scope *sc, Type *t);
+    virtual Expression *implicitCastTo(Scope *sc, Type *t, Loc eloc = Loc(0));
     virtual MATCH implicitConvTo(Type *t);
     virtual IntRange getIntRange();
     virtual Expression *castTo(Scope *sc, Type *t);
