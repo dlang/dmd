@@ -2132,10 +2132,11 @@ Lagain:
             if (t1->ty == Tdelegate)
             {
                 tx = new TypeDelegate(d);
-                tx = tx->merge();
             }
             else
                 tx = d->pointerTo();
+
+            tx = tx->semantic(e1->loc, sc);
 
             if (t1->implicitConvTo(tx) && t2->implicitConvTo(tx))
             {
