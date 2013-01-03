@@ -84,3 +84,16 @@ int getgruid_r(gid_t, group*, char*, size_t, group**);
 
 int getgrnam_r(in char*, group*, char*, size_t, group**);
 int getgruid_r(gid_t, group*, char*, size_t, group**);
+
+//
+// XOpen (XSI)
+//
+/*
+struct group  *getgrent(void);
+void           endgrent(void);
+void           setgrent(void);
+*/
+
+group* getgrent();
+void endgrent();
+void setgrent();
