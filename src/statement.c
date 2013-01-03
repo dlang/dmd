@@ -3321,8 +3321,10 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
         a->reserve(2);
         sc->sw->sdefault = new DefaultStatement(loc, s);
-        a->push(sc->sw->sdefault);
         a->push(body);
+        if (body->blockExit(FALSE) & BEfallthru)
+            a->push(new BreakStatement(0, NULL));
+        a->push(sc->sw->sdefault);
         cs = new CompoundStatement(loc, a);
         body = cs;
     }
