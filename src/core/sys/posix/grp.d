@@ -82,8 +82,25 @@ int getgrnam_r(in char*, group*, char*, size_t, group**);
 int getgruid_r(gid_t, group*, char*, size_t, group**);
 */
 
-int getgrnam_r(in char*, group*, char*, size_t, group**);
-int getgruid_r(gid_t, group*, char*, size_t, group**);
+version( linux )
+{
+    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgruid_r(gid_t, group*, char*, size_t, group**);
+}
+else version( OSX )
+{
+    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgruid_r(gid_t, group*, char*, size_t, group**);
+}
+else version( FreeBSD )
+{
+    int getgrnam_r(in char*, group*, char*, size_t, group**);
+    int getgruid_r(gid_t, group*, char*, size_t, group**);
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
 
 //
 // XOpen (XSI)
@@ -94,6 +111,25 @@ void           endgrent(void);
 void           setgrent(void);
 */
 
-group* getgrent();
-void endgrent();
-void setgrent();
+version( linux )
+{
+    group* getgrent();
+    void endgrent();
+    void setgrent();
+}
+else version( OSX )
+{
+    group* getgrent();
+    void endgrent();
+    void setgrent();
+}
+else version( FreeBSD )
+{
+    group* getgrent();
+    void endgrent();
+    void setgrent();
+}
+else
+{
+    static assert(false, "Unsupported platform");
+}
