@@ -111,6 +111,7 @@ MANIFEST= \
 	src\core\sys\posix\dirent.d \
 	src\core\sys\posix\dlfcn.d \
 	src\core\sys\posix\fcntl.d \
+	src\core\sys\posix\grp.d \
 	src\core\sys\posix\inttypes.d \
 	src\core\sys\posix\netdb.d \
 	src\core\sys\posix\poll.d \
@@ -470,6 +471,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\dirent.d \
 	$(IMPDIR)\core\sys\posix\dlfcn.d \
 	$(IMPDIR)\core\sys\posix\fcntl.d \
+	$(IMPDIR)\core\sys\posix\grp.d \
 	$(IMPDIR)\core\sys\posix\inttypes.d \
 	$(IMPDIR)\core\sys\posix\netdb.d \
 	$(IMPDIR)\core\sys\posix\poll.d \
@@ -766,6 +768,9 @@ $(IMPDIR)\core\sys\posix\dlfcn.d : src\core\sys\posix\dlfcn.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\fcntl.d : src\core\sys\posix\fcntl.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\grp.d : src\core\sys\posix\grp.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\inttypes.d : src\core\sys\posix\inttypes.d
