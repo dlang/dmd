@@ -10950,7 +10950,7 @@ Ltupleassign:
     }
     else
     {
-        e2 = e2->implicitCastTo(sc, e1->type);
+        e2 = e2->implicitCastTo(sc, e1->type, loc);
     }
     if (e2->op == TOKerror)
         return new ErrorExp();
