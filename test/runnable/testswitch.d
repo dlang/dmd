@@ -499,6 +499,21 @@ void test7358()
 }
 
 /*****************************************/
+// 9263
+
+void test9263()
+{
+    enum Foo { A }
+
+    Foo f;
+    final switch (f) with(Foo)
+    {
+        case A:
+            return;
+    }
+}
+
+/*****************************************/
 
 int main()
 {
@@ -522,6 +537,7 @@ int main()
     test19();
     test20();
     test7358();
+    test9263();
 
     printf("Success\n");
     return 0;
