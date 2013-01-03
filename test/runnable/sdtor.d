@@ -1166,6 +1166,7 @@ void test45()
 }
 
 /**********************************/
+// 3986
 
 struct SiberianHamster
 {
@@ -1177,6 +1178,26 @@ void test46()
 {
    SiberianHamster basil = "cybil";
    assert(basil.rat == 813);
+}
+
+/**********************************/
+// 8741
+
+struct Vec8741
+{
+    this(float x)
+    {
+        m[0] = x;
+        m[1] = 58;
+    }
+    float[2] m;
+    static Vec8741 zzz = Vec8741(7);
+}
+
+void test8741()
+{
+    assert(Vec8741.zzz.m[0] == 7);
+    assert(Vec8741.zzz.m[1] == 58);
 }
 
 /**********************************/
@@ -2413,6 +2434,7 @@ int main()
     test59();
     test5737();
     test6119();
+    test8741();
     test6364();
     test6499();
     test60();
