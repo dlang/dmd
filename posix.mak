@@ -652,11 +652,11 @@ detab:
 	detab $(MANIFEST)
 	tolf $(MANIFEST)
 
-zip: druntime.zip
+zip:
+	zip druntime.zip $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
 
 druntime.zip:
-	rm -f $@
-	zip -u $@ $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
+	zip $@ $(MANIFEST) $(DOCS) $(IMPORTS) minit.o
 
 install: druntime.zip
 	unzip -o druntime.zip -d /dmd2/src/druntime
