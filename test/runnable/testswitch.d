@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// PERMUTE_ARGS: -w
 
 extern(C) int printf(const char*, ...);
 
@@ -56,7 +56,6 @@ void test2()
         case 7:
         default:
             assert(0);
-            break;
     }
     assert(i == 20);
 }
@@ -249,7 +248,7 @@ void test11()
     long foo = 4;
     switch (foo)
     {
-        case 2: assert (false); break;
+        case 2: assert (false);
         case 3: break;
         case 4: break;
         case 5: break;
@@ -267,7 +266,6 @@ void test12()
         case "\xFF\xFE"c:                       break;
         default:
             assert(0);
-            printf("----Found ASCII\n");        break;
     }
 }
 
@@ -281,7 +279,6 @@ void test13()
         case "#\xFE"c:                          break;
         default:
             assert(0);
-            printf("----Found ASCII\n");        break;
     }
 }
 
@@ -390,7 +387,7 @@ void test16()
         case E16.A:
         case E16.B:
         case E16.C:
-            ;
+        {}
     }
 }
 
@@ -429,7 +426,7 @@ void test17()
 
 int test19()
 {
-    enum foo{ bar };
+    enum foo{ bar }
     foo x;
     final switch(x){ case foo.bar: return 0; }
 }
