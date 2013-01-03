@@ -2245,11 +2245,16 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
     /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
      * that same template. Thus, the function type can be incomplete. Complete it.
+     *
+     * Bugzilla 9208: For auto function, completion should be deferred to the end of
+     * its semantic3. Should not complete it in here.
      */
     {   TypeFunction *tf = (TypeFunction *)fd_best->type;
         assert(tf->ty == Tfunction);
-        if (tf->next)
+        if (tf->next && !fd_best->inferRetType)
+        {
             fd_best->type = tf->semantic(loc, sc);
+        }
     }
     if (fd_best->scope)
     {
