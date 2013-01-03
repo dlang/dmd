@@ -407,7 +407,7 @@ SRC_D_MODULES = \
 
 # NOTE: trace.d and cover.d are not necessary for a successful build
 #       as both are used for debugging features (profiling and coverage)
-# NOTE: a pre-compiled minit.obj has been provided in dmd for Win32 and
+# NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
 OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/complex.o
@@ -556,7 +556,6 @@ target : import copy $(DRUNTIME) doc
 ######################## Doc .html file generation ##############################
 
 doc: $(DOCS)
-	echo $(DOCS)
 
 $(DOCDIR)/object.html : src/object_.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $<
