@@ -5674,7 +5674,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 continue;
             }
 
-            /* Resolve "auto ref" storage class to be either ref or value,
+            /* Resolve "auto ref" storage class for templates to be either ref or value,
              * based on the argument matching the parameter
              */
             if (fparam->storageClass & STCauto)
@@ -5686,8 +5686,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                     else
                         fparam->storageClass &= ~STCref;        // value parameter
                 }
-                else
-                    error(loc, "auto can only be used for template function parameters");
             }
 
             // Remove redundant storage classes for type, they are already applied
@@ -6019,8 +6017,13 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             //printf("match %d\n", m);
         }
 
-        // Non-lvalues do not match ref or out parameters
-        if (p->storageClass & STCref)
+        // Non-lvalues do not match (non auto) ref or out parameters
+        if (p->storageClass & STCauto && p->storageClass & STCref)
+        {
+            if(!arg->isLvalue())
+                match = MATCHconvert;
+        }
+        else if (p->storageClass & STCref)
         {   if (m && !arg->isLvalue())
             {
                 Type *ta = targ->aliasthisOf();

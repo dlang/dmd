@@ -1154,6 +1154,19 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
+                if(p->storageClass & STCauto && !arg->isLvalue())
+                {
+                    VarDeclaration* vd = new VarDeclaration(
+                        loc, p->type, Identifier::generateId("__rvalueRefParam"), 
+                        new ExpInitializer(loc, arg));
+   
+                    DeclarationExp* de = new DeclarationExp(loc, vd);
+                    VarExp* ve = new VarExp(loc, vd);
+
+                    arg = new CommaExp(loc, de, ve);
+                    arg = arg->semantic(sc);
+                }
+
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
