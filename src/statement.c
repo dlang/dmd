@@ -1102,46 +1102,20 @@ bool WhileStatement::hasContinue()
 
 bool WhileStatement::usesEH()
 {
-    assert(0);
-    return body ? body->usesEH() : 0;
+    assert(global.errors);
+    return 0;
 }
 
 int WhileStatement::blockExit(bool mustNotThrow)
 {
-    assert(0);
-    //printf("WhileStatement::blockExit(%p)\n", this);
-
-    int result = BEnone;
-    if (condition->canThrow(mustNotThrow))
-        result |= BEthrow;
-    if (condition->isBool(TRUE))
-    {
-        if (body)
-        {   result |= body->blockExit(mustNotThrow);
-            if (result & BEbreak)
-                result |= BEfallthru;
-        }
-    }
-    else if (condition->isBool(FALSE))
-    {
-        result |= BEfallthru;
-    }
-    else
-    {
-        if (body)
-            result |= body->blockExit(mustNotThrow);
-        result |= BEfallthru;
-    }
-    result &= ~(BEbreak | BEcontinue);
-    return result;
+    assert(global.errors);
+    return BEfallthru;
 }
 
 
 int WhileStatement::comeFrom()
 {
-    assert(0);
-    if (body)
-        return body->comeFrom();
+    assert(global.errors);
     return FALSE;
 }
 
@@ -2651,33 +2625,20 @@ bool ForeachRangeStatement::hasContinue()
 
 bool ForeachRangeStatement::usesEH()
 {
-    assert(0);
+    assert(global.errors);
     return body->usesEH();
 }
 
 int ForeachRangeStatement::blockExit(bool mustNotThrow)
 {
-    assert(0);
-    int result = BEfallthru;
-
-    if (lwr && lwr->canThrow(mustNotThrow))
-        result |= BEthrow;
-    else if (upr && upr->canThrow(mustNotThrow))
-        result |= BEthrow;
-
-    if (body)
-    {
-        result |= body->blockExit(mustNotThrow) & ~(BEbreak | BEcontinue);
-    }
-    return result;
+    assert(global.errors);
+    return BEfallthru;
 }
 
 
 int ForeachRangeStatement::comeFrom()
 {
-    assert(0);
-    if (body)
-        return body->comeFrom();
+    assert(global.errors);
     return FALSE;
 }
 
