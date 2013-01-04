@@ -24,7 +24,7 @@
 #include "id.h"
 #include "module.h"
 
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#if CPP_MANGLE
 char *cpp_mangle(Dsymbol *s);
 #endif
 
