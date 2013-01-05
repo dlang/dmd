@@ -464,6 +464,7 @@ extern int stackused;
 #endif
 code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
+code *cdd_u64(elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)

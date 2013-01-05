@@ -2614,6 +2614,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                 goto L1;
 
             case OPd_u64:
+                if (I32 || I64)
+                    return cdd_u64(e,pretregs);
                 retregs = DOUBLEREGS;
                 goto L1;
             case OPu64_d:
