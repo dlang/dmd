@@ -661,7 +661,7 @@ Lagain:
     Aoff = FASToff - align(0,Aoffset);
 
     regsave.off = Aoff - align(0,regsave.top);
-    Foffset = floatreg ? (config.fpxmmregs ? 16 : DOUBLESIZE) : 0;
+    Foffset = floatreg ? (config.fpxmmregs || I32 ? 16 : DOUBLESIZE) : 0;
     Foff = regsave.off - align(0,Foffset);
     assert(usedalloca != 1);
     AAoff = usedalloca ? (Foff - REGSIZE) : Foff;
