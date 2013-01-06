@@ -2630,6 +2630,8 @@ code *cdcnvt(elem *e, regm_t *pretregs)
                 }
                 break;
             case OPld_u64:
+                if (I32 || I64)
+                    return cdd_u64(e,pretregs);
                 retregs = mST0;
                 c1 = codelem(e->E1,&retregs,FALSE);
                 c2 = callclib(e,CLIBld_u64,pretregs,0);
