@@ -2927,6 +2927,7 @@ code *post87(elem *e,regm_t *pretregs)
 /************************
  * Do the following opcodes:
  *      OPd_u64
+ *      OPld_u64
  */
 code *cdd_u64(elem *e, regm_t *pretregs)
 {
