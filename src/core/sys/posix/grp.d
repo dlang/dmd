@@ -115,20 +115,20 @@ void           setgrent(void);
 version( linux )
 {
     group* getgrent();
-    void endgrent();
-    void setgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
 }
 else version( OSX )
 {
     group* getgrent();
-    void endgrent();
-    void setgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
 }
 else version( FreeBSD )
 {
     group* getgrent();
-    void endgrent();
-    void setgrent();
+    @trusted void endgrent();
+    @trusted void setgrent();
 }
 else
 {
