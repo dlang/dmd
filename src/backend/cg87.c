@@ -3102,6 +3102,47 @@ code *cdd_u64(elem *e, regm_t *pretregs)
 
 /************************
  * Do the following opcodes:
+ *      OPd_u32
+ */
+code *cdd_u32(elem *e, regm_t *pretregs)
+{
+    assert(I32 || I64);
+
+    /* Generate:
+            mov         floatreg+8,0x0FBF0000   // (roundTo0<<16)
+            fstcw       floatreg+12
+            fldcw       floatreg+10             // roundTo0
+            fistp       floatreg
+            fldcw       floatreg+12
+            mov         EAX,floatreg
+     */
+    regm_t retregs = mST0;
+    code *c = codelem(e->E1, &retregs, FALSE);
+    tym_t tym = e->Ety;
+    retregs = *pretregs & ALLREGS;
+    if (!retregs)
+        retregs = ALLREGS;
+    unsigned reg;
+    code *c2 = allocreg(&retregs,&reg,tym);
+
+    code *cf3 = genfltreg(CNIL,0xC7,0,8);
+    cf3->IFL2 = FLconst;
+    cf3->IEV2.Vint = 0x0FBF0000;                 // MOV floatreg+8,(roundTo0<<16)
+
+    genfltreg(cf3,0xD9,7,12);                    // FSTCW floatreg+12
+    genfltreg(cf3,0xD9,5,10);                    // FLDCW floatreg+10
+
+    genfltreg(cf3,0xDF,7,0);                     // FISTP dword ptr floatreg
+    genfltreg(cf3,0xD9,5,12);                    // FLDCW floatreg+12
+    genfltreg(cf3,0x8B,reg,0);                   // MOV reg,floatreg
+
+    pop87();
+    c = cat4(c,c2,cf3,fixresult(e,retregs,pretregs));
+    return c;
+}
+
+/************************
+ * Do the following opcodes:
  *      OPd_s16
  *      OPd_s32
  *      OPd_u16
