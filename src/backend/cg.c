@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1995 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2012 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -53,8 +53,4 @@ regm_t  DOUBLEREGS = DOUBLEREGS_16;
 symbol *localgot;               // reference to GOT for this function
 symbol *tls_get_addr_sym;       // function __tls_get_addr
 
-#if TARGET_OSX
-int STACKALIGN = 16;
-#else
-int STACKALIGN = 0;
-#endif
+int STACKALIGN = 2;             // default for 16 bit code

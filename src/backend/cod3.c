@@ -349,6 +349,12 @@ void cod3_set32()
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
+
+#if TARGET_OSX
+    STACKALIGN = 16;   // 16 for OSX because OSX uses SIMD
+#else
+    STACKALIGN = 4;
+#endif
 }
 
 /********************************
@@ -378,6 +384,8 @@ void cod3_set64()
 
     for (unsigned i = 0x80; i < 0x90; i++)
         inssize2[i] = W|T|6;
+
+    STACKALIGN = 16;   // 16 rather than 8 because of SIMD alignment
 }
 
 /*********************************
