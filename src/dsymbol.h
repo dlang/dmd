@@ -266,6 +266,7 @@ struct ScopeDsymbol : Dsymbol
 
     Dsymbols *imports;          // imported Dsymbol's
     unsigned char *prots;       // array of PROT, one for each import
+    bool hasStdMathImport;      // std.math import (if 'this' is a function => local import)
 
     ScopeDsymbol();
     ScopeDsymbol(Identifier *id);
