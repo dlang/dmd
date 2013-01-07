@@ -417,10 +417,14 @@ int main(string[] args)
                 }
             }
 
+            compile_output = std.string.strip(compile_output);
+            compile_output = compile_output.unifyNewLine();
+
+            auto m = std.regex.match(compile_output, `Internal error: .*$`);
+            enforce(!m, m.hit);
+
             if (testArgs.compileOutput !is null)
             {
-                compile_output = std.string.strip(compile_output);
-                compile_output = compile_output.unifyNewLine();
                 compile_output = std.regex.replace(compile_output, regex(`DMD v2\.[0-9]+ DEBUG\n`, ""), "");
                 compile_output = std.regex.replace(compile_output, regex(`\nDMD v2\.[0-9]+ DEBUG`, ""), "");
                 enforce(compile_output == testArgs.compileOutput,
