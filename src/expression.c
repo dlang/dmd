@@ -12128,38 +12128,44 @@ Expression *PowExp::semantic(Scope *sc)
             return e;
         }
 
-        static int importMathChecked = 0;
+        static bool importMathChecked = false;
         static bool importMath = false;
+        static bool isLocalImport = false;
         if (!importMathChecked)
         {
-            importMathChecked = 1;
-            for (size_t i = 0; i < Module::amodules.dim; i++)
-            {   Module *mi = Module::amodules[i];
-                //printf("\t[%d] %s\n", i, mi->toChars());
-                if (mi->ident == Id::math &&
-                    mi->parent->ident == Id::std &&
-                    !mi->parent->parent)
+            importMathChecked = true;
+            if (sc && sc->module && sc->module->hasStdMathImport)
+                importMath = true;
+
+            for (Scope *s = sc;
+                 s && s->scopesym && !s->scopesym->isPackage() && !s->scopesym->isModule();
+                 s = s->enclosing)
+            {
+                if (s->scopesym->hasStdMathImport)
                 {
                     importMath = true;
-                    goto L1;
+                    isLocalImport = true;
+                    break;
                 }
             }
+        }
+
+        if (!importMath)
+        {
             error("must import std.math to use ^^ operator");
             return new ErrorExp();
+        }
 
-         L1: ;
+        if (isLocalImport)
+        {   // use 'std.math' for local import
+            e = new IdentifierExp(loc, Id::std);
         }
         else
-        {
-            if (!importMath)
-            {
-                error("must import std.math to use ^^ operator");
-                return new ErrorExp();
-            }
+        {   // use '.std.math' for regular import
+            e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::std);
         }
 
-        e = new IdentifierExp(loc, Id::empty);
-        e = new DotIdExp(loc, e, Id::std);
         e = new DotIdExp(loc, e, Id::math);
         if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
         {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)

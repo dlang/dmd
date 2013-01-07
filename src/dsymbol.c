@@ -820,6 +820,7 @@ ScopeDsymbol::ScopeDsymbol()
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    hasStdMathImport = false;
 }
 
 ScopeDsymbol::ScopeDsymbol(Identifier *id)
@@ -829,6 +830,7 @@ ScopeDsymbol::ScopeDsymbol(Identifier *id)
     symtab = NULL;
     imports = NULL;
     prots = NULL;
+    hasStdMathImport = false;
 }
 
 Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
