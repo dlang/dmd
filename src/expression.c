@@ -10624,13 +10624,13 @@ Expression *AssignExp::semantic(Scope *sc)
     Type *t1 = e1->type->toBasetype();
 
     e2 = e2->inferType(t1);
-    if (!e2->rvalue())
-        return new ErrorExp();
 
     e2 = e2->semantic(sc);
     if (e2->op == TOKerror)
         return new ErrorExp();
     e2 = resolveProperties(sc, e2);
+    if (!e2->rvalue())
+        return new ErrorExp();
 
     /* Rewrite tuple assignment as a tuple of assignments.
      */
