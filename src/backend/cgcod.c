@@ -953,7 +953,7 @@ void stackoffsets(int flags)
     EEoffset = 0;                       // for SCstack's
     Amax = 0;
     Aalign = REGSIZE;
-    for (int pass = 0; pass < 2; pass++)
+//    for (int pass = 0; pass < 2; pass++)
     {
         for (int si = 0; si < globsym.top; si++)
         {   s = globsym.tab[si];
@@ -989,11 +989,13 @@ void stackoffsets(int flags)
             //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
-            if (pass == 1)
+            /* Can't do this for CPP because the inline function expander
+                adds new symbols on the end.
+             */
+            switch (s->Sclass)
             {
-                if (s->Sclass == SCfastpar)     // if parameter s is passed in a register
-                {
-                    /* Allocate in second pass in order to get these
+                case SCfastpar:
+                    /* Get these
                      * right next to the stack frame pointer, EBP.
                      * Needed so we can call nested contract functions
                      * frequire and fensure.
@@ -1014,17 +1016,7 @@ void stackoffsets(int flags)
                     // Align doubles to 8 byte boundary
                     if (!I16 && alignsize > REGSIZE)
                         Aalign = alignsize;
-                }
-                continue;
-            }
-
-            /* Can't do this for CPP because the inline function expander
-                adds new symbols on the end.
-             */
-            switch (s->Sclass)
-            {
-                case SCfastpar:
-                    break;              // ignore on pass 0
+                    break;
                 case SCregister:
                 case SCauto:
                     if (s->Sfl == FLreg)        // if allocated in register
