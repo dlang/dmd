@@ -1320,7 +1320,7 @@ STATIC void writefunc2(symbol *sfunc)
         sfunc->Sclass != SCsinline &&
         !(sfunc->Sclass == SCinline && !(config.flags2 & CFG2comdat)) &&
         sfunc->ty() & mTYexport)
-        objmod->export_symbol(sfunc,Poffset);      // export function definition
+        objmod->export_symbol(sfunc,Para.offset);      // export function definition
 
     if (config.fulltypes && config.fulltypes != CV8)
         cv_func(sfunc);                 // debug info for function

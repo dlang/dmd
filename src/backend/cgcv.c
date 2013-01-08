@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -2328,7 +2328,7 @@ STATIC void cv4_outsym(symbol *s)
                     s->Sfl = FLreg;
                     goto case_register;
                 }
-                base = Poff - BPoff;    // cancel out add of BPoff
+                base = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
             case SCauto:
                 if (s->Sfl == FLreg)
