@@ -941,7 +941,7 @@ union eve
         targ_uchar      Vuchar;
         targ_short      Vshort;
         targ_ushort     Vushort;
-        targ_int        Vint;    // also used for tmp numbers (FLtmp)
+        targ_int        Vint;
         targ_uns        Vuns;
         targ_long       Vlong;
         targ_ulong      Vulong;
@@ -1058,8 +1058,6 @@ typedef unsigned SYMFLGS;
     X(typedef,  0                )      /* type definition                      */ \
     X(explicit, 0                )      /* explicit                             */ \
     X(mutable,  0                )      /* mutable                              */ \
-    X(tmp,      SCEXP|SCSS|SCRD  )      /* compiler generated temporary (just like SCauto \
-                                           but doesn't overlay other SCauto's in scoping) */ \
     X(label,    0                )      /* goto label                           */ \
     X(struct,   SCKEP            )      /* struct/class/union tag name          */ \
     X(enum,     0                )      /* enum tag name                        */ \

@@ -52,7 +52,6 @@ int EBPtoESP;                   // add to EBP offset to get ESP offset
 int AllocaOff;                  // offset of alloca temporary
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
-LocalSection Tmp;               // section of temporaries
 targ_size_t EEoffset;           // offset of SCstack variables from ESP
 
 REGSAVE regsave;
@@ -626,7 +625,6 @@ Lagain:
      *  AllocaOff   alloca temporary
      *  CSoff   common subs
      *  NDPoff  any 8087 saved registers
-     *  Tmp.size    temporaries
      *          monitor context record
      *          any saved registers
      */
@@ -670,7 +668,6 @@ Lagain:
 #else
     NDPoff = CSoff;
 #endif
-    Tmp.size = NDPoff - align(0,Tmp.offset);
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
 
@@ -696,11 +693,10 @@ if (STACKALIGN == 16)
             AllocaOff -= adj;
             CSoff -= adj;
             NDPoff -= adj;
-            Tmp.size -= adj;
         }
     }
 
-    localsize = -Tmp.size;
+    localsize = -NDPoff;
 
     regm_t topush = fregsaved & ~mfuncreg;     // mask of registers that need saving
     int npush = numbitsset(topush);            // number of registers that need saving
@@ -723,8 +719,8 @@ if (STACKALIGN == 16)
             localsize += 4;
     }
 
-    //printf("Foff x%02x Auto.size x%02x Tmp.size x%02x NDPoff x%02x CSoff x%02x Poff x%02x localsize x%02x\n",
-        //(int)Foff,(int)Auto.size,(int)Tmp.size,(int)NDPoff,(int)CSoff,(int)Poff,(int)localsize);
+    //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Poff x%02x localsize x%02x\n",
+        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Poff,(int)localsize);
 
     xlocalsize = localsize;
 
@@ -947,7 +943,6 @@ void stackoffsets(int flags)
     }
     Auto.offset = 0;                        // automatic & register offset
     Fast.offset = 0;                     // SCfastpar offset
-    Tmp.offset = 0;                        // temporary offset
     Poffset = 0;                        // parameter offset
     EEoffset = 0;                       // for SCstack's
     Auto.alignment = REGSIZE;
@@ -977,7 +972,7 @@ void stackoffsets(int flags)
              * are reinterpreted cast to other types with less alignment.
              */
             if (sz == 16 && config.fpxmmregs && alignsize < sz &&
-                (s->Sclass == SCauto || s->Sclass == SCtmp)
+                s->Sclass == SCauto
                )
                 alignsize = sz;
 
@@ -1055,15 +1050,6 @@ void stackoffsets(int flags)
                 L2:
                     break;
 
-                case SCtmp:
-                    // Allocated separately from SCauto to avoid storage
-                    // overlapping problems.
-                    Tmp.offset = align(sz,Tmp.offset);
-                    s->Soffset = Tmp.offset;
-                    //printf("tmp offset =  x%lx\n",(long)s->Soffset);
-                    Tmp.offset += sz;
-                    break;
-
                 case SCstack:
                     EEoffset = align(sz,EEoffset);
                     s->Soffset = EEoffset;
@@ -1105,9 +1091,8 @@ void stackoffsets(int flags)
     Auto.offset = align(0,Auto.offset);
     if (Auto.alignment > REGSIZE)
         Auto.offset = (Auto.offset + Auto.alignment - 1) & ~(Auto.alignment - 1);
-    //printf("Aligned Auto.offset = x%lx, Tmp.offset = x%lx\n", (long)Auto.offset,(long)Tmp.offset);
+    //printf("Aligned Auto.offset = x%lx\n", (long)Auto.offset);
     Fast.offset = align(0,Fast.offset);
-    Tmp.offset = align(0,Tmp.offset);
 
     if (config.flags4 & CFG4optimized)
     {

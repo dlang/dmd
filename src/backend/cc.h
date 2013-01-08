@@ -1414,7 +1414,6 @@ enum FL
         FLfast,         // ref to variable passed as register
         FLpara,         // ref to function parameter variable
         FLextern,       // ref to external variable
-        FLtmp,          // ref to a stack temporary, int contains temp number
         FLcode,         // offset to code
         FLblock,        // offset to block
         FLudata,        // ref to udata segment variable

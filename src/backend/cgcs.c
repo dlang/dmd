@@ -525,7 +525,6 @@ STATIC void touchlvalue(elem *e)
     {
         case SCregpar:
         case SCregister:
-        case SCtmp:
         case SCpseudo:
             break;
         case SCauto:
@@ -585,7 +584,6 @@ STATIC void touchfunc(int flag)
                 {
                     case SCregpar:
                     case SCregister:
-                    case SCtmp:
                         break;
                     case SCauto:
                     case SCparameter:

@@ -668,7 +668,6 @@ again:
             case SCregister:
             case SCfastpar:
             case SCbprel:
-            case SCtmp:
                 if (e->Eoper == OPrelconst)
                 {
                     s->Sflags &= ~(SFLunambig | GTregcand);
@@ -868,7 +867,6 @@ STATIC void out_regcand_walk(elem *e)
                         break;
                     case SCauto:
                     case SCregister:
-                    case SCtmp:
                     case SCfastpar:
                     case SCbprel:
                         s->Sflags &= ~(SFLunambig | GTregcand);
@@ -1054,9 +1052,6 @@ STATIC void writefunc2(symbol *sfunc)
         s->Sflags &= ~(SFLunambig | GTregcand);
         switch (s->Sclass)
         {
-            case SCtmp:
-                s->Sfl = FLtmp;
-                goto L3;
             case SCbprel:
                 s->Sfl = FLbprel;
                 goto L3;

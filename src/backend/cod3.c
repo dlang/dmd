@@ -4319,9 +4319,6 @@ void assignaddrc(code *c)
             case FLpara:
                 soff = Poff - BPoff;    // cancel out add of BPoff
                 goto L1;
-            case FLtmp:
-                soff = Tmp.size;
-                goto L1;
             case FLfltreg:
                 c->IEVpointer1 += Foff + BPoff;
                 c->Iflags |= CFunambig;
@@ -4420,9 +4417,6 @@ void assignaddrc(code *c)
             case FLpara:
                 c->IEVpointer2 += s->Soffset + Poff;
                 break;
-            case FLtmp:
-                c->IEVpointer2 += s->Soffset + Tmp.size + BPoff;
-                break;
             case FLfltreg:
                 c->IEVpointer2 += Foff + BPoff;
                 break;
@@ -4478,9 +4472,6 @@ targ_size_t cod3_bpoffset(symbol *s)
             break;
         case FLauto:
             offset += Auto.size + BPoff;
-            break;
-        case FLtmp:
-            offset += Tmp.size + BPoff;
             break;
         default:
 #ifdef DEBUG
@@ -6339,7 +6330,6 @@ void code_hydrate(code **pc)
             case FLfunc:
             case FLpseudo:
             case FLextern:
-            case FLtmp:
                 assert(flinsymtab[fl]);
                 symbol_hydrate(&c->IEVsym1);
                 symbol_debug(c->IEVsym1);
@@ -6401,7 +6391,6 @@ void code_hydrate(code **pc)
             case FLfunc:
             case FLpseudo:
             case FLextern:
-            case FLtmp:
                 assert(flinsymtab[fl]);
                 symbol_hydrate(&c->IEVsym2);
                 symbol_debug(c->IEVsym2);
@@ -6516,7 +6505,6 @@ void code_dehydrate(code **pc)
             case FLfunc:
             case FLpseudo:
             case FLextern:
-            case FLtmp:
                 assert(flinsymtab[fl]);
                 symbol_dehydrate(&c->IEVsym1);
                 break;
@@ -6577,7 +6565,6 @@ void code_dehydrate(code **pc)
             case FLfunc:
             case FLpseudo:
             case FLextern:
-            case FLtmp:
                 assert(flinsymtab[fl]);
                 symbol_dehydrate(&c->IEVsym2);
                 break;
@@ -6725,7 +6712,6 @@ void code::print()
                 case FLdata:
                 case FLudata:
                 case FLpara:
-                case FLtmp:
                 case FLbprel:
                 case FLtlsdata:
                     printf(" sym='%s'",c->IEVsym1->Sident);
@@ -6762,7 +6748,6 @@ void code::print()
             case FLfast:
             case FLreg:
             case FLpara:
-            case FLtmp:
             case FLbprel:
             case FLfunc:
             case FLdata:

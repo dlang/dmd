@@ -182,7 +182,6 @@ extern  segidx_t cseg;
 extern  int STACKALIGN;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
-extern  LocalSection Tmp;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
