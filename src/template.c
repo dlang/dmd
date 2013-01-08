@@ -4662,7 +4662,10 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 
     ti->tiargs = arraySyntaxCopy(tiargs);
 
-    ScopeDsymbol::syntaxCopy(ti);
+    if (inst)
+        tempdecl->ScopeDsymbol::syntaxCopy(ti);
+    else
+        ScopeDsymbol::syntaxCopy(ti);
     return ti;
 }
 

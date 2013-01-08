@@ -1903,6 +1903,22 @@ void test9143()
 }
 
 /**********************************/
+// 9266
+
+template Foo9266(T...)
+{
+    T Foo9266;
+}
+struct Bar9266()
+{
+    alias Foo9266!int f;
+}
+void test9266()
+{
+    Bar9266!() a, b;
+}
+
+/**********************************/
 
 int main()
 {
@@ -1974,6 +1990,7 @@ int main()
     test9124a();
     test9124b();
     test9143();
+    test9266();
 
     printf("Success\n");
     return 0;
