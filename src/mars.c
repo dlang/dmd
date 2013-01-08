@@ -39,6 +39,9 @@
 long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #endif
 
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+extern "C" unsigned int getuid();
+#endif
 
 int response_expand(size_t *pargc, char ***pargv);
 void browse(const char *url);
@@ -950,6 +953,16 @@ int tryMain(size_t argc, char *argv[])
     if (global.params.link)
     {
         global.params.exefile = global.params.objname;
+
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        if (global.params.run)  // write exe to temp dir to avoid overwriting existing file
+        {
+            OutBuffer buf;
+            char *name = FileName::name(global.params.objname);
+            buf.printf("/tmp/%s-%d\0", name, getuid());
+            global.params.exefile = (char *)buf.extractData();
+        }
+#endif
         global.params.oneobj = 1;
         if (global.params.objname)
         {
