@@ -133,6 +133,12 @@ struct LocalSection
     targ_size_t offset;         // offset of section from frame pointer
     targ_size_t size;           // size of section
     int alignment;              // alignment size
+
+    void init()                 // initialize
+    {   offset = 0;
+        size = 0;
+        alignment = 0;
+    }
 };
 
 /*******************************
@@ -174,14 +180,15 @@ extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,usedalloca,gotref;
-extern  targ_size_t localsize,Poff,
-        Poffset,funcoffset,
-        framehandleroffset,
-        EEoffset;
+extern  targ_size_t localsize,
+        funcoffset,
+        framehandleroffset;
 extern  segidx_t cseg;
 extern  int STACKALIGN;
+extern  LocalSection Para;
 extern  LocalSection Fast;
 extern  LocalSection Auto;
+extern  LocalSection EEStack;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif

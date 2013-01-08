@@ -25,7 +25,6 @@
 
 #include        "fltables.c"
 
-targ_size_t     Poffset;        /* size of func parameter variables     */
 targ_size_t     framehandleroffset;     // offset of C++ frame handler
 #if TARGET_OSX
 targ_size_t     localgotoffset; // offset of where localgot refers to
@@ -36,8 +35,7 @@ int cseg = CODE;                // current code segment
                                 // of the public name index of a COMDAT)
 
 /* Stack offsets        */
-targ_size_t localsize,          /* amt subtracted from SP for local vars */
-        Poff;                   // comsubexps, params
+targ_size_t localsize;          /* amt subtracted from SP for local vars */
 
 /* The following are initialized for the 8088. cod3_set32() or cod3_set64()
  * will change them as appropriate.
