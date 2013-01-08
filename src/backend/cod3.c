@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2012 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -2937,7 +2937,7 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
       L2:
         MOV     1[RAX],offset_regs          // set __va_argsave.offset_regs
         MOV     5[RAX],offset_fpregs        // set __va_argsave.offset_fpregs
-        LEA     RDX, Poff+Poffset[RBP]
+        LEA     RDX, Para.size+Para.offset[RBP]
         MOV     9[RAX],RDX                  // set __va_argsave.stack_args
         SUB     RAX,6*8+0x7F                // point to start of __va_argsave
         MOV     6*8+8*16+4+4+8[RAX],RAX     // set __va_argsave.reg_args
@@ -3008,12 +3008,12 @@ code* prolog_genvarargs(symbol* sv, regm_t* namedargs)
     // MOV 5[RAX],offset_fpregs
     genc(c,0xC7,modregrm(2,0,AX),FLconst,5,FLconst,offset_fpregs);
 
-    // LEA RDX, Poff+Poffset[RBP]
+    // LEA RDX, Para.size+Para.offset[RBP]
     ea = modregrm(2,DX,BPRM);
     if (!hasframe)
         ea = (modregrm(0,4,SP) << 8) | modregrm(2,DX,4);
-    Poffset = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-    genc1(c,LEA,(REX_W << 16) | ea,FLconst,Poff + Poffset);
+    Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+    genc1(c,LEA,(REX_W << 16) | ea,FLconst,Para.size + Para.offset);
 
     // MOV 9[RAX],RDX
     genc1(c,0x89,(REX_W << 16) | modregrm(2,DX,AX),FLconst,9);
@@ -3099,7 +3099,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             {
                 targ_size_t offset = Fast.size + BPoff;
                 if (s->Sclass == SCshadowreg)
-                    offset = Poff;
+                    offset = Para.size;
                 offset += s->Soffset;
                 if (!hasframe)
                     offset += EBPtoESP;
@@ -3173,7 +3173,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
         for (int i = 0; i < sizeof(vregs)/sizeof(vregs[0]); ++i)
         {
             unsigned preg = vregs[i];
-            unsigned offset = Poff + i * REGSIZE;
+            unsigned offset = Para.size + i * REGSIZE;
             if (!(shadowregm & (mask[preg] | mask[XMM0 + i])))
             {
                 code *c2;
@@ -3276,7 +3276,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             {
                 unsigned op = xmmload(s->Stype->Tty);  // MOVSS/D xreg,mem
                 unsigned xreg = s->Sreglsw - XMM0;
-                code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Poff + s->Soffset);
+                code *c2 = genc1(CNIL,op,modregxrm(2,xreg,BPRM),FLconst,Para.size + s->Soffset);
                 if (!hasframe)
                 {   // Convert to ESP relative address rather than EBP
                     c2->Irm = modregxrm(2,xreg,4);
@@ -3288,7 +3288,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
             else
             {
                 code *c2 = genc1(CNIL,0x8B ^ (sz == 1),
-                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Poff + s->Soffset);
+                    modregxrm(2,s->Sreglsw,BPRM),FLconst,Para.size + s->Soffset);
                 if (!I16 && sz == SHORTSIZE)
                     c2->Iflags |= CFopsize; // operand size
                 if (I64 && sz >= REGSIZE)
@@ -3303,7 +3303,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                 if (sz > REGSIZE)
                 {
                     code *c3 = genc1(CNIL,0x8B,
-                        modregxrm(2,s->Sregmsw,BPRM),FLconst,Poff + s->Soffset + REGSIZE);
+                        modregxrm(2,s->Sregmsw,BPRM),FLconst,Para.size + s->Soffset + REGSIZE);
                     if (I64)
                         c3->Irex |= REX_W;
                     if (!hasframe)
@@ -3521,14 +3521,14 @@ Lret:
         }
         else if (!typfunc(tym) ||                       // if caller cleans the stack
                  config.exe == EX_WIN64 ||
-                 Poffset == 0)                          // or nothing pushed on the stack anyway
+                 Para.offset == 0)                          // or nothing pushed on the stack anyway
         {   op++;                                       // to a regular RET
             c = gen1(c,op);
         }
         else
         {   // Stack is always aligned on register size boundary
-            Poffset = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-            c = genc2(c,op,0,Poffset);          // RET Poffset
+            Para.offset = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+            c = genc2(c,op,0,Para.offset);          // RET Para.offset
         }
     }
 
@@ -4064,8 +4064,8 @@ void cod3_adjSymOffsets()
             case SCparameter:
             case SCregpar:
             case SCshadowreg:
-//printf("s = '%s', Soffset = x%x, Poff = x%x, EBPtoESP = x%x\n", s->Sident, s->Soffset, Poff, EBPtoESP);
-                s->Soffset += Poff;
+//printf("s = '%s', Soffset = x%x, Para.size = x%x, EBPtoESP = x%x\n", s->Sident, s->Soffset, Para.size, EBPtoESP);
+                s->Soffset += Para.size;
 if (0 && !(funcsym_p->Sfunc->Fflags3 & Fmember))
 {
     if (!hasframe)
@@ -4252,7 +4252,7 @@ void assignaddrc(code *c)
             case FLstack:
                 //printf("Soffset = %d, EBPtoESP = %d, base = %d, pointer = %d\n",
                 //s->Soffset,EBPtoESP,base,c->IEVpointer1);
-                c->IEVpointer1 += s->Soffset + EBPtoESP - base - EEoffset;
+                c->IEVpointer1 += s->Soffset + EBPtoESP - base - EEStack.offset;
                 break;
 
             case FLfast:
@@ -4316,7 +4316,7 @@ void assignaddrc(code *c)
                 }
                 break;
             case FLpara:
-                soff = Poff - BPoff;    // cancel out add of BPoff
+                soff = Para.size - BPoff;    // cancel out add of BPoff
                 goto L1;
             case FLfltreg:
                 c->IEVpointer1 += Foff + BPoff;
@@ -4414,7 +4414,7 @@ void assignaddrc(code *c)
                 c->IEVpointer2 += s->Soffset + Auto.size + BPoff;
                 break;
             case FLpara:
-                c->IEVpointer2 += s->Soffset + Poff;
+                c->IEVpointer2 += s->Soffset + Para.size;
                 break;
             case FLfltreg:
                 c->IEVpointer2 += Foff + BPoff;
@@ -4464,7 +4464,7 @@ targ_size_t cod3_bpoffset(symbol *s)
     switch (s->Sfl)
     {
         case FLpara:
-            offset += Poff;
+            offset += Para.size;
             break;
         case FLfast:
             offset += Fast.size + BPoff;
