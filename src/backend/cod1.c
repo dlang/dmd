@@ -1046,7 +1046,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             if (f == FLpara)
                 refparam = TRUE;
-            else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg || f == FLfast)
+            else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
                 reflocal = TRUE;
 #if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
@@ -1318,7 +1318,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         }
         if (s->Sclass == SCshadowreg)
             goto Lpara;
-    case FLtmp:
     case FLbprel:
         reflocal = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);

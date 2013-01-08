@@ -285,7 +285,7 @@ void WRFL(enum FL fl)
         {"unde  ","const ","oper  ","func  ","data  ",
          "reg   ",
          "pseudo",
-         "auto  ","fast  ","para  ","extrn ","tmp   ",
+         "auto  ","fast  ","para  ","extrn ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",

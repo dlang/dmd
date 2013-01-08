@@ -936,7 +936,6 @@ void symbol_free(symbol *s)
                 case SCfastpar:
                 case SCshadowreg:
                 case SCregister:
-                case SCtmp:
                 case SCauto:
                     vec_free(s->Srange);
                     /* FALL-THROUGH */

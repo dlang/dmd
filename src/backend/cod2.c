@@ -4136,7 +4136,6 @@ code *getoffset(elem *e,unsigned reg)
         goto L2;
     case FLauto:
     case FLfast:
-    case FLtmp:
     case FLbprel:
     case FLfltreg:
         reflocal = TRUE;

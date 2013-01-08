@@ -53,7 +53,7 @@ void eecontext_convs(unsigned marksi)
     unsigned top;
     symtab_t *ps;
 
-    // Change all generated SCtmp's and SCauto's to SCstack's
+    // Change all generated SCauto's to SCstack's
 #if SCPP
     ps = &globsym;
 #else
@@ -68,7 +68,6 @@ void eecontext_convs(unsigned marksi)
         switch (s->Sclass)
         {
             case SCauto:
-            case SCtmp:
             case SCregister:
                 s->Sclass = SCstack;
                 s->Sfl = FLstack;

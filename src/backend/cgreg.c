@@ -644,7 +644,6 @@ void cgreg_map(Symbol *s, unsigned regmsw, unsigned reglsw)
             {
                 case SCauto:
                 case SCregister:
-                case SCtmp:
                     s->Sfl = FLauto;
                     break;
                 case SCfastpar:
@@ -774,7 +773,6 @@ int cgreg_assign(Symbol *retsym)
                 {
                     case SCauto:
                     case SCregister:
-                    case SCtmp:
                         s->Sfl = FLauto;
                         break;
                     case SCfastpar:
