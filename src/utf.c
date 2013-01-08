@@ -1,4 +1,3 @@
-// utf.c
 // Copyright (c) 2003-2012 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
