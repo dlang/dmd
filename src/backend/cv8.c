@@ -538,7 +538,7 @@ void cv8_outsym(Symbol *s)
             if (s->Sfl == FLreg)
                 goto case_register;
         case_auto:
-            base = Aoff;
+            base = Auto.size;
         L1:
 #if 1
             // Register relative addressing
@@ -566,7 +566,7 @@ void cv8_outsym(Symbol *s)
 
         case SCfastpar:
             if (s->Sfl != FLreg)
-            {   base = FASToff;
+            {   base = Fast.size;
                 goto L1;
             }
             goto L2;

@@ -2334,7 +2334,7 @@ STATIC void cv4_outsym(symbol *s)
                 if (s->Sfl == FLreg)
                     goto case_register;
             case_auto:
-                base = Aoff;
+                base = Auto.size;
             L1:
                 TOWORD(debsym + 2,I32 ? S_BPREL32 : S_BPREL16);
                 if (config.fulltypes == CV4)
@@ -2355,7 +2355,7 @@ STATIC void cv4_outsym(symbol *s)
 
             case SCfastpar:
                 if (s->Sfl != FLreg)
-                {   base = FASToff;
+                {   base = Fast.size;
                     goto L1;
                 }
                 goto case_register;
