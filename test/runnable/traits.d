@@ -956,6 +956,17 @@ void test9237()
     static assert(!__traits(compiles, __traits(isPOD, 123) ));
 }
 
+/*************************************************************/
+
+void test5978() {
+    () {
+        int x;
+        pragma(msg, __traits(parent, x));
+    } ();
+}
+
+/*************************************************************/
+
 int main()
 {
     test1();
@@ -984,6 +995,7 @@ int main()
     test23();
     test7608();
     test7858();
+    test5978();
 
     writeln("Success");
     return 0;
