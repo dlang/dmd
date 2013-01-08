@@ -631,9 +631,15 @@ void FuncDeclaration::semantic(Scope *sc)
 
         if (!doesoverride && isOverride())
         {
-            Dsymbol *s = cd->search_correct(ident);
+            Dsymbol *s = NULL;
+            for (size_t i = 0; i < cd->baseclasses->dim; i++)
+            {
+                s = (*cd->baseclasses)[i]->base->search_correct(ident);
+                if (s) break;
+            }
+
             if (s)
-                error("does not override any function, did you mean '%s'", s->toPrettyChars());
+                error("does not override any function, did you mean to override '%s'?", s->toPrettyChars());
             else
                 error("does not override any function");
         }
