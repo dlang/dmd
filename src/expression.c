@@ -8795,15 +8795,22 @@ Expression *AddrExp::semantic(Scope *sc)
                     e = e->semantic(sc);
                     return e;
                 }
-                if (f->needThis() && hasThis(sc))
+                if (f->needThis())
                 {
-                    /* Should probably supply 'this' after overload resolution,
-                     * not before.
-                     */
-                    Expression *ethis = new ThisExp(loc);
-                    Expression *e = new DelegateExp(loc, ethis, f, ve->hasOverloads);
-                    e = e->semantic(sc);
-                    return e;
+                    if (hasThis(sc))
+                    {
+                        /* Should probably supply 'this' after overload resolution,
+                         * not before.
+                         */
+                        Expression *ethis = new ThisExp(loc);
+                        Expression *e = new DelegateExp(loc, ethis, f, ve->hasOverloads);
+                        e = e->semantic(sc);
+                        return e;
+                    }
+                    else
+                    {
+                        return this->castTo(sc, Type::tvoidptr);
+                    }
                 }
             }
         }
