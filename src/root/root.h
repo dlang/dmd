@@ -21,6 +21,12 @@
 #pragma once
 #endif
 
+/*
+ * Define HOST_POSIX for convenience.
+ */
+
+#define HOST_POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+
 typedef size_t hash_t;
 
 /*

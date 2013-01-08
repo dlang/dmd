@@ -11,11 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "../root/rmem.h"
-#else
 #include "rmem.h"
-#endif
 
 /* This implementation of the storage allocator uses the standard C allocation package.
  */

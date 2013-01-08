@@ -13,7 +13,7 @@
 #include <string.h>
 #include <assert.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include <unistd.h>
 #include <pthread.h>
 #endif
@@ -135,7 +135,7 @@ void Mem::check(void *p)
 
 void Mem::error()
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
     assert(0);
 #endif
     printf("Error: out of memory\n");
@@ -286,9 +286,9 @@ void Mem::operator delete(void *p)
  * of the collector per thread.
  */
 
-/* ===================== linux ================================ */
+/* ===================== POSIX ================================ */
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 
 #include <pthread.h>
 

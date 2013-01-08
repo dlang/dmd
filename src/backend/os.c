@@ -16,6 +16,8 @@
  * up code with OS .h files.
  */
 
+#include "cc.h"
+
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
@@ -26,7 +28,7 @@
 #include <sys\stat.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -667,7 +669,7 @@ int os_file_exists(const char *name)
     if (!find)
         return 0;
     return (find->attribute & FA_DIREC) ? 2 : 1;
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif HOST_POSIX
     struct stat buf;
 
     return stat(name,&buf) == 0;        /* file exists if stat succeeded */
@@ -744,7 +746,7 @@ char *file_8dot3name(const char *filename)
 
 int file_write(char *name, void *buffer, unsigned len)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
     int fd;
     ssize_t numwritten;
 
@@ -820,7 +822,7 @@ err:
 
 int file_createdirs(char *name)
 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
     return 1;
 #endif
 #if _WIN32

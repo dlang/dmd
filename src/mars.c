@@ -9,6 +9,8 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include "mars.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <ctype.h>
@@ -16,7 +18,7 @@
 #include <limits.h>
 #include <string.h>
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include <errno.h>
 #endif
 
@@ -24,7 +26,6 @@
 #include "root.h"
 #include "async.h"
 
-#include "mars.h"
 #include "module.h"
 #include "mtype.h"
 #include "id.h"
@@ -312,7 +313,7 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%d D Compiler %s\n%s %s\n",
+    printf("DMD%lu D Compiler %s\n%s %s\n",
         sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
@@ -512,7 +513,7 @@ int tryMain(size_t argc, char *argv[])
 
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini", "Environment");
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif HOST_POSIX
     inifilename = inifile(argv[0], "dmd.conf", "Environment");
 #else
 #error "fix this"
