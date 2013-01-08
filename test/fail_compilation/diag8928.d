@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag8928.d(7): Error: constructor diag8928.Y.this no match for implicit super() call in constructor
-fail_compilation/diag8928.d(10): Error: constructor diag8928.Z.this no match for implicit super() call in implicitly generated constructor
+fail_compilation/diag8928.d(10): Error: class diag8928.Z Cannot implicitly generate a default ctor when base class diag8928.X is missing a default ctor
 ---
 */
 
