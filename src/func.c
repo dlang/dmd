@@ -486,8 +486,23 @@ void FuncDeclaration::semantic(Scope *sc)
                 return;
 
             default:
-            {   FuncDeclaration *fdv = (FuncDeclaration *)cd->baseClass->vtbl[vi];
+            {   FuncDeclaration *fdv = cd->baseClass->vtbl[vi]->isFuncDeclaration();
+                FuncDeclaration *fdc = cd->vtbl[vi]->isFuncDeclaration();
                 // This function is covariant with fdv
+
+                if (fdc->toParent() == parent)
+                {
+                    //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
+                    //        vi, this, this->toChars(), this->type->toChars(), this->loc.toChars(),
+                    //            fdc,  fdc ->toChars(), fdc ->type->toChars(), fdc ->loc.toChars(),
+                    //            fdv,  fdv ->toChars(), fdv ->type->toChars(), fdv ->loc.toChars());
+
+                    // fdc overrides fdv exactly, then this introduces new function.
+                    if (fdc->type->mod == fdv->type->mod && this->type->mod != fdv->type->mod)
+                        goto Lintro;
+                }
+
+                // This function overrides fdv
                 if (fdv->isFinal())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
@@ -497,28 +512,20 @@ void FuncDeclaration::semantic(Scope *sc)
                     ::deprecation(loc, "overriding base class function without using override attribute is deprecated (%s overrides %s)", toPrettyChars(), fdv->toPrettyChars());
 #endif
 
-                FuncDeclaration *fdc = ((Dsymbol *)cd->vtbl.data[vi])->isFuncDeclaration();
                 if (fdc->toParent() == parent)
                 {
-                    // fdc overrides fdv exactly, then this introduces new function.
-                    if (fdc->type->mod == fdv->type->mod && this->type->mod != fdv->type->mod)
-                        goto Lintro;
-
-                    // If both are mixins, then error.
+                    // If both are mixins, or both are not, then error.
                     // If either is not, the one that is not overrides the other.
-                    if (this->parent->isClassDeclaration() && fdc->parent->isClassDeclaration())
+                    bool thismixin = this->parent->isClassDeclaration() != NULL;
+                    bool fdcmixin = fdc->parent->isClassDeclaration() != NULL;
+                    if (thismixin == fdcmixin)
+                    {
                         error("multiple overrides of same function");
-
-                    // if (this is mixin) && (fdc is not mixin) then fdc overrides
-                    else if (!this->parent->isClassDeclaration() && fdc->parent->isClassDeclaration())
+                    }
+                    else if (!thismixin)    // fdc overrides fdv
+                    {   // this doesn't override any function
                         break;
-
-                    else if (!this->parent->isClassDeclaration() // if both are mixins then error
-#if DMDV2
-                        && !isPostBlitDeclaration()
-#endif
-                        )
-                        error("multiple overrides of same function");
+                    }
                 }
                 cd->vtbl[vi] = this;
                 vtblIndex = vi;
