@@ -37,8 +37,7 @@ int cseg = CODE;                // current code segment
 
 /* Stack offsets        */
 targ_size_t localsize,          /* amt subtracted from SP for local vars */
-        Toff,                   /* base for temporaries                 */
-        Poff,Aoff,FASToff;      // comsubexps, params, regs, autos, fastpars
+        Poff;                   // comsubexps, params
 
 /* The following are initialized for the 8088. cod3_set32() or cod3_set64()
  * will change them as appropriate.

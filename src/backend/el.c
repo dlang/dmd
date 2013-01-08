@@ -449,9 +449,9 @@ elem * el_alloctmp(tym_t ty)
   symbol *s;
 
   assert(MARS || !PARSER);
-  s = symbol_generate(SCtmp,type_fake(ty));
+  s = symbol_generate(SCauto,type_fake(ty));
   symbol_add(s);
-  s->Sfl = FLtmp;
+  s->Sfl = FLauto;
   s->Sflags = SFLfree | SFLunambig | GTregcand;
   return el_var(s);
 }
@@ -1127,9 +1127,9 @@ symbol *el_alloc_localgot()
         char name[15];
         static int tmpnum;
         sprintf(name, "_LOCALGOT%d", tmpnum++);
-        localgot = symbol_name(name, SCtmp, type_fake(TYnptr));
+        localgot = symbol_name(name, SCauto, type_fake(TYnptr));
         symbol_add(localgot);
-        localgot->Sfl = FLtmp;
+        localgot->Sfl = FLauto;  // can't be FLauto yet, executables crash for unknown reasons
         localgot->Sflags = SFLfree | SFLunambig | GTregcand;
     }
     return localgot;

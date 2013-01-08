@@ -125,6 +125,16 @@ struct REGSAVE
 }
 extern REGSAVE regsave;
 
+/************************************
+ * Local sections on the stack
+ */
+struct LocalSection
+{
+    targ_size_t offset;         // offset of section from frame pointer
+    targ_size_t size;           // size of section
+    int alignment;              // alignment size
+};
+
 /*******************************
  * As we generate code, collect information about
  * what parts of NT exception handling we need.
@@ -164,14 +174,15 @@ extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,usedalloca,gotref;
-extern  targ_size_t localsize,Toff,Poff,Aoff,
+extern  targ_size_t localsize,Poff,
         Poffset,funcoffset,
         framehandleroffset,
-        FASToffset,FASToff,
-        Aoffset,Toffset,EEoffset;
-extern  int Aalign;
+        EEoffset;
 extern  segidx_t cseg;
 extern  int STACKALIGN;
+extern  LocalSection Fast;
+extern  LocalSection Auto;
+extern  LocalSection Tmp;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -369,7 +380,7 @@ extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
 extern int BPoff;                      // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern int AAoff;               // offset of alloca temporary
+extern int AllocaOff;               // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
