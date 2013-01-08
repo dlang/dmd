@@ -56,6 +56,12 @@ void test7019()
     static assert(ct_gs == S7019(2) && ct_gs.store == 16);
     static assert(ct_ls == S7019(3) && ct_ls.store == 24);
     static assert(C.ct_fs == S7019(4) && C.ct_fs.store == 32);
+
+    void foo(S7019 s = 5)   // fixing bug 7152
+    {
+        assert(s.store == 5 << 3);
+    }
+    foo();
 }
 
 /***************************************************/
