@@ -312,8 +312,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%d D Compiler %s\n%s %s\n",
-        sizeof(size_t) * 8,
+    printf("DMD%u D Compiler %s\n%s %s\n",
+        (unsigned) sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://www.dlang.org/index.html\n\
