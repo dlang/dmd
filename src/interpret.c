@@ -1319,6 +1319,11 @@ Expression *WithStatement::interpret(InterState *istate)
 #if LOG
     printf("%s WithStatement::interpret()\n", loc.toChars());
 #endif
+
+    // If it is with(Enum) {...}, just execute the body.
+    if (exp->op == TOKimport || exp->op == TOKtype)
+        return body ? body->interpret(istate) : EXP_VOID_INTERPRET;
+
     START()
     Expression *e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
