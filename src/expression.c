@@ -5989,6 +5989,12 @@ Expression *IsExp::semantic(Scope *sc)
                 for (size_t i = 0; i < dim; i++)
                 {   Parameter *arg = Parameter::getNth(params, i);
                     assert(arg && arg->type);
+                    /* If one of the default arguments was an error,
+                       don't return an invalid tuple
+                    */
+                    if (tok2 == TOKparameters && arg->defaultArg &&
+                        arg->defaultArg->op == TOKerror)
+                        return new ErrorExp();
                     args->push(new Parameter(arg->storageClass, arg->type,
                         (tok2 == TOKparameters) ? arg->ident : NULL,
                         (tok2 == TOKparameters) ? arg->defaultArg : NULL));
