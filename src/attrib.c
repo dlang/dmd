@@ -27,7 +27,6 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
-#include "hdrgen.h"
 #if TARGET_NET
  #include "frontend.net/pragma.h"
 #endif
@@ -348,28 +347,6 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
             s->addLocalClass(aclasses);
         }
     }
-}
-
-FuncDeclaration* AttribDeclaration::isFuncDeclaration()
-{
-    if (decl)
-    {
-        if (decl->dim == 0)
-            return NULL;
-        else if (decl->dim == 1)
-            return (*decl)[0]->isFuncDeclaration();
-        else
-        {
-            for (unsigned i = 0; i < decl->dim; i++)
-            {
-                Dsymbol *s = (*decl)[i];
-                if(s->isFuncDeclaration() != NULL) return s->isFuncDeclaration();
-            }
-        }
-    }
-    else
-        return NULL;
-    return NULL;
 }
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
