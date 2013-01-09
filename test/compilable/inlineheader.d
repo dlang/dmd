@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -di
+// PERMUTE_ARGS:
 // REQUIRED_ARGS: -H -Hdtest_results/compilable -inline
 // POST_SCRIPT: compilable/extra-files/inlineheader-postscript.sh
 // REQUIRED_ARGS: -d
