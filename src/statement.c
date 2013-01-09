@@ -3882,7 +3882,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             }
             else
             {
-                if (tf->isref)
+                if (tf->isref && (fd->storage_class & STCauto))
                 {   /* Determine "refness" of function return:
                      * if it's an lvalue, return by ref, else return by value
                      */
@@ -3895,11 +3895,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
-                        {   tf->isref = FALSE;  // return by value
-                        }
+                            tf->isref = FALSE;  // return by value
                     }
                     else
                         tf->isref = FALSE;      // return by value
+                    fd->storage_class &= ~STCauto;
                 }
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
