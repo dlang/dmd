@@ -75,6 +75,15 @@ static this()
 // Runtime
 ///////////////////////////////////////////////////////////////////////////////
 
+/**
+ * Stores the unprocessed arguments supplied when the
+ * process was started.
+ */
+struct CArgs
+{
+    int argc; /// The argument count.
+    char** argv; /// The arguments as a C array of strings.
+}
 
 /**
  * This struct encapsulates all functionality related to the underlying runtime
@@ -136,7 +145,7 @@ struct Runtime
      * started. Use this when you need to supply argc and argv to C libraries.
      *
      * Returns:
-     *  The arguments supplied when this process was started.
+     *  A $(LREF CArgs) struct with the arguments supplied when this process was started.
      */
     static @property CArgs cArgs()
     {
@@ -263,16 +272,6 @@ private:
     //       never occur within any but the main thread, so it is safe to
     //       make it __gshared.
     __gshared ModuleUnitTester sm_moduleUnitTester = null;
-}
-
-/**
- * This struct stores the unprocessed arguments supplied when the
- * process was started.
- */
-struct CArgs
-{
-    int argc;
-    char** argv;
 }
 
 ///////////////////////////////////////////////////////////////////////////////
