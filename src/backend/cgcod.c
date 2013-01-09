@@ -929,9 +929,6 @@ Lcont:
 
 void stackoffsets(int flags)
 {
-    symbol *s;
-    targ_size_t sz;
-    unsigned alignsize;
     int offi;
     vec_t tbl = NULL;
 
@@ -949,7 +946,8 @@ void stackoffsets(int flags)
 //    for (int pass = 0; pass < 2; pass++)
     {
         for (int si = 0; si < globsym.top; si++)
-        {   s = globsym.tab[si];
+        {   symbol *s = globsym.tab[si];
+
             if (s->Sflags & SFLdead ||
                 (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
 #if MARS
@@ -960,31 +958,43 @@ void stackoffsets(int flags)
 #endif
                  (config.flags4 & CFG4optimized || !config.fulltypes))
                 )
-                sz = 0;
-            else
-            {   sz = type_size(s->Stype);
+            {
+                /* The variable is dead. Don't allocate space for it if we don't
+                 * need to.
+                 */
+                switch (s->Sclass)
+                {
+                    case SCfastpar:
+                    case SCshadowreg:
+                    case SCparameter:
+                        break;          // have to allocate space for parameters
+
+                    case SCregister:
+                    case SCauto:
+                        if (s->Sfl != FLreg)        // if not allocated in register
+                        {
+                            Auto.offset = align(0,Auto.offset);
+                            s->Soffset = Auto.offset;
+                            unsigned alignsize = type_alignsize(s->Stype);
+                            if (!I16 && alignsize > REGSIZE)
+                                Auto.alignment = alignsize;
+                        }
+                        continue;
+
+                    default:
+                        continue;       // don't allocate space
+                }
+            }
+
+            targ_size_t sz = type_size(s->Stype);
                 if (sz == 0)
                     sz++;               // can't handle 0 length structs
-            }
-            alignsize = type_alignsize(s->Stype);
 
-            /* The purpose of this is to reduce alignment faults when SIMD vectors
-             * are reinterpreted cast to other types with less alignment.
-             */
-            if (sz == 16 && config.fpxmmregs && alignsize < sz &&
-                s->Sclass == SCauto
-               )
-                alignsize = sz;
-
-            if (s->Salignment > 0)
-                alignsize = s->Salignment;
+            unsigned alignsize = s->Salignsize();
 
             //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
-            /* Can't do this for CPP because the inline function expander
-                adds new symbols on the end.
-             */
             switch (s->Sclass)
             {
                 case SCfastpar:
@@ -1010,6 +1020,7 @@ void stackoffsets(int flags)
                     if (!I16 && alignsize > REGSIZE)
                         Auto.alignment = alignsize;
                     break;
+
                 case SCregister:
                 case SCauto:
                     if (s->Sfl == FLreg)        // if allocated in register
@@ -1028,6 +1039,7 @@ void stackoffsets(int flags)
                             symbol *sp = globsym.tab[i];
 //printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
                             if (vec_disjoint(s->Srange,sp->Srange) &&
+                                alignsize <= sp->Salignsize() &&
                                 sz <= type_size(sp->Stype))
                             {
                                 vec_or(sp->Srange,sp->Srange,s->Srange);
