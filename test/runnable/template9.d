@@ -937,45 +937,44 @@ template pow10_2550(long n:0)
 static assert(pow10_2550!(0) == 1);
 
 /**********************************/
+// [2.057] Remove top const in IFTI, 9198
 
-void foo10(T)(T prm)
-{
-    pragma(msg, T);
-    static assert(is(T == const(int)[]));
-}
-void boo10(T)(ref T val)        // ref paramter doesn't remove top const
-{
-    pragma(msg, T);
-    static assert(is(T == const(int[])));
-}
-void goo10(T)(auto ref T val)   // auto ref with lvalue doesn't
-{
-    pragma(msg, T);
-    static assert(is(T == const(int[])));
-}
-void hoo10(T)(auto ref T val)   // auto ref with rvalue does
-{
-    pragma(msg, T);
-    static assert(is(T == const(int)[]));
-}
-void bar10(T)(T prm)
-{
-    pragma(msg, T);
-    static assert(is(T == const(int)*));
-}
+void foo10a(T   )(T)            { static assert(is(T    == const(int)[])); }
+void foo10b(T...)(T)            { static assert(is(T[0] == const(int)[])); }
+
+// ref paramter doesn't remove top const
+void boo10a(T   )(ref T)        { static assert(is(T    == const(int[]))); }
+void boo10b(T...)(ref T)        { static assert(is(T[0] == const(int[]))); }
+
+// auto ref with lvalue doesn't
+void goo10a(T   )(auto ref T)   { static assert(is(T    == const(int[]))); }
+void goo10b(T...)(auto ref T)   { static assert(is(T[0] == const(int[]))); }
+
+// auto ref with rvalue does
+void hoo10a(T   )(auto ref T)   { static assert(is(T    == const(int)[])); }
+void hoo10b(T...)(auto ref T)   { static assert(is(T[0] == const(int)[])); }
+
+void bar10a(T   )(T)            { static assert(is(T    == const(int)*)); }
+void bar10b(T...)(T)            { static assert(is(T[0] == const(int)*)); }
+
 void test10()
 {
     const a = [1,2,3];
     static assert(is(typeof(a) == const(int[])));
-    foo10(a);
-    boo10(a);
-    goo10(a);
-    hoo10(cast(const(int[]))[1,2,3]);
+    foo10a(a);
+    foo10b(a);
+    boo10a(a);
+    boo10b(a);
+    goo10a(a);
+    goo10b(a);
+    hoo10a(cast(const)[1,2,3]);
+    hoo10b(cast(const)[1,2,3]);
 
     int n;
     const p = &n;
     static assert(is(typeof(p) == const(int*)));
-    bar10(p);
+    bar10a(p);
+    bar10b(p);
 }
 
 /**********************************/
