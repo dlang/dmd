@@ -8334,6 +8334,8 @@ Lagain:
             }
 
             f = resolveFuncCall(sc, loc, cd->ctor, NULL, NULL, arguments, 0);
+            if (!f)
+                return new ErrorExp();
             checkDeprecated(sc, f);
 #if DMDV2
             checkPurity(sc, f);
