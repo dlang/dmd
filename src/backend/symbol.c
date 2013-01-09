@@ -184,6 +184,28 @@ void symbol_keep(symbol *s)
 
 #endif
 
+/****************************************
+ * Return alignment of symbol.
+ */
+int Symbol::Salignsize()
+{
+    if (Salignment > 0)
+        return Salignment;
+    int alignsize = type_alignsize(Stype);
+
+    /* Reduce alignment faults when SIMD vectors
+     * are reinterpreted cast to other types with less alignment.
+     */
+    if (config.fpxmmregs && alignsize < 16 &&
+        Sclass == SCauto &&
+        type_size(Stype) == 16)
+    {
+        alignsize = 16;
+    }
+
+    return alignsize;
+}
+
 /***********************************
  * Get user name of symbol.
  */
