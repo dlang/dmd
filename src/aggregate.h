@@ -119,16 +119,6 @@ struct AggregateDeclaration : ScopeDsymbol
     AggregateDeclaration *isAggregateDeclaration() { return this; }
 };
 
-struct AnonymousAggregateDeclaration : AggregateDeclaration
-{
-    AnonymousAggregateDeclaration()
-        : AggregateDeclaration(0, NULL)
-    {
-    }
-
-    AnonymousAggregateDeclaration *isAnonymousAggregateDeclaration() { return this; }
-};
-
 struct StructDeclaration : AggregateDeclaration
 {
     int zeroInit;               // !=0 if initialize with 0 fill
