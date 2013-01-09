@@ -1703,7 +1703,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
             bodyToCBuffer(buf, hgs);
             hgs->autoMember--;
         }
-        else if(hgs->tpltMember == 0)
+        else if(hgs->tpltMember == 0 && global.params.useInline == 0)
             buf->writestring(";");
         else
             bodyToCBuffer(buf, hgs);
