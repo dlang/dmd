@@ -1805,7 +1805,7 @@ int FuncDeclaration::equals(Object *o)
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (fbody && (!hgs->hdrgen || hgs->autoMember || hgs->tpltMember))
+    if (fbody && (!hgs->hdrgen || global.params.useInline || hgs->autoMember || hgs->tpltMember))
     {   buf->writenl();
 
         // in{}

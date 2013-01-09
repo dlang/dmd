@@ -2860,7 +2860,7 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (!elsebody->isScopeStatement())
             buf->level++;
         elsebody->toCBuffer(buf, hgs);
-         if (!elsebody->isScopeStatement())
+        if (!elsebody->isScopeStatement())
             buf->level--;
    }
 }
