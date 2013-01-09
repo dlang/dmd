@@ -944,8 +944,8 @@ code *cdaddass(elem *e,regm_t *pretregs)
                         }
                         break;
                 }
+                cs.Iop ^= byte;             /* for byte operations  */
             }
-            cs.Iop ^= byte;             /* for byte operations  */
             cs.Iflags |= opsize;
             if (forccs)
                 cs.Iflags |= CFpsw;
