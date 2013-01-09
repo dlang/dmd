@@ -228,6 +228,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isscope = 0;
     isabstract = 0;
     inuse = 0;
+    isanon = !ident;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -262,7 +263,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
     //{ static int n;  if (++n == 20) *(char*)0=0; }
 
-    if (!ident)         // if anonymous class
+    if (isanon)  // anon class
     {   const char *id = "__anonclass";
 
         ident = Identifier::generateId(id);

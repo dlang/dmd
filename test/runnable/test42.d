@@ -5702,6 +5702,14 @@ void test6962()
 
 /***************************************************/
 
+void test7104()
+{
+    typeof(new class {}) c;
+    c = new typeof(c);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5983,6 +5991,7 @@ int main()
     test6057();
     test251();
     test6962();
+    test7104();
 
     writefln("Success");
     return 0;

@@ -333,6 +333,9 @@ void Dsymbol::toObjFile(int multiobj)
 
 void ClassDeclaration::toObjFile(int multiobj)
 {
+    if (objFileDone)
+        return;
+
     unsigned offset;
     Symbol *sinit;
     enum_SC scclass;
@@ -825,6 +828,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     outdata(vtblsym);
     if (isExport())
         objmod->export_symbol(vtblsym,0);
+    objFileDone = 1;
 }
 
 /******************************************
