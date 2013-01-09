@@ -1,28 +1,11 @@
+// D import file generated from 'compilable\header.d'
 module foo.bar;
 import core.vararg;
 import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
 typedef double mydbl = 10;
-int main()
-in
-{
-	assert(1 + (2 + 3) == -(1 - 2 * 3));
-}
-out(result)
-{
-	assert(result == 0);
-}
-body
-{
-	float f = (float).infinity;
-	int i = cast(int)f;
-	writeln((i , 1), 2);
-	writeln(cast(int)(float).max);
-	assert(i == cast(int)(float).max);
-	assert(i == 2147483648u);
-	return 0;
-}
+int main();
 template Foo(T, int V)
 {
 	int bar(double d, int x)
@@ -107,6 +90,7 @@ template Foo(T, int V)
 				}
 			}
 		}
+
 		loop:
 		while (x)
 		{
@@ -148,6 +132,7 @@ template Foo(T, int V)
 			toString();
 		}
 	}
+
 }
 static this();
 interface iFoo
@@ -159,107 +144,43 @@ class xFoo : iFoo
 class Foo3
 {
 	this(int a, ...);
-	this(int* a)
-	{
-	}
+	this(int* a);
 }
 alias int myint;
 static notquit = 1;
 class Test
 {
-	void a()
-	{
-	}
-	void b()
-	{
-	}
-	void c()
-	{
-	}
-	void d()
-	{
-	}
-	void e()
-	{
-	}
-	void f()
-	{
-	}
-	void g()
-	{
-	}
-	void h()
-	{
-	}
-	void i()
-	{
-	}
-	void j()
-	{
-	}
-	void k()
-	{
-	}
-	void l()
-	{
-	}
-	void m()
-	{
-	}
-	void n()
-	{
-	}
-	void o()
-	{
-	}
-	void p()
-	{
-	}
-	void q()
-	{
-	}
-	void r()
-	{
-	}
-	void s()
-	{
-	}
-	void t()
-	{
-	}
-	void u()
-	{
-	}
-	void v()
-	{
-	}
-	void w()
-	{
-	}
-	void x()
-	{
-	}
-	void y()
-	{
-	}
-	void z()
-	{
-	}
-	void aa()
-	{
-	}
-	void bb()
-	{
-	}
-	void cc()
-	{
-	}
-	void dd()
-	{
-	}
-	void ee()
-	{
-	}
+	void a();
+	void b();
+	void c();
+	void d();
+	void e();
+	void f();
+	void g();
+	void h();
+	void i();
+	void j();
+	void k();
+	void l();
+	void m();
+	void n();
+	void o();
+	void p();
+	void q();
+	void r();
+	void s();
+	void t();
+	void u();
+	void v();
+	void w();
+	void x();
+	void y();
+	void z();
+	void aa();
+	void bb();
+	void cc();
+	void dd();
+	void ee();
 	template A(T)
 	{
 	}
@@ -281,6 +202,7 @@ template templ(T)
 	{
 		pragma (msg, "Invalid destination type.");
 	}
+
 }
 static char[] charArray = ['"','\''];
 
@@ -295,140 +217,131 @@ template Foo2(bool bar)
 	{
 		static if(bar)
 		{
-			int i;
-		}
-		else
-		{
-		}
-
-		static if(!bar)
-		{
-		}
-		else
-		{
-		}
-
-	}
-}
-template Foo4()
-{
-	void bar()
-	{
-	}
-}
-class Baz4
-{
-	mixin Foo4!() foo;
-	alias foo.bar baz;
-}
-template test(T)
-{
-	int test(T t)
-	{
-		if (auto o = cast(Object)t)
-			return 1;
-		return 0;
-	}
-}
-enum x6 = 1;
-bool foo6(int a, int b, int c, int d)
-{
-	return (a < b) != (c < d);
-}
-auto foo7(int x)
-{
-	return 5;
-}
-class D8
-{
-}
-void func8()
-{
-	scope a = new D8;
-}
-template func9(T)
-{
-	T func9()
-	{
-		T i;
-		scope(exit) i = 1;
-		scope(success) i = 2;
-		scope(failure) i = 3;
-		return i;
-	}
-}
-template V10(T)
-{
-	void func()
-	{
-		{
-			for (int i,j = 4; i < 3; i++)
+				int i;
+			}
+			else
 			{
+				}
+
+				static if(!bar)
+				{
+					}
+					else
+					{
+						}
+
+					}
+
+				}
+				template Foo4()
+				{
+					void bar()
+					{
+					}
+
+				}
+				class Baz4
+				{
+					mixin Foo4!() foo;
+					alias foo.bar baz;
+				}
+				template test(T)
+				{
+					int test(T t)
+					{
+						if (auto o = cast(Object)t)
+							return 1;
+						return 0;
+					}
+
+				}
+				enum x6 = 1;
+				bool foo6(int a, int b, int c, int d);
+				auto foo7(int x)
+				{
+					return 5;
+				}
+
+				class D8
 				{
 				}
-			}
-		}
-	}
-}
-int foo11(int function() fn)
-{
-	return fn();
-}
-template bar11(T)
-{
-	int bar11()
-	{
-		return foo11(function int()
-		{
-			return 0;
-		}
-		);
-	}
-}
-struct S6360
-{
-	@property const pure nothrow long weeks1()
-	{
-		return 0;
-	}
+				void func8();
+				template func9(T)
+				{
+					T func9()
+					{
+						T i;
+						scope(exit) i = 1;
+						scope(success) i = 2;
+						scope(failure) i = 3;
+						return i;
+					}
 
-	const nothrow pure @property long weeks2()
-	{
-		return 0;
-	}
+				}
+				template V10(T)
+				{
+					void func()
+					{
+						{
+							for (int i,j = 4; i < 3; i++)
+							{
+								{
+								}
+							}
+						}
+					}
 
-}
-struct S12
-{
-	nothrow this(int n)
-	{
-	}
-	nothrow this(string s)
-	{
-	}
+				}
+				int foo11(int function() fn);
+				template bar11(T)
+				{
+					int bar11()
+					{
+						return foo11(function int()
+						{
+							return 0;
+						}
+						);
+					}
 
-}
-struct T12
-{
-	template __ctor()
-	{
-		immutable this(int args)
-		{
-		}
-	}
-	immutable template __ctor(A...)
-	{
-		this(A args)
-		{
-		}
-	}
+				}
+				struct S6360
+				{
+					@property const pure nothrow long weeks1();
 
-}
-import std.stdio : writeln, F = File;
-template foo6591()
-{
-	void foo6591()
-	{
-		import std.stdio : writeln, F = File;
-	}
-}
+					const nothrow pure @property long weeks2();
+
+				}
+				struct S12
+				{
+					nothrow this(int n);
+					nothrow this(string s);
+
+				}
+				struct T12
+				{
+					template __ctor()
+					{
+						immutable this(int args)
+						{
+						}
+
+					}
+					immutable template __ctor(A...)
+					{
+						this(A args)
+						{
+						}
+
+					}
+
+				}
+				import std.stdio : writeln, F = File;
+				template foo6591()
+				{
+					void foo6591()
+					{
+						import std.stdio : writeln, F = File;
+					}
+
+				}
