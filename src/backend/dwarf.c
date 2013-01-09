@@ -9,6 +9,8 @@
 
 // Emit Dwarf symbolic debug info
 
+#include        "cc.h"
+
 #if !SPP
 #include        <stdio.h>
 #include        <string.h>
@@ -22,13 +24,12 @@
 #include        <malloc.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include        <signal.h>
 #include        <unistd.h>
 #include        <errno.h>
 #endif
 
-#include        "cc.h"
 #include        "global.h"
 #include        "code.h"
 #include        "type.h"
@@ -570,7 +571,7 @@ void dwarf_initfile(const char *filename)
         linebuf->writeString((char *)list_ptr(pl));
         linebuf->writeByte(0);
     }
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
     for (pl = pathsyslist; pl; pl = list_next(pl))
     {
         linebuf->writeString((char *)list_ptr(pl));

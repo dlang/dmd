@@ -7,6 +7,7 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
+#include        "mars.h"
 
 #include        <stdio.h>
 #include        <ctype.h>
@@ -19,7 +20,7 @@
 #include        <process.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include        <sys/types.h>
 #include        <sys/wait.h>
 #include        <unistd.h>
@@ -37,8 +38,6 @@
 #endif
 
 #include        "root.h"
-
-#include        "mars.h"
 
 #include        "rmem.h"
 
@@ -79,7 +78,7 @@ void writeFilename(OutBuffer *buf, const char *filename)
     writeFilename(buf, filename, strlen(filename));
 }
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #define NME_MAX_OFFSET 100
 
 #if __APPLE__
@@ -463,7 +462,7 @@ int runLINK()
         }
         return status;
     }
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif HOST_POSIX
     pid_t childpid;
     int status;
 
@@ -808,7 +807,7 @@ int executearg0(char *cmd, char *args)
 #if _WIN32
     // spawnlp returns intptr_t in some systems, not int
     return spawnl(0,file,file,args,NULL);
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif HOST_POSIX
     char *full;
     int cmdl = strlen(cmd);
 
@@ -872,7 +871,7 @@ int runProgram()
         ex = global.params.exefile;
     // spawnlp returns intptr_t in some systems, not int
     return spawnv(0,ex,argv.tdata());
-#elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#elif HOST_POSIX
     pid_t childpid;
     int status;
 

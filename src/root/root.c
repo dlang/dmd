@@ -7,7 +7,7 @@
 // in artistic.txt, or the GNU General Public License in gnu.txt.
 // See the included readme.txt for details.
 
-#define POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+#include "root.h"
 
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,7 +33,7 @@
 #include <errno.h>
 #endif
 
-#if POSIX
+#if HOST_POSIX
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
@@ -43,7 +43,6 @@
 #endif
 
 #include "port.h"
-#include "root.h"
 #include "rmem.h"
 
 #if 0 //__SC__ //def DEBUG
@@ -239,7 +238,7 @@ char *FileName::combine(const char *path, const char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if POSIX
+#if HOST_POSIX
     if (path[pathlen - 1] != '/')
     {   f[pathlen] = '/';
         pathlen++;
@@ -291,7 +290,7 @@ Strings *FileName::splitPath(const char *path)
 #if _WIN32
                     case ';':
 #endif
-#if POSIX
+#if HOST_POSIX
                     case ':':
 #endif
                         p++;
@@ -305,7 +304,7 @@ Strings *FileName::splitPath(const char *path)
                     case '\r':
                         continue;       // ignore carriage returns
 
-#if POSIX
+#if HOST_POSIX
                     case '~':
                         buf.writestring(getenv("HOME"));
                         continue;
@@ -412,7 +411,7 @@ int FileName::absolute(const char *name)
     return (*name == '\\') ||
            (*name == '/')  ||
            (*name && name[1] == ':');
-#elif POSIX
+#elif HOST_POSIX
     return (*name == '/');
 #else
     assert(0);
@@ -436,7 +435,7 @@ char *FileName::ext(const char *str)
         switch (*e)
         {   case '.':
                 return e + 1;
-#if POSIX
+#if HOST_POSIX
             case '/':
                 break;
 #endif
@@ -492,7 +491,7 @@ char *FileName::name(const char *str)
     {
         switch (*e)
         {
-#if POSIX
+#if HOST_POSIX
             case '/':
                return e + 1;
 #endif
@@ -537,7 +536,7 @@ char *FileName::path(const char *str)
 
     if (n > str)
     {
-#if POSIX
+#if HOST_POSIX
         if (n[-1] == '/')
             n--;
 #elif _WIN32
@@ -574,7 +573,7 @@ const char *FileName::replaceName(const char *path, const char *name)
     namelen = strlen(name);
     f = (char *)mem.malloc(pathlen + 1 + namelen + 1);
     memcpy(f, path, pathlen);
-#if POSIX
+#if HOST_POSIX
     if (path[pathlen - 1] != '/')
     {   f[pathlen] = '/';
         pathlen++;
@@ -653,7 +652,7 @@ int FileName::equalsExt(const char *ext)
         return 1;
     if (!e || !ext)
         return 0;
-#if POSIX
+#if HOST_POSIX
     return strcmp(e,ext) == 0;
 #elif _WIN32
     return stricmp(e,ext) == 0;
@@ -672,7 +671,7 @@ void FileName::CopyTo(FileName *to)
 
 #if _WIN32
     file.touchtime = mem.malloc(sizeof(WIN32_FIND_DATAA));      // keep same file time
-#elif POSIX
+#elif HOST_POSIX
     file.touchtime = mem.malloc(sizeof(struct stat)); // keep same file time
 #else
     assert(0);
@@ -744,7 +743,7 @@ char *FileName::safeSearchPath(Strings *path, const char *name)
     }
 
     return FileName::searchPath(path, name, 0);
-#elif POSIX
+#elif HOST_POSIX
     /* Even with realpath(), we must check for // and disallow it
      */
     for (const char *p = name; *p; p++)
@@ -801,7 +800,7 @@ cont:
 
 int FileName::exists(const char *name)
 {
-#if POSIX
+#if HOST_POSIX
     struct stat st;
 
     if (stat(name, &st) < 0)
@@ -849,7 +848,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
             if (path[strlen(path) - 1] != '\\')
 #endif
-#if POSIX
+#if HOST_POSIX
             if (path[strlen(path) - 1] != '\\')
 #endif
             {
@@ -857,7 +856,7 @@ void FileName::ensurePathExists(const char *path)
 #if _WIN32
                 if (_mkdir(path))
 #endif
-#if POSIX
+#if HOST_POSIX
                 if (mkdir(path, 0777))
 #endif
                 {
@@ -882,7 +881,7 @@ char *FileName::canonicalName(const char *name)
 #if linux
     // Lovely glibc extension to do it for us
     return canonicalize_file_name(name);
-#elif POSIX
+#elif HOST_POSIX
   #if _POSIX_VERSION >= 200809L || defined (linux)
     // NULL destination buffer is allowed and preferred
     return realpath(name, NULL);
@@ -976,7 +975,7 @@ void File::mark()
 
 int File::read()
 {
-#if POSIX
+#if HOST_POSIX
     off_t size;
     ssize_t numread;
     int fd;
@@ -1109,7 +1108,7 @@ err1:
 
 int File::mmread()
 {
-#if POSIX
+#if HOST_POSIX
     return read();
 #elif _WIN32
     HANDLE hFile;
@@ -1164,7 +1163,7 @@ Lerr:
 
 int File::write()
 {
-#if POSIX
+#if HOST_POSIX
     int fd;
     ssize_t numwritten;
     char *name;
@@ -1238,7 +1237,7 @@ err:
 
 int File::append()
 {
-#if POSIX
+#if HOST_POSIX
     return 1;
 #elif _WIN32
     HANDLE h;
@@ -1319,7 +1318,7 @@ void File::appendv()
 
 int File::exists()
 {
-#if POSIX
+#if HOST_POSIX
     return 0;
 #elif _WIN32
     DWORD dw;
@@ -1345,7 +1344,7 @@ int File::exists()
 
 void File::remove()
 {
-#if POSIX
+#if HOST_POSIX
     ::remove(this->name->toChars());
 #elif _WIN32
     DeleteFileA(this->name->toChars());
@@ -1361,7 +1360,7 @@ Files *File::match(char *n)
 
 Files *File::match(FileName *n)
 {
-#if POSIX
+#if HOST_POSIX
     return NULL;
 #elif _WIN32
     HANDLE h;
@@ -1400,7 +1399,7 @@ Files *File::match(FileName *n)
 
 int File::compareTime(File *f)
 {
-#if POSIX
+#if HOST_POSIX
     return 0;
 #elif _WIN32
     if (!touchtime)
@@ -1415,7 +1414,7 @@ int File::compareTime(File *f)
 
 void File::stat()
 {
-#if POSIX
+#if HOST_POSIX
     if (!touchtime)
     {
         touchtime = mem.calloc(1, sizeof(struct stat));
@@ -1780,7 +1779,7 @@ void OutBuffer::vprintf(const char *format, va_list args)
         if (count != -1)
             break;
         psize *= 2;
-#elif POSIX
+#elif HOST_POSIX
         va_list va;
         va_copy(va, args);
 /*

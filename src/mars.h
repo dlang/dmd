@@ -23,7 +23,7 @@ The host compiler and host operating system are also different,
 and are predefined by the host compiler. The ones used in
 dmd are:
 
-Macros defined by the compiler, not the code:
+Macros defined by the compiler, not the code (see comments for exceptions):
 
     Compiler:
         __DMC__         Digital Mars compiler
@@ -32,14 +32,15 @@ Macros defined by the compiler, not the code:
         __clang__       Clang compiler
 
     Host operating system:
-        _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
-                        Windows 2000, Win XP, Vista
-        _WIN64          Windows for AMD64
         linux           Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
         __sun           Solaris, OpenSolaris, SunOS, OpenIndiana, etc
+	HOST_POSIX      Any of the above operating systems (DEFINED IN THIS FILE)
+        _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s,
+                        Windows 2000, Win XP, Vista
+        _WIN64          Windows for AMD64
 
 For the target systems, there are the target operating system and
 the target object file format:
@@ -94,6 +95,9 @@ void unittests();
 #define BUG6652 1       // Making foreach range statement parameter non-ref in default
                         // 1: Modifying iteratee in body is warned with -w switch
                         // 2: Modifying iteratee in body is error without -d switch
+
+// Host grouping
+#define HOST_POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
 
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))

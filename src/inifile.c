@@ -10,6 +10,8 @@
  * For any other uses, please contact Digital Mars.
  */
 
+#include "mars.h"
+
 #include        <stdio.h>
 #include        <string.h>
 #include        <stdlib.h>
@@ -32,7 +34,7 @@
 #include        <alloca.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include "gnuc.h"
 #endif
 
@@ -116,7 +118,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 filename = (char *)FileName::replaceName(argv0, inifile);
                 if (!FileName::exists(filename))
                 {
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #if __GLIBC__ || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun   // This fix by Thomas Kuehne
                     /* argv0 might be a symbolic link,
                      * so try again looking past it to the real path

@@ -9,6 +9,8 @@
  * For any other uses, please contact Digital Mars.
  */
 
+#include "root.h"
+
 #include <stdio.h>
 #include <fcntl.h>
 #include <stdlib.h>
@@ -20,7 +22,7 @@
 #include <io.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <fcntl.h>

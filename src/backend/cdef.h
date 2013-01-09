@@ -10,7 +10,7 @@
  */
 
 
-/* Macros defined by the compiler, not the code:
+/* Macros defined by the compiler, not the code (see comments for exceptions):
 
     Compiler:
         __SC__          Symantec compiler
@@ -21,13 +21,14 @@
         __llvm__        Compiler using LLVM as backend (LLVM-GCC/Clang)
 
     Host operating system:
-        _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
-        _WIN64          Windows for AMD64
         linux           Linux
         __APPLE__       Mac OSX
         __FreeBSD__     FreeBSD
         __OpenBSD__     OpenBSD
         __sun           Solaris, OpenSolaris, SunOS, OpenIndiana, etc
+	HOST_POSIX      Any of the above operating systems (DEFINED IN THIS FILE)
+        _WIN32          Microsoft NT, Windows 95, Windows 98, Win32s, Windows 2000
+        _WIN64          Windows for AMD64
         __OS2__         IBM OS/2
         DOS386          32 bit DOS extended executable
         DOS16RM         Rational Systems 286 DOS extender
@@ -152,6 +153,12 @@ One and only one of these macros must be set by the makefile:
 
 
 /***********************************
+ * Host grouping
+ */
+#define HOST_POSIX (linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)
+
+
+/***********************************
  * Target machine types:
  */
 
@@ -266,7 +273,7 @@ typedef long double longdouble;
 
 // Precompiled header variations
 #define MEMORYHX        (_WINDLL && _WIN32)     // HX and SYM files are cached in memory
-#define MMFIO           (_WIN32 || linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun)  // if memory mapped files
+#define MMFIO           (_WIN32 || HOST_POSIX)  // if memory mapped files
 #define LINEARALLOC     _WIN32  // if we can reserve address ranges
 
 // H_STYLE takes on one of these precompiled header methods

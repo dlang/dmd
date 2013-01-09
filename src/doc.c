@@ -18,12 +18,12 @@
 
 #include "rmem.h"
 #include "root.h"
+#include "mars.h"
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+#if HOST_POSIX
 #include "gnuc.h"
 #endif
 
-#include "mars.h"
 #include "dsymbol.h"
 #include "macro.h"
 #include "template.h"
