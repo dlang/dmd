@@ -1059,7 +1059,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     writefunc(s);
     if (isExport())
-        objmod->export_symbol(s, Poffset);
+        objmod->export_symbol(s, Para.offset);
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {

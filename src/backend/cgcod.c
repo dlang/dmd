@@ -49,9 +49,10 @@ targ_size_t NDPoff;             // offset of saved 8087 registers
 int BPoff;                      // offset from BP
 int EBPtoESP;                   // add to EBP offset to get ESP offset
 int AllocaOff;                  // offset of alloca temporary
+LocalSection Para;              // section of function parameters
 LocalSection Auto;              // section of automatics and registers
 LocalSection Fast;              // section of fastpar
-targ_size_t EEoffset;           // offset of SCstack variables from ESP
+LocalSection EEStack;           // offset of SCstack variables from ESP
 
 REGSAVE regsave;
 
@@ -610,7 +611,7 @@ Lagain:
 
     /* Compute BP offsets for variables on stack.
      * The organization is:
-     *  Poff    parameters
+     *  Para.size    parameters
      * -------- stack is aligned to STACKALIGN
      *          seg of return addr      (if far function)
      *          IP of return addr
@@ -629,9 +630,9 @@ Lagain:
      */
 
     if (tym == TYifunc)
-        Poff = 26; // how is this number derived?
+        Para.size = 26; // how is this number derived?
     else
-        Poff = (farfunc ? 3 : 2) * REGSIZE;
+        Para.size = (farfunc ? 3 : 2) * REGSIZE;
 
     /* The real reason for the FAST section is because the implementation of contracts
      * requires a consistent stack frame location for the 'this' pointer. But if varying
@@ -677,13 +678,13 @@ Lagain:
         // Adjust Auto.size so that it is Auto.alignment byte aligned, assuming that
         // before function parameters were pushed the stack was
         // Auto.alignment byte aligned
-        targ_size_t psize = (Poffset + (REGSIZE - 1)) & ~(REGSIZE - 1);
+        targ_size_t psize = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
 //        if (config.exe == EX_WIN64)
 if (STACKALIGN == 16)
             // Parameters always consume multiple of 16 bytes
-            psize = (Poffset + 15) & ~15;
-        int sz = psize + -Fast.size + -Auto.size + Poff + (needframe ? 0 : REGSIZE);
-        //printf("Auto.alignment = %d, psize = x%llx, Poff = x%llx, needframe = %d\n", Auto.alignment, psize, Poff, needframe);
+            psize = (Para.offset + 15) & ~15;
+        int sz = psize + -Fast.size + -Auto.size + Para.size + (needframe ? 0 : REGSIZE);
+        //printf("Auto.alignment = %d, psize = x%llx, Para.size = x%llx, needframe = %d\n", Auto.alignment, psize, Para.size, needframe);
         if (sz & (Auto.alignment - 1))
         {   int adj = Auto.alignment - (sz & (Auto.alignment - 1));
             Auto.size -= adj;
@@ -705,10 +706,10 @@ if (STACKALIGN == 16)
     if (!I16 && calledafunc &&
         (STACKALIGN == 16 || config.flags4 & CFG4stackalign))
     {
-        //printf("npush = %d Poff = x%x needframe = %d localsize = x%x\n",
-        //       npush, Poff, needframe, localsize);
+        //printf("npush = %d Para.size = x%x needframe = %d localsize = x%x\n",
+        //       npush, Para.size, needframe, localsize);
 
-        int sz = Poff + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE;
+        int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize + npush * REGSIZE;
         if (STACKALIGN == 16)
         {
             if (sz & (8|4))
@@ -718,8 +719,8 @@ if (STACKALIGN == 16)
             localsize += 4;
     }
 
-    //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Poff x%02x localsize x%02x\n",
-        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Poff,(int)localsize);
+    //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
+        //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);
 
     xlocalsize = localsize;
 
@@ -834,7 +835,7 @@ if (STACKALIGN == 16)
        )
     {
         unsigned spalign = 0;
-        int sz = Poff + (needframe ? 0 : -REGSIZE) + localsize;
+        int sz = Para.size + (needframe ? 0 : -REGSIZE) + localsize;
         if (STACKALIGN == 16 && (sz & (STACKALIGN - 1)))
             spalign = STACKALIGN - (sz & (STACKALIGN - 1));
 
@@ -940,10 +941,10 @@ void stackoffsets(int flags)
     {
         tbl = vec_calloc(globsym.top);
     }
-    Auto.offset = 0;                        // automatic & register offset
-    Fast.offset = 0;                     // SCfastpar offset
-    Poffset = 0;                        // parameter offset
-    EEoffset = 0;                       // for SCstack's
+    Para.init();        // parameter offset
+    Fast.init();        // SCfastpar offset
+    Auto.init();        // automatic & register offset
+    EEStack.init();     // for SCstack's
     Auto.alignment = REGSIZE;
 //    for (int pass = 0; pass < 2; pass++)
     {
@@ -1050,27 +1051,27 @@ void stackoffsets(int flags)
                     break;
 
                 case SCstack:
-                    EEoffset = align(sz,EEoffset);
-                    s->Soffset = EEoffset;
-                    //printf("EEoffset =  x%lx\n",(long)s->Soffset);
-                    EEoffset += sz;
+                    EEStack.offset = align(sz,EEStack.offset);
+                    s->Soffset = EEStack.offset;
+                    //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
+                    EEStack.offset += sz;
                     break;
 
                 case SCshadowreg:
                 case SCparameter:
                     if (config.exe == EX_WIN64)
                     {
-                        assert((Poffset & 7) == 0);
-                        s->Soffset = Poffset;
-                        Poffset += 8;
+                        assert((Para.offset & 7) == 0);
+                        s->Soffset = Para.offset;
+                        Para.offset += 8;
                         break;
                     }
-                    Poffset = align(REGSIZE,Poffset); /* align on word stack boundary */
-                    if (I64 && alignsize == 16 && Poffset & 8)
-                        Poffset += 8;
-                    s->Soffset = Poffset;
+                    Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
+                    if (I64 && alignsize == 16 && Para.offset & 8)
+                        Para.offset += 8;
+                    s->Soffset = Para.offset;
                     //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
-                    Poffset += (s->Sflags & SFLdouble)
+                    Para.offset += (s->Sflags & SFLdouble)
                                 ? type_size(tsdouble)   // float passed as double
                                 : type_size(s->Stype);
                     break;
