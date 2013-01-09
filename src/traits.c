@@ -307,8 +307,20 @@ Expression *TraitsExp::semantic(Scope *sc)
         Type *t = isType(o);
         e = isExpression(o);
         Dsymbol *s = isDsymbol(o);
+        Declaration *vd;
+        VarDeclaration *var;
         if (t)
             e = typeDotIdExp(loc, t, id);
+        else if (e && e->op == TOKvar
+            && ((vd = ((VarExp *)e)->var) != NULL)
+            && ((var = vd->isVarDeclaration()) != NULL)
+            && var->needThis() && sc->func && !sc->func->isStatic()
+            && sc->func->parent->isAggregateDeclaration())
+        {
+            e = new IdentifierExp(loc, Id::This);
+            e = new DotIdExp(loc, e, var->ident);
+            e = new DotIdExp(loc, e, id);
+        }
         else if (e)
             e = new DotIdExp(loc, e, id);
         else if (s)
