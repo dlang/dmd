@@ -1301,7 +1301,8 @@ struct Symbol
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
 
-    int needThis();     // !=0 if symbol needs a 'this' pointer
+    int needThis();             // !=0 if symbol needs a 'this' pointer
+    bool Sisdead(bool anyiasm); // if variable is not referenced
 };
 
 #if __DMC__

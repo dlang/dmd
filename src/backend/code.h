@@ -212,7 +212,7 @@ extern  unsigned stackpush;
 extern  int stackchanged;
 extern  int refparam;
 extern  int reflocal;
-extern  char anyiasm;
+extern  bool anyiasm;
 extern  char calledafunc;
 extern  code *(*cdxxx[])(elem *,regm_t *);
 
