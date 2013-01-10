@@ -71,25 +71,7 @@ template Foo(T, int V)
 			C,
 		}
 		;
-		void fswitch(Label l)
-		{
-			final switch (l)
-			{
-				case A:
-				{
-					break;
-				}
-				case B:
-				{
-					break;
-				}
-				case C:
-				{
-					break;
-				}
-			}
-		}
-
+		void fswitch(Label l);
 		loop:
 		while (x)
 		{
