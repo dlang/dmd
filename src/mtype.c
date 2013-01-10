@@ -4311,7 +4311,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
             return MATCHconvert;
         }
 
-        return next->constConv(to);
+        return next->constConv(to) ? MATCHconvert : MATCHnomatch;
     }
 
     if (to->ty == Tarray)
