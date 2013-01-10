@@ -57,7 +57,7 @@ void ObjectNotFound(Identifier *id);
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 
 // Allow implicit conversion of T[] to T*
-#define IMPLICIT_ARRAY_TO_PTR   global.params.useDeprecated
+#define IMPLICIT_ARRAY_TO_PTR   (global.params.useDeprecated == 1)
 
 /* These have default values for 32 bit code, they get
  * adjusted for 64 bit code.

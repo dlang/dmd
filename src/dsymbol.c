@@ -632,7 +632,13 @@ void Dsymbol::deprecation(Loc loc, const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    ::vdeprecation(loc, format, ap, kind(), toPrettyChars());
+    if (global.params.useDeprecated == 2)
+    {
+        if (!global.gag)
+            ::verrorPrint(loc, "", format, ap, kind(), toPrettyChars());
+    }
+    else
+        ::vdeprecation(loc, format, ap, kind(), toPrettyChars());
     va_end(ap);
 }
 
@@ -640,7 +646,13 @@ void Dsymbol::deprecation(const char *format, ...)
 {
     va_list ap;
     va_start(ap, format);
-    ::vdeprecation(getLoc(), format, ap, kind(), toPrettyChars());
+    if (global.params.useDeprecated == 2)
+    {
+        if (!global.gag)
+            ::verrorPrint(loc, "", format, ap, kind(), toPrettyChars());
+    }
+    else
+        ::vdeprecation(getLoc(), format, ap, kind(), toPrettyChars());
     va_end(ap);
 }
 

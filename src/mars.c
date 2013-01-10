@@ -270,10 +270,8 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2)
 {
     static const char *header = "Deprecation: ";
-    if (global.params.useDeprecated == 0)
+    if (global.params.useDeprecated != 1)
         verror(loc, format, ap, p1, p2, header);
-    else if (global.params.useDeprecated == 2 && !global.gag)
-        verrorPrint(loc, header, format, ap, p1, p2);
 }
 
 /***************************************
