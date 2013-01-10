@@ -22,6 +22,21 @@ auto segfault8532(Y, R ...)(R r, Y val) pure
 static assert(!is(typeof( segfault8532(1,2,3))));
 
 /**************************************************
+    8982    ICE(ctfeexpr.c) __parameters with error in default value
+**************************************************/
+template ice8982(T)
+{
+    void bug8982(ref const int v = 7){}
+
+    static if (is(typeof(bug8982) P == __parameters)) {
+        pragma(msg, ((P[0..1] g) => g[0])());
+    }
+}
+
+static assert(!is(ice8982!(int)));
+
+
+/**************************************************
     8801    ICE assigning to __ctfe
 **************************************************/
 static assert(!is(typeof( { bool __ctfe= true; })));
