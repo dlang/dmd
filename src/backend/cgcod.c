@@ -75,7 +75,7 @@ int stackchanged;               /* set to !=0 if any use of the stack
                                  */
 int refparam;           // !=0 if we referenced any parameters
 int reflocal;           // !=0 if we referenced any locals
-char anyiasm;           // !=0 if any inline assembler
+bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
@@ -652,7 +652,7 @@ Lagain:
         Fast.size -= 5 * 4;
 #endif
 #endif
-    Fast.size = -align(0,-Fast.size + Fast.offset);
+    Fast.size = -align(Fast.alignment,-Fast.size + Fast.offset);
     if (STACKALIGN == 16 && Fast.size & (STACKALIGN - 1))
         Fast.size = -((-Fast.size + STACKALIGN - 1)  & ~(STACKALIGN - 1));
     Auto.size = Fast.size - align(0,Auto.offset);
@@ -929,14 +929,8 @@ Lcont:
 
 void stackoffsets(int flags)
 {
-    symbol *s;
-    targ_size_t sz;
-    unsigned alignsize;
-    int offi;
+    //printf("stackoffsets() %s\n", funcsym_p->Sident);
     vec_t tbl = NULL;
-
-
-    //printf("stackoffsets() %s\n", funcsym_p->Soffset);
     if (config.flags4 & CFG4optimized)
     {
         tbl = vec_calloc(globsym.top);
@@ -945,46 +939,38 @@ void stackoffsets(int flags)
     Fast.init();        // SCfastpar offset
     Auto.init();        // automatic & register offset
     EEStack.init();     // for SCstack's
-    Auto.alignment = REGSIZE;
 //    for (int pass = 0; pass < 2; pass++)
     {
         for (int si = 0; si < globsym.top; si++)
-        {   s = globsym.tab[si];
-            if (s->Sflags & SFLdead ||
-                (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
-#if MARS
-                 /* mTYvolatile was set if s has been reference by a nested function
-                  * meaning we'd better allocate space for it
-                  */
-                 !(s->Stype->Tty & mTYvolatile) &&
-#endif
-                 (config.flags4 & CFG4optimized || !config.fulltypes))
-                )
-                sz = 0;
-            else
-            {   sz = type_size(s->Stype);
-                if (sz == 0)
-                    sz++;               // can't handle 0 length structs
+        {   symbol *s = globsym.tab[si];
+
+            if (s->Sisdead(anyiasm))
+            {
+                /* The variable is dead. Don't allocate space for it if we don't
+                 * need to.
+                 */
+                switch (s->Sclass)
+                {
+                    case SCfastpar:
+                    case SCshadowreg:
+                    case SCparameter:
+                        break;          // have to allocate space for parameters
+
+                    default:
+                        continue;       // don't allocate space
+                }
             }
-            alignsize = type_alignsize(s->Stype);
 
-            /* The purpose of this is to reduce alignment faults when SIMD vectors
-             * are reinterpreted cast to other types with less alignment.
-             */
-            if (sz == 16 && config.fpxmmregs && alignsize < sz &&
-                s->Sclass == SCauto
-               )
-                alignsize = sz;
+            targ_size_t sz = type_size(s->Stype);
+            if (sz == 0)
+                sz++;               // can't handle 0 length structs
 
-            if (s->Salignment > 0)
-                alignsize = s->Salignment;
+            unsigned alignsize = s->Salignsize();
+            assert(I32 || I64 || alignsize <= REGSIZE);
 
             //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
 
-            /* Can't do this for CPP because the inline function expander
-                adds new symbols on the end.
-             */
             switch (s->Sclass)
             {
                 case SCfastpar:
@@ -1006,10 +992,10 @@ void stackoffsets(int flags)
                     Fast.offset += sz;
                     //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
 
-                    // Align doubles to 8 byte boundary
-                    if (!I16 && alignsize > REGSIZE)
-                        Auto.alignment = alignsize;
+                    if (alignsize > Fast.alignment)
+                        Fast.alignment = alignsize;
                     break;
+
                 case SCregister:
                 case SCauto:
                     if (s->Sfl == FLreg)        // if allocated in register
@@ -1028,6 +1014,7 @@ void stackoffsets(int flags)
                             symbol *sp = globsym.tab[i];
 //printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
                             if (vec_disjoint(s->Srange,sp->Srange) &&
+                                alignsize <= sp->Salignsize() &&
                                 sz <= type_size(sp->Stype))
                             {
                                 vec_or(sp->Srange,sp->Srange,s->Srange);
@@ -1044,8 +1031,7 @@ void stackoffsets(int flags)
                     if (s->Srange && sz && !(s->Sflags & SFLspill))
                         vec_setbit(si,tbl);
 
-                    // Align doubles to 8 byte boundary
-                    if (!I16 && alignsize > REGSIZE)
+                    if (alignsize > Auto.alignment)
                         Auto.alignment = alignsize;
                 L2:
                     break;
@@ -1066,6 +1052,9 @@ void stackoffsets(int flags)
                         Para.offset += 8;
                         break;
                     }
+                    /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
+                     * but are 4 byte aligned on the OSX 32 stack.
+                     */
                     Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
                     if (I64 && alignsize == 16 && Para.offset & 8)
                         Para.offset += 8;
@@ -1088,16 +1077,8 @@ void stackoffsets(int flags)
             }
         }
     }
-    Auto.offset = align(0,Auto.offset);
-    if (Auto.alignment > REGSIZE)
-        Auto.offset = (Auto.offset + Auto.alignment - 1) & ~(Auto.alignment - 1);
-    //printf("Aligned Auto.offset = x%lx\n", (long)Auto.offset);
-    Fast.offset = align(0,Fast.offset);
-
-    if (config.flags4 & CFG4optimized)
-    {
+    if (tbl)
         vec_free(tbl);
-    }
 }
 
 /****************************
