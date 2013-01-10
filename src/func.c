@@ -1806,7 +1806,13 @@ int FuncDeclaration::equals(Object *o)
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (fbody && (!hgs->hdrgen || global.params.useInline || hgs->autoMember || hgs->tpltMember))
-    {   buf->writenl();
+    {
+        int savetlpt = hgs->tpltMember;
+        int saveauto = hgs->autoMember;
+        hgs->tpltMember = 0;
+        hgs->autoMember = 0;
+        
+        buf->writenl();
 
         // in{}
         if (frequire)
@@ -1842,6 +1848,9 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->level--;
         buf->writebyte('}');
         buf->writenl();
+
+        hgs->tpltMember = savetlpt;
+        hgs->autoMember = saveauto;
     }
     else
     {   
