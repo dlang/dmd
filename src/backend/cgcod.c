@@ -75,7 +75,7 @@ int stackchanged;               /* set to !=0 if any use of the stack
                                  */
 int refparam;           // !=0 if we referenced any parameters
 int reflocal;           // !=0 if we referenced any locals
-char anyiasm;           // !=0 if any inline assembler
+bool anyiasm;           // !=0 if any inline assembler
 char calledafunc;       // !=0 if we called a function
 char needframe;         // if TRUE, then we will need the frame
                         // pointer (BP for the 8088)
@@ -933,7 +933,7 @@ void stackoffsets(int flags)
     vec_t tbl = NULL;
 
 
-    //printf("stackoffsets() %s\n", funcsym_p->Soffset);
+    //printf("stackoffsets() %s\n", funcsym_p->Sident);
     if (config.flags4 & CFG4optimized)
     {
         tbl = vec_calloc(globsym.top);
@@ -948,16 +948,7 @@ void stackoffsets(int flags)
         for (int si = 0; si < globsym.top; si++)
         {   symbol *s = globsym.tab[si];
 
-            if (s->Sflags & SFLdead ||
-                (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
-#if MARS
-                 /* mTYvolatile was set if s has been reference by a nested function
-                  * meaning we'd better allocate space for it
-                  */
-                 !(s->Stype->Tty & mTYvolatile) &&
-#endif
-                 (config.flags4 & CFG4optimized || !config.fulltypes))
-                )
+            if (s->Sisdead(anyiasm))
             {
                 /* The variable is dead. Don't allocate space for it if we don't
                  * need to.
@@ -969,26 +960,14 @@ void stackoffsets(int flags)
                     case SCparameter:
                         break;          // have to allocate space for parameters
 
-                    case SCregister:
-                    case SCauto:
-                        if (s->Sfl != FLreg)        // if not allocated in register
-                        {
-                            Auto.offset = align(0,Auto.offset);
-                            s->Soffset = Auto.offset;
-                            unsigned alignsize = type_alignsize(s->Stype);
-                            if (!I16 && alignsize > REGSIZE)
-                                Auto.alignment = alignsize;
-                        }
-                        continue;
-
                     default:
                         continue;       // don't allocate space
                 }
             }
 
             targ_size_t sz = type_size(s->Stype);
-                if (sz == 0)
-                    sz++;               // can't handle 0 length structs
+            if (sz == 0)
+                sz++;               // can't handle 0 length structs
 
             unsigned alignsize = s->Salignsize();
 
@@ -1078,6 +1057,9 @@ void stackoffsets(int flags)
                         Para.offset += 8;
                         break;
                     }
+                    /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
+                     * but are 4 byte aligned on the OSX 32 stack.
+                     */
                     Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
                     if (I64 && alignsize == 16 && Para.offset & 8)
                         Para.offset += 8;

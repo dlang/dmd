@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -204,6 +204,28 @@ int Symbol::Salignsize()
     }
 
     return alignsize;
+}
+
+/****************************************
+ * Return if symbol is dead.
+ */
+
+bool Symbol::Sisdead(bool anyiasm)
+{
+    return Sflags & SFLdead ||
+           /* SFLdead means the optimizer found no references to it.
+            * The rest deals with variables that the compiler never needed
+            * to read from memory because they were cached in registers,
+            * and so no memory needs to be allocated for them.
+            * Code that does write those variables to memory gets NOPed out
+            * during address assignment.
+            */
+           (!anyiasm && !(Sflags & SFLread) && Sflags & SFLunambig &&
+#if MARS
+            // mTYvolatile means this variable has been reference by a nested function
+            !(Stype->Tty & mTYvolatile) &&
+#endif
+            (config.flags4 & CFG4optimized || !config.fulltypes));
 }
 
 /***********************************

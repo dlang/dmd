@@ -919,11 +919,13 @@ code *cdaddass(elem *e,regm_t *pretregs)
             /* Handle shortcuts. Watch out for if result has    */
             /* to be in flags.                                  */
 
-            if (reghasvalue(ALLREGS,i,&reg) && i != 1 && i != -1 &&
+            if (reghasvalue(byte ? BYTEREGS : ALLREGS,i,&reg) && i != 1 && i != -1 &&
                 !opsize)
             {
                 cs.Iop = op1;
                 cs.Irm |= modregrm(0,reg,0);
+                if (I64 && byte && reg >= 4)
+                    cs.Irex |= REX;
             }
             else
             {

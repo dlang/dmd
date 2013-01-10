@@ -3084,13 +3084,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                     t = targ1;
             }
 
-            if (s->Sflags & SFLdead ||
-                (!anyiasm && !(s->Sflags & SFLread) && s->Sflags & SFLunambig &&
-#if MARS
-                 // mTYvolatile means this variable has been reference by a nested function
-                 !(s->Stype->Tty & mTYvolatile) &&
-#endif
-                 (config.flags4 & CFG4optimized || !config.fulltypes)))
+            if (s->Sisdead(anyiasm))
             {
                 // Ignore it, as it is never referenced
                 ;
@@ -4262,10 +4256,7 @@ void assignaddrc(code *c)
             case FLauto:
                 soff = Auto.size;
             L1:
-                if (s->Sflags & SFLunambig && !(s->Sflags & SFLread) && // if never loaded
-                    !anyiasm &&
-                    // if not optimized, leave it in for debuggability
-                    (config.flags4 & CFG4optimized || !config.fulltypes))
+                if (s->Sisdead(anyiasm))
                 {   c->Iop = NOP;               // remove references to it
                     continue;
                 }
