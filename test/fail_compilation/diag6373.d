@@ -1,5 +1,5 @@
+// PERMUTE_ARGS: -de -dw
 /*
-REQUIRED_ARGS: -de
 TEST_OUTPUT:
 ---
 fail_compilation/diag6373.d(7): Deprecation: class diag6373.Bar use of diag6373.Foo.method(double x) hidden by Bar is deprecated. Use 'alias Foo.method method;' to introduce base class overload set.
