@@ -1,9 +1,17 @@
-// PERMUTE_ARGS: -d -dw
+// REQUIRED_ARGS: -d -m32
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail121.d(24): Error: .typeinfo deprecated, use typeid(type)
+fail_compilation/fail121.d(24): Error: .typeinfo deprecated, use typeid(type)
+fail_compilation/fail121.d(24): Error: list[1u].typeinfo is not an lvalue
+---
+*/
 // segfault on DMD0.150, never failed if use typeid() instead.
 
 struct myobject
 {
-    TypeInfo objecttype; 
+    TypeInfo objecttype;
     void * offset;
 }
 
@@ -13,5 +21,5 @@ void foo()
 {
     int i;
 
-    list[1].typeinfo = i.typeinfo;
+    list[1u].typeinfo = i.typeinfo;
 }
