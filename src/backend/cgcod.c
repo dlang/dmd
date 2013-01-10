@@ -652,7 +652,7 @@ Lagain:
         Fast.size -= 5 * 4;
 #endif
 #endif
-    Fast.size = -align(0,-Fast.size + Fast.offset);
+    Fast.size = -align(Fast.alignment,-Fast.size + Fast.offset);
     if (STACKALIGN == 16 && Fast.size & (STACKALIGN - 1))
         Fast.size = -((-Fast.size + STACKALIGN - 1)  & ~(STACKALIGN - 1));
     Auto.size = Fast.size - align(0,Auto.offset);
@@ -929,11 +929,8 @@ Lcont:
 
 void stackoffsets(int flags)
 {
-    int offi;
-    vec_t tbl = NULL;
-
-
     //printf("stackoffsets() %s\n", funcsym_p->Sident);
+    vec_t tbl = NULL;
     if (config.flags4 & CFG4optimized)
     {
         tbl = vec_calloc(globsym.top);
@@ -942,7 +939,6 @@ void stackoffsets(int flags)
     Fast.init();        // SCfastpar offset
     Auto.init();        // automatic & register offset
     EEStack.init();     // for SCstack's
-    Auto.alignment = REGSIZE;
 //    for (int pass = 0; pass < 2; pass++)
     {
         for (int si = 0; si < globsym.top; si++)
@@ -970,6 +966,7 @@ void stackoffsets(int flags)
                 sz++;               // can't handle 0 length structs
 
             unsigned alignsize = s->Salignsize();
+            assert(I32 || I64 || alignsize <= REGSIZE);
 
             //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
@@ -995,9 +992,8 @@ void stackoffsets(int flags)
                     Fast.offset += sz;
                     //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
 
-                    // Align doubles to 8 byte boundary
-                    if (!I16 && alignsize > REGSIZE)
-                        Auto.alignment = alignsize;
+                    if (alignsize > Fast.alignment)
+                        Fast.alignment = alignsize;
                     break;
 
                 case SCregister:
@@ -1035,8 +1031,7 @@ void stackoffsets(int flags)
                     if (s->Srange && sz && !(s->Sflags & SFLspill))
                         vec_setbit(si,tbl);
 
-                    // Align doubles to 8 byte boundary
-                    if (!I16 && alignsize > REGSIZE)
+                    if (alignsize > Auto.alignment)
                         Auto.alignment = alignsize;
                 L2:
                     break;
@@ -1082,16 +1077,8 @@ void stackoffsets(int flags)
             }
         }
     }
-    Auto.offset = align(0,Auto.offset);
-    if (Auto.alignment > REGSIZE)
-        Auto.offset = (Auto.offset + Auto.alignment - 1) & ~(Auto.alignment - 1);
-    //printf("Aligned Auto.offset = x%lx\n", (long)Auto.offset);
-    Fast.offset = align(0,Fast.offset);
-
-    if (config.flags4 & CFG4optimized)
-    {
+    if (tbl)
         vec_free(tbl);
-    }
 }
 
 /****************************

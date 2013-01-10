@@ -193,10 +193,13 @@ int Symbol::Salignsize()
         return Salignment;
     int alignsize = type_alignsize(Stype);
 
+    if (I16 && alignsize > 2)
+        alignsize = 2;                  // stack is aligned on 2 anyway
+
     /* Reduce alignment faults when SIMD vectors
      * are reinterpreted cast to other types with less alignment.
      */
-    if (config.fpxmmregs && alignsize < 16 &&
+    else if (config.fpxmmregs && alignsize < 16 &&
         Sclass == SCauto &&
         type_size(Stype) == 16)
     {
