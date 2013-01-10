@@ -2,8 +2,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail243a.d(16): Deprecation: use of typedef is deprecated; use alias instead
-fail_compilation/fail243a.d(16): Deprecation: use of typedef is deprecated; use alias instead
+fail_compilation/fail243a.d(15): Deprecation: use of typedef is deprecated; use alias instead
 ---
 */
 
