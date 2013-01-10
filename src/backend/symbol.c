@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -183,6 +183,53 @@ void symbol_keep(symbol *s)
 }
 
 #endif
+
+/****************************************
+ * Return alignment of symbol.
+ */
+int Symbol::Salignsize()
+{
+    if (Salignment > 0)
+        return Salignment;
+    int alignsize = type_alignsize(Stype);
+
+    if (I16 && alignsize > 2)
+        alignsize = 2;                  // stack is aligned on 2 anyway
+
+    /* Reduce alignment faults when SIMD vectors
+     * are reinterpreted cast to other types with less alignment.
+     */
+    else if (config.fpxmmregs && alignsize < 16 &&
+        Sclass == SCauto &&
+        type_size(Stype) == 16)
+    {
+        alignsize = 16;
+    }
+
+    return alignsize;
+}
+
+/****************************************
+ * Return if symbol is dead.
+ */
+
+bool Symbol::Sisdead(bool anyiasm)
+{
+    return Sflags & SFLdead ||
+           /* SFLdead means the optimizer found no references to it.
+            * The rest deals with variables that the compiler never needed
+            * to read from memory because they were cached in registers,
+            * and so no memory needs to be allocated for them.
+            * Code that does write those variables to memory gets NOPed out
+            * during address assignment.
+            */
+           (!anyiasm && !(Sflags & SFLread) && Sflags & SFLunambig &&
+#if MARS
+            // mTYvolatile means this variable has been reference by a nested function
+            !(Stype->Tty & mTYvolatile) &&
+#endif
+            (config.flags4 & CFG4optimized || !config.fulltypes));
+}
 
 /***********************************
  * Get user name of symbol.
