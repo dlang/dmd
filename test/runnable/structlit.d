@@ -590,6 +590,31 @@ void test9116()
 }
 
 /********************************************/
+// 9293
+
+void test9293()
+{
+    static struct A
+    {
+    //  enum A zero = A(); // This works as expected
+        enum A zero = {};  // Note the difference here
+
+        int opCmp(const ref A a) const
+        {
+            assert(0);
+        }
+
+        int opCmp(const A a) const
+        {
+            return 0;
+        }
+    }
+
+    A a;
+    auto b = a >= A.zero;  // Error: A() is not an lvalue
+}
+
+/********************************************/
 
 int main()
 {
@@ -614,6 +639,7 @@ int main()
     test7929();
     test7021();
     test9116();
+    test9293();
 
     printf("Success\n");
     return 0;
