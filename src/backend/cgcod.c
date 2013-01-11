@@ -567,6 +567,31 @@ tryagain:
 #endif
 }
 
+/*********************************************
+ * Align sections on the stack.
+ *  base        negative offset of section from frame pointer
+ *  alignment   alignment to use
+ *  bias        difference between where frame pointer points and the STACKALIGNed
+ *              part of the stack
+ * Returns:
+ *  base        revised downward so it is aligned
+ */
+targ_size_t alignsection(targ_size_t base, unsigned alignment, int bias)
+{
+    assert((int)base <= 0);
+    if (alignment > STACKALIGN)
+        alignment = STACKALIGN;
+    if (alignment)
+    {
+        int sz = -base + bias;
+        assert(sz >= 0);
+        sz &= (alignment - 1);
+        if (sz)
+            base -= alignment - sz;
+    }
+    return base;
+}
+
 /*******************************
  * Generate code for a function start.
  * Input:
@@ -583,7 +608,6 @@ code *prolog()
 {
     SYMIDX si;
     bool enter;
-    unsigned Foffset;
     unsigned xlocalsize;     // amount to subtract from ESP to make room for locals
     char guessneedframe;
     regm_t namedargs = 0;
@@ -652,49 +676,30 @@ Lagain:
         Fast.size -= 5 * 4;
 #endif
 #endif
-    Fast.size = -align(Fast.alignment,-Fast.size + Fast.offset);
-    if (STACKALIGN == 16 && Fast.size & (STACKALIGN - 1))
-        Fast.size = -((-Fast.size + STACKALIGN - 1)  & ~(STACKALIGN - 1));
-    Auto.size = Fast.size - align(0,Auto.offset);
+    Fast.size = -align(REGSIZE,-Fast.size + Fast.offset);
 
-    regsave.off = Auto.size - align(0,regsave.top);
-    Foffset = floatreg ? (config.fpxmmregs || I32 ? 16 : DOUBLESIZE) : 0;
-    Foff = regsave.off - align(0,Foffset);
+    int bias = Para.size + (needframe ? 0 : REGSIZE);
+    if (Auto.alignment < REGSIZE)
+        Auto.alignment = REGSIZE;       // necessary because localsize must be REGSIZE aligned
+    Auto.size = alignsection(Fast.size - Auto.offset, Auto.alignment, bias);
+
+    regsave.off = alignsection(Auto.size - regsave.top, regsave.alignment, bias);
+
+    unsigned floatregsize = floatreg ? (config.fpxmmregs || I32 ? 16 : DOUBLESIZE) : 0;
+    Foff = alignsection(regsave.off - floatregsize, STACKALIGN, bias);
+
     assert(usedalloca != 1);
-    AllocaOff = usedalloca ? (Foff - REGSIZE) : Foff;
-    CSoff = AllocaOff - align(0,cstop * REGSIZE);
+    AllocaOff = alignsection(usedalloca ? (Foff - REGSIZE) : Foff, REGSIZE, bias);
+
+    CSoff = alignsection(AllocaOff - cstop * REGSIZE, REGSIZE, bias);
+
 #if TX86
-    NDPoff = CSoff - align(0,NDP::savetop * NDPSAVESIZE);
+    NDPoff = alignsection(CSoff - NDP::savetop * NDPSAVESIZE, REGSIZE, bias);
 #else
     NDPoff = CSoff;
 #endif
 
     //printf("Fast.size = x%x, Auto.size = x%x\n", (int)Fast.size, (int)Auto.size);
-
-    if (Foffset > Auto.alignment)
-        Auto.alignment = Foffset;               // floatreg must be aligned, too
-    if (Auto.alignment > REGSIZE)
-    {
-        // Adjust Auto.size so that it is Auto.alignment byte aligned, assuming that
-        // before function parameters were pushed the stack was
-        // Auto.alignment byte aligned
-        targ_size_t psize = (Para.offset + (REGSIZE - 1)) & ~(REGSIZE - 1);
-//        if (config.exe == EX_WIN64)
-if (STACKALIGN == 16)
-            // Parameters always consume multiple of 16 bytes
-            psize = (Para.offset + 15) & ~15;
-        int sz = psize + -Fast.size + -Auto.size + Para.size + (needframe ? 0 : REGSIZE);
-        //printf("Auto.alignment = %d, psize = x%llx, Para.size = x%llx, needframe = %d\n", Auto.alignment, psize, Para.size, needframe);
-        if (sz & (Auto.alignment - 1))
-        {   int adj = Auto.alignment - (sz & (Auto.alignment - 1));
-            Auto.size -= adj;
-            regsave.off -= adj;
-            Foff -= adj;
-            AllocaOff -= adj;
-            CSoff -= adj;
-            NDPoff -= adj;
-        }
-    }
 
     localsize = -NDPoff;
 
@@ -918,6 +923,11 @@ Lcont:
             c = cat(c, prolog_genvarargs(sv, &namedargs));
     }
 
+    /* Alignment checks
+     */
+    //assert(Auto.alignment <= STACKALIGN);
+    //assert(((Auto.size + Para.size + BPoff) & (Auto.alignment - 1)) == 0);
+
     return c;
 }
 
@@ -966,7 +976,8 @@ void stackoffsets(int flags)
                 sz++;               // can't handle 0 length structs
 
             unsigned alignsize = s->Salignsize();
-            assert(I32 || I64 || alignsize <= REGSIZE);
+            if (alignsize > STACKALIGN)
+                alignsize = STACKALIGN;         // no point if the stack is less aligned
 
             //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
             assert((int)sz >= 0);
@@ -1000,7 +1011,21 @@ void stackoffsets(int flags)
                 case SCauto:
                     if (s->Sfl == FLreg)        // if allocated in register
                         break;
-                    // See if we can share storage with another variable
+
+                    /* We can go further with this:
+                     * 1. sort by alignsize, biggest first
+                     * 2. move variables nearer the frame pointer that have higher Sweights
+                     *    because addressing mode is fewer bytes. Grouping together high Sweight
+                     *    variables also may put them in the same cache
+                     * 3. put static arrays nearest the frame pointer, so buffer overflows
+                     *    can't change other variable contents
+                     * 4. Do the coloring at the byte level to minimize stack usage
+                     */
+
+                    /* See if we can share storage with another variable
+                     * if their live ranges do not overlap.
+                     * An approximation to case 4.
+                     */
                     if (config.flags4 & CFG4optimized &&
                         // Don't share because could stomp on variables
                         // used in finally blocks

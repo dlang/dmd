@@ -200,7 +200,7 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
         idx += 16;
         // MOVD idx[RBP],xmm
         unsigned op = STOAPD;
-        if (1)
+        if (0)
             /* This is because the regsave does not get properly aligned
              * to 16 on 32 bit machines.
              * Doing so wreaks havoc with the location of vthis, which messes
@@ -235,7 +235,7 @@ code *REGSAVE::restore(code *c, int reg, unsigned idx)
         assert(alignment == 16);
         // MOVD xmm,idx[RBP]
         unsigned op = LODAPD;
-        if (1)
+        if (0)
             op = LODUPD;
         c = genc1(c,op,modregxrm(2, reg - XMM0, BPRM),FLregsave,(targ_uns) idx);
     }
