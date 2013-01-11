@@ -6424,8 +6424,7 @@ Expression *BinAssignExp::semantic(Scope *sc)
         e = e->semantic(sc);
         return e;
     }
-
-    if (e1->op == TOKslice)
+    else if (e1->op == TOKslice)
     {
         // T[] op= ...
         e = typeCombine(sc);
@@ -6491,7 +6490,8 @@ Expression *BinAssignExp::semantic(Scope *sc)
     if (e1->op == TOKerror || e2->op == TOKerror)
         return new ErrorExp();
 
-    return checkComplexOpAssign(sc);
+    checkComplexOpAssign(sc);
+    return reorderSettingAAElem(sc);
 }
 
 #if DMDV2
@@ -10994,7 +10994,7 @@ Ltupleassign:
 
     type = e1->type;
     assert(type);
-    return this;
+    return reorderSettingAAElem(sc);
 }
 
 Expression *AssignExp::checkToBoolean(Scope *sc)
@@ -11079,7 +11079,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
         checkPostblit(e1->loc, tb1next);
         e2 = e2->castTo(sc, e1->type);
         type = e1->type;
-        e = this;
     }
     else if ((tb1->ty == Tarray) &&
         e2->implicitConvTo(tb1next)
@@ -11088,7 +11087,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
         checkPostblit(e2->loc, tb2);
         e2 = e2->castTo(sc, tb1next);
         type = e1->type;
-        e = this;
     }
     else if (tb1->ty == Tarray &&
         (tb1next->ty == Tchar || tb1next->ty == Twchar) &&
@@ -11098,7 +11096,6 @@ Expression *CatAssignExp::semantic(Scope *sc)
     {   // Append dchar to char[] or wchar[]
         e2 = e2->castTo(sc, Type::tdchar);
         type = e1->type;
-        e = this;
 
         /* Do not allow appending wchar to char[] because if wchar happens
          * to be a surrogate pair, nothing good can result.
@@ -11108,9 +11105,9 @@ Expression *CatAssignExp::semantic(Scope *sc)
     {
         if (tb1 != Type::terror && tb2 != Type::terror)
             error("cannot append type %s to type %s", tb2->toChars(), tb1->toChars());
-        e = new ErrorExp();
+        return new ErrorExp();
     }
-    return e;
+    return reorderSettingAAElem(sc);
 }
 
 /************************************************************/
@@ -11217,6 +11214,9 @@ Expression *PowAssignExp::semantic(Scope *sc)
     else
     {
         e1 = e1->modifiableLvalue(sc, e1);
+
+        e = reorderSettingAAElem(sc);
+        if (e != this) return e;
     }
 
     if ( (e1->type->isintegral() || e1->type->isfloating()) &&
@@ -12873,4 +12873,64 @@ SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
     }
     sc = sc->pop();
     return se;
+}
+
+Expression *BinExp::reorderSettingAAElem(Scope *sc)
+{
+    if (this->e1->op != TOKindex)
+        return this;
+    IndexExp *ie = (IndexExp *)e1;
+    Type *t1 = ie->e1->type->toBasetype();
+    if (t1->ty != Taarray)
+        return this;
+
+    /* Check recursive conversion */
+    VarDeclaration *var;
+    bool isrefvar = (e2->op == TOKvar &&
+                    (var = ((VarExp *)e2)->var->isVarDeclaration()) != NULL &&
+                    (var->storage_class & STCref));
+    if (isrefvar)
+        return this;
+
+    /* Fix evaluation order of setting AA element. (Bugzilla 3825)
+     * Rewrite:
+     *     aa[key] op= val;
+     * as:
+     *     ref __aatmp = aa;
+     *     ref __aakey = key;
+     *     ref __aaval = val;
+     *     __aatmp[__aakey] op= __aaval;  // assignment
+     */
+    Expression *ec = NULL;
+    if (ie->e1->hasSideEffect())
+    {
+        Identifier *id = Lexer::uniqueId("__aatmp");
+        VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
+        vd->storage_class |= STCref | STCforeach;
+        Expression *de = new DeclarationExp(ie->e1->loc, vd);
+
+        ec = de;
+        ie->e1 = new VarExp(ie->e1->loc, vd);
+    }
+    if (ie->e2->hasSideEffect())
+    {
+        Identifier *id = Lexer::uniqueId("__aakey");
+        VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
+        vd->storage_class |= STCref | STCforeach;
+        Expression *de = new DeclarationExp(ie->e2->loc, vd);
+
+        ec = ec ? new CommaExp(loc, ec, de) : de;
+        ie->e2 = new VarExp(ie->e2->loc, vd);
+    }
+    {
+        Identifier *id = Lexer::uniqueId("__aaval");
+        VarDeclaration *vd = new VarDeclaration(loc, this->e2->type, id, new ExpInitializer(this->e2->loc, this->e2));
+        vd->storage_class |= STCref | STCforeach;
+        Expression *de = new DeclarationExp(this->e2->loc, vd);
+
+        ec = ec ? new CommaExp(loc, ec, de) : de;
+        this->e2 = new VarExp(this->e2->loc, vd);
+    }
+    ec = new CommaExp(loc, ec, this);
+    return ec->semantic(sc);
 }

@@ -820,6 +820,7 @@ struct BinExp : Expression
 
     Expression *op_overload(Scope *sc);
     Expression *compare_overload(Scope *sc, Identifier *id);
+    Expression *reorderSettingAAElem(Scope *sc);
 
     elem *toElemBin(IRState *irs, int op);
 };
