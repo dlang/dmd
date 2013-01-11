@@ -319,7 +319,6 @@ cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */
-extern int BPoff;
 
 int cod3_EA(code *c);
 regm_t cod3_useBP();
