@@ -5006,9 +5006,10 @@ Statement *ThrowStatement::semantic(Scope *sc)
 
 int ThrowStatement::blockExit(bool mustNotThrow)
 {
-    if (mustNotThrow)
+    Type *t = exp->type->toBasetype();
+    if (mustNotThrow && t->ty != Terror)
     {
-        ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+        ClassDeclaration *cd = t->isClassHandle();
         assert(cd);
 
         // Bugzilla 8675
