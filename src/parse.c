@@ -2233,6 +2233,9 @@ Objects *Parser::parseTemplateArgument()
         case TOKstring:
         case TOKfile:
         case TOKline:
+        case TOKmodulestring:
+        case TOKfuncstring:
+        case TOKprettyfunc:
         case TOKthis:
         {   // Template argument is an expression
             Expression *ea = parsePrimaryExp();
@@ -3630,14 +3633,17 @@ Initializer *Parser::parseInitializer()
 
 /*****************************************
  * Parses default argument initializer expression that is an assign expression,
- * with special handling for __FILE__ and __LINE__.
+ * with special handling for __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__.
  */
 
 #if DMDV2
 Expression *Parser::parseDefaultInitExp()
 {
     if (token.value == TOKfile ||
-        token.value == TOKline)
+        token.value == TOKline ||
+        token.value == TOKmodulestring ||
+        token.value == TOKfuncstring ||
+        token.value == TOKprettyfunc)
     {
         Token *t = peek(&token);
         if (t->value == TOKcomma || t->value == TOKrparen)
@@ -3645,8 +3651,14 @@ Expression *Parser::parseDefaultInitExp()
 
             if (token.value == TOKfile)
                 e = new FileInitExp(loc);
-            else
+            else if (token.value == TOKline)
                 e = new LineInitExp(loc);
+            else if (token.value == TOKmodulestring)
+                e = new ModuleInitExp(loc);
+            else if (token.value == TOKfuncstring)
+                e = new FuncInitExp(loc);
+            else if (token.value == TOKprettyfunc)
+                e = new PrettyFuncInitExp(loc);
             nextToken();
             return e;
         }
@@ -3757,6 +3769,9 @@ Statement *Parser::parseStatement(int flags)
         case TOKtraits:
         case TOKfile:
         case TOKline:
+        case TOKmodulestring:
+        case TOKfuncstring:
+        case TOKprettyfunc:
 #endif
         Lexp:
         {
@@ -4859,6 +4874,9 @@ int Parser::isBasicType(Token **pt)
                         case TOKstring:
                         case TOKfile:
                         case TOKline:
+                        case TOKmodulestring:
+                        case TOKfuncstring:
+                        case TOKprettyfunc:
                             goto L2;
                         default:
                             goto Lfalse;
@@ -5534,6 +5552,23 @@ Expression *Parser::parsePrimaryExp()
 
         case TOKline:
             e = new IntegerExp(loc, loc.linnum, Type::tint32);
+            nextToken();
+            break;
+
+        case TOKmodulestring:
+        {   const char *s = md->toChars();
+            e = new StringExp(loc, (char *)s, strlen(s), 0);
+            nextToken();
+            break;
+        }
+
+        case TOKfuncstring:
+            e = new FuncInitExp(loc);
+            nextToken();
+            break;
+
+        case TOKprettyfunc:
+            e = new PrettyFuncInitExp(loc);
             nextToken();
             break;
 #endif
@@ -6254,6 +6289,9 @@ Expression *Parser::parseUnaryExp()
 #if DMDV2
                     case TOKfile:
                     case TOKline:
+                    case TOKmodulestring:
+                    case TOKfuncstring:
+                    case TOKprettyfunc:
 #endif
                     case BASIC_TYPES:           // (type)int.size
                     {   // (type) una_exp
@@ -6876,6 +6914,9 @@ void initPrecedence()
 #if DMDV2
     precedence[TOKfile] = PREC_primary;
     precedence[TOKline] = PREC_primary;
+    precedence[TOKmodulestring] = PREC_primary;
+    precedence[TOKfuncstring] = PREC_primary;
+    precedence[TOKprettyfunc] = PREC_primary;
 #endif
     precedence[TOKtypeid] = PREC_primary;
     precedence[TOKis] = PREC_primary;

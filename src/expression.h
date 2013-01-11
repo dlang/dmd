@@ -1685,6 +1685,28 @@ struct LineInitExp : DefaultInitExp
     Expression *semantic(Scope *sc);
     Expression *resolveLoc(Loc loc, Scope *sc);
 };
+
+struct ModuleInitExp : DefaultInitExp
+{
+    ModuleInitExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    Expression *resolveLoc(Loc loc, Scope *sc);
+};
+
+struct FuncInitExp : DefaultInitExp
+{
+    FuncInitExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    Expression *resolveLoc(Loc loc, Scope *sc);
+};
+
+struct PrettyFuncInitExp : DefaultInitExp
+{
+    PrettyFuncInitExp(Loc loc);
+    Expression *semantic(Scope *sc);
+    Expression *resolveLoc(Loc loc, Scope *sc);
+};
+
 #endif
 
 /****************************************************************/
