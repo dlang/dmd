@@ -114,7 +114,7 @@ version( Windows )
     private
     {
         import core.stdc.stdint : uintptr_t; // for _beginthreadex decl below
-        import core.stdc.stdlib;             // for malloc
+        import core.stdc.stdlib;             // for malloc, atexit
         import core.sys.windows.windows;
         import core.sys.windows.threadaux;   // for OpenThreadHandle
 
@@ -251,7 +251,7 @@ else version( Posix )
     {
         import core.stdc.errno;
         import core.sys.posix.semaphore;
-        import core.sys.posix.stdlib; // for malloc, valloc, free
+        import core.sys.posix.stdlib; // for malloc, valloc, free, atexit
         import core.sys.posix.pthread;
         import core.sys.posix.signal;
         import core.sys.posix.time;
@@ -1523,21 +1523,22 @@ private:
     //
     @property static Mutex slock()
     {
-        __gshared Mutex m = null;
+        __gshared Mutex m;
+        __gshared byte[__traits(classInstanceSize, Mutex)] ms;
 
-        if( m !is null )
-            return m;
-        else
+        if (m is null)
         {
-            auto ci = Mutex.classinfo;
-            auto p  = malloc( ci.init.length );
-            (cast(byte*) p)[0 .. ci.init.length] = ci.init[];
-            m = cast(Mutex) p;
+            // Initialization doesn't need to be synchronized because
+            // creating a thread will lock this mutex.
+            ms[] = Mutex.classinfo.init[];
+            m = cast(Mutex)ms.ptr;
             m.__ctor();
-            return m;
-        }
-    }
 
+            extern(C) void destroy() { m.__dtor(); }
+            atexit(&destroy);
+        }
+        return m;
+    }
 
     __gshared Context*  sm_cbeg;
     __gshared size_t    sm_clen;
