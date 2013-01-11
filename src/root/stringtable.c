@@ -36,7 +36,7 @@ hash_t calcHash(const char *str, size_t len)
 
             case 2:
                 hash *= 37;
-#if LITTLE_ENDIAN
+#if __LITTLE_ENDIAN__
                 hash += *(const uint16_t *)str;
 #else
                 hash += str[0] * 256 + str[1];
@@ -45,7 +45,7 @@ hash_t calcHash(const char *str, size_t len)
 
             case 3:
                 hash *= 37;
-#if LITTLE_ENDIAN
+#if __LITTLE_ENDIAN__
                 hash += (*(const uint16_t *)str << 8) +
                         ((const uint8_t *)str)[2];
 #else
@@ -55,7 +55,7 @@ hash_t calcHash(const char *str, size_t len)
 
             default:
                 hash *= 37;
-#if LITTLE_ENDIAN
+#if __LITTLE_ENDIAN__
                 hash += *(const uint32_t *)str;
 #else
                 hash += ((str[0] * 256 + str[1]) * 256 + str[2]) * 256 + str[3];

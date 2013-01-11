@@ -32,7 +32,7 @@
 #pragma warning(disable:4310) // cast truncates constant value
 #endif
 
-#define LITTLE_ENDIAN 1
+#define __LITTLE_ENDIAN__ 1
 #define __pascal
 #define MARS     1
 #define UNITTEST 1
