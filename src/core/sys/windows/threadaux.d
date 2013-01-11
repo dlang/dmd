@@ -41,25 +41,35 @@ private:
         enum SystemProcessInformation = 5;
         enum STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
-        // abbreviated versions of these structs (full info can be found
-        //  here: http://undocumented.ntinternals.net )
+        // abbreviated versions of these structs (more info can be found
+        //  here: http://undocumented.ntinternals.net and 
+		//  here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms724509%28v=vs.85%29.aspx )
         struct _SYSTEM_PROCESS_INFORMATION
         {
-            int NextEntryOffset; // When this entry is 0, there are no more processes to be read.
-            int NumberOfThreads;
-            int[15] fill1;
-            int ProcessId;
-            int[28] fill2;
+            int       NextEntryOffset; // When this entry is 0, there are no more processes to be read.
+            int       NumberOfThreads;
+            byte[48]  fill1;
+            void*[3]  fill2;
+            size_t    ProcessId; // msdn says it is a HANDLE, but it's actually the ID
+            void*     fill3;
+            int       HandleCount;
+            byte[4]   fill4;
+            void*[11] fill5;
+            size_t    PeakPagefileUsage;
+            size_t    PrivatePageCount;
+            long[6]   fill6;
 
             // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
         }
 
         struct _SYSTEM_THREAD_INFORMATION
         {
-            int[8] fill1;
-            int ProcessId;
-            int ThreadId;
-            int[6] fill2;
+            long[3] fill1;
+            size_t  fill2;
+            void*   StartAddress;
+            size_t  ProcessId;
+            size_t  ThreadId;
+            int[6]  fill3;
         }
 
         alias extern(Windows)
@@ -71,8 +81,8 @@ private:
         {
             int    ExitStatus;
             void** TebBaseAddress;
-            int    ProcessId;
-            int    ThreadId;
+            size_t ProcessId;
+            size_t ThreadId;
             int    AffinityMask;
             int    Priority;
             int    BasePriority;
@@ -116,12 +126,23 @@ private:
         // get linear address of TEB of current thread
         static void** getTEB() nothrow
         {
-            asm
-            {
-                naked;
-                mov EAX,FS:[0x18];
-                ret;
-            }
+            version(Win32)
+                asm
+                {
+                    naked;
+                    mov EAX,FS:[0x18];
+                    ret;
+                }
+            else version(Win64)
+                asm
+                {
+                    naked;
+                    mov RAX,0x30;
+                    mov RAX,GS:[RAX]; // immediate value causes fixup
+                    ret;
+                }
+            else
+                static assert(false);
         }
 
         // get the stack bottom (the top address) of the thread with the given handle
@@ -183,7 +204,7 @@ private:
                     auto tinfo = cast(_SYSTEM_THREAD_INFORMATION*)(pinfo + 1);
                     for( int i = 0; i < pinfo.NumberOfThreads; i++, tinfo++ )
                         if( tinfo.ProcessId == procid )
-                            if( !dg( tinfo.ThreadId, context ) )
+                            if( !dg( cast(uint) tinfo.ThreadId, context ) )
                                 return false;
                 }
                 if( pinfo.NextEntryOffset == 0 )
