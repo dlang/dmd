@@ -43,14 +43,14 @@ private:
 
         // abbreviated versions of these structs (more info can be found
         //  here: http://undocumented.ntinternals.net and 
-		//  here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms724509%28v=vs.85%29.aspx )
+        //  here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms724509%28v=vs.85%29.aspx )
         struct _SYSTEM_PROCESS_INFORMATION
         {
             int       NextEntryOffset; // When this entry is 0, there are no more processes to be read.
             int       NumberOfThreads;
             byte[48]  fill1;
             void*[3]  fill2;
-            size_t    ProcessId; // msdn says it is a HANDLE, but it's actually the ID
+            size_t    ProcessId; // msdn says it is a HANDLE, but it's actually the ID (a DWORRD)
             void*     fill3;
             int       HandleCount;
             byte[4]   fill4;
@@ -127,13 +127,16 @@ private:
         static void** getTEB() nothrow
         {
             version(Win32)
+            {
                 asm
                 {
                     naked;
                     mov EAX,FS:[0x18];
                     ret;
                 }
+            }
             else version(Win64)
+            {
                 asm
                 {
                     naked;
@@ -141,8 +144,11 @@ private:
                     mov RAX,GS:[RAX]; // immediate value causes fixup
                     ret;
                 }
+            }
             else
+            {
                 static assert(false);
+            }
         }
 
         // get the stack bottom (the top address) of the thread with the given handle
@@ -204,7 +210,7 @@ private:
                     auto tinfo = cast(_SYSTEM_THREAD_INFORMATION*)(pinfo + 1);
                     for( int i = 0; i < pinfo.NumberOfThreads; i++, tinfo++ )
                         if( tinfo.ProcessId == procid )
-                            if( !dg( cast(uint) tinfo.ThreadId, context ) )
+                            if( !dg( cast(uint) tinfo.ThreadId, context ) ) // IDs are actually DWORDs
                                 return false;
                 }
                 if( pinfo.NextEntryOffset == 0 )
