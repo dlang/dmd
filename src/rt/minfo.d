@@ -81,8 +81,6 @@ struct ModuleGroup
         // clean all initialized flags
         foreach (m; _modules)
             m.flags = m.flags & ~MIctordone;
-
-        free();
     }
 
     void free()
@@ -147,7 +145,7 @@ extern (C) void rt_moduleTlsDtor()
 extern (C) void rt_moduleDtor()
 {
     _moduleGroup.runDtors();
-    version (Posix)
+    version (Win32) {} else
         .free(_moduleGroup._modules.ptr);
     _moduleGroup.free();
 }
