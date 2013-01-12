@@ -139,13 +139,13 @@ struct Param
     char lib;           // write library file instead of object file(s)
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
-    char trace;         // insert profiling hooks
+    bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
     char symdebug;      // insert debug symbolic information
-    char alwaysframe;   // always emit standard stack frame
-    char optimize;      // run optimizer
+    bool alwaysframe;   // always emit standard stack frame
+    bool optimize;      // run optimizer
     char map;           // generate linker .map file
     char cpu;           // target CPU
     char is64bit;       // generate 64 bit code
@@ -175,9 +175,9 @@ struct Param
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
-    char pic;           // generate position-independent-code for shared libs
+    bool pic;           // generate position-independent-code for shared libs
     char cov;           // generate code coverage data
-    char nofloat;       // code should not pull in floating point support
+    bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char safe;          // enforce safe memory model
@@ -428,12 +428,17 @@ void warning(Loc loc, const char *format, ...);
 void deprecation(Loc loc, const char *format, ...);
 void error(Loc loc, const char *format, ...);
 void errorSupplemental(Loc loc, const char *format, ...);
-void verror(Loc loc, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
+void verror(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL, const char *header = "Error: ");
 void vwarning(Loc loc, const char *format, va_list);
-void verrorSupplemental(Loc loc, const char *format, va_list);
-void verrorPrint(Loc loc, const char *header, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL);
-void vdeprecation(Loc loc, const char *format, va_list, const char *p1 = NULL, const char *p2 = NULL);
+void verrorSupplemental(Loc loc, const char *format, va_list ap);
+void verrorPrint(Loc loc, const char *header, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
+void vdeprecation(Loc loc, const char *format, va_list ap, const char *p1 = NULL, const char *p2 = NULL);
+
+#if defined(__GNUC__) || defined(__clang__)
+__attribute__((noreturn))
+#endif
 void fatal();
+
 void err_nomem();
 int runLINK();
 void deleteExeFile();

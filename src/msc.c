@@ -25,7 +25,6 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-extern void ph_init();
 
 extern Global global;
 extern int REALSIZE;
@@ -35,254 +34,81 @@ Configv configv;
 
 struct Environment;
 
+void out_config_init(
+        int model,      // 32: 32 bit code
+                        // 64: 64 bit code
+        bool exe,       // true: exe file
+                        // false: dll or shared library (generate PIC code)
+        bool trace,     // add profiling code
+        bool nofloat,   // do not pull in floating point code
+        bool verbose,   // verbose compile
+        bool optimize,  // optimize code
+        int symdebug,   // add symbolic debug information
+                        // 1: D
+                        // 2: fake it with C symbolic debug info
+        bool alwaysframe        // always create standard function frame
+        );
+
+void out_config_debug(
+        bool debugb,
+        bool debugc,
+        bool debugf,
+        bool debugr,
+        bool debugw,
+        bool debugx,
+        bool debugy
+    );
+
 /**************************************
  * Initialize config variables.
  */
 
-void out_config_init()
+void backend_init()
 {
     //printf("out_config_init()\n");
     Param *params = &global.params;
 
-    if (!config.target_cpu)
-    {   config.target_cpu = TARGET_PentiumPro;
-        config.target_scheduler = config.target_cpu;
-    }
-    config.fulltypes = CVNONE;
-    config.fpxmmregs = FALSE;
-    config.inline8087 = 1;
-    config.memmodel = 0;
-    config.flags |= CFGuchar;   // make sure TYchar is unsigned
-    tytab[TYchar] |= TYFLuns;
+    bool exe;
 #if TARGET_WINDOS
-    if (params->is64bit)
-    {   config.exe = EX_WIN64;
-        config.fpxmmregs = TRUE;
-
-        // Not sure we really need these two lines, try removing them later
-        config.flags |= CFGnoebp;
-        config.flags |= CFGalwaysframe;
-    }
-    else
-    {   config.exe = EX_NT;
-        config.flags2 |= CFG2seh;       // Win32 eh
-    }
-
+    exe = false;
     if (params->run)
-        config.wflags |= WFexe;         // EXE file only optimizations
+        exe = true;         // EXE file only optimizations
     else if (params->link && !global.params.deffile)
-        config.wflags |= WFexe;         // EXE file only optimizations
+        exe = true;         // EXE file only optimizations
     else if (params->exefile)           // if writing out EXE file
     {   size_t len = strlen(params->exefile);
         if (len >= 4 && stricmp(params->exefile + len - 3, "exe") == 0)
-            config.wflags |= WFexe;
+            exe = true;
     }
-    config.flags4 |= CFG4underscore;
 #endif
-#if TARGET_LINUX
-    if (params->is64bit)
-    {   config.exe = EX_LINUX64;
-        config.fpxmmregs = TRUE;
-    }
-    else
-        config.exe = EX_LINUX;
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (params->pic)
-        config.flags3 |= CFG3pic;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+    exe = params->pic == 0;
 #endif
-#if TARGET_OSX
-    config.fpxmmregs = TRUE;
-    if (params->is64bit)
-    {   config.exe = EX_OSX64;
-        config.fpxmmregs = TRUE;
-    }
-    else
-        config.exe = EX_OSX;
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (params->pic)
-        config.flags3 |= CFG3pic;
-#endif
-#if TARGET_FREEBSD
-    if (params->is64bit)
-    {   config.exe = EX_FREEBSD64;
-        config.fpxmmregs = TRUE;
-    }
-    else
-        config.exe = EX_FREEBSD;
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (params->pic)
-        config.flags3 |= CFG3pic;
-#endif
-#if TARGET_OPENBSD
-    if (params->is64bit)
-    {   config.exe = EX_OPENBSD64;
-        config.fpxmmregs = TRUE;
-    }
-    else
-        config.exe = EX_OPENBSD;
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (params->pic)
-        config.flags3 |= CFG3pic;
-#endif
-#if TARGET_SOLARIS
-    if (params->is64bit)
-    {   config.exe = EX_SOLARIS64;
-        config.fpxmmregs = TRUE;
-    }
-    else
-        config.exe = EX_SOLARIS;
-    config.flags |= CFGnoebp;
-    config.flags |= CFGalwaysframe;
-    if (params->pic)
-        config.flags3 |= CFG3pic;
-#endif
-    config.flags2 |= CFG2nodeflib;      // no default library
-    config.flags3 |= CFG3eseqds;
-#if 0
-    if (env->getEEcontext()->EEcompile != 2)
-        config.flags4 |= CFG4allcomdat;
-    if (env->nochecks())
-        config.flags4 |= CFG4nochecks;  // no runtime checking
-#elif TARGET_OSX
-#else
-    config.flags4 |= CFG4allcomdat;
-#endif
-    if (params->trace)
-        config.flags |= CFGtrace;       // turn on profiler
-    if (params->nofloat)
-        config.flags3 |= CFG3wkfloat;
 
-    configv.verbose = params->verbose;
-
-    if (params->optimize)
-        go_flag((char *)"-o");
-
-    if (params->symdebug)
-    {
-#if SYMDEB_DWARF
-        configv.addlinenumbers = 1;
-        config.fulltypes = (params->symdebug == 1) ? CVDWARF_D : CVDWARF_C;
-#endif
-#if SYMDEB_CODEVIEW
-        if (params->is64bit)
-        {
-            configv.addlinenumbers = 1;
-            config.fulltypes = CV8;
-        }
-        else
-        {
-        configv.addlinenumbers = 1;
-        config.fulltypes = CV4;
-        }
-#endif
-        if (!params->optimize)
-            config.flags |= CFGalwaysframe;
-    }
-    else
-    {
-        configv.addlinenumbers = 0;
-        config.fulltypes = CVNONE;
-        //config.flags &= ~CFGalwaysframe;
-    }
-
-    if (params->alwaysframe)
-        config.flags &= ~CFGalwaysframe;
+    out_config_init(
+        params->is64bit ? 64 : 32,
+        exe,
+        params->trace,
+        params->nofloat,
+        params->verbose,
+        params->optimize,
+        params->symdebug,
+        params->alwaysframe
+    );
 
 #ifdef DEBUG
-    debugb = params->debugb;
-    debugc = params->debugc;
-    debugf = params->debugf;
-    debugr = params->debugr;
-    debugw = params->debugw;
-    debugx = params->debugx;
-    debugy = params->debugy;
+    out_config_debug(
+        params->debugb,
+        params->debugc,
+        params->debugf,
+        params->debugr,
+        params->debugw,
+        params->debugx,
+        params->debugy
+    );
 #endif
 }
 
-/*******************************
- * Redo tables from 8086/286 to ILP32
- */
-
-void util_set32()
-{
-    _tyrelax[TYenum] = TYlong;
-    _tyrelax[TYint]  = TYlong;
-    _tyrelax[TYuint] = TYlong;
-
-    tyequiv[TYint] = TYlong;
-    tyequiv[TYuint] = TYulong;
-
-    for (int i = 0; i < 1; ++i)
-    {   tysize[TYenum + i] = LONGSIZE;
-        tysize[TYint  + i] = LONGSIZE;
-        tysize[TYuint + i] = LONGSIZE;
-        tysize[TYjhandle + i] = LONGSIZE;
-        tysize[TYnullptr + i] = LONGSIZE;
-        tysize[TYnptr + i] = LONGSIZE;
-        tysize[TYnref + i] = LONGSIZE;
-    }
-
-    for (int i = 0; i < 1; ++i)
-    {   tyalignsize[TYenum + i] = LONGSIZE;
-        tyalignsize[TYint  + i] = LONGSIZE;
-        tyalignsize[TYuint + i] = LONGSIZE;
-        tyalignsize[TYnullptr + i] = LONGSIZE;
-        tyalignsize[TYjhandle + i] = LONGSIZE;
-        tyalignsize[TYnptr + i] = LONGSIZE;
-        tyalignsize[TYnref + i] = LONGSIZE;
-    }
-}
-
-/*******************************
- * Redo tables from 8086/286 to LP64.
- */
-
-void util_set64()
-{
-    _tyrelax[TYenum] = TYlong;
-    _tyrelax[TYint]  = TYlong;
-    _tyrelax[TYuint] = TYlong;
-
-    tyequiv[TYint] = TYlong;
-    tyequiv[TYuint] = TYulong;
-
-    for (int i = 0; i < 1; ++i)
-    {   tysize[TYenum + i] = LONGSIZE;
-        tysize[TYint  + i] = LONGSIZE;
-        tysize[TYuint + i] = LONGSIZE;
-        tysize[TYnullptr + i] = 8;
-        tysize[TYjhandle + i] = 8;
-        tysize[TYnptr + i] = 8;
-        tysize[TYnref + i] = 8;
-        tysize[TYldouble + i] = REALSIZE;
-        tysize[TYildouble + i] = REALSIZE;
-        tysize[TYcldouble + i] = 2 * REALSIZE;
-
-        tyalignsize[TYenum + i] = LONGSIZE;
-        tyalignsize[TYint  + i] = LONGSIZE;
-        tyalignsize[TYuint + i] = LONGSIZE;
-        tyalignsize[TYnullptr + i] = 8;
-        tyalignsize[TYjhandle + i] = 8;
-        tyalignsize[TYnptr + i] = 8;
-        tyalignsize[TYnref + i] = 8;
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX || TARGET_WINDOS
-        tyalignsize[TYldouble + i] = 16;
-        tyalignsize[TYildouble + i] = 16;
-        tyalignsize[TYcldouble + i] = 16;
-#else
-        assert(0);
-#endif
-        tytab[TYjfunc + i] &= ~TYFLpascal;  // set so caller cleans the stack (as in C)
-    }
-
-    TYptrdiff = TYllong;
-    TYsize = TYullong;
-    TYsize_t = TYullong;
-}
 
 /***********************************
  * Return aligned 'offset' if it is of size 'size'.
@@ -322,28 +148,6 @@ targ_size_t size(tym_t ty)
 #endif
     assert(sz!= -1);
     return sz;
-}
-
-/*******************************
- * Replace (e) with ((stmp = e),stmp)
- */
-
-elem *exp2_copytotemp(elem *e)
-{
-    //printf("exp2_copytotemp()\n");
-    elem_debug(e);
-    Symbol *stmp = symbol_genauto(e);
-    elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
-    elem *er = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
-    if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
-    {
-        eeq->Eoper = OPstreq;
-        eeq->ET = e->ET;
-        eeq->E1->ET = e->ET;
-        er->ET = e->ET;
-        er->E2->ET = e->ET;
-    }
-    return er;
 }
 
 /****************************
@@ -396,30 +200,6 @@ void slist_reset()
 
 /**************************************
  */
-
-void backend_init()
-{
-    ph_init();
-    block_init();
-
-    cod3_setdefault();
-    if (global.params.is64bit)
-    {
-        util_set64();
-        type_init();
-        cod3_set64();
-    }
-    else
-    {
-        util_set32();
-        type_init();
-        cod3_set32();
-    }
-
-    rtlsym_init(); // uses fregsaved, so must be after it's set inside cod3_set*
-
-    out_config_init();
-}
 
 void backend_term()
 {

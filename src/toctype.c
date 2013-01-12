@@ -41,7 +41,6 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-void out_config_init();
 void slist_add(Symbol *s);
 void slist_reset();
 
