@@ -931,6 +931,45 @@ Lcont:
     return c;
 }
 
+/************************************
+ * Predicate for sorting auto symbols for qsort().
+ * Returns:
+ *      < 0     s1 goes farther from frame pointer
+ *      > 0     s1 goes nearer the frame pointer
+ *      = 0     no difference
+ */
+
+int __cdecl autosort_cmp(const void *ps1, const void *ps2)
+{
+    symbol *s1 = *(symbol **)ps1;
+    symbol *s2 = *(symbol **)ps2;
+
+    /* Largest align size goes furthest away from frame pointer,
+     * so they get allocated first.
+     */
+    unsigned alignsize1 = s1->Salignsize();
+    unsigned alignsize2 = s2->Salignsize();
+    if (alignsize1 < alignsize2)
+        return 1;
+    else if (alignsize1 > alignsize2)
+        return -1;
+
+    /* move variables nearer the frame pointer that have higher Sweights
+     * because addressing mode is fewer bytes. Grouping together high Sweight
+     * variables also may put them in the same cache
+     */
+    if (s1->Sweight < s2->Sweight)
+        return -1;
+    else if (s1->Sweight > s2->Sweight)
+        return 1;
+
+    /* More:
+     * 1. put static arrays nearest the frame pointer, so buffer overflows
+     *    can't change other variable contents
+     * 2. Do the coloring at the byte level to minimize stack usage
+     */
+    return 0;
+}
 
 /******************************
  * Compute offsets for remaining tmp, automatic and register variables
@@ -1084,6 +1123,8 @@ void stackoffsets(int flags)
 
     if (autosi)
     {
+        qsort(autos, autosi, sizeof(symbol *), &autosort_cmp);
+
         vec_t tbl = vec_calloc(autosi);
 
         for (size_t si = 0; si < autosi; si++)
@@ -1097,19 +1138,8 @@ void stackoffsets(int flags)
             if (alignsize > STACKALIGN)
                 alignsize = STACKALIGN;         // no point if the stack is less aligned
 
-            /* We can go further with this:
-             * 1. sort by alignsize, biggest first
-             * 2. move variables nearer the frame pointer that have higher Sweights
-             *    because addressing mode is fewer bytes. Grouping together high Sweight
-             *    variables also may put them in the same cache
-             * 3. put static arrays nearest the frame pointer, so buffer overflows
-             *    can't change other variable contents
-             * 4. Do the coloring at the byte level to minimize stack usage
-             */
-
             /* See if we can share storage with another variable
              * if their live ranges do not overlap.
-             * An approximation to case 4.
              */
             if (// Don't share because could stomp on variables
                 // used in finally blocks
@@ -1123,7 +1153,7 @@ void stackoffsets(int flags)
                     symbol *sp = autos[i];
 //printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
                     if (vec_disjoint(s->Srange,sp->Srange) &&
-                        alignsize <= sp->Salignsize() &&
+                        !(sp->Soffset & (alignsize - 1)) &&
                         sz <= type_size(sp->Stype))
                     {
                         vec_or(sp->Srange,sp->Srange,s->Srange);
@@ -1137,7 +1167,7 @@ void stackoffsets(int flags)
             s->Soffset = Auto.offset;
             //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
             Auto.offset += sz;
-            if (s->Srange && sz && !(s->Sflags & SFLspill))
+            if (s->Srange && !(s->Sflags & SFLspill))
                 vec_setbit(si,tbl);
 
             if (alignsize > Auto.alignment)
