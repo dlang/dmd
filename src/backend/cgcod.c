@@ -935,21 +935,37 @@ Lcont:
 /******************************
  * Compute offsets for remaining tmp, automatic and register variables
  * that did not make it into registers.
+ * Input:
+ *      flags   0: do estimate only
+ *              1: final
  */
 
 void stackoffsets(int flags)
 {
     //printf("stackoffsets() %s\n", funcsym_p->Sident);
-    vec_t tbl = NULL;
-    if (config.flags4 & CFG4optimized)
-    {
-        tbl = vec_calloc(globsym.top);
-    }
+
     Para.init();        // parameter offset
     Fast.init();        // SCfastpar offset
     Auto.init();        // automatic & register offset
     EEStack.init();     // for SCstack's
-//    for (int pass = 0; pass < 2; pass++)
+
+    // Set if doing optimization of auto layout
+    bool doAutoOpt = flags && config.flags4 & CFG4optimized;
+
+    // Put autos in another array so we can do optimizations on the stack layout
+    symbol *autotmp[10];
+    symbol **autos = NULL;
+    if (doAutoOpt)
+    {
+        if (globsym.top <= sizeof(autotmp)/sizeof(autotmp[0]))
+            autos = autotmp;
+        else
+        {   autos = (symbol **)malloc(globsym.top * sizeof(*autos));
+            assert(autos);
+        }
+    }
+    size_t autosi = 0;  // number used in autos[]
+
     {
         for (int si = 0; si < globsym.top; si++)
         {   symbol *s = globsym.tab[si];
@@ -1012,53 +1028,18 @@ void stackoffsets(int flags)
                     if (s->Sfl == FLreg)        // if allocated in register
                         break;
 
-                    /* We can go further with this:
-                     * 1. sort by alignsize, biggest first
-                     * 2. move variables nearer the frame pointer that have higher Sweights
-                     *    because addressing mode is fewer bytes. Grouping together high Sweight
-                     *    variables also may put them in the same cache
-                     * 3. put static arrays nearest the frame pointer, so buffer overflows
-                     *    can't change other variable contents
-                     * 4. Do the coloring at the byte level to minimize stack usage
-                     */
-
-                    /* See if we can share storage with another variable
-                     * if their live ranges do not overlap.
-                     * An approximation to case 4.
-                     */
-                    if (config.flags4 & CFG4optimized &&
-                        // Don't share because could stomp on variables
-                        // used in finally blocks
-                        !(usednteh & ~NTEHjmonitor) &&
-                        s->Srange && sz && flags && !(s->Sflags & SFLspill))
-                    {
-                        for (int i = 0; i < si; i++)
-                        {
-                            if (!vec_testbit(i,tbl))
-                                continue;
-                            symbol *sp = globsym.tab[i];
-//printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
-                            if (vec_disjoint(s->Srange,sp->Srange) &&
-                                alignsize <= sp->Salignsize() &&
-                                sz <= type_size(sp->Stype))
-                            {
-                                vec_or(sp->Srange,sp->Srange,s->Srange);
-                                //printf("sharing space - '%s' onto '%s'\n",s->Sident,sp->Sident);
-                                s->Soffset = sp->Soffset;
-                                goto L2;
-                            }
-                        }
+                    if (doAutoOpt)
+                    {   autos[autosi++] = s;    // deal with later
+                        break;
                     }
+
                     Auto.offset = align(sz,Auto.offset);
                     s->Soffset = Auto.offset;
-                    //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
                     Auto.offset += sz;
-                    if (s->Srange && sz && !(s->Sflags & SFLspill))
-                        vec_setbit(si,tbl);
+                    //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
 
                     if (alignsize > Auto.alignment)
                         Auto.alignment = alignsize;
-                L2:
                     break;
 
                 case SCstack:
@@ -1102,8 +1083,75 @@ void stackoffsets(int flags)
             }
         }
     }
-    if (tbl)
+
+    if (autosi)
+    {
+        vec_t tbl = vec_calloc(autosi);
+
+        for (size_t si = 0; si < autosi; si++)
+        {   symbol *s = autos[si];
+
+            targ_size_t sz = type_size(s->Stype);
+            if (sz == 0)
+                sz++;               // can't handle 0 length structs
+
+            unsigned alignsize = s->Salignsize();
+            if (alignsize > STACKALIGN)
+                alignsize = STACKALIGN;         // no point if the stack is less aligned
+
+            /* We can go further with this:
+             * 1. sort by alignsize, biggest first
+             * 2. move variables nearer the frame pointer that have higher Sweights
+             *    because addressing mode is fewer bytes. Grouping together high Sweight
+             *    variables also may put them in the same cache
+             * 3. put static arrays nearest the frame pointer, so buffer overflows
+             *    can't change other variable contents
+             * 4. Do the coloring at the byte level to minimize stack usage
+             */
+
+            /* See if we can share storage with another variable
+             * if their live ranges do not overlap.
+             * An approximation to case 4.
+             */
+            if (// Don't share because could stomp on variables
+                // used in finally blocks
+                !(usednteh & ~NTEHjmonitor) &&
+                s->Srange && !(s->Sflags & SFLspill))
+            {
+                for (size_t i = 0; i < si; i++)
+                {
+                    if (!vec_testbit(i,tbl))
+                        continue;
+                    symbol *sp = autos[i];
+//printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
+                    if (vec_disjoint(s->Srange,sp->Srange) &&
+                        alignsize <= sp->Salignsize() &&
+                        sz <= type_size(sp->Stype))
+                    {
+                        vec_or(sp->Srange,sp->Srange,s->Srange);
+                        //printf("sharing space - '%s' onto '%s'\n",s->Sident,sp->Sident);
+                        s->Soffset = sp->Soffset;
+                        goto L2;
+                    }
+                }
+            }
+            Auto.offset = align(sz,Auto.offset);
+            s->Soffset = Auto.offset;
+            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+            Auto.offset += sz;
+            if (s->Srange && sz && !(s->Sflags & SFLspill))
+                vec_setbit(si,tbl);
+
+            if (alignsize > Auto.alignment)
+                Auto.alignment = alignsize;
+        L2: ;
+        }
+
         vec_free(tbl);
+
+        if (autos != autotmp)
+            free(autos);
+    }
 }
 
 /****************************
