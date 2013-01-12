@@ -212,6 +212,12 @@ impcnvgen : mtype.h impcnvgen.c
 	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
+######### vergen generates some source
+
+verstr.h : vergen.c ../VERSION
+	$(ENVP) $(CC) vergen.c -o vergen
+	cat ../VERSION | ./vergen > verstr.h
+
 #########
 
 $(DMD_OBJS) : $(idgen_output) $(optabgen_output) $(impcnvgen_output)
@@ -486,7 +492,7 @@ man.o: $(ROOT)/man.c
 mangle.o: mangle.c
 	$(CC) -c $(CFLAGS) $<
 
-mars.o: mars.c
+mars.o: mars.c verstr.h
 	$(CC) -c $(CFLAGS) $<
 
 rmem.o: $(ROOT)/rmem.c
