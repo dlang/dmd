@@ -931,45 +931,204 @@ Lcont:
     return c;
 }
 
+/************************************
+ * Predicate for sorting auto symbols for qsort().
+ * Returns:
+ *      < 0     s1 goes farther from frame pointer
+ *      > 0     s1 goes nearer the frame pointer
+ *      = 0     no difference
+ */
+
+int __cdecl autosort_cmp(const void *ps1, const void *ps2)
+{
+    symbol *s1 = *(symbol **)ps1;
+    symbol *s2 = *(symbol **)ps2;
+
+    /* Largest align size goes furthest away from frame pointer,
+     * so they get allocated first.
+     */
+    unsigned alignsize1 = s1->Salignsize();
+    unsigned alignsize2 = s2->Salignsize();
+    if (alignsize1 < alignsize2)
+        return 1;
+    else if (alignsize1 > alignsize2)
+        return -1;
+
+    /* move variables nearer the frame pointer that have higher Sweights
+     * because addressing mode is fewer bytes. Grouping together high Sweight
+     * variables also may put them in the same cache
+     */
+    if (s1->Sweight < s2->Sweight)
+        return -1;
+    else if (s1->Sweight > s2->Sweight)
+        return 1;
+
+    /* More:
+     * 1. put static arrays nearest the frame pointer, so buffer overflows
+     *    can't change other variable contents
+     * 2. Do the coloring at the byte level to minimize stack usage
+     */
+    return 0;
+}
 
 /******************************
  * Compute offsets for remaining tmp, automatic and register variables
  * that did not make it into registers.
+ * Input:
+ *      flags   0: do estimate only
+ *              1: final
  */
 
 void stackoffsets(int flags)
 {
     //printf("stackoffsets() %s\n", funcsym_p->Sident);
-    vec_t tbl = NULL;
-    if (config.flags4 & CFG4optimized)
-    {
-        tbl = vec_calloc(globsym.top);
-    }
+
     Para.init();        // parameter offset
     Fast.init();        // SCfastpar offset
     Auto.init();        // automatic & register offset
     EEStack.init();     // for SCstack's
-//    for (int pass = 0; pass < 2; pass++)
+
+    // Set if doing optimization of auto layout
+    bool doAutoOpt = flags && config.flags4 & CFG4optimized;
+
+    // Put autos in another array so we can do optimizations on the stack layout
+    symbol *autotmp[10];
+    symbol **autos = NULL;
+    if (doAutoOpt)
     {
-        for (int si = 0; si < globsym.top; si++)
-        {   symbol *s = globsym.tab[si];
+        if (globsym.top <= sizeof(autotmp)/sizeof(autotmp[0]))
+            autos = autotmp;
+        else
+        {   autos = (symbol **)malloc(globsym.top * sizeof(*autos));
+            assert(autos);
+        }
+    }
+    size_t autosi = 0;  // number used in autos[]
 
-            if (s->Sisdead(anyiasm))
+    for (int si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
+
+        if (s->Sisdead(anyiasm))
+        {
+            /* The variable is dead. Don't allocate space for it if we don't
+             * need to.
+             */
+            switch (s->Sclass)
             {
-                /* The variable is dead. Don't allocate space for it if we don't
-                 * need to.
-                 */
-                switch (s->Sclass)
-                {
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCparameter:
-                        break;          // have to allocate space for parameters
+                case SCfastpar:
+                case SCshadowreg:
+                case SCparameter:
+                    break;          // have to allocate space for parameters
 
-                    default:
-                        continue;       // don't allocate space
-                }
+                default:
+                    continue;       // don't allocate space
             }
+        }
+
+        targ_size_t sz = type_size(s->Stype);
+        if (sz == 0)
+            sz++;               // can't handle 0 length structs
+
+        unsigned alignsize = s->Salignsize();
+        if (alignsize > STACKALIGN)
+            alignsize = STACKALIGN;         // no point if the stack is less aligned
+
+        //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
+        assert((int)sz >= 0);
+
+        switch (s->Sclass)
+        {
+            case SCfastpar:
+                /* Get these
+                 * right next to the stack frame pointer, EBP.
+                 * Needed so we can call nested contract functions
+                 * frequire and fensure.
+                 */
+                if (s->Sfl == FLreg)        // if allocated in register
+                    continue;
+                /* Needed because storing fastpar's on the stack in prolog()
+                 * does the entire register
+                 */
+                if (sz < REGSIZE)
+                    sz = REGSIZE;
+
+                Fast.offset = align(sz,Fast.offset);
+                s->Soffset = Fast.offset;
+                Fast.offset += sz;
+                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
+
+                if (alignsize > Fast.alignment)
+                    Fast.alignment = alignsize;
+                break;
+
+            case SCregister:
+            case SCauto:
+                if (s->Sfl == FLreg)        // if allocated in register
+                    break;
+
+                if (doAutoOpt)
+                {   autos[autosi++] = s;    // deal with later
+                    break;
+                }
+
+                Auto.offset = align(sz,Auto.offset);
+                s->Soffset = Auto.offset;
+                Auto.offset += sz;
+                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+
+                if (alignsize > Auto.alignment)
+                    Auto.alignment = alignsize;
+                break;
+
+            case SCstack:
+                EEStack.offset = align(sz,EEStack.offset);
+                s->Soffset = EEStack.offset;
+                //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
+                EEStack.offset += sz;
+                break;
+
+            case SCshadowreg:
+            case SCparameter:
+                if (config.exe == EX_WIN64)
+                {
+                    assert((Para.offset & 7) == 0);
+                    s->Soffset = Para.offset;
+                    Para.offset += 8;
+                    break;
+                }
+                /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
+                 * but are 4 byte aligned on the OSX 32 stack.
+                 */
+                Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
+                if (I64 && alignsize == 16 && Para.offset & 8)
+                    Para.offset += 8;
+                s->Soffset = Para.offset;
+                //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
+                Para.offset += (s->Sflags & SFLdouble)
+                            ? type_size(tsdouble)   // float passed as double
+                            : type_size(s->Stype);
+                break;
+
+            case SCpseudo:
+            case SCstatic:
+            case SCbprel:
+                break;
+            default:
+#ifdef DEBUG
+                symbol_print(s);
+#endif
+                assert(0);
+        }
+    }
+
+    if (autosi)
+    {
+        qsort(autos, autosi, sizeof(symbol *), &autosort_cmp);
+
+        vec_t tbl = vec_calloc(autosi);
+
+        for (size_t si = 0; si < autosi; si++)
+        {   symbol *s = autos[si];
 
             targ_size_t sz = type_size(s->Stype);
             if (sz == 0)
@@ -979,131 +1138,48 @@ void stackoffsets(int flags)
             if (alignsize > STACKALIGN)
                 alignsize = STACKALIGN;         // no point if the stack is less aligned
 
-            //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
-            assert((int)sz >= 0);
-
-            switch (s->Sclass)
+            /* See if we can share storage with another variable
+             * if their live ranges do not overlap.
+             */
+            if (// Don't share because could stomp on variables
+                // used in finally blocks
+                !(usednteh & ~NTEHjmonitor) &&
+                s->Srange && !(s->Sflags & SFLspill))
             {
-                case SCfastpar:
-                    /* Get these
-                     * right next to the stack frame pointer, EBP.
-                     * Needed so we can call nested contract functions
-                     * frequire and fensure.
-                     */
-                    if (s->Sfl == FLreg)        // if allocated in register
+                for (size_t i = 0; i < si; i++)
+                {
+                    if (!vec_testbit(i,tbl))
                         continue;
-                    /* Needed because storing fastpar's on the stack in prolog()
-                     * does the entire register
-                     */
-                    if (sz < REGSIZE)
-                        sz = REGSIZE;
-
-                    Fast.offset = align(sz,Fast.offset);
-                    s->Soffset = Fast.offset;
-                    Fast.offset += sz;
-                    //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
-
-                    if (alignsize > Fast.alignment)
-                        Fast.alignment = alignsize;
-                    break;
-
-                case SCregister:
-                case SCauto:
-                    if (s->Sfl == FLreg)        // if allocated in register
-                        break;
-
-                    /* We can go further with this:
-                     * 1. sort by alignsize, biggest first
-                     * 2. move variables nearer the frame pointer that have higher Sweights
-                     *    because addressing mode is fewer bytes. Grouping together high Sweight
-                     *    variables also may put them in the same cache
-                     * 3. put static arrays nearest the frame pointer, so buffer overflows
-                     *    can't change other variable contents
-                     * 4. Do the coloring at the byte level to minimize stack usage
-                     */
-
-                    /* See if we can share storage with another variable
-                     * if their live ranges do not overlap.
-                     * An approximation to case 4.
-                     */
-                    if (config.flags4 & CFG4optimized &&
-                        // Don't share because could stomp on variables
-                        // used in finally blocks
-                        !(usednteh & ~NTEHjmonitor) &&
-                        s->Srange && sz && flags && !(s->Sflags & SFLspill))
-                    {
-                        for (int i = 0; i < si; i++)
-                        {
-                            if (!vec_testbit(i,tbl))
-                                continue;
-                            symbol *sp = globsym.tab[i];
+                    symbol *sp = autos[i];
 //printf("auto    s = '%s', sp = '%s', %d, %d, %d\n",s->Sident,sp->Sident,dfotop,vec_numbits(s->Srange),vec_numbits(sp->Srange));
-                            if (vec_disjoint(s->Srange,sp->Srange) &&
-                                alignsize <= sp->Salignsize() &&
-                                sz <= type_size(sp->Stype))
-                            {
-                                vec_or(sp->Srange,sp->Srange,s->Srange);
-                                //printf("sharing space - '%s' onto '%s'\n",s->Sident,sp->Sident);
-                                s->Soffset = sp->Soffset;
-                                goto L2;
-                            }
-                        }
-                    }
-                    Auto.offset = align(sz,Auto.offset);
-                    s->Soffset = Auto.offset;
-                    //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
-                    Auto.offset += sz;
-                    if (s->Srange && sz && !(s->Sflags & SFLspill))
-                        vec_setbit(si,tbl);
-
-                    if (alignsize > Auto.alignment)
-                        Auto.alignment = alignsize;
-                L2:
-                    break;
-
-                case SCstack:
-                    EEStack.offset = align(sz,EEStack.offset);
-                    s->Soffset = EEStack.offset;
-                    //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
-                    EEStack.offset += sz;
-                    break;
-
-                case SCshadowreg:
-                case SCparameter:
-                    if (config.exe == EX_WIN64)
+                    if (vec_disjoint(s->Srange,sp->Srange) &&
+                        !(sp->Soffset & (alignsize - 1)) &&
+                        sz <= type_size(sp->Stype))
                     {
-                        assert((Para.offset & 7) == 0);
-                        s->Soffset = Para.offset;
-                        Para.offset += 8;
-                        break;
+                        vec_or(sp->Srange,sp->Srange,s->Srange);
+                        //printf("sharing space - '%s' onto '%s'\n",s->Sident,sp->Sident);
+                        s->Soffset = sp->Soffset;
+                        goto L2;
                     }
-                    /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
-                     * but are 4 byte aligned on the OSX 32 stack.
-                     */
-                    Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
-                    if (I64 && alignsize == 16 && Para.offset & 8)
-                        Para.offset += 8;
-                    s->Soffset = Para.offset;
-                    //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
-                    Para.offset += (s->Sflags & SFLdouble)
-                                ? type_size(tsdouble)   // float passed as double
-                                : type_size(s->Stype);
-                    break;
-
-                case SCpseudo:
-                case SCstatic:
-                case SCbprel:
-                    break;
-                default:
-#ifdef DEBUG
-                    symbol_print(s);
-#endif
-                    assert(0);
+                }
             }
+            Auto.offset = align(sz,Auto.offset);
+            s->Soffset = Auto.offset;
+            //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+            Auto.offset += sz;
+            if (s->Srange && !(s->Sflags & SFLspill))
+                vec_setbit(si,tbl);
+
+            if (alignsize > Auto.alignment)
+                Auto.alignment = alignsize;
+        L2: ;
         }
-    }
-    if (tbl)
+
         vec_free(tbl);
+
+        if (autos != autotmp)
+            free(autos);
+    }
 }
 
 /****************************
