@@ -966,121 +966,119 @@ void stackoffsets(int flags)
     }
     size_t autosi = 0;  // number used in autos[]
 
-    {
-        for (int si = 0; si < globsym.top; si++)
-        {   symbol *s = globsym.tab[si];
+    for (int si = 0; si < globsym.top; si++)
+    {   symbol *s = globsym.tab[si];
 
-            if (s->Sisdead(anyiasm))
-            {
-                /* The variable is dead. Don't allocate space for it if we don't
-                 * need to.
-                 */
-                switch (s->Sclass)
-                {
-                    case SCfastpar:
-                    case SCshadowreg:
-                    case SCparameter:
-                        break;          // have to allocate space for parameters
-
-                    default:
-                        continue;       // don't allocate space
-                }
-            }
-
-            targ_size_t sz = type_size(s->Stype);
-            if (sz == 0)
-                sz++;               // can't handle 0 length structs
-
-            unsigned alignsize = s->Salignsize();
-            if (alignsize > STACKALIGN)
-                alignsize = STACKALIGN;         // no point if the stack is less aligned
-
-            //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
-            assert((int)sz >= 0);
-
+        if (s->Sisdead(anyiasm))
+        {
+            /* The variable is dead. Don't allocate space for it if we don't
+             * need to.
+             */
             switch (s->Sclass)
             {
                 case SCfastpar:
-                    /* Get these
-                     * right next to the stack frame pointer, EBP.
-                     * Needed so we can call nested contract functions
-                     * frequire and fensure.
-                     */
-                    if (s->Sfl == FLreg)        // if allocated in register
-                        continue;
-                    /* Needed because storing fastpar's on the stack in prolog()
-                     * does the entire register
-                     */
-                    if (sz < REGSIZE)
-                        sz = REGSIZE;
-
-                    Fast.offset = align(sz,Fast.offset);
-                    s->Soffset = Fast.offset;
-                    Fast.offset += sz;
-                    //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
-
-                    if (alignsize > Fast.alignment)
-                        Fast.alignment = alignsize;
-                    break;
-
-                case SCregister:
-                case SCauto:
-                    if (s->Sfl == FLreg)        // if allocated in register
-                        break;
-
-                    if (doAutoOpt)
-                    {   autos[autosi++] = s;    // deal with later
-                        break;
-                    }
-
-                    Auto.offset = align(sz,Auto.offset);
-                    s->Soffset = Auto.offset;
-                    Auto.offset += sz;
-                    //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
-
-                    if (alignsize > Auto.alignment)
-                        Auto.alignment = alignsize;
-                    break;
-
-                case SCstack:
-                    EEStack.offset = align(sz,EEStack.offset);
-                    s->Soffset = EEStack.offset;
-                    //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
-                    EEStack.offset += sz;
-                    break;
-
                 case SCshadowreg:
                 case SCparameter:
-                    if (config.exe == EX_WIN64)
-                    {
-                        assert((Para.offset & 7) == 0);
-                        s->Soffset = Para.offset;
-                        Para.offset += 8;
-                        break;
-                    }
-                    /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
-                     * but are 4 byte aligned on the OSX 32 stack.
-                     */
-                    Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
-                    if (I64 && alignsize == 16 && Para.offset & 8)
-                        Para.offset += 8;
-                    s->Soffset = Para.offset;
-                    //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
-                    Para.offset += (s->Sflags & SFLdouble)
-                                ? type_size(tsdouble)   // float passed as double
-                                : type_size(s->Stype);
+                    break;          // have to allocate space for parameters
+
+                default:
+                    continue;       // don't allocate space
+            }
+        }
+
+        targ_size_t sz = type_size(s->Stype);
+        if (sz == 0)
+            sz++;               // can't handle 0 length structs
+
+        unsigned alignsize = s->Salignsize();
+        if (alignsize > STACKALIGN)
+            alignsize = STACKALIGN;         // no point if the stack is less aligned
+
+        //printf("symbol '%s', size = x%lx, alignsize = %d, read = %x\n",s->Sident,(long)sz, (int)alignsize, s->Sflags & SFLread);
+        assert((int)sz >= 0);
+
+        switch (s->Sclass)
+        {
+            case SCfastpar:
+                /* Get these
+                 * right next to the stack frame pointer, EBP.
+                 * Needed so we can call nested contract functions
+                 * frequire and fensure.
+                 */
+                if (s->Sfl == FLreg)        // if allocated in register
+                    continue;
+                /* Needed because storing fastpar's on the stack in prolog()
+                 * does the entire register
+                 */
+                if (sz < REGSIZE)
+                    sz = REGSIZE;
+
+                Fast.offset = align(sz,Fast.offset);
+                s->Soffset = Fast.offset;
+                Fast.offset += sz;
+                //printf("fastpar '%s' sz = %d, fast offset =  x%x, %p\n",s->Sident,(int)sz,(int)s->Soffset, s);
+
+                if (alignsize > Fast.alignment)
+                    Fast.alignment = alignsize;
+                break;
+
+            case SCregister:
+            case SCauto:
+                if (s->Sfl == FLreg)        // if allocated in register
                     break;
 
-                case SCpseudo:
-                case SCstatic:
-                case SCbprel:
+                if (doAutoOpt)
+                {   autos[autosi++] = s;    // deal with later
                     break;
-                default:
+                }
+
+                Auto.offset = align(sz,Auto.offset);
+                s->Soffset = Auto.offset;
+                Auto.offset += sz;
+                //printf("auto    '%s' sz = %d, auto offset =  x%lx\n",s->Sident,sz,(long)s->Soffset);
+
+                if (alignsize > Auto.alignment)
+                    Auto.alignment = alignsize;
+                break;
+
+            case SCstack:
+                EEStack.offset = align(sz,EEStack.offset);
+                s->Soffset = EEStack.offset;
+                //printf("EEStack.offset =  x%lx\n",(long)s->Soffset);
+                EEStack.offset += sz;
+                break;
+
+            case SCshadowreg:
+            case SCparameter:
+                if (config.exe == EX_WIN64)
+                {
+                    assert((Para.offset & 7) == 0);
+                    s->Soffset = Para.offset;
+                    Para.offset += 8;
+                    break;
+                }
+                /* Alignment on OSX 32 is odd. reals are 16 byte aligned in general,
+                 * but are 4 byte aligned on the OSX 32 stack.
+                 */
+                Para.offset = align(REGSIZE,Para.offset); /* align on word stack boundary */
+                if (I64 && alignsize == 16 && Para.offset & 8)
+                    Para.offset += 8;
+                s->Soffset = Para.offset;
+                //printf("%s param offset =  x%lx, alignsize = %d\n",s->Sident,(long)s->Soffset, (int)alignsize);
+                Para.offset += (s->Sflags & SFLdouble)
+                            ? type_size(tsdouble)   // float passed as double
+                            : type_size(s->Stype);
+                break;
+
+            case SCpseudo:
+            case SCstatic:
+            case SCbprel:
+                break;
+            default:
 #ifdef DEBUG
-                    symbol_print(s);
+                symbol_print(s);
 #endif
-                    assert(0);
-            }
+                assert(0);
         }
     }
 
