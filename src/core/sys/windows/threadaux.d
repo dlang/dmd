@@ -121,7 +121,7 @@ private:
             void** TebBaseAddress;
             PTID   ProcessId;
             PTID   ThreadId;
-            size_t  AffinityMask;
+            size_t AffinityMask;
             int    Priority;
             int    BasePriority;
         }
