@@ -41,35 +41,73 @@ private:
         enum SystemProcessInformation = 5;
         enum STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
-        // abbreviated versions of these structs (more info can be found
-        //  here: http://undocumented.ntinternals.net and 
-        //  here: http://msdn.microsoft.com/en-us/library/windows/desktop/ms724509%28v=vs.85%29.aspx )
+        // structs subject to change according to MSDN, more info at http://undocumented.ntinternals.net
+        // declarations according to http://processhacker.sourceforge.net/doc/ntexapi_8h_source.html
+        // NOTE: the declarations assume default alignment for Win64 and contain some padding data
+        struct UNICODE_STRING
+        {
+            short Length;
+            short MaximumLength;
+            wchar* Buffer;
+        }
+        // process or thread ID, documentation says it is a HANDLE, but it's actually the ID (a DWORD)
+        alias size_t PTID;
+
         struct _SYSTEM_PROCESS_INFORMATION
         {
-            int       NextEntryOffset; // When this entry is 0, there are no more processes to be read.
-            int       NumberOfThreads;
-            byte[48]  fill1;
-            void*[3]  fill2;
-            size_t    ProcessId; // msdn says it is a HANDLE, but it's actually the ID (a DWORRD)
-            void*     fill3;
-            int       HandleCount;
-            byte[4]   fill4;
-            void*[11] fill5;
-            size_t    PeakPagefileUsage;
-            size_t    PrivatePageCount;
-            long[6]   fill6;
+            int     NextEntryOffset; // When this entry is 0, there are no more processes to be read.
+            int     NumberOfThreads;
+            long    WorkingSetPrivateSize;
+            uint    HardFaultCount;
+            uint    NumberOfThreadsHighWatermark;
+            ulong   CycleTime;
+            long    CreateTime;
+            long    UserTime;
+            long    KernelTime;
+            UNICODE_STRING 	ImageName;
+            int     BasePriority;
+            PTID    /*Unique*/ProcessId;
+            PTID    InheritedFromUniqueProcessId;
+            uint    HandleCount;
+            uint    SessionId;
+            size_t  UniqueProcessKey;
+            size_t  PeakVirtualSize;
+            size_t  VirtualSize;
+            uint    PageFaultCount;
+            size_t  PeakWorkingSetSize;
+            size_t  WorkingSetSize;
+            size_t  QuotaPeakPagedPoolUsage;
+            size_t  QuotaPagedPoolUsage;
+            size_t  QuotaPeakNonPagedPoolUsage;
+            size_t  QuotaNonPagedPoolUsage;
+            size_t  PagefileUsage;
+            size_t  PeakPagefileUsage;
+            size_t  PrivatePageCount;
+            long    ReadOperationCount;
+            long    WriteOperationCount;
+            long    OtherOperationCount;
+            long    ReadTransferCount;
+            long    WriteTransferCount;
+            long    OtherTransferCount;
 
             // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
         }
 
         struct _SYSTEM_THREAD_INFORMATION
         {
-            long[3] fill1;
-            size_t  fill2;
+            long    KernelTime;
+            long    UserTime;
+            long    CreateTime;
+            uint    WaitTime;
             void*   StartAddress;
-            size_t  ProcessId;
-            size_t  ThreadId;
-            int[6]  fill3;
+            PTID    ProcessId;
+            PTID    ThreadId;
+            int     Priority;
+            int     BasePriority;
+            uint    ContextSwitches;
+            uint    ThreadState;
+            int     WaitReason;
+            int     reserved;
         }
 
         alias extern(Windows)
@@ -81,9 +119,9 @@ private:
         {
             int    ExitStatus;
             void** TebBaseAddress;
-            size_t ProcessId;
-            size_t ThreadId;
-            int    AffinityMask;
+            PTID   ProcessId;
+            PTID   ThreadId;
+            size_t  AffinityMask;
             int    Priority;
             int    BasePriority;
         }
