@@ -132,7 +132,7 @@ version( linux )
     //void* mmap(void*, size_t, int, int, int, off_t);
     int   munmap(void*, size_t);
 
-  static if( __USE_LARGEFILE64 )
+  static if( __USE_FILE_OFFSET64 )
   {
     void* mmap64(void*, size_t, int, int, int, off_t);
     alias mmap64 mmap;

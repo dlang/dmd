@@ -548,7 +548,7 @@ version( linux )
     int        usleep(useconds_t);
     pid_t      vfork();
 
-  static if( __USE_LARGEFILE64 )
+  static if( __USE_FILE_OFFSET64 )
   {
     int        lockf64(int, int, off_t);
     alias      lockf64 lockf;
