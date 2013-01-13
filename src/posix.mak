@@ -54,6 +54,8 @@ ifneq (x,x$(MODEL))
     MODEL_FLAG=-m$(MODEL)
 endif
 
+ENDIAN=LITTLE
+
 ifeq (OSX,$(TARGET))
     SDKDIR=/Developer/SDKs
     ifeq "$(wildcard $(SDKDIR))" ""
@@ -86,8 +88,8 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -D__${ENDIAN}_ENDIAN__=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -D__${ENDIAN}_ENDIAN__=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)

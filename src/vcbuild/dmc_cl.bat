@@ -1,6 +1,6 @@
 @echo off
 rem echo called with: %*
-set def=/DLITTLE_ENDIAN=1 /D__pascal= /D_M_I86=1
+set def=/D__LITTLE_ENDIAN__=1 /D__pascal= /D_M_I86=1
 rem copt defaults to linker options
 set copt=/nologo /link /LARGEADDRESSAWARE
 set cmd=

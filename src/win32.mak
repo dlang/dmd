@@ -137,9 +137,9 @@ BFLAGS=
 ##### Implementation variables (do not modify)
 
 # Compile flags
-CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
+CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1 -D__LITTLE_ENDIAN__=1
 # Compile flags for modules with backend/toolkit dependencies
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1 -D__LITTLE_ENDIAN__=1
 # Compile flags for compiler unit tests
 TFLAGS=-I$(STLPORT);$(CPPUNIT)\include;$(INCLUDE) $(TFLAGS) -DDISABLE_MAIN=1 -cpp -Aa -Ab -Ae -Ar
 # Recursive make
