@@ -141,13 +141,13 @@ struct Param
     char lib;           // write library file instead of object file(s)
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
-    char trace;         // insert profiling hooks
+    bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
     char symdebug;      // insert debug symbolic information
-    char alwaysframe;   // always emit standard stack frame
-    char optimize;      // run optimizer
+    bool alwaysframe;   // always emit standard stack frame
+    bool optimize;      // run optimizer
     char map;           // generate linker .map file
     char cpu;           // target CPU
     char is64bit;       // generate 64 bit code
@@ -177,9 +177,9 @@ struct Param
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
-    char pic;           // generate position-independent-code for shared libs
+    bool pic;           // generate position-independent-code for shared libs
     char cov;           // generate code coverage data
-    char nofloat;       // code should not pull in floating point support
+    bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
