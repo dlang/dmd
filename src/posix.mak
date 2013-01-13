@@ -140,7 +140,7 @@ SRC = win32.mak posix.mak \
 	libmscoff.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
-	intrange.h intrange.c canthrow.c \
+	intrange.h intrange.c canthrow.c vergen.c \
 	scanmscoff.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
