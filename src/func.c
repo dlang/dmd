@@ -2985,6 +2985,8 @@ enum PURE FuncDeclaration::isPure()
     if (tf->purity == PUREfwdref)
         tf->purityLevel();
     enum PURE purity = tf->purity;
+    if (purity > PUREweak && isNested())
+        purity = PUREweak;
     if (purity > PUREweak && needThis())
     {   // The attribute of the 'this' reference affects purity strength
         if (type->mod & (MODimmutable | MODwild))
