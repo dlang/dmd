@@ -204,7 +204,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
-	intrange.h intrange.c canthrow.c
+	intrange.h intrange.c canthrow.c vergen.c
 
 
 # D back end
@@ -386,6 +386,10 @@ id.h id.c : idgen.c
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
 
+verstr.h : vergen.c ..\VERSION
+	$(CC) -cpp -DDM_TARGET_CPU_X86=1 vergen
+	type ..\VERSION | vergen > verstr.h
+
 ############################# Intermediate Rules ############################
 
 # Default rules
@@ -524,7 +528,7 @@ glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.c
 imphint.obj : imphint.c
 	$(CC) -c $(CFLAGS) $*
 
-mars.obj : $(TOTALH) module.h mars.h mars.c
+mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
 	$(CC) -c $(CFLAGS) $(PREC) $* -Ae
 
 md5.obj : $C\md5.h $C\md5.c
