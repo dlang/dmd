@@ -378,11 +378,7 @@ bool Module::read(Loc loc)
 
 inline unsigned readwordLE(unsigned short *p)
 {
-#if LITTLE_ENDIAN
-    return *p;
-#else
     return (((unsigned char *)p)[1] << 8) | ((unsigned char *)p)[0];
-#endif
 }
 
 inline unsigned readwordBE(unsigned short *p)
@@ -392,14 +388,10 @@ inline unsigned readwordBE(unsigned short *p)
 
 inline unsigned readlongLE(unsigned *p)
 {
-#if LITTLE_ENDIAN
-    return *p;
-#else
     return ((unsigned char *)p)[0] |
         (((unsigned char *)p)[1] << 8) |
         (((unsigned char *)p)[2] << 16) |
         (((unsigned char *)p)[3] << 24);
-#endif
 }
 
 inline unsigned readlongBE(unsigned *p)
