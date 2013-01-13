@@ -210,8 +210,8 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
         return;                         // then it is accessible
     }
 
-    // BUG: should enable this check
-    //assert(smember->parent->isBaseOf(this, NULL));
+    ClassDeclaration *cdpar = smemberparent ? smemberparent->isClassDeclaration() : NULL;
+    ClassDeclaration *cdthis = cdscope ? cdscope->isClassDeclaration() : NULL;
 
     if (smemberparent == this)
     {   enum PROT access2 = smember->prot();
@@ -219,6 +219,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
         result = access2 >= PROTpublic ||
                 hasPrivateAccess(f) ||
                 isFriendOf(cdscope) ||
+                (access2 == PROTprotected && cdpar && cdthis && cdpar->isBaseOf(cdthis, NULL)) ||
                 (access2 == PROTpackage && hasPackageAccess(sc, this));
 #if LOG
         printf("result1 = %d\n", result);
