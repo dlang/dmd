@@ -332,9 +332,6 @@ void util_set32()
 
 void util_set64()
 {
-#if TARGET_OSX
-printf("target osx\n");
-#endif
     _tyrelax[TYenum] = TYlong;
     _tyrelax[TYint]  = TYlong;
     _tyrelax[TYuint] = TYlong;
