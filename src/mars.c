@@ -97,7 +97,10 @@ Global::Global()
     "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
 #endif
     ;
-    version = "v2.062";
+    version = "v"
+#include "verstr.h"
+    ;
+
     global.structalign = STRUCTALIGN_DEFAULT;
 
     memset(&params, 0, sizeof(Param));
