@@ -4538,7 +4538,7 @@ Statement *WithStatement::semantic(Scope *sc)
             sym->parent = sc->scopesym;
         }
         else
-        {   error("with expressions must be class objects, not '%s'", exp->type->toChars());
+        {   error("with expressions must be aggregate types, not '%s'", exp->type->toChars());
             return NULL;
         }
     }
