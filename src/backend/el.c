@@ -572,6 +572,30 @@ elem * el_copytree(elem *e)
     return d;
 }
 
+/*******************************
+ * Replace (e) with ((stmp = e),stmp)
+ */
+
+#if MARS
+elem *exp2_copytotemp(elem *e)
+{
+    //printf("exp2_copytotemp()\n");
+    elem_debug(e);
+    Symbol *stmp = symbol_genauto(e);
+    elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
+    elem *er = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
+    if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
+    {
+        eeq->Eoper = OPstreq;
+        eeq->ET = e->ET;
+        eeq->E1->ET = e->ET;
+        er->ET = e->ET;
+        er->E2->ET = e->ET;
+    }
+    return er;
+}
+#endif
+
 /*************************
  * Similar to el_copytree(e). But if e has any side effects, it's replaced
  * with (tmp = e) and tmp is returned.
