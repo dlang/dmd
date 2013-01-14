@@ -626,6 +626,26 @@ void emitDitto(Dsymbol *s, Scope *sc)
         emitUnittestComment(sc, p, sc->lastoffset2);
 }
 
+/** Recursively expand template mixin member docs into the scope. */
+static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
+{
+    if (!tm->semanticRun) tm->semantic(sc);
+    TemplateDeclaration *td = (tm && tm->tempdecl) ?
+        tm->tempdecl->isTemplateDeclaration() : NULL;
+    if (td && td->members)
+    {
+        for (size_t i = 0; i < td->members->dim; i++)
+        {
+            Dsymbol *sm = (*td->members)[i];
+            TemplateMixin *tmc = sm->isTemplateMixin();
+            if (tmc && tmc->comment)
+                expandTemplateMixinComments(tmc, sc);
+            else
+                emitComment(sm, sc);
+        }
+    }
+}
+
 void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
 {
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
@@ -653,6 +673,10 @@ void emitMemberComments(ScopeDsymbol *sds, Scope *sc)
         {
             Dsymbol *s = (*sds->members)[i];
             //printf("\ts = '%s'\n", s->toChars());
+
+            // only expand if parent is a non-template (semantic won't work)
+            if (s->comment && s->isTemplateMixin() && s->parent && !s->parent->isTemplateDeclaration())
+                expandTemplateMixinComments((TemplateMixin *)s, sc);
             emitComment(s, sc);
         }
         sc->pop();
