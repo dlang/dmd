@@ -3442,10 +3442,27 @@ const char *FuncLiteralDeclaration::kind()
 
 void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring(kind());
-    buf->writeByte(' ');
-    type->toCBuffer(buf, NULL, hgs);
-    bodyToCBuffer(buf, hgs);
+    if (tok != TOKreserved)
+    {
+        buf->writestring(kind());
+        buf->writeByte(' ');
+    }
+
+    TypeFunction *tf = (TypeFunction *)type;
+    // Don't print tf->mod, tf->trust, and tf->linkage
+    if (tf->next)
+        tf->next->toCBuffer2(buf, hgs, 0);
+    Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
+
+    ReturnStatement *ret = !fbody->isCompoundStatement() ?
+                            fbody->isReturnStatement() : NULL;
+    if (ret && ret->exp)
+    {
+        buf->writestring(" => ");
+        ret->exp->toCBuffer(buf, hgs);
+    }
+    else
+        bodyToCBuffer(buf, hgs);
 }
 
 
