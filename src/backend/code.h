@@ -421,6 +421,7 @@ cd_t cdsetjmp;
 cd_t cdvoid;
 cd_t cdhalt;
 cd_t cdfar16;
+cd_t cdbtst;
 cd_t cdbt;
 cd_t cdbscan;
 cd_t cdpair;

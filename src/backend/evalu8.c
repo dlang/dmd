@@ -1564,6 +1564,12 @@ elem * evalu8(elem *e)
 #endif
         break;
 
+    case OPbtst:
+        if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
+            i2 = sizeof(targ_ullong) * 8;
+        e->EV.Vullong = (((targ_ullong) l1) >> i2) & 1;
+        break;
+
 #if MARS
     case OPashr:
         if ((targ_ullong) i2 > sizeof(targ_ullong) * 8)
