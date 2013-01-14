@@ -9384,6 +9384,13 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             {   if (arg->ident)
                     argbuf.writestring(arg->ident->toChars());
             }
+            else if (arg->type->ty == Tident &&
+                     ((TypeIdentifier *)arg->type)->ident->len > 3 &&
+                     strncmp(((TypeIdentifier *)arg->type)->ident->string, "__T", 3) == 0)
+            {
+                // print parameter name, instead of undetermined type parameter
+                argbuf.writestring(arg->ident->toChars());
+            }
             else
                 arg->type->toCBuffer(&argbuf, arg->ident, hgs);
             if (arg->defaultArg)
