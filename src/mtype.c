@@ -8806,7 +8806,7 @@ int TypeClass::isscope()
 
 int TypeClass::isBaseOf(Type *t, int *poffset)
 {
-    if (t->ty == Tclass)
+    if (t && t->ty == Tclass)
     {   ClassDeclaration *cd;
 
         cd   = ((TypeClass *)t)->sym;
