@@ -518,20 +518,20 @@ void Dsymbol::emitDitto(Scope *sc)
 /** Recursively expand template mixin member docs into the scope. */
 static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
 {
-    if (!tm->semanticRun)
-        tm->semantic(sc);
-
-    TemplateDeclaration *td = tm ? tm->tempdecl : NULL;
-    if (td && td->members)
+    if (tm->semanticRun)
     {
-        for (size_t i = 0; i < td->members->dim; i++)
+        TemplateDeclaration *td = tm ? tm->tempdecl : NULL;
+        if (td && td->members)
         {
-            Dsymbol *sm = (*td->members)[i];
-            TemplateMixin *tmc = sm->isTemplateMixin();
-            if (tmc)
-                expandTemplateMixinComments(tmc, sc);
-            else
-                sm->emitComment(sc);
+            for (size_t i = 0; i < td->members->dim; i++)
+            {
+                Dsymbol *sm = (*td->members)[i];
+                TemplateMixin *tmc = sm->isTemplateMixin();
+                if (tmc)
+                    expandTemplateMixinComments(tmc, sc);
+                else
+                    sm->emitComment(sc);
+            }
         }
     }
 }
