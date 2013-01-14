@@ -76,6 +76,7 @@ enum OPER
         OPbswap,                // swap bytes
         OProl,                  // rotate left
         OPror,                  // rotate right
+        OPbtst,                 // bit test
 
         OPstreq,                /* structure assignment         */
 

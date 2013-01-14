@@ -40,7 +40,7 @@ int _binary[] =
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
-         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,
+         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
@@ -145,7 +145,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OP128_64,OPs64_128,OPu64_128,
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
-                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
+                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
@@ -175,7 +175,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
-                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
+                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,
                 OProl,OPror,OPvector,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
@@ -596,8 +596,8 @@ void dotab()
         case OPu8_16:   X("u8_16",      elbyteint, cdbyteint);
         case OPs8_16:   X("s8_16",      elbyteint, cdbyteint);
         case OP16_8:    X("16_8",       ellngsht,cdlngsht);
-        case OPu32_64:  X("u32_64",     evalu8, cdshtlng);
-        case OPs32_64:  X("s32_64",     evalu8, cdshtlng);
+        case OPu32_64:  X("u32_64",     el32_64, cdshtlng);
+        case OPs32_64:  X("s32_64",     el32_64, cdshtlng);
         case OP64_32:   X("64_32",      el64_32, cdlngsht);
         case OPu64_128: X("u64_128",    evalu8, cdshtlng);
         case OPs64_128: X("s64_128",    evalu8, cdshtlng);
@@ -636,6 +636,7 @@ void dotab()
 
         case OPbsf:     X("bsf",        elzot,  cdbscan);
         case OPbsr:     X("bsr",        elzot,  cdbscan);
+        case OPbtst:    X("btst",       elzot,  cdbtst);
         case OPbt:      X("bt",         elzot,  cdbt);
         case OPbtc:     X("btc",        elzot,  cdbt);
         case OPbtr:     X("btr",        elzot,  cdbt);

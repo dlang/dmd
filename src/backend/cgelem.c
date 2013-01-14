@@ -1345,6 +1345,19 @@ STATIC elem * elbitwise(elem *e)
                 e1->E1 = el_selecte1(e1->E1);
                 goto Lopt;
             }
+
+            // Replace ((a >> b) & 1) with (a bt b)
+            if ((I32 || I64) &&
+                e->Eoper == OPand &&
+                ul == 1 &&
+                (e->E1->Eoper == OPshr || e->E1->Eoper == OPashr) &&
+                sz <= REGSIZE
+               )
+            {
+                e->E1->Eoper = OPbtst;
+                e = el_selecte1(e);
+                goto Lopt;
+            }
         }
     }
     return e;
@@ -3578,16 +3591,17 @@ ret:
 
 /*****************************
  * Boolean operator.
- *      bool c => (bool c)
- *      bool logical_operator e => logical_operator e
+ *      OPbool
  */
 
 STATIC elem * elbool(elem *e)
 {
     if (OTlogical(e->E1->Eoper) ||
+        // bool bool => bool
         (tybasic(e->E1->Ety) == TYbool && tysize(e->Ety) == 1)
        )
         return el_selecte1(e);
+
     if (OPTIMIZER)
     {
         // Replace bool(x,1) with (x,1),1
@@ -3658,6 +3672,26 @@ STATIC elem * elbool(elem *e)
                     assert(0);
             }
             e = optelem(e,TRUE);
+        }
+
+        // replace bool((1<<c)&b) with -(b btst c)
+        else if ((I32 || I64) &&
+                 e->E1->Eoper == OPand &&
+                 e->E1->E1->Eoper == OPshl &&
+                 e->E1->E1->E1->Eoper == OPconst && el_tolong(e->E1->E1->E1) == 1 &&
+                 tysize(e->E1->Ety) <= REGSIZE
+                )
+        {
+            tym_t ty = e->Ety;
+            elem *ex = e->E1->E1;
+            ex->Eoper = OPbtst;
+            e->E1->E1 = NULL;
+            ex->E1 = e->E1->E2;
+            e->E1->E2 = NULL;
+            ex->Ety = e->Ety;
+            el_free(e);
+            e = ex;
+            return optelem(e,TRUE);
         }
     }
     return e;
@@ -3947,12 +3981,28 @@ STATIC elem *elc_i(elem *e)
 
 STATIC elem * elbyteint(elem *e)
 {
-    if (OTlogical(e->E1->Eoper))
+    if (OTlogical(e->E1->Eoper) || e->E1->Eoper == OPbtst)
     {
         e->E1->Ety = e->Ety;
         e = el_selecte1(e);
+        return e;
     }
+    return evalu8(e);
+}
+
+/******************************
+ * OPs32_64
+ * OPu32_64
+ */
+STATIC elem * el32_64(elem *e)
+{
+    if (REGSIZE == 8 && e->E1->Eoper == OPbtst)
+    {
+        e->E1->Ety = e->Ety;
+        e = el_selecte1(e);
     return e;
+    }
+    return evalu8(e);
 }
 
 /****************************
