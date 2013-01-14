@@ -517,6 +517,27 @@ void Dsymbol::emitDitto(Scope *sc)
     sc->lastoffset += b.offset;
 }
 
+/** Recursively expand template mixin member docs into the scope. */
+static void expandTemplateMixinComments(TemplateMixin *tm, Scope *sc)
+{
+    if (tm->semanticRun)
+    {
+        TemplateDeclaration *td = tm ? tm->tempdecl : NULL;
+        if (td && td->members)
+        {
+            for (size_t i = 0; i < td->members->dim; i++)
+            {
+                Dsymbol *sm = (*td->members)[i];
+                TemplateMixin *tmc = sm->isTemplateMixin();
+                if (tmc)
+                    expandTemplateMixinComments(tmc, sc);
+                else
+                    sm->emitComment(sc);
+            }
+        }
+    }
+}
+
 void ScopeDsymbol::emitMemberComments(Scope *sc)
 {
     //printf("ScopeDsymbol::emitMemberComments() %s\n", toChars());
@@ -544,6 +565,8 @@ void ScopeDsymbol::emitMemberComments(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             //printf("\ts = '%s'\n", s->toChars());
+            if (s->isTemplateMixin())
+                expandTemplateMixinComments((TemplateMixin *)s, sc);
             s->emitComment(sc);
         }
         sc->pop();
