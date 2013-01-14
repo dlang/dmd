@@ -369,7 +369,7 @@ void FuncDeclaration::semantic(Scope *sc)
             isNewDeclaration() || isDelete())
             error("constructors, destructors, postblits, invariants, new and delete functions are not allowed in interface %s", id->toChars());
         if (fbody && isVirtual())
-            error("function body is not abstract in interface %s", id->toChars());
+            error("function body only allowed in final functions in interface %s", id->toChars());
     }
 
     /* Contracts can only appear without a body when they are virtual interface functions
