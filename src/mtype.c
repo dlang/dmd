@@ -8154,6 +8154,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     for (size_t j = 0; j < structelems->dim; j++)
     {
         VarDeclaration *vd = sym->fields[j];
+        Type *telem = vd->type->addMod(this->mod);
         Expression *e;
         if (vd->init)
         {   if (vd->init->isVoidInitializer())
@@ -8164,7 +8165,10 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         else
             e = vd->type->defaultInitLiteral(loc);
         if (e && vd->scope)
-             e = e->semantic(vd->scope);
+        {
+            e = e->semantic(vd->scope);
+            e = e->implicitCastTo(vd->scope, telem);
+        }
         (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
