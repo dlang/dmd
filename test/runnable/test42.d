@@ -5520,6 +5520,55 @@ void testreal_to_ulong()
 
 /***************************************************/
 
+long testbt1(long a, long b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1L << c)) != 0);
+}
+
+
+long testbt2(long a, long b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1L << c)) != 0);
+}
+
+int testbt3(int a, int b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1 << c)) != 0);
+}
+
+int testbt4(int a, int b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1 << c)) != 0);
+}
+
+
+void test248()
+{
+    auto a1 = testbt1(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt2(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt3(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt4(3, 4, 2);
+    assert(a1 == 4);
+
+    a1 = testbt1(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt2(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt3(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt4(3, 8, 2);
+    assert(a1 == 3);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
