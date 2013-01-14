@@ -3255,6 +3255,122 @@ code *cdfar16( elem *e, regm_t *pretregs)
 #endif
 
 /*************************
+ * Generate code for OPbtst
+ */
+
+code *cdbtst(elem *e, regm_t *pretregs)
+{
+    elem *e1;
+    elem *e2;
+    code *c;
+    code *c2;
+    code cs;
+    regm_t idxregs;
+    regm_t retregs;
+    unsigned reg;
+    unsigned char word;
+    tym_t ty1;
+    int op;
+    int mode;
+
+    op = 0xA3;                          // BT EA,value
+    mode = 4;
+
+    e1 = e->E1;
+    e2 = e->E2;
+    cs.Iflags = 0;
+
+    if (*pretregs == 0)                   // if don't want result
+    {   c = codelem(e1,pretregs,FALSE);   // eval left leaf
+        *pretregs = 0;                    // in case they got set
+        return cat(c,codelem(e2,pretregs,FALSE));
+    }
+
+    if ((e1->Eoper == OPind && !e1->Ecount) || e1->Eoper == OPvar)
+    {
+        c = getlvalue(&cs, e1, RMload);     // get addressing mode
+        idxregs = idxregm(&cs);             // mask if index regs used
+    }
+    else
+    {
+        retregs = allregs;
+        c = codelem(e1, &retregs, FALSE);
+        reg = findreg(retregs);
+        cs.Irm = modregrm(3,0,reg & 7);
+        cs.Iflags = 0;
+        cs.Irex = 0;
+        if (reg & 8)
+            cs.Irex |= REX_B;
+        idxregs = retregs;
+    }
+
+    ty1 = tybasic(e1->Ety);
+    word = (!I16 && tysize[ty1] == SHORTSIZE) ? CFopsize : 0;
+
+//    if (e2->Eoper == OPconst && e2->EV.Vuns < 0x100)  // should do this instead?
+    if (e2->Eoper == OPconst)
+    {
+        cs.Iop = 0x0FBA;                         // BT rm,imm8
+        cs.Irm |= modregrm(0,mode,0);
+        cs.Iflags |= CFpsw | word;
+        cs.IFL2 = FLconst;
+        if (tysize[ty1] == SHORTSIZE)
+        {
+            cs.IEV2.Vint = e2->EV.Vint & 15;
+        }
+        else if (tysize[ty1] == 4)
+        {
+            cs.IEV2.Vint = e2->EV.Vint & 31;
+        }
+        else
+        {
+            cs.IEV2.Vint = e2->EV.Vint & 63;
+            if (I64)
+                cs.Irex |= REX_W;
+        }
+        c2 = gen(CNIL,&cs);
+    }
+    else
+    {
+        retregs = ALLREGS & ~idxregs;
+        c2 = scodelem(e2,&retregs,idxregs,TRUE);
+        reg = findreg(retregs);
+
+        cs.Iop = 0x0F00 | op;                     // BT rm,reg
+        code_newreg(&cs,reg);
+        cs.Iflags |= CFpsw | word;
+        c2 = gen(c2,&cs);
+    }
+
+    if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
+    {
+        code *nop = CNIL;
+        regm_t save = regcon.immed.mval;
+        code *cg = allocreg(&retregs,&reg,TYint);
+        regcon.immed.mval = save;
+        if ((*pretregs & mPSW) == 0)
+        {
+            cg = cat(cg,getregs(retregs));
+            cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
+            cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
+        }
+        else
+        {
+            cg = movregconst(cg,reg,1,8);               // MOV reg,1
+            nop = gennop(nop);
+            cg = genjmp(cg,JC,FLcode,(block *) nop);    // Jtrue nop
+                                                        // MOV reg,0
+            movregconst(cg,reg,0,8);
+            regcon.immed.mval &= ~mask[reg];
+        }
+        *pretregs = retregs;
+        c2 = cat3(c2,cg,nop);
+    }
+
+    return cat(c,c2);
+}
+
+/*************************
  * Generate code for OPbt, OPbtc, OPbtr, OPbts
  */
 
