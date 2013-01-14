@@ -8157,7 +8157,7 @@ Lagain:
             Expression *e;
             if (!arguments || arguments->dim == 0)
             {
-                e = typeDotIdExp(loc, t1, Id::init);
+                e = t1->defaultInitLiteral(loc);
             }
             else if (arguments->dim == 1)
             {
