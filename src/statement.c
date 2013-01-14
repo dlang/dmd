@@ -894,13 +894,12 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->level++;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s;
-
+    {   
+        Statement *s;
         s = (*statements)[i];
         if (s)
             s->toCBuffer(buf, hgs);
     }
-
     buf->level--;
     buf->writeByte('}');
     buf->writenl();
@@ -1057,8 +1056,9 @@ void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->level++;
 
     if (statement)
+    {
         statement->toCBuffer(buf, hgs);
-
+    }
     buf->level--;
     buf->writeByte('}');
     buf->writenl();
@@ -2821,14 +2821,15 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (!ifbody->isScopeStatement())
         buf->level--;
     if (elsebody)
-    {   buf->writestring("else");
+    {   
+        buf->writestring("else");
         buf->writenl();
         if (!elsebody->isScopeStatement())
             buf->level++;
         elsebody->toCBuffer(buf, hgs);
         if (!elsebody->isScopeStatement())
             buf->level--;
-    }
+   }
 }
 
 /******************************** ConditionalStatement ***************************/
@@ -2919,6 +2920,7 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     condition->toCBuffer(buf, hgs);
     buf->writenl();
     buf->writeByte('{');
+    buf->level++;
     buf->writenl();
     buf->level++;
     if (ifbody)
@@ -2933,6 +2935,7 @@ void ConditionalStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->writeByte('{');
         buf->level++;
         buf->writenl();
+        buf->level++;
         elsebody->toCBuffer(buf, hgs);
         buf->level--;
         buf->writeByte('}');
@@ -3333,7 +3336,8 @@ void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (body)
     {
         if (!body->isScopeStatement())
-        {   buf->writebyte('{');
+        {   
+            buf->writebyte('{');
             buf->writenl();
             buf->level++;
             body->toCBuffer(buf, hgs);
@@ -5343,6 +5347,7 @@ int AsmStatement::blockExit(bool mustNotThrow)
 void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("asm { ");
+    buf->level++;
     Token *t = tokens;
     while (t)
     {
@@ -5364,6 +5369,7 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
         t = t->next;
     }
+    buf->level--;
     buf->writestring("; }");
     buf->writenl();
 }
