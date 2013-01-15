@@ -110,6 +110,8 @@ TOLF=tolf
 ZIP=zip32
 # Copy to another directory
 SCP=$(CP)
+# PVS-Studio command line executable
+PVS="c:\Program Files (x86)\PVS-Studio\x64\PVS-Studio"
 
 ##### User configuration switches
 
@@ -162,8 +164,8 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	link.obj access.obj doc.obj macro.obj hdrgen.obj delegatize.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj libomf.obj arrayop.obj irstate.obj \
-	glue.obj msc.obj ph.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
-	util.obj eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
+	glue.obj msc.obj tk.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
+	eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj \
 	sideeffect.obj libmscoff.obj scanmscoff.obj \
 	unialpha.obj
@@ -177,6 +179,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	cgcod.obj cod1.obj cod2.obj cod3.obj cod4.obj cod5.obj outbuf.obj \
 	bcomplex.obj iasm.obj ptrntab.obj aa.obj ti_achar.obj md5.obj \
 	ti_pvoid.obj mscoffobj.obj pdata.obj cv8.obj backconfig.obj \
+	ph2.obj util2.obj \
 	html.obj
 
 # Root package
@@ -199,7 +202,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
 	eh.c toctype.c class.c mangle.c tocsym.c func.c inline.c \
 	access.c complex_t.h irstate.h irstate.c glue.c msc.c \
-	ph.c tk.c s2ir.c todt.c e2ir.c util.c toobj.c cppmangle.c \
+	tk.c s2ir.c todt.c e2ir.c toobj.c cppmangle.c \
 	identifier.h parse.h scope.h enum.h import.h \
 	typinf.c tocvdebug.c toelfdebug.c mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
@@ -229,7 +232,7 @@ BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
 	$C\elfobj.c $C\cv4.h $C\dwarf2.h $C\exh.h $C\go.h \
 	$C\dwarf.c $C\dwarf.h $C\cppman.c $C\machobj.c \
 	$C\strtold.c $C\aa.h $C\aa.c $C\tinfo.h $C\ti_achar.c \
-	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h \
+	$C\md5.h $C\md5.c $C\ti_pvoid.c $C\xmm.h $C\ph2.c $C\util2.c \
 	$C\mscoffobj.c $C\obj.h $C\pdata.c $C\cv8.c $C\backconfig.c \
 	$C\backend.txt \
 	$C\html.h $C\html.c
@@ -519,8 +522,8 @@ outbuf.obj : $C\outbuf.h $C\outbuf.c
 pdata.obj : $C\pdata.c
 	$(CC) -c $(MFLAGS) $C\pdata
 
-ph.obj : ph.c
-	$(CC) -c $(MFLAGS) ph
+ph2.obj : $C\ph2.c
+	$(CC) -c $(MFLAGS) $C\ph2
 
 ptrntab.obj : $C\iasm.h $C\ptrntab.c
 	$(CC) -c $(MFLAGS) $C\ptrntab
@@ -570,8 +573,8 @@ tocsym.obj : $(CH) $(TOTALH) mars.h module.h tocsym.c
 unittests.obj : $(TOTALH) unittests.c
 	$(CC) -c $(CFLAGS) $(PREC) $*
 
-util.obj : util.c
-	$(CC) -c $(MFLAGS) util
+util2.obj : $C\util2.c
+	$(CC) -c $(MFLAGS) $C\util2
 
 var.obj : $C\var.c optab.c
 	$(CC) -c $(MFLAGS) -I. $C\var
