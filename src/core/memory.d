@@ -407,11 +407,13 @@ struct GC
     /**
      * Requests that the managed memory block referenced by p be extended in
      * place by at least mx bytes, with a desired extension of sz bytes.  If an
-     * extension of the required size is not possible, if p references memory
-     * not originally allocated by this garbage collector, or if p points to
-     * the interior of a memory block, no action will be taken.
+     * extension of the required size is not possible or if p references memory
+     * not originally allocated by this garbage collector, no action will be
+     * taken.
      *
      * Params:
+     *  p = Pointer to a memory block. p need not reference the
+     *      beginning of the memory block.
      *  mx = The minimum extension size in bytes.
      *  sz = The  desired extension size in bytes.
      *
@@ -419,50 +421,45 @@ struct GC
      *  The size in bytes of the extended memory block referenced by p or zero
      *  if no extension occurred.
      *
-     * Notes:
-     *  Extend may also be used to extend dynamic arrays. Note though that
-     *  some of the memory block is reserved by the array implementation for
-     *  bookkeeping.
-     *  In this situation, the size returned by extend can only be used
-     *  as an indicator of success. To find the actual "usable" size of the
-     *  array, please use $(XREF object, capacity).
+     * Example:
+     * ----
+     * //Manually create a slice
+     * int[] arr;
+     * void* p = GC.malloc(1000 * int.sizeof, GC.BlkAttr.NO_SCAN);
+     * arr = (cast(int*)p)[0 .. 1000];
+     *
+     * //Try to extend the slice by 1000 elements, preferred 2000.
+     * size_t u = GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof);
+     * if (u != 0)
+     *     arr = p[0 .. u / int.sizeof];
+     * ----
+     *
+     * Note:
+     *  Extend may also be used to extend slices, but with caveats.
+     *
+     *  First, some of the memory block is used by the underlying array
+     *  implementation for bookeeping. Furthermore, the slice may not actually
+     *  start at the begining of the underlying array. Because of this, the
+     *  value returned by extend can only be used as an indicator of success.
+     *
+     *  To find the actual "usable" size of the slice, please use
+     *  $(XREF object, capacity). Note that while it is possible to extend a
+     *  slice that does not have a capacity, it will not be possible to exploit
+     *  the extended memory.
+     *
+     *  Finally, do not access the new memory until the underlying array has
+     *  made it legally accessible.
      *
      * Example:
      * ----
-     * //Manual memory allocation
-     * int[] arr1;
-     * {
-     *     //Manually GC allocate memory for 1000 ints
-     *     void* p = GC.malloc(1000 * int.sizeof, GC.BlkAttr.NO_SCAN);
-     *     //place the slice on the memory
-     *     arr1 = (cast(int*)p)[0 .. 1000];
-     *     //Try to extend the slice to 2000 elements, prefered 3000.
-     *     size_t u = GC.extend(arr1.ptr, 2000 * int.sizeof, 3000 * int.sizeof);
-     *     if (u != 0)
-     *     {
-     *         //On extention success. Use U to re-slice
-     *         arr1 = arr1.ptr[0 .. u / int.sizeof];
-     *     }
-     * }
+     * //Autmoatically create a slice
+     * int[] arr = new int[](1000);
+     * void* p = arr.ptr;
      *
-     * //automatic memory allocation
-     * int[] arr2;
-     * {
-     *     //directly allocate the 1000 ints
-     *     arr2 = new int[](1000);
-     *     //Try to extend the slice to 2000 elements, prefered 3000.
-     *     size_t u = GC.extend(arr2.ptr, 2000 * int.sizeof, 3000 * int.sizeof);
-     *     if (u != 0)
-     *     {
-     *         //On extention success. Use arr.capacity to re-slice
-     *         arr2.length = arr2.capacity;
-     *     }
-     * }
-     * //Compare the lengths and capacities. Results from a win32 runtime
-     * writefln("arr1.length: %s, arr1.capacity: %s", arr1.length, arr1.capacity);
-     *     //Prints: "arr1.length: 4096, arr1.capacity: 0"
-     * writefln("arr2.length: %s, arr2.capacity: %s", arr2.length, arr2.capacity);
-     *     //Prints: "arr1.length: 4091, arr1.capacity: 4091"
+     * //Try to extend the slice by 1000 elements, preferred 2000.
+     * if (arr.capacity && GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof))
+     *     //arr = arr.ptr[0 .. arr.capacity] //No.
+     *     arr.length = arr.capacity;         //Yes.
      * ----
      */
     static size_t extend( void* p, size_t mx, size_t sz ) pure nothrow
