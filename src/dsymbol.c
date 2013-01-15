@@ -204,16 +204,6 @@ const char *Dsymbol::toPrettyChars()
         if (q == s)
             break;
         q--;
-#if TARGET_NET
-    if (AggregateDeclaration* ad = p->isAggregateDeclaration())
-    {
-        if (ad->isNested() && p->parent && p->parent->isAggregateDeclaration())
-        {
-            *q = '/';
-            continue;
-        }
-    }
-#endif
         *q = '.';
     }
     return s;

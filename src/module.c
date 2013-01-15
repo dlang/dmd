@@ -1160,15 +1160,12 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
             dst = ((Package *)p)->symtab;
             if (ppkg && !*ppkg)
                 *ppkg = (Package *)p;
-#if TARGET_NET
-#else
             if (p->isModule())
             {   // Return the module so that a nice error message can be generated
                 if (ppkg)
                     *ppkg = (Package *)p;
                 break;
             }
-#endif
         }
         if (pparent)
         {
