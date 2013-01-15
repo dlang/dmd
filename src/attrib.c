@@ -978,6 +978,30 @@ void PragmaDeclaration::setScope(Scope *sc)
 #endif // TARGET_NET
 }
 
+static unsigned setSymbolOverride(Dsymbol *s, char *sym, unsigned count = 0)
+{
+    AttribDeclaration *ad;
+
+    if (ad = s->isAttribDeclaration())
+    {
+        Dsymbols *decls = ad->include(NULL, NULL);
+        unsigned nestedCount = 0;
+
+        if (decls && decls->dim)
+            for (size_t i = 0; i < decls->dim; ++i)
+                nestedCount += setSymbolOverride((*decls)[i], sym, count);
+
+        return nestedCount + count;
+    }
+    else if (s->isFuncDeclaration() || s->isVarDeclaration())
+    {
+        s->isDeclaration()->symbol_override = sym;
+        return 1;
+    }
+    else
+        return 0;
+}
+
 void PragmaDeclaration::semantic(Scope *sc)
 {   // Should be merged with PragmaStatement
 
@@ -1100,6 +1124,41 @@ void PragmaDeclaration::semantic(Scope *sc)
     {
     }
 #endif // TARGET_NET
+    else if (ident == Id::mangle)
+    {
+        if (!args || args->dim != 1)
+            error("string expected for mangled name");
+        else
+        {
+            Expression *e = (*args)[0];
+
+            e = e->semantic(sc);
+            e = e->ctfeInterpret();
+            (*args)[0] = e;
+
+            if (e->op == TOKerror)
+                goto Lnodecl;
+
+            StringExp *se = e->toString();
+
+            if (!se)
+                error("string expected for mangled name, not '%s'", e->toChars());
+
+            if (!se->len)
+                error("zero-length string not allowed for mangled name");
+
+            if (se->sz != 1)
+                error("mangled name characters can only be of type char");
+
+            for (size_t i = 0; i < se->len; i++)
+            {
+                char c = ((char *)se->string)[i];
+
+                if (c < 0x20 || c > 0x7E)
+                    error("mangled names may only contain printable ASCII characters, not '0x%x'", c);
+            }
+        }
+    }
     else if (global.params.ignoreUnsupportedPragmas)
     {
         if (global.params.verbose)
@@ -1139,6 +1198,20 @@ Ldecl:
             Dsymbol *s = (*decl)[i];
 
             s->semantic(sc);
+
+            if (ident == Id::mangle)
+            {
+                StringExp *e = (*args)[0]->toString();
+
+                char *name = (char *)mem.malloc(e->len + 1);
+                memcpy(name, e->string, e->len);
+                name[e->len] = 0;
+
+                unsigned cnt = setSymbolOverride(s, name);
+
+                if (cnt > 1)
+                    error("can only apply to a single declaration");
+            }
         }
     }
     return;

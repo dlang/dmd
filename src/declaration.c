@@ -81,6 +81,7 @@ Declaration::Declaration(Identifier *id)
     linkage = LINKdefault;
     inuse = 0;
     sem = SemanticStart;
+    symbol_override = NULL;
 }
 
 void Declaration::semantic(Scope *sc)
