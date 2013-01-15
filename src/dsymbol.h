@@ -72,9 +72,6 @@ struct DeleteDeclaration;
 struct HdrGenState;
 struct OverloadSet;
 struct AA;
-#if TARGET_NET
-struct PragmaScope;
-#endif
 #ifdef IN_GCC
 union tree_node;
 typedef union tree_node TYPE;
@@ -257,9 +254,6 @@ struct Dsymbol : Object
     virtual SymbolDeclaration *isSymbolDeclaration() { return NULL; }
     virtual AttribDeclaration *isAttribDeclaration() { return NULL; }
     virtual OverloadSet *isOverloadSet() { return NULL; }
-#if TARGET_NET
-    virtual PragmaScope* isPragmaScope() { return NULL; }
-#endif
 };
 
 // Dsymbol that generates a scope
