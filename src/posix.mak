@@ -103,9 +103,9 @@ DMD_OBJS = \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
-	parse.o ph.o root.o rtlsym.o s2ir.o scope.o statement.o \
+	parse.o ph2.o root.o rtlsym.o s2ir.o scope.o statement.o \
 	stringtable.o struct.o csymbol.o template.o tk.o tocsym.o todt.o \
-	type.o typinf.o util.o var.o version.o strtold.o utf.o staticassert.o \
+	type.o typinf.o util2.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
@@ -128,8 +128,8 @@ SRC = win32.mak posix.mak \
 	aggregate.h parse.c statement.c constfold.c version.h version.c \
 	inifile.c iasm.c module.c scope.c dump.c init.h init.c attrib.h \
 	attrib.c opover.c class.c mangle.c tocsym.c func.c inline.c \
-	access.c complex_t.h irstate.h irstate.c glue.c msc.c ph.c tk.c \
-	s2ir.c todt.c e2ir.c util.c identifier.h parse.h \
+	access.c complex_t.h irstate.h irstate.c glue.c msc.c tk.c \
+	s2ir.c todt.c e2ir.c identifier.h parse.h \
 	scope.h enum.h import.h mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h irstate.h statement.h eh.c \
 	utf.h utf.c staticassert.h staticassert.c \
@@ -161,6 +161,7 @@ SRC = win32.mak posix.mak \
 	$C/machobj.c $C/mscoffobj.c \
 	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c \
 	$C/md5.c $C/md5.h \
+	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
@@ -537,7 +538,7 @@ parse.o: parse.c
 pdata.o: $C/pdata.c
 	$(CC) -c $(MFLAGS) $<
 
-ph.o: ph.c
+ph2.o: $C/ph2.c
 	$(CC) -c $(MFLAGS) $<
 
 platform_stub.o: $C/platform_stub.c
@@ -624,7 +625,7 @@ type.o: $C/type.c
 typinf.o: typinf.c $(CH) mars.h module.h mtype.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-util.o: util.c
+util2.o: $C/util2.c
 	$(CC) -c $(MFLAGS) $<
 
 utf.o: utf.c utf.h
@@ -693,7 +694,6 @@ endif
 	gcov opover.c
 	gcov optimize.c
 	gcov parse.c
-	gcov ph.c
 	gcov scope.c
 	gcov sideeffect.c
 	gcov statement.c
@@ -709,7 +709,6 @@ endif
 	gcov toelfdebug.c
 	gcov typinf.c
 	gcov utf.c
-	gcov util.c
 	gcov version.c
 	gcov intrange.c
 
