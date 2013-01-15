@@ -1067,12 +1067,14 @@ L1:
 
   /* Replace (0 - e2) with (-e2)        */
   if (cnst(e1) && !boolres(e1) &&
-      !(tycomplex(tym) && !tycomplex(e1->Ety) && !tycomplex(e2->Ety))
+      !(tycomplex(tym) && !tycomplex(e1->Ety) && !tycomplex(e2->Ety)) &&
+      !tyvector(e1->Ety)
      )
-  {     el_free(e1);
+  {
         e->E1 = e2;
         e->E2 = NULL;
         e->Eoper = OPneg;
+        el_free(e1);
         return optelem(e,TRUE);
   }
 
