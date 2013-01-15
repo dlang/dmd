@@ -475,58 +475,57 @@ void StorageClassDeclaration::semantic(Scope *sc)
     }
 }
 
+const SCstring SCtable[] = {
+            { STCauto,         TOKauto },
+            { STCscope,        TOKscope },
+            { STCstatic,       TOKstatic },
+            { STCextern,       TOKextern },
+            { STCconst,        TOKconst },
+            { STCfinal,        TOKfinal },
+            { STCabstract,     TOKabstract },
+            { STCsynchronized, TOKsynchronized },
+            { STCdeprecated,   TOKdeprecated },
+            { STCoverride,     TOKoverride },
+            { STClazy,         TOKlazy },
+            { STCalias,        TOKalias },
+            { STCout,          TOKout },
+            { STCin,           TOKin },
+#if DMDV2
+            { STCmanifest,     TOKenum },
+            { STCimmutable,    TOKimmutable },
+            { STCshared,       TOKshared },
+            { STCnothrow,      TOKnothrow },
+            { STCpure,         TOKpure },
+            { STCref,          TOKref },
+            { STCtls,          TOKtls },
+            { STCgshared,      TOKgshared },
+            { STCproperty,     TOKat,       "property" },
+            { STCsafe,         TOKat,       "safe" },
+            { STCtrusted,      TOKat,       "trusted" },
+            { STCsystem,       TOKat,       "system" },
+            { STCdisable,      TOKat,       "disable" },
+#endif
+        };
+
+size_t SCtable_len;
+
+void StorageClassDeclaration::initialize()
+{
+    SCtable_len = sizeof(SCtable)/sizeof(SCtable[0]);
+}
+
 void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 {
-    struct SCstring
+    for (int i = 0; i < SCtable_len; i++)
     {
-        StorageClass stc;
-        enum TOK tok;
-        Identifier *id;
-    };
-
-    static SCstring table[] =
-    {
-        { STCauto,         TOKauto },
-        { STCscope,        TOKscope },
-        { STCstatic,       TOKstatic },
-        { STCextern,       TOKextern },
-        { STCconst,        TOKconst },
-        { STCfinal,        TOKfinal },
-        { STCabstract,     TOKabstract },
-        { STCsynchronized, TOKsynchronized },
-        { STCdeprecated,   TOKdeprecated },
-        { STCoverride,     TOKoverride },
-        { STClazy,         TOKlazy },
-        { STCalias,        TOKalias },
-        { STCout,          TOKout },
-        { STCin,           TOKin },
-#if DMDV2
-        { STCmanifest,     TOKenum },
-        { STCimmutable,    TOKimmutable },
-        { STCshared,       TOKshared },
-        { STCnothrow,      TOKnothrow },
-        { STCpure,         TOKpure },
-        { STCref,          TOKref },
-        { STCtls,          TOKtls },
-        { STCgshared,      TOKgshared },
-        { STCproperty,     TOKat,       Id::property },
-        { STCsafe,         TOKat,       Id::safe },
-        { STCtrusted,      TOKat,       Id::trusted },
-        { STCsystem,       TOKat,       Id::system },
-        { STCdisable,      TOKat,       Id::disable },
-#endif
-    };
-
-    for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
-    {
-        if (stc & table[i].stc)
+        if (stc & SCtable[i].stc)
         {
-            enum TOK tok = table[i].tok;
+            enum TOK tok = SCtable[i].tok;
 #if DMDV2
             if (tok == TOKat)
             {
                 buf->writeByte('@');
-                buf->writestring(table[i].id->toChars());
+                buf->writestring(SCtable[i].id);
             }
             else
 #endif

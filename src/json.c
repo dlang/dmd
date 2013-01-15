@@ -11,55 +11,80 @@
 // This implements the JSON capability.
 
 #include <stdio.h>
-#include <string.h>
-#include <time.h>
-#include <ctype.h>
 #include <assert.h>
 
 #include "rmem.h"
-#include "root.h"
 
-#include "mars.h"
 #include "dsymbol.h"
-#include "macro.h"
 #include "template.h"
-#include "lexer.h"
 #include "aggregate.h"
 #include "declaration.h"
 #include "enum.h"
-#include "id.h"
 #include "module.h"
-#include "scope.h"
-#include "hdrgen.h"
 #include "json.h"
 #include "mtype.h"
 #include "attrib.h"
 #include "cond.h"
+#include "init.h"
 
-const char Pname[] = "name";
-const char Pkind[] = "kind";
-const char Pfile[] = "file";
-const char Pline[] = "line";
-const char Ptype[] = "type";
-const char Pcomment[] = "comment";
-const char Pmembers[] = "members";
-const char Pprotection[] = "protection";
 
-void JsonRemoveComma(OutBuffer *buf);
+struct JsonOut
+{
+    OutBuffer *buf;
+    int indentLevel;
+
+    JsonOut(OutBuffer *buf) {this->buf = buf; indentLevel = 0;}
+
+    void indent();
+    void removeComma();
+    void comma();
+    void stringStart();
+    void stringEnd();
+    void stringPart(const char* part);
+
+    void value(const char* s);
+    void value(int value);
+    void valueBool(bool value);
+
+    void item(const char*);
+    void item(int);
+    void itemBool(bool);
+
+
+    void arrayStart();
+    void arrayEnd();
+    void objectStart();
+    void objectEnd();
+
+    void propertyStart(const char* name);
+
+    void property(const char *name, const char* s);
+    void property(const char *name, int value);
+    void propertyBool(const char *name, bool value);
+    void propertyStorageClass(const char *name, StorageClass stc);
+    void property(const char *name, Loc* loc);
+    void property(const char *name, Type* type);
+    void property(const char *name, Parameters* parameters);
+    void property(const char *name, Expressions* expressions);
+    void property(const char *name, enum TRUST trust);
+    void property(const char *name, enum PURE purity);
+    void property(const char *name, enum LINK linkage);
+};
+
 
 void json_generate(Modules *modules)
 {   OutBuffer buf;
+    JsonOut json(&buf);
 
-    buf.writestring("[\n");
+    json.arrayStart();
     for (size_t i = 0; i < modules->dim; i++)
     {   Module *m = (*modules)[i];
         if (global.params.verbose)
             printf("json gen %s\n", m->toChars());
-        m->toJsonBuffer(&buf);
-        buf.writestring(",\n");
+        m->toJson(&json);
     }
-    JsonRemoveComma(&buf);
-    buf.writestring("]\n");
+    json.arrayEnd();
+    json.removeComma();
 
     // Write buf to file
     char *arg = global.params.xfilename;
@@ -92,12 +117,42 @@ void json_generate(Modules *modules)
 }
 
 
-/*********************************
- * Encode string into buf, and wrap it in double quotes.
- */
-void JsonString(OutBuffer *buf, const char *s)
+
+
+void JsonOut::indent()
+{
+    if (buf->offset >= 1 && 
+        buf->data[buf->offset - 1] == '\n')
+        for (int i = 0; i < indentLevel; i++)
+            buf->writeByte('\t');
+}
+
+void JsonOut::removeComma()
+{
+    if (buf->offset >= 2 &&
+        buf->data[buf->offset - 2] == ',' &&
+        (buf->data[buf->offset - 1] == '\n' || buf->data[buf->offset - 1] == ' '))
+        buf->offset -= 2;
+}
+
+void JsonOut::comma()
+{
+    if (indentLevel > 0)
+        buf->writestring(",\n");
+}
+
+void JsonOut::stringStart()
 {
     buf->writeByte('\"');
+}
+
+void JsonOut::stringEnd()
+{
+    buf->writeByte('\"');
+}
+
+void JsonOut::stringPart(const char *s)
+{
     for (; *s; s++)
     {
         unsigned char c = (unsigned char) *s;
@@ -123,10 +178,6 @@ void JsonString(OutBuffer *buf, const char *s)
                 buf->writestring("\\\\");
                 break;
 
-            case '/':
-                buf->writestring("\\/");
-                break;
-
             case '\b':
                 buf->writestring("\\b");
                 break;
@@ -144,318 +195,830 @@ void JsonString(OutBuffer *buf, const char *s)
                 break;
         }
     }
-    buf->writeByte('\"');
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, const char *value)
+
+// Json value functions
+
+/*********************************
+ * Encode string into buf, and wrap it in double quotes.
+ */
+void JsonOut::value(const char *s)
 {
-    JsonString(buf, name);
-    buf->writestring(" : ");
-    JsonString(buf, value);
-    buf->writestring(",\n");
+    stringStart();
+    stringPart(s);
+    stringEnd();
 }
 
-void JsonProperty(OutBuffer *buf, const char *name, int value)
+void JsonOut::value(int value)
 {
-    JsonString(buf, name);
-    buf->writestring(" : ");
     buf->printf("%d", value);
-    buf->writestring(",\n");
 }
 
-void JsonRemoveComma(OutBuffer *buf)
+void JsonOut::valueBool(bool value)
 {
+    buf->writestring(value? "true" : "false");
+}
+
+/*********************************
+ * Item is an intented value and a comma, for use in arrays
+ */
+void JsonOut::item(const char *s)
+{
+    indent();
+    value(s);
+    comma();
+}
+
+void JsonOut::item(int i)
+{
+    indent();
+    value(i);
+    comma();
+}
+
+void JsonOut::itemBool(bool b)
+{
+    indent();
+    valueBool(b);
+    comma();
+}
+
+
+// Json array functions
+
+void JsonOut::arrayStart()
+{
+    indent();
+    buf->writestring("[\n");
+    indentLevel++;
+}
+
+void JsonOut::arrayEnd()
+{
+    indentLevel--;
+    removeComma();
     if (buf->offset >= 2 &&
-        buf->data[buf->offset - 2] == ',' &&
+        buf->data[buf->offset - 2] == '[' &&
         buf->data[buf->offset - 1] == '\n')
-        buf->offset -= 2;
+        buf->offset -= 1;
+    else if (!(buf->offset >= 1 &&
+        buf->data[buf->offset - 1] == '['))
+    {
+        buf->writestring("\n");
+        indent();
+    }
+    buf->writestring("]");
+    comma();
 }
 
-void Dsymbol::toJsonBuffer(OutBuffer *buf)
-{
-}
 
-void Module::toJsonBuffer(OutBuffer *buf)
+// Json object functions
+
+void JsonOut::objectStart()
 {
+    indent();
     buf->writestring("{\n");
+    indentLevel++;
+}
 
-    if (md)
-        JsonProperty(buf, Pname, md->toChars());
+void JsonOut::objectEnd()
+{
+    indentLevel--;
+    removeComma();
+    if (buf->offset >= 2 &&
+        buf->data[buf->offset - 2] == '{' &&
+        buf->data[buf->offset - 1] == '\n')
+        buf->offset -= 1;
+    else
+    {
+        buf->writestring("\n");
+        indent();
+    }
+    buf->writestring("}");
+    comma();
+}
 
-    JsonProperty(buf, Pkind, kind());
 
-    JsonProperty(buf, Pfile, srcfile->toChars());
 
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
+// Json object property functions
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
+void JsonOut::propertyStart(const char *name)
+{
+    indent();
+    value(name);
+    buf->writestring(" : ");
+}
 
-    size_t offset = buf->offset;
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
+void JsonOut::property(const char *name, const char *s)
+{
+    if (s == NULL) return;
+    
+    propertyStart(name);
+    value(s);
+    comma();
+}
+
+void JsonOut::property(const char *name, int i)
+{
+    propertyStart(name);
+    value(i);
+    comma();
+}
+
+void JsonOut::propertyBool(const char *name, bool b)
+{
+    propertyStart(name);
+    valueBool(b);
+    comma();
+}
+
+
+void JsonOut::property(const char *name, enum TRUST trust)
+{
+    switch (trust)
+    {
+        case TRUSTdefault:
+            // Should not be printed
+            //property(name, "default");
+            break;
+        case TRUSTsystem:
+            property(name, "system");
+            break;
+        case TRUSTtrusted:
+            property(name, "trusted");
+            break;
+        case TRUSTsafe:
+            property(name, "safe");
+            break;
+        default:
+            assert(false);
+    }
+}
+
+void JsonOut::property(const char *name, enum PURE purity)
+{
+    switch (purity)
+    {
+        case PUREimpure:
+            // Should not be printed
+            //property(name, "impure");
+            break;
+        case PUREweak:
+            property(name, "weak");
+            break;
+        case PUREconst:
+            property(name, "const");
+            break;
+        case PUREstrong:
+            property(name, "strong");
+            break;
+        case PUREfwdref:
+            property(name, "fwdref");
+            break;
+        default:
+            assert(false);
+    }
+}
+
+void JsonOut::property(const char *name, enum LINK linkage)
+{
+    switch (linkage)
+    {
+        case LINKdefault:
+            // Should not be printed
+            //property(name, "default");
+            break;
+        case LINKd:
+            // Should not be printed
+            //property(name, "d");
+            break;
+        case LINKc:
+            property(name, "c");
+            break;
+        case LINKcpp:
+            property(name, "cpp");
+            break;
+        case LINKwindows:
+            property(name, "windows");
+            break;
+        case LINKpascal:
+            property(name, "pascal");
+            break;
+        default:
+            assert(false);
+    }
+}
+
+void JsonOut::propertyStorageClass(const char *name, StorageClass stc)
+{
+    propertyStart(name);
+    arrayStart();
+
+    for (int i = 0; i < SCtable_len; i++)
+    {
+        if (stc & SCtable[i].stc)
+        {
+            enum TOK tok = SCtable[i].tok;
+#if DMDV2
+            if (tok == TOKat)
+            {
+                indent();
+                stringStart();
+                buf->writeByte('@');
+                buf->writestring(SCtable[i].id);
+                stringEnd();
+                comma();
+            }
+            else
+#endif
+                item(Token::toChars(tok));
         }
-        s->toJsonBuffer(buf);
     }
 
-    JsonRemoveComma(buf);
-    buf->writestring("]\n");
-
-    buf->writestring("}\n");
+    arrayEnd();
 }
 
-void AttribDeclaration::toJsonBuffer(OutBuffer *buf)
+void JsonOut::property(const char *name, Loc *loc)
 {
-    //printf("AttribDeclaration::toJsonBuffer()\n");
+    if (loc == NULL) return;
+    
+    if (loc->filename || loc->linnum)
+    {
+        propertyStart(name);
+        objectStart();
 
+        if (loc->filename)
+            property("file", loc->filename);
+
+        if (loc->linnum)
+            property("line", loc->linnum);
+
+        objectEnd();
+    }
+}
+
+void JsonOut::property(const char *name, Type *type)
+{
+    if (type == NULL) return;
+
+    propertyStart(name);
+    objectStart();
+
+    property("kind", type->kind());
+
+    property("pretty", type->toChars());
+
+    if (type->mod)
+    {
+        propertyStart("modifiers");
+        stringStart();
+        type->modToBuffer(buf);
+        stringEnd();
+        comma();
+    }
+
+    type->toJson(this);
+
+    objectEnd();
+}
+
+void JsonOut::property(const char *name, Parameters *parameters)
+{
+    if (parameters == NULL) return;
+    
+    propertyStart(name);
+    arrayStart();
+
+    if (parameters)
+        for (size_t i = 0; i < parameters->dim; i++)
+        {   Parameter *p = (*parameters)[i];
+            objectStart();
+
+            if (p->ident)
+                property("name", p->ident->toChars());
+
+            property("type", p->type);
+
+            propertyStorageClass("storageClass", p->storageClass);
+            
+            if (p->defaultArg)
+                property("default", p->defaultArg->toChars());
+
+
+            objectEnd();
+        }
+
+    arrayEnd();
+}
+
+
+void Type::toJson(JsonOut *json)
+{
+}
+
+void TypeSArray::toJson(JsonOut *json)
+{
+    json->property("elementType", next);
+    json->property("dim", dim->toChars());
+}
+
+void TypeDArray::toJson(JsonOut *json)
+{
+    json->property("elementType", next);
+}
+
+void TypeAArray::toJson(JsonOut *json)
+{
+    json->property("elementType", next);
+    json->property("index", index);
+}
+
+void TypePointer::toJson(JsonOut *json)
+{
+    json->property("targetType", next);
+}
+
+void TypeReference::toJson(JsonOut *json)
+{
+    json->property("targetType", next);
+}
+
+void TypeFunction::toJson(JsonOut *json)
+{
+    json->propertyStart("attributes");
+    json->arrayStart();
+    if (purity) json->item("pure");
+    if (isnothrow) json->item("nothrow");
+    if (isproperty) json->item("@property");
+    if (isref) json->item("ref");
+    json->arrayEnd();
+
+    json->property("trust", trust);
+    json->property("purity", purity);
+    json->property("linkage", linkage);
+        
+    json->property("returnType", next);
+    json->property("parameters", parameters);
+}
+
+void TypeDelegate::toJson(JsonOut *json)
+{
+    next->toJson(json); // next is TypeFunction
+}
+
+void TypeQualified::toJson(JsonOut *json) // ident.ident.ident.etc
+{
+    json->propertyStart("idents");
+    json->arrayStart();
+
+    for (size_t i = 0; i < idents.dim; i++)
+    {   Identifier *ident = idents[i];
+        json->item(ident->toChars());
+    }
+
+    json->arrayEnd();
+}
+
+void TypeIdentifier::toJson(JsonOut *json)
+{
+    TypeQualified::toJson(json);
+    json->property("rawIdentifier", ident->toChars());
+    json->property("identifier", ident->toHChars2());
+}
+
+void TypeInstance::toJson(JsonOut *json)
+{
+    TypeQualified::toJson(json);
+    json->property("tempinst", tempinst->toChars());
+}
+
+void TypeTypeof::toJson(JsonOut *json)
+{
+    TypeQualified::toJson(json);
+    json->property("exp", exp->toChars());
+    json->property("type", exp->type);
+}
+
+void TypeReturn::toJson(JsonOut *json)
+{
+    TypeQualified::toJson(json);
+}
+
+void TypeStruct::toJson(JsonOut *json)
+{
+    json->propertyStorageClass("storageClass", sym->storage_class);
+}
+
+void TypeEnum::toJson(JsonOut *json)
+{
+    sym->jsonProperties(json);
+}
+
+void TypeTypedef::toJson(JsonOut *json)
+{
+    sym->jsonProperties(json);
+}
+
+void TypeClass::toJson(JsonOut *json)
+{
+    json->propertyStorageClass("storageClass", sym->storage_class);
+}
+
+void TypeTuple::toJson(JsonOut *json)
+{
+    json->property("arguments", arguments);
+}
+
+void TypeSlice::toJson(JsonOut *json)
+{
+    json->property("lower", lwr->toChars());
+    json->property("upper", upr->toChars());
+}
+
+void TypeNull::toJson(JsonOut *json) { }
+
+void TypeVector::toJson(JsonOut *json)
+{
+    json->property("basetype", basetype);
+}
+
+void Dsymbol::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
+
+    json->objectEnd();
+}
+
+void Dsymbol::jsonProperties(JsonOut *json)
+{
+    json->property("name", toChars());
+    if (!isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
+        json->property("kind", kind());
+
+    json->property("protection", Pprotectionnames[prot()]);
+
+    json->property("comment", (const char *)comment);
+
+    json->property("loc", &loc);
+
+    if (!isModule())
+    {
+        Module *module = getModule();
+        if (module)
+        {
+            json->propertyStart("module");
+            json->objectStart();
+            module->jsonProperties(json);
+            json->objectEnd();
+        }
+
+        Module *accessModule = getAccessModule();
+        if (accessModule && accessModule != module)
+        {
+            json->propertyStart("accessModule");
+            json->objectStart();
+            accessModule->jsonProperties(json);
+            json->objectEnd();
+        }
+    }
+}
+
+void Module::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
+
+    json->property("file", srcfile->toChars());
+
+    json->property("comment", (const char *)comment);
+
+    json->propertyStart("members");
+    json->arrayStart();
+    for (size_t i = 0; i < members->dim; i++)
+    {   Dsymbol *s = (*members)[i];
+        s->toJson(json);
+    }
+    json->arrayEnd();
+
+    json->objectEnd();
+}
+
+void Module::jsonProperties(JsonOut *json)
+{
+    Dsymbol::jsonProperties(json);
+
+    if (md && md->packages)
+    {
+        json->propertyStart("package");
+        json->arrayStart();
+        for (size_t i = 0; i < md->packages->dim; i++)
+        {   Identifier *pid = (*md->packages)[i];
+            json->item(pid->toChars());
+        }
+        json->arrayEnd();
+    }
+
+    json->property("prettyName", toPrettyChars());
+}
+
+void AttribDeclaration::toJson(JsonOut *json)
+{
     Dsymbols *d = include(NULL, NULL);
 
     if (d)
     {
-        size_t offset = buf->offset;
         for (unsigned i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
-            //printf("AttribDeclaration::toJsonBuffer %s\n", s->toChars());
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
-            s->toJsonBuffer(buf);
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
     }
 }
 
 
-void ConditionalDeclaration::toJsonBuffer(OutBuffer *buf)
+void ConditionalDeclaration::toJson(JsonOut *json)
 {
-    //printf("ConditionalDeclaration::toJsonBuffer()\n");
     if (condition->inc)
     {
-        AttribDeclaration::toJsonBuffer(buf);
+        AttribDeclaration::toJson(json);
     }
 }
 
 
-void InvariantDeclaration::toJsonBuffer(OutBuffer *buf)  { }
-void DtorDeclaration::toJsonBuffer(OutBuffer *buf)       { }
-void StaticCtorDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void StaticDtorDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void ClassInfoDeclaration::toJsonBuffer(OutBuffer *buf)  { }
-void ModuleInfoDeclaration::toJsonBuffer(OutBuffer *buf) { }
-void TypeInfoDeclaration::toJsonBuffer(OutBuffer *buf)   { }
-void UnitTestDeclaration::toJsonBuffer(OutBuffer *buf)   { }
+void ClassInfoDeclaration::toJson(JsonOut *json)  { }
+void ModuleInfoDeclaration::toJson(JsonOut *json) { }
+void TypeInfoDeclaration::toJson(JsonOut *json)   { }
 #if DMDV2
-void PostBlitDeclaration::toJsonBuffer(OutBuffer *buf)   { }
+void PostBlitDeclaration::toJson(JsonOut *json)   { }
 #endif
 
-void Declaration::toJsonBuffer(OutBuffer *buf)
+
+void Declaration::toJson(JsonOut *json)
 {
-    //printf("Declaration::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    json->objectStart();
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    //json->property("unknown", "declaration");
 
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
-
-    if (type)
-        JsonProperty(buf, Ptype, type->toChars());
-
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
-
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+    jsonProperties(json);
 
     TypedefDeclaration *td = isTypedefDeclaration();
     if (td)
     {
-        JsonProperty(buf, "base", td->basetype->toChars());
+        json->property("base", td->basetype);
     }
 
-    JsonRemoveComma(buf);
-    buf->writestring("}\n");
+    json->objectEnd();
 }
 
-void AggregateDeclaration::toJsonBuffer(OutBuffer *buf)
+void Declaration::jsonProperties(JsonOut *json)
 {
-    //printf("AggregateDeclaration::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    Dsymbol::jsonProperties(json);
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    json->propertyStorageClass("storageClass", storage_class);
 
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+    json->property("type", type);
 
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
+    if (type != originalType)
+        json->property("originalType", originalType);
+}
 
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+void AggregateDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
 
     ClassDeclaration *cd = isClassDeclaration();
     if (cd)
     {
         if (cd->baseClass)
         {
-            JsonProperty(buf, "base", cd->baseClass->toChars());
+            json->property("base", cd->baseClass->toChars());
         }
         if (cd->interfaces_dim)
         {
-            JsonString(buf, "interfaces");
-            buf->writestring(" : [\n");
-            size_t offset = buf->offset;
+            json->propertyStart("interfaces");
+            json->arrayStart();
             for (size_t i = 0; i < cd->interfaces_dim; i++)
             {   BaseClass *b = cd->interfaces[i];
-                if (offset != buf->offset)
-                {   buf->writestring(",\n");
-                    offset = buf->offset;
-                }
-                JsonString(buf, b->base->toChars());
+                json->item(b->base->toChars());
             }
-            JsonRemoveComma(buf);
-            buf->writestring("],\n");
+            json->arrayEnd();
         }
     }
 
     if (members)
     {
-        JsonString(buf, Pmembers);
-        buf->writestring(" : [\n");
-        size_t offset = buf->offset;
+        json->propertyStart("members");
+        json->arrayStart();
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
-            s->toJsonBuffer(buf);
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
-        buf->writestring("]\n");
+        json->arrayEnd();
     }
-    JsonRemoveComma(buf);
 
-    buf->writestring("}\n");
+    json->objectEnd();
 }
 
-void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
+void FuncDeclaration::toJson(JsonOut *json)
 {
-    //printf("TemplateDeclaration::toJsonBuffer()\n");
+    json->objectStart();
 
-    buf->writestring("{\n");
+    jsonProperties(json);
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    if (parameters)
+    {
+        json->propertyStart("parameters");
+        json->arrayStart();
+        for (size_t i = 0; i < parameters->dim; i++)
+        {   VarDeclaration *v = (*parameters)[i];
+            v->toJson(json);
+        }
+        json->arrayEnd();
+    }
 
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+    json->property("endloc", &endloc);
 
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
 
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+    json->propertyStart("overrides");
+    json->arrayStart();
+    for (size_t i = 0; i < foverrides.dim; i++)
+    {   FuncDeclaration *fd = foverrides[i];
+        json->objectStart();
+        fd->jsonProperties(json);
+        json->objectEnd();
+    }
+    json->arrayEnd();
 
-    JsonString(buf, Pmembers);
-    buf->writestring(" : [\n");
-    size_t offset = buf->offset;
+
+    if (fdrequire)
+    {
+        json->propertyStart("in");
+        fdrequire->toJson(json);
+    }
+
+    if (fdensure)
+    {
+        json->propertyStart("out");
+        fdensure->toJson(json);
+    }
+
+    json->objectEnd();
+}
+
+void TemplateDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    // TemplateDeclaration::kind returns the kind of its Aggregate onemember, if it is one
+    json->property("kind", "template");
+
+    jsonProperties(json);
+
+    json->propertyStart("parameters");
+    json->arrayStart();
+    for (size_t i = 0; i < parameters->dim; i++)
+    {   TemplateParameter *s = (*parameters)[i];
+        json->objectStart();
+
+        json->property("name", s->ident->toChars());
+
+        TemplateTypeParameter *type = s->isTemplateTypeParameter();
+        if (type)
+        {
+#if DMDV2
+            if (s->isTemplateThisParameter())
+                json->property("kind", "this");
+            else
+#endif
+                json->property("kind", "type");
+
+            if (type->specType)
+                json->property("specType", type->specType->toChars());
+            
+            if (type->defaultType)
+                json->property("defaultType", type->defaultType->toChars());
+        }
+
+        TemplateValueParameter *value = s->isTemplateValueParameter();
+        if (value)
+        {
+            json->property("kind", "value");
+
+            if (value->valType)
+                json->property("valType", value->valType->toChars());
+            
+            if (value->specValue)
+                json->property("specValue", value->specValue->toChars());
+            
+            if (value->defaultValue)
+                json->property("defaultValue", value->defaultValue->toChars());
+        }
+
+        TemplateAliasParameter *alias = s->isTemplateAliasParameter();
+        if (alias)
+        {
+            json->property("kind", "alias");
+
+            if (alias->specType)
+                json->property("specType", alias->specType->toChars());
+            
+            if (alias->specAlias)
+                json->property("specAlias", alias->specAlias->toChars());
+            
+            if (alias->defaultAlias)
+                json->property("defaultAlias", alias->defaultAlias->toChars());
+        }
+
+        TemplateTupleParameter *tuple = s->isTemplateTupleParameter();
+        if (tuple)
+        {
+            json->property("kind", "tuple");
+        }
+
+        json->objectEnd();
+    }
+    json->arrayEnd();
+
+    json->propertyStart("members");
+    json->arrayStart();
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
-        if (offset != buf->offset)
-        {   buf->writestring(",\n");
-            offset = buf->offset;
-        }
-        s->toJsonBuffer(buf);
+        s->toJson(json);
     }
-    JsonRemoveComma(buf);
-    buf->writestring("]\n");
+    json->arrayEnd();
 
-    buf->writestring("}\n");
+    json->objectEnd();
 }
 
-void EnumDeclaration::toJsonBuffer(OutBuffer *buf)
+void EnumDeclaration::toJson(JsonOut *json)
 {
-    //printf("EnumDeclaration::toJsonBuffer()\n");
     if (isAnonymous())
     {
         if (members)
         {
             for (size_t i = 0; i < members->dim; i++)
-            {
-                Dsymbol *s = (*members)[i];
-                s->toJsonBuffer(buf);
-                buf->writestring(",\n");
+            {   Dsymbol *s = (*members)[i];
+                s->toJson(json);
             }
-            JsonRemoveComma(buf);
         }
         return;
     }
 
-    buf->writestring("{\n");
+    json->objectStart();
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    jsonProperties(json);
 
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
-
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
-
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+    json->property("type", type);
 
     if (memtype)
-        JsonProperty(buf, "base", memtype->toChars());
+        json->property("base", memtype);
 
     if (members)
     {
-        JsonString(buf, Pmembers);
-        buf->writestring(" : [\n");
-        size_t offset = buf->offset;
+        json->propertyStart("members");
+        json->arrayStart();
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
-            if (offset != buf->offset)
-            {   buf->writestring(",\n");
-                offset = buf->offset;
-            }
-            s->toJsonBuffer(buf);
+            s->toJson(json);
         }
-        JsonRemoveComma(buf);
-        buf->writestring("]\n");
+        json->arrayEnd();
     }
-    JsonRemoveComma(buf);
 
-    buf->writestring("}\n");
+    json->objectEnd();
 }
 
-void EnumMember::toJsonBuffer(OutBuffer *buf)
+void EnumMember::toJson(JsonOut *json)
 {
-    //printf("EnumMember::toJsonBuffer()\n");
-    buf->writestring("{\n");
+    json->objectStart();
 
-    JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    jsonProperties(json);
 
-    if (prot())
-        JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
+    json->property("type", type);
 
-    if (comment)
-        JsonProperty(buf, Pcomment, (const char *)comment);
+    json->objectEnd();
+}
 
-    if (loc.linnum)
-        JsonProperty(buf, Pline, loc.linnum);
+void VarDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
 
-    JsonRemoveComma(buf);
-    buf->writestring("}\n");
+    jsonProperties(json);
+
+    if (init)
+        json->property("init", init->toChars());
+
+    if (storage_class & STCfield)
+        json->property("offset", offset);
+    
+    if (alignment != STRUCTALIGN_DEFAULT)
+        json->property("alignment", alignment);
+
+    json->objectEnd();
 }
 
 

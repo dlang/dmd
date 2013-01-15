@@ -32,6 +32,7 @@ struct StructDeclaration;
 struct TupleType;
 struct InterState;
 struct IRState;
+struct JsonOut;
 
 enum PROT;
 enum LINK;
@@ -140,7 +141,8 @@ struct Declaration : Dsymbol
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    virtual void toJson(JsonOut *json);
+    virtual void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     char *mangle();
@@ -289,6 +291,7 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
@@ -343,7 +346,7 @@ struct ClassInfoDeclaration : VarDeclaration
     void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
 };
@@ -357,7 +360,7 @@ struct ModuleInfoDeclaration : VarDeclaration
     void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
 };
@@ -371,7 +374,7 @@ struct TypeInfoDeclaration : VarDeclaration
     void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -640,6 +643,7 @@ struct FuncDeclaration : Declaration
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
@@ -773,7 +777,7 @@ struct PostBlitDeclaration : FuncDeclaration
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
 };
@@ -793,7 +797,6 @@ struct DtorDeclaration : FuncDeclaration
     int addPostInvariant();
     int overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
 
     DtorDeclaration *isDtorDeclaration() { return this; }
 };
@@ -810,7 +813,6 @@ struct StaticCtorDeclaration : FuncDeclaration
     int addPostInvariant();
     bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticCtorDeclaration *isStaticCtorDeclaration() { return this; }
@@ -840,7 +842,6 @@ struct StaticDtorDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     StaticDtorDeclaration *isStaticDtorDeclaration() { return this; }
@@ -866,7 +867,6 @@ struct InvariantDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     InvariantDeclaration *isInvariantDeclaration() { return this; }
@@ -882,7 +882,6 @@ struct UnitTestDeclaration : FuncDeclaration
     int addPreInvariant();
     int addPostInvariant();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
 
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };

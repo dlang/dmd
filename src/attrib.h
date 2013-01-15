@@ -16,6 +16,7 @@
 #endif /* __DMC__ */
 
 #include "dsymbol.h"
+#include "lexer.h"
 
 struct Expression;
 struct Statement;
@@ -24,6 +25,7 @@ struct Initializer;
 struct Module;
 struct Condition;
 struct HdrGenState;
+struct JsonOut;
 
 /**************************************************************/
 
@@ -55,11 +57,22 @@ struct AttribDeclaration : Dsymbol
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
 };
+
+
+struct SCstring
+{
+    StorageClass stc;
+    enum TOK tok;
+    const char *id;
+};
+
+extern const SCstring SCtable[];
+extern size_t SCtable_len;
 
 struct StorageClassDeclaration : AttribDeclaration
 {
@@ -72,6 +85,7 @@ struct StorageClassDeclaration : AttribDeclaration
     int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    static void initialize();
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 
@@ -163,7 +177,7 @@ struct ConditionalDeclaration : AttribDeclaration
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
 };
