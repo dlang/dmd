@@ -23,6 +23,8 @@ struct HdrGenState
     int inBinExp;
     int inArrExp;
     int emitInst;
+    int autoMember;
+
     struct
     {
         int init;
@@ -32,5 +34,3 @@ struct HdrGenState
 
     HdrGenState() { memset(this, 0, sizeof(HdrGenState)); }
 };
-
-

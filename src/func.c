@@ -1707,7 +1707,22 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
-    bodyToCBuffer(buf, hgs);
+    if(hgs->hdrgen == 1)
+    {
+        if(storage_class & STCauto)
+        {
+            hgs->autoMember++;
+            bodyToCBuffer(buf, hgs);
+            hgs->autoMember--;
+        }
+        else if(hgs->tpltMember == 0 && global.params.useInline == 0)
+            buf->writestring(";");
+        else
+            bodyToCBuffer(buf, hgs);
+    }
+    else
+        bodyToCBuffer(buf, hgs);
+    buf->writenl();
 }
 
 VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
@@ -1802,21 +1817,27 @@ int FuncDeclaration::equals(Object *o)
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    if (fbody &&
-        (!hgs->hdrgen || hgs->tpltMember || canInline(1,1,1))
-       )
-    {   buf->writenl();
+    if (fbody && (!hgs->hdrgen || global.params.useInline || hgs->autoMember || hgs->tpltMember))
+    {
+        int savetlpt = hgs->tpltMember;
+        int saveauto = hgs->autoMember;
+        hgs->tpltMember = 0;
+        hgs->autoMember = 0;
+
+        buf->writenl();
 
         // in{}
         if (frequire)
-        {   buf->writestring("in");
+        {
+            buf->writestring("in");
             buf->writenl();
             frequire->toCBuffer(buf, hgs);
         }
 
         // out{}
         if (fensure)
-        {   buf->writestring("out");
+        {
+            buf->writestring("out");
             if (outId)
             {   buf->writebyte('(');
                 buf->writestring(outId->toChars());
@@ -1827,7 +1848,8 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
 
         if (frequire || fensure)
-        {   buf->writestring("body");
+        {
+            buf->writestring("body");
             buf->writenl();
         }
 
@@ -1838,6 +1860,9 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         buf->level--;
         buf->writebyte('}');
         buf->writenl();
+
+        hgs->tpltMember = savetlpt;
+        hgs->autoMember = saveauto;
     }
     else
     {   buf->writeByte(';');
@@ -3462,7 +3487,11 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         ret->exp->toCBuffer(buf, hgs);
     }
     else
+    {
+        hgs->tpltMember++;
         bodyToCBuffer(buf, hgs);
+        hgs->tpltMember--;
+    }
 }
 
 
@@ -3860,7 +3889,8 @@ int StaticCtorDeclaration::addPostInvariant()
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (hgs->hdrgen && !hgs->tpltMember)
-    {   buf->writestring("static this();");
+    {   
+        buf->writestring("static this();");
         buf->writenl();
         return;
     }
