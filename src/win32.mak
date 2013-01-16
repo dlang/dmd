@@ -314,6 +314,8 @@ clean:
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) impcnvtab.c
+	$(DEL) id.h id.c
+	$(DEL) verstr.h
 	cd $(CPPUNIT)\src\cppunit
 	$(MAKE) clean
 

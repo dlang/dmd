@@ -183,7 +183,7 @@ dmd: $(DMD_OBJS)
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c core \
+	tytab.c vergen verstr.h core \
 	*.cov *.gcda *.gcno
 
 ######## optabgen generates some source
