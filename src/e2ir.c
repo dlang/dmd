@@ -81,6 +81,22 @@ bool ISWIN64REF(Declaration *var)
 #endif
 }
 
+/******************************************
+ * If argument to a function should use OPstrpar,
+ * fix it so it does and return it.
+ */
+elem *useOPstrpar(elem *e)
+{
+    tym_t ty = tybasic(e->Ety);
+    if (ty == TYstruct || ty == TYarray)
+    {
+        e = el_una(OPstrpar, TYstruct, e);
+        e->ET = e->E1->ET;
+        assert(e->ET);
+    }
+    return e;
+}
+
 /************************************
  * Call a function.
  */
@@ -182,12 +198,7 @@ elem *callfunc(Loc loc,
                 ea->Ety = TYllong;
             }
         L1:
-            if (tybasic(ea->Ety) == TYstruct || tybasic(ea->Ety) == TYarray)
-            {
-                ea = el_una(OPstrpar, TYstruct, ea);
-                ea->ET = ea->E1->ET;
-                assert(ea->ET);
-            }
+            ea = useOPstrpar(ea);
             if (reverse)
                 ep = el_param(ep,ea);
             else
@@ -739,11 +750,7 @@ Lagain:
         evalue = addressElem(evalue, tb);
     }
 
-    if (tybasic(evalue->Ety) == TYstruct || tybasic(evalue->Ety) == TYarray)
-    {
-        evalue = el_una(OPstrpar, TYstruct, evalue);
-        evalue->ET = evalue->E1->ET;
-    }
+    evalue = useOPstrpar(evalue);
 
     // Be careful about parameter side effect ordering
     if (r == RTLSYM_MEMSET8)
@@ -3100,11 +3107,8 @@ elem *CatAssignExp::toElem(IRState *irs)
             e1 = el_una(OPaddr, TYnptr, e1);
             if (config.exe == EX_WIN64)
                 e2 = addressElem(e2, tb2);
-            else if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
-            {
-                e2 = el_una(OPstrpar, TYstruct, e2);
-                e2->ET = e2->E1->ET;
-            }
+            else
+                e2 = useOPstrpar(e2);
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
         }
@@ -3185,11 +3189,7 @@ elem *CatAssignExp::toElem(IRState *irs)
         else
         {   // Append element
             e1 = el_una(OPaddr, TYnptr, e1);
-            if (tybasic(e2->Ety) == TYstruct || tybasic(e2->Ety) == TYarray)
-            {
-                e2 = el_una(OPstrpar, TYstruct, e2);
-                e2->ET = e2->E1->ET;
-            }
+            e2 = useOPstrpar(e2);
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCT]), ep);
             e->Eflags |= EFLAGS_variadic;

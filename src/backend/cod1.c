@@ -3507,9 +3507,24 @@ code *params(elem *e,unsigned stackalign)
                     break;
                 if (I32)
                 {
-                    assert(sz == REGSIZE * 2);
-                    ce = loadea(e,&cs,0xFF,6,REGSIZE,0,0); /* PUSH EA+4 */
+                    assert(sz >= REGSIZE * 2);
+                    ce = loadea(e,&cs,0xFF,6,sz - REGSIZE,0,0); /* PUSH EA+4 */
                     ce = genadjesp(ce,REGSIZE);
+                    stackpush += REGSIZE;
+                    sz -= REGSIZE;
+
+                    if (sz > REGSIZE)
+                    {
+                        while (sz)
+                        {
+                            cs.IEVoffset1 -= REGSIZE;
+                            ce = gen(ce,&cs);                    // PUSH EA+...
+                            ce = genadjesp(ce,REGSIZE);
+                            stackpush += REGSIZE;
+                            sz -= REGSIZE;
+                        }
+                        goto L2;
+                    }
                 }
                 else
                 {
