@@ -43,6 +43,16 @@ void pointerarithmetic()
     static assert(!__traits(compiles, a--)); 
     static assert(!__traits(compiles, ++a)); 
     static assert(!__traits(compiles, --a)); 
+    static assert( __traits(compiles, a + 0));
+    static assert( __traits(compiles, a - 0));
+    static assert( __traits(compiles, 0 + a));
+    static assert(!__traits(compiles, a + 1));
+    static assert(!__traits(compiles, a - 1));
+    static assert(!__traits(compiles, 1 + a));
+    static assert( __traits(compiles, a += 0));
+    static assert( __traits(compiles, a -= 0));
+    static assert(!__traits(compiles, a += 1));
+    static assert(!__traits(compiles, a -= 1));
 } 
  
  
