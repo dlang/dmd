@@ -894,7 +894,8 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->level++;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s;
+    {
+        Statement *s;
 
         s = (*statements)[i];
         if (s)
@@ -2807,7 +2808,8 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (arg->type)
             arg->type->toCBuffer(buf, arg->ident, hgs);
         else
-        {   buf->writestring("auto ");
+        {   
+            buf->writestring("auto ");
             buf->writestring(arg->ident->toChars());
         }
         buf->writestring(" = ");
@@ -2821,7 +2823,8 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (!ifbody->isScopeStatement())
         buf->level--;
     if (elsebody)
-    {   buf->writestring("else");
+    {  
+        buf->writestring("else");
         buf->writenl();
         if (!elsebody->isScopeStatement())
             buf->level++;
@@ -3333,7 +3336,8 @@ void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (body)
     {
         if (!body->isScopeStatement())
-        {   buf->writebyte('{');
+        {   
+            buf->writebyte('{');
             buf->writenl();
             buf->level++;
             body->toCBuffer(buf, hgs);
@@ -5344,6 +5348,7 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("asm { ");
     Token *t = tokens;
+    buf->level++;
     while (t)
     {
         buf->writestring(t->toChars());
@@ -5364,6 +5369,7 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
         t = t->next;
     }
+    buf->level--;
     buf->writestring("; }");
     buf->writenl();
 }
