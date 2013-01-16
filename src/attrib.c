@@ -900,7 +900,9 @@ void AnonDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset
 void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->printf(isunion ? "union" : "struct");
-    buf->writestring("\n{\n");
+    buf->writenl();
+    buf->writestring("{");
+    buf->writenl();
     buf->level++;
     if (decl)
     {
@@ -911,7 +913,8 @@ void AnonDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
     }
     buf->level--;
-    buf->writestring("}\n");
+    buf->writestring("}");
+    buf->writenl();
 }
 
 const char *AnonDeclaration::kind()
