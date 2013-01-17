@@ -3070,6 +3070,7 @@ void Obj::moduleinfo(Symbol *scc)
 
 static void obj_rtinit()
 {
+#if TX86
     // create brackets for .deh_eh and .minfo sections
     IDXSYM deh_beg, deh_end, minfo_beg, minfo_end, dso_rec;
     IDXSTR namidx;
@@ -3348,6 +3349,9 @@ static void obj_rtinit()
     p->sh_info    = dso_rec; // set the dso_rec as group symbol
     p->sh_entsize = sizeof(IDXSYM);
     p->sh_size    = Offset(groupseg);
+#else
+    assert(0);
+#endif
 }
 
 #endif // MARS
