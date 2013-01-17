@@ -203,7 +203,7 @@ struct Runtime
      * Gets the current trace handler.
      *
      * Returns:
-     *  The current trace handler or null if no trace handler is set.
+     *  The current trace handler or null if none has been set.
      */
     static @property TraceHandler traceHandler()
     {
@@ -231,7 +231,7 @@ struct Runtime
      * Gets the current collect handler.
      *
      * Returns:
-     *  The current collect handler or null if no trace handler is set.
+     *  The current collect handler or null if none has been set.
      */
     static @property CollectHandler collectHandler()
     {
@@ -258,8 +258,7 @@ struct Runtime
      * Gets the current module unit tester.
      *
      * Returns:
-     *  The current module unit tester handler or null if no trace handler is
-     *  set.
+     *  The current module unit tester handler or null if none has been set.
      */
     static @property ModuleUnitTester moduleUnitTester()
     {
