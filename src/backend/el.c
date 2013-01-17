@@ -1756,7 +1756,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset)
  *      0       elem evaluates left-to-right
  */
 
-HINT ERTOL(elem *e)
+int ERTOL(elem *e)
 {
     elem_debug(e);
     assert(!PARSER);

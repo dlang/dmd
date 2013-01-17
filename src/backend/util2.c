@@ -6,7 +6,7 @@
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -136,7 +136,7 @@ void util_progress(int linnum)
 
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun&&__SVR4 || _MSC_VER
+#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun || _MSC_VER
 void util_progress()
 {
 }

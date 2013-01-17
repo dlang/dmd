@@ -27,7 +27,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-STATIC elem * optelem(elem *,HINT);
+STATIC elem * optelem(elem *,int);
 STATIC elem * elarray(elem *e);
 STATIC elem * eldiv(elem *);
 
@@ -4415,7 +4415,7 @@ STATIC elem * elparam(elem *e)
  *      we care about the result.
  */
 
-STATIC elem * optelem(elem *e,HINT goal)
+STATIC elem * optelem(elem *e,int goal)
 { elem *e1,*e2;
   unsigned op;
 #include "elxxx.c"                      /* jump table                   */
@@ -4455,8 +4455,8 @@ beg:
         }
     }
     else if (OTbinary(op))              // if binary operator
-    {   HINT leftgoal = 1;
-        HINT rightgoal;
+    {   int leftgoal = 1;
+        int rightgoal;
 
         /* Determine goals for left and right subtrees  */
         rightgoal = (goal || OTsideff(op));
@@ -4813,7 +4813,7 @@ L1:
  *      e1 op v                 e1 op &v
  */
 
-elem *doptelem(elem *e,HINT goal)
+elem *doptelem(elem *e,int goal)
 {
     //printf("doptelem(e = %p, goal = %d)\n", e, goal);
     cgelem_goal = goal;
