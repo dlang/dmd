@@ -3606,6 +3606,8 @@ STATIC elem * elbool(elem *e)
 
     if (OPTIMIZER)
     {
+        int shift;
+
         // Replace bool(x,1) with (x,1),1
         elem *e1 = elscancommas(e->E1);
         if (cnst(e1) || e1->Eoper == OPrelconst)
@@ -3614,11 +3616,14 @@ STATIC elem * elbool(elem *e)
             e->Eoper = OPcomma;
             e->E2 = el_int(e->Ety,i);
             e = optelem(e,TRUE);
+            return e;
         }
 
         // Replace bool(e & 1) with (unsigned char)(e & 1)
         else if (e->E1->Eoper == OPand && e->E1->E2->Eoper == OPconst && el_tolong(e->E1->E2) == 1)
-        {   unsigned sz = tysize(e->E1->Ety);
+        {
+        L1:
+            unsigned sz = tysize(e->E1->Ety);
             tym_t ty = e->Ety;
             switch (sz)
             {
@@ -3676,7 +3681,7 @@ STATIC elem * elbool(elem *e)
             e = optelem(e,TRUE);
         }
 
-        // replace bool((1<<c)&b) with -(b btst c)
+        // Replace bool((1<<c)&b) with -(b btst c)
         else if ((I32 || I64) &&
                  e->E1->Eoper == OPand &&
                  e->E1->E1->Eoper == OPshl &&
@@ -3694,6 +3699,17 @@ STATIC elem * elbool(elem *e)
             el_free(e);
             e = ex;
             return optelem(e,TRUE);
+        }
+
+        // Replace bool(a & c) when c is a power of 2 with ((a >> shift) & 1)
+        else if (e->E1->Eoper == OPand &&
+                 e->E1->E2->Eoper == OPconst &&
+                 (shift = ispow2(el_tolong(e->E1->E2))) != -1
+                )
+        {
+            e->E1->E1 = el_bin(OPshr,e->E1->E1->Ety,e->E1->E1,el_long(TYint, shift));
+            e->E1->E2->EV.Vullong = 1;
+            goto L1;
         }
     }
     return e;
