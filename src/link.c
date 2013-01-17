@@ -172,6 +172,8 @@ int runLINK()
     {
         OutBuffer cmdbuf;
 
+        cmdbuf.writestring("/NOLOGO ");
+
         for (size_t i = 0; i < global.params.objfiles->dim; i++)
         {
             if (i)
@@ -761,9 +763,16 @@ int executecmd(char *cmd, char *args, int useenv)
         }
     }
 
+#if _WIN32
+    // Normalize executable path separators, see Bugzilla 9330
+    for (char *p=cmd; *p; ++p)
+        if (*p == '/') *p = '\\';
+#endif
+
     status = executearg0(cmd,args);
 #if _WIN32
     if (status == -1)
+        // spawnlp returns intptr_t in some systems, not int
         status = spawnlp(0,cmd,cmd,args,NULL);
 #endif
 //    if (global.params.verbose)
@@ -803,6 +812,7 @@ int executearg0(char *cmd, char *args)
 
     //printf("spawning '%s'\n",file);
 #if _WIN32
+    // spawnlp returns intptr_t in some systems, not int
     return spawnl(0,file,file,args,NULL);
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     char *full;
@@ -866,6 +876,7 @@ int runProgram()
         ex = FileName::combine(".", ex);
     else
         ex = global.params.exefile;
+    // spawnlp returns intptr_t in some systems, not int
     return spawnv(0,ex,argv.tdata());
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
     pid_t childpid;
