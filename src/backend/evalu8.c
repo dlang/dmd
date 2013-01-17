@@ -106,7 +106,7 @@ extern void error(const char *filename, unsigned linnum, const char *format, ...
 #endif
 
 
-CEXTERN elem * evalu8(elem *);
+elem * evalu8(elem *, goal_t);
 
 /* When this !=0, we do constant folding on floating point constants
  * even if they raise overflow, underflow, invalid, etc. exceptions.
@@ -569,7 +569,7 @@ elem *poptelem(elem *e)
                 e->E2 = poptelem(e->E2);
             }
         eval:
-            e = evalu8(e);
+            e = evalu8(e, GOALvalue);
             break;
     }
 ret:
@@ -599,7 +599,7 @@ elem *selecte1(elem *e,type *t)
  * Return with the result.
  */
 
-elem * evalu8(elem *e)
+elem * evalu8(elem *e, goal_t goal)
 {   elem *e1,*e2;
     tym_t tym,tym2,uns;
     unsigned op;
