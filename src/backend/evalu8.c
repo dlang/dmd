@@ -148,7 +148,7 @@ FM1:    // We don't use fprem1 because for some inexplicable
  * Return boolean result of constant elem.
  */
 
-HINT boolres(elem *e)
+int boolres(elem *e)
 {   int b;
 
     //printf("boolres()\n");
@@ -289,7 +289,7 @@ HINT boolres(elem *e)
  * Return TRUE if expression will always evaluate to TRUE.
  */
 
-HINT iftrue(elem *e)
+int iftrue(elem *e)
 {
   while (1)
   {
@@ -314,7 +314,7 @@ HINT iftrue(elem *e)
  * Return TRUE if expression will always evaluate to FALSE.
  */
 
-HINT iffalse(elem *e)
+int iffalse(elem *e)
 {
         while (1)
         {       assert(e);

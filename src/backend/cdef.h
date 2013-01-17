@@ -320,8 +320,6 @@ typedef long double longdouble;
 // For Shared Code Base
 #define TARGET_INLINEFUNC_NAMES
 #define PASCAL pascal
-#define HINT int
-#define UHINT unsigned int
 #if _WINDLL
 #define dbg_printf dll_printf
 #else
