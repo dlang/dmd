@@ -442,7 +442,7 @@ char *sym_ident(SYMIDX si);
 #endif
 
 /* cgelem.c     */
-elem *doptelem(elem *,int);
+elem *doptelem(elem *, goal_t);
 void postoptelem(elem *);
 unsigned swaprel(unsigned);
 int elemisone(elem *);
