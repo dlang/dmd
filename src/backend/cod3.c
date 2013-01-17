@@ -1595,7 +1595,7 @@ int jmpopcode(elem *e)
         {
             return XP|JNE;
         }
-        return (op >= OPbt && op <= OPbts) ? JC : JNE;
+        return ((op >= OPbt && op <= OPbts) || op == OPbtst) ? JC : JNE;
   }
 
   if (e->E2->Eoper == OPconst)
