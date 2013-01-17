@@ -763,6 +763,12 @@ int executecmd(char *cmd, char *args, int useenv)
         }
     }
 
+#if _WIN32
+    // Normalize executable path separators, see Bugzilla 9330
+    for (char *p=cmd; *p; ++p)
+        if (*p == '/') *p = '\\';
+#endif
+
     status = executearg0(cmd,args);
 #if _WIN32
     if (status == -1)
