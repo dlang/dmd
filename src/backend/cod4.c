@@ -3273,6 +3273,8 @@ code *cdbtst(elem *e, regm_t *pretregs)
     int op;
     int mode;
 
+    //printf("cdbtst(e = %p, *pretregs = %s\n", e, regm_str(*pretregs));
+
     op = 0xA3;                          // BT EA,value
     mode = 4;
 
@@ -3293,7 +3295,7 @@ code *cdbtst(elem *e, regm_t *pretregs)
     }
     else
     {
-        retregs = allregs;
+        retregs = tysize[tybasic(e1->Ety)] == 1 ? BYTEREGS : allregs;
         c = codelem(e1, &retregs, FALSE);
         reg = findreg(retregs);
         cs.Irm = modregrm(3,0,reg & 7);
