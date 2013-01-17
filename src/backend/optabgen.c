@@ -666,7 +666,7 @@ void dotab()
   fclose(f);
 
   f = fopen("elxxx.c","w");
-  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *) = \n\t{\n");
+  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(f,"\t%s,\n",elxxx[i]);
   fprintf(f,"\t%s\n\t};\n",elxxx[i]);
