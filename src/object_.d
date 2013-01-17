@@ -2116,11 +2116,16 @@ private:
     {
         Slot *next;
         size_t hash;
-        Key key;
+        union {
+            Key key;
+            ubyte[_AlignedKeySize] _alignment; // to ensure Value is aligned to size_t
+        }
         Value value;
 
         // Stop creating built-in opAssign
         @disable void opAssign(Slot);
+
+        const _AlignedKeySize = (Key.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
     }
 
     struct Hashtable
