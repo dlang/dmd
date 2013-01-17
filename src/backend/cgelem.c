@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -27,15 +27,14 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 extern void error(const char *filename, unsigned linnum, const char *format, ...);
 
-STATIC elem * optelem(elem *,int);
+STATIC elem * optelem(elem *,goal_t);
 STATIC elem * elarray(elem *e);
 STATIC elem * eldiv(elem *);
 
 CEXTERN elem * evalu8(elem *);
 
-static int expgoal;
-static int again;
-static int cgelem_goal;
+static goal_t expgoal;
+static bool again;
 
 /*****************************
  */
@@ -2835,7 +2834,7 @@ STATIC elem * eleq(elem *e)
     tym_t tyl;
 
 #if SCPP
-    int wantres = expgoal;
+    goal_t wantres = expgoal;
 #endif
     e1 = e->E1;
 
@@ -3166,7 +3165,7 @@ STATIC elem * elopass(elem *e)
         return optelem(e,TRUE);
     }
 #if SCPP   // have bit fields to worry about?
-    int wantres = expgoal;
+    goal_t wantres = expgoal;
     if (e1->Eoper == OPbit)
     {
         op = opeqtoop(e->Eoper);
@@ -4415,7 +4414,7 @@ STATIC elem * elparam(elem *e)
  *      we care about the result.
  */
 
-STATIC elem * optelem(elem *e,int goal)
+STATIC elem * optelem(elem *e, goal_t goal)
 { elem *e1,*e2;
   unsigned op;
 #include "elxxx.c"                      /* jump table                   */
@@ -4427,7 +4426,7 @@ beg:
     if (controlc_saw)
         util_exit(EXIT_BREAK);
 #endif
-    //{ printf("xoptelem: %p ",e); WROP(e->Eoper); dbg_printf(" goal %d\n", goal); }
+    //{ printf("xoptelem: %p ",e); WROP(e->Eoper); dbg_printf(" goal x%x\n", goal); }
     assert(e);
     elem_debug(e);
     assert(e->Ecount == 0);             // no CSEs
@@ -4455,8 +4454,8 @@ beg:
         }
     }
     else if (OTbinary(op))              // if binary operator
-    {   int leftgoal = 1;
-        int rightgoal;
+    {   goal_t leftgoal = 1;
+        goal_t rightgoal;
 
         /* Determine goals for left and right subtrees  */
         rightgoal = (goal || OTsideff(op));
@@ -4813,10 +4812,9 @@ L1:
  *      e1 op v                 e1 op &v
  */
 
-elem *doptelem(elem *e,int goal)
+elem *doptelem(elem *e, goal_t goal)
 {
     //printf("doptelem(e = %p, goal = %d)\n", e, goal);
-    cgelem_goal = goal;
 
     assert(!PARSER);
     do

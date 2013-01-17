@@ -89,7 +89,7 @@ block *block_calloc()
 //////////////////////////////////
 //
 
-unsigned bc_goal[BCMAX];
+goal_t bc_goal[BCMAX];
 
 void block_init()
 {   int i;
