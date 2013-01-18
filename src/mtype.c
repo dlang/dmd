@@ -6489,6 +6489,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
     VarDeclaration *v;
     EnumMember *em;
     Expression *e;
+    TemplateInstance *ti;
 
 #if 0
     printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
@@ -6514,6 +6515,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             {   Type *t;
 
                 v = s->isVarDeclaration();
+                ti = s->isTemplateInstance();
                 if (v && id == Id::length)
                 {
                     e = new VarExp(loc, v);
@@ -6522,7 +6524,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         goto Lerror;
                     goto L3;
                 }
-                else if (v && (id == Id::stringof || id == Id::offsetof))
+                else if ((v && (id == Id::stringof || id == Id::offsetof))
+                         || (ti && (id == Id::stringof || id == Id::mangleof)))
                 {
                     e = new DsymbolExp(loc, s, 0);
                     do
