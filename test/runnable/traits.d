@@ -967,6 +967,40 @@ void test5978() {
 
 /*************************************************************/
 
+template Tuple7829(TL...) { alias TL Tuple7829; }
+
+void test7829()
+{
+    class C
+    {
+        final void fvf() { }
+        void vf() { }
+        void vm() { }
+        abstract void af();
+        final void ff() { }
+        static void sf() { }
+    }
+
+    static struct S
+    {
+        void nvf() { }
+        C c;
+        alias c this;
+    }
+
+    S s;
+    foreach (sym; Tuple7829!(S, s))
+    {
+        static assert(!__traits(isVirtualFunction, sym.nvf));
+        static assert(__traits(isVirtualFunction,  sym.fvf));
+        static assert(__traits(isVirtualFunction,  sym.vf));
+        static assert(__traits(isVirtualMethod,    sym.vm));
+        static assert(__traits(isAbstractFunction, sym.af));
+        static assert(__traits(isFinalFunction,    sym.ff));
+        static assert(__traits(isStaticFunction,   sym.sf));
+    }
+}
+
 int main()
 {
     test1();
@@ -996,6 +1030,7 @@ int main()
     test7608();
     test7858();
     test5978();
+    test7829();
 
     writeln("Success");
     return 0;

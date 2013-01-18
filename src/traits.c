@@ -108,6 +108,28 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;                        \
         goto Ltrue;
 
+#define ISVARDSYMBOL(cond) \
+        for (size_t i = 0; i < dim; i++)        \
+        {                                       \
+            Expression *e;                      \
+            Dsymbol *s = getDsymbol((*args)[i]);             \
+            if ((s = getDsymbol((*args)[i])) != NULL)        \
+            { }                                              \
+            else if ((e = isExpression((*args)[i])) != NULL) \
+            {                                                \
+                if (e->op == TOKvar)            \
+                    s = ((VarExp *)e)->var;     \
+                else if (e->op == TOKdotvar)    \
+                    s = ((DotVarExp *)e)->var;  \
+            }                                   \
+            if (!s)                             \
+                goto Lfalse;                    \
+            if (!(cond))                        \
+                goto Lfalse;                    \
+        }                                       \
+        if (!dim)                               \
+            goto Lfalse;                        \
+        goto Ltrue;                             \
 
 
     if (ident == Id::isArithmetic)
@@ -171,28 +193,28 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::isAbstractFunction)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
+        ISVARDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isAbstract())
     }
     else if (ident == Id::isVirtualFunction)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
+        ISVARDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtual())
     }
     else if (ident == Id::isVirtualMethod)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtualMethod())
+        ISVARDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isVirtualMethod())
     }
     else if (ident == Id::isFinalFunction)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
+        ISVARDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
     }
 #if DMDV2
     else if (ident == Id::isStaticFunction)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
+        ISVARDSYMBOL((f = s->isFuncDeclaration()) != NULL && !f->needThis() && !f->isNested())
     }
     else if (ident == Id::isRef)
     {
