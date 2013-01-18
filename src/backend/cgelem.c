@@ -1133,27 +1133,23 @@ L1:
 }
 
 /*****************************
- * Attempt to 'shrink' bitwise expressions.
- * Good for & | ^.
+ * OPand,OPor,OPxor
  * This should be expanded to include long type stuff.
  */
 
 STATIC elem * elbitwise(elem *e, goal_t goal)
-{   elem *e1,*e2;
-    targ_short i;
-    targ_ulong ul;
-    int op;
-    unsigned sz;
+{
+    //printf("elbitwise(e = %p, goal = x%x)\n", e, goal);
 
-    e2 = e->E2;
-    e1 = e->E1;
-    op = e1->Eoper;
+    elem *e2 = e->E2;
+    elem *e1 = e->E1;
+    int op = e1->Eoper;
+    unsigned sz = tysize(e2->Ety);
+
     if (e2->Eoper == OPconst)
     {
-        sz = tysize(e2->Ety);
         switch (sz)
         {
-            tym_t tym;
             case CHARSIZE:
                 /* Replace (c & 0xFF) with (c)  */
                 if (OPTIMIZER && e2->EV.Vuchar == CHARMASK)
@@ -1165,8 +1161,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                         case OPor:      /* (c | 0xFF) => (0xFF) */
                             return el_selecte2(e);
                         case OPxor:     /* (c ^ 0xFF) => (~c)   */
-                            tym = e->Ety;
-                            return el_una(OPcom,tym,el_selecte1(e));
+                            return el_una(OPcom,e->Ety,el_selecte1(e));
                         default:
                             assert(0);
                     }
@@ -1174,9 +1169,10 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 break;
 
             case LONGSIZE:
+            {
                 if (!OPTIMIZER)
                     break;
-                ul = e2->EV.Vulong;
+                targ_ulong ul = e2->EV.Vulong;
 
                 if (ul == 0xFFFFFFFF)           /* if e1 & 0xFFFFFFFF   */
                     goto L1;
@@ -1193,7 +1189,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 if (intsize < LONGSIZE &&
                     e->Eoper == OPand &&
                     ul <= SHORTMASK)
-                {       tym = e->Ety;
+                {       tym_t tym = e->Ety;
                         e->E1 = el_una(OP32_16,TYushort,e->E1);
                         e->E2 = el_una(OP32_16,TYushort,e->E2);
                         e->Ety = TYushort;
@@ -1210,11 +1206,12 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                     e = el_selecte1(e);
                     goto Lopt;
                 }
-
                 break;
+            }
 
             case SHORTSIZE:
-                i = e2->EV.Vshort;
+            {
+                targ_short i = e2->EV.Vshort;
                 if (i == (targ_short)SHORTMASK) // e2 & 0xFFFF
                     goto L1;
 
@@ -1252,8 +1249,8 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                         goto Lopt;
                 }
                 break;
+            }
 
-#if __INTSIZE == 4
             case LLONGSIZE:
                 if (OPTIMIZER)
                 {
@@ -1261,7 +1258,6 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                         goto L1;
                 }
                 break;
-#endif
         }
         if (OPTIMIZER && sz < 16)
         {   targ_ullong ul = el_tolong(e2);
@@ -1290,18 +1286,17 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                             goto Lopt;
                         }
                         break;
-#if __INTSIZE == 4
+
                     case LLONGSIZE:
                         if ((c3 & LLONGMASK) == LLONGMASK)
                             goto L2;
                         break;
-#endif
+
                     default:
                         assert(0);
                 }
             }
 
-#if __INTSIZE == 4
             if (op == OPs16_32 && (ul & 0xFFFFFFFFFFFF8000LL) == 0 ||
                 op == OPu16_32 && (ul & 0xFFFFFFFFFFFF0000LL) == 0 ||
                 op == OPs8_16  && (ul & 0xFFFFFFFFFFFFFF80LL) == 0 ||
@@ -1309,22 +1304,14 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 op == OPs32_64 && (ul & 0xFFFFFFFF80000000LL) == 0 ||
                 op == OPu32_64 && (ul & 0xFFFFFFFF00000000LL) == 0
                )
-#else
-            if (op == OPs16_32 && (ul & 0xFFFF8000) == 0 ||
-                op == OPu16_32 && (ul & 0xFFFF0000) == 0 ||
-                op == OPs8_16  && (ul & 0xFFFFFF80) == 0 ||
-                op == OPu8_16  && (ul & 0xFFFFFF00) == 0)
-#endif
             {
                 if (e->Eoper == OPand)
                 {   if (op == OPs16_32 && (ul & 0x8000) == 0)
                         e1->Eoper = OPu16_32;
                     else if (op == OPs8_16  && (ul & 0x80) == 0)
                         e1->Eoper = OPu8_16;
-#if __INTSIZE == 4
                     else if (op == OPs32_64 && (ul & 0x80000000) == 0)
                         e1->Eoper = OPu32_64;
-#endif
                 }
 
                 // ((shtlng)s & c) => ((shtlng)(s & c)
@@ -1346,7 +1333,7 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 goto Lopt;
             }
 
-            // Replace ((a >> b) & 1) with (a bt b)
+            // Replace ((a >> b) & 1) with (a btst b)
             if ((I32 || I64) &&
                 e->Eoper == OPand &&
                 ul == 1 &&
@@ -1360,6 +1347,72 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
             }
         }
     }
+
+    if (OPTIMIZER && goal & GOALflags && (I32 || I64) && e->Eoper == OPand &&
+        (sz == 4 || sz == 8))
+    {
+        /* These should all compile to a BT instruction when -O, for -m32 and -m64
+         * int bt32(uint *p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
+         * int bt64a(ulong *p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+         * int bt64b(ulong *p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+         */
+
+        #define ELCONST(e,c) ((e)->Eoper == OPconst && el_tolong(e) == (c))
+        int pow2sz = ispow2(sz);
+        elem **pb1;
+        elem **pb2;
+        elem **pp;
+        elem *e12;              // the (b & 31), which may be preceded by (64_32)
+        elem *e2111;            // the (b >>> 5), which may be preceded by (u32_64)
+
+        if (e1->Eoper == OPind)
+        {   // Swap e1 and e2 so that e1 is the mask and e2 is the memory location
+            e2 = e1;
+            e1 = e->E2;
+        }
+
+        /* Replace:
+         *  ((1 << (b & 31))   &   *(((b >>> 5) << 2) + p)
+         * with:
+         *  p bt b
+         */
+        if (e1->Eoper == OPshl &&
+            ELCONST(e1->E1,1) &&
+            ((e12 = e1->E2), 1) &&
+            ((e12->Eoper == OP64_32 && ((e12 = e12->E1),1)),
+            e12->Eoper == OPand) &&
+            ELCONST(e12->E2,sz * 8 - 1) &&
+
+            e2->Eoper == OPind &&
+            e2->E1->Eoper == OPadd &&
+            e2->E1->E1->Eoper == OPshl &&
+            ELCONST(e2->E1->E1->E2,pow2sz) &&
+            ((e2111 = e2->E1->E1->E1), 1) &&
+            ((e2111->Eoper == OPu32_64 && ((e2111 = e2111->E1),1)),
+            e2111->Eoper == OPshr) &&
+            ELCONST(e2111->E2,pow2sz + 3)
+           )
+        {
+            pb1 = &e12->E1;
+            pb2 = &e2111->E1;
+            pp  = &e2->E1->E2;
+
+            if (el_match(*pb1, *pb2) &&
+                !el_sideeffect(*pb1))
+            {
+                e->Eoper = OPbt;
+                e->E1 = *pp;            // p
+                *pp = NULL;
+                e->E2 = *pb1;           // b
+                *pb1 = NULL;
+                *pb2 = NULL;
+                el_free(e1);
+                el_free(e2);
+                return optelem(e,goal);
+            }
+        }
+    }
+
     return e;
 
 Lopt:
@@ -4763,7 +4816,7 @@ beg:
             return optelem(e,GOALnone);
         }
 
-        e1 = e->E1 = optelem(e->E1,GOALvalue);
+        e1 = e->E1 = optelem(e->E1,op == OPbool ? GOALflags : GOALvalue);
         if (e1->Eoper == OPconst)
         {
 #if TARGET_SEGMENTED

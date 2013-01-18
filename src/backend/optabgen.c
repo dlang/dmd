@@ -102,6 +102,7 @@ int _rel[] = {OPeqeq,OPne,OPle,OPlt,OPgt,OPge,
 int _logical[] = {OPeqeq,OPne,OPle,OPlt,OPgt,OPge,OPandand,OPoror,OPnot,OPbool,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+         OPbt,OPbtst,
         };
 int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,

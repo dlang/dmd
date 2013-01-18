@@ -5597,6 +5597,38 @@ void test249()
 
 /***************************************************/
 
+// These should all compile to a BT instruction when -O, for -m32 and -m64
+
+int bt32(uint *p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
+
+int bt64a(ulong *p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+int bt64b(ulong *p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+void test250()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt32(a1,30)) assert(0);
+    if (!bt32(a1,8))  assert(0);
+    if ( bt32(a1,30+32)) assert(0);
+    if (!bt32(a1,1+32))  assert(0);
+
+    static ulong[2] a2 = [0x1001_1100_12345678, 0x0220_0012_12345678];
+
+    if ( bt64a(a2,30+32)) assert(0);
+    if (!bt64a(a2,8+32))  assert(0);
+    if ( bt64a(a2,30+32+64)) assert(0);
+    if (!bt64a(a2,1+32+64))  assert(0);
+
+    if ( bt64b(a2,30+32)) assert(0);
+    if (!bt64b(a2,8+32))  assert(0);
+    if ( bt64b(a2,30+32+64)) assert(0);
+    if (!bt64b(a2,1+32+64))  assert(0);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5874,6 +5906,7 @@ int main()
     testreal_to_ulong();
     test248();
     test249();
+    test250();
 
     writefln("Success");
     return 0;
