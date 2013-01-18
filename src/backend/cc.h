@@ -48,10 +48,6 @@
 #define STATIC  static
 #endif
 
-#ifndef CEXTERN
-#define CEXTERN extern
-#endif
-
 // Warnings
 enum WM
 {
