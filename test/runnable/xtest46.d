@@ -946,6 +946,26 @@ void test48()
 
 /***************************************************/
 
+// 6408
+
+static assert(!is(typeof(string[0..1].init)));
+static assert(is(typeof(string[].init) == string[]));
+static assert(is(typeof(string[][].init) == string[][]));
+static assert(is(typeof(string[][][].init) == string[][][]));
+
+static assert(is(typeof(string[1].init) == string[1]));
+static assert(is(typeof(string[1][1].init) == string[1][1]));
+static assert(is(typeof(string[1][1][1].init) == string[1][1][1]));
+
+static assert(is(typeof(string[string].init) == string[string]));
+static assert(is(typeof(string[string][string].init) == string[string][string]));
+static assert(is(typeof(string[string][string][string].init) == string[string][string][string]));
+
+template TT6408(T...) { alias T TT6408; }
+static assert(is(typeof(TT6408!(int, int)[].init) == TT6408!(int, int)));
+
+/***************************************************/
+
 struct S49
 {
     static void* p;
