@@ -73,15 +73,15 @@ ulong mach_absolute_time();
     Use the $(LREF dur) function or on of its non-generic aliases to create
     $(D Duration)s.
 
-    You cannot create a duration of months or years because the variable number
-    of days in a month or a year makes it so that you cannot convert between
-    months or years and smaller units without a specific date. Any type or
-    function which handles months or years has other functions for handling
-    those rather than using durations. For instance, $(XREF datetime, Date) has
-    $(D addYears) and $(D addMonths) for adding years and months, rather than
-    creating a duration of years or months and adding that to a
-    $(XREF datetime, Date). If you're dealing with weeks or smaller, however,
-    durations are what you use.
+    It's not possible to create a Duration of months or years, because the
+    variable number of days in a month or year makes it impossible to convert
+    between months or years and smaller units without a specific date. So,
+    nothing uses $(D Duration)s when dealing with months or years. Rather,
+    functions specific to months and years are defined. For instance,
+    $(XREF datetime, Date) has $(D add!"years") and $(D add!"months") for adding
+    years and months rather than creating a Duration of years or months and
+    adding that to a $(XREF datetime, Date). But Duration is used when dealing
+    with weeks or smaller.
 
     Examples:
 --------------------
