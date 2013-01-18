@@ -5249,51 +5249,34 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             //printf("type %s\n", ta->toChars());
             // It might really be an Expression or an Alias
             ta->resolve(loc, sc, &ea, &ta, &sa);
-            if (ea)
-            {
-                goto Lexpr;
-            }
-            else if (sa)
-            {
-              Ldsym:
-                (*tiargs)[j] = sa;
-                TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
-                if (d)
-                {
-                    size_t dim = d->objects->dim;
-                    tiargs->remove(j);
-                    tiargs->insert(j, d->objects);
-                    j--;
-                }
-            }
-            else if (ta)
-            {
-              Ltype:
-                if (ta->ty == Ttuple)
-                {   // Expand tuple
-                    TypeTuple *tt = (TypeTuple *)ta;
-                    size_t dim = tt->arguments->dim;
-                    tiargs->remove(j);
-                    if (dim)
-                    {   tiargs->reserve(dim);
-                        for (size_t i = 0; i < dim; i++)
-                        {   Parameter *arg = (*tt->arguments)[i];
-                            if (flags & 2 && arg->ident)
-                                tiargs->insert(j + i, arg);
-                            else
-                                tiargs->insert(j + i, arg->type);
-                        }
-                    }
-                    j--;
-                }
-                else
-                    (*tiargs)[j] = ta;
-            }
-            else
+            if (ea) goto Lexpr;
+            if (sa) goto Ldsym;
+            if (ta == NULL)
             {
                 assert(global.errors);
-                (*tiargs)[j] = Type::terror;
+                ta = Type::terror;
             }
+
+        Ltype:
+            if (ta->ty == Ttuple)
+            {   // Expand tuple
+                TypeTuple *tt = (TypeTuple *)ta;
+                size_t dim = tt->arguments->dim;
+                tiargs->remove(j);
+                if (dim)
+                {   tiargs->reserve(dim);
+                    for (size_t i = 0; i < dim; i++)
+                    {   Parameter *arg = (*tt->arguments)[i];
+                        if (flags & 2 && arg->ident)
+                            tiargs->insert(j + i, arg);
+                        else
+                            tiargs->insert(j + i, arg->type);
+                    }
+                }
+                j--;
+                continue;
+            }
+            (*tiargs)[j] = ta;
         }
         else if (ea)
         {
@@ -5320,7 +5303,21 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     ea = new ErrorExp();
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+            if (ea->op == TOKtuple)
+            {   // Expand tuple
+                TupleExp *te = (TupleExp *)ea;
+                size_t dim = te->exps->dim;
+                tiargs->remove(j);
+                if (dim)
+                {   tiargs->reserve(dim);
+                    for (size_t i = 0; i < dim; i++)
+                        tiargs->insert(j + i, (*te->exps)[i]);
+                }
+                j--;
+                continue;
+            }
             (*tiargs)[j] = ea;
+
             if (ea->op == TOKtype)
             {   ta = ea->type;
                 goto Ltype;
@@ -5343,9 +5340,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 else if (fe->td)
                 {   /* If template argument is a template lambda,
                      * get template declaration itself. */
-                    ea = NULL;
-                    (*tiargs)[j] = sa = fe->td;
-                    goto Lsa;
+                    sa = fe->td;
+                    goto Ldsym;
                 }
             }
             if (ea->op == TOKdotvar)
@@ -5362,25 +5358,26 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 sa = ((DotTemplateExp *)ea)->td;
                 goto Ldsym;
             }
-            if (ea->op == TOKtuple)
-            {   // Expand tuple
-                TupleExp *te = (TupleExp *)ea;
-                size_t dim = te->exps->dim;
-                tiargs->remove(j);
-                if (dim)
-                {   tiargs->reserve(dim);
-                    for (size_t i = 0; i < dim; i++)
-                        tiargs->insert(j + i, (*te->exps)[i]);
-                }
-                j--;
-            }
         }
         else if (sa)
         {
-        Lsa:
+        Ldsym:
+            TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
+            if (d)
+            {   // Expand tuple
+                size_t dim = d->objects->dim;
+                tiargs->remove(j);
+                tiargs->insert(j, d->objects);
+                j--;
+                continue;
+            }
+            (*tiargs)[j] = sa;
+
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             if (td && !td->semanticRun && td->literal)
+            {
                 td->semantic(sc);
+            }
         }
         else if (isParameter(o))
         {
