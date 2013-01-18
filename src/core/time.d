@@ -1486,9 +1486,26 @@ struct TickDuration
       +/
     static @property @safe pure nothrow TickDuration zero() { return TickDuration(0); }
 
+    /++
+        Largest $(D TickDuration) possible.
+      +/
+    static @property @safe pure nothrow TickDuration max() { return TickDuration(long.max); }
+
+    /++
+        Most negative $(D TickDuration) possible.
+      +/
+    static @property @safe pure nothrow TickDuration min() { return TickDuration(long.min); }
+
     unittest
     {
         assert(zero == TickDuration(0));
+        assert(TickDuration.max == TickDuration(long.max));
+        assert(TickDuration.min == TickDuration(long.min));
+        assert(TickDuration.min < TickDuration.zero);
+        assert(TickDuration.zero < TickDuration.max);
+        assert(TickDuration.min < TickDuration.max);
+        assert(TickDuration.min - TickDuration(1) == TickDuration.max);
+        assert(TickDuration.max + TickDuration(1) == TickDuration.min);
     }
 
 
