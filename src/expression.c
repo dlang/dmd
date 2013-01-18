@@ -1137,7 +1137,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (p->type->hasWild())
                 {
                     arg = arg->implicitCastTo(sc, p->type->substWildTo(wildmatch));
-                    arg = arg->optimize(WANTvalue);
+                    arg = arg->optimize(WANTvalue, p->storageClass & STCref);
                 }
                 else if (p->type != arg->type)
                 {
@@ -1149,7 +1149,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     }
                     else
                         arg = arg->implicitCastTo(sc, p->type);
-                    arg = arg->optimize(WANTvalue);
+                    arg = arg->optimize(WANTvalue, p->storageClass & STCref);
                 }
             }
             if (p->storageClass & STCref)
