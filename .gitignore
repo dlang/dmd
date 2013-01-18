@@ -21,6 +21,7 @@ src/impcnvgen.exe
 src/optabgen.exe
 src/verstr.h
 src/vergen.exe
+src/vergen
 *.map
 .DS_Store
 trace.def
