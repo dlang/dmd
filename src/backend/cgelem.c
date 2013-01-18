@@ -31,7 +31,7 @@ STATIC elem * optelem(elem *,goal_t);
 STATIC elem * elarray(elem *e);
 STATIC elem * eldiv(elem *, goal_t goal);
 
-CEXTERN elem * evalu8(elem *, goal_t goal);
+extern elem * evalu8(elem *, goal_t goal);
 
 static bool again;
 
