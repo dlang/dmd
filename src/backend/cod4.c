@@ -3461,6 +3461,7 @@ code *cdbt(elem *e, regm_t *pretregs)
         {
             cg = cat(cg,getregs(retregs));
             cg = genregs(cg,0x19,reg,reg);              // SBB reg,reg
+            cg = gen2(cg,0xF7,modregrmx(3,3,reg));      // NEG reg
         }
         else
         {
