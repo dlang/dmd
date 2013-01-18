@@ -22,21 +22,21 @@
 #include        "obj.h"
 
 #ifdef DEBUG
-CEXTERN char debuga;            /* cg - watch assignaddr()              */
-CEXTERN char debugb;            /* watch block optimization             */
-CEXTERN char debugc;            /* watch code generated                 */
-CEXTERN char debugd;            /* watch debug information generated    */
-CEXTERN char debuge;            // dump eh info
-CEXTERN char debugf;            /* trees after dooptim                  */
-CEXTERN char debugg;            /* trees for code generator             */
-CEXTERN char debugo;            // watch optimizer
-CEXTERN char debugr;            // watch register allocation
-CEXTERN char debugs;            /* watch common subexp eliminator       */
-CEXTERN char debugt;            /* do test points                       */
-CEXTERN char debugu;
-CEXTERN char debugw;            /* watch progress                       */
-CEXTERN char debugx;            /* suppress predefined CPP stuff        */
-CEXTERN char debugy;            /* watch output to il buffer            */
+extern char debuga;            /* cg - watch assignaddr()              */
+extern char debugb;            /* watch block optimization             */
+extern char debugc;            /* watch code generated                 */
+extern char debugd;            /* watch debug information generated    */
+extern char debuge;            // dump eh info
+extern char debugf;            /* trees after dooptim                  */
+extern char debugg;            /* trees for code generator             */
+extern char debugo;            // watch optimizer
+extern char debugr;            // watch register allocation
+extern char debugs;            /* watch common subexp eliminator       */
+extern char debugt;            /* do test points                       */
+extern char debugu;
+extern char debugw;            /* watch progress                       */
+extern char debugx;            /* suppress predefined CPP stuff        */
+extern char debugy;            /* watch output to il buffer            */
 #endif /* DEBUG */
 
 #define CR '\r'                 // Used because the MPW version of the compiler warps
@@ -52,39 +52,39 @@ struct seg_data;
  * Bit masks
  */
 
-CEXTERN const unsigned mask[32];
-CEXTERN const unsigned long maskl[32];
+extern const unsigned mask[32];
+extern const unsigned long maskl[32];
 
 extern  char *argv0;
-CEXTERN char *finname,*foutname,*foutdir;
+extern char *finname,*foutname,*foutdir;
 
-CEXTERN char OPTIMIZER,PARSER;
-CEXTERN symtab_t globsym;
+extern char OPTIMIZER,PARSER;
+extern symtab_t globsym;
 
-CEXTERN Config config;                  // precompiled part of configuration
-CEXTERN Configv configv;                // non-ph part of configuration
-CEXTERN char sytab[];
+extern Config config;                  // precompiled part of configuration
+extern Configv configv;                // non-ph part of configuration
+extern char sytab[];
 
-CEXTERN volatile int controlc_saw;      /* a control C was seen         */
-CEXTERN unsigned maxblks;               /* array max for all block stuff                */
-CEXTERN unsigned numblks;               /* number of basic blocks (if optimized) */
-CEXTERN block *startblock;              /* beginning block of function  */
+extern volatile int controlc_saw;      /* a control C was seen         */
+extern unsigned maxblks;               /* array max for all block stuff                */
+extern unsigned numblks;               /* number of basic blocks (if optimized) */
+extern block *startblock;              /* beginning block of function  */
 
-CEXTERN block **dfo;                    /* array of depth first order   */
-CEXTERN unsigned dfotop;                /* # of items in dfo[]          */
-CEXTERN block **labelarr;               /* dynamically allocated array, index is label #*/
-CEXTERN unsigned labelmax;              /* size of labelarr[]                           */
-CEXTERN unsigned labeltop;              /* # of used entries in labelarr[]              */
-CEXTERN block *curblock;                /* current block being read in                  */
-CEXTERN block *block_last;
+extern block **dfo;                    /* array of depth first order   */
+extern unsigned dfotop;                /* # of items in dfo[]          */
+extern block **labelarr;               /* dynamically allocated array, index is label #*/
+extern unsigned labelmax;              /* size of labelarr[]                           */
+extern unsigned labeltop;              /* # of used entries in labelarr[]              */
+extern block *curblock;                /* current block being read in                  */
+extern block *block_last;
 
-CEXTERN int errcnt;
-CEXTERN regm_t fregsaved;
+extern int errcnt;
+extern regm_t fregsaved;
 
 #if SCPP
-CEXTERN targ_size_t dsout;              /* # of bytes actually output to data */
+extern targ_size_t dsout;              /* # of bytes actually output to data */
 #endif
-CEXTERN tym_t pointertype;              /* default data pointer type */
+extern tym_t pointertype;              /* default data pointer type */
 
 // cg.c
 extern symbol *localgot;
@@ -170,7 +170,7 @@ extern void comsubs(void);
 void cgcs_term();
 
 /* errmsgs.c */
-CEXTERN char *dlcmsgs(int);
+extern char *dlcmsgs(int);
 extern void errmsgs_term();
 
 /* from evalu8.c */
@@ -183,7 +183,7 @@ elem *poptelem3(elem *);
 elem *poptelem4(elem *);
 elem *selecte1(elem *,type *);
 
-//CEXTERN       type *declar(type *,char *,int);
+//extern       type *declar(type *,char *,int);
 
 /* from err.c */
 void err_message(const char *format,...);
@@ -214,7 +214,7 @@ extern int errmsgs_tx86idx;
 #endif
 void warerr(unsigned,...);
 void err_warning_enable(unsigned warnum, int on);
-CEXTERN void lexerr(unsigned,...);
+extern void lexerr(unsigned,...);
 
 int typerr(int,type *,type *,...);
 void err_noctor(Classsym *stag,list_t arglist);
@@ -261,9 +261,9 @@ void chkassign(elem *);
 void chknosu(elem *);
 void chkunass(elem *);
 void chknoabstract(type *);
-CEXTERN targ_llong msc_getnum(void);
-CEXTERN targ_size_t alignmember(type *,targ_size_t,targ_size_t);
-CEXTERN targ_size_t align(targ_size_t,targ_size_t);
+extern targ_llong msc_getnum(void);
+extern targ_size_t alignmember(type *,targ_size_t,targ_size_t);
+extern targ_size_t align(targ_size_t,targ_size_t);
 
 /* nteh.c */
 unsigned char *nteh_context_string();
@@ -309,8 +309,8 @@ int os_critsecsize64();
 /* pseudo.c */
 Symbol *pseudo_declar(char *);
 
-CEXTERN unsigned char pseudoreg[];
-CEXTERN regm_t pseudomask[];
+extern unsigned char pseudoreg[];
+extern regm_t pseudomask[];
 #endif /* PSEUDO_REGS */
 
 /* Symbol.c */
@@ -360,7 +360,7 @@ void cg87_reset();
 unsigned char loadconst(elem *e, int im);
 
 /* From cgopt.c */
-CEXTERN void opt(void);
+extern void opt(void);
 
 
 // objrecor.c
@@ -424,7 +424,7 @@ void compdfo(void);
 #ifdef DEBUG
 
 /* debug.c */
-CEXTERN const char *regstring[];
+extern const char *regstring[];
 
 void WRclass(enum SC c);
 void WRTYxx(tym_t t);
@@ -442,7 +442,7 @@ char *sym_ident(SYMIDX si);
 #endif
 
 /* cgelem.c     */
-elem *doptelem(elem *,int);
+elem *doptelem(elem *, goal_t);
 void postoptelem(elem *);
 unsigned swaprel(unsigned);
 int elemisone(elem *);

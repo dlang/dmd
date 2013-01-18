@@ -1,5 +1,5 @@
 // Copyright (C) 1986-1997 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -89,16 +89,18 @@ block *block_calloc()
 //////////////////////////////////
 //
 
-unsigned bc_goal[BCMAX];
+goal_t bc_goal[BCMAX];
 
 void block_init()
-{   int i;
-
-    for (i = 0; i < BCMAX; i++)
+{
+    for (size_t i = 0; i < BCMAX; i++)
         bc_goal[i] = GOALvalue;
+
     bc_goal[BCgoto] = GOALnone;
     bc_goal[BCret ] = GOALnone;
     bc_goal[BCexit] = GOALnone;
+
+    bc_goal[BCiftrue] = GOALflags;
 }
 
 //////////////////////////////////

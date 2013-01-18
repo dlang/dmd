@@ -106,7 +106,7 @@ extern void error(const char *filename, unsigned linnum, const char *format, ...
 #endif
 
 
-CEXTERN elem * evalu8(elem *);
+elem * evalu8(elem *, goal_t);
 
 /* When this !=0, we do constant folding on floating point constants
  * even if they raise overflow, underflow, invalid, etc. exceptions.
@@ -148,7 +148,7 @@ FM1:    // We don't use fprem1 because for some inexplicable
  * Return boolean result of constant elem.
  */
 
-HINT boolres(elem *e)
+int boolres(elem *e)
 {   int b;
 
     //printf("boolres()\n");
@@ -289,7 +289,7 @@ HINT boolres(elem *e)
  * Return TRUE if expression will always evaluate to TRUE.
  */
 
-HINT iftrue(elem *e)
+int iftrue(elem *e)
 {
   while (1)
   {
@@ -314,7 +314,7 @@ HINT iftrue(elem *e)
  * Return TRUE if expression will always evaluate to FALSE.
  */
 
-HINT iffalse(elem *e)
+int iffalse(elem *e)
 {
         while (1)
         {       assert(e);
@@ -569,7 +569,7 @@ elem *poptelem(elem *e)
                 e->E2 = poptelem(e->E2);
             }
         eval:
-            e = evalu8(e);
+            e = evalu8(e, GOALvalue);
             break;
     }
 ret:
@@ -599,7 +599,7 @@ elem *selecte1(elem *e,type *t)
  * Return with the result.
  */
 
-elem * evalu8(elem *e)
+elem * evalu8(elem *e, goal_t goal)
 {   elem *e1,*e2;
     tym_t tym,tym2,uns;
     unsigned op;
