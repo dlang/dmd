@@ -9509,6 +9509,16 @@ Expression *SliceExp::semantic(Scope *sc)
 Lagain:
     UnaExp::semantic(sc);
     e1 = resolveProperties(sc, e1);
+    if (e1->op == TOKtype && e1->type->ty != Ttuple)
+    {
+        if (lwr || upr)
+        {
+            error("cannot slice type '%s'", e1->toChars());
+            return new ErrorExp();
+        }
+        e = new TypeExp(loc, e1->type->arrayOf());
+        return e->semantic(sc);
+    }
 
     e = this;
 
@@ -10041,6 +10051,18 @@ Expression *IndexExp::semantic(Scope *sc)
     if (!e1->type)
         e1 = e1->semantic(sc);
     assert(e1->type);           // semantic() should already be run on it
+    if (e1->op == TOKtype)
+    {
+        e2 = e2->semantic(sc);
+        e2 = resolveProperties(sc, e2);
+        Type *nt;
+        if (e2->op == TOKtype)
+            nt = new TypeAArray(e1->type, e2->type);
+        else
+            nt = new TypeSArray(e1->type, e2);
+        e = new TypeExp(loc, nt);
+        return e->semantic(sc);
+    }
     if (e1->op == TOKerror)
         goto Lerr;
     e = this;
