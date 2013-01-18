@@ -1,31 +1,25 @@
-ifeq (,$(TARGET))
-    OS:=$(shell uname)
-    OSVER:=$(shell uname -r)
-    ifeq (Darwin,$(OS))
-        TARGET=OSX
-    else
-        ifeq (Linux,$(OS))
-            TARGET=LINUX
-        else
-            ifeq (FreeBSD,$(OS))
-                TARGET=FREEBSD
-            else
-                ifeq (OpenBSD,$(OS))
-                    TARGET=OPENBSD
-                else
-                    ifeq (Solaris,$(OS))
-                        TARGET=SOLARIS
-                    else
-                        ifeq (SunOS,$(OS))
-                            TARGET=SOLARIS
-                        else
-                            $(error Unrecognized or unsupported OS for uname: $(OS))
-                        endif
-                    endif
-                endif
-            endif
-        endif
-    endif
+OS:=
+uname_S:=$(shell uname -s)
+ifeq (Darwin,$(uname_S))
+        OS:=OSX
+endif
+ifeq (Linux,$(uname_S))
+	OS:=LINUX
+endif
+ifeq (FreeBSD,$(uname_S))
+	OS:=FREEBSD
+endif
+ifeq (OpenBSD,$(uname_S))
+	OS:=OPENBSD
+endif
+ifeq (Solaris,$(uname_S))
+	OS:=SOLARIS
+endif
+ifeq (SunOS,$(uname_S))
+	OS:=SOLARIS
+endif
+ifeq (,$(OS))
+	$(error Unrecognized or unsupported OS for uname: $(uname_S))
 endif
 
 ifeq (,$(TARGET_CPU))
@@ -54,7 +48,7 @@ ifneq (x,x$(MODEL))
     MODEL_FLAG=-m$(MODEL)
 endif
 
-ifeq (OSX,$(TARGET))
+ifeq (OSX,$(OS))
     SDKDIR=/Developer/SDKs
     ifeq "$(wildcard $(SDKDIR))" ""
         SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
@@ -86,8 +80,8 @@ WARNINGS=-Wno-deprecated -Wstrict-aliasing
 #GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
 GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(TARGET)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
@@ -115,7 +109,7 @@ DMD_OBJS = \
 	pdata.o cv8.o backconfig.o \
 	$(TARGET_OBJS)
 
-ifeq (OSX,$(TARGET))
+ifeq (OSX,$(OS))
     DMD_OBJS += libmach.o machobj.o
 else
     DMD_OBJS += libelf.o elfobj.o
@@ -679,7 +673,7 @@ gcov:
 	gcov irstate.c
 	gcov json.c
 	gcov lexer.c
-ifeq (OSX,$(TARGET))
+ifeq (OSX,$(OS))
 	gcov libmach.c
 else
 	gcov libelf.c
