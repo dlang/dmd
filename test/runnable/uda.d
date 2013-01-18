@@ -251,6 +251,17 @@ void test12()
 }
 
 /************************************************/
+// 9178
+
+void test9178()
+{
+    static class Foo { @(1) int a; }
+
+    Foo foo = new Foo;
+    static assert(__traits(getAttributes, foo.tupleof[0])[0] == 1);
+}
+
+/************************************************/
 
 int main()
 {
@@ -266,6 +277,7 @@ int main()
     test10();
     test11();
     test12();
+    test9178();
 
     printf("Success\n");
     return 0;
