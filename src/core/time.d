@@ -115,10 +115,28 @@ public:
       +/
     static @property @safe pure nothrow Duration zero() { return Duration(0); }
 
+    /++
+        Largest $(D Duration) possible.
+      +/
+    static @property @safe pure nothrow Duration max() { return Duration(long.max); }
+
+    /++
+        Most negative $(D Duration) possible.
+      +/
+    static @property @safe pure nothrow Duration min() { return Duration(long.min); }
+
     unittest
     {
         assert(zero == dur!"seconds"(0));
+        assert(Duration.max == Duration(long.max));
+        assert(Duration.min == Duration(long.min));
+        assert(Duration.min < Duration.zero);
+        assert(Duration.zero < Duration.max);
+        assert(Duration.min < Duration.max);
+        assert(Duration.min - dur!"hnsecs"(1) == Duration.max);
+        assert(Duration.max + dur!"hnsecs"(1) == Duration.min);
     }
+
 
     /++
         Compares this $(D Duration) with the given $(D Duration).
