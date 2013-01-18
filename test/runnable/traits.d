@@ -967,6 +967,18 @@ void test5978() {
 
 /*************************************************************/
 
+template T7408() { }
+
+void test7408()
+{
+    auto x = T7408!().stringof;
+    auto y = T7408!().mangleof;
+    static assert(__traits(compiles, T7408!().stringof));
+    static assert(__traits(compiles, T7408!().mangleof));
+    static assert(!__traits(compiles, T7408!().init));
+    static assert(!__traits(compiles, T7408!().offsetof));
+}
+
 int main()
 {
     test1();
@@ -996,6 +1008,7 @@ int main()
     test7608();
     test7858();
     test5978();
+    test7408();
 
     writeln("Success");
     return 0;
