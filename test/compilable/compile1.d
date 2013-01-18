@@ -376,3 +376,13 @@ alias test8163!(ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte) _BBBBBBB
 alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
 
+/***************************************************/
+// 9348
+
+void test9348()
+{
+    @property Object F(int E)() { return null; }
+
+    assert(F!0 !is null);
+    assert(F!0 !in [new Object():1]);
+}
