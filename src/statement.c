@@ -2808,7 +2808,7 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (arg->type)
             arg->type->toCBuffer(buf, arg->ident, hgs);
         else
-        {   
+        {
             buf->writestring("auto ");
             buf->writestring(arg->ident->toChars());
         }
@@ -2823,7 +2823,7 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (!ifbody->isScopeStatement())
         buf->level--;
     if (elsebody)
-    {  
+    {
         buf->writestring("else");
         buf->writenl();
         if (!elsebody->isScopeStatement())
@@ -3336,7 +3336,7 @@ void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (body)
     {
         if (!body->isScopeStatement())
-        {   
+        {
             buf->writebyte('{');
             buf->writenl();
             buf->level++;

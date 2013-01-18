@@ -313,7 +313,7 @@ extern char *tok_arg;
 extern unsigned argmax;
 extern  token_t tok;
 extern  int ininclude;
-CEXTERN char tok_ident[];       // identifier
+extern char tok_ident[];       // identifier
 extern  unsigned char _chartype[];
 extern token_t *toklist;
 

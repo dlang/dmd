@@ -48,10 +48,6 @@
 #define STATIC  static
 #endif
 
-#ifndef CEXTERN
-#define CEXTERN extern
-#endif
-
 // Warnings
 enum WM
 {
@@ -1539,6 +1535,7 @@ enum
 extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
+typedef unsigned goal_t;
 #define GOALnone        0       // evaluate for side effects only
 #define GOALvalue       1       // evaluate for value
 #define GOALflags       2       // evaluate for flags
