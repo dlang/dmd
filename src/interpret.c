@@ -3983,25 +3983,16 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (pthis)
     {   // Member function call
-        Expression *oldpthis;
-        if (pthis->op == TOKthis)
-        {
-            pthis = istate ? istate->localThis : NULL;
-            oldpthis = pthis;
-        }
-        else
-        {
-            if (pthis->op == TOKcomma)
-                pthis = pthis->interpret(istate);
-            if (exceptionOrCantInterpret(pthis))
-                return pthis;
-                // Evaluate 'this'
-            oldpthis = pthis;
-            if (pthis->op != TOKvar)
-                pthis = pthis->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(pthis))
-                return pthis;
-        }
+        if (pthis->op == TOKcomma)
+            pthis = pthis->interpret(istate);
+        if (exceptionOrCantInterpret(pthis))
+            return pthis;
+        // Evaluate 'this'
+        Expression *oldpthis = pthis;
+        if (pthis->op != TOKvar)
+            pthis = pthis->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(pthis))
+            return pthis;
         if (fd->isVirtual())
         {   // Make a virtual function call.
             Expression *thisval = pthis;
