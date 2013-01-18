@@ -967,6 +967,41 @@ void test5978() {
 
 /*************************************************************/
 
+class C1_1369
+{
+    static int calls;
+    void func()
+    {
+        calls++;
+    }
+}
+
+class C2_1369
+{
+    C1_1369 c1_1369;
+
+    this()
+    {
+        c1_1369 = new C1_1369;
+    }
+
+    void func()
+    {
+        __traits(getMember, c1_1369, "func")();
+    }
+}
+
+void test1369()
+{
+    C1_1369 c1_1369 = new C1_1369;
+    __traits(getMember, c1_1369, "func")();
+    assert(C1_1369.calls == 1);
+
+    C2_1369 c2_1369 = new C2_1369;
+    c2_1369.func();
+    assert(C1_1369.calls == 2);
+}
+
 int main()
 {
     test1();
@@ -996,6 +1031,7 @@ int main()
     test7608();
     test7858();
     test5978();
+    test1369();
 
     writeln("Success");
     return 0;
