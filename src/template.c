@@ -5251,18 +5251,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             ta->resolve(loc, sc, &ea, &ta, &sa);
             if (ea)
             {
-                ea = ea->semantic(sc);
-                //printf("-> ea = %s %s\n", Token::toChars(ea->op), ea->toChars());
-                /* This test is to skip substituting a const var with
-                 * its initializer. The problem is the initializer won't
-                 * match with an 'alias' parameter. Instead, do the
-                 * const substitution in TemplateValueParameter::matchArg().
-                 */
-                if (flags & 1) // only used by __traits, must not interpret the args
-                    ea = ea->optimize(WANTvalue);
-                else if (ea->op != TOKvar)
-                    ea = ea->ctfeInterpret();
-                (*tiargs)[j] = ea;
+                goto Lexpr;
             }
             else if (sa)
             {
@@ -5308,11 +5297,19 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         }
         else if (ea)
         {
+        Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             ea = ea->semantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
-            else if (ea->op != TOKvar && ea->op != TOKtuple &&
+            else if (ea->op == TOKvar)
+            {   /* This test is to skip substituting a const var with
+                 * its initializer. The problem is the initializer won't
+                 * match with an 'alias' parameter. Instead, do the
+                 * const substitution in TemplateValueParameter::matchArg().
+                 */
+            }
+            else if (ea->op != TOKtuple &&
                      ea->op != TOKimport && ea->op != TOKtype &&
                      ea->op != TOKfunction && ea->op != TOKerror &&
                      ea->op != TOKthis && ea->op != TOKsuper)
