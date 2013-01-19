@@ -101,32 +101,46 @@ bool findTestParameter(string file, string token, ref string result)
     return true;
 }
 
-bool findOutputParameter(string file, string token, ref string result, string sep)
+bool findOutputParameter(string file, string token, out string result, string sep)
 {
-    auto istart = std.string.indexOf(file, token);
-    if (istart == -1)
-        return false;
+    bool found = false;
 
-    // skips the :, if present
-    if (file[istart] == ':') ++istart;
+    while (true)
+    {
+        auto istart = std.string.indexOf(file, token);
+        if (istart == -1)
+            break;
+        found = true;
 
-    enum embed_sep = "---";
+        // skips the :, if present
+        if (file[istart] == ':') ++istart;
 
-    auto n = std.string.indexOf(file[istart .. $], embed_sep);
-    enforce(n != -1);
-    istart += n + embed_sep.length;
-    while (file[0] == '-') ++istart;
+        enum embed_sep = "---";
 
-    auto iend = std.string.indexOf(file[istart .. $], embed_sep);
-    enforce(iend != -1);
-    iend += istart;
+        auto n = std.string.indexOf(file[istart .. $], embed_sep);
+        enforce(n != -1);
+        istart += n + embed_sep.length;
+        while (file[istart] == '-') ++istart;
+        if (file[istart] == '\r') ++istart;
+        if (file[istart] == '\n') ++istart;
 
-    auto str = file[istart .. iend];
-    str = std.string.strip(str);
-    str = str.unifyNewLine().unifyDirSep(sep);
+        auto iend = std.string.indexOf(file[istart .. $], embed_sep);
+        enforce(iend != -1);
+        iend += istart;
 
-    result = str ? str : ""; // keep non-null
-    return true;
+        result ~= file[istart .. iend];
+
+        while (file[iend] == '-') ++iend;
+        file = file[iend .. $];
+    }
+
+    if (found)
+    {
+        result = std.string.strip(result);
+        result = result.unifyNewLine().unifyDirSep(sep);
+        result = result ? result : ""; // keep non-null
+    }
+    return found;
 }
 
 void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
