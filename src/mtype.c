@@ -5819,13 +5819,13 @@ void TypeFunction::purityLevel()
                 Type *t = fparam->type->toBasetype();
                 if (!t->hasPointers())
                     continue;
-                if (t->mod & (MODimmutable | MODwild))
+                if (t->mod & MODimmutable)
                     continue;
                 /* The rest of this is too strict; fix later.
                  * For example, the only pointer members of a struct may be immutable,
                  * which would maintain strong purity.
                  */
-                if (t->mod & MODconst)
+                if (t->mod & (MODconst | MODwild))
                 {   tf->purity = PUREconst;
                     continue;
                 }
@@ -5835,9 +5835,9 @@ void TypeFunction::purityLevel()
                     if (tn->ty == Tpointer || tn->ty == Tarray)
                     {   /* Accept immutable(T)* and immutable(T)[] as being strongly pure
                          */
-                        if (tn->mod & (MODimmutable | MODwild))
+                        if (tn->mod & MODimmutable)
                             continue;
-                        if (tn->mod & MODconst)
+                        if (tn->mod & (MODconst | MODwild))
                         {   tf->purity = PUREconst;
                             continue;
                         }
