@@ -761,12 +761,10 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
 
     // See if we can convert a comdat to a comdef,
     // which saves on exe file space.
-    if (s->Sclass == SCcomdat &&
-        s->Sdt->dt == DT_azeros &&
-        s->Sdt->DTnext == NULL)
+    if (s->Sclass == SCcomdat && dtallzeros(s->Sdt))
     {
         s->Sclass = SCglobal;
-        s->Sdt->dt = DT_common;
+        dt2common(&s->Sdt);
     }
 
     outdata(s);

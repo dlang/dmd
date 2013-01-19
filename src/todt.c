@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -197,8 +197,6 @@ dt_t *ArrayInitializer::toDt()
         return toDtBit();
 
     Dts dts;
-    unsigned size;
-    unsigned length;
     dt_t *dt;
     dt_t *d;
     dt_t **pdtend;
@@ -207,20 +205,18 @@ dt_t *ArrayInitializer::toDt()
     dts.setDim(dim);
     dts.zero();
 
-    size = tn->size();
+    unsigned size = tn->size();
 
-    length = 0;
+    unsigned length = 0;
     for (size_t i = 0; i < index.dim; i++)
-    {   Expression *idx;
-        Initializer *val;
-
-        idx = index[i];
+    {
+        Expression *idx = index[i];
         if (idx)
             length = idx->toInteger();
         //printf("\tindex[%d] = %p, length = %u, dim = %u\n", i, idx, length, dim);
 
         assert(length < dim);
-        val = value[i];
+        Initializer *val = value[i];
         dt = val->toDt();
         if (dts[length])
             error(loc, "duplicate initializations for index %d", length);
@@ -253,7 +249,7 @@ dt_t *ArrayInitializer::toDt()
     switch (tb->ty)
     {
         case Tsarray:
-        {   unsigned tadim;
+        {   size_t tadim;
             TypeSArray *ta = (TypeSArray *)tb;
 
             tadim = ta->dim->toInteger();
@@ -689,7 +685,7 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                     error("zero length array %s has non-zero length initializer", v->toChars());
                 }
 
-                unsigned dim = 1;
+                size_t dim = 1;
                 Type *vt;
                 for (vt = v->type->toBasetype();
                      vt->ty == Tsarray;
@@ -750,8 +746,7 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 dt_t **VarExp::toDt(dt_t **pdt)
 {
     //printf("VarExp::toDt() %d\n", op);
-    for (; *pdt; pdt = &((*pdt)->DTnext))
-        ;
+    pdt = dtend(pdt);
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v && v->isConst() && type->toBasetype()->ty != Tsarray && v->init)
@@ -966,14 +961,13 @@ dt_t **TypeSArray::toDt(dt_t **pdt)
 
 dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
 {
-    unsigned len;
+    size_t len;
 
     //printf("TypeSArray::toDtElem()\n");
     len = dim->toInteger();
     if (len)
     {
-        while (*pdt)
-            pdt = &((*pdt)->DTnext);
+        pdt = dtend(pdt);
         Type *tnext = next;
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
@@ -991,25 +985,15 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             len /= ((StringExp *)e)->len;
         if (e->op == TOKarrayliteral)
             len /= ((ArrayLiteralExp *)e)->elements->dim;
-        if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
-        {
-            (*pdt)->DTazeros *= len;
-            pdt = &((*pdt)->DTnext);
-        }
-        else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
-        {
-            (*pdt)->dt = DT_azeros;
-            (*pdt)->DTazeros = len;
-            pdt = &((*pdt)->DTnext);
-        }
+        if (dtallzeros(*pdt))
+            pdt = dtnzeros(pdt, dt_size(*pdt) * (len - 1));
         else
         {
             for (size_t i = 1; i < len; i++)
             {
                 if (tbn->ty == Tstruct)
                 {   pdt = tnext->toDt(pdt);
-                    while (*pdt)
-                        pdt = &((*pdt)->DTnext);
+                    pdt = dtend(pdt);
                 }
                 else
                     pdt = e->toDt(pdt);
@@ -1031,8 +1015,7 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
     {
         dt_t *dt = sym->init->toDt();
 
-        while (*pdt)
-            pdt = &((*pdt)->DTnext);
+        pdt = dtend(pdt);
         *pdt = dt;
         return pdt;
     }

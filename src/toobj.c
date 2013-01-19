@@ -991,12 +991,11 @@ void StructDeclaration::toObjFile(int multiobj)
             // which saves on exe file space.
             if (sinit->Sclass == SCcomdat &&
                 sinit->Sdt &&
-                sinit->Sdt->dt == DT_azeros &&
-                sinit->Sdt->DTnext == NULL &&
+                dtallzeros(sinit->Sdt) &&
                 !global.params.multiobj)
             {
                 sinit->Sclass = SCglobal;
-                sinit->Sdt->dt = DT_common;
+                dt2common(&sinit->Sdt);
             }
 #endif
 
@@ -1131,11 +1130,10 @@ void VarDeclaration::toObjFile(int multiobj)
         // which saves on exe file space.
         if (s->Sclass == SCcomdat &&
             s->Sdt &&
-            s->Sdt->dt == DT_azeros &&
-            s->Sdt->DTnext == NULL)
+            dtallzeros(s->Sdt))
         {
             s->Sclass = SCglobal;
-            s->Sdt->dt = DT_common;
+            dt2common(&s->Sdt);
         }
 
         if (!sz && type->toBasetype()->ty != Tsarray)
