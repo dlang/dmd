@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2010 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -31,7 +31,7 @@ static dt_t *dt_freelist;
  * Allocate a data definition struct.
  */
 
-dt_t *dt_calloc(char dtx)
+static dt_t *dt_calloc(int dtx)
 {
     dt_t *dt;
     static dt_t dtzero;
@@ -86,14 +86,20 @@ void dt_term()
     }
 #endif
 }
-
+
+dt_t **dtend(dt_t **pdtend)
+{
+    while (*pdtend)
+        pdtend = &((*pdtend)->DTnext);
+    return pdtend;
+}
 
 /**********************
  * Construct a DT_azeros record, and return it.
  * Increment dsout.
  */
 
-dt_t **dtnzeros(dt_t **pdtend,targ_size_t size)
+dt_t **dtnzeros(dt_t **pdtend,unsigned size)
 {   dt_t *dt;
 
     //printf("dtnzeros(x%x)\n",size);
@@ -126,17 +132,14 @@ void dtsymsize(symbol *s)
  * Construct a DTnbytes record, and return it.
  */
 
-dt_t ** dtnbytes(dt_t **pdtend,targ_size_t size,const char *ptr)
+dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
 {   dt_t *dt;
 
     while (*pdtend)
         pdtend = &((*pdtend)->DTnext);
     if (size)
-    {   if (size == 1)
-        {   dt = dt_calloc(DT_1byte);
-            dt->DTonebyte = *ptr;
-        }
-        else if (size <= 7)
+    {
+        if (size <= 7)
         {   dt = dt_calloc(DT_ibytes);
             dt->DTn = size;
             memcpy(dt->DTdata,ptr,size);
@@ -158,7 +161,7 @@ dt_t ** dtnbytes(dt_t **pdtend,targ_size_t size,const char *ptr)
  * Construct a DTabytes record, and return it.
  */
 
-dt_t **dtabytes(dt_t **pdtend,tym_t ty, targ_size_t offset, targ_size_t size, const char *ptr)
+dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr)
 {   dt_t *dt;
 
     while (*pdtend)
@@ -197,7 +200,7 @@ dt_t ** dtdword(dt_t **pdtend, int value)
     return pdtend;
 }
 
-dt_t ** dtsize_t(dt_t **pdtend, targ_size_t value)
+dt_t ** dtsize_t(dt_t **pdtend, unsigned long long value)
 {   dt_t *dt;
 
     while (*pdtend)
@@ -233,7 +236,7 @@ dt_t ** dtcat(dt_t **pdtend,dt_t *dt)
  * Construct a DTcoff record, and return it.
  */
 
-dt_t ** dtcoff(dt_t **pdtend,targ_size_t offset)
+dt_t ** dtcoff(dt_t **pdtend,unsigned offset)
 {   dt_t *dt;
 
     while (*pdtend)
@@ -254,7 +257,7 @@ dt_t ** dtcoff(dt_t **pdtend,targ_size_t offset)
  * Construct a DTxoff record, and return it.
  */
 
-dt_t ** dtxoff(dt_t **pdtend,symbol *s,targ_size_t offset,tym_t ty)
+dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
 {   dt_t *dt;
 
     symbol_debug(s);
@@ -283,41 +286,17 @@ void dt_optimize(dt_t *dt)
             dtn = dt->DTnext;
             if (!dtn)
                 break;
-            switch (dt->dt)
+            if (dt->dt == DT_azeros)
             {
-                case DT_azeros:
-                    if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
-                    {
-                        dt->DTazeros += 1;
-                        goto L1;
-                    }
-                    else if (dtn->dt == DT_azeros)
-                    {
-                        dt->DTazeros += dtn->DTazeros;
-                        goto L1;
-                    }
-                    break;
-
-                case DT_1byte:
-                    if (dt->DTonebyte == 0)
-                    {
-                        if (dtn->dt == DT_1byte && dtn->DTonebyte == 0)
-                        {
-                            dt->DTazeros = 2;
-                            goto L1;
-                        }
-                        else if (dtn->dt == DT_azeros)
-                        {
-                            dt->DTazeros = 1 + dtn->DTazeros;
-                         L1:
-                            dt->dt = DT_azeros;
-                            dt->DTnext = dtn->DTnext;
-                            dtn->DTnext = NULL;
-                            dt_free(dtn);
-                            dtn = dt;
-                        }
-                    }
-                    break;
+                if (dtn->dt == DT_azeros)
+                {
+                    dt->DTazeros += dtn->DTazeros;
+                    dt->dt = DT_azeros;
+                    dt->DTnext = dtn->DTnext;
+                    dtn->DTnext = NULL;
+                    dt_free(dtn);
+                    dtn = dt;
+                }
             }
         }
     }
@@ -339,12 +318,10 @@ void init_common(symbol *s)
  * Compute size of a dt
  */
 
-unsigned dt_size(dt_t *dtstart)
-{   dt_t *dt;
-    unsigned datasize;
-
-    datasize = 0;
-    for (dt = dtstart; dt; dt = dt->DTnext)
+unsigned dt_size(const dt_t *dtstart)
+{
+    unsigned datasize = 0;
+    for (const dt_t *dt = dtstart; dt; dt = dt->DTnext)
     {
         switch (dt->dt)
         {   case DT_abytes:
@@ -366,9 +343,6 @@ unsigned dt_size(dt_t *dtstart)
             case DT_coff:
                 datasize += size(dt->Dty);
                 break;
-            case DT_1byte:
-                datasize++;
-                break;
             default:
 #ifdef DEBUG
                 dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
@@ -377,6 +351,25 @@ unsigned dt_size(dt_t *dtstart)
         }
     }
     return datasize;
+}
+
+/************************************
+ * Return true if dt is all zeros.
+ */
+
+bool dtallzeros(const dt_t *dt)
+{
+    return dt->dt == DT_azeros && !dt->DTnext;
+}
+
+/***********************************
+ * Turn DT_azeros into DTcommon
+ */
+
+void dt2common(dt_t **pdt)
+{
+    assert((*pdt)->dt == DT_azeros);
+    (*pdt)->dt = DT_common;
 }
 
 #endif /* !SPP */
