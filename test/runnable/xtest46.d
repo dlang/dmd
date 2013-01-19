@@ -4973,7 +4973,7 @@ class Derived3282 : Base3282
     {
         return "Derived.f()";
     }
-    override string f() const
+  /*override*/ string f() const
     {
         return "Derived.f() const";
     }
@@ -4999,7 +4999,7 @@ class C7534
 class D7534 : C7534
 {
     override int foo(){ return 2; }
-    override int foo() const { return 3; }
+  /*override*/ int foo() const { return 3; }
     // Error: D.foo multiple overrides of same function
 }
 void test7534()
@@ -5034,7 +5034,7 @@ class V7534
 class W7534 : V7534
 {
     override Y7534 foo(){ return new Y7534(1); }
-    override Y7534 foo() const { return new Y7534(2); }
+  /*override*/ Y7534 foo() const { return new Y7534(2); }
 }
 
 void test7534cov()
