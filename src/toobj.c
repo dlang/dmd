@@ -1250,12 +1250,11 @@ void VarDeclaration::toObjFile(int multiobj)
         // which saves on exe file space.
         if (s->Sclass == SCcomdat &&
             s->Sdt &&
-            s->Sdt->dt == DT_azeros &&
-            s->Sdt->DTnext == NULL &&
+            dtallzeros(s->Sdt) &&
             !isThreadlocal())
         {
             s->Sclass = SCglobal;
-            s->Sdt->dt = DT_common;
+            dt2common(&s->Sdt);
         }
 
         if (!sz && type->toBasetype()->ty != Tsarray)

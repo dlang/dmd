@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -755,8 +755,7 @@ dt_t **SymOffExp::toDt(dt_t **pdt)
 dt_t **VarExp::toDt(dt_t **pdt)
 {
     //printf("VarExp::toDt() %d\n", op);
-    for (; *pdt; pdt = &((*pdt)->DTnext))
-        ;
+    pdt = dtend(pdt);
 
     VarDeclaration *v = var->isVarDeclaration();
     if (v && (v->isConst() || v->isImmutable()) &&
@@ -1013,8 +1012,7 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
     len = dim->toInteger();
     if (len)
     {
-        while (*pdt)
-            pdt = &((*pdt)->DTnext);
+        pdt = dtend(pdt);
         Type *tnext = next;
         Type *tbn = tnext->toBasetype();
         while (tbn->ty == Tsarray && (!e || tbn != e->type->nextOf()))
@@ -1032,25 +1030,15 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             len /= ((StringExp *)e)->len;
         if (e->op == TOKarrayliteral)
             len /= ((ArrayLiteralExp *)e)->elements->dim;
-        if ((*pdt)->dt == DT_azeros && !(*pdt)->DTnext)
-        {
-            (*pdt)->DTazeros *= len;
-            pdt = &((*pdt)->DTnext);
-        }
-        else if ((*pdt)->dt == DT_1byte && (*pdt)->DTonebyte == 0 && !(*pdt)->DTnext)
-        {
-            (*pdt)->dt = DT_azeros;
-            (*pdt)->DTazeros = len;
-            pdt = &((*pdt)->DTnext);
-        }
+        if (dtallzeros(*pdt))
+            pdt = dtnzeros(pdt, dt_size(*pdt) * (len - 1));
         else
         {
             for (size_t i = 1; i < len; i++)
             {
                 if (tbn->ty == Tstruct)
                 {   pdt = tnext->toDt(pdt);
-                    while (*pdt)
-                        pdt = &((*pdt)->DTnext);
+                    pdt = dtend(pdt);
                 }
                 else
                     pdt = e->toDt(pdt);
@@ -1072,8 +1060,7 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
     {
         dt_t *dt = sym->init->toDt();
 
-        while (*pdt)
-            pdt = &((*pdt)->DTnext);
+        pdt = dtend(pdt);
         *pdt = dt;
         return pdt;
     }
