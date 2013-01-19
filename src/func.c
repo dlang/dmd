@@ -1022,8 +1022,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     arg->ident = id = Identifier::generateId("_param_", i);
                 }
                 Type *vtype = arg->type;
-                //if (isPure())
-                    //vtype = vtype->addMod(MODconst);
                 VarDeclaration *v = new VarDeclaration(loc, vtype, id, NULL);
                 //printf("declaring parameter %s of type %s\n", v->toChars(), v->type->toChars());
                 v->storage_class |= STCparameter;
@@ -1798,8 +1796,6 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             Type *thandle = ad->handle;
             thandle = thandle->addMod(type->mod);
             thandle = thandle->addStorageClass(storage_class);
-            //if (isPure())
-                //thandle = thandle->addMod(MODconst);
             v = new ThisDeclaration(loc, thandle);
             //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
             v->storage_class |= STCparameter;
