@@ -39,7 +39,7 @@
  *      loc             location to use for error printing
  */
 
-void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int pickAny), void *base, size_t buflen, char *module_name, Loc loc)
+void scanMSCoffObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int pickAny), void *base, size_t buflen, const char *module_name, Loc loc)
 {
 #if LOG
     printf("scanMSCoffObjModule(%s)\n", module_name);
