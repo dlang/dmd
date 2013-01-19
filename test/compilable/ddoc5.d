@@ -7,7 +7,7 @@
   Test module
 
 */
-module test;
+module ddoc5;
 
 /// class to test DDOC on members
 class TestMembers(TemplateArg)

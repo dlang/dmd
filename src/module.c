@@ -181,6 +181,18 @@ void Module::setDocfile()
         argdoc = global.params.docname;
     else if (global.params.preservePaths)
         argdoc = (char *)arg;
+    else if (md)
+    {
+        const char* path = "";
+        if (md->packages)
+        {
+            for (size_t i = 0; i < md->packages->dim; i++)
+            {   Identifier *pid = (*(md->packages))[i];
+                path = FileName::combine(path, pid->toChars());
+            }
+        }
+        argdoc = FileName::combine(path, md->id->toChars());
+    }
     else
         argdoc = FileName::name((char *)arg);
     if (!FileName::absolute(argdoc))
@@ -601,6 +613,7 @@ void Module::parse()
     srcfile->len = 0;
 
     md = p.md;
+    setDocfile();
     numlines = p.loc.linnum;
 
     DsymbolTable *dst;
