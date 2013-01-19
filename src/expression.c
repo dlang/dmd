@@ -8210,43 +8210,6 @@ Lagain:
             printf("e1 = %s\n", e1->toChars());
             printf("e1->type = %s\n", e1->type->toChars());
 #endif
-            // Const member function can take const/immutable/mutable/inout this
-            if (!(f->type->isConst()))
-            {
-                // Check for const/immutable compatibility
-                Type *tthis = ue->e1->type->toBasetype();
-                if (tthis->ty == Tpointer)
-                    tthis = tthis->nextOf()->toBasetype();
-#if 0   // this checking should have been already done
-                if (f->type->isImmutable())
-                {
-                    if (tthis->mod != MODimmutable)
-                        error("%s can only be called with an immutable object", e1->toChars());
-                }
-                else if (f->type->isShared())
-                {
-                    if (tthis->mod != MODimmutable &&
-                        tthis->mod != MODshared &&
-                        tthis->mod != (MODshared | MODconst))
-                        error("shared %s can only be called with a shared or immutable object", e1->toChars());
-                }
-                else
-                {
-                    if (tthis->mod != 0)
-                    {   //printf("mod = %x\n", tthis->mod);
-                        error("%s can only be called with a mutable object, not %s", e1->toChars(), tthis->toChars());
-                    }
-                }
-#endif
-                /* Cannot call mutable method on a final struct
-                 */
-                if (tthis->ty == Tstruct &&
-                    ue->e1->op == TOKvar)
-                {   VarExp *v = (VarExp *)ue->e1;
-                    if (v->var->storage_class & STCfinal)
-                        error("cannot call mutable method on final struct");
-                }
-            }
 
             // See if we need to adjust the 'this' pointer
             AggregateDeclaration *ad = f->isThis();
