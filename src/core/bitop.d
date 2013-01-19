@@ -73,9 +73,34 @@ unittest
 
 /**
  * Tests the bit.
+ * (No longer an intrisic - the compiler recognizes the patterns
+ * in the body.)
  */
-int bt(in size_t* p, size_t bitnum) pure;
+@system
+{
+int bt(in size_t* p, size_t bitnum) pure
+{
+    static if (size_t.sizeof == 8)
+        return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+    else static if (size_t.sizeof == 4)
+        return ((p[bitnum >> 5] & (1  << (bitnum & 31)))) != 0;
+    else
+        static assert(0);
+}
 
+unittest
+{
+    size_t array[2];
+
+    array[0] = 2;
+    array[1] = 0x100;
+
+
+    assert(bt(array.ptr, 1));
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
+}
+}
 
 /**
  * Tests and complements the bit.
@@ -176,10 +201,6 @@ unittest
     }
 
     assert(btr(array.ptr, 35));
-    assert(array[0] == 2);
-    assert(array[1] == 0x100);
-
-    assert(bt(array.ptr, 1));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 }
