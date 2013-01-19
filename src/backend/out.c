@@ -247,9 +247,6 @@ void outdata(symbol *s)
             case DT_coff:
                 datasize += size(dt->Dty);
                 break;
-            case DT_1byte:
-                datasize++;
-                break;
             default:
 #ifdef DEBUG
                 dbg_printf("dt = %p, dt = %d\n",dt,dt->dt);
@@ -417,9 +414,6 @@ void outdata(symbol *s)
             case DT_coff:
                 objmod->reftocodeseg(seg,offset,dt->DToffset);
                 offset += intsize;
-                break;
-            case DT_1byte:
-                objmod->byte(seg,offset++,dt->DTonebyte);
                 break;
             default:
 #ifdef DEBUG
