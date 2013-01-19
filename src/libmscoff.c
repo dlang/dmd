@@ -375,21 +375,21 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
         Header *flm = NULL;     // first linker member
 
         Header *slm = NULL;     // second linker member
-        unsigned long number_of_members = 0;
-        unsigned long *member_file_offsets = NULL;
-        unsigned long number_of_symbols = 0;
+        unsigned number_of_members = 0;
+        unsigned *member_file_offsets = NULL;
+        unsigned number_of_symbols = 0;
         unsigned short *indices = NULL;
         char *string_table = NULL;
-        unsigned long string_table_length = 0;
+        size_t string_table_length = 0;
 
         Header *lnm = NULL;     // longname member
         char *longnames = NULL;
         size_t longnames_length = 0;
 
-        unsigned offset = 8;
+        size_t offset = 8;
         char *symtab = NULL;
         unsigned symtab_size = 0;
-        unsigned mstart = objmodules.dim;
+        size_t mstart = objmodules.dim;
         while (1)
         {
             offset = (offset + 1) & ~1;         // round to even boundary
@@ -428,7 +428,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
                         goto Lcorrupt;
                     }
                     number_of_members = sgetl((char *)buf + offset);
-                    member_file_offsets = (unsigned long *)((char *)buf + offset + 4);
+                    member_file_offsets = (unsigned *)((char *)buf + offset + 4);
                     if (size < 4 + number_of_members * 4 + 4)
                     {   reason = __LINE__;
                         goto Lcorrupt;
@@ -445,7 +445,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
                     /* The number of strings in the string_table must be number_of_symbols; check it
                      * The strings must also be in ascending lexical order; not checked.
                      */
-                    unsigned long i = 0;
+                    size_t i = 0;
                     for (unsigned n = 0; n < number_of_symbols; n++)
                     {
                         while (1)
@@ -563,7 +563,7 @@ void LibMSCoff::addObject(const char *module_name, void *buf, size_t buflen)
             {   reason = __LINE__;
                 goto Lcorrupt;
             }
-            unsigned long moff = member_file_offsets[memi];
+            unsigned moff = member_file_offsets[memi];
             for (unsigned m = mstart; 1; m++)
             {   if (m == objmodules.dim)
                 {   reason = __LINE__;
@@ -676,7 +676,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Determine string table length ******************/
 
-    unsigned slength = 0;
+    size_t slength = 0;
 
     for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
@@ -686,17 +686,17 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Offset of first module ***********************/
 
-    unsigned moffset = 8;       // signature
+    size_t moffset = 8;       // signature
 
-    unsigned firstLinkerMemberOffset = moffset;
+    size_t firstLinkerMemberOffset = moffset;
     moffset += sizeof(Header) + 4 + objsymbols.dim * 4 + slength;       // 1st Linker Member
     moffset += moffset & 1;
 
-    unsigned secondLinkerMemberOffset = moffset;
+    size_t secondLinkerMemberOffset = moffset;
     moffset += sizeof(Header) + 4 + objmodules.dim * 4 + 4 + objsymbols.dim * 2 + slength;
     moffset += moffset & 1;
 
-    unsigned LongnamesMemberOffset = moffset;
+    size_t LongnamesMemberOffset = moffset;
     moffset += sizeof(Header) + noffset;                        // Longnames Member size
 
 #if LOG
@@ -749,7 +749,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     // Sort objsymbols[] in module offset order
     qsort(objsymbols.data, objsymbols.dim, sizeof(objsymbols.data[0]), &ObjSymbol_offset_cmp);
 
-    unsigned long lastoffset;
+    unsigned lastoffset;
     for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
@@ -863,7 +863,7 @@ void LibMSCoff::WriteLibToBuffer(OutBuffer *libbuf)
     }
 
 #if LOG
-    printf("moffset = x%x, libbuf->offset = x%x\n", moffset, libbuf->offset);
+    printf("moffset = x%x, libbuf->offset = x%x\n", (unsigned)moffset, (unsigned)libbuf->offset);
 #endif
     assert(libbuf->offset == moffset);
 }
