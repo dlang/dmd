@@ -144,6 +144,12 @@ Type::Type(TY ty)
     this->ctype = NULL;
 }
 
+const char *Type::kind()
+{
+    assert(false); // should be overridden
+    return NULL;
+}
+
 Type *Type::syntaxCopy()
 {
     print();
@@ -2702,6 +2708,11 @@ TypeBasic::TypeBasic(TY ty)
     merge();
 }
 
+const char *TypeBasic::kind()
+{
+    return dstring;
+}
+
 Type *TypeBasic::syntaxCopy()
 {
     // No semantic analysis done on basic types, no need to copy
@@ -3377,6 +3388,11 @@ TypeVector::TypeVector(Loc loc, Type *basetype)
     this->basetype = basetype;
 }
 
+const char *TypeVector::kind()
+{
+    return "vector";
+}
+
 Type *TypeVector::syntaxCopy()
 {
     return new TypeVector(0, basetype->syntaxCopy());
@@ -3652,6 +3668,11 @@ TypeSArray::TypeSArray(Type *t, Expression *dim)
 {
     //printf("TypeSArray(%s)\n", dim->toChars());
     this->dim = dim;
+}
+
+const char *TypeSArray::kind()
+{
+    return "sarray";
 }
 
 Type *TypeSArray::syntaxCopy()
@@ -4157,6 +4178,11 @@ TypeDArray::TypeDArray(Type *t)
     //printf("TypeDArray(t = %p)\n", t);
 }
 
+const char *TypeDArray::kind()
+{
+    return "darray";
+}
+
 Type *TypeDArray::syntaxCopy()
 {
     Type *t = next->syntaxCopy();
@@ -4379,6 +4405,11 @@ TypeAArray::TypeAArray(Type *t, Type *index)
     this->impl = NULL;
     this->loc = 0;
     this->sc = NULL;
+}
+
+const char *TypeAArray::kind()
+{
+    return "aarray";
 }
 
 Type *TypeAArray::syntaxCopy()
@@ -4788,6 +4819,11 @@ TypePointer::TypePointer(Type *t)
 {
 }
 
+const char *TypePointer::kind()
+{
+    return "pointer";
+}
+
 Type *TypePointer::syntaxCopy()
 {
     Type *t = next->syntaxCopy();
@@ -4956,6 +4992,11 @@ TypeReference::TypeReference(Type *t)
     // BUG: what about references to static arrays?
 }
 
+const char *TypeReference::kind()
+{
+    return "reference";
+}
+
 Type *TypeReference::syntaxCopy()
 {
     Type *t = next->syntaxCopy();
@@ -5055,6 +5096,11 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
         this->trust = TRUSTsystem;
     if (stc & STCtrusted)
         this->trust = TRUSTtrusted;
+}
+
+const char *TypeFunction::kind()
+{
+    return "function";
 }
 
 Type *TypeFunction::syntaxCopy()
@@ -6282,6 +6328,11 @@ TypeDelegate::TypeDelegate(Type *t)
     ty = Tdelegate;
 }
 
+const char *TypeDelegate::kind()
+{
+    return "delegate";
+}
+
 Type *TypeDelegate::syntaxCopy()
 {
     Type *t = next->syntaxCopy();
@@ -6701,6 +6752,11 @@ TypeIdentifier::TypeIdentifier(Loc loc, Identifier *ident)
     this->ident = ident;
 }
 
+const char *TypeIdentifier::kind()
+{
+    return "identifier";
+}
+
 
 Type *TypeIdentifier::syntaxCopy()
 {
@@ -6875,6 +6931,11 @@ TypeInstance::TypeInstance(Loc loc, TemplateInstance *tempinst)
     this->tempinst = tempinst;
 }
 
+const char *TypeInstance::kind()
+{
+    return "instance";
+}
+
 Type *TypeInstance::syntaxCopy()
 {
     //printf("TypeInstance::syntaxCopy() %s, %d\n", toChars(), idents.dim);
@@ -7014,6 +7075,11 @@ TypeTypeof::TypeTypeof(Loc loc, Expression *exp)
 {
     this->exp = exp;
     inuse = 0;
+}
+
+const char *TypeTypeof::kind()
+{
+    return "typeof";
 }
 
 Type *TypeTypeof::syntaxCopy()
@@ -7199,6 +7265,11 @@ TypeReturn::TypeReturn(Loc loc)
 {
 }
 
+const char *TypeReturn::kind()
+{
+    return "return";
+}
+
 Type *TypeReturn::syntaxCopy()
 {
     TypeReturn *t = new TypeReturn(loc);
@@ -7280,6 +7351,11 @@ TypeEnum::TypeEnum(EnumDeclaration *sym)
         : Type(Tenum)
 {
     this->sym = sym;
+}
+
+const char *TypeEnum::kind()
+{
+    return "enum";
 }
 
 char *TypeEnum::toChars()
@@ -7550,6 +7626,11 @@ TypeTypedef::TypeTypedef(TypedefDeclaration *sym)
         : Type(Ttypedef)
 {
     this->sym = sym;
+}
+
+const char *TypeTypedef::kind()
+{
+    return "typedef";
 }
 
 Type *TypeTypedef::syntaxCopy()
@@ -7830,6 +7911,11 @@ TypeStruct::TypeStruct(StructDeclaration *sym)
         : Type(Tstruct)
 {
     this->sym = sym;
+}
+
+const char *TypeStruct::kind()
+{
+    return "struct";
 }
 
 char *TypeStruct::toChars()
@@ -8372,6 +8458,11 @@ TypeClass::TypeClass(ClassDeclaration *sym)
         : Type(Tclass)
 {
     this->sym = sym;
+}
+
+const char *TypeClass::kind()
+{
+    return "class";
 }
 
 char *TypeClass::toChars()
@@ -8981,6 +9072,11 @@ TypeTuple::TypeTuple(Type *t1, Type *t2)
     arguments->push(new Parameter(0, t2, NULL, NULL));
 }
 
+const char *TypeTuple::kind()
+{
+    return "tuple";
+}
+
 Type *TypeTuple::syntaxCopy()
 {
     Parameters *args = Parameter::arraySyntaxCopy(arguments);
@@ -9127,6 +9223,11 @@ TypeSlice::TypeSlice(Type *next, Expression *lwr, Expression *upr)
     this->upr = upr;
 }
 
+const char *TypeSlice::kind()
+{
+    return "slice";
+}
+
 Type *TypeSlice::syntaxCopy()
 {
     Type *t = new TypeSlice(next->syntaxCopy(), lwr->syntaxCopy(), upr->syntaxCopy());
@@ -9253,6 +9354,11 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
 TypeNull::TypeNull()
         : Type(Tnull)
 {
+}
+
+const char *TypeNull::kind()
+{
+    return "null";
 }
 
 Type *TypeNull::syntaxCopy()
