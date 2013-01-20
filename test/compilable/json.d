@@ -5,3 +5,7 @@
 struct X;
 
 enum Y;
+
+// 3404
+alias int myInt;
+myInt x;
