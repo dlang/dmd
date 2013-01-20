@@ -1229,6 +1229,11 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
         if (!aggr->type)
             goto Lerr;
 
+        if (aggr->op == TOKtuple && ((TupleExp *)aggr)->isTypeTupleof)
+        {
+            error(".tupleof of a type cannot be used as a foreach expression. Wrap it inside a typeof() if intended.");
+            goto Lerr;
+        }
         tab = aggr->type->toBasetype();
         switch (tab->ty)
         {

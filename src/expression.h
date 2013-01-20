@@ -416,7 +416,7 @@ struct TupleExp : Expression
 {
     Expressions *exps;
 
-    TupleExp(Loc loc, Expressions *exps);
+    TupleExp(Loc loc, Expressions *exps, bool isTypeTupleof = false);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
@@ -431,6 +431,8 @@ struct TupleExp : Expression
 
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
+
+    bool isTypeTupleof;  // true if created as a .tupleof on a Type
 };
 
 struct ArrayLiteralExp : Expression
