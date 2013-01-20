@@ -3922,11 +3922,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
-            if (fd->isPureBypassingInference() == PUREstrong &&
-                !exp->type->implicitConvTo(tret) &&
-                exp->type->invariantOf()->implicitConvTo(tret))
+            if (!exp->type->implicitConvTo(tret) &&
+                fd->parametersIntersect(exp->type))
             {
-                exp = exp->castTo(sc, exp->type->invariantOf());
+                if (exp->type->invariantOf()->implicitConvTo(tret))
+                    exp = exp->castTo(sc, exp->type->invariantOf());
+                else if (exp->type->wildOf()->implicitConvTo(tret))
+                    exp = exp->castTo(sc, exp->type->wildOf());
             }
             if (fd->tintro)
                 exp = exp->implicitCastTo(sc, fd->type->nextOf());

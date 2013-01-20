@@ -3120,6 +3120,168 @@ bool FuncDeclaration::setUnsafe()
     return FALSE;
 }
 
+/**************************************
+ * Returns an indirect type one step from t.
+ */
+
+Type *getIndirection(Type *t)
+{
+    t = t->toBasetype();
+
+    if (t->ty == Tsarray)
+    {   while (t->ty == Tsarray)
+            t = t->nextOf()->toBasetype();
+    }
+    if (t->ty == Tarray || t->ty == Tpointer)
+        return t->nextOf()->toBasetype();
+    if (t->ty == Taarray || t->ty == Tclass)
+        return t;
+    if (t->ty == Tstruct)
+        return t->hasPointers() ? t : NULL; // TODO
+
+    // should consider TypeDelegate?
+    return NULL;
+}
+
+/**************************************
+ * Traverse this and t, and then check the indirections convertibility.
+ */
+
+int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
+{
+    if (a2b)    // check ta appears in tb
+    {
+        //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
+        if (ta->constConv(tb))
+            return 1;
+        else if (ta->invariantOf()->equals(tb->invariantOf()))
+            return 0;
+    }
+    else    // check tb appears in ta
+    {
+        //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
+        if (tb->constConv(ta))
+            return 1;
+        else if (tb->invariantOf()->equals(ta->invariantOf()))
+            return 0;
+    }
+
+    // context date to detect circular look up
+    struct Ctxt
+    {
+        Ctxt *prev;
+        Type *type;
+    };
+    Ctxt *ctxt = (Ctxt *)p;
+
+    Type *tbb = tb->toBasetype();
+    if (tbb != tb)
+        return traverseIndirections(ta, tbb, ctxt, a2b);
+
+    if (tb->ty == Tsarray)
+    {   while (tb->toBasetype()->ty == Tsarray)
+            tb = tb->toBasetype()->nextOf();
+    }
+    if (tb->ty == Tclass || tb->ty == Tstruct)
+    {
+        for (Ctxt *c = ctxt; c; c = c->prev)
+            if (tb == c->type) return 0;
+        Ctxt c;
+        c.prev = ctxt;
+        c.type = tb;
+
+        AggregateDeclaration *sym = tb->toDsymbol(NULL)->isAggregateDeclaration();
+        for (size_t i = 0; i < sym->fields.dim; i++)
+        {
+            VarDeclaration *v = sym->fields[i];
+            Type *tprmi = v->type->addMod(tb->mod);
+            if (!(v->storage_class & STCref))
+                tprmi = getIndirection(tprmi);
+            if (!tprmi)
+                continue;
+
+            //printf("\ttb = %s, tprmi = %s\n", tb->toChars(), tprmi->toChars());
+            if (traverseIndirections(ta, tprmi, &c, a2b))
+                return 1;
+        }
+    }
+    else if (tb->ty == Tarray || tb->ty == Taarray || tb->ty == Tpointer)
+    {
+        Type *tind = tb->nextOf();
+        if (traverseIndirections(ta, tind, ctxt, a2b))
+            return 1;
+    }
+    else if (tb->hasPointers())
+    {
+        // FIXME: function pointer/delegate types should be considered.
+        return 1;
+    }
+    if (a2b)
+        return traverseIndirections(tb, ta, ctxt, false);
+
+    return 0;
+}
+
+/********************************************
+ * Returns true if the function return value has no indirection
+ * which comes from the parameters.
+ */
+
+bool FuncDeclaration::isolateReturn()
+{
+    assert(type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)type;
+    assert(tf->next);
+
+    Type *treti = tf->next;
+    treti = tf->isref ? treti : getIndirection(treti);
+    if (!treti)
+        return true;    // target has no mutable indirection
+    return parametersIntersect(treti);
+}
+
+/********************************************
+ * Returns true if an object typed t can have indirections
+ * which come from the parameters.
+ */
+
+bool FuncDeclaration::parametersIntersect(Type *t)
+{
+    assert(t);
+    if (!isPureBypassingInference() || isNested())
+        return false;
+
+    assert(type->ty == Tfunction);
+    TypeFunction *tf = (TypeFunction *)type;
+
+    //printf("parametersIntersect(%s) t = %s\n", tf->toChars(), t->toChars());
+
+    size_t dim = Parameter::dim(tf->parameters);
+    for (size_t i = 0; i < dim; i++)
+    {
+        Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        if (!fparam->type)
+            continue;
+        Type *tprmi = (fparam->storageClass & (STClazy | STCout | STCref))
+                ? fparam->type : getIndirection(fparam->type);
+        if (!tprmi)
+            continue;   // there is no mutable indirection
+
+        //printf("\t[%d] tprmi = %d %s\n", i, tprmi->ty, tprmi->toChars());
+        if (traverseIndirections(tprmi, t))
+            return false;
+    }
+    if (AggregateDeclaration *ad = isThis())
+    {
+        Type *tthis = ad ? ad->getType()->addMod(tf->mod) : NULL;
+        //printf("\ttthis = %s\n", tthis->toChars());
+        if (traverseIndirections(tthis, t))
+            return false;
+    }
+
+    return true;
+}
+
 // Determine if function needs
 // a static frame pointer to its lexically enclosing function
 

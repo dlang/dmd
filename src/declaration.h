@@ -683,6 +683,8 @@ struct FuncDeclaration : Declaration
     bool isSafeBypassingInference();
     int isTrusted();
     bool setUnsafe();
+    bool isolateReturn();
+    bool parametersIntersect(Type *t);
     virtual int isNested();
     int needThis();
     int isVirtualMethod();
