@@ -356,7 +356,7 @@ void TemplateDeclaration::toJsonBuffer(OutBuffer *buf)
     buf->writestring("{\n");
 
     JsonProperty(buf, Pname, toChars());
-    JsonProperty(buf, Pkind, kind());
+    JsonProperty(buf, Pkind, "template");       // TemplateDeclaration::kind() does something else
 
     if (prot())
         JsonProperty(buf, Pprotection, Pprotectionnames[prot()]);
