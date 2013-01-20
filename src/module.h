@@ -24,7 +24,7 @@ struct ModuleDeclaration;
 struct Macro;
 struct Escape;
 struct VarDeclaration;
-struct Library;
+class Library;
 
 // Back end
 #ifdef IN_GCC
@@ -116,7 +116,8 @@ struct Module : Package
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJsonBuffer(OutBuffer *buf);
     const char *kind();
-    void setDocfile();  // set docfile member
+    File *setOutfile(const char *name, const char *dir, const char *arg, const char *ext);
+    void setDocfile();
     bool read(Loc loc); // read file, returns 'true' if succeed, 'false' otherwise.
     void parse();       // syntactic parse
     void importAll(Scope *sc);
@@ -124,7 +125,6 @@ struct Module : Package
     void semantic2();   // pass 2 semantic analysis
     void semantic3();   // pass 3 semantic analysis
     void inlineScan();  // scan for functions to inline
-    void setHdrfile();  // set hdrfile member
     void genhdrfile();  // generate D import file
     void genobjfile(int multiobj);
     void gensymfile();

@@ -62,7 +62,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
         : Package(ident)
 {
     FileName *srcfilename;
-    FileName *objfilename;
     FileName *symfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
@@ -127,110 +126,70 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
             fatal();
         }
     }
+    srcfile = new File(srcfilename);
 
-    char *argobj;
-    if (global.params.objname)
-        argobj = global.params.objname;
-#if 0
-    else if (global.params.preservePaths)
-        argobj = filename;
-    else
-        argobj = FileName::name(filename);
-    if (!FileName::absolute(argobj))
-    {
-        argobj = FileName::combine(global.params.objdir, argobj);
-    }
-#else // Bugzilla 3547
-    else
-    {
-        if (global.params.preservePaths)
-            argobj = filename;
-        else
-            argobj = FileName::name(filename);
-        if (!FileName::absolute(argobj))
-        {
-            argobj = FileName::combine(global.params.objdir, argobj);
-        }
-    }
-#endif
-
-    if (global.params.objname)
-        objfilename = new FileName(argobj);
-    else
-        objfilename = FileName::forceExt(argobj, global.obj_ext);
+    objfile = setOutfile(global.params.objname, global.params.objdir, filename, global.obj_ext);
 
     symfilename = FileName::forceExt(filename, global.sym_ext);
 
-    srcfile = new File(srcfilename);
-
     if (doDocComment)
-    {
         setDocfile();
-    }
 
     if (doHdrGen)
-    {
-        setHdrfile();
-    }
+        hdrfile = setOutfile(global.params.hdrname, global.params.hdrdir, arg, global.hdr_ext);
 
-    objfile = new File(objfilename);
+    //objfile = new File(objfilename);
     symfile = new File(symfilename);
 }
 
 void Module::setDocfile()
 {
-    FileName *docfilename;
-    char *argdoc;
+    docfile = setOutfile(global.params.docname, global.params.docdir, arg, global.doc_ext);
+}
 
-    if (global.params.docname)
-        argdoc = global.params.docname;
-    else if (global.params.preservePaths)
+/*********************************************
+ * Combines things into output file name for .html and .di files.
+ * Input:
+ *      name    Command line name given for the file, NULL if none
+ *      dir     Command line directory given for the file, NULL if none
+ *      arg     Name of the source file
+ *      ext     File name extension to use if 'name' is NULL
+ *      global.params.preservePaths     get output path from arg
+ *      srcfile Input file - output file name must not match input file
+ */
+
+File *Module::setOutfile(const char *name, const char *dir, const char *arg, const char *ext)
+{
+    const char *argdoc;
+    if (name)
+        argdoc = name;
+    else
+    {
+        if (global.params.preservePaths)
         argdoc = (char *)arg;
     else
         argdoc = FileName::name((char *)arg);
+
+        // If argdoc doesn't have an absolute path, make it relative to dir
     if (!FileName::absolute(argdoc))
-    {   //FileName::ensurePathExists(global.params.docdir);
-        argdoc = FileName::combine(global.params.docdir, argdoc);
+        {   //FileName::ensurePathExists(dir);
+            argdoc = FileName::combine(dir, argdoc);
     }
-    if (global.params.docname)
-        docfilename = new FileName(argdoc);
+    }
+
+    FileName *docfilename;
+    if (name)
+        docfilename = new FileName((char *)argdoc);
     else
-        docfilename = FileName::forceExt(argdoc, global.doc_ext);
+        // 'name' not provided, so force the correct extension
+        docfilename = FileName::forceExt(argdoc, ext);
 
     if (docfilename->equals(srcfile->name))
-    {   error("Source file and documentation file have same name '%s'", srcfile->name->str);
+    {   error("Source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
 
-    docfile = new File(docfilename);
-}
-
-void Module::setHdrfile()
-{
-    FileName *hdrfilename;
-    char *arghdr;
-
-    if (global.params.hdrname)
-        arghdr = global.params.hdrname;
-    else if (global.params.preservePaths)
-        arghdr = (char *)arg;
-    else
-        arghdr = FileName::name((char *)arg);
-    if (!FileName::absolute(arghdr))
-    {   //FileName::ensurePathExists(global.params.hdrdir);
-        arghdr = FileName::combine(global.params.hdrdir, arghdr);
-    }
-    if (global.params.hdrname)
-        hdrfilename = new FileName(arghdr);
-    else
-        hdrfilename = FileName::forceExt(arghdr, global.hdr_ext);
-
-    if (hdrfilename->equals(srcfile->name))
-    {   error("Source file and 'header' file have same name '%s'", srcfile->name->str);
-        fatal();
-    }
-
-    hdrfile = new File(hdrfilename);
+    return new File(docfilename);
 }
 
 void Module::deleteObjFile()
@@ -1175,15 +1134,12 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
             dst = ((Package *)p)->symtab;
             if (ppkg && !*ppkg)
                 *ppkg = (Package *)p;
-#if TARGET_NET
-#else
             if (p->isModule())
             {   // Return the module so that a nice error message can be generated
                 if (ppkg)
                     *ppkg = (Package *)p;
                 break;
             }
-#endif
         }
         if (pparent)
         {
