@@ -3402,7 +3402,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
-            exp = new IntegerExp(0);
+            exp = new ErrorExp();
         }
 
     L1:
