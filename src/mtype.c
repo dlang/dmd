@@ -7899,6 +7899,49 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         buf->writestring(sym->toChars());
 }
 
+/*********************************************
+ * Create a .tupleof expression.
+ * Input:
+ *      e  The expression the .tupleof is called on ('foo.tupleof' -> 'foo')
+ *      ad The aggregate type of the expression 'e' (can be same as 'e' if 'e' is a type)
+ *      sc Scope of the call
+ */
+static Expression *makeTupleOf(Expression *e, AggregateDeclaration *ad, Scope *sc)
+{
+    Expressions *exps = new Expressions;
+    exps->reserve(ad->fields.dim);
+    Expression *ev = e;
+    for (size_t i = 0; i < ad->fields.dim; i++)
+    {   VarDeclaration *v = ad->fields[i];
+        // Don't include hidden 'this' pointer
+        if (v->isThisDeclaration())
+            continue;
+        Expression *fe;
+        if (i == 0 && sc->func && ad->fields.dim > 1 &&
+            e->hasSideEffect())
+        {
+            Identifier *id = Lexer::uniqueId("__tup");
+            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
+            vd->storage_class |= STCctfe | STCref | STCforeach;
+
+            ev = new VarExp(e->loc, vd);
+            fe = new CommaExp(e->loc, new DeclarationExp(e->loc, vd), ev);
+            fe = new DotVarExp(e->loc, fe, v);
+        }
+        else
+            fe = new DotVarExp(ev->loc, ev, v);
+        exps->push(fe);
+    }
+    bool isTypeTupleof = e->op == TOKtype;
+    e = new TupleExp(e->loc, exps, isTypeTupleof);
+    sc = sc->push();
+    sc->noaccesscheck = 1;
+    e = e->semantic(sc);
+    sc->pop();
+    return e;
+}
+
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
     VarDeclaration *v;
@@ -7924,35 +7967,7 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
          */
         e = e->semantic(sc);    // do this before turning on noaccesscheck
         e->type->size();        // do semantic of type
-        Expressions *exps = new Expressions;
-        exps->reserve(sym->fields.dim);
-
-        Expression *ev = e;
-        for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields[i];
-            Expression *fe;
-            if (i == 0 && sc->func && sym->fields.dim > 1 &&
-                e->hasSideEffect())
-            {
-                Identifier *id = Lexer::uniqueId("__tup");
-                ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-                vd->storage_class |= STCctfe | STCref | STCforeach;
-
-                ev = new VarExp(e->loc, vd);
-                fe = new CommaExp(e->loc, new DeclarationExp(e->loc, vd), ev);
-                fe = new DotVarExp(e->loc, fe, v);
-            }
-            else
-                fe = new DotVarExp(ev->loc, ev, v);
-            exps->push(fe);
-        }
-        e = new TupleExp(e->loc, exps);
-        sc = sc->push();
-        sc->noaccesscheck = 1;
-        e = e->semantic(sc);
-        sc->pop();
-        return e;
+        return makeTupleOf(e, sym, sc);
     }
 
     if (e->op == TOKdotexp)
@@ -8460,39 +8475,7 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
          */
         // Detect that error, and at least try to run semantic() on it if we can
         sym->size(e->loc);
-
-        Expressions *exps = new Expressions;
-        exps->reserve(sym->fields.dim);
-
-        Expression *ev = e;
-        for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields[i];
-            // Don't include hidden 'this' pointer
-            if (v->isThisDeclaration())
-                continue;
-            Expression *fe;
-            if (i == 0 && sc->func && sym->fields.dim > 1 &&
-                e->hasSideEffect())
-            {
-                Identifier *id = Lexer::uniqueId("__tup");
-                ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-                vd->storage_class |= STCctfe | STCref | STCforeach;
-
-                ev = new VarExp(e->loc, vd);
-                fe = new CommaExp(e->loc, new DeclarationExp(e->loc, vd), ev);
-                fe = new DotVarExp(e->loc, fe, v);
-            }
-            else
-                fe = new DotVarExp(e->loc, ev, v);
-            exps->push(fe);
-        }
-        e = new TupleExp(e->loc, exps);
-        sc = sc->push();
-        sc->noaccesscheck = 1;
-        e = e->semantic(sc);
-        sc->pop();
-        return e;
+        return makeTupleOf(e, sym, sc);
     }
 
     s = sym->search(e->loc, ident, 0);

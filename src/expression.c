@@ -5273,12 +5273,13 @@ Expression *OverExp::toLvalue(Scope *sc, Expression *e)
 
 /******************************** TupleExp **************************/
 
-TupleExp::TupleExp(Loc loc, Expressions *exps)
+TupleExp::TupleExp(Loc loc, Expressions *exps, bool isTypeTupleof)
         : Expression(loc, TOKtuple, sizeof(TupleExp))
 {
     //printf("TupleExp(this = %p)\n", this);
     this->exps = exps;
     this->type = NULL;
+    this->isTypeTupleof = isTypeTupleof;
 }
 
 
@@ -5287,6 +5288,7 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
 {
     exps = new Expressions();
     type = NULL;
+    isTypeTupleof = false;
 
     exps->reserve(tup->objects->dim);
     for (size_t i = 0; i < tup->objects->dim; i++)
