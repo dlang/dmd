@@ -72,6 +72,54 @@
 }
 ]
 }
+,
+{
+"name" : "Bar4178",
+"kind" : "struct",
+"protection" : "public",
+"line" : 19,
+"members" : [
+{
+"name" : "this",
+"kind" : "constructor",
+"protection" : "public",
+"type" : "ref Bar4178(int i)",
+"originalType" : "Bar4178(int i)",
+"line" : 20}
+,
+{
+"name" : "__postblit",
+"kind" : "function",
+"protection" : "public",
+"type" : "void()",
+"originalType" : "void()",
+"line" : 21}
+,
+{
+"name" : "~this",
+"kind" : "destructor",
+"protection" : "public",
+"type" : "void()",
+"originalType" : "void()",
+"line" : 22}
+,
+{
+"name" : "__cpctor",
+"kind" : "function",
+"protection" : "public",
+"type" : "const void(ref const(Bar4178) p)",
+"originalType" : "const void(ref const(Bar4178) p)",
+"line" : 19}
+,
+{
+"name" : "opAssign",
+"kind" : "function",
+"protection" : "public",
+"type" : "ref Bar4178(Bar4178 p)",
+"originalType" : "ref Bar4178(Bar4178 p)",
+"line" : 19}
+]
+}
 ]
 }
 ]
