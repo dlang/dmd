@@ -3922,10 +3922,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
-            assert(fd->type->ty == Tfunction);
-            TypeFunction *tf = (TypeFunction *)fd->type;
-            if (fd->isPureBypassingInference() != PUREimpure &&
-                !tf->hasMutableIndirectionParams() &&
+            if (fd->isPureBypassingInference() == PUREstrong &&
                 !exp->type->implicitConvTo(tret) &&
                 exp->type->invariantOf()->implicitConvTo(tret))
             {
