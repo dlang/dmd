@@ -72,6 +72,7 @@ struct DeleteDeclaration;
 struct HdrGenState;
 struct OverloadSet;
 struct AA;
+struct JsonOut;
 #ifdef IN_GCC
 union tree_node;
 typedef union tree_node TYPE;
@@ -169,7 +170,7 @@ struct Dsymbol : Object
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
-    virtual void toJsonBuffer(OutBuffer *buf);
+    virtual void toJson(JsonOut *json);
     virtual unsigned size(Loc loc);
     virtual int isforwardRef();
     virtual void defineRef(Dsymbol *s);
