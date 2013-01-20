@@ -13,6 +13,21 @@
 "kind" : "enum",
 "protection" : "public",
 "line" : 7}
+,
+{
+"name" : "myInt",
+"kind" : "alias",
+"protection" : "public",
+"type" : "int",
+"line" : 10}
+,
+{
+"name" : "x",
+"kind" : "variable",
+"protection" : "public",
+"type" : "int",
+"originalType" : "myInt",
+"line" : 11}
 ]
 }
 ]
