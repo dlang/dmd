@@ -28,6 +28,50 @@
 "type" : "int",
 "originalType" : "myInt",
 "line" : 11}
+,
+{
+"name" : "Foo3466(T)",
+"kind" : "template",
+"protection" : "public",
+"line" : 14,
+"members" : [
+{
+"name" : "Foo3466",
+"kind" : "struct",
+"protection" : "public",
+"line" : 14,
+"members" : [
+{
+"name" : "t",
+"kind" : "variable",
+"type" : "T",
+"line" : 14}
+]
+}
+]
+}
+,
+{
+"name" : "Bar3466(T)",
+"kind" : "template",
+"protection" : "public",
+"line" : 15,
+"members" : [
+{
+"name" : "Bar3466",
+"kind" : "class",
+"protection" : "public",
+"line" : 15,
+"members" : [
+{
+"name" : "t",
+"kind" : "variable",
+"type" : "T",
+"line" : 15}
+]
+}
+]
+}
 ]
 }
 ]
