@@ -3401,8 +3401,14 @@ Statement *CaseStatement::semantic(Scope *sc)
 
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
-            error("case must be a string or an integral constant, not %s", exp->toChars());
-            exp = new IntegerExp(0);
+            OutBuffer buf;
+            if (exp->op == TOKfloat32 || exp->op == TOKfloat64 || exp->op == TOKfloat80)
+                buf.printf("%Lf", exp->toReal());
+            else
+                buf.printf("%s", exp->toChars());
+            buf.writebyte(0);
+            error("case must be a string or an integral constant, not %s", (char *)buf.extractData());
+            exp = new ErrorExp();
         }
 
     L1:
