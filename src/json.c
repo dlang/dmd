@@ -267,6 +267,9 @@ void Declaration::toJsonBuffer(OutBuffer *buf)
     if (type)
         JsonProperty(buf, Ptype, type->toChars());
 
+    if (originalType && type != originalType)
+        JsonProperty(buf, "originalType", originalType->toChars());
+
     if (comment)
         JsonProperty(buf, Pcomment, (const char *)comment);
 
