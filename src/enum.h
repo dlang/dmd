@@ -61,7 +61,7 @@ struct EnumDeclaration : ScopeDsymbol
     int isDeprecated();                 // is Dsymbol deprecated?
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
@@ -86,7 +86,7 @@ struct EnumMember : Dsymbol
     const char *kind();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }
