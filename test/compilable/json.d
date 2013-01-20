@@ -14,4 +14,12 @@ myInt x;
 struct Foo3466(T) { T t; }
 class  Bar3466(T) { T t; }
 
+// 4178
+
+struct  Bar4178 {
+  this(int i)  { }
+  this(this) { }
+  ~this() { }
+}
+
 
