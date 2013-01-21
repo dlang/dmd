@@ -72,6 +72,7 @@ struct StorageClassDeclaration : AttribDeclaration
     int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    static const char *stcToChars(char tmp[], StorageClass& stc);
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 

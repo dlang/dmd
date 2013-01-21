@@ -472,7 +472,14 @@ void StorageClassDeclaration::semantic(Scope *sc)
     }
 }
 
-void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
+
+/*************************************************
+ * Pick off one of the storage classes from stc,
+ * and return a pointer to a string representation of it.
+ * stc is reduced by the one picked.
+ * tmp[] is a buffer big enough to hold that string.
+ */
+const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
 {
     struct SCstring
     {
@@ -516,20 +523,38 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
 
     for (int i = 0; i < sizeof(table)/sizeof(table[0]); i++)
     {
-        if (stc & table[i].stc)
+        StorageClass tbl = table[i].stc;
+        assert(tbl & STCStorageClass);
+        if (stc & tbl)
         {
+            stc &= ~tbl;
             enum TOK tok = table[i].tok;
 #if DMDV2
             if (tok == TOKat)
             {
-                buf->writeByte('@');
-                buf->writestring(table[i].id->toChars());
+                tmp[0] = '@';
+                strcpy(tmp + 1, table[i].id->toChars());
+                return tmp;
             }
             else
 #endif
-                buf->writestring(Token::toChars(tok));
-            buf->writeByte(' ');
+                return Token::toChars(tok);
         }
+    }
+    //printf("stc = %llx\n", (unsigned long long)stc);
+    return NULL;
+}
+
+void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
+{
+    while (stc)
+    {   char tmp[20];
+        const char *p = stcToChars(tmp, stc);
+        if (!p)
+            break;
+        assert(strlen(p) < sizeof(tmp));
+        buf->writestring(p);
+        buf->writeByte(' ');
     }
 }
 
