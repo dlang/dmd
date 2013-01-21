@@ -132,11 +132,14 @@ else // Win32
     alias ACCESS_MASK *PACCESS_MASK;
     alias ACCESS_MASK REGSAM;
 
-    alias int function() FARPROC;
+    version (Win64)
+        alias INT_PTR function() FARPROC;
+    else
+        alias int function() FARPROC;
 
-    alias UINT WPARAM;
-    alias LONG LPARAM;
-    alias LONG LRESULT;
+    alias UINT_PTR WPARAM;
+    alias LONG_PTR LPARAM;
+    alias LONG_PTR LRESULT;
 
     alias DWORD   COLORREF;
     alias DWORD   *LPCOLORREF;
