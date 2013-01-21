@@ -87,6 +87,12 @@ enum PURE;
 #define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
                                          // and used only in backend process, so it's rvalue
 
+#define STCStorageClass (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | \
+        STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | \
+        STCout | STCin | \
+        STCmanifest | STCimmutable | STCshared | STCnothrow | STCpure | STCref | STCtls | \
+        STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable)
+
 #ifdef BUG6652
 #define STCbug6652      0x800000000000LL //
 #endif
@@ -290,6 +296,7 @@ struct VarDeclaration : Declaration
     void semantic2(Scope *sc);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
@@ -640,6 +647,7 @@ struct FuncDeclaration : Declaration
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
@@ -768,6 +776,7 @@ struct PostBlitDeclaration : FuncDeclaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
