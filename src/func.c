@@ -1301,6 +1301,20 @@ void FuncDeclaration::semantic3(Scope *sc)
                         fbody = new CompoundStatement(0, s, fbody);
                     }
                 }
+
+                /* Append:
+                 *  return this;
+                 * to function body
+                 */
+                if (blockexit & BEfallthru)
+                {
+                    Expression *e = new ThisExp(loc);
+                    if (cd)
+                        e->type = cd->type;
+                    Statement *s = new ReturnStatement(loc, e);
+                    s = s->semantic(sc2);
+                    fbody = new CompoundStatement(loc, fbody, s);
+                }
             }
             else if (fes)
             {   // For foreach(){} body, append a return 0;
@@ -3560,18 +3574,6 @@ void CtorDeclaration::semantic(Scope *sc)
     if (ad && ad->isStructDeclaration())
         ((TypeFunction *)type)->isref = 1;
 #endif
-
-    // Append:
-    //  return this;
-    // to the function body
-    if (fbody && semanticRun < PASSsemantic)
-    {
-        Expression *e = new ThisExp(loc);
-        if (parent->isClassDeclaration())
-            e->type = tret;
-        Statement *s = new ReturnStatement(loc, e);
-        fbody = new CompoundStatement(loc, fbody, s);
-    }
 
     FuncDeclaration::semantic(sc);
 

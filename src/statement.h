@@ -611,7 +611,7 @@ struct SwitchErrorStatement : Statement
 struct ReturnStatement : Statement
 {
     Expression *exp;
-    int implicit0;
+    bool implicit0;             // this is an implicit "return 0;"
 
     ReturnStatement(Loc loc, Expression *exp);
     Statement *syntaxCopy();
