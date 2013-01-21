@@ -1,5 +1,8 @@
 /**
- * Handle page protection error using errors. $(D NullPointerError) is thrown when dereferencing null. A system-dependant error is thrown in other cases.
+ * Handle page protection errors using D errors (exceptions). $(D NullPointerError) is
+ * thrown when dereferencing null pointers. A system-dependent error is thrown in other
+ * cases.
+ *
  * Note: Only x86 and x86_64 are supported for now.
  *
  * License: Distributed under the
@@ -8,19 +11,18 @@
  * Authors:   Amaury SECHET, FeepingCreature, Vladimir Panteleev
  * Source: $(DRUNTIMESRC src/etc/linux/memory.d)
  */
+
 module etc.linux.memoryerror;
 
-version(linux)
-{
+version (linux):
+@system:
 
-private:
 import core.sys.posix.signal;
 import core.sys.posix.ucontext;
 
 // Register and unregister memory error handler.
-private __gshared sigaction_t old_sigaction;
 
-int registerMemoryErrorHandler()
+bool registerMemoryErrorHandler()
 {
     sigaction_t action;
     action.sa_sigaction = &handleSignal;
@@ -28,23 +30,97 @@ int registerMemoryErrorHandler()
 
     auto oldptr = &old_sigaction;
 
-    return sigaction(SIGSEGV, &action, oldptr);
+    return !sigaction(SIGSEGV, &action, oldptr);
 }
 
-int unregisterMemoryErrorHandler()
+bool deregisterMemoryErrorHandler()
 {
     auto oldptr = &old_sigaction;
 
-    return sigaction(SIGSEGV, oldptr, null);
+    return !sigaction(SIGSEGV, oldptr, null);
 }
 
-// Sighandler space
-
-alias typeof(ucontext_t.init.uc_mcontext.gregs[0]) REG_TYPE;
-
-version(X86_64)
+/**
+ * Thrown on POSIX systems when a SIGSEGV signal is received.
+ */
+class InvalidPointerError : Error
 {
-    static REG_TYPE savedRDI, savedRSI;
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super("", file, line, next);
+    }
+
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super("", file, line, next);
+    }
+}
+
+/**
+ * Thrown on null pointer dereferences.
+ */
+class NullPointerError : InvalidPointerError
+{
+    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
+    {
+        super(file, line, next);
+    }
+
+    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
+    {
+        super(file, line, next);
+    }
+}
+
+version (unittest)
+{
+    int* getNull() { return null; }
+}
+
+unittest
+{
+    assert(registerMemoryErrorHandler());
+
+    bool b;
+
+    try
+    {
+        *getNull() = 42;
+    }
+    catch (NullPointerError)
+    {
+        b = true;
+    }
+
+    assert(b);
+
+    b = false;
+
+    try
+    {
+        *getNull() = 42;
+    }
+    catch (InvalidPointerError)
+    {
+        b = true;
+    }
+
+    assert(b);
+
+    assert(deregisterMemoryErrorHandler());
+}
+
+// Signal handler space.
+
+private:
+
+__gshared sigaction_t old_sigaction;
+
+alias typeof(ucontext_t.init.uc_mcontext.gregs[0]) RegType;
+
+version (X86_64)
+{
+    static RegType savedRDI, savedRSI;
 
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr)
@@ -57,10 +133,10 @@ version(X86_64)
 
         // Hijack current context so we call our handler.
         auto rip = context.uc_mcontext.gregs[REG_RIP];
-        auto addr = cast(REG_TYPE) info.si_addr;
+        auto addr = cast(RegType) info.si_addr;
         context.uc_mcontext.gregs[REG_RDI] = addr;
         context.uc_mcontext.gregs[REG_RSI] = rip;
-        context.uc_mcontext.gregs[REG_RIP] = cast(REG_TYPE) ((rip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
+        context.uc_mcontext.gregs[REG_RIP] = cast(RegType) ((rip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in RDI and original RIP in RSI.
@@ -129,19 +205,19 @@ version(X86_64)
     }
 
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE restoreRDI()
+    RegType restoreRDI()
     {
         return savedRDI;
     }
 
-    REG_TYPE restoreRSI()
+    RegType restoreRSI()
     {
         return savedRSI;
     }
 }
-else version(X86)
+else version (X86)
 {
-    static REG_TYPE savedEAX, savedEDX;
+    static RegType savedEAX, savedEDX;
 
     extern(C)
     void handleSignal(int signum, siginfo_t* info, void* contextPtr)
@@ -154,10 +230,10 @@ else version(X86)
 
         // Hijack current context so we call our handler.
         auto eip = context.uc_mcontext.gregs[REG_EIP];
-        auto addr = cast(REG_TYPE) info.si_addr;
+        auto addr = cast(RegType) info.si_addr;
         context.uc_mcontext.gregs[REG_EAX] = addr;
         context.uc_mcontext.gregs[REG_EDX] = eip;
-        context.uc_mcontext.gregs[REG_EIP] = cast(REG_TYPE) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
+        context.uc_mcontext.gregs[REG_EIP] = cast(RegType) ((eip != addr)?&sigsegvDataHandler:&sigsegvCodeHandler);
     }
 
     // All handler functions must be called with faulting address in EAX and original EIP in EDX.
@@ -210,20 +286,25 @@ else version(X86)
     }
 
     // The return value is stored in EAX and EDX, so this function restore the correct value for theses registers.
-    REG_TYPE[2] restoreRegisters()
+    RegType[2] restoreRegisters()
     {
-        REG_TYPE[2] restore;
+        RegType[2] restore;
         restore[0] = savedEAX;
         restore[1] = savedEDX;
 
         return restore;
     }
 }
+else
+{
+    static assert(false, "Unsupported architecture.");
+}
 
 // This should be calculated by druntime.
+// TODO: Add a core.memory function for this.
 enum PAGE_SIZE = 4096;
 
-// The first 64Kb are reserved for detecting null pointer dereferencess.
+// The first 64Kb are reserved for detecting null pointer dereferences.
 enum MEMORY_RESERVED_FOR_NULL_DEREFERENCE = 4096 * 16;
 
 // User space handler
@@ -238,40 +319,3 @@ void sigsegvUserspaceProcess(void* address)
 
     throw new InvalidPointerError();
 }
-
-public:
-
-/**
- * Thrown on POSIX systems when a SIGSEGV signal is received.
- */
-class InvalidPointerError : Error
-{
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        super("", file, line, next);
-    }
-
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
-    {
-        super("", file, line, next);
-    }
-}
-
-/**
- * Thrown on null pointer dereferences.
- */
-class NullPointerError : InvalidPointerError
-{
-    this(string file = __FILE__, size_t line = __LINE__, Throwable next = null)
-    {
-        super(file, line, next);
-    }
-
-    this(Throwable next, string file = __FILE__, size_t line = __LINE__)
-    {
-        super(file, line, next);
-    }
-}
-
-}
-
