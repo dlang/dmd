@@ -1653,6 +1653,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
         assert(ifd);
         // Find corresponding function in this class
         tf = (ifd->type->ty == Tfunction) ? (TypeFunction *)(ifd->type) : NULL;
+        assert(tf);  // should always be non-null
         fd = cd->findFunc(ifd->ident, tf);
         if (fd && !fd->isAbstract())
         {
@@ -1676,8 +1677,10 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             //printf("            not found\n");
             // BUG: should mark this class as abstract?
             if (!cd->isAbstract())
-                cd->error("interface function %s.%s isn't implemented",
-                    id->toChars(), ifd->ident->toChars());
+                cd->error("interface function %s.%s%s isn't implemented",
+                    id->toChars(), ifd->ident->toChars(),
+                    Parameter::argsTypesToChars(tf->parameters, tf->varargs));
+
             fd = NULL;
         }
         if (vtbl)
