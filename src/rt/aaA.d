@@ -105,11 +105,13 @@ struct AA
 
 size_t aligntsize(size_t tsize) nothrow
 {
-    version (D_LP64)
-        // Size of key needed to align value on 16 bytes
+    version (D_LP64) {
+        // align to 16 bytes on 64-bit
         return (tsize + 15) & ~(15);
-    else
+    }
+    else {
         return (tsize + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
+    }
 }
 
 extern (C):
