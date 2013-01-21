@@ -1230,6 +1230,7 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     TemplateMixin *tm;
     TupleDeclaration *td;
     TypedefDeclaration *tyd;
+    EnumDeclaration *ed;
 
     //printf("Dsymbol_toElem() %s\n", s->toChars());
     ad = s->isAttribDeclaration();
@@ -1322,6 +1323,10 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     else if ((tyd = s->isTypedefDeclaration()) != NULL)
     {
         irs->deferToObj->push(tyd);
+    }
+    else if ((ed = s->isEnumDeclaration()) != NULL)
+    {
+        irs->deferToObj->push(ed);
     }
     return e;
 }
