@@ -400,16 +400,12 @@ private:
     {
         Slot *next;
         size_t hash;
-        union {
-            Key key;
-            ubyte[_AlignedKeySize] _alignment; // to ensure Value is aligned to size_t
-        }
-        Value value;
+        Key key;
+        version(D_LP64) align(16) Value value; // c.f. rt/aaA.d, aligntsize()
+        else align(4) Value value;
 
         // Stop creating built-in opAssign
         @disable void opAssign(Slot);
-
-        const _AlignedKeySize = (Key.sizeof + size_t.sizeof - 1) & ~(size_t.sizeof - 1);
     }
 
     struct Hashtable
