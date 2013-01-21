@@ -48,9 +48,14 @@ const char Pprotection[] = "protection";
 struct JsonOut
 {
     OutBuffer buf;
-};
 
-void JsonRemoveComma(OutBuffer *buf);
+    void removeComma();
+
+    void arrayStart();
+    void arrayEnd();
+    void objectStart();
+    void objectEnd();
+};
 
 void json_generate(Modules *modules)
 {
@@ -64,7 +69,7 @@ void json_generate(Modules *modules)
         m->toJson(&json);
         json.buf.writestring(",\n");
     }
-    JsonRemoveComma(&json.buf);
+    json.removeComma();
     json.buf.writestring("]\n");
 
     // Write buf to file
@@ -96,6 +101,41 @@ void json_generate(Modules *modules)
     mem.free(pt);
     jsonfile->writev();
 }
+
+
+void JsonOut::removeComma()
+{
+    if (buf.offset >= 2 &&
+        buf.data[buf.offset - 2] == ',' &&
+        buf.data[buf.offset - 1] == '\n')
+        buf.offset -= 2;
+}
+
+// Json array functions
+
+void JsonOut::arrayStart()
+{
+    buf.writestring("[\n");
+}
+
+void JsonOut::arrayEnd()
+{
+    buf.writestring("]\n");
+}
+
+
+// Json object functions
+
+void JsonOut::objectStart()
+{
+    buf.writestring("{\n");
+}
+
+void JsonOut::objectEnd()
+{
+    buf.writestring("}\n");
+}
+
 
 
 /*********************************
@@ -169,21 +209,99 @@ void JsonProperty(OutBuffer *buf, const char *name, int value)
     buf->writestring(",\n");
 }
 
-void JsonRemoveComma(OutBuffer *buf)
+void Type::toJson(JsonOut *json)
 {
-    if (buf->offset >= 2 &&
-        buf->data[buf->offset - 2] == ',' &&
-        buf->data[buf->offset - 1] == '\n')
-        buf->offset -= 2;
+}
+
+void TypeSArray::toJson(JsonOut *json)
+{
+}
+
+void TypeDArray::toJson(JsonOut *json)
+{
+}
+
+void TypeAArray::toJson(JsonOut *json)
+{
+}
+
+void TypePointer::toJson(JsonOut *json)
+{
+}
+
+void TypeReference::toJson(JsonOut *json)
+{
+}
+
+void TypeFunction::toJson(JsonOut *json)
+{
+}
+
+void TypeDelegate::toJson(JsonOut *json)
+{
+}
+
+void TypeQualified::toJson(JsonOut *json) // ident.ident.ident.etc
+{
+}
+
+void TypeIdentifier::toJson(JsonOut *json)
+{
+}
+
+void TypeInstance::toJson(JsonOut *json)
+{
+}
+
+void TypeTypeof::toJson(JsonOut *json)
+{
+}
+
+void TypeReturn::toJson(JsonOut *json)
+{
+}
+
+void TypeStruct::toJson(JsonOut *json)
+{
+}
+
+void TypeEnum::toJson(JsonOut *json)
+{
+}
+
+void TypeTypedef::toJson(JsonOut *json)
+{
+}
+
+void TypeClass::toJson(JsonOut *json)
+{
+}
+
+void TypeTuple::toJson(JsonOut *json)
+{
+}
+
+void TypeSlice::toJson(JsonOut *json)
+{
+}
+
+void TypeNull::toJson(JsonOut *json) { }
+
+void TypeVector::toJson(JsonOut *json)
+{
 }
 
 void Dsymbol::toJson(JsonOut *json)
 {
 }
 
+void Dsymbol::jsonProperties(JsonOut *json)
+{
+}
+
 void Module::toJson(JsonOut *json)
 {
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     if (md)
         JsonProperty(&json->buf, Pname, md->toChars());
@@ -196,7 +314,8 @@ void Module::toJson(JsonOut *json)
         JsonProperty(&json->buf, Pcomment, (const char *)comment);
 
     JsonString(&json->buf, Pmembers);
-    json->buf.writestring(" : [\n");
+    json->buf.writestring(" : ");
+    json->arrayStart();
 
     size_t offset = json->buf.offset;
     for (size_t i = 0; i < members->dim; i++)
@@ -208,10 +327,14 @@ void Module::toJson(JsonOut *json)
         s->toJson(json);
     }
 
-    JsonRemoveComma(&json->buf);
-    json->buf.writestring("]\n");
+    json->removeComma();
+    json->arrayEnd();
 
-    json->buf.writestring("}\n");
+    json->objectEnd();
+}
+
+void Module::jsonProperties(JsonOut *json)
+{
 }
 
 void AttribDeclaration::toJson(JsonOut *json)
@@ -232,7 +355,7 @@ void AttribDeclaration::toJson(JsonOut *json)
             }
             s->toJson(json);
         }
-        JsonRemoveComma(&json->buf);
+        json->removeComma();
     }
 }
 
@@ -254,7 +377,7 @@ void TypeInfoDeclaration::toJson(JsonOut *json)   { }
 void Declaration::toJson(JsonOut *json)
 {
     //printf("Declaration::toJson()\n");
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     JsonProperty(&json->buf, Pname, toChars());
     JsonProperty(&json->buf, Pkind, kind());
@@ -280,14 +403,18 @@ void Declaration::toJson(JsonOut *json)
         JsonProperty(&json->buf, "base", td->basetype->toChars());
     }
 
-    JsonRemoveComma(&json->buf);
-    json->buf.writestring("}\n");
+    json->removeComma();
+    json->objectEnd();
+}
+
+void Declaration::jsonProperties(JsonOut *json)
+{
 }
 
 void AggregateDeclaration::toJson(JsonOut *json)
 {
     //printf("AggregateDeclaration::toJson()\n");
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     JsonProperty(&json->buf, Pname, toChars());
     JsonProperty(&json->buf, Pkind, kind());
@@ -321,7 +448,7 @@ void AggregateDeclaration::toJson(JsonOut *json)
                 }
                 JsonString(&json->buf, b->base->toChars());
             }
-            JsonRemoveComma(&json->buf);
+            json->removeComma();
             json->buf.writestring("],\n");
         }
     }
@@ -329,7 +456,8 @@ void AggregateDeclaration::toJson(JsonOut *json)
     if (members)
     {
         JsonString(&json->buf, Pmembers);
-        json->buf.writestring(" : [\n");
+        json->buf.writestring(" : ");
+        json->arrayStart();
         size_t offset = json->buf.offset;
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
@@ -339,19 +467,19 @@ void AggregateDeclaration::toJson(JsonOut *json)
             }
             s->toJson(json);
         }
-        JsonRemoveComma(&json->buf);
-        json->buf.writestring("]\n");
+        json->removeComma();
+        json->arrayEnd();
     }
-    JsonRemoveComma(&json->buf);
+    json->removeComma();
 
-    json->buf.writestring("}\n");
+    json->objectEnd();
 }
 
 void TemplateDeclaration::toJson(JsonOut *json)
 {
     //printf("TemplateDeclaration::toJson()\n");
 
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     JsonProperty(&json->buf, Pname, toChars());
     JsonProperty(&json->buf, Pkind, "template");       // TemplateDeclaration::kind() does something else
@@ -366,7 +494,8 @@ void TemplateDeclaration::toJson(JsonOut *json)
         JsonProperty(&json->buf, Pline, loc.linnum);
 
     JsonString(&json->buf, Pmembers);
-    json->buf.writestring(" : [\n");
+    json->buf.writestring(" : ");
+    json->arrayStart();
     size_t offset = json->buf.offset;
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
@@ -376,10 +505,10 @@ void TemplateDeclaration::toJson(JsonOut *json)
         }
         s->toJson(json);
     }
-    JsonRemoveComma(&json->buf);
-    json->buf.writestring("]\n");
+    json->removeComma();
+    json->arrayEnd();
 
-    json->buf.writestring("}\n");
+    json->objectEnd();
 }
 
 void EnumDeclaration::toJson(JsonOut *json)
@@ -395,12 +524,12 @@ void EnumDeclaration::toJson(JsonOut *json)
                 s->toJson(json);
                 json->buf.writestring(",\n");
             }
-            JsonRemoveComma(&json->buf);
+            json->removeComma();
         }
         return;
     }
 
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     JsonProperty(&json->buf, Pname, toChars());
     JsonProperty(&json->buf, Pkind, kind());
@@ -420,7 +549,8 @@ void EnumDeclaration::toJson(JsonOut *json)
     if (members)
     {
         JsonString(&json->buf, Pmembers);
-        json->buf.writestring(" : [\n");
+        json->buf.writestring(" : ");
+        json->arrayStart();
         size_t offset = json->buf.offset;
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *s = (*members)[i];
@@ -430,18 +560,18 @@ void EnumDeclaration::toJson(JsonOut *json)
             }
             s->toJson(json);
         }
-        JsonRemoveComma(&json->buf);
-        json->buf.writestring("]\n");
+        json->removeComma();
+        json->arrayEnd();
     }
-    JsonRemoveComma(&json->buf);
+    json->removeComma();
 
-    json->buf.writestring("}\n");
+    json->objectEnd();
 }
 
 void EnumMember::toJson(JsonOut *json)
 {
     //printf("EnumMember::toJson()\n");
-    json->buf.writestring("{\n");
+    json->objectStart();
 
     JsonProperty(&json->buf, Pname, toChars());
     JsonProperty(&json->buf, Pkind, kind());
@@ -455,8 +585,8 @@ void EnumMember::toJson(JsonOut *json)
     if (loc.linnum)
         JsonProperty(&json->buf, Pline, loc.linnum);
 
-    JsonRemoveComma(&json->buf);
-    json->buf.writestring("}\n");
+    json->removeComma();
+    json->objectEnd();
 }
 
 
