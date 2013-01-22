@@ -4849,10 +4849,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
     }
 
-    // If tempdecl is a mixin, disallow it
-    if (tempdecl->ismixin)
-        error("mixin templates are not regular templates");
-
     hasNestedArgs(tiargs);
 
     /* See if there is an existing TemplateInstantiation that already
@@ -5175,6 +5171,20 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (sc->func || dosemantic3)
     {
         trySemantic3(sc2);
+    }
+
+    // If tempdecl is a mixin, disallow it
+    if (tempdecl->ismixin)
+    {
+        if (aliasdecl)
+        {   VarDeclaration *v = aliasdecl->toAlias()->isVarDeclaration();
+            if (v && v->storage_class & STCmanifest)
+            {   ExpInitializer *ei = v->init->isExpInitializer();
+                if (ei && ei->exp->op == TOKstring)
+                    goto Laftersemantic;
+            }
+        }
+        error("mixin templates are not regular templates");
     }
 
   Laftersemantic:

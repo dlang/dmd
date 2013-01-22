@@ -4457,7 +4457,20 @@ Lagain:
                     e = new DotVarExp(loc, e, s->isDeclaration());
                 }
                 else
+                {
+                    VarDeclaration *v = s->isVarDeclaration();
+                    if (v && v->storage_class & STCmanifest)
+                    {   ExpInitializer *ei = v->init->isExpInitializer();
+                        if (ei && ei->exp->op == TOKstring)
+                        {   if (ti->tempdecl->ismixin)
+                            {   e = new CompileExp(loc, ei->exp);
+                                e = e->semantic(sc);
+                                return e;
+                            }
+                        }
+                    }
                     e = new DsymbolExp(loc, s, s->hasOverloads());
+                }
                 e = e->semantic(sc);
                 //printf("-1ScopeExp::semantic()\n");
                 return e;
