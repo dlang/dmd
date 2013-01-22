@@ -2864,6 +2864,12 @@ int test137(){
 
 /***************************************************/
 
+// 9366
+static assert(!is(typeof((void[]).init ~ cast(void)0)));
+static assert(!is(typeof(cast(void)0 ~ (void[]).init)));
+
+/***************************************************/
+
 struct Size138
 {
     union

@@ -11469,7 +11469,8 @@ Expression *CatExp::semantic(Scope *sc)
              */
         }
         else if ((tb1->ty == Tsarray || tb1->ty == Tarray) &&
-            e2->implicitConvTo(tb1next) >= MATCHconvert)
+            e2->implicitConvTo(tb1next) >= MATCHconvert &&
+            tb2->ty != Tvoid)
         {
             checkPostblit(e2->loc, tb2);
             e2 = e2->implicitCastTo(sc, tb1next);
@@ -11482,7 +11483,8 @@ Expression *CatExp::semantic(Scope *sc)
             return this;
         }
         else if ((tb2->ty == Tsarray || tb2->ty == Tarray) &&
-            e1->implicitConvTo(tb2next) >= MATCHconvert)
+            e1->implicitConvTo(tb2next) >= MATCHconvert &&
+            tb1->ty != Tvoid)
         {
             checkPostblit(e1->loc, tb1);
             e1 = e1->implicitCastTo(sc, tb2next);
