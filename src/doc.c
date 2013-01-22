@@ -43,7 +43,7 @@ struct Escape
 {
     const char *strings[256];
 
-    static const char *escapeChar(unsigned c);
+    const char *escapeChar(unsigned c);
 };
 
 struct Section
@@ -989,7 +989,7 @@ void FuncDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
 
             declarationToDocBuffer(this, buf, td);
 
-            highlightCode(NULL, this, buf, o);
+            highlightCode(sc, this, buf, o);
         }
         else
         {
@@ -1037,7 +1037,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             td->onemember == this)
         {   size_t o = buf->offset;
             td->toDocBuffer(buf, sc);
-            highlightCode(NULL, this, buf, o);
+            highlightCode(sc, this, buf, o);
         }
         else
         {
@@ -1063,7 +1063,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             td->onemember == this)
         {   size_t o = buf->offset;
             td->toDocBuffer(buf, sc);
-            highlightCode(NULL, this, buf, o);
+            highlightCode(sc, this, buf, o);
         }
         else
         {
@@ -1618,8 +1618,10 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, s
 
     if (!escapetable)
     {   escapetable = new Escape;
+        memset(escapetable, 0, sizeof(Escape));
         *pescapetable = escapetable;
     }
+    //printf("parseEscapes('%.*s') pescapetable = %p\n", textlen, textstart, pescapetable);
     unsigned char *p = textstart;
     unsigned char *pend = p + textlen;
 
@@ -1650,7 +1652,7 @@ void DocComment::parseEscapes(Escape **pescapetable, unsigned char *textstart, s
         char *s = (char *)memcpy(mem.malloc(len + 1), start, len);
         s[len] = 0;
         escapetable->strings[c] = s;
-        //printf("%c = '%s'\n", c, s);
+        //printf("\t%c = '%s'\n", c, s);
         p++;
     }
 }
@@ -1957,7 +1959,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
             L1:
                 // Replace '<' with '&lt;' character entity
-                se = Escape::escapeChar('<');
+                se = sc->module->escapetable->escapeChar('<');
                 if (se)
                 {   size_t len = strlen(se);
                     buf->remove(i, 1);
@@ -1971,7 +1973,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (inCode)
                     break;
                 // Replace '>' with '&gt;' character entity
-                se = Escape::escapeChar('>');
+                se = sc->module->escapetable->escapeChar('>');
                 if (se)
                 {   size_t len = strlen(se);
                     buf->remove(i, 1);
@@ -1988,7 +1990,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (p[1] == '#' || isalpha(p[1]))
                     break;                      // already a character entity
                 // Replace '&' with '&amp;' character entity
-                se = Escape::escapeChar('&');
+                se = sc->module->escapetable->escapeChar('&');
                 if (se)
                 {   size_t len = strlen(se);
                     buf->remove(i, 1);
@@ -2144,7 +2146,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
     {   unsigned char c = buf->data[i];
         const char *se;
 
-        se = Escape::escapeChar(c);
+        se = sc->module->escapetable->escapeChar(c);
         if (se)
         {
             size_t len = strlen(se);
@@ -2180,10 +2182,10 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 /****************************************
  */
 
-void highlightCode3(OutBuffer *buf, unsigned char *p, unsigned char *pend)
+void highlightCode3(Scope *sc, OutBuffer *buf, unsigned char *p, unsigned char *pend)
 {
     for (; p < pend; p++)
-    {   const char *s = Escape::escapeChar(*p);
+    {   const char *s = sc->module->escapetable->escapeChar(*p);
         if (s)
             buf->writestring(s);
         else
@@ -2212,7 +2214,7 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     while (1)
     {
         lex.scan(&tok);
-        highlightCode3(&res, lastp, tok.ptr);
+        highlightCode3(sc, &res, lastp, tok.ptr);
         highlight = NULL;
         switch (tok.value)
         {
@@ -2250,7 +2252,7 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
         }
         if (highlight)
             res.writestring(highlight);
-        highlightCode3(&res, tok.ptr, lex.p);
+        highlightCode3(sc, &res, tok.ptr, lex.p);
         if (highlight)
             res.writeByte(')');
         if (tok.value == TOKeof)
@@ -2267,8 +2269,13 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
  */
 
 const char *Escape::escapeChar(unsigned c)
-{   const char *s;
-
+{
+#if 1
+    assert(c < 256);
+    //printf("escapeChar('%c') => %p, %p\n", c, strings, strings[c]);
+    return strings[c];
+#else
+    const char *s;
     switch (c)
     {
         case '<':
@@ -2285,6 +2292,7 @@ const char *Escape::escapeChar(unsigned c)
             break;
     }
     return s;
+#endif
 }
 
 /****************************************
