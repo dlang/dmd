@@ -259,13 +259,13 @@ public:
 //    fp(1,2);
     dg = &f;
     dg(1,2);
-//    fps[] = [&f, &f, &f, &(f)];  // bug 1: this line shouldn't compile
+//    fps[] = [&f, &f, &f, &f];  // bug 1: this line shouldn't compile
 //    this.fps[0](1, 2);  // seg-faults here!
 
-    dgs[] = [&(f), &(f), &(f), &(f)];  // bug 1: why this line can't compile?
+    dgs[] = [&f, &f, &f, &f];  // bug 1: why this line can't compile?
     this.dgs[0](1, 2);
 
-    dgs[] = [&(this.f), &(this.f), &(this.f), &(this.f)];
+    dgs[] = [&this.f, &this.f, &this.f, &this.f];
     this.dgs[0](1, 2);
   }
 

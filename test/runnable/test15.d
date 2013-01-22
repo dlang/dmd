@@ -519,13 +519,13 @@ class foo32
 {
     static void getMemberBar()
     {
-	//foo32 f = new foo32(); new A32( &(f.bar) );
-	new A32( &((new foo32()).bar) );
+        //foo32 f = new foo32(); new A32( &f.bar );
+        new A32( &(new foo32()).bar );
     }
 
     int bar()
     {
-	return 0;
+        return 0;
     }
 }
 
