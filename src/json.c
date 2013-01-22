@@ -72,9 +72,9 @@ struct JsonOut
 };
 
 
-void json_generate(Modules *modules)
-{   OutBuffer buf;
-    JsonOut json(&buf);
+void json_generate(OutBuffer *buf, Modules *modules)
+{
+    JsonOut json(buf);
 
     json.arrayStart();
     for (size_t i = 0; i < modules->dim; i++)
@@ -85,35 +85,6 @@ void json_generate(Modules *modules)
     }
     json.arrayEnd();
     json.removeComma();
-
-    // Write buf to file
-    char *arg = global.params.xfilename;
-    if (!arg || !*arg)
-    {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
-
-        n = FileName::name(n);
-        FileName *fn = FileName::forceExt(n, global.json_ext);
-        arg = fn->toChars();
-    }
-    else if (arg[0] == '-' && arg[1] == 0)
-    {   // Write to stdout; assume it succeeds
-        int n = fwrite(buf.data, 1, buf.offset, stdout);
-        assert(n == buf.offset);        // keep gcc happy about return values
-        return;
-    }
-//    if (!FileName::absolute(arg))
-//        arg = FileName::combine(dir, arg);
-    FileName *jsonfilename = FileName::defaultExt(arg, global.json_ext);
-    File *jsonfile = new File(jsonfilename);
-    assert(jsonfile);
-    jsonfile->setbuffer(buf.data, buf.offset);
-    jsonfile->ref = 1;
-    char *pt = FileName::path(jsonfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
-    jsonfile->writev();
 }
 
 
