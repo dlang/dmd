@@ -37,6 +37,7 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     Type *tw = t->semantic(loc, sc);
     Type *tc = t->substWildTo(MODconst)->semantic(loc, sc);
     TypeFunction *tf = new TypeFunction(NULL, tc, 0, LINKd);
+    if (tw != tc) tf->mod = MODwild;                            // hack for bug7757
     (tf = (TypeFunction *)tf->semantic(loc, sc))->next = tw;    // hack for bug7757
     FuncLiteralDeclaration *fld =
         new FuncLiteralDeclaration(loc, loc, tf, TOKdelegate, NULL);

@@ -1197,7 +1197,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   // If no return type inferred yet, then infer a void
                 if (!type->nextOf())
                 {
-                    ((TypeFunction *)type)->next = Type::tvoid;
+                    f->next = Type::tvoid;
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
                 else if (returns && f->next->ty != Tvoid)
@@ -1338,7 +1338,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (f->isnothrow && (global.errors != nothrowErrors) )
                     error("'%s' is nothrow yet may throw", toChars());
                 if (flags & FUNCFLAGnothrowInprocess)
+                {
+                    if (type == f) f = f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
+                }
 
                 int offend = blockexit & BEfallthru;
 #endif
@@ -1683,19 +1686,28 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (flags & FUNCFLAGpurityInprocess)
     {
         flags &= ~FUNCFLAGpurityInprocess;
+        if (type == f) f = f->copy();
         f->purity = PUREfwdref;
     }
 
     if (flags & FUNCFLAGsafetyInprocess)
     {
         flags &= ~FUNCFLAGsafetyInprocess;
+        if (type == f) f = f->copy();
         f->trust = TRUSTsafe;
     }
 
+    // reset deco to apply inference result to mangled name
+    if (f != type)
+        f->deco = NULL;
+
     // Do semantic type AFTER pure/nothrow inference.
-    if (inferRetType)
+    if (!f->deco)
     {
-        type = type->semantic(loc, sc);
+        sc = sc->push();
+        sc->linkage = linkage;  // Bugzilla 8496
+        type = f->semantic(loc, sc);
+        sc = sc->pop();
     }
 
     if (global.gag && global.errors != nerrors)
