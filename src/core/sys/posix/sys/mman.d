@@ -183,7 +183,11 @@ version( linux )
     enum MAP_SHARED     = 0x01;
     enum MAP_PRIVATE    = 0x02;
     enum MAP_FIXED      = 0x10;
-    enum MAP_ANON       = 0x20; // non-standard
+
+    version (MIPS)
+        enum MAP_ANON       = 0x0800; // non-standard
+    else
+        enum MAP_ANON       = 0x20;   // non-standard
 
     enum MAP_FAILED     = cast(void*) -1;
 

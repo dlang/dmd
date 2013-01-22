@@ -51,6 +51,7 @@ MANIFEST= \
 	src\core\simd.d \
 	src\core\thread.d \
 	src\core\thread.di \
+	src\core\threadasm.S \
 	src\core\time.d \
 	src\core\vararg.d \
 	\
