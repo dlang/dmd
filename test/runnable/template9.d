@@ -187,6 +187,24 @@ void test9()
 }
 
 /**********************************/
+// 1012
+
+struct Foo1012a() {}
+struct Foo1012b(T = int) {}
+struct Foo1012c(alias A = Object) {}
+struct Foo1012d(int V = 1) {}
+struct Foo1012e(TL...) {}
+
+void test1012()
+{
+    Foo1012a fooa;  pragma(msg, typeof(fooa));
+    Foo1012b foob;  pragma(msg, typeof(foob));
+    Foo1012c fooc;  pragma(msg, typeof(fooc));
+    Foo1012d food;  pragma(msg, typeof(food));
+    Foo1012e fooe;  pragma(msg, typeof(fooe));
+}
+
+/**********************************/
 // 1780
 
 template Tuple1780(Ts ...) { alias Ts Tuple1780; }
@@ -1930,6 +1948,7 @@ int main()
     test7();
     test8();
     test9();
+    test1012();
     test1780();
     test3608();
     test5893();

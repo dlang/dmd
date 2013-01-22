@@ -88,6 +88,8 @@ struct TemplateDeclaration : ScopeDsymbol
     void toJson(JsonOut *json);
 //    void toDocBuffer(OutBuffer *buf);
 
+    bool needsTemplateArgs();
+
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs);
 
