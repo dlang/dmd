@@ -4074,7 +4074,29 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
 
     s = isDsymbol(sa);
     if (s)
+    {
+        /* Bugzippa 9361: In template constraint, 'this' is a *pseudo* symbol.
+         * If it is passed to other template by alias parameter, it will cause
+         * an error. Because the 'this' symbol yet not has an actual entity.
+         * Example:
+         *  template Sym(alias A) { enum Sym = true; }
+         *  struct S {
+         *    void foo() if (Sym!(this)) {} // Sym!(this) always make an error,
+         *  }                               // because Sym template cannot
+         *  void main() { S s; s.foo(); }   // access to the valid 'this' symbol.
+         */
+        ThisDeclaration *vthis = s->isThisDeclaration();
+        if (vthis && vthis->parent)
+        {
+            FuncDeclaration *fd = vthis->parent->isFuncDeclaration();
+            if (fd && fd->parent && fd->parent->isTemplateDeclaration())
+            {
+                error(s->loc, "'this' cannot pass to alias parameter inside template constraint");
+                return MATCHnomatch;
+            }
+        }
         *psparam = new AliasDeclaration(loc, ident, s);
+    }
     else
     {
         assert(ea);
