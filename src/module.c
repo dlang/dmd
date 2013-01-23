@@ -155,11 +155,15 @@ void Module::setDocfile()
 
 File *Module::setOutfile(const char *name, const char *dir, const char *arg, const char *ext)
 {
-    const char *argdoc;
+    FileName *docfilename;
+
     if (name)
-        argdoc = name;
+    {
+        docfilename = new FileName((char *)name);
+    }
     else
     {
+        const char *argdoc;
         if (global.params.preservePaths)
             argdoc = (char *)arg;
         else
@@ -170,14 +174,8 @@ File *Module::setOutfile(const char *name, const char *dir, const char *arg, con
         {   //FileName::ensurePathExists(dir);
             argdoc = FileName::combine(dir, argdoc);
         }
-    }
-
-    FileName *docfilename;
-    if (name)
-        docfilename = new FileName((char *)argdoc);
-    else
-        // 'name' not provided, so force the correct extension
         docfilename = FileName::forceExt(argdoc, ext);
+    }
 
     if (docfilename->equals(srcfile->name))
     {   error("Source file and output file have same name '%s'", srcfile->name->str);
