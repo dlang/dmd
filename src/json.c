@@ -32,8 +32,9 @@ struct JsonOut
 {
     OutBuffer *buf;
     int indentLevel;
+    const char *filename;
 
-    JsonOut(OutBuffer *buf) {this->buf = buf; indentLevel = 0;}
+    JsonOut(OutBuffer *buf) {this->buf = buf; indentLevel = 0; filename = NULL;}
 
     void indent();
     void removeComma();
@@ -415,13 +416,22 @@ void JsonOut::property(const char *name, Loc *loc)
 {
     if (loc == NULL) return;
 
-    if (loc->filename || loc->linnum)
+    const char *filename = loc->filename;
+    if (filename)
+    {
+        if (!this->filename || strcmp(filename, this->filename))
+            this->filename = filename;
+        else
+            filename = NULL;
+    }
+
+    if (filename || loc->linnum)
     {
         propertyStart(name);
         objectStart();
 
-        if (loc->filename)
-            property("file", loc->filename);
+        if (filename)
+            property("file", filename);
 
         if (loc->linnum)
             property("line", loc->linnum);
@@ -668,7 +678,8 @@ void Module::toJson(JsonOut *json)
 
     jsonProperties(json);
 
-    json->property("file", srcfile->toChars());
+    json->filename = srcfile->toChars();
+    json->property("file", json->filename);
 
     json->property("comment", (const char *)comment);
 
