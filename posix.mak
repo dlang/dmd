@@ -41,6 +41,12 @@ DDOCFLAGS=-m$(MODEL) -c -w -o- -Isrc -Iimport
 
 CFLAGS=-m$(MODEL) -O $(PIC)
 
+ifeq (osx,$(OS))
+    ASMFLAGS =
+else
+    ASMFLAGS = -Wa,--noexecstack
+endif
+
 OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
@@ -599,7 +605,7 @@ $(OBJDIR)/errno_c.o : src/core/stdc/errno.c
 
 $(OBJDIR)/threadasm.o : src/core/threadasm.S
 	@mkdir -p $(OBJDIR)
-	$(CC) -Wa,--noexecstack -c $(CFLAGS) $< -o$@
+	$(CC) $(ASMFLAGS) -c $(CFLAGS) $< -o$@
 
 ################### Library generation #########################
 
