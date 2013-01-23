@@ -337,7 +337,8 @@ class Thread
      *
      * ------------------------------------------------------------------------
      */
-    deprecated static void sleep( long period );
+    deprecated("Please use the overload of sleep which takes a Duration.")
+    static void sleep( long period );
 
 
     /**
