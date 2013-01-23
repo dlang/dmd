@@ -282,7 +282,8 @@ class Semaphore
      * Returns:
      *  true if notified before the timeout and false if not.
      */
-    deprecated bool wait( long period )
+    deprecated("Please use the overload of wait which takes a Duration.")
+    bool wait( long period )
     in
     {
         assert( period >= 0 );
