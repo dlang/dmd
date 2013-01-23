@@ -117,13 +117,16 @@ typedef struct
 } Elf32_Shdr;
 
 // Special Section Header Table Indices
-#define SHT_UNDEF       0               /* Undefined section */
-#define SHT_ABS         0xfff1          /* Absolute value for symbol references */
-#define SHT_COMMON      0xfff2          /* Symbol defined in common section */
-#define SHT_RESVSTART   0xff00          /* Start of reserved indices */
-#define SHT_PROCSTART   0xff00          /* Start of processor-specific */
-#define SHT_PROCEND     0xff1f          /* End of processor-specific */
-#define SHT_RESVEND     0xffff          /* End of reserved indices */
+#define SHN_UNDEF       0               /* Undefined section */
+#define SHN_LORESERVE   0xff00          /* Start of reserved indices */
+#define SHN_LOPROC      0xff00          /* Start of processor-specific */
+#define SHN_HIPROC      0xff1f          /* End of processor-specific */
+#define SHN_LOOS        0xff20          /* Start of OS-specific */
+#define SHN_HIOS        0xff3f          /* End of OS-specific */
+#define SHN_ABS         0xfff1          /* Absolute value for symbol references */
+#define SHN_COMMON      0xfff2          /* Symbol defined in common section */
+#define SHN_XINDEX      0xffff          /* Index is in extra table.  */
+#define SHN_HIRESERVE   0xffff          /* End of reserved indices */
 
 /* Symbol Table */
 

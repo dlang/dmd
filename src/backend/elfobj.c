@@ -458,7 +458,7 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
      */
     if(sz == 0 && (bind == STB_GLOBAL || bind == STB_WEAK) &&
        (typ == STT_OBJECT || typ == STT_TLS) &&
-       sec != SHT_UNDEF)
+       sec != SHN_UNDEF)
        sz = 1; // so fake it if it doesn't
 
     if (I64)
@@ -781,7 +781,7 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
     local_cnt = 0;
     // The symbols that every object file has
     elf_addsym(0, 0, 0, STT_NOTYPE,  STB_LOCAL, 0);
-    elf_addsym(0, 0, 0, STT_FILE,    STB_LOCAL, SHT_ABS);       // STI_FILE
+    elf_addsym(0, 0, 0, STT_FILE,    STB_LOCAL, SHN_ABS);       // STI_FILE
     elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_TEXT);      // STI_TEXT
     elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_DATA);      // STI_DATA
     elf_addsym(0, 0, 0, STT_SECTION, STB_LOCAL, SHI_BSS);       // STI_BSS
@@ -1435,7 +1435,7 @@ void obj_filename(const char *modname)
 {
     //dbg_printf("obj_filename(char *%s)\n",modname);
     unsigned strtab_idx = Obj::addstr(symtab_strings,modname);
-    elf_addsym(strtab_idx,0,0,STT_FILE,STB_LOCAL,SHT_ABS);
+    elf_addsym(strtab_idx,0,0,STT_FILE,STB_LOCAL,SHN_ABS);
 }
 
 /*******************************
@@ -2177,7 +2177,7 @@ int Obj::external_def(const char *name)
     //dbg_printf("Obj::external_def('%s')\n",name);
     assert(name);
     IDXSTR namidx = Obj::addstr(symtab_strings,name);
-    IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHT_UNDEF);
+    IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_GLOBAL, SHN_UNDEF);
     return symidx;
 }
 
@@ -2205,14 +2205,14 @@ int Obj::external(Symbol *s)
     if (s->Sscope && !tyfunc(s->ty()))
     {
         symtype = STT_OBJECT;
-        sectype = SHT_COMMON;
+        sectype = SHN_COMMON;
         size = type_size(s->Stype);
     }
     else
 #endif
     {
         symtype = STT_NOTYPE;
-        sectype = SHT_UNDEF;
+        sectype = SHN_UNDEF;
         size = 0;
     }
     if (s->ty() & mTYthread)
@@ -2681,12 +2681,12 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
     {                           // identifier is defined somewhere else
         if (I64)
         {
-            if (SymbolTable64[s->Sxtrnnum].st_shndx != SHT_UNDEF)
+            if (SymbolTable64[s->Sxtrnnum].st_shndx != SHN_UNDEF)
                 external = FALSE;
         }
         else
         {
-            if (SymbolTable[s->Sxtrnnum].st_shndx != SHT_UNDEF)
+            if (SymbolTable[s->Sxtrnnum].st_shndx != SHN_UNDEF)
                 external = FALSE;
         }
     }
@@ -3220,7 +3220,7 @@ static void obj_rtinit()
 
         // use a weak reference for _d_dso_registry
         namidx = ElfObj::addstr(symtab_strings, "_d_dso_registry");
-        const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHT_UNDEF);
+        const IDXSYM symidx = elf_addsym(namidx, 0, 0, STT_NOTYPE, STB_WEAK, SHN_UNDEF);
 
         if (config.flags3 & CFG3pic)
         {
