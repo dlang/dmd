@@ -3387,6 +3387,8 @@ Expression *SuperExp::semantic(Scope *sc)
     s = fd->toParent();
     while (s && s->isTemplateInstance())
         s = s->toParent();
+    if (s->isTemplateDeclaration()) // allow inside template constraint
+        s = s->toParent();
     assert(s);
     cd = s->isClassDeclaration();
 //printf("parent is %s %s\n", fd->toParent()->kind(), fd->toParent()->toChars());
