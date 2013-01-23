@@ -1918,6 +1918,27 @@ void test9266()
 }
 
 /**********************************/
+// 9361
+
+struct Unit9361(A)
+{
+    void butPleaseDontUseMe()()
+    if (is(unitType9361!((this))))  // !
+    {}
+
+}
+template isUnit9361(alias T) if ( is(T)) {}
+template isUnit9361(alias T) if (!is(T)) {}
+
+template unitType9361(alias T) if (isUnit9361!T) {}
+
+void test9361()
+{
+    Unit9361!int u;
+    static assert(!__traits(compiles, u.butPleaseDontUseMe())); // crashes
+}
+
+/**********************************/
 
 int main()
 {
