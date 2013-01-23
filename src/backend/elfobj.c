@@ -252,6 +252,10 @@ static int local_cnt;           // Number of symbols with STB_LOCAL
 // Symbol Table
 Outbuffer  *SYMbuf;             // Buffer to build symbol table in
 
+// Extended section header indices
+static Outbuffer *shndx_data;
+static const IDXSEC secidx_shndx = SHN_HIRESERVE + 1;
+
 // Notes data (note currently used)
 static Outbuffer *note_data;
 static IDXSEC secidx_note;      // Final table index for note data
@@ -461,6 +465,19 @@ static IDXSYM elf_addsym(IDXSTR nam, targ_size_t val, unsigned sz,
        sec != SHN_UNDEF)
        sz = 1; // so fake it if it doesn't
 
+    if (sec > SHN_HIRESERVE)
+    {   // If the section index is too big we need to store it as
+        // extended section header index.
+        if (!shndx_data)
+            shndx_data = new Outbuffer(50 * sizeof(Elf64_Word));
+        // fill with zeros up to symbol_idx
+        const size_t shndx_idx = shndx_data->size() / sizeof(Elf64_Word);
+        shndx_data->writezeros((symbol_idx - shndx_idx) * sizeof(Elf64_Word));
+
+        shndx_data->write32(sec);
+        sec = SHN_XINDEX;
+    }
+
     if (I64)
     {
         if (!SYMbuf)
@@ -538,6 +555,14 @@ static IDXSEC elf_newsection2(
     if (!SECbuf)
     {   SECbuf = new Outbuffer(4 * sizeof(Elf32_Shdr));
         SECbuf->reserve(16 * sizeof(Elf32_Shdr));
+    }
+    if (section_cnt == SHN_LORESERVE)
+    {   // insert dummy null sections to skip reserved section indices
+        section_cnt = SHN_HIRESERVE + 1;
+        SECbuf->writezeros((SHN_HIRESERVE + 1 - SHN_LORESERVE) * sizeof(sec));
+        // shndx itself becomes the first section with an extended index
+        IDXSTR namidx = Obj::addstr(section_names, ".symtab_shndx");
+        elf_newsection2(namidx,SHT_SYMTAB_SHNDX,0,0,0,0,SHN_SYMTAB,0,4,4);
     }
     SECbuf->write((void *)&sec, sizeof(sec));
     return section_cnt++;
@@ -777,6 +802,8 @@ Obj *Obj::init(Outbuffer *objbuf, const char *filename, const char *csegname)
 
     if (SYMbuf)
         SYMbuf->setsize(0);
+    if (shndx_data)
+        shndx_data->setsize(0);
     symbol_idx = 0;
     local_cnt = 0;
     // The symbols that every object file has
@@ -927,6 +954,24 @@ void *elf_renumbersyms()
         }
     }
 
+    // Reorder extended section header indices
+    if (shndx_data && shndx_data->size())
+    {
+        // fill with zeros up to symbol_idx
+        const size_t shndx_idx = shndx_data->size() / sizeof(Elf64_Word);
+        shndx_data->writezeros((symbol_idx - shndx_idx) * sizeof(Elf64_Word));
+
+        Elf64_Word *old_buf = (Elf64_Word *)shndx_data->buf;
+        Elf64_Word *tmp_buf = (Elf64_Word *)util_malloc(sizeof(Elf64_Word), symbol_idx);
+        for (SYMIDX old_idx = 0; old_idx < symbol_idx; ++old_idx)
+        {
+            const SYMIDX new_idx = sym_map[old_idx];
+            tmp_buf[new_idx] = old_buf[old_idx];
+        }
+        memcpy(old_buf, tmp_buf, sizeof(Elf64_Word) * symbol_idx);
+        util_free(tmp_buf);
+    }
+
     // Renumber the relocations
     for (int i = 1; i <= seg_count; i++)
     {                           // Map indicies in the segment table
@@ -1064,7 +1109,12 @@ void Obj::term(const char *objfilename)
     };
     int hdrsize = I64 ? sizeof(Elf64_Ehdr) : sizeof(Elf32_Hdr);
 
-    elf_header.e_shnum = section_cnt;
+    if (section_cnt < SHN_LORESERVE)
+        elf_header.e_shnum = section_cnt;
+    else
+    {   elf_header.e_shnum = SHN_UNDEF;
+        SecHdrTab[0].sh_size = section_cnt;
+    }
     elf_header.e_shstrndx = SHN_SECNAMES;
     fobjbuf->writezeros(hdrsize);
 
@@ -1170,6 +1220,16 @@ void Obj::term(const char *objfilename)
     fobjbuf->write(symtab, sechdr->sh_size);
     foffset += sechdr->sh_size;
     util_free(symtab);
+
+    if (shndx_data && shndx_data->size())
+    {
+        assert(section_cnt >= secidx_shndx);
+        sechdr = &SecHdrTab[secidx_shndx];
+        sechdr->sh_size = shndx_data->size();
+        sechdr->sh_offset = foffset;
+        fobjbuf->write(shndx_data->buf, sechdr->sh_size);
+        foffset += sechdr->sh_size;
+    }
 
     //dbg_printf("output section strings size 0x%x,offset 0x%x\n",symtab_strings->size(),foffset);
     sechdr = &SecHdrTab[SHN_STRINGS];   // Symbol Strings
