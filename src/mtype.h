@@ -246,6 +246,7 @@ struct Type : Object
     virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
     void modToBuffer(OutBuffer *buf);
+    char *modToChars();
     void toJsonProperty(JsonOut *json, const char *);
     virtual void toJson(JsonOut *json);
 #if CPP_MANGLE
@@ -1060,6 +1061,7 @@ extern int Tptrdiff_t;
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, unsigned char mod);
+char *MODtoChars(unsigned char mod);
 int MODimplicitConv(unsigned char modfrom, unsigned char modto);
 int MODmethodConv(unsigned char modfrom, unsigned char modto);
 int MODmerge(unsigned char mod1, unsigned char mod2);
