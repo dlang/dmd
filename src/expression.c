@@ -928,18 +928,15 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
     {
-        TemplateInstance *spec = fd->isSpeculative();
-        int olderrs = global.errors;
-        // If it isn't speculative, we need to show errors
-        unsigned oldgag = global.gag;
-        if (global.gag && !spec)
-            global.gag = 0;
-        fd->semantic3(fd->scope);
-        global.gag = oldgag;
-        // Update the template instantiation with the number
-        // of errors which occured.
-        if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+        fd->functionSemantic();
+    }
+    else if (fd && fd->parent)
+    {
+        TemplateInstance *ti = fd->parent->isTemplateInstance();
+        if (ti && ti->tempdecl)
+        {
+            fd->functionSemantic3();
+        }
     }
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
@@ -3061,34 +3058,10 @@ Lagain:
     }
     f = s->isFuncDeclaration();
     if (f)
-    {   f = f->toAliasFunc();
-
-        if (!f->originalType && f->scope)       // semantic not yet run
-        {
-            unsigned oldgag = global.gag;
-            if (global.isSpeculativeGagging() && !f->isSpeculative())
-                global.gag = 0;
-            f->semantic(f->scope);
-            global.gag = oldgag;
-        }
-
-        // if inferring return type, sematic3 needs to be run
-        if (f->scope && (f->inferRetType && f->type && !f->type->nextOf() ||
-                         getFuncTemplateDecl(f)))
-        {
-            TemplateInstance *spec = f->isSpeculative();
-            int olderrs = global.errors;
-            // If it isn't speculative, we need to show errors
-            unsigned oldgag = global.gag;
-            if (global.gag && !spec)
-                global.gag = 0;
-            f->semantic3(f->scope);
-            global.gag = oldgag;
-            // Update the template instantiation with the number
-            // of errors which occured.
-            if (spec && global.errors != olderrs)
-                spec->errors = global.errors - olderrs;
-        }
+    {
+        f = f->toAliasFunc();
+        if (!f->functionSemantic())
+            return new ErrorExp();
 
         if (f->isUnitTestDeclaration())
         {
@@ -5110,8 +5083,13 @@ Expression *VarExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
-//    if (var->sem == SemanticStart && var->scope)      // if forward referenced
-//      var->semantic(sc);
+    if (FuncDeclaration *f = var->isFuncDeclaration())
+    {
+        //printf("L%d fd = %s\n", __LINE__, f->toChars());
+        if (!f->functionSemantic())
+            return new ErrorExp();
+    }
+
     if (!type)
     {   type = var->type;
 #if 0
@@ -7219,16 +7197,27 @@ Expression *DotVarExp::semantic(Scope *sc)
 
         e1 = e1->semantic(sc);
         e1 = e1->addDtorHook(sc);
-        type = var->type;
-        if (!type && global.errors)
-        {   // var is goofed up, just return 0
-            return new ErrorExp();
-        }
-        assert(type);
 
         Type *t1 = e1->type;
-        if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
+        FuncDeclaration *f = var->isFuncDeclaration();
+        if (f)  // for functions, do checks after overload resolution
         {
+            //printf("L%d fd = %s\n", __LINE__, f->toChars());
+            if (!f->functionSemantic())
+                return new ErrorExp();
+
+            type = f->type;
+            assert(type);
+        }
+        else
+        {
+            type = var->type;
+            if (!type && global.errors)
+            {   // var is goofed up, just return 0
+                goto Lerr;
+            }
+            assert(type);
+
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
 
