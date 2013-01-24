@@ -928,18 +928,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     // If inferring return type, and semantic3() needs to be run if not already run
     if (!tf->next && fd->inferRetType)
     {
-        TemplateInstance *spec = fd->isSpeculative();
-        int olderrs = global.errors;
-        // If it isn't speculative, we need to show errors
-        unsigned oldgag = global.gag;
-        if (global.gag && !spec)
-            global.gag = 0;
-        fd->semantic3(fd->scope);
-        global.gag = oldgag;
-        // Update the template instantiation with the number
-        // of errors which occured.
-        if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
+        fd->functionSemantic();
     }
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
@@ -3061,34 +3050,10 @@ Lagain:
     }
     f = s->isFuncDeclaration();
     if (f)
-    {   f = f->toAliasFunc();
-
-        if (!f->originalType && f->scope)       // semantic not yet run
-        {
-            unsigned oldgag = global.gag;
-            if (global.isSpeculativeGagging() && !f->isSpeculative())
-                global.gag = 0;
-            f->semantic(f->scope);
-            global.gag = oldgag;
-        }
-
-        // if inferring return type, sematic3 needs to be run
-        if (f->scope && (f->inferRetType && f->type && !f->type->nextOf() ||
-                         getFuncTemplateDecl(f)))
-        {
-            TemplateInstance *spec = f->isSpeculative();
-            int olderrs = global.errors;
-            // If it isn't speculative, we need to show errors
-            unsigned oldgag = global.gag;
-            if (global.gag && !spec)
-                global.gag = 0;
-            f->semantic3(f->scope);
-            global.gag = oldgag;
-            // Update the template instantiation with the number
-            // of errors which occured.
-            if (spec && global.errors != olderrs)
-                spec->errors = global.errors - olderrs;
-        }
+    {
+        f = f->toAliasFunc();
+        if (!f->functionSemantic())
+            return new ErrorExp();
 
         if (f->isUnitTestDeclaration())
         {

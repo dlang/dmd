@@ -1730,6 +1730,60 @@ void FuncDeclaration::semantic3(Scope *sc)
     //fflush(stdout);
 }
 
+bool FuncDeclaration::functionSemantic()
+{
+    if (scope && !originalType)     // semantic not yet run
+    {
+        TemplateInstance *spec = isSpeculative();
+        unsigned olderrs = global.errors;
+        unsigned oldgag = global.gag;
+        if (global.gag && !spec)
+            global.gag = 0;
+        semantic(scope);
+        global.gag = oldgag;
+        if (spec && global.errors != olderrs)
+            spec->errors = global.errors - olderrs;
+        if (olderrs != global.errors)   // if errors compiling this function
+            return false;
+    }
+
+    // if inferring return type, sematic3 needs to be run
+    if (scope && (inferRetType && type && !type->nextOf() ||
+                  getFuncTemplateDecl(this)))
+    {
+        return functionSemantic3();
+    }
+
+    return true;
+}
+
+bool FuncDeclaration::functionSemantic3()
+{
+    if (scope)
+    {
+        /* Forward reference - we need to run semantic3 on this function.
+         * If errors are gagged, and it's not part of a speculative
+         * template instance, we need to temporarily ungag errors.
+         */
+        TemplateInstance *spec = isSpeculative();
+        unsigned olderrs = global.errors;
+        unsigned oldgag = global.gag;
+        if (global.gag && !spec)
+            global.gag = 0;
+        semantic3(scope);
+        global.gag = oldgag;
+
+        // If it is a speculatively-instantiated template, and errors occur,
+        // we need to mark the template as having errors.
+        if (spec && global.errors != olderrs)
+            spec->errors = global.errors - olderrs;
+        if (olderrs != global.errors)   // if errors compiling this function
+            return false;
+    }
+
+    return true;
+}
+
 void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     //printf("FuncDeclaration::toCBuffer() '%s'\n", toChars());
