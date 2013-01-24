@@ -4911,6 +4911,18 @@ void test7150()
 }
 
 /***************************************************/
+// 7159
+
+class HomeController7159 {
+    void* foo() {
+        return cast(void*)&HomeController7159.displayDefault;
+    }
+    auto displayDefault() {
+        return 1;
+    }
+}
+
+/***************************************************/
 // 7160
 
 class HomeController {
