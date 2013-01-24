@@ -90,7 +90,7 @@ void unittests();
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
 #define SARRAYVALUE DMDV2       // static arrays are value types
 #define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
-#define BUG6652 1       // Making foreach range statement parameter non-ref in default
+#define BUG6652 2       // Making foreach range statement parameter non-ref in default
                         // 1: Modifying iteratee in body is warned with -w switch
                         // 2: Modifying iteratee in body is error without -d switch
 

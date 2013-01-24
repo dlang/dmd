@@ -4249,7 +4249,7 @@ static assert(bug7245(1)==5);
 
 int bug8498()
 {
-    foreach(i; 0..5)
+    foreach(ref i; 0..5)
     {
         assert(i == 0);
         i = 100;
