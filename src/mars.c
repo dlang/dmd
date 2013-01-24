@@ -338,6 +338,7 @@ Usage:\n\
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
+  -gx            add stack smash code\n\
   -H             generate 'header' file\n\
   -Hddirectory   write 'header' file to directory\n\
   -Hffilename    write 'header' file to filename\n\
@@ -565,6 +566,8 @@ int main(size_t argc, char *argv[])
                 global.params.symdebug = 2;
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = 1;
+            else if (strcmp(p + 1, "gx") == 0)
+                global.params.stacksmash = true;
             else if (strcmp(p + 1, "gt") == 0)
             {   error(0, "use -profile instead of -gt");
                 global.params.trace = 1;

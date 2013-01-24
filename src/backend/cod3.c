@@ -3470,7 +3470,37 @@ void epilog(block *b)
             assert(hasframe);
             if (xlocalsize | usedalloca)
             {
-                if (config.exe == EX_WIN64)
+                if (config.flags2 & CFG2smash)
+                {   /*   MOV  ECX,0xBEAF
+                     * L1:
+                     *   MOV  [ESP],ECX
+                     *   ADD  ESP,4
+                     *   CMP  EBP,ESP
+                     *   JNE  L1
+                     *   POP  EBP
+                     */
+                    /* Value should be:
+                     * 1. != 0 (code checks for null pointers)
+                     * 2. be odd (to mess up alignment)
+                     * 3. fall in first 64K (likely marked as inaccessible)
+                     * 4. be a value that stands out in the debugger
+                     */
+                    assert(I32 || I64);
+                    targ_size_t value = 0x0000BEAF;
+                    reg_t reg = CX;
+                    mfuncreg &= ~mask[reg];
+                    unsigned grex = I64 ? REX_W << 16 : 0;
+                    c = genc2(c,0xC7,grex | modregrmx(3,0,reg),value);  // MOV reg,value
+                    code *c1 = gen2sib(CNIL,0x89,grex | modregrm(0,reg,4),modregrm(0,4,SP));  // MOV [ESP],reg
+                    genc2(c1,0x81,grex | modregrm(3,0,SP),REGSIZE);     // ADD ESP,REGSIZE
+                    genregs(c1,0x39,SP,BP);                             // CMP EBP,ESP
+                    if (I64)
+                        code_orrex(c1,REX_W);
+                    genjmp(c1,JNE,FLcode,(block *)c1);                  // JNE L1
+                    gen1(c1,0x58 + BP);                                 // POP BP
+                    c = cat(c,c1);
+                }
+                else if (config.exe == EX_WIN64)
                 {   // See http://msdn.microsoft.com/en-us/library/tawsa7cb(v=vs.80).aspx
                     // LEA RSP,0[RBP]
                     c = genc1(c,LEA,(REX_W<<16)|modregrm(2,SP,BPRM),FLconst,0);

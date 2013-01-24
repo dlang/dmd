@@ -47,7 +47,8 @@ void out_config_init(
         int symdebug,   // add symbolic debug information
                         // 1: D
                         // 2: fake it with C symbolic debug info
-        bool alwaysframe        // always create standard function frame
+        bool alwaysframe,       // always create standard function frame
+        bool stacksmash // add stack smashing code
         )
 {
 #if MARS
@@ -193,6 +194,8 @@ void out_config_init(
 
     if (alwaysframe)
         config.flags |= CFGalwaysframe;
+    if (stacksmash)
+        config.flags2 |= CFG2smash;
 
     ph_init();
     block_init();
