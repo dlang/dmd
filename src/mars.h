@@ -168,6 +168,7 @@ struct Param
                          // 1: array bounds checks for safe functions only
                          // 2: array bounds checks for all functions
     char noboundscheck; // no array bounds checking at all
+    bool stackstomp;    // add stack stomping code
     char useSwitchError; // check for switches without a default
     char useUnitTests;  // generate unittest code
     char useInline;     // inline expand functions
