@@ -5075,8 +5075,13 @@ Expression *VarExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
-//    if (var->sem == SemanticStart && var->scope)      // if forward referenced
-//      var->semantic(sc);
+    if (FuncDeclaration *f = var->isFuncDeclaration())
+    {
+        //printf("L%d fd = %s\n", __LINE__, f->toChars());
+        if (!f->functionSemantic())
+            return new ErrorExp();
+    }
+
     if (!type)
     {   type = var->type;
 #if 0
@@ -7184,16 +7189,27 @@ Expression *DotVarExp::semantic(Scope *sc)
 
         e1 = e1->semantic(sc);
         e1 = e1->addDtorHook(sc);
-        type = var->type;
-        if (!type && global.errors)
-        {   // var is goofed up, just return 0
-            return new ErrorExp();
-        }
-        assert(type);
 
         Type *t1 = e1->type;
-        if (!var->isFuncDeclaration())  // for functions, do checks after overload resolution
+        FuncDeclaration *f = var->isFuncDeclaration();
+        if (f)  // for functions, do checks after overload resolution
         {
+            //printf("L%d fd = %s\n", __LINE__, f->toChars());
+            if (!f->functionSemantic())
+                return new ErrorExp();
+
+            type = f->type;
+            assert(type);
+        }
+        else
+        {
+            type = var->type;
+            if (!type && global.errors)
+            {   // var is goofed up, just return 0
+                goto Lerr;
+            }
+            assert(type);
+
             if (t1->ty == Tpointer)
                 t1 = t1->nextOf();
 
