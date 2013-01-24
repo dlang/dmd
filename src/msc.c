@@ -46,7 +46,8 @@ void out_config_init(
         int symdebug,   // add symbolic debug information
                         // 1: D
                         // 2: fake it with C symbolic debug info
-        bool alwaysframe        // always create standard function frame
+        bool alwaysframe,       // always create standard function frame
+        bool stackstomp         // add stack stomping code
         );
 
 void out_config_debug(
@@ -93,7 +94,8 @@ void backend_init()
         params->verbose,
         params->optimize,
         params->symdebug,
-        params->alwaysframe
+        params->alwaysframe,
+        params->stackstomp
     );
 
 #ifdef DEBUG
