@@ -290,7 +290,7 @@ void Module::gendocfile()
             dc->macros->write(dc, sc, this, sc->docbuf);
         }
         sc->docbuf->write(comment, commentlen);
-        highlightText(NULL, this, sc->docbuf, 0);
+        highlightText(sc, this, sc->docbuf, 0);
     }
     else
     {
