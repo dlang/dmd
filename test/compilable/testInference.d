@@ -234,6 +234,25 @@ void test9072()
 }
 
 /***************************************************/
+// 5933 + Issue 8504 - Template attribute inferrence doesn't work
+
+int foo5933()(int a) { return a*a; }
+struct S5933
+{
+    double foo()(double a) { return a * a; }
+}
+// outside function
+static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+
+void test5933()
+{
+    // inside function
+    static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 

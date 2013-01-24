@@ -93,7 +93,18 @@ template bug6661(Q)
     const Q blaz = 6;
 }
 
-static assert(is(typeof(bug6661!(int).blaz)));
+static assert(!is(typeof(bug6661!(int).blaz)));
+
+template bug6661x(Q)
+{
+    int qutz(Q y)
+    {
+        Q q = "abc";
+        return 67;
+    }
+}
+// should pass, but doesn't in current
+//static assert(!is(typeof(bug6661x!(int))));
 
 /**************************************************
     6599    ICE(constfold.c) or segfault

@@ -2265,16 +2265,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
             fd_best->type = tf->semantic(loc, sc);
         }
     }
-    if (fd_best->scope)
-    {
-        TemplateInstance *spec = fd_best->isSpeculative();
-        int olderrs = global.errors;
-        fd_best->semantic3(fd_best->scope);
-        // Update the template instantiation with the number
-        // of errors which occured.
-        if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
-    }
+
+    fd_best->functionSemantic();
 
     return fd_best;
 
