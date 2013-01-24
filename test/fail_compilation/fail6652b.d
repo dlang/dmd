@@ -1,12 +1,12 @@
-// REQUIRED_ARGS: -w
-
+// REQUIRED_ARGS: -de
+// PERMUTE_ARGS: -w
 /******************************************/
 // 6652
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6652b.d(19): Warning: variable modified in foreach body requires ref storage class
+fail_compilation/fail6652b.d(19): Deprecation: variable modified in foreach body requires ref storage class
 fail_compilation/fail6652b.d(24): Error: cannot modify const expression i
 ---
 */
