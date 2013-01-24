@@ -930,6 +930,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     {
         fd->functionSemantic();
     }
+    else if (fd && fd->parent)
+    {
+        TemplateInstance *ti = fd->parent->isTemplateInstance();
+        if (ti && ti->tempdecl)
+        {
+            fd->functionSemantic3();
+        }
+    }
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
