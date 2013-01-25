@@ -572,7 +572,7 @@ typedef targ_uns        targ_size_t;    /* size_t for the target machine */
 #define DATA    2       /* initialized data             */
 #define CDATA   3       /* constant data                */
 #define UDATA   4       /* uninitialized data           */
-#define UNKNOWN 0x7FFF  // unknown segment
+#define UNKNOWN -1      /* unknown segment              */
 #define DGROUPIDX 1     /* group index of DGROUP        */
 
 #define KEEPBITFIELDS 0 /* 0 means code generator cannot handle bit fields, */

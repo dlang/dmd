@@ -334,7 +334,7 @@ void LibElf::scanObjModule(ObjModule *om)
 
                     if (((sym->st_info >> 4) == STB_GLOBAL ||
                          (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHT_UNDEF)     // not extern
+                        sym->st_shndx != SHN_UNDEF)     // not extern
                     {
                         char *name = string_tab + sym->st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
@@ -380,7 +380,7 @@ void LibElf::scanObjModule(ObjModule *om)
 
                     if (((sym->st_info >> 4) == STB_GLOBAL ||
                          (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHT_UNDEF)     // not extern
+                        sym->st_shndx != SHN_UNDEF)     // not extern
                     {
                         char *name = string_tab + sym->st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
