@@ -3470,7 +3470,7 @@ void epilog(block *b)
             assert(hasframe);
             if (xlocalsize | usedalloca)
             {
-                if (config.flags2 & CFG2smash)
+                if (config.flags2 & CFG2stomp)
                 {   /*   MOV  ECX,0xBEAF
                      * L1:
                      *   MOV  [ESP],ECX
