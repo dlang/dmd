@@ -766,10 +766,10 @@ struct Config
 #define CFG2noerrmax    0x4000  // no error count maximum
 #define CFG2expand      0x8000  // expanded output to list file
 #define CFG2seh         0x10000 // use Win32 SEH to support any exception handling
-#define CFG2smash       0x20000 // enable stack smashing code
+#define CFG2stomp       0x20000 // enable stack stomping code
 #define CFGX2   (CFG2warniserr | CFG2phuse | CFG2phgen | CFG2phauto | \
                  CFG2once | CFG2hdrdebug | CFG2noobj | CFG2noerrmax | \
-                 CFG2expand | CFG2nodeflib | CFG2smash)
+                 CFG2expand | CFG2nodeflib | CFG2stomp)
     unsigned flags3;
 #define CFG3ju          1       // char == unsigned char
 #define CFG3eh          4       // generate exception handling stuff
