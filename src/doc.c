@@ -1903,7 +1903,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
 
             case '\n':
-                if (sc && !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
+                if (!sc->module->isDocFile &&
+                    !inCode && i == iLineStart && i + 1 < buf->offset)    // if "\n\n"
                 {
                     static char blankline[] = "$(DDOC_BLANKLINE)\n";
 
@@ -2075,7 +2076,8 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
             default:
                 leadingBlank = 0;
-                if (sc && !inCode && isIdStart(&buf->data[i]))
+                if (!sc->module->isDocFile &&
+                    !inCode && isIdStart(&buf->data[i]))
                 {
                     size_t j = skippastident(buf, i);
                     if (j > i)
