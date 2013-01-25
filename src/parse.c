@@ -2231,7 +2231,11 @@ Objects *Parser::parseTemplateArgument()
             break;
     }
     if (token.value == TOKnot)
-        error("multiple ! arguments are not allowed");
+    {
+        enum TOK tok = peekNext();
+        if (tok != TOKis && tok != TOKin)
+            error("multiple ! arguments are not allowed");
+    }
     return tiargs;
 }
 
