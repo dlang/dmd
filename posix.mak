@@ -268,6 +268,7 @@ MANIFEST= \
 	src/rt/typeinfo/ti_wchar.d \
 	\
 	src/rt/util/console.d \
+	src/rt/util/container.d \
 	src/rt/util/hash.d \
 	src/rt/util/string.d \
 	src/rt/util/utf.d \
@@ -366,6 +367,7 @@ SRC_D_MODULES = \
 	rt/trace \
 	\
 	rt/util/console \
+	rt/util/container \
 	rt/util/hash \
 	rt/util/string \
 	rt/util/utf \
