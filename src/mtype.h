@@ -1008,6 +1008,7 @@ struct TypeNull : Type
     Type *syntaxCopy();
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
+    int checkBoolean();
 
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toJson(JsonOut *json);
