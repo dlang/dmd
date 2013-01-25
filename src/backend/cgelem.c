@@ -2775,7 +2775,7 @@ elem * elstruct(elem *e, goal_t goal)
                         // In-memory only
                         goto Ldefault;
                     }
-                    if (type_size(e->ET) == 16)
+//                    if (type_size(e->ET) == 16)
                         goto Ldefault;
                 }
                 else if (I64 && targ1 && targ2)

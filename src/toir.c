@@ -924,6 +924,8 @@ L2:
 #endif
             goto Lagain;
         }
+        else if (global.params.is64bit && !sd->arg1type && !sd->arg2type)
+            return RETstack;
         else if (sd->isPOD())
         {
             switch (sz)
