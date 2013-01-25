@@ -1759,7 +1759,7 @@ bool FuncDeclaration::functionSemantic()
 
 bool FuncDeclaration::functionSemantic3()
 {
-    if (scope)
+    if (semanticRun < PASSsemantic3 && scope)
     {
         /* Forward reference - we need to run semantic3 on this function.
          * If errors are gagged, and it's not part of a speculative
