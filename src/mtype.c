@@ -9368,6 +9368,11 @@ MATCH TypeNull::implicitConvTo(Type *to)
     return MATCHnomatch;
 }
 
+int TypeNull::checkBoolean()
+{
+    return TRUE;
+}
+
 void TypeNull::toDecoBuffer(OutBuffer *buf, int flag)
 {
     //tvoidptr->toDecoBuffer(buf, flag);
