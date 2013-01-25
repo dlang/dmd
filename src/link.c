@@ -80,13 +80,6 @@ void writeFilename(OutBuffer *buf, const char *filename)
 }
 
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#define NME_MAX_OFFSET 100
-
-#if __APPLE__
-#define NME_ERROR_MSG "\"__Dmain\", referenced from:"
-#else
-#define NME_ERROR_MSG "undefined reference to `_Dmain'"
-#endif
 
 /*****************************
  * As it forwards the linker error message to stderr, checks for the presence
@@ -97,67 +90,48 @@ void writeFilename(OutBuffer *buf, const char *filename)
  *     -1 if there is an IO error
  *      0 otherwise
  */
-int findNoMainError(int fd) {
-    FILE *stream = fdopen(fd, "rb");
+int findNoMainError(int fd)
+{
+    static const char nmeErrorMessage[] =
+#if __APPLE__
+        "\"__Dmain\", referenced from:"
+#else
+        "undefined reference to `_Dmain'"
+#endif
+        ;
 
+    FILE *stream = fdopen(fd, "r");
     if (stream == NULL) return -1;
 
-    int nmeFound = 0;
-    while (true)
+    const size_t len = 64 * 1024 - 1;
+    char buffer[len + 1]; // + '\0'
+    size_t beg = 0, end = len;
+
+    bool nmeFound = false;
+    for (;;)
     {
+        // read linker output
+        const size_t n = fread(&buffer[beg], 1, len - beg, stream);
+        if (beg + n < len && ferror(stream)) return -1;
+        buffer[(end = beg + n) + 1] = '\0';
 
-        // read into buffer while forwarding
-        char buffer[NME_MAX_OFFSET+1];
-        size_t buffer_i = 0;
-        int ch;
-        while (buffer_i < NME_MAX_OFFSET)
-        {
-            ch = fgetc(stream);
-            if (ferror(stream)) return -1;
-            if (ch == EOF) break;
+        // search error message, stop at last complete line
+        const char *lastSep = strrchr(buffer, '\n');
+        if (lastSep) buffer[(end = lastSep - &buffer[0])] = '\0';
 
-            fputc(ch, stderr);
-            if (ferror(stream)) return -1;
+        if (strstr(&buffer[0], nmeErrorMessage))
+            nmeFound = true;
 
-            if (ch == '\n') break;
-            buffer[buffer_i] = ch;
-            buffer_i++;
-        }
-        buffer[buffer_i] = 0;
+        if (lastSep) buffer[end++] = '\n';
 
-        // check for nme
-        if (strstr(buffer, NME_ERROR_MSG) != NULL)
-        {
-            nmeFound = 1;
-            break;
-        }
+        if (fwrite(&buffer[0], 1, end, stderr) < end) return -1;
 
-        if (ch == EOF) break;
+        if (beg + n < len && feof(stream)) break;
 
-        // output the rest of the line
-        while (ch != '\n')
-        {
-            ch = fgetc(stream);
-            if (ferror(stream)) return -1;
-            if (ch == EOF) goto Lend;
-
-            fputc(ch, stderr);
-            if (ferror(stream)) return -1;
-        }
+        // copy over truncated last line
+        memcpy(&buffer[0], &buffer[end], (beg = len - end));
     }
-
-    // output the rest
-    while (true) {
-        int ch = fgetc(stream);
-        if (ferror(stream)) return -1;
-        if (ch == EOF) break;
-
-        fputc(ch, stderr);
-        if (ferror(stream)) return -1;
-    }
-
-  Lend:
-    return nmeFound;
+    return nmeFound ? 1 : 0;
 }
 #endif
 
@@ -671,7 +645,7 @@ int runLINK()
         return -1;
     }
     close(fds[1]);
-
+    const int nme = findNoMainError(fds[0]);
     waitpid(childpid, &status, 0);
 
     if (WIFEXITED(status))
@@ -679,7 +653,6 @@ int runLINK()
         status = WEXITSTATUS(status);
         if (status)
         {
-            int nme = findNoMainError(fds[0]);
             if (nme == -1)
             {
                 perror("Error with the linker pipe");
