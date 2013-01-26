@@ -307,6 +307,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
         return 1;
     }
 
+    if (!s && !sc->module->parent)  // root module, e.g. 'module foo;'
+    {
+#if LOG
+        printf("\ts is in top-level module as sc\n");
+#endif
+        return 1;
+    }
+
 
 #if LOG
     printf("\tno package access\n");
