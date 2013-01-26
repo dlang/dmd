@@ -6369,15 +6369,17 @@ Expression *BinExp::incompatibleTypes()
         e2->type->toBasetype() != Type::terror
        )
     {
+        // CondExp uses 'a ? b : c' but we're comparing 'b : c'
+        TOK thisOp = (op == TOKquestion) ? TOKcolon : op;
         if (e1->op == TOKtype || e2->op == TOKtype)
         {
             error("incompatible types for ((%s) %s (%s)): cannot use '%s' with types",
-                e1->toChars(), Token::toChars(op), e2->toChars(), Token::toChars(op));
+                e1->toChars(), Token::toChars(thisOp), e2->toChars(), Token::toChars(op));
         }
         else
         {
             error("incompatible types for ((%s) %s (%s)): '%s' and '%s'",
-             e1->toChars(), Token::toChars(op), e2->toChars(),
+             e1->toChars(), Token::toChars(thisOp), e2->toChars(),
              e1->type->toChars(), e2->type->toChars());
         }
         return new ErrorExp();
