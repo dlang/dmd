@@ -5637,6 +5637,34 @@ void test250()
 
 /***************************************************/
 
+struct S251 { int a,b,c,d; }
+
+S251 foo251(S251 s)
+{
+    S251 a = s;
+    S251 b = a;	// copy propagation
+    S251 c = b;
+    S251 d = c;
+    S251 e = d;	// dead assignment
+    return d;
+}
+
+void test251()
+{
+    S251 a;
+    a.a = 1;
+    a.b = 2;
+    a.c = 3;
+    a.d = 4;
+    a = foo251(a);
+    assert(a.a == 1);
+    assert(a.b == 2);
+    assert(a.c == 3);
+    assert(a.d == 4);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5916,6 +5944,7 @@ int main()
     test249();
     test250();
     test6057();
+    test251();
 
     writefln("Success");
     return 0;

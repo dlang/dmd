@@ -81,6 +81,7 @@ targ_size_t type_size(type *t)
             case TYifunc:
             case TYjfunc:
 #if SCPP
+            case TYmfunc:
                 if (ANSI)
                     synerr(EM_unknown_size,"function"); /* size of function is not known */
 #endif
