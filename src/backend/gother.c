@@ -1081,8 +1081,11 @@ STATIC void cpwalk(register elem *n,vec_t IN)
                             (v->Sident) ? (char *)v->Sident : "temp",
                             (f->Sident) ? (char *)f->Sident : "temp");
 
+                        type *nt = n->ET;
                         el_copy(n,foundelem->E2);
                         n->Ety = ty;    // retain original type
+                        n->ET = nt;
+
                         changes++;
 
                         // Mark ones we can no longer use
