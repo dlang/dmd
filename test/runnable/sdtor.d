@@ -2371,6 +2371,24 @@ alias X8475!(true).XY Xtrue;
 
 /**********************************/
 
+struct Foo9320 {
+    real x;
+
+    this(real x) {
+	this.x = x;
+    }
+
+    Foo9320 opBinary(string op)(Foo9320 other) {
+        return Foo9320(mixin("x" ~ op ~ "other.x"));
+    }
+}
+
+Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
+    return (a + b) / (a * b) - c;
+}
+
+/**********************************/
+
 int main()
 {
     test1();
