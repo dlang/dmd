@@ -2693,6 +2693,20 @@ elem * elstruct(elem *e, goal_t goal)
     if (e->Eoper == OPstreq && (e->E1->Eoper == OPcomma || OTassign(e->E1->Eoper)))
         return cgel_lvalue(e);
 
+    if (e->Eoper == OPstreq && e->E2->Eoper == OPcomma)
+    {
+        /* Replace (e1 streq (e21, e22)) with (e21, (e1 streq e22))
+         */
+        e->E2->Eoper = e->Eoper;
+        e->E2->Ety = e->Ety;
+        e->E2->ET = e->ET;
+        e->Eoper = OPcomma;
+        elem *etmp = e->E1;
+        e->E1 = e->E2->E1;
+        e->E2->E1 = etmp;
+        return optelem(e, goal);
+    }
+
     //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
 
     if (!e->ET)
@@ -2710,7 +2724,8 @@ elem * elstruct(elem *e, goal_t goal)
         targ2 = e->ET->Ttag->Sstruct->Sarg2type;
     }
 
-    switch ((int) type_size(e->ET))
+    unsigned sz = type_size(e->ET);
+    switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
         case 2:  tym = TYshort;  goto L1;
@@ -2729,6 +2744,14 @@ elem * elstruct(elem *e, goal_t goal)
                  goto L1;
             }
             tym = ~0;
+            goto Ldefault;
+
+        case 10:
+        case 12:
+            if (tysize(TYldouble) == sz && targ1 && !targ2 && tybasic(targ1->Tty) == TYldouble)
+            {   tym = TYldouble;
+                goto L1;
+            }
             goto Ldefault;
 
         case 16:
