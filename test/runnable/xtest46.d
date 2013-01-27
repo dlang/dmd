@@ -945,7 +945,6 @@ void test48()
 }
 
 /***************************************************/
-
 // 6408
 
 static assert(!is(typeof(string[0..1].init)));
@@ -963,6 +962,20 @@ static assert(is(typeof(string[string][string][string].init) == string[string][s
 
 template TT6408(T...) { alias T TT6408; }
 static assert(is(typeof(TT6408!(int, int)[].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[0..$].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[$-1].init) == int));
+
+/***************************************************/
+// 9409
+
+template TT9409(T...) { alias T TT9409; }
+
+template idxTypes9409(Prefix...)
+{
+    TT9409!((Prefix[$-1])) idxTypes9409;
+}
+
+alias idxTypes9409!(int) Types9409;
 
 /***************************************************/
 
