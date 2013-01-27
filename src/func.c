@@ -1266,11 +1266,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                              *    as delegating calls to other constructors
                              */
                             if (v->isCtorinit() && !v->type->isMutable() && cd)
-                            {
-                                OutBuffer buf;
-                                MODtoBuffer(&buf, v->type->mod);
-                                error("missing initializer for %s field %s", buf.toChars(), v->toChars());
-                            }
+                                error("missing initializer for %s field %s", MODtoChars(v->type->mod), v->toChars());
                             else if (v->storage_class & STCnodefaultctor)
                                 error("field %s must be initialized in constructor", v->toChars());
                             else if (v->type->needsNested())
@@ -2652,13 +2648,10 @@ if (arguments)
             }
             else
             {
-                OutBuffer buf2;
-                tf->modToBuffer(&buf2);
-
                 //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
                 error(loc, "%s%s is not callable using argument types %s",
                     Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                    buf2.toChars(),
+                    tf->modToChars(),
                     buf.toChars());
             }
 

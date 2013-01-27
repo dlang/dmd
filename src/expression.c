@@ -1915,9 +1915,7 @@ void Expression::checkModifiable(Scope *sc)
             }
             else
             {
-                OutBuffer buf;
-                MODtoBuffer(&buf, type->mod);
-                error("cannot modify %s expression %s", buf.toChars(), toChars());
+                error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
             }
         }
     }
@@ -7696,9 +7694,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
                 return new ErrorExp();
             }
             if (!e->type->isMutable())
-            {   OutBuffer buf;
-                MODtoBuffer(&buf, e->type->mod);
-                error("cannot remove key from %s associative array %s", buf.toChars(), e->toChars());
+            {   error("cannot remove key from %s associative array %s", MODtoChars(e->type->mod), e->toChars());
                 return new ErrorExp();
             }
             Expression *key = (*arguments)[0];
