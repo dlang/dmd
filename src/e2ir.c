@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -1612,8 +1612,7 @@ elem *StringExp::toElem(IRState *irs)
         toDt(&dt);
         dtnzeros(&dt, sz);              // leave terminating 0
 
-        ::type *t = type_allocn(TYarray, tschar);
-        t->Tdim = sz * len;
+        ::type *t = type_static_array(sz * len, tschar);
         Symbol *si = symbol_generate(SCstatic, t);
         si->Sdt = dt;
         si->Sfl = FLdata;
@@ -3672,13 +3671,9 @@ elem *CallExp::toElem(IRState *irs)
                     // Replace with an array allocated on the stack
                     // of the same size: char[sz] tmp;
 
-                    Symbol *stmp;
-                    ::type *t;
-
                     assert(!ehidden);
-                    t = type_allocn(TYarray, tschar);
-                    t->Tdim = sz;
-                    stmp = symbol_genauto(t);
+                    ::type *t = type_static_array(sz, tschar);  // BUG: fix extra Tcount++
+                    Symbol *stmp = symbol_genauto(t);
                     ec = el_ptr(stmp);
                     el_setLoc(ec,loc);
                     return ec;
