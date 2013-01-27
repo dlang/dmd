@@ -2828,6 +2828,9 @@ elem * elstruct(elem *e, goal_t goal)
                 pe2 = &(*pe2)->E2;
             elem *e2 = *pe2;
 
+            if (e2->Eoper == OPvar)
+                e2->EV.sp.Vsym->Sflags &= ~GTregcand;
+
             // Convert (x streq (a?y:z)) to (x streq *(a ? &y : &z))
             if (e2->Eoper == OPcond)
             {   tym_t ty2 = e2->Ety;
