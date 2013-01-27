@@ -2724,7 +2724,8 @@ elem * elstruct(elem *e, goal_t goal)
         targ2 = e->ET->Ttag->Sstruct->Sarg2type;
     }
 
-    switch ((int) type_size(e->ET))
+    unsigned sz = type_size(e->ET);
+    switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
         case 2:  tym = TYshort;  goto L1;
@@ -2746,14 +2747,8 @@ elem * elstruct(elem *e, goal_t goal)
             goto Ldefault;
 
         case 10:
-            if (tysize(TYldouble) == 10)
-            {   tym = TYldouble;
-                goto L1;
-            }
-            goto Ldefault;
-
         case 12:
-            if (tysize(TYldouble) == 12)
+            if (tysize(TYldouble) == sz && targ1 && !targ2 && tybasic(targ1->Tty) == TYldouble)
             {   tym = TYldouble;
                 goto L1;
             }
