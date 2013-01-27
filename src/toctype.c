@@ -387,9 +387,7 @@ type *TypeStruct::toCtype()
             for (size_t i = 0; i < sym->fields.dim; i++)
             {   VarDeclaration *v = sym->fields[i];
 
-                Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
-                s2->Smemoff = v->offset;
-                list_append(&s->Sstruct->Sfldlst, s2);
+                symbol_struct_addField(s, v->ident->toChars(), v->type->toCtype(), v->offset);
             }
     }
 
@@ -514,9 +512,7 @@ type *TypeClass::toCtype()
         for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = sym->fields[i];
 
-            Symbol *s2 = symbol_name(v->ident->toChars(), SCmember, v->type->toCtype());
-            s2->Smemoff = v->offset;
-            list_append(&s->Sstruct->Sfldlst, s2);
+            symbol_struct_addField(s, v->ident->toChars(), v->type->toCtype(), v->offset);
         }
 
     return t;
