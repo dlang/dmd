@@ -414,6 +414,22 @@ void symbol_func(symbol *s)
         s->Sfunc = func_calloc();
 }
 
+/***************************************
+ * Add a field to a struct s.
+ * Input:
+ *      s       the struct symbol
+ *      name    field name
+ *      t       the type of the field
+ *      offset  offset of the field
+ */
+
+void symbol_struct_addField(Symbol *s, const char *name, type *t, unsigned offset)
+{
+    Symbol *s2 = symbol_name(name, SCmember, t);
+    s2->Smemoff = offset;
+    list_append(&s->Sstruct->Sfldlst, s2);
+}
+
 /********************************
  * Define symbol in specified symbol table.
  * Returns:
