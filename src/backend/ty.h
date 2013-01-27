@@ -119,11 +119,10 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-#if MARS
+// MARS types
 #define TYaarray        TYnptr
 #define TYdelegate      (I64 ? TYcent : TYllong)
 #define TYdarray        (I64 ? TYucent : TYullong)
-#endif
 
     TYMAX               = 0x48,
 };
