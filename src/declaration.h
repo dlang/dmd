@@ -626,6 +626,8 @@ struct FuncDeclaration : Declaration
     VarDeclarations closureVars;        // local variables in this function
                                         // which are referenced by nested
                                         // functions
+    FuncDeclarations siblingCallers;    // Sibling nested functions which
+                                        // called this one
     FuncDeclarations deferred;          // toObjFile() these functions after this one
 
     unsigned flags;

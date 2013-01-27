@@ -3274,6 +3274,18 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 
         if (fdv && fdthis && fdv != fdthis)
         {
+            // Add this function to the list of those which called us
+            if (fdthis != this)
+            {
+                bool found = false;
+                for (int i = 0; i < siblingCallers.dim; ++i)
+                {   if (siblingCallers[i] == fdthis)
+                        found = true;
+                }
+                if (!found)
+                    siblingCallers.push(fdthis);
+            }
+
             int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -1)
                 return; // OK
@@ -3289,6 +3301,50 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
     }
 }
 
+/* For all functions between outerFunc and f, mark them as needing
+ * a closure.
+ */
+void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
+{
+    for (Dsymbol *sx = f; sx != outerFunc; sx = sx->parent)
+    {
+        FuncDeclaration *fy = sx->isFuncDeclaration();
+        if (fy && fy->closureVars.dim)
+        {
+            /* fy needs a closure if it has closureVars[],
+             * because the frame pointer in the closure will be accessed.
+             */
+            fy->requiresClosure = true;
+        }
+    }
+}
+
+
+/* Given a nested function f inside a function outerFunc, check
+ * if any sibling callers of f have escaped. If so, mark
+ * all the enclosing functions as needing closures.
+ * Return true if any closures were detected.
+ * This is recursive: we need to check the callers of our siblings.
+ * Note that nested functions can only call lexically earlier nested
+ * functions, so loops are impossible.
+ */
+bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
+{
+    bool bAnyClosures = false;
+    for (int i = 0; i < f->siblingCallers.dim; ++i)
+    {
+        FuncDeclaration *g = f->siblingCallers[i];
+        if (g->isThis() || g->tookAddressOf)
+        {
+            markAsNeedingClosure(g, outerFunc);
+            bAnyClosures = true;
+        }
+        bAnyClosures |= checkEscapingSiblings(g, outerFunc);
+    }
+    return bAnyClosures;
+}
+
+
 /*******************************
  * Look at all the variables in this function that are referenced
  * by nested functions, and determine if a closure needs to be
@@ -3301,12 +3357,14 @@ int FuncDeclaration::needsClosure()
     /* Need a closure for all the closureVars[] if any of the
      * closureVars[] are accessed by a
      * function that escapes the scope of this function.
-     * We take the conservative approach and decide that any function that:
+     * We take the conservative approach and decide that a function needs
+     * a closure if it:
      * 1) is a virtual function
      * 2) has its address taken
      * 3) has a parent that escapes
+     * 4) calls another nested function that needs a closure
      * -or-
-     * 4) this function returns a local struct/class
+     * 5) this function returns a local struct/class
      *
      * Note that since a non-virtual function can be called by
      * a virtual one, if that non-virtual function accesses a closure
@@ -3330,7 +3388,11 @@ int FuncDeclaration::needsClosure()
 
             //printf("\t\tf = %s, isVirtual=%d, isThis=%p, tookAddressOf=%d\n", f->toChars(), f->isVirtual(), f->isThis(), f->tookAddressOf);
 
-            // Look to see if f or any parents of f that are below this escape
+            /* Look to see if f escapes. We consider all parents of f within
+             * this, and also all siblings which call f; if any of them escape,
+             * so does f.
+             * Mark all affected functions as requiring closures.
+             */
             for (Dsymbol *s = f; s && s != this; s = s->parent)
             {
                 FuncDeclaration *fx = s->isFuncDeclaration();
@@ -3340,26 +3402,22 @@ int FuncDeclaration::needsClosure()
 
                     /* Mark as needing closure any functions between this and f
                      */
-                    for (Dsymbol *sx = fx; sx != this; sx = sx->parent)
-                    {
-                        if (sx != f)
-                        {   FuncDeclaration *fy = sx->isFuncDeclaration();
-                            if (fy && fy->closureVars.dim)
-                            {
-                                /* fy needs a closure if it has closureVars[],
-                                 * because the frame pointer in the closure will be accessed.
-                                 */
-                                fy->requiresClosure = true;
-                            }
-                        }
-                    }
+                    markAsNeedingClosure( (fx == f) ? fx->parent : fx, this);
+
                     goto Lyes;
                 }
+
+                /* We also need to check if any sibling functions that
+                 * called us, have escaped. This is recursive: we need
+                 * to check the callers of our siblings.
+                 */
+                if (fx && checkEscapingSiblings(fx, this))
+                    goto Lyes;
             }
         }
     }
 
-    /* Look for case (4)
+    /* Look for case (5)
      */
     if (closureVars.dim)
     {
