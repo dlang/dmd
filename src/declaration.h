@@ -866,7 +866,7 @@ struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 
 struct InvariantDeclaration : FuncDeclaration
 {
-    InvariantDeclaration(Loc loc, Loc endloc);
+    InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int isVirtual();

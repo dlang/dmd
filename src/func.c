@@ -4129,8 +4129,8 @@ void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* InvariantDeclaration ****************************/
 
-InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::classInvariant, STCundefined, NULL)
+InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc)
+    : FuncDeclaration(loc, endloc, Id::classInvariant, stc, NULL)
 {
 }
 
@@ -4139,7 +4139,7 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
     InvariantDeclaration *id;
 
     assert(!s);
-    id = new InvariantDeclaration(loc, endloc);
+    id = new InvariantDeclaration(loc, endloc, storage_class);
     FuncDeclaration::syntaxCopy(id);
     return id;
 }
@@ -4167,9 +4167,12 @@ void InvariantDeclaration::semantic(Scope *sc)
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
 
+    if (storage_class && !(storage_class & (STCconst | STCundefined)))
+        ::error(loc, "invariant() can either be const or non-const.");
+
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
-    sc->stc |= STCconst;                // invariant() is always const
+    sc->stc |= storage_class;
     sc->flags = (sc->flags & ~SCOPEcontract) | SCOPEinvariant;
     sc->linkage = LINKd;
 

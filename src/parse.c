@@ -1286,8 +1286,8 @@ InvariantDeclaration *Parser::parseInvariant()
         nextToken();
         check(TOKrparen);
     }
-
-    f = new InvariantDeclaration(loc, 0);
+    StorageClass stc = parsePostfix();
+    f = new InvariantDeclaration(loc, 0, stc);
     f->fbody = parseStatement(PScurly);
     return f;
 }
