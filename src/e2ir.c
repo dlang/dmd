@@ -1189,8 +1189,7 @@ elem *StringExp::toElem(IRState *irs)
         toDt(&dt);
         dtnzeros(&dt, sz);              // leave terminating 0
 
-        ::type *t = type_allocn(TYarray, tschar);
-        t->Tdim = sz;
+        ::type *t = type_static_array(sz * len, tschar);
         Symbol *si = symbol_generate(SCstatic, t);
         si->Sdt = dt;
         si->Sfl = FLdata;
@@ -1198,6 +1197,8 @@ elem *StringExp::toElem(IRState *irs)
         outdata(si);
 
         e = el_var(si);
+        e->ET = t;
+        t->Tcount++;
     }
     else if (tb->ty == Tpointer)
     {
@@ -3329,13 +3330,9 @@ elem *CallExp::toElem(IRState *irs)
                     // Replace with an array allocated on the stack
                     // of the same size: char[sz] tmp;
 
-                    Symbol *stmp;
-                    ::type *t;
-
                     assert(!ehidden);
-                    t = type_allocn(TYarray, tschar);
-                    t->Tdim = sz;
-                    stmp = symbol_genauto(t);
+                    ::type *t = type_static_array(sz, tschar);  // fix extra Tcount++
+                    Symbol *stmp = symbol_genauto(t);
                     ec = el_ptr(stmp);
                     el_setLoc(ec,loc);
                     return ec;

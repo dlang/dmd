@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -87,7 +87,7 @@ Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *
     }
 #endif
     id = (char *) alloca(2 + nlen + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
-    sprintf(id,"_D%s%zu%s%s", n, strlen(prefix), prefix, suffix);
+    sprintf(id,"_D%s%llu%s%s", n, (ulonglong)strlen(prefix), prefix, suffix);
 #if 0
     if (global.params.isWindows &&
         (type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std))
@@ -172,7 +172,7 @@ Symbol *VarDeclaration::toSymbol()
     //if (needThis()) *(char*)0=0;
     assert(!needThis());
     if (!csym)
-    {   Symbol *s;
+    {
         TYPE *t;
         const char *id;
 
@@ -180,18 +180,12 @@ Symbol *VarDeclaration::toSymbol()
             id = mangle();
         else
             id = ident->toChars();
-        s = symbol_calloc(id);
+        Symbol *s = symbol_calloc(id);
 
         if (storage_class & (STCout | STCref))
         {
-            if (global.params.symdebug && storage_class & STCparameter)
-            {
-                t = type_alloc(TYnptr);         // should be TYref, but problems in back end
-                t->Tnext = type->toCtype();
-                t->Tnext->Tcount++;
-            }
-            else
-                t = type_fake(TYnptr);
+            // should be TYref, but problems in back end
+            t = type_pointer(type->toCtype());
         }
         else if (storage_class & STClazy)
         {
@@ -199,26 +193,26 @@ Symbol *VarDeclaration::toSymbol()
                 t = type_fake(TYnptr);
             else
                 t = type_fake(TYdelegate);          // Tdelegate as C type
+            t->Tcount++;
         }
         else if (isParameter())
         {
             if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
             {
-                if (global.params.symdebug)
-                {
-                    t = type_alloc(TYnptr);         // should be TYref, but problems in back end
-                    t->Tnext = type->toCtype();
-                    t->Tnext->Tcount++;
-                }
-                else
-                    t = type_fake(TYnptr);
+                // should be TYref, but problems in back end
+                t = type_pointer(type->toCtype());
             }
             else
+            {
                 t = type->toCParamtype();
+                t->Tcount++;
+            }
         }
         else
+        {
             t = type->toCtype();
-        t->Tcount++;
+            t->Tcount++;
+        }
 
         if (isDataseg())
         {
@@ -585,9 +579,7 @@ Symbol *ClassDeclaration::toVtblSymbol()
         if (!csym)
             toSymbol();
 
-        t = type_alloc(TYnptr | mTYconst);
-        t->Tnext = tsvoid;
-        t->Tnext->Tcount++;
+        t = type_allocn(TYnptr | mTYconst, tsvoid);
         t->Tmangle = mTYman_d;
         s = toSymbolX("__vtbl", SCextern, t, "Z");
         s->Sflags |= SFLnodebug;
@@ -604,13 +596,10 @@ Symbol *ClassDeclaration::toVtblSymbol()
 
 Symbol *AggregateDeclaration::toInitializer()
 {
-    Symbol *s;
-    Classsym *stag;
-
     if (!sinit)
     {
-        stag = fake_classsym(NULL);
-        s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Classsym *stag = fake_classsym(NULL);
+        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         slist_add(s);
@@ -621,13 +610,10 @@ Symbol *AggregateDeclaration::toInitializer()
 
 Symbol *TypedefDeclaration::toInitializer()
 {
-    Symbol *s;
-    Classsym *stag;
-
     if (!sinit)
     {
-        stag = fake_classsym(NULL);
-        s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Classsym *stag = fake_classsym(NULL);
+        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
         slist_add(s);
@@ -638,16 +624,13 @@ Symbol *TypedefDeclaration::toInitializer()
 
 Symbol *EnumDeclaration::toInitializer()
 {
-    Symbol *s;
-    Classsym *stag;
-
     if (!sinit)
     {
-        stag = fake_classsym(NULL);
+        Classsym *stag = fake_classsym(NULL);
         Identifier *ident_save = ident;
         if (!ident)
             ident = Lexer::uniqueId("__enum");
-        s = toSymbolX("__init", SCextern, stag->Stype, "Z");
+        Symbol *s = toSymbolX("__init", SCextern, stag->Stype, "Z");
         ident = ident_save;
         s->Sfl = FLextern;
         s->Sflags |= SFLnodebug;
