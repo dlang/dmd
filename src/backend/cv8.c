@@ -759,7 +759,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     return cv_debtyp(d);
 #endif
 
-    type *tp = type_allocn(TYnptr, t->Tnext);
+    type *tp = type_pointer(t->Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
@@ -839,7 +839,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     idx_t pvidx = cv4_typidx(tv);
     type_free(tv);
 
-    type *tp = type_allocn(TYnptr, t->Tnext);
+    type *tp = type_pointer(t->Tnext);
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 

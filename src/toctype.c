@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -40,7 +40,6 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-void out_config_init();
 void slist_add(Symbol *s);
 void slist_reset();
 
@@ -82,151 +81,32 @@ type *TypeVector::toCtype()
 type *TypeSArray::toCtype()
 {
     if (!ctype)
-    {   type *tn;
-
-        tn = next->toCtype();
-        ctype = type_allocn(TYarray, tn);
-        ctype->Tdim = dim->toInteger();
-    }
+        ctype = type_static_array(dim->toInteger(), next->toCtype());
     return ctype;
 }
 
 type *TypeDArray::toCtype()
-{   type *t;
-
-    if (ctype)
-        return ctype;
-
-    if (0 && global.params.symdebug)
-    {
-        /* Create a C type out of:
-         *      struct _Array_T { size_t length; T* data; }
-         */
-        Symbol *s;
-        char *id;
-
-        assert(next->deco);
-        id = (char *) alloca(7 + strlen(next->deco) + 1);
-        sprintf(id, "_Array_%s", next->deco);
-        s = symbol_calloc(id);
-        s->Sclass = SCstruct;
-        s->Sstruct = struct_calloc();
-        s->Sstruct->Sflags |= 0;
-        s->Sstruct->Salignsize = alignsize();
-        s->Sstruct->Sstructalign = global.structalign;
-        s->Sstruct->Sstructsize = size(0);
-        slist_add(s);
-
-        Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
-        list_append(&s->Sstruct->Sfldlst, s1);
-
-        Symbol *s2 = symbol_name("data", SCmember, next->pointerTo()->toCtype());
-        s2->Smemoff = Type::tsize_t->size();
-        list_append(&s->Sstruct->Sfldlst, s2);
-
-        t = type_alloc(TYstruct);
-        t->Ttag = (Classsym *)s;                // structure tag name
-        t->Tcount++;
-        s->Stype = t;
-    }
-    else
-    {
-        if (global.params.symdebug == 1)
-        {
-            // Generate D symbolic debug info, rather than C
-            t = type_allocn(TYdarray, next->toCtype());
-        }
-        else
-            t = type_fake(TYdarray);
-    }
-    t->Tcount++;
-    ctype = t;
-    return t;
+{
+    if (!ctype)
+        ctype = type_dyn_array(next->toCtype());
+    return ctype;
 }
 
 
 type *TypeAArray::toCtype()
-{   type *t;
-
-    if (ctype)
-        return ctype;
-
-    if (0 && global.params.symdebug)
-    {
-        /* An associative array is represented by:
-         *      struct AArray { size_t length; void* ptr; }
-         */
-
-        static Symbol *s;
-
-        if (!s)
-        {
-            s = symbol_calloc("_AArray");
-            s->Sclass = SCstruct;
-            s->Sstruct = struct_calloc();
-            s->Sstruct->Sflags |= 0;
-            s->Sstruct->Salignsize = alignsize();
-            s->Sstruct->Sstructalign = global.structalign;
-            s->Sstruct->Sstructsize = size(0);
-            slist_add(s);
-
-            Symbol *s1 = symbol_name("length", SCmember, Type::tsize_t->toCtype());
-            list_append(&s->Sstruct->Sfldlst, s1);
-
-            Symbol *s2 = symbol_name("data", SCmember, Type::tvoidptr->toCtype());
-            s2->Smemoff = Type::tsize_t->size();
-            list_append(&s->Sstruct->Sfldlst, s2);
-        }
-
-        t = type_alloc(TYstruct);
-        t->Ttag = (Classsym *)s;                // structure tag name
-        t->Tcount++;
-        s->Stype = t;
-    }
-    else
-    {
-        if (global.params.symdebug == 1)
-        {
-            /* Generate D symbolic debug info, rather than C
-             *   Tnext: element type
-             *   Tkey: key type
-             */
-            t = type_allocn(TYaarray, next->toCtype());
-            t->Tkey = index->toCtype();
-            t->Tkey->Tcount++;
-        }
-        else
-            t = type_fake(TYaarray);
-    }
-    t->Tcount++;
-    ctype = t;
-    return t;
+{
+    if (!ctype)
+        ctype = type_assoc_array(index->toCtype(), next->toCtype());
+    return ctype;
 }
 
 
 type *TypePointer::toCtype()
-{   type *tn;
-    type *t;
-
+{
     //printf("TypePointer::toCtype() %s\n", toChars());
-    if (ctype)
-        return ctype;
-
-    if (1 || global.params.symdebug)
-    {   /* Need to always do this, otherwise C++ name mangling
-         * goes awry.
-         */
-        t = type_alloc(TYnptr);
-        ctype = t;
-        tn = next->toCtype();
-        t->Tnext = tn;
-        tn->Tcount++;
-    }
-    else
-        t = type_fake(totym());
-    t->Tcount++;
-    ctype = t;
-    return t;
+    if (!ctype)
+        ctype = type_pointer(next->toCtype());
+    return ctype;
 }
 
 type *TypeFunction::toCtype()
@@ -235,87 +115,38 @@ type *TypeFunction::toCtype()
     if (ctype)
         return ctype;
 
-    if (1)
-    {
-        param_t *paramtypes = NULL;
-        size_t nparams = Parameter::dim(parameters);
-        for (size_t i = 0; i < nparams; i++)
-        {   Parameter *arg = Parameter::getNth(parameters, i);
-            type *tp = arg->type->toCtype();
-            if (arg->storageClass & (STCout | STCref))
-            {   // C doesn't have reference types, so it's really a pointer
-                // to the parameter type
-                tp = type_allocn(TYref, tp);
-            }
-            param_append_type(&paramtypes,tp);
+    param_t *paramtypes = NULL;
+    size_t nparams = Parameter::dim(parameters);
+    for (size_t i = 0; i < nparams; i++)
+    {   Parameter *arg = Parameter::getNth(parameters, i);
+        type *tp = arg->type->toCtype();
+        if (arg->storageClass & (STCout | STCref))
+        {   // C doesn't have reference types, so it's really a pointer
+            // to the parameter type
+            tp = type_allocn(TYref, tp);
         }
-        tym_t tyf = totym();
-        t = type_alloc(tyf);
-        t->Tflags |= TFprototype;
-        if (varargs != 1)
-            t->Tflags |= TFfixed;
-        ctype = t;
-        assert(next);           // function return type should exist
-        t->Tnext = next->toCtype();
-        t->Tnext->Tcount++;
-        t->Tparamtypes = paramtypes;
+        param_append_type(&paramtypes,tp);
     }
+    tym_t tyf = totym();
+    t = type_alloc(tyf);
+    t->Tflags |= TFprototype;
+    if (varargs != 1)
+        t->Tflags |= TFfixed;
+    ctype = t;
+    assert(next);           // function return type should exist
+    t->Tnext = next->toCtype();
+    t->Tnext->Tcount++;
+    t->Tparamtypes = paramtypes;
+
     ctype = t;
     return t;
 }
 
 type *TypeDelegate::toCtype()
-{   type *t;
-
-    if (ctype)
-        return ctype;
-
-    if (0 && global.params.symdebug)
-    {
-        /* A delegate consists of:
-         *    _Delegate { void* frameptr; Function *funcptr; }
-         */
-
-        static Symbol *s;
-
-        if (!s)
-        {
-            s = symbol_calloc("_Delegate");
-            s->Sclass = SCstruct;
-            s->Sstruct = struct_calloc();
-            s->Sstruct->Sflags |= 0;
-            s->Sstruct->Salignsize = alignsize();
-            s->Sstruct->Sstructalign = global.structalign;
-            s->Sstruct->Sstructsize = size(0);
-            slist_add(s);
-
-            Symbol *s1 = symbol_name("frameptr", SCmember, Type::tvoidptr->toCtype());
-            list_append(&s->Sstruct->Sfldlst, s1);
-
-            Symbol *s2 = symbol_name("funcptr", SCmember, Type::tvoidptr->toCtype());
-            s2->Smemoff = Type::tvoidptr->size();
-            list_append(&s->Sstruct->Sfldlst, s2);
-        }
-
-        t = type_alloc(TYstruct);
-        t->Ttag = (Classsym *)s;                // structure tag name
-        t->Tcount++;
-        s->Stype = t;
-    }
-    else
-    {
-        if (global.params.symdebug == 1)
-        {
-            // Generate D symbolic debug info, rather than C
-            t = type_allocn(TYdelegate, next->toCtype());
-        }
-        else
-            t = type_fake(TYdelegate);
-    }
-
-    t->Tcount++;
-    ctype = t;
-    return t;
+{
+    if (!ctype)
+        ctype = type_delegate(next->toCtype());
+    return ctype;
 }
 
 

@@ -350,6 +350,75 @@ type *type_allocmemptr(Classsym *stag,type *tn)
 }
 #endif
 
+/********************************
+ * Allocate a pointer type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_pointer(type *tnext)
+{
+    type *t = type_allocn(TYnptr, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a dynamic array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_dyn_array(type *tnext)
+{
+    type *t = type_allocn(TYdarray, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a static array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_static_array(unsigned long long dim, type *tnext)
+{
+    type *t = type_allocn(TYarray, tnext);
+    t->Tdim = dim;
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate an associative array type,
+ * which are key=value pairs
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_assoc_array(type *tkey, type *tvalue)
+{
+    type *t = type_allocn(TYaarray, tvalue);
+    t->Tkey = tkey;
+    tkey->Tcount++;
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a delegate type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_delegate(type *tnext)
+{
+    type *t = type_allocn(TYdelegate, tnext);
+    t->Tcount++;
+    return t;
+}
+
 /*****************************
  * Free up data type.
  */
