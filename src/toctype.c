@@ -127,7 +127,6 @@ type *TypeFunction::toCtype()
     t->Tflags |= TFprototype;
     if (varargs != 1)
         t->Tflags |= TFfixed;
-    ctype = t;
     assert(next);           // function return type should exist
     t->Tnext = next->toCtype();
     t->Tnext->Tcount++;
