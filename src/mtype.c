@@ -1501,7 +1501,7 @@ void MODtoDecoBuffer(OutBuffer *buf, unsigned char mod)
 }
 
 /*********************************
- * Name for mod.
+ * Store modifier name into buf.
  */
 void MODtoBuffer(OutBuffer *buf, unsigned char mod)
 {
@@ -1533,6 +1533,18 @@ void MODtoBuffer(OutBuffer *buf, unsigned char mod)
         default:
             assert(0);
     }
+}
+
+
+/*********************************
+ * Return modifier name.
+ */
+char *MODtoChars(unsigned char mod)
+{
+    OutBuffer buf;
+    MODtoBuffer(&buf, mod);
+    buf.writebyte(0);
+    return buf.extractData();
 }
 
 /********************************
@@ -1608,6 +1620,9 @@ void Type::toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod)
     }
 }
 
+/*********************************
+ * Store this type's modifier name into buf.
+ */
 void Type::modToBuffer(OutBuffer *buf)
 {
     if (mod)
@@ -1615,6 +1630,16 @@ void Type::modToBuffer(OutBuffer *buf)
         buf->writeByte(' ');
         MODtoBuffer(buf, mod);
     }
+}
+
+/*********************************
+ * Return this type's modifier name.
+ */
+char *Type::modToChars()
+{
+    OutBuffer buf;
+    modToBuffer(&buf);
+    return buf.extractData();
 }
 
 /************************************
