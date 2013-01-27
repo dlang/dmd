@@ -10007,7 +10007,7 @@ Expression *IndexExp::semantic(Scope *sc)
     if (!e1->type)
         e1 = e1->semantic(sc);
     assert(e1->type);           // semantic() should already be run on it
-    if (e1->op == TOKtype)
+    if (e1->op == TOKtype && e1->type->ty != Ttuple)
     {
         e2 = e2->semantic(sc);
         e2 = resolveProperties(sc, e2);
