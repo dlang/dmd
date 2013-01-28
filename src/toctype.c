@@ -265,19 +265,7 @@ type *TypeEnum::toCtype()
     }
     else if (sym->memtype->toBasetype()->ty == Tint32)
     {
-        Symbol *s = symbol_calloc(sym->toPrettyChars());
-        s->Sclass = SCenum;
-        s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
-        s->Senum->SEflags |= SENforward;        // forward reference
-        slist_add(s);
-
-        t = type_alloc(TYenum);
-        t->Ttag = (Classsym *)s;            // enum tag name
-        t->Tcount++;
-        t->Tnext = sym->memtype->toCtype();
-        t->Tnext->Tcount++;
-        s->Stype = t;
-        slist_add(s);
+        t = type_enum(sym->toPrettyChars(), sym->memtype->toCtype());
         tm->ctype = t;
         ctype = t;
     }
