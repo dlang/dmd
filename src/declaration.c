@@ -137,15 +137,17 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
     if (v && v->canassign)
         return 2;
 
-    if ((sc->flags & SCOPEcontract) && isParameter())
+    if (isParameter() || isResult())
     {
-        if (!flag) error(loc, "cannot modify parameter '%s' in contract", toChars());
-        return 0;
-    }
-    if ((sc->flags & SCOPEcontract) && isResult())
-    {
-        if (!flag) error(loc, "cannot modify result '%s' in contract", toChars());
-        return 0;
+        for (Scope *scx = sc; scx; scx = scx->enclosing)
+        {
+            if (scx->func == parent && (scx->flags & SCOPEcontract))
+            {
+                const char *s = isParameter() ? "parameter" : "result";
+                if (!flag) error(loc, "cannot modify %s '%s' in contract", s, toChars());
+                return 0;
+            }
+        }
     }
 
     if (v && isCtorinit())
