@@ -465,7 +465,6 @@ type *type_enum(const char *name, type *tbase)
     t->Ttag = (Classsym *)s;            // enum tag name
     t->Tcount++;
     s->Stype = t;
-    slist_add(s);
     t->Tcount++;
     return t;
 }
