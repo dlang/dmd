@@ -717,6 +717,16 @@ void test9153()
 }
 
 /***************************************************/
+// 9415
+
+void test9415()
+{
+    int z;
+    typeof((int a){return z;}) dg;
+    dg = (int a){return z;};
+}
+
+/***************************************************/
 
 int main()
 {
@@ -758,6 +768,7 @@ int main()
     test8496();
     test8575();
     test9153();
+    test9415();
 
     printf("Success\n");
     return 0;

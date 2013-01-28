@@ -1955,6 +1955,16 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
+
+                        /* This is necessary to avoid breaking tests for 8751 & 8793.
+                         * See: compilable/testInference.d
+                         */
+                        if (type->isMutable() ||                            // mutable variable
+                            !type->implicitConvTo(type->invariantOf()) ||   // has any mutable indirections
+                            !fdv->isPureBypassingInference())               // does not belong to pure function
+                        {
+                            fld->setImpure();   // Bugzilla 9415
+                        }
                     }
                 }
 
