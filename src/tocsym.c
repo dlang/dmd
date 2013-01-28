@@ -477,26 +477,18 @@ Symbol *static_sym()
  */
 
 Classsym *fake_classsym(const char *name)
-{   TYPE *t;
-    Classsym *scc;
+{
+    TYPE *t = type_struct_class("ClassInfo",8,0,
+        NULL,NULL,
+        false, false, true);
 
-    scc = (Classsym *)symbol_calloc("ClassInfo");
-    scc->Sclass = SCstruct;
-    scc->Sstruct = struct_calloc();
-    scc->Sstruct->Sstructalign = 8;
-    //scc->Sstruct->ptrtype = TYnptr;
-    scc->Sstruct->Sflags = STRglobal;
-
-    t = type_alloc(TYstruct);
+    t->Ttag->Sstruct->Sflags = STRglobal;
     t->Tflags |= TFsizeunknown | TFforward;
-    t->Ttag = scc;              // structure tag name
     assert(t->Tmangle == 0);
     t->Tmangle = mTYman_d;
-    t->Tcount++;
-    scc->Stype = t;
-    slist_add(scc);
-    return scc;
+    return t->Ttag;
 }
+
 
 /*************************************
  * Create the "ClassInfo" symbol
