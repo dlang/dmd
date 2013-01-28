@@ -290,11 +290,8 @@ void ClassDeclaration::toObjFile(int multiobj)
             }
 
             // Create type for the function
-            ::type *t = type_alloc(TYjfunc);
-            t->Tflags |= TFprototype | TFfixed;
+            ::type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
             t->Tmangle = mTYman_d;
-            t->Tnext = tsvoid;
-            tsvoid->Tcount++;
 
             // Create the function, sdtor, and write it out
             localgot = NULL;
