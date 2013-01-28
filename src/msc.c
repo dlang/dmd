@@ -165,41 +165,6 @@ symbol *symboldata(targ_size_t offset,tym_t ty)
     return s;
 }
 
-/************************************
- * Add symbol to slist.
- */
-
-static list_t slist;
-
-void slist_add(Symbol *s)
-{
-    list_prepend(&slist,s);
-}
-
-/*************************************
- */
-
-void slist_reset()
-{
-    //printf("slist_reset()\n");
-    for (list_t sl = slist; sl; sl = list_next(sl))
-    {   Symbol *s = list_symbol(sl);
-
-#if MACHOBJ
-        s->Soffset = 0;
-#endif
-        s->Sxtrnnum = 0;
-        s->Stypidx = 0;
-        s->Sflags &= ~(STRoutdef | SFLweak);
-        if (s->Sclass == SCglobal || s->Sclass == SCcomdat ||
-            s->Sfl == FLudata || s->Sclass == SCstatic)
-        {   s->Sclass = SCextern;
-            s->Sfl = FLextern;
-        }
-    }
-}
-
-
 /**************************************
  */
 
