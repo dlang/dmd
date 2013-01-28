@@ -211,6 +211,7 @@ type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
 type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 type *type_enum(const char *name, type *tbase);
-
+type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD);
 
 #endif
