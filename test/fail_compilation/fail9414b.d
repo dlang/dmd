@@ -9,16 +9,16 @@ fail_compilation/fail9414b.d(41): Error: variable fail9414b.C.foo.__require.bar.
 fail_compilation/fail9414b.d(42): Error: variable fail9414b.C.foo.__require.bar.s cannot modify result 's' in contract
 fail_compilation/fail9414b.d(52): Error: variable fail9414b.C.foo.x cannot modify parameter 'x' in contract
 fail_compilation/fail9414b.d(75): Error: variable fail9414b.C.foo.x cannot modify parameter 'x' in contract
-fail_compilation/fail9414b.d(76): Error: cannot modify const expression r
+fail_compilation/fail9414b.d(76): Error: variable fail9414b.C.foo.__ensure.r cannot modify result 'r' in contract
 fail_compilation/fail9414b.d(60): Error: variable fail9414b.C.foo.x cannot modify parameter 'x' in contract
-fail_compilation/fail9414b.d(61): Error: cannot modify const expression r
+fail_compilation/fail9414b.d(61): Error: variable fail9414b.C.foo.__ensure.r cannot modify result 'r' in contract
 fail_compilation/fail9414b.d(62): Error: variable fail9414b.C.foo.__ensure.baz.y cannot modify parameter 'y' in contract
 fail_compilation/fail9414b.d(67): Error: variable fail9414b.C.foo.x cannot modify parameter 'x' in contract
-fail_compilation/fail9414b.d(68): Error: cannot modify const expression r
+fail_compilation/fail9414b.d(68): Error: variable fail9414b.C.foo.__ensure.r cannot modify result 'r' in contract
 fail_compilation/fail9414b.d(69): Error: variable fail9414b.C.foo.__ensure.baz.y cannot modify parameter 'y' in contract
 fail_compilation/fail9414b.d(70): Error: variable fail9414b.C.foo.__ensure.baz.s cannot modify result 's' in contract
 fail_compilation/fail9414b.d(81): Error: variable fail9414b.C.foo.x cannot modify parameter 'x' in contract
-fail_compilation/fail9414b.d(82): Error: cannot modify const expression r
+fail_compilation/fail9414b.d(82): Error: variable fail9414b.C.foo.__ensure.r cannot modify result 'r' in contract
 ---
 */
 

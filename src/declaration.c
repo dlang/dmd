@@ -143,7 +143,7 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
         {
             if (scx->func == parent && (scx->flags & SCOPEcontract))
             {
-                const char *s = isParameter() ? "parameter" : "result";
+                const char *s = isParameter() && parent->ident != Id::ensure ? "parameter" : "result";
                 if (!flag) error(loc, "cannot modify %s '%s' in contract", s, toChars());
                 return 0;
             }
