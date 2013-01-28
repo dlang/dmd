@@ -3236,14 +3236,18 @@ Statement *SwitchStatement::semantic(Scope *sc)
 #if DMDV2
     if (isFinal)
     {   Type *t = condition->type;
-        while (t->ty == Ttypedef)
+        while (t && t->ty == Ttypedef)
         {   // Don't use toBasetype() because that will skip past enums
             t = ((TypeTypedef *)t)->sym->basetype;
         }
-        if (te)
+        Dsymbol *ds;
+        EnumDeclaration *ed = NULL;
+        if (t && ((ds = t->toDsymbol(sc)) != NULL))
+            ed = ds->isEnumDeclaration();  // typedef'ed enum
+        if (!ed && te && ((ds = te->toDsymbol(sc)) != NULL))
+            ed = ds->isEnumDeclaration();
+        if (ed)
         {
-            EnumDeclaration *ed = te->toDsymbol(sc)->isEnumDeclaration();
-            assert(ed);
             size_t dim = ed->members->dim;
             for (size_t i = 0; i < dim; i++)
             {
