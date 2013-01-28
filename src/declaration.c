@@ -130,26 +130,28 @@ enum PROT Declaration::prot()
 
 #if DMDV2
 
-int Declaration::checkModify(Loc loc, Scope *sc, Type *t)
+int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag)
 {
+    VarDeclaration *v = isVarDeclaration();
+    if (v && v->canassign)
+        return 2;
+
     if ((sc->flags & SCOPEcontract) && isParameter())
-        error(loc, "cannot modify parameter '%s' in contract", toChars());
-
-    if ((sc->flags & SCOPEcontract) && isResult())
-        error(loc, "cannot modify result '%s' in contract", toChars());
-
-    if (isCtorinit() && !t->isMutable() ||
-        (storage_class & STCnodefaultctor))
-    {   // It's only modifiable if inside the right constructor
-        return modifyFieldVar(loc, sc, isVarDeclaration(), NULL);
-    }
-    else
     {
-        VarDeclaration *v = isVarDeclaration();
-        if (v && v->canassign)
-            return TRUE;
+        if (!flag) error(loc, "cannot modify parameter '%s' in contract", toChars());
+        return 0;
     }
-    return FALSE;
+    if ((sc->flags & SCOPEcontract) && isResult())
+    {
+        if (!flag) error(loc, "cannot modify result '%s' in contract", toChars());
+        return 0;
+    }
+
+    if (v && isCtorinit())
+    {   // It's only modifiable if inside the right constructor
+        return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
+    }
+    return 1;
 }
 #endif
 
