@@ -880,6 +880,20 @@ void test8169()
 }
 
 /***************************************************/
+// 9174
+
+void test9174()
+{
+    static struct Foo
+    {
+        char x;
+        alias x this;
+    }
+    static assert(is(typeof(true ? 'A' : Foo()) == char));
+    static assert(is(typeof(true ? Foo() : 100) == int));
+}
+
+/***************************************************/
 // 9177
 
 struct S9177
@@ -924,6 +938,7 @@ int main()
     test7945();
     test7992();
     test8169();
+    test9174();
 
     printf("Success\n");
     return 0;

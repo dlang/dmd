@@ -2034,9 +2034,11 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     MATCH m;
     Expression *e1 = *pe1;
     Expression *e2 = *pe2;
+    Type *t1b = e1->type->toBasetype();
+    Type *t2b = e2->type->toBasetype();
 
     if (e->op != TOKquestion ||
-        e1->type->toBasetype()->ty != e2->type->toBasetype()->ty)
+        t1b->ty != t2b->ty && (t1b->isTypeBasic() && t2b->isTypeBasic()))
     {
         e1 = e1->integralPromotions(sc);
         e2 = e2->integralPromotions(sc);
@@ -2055,8 +2057,8 @@ int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression 
     assert(t2);
 
 Lagain:
-    Type *t1b = t1->toBasetype();
-    Type *t2b = t2->toBasetype();
+    t1b = t1->toBasetype();
+    t2b = t2->toBasetype();
 
     TY ty = (TY)Type::impcnvResult[t1b->ty][t2b->ty];
     if (ty != Terror)
@@ -2477,6 +2479,13 @@ Lcc:
     }
     else if (t1->isintegral() && t2->isintegral())
     {
+        if (t1->ty != t2->ty)
+        {
+            e1 = e1->integralPromotions(sc);
+            e2 = e2->integralPromotions(sc);
+            t1 = e1->type;  t1b = t1->toBasetype();
+            t2 = e2->type;  t2b = t2->toBasetype();
+        }
         assert(t1->ty == t2->ty);
         if (!t1->isImmutable() && !t2->isImmutable() && t1->isShared() != t2->isShared())
             goto Lincompatible;
