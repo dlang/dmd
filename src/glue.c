@@ -168,11 +168,8 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_alloc(TYnfunc);
-            t->Tflags |= TFprototype | TFfixed;
+            t = type_function(TYnfunc, NULL, 0, false, tsvoid);
             t->Tmangle = mTYman_c;
-            t->Tnext = tsvoid;
-            tsvoid->Tcount++;
         }
 
         localgot = NULL;
@@ -386,11 +383,8 @@ void Module::genobjfile(int multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_alloc(TYnfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
