@@ -136,6 +136,7 @@ type *TypeFunction::toCtype()
     t->Tnext = next->toCtype();
     t->Tnext->Tcount++;
     t->Tparamtypes = paramtypes;
+    t->Tcount++;
 
     ctype = t;
     return t;
@@ -305,9 +306,7 @@ type *TypeTypedef::toCParamtype()
 }
 
 type *TypeClass::toCtype()
-{   type *t;
-    Symbol *s;
-
+{
     //printf("TypeClass::toCtype() %s\n", toChars());
     if (ctype)
         return ctype;
@@ -316,7 +315,7 @@ type *TypeClass::toCtype()
      */
     const char *name = sym->isCPPinterface() ? sym->ident->toChars()
                                              : sym->toPrettyChars();
-    s = symbol_calloc(name);
+    Symbol *s = symbol_calloc(name);
     s->Sclass = SCstruct;
     s->Sstruct = struct_calloc();
     s->Sstruct->Sflags |= STRclass;
@@ -324,15 +323,14 @@ type *TypeClass::toCtype()
 //    s->Sstruct->Sstructalign = sym->structalign;
     s->Sstruct->Sstructsize = sym->structsize;
 
-    t = type_alloc(TYstruct);
+    type *t = type_alloc(TYstruct);
     t->Ttag = (Classsym *)s;            // structure tag name
     t->Tcount++;
     s->Stype = t;
     slist_add(s);
 
-    t = type_allocn(TYnptr, t);
+    t = type_pointer(t);
 
-    t->Tcount++;
     ctype = t;
 
     /* Add in fields of the class
