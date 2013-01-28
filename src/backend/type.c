@@ -445,6 +445,31 @@ type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, typ
     return t;
 }
 
+/***************************************
+ * Create an enum type.
+ * Input:
+ *      name    name of enum
+ *      tbase   "base" type of enum
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_enum(const char *name, type *tbase)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCenum;
+    s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
+    s->Senum->SEflags |= SENforward;        // forward reference
+    slist_add(s);
+
+    type *t = type_allocn(TYenum, tbase);
+    t->Ttag = (Classsym *)s;            // enum tag name
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+    t->Tcount++;
+    return t;
+}
+
 /*****************************
  * Free up data type.
  */
