@@ -469,6 +469,43 @@ type *type_enum(const char *name, type *tbase)
     return t;
 }
 
+/**************************************
+ * Create a struct/union/class type.
+ * Input:
+ *      name    name of struct
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCstruct;
+    s->Sstruct = struct_calloc();
+    s->Sstruct->Salignsize = alignsize;
+    s->Sstruct->Sstructalign = alignsize;
+    s->Sstruct->Sstructsize = structsize;
+    s->Sstruct->Sarg1type = arg1type;
+    s->Sstruct->Sarg2type = arg2type;
+
+    if (!isPOD)
+        s->Sstruct->Sflags |= STRnotpod;
+    if (isUnion)
+        s->Sstruct->Sflags |= STRunion;
+    if (isClass)
+    {   s->Sstruct->Sflags |= STRclass;
+        assert(!isUnion && isPOD);
+    }
+
+    type *t = type_alloc(TYstruct);
+    t->Ttag = (Classsym *)s;            // structure tag name
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+    t->Tcount++;
+    return t;
+}
+
 /*****************************
  * Free up data type.
  */

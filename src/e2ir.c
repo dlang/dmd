@@ -1681,19 +1681,11 @@ elem *NewExp::toElem(IRState *irs)
                  * and call it stmp.
                  * Set ex to be the &stmp.
                  */
-                Symbol *s = symbol_calloc(tclass->sym->toChars());
-                s->Sclass = SCstruct;
-                s->Sstruct = struct_calloc();
-                s->Sstruct->Sflags |= 0;
-                s->Sstruct->Salignsize = tclass->sym->alignsize;
-//                s->Sstruct->Sstructalign = tclass->sym->structalign;
-                s->Sstruct->Sstructsize = tclass->sym->structsize;
-
-                ::type *tc = type_alloc(TYstruct);
-                tc->Ttag = (Classsym *)s;                // structure tag name
-                tc->Tcount++;
-                s->Stype = tc;
-
+                ::type *tc = type_struct_class(tclass->sym->toChars(),
+                        tclass->sym->alignsize, tclass->sym->structsize,
+                        NULL, NULL,
+                        false, false, true);
+                tc->Tcount--;
                 Symbol *stmp = symbol_genauto(tc);
                 ex = el_ptr(stmp);
             }
