@@ -9,6 +9,7 @@
 
 #include <stdio.h>
 #include <stddef.h>
+#include <stdlib.h>
 #include <time.h>
 #include <assert.h>
 
@@ -110,36 +111,30 @@ type *TypePointer::toCtype()
 }
 
 type *TypeFunction::toCtype()
-{   type *t;
+{
+    if (!ctype)
+    {
+        size_t nparams = Parameter::dim(parameters);
 
-    if (ctype)
-        return ctype;
+        type *tmp[10];
+        type **ptypes = tmp;
+        if (nparams > 10)
+            ptypes = (type **)malloc(sizeof(type*) * nparams);
 
-    param_t *paramtypes = NULL;
-    size_t nparams = Parameter::dim(parameters);
-    for (size_t i = 0; i < nparams; i++)
-    {   Parameter *arg = Parameter::getNth(parameters, i);
-        type *tp = arg->type->toCtype();
-        if (arg->storageClass & (STCout | STCref))
-        {   // C doesn't have reference types, so it's really a pointer
-            // to the parameter type
-            tp = type_allocn(TYref, tp);
+        for (size_t i = 0; i < nparams; i++)
+        {   Parameter *arg = Parameter::getNth(parameters, i);
+            type *tp = arg->type->toCtype();
+            if (arg->storageClass & (STCout | STCref))
+                tp = type_allocn(TYref, tp);
+            ptypes[i] = tp;
         }
-        param_append_type(&paramtypes,tp);
-    }
-    tym_t tyf = totym();
-    t = type_alloc(tyf);
-    t->Tflags |= TFprototype;
-    if (varargs != 1)
-        t->Tflags |= TFfixed;
-    assert(next);           // function return type should exist
-    t->Tnext = next->toCtype();
-    t->Tnext->Tcount++;
-    t->Tparamtypes = paramtypes;
-    t->Tcount++;
 
-    ctype = t;
-    return t;
+        ctype = type_function(totym(), ptypes, nparams, varargs == 1, next->toCtype());
+
+        if (nparams > 10)
+            free(ptypes);
+    }
+    return ctype;
 }
 
 type *TypeDelegate::toCtype()

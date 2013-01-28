@@ -1,5 +1,5 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -415,6 +415,32 @@ type *type_assoc_array(type *tkey, type *tvalue)
 type *type_delegate(type *tnext)
 {
     type *t = type_allocn(TYdelegate, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/***********************************
+ * Allocation a function type.
+ * Input:
+ *      tyf             function type
+ *      ptypes[nparams] types of the function parameters
+ *      variadic        if ... function
+ *      tret            return type
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret)
+{
+    param_t *paramtypes = NULL;
+    for (size_t i = 0; i < nparams; i++)
+    {
+        param_append_type(&paramtypes, ptypes[i]);
+    }
+    type *t = type_allocn(tyf, tret);
+    t->Tflags |= TFprototype;
+    if (!variadic)
+        t->Tflags |= TFfixed;
+    t->Tparamtypes = paramtypes;
     t->Tcount++;
     return t;
 }

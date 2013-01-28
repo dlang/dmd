@@ -209,6 +209,7 @@ type *type_dyn_array(type *tnext);
 type *type_static_array(unsigned long long dim, type *tnext);
 type *type_assoc_array(type *tkey, type *tvalue);
 type *type_delegate(type *tnext);
+type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret);
 
 
 #endif

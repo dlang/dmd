@@ -676,13 +676,8 @@ Symbol *Module::toModuleAssert()
 {
     if (!massert)
     {
-        type *t;
-
-        t = type_alloc(TYjfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         massert = toSymbolX("__assert", SCextern, t, "FiZv");
         massert->Sfl = FLextern;
@@ -696,13 +691,8 @@ Symbol *Module::toModuleUnittest()
 {
     if (!munittest)
     {
-        type *t;
-
-        t = type_alloc(TYjfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         munittest = toSymbolX("__unittest_fail", SCextern, t, "FiZv");
         munittest->Sfl = FLextern;
@@ -719,13 +709,8 @@ Symbol *Module::toModuleArray()
 {
     if (!marray)
     {
-        type *t;
-
-        t = type_alloc(TYjfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_d;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         marray = toSymbolX("__array", SCextern, t, "Z");
         marray->Sfl = FLextern;
@@ -795,13 +780,8 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         s->Ssymnum = -1;
         symbol_func(s);
 
-        type *t = type_alloc(TYnfunc);
-        t->Tflags = TFprototype | TFfixed;
+        type *t = type_function(TYnfunc, NULL, 0, false, next->toCtype());
         t->Tmangle = mTYman_c;
-        t->Tparamtypes = NULL;
-        t->Tnext = next->toCtype();
-        t->Tnext->Tcount++;
-        t->Tcount++;
         s->Stype = t;
 
         sarray->push(s);                        // remember it
