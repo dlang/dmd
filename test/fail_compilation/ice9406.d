@@ -1,8 +1,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/ice9406.d(15): Error: mixin ice9406.S.t1().Mixin!() cannot resolve forward reference
-fail_compilation/ice9406.d(22): Error: expression has no value
+fail_compilation/ice9406.d(21): Error: expression has no value
 ---
 */
 

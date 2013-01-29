@@ -5990,7 +5990,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
          */
         FuncDeclaration *fd;
         if (!td->onemember ||
-            (fd = td->onemember->toAlias()->isFuncDeclaration()) == NULL ||
+            (fd = td->onemember/*->toAlias()*/->isFuncDeclaration()) == NULL ||
             fd->type->ty != Tfunction)
         {
             /* Not a template function, therefore type inference is not possible.
