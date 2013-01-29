@@ -194,7 +194,6 @@ MANIFEST= \
 	src\rt\invariant_.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
-	src\rt\mars.h \
 	src\rt\memory.d \
 	src\rt\memory_osx.d \
 	src\rt\memset.d \
