@@ -717,6 +717,21 @@ void test9153()
 }
 
 /***************************************************/
+// 9423
+
+void foo9423(int delegate( ref int[1]) dg) {}
+void bar9423(int delegate( out long  ) dg) {}
+void baz9423(int delegate(lazy Object) dg) {}
+
+void test9423()
+{
+    foo9423((ref int[1] x) => 0); // OK
+    foo9423(x => 0); // Error
+    bar9423(x => 0); // Error
+    baz9423(x => 0); // Error
+}
+
+/***************************************************/
 
 int main()
 {
@@ -758,6 +773,7 @@ int main()
     test8496();
     test8575();
     test9153();
+    test9423();
 
     printf("Success\n");
     return 0;

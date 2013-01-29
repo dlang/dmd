@@ -182,7 +182,22 @@ void FuncDeclaration::semantic(Scope *sc)
 
     FuncLiteralDeclaration *fld = isFuncLiteralDeclaration();
     if (fld && fld->treq)
-        linkage = ((TypeFunction *)fld->treq->nextOf())->linkage;
+    {
+        TypeFunction *tfreq = (TypeFunction *)fld->treq->nextOf();
+        TypeFunction *tf = (TypeFunction *)type;
+        assert(tf->deco == NULL);
+
+        size_t nparams = Parameter::dim(tf->parameters);
+        assert(nparams == Parameter::dim(tfreq->parameters));
+        for (size_t i = 0; i < nparams; i++)
+        {
+            Parameter *prmv = Parameter::getNth(tfreq->parameters, i);
+            Parameter *prml = Parameter::getNth(tf->parameters, i);
+            prml->storageClass |= prmv->storageClass & (STCout | STCref | STClazy);
+        }
+
+        linkage = tfreq->linkage;
+    }
     else
         linkage = sc->linkage;
     protection = sc->protection;
