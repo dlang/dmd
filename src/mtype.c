@@ -1639,6 +1639,7 @@ char *Type::modToChars()
 {
     OutBuffer buf;
     modToBuffer(&buf);
+    buf.writebyte(0);
     return buf.extractData();
 }
 
