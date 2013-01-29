@@ -3,6 +3,8 @@
 #    pkg_add -r gmake
 # and then run as gmake rather than make.
 
+QUIET:=@
+
 OS:=
 uname_S:=$(shell uname -s)
 ifeq (Darwin,$(uname_S))
@@ -628,11 +630,11 @@ $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 
 $(OBJDIR)/% : src/%.d $(DRUNTIME) $(OBJDIR)/emptymain.d
 	@echo Testing $@
-	@$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ $(OBJDIR)/emptymain.d $< -L-Llib -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
+	$(QUIET)$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ $(OBJDIR)/emptymain.d $< -L-Llib -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
 # make the file very old so it builds and runs again if it fails
 	@touch -t 197001230123 $@
 # run unittest in its own directory
-	@$(RUN) $@
+	$(QUIET)$(RUN) $@
 # succeeded, render the file new again
 	@touch $@
 
