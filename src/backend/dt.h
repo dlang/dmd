@@ -12,10 +12,12 @@ void dt_term();
 
 dt_t **dtnbytes(dt_t **,unsigned,const char *);
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr);
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr);
 dt_t **dtdword(dt_t **, int value);
 dt_t **dtsize_t(dt_t **, unsigned long long value);
 dt_t **dtnzeros(dt_t **pdtend,unsigned size);
 dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset,tym_t ty);
+dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
 dt_t **dtcoff(dt_t **pdtend,unsigned offset);
 dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
 void dt_optimize(dt_t *dt);
