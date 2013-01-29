@@ -40,7 +40,7 @@ public:
      * Constructor
      * Params:
      *  skip = The number of stack frames to skip.
-     *  context = The context to recieve the stack trace from. Can be null.
+     *  context = The context to receive the stack trace from. Can be null.
      */
     this(size_t skip, CONTEXT* context)
     {
@@ -165,7 +165,7 @@ private:
         else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
         else                  static assert(0, "unimplemented");
 
-        ulong[] result = new ulong[8];
+        ulong[] result;
         size_t frameNum = 0;
         
         // do ... while so that we don't skip the first stackframe
@@ -178,20 +178,13 @@ private:
             }
             if(frameNum >= skip)
             {
-                size_t index = frameNum - skip;
-                if(index >= result.length)
-                {
-                    result.length = result.length * 2;
-                }
-                result[index] = stackframe.AddrPC.Offset;
+                result ~= stackframe.AddrPC.Offset;
             }
             frameNum++;
         }
         while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
                                    &ctxt, null, null, null, null));
-        if(frameNum > skip)
-            return result[0..(frameNum - skip)];
-        return [];
+        return result;
     }
 
     static char[][] resolveNoSync(const(ulong)[] addresses)

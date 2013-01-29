@@ -212,7 +212,7 @@ extern __gshared DWORD _except_list; // This is just FS:[0]
 extern(C)
 {
 void _d_setUnhandled(Object);
-void _d_createTrace(Object,void*);
+void _d_createTrace(Object, void*);
 int _d_isbaseof(ClassInfo b, ClassInfo c);
 }
 
