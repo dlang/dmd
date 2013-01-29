@@ -259,6 +259,7 @@ Dsymbol *Dsymbol::pastMixin()
 /**********************************
  * Use this instead of toParent() when looking for the
  * 'this' pointer of the enclosing function/class.
+ * This skips over both TemplateInstance's and TemplateMixin's.
  */
 
 Dsymbol *Dsymbol::toParent2()

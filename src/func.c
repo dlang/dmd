@@ -3257,14 +3257,24 @@ const char *FuncDeclaration::kind()
     return "function";
 }
 
+/*********************************************
+ * In the current function, we are calling 'this' function.
+ * 1. Check to see if the current function can call 'this' function, issue error if not.
+ * 2. If the current function is not the parent of 'this' function, then add
+ *    the current function to the list of siblings of 'this' function.
+ * 3. If the current function is a literal, and it's accessing an uplevel scope,
+ *    then mark it as a delegate.
+ */
+
 void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    //printf("FuncDeclaration::checkNestedReference() %s\n", toChars());
+    //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
     if (parent && parent != sc->parent && this->isNested() &&
         this->ident != Id::require && this->ident != Id::ensure)
     {
         // The function that this function is in
-        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+        FuncDeclaration *fdv2 = toParent2()->isFuncDeclaration();
+
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
@@ -3272,7 +3282,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         //printf("fdv  = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
-        if (fdv && fdthis && fdv != fdthis)
+        if (fdv2 && fdthis && fdv2 != fdthis)
         {
             // Add this function to the list of those which called us
             if (fdthis != this)
@@ -3283,14 +3293,24 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         found = true;
                 }
                 if (!found)
+                {
+                    //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
                     siblingCallers.push(fdthis);
+                }
             }
+        }
 
+        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+        fdv = toParent()->isFuncDeclaration();
+        if (fdv && fdthis && fdv != fdthis)
+        {
             int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -1)
-                return; // OK
+                return; // downlevel call
             if (lv == 0)
-                return; // OK
+                return; // same level call
+
+            // Uplevel call
 
             // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
 
@@ -3330,6 +3350,7 @@ void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
  */
 bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
 {
+    //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
     for (int i = 0; i < f->siblingCallers.dim; ++i)
     {
@@ -3341,6 +3362,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
         }
         bAnyClosures |= checkEscapingSiblings(g, outerFunc);
     }
+    //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
 }
 

@@ -2192,6 +2192,35 @@ void test8774() {
 
 /*******************************************/
 
+int Bug8832(alias X)()
+{
+    return X();
+}
+
+int delegate() foo8832()
+{
+  int stack;
+  int heap = 3;
+
+  int nested_func()
+  {
+    ++heap;
+    return heap;
+  }
+  return delegate int() { return Bug8832!(nested_func); };
+}
+
+void test8832()
+{
+  auto z = foo8832();
+  auto p = foo8832();
+  assert(z() == 4);
+  p();
+  assert(z() == 5);
+}
+
+/*******************************************/
+
 int main()
 {
     test1();
@@ -2272,6 +2301,7 @@ int main()
     test9036();
 //    test8863();
     test8774();
+    test8832();
 
     printf("Success\n");
     return 0;
