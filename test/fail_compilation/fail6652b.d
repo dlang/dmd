@@ -4,7 +4,7 @@
 // 6652
 
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/fail6652b.d(19): Deprecation: variable modified in foreach body requires ref storage class
 fail_compilation/fail6652b.d(24): Error: cannot modify const expression i

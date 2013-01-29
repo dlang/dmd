@@ -192,7 +192,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
 
     findTestParameter(file, "DISABLED", testArgs.disabled_reason);
 
-    findOutputParameter(file, "TEST_OUTPUT", testArgs.compileOutput, envData.sep);
+    findOutputParameter(file, "COMPILE_OUTPUT", testArgs.compileOutput, envData.sep);
 
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));

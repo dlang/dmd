@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag9312.d(10): Error: with expressions must be aggregate types, not 'int'
 ---

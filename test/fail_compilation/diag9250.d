@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -m32
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag9250.d(19): Error: cannot implicitly convert expression (10u) of type uint to Foo
 fail_compilation/diag9250.d(22): Error: cannot implicitly convert expression (10u) of type uint to void*

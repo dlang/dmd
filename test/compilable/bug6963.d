@@ -2,7 +2,7 @@
 // REQUIRED_ARGS:
 
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 output foo: 1e: pure nothrow @safe void(int x)
 output foo: 3e: pure nothrow @safe void(int x)

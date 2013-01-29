@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag8777c.d(4): Error: cannot modify const expression x
 ---

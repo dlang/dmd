@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag8770.d(6): Error: this.f is not mutable
 ---
