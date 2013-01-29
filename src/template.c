@@ -2432,9 +2432,11 @@ char *TemplateDeclaration::toChars()
     }
     buf.writeByte(')');
 
-    if (onemember && onemember->toAlias())
-    {
-        FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
+    if (onemember)
+    {   /* Bugzilla 9406:
+         * onemember->toAlias() might run semantic, so should not call it in stringizing
+         */
+        FuncDeclaration *fd = onemember->isFuncDeclaration();
         if (fd && fd->type)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
