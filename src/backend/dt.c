@@ -161,6 +161,11 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
  * Construct a DTabytes record, and return it.
  */
 
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr)
+{
+    return dtabytes(pdtend, TYnptr, offset, size, ptr);
+}
+
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr)
 {   dt_t *dt;
 
@@ -256,6 +261,11 @@ dt_t ** dtcoff(dt_t **pdtend,unsigned offset)
 /**********************
  * Construct a DTxoff record, and return it.
  */
+
+dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset)
+{
+    return dtxoff(pdtend, s, offset, TYnptr);
+}
 
 dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
 {   dt_t *dt;
