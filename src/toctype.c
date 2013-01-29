@@ -151,11 +151,11 @@ type *TypeStruct::toCtype()
         return ctype;
 
     //printf("TypeStruct::toCtype() '%s'\n", sym->toChars());
-    type *t = type_alloc(TYstruct);
     Type *tm = mutableOf();
     if (tm->ctype)
     {
         Symbol *s = tm->ctype->Ttag;
+        type *t = type_alloc(TYstruct);
         t->Ttag = (Classsym *)s;            // structure tag name
         t->Tcount++;
         // Add modifiers
@@ -185,24 +185,13 @@ type *TypeStruct::toCtype()
     }
     else
     {
-        Symbol *s = symbol_calloc(sym->toPrettyChars());
-        s->Sclass = SCstruct;
-        s->Sstruct = struct_calloc();
-        s->Sstruct->Salignsize = sym->alignsize;
-        s->Sstruct->Sstructalign = sym->alignsize;
-        s->Sstruct->Sstructsize = sym->structsize;
-        s->Sstruct->Sarg1type = sym->arg1type ? sym->arg1type->toCtype() : NULL;
-        s->Sstruct->Sarg2type = sym->arg2type ? sym->arg2type->toCtype() : NULL;
+        type *t = type_struct_class(sym->toPrettyChars(), sym->alignsize, sym->structsize,
+                sym->arg1type ? sym->arg1type->toCtype() : NULL,
+                sym->arg2type ? sym->arg2type->toCtype() : NULL,
+                sym->isUnionDeclaration() != 0,
+                false,
+                sym->isPOD() != 0);
 
-        if (!sym->isPOD())
-            s->Sstruct->Sflags |= STRnotpod;
-        if (sym->isUnionDeclaration())
-            s->Sstruct->Sflags |= STRunion;
-
-        t->Ttag = (Classsym *)s;            // structure tag name
-        t->Tcount++;
-        s->Stype = t;
-        slist_add(s);
         tm->ctype = t;
         ctype = t;
 
@@ -213,12 +202,12 @@ type *TypeStruct::toCtype()
             for (size_t i = 0; i < sym->fields.dim; i++)
             {   VarDeclaration *v = sym->fields[i];
 
-                symbol_struct_addField(s, v->ident->toChars(), v->type->toCtype(), v->offset);
+                symbol_struct_addField(t->Ttag, v->ident->toChars(), v->type->toCtype(), v->offset);
             }
     }
 
-    //printf("t = %p, Tflags = x%x\n", t, t->Tflags);
-    return t;
+    //printf("t = %p, Tflags = x%x\n", ctype, ctype->Tflags);
+    return ctype;
 }
 
 type *TypeEnum::toCtype()
@@ -294,27 +283,14 @@ type *TypeClass::toCtype()
     if (ctype)
         return ctype;
 
-    /* Need this symbol to do C++ name mangling
-     */
-    const char *name = sym->isCPPinterface() ? sym->ident->toChars()
-                                             : sym->toPrettyChars();
-    Symbol *s = symbol_calloc(name);
-    s->Sclass = SCstruct;
-    s->Sstruct = struct_calloc();
-    s->Sstruct->Sflags |= STRclass;
-    s->Sstruct->Salignsize = sym->alignsize;
-//    s->Sstruct->Sstructalign = sym->structalign;
-    s->Sstruct->Sstructsize = sym->structsize;
+    type *t = type_struct_class(sym->toPrettyChars(), sym->alignsize, sym->structsize,
+            NULL,
+            NULL,
+            false,
+            true,
+            true);
 
-    type *t = type_alloc(TYstruct);
-    t->Ttag = (Classsym *)s;            // structure tag name
-    t->Tcount++;
-    s->Stype = t;
-    slist_add(s);
-
-    t = type_pointer(t);
-
-    ctype = t;
+    ctype = type_pointer(t);
 
     /* Add in fields of the class
      * (after setting ctype to avoid infinite recursion)
@@ -323,9 +299,9 @@ type *TypeClass::toCtype()
         for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = sym->fields[i];
 
-            symbol_struct_addField(s, v->ident->toChars(), v->type->toCtype(), v->offset);
+            symbol_struct_addField(t->Ttag, v->ident->toChars(), v->type->toCtype(), v->offset);
         }
 
-    return t;
+    return ctype;
 }
 
