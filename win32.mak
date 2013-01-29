@@ -239,6 +239,7 @@ MANIFEST= \
 	src\rt\typeinfo\ti_wchar.d \
 	\
 	src\rt\util\console.d \
+	src\rt\util\container.d \
 	src\rt\util\hash.d \
 	src\rt\util\string.d \
 	src\rt\util\utf.d \
@@ -328,6 +329,7 @@ SRCS= \
 	src\rt\trace.d \
 	\
 	src\rt\util\console.d \
+	src\rt\util\container.d \
 	src\rt\util\hash.d \
 	src\rt\util\string.d \
 	src\rt\util\utf.d \
