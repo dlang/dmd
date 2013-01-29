@@ -1,5 +1,4 @@
 // REQUIRED_ARGS: -d
-// PERMUTE_ARGS: -dw
 // The use of typedef in these tests is fundamental.
 
 public:

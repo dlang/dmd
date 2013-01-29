@@ -1,4 +1,10 @@
-// PERMUTE_ARGS: -d -dw
+// REQUIRED_ARGS: -d
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail108.d(13): Error: typedef test1.foo circular definition
+---
+*/
 // 249
 
 module test1;

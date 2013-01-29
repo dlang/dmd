@@ -2898,7 +2898,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
 
             break;
         case TOKtypedef:
-            deprecation("use of typedef is deprecated; use alias instead");
             tok = token.value;
             nextToken();
             break;
