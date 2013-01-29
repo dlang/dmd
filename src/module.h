@@ -79,6 +79,7 @@ struct Module : Package
     Identifier *searchCacheIdent;
     Dsymbol *searchCacheSymbol; // cached value of search
     int searchCacheFlags;       // cached flags
+    enum PROT searchCacheVisibility;
 
     int semanticstarted;        // has semantic() been started?
     int semanticRun;            // has semantic() been done?
@@ -134,6 +135,7 @@ struct Module : Package
     void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
+    Dsymbol *search(Loc loc, Identifier *ident, int flags, enum PROT visibility);
     Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     void addDeferredSemantic(Dsymbol *s);
@@ -175,6 +177,8 @@ struct Module : Package
     Module *isModule() { return this; }
 };
 
+// access.c
+enum PROT moduleVisibility(Module *from, Module *to);
 
 struct ModuleDeclaration
 {

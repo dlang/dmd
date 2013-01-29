@@ -646,7 +646,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
 
             if (s)
-                error("does not override any function, did you mean to override '%s'?", s->toPrettyChars());
+                error("does not override any function, did you mean to override '%s'?", s->toPrettyChars(true));
             else
                 error("does not override any function");
         }
@@ -2943,12 +2943,12 @@ void FuncDeclaration::appendState(Statement *s)
     }
 }
 
-const char *FuncDeclaration::toPrettyChars()
+const char *FuncDeclaration::toPrettyChars(bool verbose)
 {
     if (isMain())
         return "D main";
     else
-        return Dsymbol::toPrettyChars();
+        return Dsymbol::toPrettyChars(verbose);
 }
 
 int FuncDeclaration::isMain()
@@ -3255,6 +3255,21 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
 const char *FuncDeclaration::kind()
 {
     return "function";
+}
+
+static int maxProt(void *arg, FuncDeclaration *f)
+{
+    enum PROT nprot = f->prot();
+    if (nprot > *(enum PROT*)arg) // take looser one
+        *(enum PROT*)arg = nprot;
+    return 0;
+}
+
+enum PROT FuncDeclaration::overprot()
+{
+    enum PROT result = prot();
+    overloadApply(this, &maxProt, &result);
+    return result;
 }
 
 void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)

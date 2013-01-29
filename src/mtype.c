@@ -2012,7 +2012,8 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
         if (this != Type::terror)
         {
             if (s)
-                error(loc, "no property '%s' for type '%s', did you mean '%s'?", ident->toChars(), toChars(), s->toChars());
+                error(loc, "no property '%s' for type '%s', did you mean '%s'?",
+                      ident->toChars(), toChars(), s->toPrettyChars(true));
             else
                 error(loc, "no property '%s' for type '%s'", ident->toChars(), toChars());
         }
@@ -6620,8 +6621,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     {
                         sm = s->search_correct(id);
                         if (sm)
-                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
-                                  id->toChars(), toChars(), sm->kind(), sm->toChars());
+                            error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s'?",
+                                  id->toChars(), toChars(), sm->toPrettyChars(true));
                         else
                             error(loc, "identifier '%s' of '%s' is not defined", id->toChars(), toChars());
                     }
@@ -6721,9 +6722,9 @@ L1:
             Identifier *id = new Identifier(p, TOKidentifier);
             s = sc->search_correct(id);
             if (s)
-                error(loc, "undefined identifier %s, did you mean %s %s?", p, s->kind(), s->toChars());
+                error(loc, "undefined identifier '%s', did you mean '%s'?", p, s->toPrettyChars(true));
             else
-                error(loc, "undefined identifier %s", p);
+                error(loc, "undefined identifier '%s'", p);
         }
         *pt = Type::terror;
     }

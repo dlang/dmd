@@ -178,35 +178,42 @@ char *Dsymbol::toChars()
     return ident ? ident->toChars() : (char *)"__anonymous";
 }
 
-const char *Dsymbol::toPrettyChars()
-{   Dsymbol *p;
-    char *s;
-    char *q;
-    size_t len;
+const char *Dsymbol::toPrettyChars(bool verbose)
+{
 
     //printf("Dsymbol::toPrettyChars() '%s'\n", toChars());
-    if (!parent)
+    if (!verbose && !parent)
         return toChars();
 
-    len = 0;
-    for (p = this; p; p = p->parent)
+    OutBuffer buf;
+    if (verbose)
+    {
+        if (enum PROT p = prot())
+        {
+            buf.writestring(Pprotectionnames[p]);
+            buf.writeByte(' ');
+        }
+        buf.writestring(kind());
+        buf.writeByte(' ');
+    }
+
+    size_t len = 0;
+    for (Dsymbol *p = this; p; p = p->parent)
         len += strlen(p->toChars()) + 1;
 
-    s = (char *)mem.malloc(len);
-    q = s + len - 1;
+    buf.reserve(len);
+    char *q = (char*)buf.data + buf.offset + len - 1;
     *q = 0;
-    for (p = this; p; p = p->parent)
+    for (Dsymbol *p = this; p; p = p->parent)
     {
+        if (p != this) *--q = '.';
         char *t = p->toChars();
         len = strlen(t);
         q -= len;
         memcpy(q, t, len);
-        if (q == s)
-            break;
-        q--;
-        *q = '.';
     }
-    return s;
+    assert(q == (char*)buf.data + buf.offset);
+    return buf.extractData();
 }
 
 Loc& Dsymbol::getLoc()
@@ -364,7 +371,7 @@ void Dsymbol::inlineScan()
 /*********************************************
  * Search for ident as member of s.
  * Input:
- *      flags:  1       don't find private members
+ *      flags:  1       don't restrict visibility
  *              2       don't give error messages
  *              4       return NULL if ambiguous
  * Returns:
@@ -397,7 +404,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return s->search(0, id, 4|2);
+    return s->search(0, id, 1|2);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -405,7 +412,10 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
     if (global.gag)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
-    return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
+    Dsymbol *s = search(0, ident, 1|2); // repeat search including private symbols
+    if (!s)
+        s = (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
+    return s;
 }
 
 /***************************************
@@ -438,8 +448,8 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             {
                 sm = s->search_correct(id);
                 if (sm)
-                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s %s'?",
-                          id->toChars(), s->kind(), s->toChars(), sm->kind(), sm->toChars());
+                    error("template identifier '%s' is not a member of '%s %s', did you mean '%s'?",
+                          id->toChars(), s->kind(), s->toChars(), sm->toPrettyChars(true));
                 else
                     error("template identifier '%s' is not a member of '%s %s'",
                           id->toChars(), s->kind(), s->toChars());
@@ -743,6 +753,11 @@ enum PROT Dsymbol::prot()
     return PROTpublic;
 }
 
+enum PROT Dsymbol::overprot()
+{
+    return prot();
+}
+
 /*************************************
  * Do syntax copy of an array of Dsymbol's.
  */
@@ -848,27 +863,49 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
-    if (s)
-    {
-        //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
-    }
-    else if (imports)
+    if (!s)
+        s = searchImports(loc, ident, flags, PROTprivate);
+    return s;
+}
+
+/* Search the imports for symbol ident.
+ * Parameter:
+ *      loc, ident, flags - as Dsymbol::search
+ *      visibility        - restricts the visibility of symbols
+ * Returns:
+ *      NULL if not found
+ */
+Dsymbol *ScopeDsymbol::searchImports(Loc loc, Identifier *ident, int flags, enum PROT visibility)
+{
+    Dsymbol *s = NULL;
+    if (imports)
     {
         OverloadSet *a = NULL;
+        Module *thisModule = NULL;
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
         {   Dsymbol *ss = (*imports)[i];
             Dsymbol *s2;
 
-            // If private import, don't search it
-            if (flags & 1 && prots[i] == PROTprivate)
+            // If restricted import, don't search it
+            if (!(flags & 1) && prots[i] < visibility)
                 continue;
 
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
-            /* Don't find private members if ss is a module
-             */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            Module *m;
+            if (!(flags & 1) && (m = ss->isModule()) != NULL)
+            {
+                if (!thisModule)
+                    thisModule = getAccessModule();
+                enum PROT mvisibility = moduleVisibility(thisModule, m);
+                if (mvisibility < visibility) // restrict visibility
+                    mvisibility = visibility;
+                s2 = m->search(loc, ident, flags, mvisibility);
+            }
+            else
+                s2 = ss->search(loc, ident, flags);
+
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
