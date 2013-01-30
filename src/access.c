@@ -219,7 +219,8 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
         result = access2 >= PROTpublic ||
                 hasPrivateAccess(f) ||
                 isFriendOf(cdscope) ||
-                (access2 == PROTpackage && hasPackageAccess(sc, this));
+                (access2 == PROTpackage && hasPackageAccess(sc, this)) ||
+                getAccessModule() == sc->module;
 #if LOG
         printf("result1 = %d\n", result);
 #endif
