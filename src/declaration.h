@@ -141,7 +141,7 @@ struct Declaration : Dsymbol
     void semantic(Scope *sc);
     const char *kind();
     unsigned size(Loc loc);
-    int checkModify(Loc loc, Scope *sc, Type *t);
+    int checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag);
 
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
 
