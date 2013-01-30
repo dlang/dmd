@@ -389,9 +389,8 @@ id.h id.c : idgen.c
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
 
-verstr.h : vergen.c ..\VERSION
-	$(CC) -cpp -DDM_TARGET_CPU_X86=1 vergen
-	type ..\VERSION | vergen > verstr.h
+verstr.h : ..\VERSION
+	echo "$(..\VERSION)" >verstr.h
 
 ############################# Intermediate Rules ############################
 
