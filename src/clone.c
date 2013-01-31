@@ -49,8 +49,18 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
         }
         if (TemplateDeclaration *td = assign->isTemplateDeclaration())
         {
-                    f = td->deduceFunctionTemplate(sc, loc, NULL, er, &ar, 1);
-            if (!f) f = td->deduceFunctionTemplate(sc, loc, NULL, er, &al, 1);
+            unsigned errors = global.startGagging();    // Do not report errors, even if the
+            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+            global.speculativeGag = global.gag;
+            Scope *sc2 = sc->push();
+            sc2->speculative = true;
+
+                    f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &ar, 1);
+            if (!f) f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &al, 1);
+
+            sc2->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(errors);
         }
         if (f)
         {
