@@ -2131,12 +2131,15 @@ void test9036()
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
 
-void test8863() {
+void test8863()
+{
     int x = 1;
-    struct A {
-	auto f() {
-	    assert(x == 1);
-	}
+    struct A
+    {
+        auto f()
+        {
+            assert(x == 1);
+        }
     }
 
     A a;
@@ -2147,11 +2150,11 @@ void test8863() {
 +/
 
 /*******************************************/
-// 8774 
+// 8774
 
 void popFront8774()
 {
-    int[20] abc;	// smash stack
+    int[20] abc;    // smash stack
 }
 
 struct MapResult8774(alias fun)
@@ -2170,15 +2173,15 @@ void test8774() {
     {
         void delegate() closedPartialSum()
         {
-	    int ii = i ;
-	    void bar()
+            int ii = i ;
+            void bar()
             {
-		printf("%d\n", sliceSize);
-		assert(sliceSize == 100);
-	    }
-	    return &bar;
+                printf("%d\n", sliceSize);
+                assert(sliceSize == 100);
+            }
+            return &bar;
         }
-        return closedPartialSum();     
+        return closedPartialSum();
     }
 
     auto threads = MapResult8774!foo();
@@ -2217,6 +2220,19 @@ void test8832()
   assert(z() == 4);
   p();
   assert(z() == 5);
+}
+
+/*******************************************/
+// 9315
+
+auto test9315()
+{
+    struct S
+    {
+        int i;
+        void bar() {}
+    }
+    pragma(msg, S.init.tupleof[$-1]);
 }
 
 /*******************************************/
@@ -2302,6 +2318,7 @@ int main()
 //    test8863();
     test8774();
     test8832();
+    test9315();
 
     printf("Success\n");
     return 0;
