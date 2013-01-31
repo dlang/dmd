@@ -5664,6 +5664,43 @@ void test251()
 }
 
 /***************************************************/
+// 9387
+
+void bug9387a(double x) { }
+
+void ice9387()
+{
+    double x = 0.3;
+    double r = x*0.1;
+    double q = x*0.1 + r;
+    double p = x*0.1 + r*0.2;
+    if ( q )
+        p = -p;
+    bug9387a(p);
+}
+
+/***************************************************/
+
+void bug6962(string value)
+{
+    string v = value;
+    try
+    {
+        v = v[0LU..0LU];
+        return;
+    }
+    finally
+    {
+        assert(!v.length);
+    }
+}
+
+void test6962()
+{
+    bug6962("42");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -5945,6 +5982,7 @@ int main()
     test250();
     test6057();
     test251();
+    test6962();
 
     writefln("Success");
     return 0;
