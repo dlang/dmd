@@ -462,20 +462,20 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     size_t index = members->dim;
     members->push(fop);
 
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
 
-    unsigned errors = global.startGagging();
-    fop->semantic(sc);
-    if (errors == global.gaggedErrors)
-    {   fop->semantic2(sc);
-        if (errors == global.gaggedErrors)
-        {   fop->semantic3(sc);
-            if (errors == global.gaggedErrors)
-                fop->addMember(sc, this, 1);
-        }
-    }
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+    fop->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
     {
         members->remove(index);
@@ -493,8 +493,8 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         }
         fop = xerreq;
     }
-
-    sc->pop();
+    else
+        fop->addMember(sc, this, 1);
 
     return fop;
 }
