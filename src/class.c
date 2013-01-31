@@ -783,27 +783,11 @@ void ClassDeclaration::semantic(Scope *sc)
     dtor = buildDtor(sc);
     if (Dsymbol *assign = search_function(this, Id::assign))
     {
-        Expression *e = new NullExp(loc, type); // dummy rvalue
-        Expressions *arguments = new Expressions();
-        arguments->push(e);
-
-        // check identity opAssign exists
-        FuncDeclaration *fd = assign->isFuncDeclaration();
-        if (fd)
-        {   fd = fd->overloadResolve(loc, e, arguments, 1);
-            if (fd && !(fd->storage_class & STCdisable))
-                goto Lassignerr;
+        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
+        {
+            if (!(f->storage_class & STCdisable))
+                error("identity assignment operator overload is illegal");
         }
-
-        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
-        {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1+2);
-            if (fd && !(fd->storage_class & STCdisable))
-                goto Lassignerr;
-        }
-
-Lassignerr:
-        if (fd && !(fd->storage_class & STCdisable))
-            error("identity assignment operator overload is illegal");
     }
     sc->pop();
 

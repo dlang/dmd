@@ -1761,13 +1761,14 @@ int Type::isString()
 }
 
 /**************************
+ * When T is mutable,
  * Given:
  *      T a, b;
- * Can we assign:
+ * Can we bitwise assign:
  *      a = b;
  * ?
  */
-int Type::isAssignable(int blit)
+int Type::isAssignable()
 {
     return TRUE;
 }
@@ -7525,9 +7526,9 @@ int TypeEnum::isscalar()
     return sym->memtype->isscalar();
 }
 
-int TypeEnum::isAssignable(int blit)
+int TypeEnum::isAssignable()
 {
-    return sym->memtype->isAssignable(blit);
+    return sym->memtype->isAssignable();
 }
 
 int TypeEnum::checkBoolean()
@@ -7747,9 +7748,9 @@ int TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable(int blit)
+int TypeTypedef::isAssignable()
 {
-    return sym->basetype->isAssignable(blit);
+    return sym->basetype->isAssignable();
 }
 
 int TypeTypedef::checkBoolean()
@@ -8289,18 +8290,8 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable(int blit)
+int TypeStruct::isAssignable()
 {
-    if (!blit)
-    {
-        if (sym->hasIdentityAssign)
-            return TRUE;
-
-        // has non-identity opAssign
-        if (search_function(sym, Id::assign))
-            return FALSE;
-    }
-
     int assignable = TRUE;
     unsigned offset;
 
@@ -8326,7 +8317,7 @@ int TypeStruct::isAssignable(int blit)
             if (!assignable)
                 return FALSE;
         }
-        assignable = v->type->isMutable() && v->type->isAssignable(blit);
+        assignable = v->type->isMutable() && v->type->isAssignable();
         offset = v->offset;
         //printf(" -> assignable = %d\n", assignable);
     }

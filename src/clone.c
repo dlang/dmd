@@ -25,6 +25,62 @@
 
 
 /*******************************************
+ * Check given opAssign symbol is really identity opAssign or not.
+ */
+
+FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *assign)
+{
+    if (assign)
+    {
+        assert(assign->ident == Id::assign);
+
+        /* check identity opAssign exists
+         */
+        Expression *er = new NullExp(loc, type);        // dummy rvalue
+        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        el->type = type;
+        Expressions ar;  ar.push(er);
+        Expressions al;  al.push(el);
+        FuncDeclaration *f = NULL;
+        if (FuncDeclaration *fd = assign->isFuncDeclaration())
+        {
+                    f = fd->overloadResolve(loc, er, &ar, 1);
+            if (!f) f = fd->overloadResolve(loc, er, &al, 1);
+        }
+        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
+        {
+            unsigned errors = global.startGagging();    // Do not report errors, even if the
+            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+            global.speculativeGag = global.gag;
+            Scope *sc2 = sc->push();
+            sc2->speculative = true;
+
+                    f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &ar, 1);
+            if (!f) f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &al, 1);
+
+            sc2->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(errors);
+        }
+        if (f)
+        {
+            int varargs;
+            Parameters *fparams = f->getParameters(&varargs);
+            if (fparams->dim >= 1)
+            {
+                Parameter *arg0 = Parameter::getNth(fparams, 0);
+                if (arg0->type->toDsymbol(NULL) != this)
+                    f = NULL;
+            }
+        }
+        // BUGS: This detection mechanism cannot find some opAssign-s like follows:
+        // struct S { void opAssign(ref immutable S) const; }
+        return f;
+    }
+    return NULL;
+}
+
+/*******************************************
  * We need an opAssign for the struct if
  * it has a destructor or a postblit.
  * We need to generate one if a user-specified one does not exist.
@@ -90,27 +146,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     Dsymbol *assign = search_function(this, Id::assign);
     if (assign)
     {
-        /* check identity opAssign exists
-         */
-        Expression *er = new NullExp(loc, type);        // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = type;
-        Expressions ar;  ar.push(er);
-        Expressions al;  al.push(el);
-        if (FuncDeclaration *fd = assign->isFuncDeclaration())
-        {
-            FuncDeclaration *f = fd->overloadResolve(loc, er, &ar, 1);
-            if (f == NULL)   f = fd->overloadResolve(loc, er, &al, 1);
-            if (f)
-                return (f->storage_class & STCdisable) ? NULL : f;
-        }
-        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
-        {
-            FuncDeclaration *f = td->deduceFunctionTemplate(sc, loc, NULL, er, &ar, 1);
-            if (f == NULL)   f = td->deduceFunctionTemplate(sc, loc, NULL, er, &al, 1);
-            if (f)
-                return (f->storage_class & STCdisable) ? NULL : f;
-        }
+        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
+            return f;
         // Even if non-identity opAssign is defined, built-in identity opAssign
         // will be defined. (Is this an exception of operator overloading rule?)
     }
@@ -213,14 +250,29 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     }
     members->push(s);
     s->addMember(sc, this, 1);
+    this->hasIdentityAssign = 1;        // temporary mark identity assignable
 
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
-    s->semantic(sc);
-    sc->pop();
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
 
-    //printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
+    s->semantic(sc2);
+    s->semantic2(sc2);
+    s->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {   // Disable generated opAssign, because some members forbid identity assignment.
+        fop->storage_class |= STCdisable;
+        fop->fbody = NULL;  // remove fbody which contains the error
+    }
+
+    //printf("-StructDeclaration::buildOpAssign() %s %s, errors = %d\n", toChars(), s->kind(), (fop->storage_class & STCdisable) != 0);
 
     return fop;
 }
@@ -410,20 +462,20 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     size_t index = members->dim;
     members->push(fop);
 
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
 
-    unsigned errors = global.startGagging();
-    fop->semantic(sc);
-    if (errors == global.gaggedErrors)
-    {   fop->semantic2(sc);
-        if (errors == global.gaggedErrors)
-        {   fop->semantic3(sc);
-            if (errors == global.gaggedErrors)
-                fop->addMember(sc, this, 1);
-        }
-    }
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+    fop->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
     {
         members->remove(index);
@@ -441,8 +493,8 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         }
         fop = xerreq;
     }
-
-    sc->pop();
+    else
+        fop->addMember(sc, this, 1);
 
     return fop;
 }
