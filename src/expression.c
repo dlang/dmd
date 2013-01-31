@@ -1156,7 +1156,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             else if (p->storageClass & STCout)
             {
                 Type *t = arg->type;
-                if (!t->isMutable() || !t->isAssignable(1))  // check blit assignable
+                if (!t->isMutable() || !t->isAssignable())  // check blit assignable
                     arg->error("cannot modify struct %s with immutable members", arg->toChars());
                 arg = arg->toLvalue(sc, arg);
             }

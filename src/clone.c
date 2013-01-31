@@ -73,6 +73,8 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
                     f = NULL;
             }
         }
+        // BUGS: This detection mechanism cannot find some opAssign-s like follows:
+        // struct S { void opAssign(ref immutable S) const; }
         return f;
     }
     return NULL;
@@ -145,7 +147,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     if (assign)
     {
         if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
-            return (f->storage_class & STCdisable) ? NULL : f;
+            return f;
         // Even if non-identity opAssign is defined, built-in identity opAssign
         // will be defined. (Is this an exception of operator overloading rule?)
     }
@@ -248,14 +250,29 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     }
     members->push(s);
     s->addMember(sc, this, 1);
+    this->hasIdentityAssign = 1;        // temporary mark identity assignable
 
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
-    s->semantic(sc);
-    sc->pop();
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
 
-    //printf("-StructDeclaration::buildOpAssign() %s\n", toChars());
+    s->semantic(sc2);
+    s->semantic2(sc2);
+    s->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {   // Disable generated opAssign, because some members forbid identity assignment.
+        fop->storage_class |= STCdisable;
+        fop->fbody = NULL;  // remove fbody which contains the error
+    }
+
+    //printf("-StructDeclaration::buildOpAssign() %s %s, errors = %d\n", toChars(), s->kind(), (fop->storage_class & STCdisable) != 0);
 
     return fop;
 }

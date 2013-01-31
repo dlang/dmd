@@ -703,13 +703,13 @@ void test6174INFA() // identity assignable & field assignable
         D d;
         this(int _)
         {
-            static assert(!__traits(compiles, d = D.init));
+            d = D.init;
             d.x = 100;
             d.y = 100;
         }
         void func()
         {
-            static assert(!__traits(compiles, d = D.init));
+            d = D.init;
             d.x = 100;
             d.y = 100;
         }
@@ -725,7 +725,7 @@ void test6174INFA() // identity assignable & field assignable
         const D d;
         this(int _)
         {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
+            d = D.init;     // operator overloading cannot bypass type check even if inside constructor
             d.x = 100;
             d.y = 100;
         }
@@ -760,7 +760,7 @@ void test6174INFN() // identity assignable & field not assignable
         D d;
         this(int _)
         {
-            static assert(!__traits(compiles, d = D.init));
+            d = D.init;
             d.x = 100;
             d.y = 100;
         }
@@ -782,7 +782,7 @@ void test6174INFN() // identity assignable & field not assignable
         const D d;
         this(int _)
         {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
+            d = D.init;     // operator overloading cannot bypass type check even if inside constructor
             d.x = 100;
             d.y = 100;
         }
@@ -991,14 +991,14 @@ void test6216a()
 
     enum result = [
         /*S1,   S2a,    S2b,    S3a,    S3b,    S4a,    S4b*/
-/*- */  [true,  true,   true,   true,   true,   false,  false],
-/*Xa*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xb*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xc*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xd*/  [true,  true,   true,   true,   true,   true,   true ],
-/*Xe*/  [true,  true,   true,   true,   true,   true,   true ],
-/*Xf*/  [false, false,  false,  true,   true,   false,  false],
-/*Xg*/  [false, false,  false,  true,   true,   false,  false]
+/*- */  [true,  true,   true,   true,   true,   true,   true],
+/*Xa*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xb*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xc*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xd*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xe*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xf*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xg*/  [true,  true,   true,   true,   true,   true,   true],
     ];
 
     pragma(msg, "\\\tS1\tS2a\tS2b\tS3a\tS3b\tS4a\tS4b");
@@ -1075,6 +1075,56 @@ void test6216c()
     s = cs;     // cs is copied as mutable and assigned into s
     assert(cnt == 2);
 //  cs = cs;    // built-in opAssin is only allowed with mutable object
+}
+
+void test6216d()
+{
+    static int cnt = 0;
+
+    static struct X
+    {
+        int[] arr;  // X has mutable indirection
+        void opAssign(const X rhs) const { ++cnt; }
+    }
+    static struct S
+    {
+        int n;
+        const(X) x;
+    }
+
+    X mx;
+    const X cx;
+    mx = mx;    // copying mx to const X is possible
+    assert(cnt == 1);
+    mx = cx;
+    assert(cnt == 2);
+    cx = mx;    // copying mx to const X is possible
+    assert(cnt == 3);
+
+    S s;
+    const(S) cs;
+    s = s;
+    static assert(!__traits(compiles, s = cs));
+                // copying cx, const(S) to S is not possible
+    //assert(cnt == 4);
+    static assert(!__traits(compiles, cs = cs));
+                // built-in opAssin is only allowed with mutable object
+}
+
+void test6216e()
+{
+    static struct X
+    {
+        int x;
+        @disable void opAssign(X);
+    }
+    static struct S
+    {
+        X x;
+    }
+    S s;
+    static assert(!__traits(compiles, s = s));
+                // built-in generated opAssin is marked as @disable.
 }
 
 /***************************************************/
@@ -1221,6 +1271,16 @@ struct S9416
         static assert(0);
     }
 }
+struct U9416
+{
+    S9416 s;
+}
+void test9416()
+{
+    U9416 u;
+    static assert(__traits(allMembers, U9416)[$-1] == "opAssign");
+    static assert(!__traits(compiles, u = u));
+}
 
 /***************************************************/
 
@@ -1238,9 +1298,12 @@ int main()
     test6216a();
     test6216b();
     test6216c();
+    test6216d();
+    test6216e();
     test6286();
     test6336();
     test9154();
+    test9416();
 
     printf("Success\n");
     return 0;
