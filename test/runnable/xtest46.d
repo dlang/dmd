@@ -4831,7 +4831,7 @@ void test3091(inout int = 0)
 
 template Id6837(T)
 {
-	alias T Id6837;
+    alias T Id6837;
 }
 static assert(is(Id6837!(shared const int) == shared const int));
 static assert(is(Id6837!(shared inout int) == shared inout int));
@@ -5703,17 +5703,17 @@ struct S162
 {
     static int generateMethodStubs( Class )()
     {
-	int text;
+        int text;
 
-	foreach( m; __traits( allMembers, Class ) )
-	{
-	    static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
-	    {
-		pragma(msg, __traits( getOverloads, Class, m ));
-	    }
-	}
+        foreach( m; __traits( allMembers, Class ) )
+        {
+            static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
+            {
+                pragma(msg, __traits( getOverloads, Class, m ));
+            }
+        }
 
-	return text;
+        return text;
     }
 
     enum int ttt = generateMethodStubs!( S162 )();
@@ -5776,10 +5776,10 @@ mixin template DefineCoreType(string type)
 
         static void instance()
         {
-	    x = 3;
+            x = 3;
         }
 
-	X164!() xxx;
+        X164!() xxx;
     }
 }
 

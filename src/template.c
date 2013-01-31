@@ -6455,30 +6455,25 @@ void TemplateMixin::semantic(Scope *sc)
     {
         if (!td->semanticRun)
         {
-            if (td->scope)
-                td->semantic(td->scope);
+            /* Cannot handle forward references if mixin is a struct member,
+             * because addField must happen during struct's semantic, not
+             * during the mixin semantic.
+             * runDeferred will re-run mixin's semantic outside of the struct's
+             * semantic.
+             */
+            semanticRun = PASSinit;
+            AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+            if (ad)
+                ad->sizeok = SIZEOKfwd;
             else
             {
-                /* Cannot handle forward references if mixin is a struct member,
-                 * because addField must happen during struct's semantic, not
-                 * during the mixin semantic.
-                 * runDeferred will re-run mixin's semantic outside of the struct's
-                 * semantic.
-                 */
-                semanticRun = PASSinit;
-                AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-                if (ad)
-                    ad->sizeok = SIZEOKfwd;
-                else
-                {
-                    // Forward reference
-                    //printf("forward reference - deferring\n");
-                    scope = scx ? scx : new Scope(*sc);
-                    scope->setNoFree();
-                    scope->module->addDeferredSemantic(this);
-                }
-                return;
+                // Forward reference
+                //printf("forward reference - deferring\n");
+                scope = scx ? scx : new Scope(*sc);
+                scope->setNoFree();
+                scope->module->addDeferredSemantic(this);
             }
+            return;
         }
     }
 
@@ -6597,6 +6592,8 @@ void TemplateMixin::semantic(Scope *sc)
     sc2 = argscope->push(this);
     sc2->offset = sc->offset;
 
+    size_t deferred_dim = sc->module->deferred.dim;
+
     static int nest;
     //printf("%d\n", nest);
     if (++nest > 500)
@@ -6615,6 +6612,33 @@ void TemplateMixin::semantic(Scope *sc)
     nest--;
 
     sc->offset = sc2->offset;
+
+    if (!sc->func && sc->module->deferred.dim > deferred_dim)
+    {
+        sc2->pop();
+        argscope->pop();
+        scy->pop();
+
+        /* Cannot handle forward references if mixin is a struct member,
+         * because addField must happen during struct's semantic, not
+         * during the mixin semantic.
+         * runDeferred will re-run mixin's semantic outside of the struct's
+         * semantic.
+         */
+        semanticRun = PASSinit;
+        AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+        if (ad)
+            ad->sizeok = SIZEOKfwd;
+        else
+        {
+            // Forward reference
+            //printf("forward reference - deferring\n");
+            scope = scx ? scx : new Scope(*sc);
+            scope->setNoFree();
+            scope->module->addDeferredSemantic(this);
+        }
+        return;
+    }
 
     /* The problem is when to parse the initializer for a variable.
      * Perhaps VarDeclaration::semantic() should do it like it does
