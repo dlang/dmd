@@ -2781,18 +2781,23 @@ code *opass_complex87(elem *e,regm_t *pretregs)
 
 code *cdnegass87(elem *e,regm_t *pretregs)
 {   regm_t retregs;
-    tym_t tyml;
     unsigned op;
     code *cl,*cr,*c,cs;
-    elem *e1;
-    int sz;
 
     //printf("cdnegass87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
-    e1 = e->E1;
-    tyml = tybasic(e1->Ety);            // type of lvalue
-    sz = tysize[tyml];
+    elem *e1 = e->E1;
+    tym_t tyml = tybasic(e1->Ety);            // type of lvalue
+    int sz = tysize[tyml];
 
     cl = getlvalue(&cs,e1,0);
+
+    /* If the EA is really an XMM register, modEA() will fail.
+     * So disallow putting e1 into a register.
+     * A better way would be to negate the XMM register in place.
+     */
+    if (e1->Eoper == OPvar)
+        e1->EV.sp.Vsym->Sflags &= ~GTregcand;
+
     cr = modEA(&cs);
     cs.Irm |= modregrm(0,6,0);
     cs.Iop = 0x80;
