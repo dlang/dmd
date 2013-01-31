@@ -603,6 +603,12 @@ int runLINK()
 //    argv.push((void *)"-ldruntime");
     argv.push((char *)"-lpthread");
     argv.push((char *)"-lm");
+
+#if !__FreeBSD__ && !__OpenBSD__
+    // BSDs includes dlopen and friends in their libc.
+    argv.push((char *)"-ldl");
+#endif
+
 #if linux && DMDV2
     // Changes in ld for Ubuntu 11.10 require this to appear after phobos2
     argv.push((char *)"-lrt");
