@@ -25,6 +25,50 @@
 
 
 /*******************************************
+ * Check given opAssign symbol is really identity opAssign or not.
+ */
+
+FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *assign)
+{
+    if (assign)
+    {
+        assert(assign->ident == Id::assign);
+
+        /* check identity opAssign exists
+         */
+        Expression *er = new NullExp(loc, type);        // dummy rvalue
+        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        el->type = type;
+        Expressions ar;  ar.push(er);
+        Expressions al;  al.push(el);
+        FuncDeclaration *f = NULL;
+        if (FuncDeclaration *fd = assign->isFuncDeclaration())
+        {
+                    f = fd->overloadResolve(loc, er, &ar, 1);
+            if (!f) f = fd->overloadResolve(loc, er, &al, 1);
+        }
+        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
+        {
+                    f = td->deduceFunctionTemplate(sc, loc, NULL, er, &ar, 1);
+            if (!f) f = td->deduceFunctionTemplate(sc, loc, NULL, er, &al, 1);
+        }
+        if (f)
+        {
+            int varargs;
+            Parameters *fparams = f->getParameters(&varargs);
+            if (fparams->dim >= 1)
+            {
+                Parameter *arg0 = Parameter::getNth(fparams, 0);
+                if (arg0->type->toDsymbol(NULL) != this)
+                    f = NULL;
+            }
+        }
+        return f;
+    }
+    return NULL;
+}
+
+/*******************************************
  * We need an opAssign for the struct if
  * it has a destructor or a postblit.
  * We need to generate one if a user-specified one does not exist.
@@ -90,27 +134,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     Dsymbol *assign = search_function(this, Id::assign);
     if (assign)
     {
-        /* check identity opAssign exists
-         */
-        Expression *er = new NullExp(loc, type);        // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = type;
-        Expressions ar;  ar.push(er);
-        Expressions al;  al.push(el);
-        if (FuncDeclaration *fd = assign->isFuncDeclaration())
-        {
-            FuncDeclaration *f = fd->overloadResolve(loc, er, &ar, 1);
-            if (f == NULL)   f = fd->overloadResolve(loc, er, &al, 1);
-            if (f)
-                return (f->storage_class & STCdisable) ? NULL : f;
-        }
-        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
-        {
-            FuncDeclaration *f = td->deduceFunctionTemplate(sc, loc, NULL, er, &ar, 1);
-            if (f == NULL)   f = td->deduceFunctionTemplate(sc, loc, NULL, er, &al, 1);
-            if (f)
-                return (f->storage_class & STCdisable) ? NULL : f;
-        }
+        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
+            return (f->storage_class & STCdisable) ? NULL : f;
         // Even if non-identity opAssign is defined, built-in identity opAssign
         // will be defined. (Is this an exception of operator overloading rule?)
     }

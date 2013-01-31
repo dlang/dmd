@@ -1190,6 +1190,28 @@ void test9154()
 }
 
 /***************************************************/
+// 9258
+
+class A9258 {}
+class B9258 : A9258 // Error: class test.B9258 identity assignment operator overload is illegal
+{
+    void opAssign(A9258 b) {}
+}
+
+class C9258
+{
+    int n;
+    alias n this;
+    void opAssign(int n) {}
+}
+class D9258
+{
+    int n;
+    alias n this;
+    void opAssign(int n, int y = 0) {}
+}
+
+/***************************************************/
 
 int main()
 {

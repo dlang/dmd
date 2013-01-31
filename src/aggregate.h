@@ -103,6 +103,8 @@ struct AggregateDeclaration : ScopeDsymbol
     void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
+    FuncDeclaration *hasIdentityOpAssign(Scope *sc, Dsymbol *assign);
+
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
     int isFriendOf(AggregateDeclaration *cd);
