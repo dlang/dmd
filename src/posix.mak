@@ -63,8 +63,10 @@ ifeq (OSX,$(OS))
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
     #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
     LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
+    ECHO=/bin/echo
 else
     LDFLAGS=-lm -lstdc++ -lpthread
+    ECHO=echo
 endif
 
 HOST_CC=g++
@@ -134,7 +136,7 @@ SRC = win32.mak posix.mak \
 	libmscoff.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
-	intrange.h intrange.c canthrow.c vergen.c \
+	intrange.h intrange.c canthrow.c \
 	scanmscoff.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
@@ -177,7 +179,7 @@ dmd: $(DMD_OBJS)
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c vergen verstr.h core \
+	tytab.c verstr.h core \
 	*.cov *.gcda *.gcno
 
 ######## optabgen generates some source
@@ -207,11 +209,10 @@ impcnvgen : mtype.h impcnvgen.c
 	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
-######### vergen generates some source
+#########
 
-verstr.h : vergen.c ../VERSION
-	$(ENVP) $(CC) vergen.c -o vergen
-	cat ../VERSION | ./vergen > verstr.h
+verstr.h : ../VERSION
+	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
 
 #########
 
