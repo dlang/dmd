@@ -1190,6 +1190,7 @@ void SwitchErrorStatement::toIR(IRState *irs)
 void ReturnStatement::toIR(IRState *irs)
 {
     Blockx *blx = irs->blx;
+    enum BC bc;
 
     incUsage(irs, loc);
     if (exp)
@@ -1280,10 +1281,23 @@ void ReturnStatement::toIR(IRState *irs)
         }
         elem_setLoc(e, loc);
         block_appendexp(blx->curblock, e);
-        block_next(blx, BCretexp, NULL);
+        bc = BCretexp;
     }
     else
-        block_next(blx, BCret, NULL);
+        bc = BCret;
+
+    block *btry = blx->curblock->Btry;
+    if (btry)
+    {
+        // A finally block is a successor to a return block inside a try-finally
+        if (list_nitems(btry->Bsucc) == 2)      // try-finally
+        {
+            block *bfinally = list_block(list_next(btry->Bsucc));
+            assert(bfinally->BC == BC_finally);
+            list_append(&blx->curblock->Bsucc, bfinally);
+        }
+    }
+    block_next(blx, bc, NULL);
 }
 
 /**************************************
@@ -1565,6 +1579,8 @@ void TryFinallyStatement::toIR(IRState *irs)
     IRState bodyirs(irs, this);
     block *breakblock = block_calloc(blx);
     block *contblock = block_calloc(blx);
+    list_append(&tryblock->Bsucc,contblock);
+    contblock->BC = BC_finally;
 
     if (body)
         body->toIR(&bodyirs);
@@ -1575,8 +1591,7 @@ void TryFinallyStatement::toIR(IRState *irs)
 
     block_goto(blx,BCgoto, breakblock);
     block *finallyblock = block_goto(blx,BCgoto,contblock);
-
-    list_append(&tryblock->Bsucc,finallyblock);
+    assert(finallyblock == contblock);
 
     block_goto(blx,BC_finally,NULL);
 
