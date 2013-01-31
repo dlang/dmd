@@ -5020,8 +5020,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             a = scx->scopesym->members;
         }
         else
-        {   //Module *m = sc->module->importedFrom;
-            Module *m = tempdecl->scope->module->importedFrom;
+        {
+            Module *m = (isnested ? sc : tempdecl->scope)->module->importedFrom;
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
             if (m->semanticRun >= 3)
