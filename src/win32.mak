@@ -205,7 +205,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
-	intrange.h intrange.c canthrow.c vergen.c
+	intrange.h intrange.c canthrow.c
 
 
 # D back end
