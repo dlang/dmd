@@ -711,7 +711,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
 
 void StructDeclaration::makeNested()
 {
-    if (!isnested && sizeok != SIZEOKdone)
+    if (!isnested && sizeok != SIZEOKdone && !isUnionDeclaration())
     {
         // If nested struct, add in hidden 'this' pointer to outer scope
         if (!(storage_class & STCstatic))
