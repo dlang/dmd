@@ -6592,7 +6592,7 @@ void TemplateMixin::semantic(Scope *sc)
     sc2 = argscope->push(this);
     sc2->offset = sc->offset;
 
-    size_t deferred_dim = sc->module->deferred.dim;
+    size_t deferred_dim = Module::deferred.dim;
 
     static int nest;
     //printf("%d\n", nest);
@@ -6613,22 +6613,25 @@ void TemplateMixin::semantic(Scope *sc)
 
     sc->offset = sc2->offset;
 
-    if (!sc->func && sc->module->deferred.dim > deferred_dim)
+    if (!sc->func && Module::deferred.dim > deferred_dim)
     {
         sc2->pop();
         argscope->pop();
         scy->pop();
+        //printf("deferring mixin %s, deferred.dim += %d\n", toChars(), Module::deferred.dim - deferred_dim);
+        //printf("\t[");
+        //for (size_t u = 0; u < Module::deferred.dim; u++) printf("%s%s", Module::deferred[u]->toChars(), u == Module::deferred.dim-1?"":", ");
+        //printf("]\n");
 
-        /* Cannot handle forward references if mixin is a struct member,
-         * because addField must happen during struct's semantic, not
-         * during the mixin semantic.
-         * runDeferred will re-run mixin's semantic outside of the struct's
-         * semantic.
-         */
         semanticRun = PASSinit;
         AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
         if (ad)
-            ad->sizeok = SIZEOKfwd;
+        {
+            /* Forward reference of base class should not make derived class SIZEfwd.
+             */
+            //printf("\tad = %s, sizeok = %d\n", ad->toChars(), ad->sizeok);
+            //ad->sizeok = SIZEOKfwd;
+        }
         else
         {
             // Forward reference
