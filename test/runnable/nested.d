@@ -2236,6 +2236,17 @@ auto test9315()
 }
 
 /*******************************************/
+// 9244
+
+void test9244()
+{
+    union U {
+        int i;
+        @safe int x() { return i; }
+    }
+}
+
+/*******************************************/
 
 int main()
 {
@@ -2319,6 +2330,7 @@ int main()
     test8774();
     test8832();
     test9315();
+    test9244();
 
     printf("Success\n");
     return 0;
