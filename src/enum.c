@@ -53,6 +53,13 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
     return ed;
 }
 
+void EnumDeclaration::setScope(Scope *sc)
+{
+    if (isdone)
+        return;
+    ScopeDsymbol::setScope(sc);
+}
+
 void EnumDeclaration::semantic0(Scope *sc)
 {
     /* This function is a hack to get around a significant problem.
