@@ -152,15 +152,15 @@ int runLINK()
         {
             if (i)
                 cmdbuf.writeByte(' ');
-            char *p = (*global.params.objfiles)[i];
-            char *basename = FileName::removeExt(FileName::name(p));
-            char *ext = FileName::ext(p);
+            const char *p = (*global.params.objfiles)[i];
+            const char *basename = FileName::removeExt(FileName::name(p));
+            const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
             else
                 writeFilename(&cmdbuf, p);
-            mem.free(basename);
+            FileName::free(basename);
         }
 
         if (global.params.resfile)
@@ -178,17 +178,14 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            char *n = (*global.params.objfiles)[0];
+            const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
             FileName *fn = FileName::forceExt(n, "exe");
             global.params.exefile = fn->toChars();
         }
 
         // Make sure path to exe file exists
-        {   char *p = FileName::path(global.params.exefile);
-            FileName::ensurePathExists(p);
-            mem.free(p);
-        }
+        FileName::ensurePathToNameExists(global.params.exefile);
 
         cmdbuf.writeByte(' ');
         if (global.params.mapfile)
@@ -199,8 +196,8 @@ int runLINK()
         {
             FileName *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
                 p = FileName::combine(global.params.objdir, fn->toChars());
             else
@@ -310,15 +307,15 @@ int runLINK()
         {
             if (i)
                 cmdbuf.writeByte('+');
-            char *p = (*global.params.objfiles)[i];
-            char *basename = FileName::removeExt(FileName::name(p));
-            char *ext = FileName::ext(p);
+            const char *p = (*global.params.objfiles)[i];
+            const char *basename = FileName::removeExt(FileName::name(p));
+            const char *ext = FileName::ext(p);
             if (ext && !strchr(basename, '.'))
                 // Write name sans extension (but not if a double extension)
                 writeFilename(&cmdbuf, p, ext - p - 1);
             else
                 writeFilename(&cmdbuf, p);
-            mem.free(basename);
+            FileName::free(basename);
         }
         cmdbuf.writeByte(',');
         if (global.params.exefile)
@@ -327,17 +324,14 @@ int runLINK()
         {   /* Generate exe file name from first obj name.
              * No need to add it to cmdbuf because the linker will default to it.
              */
-            char *n = (*global.params.objfiles)[0];
+            const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
             FileName *fn = FileName::forceExt(n, "exe");
             global.params.exefile = fn->toChars();
         }
 
         // Make sure path to exe file exists
-        {   char *p = FileName::path(global.params.exefile);
-            FileName::ensurePathExists(p);
-            mem.free(p);
-        }
+        FileName::ensurePathToNameExists(global.params.exefile);
 
         cmdbuf.writeByte(',');
         if (global.params.mapfile)
@@ -346,8 +340,8 @@ int runLINK()
         {
             FileName *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
                 p = FileName::combine(global.params.objdir, fn->toChars());
             else
@@ -471,12 +465,11 @@ int runLINK()
     }
     else
     {   // Generate exe file name from first obj name
-        char *n = (*global.params.objfiles)[0];
-        char *e;
+        const char *n = (*global.params.objfiles)[0];
         char *ex;
 
         n = FileName::name(n);
-        e = FileName::ext(n);
+        const char *e = FileName::ext(n);
         if (e)
         {
             e--;                        // back up over '.'
@@ -485,7 +478,7 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = FileName::forceExt(ex, global.dll_ext)->toChars();
+                ex = (char *)FileName::forceExt(ex, global.dll_ext)->toChars();
         }
         else
             ex = (char *)"a.out";       // no extension, so give up
@@ -494,10 +487,7 @@ int runLINK()
     }
 
     // Make sure path to exe file exists
-    {   char *p = FileName::path(global.params.exefile);
-        FileName::ensurePathExists(p);
-        mem.free(p);
-    }
+    FileName::ensurePathToNameExists(global.params.exefile);
 
     if (global.params.symdebug)
         argv.push((char *)"-g");
@@ -519,14 +509,14 @@ int runLINK()
         {
             FileName *fn = FileName::forceExt(global.params.exefile, "map");
 
-            char *path = FileName::path(global.params.exefile);
-            char *p;
+            const char *path = FileName::path(global.params.exefile);
+            const char *p;
             if (path[0] == '\0')
                 p = FileName::combine(global.params.objdir, fn->toChars());
             else
                 p = fn->toChars();
 
-            global.params.mapfile = p;
+            global.params.mapfile = (char *)p;
         }
         argv.push((char *)"-Xlinker");
         argv.push(global.params.mapfile);
@@ -844,7 +834,7 @@ int runProgram()
     argv.push(NULL);
 
 #if _WIN32
-    char *ex = FileName::name(global.params.exefile);
+    const char *ex = FileName::name(global.params.exefile);
     if (ex == global.params.exefile)
         ex = FileName::combine(".", ex);
     else
@@ -858,7 +848,7 @@ int runProgram()
     childpid = fork();
     if (childpid == 0)
     {
-        char *fn = argv[0];
+        const char *fn = argv[0];
         if (!FileName::absolute(fn))
         {   // Make it "./fn"
             fn = FileName::combine(".", fn);
