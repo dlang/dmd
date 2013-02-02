@@ -5694,6 +5694,9 @@ Expression *TypeidExp::semantic(Scope *sc)
 
     if (ea)
     {
+        Dsymbol *sym = getDsymbol(ea);
+        if (sym)
+            ea = new DsymbolExp(loc, sym);
         ea = ea->semantic(sc);
         ea = resolveProperties(sc, ea);
         ta = ea->type;

@@ -462,6 +462,26 @@ void test37()
 }
 
 /******************************************************/
+// 9442
+
+class C
+{
+    this()
+    {
+        c = this;
+        auto x = typeid(c);         // NG
+        auto y = typeid(this.c);    // ok
+    }
+
+    C c;
+}
+
+void test9442()
+{
+    auto c = new C();
+}
+
+/******************************************************/
 
 int main()
 {
@@ -500,6 +520,7 @@ int main()
     test35();
     test36();
     test37();
+    test9442();
 
     return 0;
 }
