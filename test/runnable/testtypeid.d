@@ -20,34 +20,35 @@ void foo3(int x, ...)
 {
     printf("%d arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
-    {	writeln(_arguments[i].toString());
+    {
+        writeln(_arguments[i].toString());
 
-	if (_arguments[i] is typeid(int))
-	{
-	    int j = va_arg!int(_argptr);
-	    printf("\t%d\n", j);
-	    assert(j == 2);
-	}
-	else if (_arguments[i] == typeid(long))
-	{
-	    long j = va_arg!long(_argptr);
-	    printf("\t%lld\n", j);
-	    assert(j == 3);
-	}
-	else if (_arguments[i] is typeid(double))
-	{
-	    double d = va_arg!double(_argptr);
-	    printf("\t%g\n", d);
-	    assert(d == 4.5);
-	}
-	else if (_arguments[i] is typeid(FOO3))
-	{
-	    FOO3 f = va_arg!FOO3(_argptr);
-	    printf("\t%p\n", f);
-	    assert(f is foox3);
-	}
-	else
-	    assert(0);
+        if (_arguments[i] is typeid(int))
+        {
+            int j = va_arg!int(_argptr);
+            printf("\t%d\n", j);
+            assert(j == 2);
+        }
+        else if (_arguments[i] == typeid(long))
+        {
+            long j = va_arg!long(_argptr);
+            printf("\t%lld\n", j);
+            assert(j == 3);
+        }
+        else if (_arguments[i] is typeid(double))
+        {
+            double d = va_arg!double(_argptr);
+            printf("\t%g\n", d);
+            assert(d == 4.5);
+        }
+        else if (_arguments[i] is typeid(FOO3))
+        {
+            FOO3 f = va_arg!FOO3(_argptr);
+            printf("\t%p\n", f);
+            assert(f is foox3);
+        }
+        else
+            assert(0);
     }
 }
 
@@ -66,255 +67,255 @@ void test3()
 
 void test4()
 {
-	TypeInfo ti;
+    TypeInfo ti;
 
-	ti = typeid(float[]);
-	assert(!(ti is null));
-	ti = typeid(double[]);
-	assert(!(ti is null));
-	ti = typeid(real[]);
-	assert(!(ti is null));
+    ti = typeid(float[]);
+    assert(!(ti is null));
+    ti = typeid(double[]);
+    assert(!(ti is null));
+    ti = typeid(real[]);
+    assert(!(ti is null));
 
-	ti = typeid(ifloat[]);
-	assert(!(ti is null));
-	ti = typeid(idouble[]);
-	assert(!(ti is null));
-	ti = typeid(ireal[]);
-	assert(!(ti is null));
+    ti = typeid(ifloat[]);
+    assert(!(ti is null));
+    ti = typeid(idouble[]);
+    assert(!(ti is null));
+    ti = typeid(ireal[]);
+    assert(!(ti is null));
 
-	ti = typeid(cfloat[]);
-	assert(!(ti is null));
-	ti = typeid(cdouble[]);
-	assert(!(ti is null));
-	ti = typeid(creal[]);
-	assert(!(ti is null));
+    ti = typeid(cfloat[]);
+    assert(!(ti is null));
+    ti = typeid(cdouble[]);
+    assert(!(ti is null));
+    ti = typeid(creal[]);
+    assert(!(ti is null));
 
-	ti = typeid(void);
-	assert(!(ti is null));
-	ti = typeid(void[]);
-	assert(!(ti is null));
-	ti = typeid(bool[]);
-	assert(!(ti is null));
+    ti = typeid(void);
+    assert(!(ti is null));
+    ti = typeid(void[]);
+    assert(!(ti is null));
+    ti = typeid(bool[]);
+    assert(!(ti is null));
 }
 
 /******************************************************/
 
 void test6()
 {
-	TypeInfo ti = typeid(void*);
-	assert(!(ti is null));
-	assert(ti.tsize==(void*).sizeof);
-	assert(ti.toString()=="void*");
+    TypeInfo ti = typeid(void*);
+    assert(!(ti is null));
+    assert(ti.tsize==(void*).sizeof);
+    assert(ti.toString()=="void*");
 }
 
 /******************************************************/
 
 void test7()
 {
-	TypeInfo ti = typeid(bool*);
-	assert(!(ti is null));
-	assert(ti.tsize==(bool*).sizeof);
-	assert(ti.toString()=="bool*");
+    TypeInfo ti = typeid(bool*);
+    assert(!(ti is null));
+    assert(ti.tsize==(bool*).sizeof);
+    assert(ti.toString()=="bool*");
 }
 
 /******************************************************/
 
 void test8()
 {
-	TypeInfo ti = typeid(byte*);
-	assert(!(ti is null));
-	assert(ti.tsize==(byte*).sizeof);
-	assert(ti.toString()=="byte*");
+    TypeInfo ti = typeid(byte*);
+    assert(!(ti is null));
+    assert(ti.tsize==(byte*).sizeof);
+    assert(ti.toString()=="byte*");
 }
 
 /******************************************************/
 
 void test9()
 {
-	TypeInfo ti = typeid(byte[]);
-	assert(!(ti is null));
-	assert(ti.tsize==(byte[]).sizeof);
-	assert(ti.toString()=="byte[]");
+    TypeInfo ti = typeid(byte[]);
+    assert(!(ti is null));
+    assert(ti.tsize==(byte[]).sizeof);
+    assert(ti.toString()=="byte[]");
 }
 
 /******************************************************/
 
 void test10()
 {
-	TypeInfo ti = typeid(short*);
-	assert(!(ti is null));
-	assert(ti.tsize==(short*).sizeof);
-	assert(ti.toString()=="short*");
+    TypeInfo ti = typeid(short*);
+    assert(!(ti is null));
+    assert(ti.tsize==(short*).sizeof);
+    assert(ti.toString()=="short*");
 }
 
 /******************************************************/
 
 void test11()
 {
-	TypeInfo ti = typeid(ushort*);
-	assert(!(ti is null));
-	assert(ti.tsize==(ushort*).sizeof);
-	assert(ti.toString()=="ushort*");
+    TypeInfo ti = typeid(ushort*);
+    assert(!(ti is null));
+    assert(ti.tsize==(ushort*).sizeof);
+    assert(ti.toString()=="ushort*");
 }
 
 /******************************************************/
 
 void test12()
 {
-	TypeInfo ti = typeid(int*);
-	assert(!(ti is null));
-	assert(ti.tsize==(int*).sizeof);
-	assert(ti.toString()=="int*");
+    TypeInfo ti = typeid(int*);
+    assert(!(ti is null));
+    assert(ti.tsize==(int*).sizeof);
+    assert(ti.toString()=="int*");
 }
 
 /******************************************************/
 
 void test13()
 {
-	TypeInfo ti = typeid(uint*);
-	assert(!(ti is null));
-	assert(ti.tsize==(uint*).sizeof);
-	assert(ti.toString()=="uint*");
+    TypeInfo ti = typeid(uint*);
+    assert(!(ti is null));
+    assert(ti.tsize==(uint*).sizeof);
+    assert(ti.toString()=="uint*");
 }
 
 /******************************************************/
 
 void test14()
 {
-	TypeInfo ti = typeid(ulong*);
-	assert(!(ti is null));
-	assert(ti.tsize==(ulong*).sizeof);
-	assert(ti.toString()=="ulong*");
+    TypeInfo ti = typeid(ulong*);
+    assert(!(ti is null));
+    assert(ti.tsize==(ulong*).sizeof);
+    assert(ti.toString()=="ulong*");
 }
 
 /******************************************************/
 
 void test15()
 {
-	TypeInfo ti = typeid(long*);
-	assert(!(ti is null));
-	assert(ti.tsize==(long*).sizeof);
-	assert(ti.toString()=="long*");
+    TypeInfo ti = typeid(long*);
+    assert(!(ti is null));
+    assert(ti.tsize==(long*).sizeof);
+    assert(ti.toString()=="long*");
 }
 
 /******************************************************/
 
 void test16()
 {
-	TypeInfo ti = typeid(float*);
-	assert(!(ti is null));
-	assert(ti.tsize==(float*).sizeof);
-	assert(ti.toString()=="float*");
+    TypeInfo ti = typeid(float*);
+    assert(!(ti is null));
+    assert(ti.tsize==(float*).sizeof);
+    assert(ti.toString()=="float*");
 }
 
 /******************************************************/
 
 void test17()
 {
-	TypeInfo ti = typeid(ifloat*);
-	assert(!(ti is null));
-	assert(ti.tsize==(ifloat*).sizeof);
-	assert(ti.toString()=="ifloat*");
+    TypeInfo ti = typeid(ifloat*);
+    assert(!(ti is null));
+    assert(ti.tsize==(ifloat*).sizeof);
+    assert(ti.toString()=="ifloat*");
 }
 
 /******************************************************/
 
 void test18()
 {
-	TypeInfo ti = typeid(cfloat*);
-	assert(!(ti is null));
-	assert(ti.tsize==(cfloat*).sizeof);
-	assert(ti.toString()=="cfloat*");
+    TypeInfo ti = typeid(cfloat*);
+    assert(!(ti is null));
+    assert(ti.tsize==(cfloat*).sizeof);
+    assert(ti.toString()=="cfloat*");
 }
 
 /******************************************************/
 
 void test19()
 {
-	TypeInfo ti = typeid(double*);
-	assert(!(ti is null));
-	assert(ti.tsize==(double*).sizeof);
-	assert(ti.toString()=="double*");
+    TypeInfo ti = typeid(double*);
+    assert(!(ti is null));
+    assert(ti.tsize==(double*).sizeof);
+    assert(ti.toString()=="double*");
 }
 
 /******************************************************/
 
 void test20()
 {
-	TypeInfo ti = typeid(idouble*);
-	assert(!(ti is null));
-	assert(ti.tsize==(idouble*).sizeof);
-	assert(ti.toString()=="idouble*");
+    TypeInfo ti = typeid(idouble*);
+    assert(!(ti is null));
+    assert(ti.tsize==(idouble*).sizeof);
+    assert(ti.toString()=="idouble*");
 }
 
 /******************************************************/
 
 void test21()
 {
-	TypeInfo ti = typeid(cdouble*);
-	assert(!(ti is null));
-	assert(ti.tsize==(cdouble*).sizeof);
-	assert(ti.toString()=="cdouble*");
+    TypeInfo ti = typeid(cdouble*);
+    assert(!(ti is null));
+    assert(ti.tsize==(cdouble*).sizeof);
+    assert(ti.toString()=="cdouble*");
 }
 
 /******************************************************/
 
 void test22()
 {
-	TypeInfo ti = typeid(real*);
-	assert(!(ti is null));
-	assert(ti.tsize==(real*).sizeof);
-	assert(ti.toString()=="real*");
+    TypeInfo ti = typeid(real*);
+    assert(!(ti is null));
+    assert(ti.tsize==(real*).sizeof);
+    assert(ti.toString()=="real*");
 }
 
 /******************************************************/
 
 void test23()
 {
-	TypeInfo ti = typeid(ireal*);
-	assert(!(ti is null));
-	assert(ti.tsize==(ireal*).sizeof);
-	assert(ti.toString()=="ireal*");
+    TypeInfo ti = typeid(ireal*);
+    assert(!(ti is null));
+    assert(ti.tsize==(ireal*).sizeof);
+    assert(ti.toString()=="ireal*");
 }
 
 /******************************************************/
 
 void test24()
 {
-	TypeInfo ti = typeid(creal*);
-	assert(!(ti is null));
-	assert(ti.tsize==(creal*).sizeof);
-	assert(ti.toString()=="creal*");
+    TypeInfo ti = typeid(creal*);
+    assert(!(ti is null));
+    assert(ti.tsize==(creal*).sizeof);
+    assert(ti.toString()=="creal*");
 }
 
 /******************************************************/
 
 void test25()
 {
-	TypeInfo ti = typeid(char*);
-	assert(!(ti is null));
-	assert(ti.tsize==(char*).sizeof);
-	assert(ti.toString()=="char*");
+    TypeInfo ti = typeid(char*);
+    assert(!(ti is null));
+    assert(ti.tsize==(char*).sizeof);
+    assert(ti.toString()=="char*");
 }
 
 /******************************************************/
 
 void test26()
 {
-	TypeInfo ti = typeid(wchar*);
-	assert(!(ti is null));
-	assert(ti.tsize==(wchar*).sizeof);
-	assert(ti.toString()=="wchar*");
+    TypeInfo ti = typeid(wchar*);
+    assert(!(ti is null));
+    assert(ti.tsize==(wchar*).sizeof);
+    assert(ti.toString()=="wchar*");
 }
 
 /******************************************************/
 
 void test27()
 {
-	TypeInfo ti = typeid(dchar*);
-	assert(!(ti is null));
-	assert(ti.tsize==(dchar*).sizeof);
-	assert(ti.toString()=="dchar*");
+    TypeInfo ti = typeid(dchar*);
+    assert(!(ti is null));
+    assert(ti.tsize==(dchar*).sizeof);
+    assert(ti.toString()=="dchar*");
 }
 
 /******************************************************/
@@ -323,40 +324,40 @@ enum MyEnum { A, B }
 
 void test28()
 {
-	TypeInfo ti = typeid(MyEnum);
-	assert(!(ti is null));
-	assert(ti.tsize==(MyEnum).sizeof);
-	assert(ti.toString()=="testtypeid.MyEnum");
+    TypeInfo ti = typeid(MyEnum);
+    assert(!(ti is null));
+    assert(ti.tsize==(MyEnum).sizeof);
+    assert(ti.toString()=="testtypeid.MyEnum");
 }
 
 /******************************************************/
 
 void test29()
 {
-	alias void function() func;
-	TypeInfo ti = typeid(func);
-	assert(ti !is null);
-	assert(ti.tsize == func.sizeof);
+    alias void function() func;
+    TypeInfo ti = typeid(func);
+    assert(ti !is null);
+    assert(ti.tsize == func.sizeof);
 }
 
 /******************************************************/
 
 void test30()
 {
-	alias int delegate() del;
-	TypeInfo ti = typeid(del);
-	assert(ti !is null);
-	assert(ti.tsize == del.sizeof);
+    alias int delegate() del;
+    TypeInfo ti = typeid(del);
+    assert(ti !is null);
+    assert(ti.tsize == del.sizeof);
 }
 
 /******************************************************/
 
 void test31()
 {
-	TypeInfo ti = typeid(void);
-	assert(!(ti is null));
-	assert(ti.tsize == void.sizeof);
-	assert(ti.toString()=="void");
+    TypeInfo ti = typeid(void);
+    assert(!(ti is null));
+    assert(ti.tsize == void.sizeof);
+    assert(ti.toString()=="void");
 }
 
 /******************************************************/
@@ -368,37 +369,38 @@ void printargs(int x, ...)
 {
     printf("%d arguments\n", _arguments.length);
     for (int i = 0; i < _arguments.length; i++)
-    {   writeln(_arguments[i].toString());
+    {
+        writeln(_arguments[i].toString());
 
-	if (_arguments[i] == typeid(int))
-	{
-	    int j = va_arg!int(_argptr);
-	    printf("\t%d\n", j);
-	}
-	else if (_arguments[i] == typeid(long))
-	{
-	    long j = va_arg!long(_argptr);
-	    printf("\t%lld\n", j);
-	}
-	else if (_arguments[i] == typeid(double))
-	{
-	    double d = va_arg!double(_argptr);
-	    printf("\t%g\n", d);
-	}
-	else if (_arguments[i] == typeid(Foo32))
-	{
-	    Foo32 f = va_arg!Foo32(_argptr);
-	    assert(f.x == 3);
-	    printf("\t%p\n", f);
-	}
-	else if (_arguments[i] == typeid(Bar32))
-	{
-	    Bar32 b = va_arg!Bar32(_argptr);
-	    assert(b.y == 4);
-	    printf("\t%p\n", b);
-	}
-	else
-	    assert(0);
+        if (_arguments[i] == typeid(int))
+        {
+            int j = va_arg!int(_argptr);
+            printf("\t%d\n", j);
+        }
+        else if (_arguments[i] == typeid(long))
+        {
+            long j = va_arg!long(_argptr);
+            printf("\t%lld\n", j);
+        }
+        else if (_arguments[i] == typeid(double))
+        {
+            double d = va_arg!double(_argptr);
+            printf("\t%g\n", d);
+        }
+        else if (_arguments[i] == typeid(Foo32))
+        {
+            Foo32 f = va_arg!Foo32(_argptr);
+            assert(f.x == 3);
+            printf("\t%p\n", f);
+        }
+        else if (_arguments[i] == typeid(Bar32))
+        {
+            Bar32 b = va_arg!Bar32(_argptr);
+            assert(b.y == 4);
+            printf("\t%p\n", b);
+        }
+        else
+            assert(0);
     }
 }
 
@@ -420,7 +422,8 @@ void test33()
 /******************************************************/
 
 void test34()
-{   class C { }
+{
+    class C { }
     C c;
     auto a = typeid(C).info;
 }
@@ -453,9 +456,9 @@ class B37 : A37 {}
 
 void test37()
 {
-   auto a = new B37;
-   //writeln(typeid(A));
-   assert(typeid(a) == typeid(B37));
+    auto a = new B37;
+    //writeln(typeid(A));
+    assert(typeid(a) == typeid(B37));
 }
 
 /******************************************************/
