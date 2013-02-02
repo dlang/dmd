@@ -341,10 +341,7 @@ void Module::gendocfile()
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
     docfile->ref = 1;
-    char *pt = FileName::path(docfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #else
     /* Remove all the escape sequences from buf2
@@ -367,10 +364,7 @@ void Module::gendocfile()
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
     docfile->ref = 1;
-    char *pt = FileName::path(docfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #endif
 }

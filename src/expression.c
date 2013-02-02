@@ -6578,7 +6578,8 @@ FileExp::FileExp(Loc loc, Expression *e)
 }
 
 Expression *FileExp::semantic(Scope *sc)
-{   char *name;
+{
+    const char *name;
     StringExp *se;
 
 #if LOGSEMANTIC

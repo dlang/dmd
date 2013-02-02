@@ -98,10 +98,10 @@ void LibElf::setFilename(char *dir, char *filename)
     printf("LibElf::setFilename(dir = '%s', filename = '%s')\n",
         dir ? dir : "", filename ? filename : "");
 #endif
-    char *arg = filename;
+    const char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
+        const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);
@@ -127,9 +127,7 @@ void LibElf::write()
     libbuf.extractData();
 
 
-    char *p = FileName::path(libfile->name->toChars());
-    FileName::ensurePathExists(p);
-    //mem.free(p);
+    FileName::ensurePathToNameExists(libfile->name->toChars());
 
     libfile->writev();
 }
@@ -623,7 +621,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
     om->base = (unsigned char *)buf;
     om->length = buflen;
     om->offset = 0;
-    om->name = FileName::name(module_name);     // remove path, but not extension
+    om->name = (char *)FileName::name(module_name);     // remove path, but not extension
     om->name_offset = -1;
     om->scan = 1;
     if (fromfile)
