@@ -1919,48 +1919,53 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 if (inCode)
                     break;
                 p = &buf->data[i];
+                se = sc->module->escapetable->escapeChar('<');
 
-                // Skip over comments
-                if (p[1] == '!' && p[2] == '-' && p[3] == '-')
-                {   size_t j = i + 4;
-                    p += 4;
-                    while (1)
+                if (se && strcmp(se, "&lt;") == 0)
+                {
+                    // Generating HTML
+                    // Skip over comments
+                    if (p[1] == '!' && p[2] == '-' && p[3] == '-')
                     {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '-' && p[1] == '-' && p[2] == '>')
+                        size_t j = i + 4;
+                        p += 4;
+                        while (1)
                         {
-                            i = j + 2;  // place on closing '>'
-                            break;
+                            if (j == buf->offset)
+                                goto L1;
+                            if (p[0] == '-' && p[1] == '-' && p[2] == '>')
+                            {
+                                i = j + 2;  // place on closing '>'
+                                break;
+                            }
+                            j++;
+                            p++;
                         }
-                        j++;
-                        p++;
+                        break;
                     }
-                    break;
-                }
 
-                // Skip over HTML tag
-                if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
-                {   size_t j = i + 2;
-                    p += 2;
-                    while (1)
+                    // Skip over HTML tag
+                    if (isalpha(p[1]) || (p[1] == '/' && isalpha(p[2])))
                     {
-                        if (j == buf->offset)
-                            goto L1;
-                        if (p[0] == '>')
+                        size_t j = i + 2;
+                        p += 2;
+                        while (1)
                         {
-                            i = j;      // place on closing '>'
-                            break;
+                            if (j == buf->offset)
+                                break;
+                            if (p[0] == '>')
+                            {
+                                i = j;      // place on closing '>'
+                                break;
+                            }
+                            j++;
+                            p++;
                         }
-                        j++;
-                        p++;
+                        break;
                     }
-                    break;
                 }
-
             L1:
                 // Replace '<' with '&lt;' character entity
-                se = sc->module->escapetable->escapeChar('<');
                 if (se)
                 {   size_t len = strlen(se);
                     buf->remove(i, 1);
