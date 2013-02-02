@@ -49,6 +49,7 @@ struct EnumDeclaration : ScopeDsymbol
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic0(Scope *sc);
     void semantic(Scope *sc);
     int oneMember(Dsymbol **ps, Identifier *ident = NULL);
