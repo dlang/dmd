@@ -1204,16 +1204,19 @@ Expression *TryCatchStatement::interpret(InterState *istate)
 #else
         Catch *ca = catches->tdata()[i];
 #endif
-        Type *catype = ca->type;
+        for (size_t j = 0; j < ca->types->dim; ++j)
+        {
+            Type *catype = (*ca->types)[j];
 
-        if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
-        {   // Execute the handler
-            if (ca->var)
-            {
-                ctfeStack.push(ca->var);
-                ca->var->setValue(ex->thrown);
+            if (catype->equals(extype) || catype->isBaseOf(extype, NULL))
+            {   // Execute the handler
+                if (ca->var)
+                {
+                    ctfeStack.push(ca->var);
+                    ca->var->setValue(ex->thrown);
+                }
+                return ca->handler ? ca->handler->interpret(istate) : NULL;
             }
-            return ca->handler ? ca->handler->interpret(istate) : NULL;
         }
     }
     return e;

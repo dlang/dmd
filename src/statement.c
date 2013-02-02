@@ -4630,8 +4630,14 @@ Statement *TryCatchStatement::semantic(Scope *sc)
             char *si = c->loc.toChars();
             char *sj = cj->loc.toChars();
 
-            if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
-                error("catch at %s hides catch at %s", sj, si);
+            for (size_t k = 0; k < c->types->dim; k++)
+            {
+                for (size_t l = 0; l < cj->types->dim; l++)
+                {
+                    if ((*c->types)[k]->toBasetype()->implicitConvTo((*cj->types)[l]->toBasetype()))
+                        error("catch at %s hides catch at %s", sj, si);
+                }
+            }
         }
     }
 
@@ -4661,17 +4667,29 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
     for (size_t i = 0; i < catches->dim; i++)
     {
         Catch *c = (*catches)[i];
-        if (c->type == Type::terror)
+        int hasError = 0;
+        for (size_t j = 0; j < c->types->dim; j++)
+        {
+            if ((*c->types)[j] == Type::terror)
+            {
+                hasError = 1;
+                break;
+            }
+        }
+        if (hasError)
             continue;
 
         catchresult |= c->blockExit(mustNotThrow);
 
-        /* If we're catching Object, then there is no throwing
-         */
-        Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-        if (id == Id::Object || id == Id::Throwable || id == Id::Exception)
+        for (size_t j = 0; j < c->types->dim; j++)
         {
-            result &= ~BEthrow;
+            /* If we're catching Object, then there is no throwing
+             */
+            Identifier *id = (*c->types)[j]->toBasetype()->isClassHandle()->ident;
+            if (id == Id::Object || id == Id::Throwable || id == Id::Exception)
+            {
+                result &= ~BEthrow;
+            }
         }
     }
     if (mustNotThrow && (result & BEthrow))
@@ -4697,11 +4715,11 @@ void TryCatchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** Catch ***************************/
 
-Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
+Catch::Catch(Loc loc, Types *t, Identifier *id, Statement *handler)
 {
     //printf("Catch(%s, loc = %s)\n", id->toChars(), loc.toChars());
     this->loc = loc;
-    this->type = t;
+    this->types = t;
     this->ident = id;
     this->handler = handler;
     var = NULL;
@@ -4710,8 +4728,15 @@ Catch::Catch(Loc loc, Type *t, Identifier *id, Statement *handler)
 
 Catch *Catch::syntaxCopy()
 {
+    Types *ts = NULL;
+    if (types)
+    {
+        ts = types->copy();
+        for (size_t i = 0; i < ts->dim; i++)
+            (*ts)[i] = (*ts)[i]->syntaxCopy();
+    }
     Catch *c = new Catch(loc,
-        (type ? type->syntaxCopy() : NULL),
+        ts,
         ident,
         (handler ? handler->syntaxCopy() : NULL));
     c->internalCatch = internalCatch;
@@ -4720,7 +4745,7 @@ Catch *Catch::syntaxCopy()
 
 void Catch::semantic(Scope *sc)
 {
-    if (type && type->deco)
+    if (types && (*types)[0] && (*types)[0]->deco)
         return;
 
     //printf("Catch::semantic(%s)\n", ident->toChars());
@@ -4742,28 +4767,78 @@ void Catch::semantic(Scope *sc)
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
-    if (!type)
-        type = new TypeIdentifier(0, Id::Throwable);
-    type = type->semantic(loc, sc);
-    ClassDeclaration *cd = type->toBasetype()->isClassHandle();
-    if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+    if (!types)
+        types = new Types();
+Lcatchany:
+    if (!types->dim)
+        types->push(new TypeIdentifier(0, Id::Throwable));
+    Type *type = NULL;
+    for (size_t i = 0; i < types->dim; i++)
     {
-        if (type != Type::terror)
-        {   error(loc, "can only catch class objects derived from Throwable, not '%s'", type->toChars());
-            type = Type::terror;
+        Type *tn = (*types)[i]->semantic(loc, sc);
+        if (!type)
+            type = tn;
+        ClassDeclaration *cd = tn->toBasetype()->isClassHandle();
+        if (tn->ty == Ttuple)
+        {
+            TypeTuple *tt = (TypeTuple *)tn;
+            types->remove(i);
+            if (type == tn)
+                type = NULL;
+            if (tt->arguments)
+            {
+                for (size_t j = 0; j < tt->arguments->dim; j++)
+                {
+                    Parameter *p = (*tt->arguments)[j];
+                    types->insert(i + j, p->type);
+                }
+            }
+            if (types->dim == 0)
+                goto Lcatchany;
+            i--;
+            continue;
+        }
+        else if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+        {
+            if (tn != Type::terror)
+            {   error(loc, "can only catch class objects derived from Throwable, not '%s'", tn->toChars());
+                tn = Type::terror;
+            }
+        }
+        else if (sc->func &&
+            !sc->intypeof &&
+            !internalCatch &&
+            cd != ClassDeclaration::exception &&
+            !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
+            sc->func->setUnsafe())
+        {
+            error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", tn->toChars());
+            tn = Type::terror;
+        }
+        (*types)[i] = tn;
+
+        // Look for redundant types
+        for (size_t j = 0; j < i; j++)
+        {
+            Type *t = (*types)[j];
+            if (tn->equals(t))
+                error(loc, "duplicate catch type %s", tn->toChars());
+            else if (tn->implicitConvTo(t))
+                error(loc, "catch of %s hides catch of %s", t->toChars(), tn->toChars());
+            else if (t->implicitConvTo(tn))
+                error(loc, "catch of %s hides catch of %s", tn->toChars(), t->toChars());
+        }
+
+        // Find common base class
+        if (i != 0)
+        {
+            IntegerExp integerexp(0);
+            CondExp condexp(0, &integerexp, type->defaultInit(0), tn->defaultInit(0));
+            condexp.semantic(sc);
+            type = condexp.type;
         }
     }
-    else if (sc->func &&
-        !sc->intypeof &&
-        !internalCatch &&
-        cd != ClassDeclaration::exception &&
-        !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
-        sc->func->setUnsafe())
-    {
-        error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
-        type = Type::terror;
-    }
-    else if (ident)
+    if (ident && type->ty != Terror)
     {
         var = new VarDeclaration(loc, type, ident, NULL);
         var->parent = sc->parent;
@@ -4782,9 +4857,22 @@ int Catch::blockExit(bool mustNotThrow)
 void Catch::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("catch");
-    if (type)
+    if (types)
     {   buf->writebyte('(');
-        type->toCBuffer(buf, ident, hgs);
+        if (types->dim == 1)
+            (*types)[0]->toCBuffer(buf, ident, hgs);
+        else
+        {
+            buf->writestring("auto ");
+            buf->writestring(ident->toChars());
+            buf->writestring(" : ");
+            for (size_t i = 0; i < types->dim; i++)
+            {
+                (*types)[i]->toCBuffer(buf, NULL, hgs);
+                if (types->dim > i+1)
+                    buf->writestring(", ");
+            }
+        }
         buf->writebyte(')');
     }
     buf->writenl();

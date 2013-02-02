@@ -2706,6 +2706,75 @@ struct S132
 }
 
 /***************************************************/
+
+template TT7540(T...) { alias T TT7540; }
+void test7540()
+{
+    class ExceptionA : Exception { this() { super(null); } }
+    class ExceptionB : Exception { this() { super(null); } }
+    class ExceptionC : Exception { this() { super(null); } }
+
+    nothrow int test7540a()
+    {
+        try
+            { throw new ExceptionA(); }
+        catch(auto e : ExceptionA)
+            { static assert(is(typeof(e) == ExceptionA)); }
+        catch
+            { assert(0); }
+
+        try
+            { throw new ExceptionB(); }
+        catch(auto e : ExceptionA)
+            { static assert(is(typeof(e) == ExceptionA)); assert(0); }
+        catch
+            { }
+
+        try
+            { throw new ExceptionB(); }
+        catch(auto e : ExceptionA, ExceptionB)
+            { static assert(is(typeof(e) == Exception)); }
+        catch
+            { assert(0); }
+
+        try
+            { throw new ExceptionB(); }
+        catch(auto e : ExceptionA, ExceptionB)
+            { static assert(is(typeof(e) == Exception)); }
+        catch(auto e : ExceptionC)
+            { assert(0); }
+        catch
+            { assert(0); }
+
+        try
+            { throw new ExceptionC(); }
+        catch(auto e : ExceptionA, ExceptionB)
+            { assert(0); }
+        catch(auto e : ExceptionC)
+            { }
+        catch
+            { assert(0); }
+
+        alias TT7540!(ExceptionA, ExceptionB) EAB;
+        alias TT7540!(ExceptionC) EC;
+        alias TT7540!() EX;
+
+        try
+            { throw new ExceptionC(); }
+        catch(auto e : EAB)
+            { assert(0); }
+        catch(auto e : EC)
+            { }
+        catch(auto e : EX)
+            { assert(0); }
+
+        return 1;
+    }
+    auto x = test7540a();
+    enum y = test7540a();
+}
+
+/***************************************************/
 // 5343
 
 struct Tuple5343(Specs...)
@@ -5839,6 +5908,7 @@ int main()
     test34();
     test35();
     test36();
+    test7540();
     test37();
     test38();
     test39();

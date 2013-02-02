@@ -1525,18 +1525,22 @@ void TryCatchStatement::toIR(IRState *irs)
         Catch *cs = (*catches)[i];
         if (cs->var)
             cs->var->csym = tryblock->jcatchvar;
-        block *bcatch = blx->curblock;
-        if (cs->type)
-            bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
-        list_append(&tryblock->Bsucc,bcatch);
-        block_goto(blx,BCjcatch,NULL);
-        if (cs->handler != NULL)
+
+        for (size_t j = 0; j < cs->types->dim; j++)
         {
-            IRState catchState(irs, this);
-            cs->handler->toIR(&catchState);
+            block *bcatch = blx->curblock;
+            bcatch->Bcatchtype = (*cs->types)[j]->toBasetype()->toSymbol();
+            list_append(&tryblock->Bsucc,bcatch);
+            block_goto(blx,BCjcatch,NULL);
+            if (cs->handler != NULL &&
+                j == cs->types->dim - 1)
+            {
+                IRState catchState(irs, this);
+                cs->handler->toIR(&catchState);
+            }
+            list_append(&blx->curblock->Bsucc, breakblock);
+            block_next(blx, BCgoto, NULL);
         }
-        list_append(&blx->curblock->Bsucc, breakblock);
-        block_next(blx, BCgoto, NULL);
     }
 
     block_next(blx,(enum BC)blx->curblock->BC, breakblock);

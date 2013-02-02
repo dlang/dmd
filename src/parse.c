@@ -4504,21 +4504,42 @@ Statement *Parser::parseStatement(int flags)
             {
                 Statement *handler;
                 Catch *c;
-                Type *t;
+                Types *t = NULL;
                 Identifier *id;
                 Loc loc = this->loc;
 
                 nextToken();
                 if (token.value == TOKlcurly || token.value != TOKlparen)
                 {
-                    t = NULL;
                     id = NULL;
                 }
                 else
                 {
+                    t = new Types();
                     check(TOKlparen);
-                    id = NULL;
-                    t = parseType(&id);
+                    if (token.value == TOKauto)
+                    {
+                        nextToken();
+                        if (token.value == TOKidentifier)
+                        {
+                            id = token.ident;
+                            nextToken();
+                            check(TOKcolon);
+                            t->push(parseBasicType());
+                            while (token.value == TOKcomma)
+                            {
+                                nextToken();
+                                t->push(parseBasicType());
+                            }
+                        }
+                        else
+                            check(TOKidentifier);
+                    }
+                    else
+                    {
+                        id = NULL;
+                        t->push(parseType(&id));
+                    }
                     check(TOKrparen);
                 }
                 handler = parseStatement(0);
