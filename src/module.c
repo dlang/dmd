@@ -244,7 +244,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     /* Search along global.path for .di file, then .d file.
      */
-    char *result = NULL;
+    const char *result = NULL;
     FileName *fdi = FileName::forceExt(filename, global.hdr_ext);
     FileName *fd  = FileName::forceExt(filename, global.mars_ext);
     char *sdi = fdi->toChars();
@@ -263,18 +263,18 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         for (size_t i = 0; i < global.path->dim; i++)
         {
             char *p = (*global.path)[i];
-            char *n = FileName::combine(p, sdi);
+            const char *n = FileName::combine(p, sdi);
             if (FileName::exists(n))
             {   result = n;
                 break;
             }
-            mem.free(n);
+            FileName::free(n);
             n = FileName::combine(p, sd);
             if (FileName::exists(n))
             {   result = n;
                 break;
             }
-            mem.free(n);
+            FileName::free(n);
         }
     }
     if (result)

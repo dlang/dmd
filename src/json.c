@@ -65,7 +65,7 @@ void json_generate(Modules *modules)
     char *arg = global.params.xfilename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
+        const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.json_ext);
@@ -84,10 +84,7 @@ void json_generate(Modules *modules)
     assert(jsonfile);
     jsonfile->setbuffer(buf.data, buf.offset);
     jsonfile->ref = 1;
-    char *pt = FileName::path(jsonfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(jsonfile->toChars());
     jsonfile->writev();
 }
 

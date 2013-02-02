@@ -859,7 +859,7 @@ int main(size_t argc, char *argv[])
                 global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
                 if (global.params.runargs_length)
                 {
-                    char *ext = FileName::ext(argv[i + 1]);
+                    const char *ext = FileName::ext(argv[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
                             && FileName::equals(ext, "di") == 0)
                     {
@@ -891,7 +891,7 @@ int main(size_t argc, char *argv[])
         else
         {
 #if TARGET_WINDOS
-            char *ext = FileName::ext(p);
+            const char *ext = FileName::ext(p);
             if (ext && FileName::compare(ext, "exe") == 0)
             {
                 global.params.objname = p;
@@ -960,8 +960,8 @@ int main(size_t argc, char *argv[])
              * the exe file path.
              */
             if (global.params.objdir)
-            {   char *name = FileName::name(global.params.objname);
-                global.params.objname = FileName::combine(global.params.objdir, name);
+            {   const char *name = FileName::name(global.params.objname);
+                global.params.objname = (char *)FileName::combine(global.params.objdir, name);
             }
         }
     }
@@ -1084,7 +1084,7 @@ int main(size_t argc, char *argv[])
     int firstmodule = 1;
     for (size_t i = 0; i < files.dim; i++)
     {
-        char *ext;
+        const char *ext;
         char *name;
 
         p = files[i];
@@ -1098,7 +1098,7 @@ int main(size_t argc, char *argv[])
         }
 #endif
 
-        p = FileName::name(p);          // strip path
+        p = (char *)FileName::name(p);          // strip path
         ext = FileName::ext(p);
         if (ext)
         {   /* Deduce what to do with a file based on its extension
@@ -1200,7 +1200,7 @@ int main(size_t argc, char *argv[])
         modules.push(m);
 
         if (firstmodule)
-        {   global.params.objfiles->push(m->objfile->name->str);
+        {   global.params.objfiles->push((char *)m->objfile->name->str);
             firstmodule = 0;
         }
     }

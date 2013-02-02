@@ -6,7 +6,7 @@
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -101,7 +101,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
         }
         else
         {
-            filename = FileName::combine(getenv("HOME"), inifile);
+            filename = (char *)FileName::combine(getenv("HOME"), inifile);
             if (!FileName::exists(filename))
             {
 #if _WIN32 // This fix by Tim Matthews
@@ -147,7 +147,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     printf("\tPATH='%s'\n", p);
 #endif
                     Strings *paths = FileName::splitPath(p);
-                    filename = FileName::searchPath(paths, argv0, 0);
+                    filename = (char *)FileName::searchPath(paths, argv0, 0);
                     if (!filename)
                         goto Letc;              // argv0 not found on path
                     filename = (char *)FileName::replaceName(filename, inifile);
@@ -157,7 +157,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     // Search /etc/ for inifile
                 Letc:
 #endif
-                    filename = FileName::combine((char *)"/etc/", inifile);
+                    filename = (char *)FileName::combine((char *)"/etc/", inifile);
 
                 Ldone:
                     ;
@@ -165,7 +165,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             }
         }
     }
-    path = FileName::path(filename);
+    path = (char *)FileName::path(filename);
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
 #endif

@@ -5541,7 +5541,7 @@ FileExp::FileExp(Loc loc, Expression *e)
 }
 
 Expression *FileExp::semantic(Scope *sc)
-{   char *name;
+{   const char *name;
     StringExp *se;
 
 #if LOGSEMANTIC
@@ -5577,7 +5577,7 @@ Expression *FileExp::semantic(Scope *sc)
     if (global.params.verbose)
         printf("file      %s\t(%s)\n", (char *)se->string, name);
 
-    {   File f(name);
+    {   File f((char *)name);
         if (f.read())
         {   error("cannot read file %s", f.toChars());
             goto Lerror;

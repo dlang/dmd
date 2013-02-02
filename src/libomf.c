@@ -7,7 +7,7 @@
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -96,10 +96,10 @@ LibOMF::LibOMF()
 
 void LibOMF::setFilename(char *dir, char *filename)
 {
-    char *arg = filename;
+    const char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
+        const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
         FileName *fn = FileName::forceExt(n, global.lib_ext);
@@ -125,9 +125,7 @@ void LibOMF::write()
     libbuf.extractData();
 
 
-    char *p = FileName::path(libfile->name->toChars());
-    FileName::ensurePathExists(p);
-    //mem.free(p);
+    FileName::ensurePathToNameExists(libfile->name->toChars());
 
     libfile->writev();
 }
@@ -515,7 +513,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
                     if (first_module && module_name && !islibrary)
                     {   // Remove path and extension
                         om->name = strdup(FileName::name(module_name));
-                        char *ext = FileName::ext(om->name);
+                        char *ext = (char *)FileName::ext(om->name);
                         if (ext)
                             ext[-1] = 0;
                     }
@@ -524,7 +522,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
                          * removing path and extension.
                          */
                         om->name = strdup(FileName::name(name));
-                        char *ext = FileName::ext(om->name);
+                        char *ext = (char *)FileName::ext(om->name);
                         if (ext)
                             ext[-1] = 0;
 
@@ -996,7 +994,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
     {
         unsigned char   recTyp;
         unsigned short  recLen;
-        long            trailerPosn;
+        unsigned        trailerPosn;
         unsigned short  ndicpages;
         unsigned char   flags;
         char            filler[ 6 ];

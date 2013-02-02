@@ -65,10 +65,7 @@ void Module::genhdrfile()
     hdrfile->setbuffer(hdrbufr.data, hdrbufr.offset);
     hdrbufr.data = NULL;
 
-    char *pt = FileName::path(hdrfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(hdrfile->toChars());
     hdrfile->writev();
 }
 
@@ -84,7 +81,7 @@ void Module::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (Dsymbol *)members->data[i];
+    {   Dsymbol *s = (*members)[i];
 
         s->toHBuffer(buf, hgs);
     }

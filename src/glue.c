@@ -133,14 +133,14 @@ void obj_write_deferred(Library *library)
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        char *fname = FileName::removeExt(mname);
+        const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
         for (char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         namebuf.writeByte(0);
-        mem.free(fname);
+        FileName::free(fname);
         fname = (char *)namebuf.extractData();
 
         //printf("writing '%s'\n", fname);
@@ -256,9 +256,7 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        char *p = FileName::path(objfilename);
-        FileName::ensurePathExists(p);
-        //mem.free(p);
+        FileName::ensurePathToNameExists(objfilename);
 
         //printf("write obj %s\n", objfilename);
         objfile->writev();
