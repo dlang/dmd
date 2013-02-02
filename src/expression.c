@@ -7994,14 +7994,18 @@ Lagain:
             ad = ((TypeStruct *)t1)->sym;
 #if DMDV2
 
-            if (ad->sizeok == SIZEOKnone && !ad->ctor &&
-                ad->search(0, Id::ctor, 0))
+            if (ad->sizeok == SIZEOKnone)
             {
-                // The constructor hasn't been found yet, see bug 8741
-                // This can happen if we are inferring type from
-                // from VarDeclaration::semantic() in declaration.c
-                error("cannot create a struct until its size is determined");
-                return new ErrorExp();
+                if (ad->scope)
+                    ad->semantic(ad->scope);
+                else if (!ad->ctor && ad->search(0, Id::ctor, 0))
+                {
+                    // The constructor hasn't been found yet, see bug 8741
+                    // This can happen if we are inferring type from
+                    // from VarDeclaration::semantic() in declaration.c
+                    error("cannot create a struct until its size is determined");
+                    return new ErrorExp();
+                }
             }
 
             // First look for constructor
