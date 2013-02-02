@@ -8147,6 +8147,8 @@ Lagain:
         if (f->needThis())
         {
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
+            if (ue->e1->op == TOKerror)
+                return ue->e1;
             ethis = ue->e1;
         }
 
