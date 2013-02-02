@@ -274,7 +274,7 @@ struct OutBuffer : Object
     char *extractString();
 };
 
-struct Array : Object
+struct Array
 {
     size_t dim;
     void **data;

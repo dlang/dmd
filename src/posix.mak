@@ -181,7 +181,7 @@ dmd: $(DMD_OBJS)
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c core \
+	tytab.c verstr.h core \
 	*.cov *.gcda *.gcno
 
 ######## optabgen generates some source
@@ -210,6 +210,11 @@ $(impcnvtab_output) : impcnvgen
 impcnvgen : mtype.h impcnvgen.c
 	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
+
+#########
+
+verstr.h : ../VERSION
+	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
 
 #########
 
@@ -491,7 +496,7 @@ man.o: $(ROOT)/man.c
 mangle.o: mangle.c
 	$(CC) -c $(CFLAGS) $<
 
-mars.o: mars.c
+mars.o: mars.c verstr.h
 	$(CC) -c $(CFLAGS) $<
 
 rmem.o: $(ROOT)/rmem.c

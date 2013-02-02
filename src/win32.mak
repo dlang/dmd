@@ -298,6 +298,7 @@ clean:
 	$(DEL) msgs.h msgs.c
 	$(DEL) elxxx.c cdxxx.c optab.c debtab.c fltables.c tytab.c
 	$(DEL) impcnvtab.c
+	$(DEL) verstr.h
 
 install: detab install-copy
 
@@ -354,6 +355,9 @@ impcnvtab.c : impcnvgen.c
 id.h id.c : idgen.c
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
+
+verstr.h : ..\VERSION1
+	echo "$(..\VERSION1)" >verstr.h
 
 ############################# Intermediate Rules ############################
 
@@ -489,7 +493,7 @@ html.obj : $(CH) $(TOTALH) $C\html.h $C\html.c
 imphint.obj : imphint.c
 	$(CC) -c $(CFLAGS) $*
 
-mars.obj : $(TOTALH) module.h mars.h mars.c
+mars.obj : $(TOTALH) module.h mars.h mars.c verstr.h
 	$(CC) -c $(CFLAGS) $(PREC) $* -Ae
 
 md5.obj : $C\md5.h $C\md5.c
