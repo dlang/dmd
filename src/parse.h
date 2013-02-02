@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2009 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -68,7 +68,7 @@ struct Parser : Lexer
 
     Dsymbols *parseModule();
     Dsymbols *parseDeclDefs(int once);
-    Array *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
+    Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
     Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
     Expression *parseConstraint();
@@ -97,7 +97,7 @@ struct Parser : Lexer
     EnumDeclaration *parseEnum();
     Dsymbol *parseAggregate();
     BaseClasses *parseBaseClasses();
-    Import *parseImport(Array *decldefs, int isstatic);
+    Import *parseImport(Dsymbols *decldefs, int isstatic);
     Type *parseType(Identifier **pident = NULL, TemplateParameters **tpl = NULL);
     Type *parseBasicType();
     Type *parseBasicType2(Type *t);
@@ -125,8 +125,10 @@ struct Parser : Lexer
     Expression *parseMulExp();
     Expression *parseAddExp();
     Expression *parseShiftExp();
+#if DMDV1
     Expression *parseRelExp();
     Expression *parseEqualExp();
+#endif
     Expression *parseCmpExp();
     Expression *parseAndExp();
     Expression *parseXorExp();

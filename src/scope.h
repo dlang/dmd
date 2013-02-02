@@ -16,7 +16,6 @@
 
 struct Dsymbol;
 struct ScopeDsymbol;
-struct Array;
 struct Identifier;
 struct Module;
 struct Statement;

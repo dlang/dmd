@@ -1676,7 +1676,7 @@ Objects *Parser::parseTemplateArgumentList()
     return tiargs;
 }
 
-Import *Parser::parseImport(Array *decldefs, int isstatic)
+Import *Parser::parseImport(Dsymbols *decldefs, int isstatic)
 {   Import *s;
     Identifier *id;
     Identifier *aliasid = NULL;

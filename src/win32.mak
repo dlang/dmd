@@ -332,6 +332,7 @@ zip: detab tolf $(MAKEFILES)
 	$(ZIP) dmdsrc $(BACKSRC)
 	$(ZIP) dmdsrc $(TKSRC)
 	$(ZIP) dmdsrc $(ROOTSRC)
+	$(ZIP) dmdsrc ..\VERSION1
 
 scp: detab tolf $(MAKEFILES)
 	$(SCP) $(MAKEFILES) $(SCPDIR)/src
