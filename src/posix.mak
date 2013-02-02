@@ -69,8 +69,10 @@ ifeq (OSX,$(TARGET))
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
     #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
     LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
+    ECHO=/bin/echo
 else
     LDFLAGS=-lm -lstdc++ -lpthread
+    ECHO=echo
 endif
 
 HOST_CC=g++
@@ -213,8 +215,8 @@ impcnvgen : mtype.h impcnvgen.c
 
 #########
 
-verstr.h : ../VERSION
-	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
+verstr.h : ../VERSION1
+	$(ECHO) -n \"`cat ../VERSION1`\" > verstr.h
 
 #########
 
