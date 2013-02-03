@@ -605,14 +605,13 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (isCOMclass())
     {
-#if _WIN32
-        sc->linkage = LINKwindows;
-#else
-        /* This enables us to use COM objects under Linux and
-         * work with things like XPCOM
-         */
-        sc->linkage = LINKc;
-#endif
+        if (global.params.isWindows)
+            sc->linkage = LINKwindows;
+        else
+            /* This enables us to use COM objects under Linux and
+             * work with things like XPCOM
+             */
+            sc->linkage = LINKc;
     }
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
