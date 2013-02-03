@@ -2271,6 +2271,28 @@ void test8847d()
     static assert(typeof(foo().get()).mangleof == resultX);
 }
 
+// --------
+
+void test8847e()
+{
+    enum resultHere = "6nested"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
+    enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
+    enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
+
+    // Make template functoin to infer 'nothrow' attributes
+    auto foo()(inout int) pure @safe
+    {
+        struct Bar {}
+        static assert(Bar.mangleof == resultBar);
+        return inout(Bar)();
+    }
+
+    auto bar = foo(0);
+    static assert(typeof(bar).stringof == "Bar");
+    static assert(typeof(bar).mangleof == resultBar);
+    static assert(foo!().mangleof == resultFoo);
+}
+
 /*******************************************/
 
 /+

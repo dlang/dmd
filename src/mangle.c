@@ -78,7 +78,17 @@ L1:
     if (fd && (fd->needThis() || fd->isNested()))
         buf.writeByte(Type::needThisPrefix());
     if (isv && fd && fd->inferRetType)
-        sthis->type->toDecoBuffer(&buf, 0x200);
+    {
+        TypeFunction tfn = *(TypeFunction *)sthis->type;
+        TypeFunction *tfo = (TypeFunction *)sthis->originalType;
+        tfn.purity      = tfo->purity;
+        tfn.isnothrow   = tfo->isnothrow;
+        tfn.isproperty  = tfo->isproperty;
+        tfn.isref       = fd->storage_class & STCauto ? false : tfo->isref;
+        tfn.trust       = tfo->trust;
+        tfn.next        = NULL;     // do not mangle return type
+        tfn.toDecoBuffer(&buf, 0);
+    }
     else if (sthis->type->deco)
         buf.writestring(sthis->type->deco);
     else
