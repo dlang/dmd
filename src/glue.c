@@ -927,47 +927,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         buildClosure(&irs);
 #endif
 
-#if 0
-        if (func->isSynchronized())
-        {
-            if (cd)
-            {   elem *esync;
-                if (func->isStatic())
-                {   // monitor is in ClassInfo
-                    esync = el_ptr(cd->toSymbol());
-                }
-                else
-                {   // 'this' is the monitor
-                    esync = el_var(sthis);
-                }
-
-                if (func->isStatic() || sbody->usesEH() ||
-                    !(config.flags2 & CFG2seh))
-                {   // BUG: what if frequire or fensure uses EH?
-
-                    sbody = new SynchronizedStatement(func->loc, esync, sbody);
-                }
-                else
-                {
 #if TARGET_WINDOS
-                    if (config.flags2 & CFG2seh)
-                    {
-                        /* The "jmonitor" uses an optimized exception handling frame
-                         * which is a little shorter than the more general EH frame.
-                         * It isn't strictly necessary.
-                         */
-                        s->Sfunc->Fflags3 |= Fjmonitor;
-                    }
-#endif
-                    el_free(esync);
-                }
-            }
-            else
-            {
-                error("synchronized function %s must be a member of a class", func->toChars());
-            }
-        }
-#elif TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
             !func->isStatic() && !sbody->usesEH())
         {
@@ -1142,11 +1102,10 @@ unsigned Type::totym()
         case Tcomplex80: t = TYcldouble; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Twchar:    t = TYwchar_t;  break;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tdchar:    t = TYdchar;    break;
 #else
-        case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
                 t = (global.params.symdebug == 1) ? TYdchar : TYulong;
                 break;
@@ -1205,7 +1164,7 @@ unsigned Type::totym()
             static bool once = false;
             if (!once)
             {
-                if (global.params.is64bit || TARGET_OSX)
+                if (global.params.is64bit || global.params.isOSX)
                     ;
                 else
                 {   error(0, "SIMD vector types not supported on this platform");

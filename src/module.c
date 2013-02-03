@@ -12,20 +12,6 @@
 #include <stdlib.h>
 #include <assert.h>
 
-#if defined (__sun)
-#include <alloca.h>
-#endif
-
-#if defined(_MSC_VER) || defined(__MINGW32__)
-#include <malloc.h>
-#endif
-
-#ifdef IN_GCC
-#include "gdc_alloca.h"
-#endif
-
-#include "rmem.h"
-
 #include "mars.h"
 #include "module.h"
 #include "parse.h"
