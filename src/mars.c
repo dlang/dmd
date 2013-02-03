@@ -959,7 +959,7 @@ int tryMain(size_t argc, char *argv[])
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = FileName::forceExt(global.params.objname, global.obj_ext)->toChars();
+            global.params.objname = const_cast<char *>(FileName::forceExt(global.params.objname, global.obj_ext));
 
             /* If output directory is given, use that path rather than
              * the exe file path.
@@ -1446,7 +1446,7 @@ int tryMain(size_t argc, char *argv[])
             /* The filename generation code here should be harmonized with Module::setOutfile()
              */
 
-            FileName *jsonfilename;
+            const char *jsonfilename;
 
             if (name && *name)
             {
@@ -1464,7 +1464,7 @@ int tryMain(size_t argc, char *argv[])
                 jsonfilename = FileName::forceExt(n, global.json_ext);
             }
 
-            FileName::ensurePathToNameExists(jsonfilename->toChars());
+            FileName::ensurePathToNameExists(jsonfilename);
 
             File *jsonfile = new File(jsonfilename);
 
