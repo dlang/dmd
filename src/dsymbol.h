@@ -125,6 +125,7 @@ struct Dsymbol : Object
     bool errors;                // this symbol failed to pass semantic()
     char *depmsg;               // customized deprecation message
     Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
+    bool objFileDone;           // if toObjFile was already called
 
     Dsymbol();
     Dsymbol(Identifier *);

@@ -248,6 +248,7 @@ struct ClassDeclaration : AggregateDeclaration
                                         // it derives from IUnknown)
     int isscope;                         // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
+    bool isanon;                        // true if anon class
 #if DMDV1
     bool isnested;                      // !=0 if is nested
     VarDeclaration *vthis;              // 'this' parameter if this class is nested

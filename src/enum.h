@@ -67,7 +67,6 @@ struct EnumDeclaration : ScopeDsymbol
 
     EnumDeclaration *isEnumDeclaration() { return this; }
 
-    bool objFileDone;  // if toObjFile was already called
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);

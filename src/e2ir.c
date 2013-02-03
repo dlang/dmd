@@ -1248,6 +1248,15 @@ elem *Dsymbol_toElem(Dsymbol *s, IRState *irs)
     }
     else if ((vd = s->isVarDeclaration()) != NULL)
     {
+        // Issue 7104 - make sure anon classes are emitted
+        Type *t = vd->type->toBasetype();
+        if (t->ty == Tclass)
+        {
+            ClassDeclaration *cd = ((TypeClass *)t)->sym;
+            if (cd->isanon)
+                irs->deferToObj->push(cd);
+        }
+
         s = s->toAlias();
         if (s != vd)
             return Dsymbol_toElem(s, irs);
