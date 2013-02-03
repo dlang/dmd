@@ -153,7 +153,7 @@ struct Param
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
     char isFreeBSD;     // generate code for FreeBSD
-    char isOPenBSD;     // generate code for OpenBSD
+    char isOpenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
     char useDeprecated; // 0: don't allow use of deprecated features

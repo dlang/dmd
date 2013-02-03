@@ -186,7 +186,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= array.obj gnuc.obj man.obj root.obj port.obj \
+ROOTOBJS= array.obj man.obj root.obj port.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
@@ -245,7 +245,7 @@ TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h \
 ROOTSRC= $(ROOT)\root.h $(ROOT)\root.c $(ROOT)\array.c \
 	$(ROOT)\rmem.h $(ROOT)\rmem.c $(ROOT)\port.h \
 	$(ROOT)\stringtable.h $(ROOT)\stringtable.c \
-	$(ROOT)\gnuc.h $(ROOT)\gnuc.c $(ROOT)\man.c $(ROOT)\port.c \
+	$(ROOT)\man.c $(ROOT)\port.c \
 	$(ROOT)\response.c $(ROOT)\async.h $(ROOT)\async.c \
 	$(ROOT)\speller.h $(ROOT)\speller.c \
 	$(ROOT)\aav.h $(ROOT)\aav.c \
@@ -600,9 +600,6 @@ async.obj : $(ROOT)\async.h $(ROOT)\async.c
 
 dmgcmem.obj : $(ROOT)\dmgcmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
-
-gnuc.obj : $(ROOT)\gnuc.c
-	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
 
 man.obj : $(ROOT)\man.c
 	$(CC) -c $(CFLAGS) $(ROOT)\man.c

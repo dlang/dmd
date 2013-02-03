@@ -14,6 +14,8 @@
 
 #include        "mars.h"
 
+#include        "port.h"
+
 #include        "cc.h"
 #include        "global.h"
 #include        "oper.h"
@@ -78,7 +80,7 @@ void backend_init()
         exe = true;         // EXE file only optimizations
     else if (params->exefile)           // if writing out EXE file
     {   size_t len = strlen(params->exefile);
-        if (len >= 4 && stricmp(params->exefile + len - 3, "exe") == 0)
+        if (len >= 4 && Port::stricmp(params->exefile + len - 3, "exe") == 0)
             exe = true;
     }
 #endif

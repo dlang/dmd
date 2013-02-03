@@ -34,9 +34,7 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 #endif
 
-#if __GNUC__
-int memicmp(const char *s1, const char *s2, int n);
-#if 0
+int mymemicmp(const char *s1, const char *s2, int n)
 {
     int result = 0;
 
@@ -58,8 +56,6 @@ int memicmp(const char *s1, const char *s2, int n);
     }
     return result;
 }
-#endif
-#endif
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
 
@@ -327,7 +323,7 @@ void Html::skipTag()
     }
 
     // See if we parsed a <code> or </code> tag
-    if (taglen && memicmp((char *) tagstart, (char *) "CODE", taglen) == 0
+    if (taglen && mymemicmp((char *) tagstart, (char *) "CODE", taglen) == 0
         && *(p - 2) != '/') // ignore "<code />" (XHTML)
     {
         if (inot)
