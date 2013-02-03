@@ -95,7 +95,7 @@ DMD_OBJS = \
 	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
-	glocal.o gloop.o glue.o gnuc.o go.o gother.o iasm.o id.o \
+	glocal.o gloop.o glue.o go.o gother.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
@@ -162,7 +162,7 @@ SRC = win32.mak posix.mak \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
+	$(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
@@ -415,9 +415,6 @@ gloop.o: $C/gloop.c
 
 glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-gnuc.o: $(ROOT)/gnuc.c $(ROOT)/gnuc.h
-	$(CC) -c $(GFLAGS) $<
 
 go.o: $C/go.c
 	$(CC) -c $(MFLAGS) $<

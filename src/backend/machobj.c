@@ -1987,7 +1987,8 @@ char *obj_mangle2(Symbol *s,char *dest)
             if (len >= DEST_LEN)
                 dest = (char *)mem_malloc(len + 1);
             memcpy(dest,name,len + 1);  // copy in name and ending 0
-            strupr(dest);               // to upper case
+            for (char *p = dest; *p; p++)
+                *p = toupper(*p);
             break;
         case mTYman_std:
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS

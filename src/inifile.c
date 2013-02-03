@@ -32,31 +32,14 @@
 #include        <alloca.h>
 #endif
 
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "gnuc.h"
-#endif
-
 #include        "root.h"
 #include        "rmem.h"
+#include        "port.h"
 
 #define LOG     0
 
 char *skipspace(const char *p);
 
-#if __GNUC__
-char *strupr(char *s)
-{
-    char *t = s;
-
-    while (*s)
-    {
-        *s = toupper(*s);
-        s++;
-    }
-
-    return t;
-}
-#endif
 
 /*****************************
  * Read and analyze .ini file, i.e. write the entries of the specified section
@@ -228,7 +211,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     {
                         char *p = NULL;
                         char *palloc = NULL;
-                        if (j - k == 3 && memicmp(&line[k + 1], "@P", 2) == 0)
+                        if (j - k == 3 && Port::memicmp(&line[k + 1], "@P", 2) == 0)
                         {
                             // %@P% is special meaning the path to the .ini file
                             p = path;
@@ -248,7 +231,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                             len2--;
                             memcpy(p, &line[k + 1], len2);
                             p[len2] = 0;
-                            strupr(p);
+                            Port::strupr(p);
                             p = getenv(p);
                             if (!p)
                                 p = (char *)"";
@@ -288,7 +271,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
-                    memicmp(p, envsectionname, envsectionnamelen) == 0 &&
+                    Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;

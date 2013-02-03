@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,10 +18,7 @@
 
 #include "rmem.h"
 #include "root.h"
-
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "gnuc.h"
-#endif
+#include "port.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -1672,7 +1669,7 @@ int icmp(const char *stringz, void *s, size_t slen)
 
     if (len1 != slen)
         return len1 - slen;
-    return memicmp(stringz, (char *)s, slen);
+    return Port::memicmp(stringz, (char *)s, slen);
 }
 
 /*****************************************
@@ -1685,7 +1682,7 @@ int isDitto(unsigned char *comment)
     {
         unsigned char *p = skipwhitespace(comment);
 
-        if (memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+        if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
             return 1;
     }
     return 0;
@@ -1783,11 +1780,11 @@ size_t skippastURL(OutBuffer *buf, size_t i)
     size_t j;
     unsigned sawdot = 0;
 
-    if (length > 7 && memicmp((char *)p, "http://", 7) == 0)
+    if (length > 7 && Port::memicmp((char *)p, "http://", 7) == 0)
     {
         j = 7;
     }
-    else if (length > 8 && memicmp((char *)p, "https://", 8) == 0)
+    else if (length > 8 && Port::memicmp((char *)p, "https://", 8) == 0)
     {
         j = 8;
     }
