@@ -180,7 +180,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= array.obj gnuc.obj man.obj root.obj port.obj \
+ROOTOBJS= array.obj man.obj root.obj port.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
@@ -242,7 +242,6 @@ ROOTSRCC=$(ROOT)\root.c $(ROOT)\array.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
-	$(ROOT)\gnuc.h $(ROOT)\gnuc.c \
 	$(ROOT)\async.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
@@ -636,9 +635,6 @@ async.obj : $(ROOT)\async.h $(ROOT)\async.c
 
 dmgcmem.obj : $(ROOT)\dmgcmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
-
-gnuc.obj : $(ROOT)\gnuc.c
-	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
 
 man.obj : $(ROOT)\man.c
 	$(CC) -c $(CFLAGS) $(ROOT)\man.c
