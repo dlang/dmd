@@ -185,7 +185,7 @@ void except_fillInEHTable(symbol *s)
             }
             i = b->Bscope_index + 1;
 
-            int nsucc = list_nitems(b->Bsucc);
+            int nsucc = b->numSucc();
 
             if (OUREH)
             {
@@ -221,10 +221,10 @@ void except_fillInEHTable(symbol *s)
             {
                 assert(nsucc == 2);
                 pdt = dtdword(pdt,0);           // no catch offset
-                block *bhandler = list_block(list_next(b->Bsucc));
+                block *bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
+                bhandler = bhandler->nthSucc(0);
                 // finally handler address
                 if (OUREH)
                 {
@@ -344,13 +344,13 @@ void except_fillInEHTable(symbol *s)
     {
         if (b->BC == BC_try && b->jcatchvar)         // if try-catch
         {
-            int nsucc = list_nitems(b->Bsucc);
+            int nsucc = b->numSucc();
             pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
-            for (list_t bl = list_next(b->Bsucc); bl; bl = list_next(bl))
+            for (int i = 1; i < nsucc; ++i)
             {
-                block *bcatch = list_block(bl);
+                block *bcatch = b->nthSucc(i);
 
                 pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
 

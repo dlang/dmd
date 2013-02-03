@@ -557,6 +557,11 @@ typedef struct block
             #define Btryoff             _BLU._UD.Btryoff
         } _UD;
     } _BLU;
+
+    void appendSucc(block *b)  { list_append(&this->Bsucc, b); }
+    void prependSucc(block *b) { list_prepend(&this->Bsucc, b); }
+    int numSucc() { return list_nitems(this->Bsucc); }
+    block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
