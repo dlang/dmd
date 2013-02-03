@@ -320,7 +320,7 @@ struct TemplateInstance : ScopeDsymbol
     int oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
-    char *mangle();
+    char *mangle(bool isv = false);
     void printInstantiationTrace();
 
     void toObjFile(int multiobj);                       // compile to .obj file
