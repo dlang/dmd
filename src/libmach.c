@@ -115,12 +115,11 @@ void LibMach::setFilename(char *dir, char *filename)
         const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
-        FileName *fn = FileName::forceExt(n, global.lib_ext);
-        arg = fn->toChars();
+        arg = FileName::forceExt(n, global.lib_ext);
     }
     if (!FileName::absolute(arg))
         arg = FileName::combine(dir, arg);
-    FileName *libfilename = FileName::defaultExt(arg, global.lib_ext);
+    const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
 }

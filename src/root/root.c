@@ -590,30 +590,29 @@ const char *FileName::replaceName(const char *path, const char *name)
 }
 
 /***************************
+ * Free returned value with FileName::free()
  */
 
-FileName *FileName::defaultExt(const char *name, const char *ext)
+const char *FileName::defaultExt(const char *name, const char *ext)
 {
-    size_t len;
-    size_t extlen;
-
     const char *e = FileName::ext(name);
     if (e)                              // if already has an extension
-        return new FileName((char *)name);
+        return mem.strdup(name);
 
-    len = strlen(name);
-    extlen = strlen(ext);
-    char *s = (char *)alloca(len + 1 + extlen + 1);
+    size_t len = strlen(name);
+    size_t extlen = strlen(ext);
+    char *s = (char *)mem.malloc(len + 1 + extlen + 1);
     memcpy(s,name,len);
     s[len] = '.';
     memcpy(s + len + 1, ext, extlen + 1);
-    return new FileName(s);
+    return s;
 }
 
 /***************************
+ * Free returned value with FileName::free()
  */
 
-FileName *FileName::forceExt(const char *name, const char *ext)
+const char *FileName::forceExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (e)                              // if already has an extension
@@ -621,10 +620,10 @@ FileName *FileName::forceExt(const char *name, const char *ext)
         size_t len = e - name;
         size_t extlen = strlen(ext);
 
-        char *s = (char *)alloca(len + extlen + 1);
+        char *s = (char *)mem.malloc(len + extlen + 1);
         memcpy(s,name,len);
         memcpy(s + len, ext, extlen + 1);
-        return new FileName(s);
+        return s;
     }
     else
         return defaultExt(name, ext);   // doesn't have one
@@ -636,18 +635,17 @@ FileName *FileName::forceExt(const char *name, const char *ext)
 
 int FileName::equalsExt(const char *ext)
 {
-    const char *e = FileName::ext();
+    return equalsExt(str, ext);
+}
+
+int FileName::equalsExt(const char *name, const char *ext)
+{
+    const char *e = FileName::ext(name);
     if (!e && !ext)
         return 1;
     if (!e || !ext)
         return 0;
-#if POSIX
-    return strcmp(e,ext) == 0;
-#elif _WIN32
-    return stricmp(e,ext) == 0;
-#else
-    assert(0);
-#endif
+    return FileName::compare(e, ext) == 0;
 }
 
 /*************************************
@@ -928,6 +926,10 @@ const char *FileName::canonicalName(const char *name)
  */
 void FileName::free(const char *str)
 {
+    if (str)
+    {   assert(str[0] != 0xAB);
+        memset((void *)str, 0xAB, strlen(str) + 1);     // stomp
+    }
     mem.free((void *)str);
 }
 
