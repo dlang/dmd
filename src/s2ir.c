@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2012 by Digital Mars
+// Copyright (c) 2000-2013 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -162,20 +162,20 @@ void IfStatement::toIR(IRState *irs)
     block *bcond = blx->curblock;
     block_next(blx, BCiftrue, NULL);
 
-    list_append(&bcond->Bsucc, blx->curblock);
+    bcond->appendSucc(blx->curblock);
     if (ifbody)
         ifbody->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, bexit);
+    blx->curblock->appendSucc(bexit);
 
     if (elsebody)
     {
         block_next(blx, BCgoto, NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
+        bcond->appendSucc(blx->curblock);
         elsebody->toIR(&mystate);
-        list_append(&blx->curblock->Bsucc, bexit);
+        blx->curblock->appendSucc(bexit);
     }
     else
-        list_append(&bcond->Bsucc, bexit);
+        bcond->appendSucc(bexit);
 
     block_next(blx, BCgoto, bexit);
 
@@ -224,14 +224,14 @@ void DoStatement::toIR(IRState *irs)
 
     block *bpre = blx->curblock;
     block_next(blx, BCgoto, NULL);
-    list_append(&bpre->Bsucc, blx->curblock);
+    bpre->appendSucc(blx->curblock);
 
-    list_append(&mystate.contBlock->Bsucc, blx->curblock);
-    list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
+    mystate.contBlock->appendSucc(blx->curblock);
+    mystate.contBlock->appendSucc(mystate.breakBlock);
 
     if (body)
         body->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
+    blx->curblock->appendSucc(mystate.contBlock);
 
     block_next(blx, BCgoto, mystate.contBlock);
     incUsage(irs, condition->loc);
@@ -256,28 +256,28 @@ void ForStatement::toIR(IRState *irs)
     block *bpre = blx->curblock;
     block_next(blx,BCgoto,NULL);
     block *bcond = blx->curblock;
-    list_append(&bpre->Bsucc, bcond);
-    list_append(&mystate.contBlock->Bsucc, bcond);
+    bpre->appendSucc(bcond);
+    mystate.contBlock->appendSucc(bcond);
     if (condition)
     {
         incUsage(irs, condition->loc);
         block_appendexp(bcond, condition->toElemDtor(&mystate));
         block_next(blx,BCiftrue,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
-        list_append(&bcond->Bsucc, mystate.breakBlock);
+        bcond->appendSucc(blx->curblock);
+        bcond->appendSucc(mystate.breakBlock);
     }
     else
     {   /* No conditional, it's a straight goto
          */
         block_next(blx,BCgoto,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
+        bcond->appendSucc(blx->curblock);
     }
 
     if (body)
         body->toIR(&mystate);
     /* End of the body goes to the continue block
      */
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
+    blx->curblock->appendSucc(mystate.contBlock);
     block_next(blx, BCgoto, mystate.contBlock);
 
     if (increment)
@@ -335,7 +335,7 @@ void BreakStatement::toIR(IRState *irs)
 
     /* Nothing more than a 'goto' to the current break destination
      */
-    list_append(&b->Bsucc, bbreak);
+    b->appendSucc(bbreak);
     block_next(blx, BCgoto, NULL);
 }
 
@@ -362,7 +362,7 @@ void ContinueStatement::toIR(IRState *irs)
 
     /* Nothing more than a 'goto' to the current continue destination
      */
-    list_append(&b->Bsucc, bcont);
+    b->appendSucc(bcont);
     block_next(blx, BCgoto, NULL);
 }
 
@@ -444,7 +444,7 @@ void GotoStatement::toIR(IRState *irs)
         }
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     block_next(blx,BCgoto,NULL);
 }
 
@@ -490,7 +490,7 @@ void LabelStatement::toIR(IRState *irs)
     else
         lblock = block_calloc(blx);
     block_next(blx,BCgoto,lblock);
-    list_append(&bc->Bsucc,blx->curblock);
+    bc->appendSucc(blx->curblock);
     if (statement)
         statement->toIR(&mystate);
 }
@@ -547,15 +547,15 @@ void SwitchStatement::toIR(IRState *irs)
             block *bcase = block_calloc(blx);
             cs->cblock = bcase;
             block_next(blx, BCiftrue, NULL);
-            list_append(&b->Bsucc, bcase);
-            list_append(&b->Bsucc, blx->curblock);
+            b->appendSucc(bcase);
+            b->appendSucc(blx->curblock);
         }
 
         /* The final 'else' clause goes to the default
          */
         block *b = blx->curblock;
         block_next(blx, BCgoto, NULL);
-        list_append(&b->Bsucc, mystate.defaultBlock);
+        b->appendSucc(mystate.defaultBlock);
 
         body->toIR(&mystate);
 
@@ -638,7 +638,7 @@ void SwitchStatement::toIR(IRState *irs)
     /* First pair is the number of cases, and the default block
      */
     *pu++ = numcases;
-    list_append(&mystate.switchBlock->Bsucc, mystate.defaultBlock);
+    mystate.switchBlock->appendSucc(mystate.defaultBlock);
 
     /* Fill in the first entry in each pair, which is the case value.
      * CaseStatement::toIR() will fill in
@@ -674,8 +674,8 @@ void CaseStatement::toIR(IRState *irs)
     block_next(blx,BCgoto,cblock);
     block *bsw = irs->getSwitchBlock();
     if (bsw->BC == BCswitch)
-        list_append(&bsw->Bsucc,cblock);        // second entry in pair
-    list_append(&bcase->Bsucc,cblock);
+        bsw->appendSucc(cblock);        // second entry in pair
+    bcase->appendSucc(cblock);
     if (blx->tryblock != bsw->Btry)
         error("case cannot be in different try block level from switch");
     incUsage(irs, loc);
@@ -689,7 +689,7 @@ void DefaultStatement::toIR(IRState *irs)
     block *bcase = blx->curblock;
     block *bdefault = irs->getDefaultBlock();
     block_next(blx,BCgoto,bdefault);
-    list_append(&bcase->Bsucc,blx->curblock);
+    bcase->appendSucc(blx->curblock);
     if (blx->tryblock != irs->getSwitchBlock()->Btry)
         error("default cannot be in different try block level from switch");
     incUsage(irs, loc);
@@ -724,7 +724,7 @@ void GotoDefaultStatement::toIR(IRState *irs)
         //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     incUsage(irs, loc);
     block_next(blx,BCgoto,NULL);
 }
@@ -762,7 +762,7 @@ void GotoCaseStatement::toIR(IRState *irs)
         //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     incUsage(irs, loc);
     block_next(blx,BCgoto,NULL);
 }
@@ -885,11 +885,11 @@ void ReturnStatement::toIR(IRState *irs)
     if (btry)
     {
         // A finally block is a successor to a return block inside a try-finally
-        if (list_nitems(btry->Bsucc) == 2)      // try-finally
+        if (btry->numSucc() == 2)      // try-finally
         {
-            block *bfinally = list_block(list_next(btry->Bsucc));
+            block *bfinally = btry->nthSucc(1);
             assert(bfinally->BC == BC_finally);
-            list_append(&blx->curblock->Bsucc, bfinally);
+            blx->curblock->appendSucc(bfinally);
         }
     }
     block_next(blx, bc, NULL);
@@ -963,7 +963,7 @@ void UnrolledLoopStatement::toIR(IRState *irs)
     block_next(blx, BCgoto, NULL);
 
     block *bdo = blx->curblock;
-    list_append(&bpre->Bsucc, bdo);
+    bpre->appendSucc(bdo);
 
     block *bdox;
 
@@ -979,13 +979,13 @@ void UnrolledLoopStatement::toIR(IRState *irs)
 
             bdox = blx->curblock;
             block_next(blx, BCgoto, mystate.contBlock);
-            list_append(&bdox->Bsucc, mystate.contBlock);
+            bdox->appendSucc(mystate.contBlock);
         }
     }
 
     bdox = blx->curblock;
     block_next(blx, BCgoto, mystate.breakBlock);
-    list_append(&bdox->Bsucc, mystate.breakBlock);
+    bdox->appendSucc(mystate.breakBlock);
 }
 
 
@@ -1111,7 +1111,7 @@ void TryCatchStatement::toIR(IRState *irs)
     // create new break block that follows all the catches
     breakblock = block_calloc(blx);
 
-    list_append(&blx->curblock->Bsucc, breakblock);
+    blx->curblock->appendSucc(breakblock);
     block_next(blx,BCgoto,NULL);
 
     assert(catches);
@@ -1123,14 +1123,14 @@ void TryCatchStatement::toIR(IRState *irs)
         block *bcatch = blx->curblock;
         if (cs->type)
             bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
-        list_append(&tryblock->Bsucc,bcatch);
+        tryblock->appendSucc(bcatch);
         block_goto(blx,BCjcatch,NULL);
         if (cs->handler != NULL)
         {
             IRState catchState(irs, this);
             cs->handler->toIR(&catchState);
         }
-        list_append(&blx->curblock->Bsucc, breakblock);
+        blx->curblock->appendSucc(breakblock);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -1174,7 +1174,7 @@ void TryFinallyStatement::toIR(IRState *irs)
     IRState bodyirs(irs, this);
     block *breakblock = block_calloc(blx);
     block *contblock = block_calloc(blx);
-    list_append(&tryblock->Bsucc,contblock);
+    tryblock->appendSucc(contblock);
     contblock->BC = BC_finally;
 
     if (body)
@@ -1203,8 +1203,8 @@ void TryFinallyStatement::toIR(IRState *irs)
     block *retblock = blx->curblock;
     block_next(blx,BC_ret,NULL);
 
-    list_append(&finallyblock->Bsucc, blx->curblock);
-    list_append(&retblock->Bsucc, blx->curblock);
+    finallyblock->appendSucc(blx->curblock);
+    retblock->appendSucc(blx->curblock);
 }
 
 /****************************************
@@ -1231,7 +1231,7 @@ void AsmStatement::toIR(IRState *irs)
     bpre = blx->curblock;
     block_next(blx,BCgoto,NULL);
     basm = blx->curblock;
-    list_append(&bpre->Bsucc, basm);
+    bpre->appendSucc(basm);
     basm->Bcode = asmcode;
     basm->Balign = asmalign;
 #if 0
@@ -1241,7 +1241,7 @@ void AsmStatement::toIR(IRState *irs)
         b = labelToBlock(loc, blx, label);
         printf("AsmStatement::toIR() %p\n", b);
         if (b)
-            list_append(&basm->Bsucc, b);
+            basm->appendSucc(b);
     }
 #endif
     // Loop through each instruction, fixing Dsymbols into Symbol's
@@ -1256,7 +1256,7 @@ void AsmStatement::toIR(IRState *irs)
                 // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                 label = c->IEVlsym1;
                 b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
+                basm->appendSucc(b);
                 c->IEV1.Vblock = b;
                 break;
 
@@ -1278,7 +1278,7 @@ void AsmStatement::toIR(IRState *irs)
             case FLblock:
                 label = c->IEVlsym2;
                 b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
+                basm->appendSucc(b);
                 c->IEV2.Vblock = b;
                 break;
 
@@ -1302,7 +1302,7 @@ void AsmStatement::toIR(IRState *irs)
     basm->usIasmregs = regs;                    // registers modified
 
     block_next(blx,BCasm, NULL);
-    list_prepend(&basm->Bsucc, blx->curblock);
+    basm->prependSucc(blx->curblock);
 
     if (naked)
     {
