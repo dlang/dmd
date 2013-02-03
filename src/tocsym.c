@@ -417,10 +417,8 @@ Symbol *FuncDeclaration::toSymbol()
 
                 case LINKcpp:
                 {   t->Tmangle = mTYman_cpp;
-#if TARGET_WINDOS
-                    if (isThis() && !global.params.is64bit)
+                    if (isThis() && !global.params.is64bit && global.params.isWindows)
                         t->Tty = TYmfunc;
-#endif
                     s->Sflags |= SFLpublic;
                     Dsymbol *parent = toParent();
                     ClassDeclaration *cd = parent->isClassDeclaration();

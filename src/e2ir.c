@@ -2049,13 +2049,12 @@ elem *AssertExp::toElem(IRState *irs)
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())
         {
             ts = symbol_genauto(t1->toCtype());
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-            int rtl = RTLSYM__DINVARIANT;
-#elif TARGET_WINDOS
-            int rtl = I64 ? RTLSYM__DINVARIANT : RTLSYM_DINVARIANT;
-#else
-            int rtl = RTLSYM_DINVARIANT;
-#endif
+            int rtl;
+            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
+                I64 && global.params.isWindows)
+                rtl = RTLSYM__DINVARIANT;
+            else
+                rtl = RTLSYM_DINVARIANT;
             einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
         }
         // If e1 is a struct object, call the struct invariant on it

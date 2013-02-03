@@ -1631,7 +1631,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             flags &= ~FUNCFLAGnothrowInprocess;
 #endif
 
-#if 1
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
@@ -1640,8 +1639,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 if (cd)
                 {
-#if TARGET_WINDOS
                     if (!global.params.is64bit &&
+                        global.params.isWindows &&
                         !isStatic() && !fbody->usesEH())
                     {
                         /* The back end uses the "jmonitor" hack for syncing;
@@ -1649,7 +1648,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                          */
                     }
                     else
-#endif
                     {
                         Expression *vsync;
                         if (isStatic())
@@ -1670,7 +1668,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     error("synchronized function %s must be a member of a class", toChars());
                 }
             }
-#endif
         }
 
         sc2->callSuper = 0;
