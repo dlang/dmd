@@ -957,7 +957,7 @@ int main(size_t argc, char *argv[])
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = FileName::forceExt(global.params.objname, global.obj_ext)->toChars();
+            global.params.objname = (char *)FileName::forceExt(global.params.objname, global.obj_ext);
 
             /* If output directory is given, use that path rather than
              * the exe file path.

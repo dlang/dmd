@@ -180,8 +180,7 @@ int runLINK()
              */
             const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
-            FileName *fn = FileName::forceExt(n, "exe");
-            global.params.exefile = fn->toChars();
+            global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
 
         // Make sure path to exe file exists
@@ -194,14 +193,14 @@ int runLINK()
         }
         else if (global.params.map)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
             const char *path = FileName::path(global.params.exefile);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
             cmdbuf.writestring("/MAP:");
             writeFilename(&cmdbuf, p);
@@ -260,7 +259,7 @@ int runLINK()
 
         char *p = cmdbuf.toChars();
 
-        FileName *lnkfilename = NULL;
+        const char *lnkfilename = NULL;
         size_t plen = strlen(p);
         if (plen > 7000)
         {
@@ -270,8 +269,8 @@ int runLINK()
             flnk.ref = 1;
             if (flnk.write())
                 error(0, "error writing file %s", lnkfilename);
-            if (lnkfilename->len() < plen)
-                sprintf(p, "@%s", lnkfilename->toChars());
+            if (strlen(lnkfilename) < plen)
+                sprintf(p, "@%s", lnkfilename);
         }
 
         char *linkcmd = getenv("LINKCMD64");
@@ -291,8 +290,8 @@ int runLINK()
         int status = executecmd(linkcmd, p, 1);
         if (lnkfilename)
         {
-            remove(lnkfilename->toChars());
-            delete lnkfilename;
+            remove(lnkfilename);
+            FileName::free(lnkfilename);
         }
         return status;
     }
@@ -326,8 +325,7 @@ int runLINK()
              */
             const char *n = (*global.params.objfiles)[0];
             n = FileName::name(n);
-            FileName *fn = FileName::forceExt(n, "exe");
-            global.params.exefile = fn->toChars();
+            global.params.exefile = (char *)FileName::forceExt(n, "exe");
         }
 
         // Make sure path to exe file exists
@@ -338,14 +336,14 @@ int runLINK()
             writeFilename(&cmdbuf, global.params.mapfile);
         else if (global.params.map)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
             const char *path = FileName::path(global.params.exefile);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
             writeFilename(&cmdbuf, p);
         }
@@ -406,7 +404,7 @@ int runLINK()
 
         char *p = cmdbuf.toChars();
 
-        FileName *lnkfilename = NULL;
+        const char *lnkfilename = NULL;
         size_t plen = strlen(p);
         if (plen > 7000)
         {
@@ -416,8 +414,8 @@ int runLINK()
             flnk.ref = 1;
             if (flnk.write())
                 error(0, "error writing file %s", lnkfilename);
-            if (lnkfilename->len() < plen)
-                sprintf(p, "@%s", lnkfilename->toChars());
+            if (strlen(lnkfilename) < plen)
+                sprintf(p, "@%s", lnkfilename);
         }
 
         char *linkcmd = getenv("LINKCMD");
@@ -426,8 +424,8 @@ int runLINK()
         int status = executecmd(linkcmd, p, 1);
         if (lnkfilename)
         {
-            remove(lnkfilename->toChars());
-            delete lnkfilename;
+            remove(lnkfilename);
+            FileName::free(lnkfilename);
         }
         return status;
     }
@@ -460,7 +458,7 @@ int runLINK()
     if (global.params.exefile)
     {
         if (global.params.dll)
-            global.params.exefile = FileName::forceExt(global.params.exefile, global.dll_ext)->toChars();
+            global.params.exefile = (char *)FileName::forceExt(global.params.exefile, global.dll_ext);
         argv.push(global.params.exefile);
     }
     else
@@ -478,7 +476,7 @@ int runLINK()
             ex[e - n] = 0;
             // If generating dll then force dll extension
             if (global.params.dll)
-                ex = (char *)FileName::forceExt(ex, global.dll_ext)->toChars();
+                ex = (char *)FileName::forceExt(ex, global.dll_ext);
         }
         else
             ex = (char *)"a.out";       // no extension, so give up
@@ -507,14 +505,14 @@ int runLINK()
 #endif
         if (!global.params.mapfile)
         {
-            FileName *fn = FileName::forceExt(global.params.exefile, "map");
+            const char *fn = FileName::forceExt(global.params.exefile, "map");
 
             const char *path = FileName::path(global.params.exefile);
             const char *p;
             if (path[0] == '\0')
-                p = FileName::combine(global.params.objdir, fn->toChars());
+                p = FileName::combine(global.params.objdir, fn);
             else
-                p = fn->toChars();
+                p = fn;
 
             global.params.mapfile = (char *)p;
         }

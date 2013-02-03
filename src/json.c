@@ -62,14 +62,13 @@ void json_generate(Modules *modules)
     buf.writestring("]\n");
 
     // Write buf to file
-    char *arg = global.params.xfilename;
+    const char *arg = global.params.xfilename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
         const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
-        FileName *fn = FileName::forceExt(n, global.json_ext);
-        arg = fn->toChars();
+        arg = FileName::forceExt(n, global.json_ext);
     }
     else if (arg[0] == '-' && arg[1] == 0)
     {   // Write to stdout; assume it succeeds
@@ -79,12 +78,12 @@ void json_generate(Modules *modules)
     }
 //    if (!FileName::absolute(arg))
 //        arg = FileName::combine(dir, arg);
-    FileName *jsonfilename = FileName::defaultExt(arg, global.json_ext);
+    const char *jsonfilename = FileName::defaultExt(arg, global.json_ext);
     File *jsonfile = new File(jsonfilename);
     assert(jsonfile);
     jsonfile->setbuffer(buf.data, buf.offset);
     jsonfile->ref = 1;
-    FileName::ensurePathToNameExists(jsonfile->toChars());
+    FileName::ensurePathToNameExists(jsonfilename);
     jsonfile->writev();
 }
 

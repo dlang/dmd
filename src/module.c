@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -61,8 +61,8 @@ void Module::init()
 Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen)
         : Package(ident)
 {
-    FileName *srcfilename;
-    FileName *symfilename;
+    const char *srcfilename;
+    const char *symfilename;
 
 //    printf("Module::Module(filename = '%s', ident = '%s')\n", filename, ident->toChars());
     this->arg = filename;
@@ -113,16 +113,16 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     covb = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
-    if (!srcfilename->equalsExt(global.mars_ext) &&
-        !srcfilename->equalsExt(global.hdr_ext) &&
-        !srcfilename->equalsExt("dd"))
+    if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
+        !FileName::equalsExt(srcfilename, global.hdr_ext) &&
+        !FileName::equalsExt(srcfilename, "dd"))
     {
-        if (srcfilename->equalsExt("html") ||
-            srcfilename->equalsExt("htm")  ||
-            srcfilename->equalsExt("xhtml"))
+        if (FileName::equalsExt(srcfilename, "html") ||
+            FileName::equalsExt(srcfilename, "htm")  ||
+            FileName::equalsExt(srcfilename, "xhtml"))
             isHtml = 1;
         else
-        {   error("source file name '%s' must have .%s extension", srcfilename->toChars(), global.mars_ext);
+        {   error("source file name '%s' must have .%s extension", srcfilename, global.mars_ext);
             fatal();
         }
     }
@@ -160,31 +160,29 @@ void Module::setDocfile()
 
 File *Module::setOutfile(const char *name, const char *dir, const char *arg, const char *ext)
 {
-    const char *argdoc;
+    const char *docfilename;
+
     if (name)
-        argdoc = name;
+    {
+        docfilename = name;
+    }
     else
     {
+        const char *argdoc;
         if (global.params.preservePaths)
-        argdoc = (char *)arg;
+            argdoc = arg;
     else
-        argdoc = FileName::name((char *)arg);
+            argdoc = FileName::name(arg);
 
         // If argdoc doesn't have an absolute path, make it relative to dir
     if (!FileName::absolute(argdoc))
         {   //FileName::ensurePathExists(dir);
             argdoc = FileName::combine(dir, argdoc);
     }
+        docfilename = FileName::forceExt(argdoc, ext);
     }
 
-    FileName *docfilename;
-    if (name)
-        docfilename = new FileName((char *)argdoc);
-    else
-        // 'name' not provided, so force the correct extension
-        docfilename = FileName::forceExt(argdoc, ext);
-
-    if (docfilename->equals(srcfile->name))
+    if (FileName::equals(docfilename, srcfile->name->str))
     {   error("Source file and output file have same name '%s'", srcfile->name->str);
         fatal();
     }
@@ -245,10 +243,10 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     /* Search along global.path for .di file, then .d file.
      */
     const char *result = NULL;
-    FileName *fdi = FileName::forceExt(filename, global.hdr_ext);
-    FileName *fd  = FileName::forceExt(filename, global.mars_ext);
-    char *sdi = fdi->toChars();
-    char *sd  = fd->toChars();
+    const char *fdi = FileName::forceExt(filename, global.hdr_ext);
+    const char *fd  = FileName::forceExt(filename, global.mars_ext);
+    const char *sdi = fdi;
+    const char *sd  = fd;
 
     if (FileName::exists(sdi))
         result = sdi;
@@ -262,7 +260,7 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     {
         for (size_t i = 0; i < global.path->dim; i++)
         {
-            char *p = (*global.path)[i];
+            const char *p = (*global.path)[i];
             const char *n = FileName::combine(p, sdi);
             if (FileName::exists(n))
             {   result = n;
