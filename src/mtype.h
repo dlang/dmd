@@ -40,6 +40,9 @@ enum LINK;
 struct TypeBasic;
 struct HdrGenState;
 struct Parameter;
+struct TypeFunction;
+
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
 
 // Back end
 #ifdef IN_GCC

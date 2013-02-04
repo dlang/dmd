@@ -2918,6 +2918,16 @@ const char *FuncDeclaration::toPrettyChars()
         return Dsymbol::toPrettyChars();
 }
 
+/** for diagnostics, e.g. '@pure foo(int x, int y)' */
+const char *FuncDeclaration::toFullSignature()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
+    buf.writeByte(0);
+    return buf.extractData();
+}
+
 int FuncDeclaration::isMain()
 {
     return ident == Id::main &&

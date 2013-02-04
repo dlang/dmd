@@ -4612,7 +4612,7 @@ Lagain:
             for (size_t i = 0; i < cd->vtbl.dim; i++)
             {   FuncDeclaration *fd = cd->vtbl[i]->isFuncDeclaration();
                 if (fd && fd->isAbstract())
-                    error("function %s is abstract", fd->toChars());
+                    errorSupplemental(loc, "function '%s' is not implemented", fd->toFullSignature());
             }
             goto Lerr;
         }

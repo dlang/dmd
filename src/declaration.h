@@ -669,6 +669,7 @@ struct FuncDeclaration : Declaration
     void appendState(Statement *s);
     char *mangle(bool isv = false);
     const char *toPrettyChars();
+    const char *toFullSignature();  // for diagnostics, e.g. '@pure foo(int x, int y)'
     int isMain();
     int isWinMain();
     int isDllMain();
