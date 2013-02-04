@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 1994-1998 by Symantec
- * Copyright (c) 2000-2011 by Digital Mars
+ * Copyright (c) 2000-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -28,10 +28,6 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
-
-#if _MSC_VER || __sun
-#include        <alloca.h>
-#endif
 
 /* If we do our own EH tables and stack walking scheme
  * (Otherwise use NT Structured Exception Handling)
@@ -244,15 +240,16 @@ void except_fillInEHTable(symbol *s)
      */
     if (usednteh & EHcleanup)
     {
+        #define STACKINC 16
+        int stackbuf[STACKINC];
+        int *stack = stackbuf;
+        int stackmax = STACKINC;
+
     int scopeindex = guarddim;
     for (block *b = startblock; b; b = b->Bnext)
     {
         /* Set up stack of scope indices
          */
-        #define STACKINC 16
-        int stackbuf[STACKINC];
-        int *stack = stackbuf;
-        int stackmax = STACKINC;
         stack[0] = b->Btry ? b->Btry->Bscope_index : -1;
         int stacki = 1;
 
@@ -319,9 +316,11 @@ void except_fillInEHTable(symbol *s)
                     pdt = dtcoff(pdt,foffset);  // finally handler address
                 if (stacki == stackmax)
                 {   // stack[] is out of space; enlarge it
-                    int *pi = (int *)alloca((stackmax + STACKINC) * sizeof(int));
+                    int *pi = (int *)malloc((stackmax + STACKINC) * sizeof(int));
                     assert(pi);
                     memcpy(pi, stack, stackmax * sizeof(int));
+                    if (stack != stackbuf)
+                        free(stack);
                     stack = pi;
                     stackmax += STACKINC;
                 }
@@ -337,6 +336,8 @@ void except_fillInEHTable(symbol *s)
             boffset += calccodsize(c);
         }
     }
+        if (stack != stackbuf)
+            free(stack);
     }
 
     // Generate catch[]

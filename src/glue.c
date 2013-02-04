@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,10 +9,6 @@
 #include <stddef.h>
 #include <time.h>
 #include <assert.h>
-
-#if __sun
-#include <alloca.h>
-#endif
 
 #include "mars.h"
 #include "module.h"
@@ -783,14 +779,18 @@ void FuncDeclaration::toObjFile(int multiobj)
             f->Fflags3 |= Fmember;
     }
 
-    Symbol **params;
-
     // Estimate number of parameters, pi
     size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
-    // Allow extra 2 for sthis and shidden
-    params = (Symbol **)alloca((pi + 2) * sizeof(Symbol *));
+
+    // Create a temporary buffer, params[], to hold function parameters
+    Symbol *paramsbuf[10];
+    Symbol **params = paramsbuf;    // allocate on stack if possible
+    if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
+    {   params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+        assert(params);
+    }
 
     // Get the actual number of parameters, pi, and fill in the params[]
     pi = 0;
@@ -883,13 +883,18 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
-    if (func->fbody)
-    {   block *b;
-        Blockx bx;
+    // Done with params
+    if (params != paramsbuf)
+        free(params);
+    params = NULL;
 
+    if (func->fbody)
+    {
         localgot = NULL;
 
         Statement *sbody = func->fbody;
+
+        Blockx bx;
         memset(&bx,0,sizeof(bx));
         bx.startblock = block_calloc();
         bx.curblock = bx.startblock;
@@ -947,7 +952,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         if (isCtorDeclaration())
         {
             assert(sthis);
-            for (b = f->Fstartblock; b; b = b->Bnext)
+            for (block *b = f->Fstartblock; b; b = b->Bnext)
             {
                 if (b->BC == BCret)
                 {
