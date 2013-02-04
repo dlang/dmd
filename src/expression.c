@@ -1155,13 +1155,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 Type *tb = arg->type->toBasetype();
                 if (tb->ty == Tsarray)
                 {
-#if !SARRAYVALUE
-                    // Convert static arrays to pointers
-                    arg = arg->checkToPointer();
-#else
                     // call copy constructor of each element
                     arg = callCpCtor(loc, sc, arg, 1);
-#endif
                 }
 #if DMDV2
                 else if (tb->ty == Tstruct)
@@ -1959,18 +1954,6 @@ Expression *Expression::checkToPointer()
     //printf("Expression::checkToPointer()\n");
     Expression *e = this;
 
-#if !SARRAYVALUE
-    // If C static array, convert to pointer
-    Type *tb = type->toBasetype();
-    if (tb->ty == Tsarray)
-    {   TypeSArray *ts = (TypeSArray *)tb;
-        if (ts->size(loc) == 0)
-            e = new NullExp(loc);
-        else
-            e = new AddrExp(loc, this);
-        e->type = ts->next->pointerTo();
-    }
-#endif
     return e;
 }
 

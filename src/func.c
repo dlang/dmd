@@ -1593,15 +1593,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->storage_class & (STCref | STCout | STClazy))
                         continue;
 
-#if !SARRAYVALUE
-                    /* Don't do this for static arrays, since static
-                     * arrays are called by reference. Remove this
-                     * when we change them to call by value.
-                     */
-                    if (v->type->toBasetype()->ty == Tsarray)
-                        continue;
-#endif
-
                     if (v->noscope)
                         continue;
 
