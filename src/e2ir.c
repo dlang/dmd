@@ -1358,12 +1358,10 @@ elem *ThisExp::toElem(IRState *irs)
     else
         ethis = el_var(irs->sthis);
 
-#if STRUCTTHISREF
     if (type->ty == Tstruct)
     {   ethis = el_una(OPind, TYstruct, ethis);
         ethis->ET = type->toCtype();
     }
-#endif
     el_setLoc(ethis,loc);
     return ethis;
 }
@@ -1861,12 +1859,10 @@ elem *NewExp::toElem(IRState *irs)
         if (member)
         {   // Call constructor
             ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
-#if STRUCTTHISREF
             /* Structs return a ref, which gets automatically dereferenced.
              * But we want a pointer to the instance.
              */
             ez = el_una(OPaddr, TYnptr, ez);
-#endif
         }
 
         e = el_combine(ex, ey);

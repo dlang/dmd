@@ -3198,11 +3198,7 @@ Expression *ThisExp::semantic(Scope *sc)
             StructDeclaration *sd = s->isStructDeclaration();
             if (sd)
             {
-#if STRUCTTHISREF
                 type = sd->type;
-#else
-                type = sd->type->pointerTo();
-#endif
                 return this;
             }
         }
@@ -7899,11 +7895,6 @@ Lagain:
                     e = new DotTemplateExp(loc, av, td);
                 }
                 e = new CallExp(loc, e, arguments);
-#if !STRUCTTHISREF
-                /* Constructors return a pointer to the instance
-                 */
-                e = new PtrExp(loc, e);
-#endif
                 e = e->semantic(sc);
                 return e;
             }

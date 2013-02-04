@@ -1103,10 +1103,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   // Call invariant virtually
                 Expression *v = new ThisExp(0);
                 v->type = vthis->type;
-#if STRUCTTHISREF
                 if (ad->isStructDeclaration())
                     v = v->addressOf(sc);
-#endif
                 Expression *se = new StringExp(0, (char *)"null this");
                 se = se->semantic(sc);
                 se->type = Type::tchar->arrayOf();
@@ -1145,10 +1143,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   // Call invariant virtually
                 Expression *v = new ThisExp(0);
                 v->type = vthis->type;
-#if STRUCTTHISREF
                 if (ad->isStructDeclaration())
                     v = v->addressOf(sc);
-#endif
                 e = new AssertExp(0, v);
             }
             if (e)
@@ -1809,43 +1805,15 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
         {
             assert(ad->handle);
             Type *thandle = ad->handle;
-#if STRUCTTHISREF
             thandle = thandle->addMod(type->mod);
             thandle = thandle->addStorageClass(storage_class);
             //if (isPure())
                 //thandle = thandle->addMod(MODconst);
-#else
-            if (storage_class & STCconst || type->isConst())
-            {
-                assert(0); // BUG: shared not handled
-                if (thandle->ty == Tclass)
-                    thandle = thandle->constOf();
-                else
-                {   assert(thandle->ty == Tpointer);
-                    thandle = thandle->nextOf()->constOf()->pointerTo();
-                }
-            }
-            else if (storage_class & STCimmutable || type->isImmutable())
-            {
-                if (thandle->ty == Tclass)
-                    thandle = thandle->invariantOf();
-                else
-                {   assert(thandle->ty == Tpointer);
-                    thandle = thandle->nextOf()->invariantOf()->pointerTo();
-                }
-            }
-            else if (storage_class & STCshared || type->isShared())
-            {
-                assert(0);  // not implemented
-            }
-#endif
             v = new ThisDeclaration(loc, thandle);
             //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
             v->storage_class |= STCparameter;
-#if STRUCTTHISREF
             if (thandle->ty == Tstruct)
                 v->storage_class |= STCref;
-#endif
             v->semantic(sc);
             if (!sc->insert(v))
                 assert(0);
@@ -3706,10 +3674,8 @@ void CtorDeclaration::semantic(Scope *sc)
         originalType = type->syntaxCopy();
     type = type->semantic(loc, sc);
 
-#if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
         ((TypeFunction *)type)->isref = 1;
-#endif
 
     FuncDeclaration::semantic(sc);
 
