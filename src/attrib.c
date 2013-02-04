@@ -511,7 +511,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCnothrow,      TOKnothrow },
         { STCpure,         TOKpure },
         { STCref,          TOKref },
-        { STCtls,          TOKtls },
+        { STCtls },
         { STCgshared,      TOKgshared },
         { STCproperty,     TOKat,       Id::property },
         { STCsafe,         TOKat,       Id::safe },
@@ -528,6 +528,9 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         if (stc & tbl)
         {
             stc &= ~tbl;
+            if (tbl == STCtls)  // TOKtls was removed
+                return "__thread";
+
             enum TOK tok = table[i].tok;
 #if DMDV2
             if (tok == TOKat)

@@ -367,7 +367,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKnothrow:      stc = STCnothrow;      goto Lstc;
             case TOKpure:         stc = STCpure;         goto Lstc;
             case TOKref:          stc = STCref;          goto Lstc;
-            case TOKtls:          stc = STCtls;          goto Lstc;
             case TOKgshared:      stc = STCgshared;      goto Lstc;
             //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
             case TOKat:
@@ -432,7 +431,6 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     case TOKnothrow:      stc = STCnothrow;      goto Lstc;
                     case TOKpure:         stc = STCpure;         goto Lstc;
                     case TOKref:          stc = STCref;          goto Lstc;
-                    case TOKtls:          stc = STCtls;          goto Lstc;
                     case TOKgshared:      stc = STCgshared;      goto Lstc;
                     //case TOKmanifest:   stc = STCmanifest;     goto Lstc;
                     case TOKat:
@@ -2949,7 +2947,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
             case TOKnothrow:    stc = STCnothrow;        goto L1;
             case TOKpure:       stc = STCpure;           goto L1;
             case TOKref:        stc = STCref;            goto L1;
-            case TOKtls:        stc = STCtls;            goto L1;
             case TOKgshared:    stc = STCgshared;        goto L1;
             case TOKenum:       stc = STCmanifest;       goto L1;
             case TOKat:
@@ -3806,7 +3803,6 @@ Statement *Parser::parseStatement(int flags)
         case TOKnothrow:
         case TOKpure:
         case TOKref:
-        case TOKtls:
         case TOKgshared:
         case TOKat:
 #endif
@@ -5319,7 +5315,6 @@ int Parser::skipAttributes(Token *t, Token **pt)
             case TOKnothrow:
             case TOKpure:
             case TOKref:
-            case TOKtls:
             case TOKgshared:
             //case TOKmanifest:
                 break;
