@@ -1930,18 +1930,12 @@ Lagain:
                 error("only one or two arguments for associative array foreach");
                 break;
             }
-#if SARRAYVALUE
+
             /* This only works if Key or Value is a static array.
              */
             tab = taa->getImpl()->type;
             goto Lagain;
-#else
-            if (op == TOKforeach_reverse)
-            {
-                error("no reverse iteration on associative arrays");
-            }
-            goto Lapply;
-#endif
+
         case Tclass:
         case Tstruct:
 #if DMDV2
