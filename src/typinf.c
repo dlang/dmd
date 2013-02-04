@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -11,8 +11,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <assert.h>
-
-//#include "mem.h"
 
 #include "mars.h"
 #include "module.h"
@@ -28,22 +26,7 @@
 #include "import.h"
 #include "aggregate.h"
 
-#if 0
 #include "dt.h"
-#else
-#include "rmem.h"
-#include "cc.h"
-#include "global.h"
-#include "oper.h"
-#include "code.h"
-#include "type.h"
-#include "dt.h"
-#include "cgcv.h"
-#include "outbuf.h"
-#include "irstate.h"
-#endif
-
-extern Symbol *static_sym();
 
 /*
  * Used in TypeInfo*::toDt to verify the runtime TypeInfo sizes
@@ -246,8 +229,6 @@ TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
 
 /****************************************************
  */
-
-#if 1
 
 void TypeInfoDeclaration::toDt(dt_t **pdt)
 {
@@ -815,46 +796,8 @@ void TypeInfoTupleDeclaration::toDt(dt_t **pdt)
         e->toDt(&d);
     }
 
-    Symbol *s = static_sym();
-    s->Sdt = d;
-    outdata(s);
-
-    dtxoff(pdt, s, 0);              // elements.ptr
+    dtdtoff(pdt, d, 0);              // elements.ptr
 }
-
-void TypeInfoDeclaration::toObjFile(int multiobj)
-{
-    //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
-
-    if (multiobj)
-    {
-        obj_append(this);
-        return;
-    }
-
-    Symbol *s = toSymbol();
-    s->Sclass = SCcomdat;
-    s->Sfl = FLdata;
-
-    toDt(&s->Sdt);
-
-    dt_optimize(s->Sdt);
-
-    // See if we can convert a comdat to a comdef,
-    // which saves on exe file space.
-    if (s->Sclass == SCcomdat &&
-        dtallzeros(s->Sdt))
-    {
-        s->Sclass = SCglobal;
-        dt2common(&s->Sdt);
-    }
-
-    outdata(s);
-    if (isExport())
-        objmod->export_symbol(s,0);
-}
-
-#endif
 
 /* ========================================================================= */
 
