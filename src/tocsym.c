@@ -13,10 +13,6 @@
 #include <time.h>
 #include <assert.h>
 
-#if __sun
-#include <alloca.h>
-#endif
-
 #include "mars.h"
 #include "module.h"
 #include "mtype.h"
@@ -70,30 +66,29 @@ Symbol *SymbolDeclaration::toSymbol()
 
 Symbol *Dsymbol::toSymbolX(const char *prefix, int sclass, type *t, const char *suffix)
 {
-    Symbol *s;
-    char *id;
-    const char *n;
-    size_t nlen;
-
     //printf("Dsymbol::toSymbolX('%s')\n", prefix);
-    n = mangle();
+    const char *n = mangle();
     assert(n);
-    nlen = strlen(n);
-#if 0
-    if (nlen > 2 && n[0] == '_' && n[1] == 'D')
-    {
-        nlen -= 2;
-        n += 2;
+    size_t nlen = strlen(n);
+    size_t prefixlen = strlen(prefix);
+
+    size_t idlen = 2 + nlen + sizeof(size_t) * 3 + prefixlen + strlen(suffix) + 1;
+
+    char idbuf[20];
+    char *id = idbuf;
+    if (idlen > sizeof(idbuf))
+    {   id = (char *)malloc(idlen);
+        assert(id);
     }
-#endif
-    id = (char *) alloca(2 + nlen + sizeof(size_t) * 3 + strlen(prefix) + strlen(suffix) + 1);
-    sprintf(id,"_D%s%llu%s%s", n, (ulonglong)strlen(prefix), prefix, suffix);
-#if 0
-    if (global.params.isWindows &&
-        (type_mangle(t) == mTYman_c || type_mangle(t) == mTYman_std))
-        id++;                   // Windows C mangling will put the '_' back in
-#endif
-    s = symbol_name(id, sclass, t);
+
+    int nwritten = sprintf(id,"_D%s%llu%s%s", n, (unsigned long long)prefixlen, prefix, suffix);
+    assert((unsigned)nwritten < idlen);         // nwritten does not include the terminating 0 char
+
+    Symbol *s = symbol_name(id, sclass, t);
+
+    if (id != idbuf)
+        free(id);
+
     //printf("-Dsymbol::toSymbolX() %s\n", id);
     return s;
 }

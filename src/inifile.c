@@ -1,6 +1,6 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2012 by Digital Mars
+ * Copyright (c) 1999-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -26,10 +26,6 @@
 #if __FreeBSD__ || __OpenBSD__ || __sun
 // for PATH_MAX
 #include        <limits.h>
-#endif
-
-#if __sun
-#include        <alloca.h>
 #endif
 
 #include        "root.h"
