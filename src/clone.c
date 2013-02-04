@@ -160,9 +160,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
-#if STRUCTTHISREF
     ((TypeFunction *)ftype)->isref = 1;
-#endif
 
     FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
 
@@ -183,21 +181,13 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             e = new DeclarationExp(0, tmp);
             ec = new AssignExp(0,
                 new VarExp(0, tmp),
-#if STRUCTTHISREF
                 new ThisExp(0)
-#else
-                new PtrExp(0, new ThisExp(0))
-#endif
                 );
             ec->op = TOKblit;
             e = Expression::combine(e, ec);
         }
         ec = new AssignExp(0,
-#if STRUCTTHISREF
                 new ThisExp(0),
-#else
-                new PtrExp(0, new ThisExp(0)),
-#endif
                 new IdentifierExp(0, Id::p));
         ec->op = TOKblit;
         e = Expression::combine(e, ec);
@@ -544,9 +534,6 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         {
             // Build *this = p;
             Expression *e = new ThisExp(0);
-#if !STRUCTTHISREF
-            e = new PtrExp(0, e);
-#endif
             AssignExp *ea = new AssignExp(0,
                 new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
                 new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
@@ -556,9 +543,6 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
             // Build postBlit();
             e = new ThisExp(0);
-#if !STRUCTTHISREF
-            e = new PtrExp(0, e);
-#endif
             e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
             e = new DotVarExp(0, e, postblit, 0);
             e = new CallExp(0, e);
