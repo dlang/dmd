@@ -27,9 +27,6 @@
 
 #ifdef IN_GCC
 #include "d-gcc-real.h"
-
-/* %% fix? */
-extern "C" bool real_isnan (const real_t *);
 #endif
 
 static real_t zero;     // work around DMC bug for now

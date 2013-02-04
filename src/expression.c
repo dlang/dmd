@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -774,23 +774,9 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
         {   Expression *arg = (*exps)[i];
 
             arg = resolveProperties(sc, arg);
-#if 0
-            if (arg->op == TOKtype)
-            {   arg->error("%s is not an expression", arg->toChars());
-                arg = new ErrorExp();
-            }
-#endif
             (*exps)[i] =  arg;
 
             //arg->rvalue();
-#if 0
-            if (arg->type->ty == Tfunction)
-            {
-                arg = new AddrExp(arg->loc, arg);
-                arg = arg->semantic(sc);
-                (*exps)[i] =  arg;
-            }
-#endif
         }
     }
 }
@@ -2152,14 +2138,7 @@ int IntegerExp::equals(Object *o)
 
 char *IntegerExp::toChars()
 {
-#if 1
     return Expression::toChars();
-#else
-    static char buffer[sizeof(value) * 3 + 1];
-
-    sprintf(buffer, "%lld", value);
-    return buffer;
-#endif
 }
 
 dinteger_t IntegerExp::toInteger()
@@ -2920,13 +2899,6 @@ int IdentifierExp::isLvalue()
 
 Expression *IdentifierExp::toLvalue(Scope *sc, Expression *e)
 {
-#if 0
-    tym = tybasic(e1->ET->Tty);
-    if (!(tyscalar(tym) ||
-          tym == TYstruct ||
-          tym == TYarray && e->Eoper == TOKaddr))
-            synerr(EM_lvalue);  // lvalue expected
-#endif
     return this;
 }
 
@@ -3180,13 +3152,6 @@ int DsymbolExp::isLvalue()
 
 Expression *DsymbolExp::toLvalue(Scope *sc, Expression *e)
 {
-#if 0
-    tym = tybasic(e1->ET->Tty);
-    if (!(tyscalar(tym) ||
-          tym == TYstruct ||
-          tym == TYarray && e->Eoper == TOKaddr))
-            synerr(EM_lvalue);  // lvalue expected
-#endif
     return this;
 }
 
@@ -4647,25 +4612,7 @@ Lagain:
                         goto Lerr;
                     }
                 }
-#if 0
-                else
-                {
-                    for (Dsymbol *sf = sc->func; 1; sf= sf->toParent2()->isFuncDeclaration())
-                    {
-                        if (!sf)
-                        {
-                            error("outer class %s 'this' needed to 'new' nested class %s", cdn->toChars(), cd->toChars());
-                            goto Lerr;
                         }
-                        printf("sf = %s\n", sf->toChars());
-                        AggregateDeclaration *ad = sf->isThis();
-                        if (ad && (ad == cdn || cdn->isBaseOf(ad->isClassDeclaration(), NULL)))
-                            break;
-                    }
-                }
-#endif
-            }
-#if 1
             else if (thisexp)
             {   error("e.new is only for allocating nested classes");
                 goto Lerr;
@@ -4685,19 +4632,6 @@ Lagain:
                     }
                 }
             }
-#else
-            else if (fdn)
-            {   /* The nested class cd is nested inside a function,
-                 * we'll let getEthis() look for errors.
-                 */
-                //printf("nested class %s is nested inside function %s, we're in %s\n", cd->toChars(), fdn->toChars(), sc->func->toChars());
-                if (thisexp)
-                {   // Because thisexp cannot be a function frame pointer
-                    error("e.new is only for allocating nested classes");
-                    goto Lerr;
-                }
-            }
-#endif
             else
                 assert(0);
         }
@@ -5088,16 +5022,7 @@ Expression *VarExp::semantic(Scope *sc)
     }
 
     if (!type)
-    {   type = var->type;
-#if 0
-        if (var->storage_class & STClazy)
-        {
-            TypeFunction *tf = new TypeFunction(NULL, type, 0, LINKd);
-            type = new TypeDelegate(tf);
-            type = type->semantic(loc, sc);
-        }
-#endif
-    }
+        type = var->type;
 
     if (type && !type->deco)
         type = type->semantic(loc, sc);
@@ -5119,14 +5044,6 @@ Expression *VarExp::semantic(Scope *sc)
     FuncDeclaration *f = var->isFuncDeclaration();
     if (f)
         f->checkNestedReference(sc, loc);
-#if 0
-    else if ((fd = var->isFuncLiteralDeclaration()) != NULL)
-    {   Expression *e;
-        e = new FuncExp(loc, fd);
-        e->type = type;
-        return e;
-    }
-#endif
 
     return this;
 }
@@ -5176,13 +5093,6 @@ int VarExp::isLvalue()
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
-#if 0
-    tym = tybasic(e1->ET->Tty);
-    if (!(tyscalar(tym) ||
-          tym == TYstruct ||
-          tym == TYarray && e->Eoper == TOKaddr))
-            synerr(EM_lvalue);  // lvalue expected
-#endif
     if (var->storage_class & STClazy)
     {   error("lazy variables cannot be lvalues");
         return new ErrorExp();
@@ -6726,18 +6636,6 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 
 //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
-#if 0
-    /* Don't do semantic analysis if we'll be converting
-     * it to a string.
-     */
-    if (ident == Id::stringof)
-    {   char *s = e1->toChars();
-        e = new StringExp(loc, s, strlen(s), 'c');
-        e = e->semantic(sc);
-        return e;
-    }
-#endif
-
     /* Special case: rewrite this.id and super.id
      * to be classtype.id and baseclasstype.id
      * if we have no this pointer.
@@ -6782,26 +6680,6 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 //    Type *t1save = e1->type;
 
     UnaExp::semantic(sc);
-
-#if 0
-    /*
-     * Identify typeof(var).stringof and use the original type of var, if possible
-     */
-    if (ident == Id::stringof && e1->op == TOKtype && t1save && t1save->ty == Ttypeof)
-    {   TypeTypeof *t = (TypeTypeof *)t1save;
-        if (t->exp->op == TOKvar)
-        {
-            Type *ot = ((VarExp *)t->exp)->var->originalType;
-            if (ot)
-            {
-                char *s = ((VarExp *)t->exp)->var->originalType->toChars();
-                e = new StringExp(loc, s, strlen(s), 'c');
-                e = e->semantic(sc);
-                return e;
-            }
-        }
-    }
-#endif
 
     if (ident == Id::mangleof)
     {   // symbol.mangleof
@@ -7815,7 +7693,6 @@ Expression *CallExp::semantic(Scope *sc)
     if (e)
         return e;
 
-#if 1
     /* This recognizes:
      *  foo!(tiargs)(funcargs)
      */
@@ -7859,17 +7736,6 @@ Ldotti:
              * If not, go with partial explicit specialization.
              */
             ti->semanticTiargs(sc);
-#if 0
-            Expression *etmp = e1->trySemantic(sc);
-            if (etmp)
-                e1 = etmp;      // it worked
-            else                // didn't work
-            {
-                targsi = ti->tiargs;
-                tierror = ti;           // for error reporting
-                e1 = new DotIdExp(loc, se->e1, ti->name);
-            }
-#else
             if (!ti->tempdecl)
             {
                 se->getTempdecl(sc);
@@ -7886,10 +7752,8 @@ Ldotti:
             {
                 e1 = e1->semantic(sc);
             }
-#endif
         }
     }
-#endif
 
     istemp = 0;
 Lagain:
@@ -7955,7 +7819,6 @@ Lagain:
             e1 = new VarExp(se->loc, se->var, 1);
             e1 = e1->semantic(sc);
         }
-#if 1   // patch for #540 by Oskar Linde
         else if (e1->op == TOKdotexp)
         {
             DotExp *de = (DotExp *) e1;
@@ -7978,7 +7841,6 @@ Lagain:
                 e1 = new DotTemplateExp(loc,de->e1,te->td);
             }
         }
-#endif
     }
 
     t1 = NULL;
@@ -8234,10 +8096,6 @@ Lagain:
             {
                 if (!sc->intypeof)
                 {
-#if 0
-                    if (sc->callSuper & (CSXthis | CSXsuper))
-                        error("reference to this before super()");
-#endif
                     if (sc->noctor || sc->callSuper & CSXlabel)
                         error("constructor calls not allowed in loops or after labels");
                     if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
@@ -8278,10 +8136,6 @@ Lagain:
         {
             if (!sc->intypeof)
             {
-#if 0
-                if (sc->callSuper & (CSXthis | CSXsuper))
-                    error("reference to this before super()");
-#endif
                 if (sc->noctor || sc->callSuper & CSXlabel)
                     error("constructor calls not allowed in loops or after labels");
                 if (sc->callSuper & (CSXsuper_ctor | CSXthis_ctor))
@@ -8858,13 +8712,6 @@ int PtrExp::isLvalue()
 
 Expression *PtrExp::toLvalue(Scope *sc, Expression *e)
 {
-#if 0
-    tym = tybasic(e1->ET->Tty);
-    if (!(tyscalar(tym) ||
-          tym == TYstruct ||
-          tym == TYarray && e->Eoper == TOKaddr))
-            synerr(EM_lvalue);  // lvalue expected
-#endif
     return this;
 }
 
@@ -9206,13 +9053,6 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (!to->equals(e1->type))
         {
-#if 0 // attempt at fixing 6720
-            if (e1->type->ty == Tvoid)
-            {
-                error("cannot cast from void to %s", to->toChars());
-                return new ErrorExp();
-            }
-#endif
             Expression *e = op_overload(sc);
             if (e)
             {
@@ -10062,21 +9902,7 @@ Expression *IndexExp::semantic(Scope *sc)
         case Tsarray:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
-
             TypeSArray *tsa = (TypeSArray *)t1;
-
-#if 0   // Don't do now, because it might be short-circuit evaluated
-            // Do compile time array bounds checking if possible
-            e2 = e2->optimize(WANTvalue);
-            if (e2->op == TOKint64)
-            {
-                dinteger_t index = e2->toInteger();
-                dinteger_t length = tsa->dim->toInteger();
-                if (index < 0 || index >= length)
-                    error("array index [%lld] is outside array bounds [0 .. %lld]",
-                            index, length);
-            }
-#endif
             e->type = t1->nextOf();
             break;
         }
@@ -10857,16 +10683,7 @@ Ltupleassign:
     }
 
     Type *t2 = e2->type->toBasetype();
-#if 0
-    if (t1->ty == Tvector && t2->ty != Tvector &&
-        e2->implicitConvTo(((TypeVector *)t1)->basetype->nextOf())
-       )
-    {   // memset
-        ismemset = 1;   // make it easy for back end to tell what this is
-        e2 = e2->implicitCastTo(sc, ((TypeVector *)t1)->basetype->nextOf());
-    }
-    else
-#endif
+
     // If it is a array, get the element type. Note that it may be
     // multi-dimensional.
     Type *telem = t1;
@@ -12287,28 +12104,6 @@ Expression *CmpExp::semantic(Scope *sc)
     if (e->op == TOKerror)
         return e;
 
-#if 0
-    // For integer comparisons, ensure the combined type can hold both arguments.
-    if (type && type->isintegral() && (op == TOKlt || op == TOKle ||
-                                       op == TOKgt || op == TOKge))
-    {
-        IntRange trange = IntRange::fromType(type);
-
-        Expression *errorexp = 0;
-        if (!trange.contains(eb1->getIntRange()))
-            errorexp = eb1;
-        if (!trange.contains(eb2->getIntRange()))
-            errorexp = eb2;
-
-        if (errorexp)
-        {
-            error("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
-                  errorexp->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
-            return new ErrorExp();
-        }
-    }
-#endif
-
     type = Type::tboolean;
 
     // Special handling for array comparisons
@@ -12334,13 +12129,11 @@ Expression *CmpExp::semantic(Scope *sc)
             error("need member function opCmp() for %s %s to compare", t1->toDsymbol(sc)->kind(), t1->toChars());
         e = new ErrorExp();
     }
-#if 1
     else if (t1->iscomplex() || t2->iscomplex())
     {
         error("compare not defined for complex operands");
         e = new ErrorExp();
     }
-#endif
     else if (t1->ty == Tvector)
         return incompatibleTypes();
     else
@@ -12578,30 +12371,6 @@ Expression *CondExp::semantic(Scope *sc)
     econd = resolveProperties(sc, econd);
     econd = econd->checkToPointer();
     econd = econd->checkToBoolean(sc);
-
-#if 0   /* this cannot work right because the types of e1 and e2
-         * both contribute to the type of the result.
-         */
-    if (sc->flags & SCOPEstaticif)
-    {
-        /* If in static if, don't evaluate what we don't have to.
-         */
-        econd = econd->optimize(WANTflags);
-        if (econd->isBool(TRUE))
-        {
-            e1 = e1->semantic(sc);
-            e1 = resolveProperties(sc, e1);
-            return e1;
-        }
-        else if (econd->isBool(FALSE))
-        {
-            e2 = e2->semantic(sc);
-            e2 = resolveProperties(sc, e2);
-            return e2;
-        }
-    }
-#endif
-
 
     cs0 = sc->callSuper;
     e1 = e1->semantic(sc);
