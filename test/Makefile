@@ -30,6 +30,16 @@
 #   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
 #                        default: the make variable ARGS (see below)
 #
+#   TEST_OUTPUT:         the output is expected from the compilation (if the
+#                        output of the compilation doesn't match, the test
+#                        fails). You can use the this format for multi-line
+#                        output:
+#                        TEST_OUTPUT:
+#                        ---
+#                        Some
+#                        Output
+#                        ---
+#
 #   POST_SCRIPT:         name of script to execute after test run
 #                        note: arguments to the script may be included after the name.
 #                              additionally, the name of the file that contains the output
