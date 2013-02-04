@@ -470,26 +470,6 @@ Symbol *FuncDeclaration::toThunkSymbol(int offset)
 }
 
 
-/****************************************
- * Create a static symbol we can hang DT initializers onto.
- */
-
-Symbol *static_sym()
-{
-    Symbol *s;
-    type *t;
-
-    t = type_alloc(TYint);
-    t->Tcount++;
-    s = symbol_calloc("internal");
-    s->Sclass = SCstatic;
-    s->Sfl = FLextern;
-    s->Sflags |= SFLnodebug;
-    s->Stype = t;
-    slist_add(s);
-    return s;
-}
-
 /**************************************
  * Fake a struct symbol.
  */

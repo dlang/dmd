@@ -282,6 +282,24 @@ dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
     return pdtend;
 }
 
+/*************************************
+ * Create a reference to another dt.
+ */
+dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
+{
+    type *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    s->Sdt = dt;
+    slist_add(s);
+    outdata(s);
+    return dtxoff(pdtend, s, offset);
+}
+
 /**************************
  * 'Optimize' a list of dt_t's.
  * (Try to collapse it into one DT_azeros object.)
@@ -381,5 +399,6 @@ void dt2common(dt_t **pdt)
     assert((*pdt)->dt == DT_azeros);
     (*pdt)->dt = DT_common;
 }
+
 
 #endif /* !SPP */

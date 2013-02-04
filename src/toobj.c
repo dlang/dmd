@@ -1345,5 +1345,38 @@ void EnumDeclaration::toObjFile(int multiobj)
     objFileDone = true;
 }
 
+/* ================================================================== */
+
+void TypeInfoDeclaration::toObjFile(int multiobj)
+{
+    //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
+
+    if (multiobj)
+    {
+        obj_append(this);
+        return;
+    }
+
+    Symbol *s = toSymbol();
+    s->Sclass = SCcomdat;
+    s->Sfl = FLdata;
+
+    toDt(&s->Sdt);
+
+    dt_optimize(s->Sdt);
+
+    // See if we can convert a comdat to a comdef,
+    // which saves on exe file space.
+    if (s->Sclass == SCcomdat &&
+        dtallzeros(s->Sdt))
+    {
+        s->Sclass = SCglobal;
+        dt2common(&s->Sdt);
+    }
+
+    outdata(s);
+    if (isExport())
+        objmod->export_symbol(s,0);
+}
 
 
