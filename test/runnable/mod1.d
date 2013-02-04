@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXTRA_SOURCES: imports/mod2.d
+// @PERMUTE_ARGS@:
+// @EXTRA_SOURCES@: imports/mod2.d
 
 // mod1.d
 

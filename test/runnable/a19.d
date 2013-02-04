@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/a19a.d
-// PERMUTE_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/a19a.d
+// @PERMUTE_ARGS@:
 
 import imports.a19a;
 

@@ -1,5 +1,5 @@
-// REQUIRED_ARGS: -w
-// PERMUTE_ARGS:
+// @REQUIRED_ARGS@: -w
+// @PERMUTE_ARGS@:
 
 extern(C) int printf(const char*, ...);
 

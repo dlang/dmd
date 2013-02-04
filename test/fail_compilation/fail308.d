@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -unittest
+// @REQUIRED_ARGS@: -unittest
 
 void main()
 {

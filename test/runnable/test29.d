@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test29a.d imports/test29b.d
-// PERMUTE_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/test29a.d imports/test29b.d
+// @PERMUTE_ARGS@:
 
 import imports.test29a;
 import imports.test29b;

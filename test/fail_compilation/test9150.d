@@ -1,7 +1,7 @@
 // Issue 9150 - Mismatching static array length should be detected in foreach
 
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/test9150.d(14): Error: mismatched array lengths, 5 and 3
 ---

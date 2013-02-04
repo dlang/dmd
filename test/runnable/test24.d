@@ -1,6 +1,6 @@
-// EXTRA_SOURCES: imports/test24a.d imports/test24b.d
-// PERMUTE_ARGS:
-// REQUIRED_ARGS:
+// @EXTRA_SOURCES@: imports/test24a.d imports/test24b.d
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@:
 
 import imports.test24a, imports.test24b;
 

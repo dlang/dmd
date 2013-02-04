@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/b33a.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/b33a.d
+// @PERMUTE_ARGS@:
 
 module b33;
 

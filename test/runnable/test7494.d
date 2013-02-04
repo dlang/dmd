@@ -1,7 +1,7 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test7494a.d
-// PERMUTE_ARGS:
-// REQUIRED_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/test7494a.d
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@:
 
 module test7494;
 

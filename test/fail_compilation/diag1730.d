@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag1730.d(38): Error: mutable method diag1730.S.func is not callable using a inout object
 fail_compilation/diag1730.d(40): Error: immutable method diag1730.S.iFunc is not callable using a inout object

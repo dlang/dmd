@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/ice9284.d(15): Error: template ice9284.C.__ctor does not match any function template declaration. Candidates are:
 fail_compilation/ice9284.d(13):        ice9284.C.__ctor()(string)

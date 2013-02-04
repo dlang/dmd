@@ -38,21 +38,21 @@ test_app_exe=${RESULTS_DIR}/${input_dir}/${test_name}
 
 rm -f ${output_file}
 
-r_args=`grep REQUIRED_ARGS ${input_file} | tr -d \\\\r\\\\n`
+r_args=`grep @REQUIRED_ARGS@ ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${r_args}" ]; then
-    r_args="${r_args/*REQUIRED_ARGS:*( )/}"
+    r_args="${r_args/*@REQUIRED_ARGS@:*( )/}"
     if [ ! -z "${r_args}" ]; then
         extra_space=" "
     fi
 fi
 
-p_args=`grep PERMUTE_ARGS ${input_file} | tr -d \\\\r\\\\n`
+p_args=`grep @PERMUTE_ARGS@ ${input_file} | tr -d \\\\r\\\\n`
 if [ -z "${p_args}" ]; then
     if [ "${input_dir}" != "fail_compilation" ]; then
         p_args="${ARGS}"
     fi
 else
-    p_args="${p_args/*PERMUTE_ARGS:*( )/}"
+    p_args="${p_args/*@PERMUTE_ARGS@:*( )/}"
     if [ "${OS}" == "win32" ]; then
         p_args="${p_args/-fPIC/}"
     fi
@@ -63,15 +63,15 @@ if [ "${MODEL}" == "64" ]; then
     r_args="${r_args/-O/}"
 fi
 
-e_args=`grep EXECUTE_ARGS  ${input_file} | tr -d \\\\r\\\\n`
+e_args=`grep @EXECUTE_ARGS@  ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "$e_args" ]; then
-    e_args="${e_args/*EXECUTE_ARGS:*( )/}"
+    e_args="${e_args/*@EXECUTE_ARGS@:*( )/}"
 fi
 
-extra_sources=`grep EXTRA_SOURCES ${input_file} | tr -d \\\\r\\\\n`
+extra_sources=`grep @EXTRA_SOURCES@ ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${extra_sources}" ]; then
     # remove the field name, leaving just the list of files
-    extra_sources=(${extra_sources/*EXTRA_SOURCES:*( )/})
+    extra_sources=(${extra_sources/*@EXTRA_SOURCES@:*( )/})
     # prepend the test dir (ie, runnable) to each extra file
     #extra_sources=(${extra_sources[*]/imports\//${input_dir}\/imports\/})
     prefixed_extra_sources=()
@@ -83,12 +83,12 @@ fi
 # replace / with the correct separator
 all_sources=(${all_sources[*]//\//${SEP}})
 
-grep -q COMPILE_SEPARATELY ${input_file}
+grep -q @COMPILE_SEPARATELY@ ${input_file}
 separate=$?
 
-post_script=`grep POST_SCRIPT ${input_file} | tr -d \\\\r\\\\n`
+post_script=`grep @POST_SCRIPT@ ${input_file} | tr -d \\\\r\\\\n`
 if [ ! -z "${post_script}" ]; then
-    post_script="${post_script/*POST_SCRIPT:*( )/}"
+    post_script="${post_script/*@POST_SCRIPT@:*( )/}"
 fi
 
 if [ "${input_dir}" != "runnable" ]; then

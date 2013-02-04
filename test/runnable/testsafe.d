@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: 
+// @PERMUTE_ARGS@: 
  
 //http://d.puremagic.com/issues/show_bug.cgi?id=5415 
  

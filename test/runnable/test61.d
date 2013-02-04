@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXTRA_SOURCES: imports/test61a.d
+// @PERMUTE_ARGS@:
+// @EXTRA_SOURCES@: imports/test61a.d
 
 // Bugzilla 6556
 

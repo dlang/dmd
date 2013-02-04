@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/a21a.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/a21a.d
+// @PERMUTE_ARGS@:
 
 import std.stdio;
 import imports.a21a;

@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/bug8891.d(21): Error: need 'this' for opCall type S(int n)
 ---

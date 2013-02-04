@@ -1,4 +1,4 @@
-﻿// REQUIRED_ARGS: -c -o-
+﻿// @REQUIRED_ARGS@: -c -o-
 
 class C7568 {}
 struct S7568 { C7568 c; }

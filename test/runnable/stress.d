@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 import std.c.stdio : printf;
 import std.string : splitLines;

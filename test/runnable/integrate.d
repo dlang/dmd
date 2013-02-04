@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS:
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@:
 
 // NOTE: the shootout is under a BSD license
 // The Great Computer Language Shootout

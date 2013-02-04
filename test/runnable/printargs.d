@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXECUTE_ARGS: A B C
+// @PERMUTE_ARGS@:
+// @EXECUTE_ARGS@: A B C
 
 extern(C) int printf(const char*, ...);
 

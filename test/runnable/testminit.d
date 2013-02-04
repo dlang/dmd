@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/testminitAA.d imports/testminitBB.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/testminitAA.d imports/testminitBB.d
+// @PERMUTE_ARGS@:
 
 import std.c.stdio;
 

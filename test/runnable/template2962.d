@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/template2962a.d
+// @EXTRA_SOURCES@: imports/template2962a.d
 
 // comment 29
 void foo(T)(T p)

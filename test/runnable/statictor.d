@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// POST_SCRIPT: runnable/extra-files/statictor-postscript.sh
+// @PERMUTE_ARGS@:
+// @POST_SCRIPT@: runnable/extra-files/statictor-postscript.sh
 
 private import std.stdio;
 

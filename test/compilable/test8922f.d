@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 void test()
 {
     import renamed = imports.bug8922;

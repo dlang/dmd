@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/test10a.d
+// @EXTRA_SOURCES@: imports/test10a.d
 
 import imports.test10a;
 

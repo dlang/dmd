@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -profile
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -profile
 
 template LaLa(E...) {
         class LaLa {

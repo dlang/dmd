@@ -1,5 +1,5 @@
-// EXECUTE_ARGS: foo bar doo
-// PERMUTE_ARGS:
+// @EXECUTE_ARGS@: foo bar doo
+// @PERMUTE_ARGS@:
 import std.stdio;
 import std.conv;
 import core.runtime;

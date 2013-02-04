@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/testmod2a.d
+// @EXTRA_SOURCES@: imports/testmod2a.d
 
 /**********************************/
 // bug 1904

@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/test8556.d(44): Error: template test8556.grabExactly matches more than one template declaration, fail_compilation/test8556.d(30):grabExactly(R)(R range) if (!isSliceable!(R)) and fail_compilation/test8556.d(31):grabExactly(R)(R range) if (isSliceable!(R))
 fail_compilation/test8556.d(19): Error: template instance test8556.isSliceable!(Circle!(uint[])) error instantiating

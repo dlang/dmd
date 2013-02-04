@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -de
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -de
 
 class B {
     int foo() immutable { return 2; }

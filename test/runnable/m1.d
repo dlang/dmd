@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/m1a.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/m1a.d
+// @PERMUTE_ARGS@:
 
 module m1;
 

@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/Other.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/Other.d
+// @PERMUTE_ARGS@:
 
 module Same; // makes no difference if removed
 import std.c.stdio;

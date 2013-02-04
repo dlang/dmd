@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/A16a.d
+// @EXTRA_SOURCES@: imports/A16a.d
 
 import std.stdio;
 

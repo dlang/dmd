@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -d -dw
+// @PERMUTE_ARGS@: -d -dw
 
 typedef int T = void;
 

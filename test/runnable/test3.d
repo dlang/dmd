@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXTRA_SOURCES: imports/test3a.d imports/test3b.d
+// @PERMUTE_ARGS@:
+// @EXTRA_SOURCES@: imports/test3a.d imports/test3b.d
 
 import imports.test3a;
 

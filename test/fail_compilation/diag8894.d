@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag8894.d(6): Error: no property 'x' for type 'Foo'
 fail_compilation/diag8894.d(7): Error: no property 'y' for type 'Foo'

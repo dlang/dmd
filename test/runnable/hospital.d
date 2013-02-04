@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// @REQUIRED_ARGS@:
 
 // NOTE: the shootout appears to be BSD licensed content.
 // Including this in the test suite based on that license.

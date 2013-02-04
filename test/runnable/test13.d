@@ -1,6 +1,6 @@
-// EXTRA_SOURCES: imports/test13a.d
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -unittest
+// @EXTRA_SOURCES@: imports/test13a.d
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -unittest
 
 module test13;
 

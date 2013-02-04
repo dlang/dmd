@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/test48a.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/test48a.d
+// @PERMUTE_ARGS@:
 
 import std.stdio;
 import imports.test48a;

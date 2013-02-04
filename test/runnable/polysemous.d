@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 // Prefer immutable(char)[] to all others
 int foo(           char[] a) { return 11; }

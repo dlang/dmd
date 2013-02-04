@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -g
+// @REQUIRED_ARGS@: -g
 
 struct Bug7127a {
     const(Bug7127a)* self;

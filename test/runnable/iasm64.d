@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 // Copyright (c) 1999-2011 by Digital Mars
 // All Rights Reserved

@@ -1,4 +1,4 @@
-﻿// REQUIRED_ARGS: -c -o-
+﻿// @REQUIRED_ARGS@: -c -o-
 
 static if(is(typeof(A4269.sizeof))) {}
 

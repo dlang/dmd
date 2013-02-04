@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/test8793.d(13): Error: cannot implicitly convert expression (__lambda2) of type bool delegate(const(int) x) @system to bool delegate(const(int)) pure
 fail_compilation/test8793.d(14): Error: cannot implicitly convert expression (__lambda4) of type bool delegate(const(int) x) @system to bool delegate(const(int)) pure
