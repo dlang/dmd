@@ -58,27 +58,17 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
  */
 bool ISREF(Declaration *var, Type *tb)
 {
-#if SARRAYVALUE
     return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(0) > REGSIZE || var->storage_class & STClazy))
             || var->isOut() || var->isRef();
-#else
-    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
-            || var->isOut() || var->isRef();
-#endif
 }
 
 /* If variable var of type typ is a reference due to Win64 calling conventions
  */
 bool ISWIN64REF(Declaration *var)
 {
-#if SARRAYVALUE
     return (config.exe == EX_WIN64 && var->isParameter() &&
             (var->type->size(0) > REGSIZE || var->storage_class & STClazy)) &&
             !(var->isOut() || var->isRef());
-#else
-    return (var->isParameter() && (var->type->toBasetype()->ty != Tsarray && (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
-            && !(var->isOut() || var->isRef());
-#endif
 }
 
 /******************************************

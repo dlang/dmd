@@ -49,12 +49,7 @@ type *Type::toCParamtype()
 
 type *TypeSArray::toCParamtype()
 {
-#if SARRAYVALUE
     return toCtype();
-#else
-    // arrays are passed as pointers
-    return next->pointerTo()->toCtype();
-#endif
 }
 
 type *TypeVector::toCtype()
