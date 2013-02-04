@@ -6569,6 +6569,12 @@ Expression *AssertExp::syntaxCopy()
 
 Expression *AssertExp::semantic(Scope *sc)
 {
+    if (global.params.release)
+    {   // no need for semantic if assert is compiled-out
+        type = Type::tvoid;
+        return this;
+    }
+
 #if LOGSEMANTIC
     printf("AssertExp::semantic('%s')\n", toChars());
 #endif
