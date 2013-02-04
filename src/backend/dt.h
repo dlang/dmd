@@ -18,6 +18,7 @@ dt_t **dtsize_t(dt_t **, unsigned long long value);
 dt_t **dtnzeros(dt_t **pdtend,unsigned size);
 dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset,tym_t ty);
 dt_t **dtxoff(dt_t **pdtend,Symbol *s,unsigned offset);
+dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset);
 dt_t **dtcoff(dt_t **pdtend,unsigned offset);
 dt_t ** dtcat(dt_t **pdtend,dt_t *dt);
 void dt_optimize(dt_t *dt);
