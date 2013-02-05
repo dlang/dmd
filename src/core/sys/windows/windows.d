@@ -147,16 +147,16 @@ else // Win32
 
 version (all)
 {   // Properly prototyped versions
-    alias BOOL function(HWND, UINT, WPARAM, LPARAM) DLGPROC;
+    alias INT_PTR function(HWND, UINT, WPARAM, LPARAM) DLGPROC;
     alias VOID function(HWND, UINT, UINT_PTR, DWORD) TIMERPROC;
     alias BOOL function(HDC, LPARAM, int) GRAYSTRINGPROC;
     alias BOOL function(HWND, LPARAM) WNDENUMPROC;
     alias LRESULT function(int code, WPARAM wParam, LPARAM lParam) HOOKPROC;
-    alias VOID function(HWND, UINT, DWORD, LRESULT) SENDASYNCPROC;
+    alias VOID function(HWND, UINT, ULONG_PTR, LRESULT) SENDASYNCPROC;
     alias BOOL function(HWND, LPCSTR, HANDLE) PROPENUMPROCA;
     alias BOOL function(HWND, LPCWSTR, HANDLE) PROPENUMPROCW;
-    alias BOOL function(HWND, LPSTR, HANDLE, DWORD) PROPENUMPROCEXA;
-    alias BOOL function(HWND, LPWSTR, HANDLE, DWORD) PROPENUMPROCEXW;
+    alias BOOL function(HWND, LPSTR, HANDLE, ULONG_PTR) PROPENUMPROCEXA;
+    alias BOOL function(HWND, LPWSTR, HANDLE, ULONG_PTR) PROPENUMPROCEXW;
     alias int function(LPSTR lpch, int ichCurrent, int cch, int code)
        EDITWORDBREAKPROCA;
     alias int function(LPWSTR lpch, int ichCurrent, int cch, int code)
@@ -183,8 +183,8 @@ else
 
 extern (D) pure
 {
-WORD HIWORD(int l) { return cast(WORD)((l >> 16) & 0xFFFF); }
-WORD LOWORD(int l) { return cast(WORD)l; }
+WORD HIWORD(long l) { return cast(WORD)((l >> 16) & 0xFFFF); }
+WORD LOWORD(long l) { return cast(WORD)l; }
 bool FAILED(int status) { return status < 0; }
 bool SUCCEEDED(int Status) { return Status >= 0; }
 }
