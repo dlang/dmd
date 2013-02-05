@@ -26,6 +26,8 @@
 #include "hdrgen.h"
 #include "target.h"
 
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
@@ -2918,7 +2920,7 @@ const char *FuncDeclaration::toPrettyChars()
         return Dsymbol::toPrettyChars();
 }
 
-/** for diagnostics, e.g. '@pure foo(int x, int y)' */
+/** for diagnostics, e.g. 'int foo(int x, int y) pure' */
 const char *FuncDeclaration::toFullSignature()
 {
     OutBuffer buf;

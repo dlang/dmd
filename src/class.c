@@ -1650,8 +1650,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             if (newinstance &&
                 fd->toParent() != cd &&
                 ifd->toParent() == base)
-                cd->error("interface function %s.%s is not implemented",
-                    id->toChars(), ifd->ident->toChars());
+                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
 
             if (fd->toParent() == cd)
                 result = 1;
@@ -1661,9 +1660,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
             //printf("            not found\n");
             // BUG: should mark this class as abstract?
             if (!cd->isAbstract())
-                cd->error("interface function %s.%s%s isn't implemented",
-                    id->toChars(), ifd->ident->toChars(),
-                    Parameter::argsTypesToChars(tf->parameters, tf->varargs));
+                cd->error("interface function '%s' is not implemented", ifd->toFullSignature());
 
             fd = NULL;
         }
