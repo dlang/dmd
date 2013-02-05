@@ -55,9 +55,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     members = NULL;
     isDocFile = 0;
     needmoduleinfo = 0;
-#ifdef IN_GCC
-    strictlyneedmoduleinfo = 0;
-#endif
     selfimports = 0;
     insearch = 0;
     searchCacheIdent = NULL;
