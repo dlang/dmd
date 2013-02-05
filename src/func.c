@@ -25,10 +25,6 @@
 #include "template.h"
 #include "hdrgen.h"
 
-#ifdef IN_GCC
-#include "d-dmd-gcc.h"
-#endif
-
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
@@ -968,11 +964,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
-#ifdef IN_GCC
-                t = d_gcc_builtin_va_list_d_type;
-#else
-                t = Type::tvoid->pointerTo();
-#endif
+                t = Type::tvalist;
                 argptr = new VarDeclaration(0, t, Id::_argptr, NULL);
                 argptr->semantic(sc2);
                 sc2->insert(argptr);
