@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag5385.d(3): Error: class imports.fail5385.C member privX is not accessible
 fail_compilation/diag5385.d(4): Error: class imports.fail5385.C member packX is not accessible

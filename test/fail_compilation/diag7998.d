@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag7998.d(3): Error: static assert  "abcxe"
 ---

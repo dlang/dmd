@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag7050a.d(5): Error: safe function 'diag7050a.foo' cannot call system function 'diag7050a.Foo.this'
 ---

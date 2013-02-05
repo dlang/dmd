@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/fail8631.d(14): Error: function fail8631.D.foo does not override any function, did you mean to override 'fail8631.B.foo'?
 ---

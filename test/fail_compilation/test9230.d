@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/test9230.d(12): Error: cannot implicitly convert expression (s) of type const(char[]) to string
 fail_compilation/test9230.d(18): Error: cannot implicitly convert expression (a) of type int[] to immutable(int[])

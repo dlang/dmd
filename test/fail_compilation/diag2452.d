@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag2452.d(14): Error: class diag2452.C interface function I.f(float p) isn't implemented
 ---

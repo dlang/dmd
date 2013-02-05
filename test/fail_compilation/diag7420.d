@@ -1,6 +1,6 @@
 // REQUIRED_ARGS: -m32
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag7420.d(3): Error: variable x cannot be read at compile time
 fail_compilation/diag7420.d(3):        while evaluating: static assert(x < 4)

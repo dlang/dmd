@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag6707.d(9): Error: mutable method diag6707.Foo.value is not callable using a const object
 ---

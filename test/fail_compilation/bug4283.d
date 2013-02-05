@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/bug4283.d(12): Error: Declaration expected, not '}'
 ---

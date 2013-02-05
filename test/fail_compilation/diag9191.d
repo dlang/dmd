@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+COMPILE_OUTPUT:
 ---
 fail_compilation/diag9191.d(16): Error: function diag9191.C1.aaa does not override any function, did you mean to override 'diag9191.B1.aa'?
 fail_compilation/diag9191.d(21): Error: function diag9191.C2.aaa does not override any function, did you mean to override 'diag9191.I1.a'?
