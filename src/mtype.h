@@ -181,6 +181,7 @@ struct Type : Object
     #define tindex      tsize_t         // array/ptr index
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
+    static Type *tvalist;               // va_list alias
     #define terror      basic[Terror]   // for error recovery
 
     #define tnull       basic[Tnull]    // for null type
