@@ -183,8 +183,8 @@ else
 
 extern (D) pure
 {
-WORD HIWORD(long l) { return cast(WORD)((l >> 16) & 0xFFFF); }
-WORD LOWORD(long l) { return cast(WORD)l; }
+WORD HIWORD(long x) { return cast(WORD)((x >> 16) & 0xFFFF); }
+WORD LOWORD(long x) { return cast(WORD)x; }
 bool FAILED(int status) { return status < 0; }
 bool SUCCEEDED(int Status) { return Status >= 0; }
 }
