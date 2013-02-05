@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -release -O -g -inline
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -release -O -g -inline
 
 /*
  *************************************************************************

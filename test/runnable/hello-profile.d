@@ -1,6 +1,6 @@
-// PERMUTE_ARGS: 
-// REQUIRED_ARGS: -profile
-// POST_SCRIPT: runnable/extra-files/hello-profile-postscript.sh
+// @PERMUTE_ARGS@: 
+// @REQUIRED_ARGS@: -profile
+// @POST_SCRIPT@: runnable/extra-files/hello-profile-postscript.sh
 
 module hello;
 

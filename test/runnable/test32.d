@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test32a.d
-// PERMUTE_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/test32a.d
+// @PERMUTE_ARGS@:
 
 import imports.test32a;
 

@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// @REQUIRED_ARGS@:
 
 import std.array;
 import core.stdc.math : cos, fabs, sin, sqrt;

@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -inline -g -O
+// @PERMUTE_ARGS@: -inline -g -O
 
 extern(C) int printf(const char*, ...);
 

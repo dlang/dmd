@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -g
+// @REQUIRED_ARGS@: -g
 
 // 104. fails only with -g
 

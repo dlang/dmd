@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// @REQUIRED_ARGS@:
 
 import std.math: poly;
 import std.c.stdarg;

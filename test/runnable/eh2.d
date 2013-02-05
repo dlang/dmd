@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -fPIC
+// @PERMUTE_ARGS@: -fPIC
 
 extern(C) int printf(const char*, ...);
 

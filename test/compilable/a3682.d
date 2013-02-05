@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/b3682.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/b3682.d
+// @PERMUTE_ARGS@:
 
 // 3682
 

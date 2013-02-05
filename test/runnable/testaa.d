@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -fPIC
+// @PERMUTE_ARGS@: -fPIC
 
 /* Test associative arrays */
 

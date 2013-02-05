@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXECUTE_ARGS: runnable/wc.d
+// @PERMUTE_ARGS@:
+// @EXECUTE_ARGS@: runnable/wc.d
 
 import std.file;
 

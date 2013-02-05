@@ -7,7 +7,7 @@ template allSatisfy(alias F, T...) { enum bool allSatisfy = true; }
 template isIntegral(T) { enum bool isIntegral = true; }
 
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/ice6538.d(18): Error: cannot take a not yet instantiated symbol 'sizes' inside template constraint
 fail_compilation/ice6538.d(23): Error: template ice6538.foo does not match any function template declaration. Candidates are:
@@ -24,7 +24,7 @@ void test6538a()
 }
 
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/ice6538.d(36): Error: cannot take a not yet instantiated symbol 't1' inside template constraint
 fail_compilation/ice6538.d(36): Error: cannot take a not yet instantiated symbol 't2' inside template constraint
@@ -50,7 +50,7 @@ template Sym(alias A)
 }
 
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/ice6538.d(63): Error: cannot take a not yet instantiated symbol 'this' inside template constraint
 fail_compilation/ice6538.d(69): Error: template ice6538.S.foo does not match any function template declaration. Candidates are:
@@ -71,7 +71,7 @@ void test9361a()
 }
 
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/ice6538.d(85): Error: cannot take a not yet instantiated symbol 'super' inside template constraint
 fail_compilation/ice6538.d(90): Error: template ice6538.D.foo does not match any function template declaration. Candidates are:

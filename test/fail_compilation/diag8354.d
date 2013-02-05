@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag8354.d(3): Error: must import std.math to use ^^ operator
 fail_compilation/diag8354.d(5): Error: must import std.math to use ^^ operator

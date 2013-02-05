@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -profile
+// @REQUIRED_ARGS@: -profile
 
 module testprofile;
 

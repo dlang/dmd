@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/tlsa.d
+// @EXTRA_SOURCES@: imports/tlsa.d
 
 import std.c.stdio;
 import imports.tlsa;

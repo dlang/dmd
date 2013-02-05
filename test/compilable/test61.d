@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 import imports.test61a;
 alias imports.test61a.bar bar;

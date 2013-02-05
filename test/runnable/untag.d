@@ -1,5 +1,5 @@
 #!/home/aalexandre/dmd2/linux/bin/rdmd
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 import std.algorithm, std.ascii, std.conv, std.exception,
     std.file, std.getopt, std.path, std.range, std.stdio,

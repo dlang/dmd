@@ -1,6 +1,6 @@
-// REQUIRED_ARGS: -property
+// @REQUIRED_ARGS@: -property
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag8629.d(9): Error: no property 'gunc' for type 'S'
 ---

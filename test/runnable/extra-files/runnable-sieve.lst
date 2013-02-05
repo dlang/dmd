@@ -1,6 +1,6 @@
-       |// PERMUTE_ARGS:
-       |// REQUIRED_ARGS: -cov
-       |// POST_SCRIPT: runnable/extra-files/sieve-postscript.sh
+       |// @PERMUTE_ARGS@:
+       |// @REQUIRED_ARGS@: -cov
+       |// @POST_SCRIPT@: runnable/extra-files/sieve-postscript.sh
        |
        |/* Eratosthenes Sieve prime number calculation. */
        |

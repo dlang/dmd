@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/test21a.d
+// @EXTRA_SOURCES@: imports/test21a.d
 
 import imports.test21a;
 

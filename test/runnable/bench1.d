@@ -1,5 +1,5 @@
-// REQUIRED_ARGS:
-// EXECUTE_ARGS: 10000
+// @REQUIRED_ARGS@:
+// @EXECUTE_ARGS@: 10000
 
 extern(C) int printf(const char *, ...);
 extern(C) int atoi(const char *);

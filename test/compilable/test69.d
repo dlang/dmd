@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 // ICE(expression.c) DMD 0.110
 // http://www.digitalmars.com/d/archives/digitalmars/D/bugs/2966.html

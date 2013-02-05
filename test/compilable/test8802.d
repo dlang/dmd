@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 enum A : typeof(null)*
 {
     a = null

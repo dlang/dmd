@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -inline -release -g -O -d -dw -de
+// @PERMUTE_ARGS@: -inline -release -g -O -d -dw -de
 
 void test(int*[] arr...)
 {

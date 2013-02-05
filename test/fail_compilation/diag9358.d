@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag9358.d(12): Error: 'x' must be of integral or string type, it is a double
 fail_compilation/diag9358.d(14): Error: case must be a string or an integral constant, not 1.1

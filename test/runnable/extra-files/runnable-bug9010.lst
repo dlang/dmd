@@ -1,6 +1,6 @@
-       |// PERMUTE_ARGS: 
-       |// POST_SCRIPT: runnable/extra-files/bug9010-postscript.sh 
-       |// REQUIRED_ARGS: -cov 
+       |// @PERMUTE_ARGS@: 
+       |// @POST_SCRIPT@: runnable/extra-files/bug9010-postscript.sh 
+       |// @REQUIRED_ARGS@: -cov 
        | 
        |struct A
        |{

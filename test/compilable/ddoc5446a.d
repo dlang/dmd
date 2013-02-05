@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -D -Ddtest_results/compilable -o-
 module ddoc5446a;
 
 /** */

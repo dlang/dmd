@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -O -inline
+// @PERMUTE_ARGS@: -O -inline
 
 // Test value-range propagation.
 // See Bug 3147, Bug 6000, Bug 5225.

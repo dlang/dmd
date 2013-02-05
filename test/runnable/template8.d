@@ -1,6 +1,6 @@
 // NOTE: comes from std.bitmanip
 
-// PERMUTE_ARGS:
+// @PERMUTE_ARGS@:
 
 private string myToString(ulong n)
 {

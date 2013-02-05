@@ -73,9 +73,26 @@ struct EnvData
     string required_args;
 }
 
+bool checkParameters(string file, bool[string] tokens)
+{
+    enum token_re = ctRegex!(`@([A-Z_]+)@`, "g");
+
+    bool r = true;
+    foreach (m; match(file, token_re))
+    {
+        if (m.captures[1] !in tokens)
+        {
+            r = false;
+            writefln("Unknown test parameter @%s@", m.captures[1]);
+        }
+    }
+
+    return r;
+}
+
 bool findTestParameter(string file, string token, ref string result)
 {
-    auto tokenStart = std.string.indexOf(file, token);
+    auto tokenStart = std.string.indexOf(file, "@" ~ token ~ "@");
     if (tokenStart == -1) return false;
 
     auto lineEndR = std.string.indexOf(file[tokenStart .. $], "\r");
@@ -87,7 +104,7 @@ bool findTestParameter(string file, string token, ref string result)
     //writeln("found ", token, " in line: ", file.length, ", ", tokenStart, ", ", tokenStart+lineEnd);
     //writeln("found ", token, " in line: '", file[tokenStart .. tokenStart+lineEnd], "'");
 
-    result = strip(file[tokenStart+token.length .. tokenStart+lineEnd]);
+    result = strip(file[tokenStart+token.length+2 .. tokenStart+lineEnd]); // +2 for @@
     // skips the :, if present
     if (result.length > 0 && result[0] == ':')
         result = strip(result[1 .. $]);
@@ -107,7 +124,7 @@ bool findOutputParameter(string file, string token, out string result, string se
 
     while (true)
     {
-        auto istart = std.string.indexOf(file, token);
+        auto istart = std.string.indexOf(file, "@" ~ token ~ "@");
         if (istart == -1)
             break;
         found = true;
@@ -145,7 +162,25 @@ bool findOutputParameter(string file, string token, out string result, string se
 
 void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
+    static bool[string] valid_tokens;
+    if (!valid_tokens.length)
+    {
+        valid_tokens = [
+            "REQUIRED_ARGS": true,
+            "PERMUTE_ARGS": true,
+            "EXECUTE_ARGS": true,
+            "EXTRA_SOURCES": true,
+            "COMPILE_SEPARATELY": true,
+            "DISABLED": true,
+            "TEST_OUTPUT": true,
+            "POST_SCRIPT": true,
+        ];
+    }
+
     string file = cast(string)std.file.read(input_file);
+
+    enforce(checkParameters(file, valid_tokens), "Found unknown test "
+            "parameters, can't continue");
 
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)

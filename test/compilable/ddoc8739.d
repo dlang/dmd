@@ -1,6 +1,6 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 8739
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -D -Ddtest_results/compilable -o-
+// @POST_SCRIPT@: compilable/extra-files/ddocAny-postscript.sh 8739
 
 module ddoc8739;
 

@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/link7745b.d
-// PERMUTE_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/link7745b.d
+// @PERMUTE_ARGS@:
 
 import imports.link7745b;
 

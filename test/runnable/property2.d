@@ -1,4 +1,4 @@
-// PERMUTE_ARGS: -property
+// @PERMUTE_ARGS@: -property
 
 extern (C) int printf(const char* fmt, ...);
 

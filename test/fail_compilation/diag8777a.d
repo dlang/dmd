@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag8777a.d(3): Error: constructor diag8777a.Foo.this missing initializer for immutable field bar
 ---

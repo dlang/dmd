@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/test4838.d(13): Error: const/immutable/shared/inout attributes are only valid for non-static member functions
 fail_compilation/test4838.d(14): Error: const/immutable/shared/inout attributes are only valid for non-static member functions

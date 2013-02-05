@@ -1,5 +1,5 @@
-// PERMUTE_ARGS:
-// EXECUTE_ARGS: 1000
+// @PERMUTE_ARGS@:
+// @EXECUTE_ARGS@: 1000
 
 import core.stdc.stdio;
 import core.stdc.time;

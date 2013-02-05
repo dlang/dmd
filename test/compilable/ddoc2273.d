@@ -1,7 +1,7 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -D -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 2273
-// REQUIRED_ARGS: -m32
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -D -Ddtest_results/compilable -o-
+// @POST_SCRIPT@: compilable/extra-files/ddocAny-postscript.sh 2273
+// @REQUIRED_ARGS@: -m32
 
 module ddoc2273;
 

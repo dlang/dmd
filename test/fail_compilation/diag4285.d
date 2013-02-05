@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag4285.d(2): Error: template definitions aren't allowed inside functions
 fail_compilation/diag4285.d(3): Error: unrecognized declaration

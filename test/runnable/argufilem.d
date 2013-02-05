@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/argufile.d
+// @EXTRA_SOURCES@: imports/argufile.d
 
 // NOTE: The bug only works when main.d and argufile.d are put in 
 //			separate files and compiled like 'dmd main.d argufile.d' 

@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/test38a.d
-// PERMUTE_ARGS:
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/test38a.d
+// @PERMUTE_ARGS@:
 
 import std.stdio;
 import imports.test38a;

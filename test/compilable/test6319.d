@@ -1,4 +1,4 @@
-// REQUIRED_ARGS: -debug
+// @REQUIRED_ARGS@: -debug
 
 int x;
 

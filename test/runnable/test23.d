@@ -1,4 +1,4 @@
-// REQUIRED_ARGS:
+// @REQUIRED_ARGS@:
 
 module test;
 

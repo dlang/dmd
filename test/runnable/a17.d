@@ -1,4 +1,4 @@
-// EXTRA_SOURCES: imports/a17a.d
+// @EXTRA_SOURCES@: imports/a17a.d
 
 module a17;
 

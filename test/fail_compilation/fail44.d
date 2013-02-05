@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/fail44.d(18): Error: expression bar[i] is void and has no value
 ---

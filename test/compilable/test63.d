@@ -1,5 +1,5 @@
-// EXTRA_SOURCES: imports/test63a.d
-// PERMUTE_ARGS:
+// @EXTRA_SOURCES@: imports/test63a.d
+// @PERMUTE_ARGS@:
 
 private import imports.test63a;
 

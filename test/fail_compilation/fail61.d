@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/fail61.d(22): Error: no property 'B' for type 'fail61.A.B', did you mean 'C'?
 fail_compilation/fail61.d(23): Error: no property 'B' for type 'fail61.A.B', did you mean 'C'?

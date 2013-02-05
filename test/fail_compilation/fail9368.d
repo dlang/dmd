@@ -1,7 +1,7 @@
-// PERMUTE_ARGS:
-// REQUIRED_ARGS: -d
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -d
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/fail9368.d(20): Error: enum member b not represented in final switch
 ---

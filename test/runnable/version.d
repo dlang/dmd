@@ -1,5 +1,5 @@
-// PERMUTE_ARGS: 
-// REQUIRED_ARGS: -version=3 -version=foo
+// @PERMUTE_ARGS@:
+// @REQUIRED_ARGS@: -version=3 -version=foo
 
 extern(C) int printf(const char*, ...);
 

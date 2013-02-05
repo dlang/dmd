@@ -1,5 +1,5 @@
 /*
-TEST_OUTPUT:
+@TEST_OUTPUT@:
 ---
 fail_compilation/diag8777d.d(4): Error: cannot modify immutable expression x
 ---

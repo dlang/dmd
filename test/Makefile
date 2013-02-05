@@ -17,33 +17,33 @@
 #
 # In-test variables:
 #
-#   COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
-#                        together in an extra setp.
-#                        default: (none, aka compile/link all in one step)
+#   @COMPILE_SEPARATELY@: if present, forces each .d file to compile separately and linked
+#                         together in an extra setp.
+#                         default: (none, aka compile/link all in one step)
 #
-#   EXECUTE_ARGS:        parameters to add to the execution of the test
-#                        default: (none)
+#   @EXECUTE_ARGS@:       parameters to add to the execution of the test
+#                         default: (none)
 #
-#   EXTRA_SOURCES:       list of extra files to build and link along with the test
-#                        default: (none)
+#   @EXTRA_SOURCES@:      list of extra files to build and link along with the test
+#                         default: (none)
 #
-#   PERMUTE_ARGS:        the set of arguments to permute in multiple $(DMD) invocations
-#                        default: the make variable ARGS (see below)
+#   @PERMUTE_ARGS@:       the set of arguments to permute in multiple $(DMD) invocations
+#                         default: the make variable ARGS (see below)
 #
-#   POST_SCRIPT:         name of script to execute after test run
-#                        note: arguments to the script may be included after the name.
-#                              additionally, the name of the file that contains the output
-#                              of the compile/link/run steps is added as the last parameter.
-#                        default: (none)
+#   @POST_SCRIPT@:        name of script to execute after test run
+#                         note: arguments to the script may be included after the name.
+#                               additionally, the name of the file that contains the output
+#                               of the compile/link/run steps is added as the last parameter.
+#                         default: (none)
 #
-#   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
-#                        default: (none)
-#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD) 
-#                              command line (see below)
+#   @REQUIRED_ARGS@:      arguments to add to the $(DMD) command line
+#                         default: (none)
+#                         note: the make variable @REQUIRED_ARGS@ is also added to the $(DMD)
+#                               command line (see below)
 #
-#   DISABLED:            text describing why the test is disabled (if empty, the test is
-#                        considered to be enabled).
-#                        default: (none, enabled)
+#   @DISABLED@:           text describing why the test is disabled (if empty, the test is
+#                         considered to be enabled).
+#                         default: (none, enabled)
 
 ifeq (,$(OS))
     OS:=$(shell uname)

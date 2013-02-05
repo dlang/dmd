@@ -1,6 +1,6 @@
-// PERMUTE_ARGS:
-// EXECUTE_ARGS: runnable/extra-files/testzip.zip test_results/runnable/testzip-out.zip
-// POST_SCRIPT: runnable/extra-files/testzip-postscript.sh
+// @PERMUTE_ARGS@:
+// @EXECUTE_ARGS@: runnable/extra-files/testzip.zip test_results/runnable/testzip-out.zip
+// @POST_SCRIPT@: runnable/extra-files/testzip-postscript.sh
 
 import std.c.stdio;
 import std.conv;

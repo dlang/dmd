@@ -1,6 +1,6 @@
-// COMPILE_SEPARATELY
-// EXTRA_SOURCES: imports/link8023b.d
-// PERMUTE_ARGS: -inline -release
+// @COMPILE_SEPARATELY@
+// @EXTRA_SOURCES@: imports/link8023b.d
+// @PERMUTE_ARGS@: -inline -release
 
 import imports.link8023b;
 
