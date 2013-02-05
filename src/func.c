@@ -3953,9 +3953,6 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     if (m)
     {   m->needmoduleinfo = 1;
         //printf("module1 %s needs moduleinfo\n", m->toChars());
-#ifdef IN_GCC
-        m->strictlyneedmoduleinfo = 1;
-#endif
     }
 }
 
@@ -4091,9 +4088,6 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     if (m)
     {   m->needmoduleinfo = 1;
         //printf("module2 %s needs moduleinfo\n", m->toChars());
-#ifdef IN_GCC
-        m->strictlyneedmoduleinfo = 1;
-#endif
     }
 }
 

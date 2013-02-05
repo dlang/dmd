@@ -68,9 +68,6 @@ struct Module : Package
     unsigned numlines;  // number of lines in source file
     int isDocFile;      // if it is a documentation input file, not D source
     int needmoduleinfo;
-#ifdef IN_GCC
-    int strictlyneedmoduleinfo;
-#endif
 
     int selfimports;            // 0: don't know, 1: does not, 2: does
     int selfImports();          // returns !=0 if module imports itself
