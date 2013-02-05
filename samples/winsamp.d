@@ -4,6 +4,9 @@ module winsamp;
  +  dmd winsamp winsamp.def
  + or:
  +  dmd winsamp -L-Subsystem:Windows
+ +
+ + 64 bit version:
+ +  dmd -m64 winsamp -L-Subsystem:Windows user32.lib
  +/
 
 pragma(lib, "gdi32.lib");
@@ -97,7 +100,7 @@ int myWinMain(HINSTANCE hInstance, HINSTANCE hPrevInstance, LPSTR lpCmdLine, int
         DispatchMessageA(&msg);
     }
 
-    return msg.wParam;
+    return cast(int) msg.wParam;
 }
 
 int* p;
