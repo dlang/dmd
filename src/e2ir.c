@@ -558,6 +558,8 @@ elem *array_toDarray(Type *t, elem *e)
                             ty = TYint;
                         else if (sz <= 8)
                             ty = TYllong;
+                        else if (sz <= 16)
+                            ty = TYcent;
                     }
                     e->Ety = ty;
                     stmp = symbol_genauto(type_fake(ty));
