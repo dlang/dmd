@@ -1969,6 +1969,12 @@ elem *ComExp::toElem(IRState *irs)
             e = el_bin(OPxor, ty, e1, el_long(ty, 1));
             break;
 
+        case Tarray:
+        case Tsarray:
+            error("Array operation %s not implemented", toChars());
+            e = el_long(type->totym(), 0);  // error recovery
+            break;
+
         case Tvector:
         {   // rewrite (~e) as (e^~0)
             elem *ec = el_calloc();
