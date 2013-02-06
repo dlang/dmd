@@ -1550,7 +1550,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
     {   StringExp *es1 = (StringExp *)e1;
         if (indx >= es1->len)
         {
-            error(loc, "string index %ju is out of bounds [0 .. %zu]", indx, es1->len);
+            error(loc, "string index %llu is out of bounds [0 .. %llu]", indx, (ulonglong)es1->len);
             return EXP_CANT_INTERPRET;
         }
         else
@@ -1560,7 +1560,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
     ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
     if (indx >= ale->elements->dim)
     {
-        error(loc, "array index %ju is out of bounds %s[0 .. %u]", indx, e1->toChars(), ale->elements->dim);
+        error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
         return EXP_CANT_INTERPRET;
     }
     Expression *e = ale->elements->tdata()[indx];

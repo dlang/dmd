@@ -907,7 +907,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     size_t nparams = Parameter::dim(tf->parameters);
 
     if (nargs > nparams && tf->varargs == 0)
-    {   error(loc, "expected %zu arguments, not %llu for non-variadic function type %s", nparams, (ulonglong)nargs, tf->toChars());
+    {   error(loc, "expected %llu arguments, not %llu for non-variadic function type %s", (ulonglong)nparams, (ulonglong)nargs, tf->toChars());
         return Type::terror;
     }
 

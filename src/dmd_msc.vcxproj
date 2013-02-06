@@ -113,6 +113,11 @@
     <ClCompile Include="argtypes.c" />
     <ClCompile Include="arrayop.c" />
     <ClCompile Include="attrib.c" />
+    <ClCompile Include="backend\backconfig.c" />
+    <ClCompile Include="backend\cv8.c" />
+    <ClCompile Include="backend\pdata.c" />
+    <ClCompile Include="backend\ph2.c" />
+    <ClCompile Include="backend\util2.c" />
     <ClCompile Include="builtin.c" />
     <ClCompile Include="canthrow.c" />
     <ClCompile Include="cast.c" />
@@ -121,6 +126,7 @@
     <ClCompile Include="cond.c" />
     <ClCompile Include="constfold.c" />
     <ClCompile Include="cppmangle.c" />
+    <ClCompile Include="ctfeexpr.c" />
     <ClCompile Include="declaration.c" />
     <ClCompile Include="delegatize.c" />
     <ClCompile Include="doc.c" />
@@ -158,7 +164,6 @@
     <ClCompile Include="opover.c" />
     <ClCompile Include="optimize.c" />
     <ClCompile Include="parse.c" />
-    <ClCompile Include="ph.c" />
     <ClCompile Include="s2ir.c" />
     <ClCompile Include="scanmscoff.c" />
     <ClCompile Include="scope.c" />
@@ -190,7 +195,6 @@
     </ClCompile>
     <ClCompile Include="unittests.c" />
     <ClCompile Include="utf.c" />
-    <ClCompile Include="util.c" />
     <ClCompile Include="version.c" />
     <ClCompile Include="backend\aa.c" />
     <ClCompile Include="backend\bcomplex.c" />
@@ -275,7 +279,6 @@
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="root\gnuc.c" />
     <ClCompile Include="root\longdouble.c" />
     <ClCompile Include="root\man.c" />
     <ClCompile Include="root\port.c" />
@@ -314,7 +317,6 @@
 if errorlevel 1 goto VCReportError
 $(IntDir)%(Filename).exe
 </Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">idgen.c;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
@@ -330,7 +332,7 @@ $(IntDir)%(Filename).exe
 if errorlevel 1 goto VCReportError
 $(IntDir)%(Filename).exe
 </Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mtype.h;%(AdditionalInputs)</AdditionalInputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mtype.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">impcnvtab.c;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
@@ -346,14 +348,31 @@ $(IntDir)%(Filename).exe
 if errorlevel 1 goto VCReportError
 "$(IntDir)%(Filename).exe"
 </Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cc.h;oper.h;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c;%(Outputs)</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
       <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
 if errorlevel 1 goto VCReportError
-"$(IntDir)%(Filename).exe"</Command>
-      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cc.h;oper.h;%(AdditionalInputs)</AdditionalInputs>
-      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c;%(Outputs)</Outputs>
+"$(IntDir)%(Filename).exe"
+</Command>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
+if errorlevel 1 goto VCReportError
+"$(IntDir)%(Filename).exe"
+</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
+if errorlevel 1 goto VCReportError
+"$(IntDir)%(Filename).exe"
+</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Building and running $(IntDir)%(Filename).exe</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">backend\cc.h;backend\oper.h</AdditionalInputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</LinkObjects>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">backend\cc.h;backend\oper.h</AdditionalInputs>
+      <LinkObjects Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkObjects>
     </CustomBuild>
     <ClCompile Include="cdxxx.c">
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
@@ -482,7 +501,6 @@ if errorlevel 1 goto VCReportError
     <ClInclude Include="tk\vec.h" />
     <ClInclude Include="root\aav.h" />
     <ClInclude Include="root\async.h" />
-    <ClInclude Include="root\gnuc.h" />
     <ClInclude Include="root\longdouble.h" />
     <ClInclude Include="root\port.h" />
     <ClInclude Include="root\rmem.h" />
@@ -505,6 +523,31 @@ if errorlevel 1 goto VCReportError
       <FileType>Document</FileType>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
     </CustomBuildStep>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="..\VERSION">
+      <FileType>Document</FileType>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cmd /E:ON /Q /C "for /f %%f in ( ..\VERSION ) do ( echo "%%f" )" &gt;verstr.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Generating verstr.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">verstr.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
+      </AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cmd /E:ON /Q /C "for /f %%f in ( ..\VERSION ) do ( echo "%%f" )" &gt;verstr.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Generating verstr.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">verstr.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
+      </AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cmd /E:ON /Q /C "for /f %%f in ( ..\VERSION ) do ( echo "%%f" )" &gt;verstr.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">Generating verstr.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">verstr.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
+      </AdditionalInputs>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|x64'">cmd /E:ON /Q /C "for /f %%f in ( ..\VERSION ) do ( echo "%%f" )" &gt;verstr.h</Command>
+      <Message Condition="'$(Configuration)|$(Platform)'=='Release|x64'">Generating verstr.h</Message>
+      <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">verstr.h</Outputs>
+      <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
+      </AdditionalInputs>
+    </CustomBuild>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
