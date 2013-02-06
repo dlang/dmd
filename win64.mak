@@ -19,8 +19,8 @@ DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -I$(IMPDIR) -property
 UDFLAGS=-m$(MODEL) -O -release -w -Isrc -I$(IMPDIR) -property
 DDOCFLAGS=-c -w -o- -Isrc -I$(IMPDIR)
 
-#CFLAGS=/O2 /I$(VCDIR)\INCLUDE /I$(SDKDIR)\Include
-CFLAGS=/Zi /I$(VCDIR)\INCLUDE /I$(SDKDIR)\Include
+#CFLAGS=/Zi /nologo /I$(VCDIR)\INCLUDE /I$(SDKDIR)\Include
+CFLAGS=/O2 /nologo /I$(VCDIR)\INCLUDE /I$(SDKDIR)\Include
 
 DRUNTIME_BASE=druntime64
 DRUNTIME=lib\$(DRUNTIME_BASE).lib
