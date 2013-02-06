@@ -1,4 +1,3 @@
-
 // Compiler implementation of the D programming language
 // Copyright (c) 1999-2012 by Digital Mars
 // All Rights Reserved
@@ -1154,8 +1153,8 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 char c = ((char *)se->string)[i];
 
-                if (c < 0x20 || c > 0x7E)
-                    error("mangled names may only contain printable ASCII characters, not '0x%x'", c);
+                if (c <= 0x20)
+                    error("mangled names may not contain ASCII characters below 0x20");
             }
         }
     }
