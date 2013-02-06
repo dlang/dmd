@@ -7,13 +7,13 @@ fail_compilation/fail9418.d(23): Error: Array operation a[] + a[] not implemente
 fail_compilation/fail9418.d(24): Error: Array operation a[] - a[] not implemented
 fail_compilation/fail9418.d(25): Error: Array operation a[] * a[] not implemented
 fail_compilation/fail9418.d(26): Error: Array operation a[] / a[] not implemented
+fail_compilation/fail9418.d(27): Error: Array operation a[] % a[] not implemented
 fail_compilation/fail9418.d(28): Error: Array operation a[] ^ a[] not implemented
 fail_compilation/fail9418.d(29): Error: Array operation a[] & a[] not implemented
 fail_compilation/fail9418.d(30): Error: Array operation a[] | a[] not implemented
 fail_compilation/fail9418.d(31): Error: Array operation a[] ^^ a[] not implemented
 ---
 */
-
 void main()
 {
     int[] a = [1, 2, 3];
@@ -24,7 +24,7 @@ void main()
     a = a[] - a[];
     a = a[] * a[];
     a = a[] / a[];
-  //a = a[] % a[];
+    a = a[] % a[];  // 9458
     a = a[] ^ a[];
     a = a[] & a[];
     a = a[] | a[];

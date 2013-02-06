@@ -2290,15 +2290,20 @@ elem *DivExp::toElem(IRState *irs)
 
 elem *ModExp::toElem(IRState *irs)
 {
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+
     elem *e;
-    elem *e1;
-    elem *e2;
-    tym_t tym;
 
-    tym = type->totym();
-
-    e1 = this->e1->toElem(irs);
-    e2 = this->e2->toElem(irs);
+    tym_t tym = type->totym();
+    elem *e1 = this->e1->toElem(irs);
+    elem *e2 = this->e2->toElem(irs);
 
 #if 0 // Now inlined
     if (this->e1->type->isfloating())
