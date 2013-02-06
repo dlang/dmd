@@ -14,6 +14,8 @@ if "%opt%" == "toir"     set opt=%opt%.c backend\strtold.c root\longdouble.c
 if "%opt%" == "toir.obj" set opt=%opt% strtold.obj longdouble.obj
 rem remove includes after ";"
 if "%opt%" == "tk" set opt=/Itk
+rem -DX=1 split into two arguments
+if "%opt%" == "1" goto shift
 
 if "%opt:~0,1%" == "-" goto opt
 if "%opt:~0,1%" == "/" goto opt
