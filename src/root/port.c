@@ -345,7 +345,7 @@ int Port::memicmp(const char *s1, const char *s2, int n)
 
 int Port::stricmp(const char *s1, const char *s2)
 {
-    return ::stricmp(s1, s2, n);
+    return ::stricmp(s1, s2);
 }
 
 #endif
