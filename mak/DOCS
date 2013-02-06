@@ -1,0 +1,22 @@
+DOCS=\
+	$(DOCDIR)\object.html \
+	$(DOCDIR)\core_atomic.html \
+	$(DOCDIR)\core_bitop.html \
+	$(DOCDIR)\core_cpuid.html \
+	$(DOCDIR)\core_demangle.html \
+	$(DOCDIR)\core_exception.html \
+	$(DOCDIR)\core_math.html \
+	$(DOCDIR)\core_memory.html \
+	$(DOCDIR)\core_runtime.html \
+	$(DOCDIR)\core_simd.html \
+	$(DOCDIR)\core_thread.html \
+	$(DOCDIR)\core_time.html \
+	$(DOCDIR)\core_vararg.html \
+	\
+	$(DOCDIR)\core_sync_barrier.html \
+	$(DOCDIR)\core_sync_condition.html \
+	$(DOCDIR)\core_sync_config.html \
+	$(DOCDIR)\core_sync_exception.html \
+	$(DOCDIR)\core_sync_mutex.html \
+	$(DOCDIR)\core_sync_rwmutex.html \
+	$(DOCDIR)\core_sync_semaphore.html
