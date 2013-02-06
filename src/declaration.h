@@ -212,6 +212,7 @@ struct TypedefDeclaration : Declaration
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     Type *htype;
     Type *hbasetype;
 

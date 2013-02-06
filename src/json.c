@@ -1,5 +1,5 @@
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -26,7 +26,8 @@
 #include "attrib.h"
 #include "cond.h"
 #include "init.h"
-
+#include "import.h"
+#include "id.h"
 
 struct JsonOut
 {
@@ -65,6 +66,7 @@ struct JsonOut
     void propertyStorageClass(const char *name, StorageClass stc);
     void property(const char *name, Loc* loc);
     void property(const char *name, Type* type);
+    void property(const char *name, const char *deconame, Type* type);
     void property(const char *name, Parameters* parameters);
     void property(const char *name, Expressions* expressions);
     void property(const char *name, enum TRUST trust);
@@ -96,7 +98,7 @@ void JsonOut::indent()
     if (buf->offset >= 1 &&
         buf->data[buf->offset - 1] == '\n')
         for (int i = 0; i < indentLevel; i++)
-            buf->writeByte('\t');
+            buf->writeByte(' ');
 }
 
 void JsonOut::removeComma()
@@ -393,7 +395,6 @@ void JsonOut::propertyStorageClass(const char *name, StorageClass stc)
         while (stc)
         {   char tmp[20];
             const char *p = StorageClassDeclaration::stcToChars(tmp, stc);
-if (!p) printf("stc = %lx\n", stc);
             assert(p);
             assert(strlen(p) < sizeof(tmp));
             if (p[0] == '@')
@@ -414,60 +415,45 @@ if (!p) printf("stc = %lx\n", stc);
 
 void JsonOut::property(const char *name, Loc *loc)
 {
-    if (loc == NULL) return;
-
-    const char *filename = loc->filename;
-    if (filename)
+    if (loc)
     {
-        if (!this->filename || strcmp(filename, this->filename))
-            this->filename = filename;
-        else
-            filename = NULL;
-    }
-
-    if (filename || loc->linnum)
-    {
-        propertyStart(name);
-        objectStart();
-
+        const char *filename = loc->filename;
         if (filename)
-            property("file", filename);
+        {
+            if (!this->filename || strcmp(filename, this->filename))
+            {   this->filename = filename;
+                property("file", filename);
+            }
+        }
 
         if (loc->linnum)
-            property("line", loc->linnum);
-
-        objectEnd();
+            property(name, loc->linnum);
     }
 }
 
 void JsonOut::property(const char *name, Type *type)
 {
-    if (type == NULL) return;
-
-    propertyStart(name);
-    objectStart();
-
-    property("kind", type->kind());
-
-    property("pretty", type->toChars());
-
-    if (type->mod)
+    if (type)
     {
-        propertyStart("modifiers");
-        stringStart();
-        type->modToBuffer(buf);
-        stringEnd();
-        comma();
+        property(name, type->toChars());
     }
+}
 
-    type->toJson(this);
-
-    objectEnd();
+void JsonOut::property(const char *name, const char *deconame, Type *type)
+{
+    if (type)
+    {
+        if (type->deco)
+            property(deconame, type->deco);
+        else
+            property(name, type->toChars());
+    }
 }
 
 void JsonOut::property(const char *name, Parameters *parameters)
 {
-    if (parameters == NULL) return;
+    if (parameters == NULL || parameters->dim == 0)
+        return;
 
     propertyStart(name);
     arrayStart();
@@ -480,7 +466,7 @@ void JsonOut::property(const char *name, Parameters *parameters)
             if (p->ident)
                 property("name", p->ident->toChars());
 
-            property("type", p->type);
+            property("type", "deco", p->type);
 
             propertyStorageClass("storageClass", p->storageClass);
 
@@ -494,6 +480,7 @@ void JsonOut::property(const char *name, Parameters *parameters)
     arrayEnd();
 }
 
+/* ========================================================================== */
 
 void Type::toJson(JsonOut *json)
 {
@@ -628,13 +615,16 @@ void TypeVector::toJson(JsonOut *json)
     json->property("basetype", basetype);
 }
 
+
+/* ========================================================================== */
+
 void Dsymbol::toJson(JsonOut *json)
 {
+#if 0
     json->objectStart();
-
     jsonProperties(json);
-
     json->objectEnd();
+#endif
 }
 
 void Dsymbol::jsonProperties(JsonOut *json)
@@ -648,8 +638,9 @@ void Dsymbol::jsonProperties(JsonOut *json)
 
     json->property("comment", (const char *)comment);
 
-    json->property("loc", &loc);
+    json->property("line", &loc);
 
+#if 0
     if (!isModule())
     {
         Module *module = getModule();
@@ -670,13 +661,17 @@ void Dsymbol::jsonProperties(JsonOut *json)
             json->objectEnd();
         }
     }
+#endif
 }
 
 void Module::toJson(JsonOut *json)
 {
     json->objectStart();
 
-    jsonProperties(json);
+    if (md)
+        json->property("name", md->toChars());
+
+    json->property("kind", kind());
 
     json->filename = srcfile->toChars();
     json->property("file", json->filename);
@@ -696,6 +691,7 @@ void Module::toJson(JsonOut *json)
 
 void Module::jsonProperties(JsonOut *json)
 {
+#if 0
     Dsymbol::jsonProperties(json);
 
     if (md && md->packages)
@@ -710,6 +706,57 @@ void Module::jsonProperties(JsonOut *json)
     }
 
     json->property("prettyName", toPrettyChars());
+#endif
+}
+
+void Import::toJson(JsonOut *json)
+{
+    if (id == Id::object)
+        return;
+
+    json->objectStart();
+
+    json->propertyStart("name");
+    json->stringStart();
+    if (packages && packages->dim)
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {   Identifier *pid = (*packages)[i];
+
+            json->stringPart(pid->toChars());
+            json->buf->writeByte('.');
+        }
+    }
+    json->stringPart(id->toChars());
+    json->stringEnd();
+    json->comma();
+
+    json->property("kind", kind());
+    json->property("comment", (const char *)comment);
+    json->property("line", &loc);
+    if (prot() != PROTpublic)
+        json->property("protection", Pprotectionnames[prot()]);
+    if (aliasId)
+        json->property("alias", aliasId->toChars());
+
+    if (names.dim)
+    {
+        json->propertyStart("aliases");
+        json->arrayStart();
+        for (size_t i = 0; i < names.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+
+            if (alias)
+                json->property(alias->toChars(), name->toChars());
+            else
+                json->item(name->toChars());
+        }
+        json->arrayEnd();
+    }
+
+    json->objectEnd();
 }
 
 void AttribDeclaration::toJson(JsonOut *json)
@@ -751,12 +798,6 @@ void Declaration::toJson(JsonOut *json)
 
     jsonProperties(json);
 
-    TypedefDeclaration *td = isTypedefDeclaration();
-    if (td)
-    {
-        json->property("base", td->basetype);
-    }
-
     json->objectEnd();
 }
 
@@ -766,10 +807,34 @@ void Declaration::jsonProperties(JsonOut *json)
 
     json->propertyStorageClass("storageClass", storage_class);
 
-    json->property("type", type);
+    json->property("type", "deco", type);
 
-    if (type != originalType)
-        json->property("originalType", originalType);
+    // Emit originalType if it differs from type
+    if (type != originalType && originalType)
+    {
+        const char *ostr = originalType->toChars();
+        if (type)
+        {   const char *tstr = type->toChars();
+            if (strcmp(tstr, ostr))
+            {
+                //printf("tstr = %s, ostr = %s\n", tstr, ostr);
+                json->property("originalType", ostr);
+            }
+        }
+        else
+            json->property("originalType", ostr);
+    }
+}
+
+void TypedefDeclaration::toJson(JsonOut *json)
+{
+    json->objectStart();
+
+    jsonProperties(json);
+
+    json->property("base", "baseDeco", basetype);
+
+    json->objectEnd();
 }
 
 void AggregateDeclaration::toJson(JsonOut *json)
@@ -781,7 +846,7 @@ void AggregateDeclaration::toJson(JsonOut *json)
     ClassDeclaration *cd = isClassDeclaration();
     if (cd)
     {
-        if (cd->baseClass)
+        if (cd->baseClass && cd->baseClass->ident != Id::Object)
         {
             json->property("base", cd->baseClass->toChars());
         }
@@ -817,18 +882,11 @@ void FuncDeclaration::toJson(JsonOut *json)
 
     jsonProperties(json);
 
-    if (parameters)
-    {
-        json->propertyStart("parameters");
-        json->arrayStart();
-        for (size_t i = 0; i < parameters->dim; i++)
-        {   VarDeclaration *v = (*parameters)[i];
-            v->toJson(json);
-        }
-        json->arrayEnd();
-    }
+    TypeFunction *tf = (TypeFunction *)type;
+    if (tf && tf->ty == Tfunction)
+        json->property("parameters", tf->parameters);
 
-    json->property("endloc", &endloc);
+    json->property("endline", &endloc);
 
     if (foverrides.dim)
     {
@@ -836,9 +894,7 @@ void FuncDeclaration::toJson(JsonOut *json)
         json->arrayStart();
         for (size_t i = 0; i < foverrides.dim; i++)
         {   FuncDeclaration *fd = foverrides[i];
-            json->objectStart();
-            fd->jsonProperties(json);
-            json->objectEnd();
+            json->item(fd->toPrettyChars());
         }
         json->arrayEnd();
     }
@@ -885,11 +941,9 @@ void TemplateDeclaration::toJson(JsonOut *json)
 #endif
                 json->property("kind", "type");
 
-            if (type->specType)
-                json->property("specType", type->specType->toChars());
+            json->property("type", "deco", type->specType);
 
-            if (type->defaultType)
-                json->property("defaultType", type->defaultType->toChars());
+            json->property("default", "defaultDeco", type->defaultType);
         }
 
         TemplateValueParameter *value = s->isTemplateValueParameter();
@@ -897,8 +951,7 @@ void TemplateDeclaration::toJson(JsonOut *json)
         {
             json->property("kind", "value");
 
-            if (value->valType)
-                json->property("valType", value->valType->toChars());
+            json->property("type", "deco", value->valType);
 
             if (value->specValue)
                 json->property("specValue", value->specValue->toChars());
@@ -912,8 +965,7 @@ void TemplateDeclaration::toJson(JsonOut *json)
         {
             json->property("kind", "alias");
 
-            if (alias->specType)
-                json->property("specType", alias->specType->toChars());
+            json->property("type", "deco", alias->specType);
 
             if (alias->specAlias)
                 json->property("specAlias", alias->specAlias->toChars());
@@ -961,10 +1013,7 @@ void EnumDeclaration::toJson(JsonOut *json)
 
     jsonProperties(json);
 
-    json->property("type", type);
-
-    if (memtype)
-        json->property("base", memtype);
+    json->property("base", "baseDeco", memtype);
 
     if (members)
     {
@@ -986,7 +1035,7 @@ void EnumMember::toJson(JsonOut *json)
 
     jsonProperties(json);
 
-    json->property("type", type);
+    json->property("type", "deco", type);
 
     json->objectEnd();
 }
@@ -1003,11 +1052,18 @@ void VarDeclaration::toJson(JsonOut *json)
     if (storage_class & STCfield)
         json->property("offset", offset);
 
-    if (alignment != STRUCTALIGN_DEFAULT)
-        json->property("alignment", alignment);
+    if (alignment && alignment != STRUCTALIGN_DEFAULT)
+        json->property("align", alignment);
 
     json->objectEnd();
 }
 
+void TemplateMixin::toJson(JsonOut *json)
+{
+    json->objectStart();
 
+    jsonProperties(json);
+
+    json->objectEnd();
+}
 
