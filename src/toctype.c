@@ -67,7 +67,10 @@ type *TypeSArray::toCtype()
 type *TypeDArray::toCtype()
 {
     if (!ctype)
+    {
         ctype = type_dyn_array(next->toCtype());
+        ctype->Tident = toChars(); // needed to generate sensible debug info for cv8
+    }
     return ctype;
 }
 
