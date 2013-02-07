@@ -801,7 +801,7 @@ idx_t cv8_darray(type *t, idx_t etypidx)
             break;
 
         default:
-            id = "dArray";
+            id = t->Tident ? t->Tident : "dArray";
             break;
     }
 
@@ -815,7 +815,12 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     TOWORD(d->data + 18, 16);   // size
     cv_namestring(d->data + 20, id);
 
-    return cv_debtyp(d);
+    idx_t top = cv_numdebtypes();
+    idx_t debidx = cv_debtyp(d);
+    if(top != cv_numdebtypes())
+        cv8_udt(id, debidx);
+
+    return debidx;
 }
 
 /****************************************
