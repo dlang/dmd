@@ -575,6 +575,15 @@ void FuncDeclaration::toObjFile(int multiobj)
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
 
+    // tunnel type of "this" to debug info generation
+    if (AggregateDeclaration* ad = func->parent->isAggregateDeclaration())
+    {
+        ::type* t = ad->getType()->toCtype();
+        if(cd)
+            t = t->Tnext; // skip reference
+        f->Fclass = (Classsym *)t;
+    }
+
 #if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
      * distance away from the function parameters, so that an overriding
