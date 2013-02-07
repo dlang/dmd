@@ -638,7 +638,7 @@ bool FileName::equalsExt(const char *ext)
     return equalsExt(str, ext);
 }
 
-int FileName::equalsExt(const char *name, const char *ext)
+bool FileName::equalsExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (!e && !ext)
