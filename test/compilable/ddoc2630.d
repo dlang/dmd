@@ -4,7 +4,7 @@
 
 module ddoc2630;
 
-//~ /// foo function - 1 example
+/// foo function - 1 example
 int foo(int a, int b) { return a + b; }
 
 ///
@@ -114,7 +114,7 @@ unittest
     SomeClass sc = new SomeClass;
 }
 
-/// Outer
+/// Outer - 1 example
 class Outer
 {
     /// Inner
@@ -133,6 +133,16 @@ class Outer
 unittest
 {
     Outer outer = new Outer;
+}
+
+/** foobar - no examples */
+void foobar()
+{
+}
+
+unittest
+{
+    foobar();
 }
 
 void main() { }

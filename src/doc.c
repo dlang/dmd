@@ -512,8 +512,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
     static char pre[] = "$(D_CODE \n";
     OutBuffer *buf = sc->docbuf;
 
-    buf->writestring("$(DDOC_SECTION ");
-    buf->writestring("$(B Example:)");
+    bool exampleFound = false;
     for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
     {
         if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
@@ -523,6 +522,13 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
         const char *body = utd->fbody->toChars();
         if (strlen(body))
         {
+            if (!exampleFound)
+            {
+                exampleFound = true;
+                buf->writestring("$(DDOC_SECTION ");
+                buf->writestring("$(B Example:)");
+            }
+
             codebuf.writestring(pre);
             codebuf.writestring(body);
             codebuf.writestring(")");
@@ -532,7 +538,8 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
         }
     }
 
-    buf->writestring(")");
+    if (exampleFound)
+        buf->writestring(")");
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
