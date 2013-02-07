@@ -763,25 +763,25 @@ idx_t cv8_darray(type *t, idx_t etypidx)
     idx_t ptridx = cv4_typidx(tp);
     type_free(tp);
 
-    static const unsigned char fl[0x26] =
+    static const unsigned char fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
         0x03, 0x00,             // attribute
         0x23, 0x00, 0x00, 0x00, // size_t
         0x00, 0x00,             // offset
-        0x6c, 0x65, 0x6e, 0x67, 0x74, 0x68, 0x00,
-        0xf3, 0xf2, 0xf1,
+        'l', 'e', 'n', 'g', 't', 'h', 0x00,
+        0xf3, 0xf2, 0xf1,       // align to 4-byte including length word before data
         0x0d, 0x15,
         0x03, 0x00,
         0x00, 0x00, 0x00, 0x00, // etypidx
         0x08, 0x00,
-        0x70, 0x74, 0x72, 0x00,
+        'p', 't', 'r', 0x00,
         0xf2, 0xf1,
     };
 
-    debtyp_t *f = debtyp_alloc(0x26);
-    memcpy(f->data,fl,0x26);
+    debtyp_t *f = debtyp_alloc(sizeof(fl));
+    memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 26, ptridx);
     idx_t fieldlist = cv_debtyp(f);
 
@@ -852,7 +852,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     TOLONG(d->data + 10, key);  // void* type
     TOLONG(d->data + 14, functypidx); // function type
 #else
-    static const unsigned char fl[0x27] =
+    static const unsigned char fl[] =
     {
         0x03, 0x12,             // LF_FIELDLIST_V2
         0x0d, 0x15,             // LF_MEMBER_V3
@@ -860,7 +860,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
         0x00, 0x00, 0x00, 0x00, // void*
         0x00, 0x00,             // offset
         'p','t','r',0,          // "ptr"
-        0xf3, 0xf2, 0xf1,
+        0xf2, 0xf1,             // align to 4-byte including length word before data
         0x0d, 0x15,
         0x03, 0x00,
         0x00, 0x00, 0x00, 0x00, // ptrtypidx
@@ -872,7 +872,7 @@ idx_t cv8_ddelegate(type *t, idx_t functypidx)
     debtyp_t *f = debtyp_alloc(sizeof(fl));
     memcpy(f->data,fl,sizeof(fl));
     TOLONG(f->data + 6, pvidx);
-    TOLONG(f->data + 23, ptridx);
+    TOLONG(f->data + 22, ptridx);
     idx_t fieldlist = cv_debtyp(f);
 
     const char *id = "dDelegate";
@@ -928,7 +928,7 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
         0x00, 0x00, 0x00, 0x00, // void*
         0x00, 0x00,             // offset
         'p','t','r',0,          // "ptr"
-        0xf3, 0xf2, 0xf1,
+        0xf2, 0xf1,             // align to 4-byte including length word before data
     };
 
     debtyp_t *f = debtyp_alloc(sizeof(fl));
@@ -945,7 +945,7 @@ idx_t cv8_daarray(type *t, idx_t keyidx, idx_t validx)
     TOLONG(d->data + 6, fieldlist);
     TOLONG(d->data + 10, 0);    // dList
     TOLONG(d->data + 14, 0);    // vtshape
-    TOWORD(d->data + 18, 16);   // size
+    TOWORD(d->data + 18, NPTRSIZE);   // size
     cv_namestring(d->data + 20, id);
 
 #endif
