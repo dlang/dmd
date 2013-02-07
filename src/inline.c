@@ -1625,7 +1625,6 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
             vthis->storage_class = STCref;
         else
             vthis->storage_class = STCin;
-
         vthis->linkage = LINKd;
         vthis->parent = iss->fd;
 
