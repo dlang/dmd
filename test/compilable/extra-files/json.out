@@ -304,6 +304,45 @@
     "deco" : "FNbNdZi",
     "originalType" : "nothrow int()",
     "endline" : 74
+   },
+   {
+    "name" : "imports.jsonimport1",
+    "kind" : "import",
+    "line" : 77,
+    "protection" : "private",
+    "selective" : [
+     "target1",
+     "target2"
+    ]
+   },
+   {
+    "name" : "imports.jsonimport2",
+    "kind" : "import",
+    "line" : 78,
+    "protection" : "private",
+    "renamed" : {
+     "alias1" : "target1",
+     "alias2" : "target2"
+    }
+   },
+   {
+    "name" : "imports.jsonimport3",
+    "kind" : "import",
+    "line" : 79,
+    "protection" : "private",
+    "renamed" : {
+     "alias3" : "target1",
+     "alias4" : "target2"
+    },
+    "selective" : [
+     "target3"
+    ]
+   },
+   {
+    "name" : "imports.jsonimport4",
+    "kind" : "import",
+    "line" : 80,
+    "protection" : "private"
    }
   ]
  }

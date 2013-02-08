@@ -31,7 +31,7 @@ class Bar2 : Bar!1, Baz!(int, 2, null) {
 class Bar3 : Bar2 {
 	private int val;
     this(int i) { val = i; }
-    
+
     protected override Foo!int baz() { return Foo!int(val); }
 }
 
@@ -73,4 +73,8 @@ body {
 	return x + z;
 }
 
-
+/** Issue 9484 - selective and renamed imports */
+import imports.jsonimport1 : target1, target2;
+import imports.jsonimport2 : alias1 = target1, alias2 = target2;
+import imports.jsonimport3 : alias3 = target1, alias4 = target2, target3;
+import imports.jsonimport4;
