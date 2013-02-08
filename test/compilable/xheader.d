@@ -40,3 +40,6 @@ class C4(T)
 {
   T x;
 }
+
+
+auto flit = 3 / 2.0;

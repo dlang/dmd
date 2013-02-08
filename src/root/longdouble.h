@@ -36,9 +36,18 @@ typedef volatile long double volatile_longdouble;
 
 inline size_t ld_sprint(char* str, int fmt, longdouble x)
 {
-    char sfmt[4] = "%Lg";
-    sfmt[2] = fmt;
-    return sprintf(str, sfmt, x);
+    if (((real_t)(dinteger_t)x) == x)
+    {
+        char sfmt[5] = "%#Lg";
+        sfmt[3] = fmt;
+        return sprintf(str, sfmt, x);
+    }
+    else
+    {
+        char sfmt[4] = "%Lg";
+        sfmt[2] = fmt;
+        return sprintf(str, sfmt, x);
+    }
 }
 
 #else
