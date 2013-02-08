@@ -67,6 +67,7 @@ struct Parser : Lexer
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
+    Dsymbol *lastDecl;          // used to link unittest to its previous declaration
 
     Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
 
