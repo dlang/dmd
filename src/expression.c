@@ -2411,6 +2411,10 @@ RealExp::RealExp(Loc loc, real_t value, Type *type)
 
 char *RealExp::toChars()
 {
+    /** sizeof(value)*3 is because each byte of mantissa is max
+    of 256 (3 characters). The string will be "-M.MMMMe-4932".
+    (ie, 8 chars more than mantissa). Plus one for trailing \0.
+    Plus one for rounding. */
     char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
 #ifdef IN_GCC
