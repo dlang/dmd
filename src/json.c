@@ -629,9 +629,11 @@ void Dsymbol::toJson(JsonOut *json)
 
 void Dsymbol::jsonProperties(JsonOut *json)
 {
-    json->property("name", toChars());
     if (!isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
+    {
+        json->property("name", toChars());
         json->property("kind", kind());
+    }
 
     if (prot() != PROTpublic)
         json->property("protection", Pprotectionnames[prot()]);
@@ -846,6 +848,16 @@ void Declaration::jsonProperties(JsonOut *json)
         else
             json->property("originalType", ostr);
     }
+}
+
+void TemplateDeclaration::jsonProperties(JsonOut *json)
+{
+    Dsymbol::jsonProperties(json);
+
+    if (onemember && onemember->isCtorDeclaration())
+        json->property("name", "this");  // __ctor -> this
+    else
+        json->property("name", ident->toChars());  // Foo(T) -> Foo
 }
 
 void TypedefDeclaration::toJson(JsonOut *json)

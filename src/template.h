@@ -87,6 +87,7 @@ struct TemplateDeclaration : ScopeDsymbol
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
+    virtual void jsonProperties(JsonOut *json);
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
