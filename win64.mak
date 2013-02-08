@@ -260,6 +260,9 @@ $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\config.d : src\core\sys\linux\config.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 	copy $** $@
 

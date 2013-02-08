@@ -21,6 +21,7 @@ version (Posix):
 extern (C):
 
 enum _XOPEN_SOURCE     = 600;
+enum _POSIX_SOURCE     = true;
 enum _POSIX_C_SOURCE   = 200112L;
 
 version (linux)
