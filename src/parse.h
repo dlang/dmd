@@ -114,7 +114,8 @@ struct Parser : Lexer
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
     void parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
-    Statement *parseStatement(int flags);
+    /** endPtr used for documented unittests */
+    Statement *parseStatement(int flags, unsigned char** endPtr = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
     void check(Loc loc, enum TOK value);

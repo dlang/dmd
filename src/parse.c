@@ -1322,10 +1322,21 @@ UnitTestDeclaration *Parser::parseUnitTest()
     Loc loc = this->loc;
 
     nextToken();
+    unsigned char *begPtr = token.ptr + 1;  // skip '{'
+    unsigned char *endPtr = NULL;
+    body = parseStatement(PScurly, &endPtr);
 
-    body = parseStatement(PScurly);
+    /** Extract unittest body as a string. Must be done eagerly since memory
+    will be released by the lexer before doc gen. */
+    char *docline = NULL;
+    if (global.params.doDocComments && endPtr > begPtr)
+    {
+        docline = (char *)mem.malloc((endPtr - begPtr) + 1);
+        memcpy(docline, begPtr, endPtr - begPtr);
+        docline[endPtr - begPtr] = 0;
+    }
 
-    f = new UnitTestDeclaration(loc, this->loc);
+    f = new UnitTestDeclaration(loc, this->loc, docline);
     f->fbody = body;
     return f;
 }
@@ -3679,7 +3690,7 @@ void Parser::checkDanglingElse(Loc elseloc)
  *      flags   PSxxxx
  */
 
-Statement *Parser::parseStatement(int flags)
+Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
 {   Statement *s;
     Condition *condition;
     Statement *ifbody;
@@ -3922,6 +3933,7 @@ Statement *Parser::parseStatement(int flags)
             {
                 statements->push(parseStatement(PSsemi | PScurlyscope));
             }
+            if (endPtr) *endPtr = token.ptr;
             endloc = this->loc;
             s = new CompoundStatement(loc, statements);
             if (flags & (PSscope | PScurlyscope))
