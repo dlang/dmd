@@ -270,7 +270,7 @@ private:
         res ~= " in ";
         const(char)[] tempSymName = symName[0 .. strlen(symName)];
         //Deal with dmd mangling of long names
-        version(DigitalMars) version(X86)
+        version(DigitalMars) version(Win32)
         {
             size_t decodeIndex = 0;
             tempSymName = decodeDmdString(tempSymName, decodeIndex);
