@@ -586,19 +586,16 @@ Throwable.TraceInfo defaultTraceHandler( void* ptr = null )
     }
     else static if( __traits( compiles, new StackTrace(0, null) ) )
     {
-        static enum FIRSTFRAME = 0;
         version (Win64)
         {
-            /* Disabled for the moment, because DbgHelp's stack walking code
-             * does not work with dmd's stack frame.
-             */
-            return null;
+            static enum FIRSTFRAME = 4;
         }
         else
         {
-            auto s = new StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
-            return s;
+            static enum FIRSTFRAME = 0;
         }
+        auto s = new StackTrace(FIRSTFRAME, cast(CONTEXT*)ptr);
+        return s;
     }
     else
     {

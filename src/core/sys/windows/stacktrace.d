@@ -44,6 +44,25 @@ public:
      */
     this(size_t skip, CONTEXT* context)
     {
+        if(context is null)
+        {
+            version(Win64)
+                static enum INTERNALFRAMES = 4;
+            else
+                static enum INTERNALFRAMES = 2;
+                
+            skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
+        }
+        else
+        {
+            //When a exception context is given the first stack frame is repeated for some reason
+            version(Win64)
+                static enum INTERNALFRAMES = 1;
+            else
+                static enum INTERNALFRAMES = 1;
+                
+            skip += INTERNALFRAMES;
+        }
         if( initialized )
             m_trace = trace(skip, context);
     }
@@ -149,7 +168,7 @@ private:
                 AddrStack.Offset = ctxt.Esp;
                 AddrStack.Mode   = Flat;
             }
-	    else version(X86_64)
+        else version(X86_64)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Rip;
@@ -249,7 +268,14 @@ private:
 
         auto res = formatStackFrame(pc);
         res ~= " in ";
-        res ~= demangle(symName[0 .. strlen(symName)], demangleBuf);
+        const(char)[] tempSymName = symName[0 .. strlen(symName)];
+        //Deal with dmd mangling of long names
+        version(DigitalMars) version(X86)
+        {
+            size_t decodeIndex = 0;
+            tempSymName = decodeDmdString(tempSymName, decodeIndex);
+        }
+        res ~= demangle(tempSymName, demangleBuf);
         return res;
     }
 
