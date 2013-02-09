@@ -103,7 +103,7 @@ const char *asmerrmsgs[] =
     "align %d must be a power of 2",
     "opcode expected, not %s",
     "prefix",
-    "end of instruction",
+    "end of instruction expected, not '%s'",
     "bad operand",
     "bad integral operand",
     "identifier expected",
@@ -4843,7 +4843,18 @@ AFTER_EMIT:
     o1 = o2 = o3 = NULL;
 
     if (tok_value != TOKeof)
-        asmerr(EM_eol);                 // end of line expected
+    {
+        try
+        {
+            asmerr(EM_eol, asmtok->toChars());  // end of line expected
+        }
+        catch (ASM_STATE *a)
+        {
+            asmtok = NULL;
+            tok_value = TOKeof;
+            exit(EXIT_FAILURE);
+        }
+    }
     //return asmstate.bReturnax;
     return this;
 }
