@@ -343,7 +343,7 @@ void Module::genobjfile(int multiobj)
         outdata(cov);
         slist_add(cov);
 
-        covb = (unsigned *)calloc((numlines + 32) / 32, sizeof(*covb));
+        covb = (unsigned *)calloc(numlines, sizeof(*covb));
     }
 
     for (size_t i = 0; i < members->dim; i++)
@@ -363,7 +363,7 @@ void Module::genobjfile(int multiobj)
         bcov->Stype->Tcount++;
         bcov->Sclass = SCstatic;
         bcov->Sfl = FLdata;
-        dtnbytes(&bcov->Sdt, (numlines + 32) / 32 * sizeof(*covb), (char *)covb);
+        dtnbytes(&bcov->Sdt, numlines * sizeof(*covb), (char *)covb);
         outdata(bcov);
 
         free(covb);
