@@ -3873,7 +3873,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                             tf->next = exp->type;
                         else if (m1 && !m2)
                             ;
-                        else
+                        else if (exp->op != TOKerror)
                             error("mismatched function return type inference of %s and %s",
                                 exp->type->toChars(), tfret->toChars());
                     }
