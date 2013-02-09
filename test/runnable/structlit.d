@@ -569,6 +569,26 @@ void test7021()
 }
 
 /********************************************/
+// 8763
+
+void test8763()
+{
+    struct S
+    {
+        this(int) {}
+    }
+
+    void foo(T, Args...)(Args args)
+    {
+        T t = T(args);
+        // Error: constructor main.S.this (int) is not callable using argument types ()
+    }
+
+    S t = S(); // OK, initialize to S.init
+    foo!S();
+}
+
+/********************************************/
 // 9116
 
 void test9116()
@@ -638,6 +658,7 @@ int main()
     test6937();
     test7929();
     test7021();
+    test8763();
     test9116();
     test9293();
 

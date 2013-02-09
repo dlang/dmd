@@ -7833,6 +7833,9 @@ Lagain:
     if (e1->type)
         t1 = e1->type->toBasetype();
 
+    arguments = arrayExpressionSemantic(arguments, sc);
+    preFunctionParameters(loc, sc, arguments);
+
     // Check for call operator overload
     if (t1)
     {   AggregateDeclaration *ad;
@@ -7919,9 +7922,6 @@ Lagain:
             return e;
         }
     }
-
-    arguments = arrayExpressionSemantic(arguments, sc);
-    preFunctionParameters(loc, sc, arguments);
 
     // If there was an error processing any argument, or the call,
     // return an error without trying to resolve the function call.
