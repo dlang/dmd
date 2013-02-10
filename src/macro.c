@@ -51,7 +51,7 @@ Macro::Macro(unsigned char *name, size_t namelen, unsigned char *text, size_t te
 }
 
 
-Macro *Macro::search(unsigned char *name, size_t namelen)
+Macro *Macro::search(const unsigned char *name, size_t namelen)
 {   Macro *table;
 
     //printf("Macro::search(%.*s)\n", namelen, name);
@@ -60,7 +60,7 @@ Macro *Macro::search(unsigned char *name, size_t namelen)
         if (table->namelen == namelen &&
             memcmp(table->name, name, namelen) == 0)
         {
-            //printf("\tfound %d\n", table->textlen);
+            //printf("\tfound %.*s\n", (int)namelen, name);
             break;
         }
     }
@@ -241,8 +241,10 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
         unsigned char *arg, size_t arglen)
 {
 #if 0
-    printf("Macro::expand(buf[%d..%d], arg = '%.*s')\n", start, *pend, arglen, arg);
-    printf("Buf is: '%.*s'\n", *pend - start, buf->data + start);
+  printf("Macro::expand(buf[%zd..%zd], arg = '%.*s')\n", start, *pend,
+         int(arglen > 40 ? 40 : arglen), arg);
+  printf("Buf is: '%.*s'\n", int(*pend - start > 40 ? 40 : *pend - start),
+         buf->data + start);
 #endif
 
     static int nest;
@@ -263,64 +265,64 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
 
         /* Look for $0, but not $$0, and replace it with arg.
          */
-        if (p[u] == '$' && (isdigit(p[u + 1]) || p[u + 1] == '+'))
+        if (p[u] != '$' || !isdigit(p[u + 1]) && p[u + 1] != '+')
         {
-            if (u > start && p[u - 1] == '$')
-            {   // Don't expand $$0, but replace it with $0
-                buf->remove(u - 1, 1);
-                end--;
-                u += 1; // now u is one past the closing '1'
-                continue;
-            }
-
-            unsigned char c = p[u + 1];
-            int n = (c == '+') ? -1 : c - '0';
-
-            unsigned char *marg;
-            size_t marglen;
-            extractArgN(arg, arglen, &marg, &marglen, n);
-            if (marglen == 0)
-            {   // Just remove macro invocation
-                //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);
-                buf->remove(u, 2);
-                end -= 2;
-            }
-            else if (c == '+')
-            {
-                // Replace '$+' with 'arg'
-                //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);
-                buf->remove(u, 2);
-                buf->insert(u, marg, marglen);
-                end += marglen - 2;
-
-                // Scan replaced text for further expansion
-                size_t mend = u + marglen;
-                expand(buf, u, &mend, NULL, 0);
-                end += mend - (u + marglen);
-                u = mend;
-            }
-            else
-            {
-                // Replace '$1' with '\xFF{arg\xFF}'
-                //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], marglen, marg);
-                buf->data[u] = 0xFF;
-                buf->data[u + 1] = '{';
-                buf->insert(u + 2, marg, marglen);
-                buf->insert(u + 2 + marglen, "\xFF}", 2);
-                end += -2 + 2 + marglen + 2;
-
-                // Scan replaced text for further expansion
-                size_t mend = u + 2 + marglen;
-                expand(buf, u + 2, &mend, NULL, 0);
-                end += mend - (u + 2 + marglen);
-                u = mend;
-            }
-            //printf("u = %d, end = %d\n", u, end);
-            //printf("#%.*s#\n", end, &buf->data[0]);
+            ++u;
             continue;
         }
 
-        u++;
+        if (u > start && p[u - 1] == '$')
+        {   // Don't expand $$0, but replace it with $0
+            buf->remove(u - 1, 1);
+            end--;
+            ++u; // now u is one past the closing '1'
+            continue;
+        }
+
+        unsigned char c = p[u + 1];
+        int n = (c == '+') ? -1 : c - '0';
+
+        unsigned char *marg;
+        size_t marglen;
+        extractArgN(arg, arglen, &marg, &marglen, n);
+        if (marglen == 0)
+        {   // Just remove macro invocation
+            //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);
+            buf->remove(u, 2);
+            end -= 2;
+        }
+        else if (c == '+')
+        {
+            // Replace '$+' with 'arg'
+            //printf("Replacing '$%c' with '%.*s'\n", p[u + 1], marglen, marg);
+            buf->remove(u, 2);
+            buf->insert(u, marg, marglen);
+            end += marglen - 2;
+
+            // Scan replaced text for further expansion
+            size_t mend = u + marglen;
+            expand(buf, u, &mend, NULL, 0);
+            end += mend - (u + marglen);
+            u = mend;
+        }
+        else
+        {
+            // Replace '$1' with '\xFF{arg\xFF}'
+            //printf("Replacing '$%c' with '\xFF{%.*s\xFF}'\n", p[u + 1], marglen, marg);
+            buf->data[u] = 0xFF;
+            buf->data[u + 1] = '{';
+            buf->insert(u + 2, marg, marglen);
+            buf->insert(u + 2 + marglen, "\xFF}", 2);
+            end += -2 + 2 + marglen + 2;
+
+            // Scan replaced text for further expansion
+            size_t mend = u + 2 + marglen;
+            expand(buf, u + 2, &mend, NULL, 0);
+            end += mend - (u + 2 + marglen);
+            u = mend;
+        }
+        //printf("u = %d, end = %d\n", u, end);
+        //printf("#%.*s#\n", end, &buf->data[0]);
     }
 
     /* Second pass - replace other macros
@@ -332,115 +334,127 @@ void Macro::expand(OutBuffer *buf, size_t start, size_t *pend,
         /* A valid start of macro expansion is $(c, where c is
          * an id start character, and not $$(c.
          */
-        if (p[u] == '$' && p[u + 1] == '(' && isIdStart(p+u+2))
+        if (p[u] != '$' || p[u + 1] != '(' || !isIdStart(p+u+2))
         {
-            //printf("\tfound macro start '%c'\n", p[u + 2]);
-            unsigned char *name = p + u + 2;
-            size_t namelen = 0;
+            // Not a macro, so just move on
+            ++u;
+            continue;
+        }
 
-            unsigned char *marg;
-            size_t marglen;
+        //printf("\tfound macro start '%c'\n", p[u + 2]);
+        unsigned char *name = p + u + 2;
+        size_t namelen = 0;
 
-            size_t v;
-            /* Scan forward to find end of macro name and
-             * beginning of macro argument (marg).
-             */
-            for (v = u + 2; v < end; v+=utfStride(p+v))
-            {   unsigned char c = p[v];
+        /* Scan forward to find end of macro name and
+         * beginning of macro argument (marg).
+         */
+        size_t v = u + 2;
+        for (; v < end; v+=utfStride(p+v))
+        {
+            if (!isIdTail(p+v))
+            {   // We've gone past the end of the macro name.
+                namelen = v - (u + 2);
+                break;
+            }
+        }
 
-                if (!isIdTail(p+v))
-                {   // We've gone past the end of the macro name.
-                    namelen = v - (u + 2);
-                    break;
-                }
+        unsigned char *marg;
+        size_t marglen;
+        v += extractArgN(p + v, end - v, &marg, &marglen, 0);
+        assert(v <= end);
+
+        if (v >= end)
+        {
+            ++u;
+            continue;
+        }
+
+        if (u > start && p[u - 1] == '$')
+        {   // Don't expand $$(NAME), but replace it with $(NAME)
+            buf->remove(u - 1, 1);
+            end--;
+            u = v;      // now u is one past the closing ')'
+            continue;
+        }
+
+        bool macroWasUndefined = false;
+        Macro *m = search(name, namelen);
+        if (!m)
+        {
+            m = search((const unsigned char*)"DDOC_UNDEFINED_MACRO",
+                       20 /* strlen("DDOC_UNDEFINED_MACRO") */);
+            if (m)
+            {
+                macroWasUndefined = true;
+            }
+        }
+
+        if (!m)
+        {
+            // Replace $(NAME) with nothing
+            buf->remove(u, v + 1 - u);
+            end -= v + 1 - u;
+            continue;
+        }
+
+        if (m->inuse && marglen == 0)
+        {
+            // Recursive macro with empty argument => remove macro
+            // invocation to stop recursion.
+            buf->remove(u, v + 1 - u);
+            end -= v + 1 - u;
+        }
+        else if (m->inuse && arglen == marglen && memcmp(arg, marg, arglen) == 0)
+        {   // Recursive expansion; just leave in place
+
+        }
+        else
+        {
+            // Regular expansion
+            if (macroWasUndefined)
+            {
+                // Macro was not defined, so this is an expansion of
+                // DDOC_UNDEFINED_MACRO. We must prepend the name of
+                // the original macro as the first argument.
+                unsigned char* p = (unsigned char*)malloc(namelen + 1 + marglen);
+                memcpy(p, name, namelen);
+                p[namelen] = ',';
+                memcpy(p + namelen + 1, marg, marglen);
+                marg = p;
+                marglen += namelen + 1;
+            }
+            else
+            {
+                marg = memdup(marg, marglen);
             }
 
-            v += extractArgN(p + v, end - v, &marg, &marglen, 0);
-            assert(v <= end);
+            // printf("\tmacro %.*s(%.*s) = '%.*s'\n", m->namelen,
+            //   m->name, marglen, marg, m->textlen, m->text);
 
-            if (v < end)
-            {   // v is on the closing ')'
-                if (u > start && p[u - 1] == '$')
-                {   // Don't expand $$(NAME), but replace it with $(NAME)
-                    buf->remove(u - 1, 1);
-                    end--;
-                    u = v;      // now u is one past the closing ')'
-                    continue;
-                }
+            // Insert replacement text
+            buf->spread(v + 1, 2 + m->textlen + 2);
+            buf->data[v + 1] = 0xFF;
+            buf->data[v + 2] = '{';
+            memcpy(buf->data + v + 3, m->text, m->textlen);
+            buf->data[v + 3 + m->textlen] = 0xFF;
+            buf->data[v + 3 + m->textlen + 1] = '}';
 
-                Macro *m = search(name, namelen);
-                if (m)
-                {
-#if 0
-                    if (m->textlen && m->text[0] == ' ')
-                    {   m->text++;
-                        m->textlen--;
-                    }
-#endif
-                    if (m->inuse && marglen == 0)
-                    {   // Remove macro invocation
-                        buf->remove(u, v + 1 - u);
-                        end -= v + 1 - u;
-                    }
-                    else if (m->inuse && arglen == marglen && memcmp(arg, marg, arglen) == 0)
-                    {   // Recursive expansion; just leave in place
+            end += 2 + m->textlen + 2;
 
-                    }
-                    else
-                    {
-                        //printf("\tmacro '%.*s'(%.*s) = '%.*s'\n", m->namelen, m->name, marglen, marg, m->textlen, m->text);
-#if 1
-                        marg = memdup(marg, marglen);
-                        // Insert replacement text
-                        buf->spread(v + 1, 2 + m->textlen + 2);
-                        buf->data[v + 1] = 0xFF;
-                        buf->data[v + 2] = '{';
-                        memcpy(buf->data + v + 3, m->text, m->textlen);
-                        buf->data[v + 3 + m->textlen] = 0xFF;
-                        buf->data[v + 3 + m->textlen + 1] = '}';
+            // Scan replaced text for further expansion
+            m->inuse++;
+            size_t mend = v + 1 + 2+m->textlen+2;
+            expand(buf, v + 1, &mend, marg, marglen);
+            end += mend - (v + 1 + 2+m->textlen+2);
+            m->inuse--;
 
-                        end += 2 + m->textlen + 2;
-
-                        // Scan replaced text for further expansion
-                        m->inuse++;
-                        size_t mend = v + 1 + 2+m->textlen+2;
-                        expand(buf, v + 1, &mend, marg, marglen);
-                        end += mend - (v + 1 + 2+m->textlen+2);
-                        m->inuse--;
-
-                        buf->remove(u, v + 1 - u);
-                        end -= v + 1 - u;
-                        u += mend - (v + 1);
-#else
-                        // Insert replacement text
-                        buf->insert(v + 1, m->text, m->textlen);
-                        end += m->textlen;
-
-                        // Scan replaced text for further expansion
-                        m->inuse++;
-                        size_t mend = v + 1 + m->textlen;
-                        expand(buf, v + 1, &mend, marg, marglen);
-                        end += mend - (v + 1 + m->textlen);
-                        m->inuse--;
-
-                        buf->remove(u, v + 1 - u);
-                        end -= v + 1 - u;
-                        u += mend - (v + 1);
-#endif
-                        mem.free(marg);
-                        //printf("u = %d, end = %d\n", u, end);
-                        //printf("#%.*s#\n", end - u, &buf->data[u]);
-                        continue;
-                    }
-                }
-                else
-                {
-                    // Replace $(NAME) with nothing
-                    buf->remove(u, v + 1 - u);
-                    end -= (v + 1 - u);
-                    continue;
-                }
-            }
+            buf->remove(u, v + 1 - u);
+            end -= v + 1 - u;
+            u += mend - (v + 1);
+            mem.free(marg);
+            //printf("u = %d, end = %d\n", u, end);
+            //printf("#%.*s#\n", end - u, &buf->data[u]);
+            continue;
         }
         u++;
     }
