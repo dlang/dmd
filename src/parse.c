@@ -2836,6 +2836,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 addComment(s, comment);
                 return a;
             }
+#if 0
             /* Look for:
              *  alias this = identifier;
              */
@@ -2851,6 +2852,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 addComment(s, comment);
                 return a;
             }
+#endif
             /* Look for:
              *  alias identifier = type;
              */
