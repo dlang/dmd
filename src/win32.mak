@@ -180,7 +180,7 @@ OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= array.obj gnuc.obj man.obj root.obj port.obj \
+ROOTOBJS= array.obj man.obj root.obj port.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
@@ -205,7 +205,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
-	intrange.h intrange.c canthrow.c vergen.c
+	intrange.h intrange.c canthrow.c
 
 
 # D back end
@@ -242,7 +242,6 @@ ROOTSRCC=$(ROOT)\root.c $(ROOT)\array.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
 ROOTSRC= $(ROOT)\root.h \
 	$(ROOT)\rmem.h $(ROOT)\port.h \
 	$(ROOT)\stringtable.h \
-	$(ROOT)\gnuc.h $(ROOT)\gnuc.c \
 	$(ROOT)\async.h \
 	$(ROOT)\speller.h \
 	$(ROOT)\aav.h \
@@ -389,9 +388,8 @@ id.h id.c : idgen.c
 	$(CC) -cpp -DDM_TARGET_CPU_X86=1 idgen
 	idgen
 
-verstr.h : vergen.c ..\VERSION
-	$(CC) -cpp -DDM_TARGET_CPU_X86=1 vergen
-	type ..\VERSION | vergen > verstr.h
+verstr.h : ..\VERSION
+	echo "$(..\VERSION)" >verstr.h
 
 ############################# Intermediate Rules ############################
 
@@ -637,9 +635,6 @@ async.obj : $(ROOT)\async.h $(ROOT)\async.c
 
 dmgcmem.obj : $(ROOT)\dmgcmem.c
 	$(CC) -c $(CFLAGS) $(ROOT)\dmgcmem.c
-
-gnuc.obj : $(ROOT)\gnuc.c
-	$(CC) -c $(CFLAGS) $(ROOT)\gnuc.c
 
 man.obj : $(ROOT)\man.c
 	$(CC) -c $(CFLAGS) $(ROOT)\man.c

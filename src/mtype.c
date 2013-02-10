@@ -11,12 +11,7 @@
 #define __C99FEATURES__ 1       // Needed on Solaris for NaN and more
 #define __USE_ISOC99 1          // so signbit() gets defined
 
-#if defined (__sun)
-#include <alloca.h>
-#endif
-
 #include <math.h>
-
 #include <stdio.h>
 #include <assert.h>
 #include <float.h>
@@ -118,6 +113,7 @@ TemplateDeclaration *Type::rtinfo;
 
 Type *Type::tvoidptr;
 Type *Type::tstring;
+Type *Type::tvalist;
 Type *Type::basic[TMAX];
 unsigned char Type::mangleChar[TMAX];
 unsigned char Type::sizeTy[TMAX];
@@ -286,6 +282,7 @@ void Type::init()
 
     tvoidptr = tvoid->pointerTo();
     tstring = tchar->invariantOf()->arrayOf();
+    tvalist = tvoid->pointerTo();
 
     if (global.params.is64bit)
     {
@@ -1639,6 +1636,7 @@ char *Type::modToChars()
 {
     OutBuffer buf;
     modToBuffer(&buf);
+    buf.writebyte(0);
     return buf.extractData();
 }
 
@@ -1760,13 +1758,14 @@ int Type::isString()
 }
 
 /**************************
+ * When T is mutable,
  * Given:
  *      T a, b;
- * Can we assign:
+ * Can we bitwise assign:
  *      a = b;
  * ?
  */
-int Type::isAssignable(int blit)
+int Type::isAssignable()
 {
     return TRUE;
 }
@@ -2182,9 +2181,6 @@ Identifier *Type::getTypeInfoIdent(int internal)
 {
     // _init_10TypeInfo_%s
     OutBuffer buf;
-    Identifier *id;
-    char *name;
-    size_t len;
 
     if (internal)
     {   buf.writeByte(mangleChar[ty]);
@@ -2193,19 +2189,27 @@ Identifier *Type::getTypeInfoIdent(int internal)
     }
     else
         toDecoBuffer(&buf);
-    len = buf.offset;
-    name = (char *)alloca(19 + sizeof(len) * 3 + len + 1);
+
+    size_t len = buf.offset;
     buf.writeByte(0);
-#if TARGET_OSX
-    // The LINKc will prepend the _
-    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
-#else
+
+    // Allocate buffer on stack, fail over to using malloc()
+    char namebuf[40];
+    size_t namelen = 19 + sizeof(len) * 3 + len + 1;
+    char *name = namelen <= sizeof(namebuf) ? namebuf : (char *)malloc(namelen);
+    assert(name);
+
     sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
-#endif
-    if (global.params.isWindows && !global.params.is64bit)
-        name++;                 // C mangling will add it back in
     //printf("name = %s\n", name);
-    id = Lexer::idPool(name);
+    assert(strlen(name) < namelen);     // don't overflow the buffer
+
+    size_t off = 0;
+    if (global.params.isOSX || global.params.isWindows && !global.params.is64bit)
+        ++off;                 // C mangling will add '_' back in
+    Identifier *id = Lexer::idPool(name + off);
+
+    if (name != namebuf)
+        free(name);
     return id;
 }
 
@@ -4000,7 +4004,13 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident)
     }
     else if (ident == Id::ptr)
     {
-        e = e->castTo(sc, next->pointerTo());
+        if (size(e->loc) == 0)
+            e = new NullExp(e->loc, next->pointerTo());
+        else
+        {
+            e = new IndexExp(e->loc, e, new IntegerExp(0));
+            e = new AddrExp(e->loc, e);
+        }
     }
     else
     {
@@ -5596,12 +5606,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         sc->stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
         tf->next = tf->next->semantic(loc,sc);
         sc = sc->pop();
-#if !SARRAYVALUE
-        if (tf->next->toBasetype()->ty == Tsarray)
-        {   error(loc, "functions cannot return static array %s", tf->next->toChars());
-            tf->next = Type::terror;
-        }
-#endif
         if (tf->next->toBasetype()->ty == Tfunction)
         {   error(loc, "functions cannot return a function");
             tf->next = Type::terror;
@@ -6080,25 +6084,6 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                         targ = new TypeSArray(targ->nextOf(),
                                 new IntegerExp(0, ((StringExp *)arg)->len,
                                 Type::tindex));
-                }
-                else if (ta && ta->implicitConvTo(tprm))
-                {
-                    goto Nomatch;
-                }
-                else if (arg->op == TOKstructliteral)
-                {
-                    match = MATCHconvert;
-                }
-                else if (arg->op == TOKcall)
-                {
-                    CallExp *ce = (CallExp *)arg;
-                    if (ce->e1->op == TOKdotvar &&
-                        ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
-                    {
-                        match = MATCHconvert;
-                    }
-                    else
-                        goto Nomatch;
                 }
                 else
                     goto Nomatch;
@@ -7543,9 +7528,9 @@ int TypeEnum::isscalar()
     return sym->memtype->isscalar();
 }
 
-int TypeEnum::isAssignable(int blit)
+int TypeEnum::isAssignable()
 {
-    return sym->memtype->isAssignable(blit);
+    return sym->memtype->isAssignable();
 }
 
 int TypeEnum::checkBoolean()
@@ -7765,9 +7750,9 @@ int TypeTypedef::isscalar()
     return sym->basetype->isscalar();
 }
 
-int TypeTypedef::isAssignable(int blit)
+int TypeTypedef::isAssignable()
 {
-    return sym->basetype->isAssignable(blit);
+    return sym->basetype->isAssignable();
 }
 
 int TypeTypedef::checkBoolean()
@@ -8307,18 +8292,8 @@ bool TypeStruct::needsNested()
     return false;
 }
 
-int TypeStruct::isAssignable(int blit)
+int TypeStruct::isAssignable()
 {
-    if (!blit)
-    {
-        if (sym->hasIdentityAssign)
-            return TRUE;
-
-        // has non-identity opAssign
-        if (search_function(sym, Id::assign))
-            return FALSE;
-    }
-
     int assignable = TRUE;
     unsigned offset;
 
@@ -8344,7 +8319,7 @@ int TypeStruct::isAssignable(int blit)
             if (!assignable)
                 return FALSE;
         }
-        assignable = v->type->isMutable() && v->type->isAssignable(blit);
+        assignable = v->type->isMutable() && v->type->isAssignable();
         offset = v->offset;
         //printf(" -> assignable = %d\n", assignable);
     }

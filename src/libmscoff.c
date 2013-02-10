@@ -118,18 +118,17 @@ void LibMSCoff::setFilename(char *dir, char *filename)
     printf("LibMSCoff::setFilename(dir = '%s', filename = '%s')\n",
         dir ? dir : "", filename ? filename : "");
 #endif
-    char *arg = filename;
+    const char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
+        const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
-        FileName *fn = FileName::forceExt(n, global.lib_ext);
-        arg = fn->toChars();
+        arg = FileName::forceExt(n, global.lib_ext);
     }
     if (!FileName::absolute(arg))
         arg = FileName::combine(dir, arg);
-    FileName *libfilename = FileName::defaultExt(arg, global.lib_ext);
+    const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
 
@@ -150,9 +149,7 @@ void LibMSCoff::write()
     libbuf.extractData();
 
 
-    char *p = FileName::path(libfile->name->toChars());
-    FileName::ensurePathExists(p);
-    //mem.free(p);
+    FileName::ensurePathToNameExists(libfile->name->toChars());
 
     libfile->writev();
 }

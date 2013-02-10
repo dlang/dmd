@@ -862,7 +862,7 @@ int tryMain(size_t argc, char *argv[])
                 global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
                 if (global.params.runargs_length)
                 {
-                    char *ext = FileName::ext(argv[i + 1]);
+                    const char *ext = FileName::ext(argv[i + 1]);
                     if (ext && FileName::equals(ext, "d") == 0
                             && FileName::equals(ext, "di") == 0)
                     {
@@ -894,7 +894,7 @@ int tryMain(size_t argc, char *argv[])
         else
         {
 #if TARGET_WINDOS
-            char *ext = FileName::ext(p);
+            const char *ext = FileName::ext(p);
             if (ext && FileName::compare(ext, "exe") == 0)
             {
                 global.params.objname = p;
@@ -959,14 +959,14 @@ int tryMain(size_t argc, char *argv[])
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = FileName::forceExt(global.params.objname, global.obj_ext)->toChars();
+            global.params.objname = const_cast<char *>(FileName::forceExt(global.params.objname, global.obj_ext));
 
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
             if (global.params.objdir)
-            {   char *name = FileName::name(global.params.objname);
-                global.params.objname = FileName::combine(global.params.objdir, name);
+            {   const char *name = FileName::name(global.params.objname);
+                global.params.objname = (char *)FileName::combine(global.params.objdir, name);
             }
         }
     }
@@ -1099,7 +1099,7 @@ int tryMain(size_t argc, char *argv[])
     int firstmodule = 1;
     for (size_t i = 0; i < files.dim; i++)
     {
-        char *ext;
+        const char *ext;
         char *name;
 
         p = files[i];
@@ -1113,7 +1113,7 @@ int tryMain(size_t argc, char *argv[])
         }
 #endif
 
-        p = FileName::name(p);          // strip path
+        p = (char *)FileName::name(p);          // strip path
         ext = FileName::ext(p);
         if (ext)
         {   /* Deduce what to do with a file based on its extension
@@ -1212,7 +1212,7 @@ int tryMain(size_t argc, char *argv[])
         modules.push(m);
 
         if (firstmodule)
-        {   global.params.objfiles->push(m->objfile->name->str);
+        {   global.params.objfiles->push((char *)m->objfile->name->str);
             firstmodule = 0;
         }
     }
@@ -1446,7 +1446,7 @@ int tryMain(size_t argc, char *argv[])
             /* The filename generation code here should be harmonized with Module::setOutfile()
              */
 
-            FileName *jsonfilename;
+            const char *jsonfilename;
 
             if (name && *name)
             {
@@ -1455,7 +1455,7 @@ int tryMain(size_t argc, char *argv[])
             else
             {
                 // Generate json file name from first obj name
-                char *n = (*global.params.objfiles)[0];
+                const char *n = (*global.params.objfiles)[0];
                 n = FileName::name(n);
 
                 //if (!FileName::absolute(name))
@@ -1464,10 +1464,7 @@ int tryMain(size_t argc, char *argv[])
                 jsonfilename = FileName::forceExt(n, global.json_ext);
             }
 
-            char *pt = FileName::path(jsonfilename->toChars());
-            if (*pt)
-                FileName::ensurePathExists(pt);
-            mem.free(pt);
+            FileName::ensurePathToNameExists(jsonfilename);
 
             File *jsonfile = new File(jsonfilename);
 

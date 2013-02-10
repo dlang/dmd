@@ -3260,10 +3260,9 @@ static void obj_rtinit()
             off += 3;
         }
         else
-        {   // mov EAX, DSO*
-            buf->writeByte(0x8B);
-            buf->writeByte(modregrm(3,AX,SP));
-            off += 2;
+        {   // push DSO*
+            buf->writeByte(0x50 + SP);
+            off += 1;
         }
 
 #if REQUIRE_DSO_REGISTRY

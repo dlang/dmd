@@ -374,6 +374,11 @@ L1:
     return debtyptop++ + cgcv.deb_offset;
 }
 
+idx_t cv_numdebtypes()
+{
+    return debtyptop;
+}
+
 /****************************
  * Store a null record at DEB_NULL.
  */

@@ -855,7 +855,7 @@ enum RET TypeFunction::retStyle()
     {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
         if (tns->isscalar())
             return RETregs;
-#if SARRAYVALUE
+
         if (tns->ty == Tsarray)
         {
             do
@@ -863,7 +863,7 @@ enum RET TypeFunction::retStyle()
                 tns = tns->nextOf()->toBasetype();
             } while (tns->ty == Tsarray);
         }
-#endif
+
         if (tns->ty == Tstruct)
         {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz >= 8)
@@ -875,7 +875,6 @@ enum RET TypeFunction::retStyle()
     }
 
 Lagain:
-#if SARRAYVALUE
     if (tns->ty == Tsarray)
     {
         do
@@ -906,7 +905,6 @@ L2:
             return RETstack;
         }
     }
-#endif
 
     if (tns->ty == Tstruct)
     {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
@@ -918,10 +916,8 @@ L2:
         if (sd->arg1type && !sd->arg2type)
         {
             tns = sd->arg1type;
-#if SARRAYVALUE
             if (tns->ty != Tstruct)
                 goto L2;
-#endif
             goto Lagain;
         }
         else if (global.params.is64bit && !sd->arg1type && !sd->arg2type)

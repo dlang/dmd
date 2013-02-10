@@ -25,10 +25,6 @@
 #include "template.h"
 #include "hdrgen.h"
 
-#ifdef IN_GCC
-#include "d-dmd-gcc.h"
-#endif
-
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
@@ -968,11 +964,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
             if (f->linkage == LINKd || (f->parameters && Parameter::dim(f->parameters)))
             {   // Declare _argptr
-#ifdef IN_GCC
-                t = d_gcc_builtin_va_list_d_type;
-#else
-                t = Type::tvoid->pointerTo();
-#endif
+                t = Type::tvalist;
                 argptr = new VarDeclaration(0, t, Id::_argptr, NULL);
                 argptr->semantic(sc2);
                 sc2->insert(argptr);
@@ -1103,10 +1095,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   // Call invariant virtually
                 Expression *v = new ThisExp(0);
                 v->type = vthis->type;
-#if STRUCTTHISREF
                 if (ad->isStructDeclaration())
                     v = v->addressOf(sc);
-#endif
                 Expression *se = new StringExp(0, (char *)"null this");
                 se = se->semantic(sc);
                 se->type = Type::tchar->arrayOf();
@@ -1145,10 +1135,8 @@ void FuncDeclaration::semantic3(Scope *sc)
             {   // Call invariant virtually
                 Expression *v = new ThisExp(0);
                 v->type = vthis->type;
-#if STRUCTTHISREF
                 if (ad->isStructDeclaration())
                     v = v->addressOf(sc);
-#endif
                 e = new AssertExp(0, v);
             }
             if (e)
@@ -1597,15 +1585,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     if (v->storage_class & (STCref | STCout | STClazy))
                         continue;
 
-#if !SARRAYVALUE
-                    /* Don't do this for static arrays, since static
-                     * arrays are called by reference. Remove this
-                     * when we change them to call by value.
-                     */
-                    if (v->type->toBasetype()->ty == Tsarray)
-                        continue;
-#endif
-
                     if (v->noscope)
                         continue;
 
@@ -1631,7 +1610,6 @@ void FuncDeclaration::semantic3(Scope *sc)
             flags &= ~FUNCFLAGnothrowInprocess;
 #endif
 
-#if 1
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
@@ -1640,8 +1618,8 @@ void FuncDeclaration::semantic3(Scope *sc)
 
                 if (cd)
                 {
-#if TARGET_WINDOS
                     if (!global.params.is64bit &&
+                        global.params.isWindows &&
                         !isStatic() && !fbody->usesEH())
                     {
                         /* The back end uses the "jmonitor" hack for syncing;
@@ -1649,7 +1627,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                          */
                     }
                     else
-#endif
                     {
                         Expression *vsync;
                         if (isStatic())
@@ -1670,7 +1647,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                     error("synchronized function %s must be a member of a class", toChars());
                 }
             }
-#endif
         }
 
         sc2->callSuper = 0;
@@ -1812,43 +1788,15 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
         {
             assert(ad->handle);
             Type *thandle = ad->handle;
-#if STRUCTTHISREF
             thandle = thandle->addMod(type->mod);
             thandle = thandle->addStorageClass(storage_class);
             //if (isPure())
                 //thandle = thandle->addMod(MODconst);
-#else
-            if (storage_class & STCconst || type->isConst())
-            {
-                assert(0); // BUG: shared not handled
-                if (thandle->ty == Tclass)
-                    thandle = thandle->constOf();
-                else
-                {   assert(thandle->ty == Tpointer);
-                    thandle = thandle->nextOf()->constOf()->pointerTo();
-                }
-            }
-            else if (storage_class & STCimmutable || type->isImmutable())
-            {
-                if (thandle->ty == Tclass)
-                    thandle = thandle->invariantOf();
-                else
-                {   assert(thandle->ty == Tpointer);
-                    thandle = thandle->nextOf()->invariantOf()->pointerTo();
-                }
-            }
-            else if (storage_class & STCshared || type->isShared())
-            {
-                assert(0);  // not implemented
-            }
-#endif
             v = new ThisDeclaration(loc, thandle);
             //v = new ThisDeclaration(loc, isCtorDeclaration() ? ad->handle : thandle);
             v->storage_class |= STCparameter;
-#if STRUCTTHISREF
             if (thandle->ty == Tstruct)
                 v->storage_class |= STCref;
-#endif
             v->semantic(sc);
             if (!sc->insert(v))
                 assert(0);
@@ -3257,14 +3205,24 @@ const char *FuncDeclaration::kind()
     return "function";
 }
 
+/*********************************************
+ * In the current function, we are calling 'this' function.
+ * 1. Check to see if the current function can call 'this' function, issue error if not.
+ * 2. If the current function is not the parent of 'this' function, then add
+ *    the current function to the list of siblings of 'this' function.
+ * 3. If the current function is a literal, and it's accessing an uplevel scope,
+ *    then mark it as a delegate.
+ */
+
 void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
 {
-    //printf("FuncDeclaration::checkNestedReference() %s\n", toChars());
+    //printf("FuncDeclaration::checkNestedReference() %s\n", toPrettyChars());
     if (parent && parent != sc->parent && this->isNested() &&
         this->ident != Id::require && this->ident != Id::ensure)
     {
         // The function that this function is in
-        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+        FuncDeclaration *fdv2 = toParent2()->isFuncDeclaration();
+
         // The current function
         FuncDeclaration *fdthis = sc->parent->isFuncDeclaration();
 
@@ -3272,7 +3230,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
         //printf("fdv  = %s in [%s]\n", fdv->toChars(), fdv->loc.toChars());
         //printf("fdthis = %s in [%s]\n", fdthis->toChars(), fdthis->loc.toChars());
 
-        if (fdv && fdthis && fdv != fdthis)
+        if (fdv2 && fdthis && fdv2 != fdthis)
         {
             // Add this function to the list of those which called us
             if (fdthis != this)
@@ -3283,14 +3241,24 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
                         found = true;
                 }
                 if (!found)
+                {
+                    //printf("\tadding sibling %s\n", fdthis->toPrettyChars());
                     siblingCallers.push(fdthis);
+                }
             }
+        }
 
+        FuncDeclaration *fdv = toParent()->isFuncDeclaration();
+        fdv = toParent()->isFuncDeclaration();
+        if (fdv && fdthis && fdv != fdthis)
+        {
             int lv = fdthis->getLevel(loc, sc, fdv);
             if (lv == -1)
-                return; // OK
+                return; // downlevel call
             if (lv == 0)
-                return; // OK
+                return; // same level call
+
+            // Uplevel call
 
             // BUG: may need to walk up outer scopes like Declaration::checkNestedReference() does
 
@@ -3330,6 +3298,7 @@ void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
  */
 bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
 {
+    //printf("checkEscapingSiblings(f = %s, outerfunc = %s)\n", f->toChars(), outerFunc->toChars());
     bool bAnyClosures = false;
     for (int i = 0; i < f->siblingCallers.dim; ++i)
     {
@@ -3341,6 +3310,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
         }
         bAnyClosures |= checkEscapingSiblings(g, outerFunc);
     }
+    //printf("\t%d\n", bAnyClosures);
     return bAnyClosures;
 }
 
@@ -3687,10 +3657,8 @@ void CtorDeclaration::semantic(Scope *sc)
         originalType = type->syntaxCopy();
     type = type->semantic(loc, sc);
 
-#if STRUCTTHISREF
     if (ad && ad->isStructDeclaration())
         ((TypeFunction *)type)->isref = 1;
-#endif
 
     FuncDeclaration::semantic(sc);
 
@@ -3977,9 +3945,6 @@ void StaticCtorDeclaration::semantic(Scope *sc)
     if (m)
     {   m->needmoduleinfo = 1;
         //printf("module1 %s needs moduleinfo\n", m->toChars());
-#ifdef IN_GCC
-        m->strictlyneedmoduleinfo = 1;
-#endif
     }
 }
 
@@ -4115,9 +4080,6 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     if (m)
     {   m->needmoduleinfo = 1;
         //printf("module2 %s needs moduleinfo\n", m->toChars());
-#ifdef IN_GCC
-        m->strictlyneedmoduleinfo = 1;
-#endif
     }
 }
 

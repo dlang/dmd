@@ -86,9 +86,7 @@ void unittests();
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
-#define SARRAYVALUE DMDV2       // static arrays are value types
 #define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
 #define BUG6652 2       // Making foreach range statement parameter non-ref in default
                         // 1: Modifying iteratee in body is warned with -w switch
@@ -154,7 +152,7 @@ struct Param
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
     char isFreeBSD;     // generate code for FreeBSD
-    char isOPenBSD;     // generate code for OpenBSD
+    char isOpenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
     char useDeprecated; // 0: don't allow use of deprecated features

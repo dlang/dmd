@@ -161,6 +161,11 @@ dt_t ** dtnbytes(dt_t **pdtend,unsigned size,const char *ptr)
  * Construct a DTabytes record, and return it.
  */
 
+dt_t **dtabytes(dt_t **pdtend, unsigned offset, unsigned size, const char *ptr)
+{
+    return dtabytes(pdtend, TYnptr, offset, size, ptr);
+}
+
 dt_t **dtabytes(dt_t **pdtend,tym_t ty, unsigned offset, unsigned size, const char *ptr)
 {   dt_t *dt;
 
@@ -257,6 +262,11 @@ dt_t ** dtcoff(dt_t **pdtend,unsigned offset)
  * Construct a DTxoff record, and return it.
  */
 
+dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset)
+{
+    return dtxoff(pdtend, s, offset, TYnptr);
+}
+
 dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
 {   dt_t *dt;
 
@@ -270,6 +280,24 @@ dt_t ** dtxoff(dt_t **pdtend,symbol *s,unsigned offset,tym_t ty)
     *pdtend = dt;
     pdtend = &dt->DTnext;
     return pdtend;
+}
+
+/*************************************
+ * Create a reference to another dt.
+ */
+dt_t **dtdtoff(dt_t **pdtend, dt_t *dt, unsigned offset)
+{
+    type *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    s->Sdt = dt;
+    slist_add(s);
+    outdata(s);
+    return dtxoff(pdtend, s, offset);
 }
 
 /**************************
@@ -371,5 +399,6 @@ void dt2common(dt_t **pdt)
     assert((*pdt)->dt == DT_azeros);
     (*pdt)->dt = DT_common;
 }
+
 
 #endif /* !SPP */

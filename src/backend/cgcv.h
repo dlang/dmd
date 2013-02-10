@@ -64,6 +64,7 @@ int cv_namestring ( unsigned char *p , const char *name );
 unsigned cv4_typidx(type *t);
 idx_t cv4_arglist(type *t,unsigned *pnparam);
 unsigned char cv4_callconv(type *t);
+idx_t cv_numdebtypes();
 
 #define TOIDX(a,b)      ((cgcv.sz_idx == 4) ? TOLONG(a,b) : TOWORD(a,b))
 

@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 2000-2012 by Digital Mars
+// Copyright (c) 2000-2013 by Digital Mars
 // All Rights Reserved
 // Written by Walter Bright
 // http://www.digitalmars.com
@@ -157,38 +157,25 @@ void IfStatement::toIR(IRState *irs)
     block *bexit = mystate.breakBlock ? mystate.breakBlock : block_calloc();
 
     incUsage(irs, loc);
-#if 0
-    if (match)
-    {   /* Generate:
-         *  if (match = RTLSYM_IFMATCH(string, pattern)) ...
-         */
-        assert(condition->op == TOKmatch);
-        e = matchexp_toelem((MatchExp *)condition, &mystate, RTLSYM_IFMATCH);
-        Symbol *s = match->toSymbol();
-        symbol_add(s);
-        e = el_bin(OPeq, TYnptr, el_var(s), e);
-    }
-    else
-#endif
-        e = condition->toElemDtor(&mystate);
+    e = condition->toElemDtor(&mystate);
     block_appendexp(blx->curblock, e);
     block *bcond = blx->curblock;
     block_next(blx, BCiftrue, NULL);
 
-    list_append(&bcond->Bsucc, blx->curblock);
+    bcond->appendSucc(blx->curblock);
     if (ifbody)
         ifbody->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, bexit);
+    blx->curblock->appendSucc(bexit);
 
     if (elsebody)
     {
         block_next(blx, BCgoto, NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
+        bcond->appendSucc(blx->curblock);
         elsebody->toIR(&mystate);
-        list_append(&blx->curblock->Bsucc, bexit);
+        blx->curblock->appendSucc(bexit);
     }
     else
-        list_append(&bcond->Bsucc, bexit);
+        bcond->appendSucc(bexit);
 
     block_next(blx, BCgoto, bexit);
 
@@ -222,32 +209,6 @@ void PragmaStatement::toIR(IRState *irs)
 void WhileStatement::toIR(IRState *irs)
 {
     assert(0); // was "lowered"
-#if 0
-    Blockx *blx = irs->blx;
-
-    /* Create a new state, because we need a new continue and break target
-     */
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-    block_next(blx, BCgoto, mystate.contBlock);
-    incUsage(irs, loc);
-    block_appendexp(mystate.contBlock, condition->toElem(&mystate));
-
-    block_next(blx, BCiftrue, NULL);
-
-    /* curblock is the start of the while loop body
-     */
-    list_append(&mystate.contBlock->Bsucc, blx->curblock);
-    if (body)
-        body->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
-    block_next(blx, BCgoto, mystate.breakBlock);
-
-    list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
-#endif
 }
 
 /******************************************
@@ -263,14 +224,14 @@ void DoStatement::toIR(IRState *irs)
 
     block *bpre = blx->curblock;
     block_next(blx, BCgoto, NULL);
-    list_append(&bpre->Bsucc, blx->curblock);
+    bpre->appendSucc(blx->curblock);
 
-    list_append(&mystate.contBlock->Bsucc, blx->curblock);
-    list_append(&mystate.contBlock->Bsucc, mystate.breakBlock);
+    mystate.contBlock->appendSucc(blx->curblock);
+    mystate.contBlock->appendSucc(mystate.breakBlock);
 
     if (body)
         body->toIR(&mystate);
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
+    blx->curblock->appendSucc(mystate.contBlock);
 
     block_next(blx, BCgoto, mystate.contBlock);
     incUsage(irs, condition->loc);
@@ -295,28 +256,28 @@ void ForStatement::toIR(IRState *irs)
     block *bpre = blx->curblock;
     block_next(blx,BCgoto,NULL);
     block *bcond = blx->curblock;
-    list_append(&bpre->Bsucc, bcond);
-    list_append(&mystate.contBlock->Bsucc, bcond);
+    bpre->appendSucc(bcond);
+    mystate.contBlock->appendSucc(bcond);
     if (condition)
     {
         incUsage(irs, condition->loc);
         block_appendexp(bcond, condition->toElemDtor(&mystate));
         block_next(blx,BCiftrue,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
-        list_append(&bcond->Bsucc, mystate.breakBlock);
+        bcond->appendSucc(blx->curblock);
+        bcond->appendSucc(mystate.breakBlock);
     }
     else
     {   /* No conditional, it's a straight goto
          */
         block_next(blx,BCgoto,NULL);
-        list_append(&bcond->Bsucc, blx->curblock);
+        bcond->appendSucc(blx->curblock);
     }
 
     if (body)
         body->toIR(&mystate);
     /* End of the body goes to the continue block
      */
-    list_append(&blx->curblock->Bsucc, mystate.contBlock);
+    blx->curblock->appendSucc(mystate.contBlock);
     block_next(blx, BCgoto, mystate.contBlock);
 
     if (increment)
@@ -338,264 +299,6 @@ void ForeachStatement::toIR(IRState *irs)
 {
     printf("ForeachStatement::toIR() %s\n", toChars());
     assert(0);  // done by "lowering" in the front end
-#if 0
-    Type *tab;
-    elem *eaggr;
-    elem *e;
-    elem *elength;
-    tym_t keytym;
-
-    //printf("ForeachStatement::toIR()\n");
-    block *bpre;
-    block *bcond;
-    block *bbody;
-    block *bbodyx;
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    tab = aggr->type->toBasetype();
-    assert(tab->ty == Tarray || tab->ty == Tsarray);
-
-    incUsage(irs, aggr->loc);
-    eaggr = aggr->toElem(irs);
-
-    /* Create sp: pointer to start of array data
-     */
-
-    Symbol *sp = symbol_genauto(TYnptr);
-
-    if (tab->ty == Tarray)
-    {
-        // stmp is copy of eaggr (the array), so eaggr is evaluated only once
-        Symbol *stmp;
-
-        // Initialize stmp
-        stmp = symbol_genauto(eaggr);
-        e = el_bin(OPeq, eaggr->Ety, el_var(stmp), eaggr);
-        block_appendexp(blx->curblock, e);
-
-        // Initialize sp
-        e = el_una(OPmsw, TYnptr, el_var(stmp));
-        e = el_bin(OPeq, TYnptr, el_var(sp), e);
-        block_appendexp(blx->curblock, e);
-
-        // Get array.length
-        elength = el_var(stmp);
-        elength->Ety = TYsize_t;
-    }
-    else // Tsarray
-    {
-        // Initialize sp
-        e = el_una(OPaddr, TYnptr, eaggr);
-        e = el_bin(OPeq, TYnptr, el_var(sp), e);
-        block_appendexp(blx->curblock, e);
-
-        // Get array.length
-        elength = el_long(TYsize_t, ((TypeSArray *)tab)->dim->toInteger());
-    }
-
-    Symbol *spmax;
-    Symbol *skey;
-
-    if (key)
-    {
-        /* Create skey, the index to the array.
-         * Initialize skey to 0 (foreach) or .length (foreach_reverse).
-         */
-        skey = key->toSymbol();
-        symbol_add(skey);
-        keytym = key->type->totym();
-        elem *einit = (op == TOKforeach_reverse) ? elength : el_long(keytym, 0);
-        e = el_bin(OPeq, keytym, el_var(skey), einit);
-    }
-    else
-    {
-        /* Create spmax, pointer past end of data.
-         * Initialize spmax = sp + array.length * size
-         */
-        spmax = symbol_genauto(TYnptr);
-        e = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, tab->nextOf()->size()));
-        e = el_bin(OPadd, TYnptr, el_var(sp), e);
-        e = el_bin(OPeq, TYnptr, el_var(spmax), e);
-
-        /* For foreach_reverse, swap sp and spmax
-         */
-        if (op == TOKforeach_reverse)
-        {   Symbol *s = sp;
-            sp = spmax;
-            spmax = s;
-        }
-    }
-    block_appendexp(blx->curblock, e);
-
-    bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    bcond = blx->curblock;
-
-    if (key)
-    {
-        if (op == TOKforeach_reverse)
-        {
-            // Construct (key != 0)
-            e = el_bin(OPne, TYint, el_var(skey), el_long(keytym, 0));
-        }
-        else
-        {
-            // Construct (key < elength)
-            e = el_bin(OPlt, TYint, el_var(skey), elength);
-        }
-    }
-    else
-    {
-        if (op == TOKforeach_reverse)
-        {
-            // Construct (sp > spmax)
-            e = el_bin(OPgt, TYint, el_var(sp), el_var(spmax));
-        }
-        else
-        {
-            // Construct (sp < spmax)
-            e = el_bin(OPlt, TYint, el_var(sp), el_var(spmax));
-        }
-    }
-    bcond->Belem = e;
-    block_next(blx, BCiftrue, NULL);
-
-    if (op == TOKforeach_reverse)
-    {
-        if (key)
-        {   // Construct (skey -= 1)
-            e = el_bin(OPminass, keytym, el_var(skey), el_long(keytym, 1));
-        }
-        else
-        {   // Construct (sp--)
-            e = el_bin(OPminass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
-        }
-        block_appendexp(blx->curblock, e);
-    }
-
-    Symbol *s;
-    FuncDeclaration *fd = NULL;
-    if (value->toParent2())
-        fd = value->toParent2()->isFuncDeclaration();
-    int nrvo = 0;
-    if (fd && fd->nrvo_can && fd->nrvo_var == value)
-    {
-        s = fd->shidden;
-        nrvo = 1;
-    }
-    else
-    {   s = value->toSymbol();
-        symbol_add(s);
-    }
-
-    // Construct (value = *sp) or (value = sp[skey * elemsize])
-    tym_t tym = value->type->totym();
-    if (key)
-    {   // sp + skey * elemsize
-        e = el_bin(OPmul, keytym, el_var(skey), el_long(keytym, tab->nextOf()->size()));
-        e = el_bin(OPadd, TYnptr, el_var(sp), e);
-    }
-    else
-        e = el_var(sp);
-
-    elem *evalue;
-#if DMDV2
-    if (value->offset)  // if value is a member of a closure
-    {
-        assert(irs->sclosure);
-        evalue = el_var(irs->sclosure);
-        evalue = el_bin(OPadd, TYnptr, evalue, el_long(TYint, value->offset));
-        evalue = el_una(OPind, value->type->totym(), evalue);
-    }
-    else
-#endif
-        evalue = el_var(s);
-
-    if (value->isOut() || value->isRef())
-    {
-        assert(value->storage_class & (STCout | STCref));
-        e = el_bin(OPeq, TYnptr, evalue, e);
-    }
-    else
-    {
-        if (nrvo)
-            evalue = el_una(OPind, tym, evalue);
-        StructDeclaration *sd = needsPostblit(value->type);
-        if (tybasic(tym) == TYstruct)
-        {
-            e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-            e->Eoper = OPstreq;
-            e->ET = value->type->toCtype();
-#if DMDV2
-            // Call postblit on e
-            if (sd)
-            {   FuncDeclaration *fd = sd->postblit;
-                elem *ec = el_copytree(evalue);
-                ec = el_una(OPaddr, TYnptr, ec);
-                ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
-                e = el_combine(e, ec);
-            }
-#endif
-        }
-        else if (tybasic(tym) == TYarray)
-        {
-            if (sd)
-            {
-                /* Generate:
-                 *      _d_arrayctor(ti, efrom, eto)
-                 */
-                Expression *ti = value->type->toBasetype()->nextOf()->toBasetype()->getTypeInfo(NULL);
-                elem *esize = el_long(TYsize_t, ((TypeSArray *)value->type->toBasetype())->dim->toInteger());
-                elem *eto = el_pair(TYdarray, esize, el_una(OPaddr, TYnptr, evalue));
-                elem *efrom = el_pair(TYdarray, el_copytree(esize), e);
-                elem *ep = el_params(eto, efrom, ti->toElem(irs), NULL);
-                int rtl = RTLSYM_ARRAYCTOR;
-                e = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), ep);
-            }
-            else
-            {
-                e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-                e->Eoper = OPstreq;
-                e->Ejty = e->Ety = TYstruct;
-                e->ET = value->type->toCtype();
-            }
-        }
-        else
-            e = el_bin(OPeq, tym, evalue, el_una(OPind, tym, e));
-    }
-    incUsage(irs, loc);
-    block_appendexp(blx->curblock, e);
-
-    bbody = blx->curblock;
-    if (body)
-        body->toIR(&mystate);
-    bbodyx = blx->curblock;
-    block_next(blx,BCgoto,mystate.contBlock);
-
-    if (op == TOKforeach)
-    {
-        if (key)
-        {   // Construct (skey += 1)
-            e = el_bin(OPaddass, keytym, el_var(skey), el_long(keytym, 1));
-        }
-        else
-        {   // Construct (sp++)
-            e = el_bin(OPaddass, TYnptr, el_var(sp), el_long(TYsize_t, tab->nextOf()->size()));
-        }
-        mystate.contBlock->Belem = e;
-    }
-    block_next(blx,BCgoto,mystate.breakBlock);
-
-    list_append(&bpre->Bsucc,bcond);
-    list_append(&bcond->Bsucc,bbody);
-    list_append(&bcond->Bsucc,mystate.breakBlock);
-    list_append(&bbodyx->Bsucc,mystate.contBlock);
-    list_append(&mystate.contBlock->Bsucc,bcond);
-#endif
 }
 
 
@@ -606,114 +309,6 @@ void ForeachStatement::toIR(IRState *irs)
 void ForeachRangeStatement::toIR(IRState *irs)
 {
     assert(0);
-#if 0
-    Type *tab;
-    elem *eaggr;
-    elem *elwr;
-    elem *eupr;
-    elem *e;
-    elem *elength;
-    tym_t keytym;
-
-    //printf("ForeachStatement::toIR()\n");
-    block *bpre;
-    block *bcond;
-    block *bbody;
-    block *bbodyx;
-    Blockx *blx = irs->blx;
-
-    IRState mystate(irs,this);
-    mystate.breakBlock = block_calloc(blx);
-    mystate.contBlock = block_calloc(blx);
-
-    incUsage(irs, lwr->loc);
-    elwr = lwr->toElem(irs);
-
-    incUsage(irs, upr->loc);
-    eupr = upr->toElem(irs);
-
-    /* Create skey, the index to the array.
-     * Initialize skey to elwr (foreach) or eupr (foreach_reverse).
-     */
-    Symbol *skey = key->toSymbol();
-    symbol_add(skey);
-    keytym = key->type->totym();
-
-    elem *ekey;
-    if (key->offset)            // if key is member of a closure
-    {
-        assert(irs->sclosure);
-        ekey = el_var(irs->sclosure);
-        ekey = el_bin(OPadd, TYnptr, ekey, el_long(TYint, key->offset));
-        ekey = el_una(OPind, keytym, ekey);
-    }
-    else
-        ekey = el_var(skey);
-
-    elem *einit = (op == TOKforeach_reverse) ? eupr : elwr;
-    e = el_bin(OPeq, keytym, ekey, einit);   // skey = einit;
-    block_appendexp(blx->curblock, e);
-
-    /* Make a copy of the end condition, so it only
-     * gets evaluated once.
-     */
-    elem *eend = (op == TOKforeach_reverse) ? elwr : eupr;
-    Symbol *send = symbol_genauto(eend);
-    e = el_bin(OPeq, eend->Ety, el_var(send), eend);
-    assert(tybasic(e->Ety) != TYstruct);
-    block_appendexp(blx->curblock, e);
-
-    bpre = blx->curblock;
-    block_next(blx,BCgoto,NULL);
-    bcond = blx->curblock;
-
-    if (op == TOKforeach_reverse)
-    {
-        // Construct (key > elwr)
-        e = el_bin(OPgt, TYint, el_copytree(ekey), el_var(send));
-    }
-    else
-    {
-        // Construct (key < eupr)
-        e = el_bin(OPlt, TYint, el_copytree(ekey), el_var(send));
-    }
-
-    // The size of the increment
-    size_t sz = 1;
-    Type *tkeyb = key->type->toBasetype();
-    if (tkeyb->ty == Tpointer)
-        sz = tkeyb->nextOf()->size();
-
-    bcond->Belem = e;
-    block_next(blx, BCiftrue, NULL);
-
-    if (op == TOKforeach_reverse)
-    {
-        // Construct (skey -= 1)
-        e = el_bin(OPminass, keytym, el_copytree(ekey), el_long(keytym, sz));
-        block_appendexp(blx->curblock, e);
-    }
-
-    bbody = blx->curblock;
-    if (body)
-        body->toIR(&mystate);
-    bbodyx = blx->curblock;
-    block_next(blx,BCgoto,mystate.contBlock);
-
-    if (op == TOKforeach)
-    {
-        // Construct (skey += 1)
-        e = el_bin(OPaddass, keytym, el_copytree(ekey), el_long(keytym, sz));
-        mystate.contBlock->Belem = e;
-    }
-    block_next(blx,BCgoto,mystate.breakBlock);
-
-    list_append(&bpre->Bsucc,bcond);
-    list_append(&bcond->Bsucc,bbody);
-    list_append(&bcond->Bsucc,mystate.breakBlock);
-    list_append(&bbodyx->Bsucc,mystate.contBlock);
-    list_append(&mystate.contBlock->Bsucc,bcond);
-#endif
 }
 #endif
 
@@ -740,7 +335,7 @@ void BreakStatement::toIR(IRState *irs)
 
     /* Nothing more than a 'goto' to the current break destination
      */
-    list_append(&b->Bsucc, bbreak);
+    b->appendSucc(bbreak);
     block_next(blx, BCgoto, NULL);
 }
 
@@ -767,7 +362,7 @@ void ContinueStatement::toIR(IRState *irs)
 
     /* Nothing more than a 'goto' to the current continue destination
      */
-    list_append(&b->Bsucc, bcont);
+    b->appendSucc(bcont);
     block_next(blx, BCgoto, NULL);
 }
 
@@ -849,7 +444,7 @@ void GotoStatement::toIR(IRState *irs)
         }
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     block_next(blx,BCgoto,NULL);
 }
 
@@ -895,7 +490,7 @@ void LabelStatement::toIR(IRState *irs)
     else
         lblock = block_calloc(blx);
     block_next(blx,BCgoto,lblock);
-    list_append(&bc->Bsucc,blx->curblock);
+    bc->appendSucc(blx->curblock);
     if (statement)
         statement->toIR(&mystate);
 }
@@ -952,15 +547,15 @@ void SwitchStatement::toIR(IRState *irs)
             block *bcase = block_calloc(blx);
             cs->cblock = bcase;
             block_next(blx, BCiftrue, NULL);
-            list_append(&b->Bsucc, bcase);
-            list_append(&b->Bsucc, blx->curblock);
+            b->appendSucc(bcase);
+            b->appendSucc(blx->curblock);
         }
 
         /* The final 'else' clause goes to the default
          */
         block *b = blx->curblock;
         block_next(blx, BCgoto, NULL);
-        list_append(&b->Bsucc, mystate.defaultBlock);
+        b->appendSucc(mystate.defaultBlock);
 
         body->toIR(&mystate);
 
@@ -1043,7 +638,7 @@ void SwitchStatement::toIR(IRState *irs)
     /* First pair is the number of cases, and the default block
      */
     *pu++ = numcases;
-    list_append(&mystate.switchBlock->Bsucc, mystate.defaultBlock);
+    mystate.switchBlock->appendSucc(mystate.defaultBlock);
 
     /* Fill in the first entry in each pair, which is the case value.
      * CaseStatement::toIR() will fill in
@@ -1079,8 +674,8 @@ void CaseStatement::toIR(IRState *irs)
     block_next(blx,BCgoto,cblock);
     block *bsw = irs->getSwitchBlock();
     if (bsw->BC == BCswitch)
-        list_append(&bsw->Bsucc,cblock);        // second entry in pair
-    list_append(&bcase->Bsucc,cblock);
+        bsw->appendSucc(cblock);        // second entry in pair
+    bcase->appendSucc(cblock);
     if (blx->tryblock != bsw->Btry)
         error("case cannot be in different try block level from switch");
     incUsage(irs, loc);
@@ -1094,7 +689,7 @@ void DefaultStatement::toIR(IRState *irs)
     block *bcase = blx->curblock;
     block *bdefault = irs->getDefaultBlock();
     block_next(blx,BCgoto,bdefault);
-    list_append(&bcase->Bsucc,blx->curblock);
+    bcase->appendSucc(blx->curblock);
     if (blx->tryblock != irs->getSwitchBlock()->Btry)
         error("default cannot be in different try block level from switch");
     incUsage(irs, loc);
@@ -1129,7 +724,7 @@ void GotoDefaultStatement::toIR(IRState *irs)
         //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     incUsage(irs, loc);
     block_next(blx,BCgoto,NULL);
 }
@@ -1167,7 +762,7 @@ void GotoCaseStatement::toIR(IRState *irs)
         //setScopeIndex(blx, b, bdest->Btry ? bdest->Btry->Bscope_index : -1);
     }
 
-    list_append(&b->Bsucc,bdest);
+    b->appendSucc(bdest);
     incUsage(irs, loc);
     block_next(blx,BCgoto,NULL);
 }
@@ -1190,6 +785,7 @@ void SwitchErrorStatement::toIR(IRState *irs)
 void ReturnStatement::toIR(IRState *irs)
 {
     Blockx *blx = irs->blx;
+    enum BC bc;
 
     incUsage(irs, loc);
     if (exp)
@@ -1280,10 +876,23 @@ void ReturnStatement::toIR(IRState *irs)
         }
         elem_setLoc(e, loc);
         block_appendexp(blx->curblock, e);
-        block_next(blx, BCretexp, NULL);
+        bc = BCretexp;
     }
     else
-        block_next(blx, BCret, NULL);
+        bc = BCret;
+
+    block *btry = blx->curblock->Btry;
+    if (btry)
+    {
+        // A finally block is a successor to a return block inside a try-finally
+        if (btry->numSucc() == 2)      // try-finally
+        {
+            block *bfinally = btry->nthSucc(1);
+            assert(bfinally->BC == BC_finally);
+            blx->curblock->appendSucc(bfinally);
+        }
+    }
+    block_next(blx, bc, NULL);
 }
 
 /**************************************
@@ -1354,7 +963,7 @@ void UnrolledLoopStatement::toIR(IRState *irs)
     block_next(blx, BCgoto, NULL);
 
     block *bdo = blx->curblock;
-    list_append(&bpre->Bsucc, bdo);
+    bpre->appendSucc(bdo);
 
     block *bdox;
 
@@ -1370,13 +979,13 @@ void UnrolledLoopStatement::toIR(IRState *irs)
 
             bdox = blx->curblock;
             block_next(blx, BCgoto, mystate.contBlock);
-            list_append(&bdox->Bsucc, mystate.contBlock);
+            bdox->appendSucc(mystate.contBlock);
         }
     }
 
     bdox = blx->curblock;
     block_next(blx, BCgoto, mystate.breakBlock);
-    list_append(&bdox->Bsucc, mystate.breakBlock);
+    bdox->appendSucc(mystate.breakBlock);
 }
 
 
@@ -1502,7 +1111,7 @@ void TryCatchStatement::toIR(IRState *irs)
     // create new break block that follows all the catches
     breakblock = block_calloc(blx);
 
-    list_append(&blx->curblock->Bsucc, breakblock);
+    blx->curblock->appendSucc(breakblock);
     block_next(blx,BCgoto,NULL);
 
     assert(catches);
@@ -1514,14 +1123,14 @@ void TryCatchStatement::toIR(IRState *irs)
         block *bcatch = blx->curblock;
         if (cs->type)
             bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
-        list_append(&tryblock->Bsucc,bcatch);
+        tryblock->appendSucc(bcatch);
         block_goto(blx,BCjcatch,NULL);
         if (cs->handler != NULL)
         {
             IRState catchState(irs, this);
             cs->handler->toIR(&catchState);
         }
-        list_append(&blx->curblock->Bsucc, breakblock);
+        blx->curblock->appendSucc(breakblock);
         block_next(blx, BCgoto, NULL);
     }
 
@@ -1565,6 +1174,8 @@ void TryFinallyStatement::toIR(IRState *irs)
     IRState bodyirs(irs, this);
     block *breakblock = block_calloc(blx);
     block *contblock = block_calloc(blx);
+    tryblock->appendSucc(contblock);
+    contblock->BC = BC_finally;
 
     if (body)
         body->toIR(&bodyirs);
@@ -1575,8 +1186,7 @@ void TryFinallyStatement::toIR(IRState *irs)
 
     block_goto(blx,BCgoto, breakblock);
     block *finallyblock = block_goto(blx,BCgoto,contblock);
-
-    list_append(&tryblock->Bsucc,finallyblock);
+    assert(finallyblock == contblock);
 
     block_goto(blx,BC_finally,NULL);
 
@@ -1593,8 +1203,8 @@ void TryFinallyStatement::toIR(IRState *irs)
     block *retblock = blx->curblock;
     block_next(blx,BC_ret,NULL);
 
-    list_append(&finallyblock->Bsucc, blx->curblock);
-    list_append(&retblock->Bsucc, blx->curblock);
+    finallyblock->appendSucc(blx->curblock);
+    retblock->appendSucc(blx->curblock);
 }
 
 /****************************************
@@ -1621,7 +1231,7 @@ void AsmStatement::toIR(IRState *irs)
     bpre = blx->curblock;
     block_next(blx,BCgoto,NULL);
     basm = blx->curblock;
-    list_append(&bpre->Bsucc, basm);
+    bpre->appendSucc(basm);
     basm->Bcode = asmcode;
     basm->Balign = asmalign;
 #if 0
@@ -1631,7 +1241,7 @@ void AsmStatement::toIR(IRState *irs)
         b = labelToBlock(loc, blx, label);
         printf("AsmStatement::toIR() %p\n", b);
         if (b)
-            list_append(&basm->Bsucc, b);
+            basm->appendSucc(b);
     }
 #endif
     // Loop through each instruction, fixing Dsymbols into Symbol's
@@ -1646,7 +1256,7 @@ void AsmStatement::toIR(IRState *irs)
                 // FLblock and FLblockoff have LabelDsymbol's - convert to blocks
                 label = c->IEVlsym1;
                 b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
+                basm->appendSucc(b);
                 c->IEV1.Vblock = b;
                 break;
 
@@ -1668,7 +1278,7 @@ void AsmStatement::toIR(IRState *irs)
             case FLblock:
                 label = c->IEVlsym2;
                 b = labelToBlock(loc, blx, label);
-                list_append(&basm->Bsucc, b);
+                basm->appendSucc(b);
                 c->IEV2.Vblock = b;
                 break;
 
@@ -1692,7 +1302,7 @@ void AsmStatement::toIR(IRState *irs)
     basm->usIasmregs = regs;                    // registers modified
 
     block_next(blx,BCasm, NULL);
-    list_prepend(&basm->Bsucc, blx->curblock);
+    basm->prependSucc(blx->curblock);
 
     if (naked)
     {

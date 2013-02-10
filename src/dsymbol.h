@@ -125,6 +125,7 @@ struct Dsymbol : Object
     bool errors;                // this symbol failed to pass semantic()
     char *depmsg;               // customized deprecation message
     Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
+    UnitTestDeclaration *unittest; // !=NULL means there's a unittest associated with this symbol
 
     Dsymbol();
     Dsymbol(Identifier *);
@@ -189,7 +190,7 @@ struct Dsymbol : Object
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
-    virtual char *mangle();
+    virtual char *mangle(bool isv = false);
     virtual int needThis();                     // need a 'this' pointer?
     virtual enum PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees

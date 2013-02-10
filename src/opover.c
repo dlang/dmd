@@ -464,6 +464,15 @@ Expression *BinExp::op_overload(Scope *sc)
     AggregateDeclaration *ad1 = isAggregate(e1->type);
     AggregateDeclaration *ad2 = isAggregate(e2->type);
 
+    if (op == TOKassign && ad1 == ad2)
+    {
+        StructDeclaration *sd = ad1->isStructDeclaration();
+        if (sd && !sd->hasIdentityAssign)
+        {   /* This is bitwise struct assignment. */
+            return NULL;
+        }
+    }
+
     Dsymbol *s = NULL;
     Dsymbol *s_r = NULL;
 

@@ -63,8 +63,10 @@ ifeq (OSX,$(OS))
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
     #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
     LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
+    ECHO=/bin/echo
 else
     LDFLAGS=-lm -lstdc++ -lpthread
+    ECHO=echo
 endif
 
 HOST_CC=g++
@@ -93,7 +95,7 @@ DMD_OBJS = \
 	constfold.o irstate.o cond.o debug.o \
 	declaration.o dsymbol.o dt.o dump.o e2ir.o ee.o eh.o el.o \
 	dwarf.o enum.o evalu8.o expression.o func.o gdag.o gflow.o \
-	glocal.o gloop.o glue.o gnuc.o go.o gother.o iasm.o id.o \
+	glocal.o gloop.o glue.o go.o gother.o iasm.o id.o \
 	identifier.o impcnvtab.o import.o inifile.o init.o inline.o \
 	lexer.o link.o mangle.o mars.o rmem.o module.o msc.o mtype.o \
 	nteh.o cppmangle.o opover.o optimize.o os.o out.o outbuf.o \
@@ -134,7 +136,7 @@ SRC = win32.mak posix.mak \
 	libmscoff.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
-	intrange.h intrange.c canthrow.c vergen.c \
+	intrange.h intrange.c canthrow.c \
 	scanmscoff.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
@@ -160,7 +162,7 @@ SRC = win32.mak posix.mak \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
 	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
-	$(ROOT)/gnuc.h $(ROOT)/gnuc.c $(ROOT)/man.c \
+	$(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
 	$(ROOT)/response.c $(ROOT)/async.h $(ROOT)/async.c \
 	$(ROOT)/aav.h $(ROOT)/aav.c \
@@ -177,7 +179,7 @@ dmd: $(DMD_OBJS)
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
 	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c vergen verstr.h core \
+	tytab.c verstr.h core \
 	*.cov *.gcda *.gcno
 
 ######## optabgen generates some source
@@ -207,11 +209,10 @@ impcnvgen : mtype.h impcnvgen.c
 	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
-######### vergen generates some source
+#########
 
-verstr.h : vergen.c ../VERSION
-	$(ENVP) $(CC) vergen.c -o vergen
-	cat ../VERSION | ./vergen > verstr.h
+verstr.h : ../VERSION
+	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
 
 #########
 
@@ -414,9 +415,6 @@ gloop.o: $C/gloop.c
 
 glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
-
-gnuc.o: $(ROOT)/gnuc.c $(ROOT)/gnuc.h
-	$(CC) -c $(GFLAGS) $<
 
 go.o: $C/go.c
 	$(CC) -c $(MFLAGS) $<

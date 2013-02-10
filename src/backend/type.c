@@ -445,6 +445,67 @@ type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, typ
     return t;
 }
 
+/***************************************
+ * Create an enum type.
+ * Input:
+ *      name    name of enum
+ *      tbase   "base" type of enum
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_enum(const char *name, type *tbase)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCenum;
+    s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
+    s->Senum->SEflags |= SENforward;        // forward reference
+    slist_add(s);
+
+    type *t = type_allocn(TYenum, tbase);
+    t->Ttag = (Classsym *)s;            // enum tag name
+    t->Tcount++;
+    s->Stype = t;
+    t->Tcount++;
+    return t;
+}
+
+/**************************************
+ * Create a struct/union/class type.
+ * Input:
+ *      name    name of struct
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCstruct;
+    s->Sstruct = struct_calloc();
+    s->Sstruct->Salignsize = alignsize;
+    s->Sstruct->Sstructalign = alignsize;
+    s->Sstruct->Sstructsize = structsize;
+    s->Sstruct->Sarg1type = arg1type;
+    s->Sstruct->Sarg2type = arg2type;
+
+    if (!isPOD)
+        s->Sstruct->Sflags |= STRnotpod;
+    if (isUnion)
+        s->Sstruct->Sflags |= STRunion;
+    if (isClass)
+    {   s->Sstruct->Sflags |= STRclass;
+        assert(!isUnion && isPOD);
+    }
+
+    type *t = type_alloc(TYstruct);
+    t->Ttag = (Classsym *)s;            // structure tag name
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+    t->Tcount++;
+    return t;
+}
+
 /*****************************
  * Free up data type.
  */

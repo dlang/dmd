@@ -1793,7 +1793,9 @@ Lagain:
                     {
                         /* Reference to immutable data should be marked as const
                          */
-                        if (!tn->isMutable())
+                        if (aggr->checkModifiable(sc, 1) == 2)
+                            var->storage_class |= STCctorinit;
+                        else if (!tn->isMutable())
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
@@ -1928,18 +1930,12 @@ Lagain:
                 error("only one or two arguments for associative array foreach");
                 break;
             }
-#if SARRAYVALUE
+
             /* This only works if Key or Value is a static array.
              */
             tab = taa->getImpl()->type;
             goto Lagain;
-#else
-            if (op == TOKforeach_reverse)
-            {
-                error("no reverse iteration on associative arrays");
-            }
-            goto Lapply;
-#endif
+
         case Tclass:
         case Tstruct:
 #if DMDV2
@@ -3877,7 +3873,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                             tf->next = exp->type;
                         else if (m1 && !m2)
                             ;
-                        else
+                        else if (exp->op != TOKerror)
                             error("mismatched function return type inference of %s and %s",
                                 exp->type->toChars(), tfret->toChars());
                     }

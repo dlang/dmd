@@ -58,27 +58,17 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
  */
 bool ISREF(Declaration *var, Type *tb)
 {
-#if SARRAYVALUE
     return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(0) > REGSIZE || var->storage_class & STClazy))
             || var->isOut() || var->isRef();
-#else
-    return (var->isParameter() && (var->type->toBasetype()->ty == Tsarray || (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
-            || var->isOut() || var->isRef();
-#endif
 }
 
 /* If variable var of type typ is a reference due to Win64 calling conventions
  */
 bool ISWIN64REF(Declaration *var)
 {
-#if SARRAYVALUE
     return (config.exe == EX_WIN64 && var->isParameter() &&
             (var->type->size(0) > REGSIZE || var->storage_class & STClazy)) &&
             !(var->isOut() || var->isRef());
-#else
-    return (var->isParameter() && (var->type->toBasetype()->ty != Tsarray && (config.exe == EX_WIN64 && var->type->size(0) > REGSIZE)))
-            && !(var->isOut() || var->isRef());
-#endif
 }
 
 /******************************************
@@ -1358,12 +1348,10 @@ elem *ThisExp::toElem(IRState *irs)
     else
         ethis = el_var(irs->sthis);
 
-#if STRUCTTHISREF
     if (type->ty == Tstruct)
     {   ethis = el_una(OPind, TYstruct, ethis);
         ethis->ET = type->toCtype();
     }
-#endif
     el_setLoc(ethis,loc);
     return ethis;
 }
@@ -1681,19 +1669,11 @@ elem *NewExp::toElem(IRState *irs)
                  * and call it stmp.
                  * Set ex to be the &stmp.
                  */
-                Symbol *s = symbol_calloc(tclass->sym->toChars());
-                s->Sclass = SCstruct;
-                s->Sstruct = struct_calloc();
-                s->Sstruct->Sflags |= 0;
-                s->Sstruct->Salignsize = tclass->sym->alignsize;
-//                s->Sstruct->Sstructalign = tclass->sym->structalign;
-                s->Sstruct->Sstructsize = tclass->sym->structsize;
-
-                ::type *tc = type_alloc(TYstruct);
-                tc->Ttag = (Classsym *)s;                // structure tag name
-                tc->Tcount++;
-                s->Stype = tc;
-
+                ::type *tc = type_struct_class(tclass->sym->toChars(),
+                        tclass->sym->alignsize, tclass->sym->structsize,
+                        NULL, NULL,
+                        false, false, true);
+                tc->Tcount--;
                 Symbol *stmp = symbol_genauto(tc);
                 ex = el_ptr(stmp);
             }
@@ -1869,12 +1849,10 @@ elem *NewExp::toElem(IRState *irs)
         if (member)
         {   // Call constructor
             ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
-#if STRUCTTHISREF
             /* Structs return a ref, which gets automatically dereferenced.
              * But we want a pointer to the instance.
              */
             ez = el_una(OPaddr, TYnptr, ez);
-#endif
         }
 
         e = el_combine(ex, ey);
@@ -1991,6 +1969,12 @@ elem *ComExp::toElem(IRState *irs)
             e = el_bin(OPxor, ty, e1, el_long(ty, 1));
             break;
 
+        case Tarray:
+        case Tsarray:
+            error("Array operation %s not implemented", toChars());
+            e = el_long(type->totym(), 0);  // error recovery
+            break;
+
         case Tvector:
         {   // rewrite (~e) as (e^~0)
             elem *ec = el_calloc();
@@ -2057,13 +2041,12 @@ elem *AssertExp::toElem(IRState *irs)
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())
         {
             ts = symbol_genauto(t1->toCtype());
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_SOLARIS
-            int rtl = RTLSYM__DINVARIANT;
-#elif TARGET_WINDOS
-            int rtl = I64 ? RTLSYM__DINVARIANT : RTLSYM_DINVARIANT;
-#else
-            int rtl = RTLSYM_DINVARIANT;
-#endif
+            int rtl;
+            if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris ||
+                I64 && global.params.isWindows)
+                rtl = RTLSYM__DINVARIANT;
+            else
+                rtl = RTLSYM_DINVARIANT;
             einv = el_bin(OPcall, TYvoid, el_var(rtlsym[rtl]), el_var(ts));
         }
         // If e1 is a struct object, call the struct invariant on it
@@ -2307,15 +2290,20 @@ elem *DivExp::toElem(IRState *irs)
 
 elem *ModExp::toElem(IRState *irs)
 {
+    Type *tb1 = e1->type->toBasetype();
+    Type *tb2 = e2->type->toBasetype();
+
+    if (tb1->ty == Tarray || tb1->ty == Tsarray)
+    {
+        error("Array operation %s not implemented", toChars());
+        return el_long(type->totym(), 0);  // error recovery
+    }
+
     elem *e;
-    elem *e1;
-    elem *e2;
-    tym_t tym;
 
-    tym = type->totym();
-
-    e1 = this->e1->toElem(irs);
-    e2 = this->e2->toElem(irs);
+    tym_t tym = type->totym();
+    elem *e1 = this->e1->toElem(irs);
+    elem *e2 = this->e2->toElem(irs);
 
 #if 0 // Now inlined
     if (this->e1->type->isfloating())

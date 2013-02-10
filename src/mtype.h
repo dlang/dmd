@@ -181,6 +181,7 @@ struct Type : Object
     #define tindex      tsize_t         // array/ptr index
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
+    static Type *tvalist;               // va_list alias
     #define terror      basic[Terror]   // for error recovery
 
     #define tnull       basic[Tnull]    // for null type
@@ -261,7 +262,7 @@ struct Type : Object
     virtual int isunsigned();
     virtual int isscope();
     virtual int isString();
-    virtual int isAssignable(int blit = 0);
+    virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
@@ -812,7 +813,7 @@ struct TypeStruct : Type
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
     int isZeroInit(Loc loc);
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int checkBoolean();
     int needsDestruction();
     bool needsNested();
@@ -857,7 +858,7 @@ struct TypeEnum : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int needsDestruction();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
@@ -902,7 +903,7 @@ struct TypeTypedef : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int needsDestruction();
     bool needsNested();
     Type *toBasetype();

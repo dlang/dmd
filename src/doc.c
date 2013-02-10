@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -18,10 +18,7 @@
 
 #include "rmem.h"
 #include "root.h"
-
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "gnuc.h"
-#endif
+#include "port.h"
 
 #include "mars.h"
 #include "dsymbol.h"
@@ -30,6 +27,7 @@
 #include "lexer.h"
 #include "aggregate.h"
 #include "declaration.h"
+#include "statement.h"
 #include "enum.h"
 #include "id.h"
 #include "module.h"
@@ -341,10 +339,7 @@ void Module::gendocfile()
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
     docfile->ref = 1;
-    char *pt = FileName::path(docfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #else
     /* Remove all the escape sequences from buf2
@@ -367,10 +362,7 @@ void Module::gendocfile()
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
     docfile->ref = 1;
-    char *pt = FileName::path(docfile->toChars());
-    if (*pt)
-        FileName::ensurePathExists(pt);
-    mem.free(pt);
+    FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #endif
 }
@@ -513,6 +505,41 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
+}
+
+void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
+{
+    static char pre[] = "$(D_CODE \n";
+    OutBuffer *buf = sc->docbuf;
+
+    bool exampleFound = false;
+    for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
+    {
+        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
+            continue;
+
+        OutBuffer codebuf;
+        const char *body = utd->fbody->toChars();
+        if (strlen(body))
+        {
+            if (!exampleFound)
+            {
+                exampleFound = true;
+                buf->writestring("$(DDOC_SECTION ");
+                buf->writestring("$(B Example:)");
+            }
+
+            codebuf.writestring(pre);
+            codebuf.writestring(body);
+            codebuf.writestring(")");
+            codebuf.writeByte(0);
+            highlightCode2(sc, s, &codebuf, 0);
+            buf->writestring(codebuf.toChars());
+        }
+    }
+
+    if (exampleFound)
+        buf->writestring(")");
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -1299,6 +1326,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring(")\n");
             }
         }
+        if (s->unittest)
+            emitUnittestComment(sc, s, s->unittest);
         buf->writestring(")\n");
     }
     else
@@ -1678,7 +1707,7 @@ int icmp(const char *stringz, void *s, size_t slen)
 
     if (len1 != slen)
         return len1 - slen;
-    return memicmp(stringz, (char *)s, slen);
+    return Port::memicmp(stringz, (char *)s, slen);
 }
 
 /*****************************************
@@ -1691,7 +1720,7 @@ int isDitto(unsigned char *comment)
     {
         unsigned char *p = skipwhitespace(comment);
 
-        if (memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
+        if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
             return 1;
     }
     return 0;
@@ -1789,11 +1818,11 @@ size_t skippastURL(OutBuffer *buf, size_t i)
     size_t j;
     unsigned sawdot = 0;
 
-    if (length > 7 && memicmp((char *)p, "http://", 7) == 0)
+    if (length > 7 && Port::memicmp((char *)p, "http://", 7) == 0)
     {
         j = 7;
     }
-    else if (length > 8 && memicmp((char *)p, "https://", 8) == 0)
+    else if (length > 8 && Port::memicmp((char *)p, "https://", 8) == 0)
     {
         j = 8;
     }
