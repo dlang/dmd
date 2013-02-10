@@ -7,7 +7,7 @@
  * Source:    $(DRUNTIMESRC core/sys/windows/_stacktrace.d)
  */
 
-/*          Copyright Benjamin Thaut 2010 - 2011.
+/*          Copyright Benjamin Thaut 2010 - 2012.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
@@ -36,12 +36,36 @@ private __gshared immutable bool initialized;
 class StackTrace : Throwable.TraceInfo
 {
 public:
-    this()
+    /**
+     * Constructor
+     * Params:
+     *  skip = The number of stack frames to skip.
+     *  context = The context to receive the stack trace from. Can be null.
+     */
+    this(size_t skip, CONTEXT* context)
     {
+        if(context is null)
+        {
+            version(Win64)
+                static enum INTERNALFRAMES = 4;
+            else
+                static enum INTERNALFRAMES = 2;
+                
+            skip += INTERNALFRAMES; //skip the stack frames within the StackTrace class
+        }
+        else
+        {
+            //When a exception context is given the first stack frame is repeated for some reason
+            version(Win64)
+                static enum INTERNALFRAMES = 1;
+            else
+                static enum INTERNALFRAMES = 1;
+                
+            skip += INTERNALFRAMES;
+        }
         if( initialized )
-            m_trace = trace();
+            m_trace = trace(skip, context);
     }
-
 
     int opApply( scope int delegate(ref const(char[])) dg ) const
     {
@@ -55,8 +79,7 @@ public:
     int opApply( scope int delegate(ref size_t, ref const(char[])) dg ) const
     {
         int result;
-
-        foreach( i, e; m_trace )
+        foreach( i, e; resolve(m_trace) )
         {
             if( (result = dg( i, e )) != 0 )
                 break;
@@ -65,40 +88,71 @@ public:
     }
 
 
-    @safe override string toString() const pure nothrow
+    override string toString() const
     {
         string result;
 
-        foreach( e; m_trace )
+        foreach( e; this )
         {
             result ~= e ~ "\n";
         }
         return result;
     }
 
-
-private:
-    char[][] m_trace;
-
-
-    static char[][] trace()
+    /**
+     * Receive a stack trace in the form of an address list.
+     * Params:
+     *  skip = How many stack frames should be skipped.
+     *  context = The context that should be used. If null the current context is used.
+     * Returns:
+     *  A list of addresses that can be passed to resolve at a later point in time.
+     */
+    static ulong[] trace(size_t skip = 0, CONTEXT* context = null)
     {
         synchronized( StackTrace.classinfo )
         {
-            return traceNoSync();
+            return traceNoSync(skip, context);
         }
     }
 
-
-    static char[][] traceNoSync()
+    /**
+     * Resolve a stack trace.
+     * Params:
+     *  addresses = A list of addresses to resolve.
+     * Returns:
+     *  An array of strings with the results.
+     */
+    static char[][] resolve(const(ulong)[] addresses)
     {
-        auto         dbghelp  = DbgHelp.get();
-        auto         hThread  = GetCurrentThread();
-        auto         hProcess = GetCurrentProcess();
+        synchronized( StackTrace.classinfo )
+        {
+            return resolveNoSync(addresses);
+        }
+    }
+
+private:
+    ulong[] m_trace;
+
+
+    static ulong[] traceNoSync(size_t skip, CONTEXT* context)
+    {
+        auto dbghelp  = DbgHelp.get();
+        if(dbghelp is null)
+            return []; // dbghelp.dll not available
+
+        HANDLE       hThread  = GetCurrentThread();
+        HANDLE       hProcess = GetCurrentProcess();
         CONTEXT      ctxt;
 
-        ctxt.ContextFlags = CONTEXT_FULL;
-        RtlCaptureContext(&ctxt);
+        if(context is null)
+        {
+            ctxt.ContextFlags = CONTEXT_FULL;
+            RtlCaptureContext(&ctxt);
+        }
+        else
+        {
+            ctxt = *context;
+        }
 
         //x86
         STACKFRAME64 stackframe;
@@ -114,7 +168,7 @@ private:
                 AddrStack.Offset = ctxt.Esp;
                 AddrStack.Mode   = Flat;
             }
-	    else version(X86_64)
+        else version(X86_64)
             {
                 enum Flat = ADDRESS_MODE.AddrModeFlat;
                 AddrPC.Offset    = ctxt.Rip;
@@ -126,6 +180,40 @@ private:
             }
         }
 
+        version (X86)         enum imageType = IMAGE_FILE_MACHINE_I386;
+        else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
+        else                  static assert(0, "unimplemented");
+
+        ulong[] result;
+        size_t frameNum = 0;
+        
+        // do ... while so that we don't skip the first stackframe
+        do 
+        {
+            if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
+            {
+                debug(PRINTF) printf("Endless callstack\n");
+                break;
+            }
+            if(frameNum >= skip)
+            {
+                result ~= stackframe.AddrPC.Offset;
+            }
+            frameNum++;
+        }
+        while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
+                                   &ctxt, null, null, null, null));
+        return result;
+    }
+
+    static char[][] resolveNoSync(const(ulong)[] addresses)
+    {
+        auto dbghelp  = DbgHelp.get();
+        if(dbghelp is null)
+            return []; // dbghelp.dll not available
+
+        HANDLE hProcess = GetCurrentProcess();
+
         static struct BufSymbol
         {
         align(1):
@@ -133,27 +221,15 @@ private:
             TCHAR[1024] _buf;
         }
         BufSymbol bufSymbol=void;
-        auto symbol = &bufSymbol._base;
+        IMAGEHLP_SYMBOL64* symbol = &bufSymbol._base;
         symbol.SizeOfStruct = IMAGEHLP_SYMBOL64.sizeof;
         symbol.MaxNameLength = bufSymbol._buf.length;
 
-        version (X86)         enum imageType = IMAGE_FILE_MACHINE_I386;
-        else version (X86_64) enum imageType = IMAGE_FILE_MACHINE_AMD64;
-        else                  static assert(0, "unimplemented");
-
         char[][] trace;
-        debug(PRINTF) printf("Callstack:\n");
-        while (dbghelp.StackWalk64(imageType, hProcess, hThread, &stackframe,
-                                   &ctxt, null, null, null, null))
+        foreach(pc; addresses)
         {
-            if( stackframe.AddrPC.Offset == stackframe.AddrReturn.Offset )
+            if( pc != 0 )
             {
-                debug(PRINTF) printf("Endless callstack\n");
-                return trace ~ "...".dup;
-            }
-            else if( stackframe.AddrPC.Offset != 0 )
-            {
-                immutable pc = stackframe.AddrPC.Offset;
                 char[] res;
                 if (dbghelp.SymGetSymFromAddr64(hProcess, pc, null, symbol) &&
                     *symbol.Name.ptr)
@@ -173,7 +249,6 @@ private:
                 trace ~= res;
             }
         }
-        debug(PRINTF) printf("End of Callstack\n");
         return trace;
     }
 
@@ -193,7 +268,14 @@ private:
 
         auto res = formatStackFrame(pc);
         res ~= " in ";
-        res ~= demangle(symName[0 .. strlen(symName)], demangleBuf);
+        const(char)[] tempSymName = symName[0 .. strlen(symName)];
+        //Deal with dmd mangling of long names
+        version(DigitalMars) version(Win32)
+        {
+            size_t decodeIndex = 0;
+            tempSymName = decodeDmdString(tempSymName, decodeIndex);
+        }
+        res ~= demangle(tempSymName, demangleBuf);
         return res;
     }
 
@@ -274,9 +356,15 @@ shared static this()
     if( dbghelp is null )
         return; // dbghelp.dll not available
 
-    auto hProcess = GetCurrentProcess();
+    debug(PRINTF) 
+    {
+        API_VERSION* dbghelpVersion = dbghelp.ImagehlpApiVersion();
+        printf("DbgHelp Version %d.%d.%d\n", dbghelpVersion.MajorVersion, dbghelpVersion.MinorVersion, dbghelpVersion.Revision);
+    }
 
-    auto symOptions = dbghelp.SymGetOptions();
+    HANDLE hProcess = GetCurrentProcess();
+
+    DWORD symOptions = dbghelp.SymGetOptions();
     symOptions |= SYMOPT_LOAD_LINES;
     symOptions |= SYMOPT_FAIL_CRITICAL_ERRORS;
     symOptions |= SYMOPT_DEFERRED_LOAD;

@@ -46,14 +46,14 @@ version (all)
 {
     extern (C) Throwable.TraceInfo _d_traceContext(void* ptr = null);
 
-    extern (C) void _d_createTrace(Object *o)
+    extern (C) void _d_createTrace(Object *o, void* context)
     {
         auto t = cast(Throwable) o;
 
         if (t !is null && t.info is null &&
             cast(byte*) t !is t.classinfo.init.ptr)
         {
-            t.info = _d_traceContext();
+            t.info = _d_traceContext(context);
         }
     }
 }

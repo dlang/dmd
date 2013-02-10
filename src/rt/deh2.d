@@ -52,7 +52,7 @@ extern (C)
 
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
-    void _d_createTrace(Object*);
+    void _d_createTrace(Object*, void*);
 }
 
 alias int function() fp_t;   // function pointer in ambient memory model
@@ -248,7 +248,7 @@ extern (C) void _d_throwc(Object *h)
     else
         static assert(0);
 
-    _d_createTrace(h);
+    _d_createTrace(h, null);
 
 //static uint abc;
 //if (++abc == 2) *(char *)0=0;
