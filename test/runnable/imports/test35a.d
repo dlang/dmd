@@ -2,7 +2,7 @@ module imports.test35a;
 
 template ElemTypeOf( T )
 {
-    alias typeof(T[0]) ElemTypeOf;
+    alias typeof(T.init[0]) ElemTypeOf;
 }
 
 template removeIf_( Elem, Pred )

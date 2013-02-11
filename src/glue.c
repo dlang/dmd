@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,10 +9,6 @@
 #include <stddef.h>
 #include <time.h>
 #include <assert.h>
-
-#if __sun
-#include <alloca.h>
-#endif
 
 #include "mars.h"
 #include "module.h"
@@ -133,14 +129,14 @@ void obj_write_deferred(Library *library)
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
-        char *fname = FileName::removeExt(mname);
+        const char *fname = FileName::removeExt(mname);
         OutBuffer namebuf;
         unsigned hash = 0;
         for (char *p = s->toChars(); *p; p++)
             hash += *p;
         namebuf.printf("%s_%x_%x.%s", fname, count, hash, global.obj_ext);
         namebuf.writeByte(0);
-        mem.free(fname);
+        FileName::free((char *)fname);
         fname = (char *)namebuf.extractData();
 
         //printf("writing '%s'\n", fname);
@@ -168,11 +164,8 @@ symbol *callFuncsAndGates(Module *m, symbols *sctors, StaticDtorDeclarations *ec
             /* t will be the type of the functions generated:
              *      extern (C) void func();
              */
-            t = type_alloc(TYnfunc);
-            t->Tflags |= TFprototype | TFfixed;
+            t = type_function(TYnfunc, NULL, 0, false, tsvoid);
             t->Tmangle = mTYman_c;
-            t->Tnext = tsvoid;
-            tsvoid->Tcount++;
         }
 
         localgot = NULL;
@@ -260,9 +253,7 @@ void obj_end(Library *library, File *objfile)
         objfile->setbuffer(objbuf.buf, objbuf.p - objbuf.buf);
         objbuf.buf = NULL;
 
-        char *p = FileName::path(objfilename);
-        FileName::ensurePathExists(p);
-        //mem.free(p);
+        FileName::ensurePathToNameExists(objfilename);
 
         //printf("write obj %s\n", objfilename);
         objfile->writev();
@@ -386,11 +377,8 @@ void Module::genobjfile(int multiobj)
         /* t will be the type of the functions generated:
          *      extern (C) void func();
          */
-        type *t = type_alloc(TYnfunc);
-        t->Tflags |= TFprototype | TFfixed;
+        type *t = type_function(TYnfunc, NULL, 0, false, tsvoid);
         t->Tmangle = mTYman_c;
-        t->Tnext = tsvoid;
-        tsvoid->Tcount++;
 
         sictor = toSymbolX("__modictor", SCglobal, t, "FZv");
         cstate.CSpsymtab = &sictor->Sfunc->Flocsym;
@@ -791,14 +779,18 @@ void FuncDeclaration::toObjFile(int multiobj)
             f->Fflags3 |= Fmember;
     }
 
-    Symbol **params;
-
     // Estimate number of parameters, pi
     size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
-    // Allow extra 2 for sthis and shidden
-    params = (Symbol **)alloca((pi + 2) * sizeof(Symbol *));
+
+    // Create a temporary buffer, params[], to hold function parameters
+    Symbol *paramsbuf[10];
+    Symbol **params = paramsbuf;    // allocate on stack if possible
+    if (pi + 2 > 10)                // allow extra 2 for sthis and shidden
+    {   params = (Symbol **)malloc((pi + 2) * sizeof(Symbol *));
+        assert(params);
+    }
 
     // Get the actual number of parameters, pi, and fill in the params[]
     pi = 0;
@@ -891,13 +883,18 @@ void FuncDeclaration::toObjFile(int multiobj)
         }
     }
 
-    if (func->fbody)
-    {   block *b;
-        Blockx bx;
+    // Done with params
+    if (params != paramsbuf)
+        free(params);
+    params = NULL;
 
+    if (func->fbody)
+    {
         localgot = NULL;
 
         Statement *sbody = func->fbody;
+
+        Blockx bx;
         memset(&bx,0,sizeof(bx));
         bx.startblock = block_calloc();
         bx.curblock = bx.startblock;
@@ -935,47 +932,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         buildClosure(&irs);
 #endif
 
-#if 0
-        if (func->isSynchronized())
-        {
-            if (cd)
-            {   elem *esync;
-                if (func->isStatic())
-                {   // monitor is in ClassInfo
-                    esync = el_ptr(cd->toSymbol());
-                }
-                else
-                {   // 'this' is the monitor
-                    esync = el_var(sthis);
-                }
-
-                if (func->isStatic() || sbody->usesEH() ||
-                    !(config.flags2 & CFG2seh))
-                {   // BUG: what if frequire or fensure uses EH?
-
-                    sbody = new SynchronizedStatement(func->loc, esync, sbody);
-                }
-                else
-                {
 #if TARGET_WINDOS
-                    if (config.flags2 & CFG2seh)
-                    {
-                        /* The "jmonitor" uses an optimized exception handling frame
-                         * which is a little shorter than the more general EH frame.
-                         * It isn't strictly necessary.
-                         */
-                        s->Sfunc->Fflags3 |= Fjmonitor;
-                    }
-#endif
-                    el_free(esync);
-                }
-            }
-            else
-            {
-                error("synchronized function %s must be a member of a class", func->toChars());
-            }
-        }
-#elif TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
             !func->isStatic() && !sbody->usesEH())
         {
@@ -995,7 +952,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         if (isCtorDeclaration())
         {
             assert(sthis);
-            for (b = f->Fstartblock; b; b = b->Bnext)
+            for (block *b = f->Fstartblock; b; b = b->Bnext)
             {
                 if (b->BC == BCret)
                 {
@@ -1059,7 +1016,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     writefunc(s);
     if (isExport())
-        objmod->export_symbol(s, Poffset);
+        objmod->export_symbol(s, Para.offset);
 
     for (size_t i = 0; i < irs.deferToObj->dim; i++)
     {
@@ -1150,11 +1107,10 @@ unsigned Type::totym()
         case Tcomplex80: t = TYcldouble; break;
         case Tbool:     t = TYbool;     break;
         case Tchar:     t = TYchar;     break;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Twchar:    t = TYwchar_t;  break;
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         case Tdchar:    t = TYdchar;    break;
 #else
-        case Twchar:    t = TYwchar_t;  break;
         case Tdchar:
                 t = (global.params.symdebug == 1) ? TYdchar : TYulong;
                 break;
@@ -1166,11 +1122,7 @@ unsigned Type::totym()
         case Tpointer:  t = TYnptr;     break;
         case Tdelegate: t = TYdelegate; break;
         case Tarray:    t = TYdarray;   break;
-#if SARRAYVALUE
         case Tsarray:   t = TYstruct;   break;
-#else
-        case Tsarray:   t = TYarray;    break;
-#endif
         case Tstruct:   t = TYstruct;   break;
 
         case Tenum:
@@ -1213,7 +1165,7 @@ unsigned Type::totym()
             static bool once = false;
             if (!once)
             {
-                if (global.params.is64bit || TARGET_OSX)
+                if (global.params.is64bit || global.params.isOSX)
                     ;
                 else
                 {   error(0, "SIMD vector types not supported on this platform");

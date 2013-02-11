@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -670,7 +669,7 @@ STATIC void numcpelems(elem *n)
 
         /* look for elem of the form OPvar=OPvar, where they aren't the */
         /* same variable.                                               */
-        if (op == OPeq &&
+        if ((op == OPeq || op == OPstreq) &&
             n->E1->Eoper == OPvar &&
             n->E2->Eoper == OPvar &&
             !((n->E1->Ety | n->E2->Ety) & mTYvolatile) &&
@@ -745,7 +744,7 @@ STATIC void defstarkill()
             for (i = 1; i < exptop; i++)
             {   n = expnod[i];
                 op = n->Eoper;
-                assert(op == OPeq);
+                assert(op == OPeq || op == OPstreq);
                 assert(n->E1->Eoper==OPvar && n->E2->Eoper==OPvar);
 
                 // Set bit in defkill if either the left or the
@@ -1359,25 +1358,26 @@ STATIC void accumlv(vec_t GEN,vec_t KILL,elem *n)
                 break;
 
             case OPeq:
+            case OPstreq:
                 /* Avoid GENing the lvalue of an =      */
                 accumlv(GEN,KILL,n->E2);
                 t = Elvalue(n);
                 if (t->Eoper != OPvar)
                         accumlv(GEN,KILL,t->E1);
                 else /* unambiguous assignment */
-                {   symbol *s;
-
-                    s = t->EV.sp.Vsym;
+                {
+                    symbol *s = t->EV.sp.Vsym;
                     symbol_debug(s);
+
+                    unsigned tsz = tysize(t->Ety);
+                    if (op == OPstreq)
+                        tsz = type_size(n->ET);
 
                     /* if not GENed already, KILL it */
                     if (symbol_isintab(s) &&
                         !vec_testbit(s->Ssymnum,GEN) &&
-                        /* assignments to aggregates are        */
-                        /* not unambiguous                      */
-                        !tyaggregate(s->ty()) &&
                         t->EV.sp.Voffset == 0 &&
-                        tysize(t->Ety) == tysize(s->ty())
+                        tsz == type_size(s->Stype)
                        )
                     {   assert((unsigned)s->Ssymnum < globsym.top);
                         vec_setbit(s->Ssymnum,KILL);

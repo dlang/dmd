@@ -4152,6 +4152,40 @@ int testwith()
 static assert(testwith());
 
 /**************************************************
+    9236 ICE  switch with(EnumType)
+**************************************************/
+
+enum Command9236 {
+    Char,
+    Any,
+};
+
+bool bug9236(Command9236 cmd)
+{
+    int n = 0;
+    with(Command9236) switch(cmd)
+    {
+     case Any:
+        n = 1;
+        break;
+    default:
+        n = 2;
+    }
+    assert(n == 1);
+
+    switch(cmd) with(Command9236)
+    {
+    case Any:
+        return true;
+    default:
+        return false;
+    }
+}
+
+static assert(bug9236(Command9236.Any));
+
+
+/**************************************************
     6416 static struct declaration
 **************************************************/
 
@@ -4215,7 +4249,7 @@ static assert(bug7245(1)==5);
 
 int bug8498()
 {
-    foreach(i; 0..5)
+    foreach(ref i; 0..5)
     {
         assert(i == 0);
         i = 100;

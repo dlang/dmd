@@ -224,96 +224,8 @@ void test4424()
 /***************************************************/
 // 6174
 
-struct TestCtor1_6174
+struct CtorTest6174(Data)
 {
-    const int num;
-
-    const int[2] sa1;
-    const int[2][1] sa2;
-    const int[][2] sa3;
-
-    const int[] da1;
-    const int[2][] da2;
-
-    this(int _dummy)
-    {
-        static assert( __traits(compiles, { num         = 1;        }));    // OK
-
-        auto pnum = &num;
-        static assert(!__traits(compiles, { *pnum       = 1;        }));    // NG
-        static assert( __traits(compiles, { *&num       = 1;        }));    // OK
-
-        static assert( __traits(compiles, { sa1         = [1,2];    }));    // OK
-        static assert( __traits(compiles, { sa1[0]      = 1;        }));    // OK
-        static assert( __traits(compiles, { sa1[]       = 1;        }));    // OK
-        static assert( __traits(compiles, { sa1[][]     = 1;        }));    // OK
-
-        static assert( __traits(compiles, { sa2         = [[1,2]];  }));    // OK
-        static assert( __traits(compiles, { sa2[0][0]   = 1;        }));    // OK
-        static assert( __traits(compiles, { sa2[][0][]  = 1;        }));    // OK
-        static assert( __traits(compiles, { sa2[0][][0] = 1;        }));    // OK
-
-        static assert( __traits(compiles, { sa3         = [[1],[]]; }));    // OK
-        static assert( __traits(compiles, { sa3[0]      = [1,2];    }));    // OK
-        static assert(!__traits(compiles, { sa3[0][0]   = 1;        }));    // NG
-        static assert( __traits(compiles, { sa3[]       = [1];      }));    // OK
-        static assert( __traits(compiles, { sa3[][0]    = [1];      }));    // OK
-        static assert(!__traits(compiles, { sa3[][0][0] = 1;        }));    // NG
-
-        static assert( __traits(compiles, { da1         = [1,2];    }));    // OK
-        static assert(!__traits(compiles, { da1[0]      = 1;        }));    // NG
-        static assert(!__traits(compiles, { da1[]       = 1;        }));    // NG
-
-        static assert( __traits(compiles, { da2         = [[1,2]];  }));    // OK
-        static assert(!__traits(compiles, { da2[0][0]   = 1;        }));    // NG
-        static assert(!__traits(compiles, { da2[]       = [1,2];    }));    // NG
-        static assert(!__traits(compiles, { da2[][0]    = 1;        }));    // NG
-        static assert(!__traits(compiles, { da2[0][]    = 1;        }));    // NG
-    }
-    void func()
-    {
-        static assert(!__traits(compiles, { num         = 1;        }));    // NG
-
-        auto pnum = &num;
-        static assert(!__traits(compiles, { *pnum       = 1;        }));    // NG
-        static assert(!__traits(compiles, { *&num       = 1;        }));    // NG
-
-        static assert(!__traits(compiles, { sa1         = [1,2];    }));    // NG
-        static assert(!__traits(compiles, { sa1[0]      = 1;        }));    // NG
-        static assert(!__traits(compiles, { sa1[]       = 1;        }));    // NG
-        static assert(!__traits(compiles, { sa1[][]     = 1;        }));    // NG
-
-        static assert(!__traits(compiles, { sa2         = [[1,2]];  }));    // NG
-        static assert(!__traits(compiles, { sa2[0][0]   = 1;        }));    // NG
-        static assert(!__traits(compiles, { sa2[][0][]  = 1;        }));    // NG
-        static assert(!__traits(compiles, { sa2[0][][0] = 1;        }));    // NG
-
-        static assert(!__traits(compiles, { sa3         = [[1],[]]; }));    // NG
-        static assert(!__traits(compiles, { sa3[0]      = [1,2];    }));    // NG
-        static assert(!__traits(compiles, { sa3[0][0]   = 1;        }));    // NG
-        static assert(!__traits(compiles, { sa3[]       = [1];      }));    // NG
-        static assert(!__traits(compiles, { sa3[][0]    = [1];      }));    // NG
-        static assert(!__traits(compiles, { sa3[][0][0] = 1;        }));    // NG
-
-        static assert(!__traits(compiles, { da1         = [1,2];    }));    // NG
-        static assert(!__traits(compiles, { da1[0]      = 1;        }));    // NG
-        static assert(!__traits(compiles, { da1[]       = 1;        }));    // NG
-
-        static assert(!__traits(compiles, { da2         = [[1,2]];  }));    // NG
-        static assert(!__traits(compiles, { da2[0][0]   = 1;        }));    // NG
-        static assert(!__traits(compiles, { da2[]       = [1,2];    }));    // NG
-        static assert(!__traits(compiles, { da2[][0]    = 1;        }));    // NG
-        static assert(!__traits(compiles, { da2[0][]    = 1;        }));    // NG
-    }
-}
-
-struct TestCtor2_6174
-{
-    static struct Data
-    {
-        const int x;
-        int y;
-    }
     const Data data;
 
     const Data[2] sa1;
@@ -323,14 +235,22 @@ struct TestCtor2_6174
     const Data[] da1;
     const Data[2][] da2;
 
-    this(int _dummy)
+    this(Data a)
     {
-        Data a;
+        auto pdata = &data;
+
+        // If compiler can determine that an assignment really sets the fields
+        // which belongs to `this` object, it can bypass const qualifier.
+        // For example, sa3, da1, da2, and pdata have indirections.
+        // As long as you don't try to rewrite values beyond the indirections,
+        // an assignment will always be succeeded inside constructor.
+
         static assert( __traits(compiles, { data        = a;        }));    // OK
+      static if (is(Data == struct))
+      {
         static assert( __traits(compiles, { data.x      = 1;        }));    // OK
         static assert( __traits(compiles, { data.y      = 2;        }));    // OK
-
-        auto pdata = &data;
+      }
         static assert(!__traits(compiles, { *pdata      = a;        }));    // NG
         static assert( __traits(compiles, { *&data      = a;        }));    // OK
 
@@ -361,14 +281,16 @@ struct TestCtor2_6174
         static assert(!__traits(compiles, { da2[][0]    = a;        }));    // NG
         static assert(!__traits(compiles, { da2[0][]    = a;        }));    // NG
     }
-    void func()
+    void func(Data a)
     {
-        Data a;
+        auto pdata = &data;
+
         static assert(!__traits(compiles, { data        = a;        }));    // NG
+      static if (is(Data == struct))
+      {
         static assert(!__traits(compiles, { data.x      = 1;        }));    // NG
         static assert(!__traits(compiles, { data.y      = 2;        }));    // NG
-
-        auto pdata = &data;
+      }
         static assert(!__traits(compiles, { *pdata      = a;        }));    // NG
         static assert(!__traits(compiles, { *&data      = a;        }));    // NG
 
@@ -421,512 +343,99 @@ struct Foo6174
 }
 void test6174a()
 {
+    static struct Pair
+    {
+        const int x;
+        int y;
+    }
+    alias CtorTest6174!long CtorTest1;
+    alias CtorTest6174!Pair CtorTest2;
+
     auto foo = Foo6174('c');
 }
 
 /***************************************************/
 
-void test6174Int()
+template Select(bool cond, T, F)
 {
-    printf("## TestInt\n");
-
-    static struct Test1
-    {
-        int x;
-        this(int _)
-        {
-            x = 100;
-        }
-        void func()
-        {
-            x = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, x = 100));
-        }
-    }
-    static struct Test2
-    {
-        const int x;
-        this(int _)
-        {
-            x = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, x = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, x = 100));
-        }
-    }
-}
-
-void test6174FA()   // field assignable
-{
-    printf("## TestFA\n");
-
-    static struct D
-    {
-        int x;
-        int y;
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174FN()   // field not assignable
-{
-    printf("## TestFN\n");
-
-    static struct D
-    {
-        const int x;
-        int y;
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174IAFA() // identity assignable & field assignable
-{
-    printf("## TestIAFA\n");
-
-    static struct D
-    {
-        int x;
-        int y;
-        void opAssign(typeof(this) rhs){}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
-            d.x = 100;
-            d.y = 100;
-        }
-        @disable void opAssign(typeof(this));   // disable built-in opAssign (this.d = p.d)
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174IAFN() // identity assignable & field not assignable
-{
-    printf("## TestIAFN\n");
-
-    static struct D
-    {
-        const int x;
-        int y;
-        void opAssign(typeof(this) rhs){}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
-            d.x = 100;
-            d.y = 100;
-        }
-        @disable void opAssign(typeof(this));   // disable built-in opAssign (this.d = p.d)
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174INFA() // identity assignable & field assignable
-{
-    printf("## TestINFA\n");
-
-    static struct D
-    {
-        int x;
-        int y;
-        void opAssign(int dummy){}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init));
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            d.x = 100;
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
-            d.x = 100;
-            d.y = 100;
-        }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174INFN() // identity assignable & field not assignable
-{
-    printf("## TestINFN\n");
-
-    static struct D
-    {
-        const int x;
-        int y;
-        void opAssign(int dummy){}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init));
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            d.y = 100;
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            static assert(!__traits(compiles, d = D.init)); // operator overloading cannot bypass type check even if inside constructor
-            d.x = 100;
-            d.y = 100;
-        }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
-        void func()
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            static assert(!__traits(compiles, d = D.init));
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174ICFA() // const identity assignable & field assignable
-{
-    printf("## TestICFA\n");
-
-    static struct D
-    {
-        int x;
-        int y;
-        void opAssign(typeof(this) rhs) const {}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func() const
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
-        void func()
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-}
-
-void test6174ICFN() // const identity assignable & field not assignable
-{
-    printf("## TestICFN\n");
-
-    static struct D
-    {
-        const int x;
-        int y;
-        void opAssign(typeof(this) rhs) const {}
-    }
-    static struct Test1
-    {
-        D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void func()
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            d.y = 100;
-        }
-        void func() const
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
-    static struct Test2
-    {
-        const D d;
-        this(int _)
-        {
-            d = D.init;
-            d.x = 100;
-            d.y = 100;
-        }
-        void opAssign(){}   // dummy for reject built-in opAssign (this.d = p.d)
-        void func()
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-        void func() const
-        {
-            d = D.init;
-            static assert(!__traits(compiles, d.x = 100));
-            static assert(!__traits(compiles, d.y = 100));
-        }
-    }
+    static if (cond)
+        alias Select = T;
+    else
+        alias Select = F;
 }
 
 void test6174b()
 {
-    test6174Int();
-    test6174FA();
-    test6174FN();
-    test6174IAFA();
-    test6174IAFN();
-    test6174INFA();
-    test6174INFN();
-    test6174ICFA();
-    test6174ICFN();
+    enum { none, unrelated, mutable, constant }
+
+    static struct FieldStruct(bool c, int k)
+    {
+        enum fieldConst = c;
+        enum assignKind = k;
+
+        Select!(fieldConst, const int, int) x;
+        int y;
+
+        static if (assignKind == none)      {}
+        static if (assignKind == unrelated) void opAssign(int) {}
+        static if (assignKind == mutable)   void opAssign(FieldStruct) {}
+        static if (assignKind == constant)  void opAssign(FieldStruct) const {}
+    }
+    static struct TestStruct(F, bool fieldConst)
+    {
+        int w;
+        Select!(fieldConst, const F, F) f;
+        Select!(fieldConst, const int, int) z;
+
+        this(int)
+        {
+            // If F has an identity `opAssign`,it is used even for initializing.
+            // Otherwise, initializing  will always succeed, by bypassing const qualifier.
+            static assert(__traits(compiles, f = F()) == (
+                            F.assignKind == none ||
+                            F.assignKind == unrelated ||
+                            F.assignKind == mutable && !fieldConst ||
+                            F.assignKind == constant));
+
+            static assert(__traits(compiles,   w = 1000) == true);
+            static assert(__traits(compiles, f.x = 1000) == true);
+            static assert(__traits(compiles, f.y = 1000) == true);
+            static assert(__traits(compiles,   z = 1000) == true);
+        }
+        void func()
+        {
+            // In mutable member functions, identity assignment is allowed
+            // when all of the fields are identity assignable,
+            // or identity `opAssign`, which callable from mutable object, is defined.
+            static assert(__traits(compiles, f = F()) == (
+                            F.assignKind == none      && !fieldConst && !F.fieldConst ||
+                            F.assignKind == unrelated && !fieldConst && !F.fieldConst ||
+                            F.assignKind == constant ||
+                            F.assignKind == mutable   && !fieldConst));
+
+            static assert(__traits(compiles,   w = 1000) == true);
+            static assert(__traits(compiles, f.x = 1000) == (!fieldConst && !F.fieldConst));
+            static assert(__traits(compiles, f.y = 1000) == (!fieldConst && true         ));
+            static assert(__traits(compiles,   z = 1000) == !fieldConst);
+        }
+        void func() const
+        {
+            // In non-mutable member functions, identity assignment is allowed
+            // just only user-defined identity `opAssign` is qualified.
+            static assert(__traits(compiles, f = F()) == (F.assignKind == constant));
+
+            static assert(__traits(compiles,   w = 1000) == false);
+            static assert(__traits(compiles, f.x = 1000) == false);
+            static assert(__traits(compiles, f.y = 1000) == false);
+            static assert(__traits(compiles,   z = 1000) == false);
+        }
+    }
+    foreach (fieldConst; TypeTuple!(false, true))
+    foreach (  hasConst; TypeTuple!(false, true))
+    foreach (assignKind; TypeTuple!(none, unrelated, mutable, constant))
+    {
+        alias TestStruct!(FieldStruct!(hasConst, assignKind), fieldConst) TestX;
+    }
 }
 
 void test6174c()
@@ -991,14 +500,14 @@ void test6216a()
 
     enum result = [
         /*S1,   S2a,    S2b,    S3a,    S3b,    S4a,    S4b*/
-/*- */  [true,  true,   true,   true,   true,   false,  false],
-/*Xa*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xb*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xc*/  [true,  true,   true,   true,   true,   false,  false],
-/*Xd*/  [true,  true,   true,   true,   true,   true,   true ],
-/*Xe*/  [true,  true,   true,   true,   true,   true,   true ],
-/*Xf*/  [false, false,  false,  true,   true,   false,  false],
-/*Xg*/  [false, false,  false,  true,   true,   false,  false]
+/*- */  [true,  true,   true,   true,   true,   true,   true],
+/*Xa*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xb*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xc*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xd*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xe*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xf*/  [true,  true,   true,   true,   true,   true,   true],
+/*Xg*/  [true,  true,   true,   true,   true,   true,   true],
     ];
 
     pragma(msg, "\\\tS1\tS2a\tS2b\tS3a\tS3b\tS4a\tS4b");
@@ -1061,7 +570,7 @@ void test6216c()
     static struct X
     {
         int n;
-        const void opAssign(const X rhs){ cnt = 2; }
+        void opAssign(const X rhs) const { cnt = 2; }
     }
     static struct S
     {
@@ -1074,7 +583,58 @@ void test6216c()
     s = s;
     s = cs;     // cs is copied as mutable and assigned into s
     assert(cnt == 2);
-//  cs = cs;    // built-in opAssin is only allowed with mutable object
+    static assert(!__traits(compiles, cs = cs));
+                // built-in opAssin is only allowed with mutable object
+}
+
+void test6216d()
+{
+    static int cnt = 0;
+
+    static struct X
+    {
+        int[] arr;  // X has mutable indirection
+        void opAssign(const X rhs) const { ++cnt; }
+    }
+    static struct S
+    {
+        int n;
+        const(X) x;
+    }
+
+    X mx;
+    const X cx;
+    mx = mx;    // copying mx to const X is possible
+    assert(cnt == 1);
+    mx = cx;
+    assert(cnt == 2);
+    cx = mx;    // copying mx to const X is possible
+    assert(cnt == 3);
+
+    S s;
+    const(S) cs;
+    s = s;
+    static assert(!__traits(compiles, s = cs));
+                // copying cx, const(S) to S is not possible
+    //assert(cnt == 4);
+    static assert(!__traits(compiles, cs = cs));
+                // built-in opAssin is only allowed with mutable object
+}
+
+void test6216e()
+{
+    static struct X
+    {
+        int x;
+        @disable void opAssign(X);
+    }
+    static struct S
+    {
+        X x;
+    }
+    S s;
+    static assert(!__traits(compiles, s = s));
+                // built-in generated opAssin is marked as @disable.
 }
 
 /***************************************************/
@@ -1123,8 +683,6 @@ void test6336()
 /***************************************************/
 // 8783
 
-version(none)
-{
 struct Foo8783
 {
     int[1] bar;
@@ -1138,7 +696,6 @@ static this()
         foos8783[i].bar[i] = 1; // OK
     foreach (i, ref f; foos8783)
         f.bar[i] = 1; // line 9, Error
-}
 }
 
 /***************************************************/
@@ -1193,6 +750,49 @@ void test9154()
 }
 
 /***************************************************/
+// 9258
+
+class A9258 {}
+class B9258 : A9258 // Error: class test.B9258 identity assignment operator overload is illegal
+{
+    void opAssign(A9258 b) {}
+}
+
+class C9258
+{
+    int n;
+    alias n this;
+    void opAssign(int n) {}
+}
+class D9258
+{
+    int n;
+    alias n this;
+    void opAssign(int n, int y = 0) {}
+}
+
+/***************************************************/
+// 9416
+
+struct S9416
+{
+    void opAssign()(S9416)
+    {
+        static assert(0);
+    }
+}
+struct U9416
+{
+    S9416 s;
+}
+void test9416()
+{
+    U9416 u;
+    static assert(__traits(allMembers, U9416)[$-1] == "opAssign");
+    static assert(!__traits(compiles, u = u));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1208,9 +808,12 @@ int main()
     test6216a();
     test6216b();
     test6216c();
+    test6216d();
+    test6216e();
     test6286();
     test6336();
     test9154();
+    test9416();
 
     printf("Success\n");
     return 0;

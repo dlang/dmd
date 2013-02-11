@@ -67,7 +67,6 @@ Global::Global()
     obj_ext  = "obj";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     obj_ext  = "o";
-#elif TARGET_NET
 #else
 #error "fix this"
 #endif
@@ -76,7 +75,6 @@ Global::Global()
     lib_ext  = "lib";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     lib_ext  = "a";
-#elif TARGET_NET
 #else
 #error "fix this"
 #endif
@@ -92,12 +90,11 @@ Global::Global()
 #endif
 
     copyright = "Copyright (c) 1999-2012 by Digital Mars";
-    written = "written by Walter Bright"
-#if TARGET_NET
-    "\nMSIL back-end (alpha release) by Cristian L. Vlasceanu and associates.";
-#endif
+    written = "written by Walter Bright";
+    version = "v"
+#include "verstr.h"
     ;
-    version = "v2.061";
+
     global.structalign = STRUCTALIGN_DEFAULT;
 
     memset(&params, 0, sizeof(Param));
@@ -316,7 +313,7 @@ void usage()
         sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
-Documentation: http://www.dlang.org/index.html\n\
+Documentation: http://dlang.org/\n\
 Usage:\n\
   dmd files.d ... { -switch }\n\
 \n\
@@ -339,6 +336,7 @@ Usage:\n\
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
+  -gx            add stack stomp code\n\
   -H             generate 'header' file\n\
   -Hddirectory   write 'header' file to directory\n\
   -Hffilename    write 'header' file to filename\n\
@@ -461,7 +459,6 @@ int tryMain(size_t argc, char *argv[])
     global.params.defaultlibname = "phobos";
 #elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
-#elif TARGET_NET
 #else
 #error "fix this"
 #endif
@@ -472,10 +469,6 @@ int tryMain(size_t argc, char *argv[])
 #if TARGET_WINDOS
     VersionCondition::addPredefinedGlobalIdent("Windows");
     global.params.isWindows = 1;
-#if TARGET_NET
-    // TARGET_NET macro is NOT mutually-exclusive with TARGET_WINDOS
-    VersionCondition::addPredefinedGlobalIdent("D_NET");
-#endif
 #elif TARGET_LINUX
     VersionCondition::addPredefinedGlobalIdent("Posix");
     VersionCondition::addPredefinedGlobalIdent("linux");
@@ -574,6 +567,8 @@ int tryMain(size_t argc, char *argv[])
                 global.params.symdebug = 2;
             else if (strcmp(p + 1, "gs") == 0)
                 global.params.alwaysframe = 1;
+            else if (strcmp(p + 1, "gx") == 0)
+                global.params.stackstomp = true;
             else if (strcmp(p + 1, "gt") == 0)
             {   error(0, "use -profile instead of -gt");
                 global.params.trace = 1;
@@ -829,35 +824,35 @@ int tryMain(size_t argc, char *argv[])
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-windows.html");
 #else
-                browse("http://www.dlang.org/dmd-windows.html");
+                browse("http://dlang.org/dmd-windows.html");
 #endif
 #endif
 #if linux
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-linux.html");
 #else
-                browse("http://www.dlang.org/dmd-linux.html");
+                browse("http://dlang.org/dmd-linux.html");
 #endif
 #endif
 #if __APPLE__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-osx.html");
 #else
-                browse("http://www.dlang.org/dmd-osx.html");
+                browse("http://dlang.org/dmd-osx.html");
 #endif
 #endif
 #if __FreeBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-freebsd.html");
 #else
-                browse("http://www.dlang.org/dmd-freebsd.html");
+                browse("http://dlang.org/dmd-freebsd.html");
 #endif
 #endif
 #if __OpenBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-openbsd.html");
 #else
-                browse("http://www.dlang.org/dmd-openbsd.html");
+                browse("http://dlang.org/dmd-openbsd.html");
 #endif
 #endif
                 exit(EXIT_SUCCESS);
@@ -867,6 +862,14 @@ int tryMain(size_t argc, char *argv[])
                 global.params.runargs_length = ((i >= argcstart) ? argc : argcstart) - i - 1;
                 if (global.params.runargs_length)
                 {
+                    const char *ext = FileName::ext(argv[i + 1]);
+                    if (ext && FileName::equals(ext, "d") == 0
+                            && FileName::equals(ext, "di") == 0)
+                    {
+                        error(0, "-run must be followed by a source file, not '%s'", argv[i + 1]);
+                        break;
+                    }
+
                     files.push(argv[i + 1]);
                     global.params.runargs = &argv[i + 2];
                     i += global.params.runargs_length;
@@ -891,7 +894,7 @@ int tryMain(size_t argc, char *argv[])
         else
         {
 #if TARGET_WINDOS
-            char *ext = FileName::ext(p);
+            const char *ext = FileName::ext(p);
             if (ext && FileName::compare(ext, "exe") == 0)
             {
                 global.params.objname = p;
@@ -956,14 +959,14 @@ int tryMain(size_t argc, char *argv[])
             /* Use this to name the one object file with the same
              * name as the exe file.
              */
-            global.params.objname = FileName::forceExt(global.params.objname, global.obj_ext)->toChars();
+            global.params.objname = const_cast<char *>(FileName::forceExt(global.params.objname, global.obj_ext));
 
             /* If output directory is given, use that path rather than
              * the exe file path.
              */
             if (global.params.objdir)
-            {   char *name = FileName::name(global.params.objname);
-                global.params.objname = FileName::combine(global.params.objdir, name);
+            {   const char *name = FileName::name(global.params.objname);
+                global.params.objname = (char *)FileName::combine(global.params.objdir, name);
             }
         }
     }
@@ -1096,7 +1099,7 @@ int tryMain(size_t argc, char *argv[])
     int firstmodule = 1;
     for (size_t i = 0; i < files.dim; i++)
     {
-        char *ext;
+        const char *ext;
         char *name;
 
         p = files[i];
@@ -1110,7 +1113,7 @@ int tryMain(size_t argc, char *argv[])
         }
 #endif
 
-        p = FileName::name(p);          // strip path
+        p = (char *)FileName::name(p);          // strip path
         ext = FileName::ext(p);
         if (ext)
         {   /* Deduce what to do with a file based on its extension
@@ -1209,7 +1212,7 @@ int tryMain(size_t argc, char *argv[])
         modules.push(m);
 
         if (firstmodule)
-        {   global.params.objfiles->push(m->objfile->name->str);
+        {   global.params.objfiles->push((char *)m->objfile->name->str);
             firstmodule = 0;
         }
     }
@@ -1426,7 +1429,50 @@ int tryMain(size_t argc, char *argv[])
     // Generate output files
 
     if (global.params.doXGeneration)
-        json_generate(&modules);
+    {
+        OutBuffer buf;
+        json_generate(&buf, &modules);
+
+        // Write buf to file
+        const char *name = global.params.xfilename;
+
+        if (name && name[0] == '-' && name[1] == 0)
+        {   // Write to stdout; assume it succeeds
+            int n = fwrite(buf.data, 1, buf.offset, stdout);
+            assert(n == buf.offset);        // keep gcc happy about return values
+        }
+        else
+        {
+            /* The filename generation code here should be harmonized with Module::setOutfile()
+             */
+
+            const char *jsonfilename;
+
+            if (name && *name)
+            {
+                jsonfilename = FileName::defaultExt(name, global.json_ext);
+            }
+            else
+            {
+                // Generate json file name from first obj name
+                const char *n = (*global.params.objfiles)[0];
+                n = FileName::name(n);
+
+                //if (!FileName::absolute(name))
+                    //name = FileName::combine(dir, name);
+
+                jsonfilename = FileName::forceExt(n, global.json_ext);
+            }
+
+            FileName::ensurePathToNameExists(jsonfilename);
+
+            File *jsonfile = new File(jsonfilename);
+
+            jsonfile->setbuffer(buf.data, buf.offset);
+            jsonfile->ref = 1;
+            jsonfile->writev();
+        }
+    }
 
     if (global.params.oneobj)
     {

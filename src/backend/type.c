@@ -1,12 +1,11 @@
 // Copyright (C) 1985-1998 by Symantec
-// Copyright (C) 2000-2009 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -82,6 +81,7 @@ targ_size_t type_size(type *t)
             case TYifunc:
             case TYjfunc:
 #if SCPP
+            case TYmfunc:
                 if (ANSI)
                     synerr(EM_unknown_size,"function"); /* size of function is not known */
 #endif
@@ -349,6 +349,162 @@ type *type_allocmemptr(Classsym *stag,type *tn)
     return t;
 }
 #endif
+
+/********************************
+ * Allocate a pointer type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_pointer(type *tnext)
+{
+    type *t = type_allocn(TYnptr, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a dynamic array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_dyn_array(type *tnext)
+{
+    type *t = type_allocn(TYdarray, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a static array type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_static_array(unsigned long long dim, type *tnext)
+{
+    type *t = type_allocn(TYarray, tnext);
+    t->Tdim = dim;
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate an associative array type,
+ * which are key=value pairs
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_assoc_array(type *tkey, type *tvalue)
+{
+    type *t = type_allocn(TYaarray, tvalue);
+    t->Tkey = tkey;
+    tkey->Tcount++;
+    t->Tcount++;
+    return t;
+}
+
+/********************************
+ * Allocate a delegate type.
+ * Returns:
+ *      Tcount already incremented
+ */
+
+type *type_delegate(type *tnext)
+{
+    type *t = type_allocn(TYdelegate, tnext);
+    t->Tcount++;
+    return t;
+}
+
+/***********************************
+ * Allocation a function type.
+ * Input:
+ *      tyf             function type
+ *      ptypes[nparams] types of the function parameters
+ *      variadic        if ... function
+ *      tret            return type
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_function(tym_t tyf, type **ptypes, size_t nparams, bool variadic, type *tret)
+{
+    param_t *paramtypes = NULL;
+    for (size_t i = 0; i < nparams; i++)
+    {
+        param_append_type(&paramtypes, ptypes[i]);
+    }
+    type *t = type_allocn(tyf, tret);
+    t->Tflags |= TFprototype;
+    if (!variadic)
+        t->Tflags |= TFfixed;
+    t->Tparamtypes = paramtypes;
+    t->Tcount++;
+    return t;
+}
+
+/***************************************
+ * Create an enum type.
+ * Input:
+ *      name    name of enum
+ *      tbase   "base" type of enum
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_enum(const char *name, type *tbase)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCenum;
+    s->Senum = (enum_t *) MEM_PH_CALLOC(sizeof(enum_t));
+    s->Senum->SEflags |= SENforward;        // forward reference
+    slist_add(s);
+
+    type *t = type_allocn(TYenum, tbase);
+    t->Ttag = (Classsym *)s;            // enum tag name
+    t->Tcount++;
+    s->Stype = t;
+    t->Tcount++;
+    return t;
+}
+
+/**************************************
+ * Create a struct/union/class type.
+ * Input:
+ *      name    name of struct
+ * Returns:
+ *      Tcount already incremented
+ */
+type *type_struct_class(const char *name, unsigned alignsize, unsigned structsize,
+        type *arg1type, type *arg2type, bool isUnion, bool isClass, bool isPOD)
+{
+    Symbol *s = symbol_calloc(name);
+    s->Sclass = SCstruct;
+    s->Sstruct = struct_calloc();
+    s->Sstruct->Salignsize = alignsize;
+    s->Sstruct->Sstructalign = alignsize;
+    s->Sstruct->Sstructsize = structsize;
+    s->Sstruct->Sarg1type = arg1type;
+    s->Sstruct->Sarg2type = arg2type;
+
+    if (!isPOD)
+        s->Sstruct->Sflags |= STRnotpod;
+    if (isUnion)
+        s->Sstruct->Sflags |= STRunion;
+    if (isClass)
+    {   s->Sstruct->Sflags |= STRclass;
+        assert(!isUnion && isPOD);
+    }
+
+    type *t = type_alloc(TYstruct);
+    t->Ttag = (Classsym *)s;            // structure tag name
+    t->Tcount++;
+    s->Stype = t;
+    slist_add(s);
+    t->Tcount++;
+    return t;
+}
 
 /*****************************
  * Free up data type.

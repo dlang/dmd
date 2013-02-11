@@ -55,7 +55,7 @@ struct AttribDeclaration : Dsymbol
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -72,6 +72,7 @@ struct StorageClassDeclaration : AttribDeclaration
     int oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
+    static const char *stcToChars(char tmp[], StorageClass& stc);
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
 };
 
@@ -163,7 +164,7 @@ struct ConditionalDeclaration : AttribDeclaration
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
 };

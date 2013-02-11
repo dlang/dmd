@@ -667,6 +667,50 @@ void test22()
     assert(gi22 == 42);
 }
 
+// 1841
+
+int delegate() foo1841()
+{
+  int stack;
+  int heap = 3;
+
+  int nested_func()
+  {
+    ++heap;
+    return heap;
+  }
+  return delegate int() { return nested_func(); };
+}
+
+int delegate() foo1841b()
+{
+  int stack;
+  int heap = 7;
+
+  int nested_func()
+  {
+    ++heap;
+    return heap;
+  }
+  int more_nested() { return nested_func(); }
+  return delegate int() { return more_nested(); };
+}
+
+void bug1841()
+{
+  auto z = foo1841();
+  auto p = foo1841();
+  assert(z() == 4);
+  p();
+  assert(z() == 5);
+  z = foo1841b();
+  p = foo1841b();
+  assert(z() == 8);
+  p();
+  assert(z() == 9);
+}
+
+
 /************************************/
 
 int main()
@@ -693,6 +737,7 @@ int main()
     test20();
     test21();
     test22();
+    bug1841();
 
     printf("Success\n");
     return 0;

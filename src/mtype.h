@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -34,6 +34,7 @@ struct Dsymbol;
 struct TemplateInstance;
 struct CppMangleState;
 struct TemplateDeclaration;
+struct JsonOut;
 enum LINK;
 
 struct TypeBasic;
@@ -180,6 +181,7 @@ struct Type : Object
     #define tindex      tsize_t         // array/ptr index
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
+    static Type *tvalist;               // va_list alias
     #define terror      basic[Terror]   // for error recovery
 
     #define tnull       basic[Tnull]    // for null type
@@ -225,6 +227,7 @@ struct Type : Object
     static unsigned char impcnvWarn[TMAX][TMAX];
 
     Type(TY ty);
+    virtual const char *kind();
     virtual Type *syntaxCopy();
     int equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
@@ -244,6 +247,9 @@ struct Type : Object
     virtual void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
     void modToBuffer(OutBuffer *buf);
+    char *modToChars();
+    void toJsonProperty(JsonOut *json, const char *);
+    virtual void toJson(JsonOut *json);
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -256,7 +262,7 @@ struct Type : Object
     virtual int isunsigned();
     virtual int isscope();
     virtual int isString();
-    virtual int isAssignable(int blit = 0);
+    virtual int isAssignable();
     virtual int checkBoolean(); // if can be converted to boolean value
     virtual void checkDeprecated(Loc loc, Scope *sc);
     int isConst()       { return mod & MODconst; }
@@ -383,6 +389,7 @@ struct TypeBasic : Type
     unsigned flags;
 
     TypeBasic(TY ty);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -415,6 +422,7 @@ struct TypeVector : Type
     Type *basetype;
 
     TypeVector(Loc loc, Type *basetype);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
@@ -424,6 +432,7 @@ struct TypeVector : Type
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
+    void toJson(JsonOut *json);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -455,6 +464,7 @@ struct TypeSArray : TypeArray
     Expression *dim;
 
     TypeSArray(Type *t, Expression *dim);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -462,6 +472,7 @@ struct TypeSArray : TypeArray
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
@@ -492,6 +503,7 @@ struct TypeSArray : TypeArray
 struct TypeDArray : TypeArray
 {
     TypeDArray(Type *t);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -499,6 +511,7 @@ struct TypeDArray : TypeArray
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     int isString();
     int isZeroInit(Loc loc);
@@ -526,6 +539,7 @@ struct TypeAArray : TypeArray
     StructDeclaration *impl;    // implementation
 
     TypeAArray(Type *t, Type *index);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     Type *semantic(Loc loc, Scope *sc);
@@ -533,6 +547,7 @@ struct TypeAArray : TypeArray
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
@@ -558,10 +573,12 @@ struct TypeAArray : TypeArray
 struct TypePointer : TypeNext
 {
     TypePointer(Type *t);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
     int isscalar();
@@ -580,10 +597,12 @@ struct TypePointer : TypeNext
 struct TypeReference : TypeNext
 {
     TypeReference(Type *t);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
@@ -634,6 +653,8 @@ struct TypeFunction : TypeNext
     int inuse;
 
     TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
+    const char *kind();
+    TypeFunction *copy();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
@@ -642,6 +663,7 @@ struct TypeFunction : TypeNext
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     void attributesToCBuffer(OutBuffer *buf, int mod);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -667,12 +689,14 @@ struct TypeDelegate : TypeNext
     // .next is a TypeFunction
 
     TypeDelegate(Type *t);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     unsigned alignsize();
     MATCH implicitConvTo(Type *to);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
     int checkBoolean();
@@ -696,6 +720,7 @@ struct TypeQualified : Type
     void syntaxCopyHelper(TypeQualified *t);
     void addIdent(Identifier *ident);
     void toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps);
@@ -707,10 +732,12 @@ struct TypeIdentifier : TypeQualified
     Dsymbol *originalSymbol; // The symbol representing this identifier, before alias resolution
 
     TypeIdentifier(Loc loc, Identifier *ident);
+    const char *kind();
     Type *syntaxCopy();
     //char *toChars();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
@@ -726,10 +753,12 @@ struct TypeInstance : TypeQualified
     TemplateInstance *tempinst;
 
     TypeInstance(Loc loc, TemplateInstance *tempinst);
+    const char *kind();
     Type *syntaxCopy();
     //char *toChars();
     //void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     Dsymbol *toDsymbol(Scope *sc);
@@ -743,9 +772,11 @@ struct TypeTypeof : TypeQualified
     int inuse;
 
     TypeTypeof(Loc loc, Expression *exp);
+    const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
 };
@@ -753,10 +784,12 @@ struct TypeTypeof : TypeQualified
 struct TypeReturn : TypeQualified
 {
     TypeReturn(Loc loc);
+    const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
 };
 
 struct TypeStruct : Type
@@ -764,6 +797,7 @@ struct TypeStruct : Type
     StructDeclaration *sym;
 
     TypeStruct(StructDeclaration *sym);
+    const char *kind();
     d_uns64 size(Loc loc);
     unsigned alignsize();
     char *toChars();
@@ -772,13 +806,14 @@ struct TypeStruct : Type
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     Expression *voidInitLiteral(VarDeclaration *var);
     int isZeroInit(Loc loc);
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int checkBoolean();
     int needsDestruction();
     bool needsNested();
@@ -803,6 +838,7 @@ struct TypeEnum : Type
     EnumDeclaration *sym;
 
     TypeEnum(EnumDeclaration *sym);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -811,6 +847,7 @@ struct TypeEnum : Type
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *getProperty(Loc loc, Identifier *ident);
     int isintegral();
@@ -821,7 +858,7 @@ struct TypeEnum : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int needsDestruction();
     bool needsNested();
     MATCH implicitConvTo(Type *to);
@@ -845,6 +882,7 @@ struct TypeTypedef : Type
     TypedefDeclaration *sym;
 
     TypeTypedef(TypedefDeclaration *sym);
+    const char *kind();
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
@@ -853,6 +891,7 @@ struct TypeTypedef : Type
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     structalign_t alignment();
     Expression *getProperty(Loc loc, Identifier *ident);
@@ -864,7 +903,7 @@ struct TypeTypedef : Type
     int isscalar();
     int isunsigned();
     int checkBoolean();
-    int isAssignable(int blit = 0);
+    int isAssignable();
     int needsDestruction();
     bool needsNested();
     Type *toBasetype();
@@ -893,6 +932,7 @@ struct TypeClass : Type
     ClassDeclaration *sym;
 
     TypeClass(ClassDeclaration *sym);
+    const char *kind();
     d_uns64 size(Loc loc);
     char *toChars();
     Type *syntaxCopy();
@@ -900,6 +940,7 @@ struct TypeClass : Type
     Dsymbol *toDsymbol(Scope *sc);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
@@ -934,12 +975,14 @@ struct TypeTuple : Type
     TypeTuple();
     TypeTuple(Type *t1);
     TypeTuple(Type *t1, Type *t2);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     int equals(Object *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
+    void toJson(JsonOut *json);
     Expression *getProperty(Loc loc, Identifier *ident);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
@@ -951,21 +994,26 @@ struct TypeSlice : TypeNext
     Expression *upr;
 
     TypeSlice(Type *next, Expression *lwr, Expression *upr);
+    const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
+    void toJson(JsonOut *json);
 };
 
 struct TypeNull : Type
 {
     TypeNull();
+    const char *kind();
 
     Type *syntaxCopy();
     void toDecoBuffer(OutBuffer *buf, int flag);
     MATCH implicitConvTo(Type *to);
+    int checkBoolean();
 
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
+    void toJson(JsonOut *json);
 
     d_uns64 size(Loc loc);
     //Expression *getProperty(Loc loc, Identifier *ident);
@@ -991,6 +1039,7 @@ struct Parameter : Object
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
     int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
+    void toJson(JsonOut *json);
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
     static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
@@ -1014,6 +1063,7 @@ extern int Tptrdiff_t;
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2);
 int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2);
 void MODtoBuffer(OutBuffer *buf, unsigned char mod);
+char *MODtoChars(unsigned char mod);
 int MODimplicitConv(unsigned char modfrom, unsigned char modto);
 int MODmethodConv(unsigned char modfrom, unsigned char modto);
 int MODmerge(unsigned char mod1, unsigned char mod2);

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -284,10 +283,10 @@ void genEEcode()
     eecontext.EEin++;
     regcon.immed.mval = 0;
     retregs = 0;    //regmask(eecontext.EEelem->Ety);
-    assert(EEoffset >= REGSIZE);
-    c = cod3_stackadj(NULL, EEoffset - REGSIZE);
+    assert(EEStack.offset >= REGSIZE);
+    c = cod3_stackadj(NULL, EEStack.offset - REGSIZE);
     gen1(c,0x50 + SI);                      // PUSH ESI
-    genadjesp(c,EEoffset);
+    genadjesp(c,EEStack.offset);
     c = gencodelem(c,eecontext.EEelem,&retregs, FALSE);
     assignaddrc(c);
     pinholeopt(c,NULL);
@@ -1046,7 +1045,7 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
             }
             if (f == FLpara)
                 refparam = TRUE;
-            else if (f == FLauto || f == FLtmp || f == FLbprel || f == FLfltreg || f == FLfast)
+            else if (f == FLauto || f == FLbprel || f == FLfltreg || f == FLfast)
                 reflocal = TRUE;
 #if TARGET_SEGMENTED
             else if (f == FLcsdata || tybasic(e12->Ety) == TYcptr)
@@ -1318,7 +1317,6 @@ code *getlvalue(code *pcs,elem *e,regm_t keepmsk)
         }
         if (s->Sclass == SCshadowreg)
             goto Lpara;
-    case FLtmp:
     case FLbprel:
         reflocal = TRUE;
         pcs->Irm = modregrm(2,0,BPRM);
@@ -3509,9 +3507,24 @@ code *params(elem *e,unsigned stackalign)
                     break;
                 if (I32)
                 {
-                    assert(sz == REGSIZE * 2);
-                    ce = loadea(e,&cs,0xFF,6,REGSIZE,0,0); /* PUSH EA+4 */
+                    assert(sz >= REGSIZE * 2);
+                    ce = loadea(e,&cs,0xFF,6,sz - REGSIZE,0,0); /* PUSH EA+4 */
                     ce = genadjesp(ce,REGSIZE);
+                    stackpush += REGSIZE;
+                    sz -= REGSIZE;
+
+                    if (sz > REGSIZE)
+                    {
+                        while (sz)
+                        {
+                            cs.IEVoffset1 -= REGSIZE;
+                            ce = gen(ce,&cs);                    // PUSH EA+...
+                            ce = genadjesp(ce,REGSIZE);
+                            stackpush += REGSIZE;
+                            sz -= REGSIZE;
+                        }
+                        goto L2;
+                    }
                 }
                 else
                 {

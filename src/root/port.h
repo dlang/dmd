@@ -73,6 +73,9 @@ struct Port
     static const wchar_t *wlist_separator();
 
     static char *strupr(char *);
+
+    static int memicmp(const char *s1, const char *s2, int n);
+    static int stricmp(const char *s1, const char *s2);
 };
 
 #endif

@@ -38,47 +38,47 @@ template Foo(T, int V)
 {
     int bar(double d, int x)
     {
-	if (d)
-	{   d++;
-	}
-	else
-	    d--;
+    if (d)
+    {   d++;
+    }
+    else
+        d--;
 
-	asm
-	{	naked ;
-		mov EAX, 3;
-	}
+    asm
+    {	naked ;
+        mov EAX, 3;
+    }
 
-	for (;;)
-	{
-	    d = d + 1;
-	}
+    for (;;)
+    {
+        d = d + 1;
+    }
 
-	for (int i = 0; i < 10; i++)
-	{
-	    d = i ? d + 1 : 5;
-	}
+    for (int i = 0; i < 10; i++)
+    {
+        d = i ? d + 1 : 5;
+    }
 
-	char[] s;
-	foreach (char c; s)
-	{
-	    d *= 2;
-	    if (d)
-		break;
-	    else
-		continue;
-	}
+    char[] s;
+    foreach (char c; s)
+    {
+        d *= 2;
+        if (d)
+        break;
+        else
+        continue;
+    }
 
-	switch (V)
-	{
-	    case 1:
-	    case 2: break;
-	    case 3: goto case 1;
-	    case 4: goto default;
-	    default:
-		d /= 8;
-		break;
-	}
+    switch (V)
+    {
+        case 1:
+        case 2: break;
+        case 3: goto case 1;
+        case 4: goto default;
+        default:
+        d /= 8;
+        break;
+    }
 
         enum Label { A, B, C };
         void fswitch(Label l)
@@ -92,48 +92,48 @@ template Foo(T, int V)
         }
 
     loop:
-	while (x)
-	{
-	    x--;
-	    if (x)
-		break loop;
-	    else
-		continue loop;
-	}
+    while (x)
+    {
+        x--;
+        if (x)
+        break loop;
+        else
+        continue loop;
+    }
 
-	do
-	{
-	    x++;
-	} while (x < 10);
+    do
+    {
+        x++;
+    } while (x < 10);
 
-	try
-	{
-	    bar(1, 2);
-	}
-	catch (Object o)
-	{
-	    x++;
-	}
-	finally
-	{
-	    x--;
-	}
+    try
+    {
+        bar(1, 2);
+    }
+    catch (Object o)
+    {
+        x++;
+    }
+    finally
+    {
+        x--;
+    }
 
-	Object o;
-	synchronized (o)
-	{
-	    x = ~x;
-	}
+    Object o;
+    synchronized (o)
+    {
+        x = ~x;
+    }
 
-	synchronized
-	{
-	    x = x < 3;
-	}
+    synchronized
+    {
+        x = x < 3;
+    }
 
-	with (o)
-	{
-	    toString();
-	}
+    with (o)
+    {
+        toString();
+    }
     }
 }
 
@@ -229,19 +229,19 @@ template Foo2(bool bar)
 {
     void test()
     {
-	static if(bar)
-	{
-	    int i;
-	}
-	else
-	{
-	}
-	static if(!bar)
-	{
-	}
-	else
-	{
-	}
+    static if(bar)
+    {
+        int i;
+    }
+    else
+    {
+    }
+    static if(!bar)
+    {
+    }
+    else
+    {
+    }
     }
 }
 

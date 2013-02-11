@@ -4,13 +4,11 @@
  * Copyright (c) 1999-2012 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
- * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/iasm.c
- * http://www.dsource.org/projects/dmd/browser/trunk/src/iasm.c
  * Written by Mike Cote, John Micco and Walter Bright
  * D version by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 

@@ -267,9 +267,10 @@ Expression *TraitsExp::semantic(Scope *sc)
         {
             if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
                 s = fd->toAliasFunc();
-            s = s->toParent();
+            if (!s->isImport())  // Bugzilla 8922
+                s = s->toParent();
         }
-        if (!s)
+        if (!s || s->isImport())
         {
             error("argument %s has no parent", o->toChars());
             goto Lfalse;

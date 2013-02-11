@@ -894,7 +894,8 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->level++;
 
     for (size_t i = 0; i < statements->dim; i++)
-    {   Statement *s;
+    {
+        Statement *s;
 
         s = (*statements)[i];
         if (s)
@@ -1102,46 +1103,20 @@ bool WhileStatement::hasContinue()
 
 bool WhileStatement::usesEH()
 {
-    assert(0);
-    return body ? body->usesEH() : 0;
+    assert(global.errors);
+    return 0;
 }
 
 int WhileStatement::blockExit(bool mustNotThrow)
 {
-    assert(0);
-    //printf("WhileStatement::blockExit(%p)\n", this);
-
-    int result = BEnone;
-    if (condition->canThrow(mustNotThrow))
-        result |= BEthrow;
-    if (condition->isBool(TRUE))
-    {
-        if (body)
-        {   result |= body->blockExit(mustNotThrow);
-            if (result & BEbreak)
-                result |= BEfallthru;
-        }
-    }
-    else if (condition->isBool(FALSE))
-    {
-        result |= BEfallthru;
-    }
-    else
-    {
-        if (body)
-            result |= body->blockExit(mustNotThrow);
-        result |= BEfallthru;
-    }
-    result &= ~(BEbreak | BEcontinue);
-    return result;
+    assert(global.errors);
+    return BEfallthru;
 }
 
 
 int WhileStatement::comeFrom()
 {
-    assert(0);
-    if (body)
-        return body->comeFrom();
+    assert(global.errors);
     return FALSE;
 }
 
@@ -1818,7 +1793,9 @@ Lagain:
                     {
                         /* Reference to immutable data should be marked as const
                          */
-                        if (!tn->isMutable())
+                        if (aggr->checkModifiable(sc, 1) == 2)
+                            var->storage_class |= STCctorinit;
+                        else if (!tn->isMutable())
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
@@ -1953,18 +1930,12 @@ Lagain:
                 error("only one or two arguments for associative array foreach");
                 break;
             }
-#if SARRAYVALUE
+
             /* This only works if Key or Value is a static array.
              */
             tab = taa->getImpl()->type;
             goto Lagain;
-#else
-            if (op == TOKforeach_reverse)
-            {
-                error("no reverse iteration on associative arrays");
-            }
-            goto Lapply;
-#endif
+
         case Tclass:
         case Tstruct:
 #if DMDV2
@@ -2651,33 +2622,20 @@ bool ForeachRangeStatement::hasContinue()
 
 bool ForeachRangeStatement::usesEH()
 {
-    assert(0);
+    assert(global.errors);
     return body->usesEH();
 }
 
 int ForeachRangeStatement::blockExit(bool mustNotThrow)
 {
-    assert(0);
-    int result = BEfallthru;
-
-    if (lwr && lwr->canThrow(mustNotThrow))
-        result |= BEthrow;
-    else if (upr && upr->canThrow(mustNotThrow))
-        result |= BEthrow;
-
-    if (body)
-    {
-        result |= body->blockExit(mustNotThrow) & ~(BEbreak | BEcontinue);
-    }
-    return result;
+    assert(global.errors);
+    return BEfallthru;
 }
 
 
 int ForeachRangeStatement::comeFrom()
 {
-    assert(0);
-    if (body)
-        return body->comeFrom();
+    assert(global.errors);
     return FALSE;
 }
 
@@ -2846,7 +2804,8 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (arg->type)
             arg->type->toCBuffer(buf, arg->ident, hgs);
         else
-        {   buf->writestring("auto ");
+        {
+            buf->writestring("auto ");
             buf->writestring(arg->ident->toChars());
         }
         buf->writestring(" = ");
@@ -2860,7 +2819,8 @@ void IfStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (!ifbody->isScopeStatement())
         buf->level--;
     if (elsebody)
-    {   buf->writestring("else");
+    {
+        buf->writestring("else");
         buf->writenl();
         if (!elsebody->isScopeStatement())
             buf->level++;
@@ -3222,7 +3182,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
     }
     else
     {   condition = condition->integralPromotions(sc);
-        condition->checkIntegral();
+        if (!condition->type->isintegral())
+            error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
     condition = condition->optimize(WANTvalue);
 
@@ -3271,14 +3232,18 @@ Statement *SwitchStatement::semantic(Scope *sc)
 #if DMDV2
     if (isFinal)
     {   Type *t = condition->type;
-        while (t->ty == Ttypedef)
+        while (t && t->ty == Ttypedef)
         {   // Don't use toBasetype() because that will skip past enums
             t = ((TypeTypedef *)t)->sym->basetype;
         }
-        if (te)
+        Dsymbol *ds;
+        EnumDeclaration *ed = NULL;
+        if (t && ((ds = t->toDsymbol(sc)) != NULL))
+            ed = ds->isEnumDeclaration();  // typedef'ed enum
+        if (!ed && te && ((ds = te->toDsymbol(sc)) != NULL))
+            ed = ds->isEnumDeclaration();
+        if (ed)
         {
-            EnumDeclaration *ed = te->toDsymbol(sc)->isEnumDeclaration();
-            assert(ed);
             size_t dim = ed->members->dim;
             for (size_t i = 0; i < dim; i++)
             {
@@ -3321,8 +3286,10 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
         a->reserve(2);
         sc->sw->sdefault = new DefaultStatement(loc, s);
-        a->push(sc->sw->sdefault);
         a->push(body);
+        if (body->blockExit(FALSE) & BEfallthru)
+            a->push(new BreakStatement(0, NULL));
+        a->push(sc->sw->sdefault);
         cs = new CompoundStatement(loc, a);
         body = cs;
     }
@@ -3369,7 +3336,8 @@ void SwitchStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (body)
     {
         if (!body->isScopeStatement())
-        {   buf->writebyte('{');
+        {
+            buf->writebyte('{');
             buf->writenl();
             buf->level++;
             body->toCBuffer(buf, hgs);
@@ -3434,7 +3402,7 @@ Statement *CaseStatement::semantic(Scope *sc)
         if (exp->op != TOKstring && exp->op != TOKint64 && exp->op != TOKerror)
         {
             error("case must be a string or an integral constant, not %s", exp->toChars());
-            exp = new IntegerExp(0);
+            exp = new ErrorExp();
         }
 
     L1:
@@ -3919,7 +3887,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             }
             else
             {
-                if (tf->isref)
+                if (tf->isref && (fd->storage_class & STCauto))
                 {   /* Determine "refness" of function return:
                      * if it's an lvalue, return by ref, else return by value
                      */
@@ -3932,11 +3900,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
-                        {   tf->isref = FALSE;  // return by value
-                        }
+                            tf->isref = FALSE;  // return by value
                     }
                     else
                         tf->isref = FALSE;      // return by value
+                    fd->storage_class &= ~STCauto;
                 }
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
@@ -4574,7 +4542,7 @@ Statement *WithStatement::semantic(Scope *sc)
             sym->parent = sc->scopesym;
         }
         else
-        {   error("with expressions must be class objects, not '%s'", exp->type->toChars());
+        {   error("with expressions must be aggregate types, not '%s'", exp->type->toChars());
             return NULL;
         }
     }
@@ -5042,9 +5010,10 @@ Statement *ThrowStatement::semantic(Scope *sc)
 
 int ThrowStatement::blockExit(bool mustNotThrow)
 {
-    if (mustNotThrow)
+    Type *t = exp->type->toBasetype();
+    if (mustNotThrow && t->ty != Terror)
     {
-        ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+        ClassDeclaration *cd = t->isClassHandle();
         assert(cd);
 
         // Bugzilla 8675
@@ -5379,6 +5348,7 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("asm { ");
     Token *t = tokens;
+    buf->level++;
     while (t)
     {
         buf->writestring(t->toChars());
@@ -5399,6 +5369,7 @@ void AsmStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         }
         t = t->next;
     }
+    buf->level--;
     buf->writestring("; }");
     buf->writenl();
 }

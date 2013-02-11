@@ -51,7 +51,6 @@ the target object file format:
         TARGET_FREEBSD  Covers 32 and 64 bit FreeBSD
         TARGET_OPENBSD  Covers 32 and 64 bit OpenBSD
         TARGET_SOLARIS  Covers 32 and 64 bit Solaris
-        TARGET_NET      Covers .Net
 
     It is expected that the compiler for each platform will be able
     to generate 32 and 64 bit code from the same compiler binary.
@@ -87,11 +86,9 @@ void unittests();
 
 #define DMDV1   0
 #define DMDV2   1       // Version 2.0 features
-#define STRUCTTHISREF DMDV2     // if 'this' for struct is a reference, not a pointer
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
-#define SARRAYVALUE DMDV2       // static arrays are value types
 #define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
-#define BUG6652 1       // Making foreach range statement parameter non-ref in default
+#define BUG6652 2       // Making foreach range statement parameter non-ref in default
                         // 1: Modifying iteratee in body is warned with -w switch
                         // 2: Modifying iteratee in body is error without -d switch
 
@@ -141,13 +138,13 @@ struct Param
     char lib;           // write library file instead of object file(s)
     char multiobj;      // break one object file into multiple ones
     char oneobj;        // write one object file instead of multiple ones
-    char trace;         // insert profiling hooks
+    bool trace;         // insert profiling hooks
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
     char symdebug;      // insert debug symbolic information
-    char alwaysframe;   // always emit standard stack frame
-    char optimize;      // run optimizer
+    bool alwaysframe;   // always emit standard stack frame
+    bool optimize;      // run optimizer
     char map;           // generate linker .map file
     char cpu;           // target CPU
     char is64bit;       // generate 64 bit code
@@ -155,7 +152,7 @@ struct Param
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
     char isFreeBSD;     // generate code for FreeBSD
-    char isOPenBSD;     // generate code for OpenBSD
+    char isOpenBSD;     // generate code for OpenBSD
     char isSolaris;     // generate code for Solaris
     char scheduler;     // which scheduler to use
     char useDeprecated; // 0: don't allow use of deprecated features
@@ -169,6 +166,7 @@ struct Param
                          // 1: array bounds checks for safe functions only
                          // 2: array bounds checks for all functions
     char noboundscheck; // no array bounds checking at all
+    bool stackstomp;    // add stack stomping code
     char useSwitchError; // check for switches without a default
     char useUnitTests;  // generate unittest code
     char useInline;     // inline expand functions
@@ -177,9 +175,9 @@ struct Param
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
-    char pic;           // generate position-independent-code for shared libs
+    bool pic;           // generate position-independent-code for shared libs
     char cov;           // generate code coverage data
-    char nofloat;       // code should not pull in floating point support
+    bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;

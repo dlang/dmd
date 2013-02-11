@@ -183,9 +183,6 @@
     <ClCompile Include="parse.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="ph.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="s2ir.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -247,9 +244,6 @@
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="utf.c">
-      <Filter>src</Filter>
-    </ClCompile>
-    <ClCompile Include="util.c">
       <Filter>src</Filter>
     </ClCompile>
     <ClCompile Include="version.c">
@@ -429,9 +423,6 @@
     <ClCompile Include="root\dmgcmem.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\gnuc.c">
-      <Filter>src\root</Filter>
-    </ClCompile>
     <ClCompile Include="root\longdouble.c">
       <Filter>src\root</Filter>
     </ClCompile>
@@ -500,6 +491,24 @@
     </ClCompile>
     <ClCompile Include="root\gc\linux.c">
       <Filter>src\no_win</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\backconfig.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\ph2.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\util2.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="ctfeexpr.c">
+      <Filter>src</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\cv8.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
+    <ClCompile Include="backend\pdata.c">
+      <Filter>src\backend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
@@ -710,9 +719,6 @@
     <ClInclude Include="root\async.h">
       <Filter>src\root</Filter>
     </ClInclude>
-    <ClInclude Include="root\gnuc.h">
-      <Filter>src\root</Filter>
-    </ClInclude>
     <ClInclude Include="root\longdouble.h">
       <Filter>src\root</Filter>
     </ClInclude>
@@ -777,5 +783,6 @@
     <CustomBuild Include="backend\optabgen.c">
       <Filter>src\gen</Filter>
     </CustomBuild>
+    <CustomBuild Include="..\VERSION" />
   </ItemGroup>
 </Project>

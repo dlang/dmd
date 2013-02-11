@@ -33,6 +33,7 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     sinit = NULL;
     isdeprecated = 0;
     isdone = 0;
+    objFileDone = 0;
 }
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
@@ -50,6 +51,13 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
         ed = new EnumDeclaration(loc, ident, t);
     ScopeDsymbol::syntaxCopy(ed);
     return ed;
+}
+
+void EnumDeclaration::setScope(Scope *sc)
+{
+    if (isdone)
+        return;
+    ScopeDsymbol::setScope(sc);
 }
 
 void EnumDeclaration::semantic0(Scope *sc)

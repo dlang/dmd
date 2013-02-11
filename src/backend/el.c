@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -449,9 +448,9 @@ elem * el_alloctmp(tym_t ty)
   symbol *s;
 
   assert(MARS || !PARSER);
-  s = symbol_generate(SCtmp,type_fake(ty));
+  s = symbol_generate(SCauto,type_fake(ty));
   symbol_add(s);
-  s->Sfl = FLtmp;
+  s->Sfl = FLauto;
   s->Sflags = SFLfree | SFLunambig | GTregcand;
   return el_var(s);
 }
@@ -572,6 +571,30 @@ elem * el_copytree(elem *e)
     }
     return d;
 }
+
+/*******************************
+ * Replace (e) with ((stmp = e),stmp)
+ */
+
+#if MARS
+elem *exp2_copytotemp(elem *e)
+{
+    //printf("exp2_copytotemp()\n");
+    elem_debug(e);
+    Symbol *stmp = symbol_genauto(e);
+    elem *eeq = el_bin(OPeq,e->Ety,el_var(stmp),e);
+    elem *er = el_bin(OPcomma,e->Ety,eeq,el_var(stmp));
+    if (tybasic(e->Ety) == TYstruct || tybasic(e->Ety) == TYarray)
+    {
+        eeq->Eoper = OPstreq;
+        eeq->ET = e->ET;
+        eeq->E1->ET = e->ET;
+        er->ET = e->ET;
+        er->E2->ET = e->ET;
+    }
+    return er;
+}
+#endif
 
 /*************************
  * Similar to el_copytree(e). But if e has any side effects, it's replaced
@@ -1127,9 +1150,9 @@ symbol *el_alloc_localgot()
         char name[15];
         static int tmpnum;
         sprintf(name, "_LOCALGOT%d", tmpnum++);
-        localgot = symbol_name(name, SCtmp, type_fake(TYnptr));
+        localgot = symbol_name(name, SCauto, type_fake(TYnptr));
         symbol_add(localgot);
-        localgot->Sfl = FLtmp;
+        localgot->Sfl = FLauto;
         localgot->Sflags = SFLfree | SFLunambig | GTregcand;
     }
     return localgot;
@@ -1733,7 +1756,7 @@ elem * el_ptr_offset(symbol *s,targ_size_t offset)
  *      0       elem evaluates left-to-right
  */
 
-HINT ERTOL(elem *e)
+int ERTOL(elem *e)
 {
     elem_debug(e);
     assert(!PARSER);

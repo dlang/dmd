@@ -22,6 +22,21 @@ auto segfault8532(Y, R ...)(R r, Y val) pure
 static assert(!is(typeof( segfault8532(1,2,3))));
 
 /**************************************************
+    8982    ICE(ctfeexpr.c) __parameters with error in default value
+**************************************************/
+template ice8982(T)
+{
+    void bug8982(ref const int v = 7){}
+
+    static if (is(typeof(bug8982) P == __parameters)) {
+        pragma(msg, ((P[0..1] g) => g[0])());
+    }
+}
+
+static assert(!is(ice8982!(int)));
+
+
+/**************************************************
     8801    ICE assigning to __ctfe
 **************************************************/
 static assert(!is(typeof( { bool __ctfe= true; })));
@@ -78,7 +93,18 @@ template bug6661(Q)
     const Q blaz = 6;
 }
 
-static assert(is(typeof(bug6661!(int).blaz)));
+static assert(!is(typeof(bug6661!(int).blaz)));
+
+template bug6661x(Q)
+{
+    int qutz(Q y)
+    {
+        Q q = "abc";
+        return 67;
+    }
+}
+// should pass, but doesn't in current
+//static assert(!is(typeof(bug6661x!(int))));
 
 /**************************************************
     6599    ICE(constfold.c) or segfault
@@ -361,3 +387,13 @@ alias test8163!(ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte, ubyte) _BBBBBBB
 alias test8163!(ubyte, ubyte, ushort, float) _BBSf;
 
 
+/***************************************************/
+// 9348
+
+void test9348()
+{
+    @property Object F(int E)() { return null; }
+
+    assert(F!0 !is null);
+    assert(F!0 !in [new Object():1]);
+}

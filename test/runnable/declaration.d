@@ -21,6 +21,34 @@ void test6475()
 }
 
 /***************************************************/
+// 6905
+
+void test6905()
+{
+    auto foo1() { static int n; return n; }
+    auto foo2() {        int n; return n; }
+    auto foo3() {               return 1; }
+    static assert(typeof(&foo1).stringof == "int delegate()");
+    static assert(typeof(&foo2).stringof == "int delegate()");
+    static assert(typeof(&foo3).stringof == "int delegate()");
+
+    ref bar1() { static int n; return n; }
+  static assert(!__traits(compiles, {
+    ref bar2() {        int n; return n; }
+  }));
+  static assert(!__traits(compiles, {
+    ref bar3() {               return 1; }
+  }));
+
+    auto ref baz1() { static int n; return n; }
+    auto ref baz2() {        int n; return n; }
+    auto ref baz3() {               return 1; }
+    static assert(typeof(&baz1).stringof == "int delegate() ref");
+    static assert(typeof(&baz2).stringof == "int delegate()");
+    static assert(typeof(&baz3).stringof == "int delegate()");
+}
+
+/***************************************************/
 // 7019
 
 struct S7019
@@ -56,6 +84,12 @@ void test7019()
     static assert(ct_gs == S7019(2) && ct_gs.store == 16);
     static assert(ct_ls == S7019(3) && ct_ls.store == 24);
     static assert(C.ct_fs == S7019(4) && C.ct_fs.store == 32);
+
+    void foo(S7019 s = 5)   // fixing bug 7152
+    {
+        assert(s.store == 5 << 3);
+    }
+    foo();
 }
 
 /***************************************************/
@@ -169,6 +203,7 @@ void test8942()
 int main()
 {
     test6475();
+    test6905();
     test7019();
     test7239();
     test8123();

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -4136,7 +4135,6 @@ code *getoffset(elem *e,unsigned reg)
         goto L2;
     case FLauto:
     case FLfast:
-    case FLtmp:
     case FLbprel:
     case FLfltreg:
         reflocal = TRUE;

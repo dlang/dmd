@@ -411,11 +411,8 @@ void ClassDeclaration::toObjFile(int multiobj)
             }
 
             // Create type for the function
-            ::type *t = type_alloc(TYjfunc);
-            t->Tflags |= TFprototype | TFfixed;
+            ::type *t = type_function(TYjfunc, NULL, 0, false, tsvoid);
             t->Tmangle = mTYman_d;
-            t->Tnext = tsvoid;
-            tsvoid->Tcount++;
 
             // Create the function, sdtor, and write it out
             localgot = NULL;
@@ -787,11 +784,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         if (fd && (fd->fbody || !isAbstract()))
         {
             // Ensure function has a return value (Bugzilla 4869)
-            if (fd->type->ty == Tfunction && !((TypeFunction *)fd->type)->next)
-            {
-                assert(fd->scope);
-                fd->semantic3(fd->scope);
-            }
+            fd->functionSemantic();
 
             Symbol *s = fd->toSymbol();
 
@@ -1250,12 +1243,11 @@ void VarDeclaration::toObjFile(int multiobj)
         // which saves on exe file space.
         if (s->Sclass == SCcomdat &&
             s->Sdt &&
-            s->Sdt->dt == DT_azeros &&
-            s->Sdt->DTnext == NULL &&
+            dtallzeros(s->Sdt) &&
             !isThreadlocal())
         {
             s->Sclass = SCglobal;
-            s->Sdt->dt = DT_common;
+            dt2common(&s->Sdt);
         }
 
         if (!sz && type->toBasetype()->ty != Tsarray)
@@ -1309,6 +1301,8 @@ void TypedefDeclaration::toObjFile(int multiobj)
 
 void EnumDeclaration::toObjFile(int multiobj)
 {
+    if (objFileDone)  // already written
+        return;
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 
     if (type->ty == Terror)
@@ -1348,7 +1342,41 @@ void EnumDeclaration::toObjFile(int multiobj)
 #endif
         outdata(sinit);
     }
+    objFileDone = true;
 }
 
+/* ================================================================== */
+
+void TypeInfoDeclaration::toObjFile(int multiobj)
+{
+    //printf("TypeInfoDeclaration::toObjFile(%p '%s') protection %d\n", this, toChars(), protection);
+
+    if (multiobj)
+    {
+        obj_append(this);
+        return;
+    }
+
+    Symbol *s = toSymbol();
+    s->Sclass = SCcomdat;
+    s->Sfl = FLdata;
+
+    toDt(&s->Sdt);
+
+    dt_optimize(s->Sdt);
+
+    // See if we can convert a comdat to a comdef,
+    // which saves on exe file space.
+    if (s->Sclass == SCcomdat &&
+        dtallzeros(s->Sdt))
+    {
+        s->Sclass = SCglobal;
+        dt2common(&s->Sdt);
+    }
+
+    outdata(s);
+    if (isExport())
+        objmod->export_symbol(s,0);
+}
 
 

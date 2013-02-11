@@ -2127,16 +2127,186 @@ void test9036()
 }
 
 /*******************************************/
+// 8847
+
+auto S8847()
+{
+    static struct Result
+    {
+        inout(Result) get() inout { return this; }
+    }
+    return Result();
+}
+
+void test8847a()
+{
+    auto a = S8847();
+    auto b = a.get();
+    alias typeof(a) A;
+    alias typeof(b) B;
+    assert(is(A == B), A.stringof~ " is different from "~B.stringof);
+}
+
+// --------
+
+enum result8847a = "S6nested9iota8847aFZ6Result";
+enum result8847b = "S6nested9iota8847bFZ4iotaMFZ6Result";
+enum result8847c = "C6nested9iota8847cFZ6Result";
+enum result8847d = "C6nested9iota8847dFZ4iotaMFZ6Result";
+
+auto iota8847a()
+{
+    static struct Result
+    {
+        this(int) {}
+        inout(Result) test() inout { return cast(inout)Result(0); }
+    }
+    static assert(Result.mangleof == result8847a);
+    return Result.init;
+}
+auto iota8847b()
+{
+    auto iota()
+    {
+        static struct Result
+        {
+            this(int) {}
+            inout(Result) test() inout { return cast(inout)Result(0); }
+        }
+        static assert(Result.mangleof == result8847b);
+        return Result.init;
+    }
+    return iota();
+}
+auto iota8847c()
+{
+    static class Result
+    {
+        this(int) {}
+        inout(Result) test() inout { return cast(inout)new Result(0); }
+    }
+    static assert(Result.mangleof == result8847c);
+    return Result.init;
+}
+auto iota8847d()
+{
+    auto iota()
+    {
+        static class Result
+        {
+            this(int) {}
+            inout(Result) test() inout { return cast(inout)new Result(0); }
+        }
+        static assert(Result.mangleof == result8847d);
+        return Result.init;
+    }
+    return iota();
+}
+void test8847b()
+{
+    static assert(typeof(iota8847a().test()).mangleof == result8847a);
+    static assert(typeof(iota8847b().test()).mangleof == result8847b);
+    static assert(typeof(iota8847c().test()).mangleof == result8847c);
+    static assert(typeof(iota8847d().test()).mangleof == result8847d);
+}
+
+// --------
+
+struct Test8847
+{
+    enum result1 = "S6nested8Test88478__T3fooZ3fooMFZ6Result";
+    enum result2 = "S6nested8Test88478__T3fooZ3fooMxFiZ6Result";
+
+    auto foo()()
+    {
+        static struct Result
+        {
+            inout(Result) get() inout { return this; }
+        }
+        static assert(Result.mangleof == Test8847.result1);
+        return Result();
+    }
+    auto foo()(int n) const
+    {
+        static struct Result
+        {
+            inout(Result) get() inout { return this; }
+        }
+        static assert(Result.mangleof == Test8847.result2);
+        return Result();
+    }
+}
+void test8847c()
+{
+    static assert(typeof(Test8847().foo( ).get()).mangleof == Test8847.result1);
+    static assert(typeof(Test8847().foo(1).get()).mangleof == Test8847.result2);
+}
+
+// --------
+
+void test8847d()
+{
+    enum resultS = "S6nested9test8847dFZv3fooMFZ3barMFZAya3bazMFZ1S";
+    enum resultX = "S6nested9test8847dFZv3fooMFZ1X";
+    // Return types for test8847d and bar are mangled correctly,
+    // and return types for foo and baz are not mangled correctly.
+
+    auto foo()
+    {
+        struct X { inout(X) get() inout { return inout(X)(); } }
+        string bar()
+        {
+            auto baz()
+            {
+                struct S { inout(S) get() inout { return inout(S)(); } }
+                return S();
+            }
+            static assert(typeof(baz()      ).mangleof == resultS);
+            static assert(typeof(baz().get()).mangleof == resultS);
+            return "";
+        }
+        return X();
+    }
+    static assert(typeof(foo()      ).mangleof == resultX);
+    static assert(typeof(foo().get()).mangleof == resultX);
+}
+
+// --------
+
+void test8847e()
+{
+    enum resultHere = "6nested"~"9test8847eFZv"~"8__T3fooZ"~"3foo";
+    enum resultBar =  "S"~resultHere~"MFNaNfNgiZ3Bar";
+    enum resultFoo = "_D"~resultHere~"MFNaNbNfNgiZNg"~resultBar;   // added 'Nb'
+
+    // Make template function to infer 'nothrow' attributes
+    auto foo()(inout int) pure @safe
+    {
+        struct Bar {}
+        static assert(Bar.mangleof == resultBar);
+        return inout(Bar)();
+    }
+
+    auto bar = foo(0);
+    static assert(typeof(bar).stringof == "Bar");
+    static assert(typeof(bar).mangleof == resultBar);
+    static assert(foo!().mangleof == resultFoo);
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
 
-void test8863() {
+void test8863()
+{
     int x = 1;
-    struct A {
-	auto f() {
-	    assert(x == 1);
-	}
+    struct A
+    {
+        auto f()
+        {
+            assert(x == 1);
+        }
     }
 
     A a;
@@ -2147,11 +2317,11 @@ void test8863() {
 +/
 
 /*******************************************/
-// 8774 
+// 8774
 
 void popFront8774()
 {
-    int[20] abc;	// smash stack
+    int[20] abc;    // smash stack
 }
 
 struct MapResult8774(alias fun)
@@ -2170,15 +2340,15 @@ void test8774() {
     {
         void delegate() closedPartialSum()
         {
-	    int ii = i ;
-	    void bar()
+            int ii = i ;
+            void bar()
             {
-		printf("%d\n", sliceSize);
-		assert(sliceSize == 100);
-	    }
-	    return &bar;
+                printf("%d\n", sliceSize);
+                assert(sliceSize == 100);
+            }
+            return &bar;
         }
-        return closedPartialSum();     
+        return closedPartialSum();
     }
 
     auto threads = MapResult8774!foo();
@@ -2188,6 +2358,59 @@ void test8774() {
 
     printf("calling dg()\n");
     dg();
+}
+
+/*******************************************/
+
+int Bug8832(alias X)()
+{
+    return X();
+}
+
+int delegate() foo8832()
+{
+  int stack;
+  int heap = 3;
+
+  int nested_func()
+  {
+    ++heap;
+    return heap;
+  }
+  return delegate int() { return Bug8832!(nested_func); };
+}
+
+void test8832()
+{
+  auto z = foo8832();
+  auto p = foo8832();
+  assert(z() == 4);
+  p();
+  assert(z() == 5);
+}
+
+/*******************************************/
+// 9315
+
+auto test9315()
+{
+    struct S
+    {
+        int i;
+        void bar() {}
+    }
+    pragma(msg, S.init.tupleof[$-1]);
+}
+
+/*******************************************/
+// 9244
+
+void test9244()
+{
+    union U {
+        int i;
+        @safe int x() { return i; }
+    }
 }
 
 /*******************************************/
@@ -2272,6 +2495,9 @@ int main()
     test9036();
 //    test8863();
     test8774();
+    test8832();
+    test9315();
+    test9244();
 
     printf("Success\n");
     return 0;

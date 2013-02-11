@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -41,7 +40,7 @@ int _binary[] =
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
          OPinfo,OParray,OPfield,OPnewarray,OPmultinewarray,OPinstanceof,OPfinalinstanceof,
          OPcheckcast,OPpair,OPrpair,
-         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,
+         OPbt,OPbtc,OPbtr,OPbts,OPror,OProl,OPbtst,
          OPremquo,
 #if TX86
          OPoutp,OPscale,OPyl2x,OPyl2xp1,
@@ -103,6 +102,7 @@ int _rel[] = {OPeqeq,OPne,OPle,OPlt,OPgt,OPge,
 int _logical[] = {OPeqeq,OPne,OPle,OPlt,OPgt,OPge,OPandand,OPoror,OPnot,OPbool,
          OPunord,OPlg,OPleg,OPule,OPul,OPuge,OPug,OPue,OPngt,OPnge,
          OPnlt,OPnle,OPord,OPnlg,OPnleg,OPnule,OPnul,OPnuge,OPnug,OPnue,
+         OPbt,OPbtst,
         };
 int _def[] = {OPstreq,OPeq,OPaddass,OPminass,OPmulass,OPdivass,OPmodass,
                 OPshrass,OPashrass,OPshlass,OPandass,OPxorass,OPorass,
@@ -146,7 +146,7 @@ int _ae[] = {OPvar,OPconst,OPrelconst,OPneg,
                 OP128_64,OPs64_128,OPu64_128,
                 OPsizeof,OParray,OPfield,OPinstanceof,OPfinalinstanceof,OPcheckcast,OParraylength,
                 OPcallns,OPucallns,OPnullcheck,OPpair,OPrpair,
-                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,
+                OPbsf,OPbsr,OPbt,OPbswap,OPb_8,OPbtst,
                 OPgot,OPremquo,
                 OPnullptr,
                 OProl,OPror,
@@ -176,7 +176,7 @@ int _exp[] = {OPvar,OPconst,OPrelconst,OPneg,OPabs,OPrndtol,OPrint,
                 OPcall,OPcallns,OPeq,OPstreq,OPpostinc,OPpostdec,
                 OPaddass,OPminass,OPmulass,OPdivass,OPmodass,OPandass,
                 OPorass,OPxorass,OPshlass,OPshrass,OPashrass,OPoror,OPandand,OPcond,
-                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,
+                OPbsf,OPbsr,OPbt,OPbtc,OPbtr,OPbts,OPbswap,OPbtst,
                 OProl,OPror,OPvector,
                 OPpair,OPrpair,OPframeptr,OPgot,OPremquo,
                 OPcolon,OPcolon2,OPasm,OPstrcpy,OPmemcpy,OPmemset,OPstrcat,OPnegass,
@@ -597,8 +597,8 @@ void dotab()
         case OPu8_16:   X("u8_16",      elbyteint, cdbyteint);
         case OPs8_16:   X("s8_16",      elbyteint, cdbyteint);
         case OP16_8:    X("16_8",       ellngsht,cdlngsht);
-        case OPu32_64:  X("u32_64",     evalu8, cdshtlng);
-        case OPs32_64:  X("s32_64",     evalu8, cdshtlng);
+        case OPu32_64:  X("u32_64",     el32_64, cdshtlng);
+        case OPs32_64:  X("s32_64",     el32_64, cdshtlng);
         case OP64_32:   X("64_32",      el64_32, cdlngsht);
         case OPu64_128: X("u64_128",    evalu8, cdshtlng);
         case OPs64_128: X("s64_128",    evalu8, cdshtlng);
@@ -637,6 +637,7 @@ void dotab()
 
         case OPbsf:     X("bsf",        elzot,  cdbscan);
         case OPbsr:     X("bsr",        elzot,  cdbscan);
+        case OPbtst:    X("btst",       elzot,  cdbtst);
         case OPbt:      X("bt",         elzot,  cdbt);
         case OPbtc:     X("btc",        elzot,  cdbt);
         case OPbtr:     X("btr",        elzot,  cdbt);
@@ -666,7 +667,7 @@ void dotab()
   fclose(f);
 
   f = fopen("elxxx.c","w");
-  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *) = \n\t{\n");
+  fprintf(f,"static elem *(*elxxx[OPMAX]) (elem *, goal_t) = \n\t{\n");
   for (i = 0; i < OPMAX - 1; i++)
         fprintf(f,"\t%s,\n",elxxx[i]);
   fprintf(f,"\t%s\n\t};\n",elxxx[i]);
@@ -682,7 +683,7 @@ void fltables()
         char flinsymtab[FLMAX];
 
         static char indatafl[] =        /* is FLxxxx a data type?       */
-        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLtmp,
+        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,
           FLcs,FLfltreg,FLallocatmp,FLdatseg,FLtlsdata,FLbprel,
           FLstack,FLregsave,
 #if TX86
@@ -694,14 +695,14 @@ void fltables()
 #endif
 
         static char instackfl[] =       /* is FLxxxx a stack data type? */
-        { FLauto,FLfast,FLpara,FLtmp,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
+        { FLauto,FLfast,FLpara,FLcs,FLfltreg,FLallocatmp,FLbprel,FLstack,FLregsave,
 #if TX86
           FLndp,
 #endif
         };
 
         static char inflinsymtab[] =    /* is FLxxxx in the symbol table? */
-        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLtmp,FLfunc,
+        { FLdata,FLudata,FLreg,FLpseudo,FLauto,FLfast,FLpara,FLextern,FLfunc,
           FLtlsdata,FLbprel,FLstack };
 #if TARGET_SEGMENTED
         static char inflinsymtab_s[] = { FLfardata,FLcsdata, };
@@ -768,7 +769,6 @@ void fltables()
                 case FLbprel:   segfl[i] = SS;  break;
                 case FLpara:    segfl[i] = SS;  break;
                 case FLextern:  segfl[i] = DS;  break;
-                case FLtmp:     segfl[i] = SS;  break;
                 case FLcode:    segfl[i] = CS;  break;
                 case FLblock:   segfl[i] = CS;  break;
                 case FLblockoff: segfl[i] = CS; break;

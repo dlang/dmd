@@ -107,7 +107,6 @@ struct ArrayInitializer : Initializer
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
-    dt_t *toDtBit();    // for bit arrays
 
     ArrayInitializer *isArrayInitializer() { return this; }
 };

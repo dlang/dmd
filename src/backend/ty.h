@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -120,11 +119,10 @@ enum TYM
     TYllong2            = 0x46, // long[2]
     TYullong2           = 0x47, // ulong[2]
 
-#if MARS
+// MARS types
 #define TYaarray        TYnptr
 #define TYdelegate      (I64 ? TYcent : TYllong)
 #define TYdarray        (I64 ? TYucent : TYullong)
-#endif
 
     TYMAX               = 0x48,
 };

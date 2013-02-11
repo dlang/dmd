@@ -43,6 +43,16 @@ void pointerarithmetic()
     static assert(!__traits(compiles, a--)); 
     static assert(!__traits(compiles, ++a)); 
     static assert(!__traits(compiles, --a)); 
+    static assert( __traits(compiles, a + 0));
+    static assert( __traits(compiles, a - 0));
+    static assert( __traits(compiles, 0 + a));
+    static assert(!__traits(compiles, a + 1));
+    static assert(!__traits(compiles, a - 1));
+    static assert(!__traits(compiles, 1 + a));
+    static assert( __traits(compiles, a += 0));
+    static assert( __traits(compiles, a -= 0));
+    static assert(!__traits(compiles, a += 1));
+    static assert(!__traits(compiles, a -= 1));
 } 
  
  
@@ -279,7 +289,14 @@ void voidinitializers()
     static assert(!__traits(compiles, { int** a = void; } )); 
     static assert(!__traits(compiles, { int[int] a = void; } )); 
 } 
- 
+
+@safe
+void pointerindex()
+{//http://d.puremagic.com/issues/show_bug.cgi?id=9195
+    static assert(!__traits(compiles, { int* p; auto a = p[30]; }));
+    static assert( __traits(compiles, { int* p; auto a = p[0]; }));
+}
+
 @safe 
 void basiccast() 
 {//http://d.puremagic.com/issues/show_bug.cgi?id=5088 

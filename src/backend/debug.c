@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -285,7 +284,7 @@ void WRFL(enum FL fl)
         {"unde  ","const ","oper  ","func  ","data  ",
          "reg   ",
          "pseudo",
-         "auto  ","fast  ","para  ","extrn ","tmp   ",
+         "auto  ","fast  ","para  ","extrn ",
          "code  ","block ","udata ","cs    ","swit  ",
          "fltrg ","offst ","datsg ",
          "ctor  ","dtor  ","regsav","asm   ",

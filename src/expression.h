@@ -154,8 +154,7 @@ struct Expression : Object
     void checkPurity(Scope *sc, FuncDeclaration *f);
     void checkPurity(Scope *sc, VarDeclaration *v, Expression *e1);
     void checkSafety(Scope *sc, FuncDeclaration *f);
-    void checkModifiable(Scope *sc);
-    virtual int checkCtorInit(Scope *sc);
+    virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
     Expression *checkToPointer();
@@ -644,7 +643,7 @@ struct VarExp : SymbolExp
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
     void checkEscapeRef();
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -900,7 +899,7 @@ struct DotVarExp : UnaExp
 
     DotVarExp(Loc loc, Expression *e, Declaration *var, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -998,7 +997,7 @@ struct PtrExp : UnaExp
     PtrExp(Loc loc, Expression *e, Type *t);
     Expression *semantic(Scope *sc);
     void checkEscapeRef();
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1131,7 +1130,7 @@ struct SliceExp : UnaExp
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1199,7 +1198,7 @@ struct CommaExp : BinExp
     Expression *semantic(Scope *sc);
     void checkEscape();
     void checkEscapeRef();
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     IntRange getIntRange();
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -1221,7 +1220,7 @@ struct IndexExp : BinExp
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
@@ -1646,7 +1645,7 @@ struct CondExp : BinExp
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void checkEscapeRef();
-    int checkCtorInit(Scope *sc);
+    int checkModifiable(Scope *sc, int flag);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);

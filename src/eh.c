@@ -1,14 +1,12 @@
 /*
  * Copyright (c) 1994-1998 by Symantec
- * Copyright (c) 2000-2011 by Digital Mars
+ * Copyright (c) 2000-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
- * http://www.dsource.org/projects/dmd/browser/branches/dmd-1.x/src/eh.c
- * http://www.dsource.org/projects/dmd/browser/trunk/src/eh.c
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -30,10 +28,6 @@
 
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
-
-#if _MSC_VER || __sun
-#include        <alloca.h>
-#endif
 
 /* If we do our own EH tables and stack walking scheme
  * (Otherwise use NT Structured Exception Handling)
@@ -187,7 +181,7 @@ void except_fillInEHTable(symbol *s)
             }
             i = b->Bscope_index + 1;
 
-            int nsucc = list_nitems(b->Bsucc);
+            int nsucc = b->numSucc();
 
             if (OUREH)
             {
@@ -223,10 +217,10 @@ void except_fillInEHTable(symbol *s)
             {
                 assert(nsucc == 2);
                 pdt = dtdword(pdt,0);           // no catch offset
-                block *bhandler = list_block(list_next(b->Bsucc));
+                block *bhandler = b->nthSucc(1);
                 assert(bhandler->BC == BC_finally);
                 // To successor of BC_finally block
-                bhandler = list_block(bhandler->Bsucc);
+                bhandler = bhandler->nthSucc(0);
                 // finally handler address
                 if (OUREH)
                 {
@@ -246,15 +240,16 @@ void except_fillInEHTable(symbol *s)
      */
     if (usednteh & EHcleanup)
     {
+        #define STACKINC 16
+        int stackbuf[STACKINC];
+        int *stack = stackbuf;
+        int stackmax = STACKINC;
+
     int scopeindex = guarddim;
     for (block *b = startblock; b; b = b->Bnext)
     {
         /* Set up stack of scope indices
          */
-        #define STACKINC 16
-        int stackbuf[STACKINC];
-        int *stack = stackbuf;
-        int stackmax = STACKINC;
         stack[0] = b->Btry ? b->Btry->Bscope_index : -1;
         int stacki = 1;
 
@@ -322,9 +317,11 @@ void except_fillInEHTable(symbol *s)
                     pdt = dtcoff(pdt,foffset);  // finally handler address
                 if (stacki == stackmax)
                 {   // stack[] is out of space; enlarge it
-                    int *pi = (int *)alloca((stackmax + STACKINC) * sizeof(int));
+                    int *pi = (int *)malloc((stackmax + STACKINC) * sizeof(int));
                     assert(pi);
                     memcpy(pi, stack, stackmax * sizeof(int));
+                    if (stack != stackbuf)
+                        free(stack);
                     stack = pi;
                     stackmax += STACKINC;
                 }
@@ -340,6 +337,8 @@ void except_fillInEHTable(symbol *s)
             boffset += calccodsize(c);
         }
     }
+        if (stack != stackbuf)
+            free(stack);
     }
 
     // Generate catch[]
@@ -347,13 +346,13 @@ void except_fillInEHTable(symbol *s)
     {
         if (b->BC == BC_try && b->jcatchvar)         // if try-catch
         {
-            int nsucc = list_nitems(b->Bsucc);
+            int nsucc = b->numSucc();
             pdt = dtsize_t(pdt,nsucc - 1);           // # of catch blocks
             sz += NPTRSIZE;
 
-            for (list_t bl = list_next(b->Bsucc); bl; bl = list_next(bl))
+            for (int i = 1; i < nsucc; ++i)
             {
-                block *bcatch = list_block(bl);
+                block *bcatch = b->nthSucc(i);
 
                 pdt = dtxoff(pdt,bcatch->Bcatchtype,0,TYjhandle);
 

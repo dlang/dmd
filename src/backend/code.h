@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -125,6 +124,22 @@ struct REGSAVE
 }
 extern REGSAVE regsave;
 
+/************************************
+ * Local sections on the stack
+ */
+struct LocalSection
+{
+    targ_size_t offset;         // offset of section from frame pointer
+    targ_size_t size;           // size of section
+    int alignment;              // alignment size
+
+    void init()                 // initialize
+    {   offset = 0;
+        size = 0;
+        alignment = 0;
+    }
+};
+
 /*******************************
  * As we generate code, collect information about
  * what parts of NT exception handling we need.
@@ -164,14 +179,15 @@ extern  regm_t FLOATREGS2;
 extern  regm_t DOUBLEREGS;
 extern  const char datafl[],stackfl[],segfl[],flinsymtab[];
 extern  char needframe,usedalloca,gotref;
-extern  targ_size_t localsize,Toff,Poff,Aoff,
-        Poffset,funcoffset,
-        framehandleroffset,
-        FASToffset,FASToff,
-        Aoffset,Toffset,EEoffset;
-extern  int Aalign;
+extern  targ_size_t localsize,
+        funcoffset,
+        framehandleroffset;
 extern  segidx_t cseg;
 extern  int STACKALIGN;
+extern  LocalSection Para;
+extern  LocalSection Fast;
+extern  LocalSection Auto;
+extern  LocalSection EEStack;
 #if TARGET_OSX
 extern  targ_size_t localgotoffset;
 #endif
@@ -196,7 +212,7 @@ extern  unsigned stackpush;
 extern  int stackchanged;
 extern  int refparam;
 extern  int reflocal;
-extern  char anyiasm;
+extern  bool anyiasm;
 extern  char calledafunc;
 extern  code *(*cdxxx[])(elem *,regm_t *);
 
@@ -303,7 +319,6 @@ cd_t cdnullcheck;
 cd_t cdclassinit;
 
 /* cod3.c */
-extern int BPoff;
 
 int cod3_EA(code *c);
 regm_t cod3_useBP();
@@ -369,7 +384,7 @@ extern targ_size_t CSoff;       // offset of common sub expressions
 extern targ_size_t NDPoff;      // offset of saved 8087 registers
 extern int BPoff;                      // offset from BP
 extern int EBPtoESP;            // add to EBP offset to get ESP offset
-extern int AAoff;               // offset of alloca temporary
+extern int AllocaOff;               // offset of alloca temporary
 
 code* prolog_ifunc(tym_t* tyf);
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds);
@@ -406,6 +421,7 @@ cd_t cdsetjmp;
 cd_t cdvoid;
 cd_t cdhalt;
 cd_t cdfar16;
+cd_t cdbtst;
 cd_t cdbt;
 cd_t cdbscan;
 cd_t cdpair;
@@ -464,6 +480,8 @@ extern int stackused;
 #endif
 code *cdconvt87(elem *e, regm_t *pretregs);
 code *cload87(elem *e, regm_t *pretregs);
+code *cdd_u64(elem *e, regm_t *pretregs);
+code *cdd_u32(elem *e, regm_t *pretregs);
 
 #ifdef DEBUG
 #define pop87() pop87(__LINE__,__FILE__)
