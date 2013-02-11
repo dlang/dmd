@@ -1,18 +1,349 @@
 [
-{
-"kind" : "module",
-"members" : [
-{
-"name" : "X",
-"kind" : "struct",
-"protection" : "public",
-"line" : 5}
-,
-{
-"name" : "Y",
-"kind" : "enum",
-"protection" : "public",
-"line" : 7}
-]
-}
+ {
+  "name" : "json",
+  "kind" : "module",
+  "members" : [
+   {
+    "name" : "_staticCtor1",
+    "kind" : "function",
+    "line" : 8,
+    "storageClass" : [
+     "static"
+    ],
+    "deco" : "FZv",
+    "endline" : 8
+   },
+   {
+    "name" : "_staticDtor2",
+    "kind" : "function",
+    "line" : 10,
+    "storageClass" : [
+     "static"
+    ],
+    "deco" : "FZv",
+    "endline" : 10
+   },
+   {
+    "name" : "myInt",
+    "kind" : "alias",
+    "line" : 13,
+    "deco" : "i"
+   },
+   {
+    "name" : "x",
+    "kind" : "variable",
+    "line" : 14,
+    "deco" : "i",
+    "originalType" : "myInt"
+   },
+   {
+    "kind" : "template",
+    "name" : "Foo(T)",
+    "line" : 16,
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "Foo",
+      "kind" : "struct",
+      "line" : 16,
+      "members" : [
+       {
+        "name" : "t",
+        "kind" : "variable",
+        "line" : 16,
+        "type" : "T"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "name" : "Bar(int T)",
+    "line" : 17,
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "value",
+      "deco" : "i"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "Bar",
+      "kind" : "class",
+      "line" : 17,
+      "members" : [
+       {
+        "name" : "t",
+        "kind" : "variable",
+        "line" : 17,
+        "deco" : "i",
+        "init" : "T"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "name" : "Baz(T...)",
+    "line" : 18,
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "tuple"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "Baz",
+      "kind" : "interface",
+      "line" : 18,
+      "members" : [
+       {
+        "name" : "t",
+        "kind" : "function",
+        "line" : 18,
+        "type" : "const T[0]()"
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "name" : "P(alias T)",
+    "line" : 20,
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "alias"
+     }
+    ],
+    "members" : []
+   },
+   {
+    "name" : "Bar2",
+    "kind" : "class",
+    "line" : 22,
+    "base" : "Bar",
+    "interfaces" : [
+     "Baz"
+    ],
+    "members" : [
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 23,
+      "deco" : "FZC4json4Bar2",
+      "endline" : 23
+     },
+     {
+      "name" : "~this",
+      "kind" : "destructor",
+      "line" : 24,
+      "deco" : "FZv",
+      "endline" : 24
+     },
+     {
+      "name" : "foo",
+      "kind" : "function",
+      "line" : 26,
+      "storageClass" : [
+       "static"
+      ],
+      "deco" : "FZv",
+      "originalType" : "()",
+      "endline" : 26
+     },
+     {
+      "name" : "baz",
+      "kind" : "function",
+      "protection" : "protected",
+      "line" : 27,
+      "storageClass" : [
+       "abstract"
+      ],
+      "deco" : "FZS4json10__T3FooTiZ3Foo"
+     },
+     {
+      "name" : "t",
+      "kind" : "function",
+      "line" : 28,
+      "storageClass" : [
+       "override"
+      ],
+      "deco" : "xFZi",
+      "endline" : 28,
+      "overrides" : [
+       "json.Baz!(int, 2, null).Baz.t"
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "Bar3",
+    "kind" : "class",
+    "line" : 31,
+    "base" : "Bar2",
+    "members" : [
+     {
+      "name" : "val",
+      "kind" : "variable",
+      "protection" : "private",
+      "line" : 32,
+      "deco" : "i",
+     },
+     {
+      "name" : "this",
+      "kind" : "constructor",
+      "line" : 33,
+      "deco" : "FiZC4json4Bar3",
+      "parameters" : [
+       {
+        "name" : "i",
+        "deco" : "i"
+       }
+      ],
+      "endline" : 33
+     },
+     {
+      "name" : "baz",
+      "kind" : "function",
+      "protection" : "protected",
+      "line" : 35,
+      "storageClass" : [
+       "override"
+      ],
+      "deco" : "FZS4json10__T3FooTiZ3Foo",
+      "endline" : 35,
+      "overrides" : [
+       "json.Bar2.baz"
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "Foo2",
+    "kind" : "struct",
+    "line" : 38,
+    "members" : [
+     {
+      "name" : "bar2",
+      "kind" : "variable",
+      "line" : 39,
+      "deco" : "C4json4Bar2",
+      "originalType" : "Bar2",
+     },
+     {
+      "name" : "U",
+      "kind" : "union",
+      "line" : 40,
+      "members" : [
+       {
+        "name" : "s",
+        "kind" : "variable",
+        "line" : 42,
+        "deco" : "s",
+       },
+       {
+        "name" : "i",
+        "kind" : "variable",
+        "line" : 43,
+        "deco" : "i",
+       },
+       {
+        "name" : "o",
+        "kind" : "variable",
+        "line" : 45,
+        "deco" : "C6Object",
+        "originalType" : "Object",
+       }
+      ]
+     }
+    ]
+   },
+   {
+    "name" : "bar",
+    "kind" : "function",
+    "line" : 52,
+    "storageClass" : [
+     "@trusted"
+    ],
+    "deco" : "FNeKkC4json4Bar2Zi",
+    "originalType" : "myInt(ref uint blah, Bar2 foo = new Bar3(7))",
+    "parameters" : [
+     {
+      "name" : "blah",
+      "deco" : "k",
+      "storageClass" : [
+       "ref"
+      ]
+     },
+     {
+      "name" : "foo",
+      "deco" : "C4json4Bar2",
+      "default" : "cast(Bar2)new Bar3(7)"
+     }
+    ],
+    "endline" : 55
+   },
+   {
+    "name" : "outer",
+    "kind" : "function",
+    "line" : 57,
+    "storageClass" : [
+     "@property"
+    ],
+    "deco" : "FNbNdZi",
+    "originalType" : "nothrow int()",
+    "endline" : 74
+   },
+   {
+    "name" : "imports.jsonimport1",
+    "kind" : "import",
+    "line" : 77,
+    "protection" : "private",
+    "selective" : [
+     "target1",
+     "target2"
+    ]
+   },
+   {
+    "name" : "imports.jsonimport2",
+    "kind" : "import",
+    "line" : 78,
+    "protection" : "private",
+    "renamed" : {
+     "alias1" : "target1",
+     "alias2" : "target2"
+    }
+   },
+   {
+    "name" : "imports.jsonimport3",
+    "kind" : "import",
+    "line" : 79,
+    "protection" : "private",
+    "renamed" : {
+     "alias3" : "target1",
+     "alias4" : "target2"
+    },
+    "selective" : [
+     "target3"
+    ]
+   },
+   {
+    "name" : "imports.jsonimport4",
+    "kind" : "import",
+    "line" : 80,
+    "protection" : "private"
+   }
+  ]
+ }
 ]
