@@ -1,17 +1,12 @@
 /**
  * This module contains a collection of bit-level operations.
  *
- * Copyright: Copyright Don Clugston 2005 - 2009.
+ * Copyright: Copyright Don Clugston 2005 - 2013.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Don Clugston, Sean Kelly, Walter Bright, Alex Rønne Petersen
  * Source:    $(DRUNTIMESRC core/_bitop.d)
  */
 
-/*          Copyright Don Clugston 2005 - 2009.
- * Distributed under the Boost Software License, Version 1.0.
- *    (See accompanying file LICENSE or copy at
- *          http://www.boost.org/LICENSE_1_0.txt)
- */
 module core.bitop;
 
 nothrow:
@@ -78,9 +73,34 @@ unittest
 
 /**
  * Tests the bit.
+ * (No longer an intrisic - the compiler recognizes the patterns
+ * in the body.)
  */
-int bt(in size_t* p, size_t bitnum) pure;
+@system
+{
+int bt(in size_t* p, size_t bitnum) pure
+{
+    static if (size_t.sizeof == 8)
+        return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
+    else static if (size_t.sizeof == 4)
+        return ((p[bitnum >> 5] & (1  << (bitnum & 31)))) != 0;
+    else
+        static assert(0);
+}
 
+unittest
+{
+    size_t array[2];
+
+    array[0] = 2;
+    array[1] = 0x100;
+
+
+    assert(bt(array.ptr, 1));
+    assert(array[0] == 2);
+    assert(array[1] == 0x100);
+}
+}
 
 /**
  * Tests and complements the bit.
@@ -123,7 +143,7 @@ int main()
     assert(array[0] == 2);
     assert(array[1] == 0x108);
 
-    assert(btc(array, 35) == -1);
+    assert(btc(array, 35));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
@@ -131,11 +151,11 @@ int main()
     assert(array[0] == 2);
     assert(array[1] == 0x108);
 
-    assert(btr(array, 35) == -1);
+    assert(btr(array, 35));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
-    assert(bt(array, 1) == -1);
+    assert(bt(array, 1));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
@@ -164,7 +184,7 @@ unittest
         assert(array[1] == 0x108);
     }
 
-    assert(btc(array.ptr, 35) == -1);
+    assert(btc(array.ptr, 35));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 
@@ -180,11 +200,7 @@ unittest
         assert(array[1] == 0x108);
     }
 
-    assert(btr(array.ptr, 35) == -1);
-    assert(array[0] == 2);
-    assert(array[1] == 0x100);
-
-    assert(bt(array.ptr, 1) == -1);
+    assert(btr(array.ptr, 35));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
 }

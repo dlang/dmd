@@ -401,7 +401,8 @@ private:
         Slot *next;
         size_t hash;
         Key key;
-        Value value;
+        version(D_LP64) align(16) Value value; // c.f. rt/aaA.d, aligntsize()
+        else align(4) Value value;
 
         // Stop creating built-in opAssign
         @disable void opAssign(Slot);

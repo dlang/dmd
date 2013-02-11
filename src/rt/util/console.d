@@ -49,7 +49,7 @@ struct Console
     Console opCall( ulong val )
     {
             char[20] tmp = void;
-            return opCall( tmp.intToString( val ) );
+            return opCall( tmp.uintToString( val ) );
     }
 }
 

@@ -62,6 +62,47 @@ version( linux )
     {
         alias int[3] __jmp_buf;
     }
+    else version (ARM)
+    {
+        alias int[64] __jmp_buf;
+    }
+    else version (PPC)
+    {
+        alias int[64 + (12*4)] __jmp_buf;
+    }
+    else version (PPC64)
+    {
+        alias long[64] __jmp_buf;
+    }
+    else version (MIPS)
+    {
+        struct __jmp_buf
+        {
+            version (MIPS_O32)
+            {
+                void * __pc;
+                void * __sp;
+                int __regs[8];
+                void * __fp;
+                void * __gp;
+            }
+            else
+            {
+                long __pc;
+                long __sp;
+                long __regs[8];
+                long __fp;
+                long __gp;
+            }
+            int __fpc_csr;
+            version (MIPS_N64)
+                double __fpregs[8];
+            else
+                double __fpregs[6];
+        }
+    }
+    else
+        static assert(0, "unimplemented");
 
     struct __jmp_buf_tag
     {

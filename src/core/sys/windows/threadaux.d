@@ -41,25 +41,73 @@ private:
         enum SystemProcessInformation = 5;
         enum STATUS_INFO_LENGTH_MISMATCH = 0xc0000004;
 
-        // abbreviated versions of these structs (full info can be found
-        //  here: http://undocumented.ntinternals.net )
+        // structs subject to change according to MSDN, more info at http://undocumented.ntinternals.net
+        // declarations according to http://processhacker.sourceforge.net/doc/ntexapi_8h_source.html
+        // NOTE: the declarations assume default alignment for Win64 and contain some padding data
+        struct UNICODE_STRING
+        {
+            short Length;
+            short MaximumLength;
+            wchar* Buffer;
+        }
+        // process or thread ID, documentation says it is a HANDLE, but it's actually the ID (a DWORD)
+        alias size_t PTID;
+
         struct _SYSTEM_PROCESS_INFORMATION
         {
-            int NextEntryOffset; // When this entry is 0, there are no more processes to be read.
-            int NumberOfThreads;
-            int[15] fill1;
-            int ProcessId;
-            int[28] fill2;
+            int     NextEntryOffset; // When this entry is 0, there are no more processes to be read.
+            int     NumberOfThreads;
+            long    WorkingSetPrivateSize;
+            uint    HardFaultCount;
+            uint    NumberOfThreadsHighWatermark;
+            ulong   CycleTime;
+            long    CreateTime;
+            long    UserTime;
+            long    KernelTime;
+            UNICODE_STRING 	ImageName;
+            int     BasePriority;
+            PTID    /*Unique*/ProcessId;
+            PTID    InheritedFromUniqueProcessId;
+            uint    HandleCount;
+            uint    SessionId;
+            size_t  UniqueProcessKey;
+            size_t  PeakVirtualSize;
+            size_t  VirtualSize;
+            uint    PageFaultCount;
+            size_t  PeakWorkingSetSize;
+            size_t  WorkingSetSize;
+            size_t  QuotaPeakPagedPoolUsage;
+            size_t  QuotaPagedPoolUsage;
+            size_t  QuotaPeakNonPagedPoolUsage;
+            size_t  QuotaNonPagedPoolUsage;
+            size_t  PagefileUsage;
+            size_t  PeakPagefileUsage;
+            size_t  PrivatePageCount;
+            long    ReadOperationCount;
+            long    WriteOperationCount;
+            long    OtherOperationCount;
+            long    ReadTransferCount;
+            long    WriteTransferCount;
+            long    OtherTransferCount;
 
             // SYSTEM_THREAD_INFORMATION or SYSTEM_EXTENDED_THREAD_INFORMATION structures follow.
         }
 
         struct _SYSTEM_THREAD_INFORMATION
         {
-            int[8] fill1;
-            int ProcessId;
-            int ThreadId;
-            int[6] fill2;
+            long    KernelTime;
+            long    UserTime;
+            long    CreateTime;
+            uint    WaitTime;
+            void*   StartAddress;
+            PTID    ProcessId;
+            PTID    ThreadId;
+            int     Priority;
+            int     BasePriority;
+            uint    ContextSwitches;
+            uint    ThreadState;
+            int     WaitReason;
+            int     reserved;
         }
 
         alias extern(Windows)
@@ -71,9 +119,9 @@ private:
         {
             int    ExitStatus;
             void** TebBaseAddress;
-            int    ProcessId;
-            int    ThreadId;
-            int    AffinityMask;
+            PTID   ProcessId;
+            PTID   ThreadId;
+            size_t AffinityMask;
             int    Priority;
             int    BasePriority;
         }
@@ -116,11 +164,28 @@ private:
         // get linear address of TEB of current thread
         static void** getTEB() nothrow
         {
-            asm
+            version(Win32)
             {
-                naked;
-                mov EAX,FS:[0x18];
-                ret;
+                asm
+                {
+                    naked;
+                    mov EAX,FS:[0x18];
+                    ret;
+                }
+            }
+            else version(Win64)
+            {
+                asm
+                {
+                    naked;
+                    mov RAX,0x30;
+                    mov RAX,GS:[RAX]; // immediate value causes fixup
+                    ret;
+                }
+            }
+            else
+            {
+                static assert(false);
             }
         }
 
@@ -183,7 +248,7 @@ private:
                     auto tinfo = cast(_SYSTEM_THREAD_INFORMATION*)(pinfo + 1);
                     for( int i = 0; i < pinfo.NumberOfThreads; i++, tinfo++ )
                         if( tinfo.ProcessId == procid )
-                            if( !dg( tinfo.ThreadId, context ) )
+                            if( !dg( cast(uint) tinfo.ThreadId, context ) ) // IDs are actually DWORDs
                                 return false;
                 }
                 if( pinfo.NextEntryOffset == 0 )

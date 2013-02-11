@@ -113,27 +113,54 @@ version( Posix )
 
 version( linux )
 {
-    //SIGABRT (defined in core.stdc.signal)
-    enum SIGALRM    = 14;
-    enum SIGBUS     = 7;
-    enum SIGCHLD    = 17;
-    enum SIGCONT    = 18;
-    //SIGFPE (defined in core.stdc.signal)
-    enum SIGHUP     = 1;
-    //SIGILL (defined in core.stdc.signal)
-    //SIGINT (defined in core.stdc.signal)
-    enum SIGKILL    = 9;
-    enum SIGPIPE    = 13;
-    enum SIGQUIT    = 3;
-    //SIGSEGV (defined in core.stdc.signal)
-    enum SIGSTOP    = 19;
-    //SIGTERM (defined in core.stdc.signal)
-    enum SIGTSTP    = 20;
-    enum SIGTTIN    = 21;
-    enum SIGTTOU    = 22;
-    enum SIGUSR1    = 10;
-    enum SIGUSR2    = 12;
-    enum SIGURG     = 23;
+    version (MIPS)
+    {
+        //SIGABRT (defined in core.stdc.signal)
+        enum SIGALRM    = 14;
+        enum SIGBUS     = 10;
+        enum SIGCHLD    = 18;
+        enum SIGCONT    = 25;
+        //SIGFPE (defined in core.stdc.signal)
+        enum SIGHUP     = 1;
+        //SIGILL (defined in core.stdc.signal)
+        //SIGINT (defined in core.stdc.signal)
+        enum SIGKILL    = 9;
+        enum SIGPIPE    = 13;
+        enum SIGQUIT    = 3;
+        //SIGSEGV (defined in core.stdc.signal)
+        enum SIGSTOP    = 23;
+        //SIGTERM (defined in core.stdc.signal)
+        enum SIGTSTP    = 24;
+        enum SIGTTIN    = 26;
+        enum SIGTTOU    = 27;
+        enum SIGUSR1    = 16;
+        enum SIGUSR2    = 17;
+        enum SIGURG     = 21;
+    }
+    else
+    {
+        //SIGABRT (defined in core.stdc.signal)
+        enum SIGALRM    = 14;
+        enum SIGBUS     = 7;
+        enum SIGCHLD    = 17;
+        enum SIGCONT    = 18;
+        //SIGFPE (defined in core.stdc.signal)
+        enum SIGHUP     = 1;
+        //SIGILL (defined in core.stdc.signal)
+        //SIGINT (defined in core.stdc.signal)
+        enum SIGKILL    = 9;
+        enum SIGPIPE    = 13;
+        enum SIGQUIT    = 3;
+        //SIGSEGV (defined in core.stdc.signal)
+        enum SIGSTOP    = 19;
+        //SIGTERM (defined in core.stdc.signal)
+        enum SIGTSTP    = 20;
+        enum SIGTTIN    = 21;
+        enum SIGTTOU    = 22;
+        enum SIGUSR1    = 10;
+        enum SIGUSR2    = 12;
+        enum SIGURG     = 23;
+    }
 }
 else version( OSX )
 {
@@ -777,14 +804,26 @@ int sigrelse(int);
 
 version( linux )
 {
-    enum SIGPOLL        = 29;
-    enum SIGPROF        = 27;
-    enum SIGSYS         = 31;
-    enum SIGTRAP        = 5;
-    enum SIGVTALRM      = 26;
-    enum SIGXCPU        = 24;
-    enum SIGXFSZ        = 25;
-
+    version (MIPS)
+    {
+        enum SIGPOLL    = 22;
+        enum SIGPROF    = 29;
+        enum SIGSYS     = 12;
+        enum SIGTRAP    = 5;
+        enum SIGVTALRM  = 28;
+        enum SIGXCPU    = 30;
+        enum SIGXFSZ    = 31;
+    }
+    else
+    {
+        enum SIGPOLL        = 29;
+        enum SIGPROF        = 27;
+        enum SIGSYS         = 31;
+        enum SIGTRAP        = 5;
+        enum SIGVTALRM      = 26;
+        enum SIGXCPU        = 24;
+        enum SIGXFSZ        = 25;
+    }
     enum SA_ONSTACK     = 0x08000000;
     enum SA_RESETHAND   = 0x80000000;
     enum SA_RESTART     = 0x10000000;

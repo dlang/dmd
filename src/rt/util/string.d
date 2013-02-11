@@ -19,8 +19,7 @@ private import core.stdc.string;
 pure:
 nothrow:
 
-// This should be renamed to uintToString()
-char[] intToString( char[] buf, uint val )
+char[] uintToString( char[] buf, uint val )
 {
     assert( buf.length > 9 );
     auto p = buf.ptr + buf.length;
@@ -33,7 +32,7 @@ char[] intToString( char[] buf, uint val )
     return buf[p - buf.ptr .. $];
 }
 
-char[] intToString( char[] buf, ulong val )
+char[] uintToString( char[] buf, ulong val )
 {
     assert( buf.length >= 20 );
     auto p = buf.ptr + buf.length;
