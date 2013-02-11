@@ -4464,6 +4464,26 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
             // Rewrite as a static array
             TypeSArray *tsa;
 
+            // Issue 9494 - check for recursive declaration 'int[test] test;'
+            VarDeclaration *vd = NULL;
+            if (e->op == TOKdotvar)
+            {
+                DotVarExp *dv = (DotVarExp *)e;
+                vd = dv->var->isVarDeclaration();
+            }
+            else if (e->op == TOKvar)
+            {
+                VarExp *ve = (VarExp *)e;
+                vd = ve->var->isVarDeclaration();
+            }
+
+            if (vd && vd->type == this)
+            {
+                error(loc, "Variable '%s' used as its own key type in declaration '%s %s;'",
+                    vd->toChars(), toChars(), vd->toChars());
+                return Type::terror;
+            }
+
             tsa = new TypeSArray(next, e);
             return tsa->semantic(loc,sc);
         }
