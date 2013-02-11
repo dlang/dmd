@@ -331,7 +331,6 @@ int intrinsic_op(char *name)
         "4math6rndtolFeZl",
         "4math6yl2xp1FeeZe",
 
-        "9intrinsic2btFPkkZi",
         "9intrinsic3bsfFkZi",
         "9intrinsic3bsrFkZi",
         "9intrinsic3btcFPkkZi",
@@ -376,7 +375,6 @@ int intrinsic_op(char *name)
         "4math6rndtolFeZl",
         "4math6yl2xp1FeeZe",
 
-        "9intrinsic2btFPmmZi",
         "9intrinsic3bsfFkZi",
         "9intrinsic3bsrFkZi",
         "9intrinsic3btcFPmmZi",
@@ -446,7 +444,6 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop2btFNaNbNfxPkkZi",
         "5bitop3bsfFNaNbNfkZi",
         "5bitop3bsrFNaNbNfkZi",
         "5bitop3btcFNaNbNfPkkZi",
@@ -484,7 +481,6 @@ int intrinsic_op(char *name)
         "4simd6__simdFNaNbNfE4core4simd3XMMfZNhG16v",
         "4simd9__simd_ibFNaNbNfE4core4simd3XMMNhG16vhZNhG16v",
 
-        "5bitop2btFNaNbNfxPmmZi",
         "5bitop3bsfFNaNbNfmZi",
         "5bitop3bsrFNaNbNfmZi",
         "5bitop3btcFNaNbNfPmmZi",
@@ -522,7 +518,6 @@ int intrinsic_op(char *name)
         OPvector,
         OPvector,
 
-        OPbt,
         OPbsf,
         OPbsr,
         OPbtc,
@@ -860,7 +855,7 @@ enum RET TypeFunction::retStyle()
     {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
         if (tns->isscalar())
             return RETregs;
-#if SARRAYVALUE
+
         if (tns->ty == Tsarray)
         {
             do
@@ -868,7 +863,7 @@ enum RET TypeFunction::retStyle()
                 tns = tns->nextOf()->toBasetype();
             } while (tns->ty == Tsarray);
         }
-#endif
+
         if (tns->ty == Tstruct)
         {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz >= 8)
@@ -880,7 +875,6 @@ enum RET TypeFunction::retStyle()
     }
 
 Lagain:
-#if SARRAYVALUE
     if (tns->ty == Tsarray)
     {
         do
@@ -911,7 +905,6 @@ L2:
             return RETstack;
         }
     }
-#endif
 
     if (tns->ty == Tstruct)
     {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
@@ -923,12 +916,12 @@ L2:
         if (sd->arg1type && !sd->arg2type)
         {
             tns = sd->arg1type;
-#if SARRAYVALUE
             if (tns->ty != Tstruct)
                 goto L2;
-#endif
             goto Lagain;
         }
+        else if (global.params.is64bit && !sd->arg1type && !sd->arg2type)
+            return RETstack;
         else if (sd->isPOD())
         {
             switch (sz)

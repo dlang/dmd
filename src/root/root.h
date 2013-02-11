@@ -76,9 +76,9 @@ struct Object
 
 struct String : Object
 {
-    char *str;                  // the string itself
+    const char *str;                  // the string itself
 
-    String(char *str);
+    String(const char *str);
     ~String();
 
     static hash_t calcHash(const char *str, size_t len);
@@ -94,33 +94,38 @@ struct String : Object
 
 struct FileName : String
 {
-    FileName(char *str);
+    FileName(const char *str);
     hash_t hashCode();
     int equals(Object *obj);
     static int equals(const char *name1, const char *name2);
     int compare(Object *obj);
     static int compare(const char *name1, const char *name2);
     static int absolute(const char *name);
-    static char *ext(const char *);
-    char *ext();
-    static char *removeExt(const char *str);
-    static char *name(const char *);
-    char *name();
-    static char *path(const char *);
+    static const char *ext(const char *);
+    const char *ext();
+    static const char *removeExt(const char *str);
+    static const char *name(const char *);
+    const char *name();
+    static const char *path(const char *);
     static const char *replaceName(const char *path, const char *name);
 
-    static char *combine(const char *path, const char *name);
+    static const char *combine(const char *path, const char *name);
     static Strings *splitPath(const char *path);
-    static FileName *defaultExt(const char *name, const char *ext);
-    static FileName *forceExt(const char *name, const char *ext);
+    static const char *defaultExt(const char *name, const char *ext);
+    static const char *forceExt(const char *name, const char *ext);
+    static int equalsExt(const char *name, const char *ext);
+
     int equalsExt(const char *ext);
 
     void CopyTo(FileName *to);
-    static char *searchPath(Strings *path, const char *name, int cwd);
-    static char *safeSearchPath(Strings *path, const char *name);
+    static const char *searchPath(Strings *path, const char *name, int cwd);
+    static const char *safeSearchPath(Strings *path, const char *name);
     static int exists(const char *name);
     static void ensurePathExists(const char *path);
-    static char *canonicalName(const char *name);
+    static void ensurePathToNameExists(const char *name);
+    static const char *canonicalName(const char *name);
+
+    static void free(const char *str);
 };
 
 struct File : Object
@@ -132,8 +137,8 @@ struct File : Object
 
     FileName *name;             // name of our file
 
-    File(char *);
-    File(FileName *);
+    File(const char *);
+    File(const FileName *);
     ~File();
 
     void mark();
@@ -271,7 +276,7 @@ struct OutBuffer : Object
     char *extractString();
 };
 
-struct Array : Object
+struct Array
 {
     size_t dim;
     void **data;

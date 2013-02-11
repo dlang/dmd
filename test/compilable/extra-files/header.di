@@ -4,25 +4,7 @@ import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
 typedef double mydbl = 10;
-int main()
-in
-{
-	assert(1 + (2 + 3) == -(1 - 2 * 3));
-}
-out(result)
-{
-	assert(result == 0);
-}
-body
-{
-	float f = (float).infinity;
-	int i = cast(int)f;
-	writeln((i , 1), 2);
-	writeln(cast(int)(float).max);
-	assert(i == cast(int)(float).max);
-	assert(i == 2147483648u);
-	return 0;
-}
+int main();
 template Foo(T, int V)
 {
 	int bar(double d, int x)
@@ -89,24 +71,7 @@ template Foo(T, int V)
 			C,
 		}
 		;
-		void fswitch(Label l)
-		{
-			final switch (l)
-			{
-				case A:
-				{
-					break;
-				}
-				case B:
-				{
-					break;
-				}
-				case C:
-				{
-					break;
-				}
-			}
-		}
+		void fswitch(Label l);
 		loop:
 		while (x)
 		{
@@ -148,6 +113,7 @@ template Foo(T, int V)
 			toString();
 		}
 	}
+
 }
 static this();
 interface iFoo
@@ -159,107 +125,43 @@ class xFoo : iFoo
 class Foo3
 {
 	this(int a, ...);
-	this(int* a)
-	{
-	}
+	this(int* a);
 }
 alias int myint;
 static notquit = 1;
 class Test
 {
-	void a()
-	{
-	}
-	void b()
-	{
-	}
-	void c()
-	{
-	}
-	void d()
-	{
-	}
-	void e()
-	{
-	}
-	void f()
-	{
-	}
-	void g()
-	{
-	}
-	void h()
-	{
-	}
-	void i()
-	{
-	}
-	void j()
-	{
-	}
-	void k()
-	{
-	}
-	void l()
-	{
-	}
-	void m()
-	{
-	}
-	void n()
-	{
-	}
-	void o()
-	{
-	}
-	void p()
-	{
-	}
-	void q()
-	{
-	}
-	void r()
-	{
-	}
-	void s()
-	{
-	}
-	void t()
-	{
-	}
-	void u()
-	{
-	}
-	void v()
-	{
-	}
-	void w()
-	{
-	}
-	void x()
-	{
-	}
-	void y()
-	{
-	}
-	void z()
-	{
-	}
-	void aa()
-	{
-	}
-	void bb()
-	{
-	}
-	void cc()
-	{
-	}
-	void dd()
-	{
-	}
-	void ee()
-	{
-	}
+	void a();
+	void b();
+	void c();
+	void d();
+	void e();
+	void f();
+	void g();
+	void h();
+	void i();
+	void j();
+	void k();
+	void l();
+	void m();
+	void n();
+	void o();
+	void p();
+	void q();
+	void r();
+	void s();
+	void t();
+	void u();
+	void v();
+	void w();
+	void x();
+	void y();
+	void z();
+	void aa();
+	void bb();
+	void cc();
+	void dd();
+	void ee();
 	template A(T)
 	{
 	}
@@ -281,6 +183,7 @@ template templ(T)
 	{
 		pragma (msg, "Invalid destination type.");
 	}
+
 }
 static char[] charArray = ['"','\''];
 
@@ -309,12 +212,14 @@ template Foo2(bool bar)
 		}
 
 	}
+
 }
 template Foo4()
 {
 	void bar()
 	{
 	}
+
 }
 class Baz4
 {
@@ -329,23 +234,19 @@ template test(T)
 			return 1;
 		return 0;
 	}
+
 }
 enum x6 = 1;
-bool foo6(int a, int b, int c, int d)
-{
-	return (a < b) != (c < d);
-}
+bool foo6(int a, int b, int c, int d);
 auto foo7(int x)
 {
 	return 5;
 }
+
 class D8
 {
 }
-void func8()
-{
-	scope a = new D8;
-}
+void func8();
 template func9(T)
 {
 	T func9()
@@ -356,6 +257,7 @@ template func9(T)
 		scope(failure) i = 3;
 		return i;
 	}
+
 }
 template V10(T)
 {
@@ -369,11 +271,9 @@ template V10(T)
 			}
 		}
 	}
+
 }
-int foo11(int function() fn)
-{
-	return fn();
-}
+int foo11(int function() fn);
 template bar11(T)
 {
 	int bar11()
@@ -384,28 +284,19 @@ template bar11(T)
 		}
 		);
 	}
+
 }
 struct S6360
 {
-	@property const pure nothrow long weeks1()
-	{
-		return 0;
-	}
+	@property const pure nothrow long weeks1();
 
-	const nothrow pure @property long weeks2()
-	{
-		return 0;
-	}
+	const nothrow pure @property long weeks2();
 
 }
 struct S12
 {
-	nothrow this(int n)
-	{
-	}
-	nothrow this(string s)
-	{
-	}
+	nothrow this(int n);
+	nothrow this(string s);
 
 }
 struct T12
@@ -415,12 +306,14 @@ struct T12
 		immutable this(int args)
 		{
 		}
+
 	}
 	immutable template __ctor(A...)
 	{
 		this(A args)
 		{
 		}
+
 	}
 
 }
@@ -431,4 +324,5 @@ template foo6591()
 	{
 		import std.stdio : writeln, F = File;
 	}
+
 }

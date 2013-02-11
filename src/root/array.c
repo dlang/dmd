@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2010 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -9,34 +9,8 @@
 
 #include <stdio.h>
 #include <stdlib.h>
-#include <stdarg.h>
 #include <string.h>
 #include <assert.h>
-
-#if defined (__sun)
-#include <alloca.h>
-#endif
-
-#if _MSC_VER || __MINGW32__
-#include <malloc.h>
-#endif
-
-#if IN_GCC
-#include "gdc_alloca.h"
-#endif
-
-#if _WIN32
-#include <windows.h>
-#endif
-
-#ifndef _WIN32
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <fcntl.h>
-#include <errno.h>
-#include <unistd.h>
-#include <utime.h>
-#endif
 
 #include "port.h"
 #include "root.h"
@@ -181,25 +155,19 @@ void Array::remove(size_t i)
 
 char *Array::toChars()
 {
-    size_t len;
-    size_t u;
-    char **buf;
-    char *str;
-    char *p;
-
-    buf = (char **)malloc(dim * sizeof(char *));
+    char **buf = (char **)malloc(dim * sizeof(char *));
     assert(buf);
-    len = 2;
-    for (u = 0; u < dim; u++)
+    size_t len = 2;
+    for (size_t u = 0; u < dim; u++)
     {
         buf[u] = ((Object *)data[u])->toChars();
         len += strlen(buf[u]) + 1;
     }
-    str = (char *)mem.malloc(len);
+    char *str = (char *)mem.malloc(len);
 
     str[0] = '[';
-    p = str + 1;
-    for (u = 0; u < dim; u++)
+    char *p = str + 1;
+    for (size_t u = 0; u < dim; u++)
     {
         if (u)
             *p++ = ',';

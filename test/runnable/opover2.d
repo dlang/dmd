@@ -923,6 +923,28 @@ void test19()
 }
 
 /**************************************/
+// 9453
+
+struct Foo9453
+{
+    static int ctor = 0;
+
+    this(string bar) { ++ctor; }
+
+    void opIndex(size_t i) const {}
+    void opSlice(size_t s, size_t e) const {}
+
+    size_t opDollar(int dim)() const if (dim == 0) { return 1; }
+}
+
+void test9453()
+{
+    assert(Foo9453.ctor == 0);  Foo9453("bar")[$-1];
+    assert(Foo9453.ctor == 1);  Foo9453("bar")[0..$];
+    assert(Foo9453.ctor == 2);
+}
+
+/**************************************/
 
 int main()
 {
@@ -948,6 +970,7 @@ int main()
     test8434();
     test18();
     test19();
+    test9453();
 
     printf("Success\n");
     return 0;

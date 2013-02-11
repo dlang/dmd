@@ -44,7 +44,7 @@
 				Name="VCCLCompilerTool"
 				AdditionalOptions="/TP"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
-				PreprocessorDefinitions="DEBUG,_DEBUG"
+				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
@@ -646,10 +646,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\ph.c"
-				>
-			</File>
-			<File
 				RelativePath=".\s2ir.c"
 				>
 			</File>
@@ -790,10 +786,6 @@
 				>
 			</File>
 			<File
-				RelativePath=".\util.c"
-				>
-			</File>
-			<File
 				RelativePath=".\version.c"
 				>
 			</File>
@@ -810,6 +802,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\aa.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\backconfig.c"
 					>
 				</File>
 				<File
@@ -1085,6 +1081,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\ph2.c"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\ptrntab.c"
 					>
 				</File>
@@ -1134,6 +1134,10 @@
 				</File>
 				<File
 					RelativePath=".\backend\type.h"
+					>
+				</File>
+				<File
+					RelativePath=".\backend\util2.c"
 					>
 				</File>
 				<File
@@ -1367,14 +1371,6 @@
 							Name="VCCLCompilerTool"
 						/>
 					</FileConfiguration>
-				</File>
-				<File
-					RelativePath=".\root\gnuc.c"
-					>
-				</File>
-				<File
-					RelativePath=".\root\gnuc.h"
-					>
 				</File>
 				<File
 					RelativePath=".\root\longdouble.c"
@@ -1731,7 +1727,7 @@
 						<Tool
 							Name="VCCustomBuildTool"
 							Description="Building and running $(IntDir)\$(InputName).exe"
-							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;"
+							CommandLine="cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo&quot;$(IntDir)\$(InputName).obj&quot; /Fe&quot;$(IntDir)\$(InputName).exe&quot; &quot;$(InputPath)&quot;&#x0D;&#x0A;if errorlevel 1 goto VCReportError&#x0D;&#x0A;&quot;$(IntDir)\$(InputName).exe&quot;&#x0D;&#x0A;"
 							AdditionalDependencies="cc.h;oper.h"
 							Outputs="optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c"
 						/>
@@ -1980,6 +1976,10 @@
 						/>
 					</FileConfiguration>
 				</File>
+				<File
+					RelativePath=".\verstr.h"
+					>
+				</File>
 			</Filter>
 			<Filter
 				Name="no_win"
@@ -2146,6 +2146,56 @@
 				</File>
 			</Filter>
 		</Filter>
+		<File
+			RelativePath="..\VERSION"
+			>
+			<FileConfiguration
+				Name="Debug|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					AdditionalDependencies=""
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Debug|x64"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|Win32"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					AdditionalDependencies="vergen.c"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+			<FileConfiguration
+				Name="Release|x64"
+				>
+				<Tool
+					Name="VCCustomBuildTool"
+					Description="Generatin verstr.h"
+					CommandLine="set /P X= &lt; $(InputPath) &amp;&amp; echo &quot;%X%&quot; &gt;verstr.h&#x0D;&#x0A;"
+					Outputs="verstr.h"
+				/>
+			</FileConfiguration>
+		</File>
+		<File
+			RelativePath=".\win32.mak"
+			>
+		</File>
 	</Files>
 	<Globals>
 	</Globals>

@@ -1,12 +1,12 @@
 /*
  * Some portions copyright (c) 1994-1995 by Symantec
- * Copyright (c) 1999-2012 by Digital Mars
+ * Copyright (c) 1999-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
  *
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -28,35 +28,14 @@
 #include        <limits.h>
 #endif
 
-#if __sun
-#include        <alloca.h>
-#endif
-
-#if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
-#include "gnuc.h"
-#endif
-
 #include        "root.h"
 #include        "rmem.h"
+#include        "port.h"
 
 #define LOG     0
 
 char *skipspace(const char *p);
 
-#if __GNUC__
-char *strupr(char *s)
-{
-    char *t = s;
-
-    while (*s)
-    {
-        *s = toupper(*s);
-        s++;
-    }
-
-    return t;
-}
-#endif
 
 /*****************************
  * Read and analyze .ini file, i.e. write the entries of the specified section
@@ -101,7 +80,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
         }
         else
         {
-            filename = FileName::combine(getenv("HOME"), inifile);
+            filename = (char *)FileName::combine(getenv("HOME"), inifile);
             if (!FileName::exists(filename))
             {
 #if _WIN32 // This fix by Tim Matthews
@@ -147,7 +126,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     printf("\tPATH='%s'\n", p);
 #endif
                     Strings *paths = FileName::splitPath(p);
-                    filename = FileName::searchPath(paths, argv0, 0);
+                    filename = (char *)FileName::searchPath(paths, argv0, 0);
                     if (!filename)
                         goto Letc;              // argv0 not found on path
                     filename = (char *)FileName::replaceName(filename, inifile);
@@ -157,7 +136,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     // Search /etc/ for inifile
                 Letc:
 #endif
-                    filename = FileName::combine((char *)"/etc/", inifile);
+                    filename = (char *)FileName::combine((char *)"/etc/", inifile);
 
                 Ldone:
                     ;
@@ -165,7 +144,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
             }
         }
     }
-    path = FileName::path(filename);
+    path = (char *)FileName::path(filename);
 #if LOG
     printf("\tpath = '%s', filename = '%s'\n", path, filename);
 #endif
@@ -228,7 +207,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     {
                         char *p = NULL;
                         char *palloc = NULL;
-                        if (j - k == 3 && memicmp(&line[k + 1], "@P", 2) == 0)
+                        if (j - k == 3 && Port::memicmp(&line[k + 1], "@P", 2) == 0)
                         {
                             // %@P% is special meaning the path to the .ini file
                             p = path;
@@ -248,7 +227,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                             len2--;
                             memcpy(p, &line[k + 1], len2);
                             p[len2] = 0;
-                            strupr(p);
+                            Port::strupr(p);
                             p = getenv(p);
                             if (!p)
                                 p = (char *)"";
@@ -288,7 +267,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                 for (pn = p; isalnum((unsigned char)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
-                    memicmp(p, envsectionname, envsectionnamelen) == 0 &&
+                    Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
                     *skipspace(pn) == ']'
                    )
                     envsection = 1;

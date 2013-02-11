@@ -49,6 +49,7 @@ struct EnumDeclaration : ScopeDsymbol
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    void setScope(Scope *sc);
     void semantic0(Scope *sc);
     void semantic(Scope *sc);
     int oneMember(Dsymbol **ps, Identifier *ident = NULL);
@@ -61,11 +62,12 @@ struct EnumDeclaration : ScopeDsymbol
     int isDeprecated();                 // is Dsymbol deprecated?
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumDeclaration *isEnumDeclaration() { return this; }
 
+    bool objFileDone;  // if toObjFile was already called
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
@@ -86,7 +88,7 @@ struct EnumMember : Dsymbol
     const char *kind();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     EnumMember *isEnumMember() { return this; }

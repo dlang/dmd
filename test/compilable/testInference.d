@@ -160,6 +160,36 @@ pure string escapeShellArguments()
 }
 
 /***************************************************/
+// 8504
+
+void foo8504()()
+{
+    static assert(typeof(foo8504!()).stringof == "void()");
+    static assert(typeof(foo8504!()).mangleof == "FZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FZv");
+}
+
+auto toDelegate8504a(F)(auto ref F fp) { return fp; }
+   F toDelegate8504b(F)(auto ref F fp) { return fp; }
+
+extern(C) void testC8504() {}
+
+void test8504()
+{
+    static assert(typeof(foo8504!()).stringof == "pure nothrow @safe void()");
+    static assert(typeof(foo8504!()).mangleof == "FNaNbNfZv");
+    static assert(foo8504!().mangleof == "_D13testInference12__T7foo8504Z7foo8504FNaNbNfZv");
+
+    auto fp1 = toDelegate8504a(&testC8504);
+    auto fp2 = toDelegate8504b(&testC8504);
+    static assert(is(typeof(fp1) == typeof(fp2)));
+    static assert(typeof(fp1).stringof == "extern (C) void function()");
+    static assert(typeof(fp2).stringof == "extern (C) void function()");
+    static assert(typeof(fp1).mangleof == "PUZv");
+    static assert(typeof(fp2).mangleof == "PUZv");
+}
+
+/***************************************************/
 // 8751
 
 alias bool delegate(in int) pure Bar8751;
@@ -201,6 +231,25 @@ struct A9072(T)
 void test9072()
 {
     A9072!int a = A9072!short();
+}
+
+/***************************************************/
+// 5933 + Issue 8504 - Template attribute inferrence doesn't work
+
+int foo5933()(int a) { return a*a; }
+struct S5933
+{
+    double foo()(double a) { return a * a; }
+}
+// outside function
+static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+
+void test5933()
+{
+    // inside function
+    static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
+    static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
 }
 
 /***************************************************/

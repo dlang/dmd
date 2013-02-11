@@ -269,6 +269,20 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKunittest:
                 s = parseUnitTest();
+                if (decldefs && decldefs->dim)
+                {
+                    Dsymbol *ds = (*decldefs)[decldefs->dim-1];
+                    AttribDeclaration *ad;
+                    while ((ad = ds->isAttribDeclaration()) != NULL)
+                    {
+                        if (ad->decl && ad->decl->dim)
+                            ds = (*ad->decl)[ad->decl->dim-1];
+                        else
+                            break;
+                    }
+
+                    ds->unittest = (UnitTestDeclaration *)s;
+                }
                 break;
 
             case TOKnew:
@@ -2231,7 +2245,11 @@ Objects *Parser::parseTemplateArgument()
             break;
     }
     if (token.value == TOKnot)
-        error("multiple ! arguments are not allowed");
+    {
+        enum TOK tok = peekNext();
+        if (tok != TOKis && tok != TOKin)
+            error("multiple ! arguments are not allowed");
+    }
     return tiargs;
 }
 

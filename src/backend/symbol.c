@@ -1,12 +1,11 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -184,6 +183,50 @@ void symbol_keep(symbol *s)
 }
 
 #endif
+
+/****************************************
+ * Return alignment of symbol.
+ */
+int Symbol::Salignsize()
+{
+    if (Salignment > 0)
+        return Salignment;
+    int alignsize = type_alignsize(Stype);
+
+    /* Reduce alignment faults when SIMD vectors
+     * are reinterpreted cast to other types with less alignment.
+     */
+    if (config.fpxmmregs && alignsize < 16 &&
+        Sclass == SCauto &&
+        type_size(Stype) == 16)
+    {
+        alignsize = 16;
+    }
+
+    return alignsize;
+}
+
+/****************************************
+ * Return if symbol is dead.
+ */
+
+bool Symbol::Sisdead(bool anyiasm)
+{
+    return Sflags & SFLdead ||
+           /* SFLdead means the optimizer found no references to it.
+            * The rest deals with variables that the compiler never needed
+            * to read from memory because they were cached in registers,
+            * and so no memory needs to be allocated for them.
+            * Code that does write those variables to memory gets NOPed out
+            * during address assignment.
+            */
+           (!anyiasm && !(Sflags & SFLread) && Sflags & SFLunambig &&
+#if MARS
+            // mTYvolatile means this variable has been reference by a nested function
+            !(Stype->Tty & mTYvolatile) &&
+#endif
+            (config.flags4 & CFG4optimized || !config.fulltypes));
+}
 
 /***********************************
  * Get user name of symbol.
@@ -369,6 +412,22 @@ void symbol_func(symbol *s)
     s->Sseg = UNKNOWN;          // don't know what segment it is in
     if (!s->Sfunc)
         s->Sfunc = func_calloc();
+}
+
+/***************************************
+ * Add a field to a struct s.
+ * Input:
+ *      s       the struct symbol
+ *      name    field name
+ *      t       the type of the field
+ *      offset  offset of the field
+ */
+
+void symbol_struct_addField(Symbol *s, const char *name, type *t, unsigned offset)
+{
+    Symbol *s2 = symbol_name(name, SCmember, t);
+    s2->Smemoff = offset;
+    list_append(&s->Sstruct->Sfldlst, s2);
 }
 
 /********************************
@@ -936,7 +995,6 @@ void symbol_free(symbol *s)
                 case SCfastpar:
                 case SCshadowreg:
                 case SCregister:
-                case SCtmp:
                 case SCauto:
                     vec_free(s->Srange);
                     /* FALL-THROUGH */
@@ -2295,6 +2353,44 @@ void symbol_gendebuginfo()
 }
 
 #endif
+
+/************************************
+ * Add symbol to global slist, which are symbols we need to keep around
+ * for next obj file to be created.
+ */
+
+static list_t slist;
+
+void slist_add(Symbol *s)
+{
+    list_prepend(&slist,s);
+}
+
+/*************************************
+ * Resets Symbols so they are now "externs" to the next obj file being created.
+ */
+
+void slist_reset()
+{
+    //printf("slist_reset()\n");
+    for (list_t sl = slist; sl; sl = list_next(sl))
+    {   Symbol *s = list_symbol(sl);
+
+#if MACHOBJ
+        s->Soffset = 0;
+#endif
+        s->Sxtrnnum = 0;
+        s->Stypidx = 0;
+        s->Sflags &= ~(STRoutdef | SFLweak);
+        if (s->Sclass == SCglobal || s->Sclass == SCcomdat ||
+            s->Sfl == FLudata || s->Sclass == SCstatic)
+        {   s->Sclass = SCextern;
+            s->Sfl = FLextern;
+        }
+    }
+}
+
+
 
 #endif /* !SPP */
 

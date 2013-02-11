@@ -100,8 +100,12 @@ struct AggregateDeclaration : ScopeDsymbol
     int isExport();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
+
+    FuncDeclaration *hasIdentityOpAssign(Scope *sc, Dsymbol *assign);
+
+    char *mangle(bool isv = false);
 
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
@@ -117,16 +121,6 @@ struct AggregateDeclaration : ScopeDsymbol
     Symbol *toInitializer();
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
-};
-
-struct AnonymousAggregateDeclaration : AggregateDeclaration
-{
-    AnonymousAggregateDeclaration()
-        : AggregateDeclaration(0, NULL)
-    {
-    }
-
-    AnonymousAggregateDeclaration *isAnonymousAggregateDeclaration() { return this; }
 };
 
 struct StructDeclaration : AggregateDeclaration
@@ -154,7 +148,7 @@ struct StructDeclaration : AggregateDeclaration
     void semantic(Scope *sc);
     Dsymbol *search(Loc, Identifier *ident, int flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *mangle();
+    char *mangle(bool isv = false);
     const char *kind();
     void finalizeSize(Scope *sc);
     bool isPOD();
@@ -288,7 +282,7 @@ struct ClassDeclaration : AggregateDeclaration
     int isAbstract();
     virtual int vtblOffset();
     const char *kind();
-    char *mangle();
+    char *mangle(bool isv = false);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember

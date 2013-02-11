@@ -85,7 +85,7 @@ struct TemplateDeclaration : ScopeDsymbol
     char *toChars();
 
     void emitComment(Scope *sc);
-    void toJsonBuffer(OutBuffer *buf);
+    void toJson(JsonOut *json);
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
@@ -320,7 +320,7 @@ struct TemplateInstance : ScopeDsymbol
     int oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
-    char *mangle();
+    char *mangle(bool isv = false);
     void printInstantiationTrace();
 
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -359,6 +359,7 @@ struct TemplateMixin : TemplateInstance
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toJson(JsonOut *json);
 
     void toObjFile(int multiobj);                       // compile to .obj file
 

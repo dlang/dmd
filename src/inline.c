@@ -1613,7 +1613,6 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
         ExpInitializer *ei;
         VarExp *ve;
 
-#if STRUCTTHISREF
         if (ethis->type->ty == Tpointer)
         {   Type *t = ethis->type->nextOf();
             ethis = new PtrExp(ethis->loc, ethis);
@@ -1626,17 +1625,6 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
             vthis->storage_class = STCref;
         else
             vthis->storage_class = STCin;
-#else
-        if (ethis->type->ty != Tclass && ethis->type->ty != Tpointer)
-        {
-            ethis = ethis->addressOf(NULL);
-        }
-
-        ei = new ExpInitializer(ethis->loc, ethis);
-
-        vthis = new VarDeclaration(ethis->loc, ethis->type, Id::This, ei);
-        vthis->storage_class = STCin;
-#endif
         vthis->linkage = LINKd;
         vthis->parent = iss->fd;
 
@@ -1645,13 +1633,11 @@ Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethi
 
         ei->exp = new AssignExp(vthis->loc, ve, ethis);
         ei->exp->type = ve->type;
-#if STRUCTTHISREF
         if (ethis->type->ty != Tclass)
         {   /* This is a reference initialization, not a simple assignment.
              */
             ei->exp->op = TOKconstruct;
         }
-#endif
 
         ids.vthis = vthis;
     }

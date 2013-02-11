@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -1108,6 +1107,7 @@ STATIC void markinvar(elem *n,vec_t rd)
         case OPlt:      case OPle:      case OPgt:      case OPge:
         case OPashr:
         case OPror:     case OProl:
+        case OPbtst:
 
         case OPunord:   case OPlg:      case OPleg:     case OPule:
         case OPul:      case OPuge:     case OPug:      case OPue:

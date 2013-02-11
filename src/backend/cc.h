@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -47,10 +46,6 @@
 
 #ifndef STATIC
 #define STATIC  static
-#endif
-
-#ifndef CEXTERN
-#define CEXTERN extern
 #endif
 
 // Warnings
@@ -562,6 +557,11 @@ typedef struct block
             #define Btryoff             _BLU._UD.Btryoff
         } _UD;
     } _BLU;
+
+    void appendSucc(block *b)  { list_append(&this->Bsucc, b); }
+    void prependSucc(block *b) { list_prepend(&this->Bsucc, b); }
+    int numSucc() { return list_nitems(this->Bsucc); }
+    block *nthSucc(int n) { return (block *)list_ptr(list_nth(Bsucc, n)); }
 } block;
 
 #define list_block(l)   ((block *) list_ptr(l))
@@ -1084,6 +1084,7 @@ struct Symbol
     Symbol *Snext;              // next in threaded list
     dt_t *Sdt;                  // variables: initializer
     int Salignment;             // variables: alignment, 0 or -1 means default alignment
+    int Salignsize();           // variables: return alignment
     type *Stype;                // type of Symbol
     #define ty() Stype->Tty
 
@@ -1301,7 +1302,8 @@ struct Symbol
     char Sident[SYM_PREDEF_SZ]; // identifier string (dynamic array)
                                 // (the size is for static Symbols)
 
-    int needThis();     // !=0 if symbol needs a 'this' pointer
+    int needThis();             // !=0 if symbol needs a 'this' pointer
+    bool Sisdead(bool anyiasm); // if variable is not referenced
 };
 
 #if __DMC__
@@ -1414,7 +1416,6 @@ enum FL
         FLfast,         // ref to variable passed as register
         FLpara,         // ref to function parameter variable
         FLextern,       // ref to external variable
-        FLtmp,          // ref to a stack temporary, int contains temp number
         FLcode,         // offset to code
         FLblock,        // offset to block
         FLudata,        // ref to udata segment variable
@@ -1539,6 +1540,7 @@ enum
 extern Symbol *rtlsym[RTLSYM_MAX];
 
 // Different goals for el_optimize()
+typedef unsigned goal_t;
 #define GOALnone        0       // evaluate for side effects only
 #define GOALvalue       1       // evaluate for value
 #define GOALflags       2       // evaluate for flags
@@ -1561,5 +1563,74 @@ struct Declar
 };
 
 extern Declar gdeclar;
+
+/**********************************
+ * Data definitions
+ *      DTibytes        1..7 bytes
+ *      DTabytes        offset of bytes of data
+ *                      a { a data bytes }
+ *      DTnbytes        bytes of data
+ *                      a { a data bytes }
+ *                      a = offset
+ *      DTazeros        # of 0 bytes
+ *                      a
+ *      DTsymsize       same as DTazeros, but the type of the symbol gives
+ *                      the size
+ *      DTcommon        # of 0 bytes (in a common block)
+ *                      a
+ *      DTxoff          offset from symbol
+ *                      w a
+ *                      w = symbol number (pointer for CPP)
+ *                      a = offset
+ *      DTcoff          offset into code segment
+ *      DTend           mark end of list
+ */
+
+struct dt_t
+{   dt_t *DTnext;                       // next in list
+    char dt;                            // type (DTxxxx)
+    unsigned char Dty;                  // pointer type
+    union
+    {
+        struct                          // DTibytes
+        {   char DTn_;                  // number of bytes
+            #define DTn _DU._DI.DTn_
+            char DTdata_[8];            // data
+            #define DTdata _DU._DI.DTdata_
+        }_DI;
+        targ_size_t DTazeros_;          // DTazeros,DTcommon,DTsymsize
+        #define DTazeros _DU.DTazeros_
+        struct                          // DTabytes
+        {
+            char *DTpbytes_;            // pointer to the bytes
+            #define DTpbytes _DU._DN.DTpbytes_
+            unsigned DTnbytes_;         // # of bytes
+            #define DTnbytes _DU._DN.DTnbytes_
+            int DTseg_;                 // segment it went into
+            #define DTseg _DU._DN.DTseg_
+            targ_size_t DTabytes_;              // offset of abytes for DTabytes
+            #define DTabytes _DU._DN.DTabytes_
+        }_DN;
+        struct                          // DTxoff
+        {
+            symbol *DTsym_;             // symbol pointer
+            #define DTsym _DU._DS.DTsym_
+            targ_size_t DToffset_;      // offset from symbol
+            #define DToffset _DU._DS.DToffset_
+        }_DS;
+    }_DU;
+};
+
+enum
+{
+    DT_abytes,
+    DT_azeros,  // 1
+    DT_xoff,
+    DT_nbytes,
+    DT_common,
+    DT_symsize,
+    DT_coff,
+    DT_ibytes, // 7
+};
 
 #endif

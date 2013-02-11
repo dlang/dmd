@@ -956,6 +956,29 @@ void test9237()
     static assert(!__traits(compiles, __traits(isPOD, 123) ));
 }
 
+/*************************************************************/
+
+void test5978() {
+    () {
+        int x;
+        pragma(msg, __traits(parent, x));
+    } ();
+}
+
+/*************************************************************/
+
+template T7408() { }
+
+void test7408()
+{
+    auto x = T7408!().stringof;
+    auto y = T7408!().mangleof;
+    static assert(__traits(compiles, T7408!().stringof));
+    static assert(__traits(compiles, T7408!().mangleof));
+    static assert(!__traits(compiles, T7408!().init));
+    static assert(!__traits(compiles, T7408!().offsetof));
+}
+
 int main()
 {
     test1();
@@ -984,6 +1007,8 @@ int main()
     test23();
     test7608();
     test7858();
+    test5978();
+    test7408();
 
     writeln("Success");
     return 0;

@@ -98,18 +98,17 @@ void LibElf::setFilename(char *dir, char *filename)
     printf("LibElf::setFilename(dir = '%s', filename = '%s')\n",
         dir ? dir : "", filename ? filename : "");
 #endif
-    char *arg = filename;
+    const char *arg = filename;
     if (!arg || !*arg)
     {   // Generate lib file name from first obj name
-        char *n = (*global.params.objfiles)[0];
+        const char *n = (*global.params.objfiles)[0];
 
         n = FileName::name(n);
-        FileName *fn = FileName::forceExt(n, global.lib_ext);
-        arg = fn->toChars();
+        arg = FileName::forceExt(n, global.lib_ext);
     }
     if (!FileName::absolute(arg))
         arg = FileName::combine(dir, arg);
-    FileName *libfilename = FileName::defaultExt(arg, global.lib_ext);
+    const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
 }
@@ -127,9 +126,7 @@ void LibElf::write()
     libbuf.extractData();
 
 
-    char *p = FileName::path(libfile->name->toChars());
-    FileName::ensurePathExists(p);
-    //mem.free(p);
+    FileName::ensurePathToNameExists(libfile->name->toChars());
 
     libfile->writev();
 }
@@ -334,7 +331,7 @@ void LibElf::scanObjModule(ObjModule *om)
 
                     if (((sym->st_info >> 4) == STB_GLOBAL ||
                          (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHT_UNDEF)     // not extern
+                        sym->st_shndx != SHN_UNDEF)     // not extern
                     {
                         char *name = string_tab + sym->st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
@@ -380,7 +377,7 @@ void LibElf::scanObjModule(ObjModule *om)
 
                     if (((sym->st_info >> 4) == STB_GLOBAL ||
                          (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHT_UNDEF)     // not extern
+                        sym->st_shndx != SHN_UNDEF)     // not extern
                     {
                         char *name = string_tab + sym->st_name;
                         //printf("sym st_name = x%x\n", sym->st_name);
@@ -623,7 +620,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
     om->base = (unsigned char *)buf;
     om->length = buflen;
     om->offset = 0;
-    om->name = FileName::name(module_name);     // remove path, but not extension
+    om->name = (char *)FileName::name(module_name);     // remove path, but not extension
     om->name_offset = -1;
     om->scan = 1;
     if (fromfile)

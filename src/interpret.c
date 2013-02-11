@@ -278,27 +278,8 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         error("circular dependency. Functions cannot be interpreted while being compiled");
         return EXP_CANT_INTERPRET;
     }
-    if (semanticRun < PASSsemantic3 && scope)
-    {
-        /* Forward reference - we need to run semantic3 on this function.
-         * If errors are gagged, and it's not part of a speculative
-         * template instance, we need to temporarily ungag errors.
-         */
-        int olderrors = global.errors;
-        int oldgag = global.gag;
-        TemplateInstance *spec = isSpeculative();
-        if (global.gag && !spec)
-            global.gag = 0;
-        semantic3(scope);
-        global.gag = oldgag;    // regag errors
-
-        // If it is a speculatively-instantiated template, and errors occur,
-        // we need to mark the template as having errors.
-        if (spec && global.errors != olderrors)
-            spec->errors = global.errors - olderrors;
-        if (olderrors != global.errors) // if errors compiling this function
-            return EXP_CANT_INTERPRET;
-    }
+    if (!functionSemantic3())
+        return EXP_CANT_INTERPRET;
     if (semanticRun < PASSsemantic3done)
         return EXP_CANT_INTERPRET;
 
@@ -1319,6 +1300,11 @@ Expression *WithStatement::interpret(InterState *istate)
 #if LOG
     printf("%s WithStatement::interpret()\n", loc.toChars());
 #endif
+
+    // If it is with(Enum) {...}, just execute the body.
+    if (exp->op == TOKimport || exp->op == TOKtype)
+        return body ? body->interpret(istate) : EXP_VOID_INTERPRET;
+
     START()
     Expression *e = exp->interpret(istate);
     if (exceptionOrCantInterpret(e))
@@ -3978,25 +3964,16 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
     }
     if (pthis)
     {   // Member function call
-        Expression *oldpthis;
-        if (pthis->op == TOKthis)
-        {
-            pthis = istate ? istate->localThis : NULL;
-            oldpthis = pthis;
-        }
-        else
-        {
-            if (pthis->op == TOKcomma)
-                pthis = pthis->interpret(istate);
-            if (exceptionOrCantInterpret(pthis))
-                return pthis;
-                // Evaluate 'this'
-            oldpthis = pthis;
-            if (pthis->op != TOKvar)
-                pthis = pthis->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(pthis))
-                return pthis;
-        }
+        if (pthis->op == TOKcomma)
+            pthis = pthis->interpret(istate);
+        if (exceptionOrCantInterpret(pthis))
+            return pthis;
+        // Evaluate 'this'
+        Expression *oldpthis = pthis;
+        if (pthis->op != TOKvar)
+            pthis = pthis->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(pthis))
+            return pthis;
         if (fd->isVirtual())
         {   // Make a virtual function call.
             Expression *thisval = pthis;

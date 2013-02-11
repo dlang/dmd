@@ -48,6 +48,7 @@ Dsymbol::Dsymbol()
     this->scope = NULL;
     this->errors = false;
     this->userAttributes = NULL;
+    this->unittest = NULL;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -64,6 +65,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
+    this->unittest = NULL;
 }
 
 int Dsymbol::equals(Object *o)
@@ -204,16 +206,6 @@ const char *Dsymbol::toPrettyChars()
         if (q == s)
             break;
         q--;
-#if TARGET_NET
-    if (AggregateDeclaration* ad = p->isAggregateDeclaration())
-    {
-        if (ad->isNested() && p->parent && p->parent->isAggregateDeclaration())
-        {
-            *q = '/';
-            continue;
-        }
-    }
-#endif
         *q = '.';
     }
     return s;
@@ -269,6 +261,7 @@ Dsymbol *Dsymbol::pastMixin()
 /**********************************
  * Use this instead of toParent() when looking for the
  * 'this' pointer of the enclosing function/class.
+ * This skips over both TemplateInstance's and TemplateMixin's.
  */
 
 Dsymbol *Dsymbol::toParent2()
@@ -1329,6 +1322,9 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
              */
             return NULL;
 
+        while (ce->op == TOKcomma)
+            ce = ((CommaExp *)ce)->e2;
+
         /* If we are indexing into an array that is really a type
          * tuple, rewrite this as an index into a type tuple and
          * try again.
@@ -1379,6 +1375,29 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     return NULL;
                 s = s->toAlias();
 
+                if (ce->op != TOKvar)
+                {
+                    /* Even if opDollar is needed, 'ce' should be evaluate only once. So
+                     * Rewrite:
+                     *      ce.opIndex( ... use of $ ... )
+                     *      ce.opSlice( ... use of $ ... )
+                     * as:
+                     *      (ref __dop = ce, __dop).opIndex( ... __dop.opDollar ...)
+                     *      (ref __dop = ce, __dop).opSlice( ... __dop.opDollar ...)
+                     */
+                    Identifier *id = Lexer::uniqueId("__dop");
+                    ExpInitializer *ei = new ExpInitializer(loc, ce);
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
+                    v->storage_class |= STCctfe | STCforeach | STCref;
+                    DeclarationExp *de = new DeclarationExp(loc, v);
+                    VarExp *ve = new VarExp(loc, v);
+                    v->semantic(sc);
+                    de->type = ce->type;
+                    ve->type = ce->type;
+                    ((UnaExp *)exp)->e1 = new CommaExp(loc, de, ve);
+                    ce = ve;
+                }
+
                 Expression *e = NULL;
                 // Check for multi-dimensional opDollar(dim) template.
                 if (TemplateDeclaration *td = s->isTemplateDeclaration())
@@ -1387,14 +1406,11 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     if (exp->op == TOKarray)
                     {
                         dim = ((ArrayExp *)exp)->currentDimension;
-                        e = ((ArrayExp *)exp)->e1;
                     }
                     else if (exp->op == TOKslice)
                     {
                         dim = 0; // slices are currently always one-dimensional
-                        e = ((SliceExp *)exp)->e1;
                     }
-                    assert(e);
 
                     Objects *tdargs = new Objects();
                     Expression *edim = new IntegerExp(0, dim, Type::tsize_t);
@@ -1404,7 +1420,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
                     //ti->semantic(sc);
 
-                    e = new DotTemplateInstanceExp(loc, e, td->ident, tdargs);
+                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tdargs);
                 }
                 else
                 {   /* opDollar exists, but it's not a template.

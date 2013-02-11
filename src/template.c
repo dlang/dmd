@@ -693,7 +693,7 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
             if (!paramscope->insert(v))
                 error("parameter %s.%s is already defined", toChars(), v->toChars());
             else
-                v->parent = this;
+                v->parent = fd;
         }
     }
 }
@@ -1344,6 +1344,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                     if (m < match)
                         match = m;
 
+                    /* Remove top const for dynamic array types and pointer types
+                     */
+                    if ((tt->ty == Tarray || tt->ty == Tpointer) &&
+                        !tt->isMutable() &&
+                        (!(fparam->storageClass & STCref) ||
+                         (fparam->storageClass & STCauto) && !farg->isLvalue()))
+                    {
+                        tt = tt->mutableOf();
+                    }
                     t->objects[i] = tt;
                 }
                 declareParameter(paramscope, tp, t);
@@ -1579,21 +1588,7 @@ Lretry:
             if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
             {   if (!farg->isLvalue())
                 {
-                    if (farg->op == TOKstructliteral)
-                        m = MATCHconvert;
-                    else if (farg->op == TOKcall)
-                    {
-                        CallExp *ce = (CallExp *)farg;
-                        if (ce->e1->op == TOKdotvar &&
-                            ((DotVarExp *)ce->e1)->var->isCtorDeclaration())
-                        {
-                            m = MATCHconvert;
-                        }
-                        else
-                            goto Lnomatch;
-                    }
-                    else
-                        goto Lnomatch;
+                    goto Lnomatch;
                 }
             }
             if (m && (fparam->storageClass & STCout))
@@ -2245,22 +2240,19 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
     /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
      * that same template. Thus, the function type can be incomplete. Complete it.
+     *
+     * Bugzilla 9208: For auto function, completion should be deferred to the end of
+     * its semantic3. Should not complete it in here.
      */
     {   TypeFunction *tf = (TypeFunction *)fd_best->type;
         assert(tf->ty == Tfunction);
-        if (tf->next)
+        if (tf->next && !fd_best->inferRetType)
+        {
             fd_best->type = tf->semantic(loc, sc);
+        }
     }
-    if (fd_best->scope)
-    {
-        TemplateInstance *spec = fd_best->isSpeculative();
-        int olderrs = global.errors;
-        fd_best->semantic3(fd_best->scope);
-        // Update the template instantiation with the number
-        // of errors which occured.
-        if (spec && global.errors != olderrs)
-            spec->errors = global.errors - olderrs;
-    }
+
+    fd_best->functionSemantic();
 
     return fd_best;
 
@@ -2440,9 +2432,11 @@ char *TemplateDeclaration::toChars()
     }
     buf.writeByte(')');
 
-    if (onemember && onemember->toAlias())
-    {
-        FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
+    if (onemember)
+    {   /* Bugzilla 9406:
+         * onemember->toAlias() might run semantic, so should not call it in stringizing
+         */
+        FuncDeclaration *fd = onemember->isFuncDeclaration();
         if (fd && fd->type)
         {
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -3975,6 +3969,45 @@ Lnomatch:
     return 0;
 }
 
+/* Bugzilla 6538: In template constraint, each function parameters, 'this',
+ * and 'super' is *pseudo* symbol. If it is passed to other template through
+ * alias/tuple parameter, it will cause an error. Because such symbol
+ * does not have the actual entity yet.
+ *
+ * Example:
+ *  template Sym(alias A) { enum Sym = true; }
+ *  struct S {
+ *    void foo() if (Sym!(this)) {} // Sym!(this) always make an error,
+ *  }                               // because Sym template cannot
+ *  void main() { S s; s.foo(); }   // access to the valid 'this' symbol.
+ */
+bool isPseudoDsymbol(Object *o)
+{
+    Dsymbol *s = isDsymbol(o);
+    Expression *e = isExpression(o);
+    if (e && e->op == TOKvar) s = ((VarExp *)e)->var->isVarDeclaration();
+    if (e && e->op == TOKthis) s = ((ThisExp *)e)->var->isThisDeclaration();
+    if (e && e->op == TOKsuper) s = ((SuperExp *)e)->var->isThisDeclaration();
+
+    if (s && s->parent)
+    {
+        s = s->toAlias();
+        VarDeclaration *v = s->isVarDeclaration();
+        TupleDeclaration *t = s->isTupleDeclaration();
+        if (v || t)
+        {
+            FuncDeclaration *fd = s->parent->isFuncDeclaration();
+            if (fd && fd->parent && fd->parent->isTemplateDeclaration())
+            {
+                const char *str = (e && e->op == TOKsuper) ? "super" : s->toChars();
+                ::error(s->loc, "cannot take a not yet instantiated symbol '%s' inside template constraint", str);
+                return true;
+            }
+        }
+    }
+    return false;
+}
+
 MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -4657,7 +4690,10 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 
     ti->tiargs = arraySyntaxCopy(tiargs);
 
-    ScopeDsymbol::syntaxCopy(ti);
+    if (inst)
+        tempdecl->ScopeDsymbol::syntaxCopy(ti);
+    else
+        ScopeDsymbol::syntaxCopy(ti);
     return ti;
 }
 
@@ -4984,8 +5020,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             a = scx->scopesym->members;
         }
         else
-        {   //Module *m = sc->module->importedFrom;
-            Module *m = tempdecl->scope->module->importedFrom;
+        {
+            Module *m = (isnested ? sc : tempdecl->scope)->module->importedFrom;
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
             if (m->semanticRun >= 3)
@@ -5232,70 +5268,50 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             //printf("type %s\n", ta->toChars());
             // It might really be an Expression or an Alias
             ta->resolve(loc, sc, &ea, &ta, &sa);
-            if (ea)
-            {
-                ea = ea->semantic(sc);
-                //printf("-> ea = %s %s\n", Token::toChars(ea->op), ea->toChars());
-                /* This test is to skip substituting a const var with
-                 * its initializer. The problem is the initializer won't
-                 * match with an 'alias' parameter. Instead, do the
-                 * const substitution in TemplateValueParameter::matchArg().
-                 */
-                if (flags & 1) // only used by __traits, must not interpret the args
-                    ea = ea->optimize(WANTvalue);
-                else if (ea->op != TOKvar)
-                    ea = ea->ctfeInterpret();
-                (*tiargs)[j] = ea;
-            }
-            else if (sa)
-            {
-              Ldsym:
-                (*tiargs)[j] = sa;
-                TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
-                if (d)
-                {
-                    size_t dim = d->objects->dim;
-                    tiargs->remove(j);
-                    tiargs->insert(j, d->objects);
-                    j--;
-                }
-            }
-            else if (ta)
-            {
-              Ltype:
-                if (ta->ty == Ttuple)
-                {   // Expand tuple
-                    TypeTuple *tt = (TypeTuple *)ta;
-                    size_t dim = tt->arguments->dim;
-                    tiargs->remove(j);
-                    if (dim)
-                    {   tiargs->reserve(dim);
-                        for (size_t i = 0; i < dim; i++)
-                        {   Parameter *arg = (*tt->arguments)[i];
-                            if (flags & 2 && arg->ident)
-                                tiargs->insert(j + i, arg);
-                            else
-                                tiargs->insert(j + i, arg->type);
-                        }
-                    }
-                    j--;
-                }
-                else
-                    (*tiargs)[j] = ta;
-            }
-            else
+            if (ea) goto Lexpr;
+            if (sa) goto Ldsym;
+            if (ta == NULL)
             {
                 assert(global.errors);
-                (*tiargs)[j] = Type::terror;
+                ta = Type::terror;
             }
+
+        Ltype:
+            if (ta->ty == Ttuple)
+            {   // Expand tuple
+                TypeTuple *tt = (TypeTuple *)ta;
+                size_t dim = tt->arguments->dim;
+                tiargs->remove(j);
+                if (dim)
+                {   tiargs->reserve(dim);
+                    for (size_t i = 0; i < dim; i++)
+                    {   Parameter *arg = (*tt->arguments)[i];
+                        if (flags & 2 && arg->ident)
+                            tiargs->insert(j + i, arg);
+                        else
+                            tiargs->insert(j + i, arg->type);
+                    }
+                }
+                j--;
+                continue;
+            }
+            (*tiargs)[j] = ta;
         }
         else if (ea)
         {
+        Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
             ea = ea->semantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
-            else if (ea->op != TOKvar && ea->op != TOKtuple &&
+            else if (ea->op == TOKvar)
+            {   /* This test is to skip substituting a const var with
+                 * its initializer. The problem is the initializer won't
+                 * match with an 'alias' parameter. Instead, do the
+                 * const substitution in TemplateValueParameter::matchArg().
+                 */
+            }
+            else if (ea->op != TOKtuple &&
                      ea->op != TOKimport && ea->op != TOKtype &&
                      ea->op != TOKfunction && ea->op != TOKerror &&
                      ea->op != TOKthis && ea->op != TOKsuper)
@@ -5306,7 +5322,25 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                     ea = new ErrorExp();
             }
             //printf("-[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
+            if (!flags && isPseudoDsymbol(ea))
+            {   (*tiargs)[j] = new ErrorExp();
+                continue;
+            }
+            if (ea->op == TOKtuple)
+            {   // Expand tuple
+                TupleExp *te = (TupleExp *)ea;
+                size_t dim = te->exps->dim;
+                tiargs->remove(j);
+                if (dim)
+                {   tiargs->reserve(dim);
+                    for (size_t i = 0; i < dim; i++)
+                        tiargs->insert(j + i, (*te->exps)[i]);
+                }
+                j--;
+                continue;
+            }
             (*tiargs)[j] = ea;
+
             if (ea->op == TOKtype)
             {   ta = ea->type;
                 goto Ltype;
@@ -5329,9 +5363,8 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 else if (fe->td)
                 {   /* If template argument is a template lambda,
                      * get template declaration itself. */
-                    ea = NULL;
-                    (*tiargs)[j] = sa = fe->td;
-                    goto Lsa;
+                    sa = fe->td;
+                    goto Ldsym;
                 }
             }
             if (ea->op == TOKdotvar)
@@ -5348,25 +5381,31 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 sa = ((DotTemplateExp *)ea)->td;
                 goto Ldsym;
             }
-            if (ea->op == TOKtuple)
-            {   // Expand tuple
-                TupleExp *te = (TupleExp *)ea;
-                size_t dim = te->exps->dim;
-                tiargs->remove(j);
-                if (dim)
-                {   tiargs->reserve(dim);
-                    for (size_t i = 0; i < dim; i++)
-                        tiargs->insert(j + i, (*te->exps)[i]);
-                }
-                j--;
-            }
         }
         else if (sa)
         {
-        Lsa:
+        Ldsym:
+            //printf("dsym %s %s\n", sa->kind(), sa->toChars());
+            if (!flags && isPseudoDsymbol(sa))
+            {   (*tiargs)[j] = new ErrorExp();
+                continue;
+            }
+            TupleDeclaration *d = sa->toAlias()->isTupleDeclaration();
+            if (d)
+            {   // Expand tuple
+                size_t dim = d->objects->dim;
+                tiargs->remove(j);
+                tiargs->insert(j, d->objects);
+                j--;
+                continue;
+            }
+            (*tiargs)[j] = sa;
+
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             if (td && !td->semanticRun && td->literal)
+            {
                 td->semantic(sc);
+            }
         }
         else if (isParameter(o))
         {
@@ -5951,7 +5990,7 @@ int TemplateInstance::needsTypeInference(Scope *sc)
          */
         FuncDeclaration *fd;
         if (!td->onemember ||
-            (fd = td->onemember->toAlias()->isFuncDeclaration()) == NULL ||
+            (fd = td->onemember/*->toAlias()*/->isFuncDeclaration()) == NULL ||
             fd->type->ty != Tfunction)
         {
             /* Not a template function, therefore type inference is not possible.
@@ -6416,30 +6455,25 @@ void TemplateMixin::semantic(Scope *sc)
     {
         if (!td->semanticRun)
         {
-            if (td->scope)
-                td->semantic(td->scope);
+            /* Cannot handle forward references if mixin is a struct member,
+             * because addField must happen during struct's semantic, not
+             * during the mixin semantic.
+             * runDeferred will re-run mixin's semantic outside of the struct's
+             * semantic.
+             */
+            semanticRun = PASSinit;
+            AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+            if (ad)
+                ad->sizeok = SIZEOKfwd;
             else
             {
-                /* Cannot handle forward references if mixin is a struct member,
-                 * because addField must happen during struct's semantic, not
-                 * during the mixin semantic.
-                 * runDeferred will re-run mixin's semantic outside of the struct's
-                 * semantic.
-                 */
-                semanticRun = PASSinit;
-                AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-                if (ad)
-                    ad->sizeok = SIZEOKfwd;
-                else
-                {
-                    // Forward reference
-                    //printf("forward reference - deferring\n");
-                    scope = scx ? scx : new Scope(*sc);
-                    scope->setNoFree();
-                    scope->module->addDeferredSemantic(this);
-                }
-                return;
+                // Forward reference
+                //printf("forward reference - deferring\n");
+                scope = scx ? scx : new Scope(*sc);
+                scope->setNoFree();
+                scope->module->addDeferredSemantic(this);
             }
+            return;
         }
     }
 
@@ -6558,6 +6592,8 @@ void TemplateMixin::semantic(Scope *sc)
     sc2 = argscope->push(this);
     sc2->offset = sc->offset;
 
+    size_t deferred_dim = Module::deferred.dim;
+
     static int nest;
     //printf("%d\n", nest);
     if (++nest > 500)
@@ -6576,6 +6612,36 @@ void TemplateMixin::semantic(Scope *sc)
     nest--;
 
     sc->offset = sc2->offset;
+
+    if (!sc->func && Module::deferred.dim > deferred_dim)
+    {
+        sc2->pop();
+        argscope->pop();
+        scy->pop();
+        //printf("deferring mixin %s, deferred.dim += %d\n", toChars(), Module::deferred.dim - deferred_dim);
+        //printf("\t[");
+        //for (size_t u = 0; u < Module::deferred.dim; u++) printf("%s%s", Module::deferred[u]->toChars(), u == Module::deferred.dim-1?"":", ");
+        //printf("]\n");
+
+        semanticRun = PASSinit;
+        AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+        if (ad)
+        {
+            /* Forward reference of base class should not make derived class SIZEfwd.
+             */
+            //printf("\tad = %s, sizeok = %d\n", ad->toChars(), ad->sizeok);
+            //ad->sizeok = SIZEOKfwd;
+        }
+        else
+        {
+            // Forward reference
+            //printf("forward reference - deferring\n");
+            scope = scx ? scx : new Scope(*sc);
+            scope->setNoFree();
+            scope->module->addDeferredSemantic(this);
+        }
+        return;
+    }
 
     /* The problem is when to parse the initializer for a variable.
      * Perhaps VarDeclaration::semantic() should do it like it does

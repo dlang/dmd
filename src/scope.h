@@ -25,7 +25,6 @@ struct LabelStatement;
 struct ForeachStatement;
 struct ClassDeclaration;
 struct AggregateDeclaration;
-struct AnonymousAggregateDeclaration;
 struct FuncDeclaration;
 struct DocComment;
 struct TemplateInstance;

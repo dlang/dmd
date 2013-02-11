@@ -945,6 +945,39 @@ void test48()
 }
 
 /***************************************************/
+// 6408
+
+static assert(!is(typeof(string[0..1].init)));
+static assert(is(typeof(string[].init) == string[]));
+static assert(is(typeof(string[][].init) == string[][]));
+static assert(is(typeof(string[][][].init) == string[][][]));
+
+static assert(is(typeof(string[1].init) == string[1]));
+static assert(is(typeof(string[1][1].init) == string[1][1]));
+static assert(is(typeof(string[1][1][1].init) == string[1][1][1]));
+
+static assert(is(typeof(string[string].init) == string[string]));
+static assert(is(typeof(string[string][string].init) == string[string][string]));
+static assert(is(typeof(string[string][string][string].init) == string[string][string][string]));
+
+template TT6408(T...) { alias T TT6408; }
+static assert(is(typeof(TT6408!(int, int)[].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[0..$].init) == TT6408!(int, int)));
+static assert(is(typeof(TT6408!(int, int)[$-1].init) == int));
+
+/***************************************************/
+// 9409
+
+template TT9409(T...) { alias T TT9409; }
+
+template idxTypes9409(Prefix...)
+{
+    TT9409!((Prefix[$-1])) idxTypes9409;
+}
+
+alias idxTypes9409!(int) Types9409;
+
+/***************************************************/
 
 struct S49
 {
@@ -2844,6 +2877,12 @@ int test137(){
 
 /***************************************************/
 
+// 9366
+static assert(!is(typeof((void[]).init ~ cast(void)0)));
+static assert(!is(typeof(cast(void)0 ~ (void[]).init)));
+
+/***************************************************/
+
 struct Size138
 {
     union
@@ -3517,6 +3556,14 @@ void test156()
     assert(ms.g() == 1);
     auto cs = const(S156)();
     assert(cs.g() == 2);
+}
+
+/***************************************************/
+
+void test6708(const ref int y)
+{
+    immutable int x;
+    test6708(x);
 }
 
 /***************************************************/
@@ -4234,6 +4281,37 @@ void test5696()
 }
 
 /***************************************************/
+// 5933
+
+int dummyfunc5933();
+alias typeof(dummyfunc5933) FuncType5933;
+
+struct S5933a { auto x() { return 0; } }
+static assert(is(typeof(&S5933a.init.x) == int delegate()));
+
+struct S5933b { auto x() { return 0; } }
+static assert(is(typeof(S5933b.init.x) == FuncType5933));
+
+struct S5933c { auto x() { return 0; } }
+static assert(is(typeof(&S5933c.x) == int function()));
+
+struct S5933d { auto x() { return 0; } }
+static assert(is(typeof(S5933d.x) == FuncType5933));
+
+
+class C5933a { auto x() { return 0; } }
+static assert(is(typeof(&(new C5933b()).x) == int delegate()));
+
+class C5933b { auto x() { return 0; } }
+static assert(is(typeof((new C5933b()).x) == FuncType5933));
+
+class C5933c { auto x() { return 0; } }
+static assert(is(typeof(&C5933c.x) == int function()));
+
+class C5933d { auto x() { return 0; } }
+static assert(is(typeof(C5933d.x) == FuncType5933));
+
+/***************************************************/
 // 6084
 
 template TypeTuple6084(T...){ alias T TypeTuple6084; }
@@ -4753,7 +4831,7 @@ void test3091(inout int = 0)
 
 template Id6837(T)
 {
-	alias T Id6837;
+    alias T Id6837;
 }
 static assert(is(Id6837!(shared const int) == shared const int));
 static assert(is(Id6837!(shared inout int) == shared inout int));
@@ -4843,6 +4921,18 @@ void test7150()
 {
     auto a = A7150(5, 5); // Error: template instance constructtest.A.__ctor!(int) error instantiating
     assert(A7150.cnt == 2);
+}
+
+/***************************************************/
+// 7159
+
+class HomeController7159 {
+    void* foo() {
+        return cast(void*)&HomeController7159.displayDefault;
+    }
+    auto displayDefault() {
+        return 1;
+    }
 }
 
 /***************************************************/
@@ -4965,7 +5055,7 @@ class Derived3282 : Base3282
     {
         return "Derived.f()";
     }
-    override string f() const
+  /*override*/ string f() const
     {
         return "Derived.f() const";
     }
@@ -4991,7 +5081,7 @@ class C7534
 class D7534 : C7534
 {
     override int foo(){ return 2; }
-    override int foo() const { return 3; }
+  /*override*/ int foo() const { return 3; }
     // Error: D.foo multiple overrides of same function
 }
 void test7534()
@@ -5026,7 +5116,7 @@ class V7534
 class W7534 : V7534
 {
     override Y7534 foo(){ return new Y7534(1); }
-    override Y7534 foo() const { return new Y7534(2); }
+  /*override*/ Y7534 foo() const { return new Y7534(2); }
 }
 
 void test7534cov()
@@ -5604,7 +5694,8 @@ template M8897 ( E ) { }
 void test8917()
 {
     int[3] a;
-    int[3] b = a[] + a[];
+    int[3] a2;
+    int[3] b = a[] + a2[];
 }
 
 /***************************************************/
@@ -5613,17 +5704,17 @@ struct S162
 {
     static int generateMethodStubs( Class )()
     {
-	int text;
+        int text;
 
-	foreach( m; __traits( allMembers, Class ) )
-	{
-	    static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
-	    {
-		pragma(msg, __traits( getOverloads, Class, m ));
-	    }
-	}
+        foreach( m; __traits( allMembers, Class ) )
+        {
+            static if( is( typeof( mixin( m ) ) ) && is( typeof( mixin( m ) ) == function ) )
+            {
+                pragma(msg, __traits( getOverloads, Class, m ));
+            }
+        }
 
-	return text;
+        return text;
     }
 
     enum int ttt = generateMethodStubs!( S162 )();
@@ -5686,10 +5777,10 @@ mixin template DefineCoreType(string type)
 
         static void instance()
         {
-	    x = 3;
+            x = 3;
         }
 
-	X164!() xxx;
+        X164!() xxx;
     }
 }
 

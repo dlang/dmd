@@ -5245,7 +5245,7 @@ int bar8840(long g) { assert(g == 4); return printf("%llx\n", g); }
 
 void test8840()
 {
-    long f1 = foo8840();    
+    long f1 = foo8840();
     long f2 = foo8840();
 
     long f = (f1 < f2 ? f1 : f2);
@@ -5450,6 +5450,254 @@ void test9248()
     void*[] b = [cast(void*)2];
     auto c = a ~ b;
     assert(c == [cast(void*)1, cast(void*)2]);
+}
+
+/***************************************************/
+// 6057
+void test6057()
+{
+    enum Foo { A=1, B=2 }
+    Foo[] bar = [cast(Foo)1];
+}
+
+/***************************************************/
+
+ulong d2ulong(double u)
+{
+    return cast(ulong)u;
+}
+
+void testdbl_to_ulong()
+{
+    auto u = d2ulong(12345.6);
+    //writeln(u);
+    assert(u == 12345);
+
+    real adjust = 1.0L/real.epsilon;
+    u = d2ulong(adjust);
+    //writefln("%s %s", adjust, u);
+    assert(u == 9223372036854775808UL);
+
+    auto v = d2ulong(adjust * 1.1);
+    //writefln("%s %s %s", adjust, v, u + u/10);
+
+    // The following can vary in the last bits with different optimization settings,
+    // i.e. the conversion from real to double may not happen.
+    //assert(v == 10145709240540254208UL);
+}
+
+/***************************************************/
+
+
+
+uint d2uint(double u)
+{
+    return cast(uint)u;
+}
+
+void testdbl_to_uint()
+{
+    auto u = d2uint(12345.6);
+    //writeln(u);
+    assert(u == 12345);
+}
+
+/***************************************************/
+
+ulong r2ulong(real u)
+{
+    return cast(ulong)u;
+}
+
+void testreal_to_ulong()
+{
+    auto u = r2ulong(12345.6L);
+    //writeln(u);
+    assert(u == 12345);
+
+    real adjust = 1.0L/real.epsilon;
+    u = r2ulong(adjust);
+    //writefln("%s %s", adjust, u);
+    assert(u == 9223372036854775808UL);
+
+    auto v = r2ulong(adjust * 1.1);
+    writefln("%s %s %s", adjust, v, u + u/10);
+
+    //assert(v == 10145709240540253389UL);
+}
+
+/***************************************************/
+
+long testbt1(long a, long b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1L << c)) != 0);
+}
+
+
+long testbt2(long a, long b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1L << c)) != 0);
+}
+
+int testbt3(int a, int b, int c)
+{
+    return a + ((b >> c) & 1);
+//    return a + ((b & (1 << c)) != 0);
+}
+
+int testbt4(int a, int b, int c)
+{
+//    return a + ((b >> c) & 1);
+    return a + ((b & (1 << c)) != 0);
+}
+
+
+void test248()
+{
+    auto a1 = testbt1(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt2(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt3(3, 4, 2);
+    assert(a1 == 4);
+    a1 = testbt4(3, 4, 2);
+    assert(a1 == 4);
+
+    a1 = testbt1(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt2(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt3(3, 8, 2);
+    assert(a1 == 3);
+    a1 = testbt4(3, 8, 2);
+    assert(a1 == 3);
+}
+
+/***************************************************/
+
+int foo249(int a, int b)
+{
+    return a + ((b & 0x80) != 0);
+}
+
+long bar249(long a, int b)
+{
+    return a + ((b & 0x80) != 0);
+}
+
+void test249()
+{
+  {
+    auto i = foo249(3, 6);
+    assert(i == 3);
+    i = foo249(3, 0x88);
+    assert(i == 4);
+  }
+  {
+    auto i = bar249(3, 6);
+    assert(i == 3);
+    i = bar249(3, 0x88);
+    assert(i == 4);
+  }
+}
+
+/***************************************************/
+
+// These should all compile to a BT instruction when -O, for -m32 and -m64
+
+int bt32(uint *p, uint b) { return ((p[b >> 5] & (1 << (b & 0x1F)))) != 0; }
+
+int bt64a(ulong *p, uint b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+int bt64b(ulong *p, size_t b) { return ((p[b >> 6] & (1L << (b & 63)))) != 0; }
+
+void test250()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt32(a1,30)) assert(0);
+    if (!bt32(a1,8))  assert(0);
+    if ( bt32(a1,30+32)) assert(0);
+    if (!bt32(a1,1+32))  assert(0);
+
+    static ulong[2] a2 = [0x1001_1100_12345678, 0x0220_0012_12345678];
+
+    if ( bt64a(a2,30+32)) assert(0);
+    if (!bt64a(a2,8+32))  assert(0);
+    if ( bt64a(a2,30+32+64)) assert(0);
+    if (!bt64a(a2,1+32+64))  assert(0);
+
+    if ( bt64b(a2,30+32)) assert(0);
+    if (!bt64b(a2,8+32))  assert(0);
+    if ( bt64b(a2,30+32+64)) assert(0);
+    if (!bt64b(a2,1+32+64))  assert(0);
+}
+
+/***************************************************/
+
+struct S251 { int a,b,c,d; }
+
+S251 foo251(S251 s)
+{
+    S251 a = s;
+    S251 b = a;	// copy propagation
+    S251 c = b;
+    S251 d = c;
+    S251 e = d;	// dead assignment
+    return d;
+}
+
+void test251()
+{
+    S251 a;
+    a.a = 1;
+    a.b = 2;
+    a.c = 3;
+    a.d = 4;
+    a = foo251(a);
+    assert(a.a == 1);
+    assert(a.b == 2);
+    assert(a.c == 3);
+    assert(a.d == 4);
+}
+
+/***************************************************/
+// 9387
+
+void bug9387a(double x) { }
+
+void ice9387()
+{
+    double x = 0.3;
+    double r = x*0.1;
+    double q = x*0.1 + r;
+    double p = x*0.1 + r*0.2;
+    if ( q )
+        p = -p;
+    bug9387a(p);
+}
+
+/***************************************************/
+
+void bug6962(string value)
+{
+    string v = value;
+    try
+    {
+        v = v[0LU..0LU];
+        return;
+    }
+    finally
+    {
+        assert(!v.length);
+    }
+}
+
+void test6962()
+{
+    bug6962("42");
 }
 
 /***************************************************/
@@ -5726,6 +5974,15 @@ int main()
     test8796();
     test9171();
     test9248();
+    testdbl_to_ulong();
+    testdbl_to_uint();
+    testreal_to_ulong();
+    test248();
+    test249();
+    test250();
+    test6057();
+    test251();
+    test6962();
 
     writefln("Success");
     return 0;

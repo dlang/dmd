@@ -130,26 +130,30 @@ enum PROT Declaration::prot()
 
 #if DMDV2
 
-int Declaration::checkModify(Loc loc, Scope *sc, Type *t)
+int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int flag)
 {
+    VarDeclaration *v = isVarDeclaration();
+    if (v && v->canassign)
+        return 2;
+
     if ((sc->flags & SCOPEcontract) && isParameter())
-        error(loc, "cannot modify parameter '%s' in contract", toChars());
-
-    if ((sc->flags & SCOPEcontract) && isResult())
-        error(loc, "cannot modify result '%s' in contract", toChars());
-
-    if (isCtorinit() && !t->isMutable() ||
-        (storage_class & STCnodefaultctor))
-    {   // It's only modifiable if inside the right constructor
-        return modifyFieldVar(loc, sc, isVarDeclaration(), NULL);
-    }
-    else
     {
-        VarDeclaration *v = isVarDeclaration();
-        if (v && v->canassign)
-            return TRUE;
+        if (!flag) error(loc, "cannot modify parameter '%s' in contract", toChars());
+        return 0;
     }
-    return FALSE;
+    if ((sc->flags & SCOPEcontract) && isResult())
+    {
+        if (!flag) error(loc, "cannot modify result '%s' in contract", toChars());
+        return 0;
+    }
+
+    if (v && isCtorinit())
+    {   // It's only modifiable if inside the right constructor
+        if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
+            return 2;
+        return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
+    }
+    return 1;
 }
 #endif
 
@@ -1087,6 +1091,7 @@ Lnomatch:
             (*exps)[i] = e;
         }
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
+        v2->parent = this->parent;
         v2->isexp = 1;
         aliassym = v2;
         return;
@@ -2013,6 +2018,10 @@ Expression *VarDeclaration::getConstInitializer()
         ExpInitializer *ei = getExpInitializer();
         if (ei)
             return ei->exp;
+        else if (init)
+        {
+            return init->toExpression();
+        }
     }
 
     return NULL;

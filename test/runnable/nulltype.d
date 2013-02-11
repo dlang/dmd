@@ -117,6 +117,16 @@ void test8221()
 }
 
 /**********************************************/
+// 9385
+
+void test9385()
+{
+    assert((null ? true : false) == false);
+    if (null) assert(0);
+    assert(!null);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -124,6 +134,7 @@ int main()
     test2();
     test7278();
     test8221();
+    test9385();
 
     printf("Success\n");
     return 0;

@@ -5,8 +5,7 @@
 // Written by Walter Bright
 /*
  * This source file is made available for personal use
- * only. The license is in /dmd/src/dmd/backendlicense.txt
- * or /dm/src/dmd/backendlicense.txt
+ * only. The license is in backendlicense.txt
  * For any other uses, please contact Digital Mars.
  */
 
@@ -525,7 +524,6 @@ STATIC void touchlvalue(elem *e)
     {
         case SCregpar:
         case SCregister:
-        case SCtmp:
         case SCpseudo:
             break;
         case SCauto:
@@ -585,7 +583,6 @@ STATIC void touchfunc(int flag)
                 {
                     case SCregpar:
                     case SCregister:
-                    case SCtmp:
                         break;
                     case SCauto:
                     case SCparameter:

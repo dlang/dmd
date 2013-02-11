@@ -420,11 +420,7 @@ void StructDeclaration::semantic(Scope *sc)
 
     parent = sc->parent;
     type = type->semantic(loc, sc);
-#if STRUCTTHISREF
     handle = type;
-#else
-    handle = type->pointerTo();
-#endif
     protection = sc->protection;
     alignment = sc->structalign;
     storage_class |= sc->stc;
@@ -711,7 +707,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
 
 void StructDeclaration::makeNested()
 {
-    if (!isnested && sizeok != SIZEOKdone)
+    if (!isnested && sizeok != SIZEOKdone && !isUnionDeclaration())
     {
         // If nested struct, add in hidden 'this' pointer to outer scope
         if (!(storage_class & STCstatic))
