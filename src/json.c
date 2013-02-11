@@ -739,19 +739,41 @@ void Import::toJson(JsonOut *json)
     if (aliasId)
         json->property("alias", aliasId->toChars());
 
-    if (names.dim)
+    bool hasRenamed = false;
+    bool hasSelective = false;
+    for (size_t i = 0; i < aliases.dim; i++)
+    {   // avoid empty "renamed" and "selective" sections
+        if (hasRenamed && hasSelective)
+            break;
+        else if (aliases[i])
+            hasRenamed = true;
+        else
+            hasSelective = true;
+    }
+
+    if (hasRenamed)
     {
-        json->propertyStart("aliases");
+        // import foo : alias1 = target1;
+        json->propertyStart("renamed");
+        json->objectStart();
+        for (size_t i = 0; i < aliases.dim; i++)
+        {
+            Identifier *name = names[i];
+            Identifier *alias = aliases[i];
+            if (alias) json->property(alias->toChars(), name->toChars());
+        }
+        json->objectEnd();
+    }
+
+    if (hasSelective)
+    {
+        // import foo : target1;
+        json->propertyStart("selective");
         json->arrayStart();
         for (size_t i = 0; i < names.dim; i++)
         {
             Identifier *name = names[i];
-            Identifier *alias = aliases[i];
-
-            if (alias)
-                json->property(alias->toChars(), name->toChars());
-            else
-                json->item(name->toChars());
+            if (!aliases[i]) json->item(name->toChars());
         }
         json->arrayEnd();
     }
