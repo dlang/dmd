@@ -295,8 +295,9 @@ void except_fillInEHTable(symbol *s)
                                 cf = code_next(cf);
                                 foffset += calccodsize(cf);
                             }
-                            cf = code_next(cf);
-                            foffset += calccodsize(cf);
+                            // issue 9438
+                            //cf = code_next(cf);
+                            //foffset += calccodsize(cf);
                             if (OUREH)
                                 pdt = dtdword(pdt,eoffset - startblock->Boffset); // guard offset
                             break;

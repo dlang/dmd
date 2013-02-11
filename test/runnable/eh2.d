@@ -30,6 +30,34 @@ class Abc : Throwable
     }
 }
 
+struct RefCounted
+{
+    void *p;
+    ~this()
+    {
+        p = null;
+    }
+}
+
+struct S
+{
+  RefCounted _data;
+
+  int get() @property
+  {
+      throw new Exception("");
+  }
+}
+
+void b9438()
+{
+     try {
+        S s;
+        S().get;
+     }
+     catch (Exception e){ }
+}
+
 int main()
 {
     printf("hello world\n");
@@ -51,5 +79,6 @@ int main()
 	assert(Abc.x == 0xB5);
     }
     printf("Success!\n");
+    b9438();
     return 0;
 }
