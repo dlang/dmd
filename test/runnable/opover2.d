@@ -945,6 +945,38 @@ void test9453()
 }
 
 /**************************************/
+// 9496
+
+struct S9496
+{
+	static S9496* ptr;
+
+    size_t opDollar()
+    {
+        assert(ptr is &this);
+        return 10;
+    }
+    void opSlice(size_t , size_t)
+    {
+        assert(ptr is &this);
+    }
+    void getSlice()
+    {
+        assert(ptr is &this);
+        this[1 .. opDollar()];
+        this[1 .. $];
+    }
+}
+
+void test9496()
+{
+    S9496 s;
+    S9496.ptr = &s;
+    s.getSlice();
+    s[1 .. $];
+}
+
+/**************************************/
 
 int main()
 {
@@ -971,6 +1003,7 @@ int main()
     test18();
     test19();
     test9453();
+    test9496();
 
     printf("Success\n");
     return 0;

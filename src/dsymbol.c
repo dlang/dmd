@@ -1375,7 +1375,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     return NULL;
                 s = s->toAlias();
 
-                if (ce->op != TOKvar)
+                if (ce->hasSideEffect())
                 {
                     /* Even if opDollar is needed, 'ce' should be evaluate only once. So
                      * Rewrite:
