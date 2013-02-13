@@ -2075,11 +2075,6 @@ Dsymbol *Parser::parseMixin()
             tqual = parseTypeof();
             check(TOKdot);
         }
-        else if (token.value == TOKvector)
-        {
-            tqual = parseVector();
-            check(TOKdot);
-        }
         if (token.value != TOKidentifier)
         {
             error("identifier expected, not %s", token.toChars());
