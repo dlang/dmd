@@ -273,8 +273,9 @@ COPY=\
 	$(IMPDIR)/core/sys/freebsd/execinfo.d \
 	$(IMPDIR)/core/sys/freebsd/sys/event.d \
 	\
-	$(IMPDIR)/core/sys/linux/execinfo.d \
+	$(IMPDIR)/core/sys/linux/elf.d \
 	$(IMPDIR)/core/sys/linux/epoll.d \
+	$(IMPDIR)/core/sys/linux/execinfo.d \
 	$(IMPDIR)/core/sys/linux/sys/signalfd.d \
 	$(IMPDIR)/core/sys/linux/sys/xattr.d \
 	\

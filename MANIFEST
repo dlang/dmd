@@ -6,8 +6,6 @@ MANIFEST= \
 	win32.mak \
 	win64.mak \
 	\
-	mak\posix.mak \
-	\
 	src\object_.d \
 	src\object.di \
 	\
@@ -62,8 +60,9 @@ MANIFEST= \
 	\
 	src\core\sys\freebsd\sys\event.d \
 	\
-	src\core\sys\linux\execinfo.d \
+	src\core\sys\linux\elf.d \
 	src\core\sys\linux\epoll.d \
+	src\core\sys\linux\execinfo.d \
 	\
 	src\core\sys\linux\sys\signalfd.d \
 	src\core\sys\linux\sys\xattr.d \

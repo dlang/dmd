@@ -230,7 +230,10 @@ COPY=\
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
 	\
+	$(IMPDIR)\core\sys\linux\elf.d \
+	$(IMPDIR)\core\sys\linux\epoll.d \
 	$(IMPDIR)\core\sys\linux\execinfo.d \
+	$(IMPDIR)\core\sys\linux\sys\signalfd.d \
 	$(IMPDIR)\core\sys\linux\sys\xattr.d \
 	\
 	$(IMPDIR)\core\sys\osx\execinfo.d \
@@ -268,12 +271,14 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\netinet\in_.d \
 	$(IMPDIR)\core\sys\posix\netinet\tcp.d \
 	\
+	$(IMPDIR)\core\sys\posix\sys\ioctl.d \
 	$(IMPDIR)\core\sys\posix\sys\ipc.d \
 	$(IMPDIR)\core\sys\posix\sys\mman.d \
 	$(IMPDIR)\core\sys\posix\sys\select.d \
 	$(IMPDIR)\core\sys\posix\sys\shm.d \
 	$(IMPDIR)\core\sys\posix\sys\socket.d \
 	$(IMPDIR)\core\sys\posix\sys\stat.d \
+	$(IMPDIR)\core\sys\posix\sys\statvfs.d \
 	$(IMPDIR)\core\sys\posix\sys\time.d \
 	$(IMPDIR)\core\sys\posix\sys\types.d \
 	$(IMPDIR)\core\sys\posix\sys\uio.d \
@@ -505,7 +510,16 @@ $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
@@ -589,6 +603,9 @@ $(IMPDIR)\core\sys\posix\stdio.d : src\core\sys\posix\stdio.d
 $(IMPDIR)\core\sys\posix\stdlib.d : src\core\sys\posix\stdlib.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\sys\ioctl.d : src\core\sys\posix\sys\ioctl.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\sys\ipc.d : src\core\sys\posix\sys\ipc.d
 	copy $** $@
 
@@ -605,6 +622,9 @@ $(IMPDIR)\core\sys\posix\sys\socket.d : src\core\sys\posix\sys\socket.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\stat.d : src\core\sys\posix\sys\stat.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\posix\sys\statvfs.d : src\core\sys\posix\sys\statvfs.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\posix\sys\time.d : src\core\sys\posix\sys\time.d
