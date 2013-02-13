@@ -66,6 +66,7 @@ MANIFEST=\
 	src\core\sys\freebsd\sys\event.d \
 	\
 	src\core\sys\linux\config.d \
+	src\core\sys\linux\dlfcn.d \
 	src\core\sys\linux\elf.d \
 	src\core\sys\linux\epoll.d \
 	src\core\sys\linux\execinfo.d \

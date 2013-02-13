@@ -36,24 +36,47 @@ void* dlsym(void*, in char*);
 
 version( linux )
 {
-    enum RTLD_LAZY      = 0x00001;
-    enum RTLD_NOW       = 0x00002;
-    enum RTLD_GLOBAL    = 0x00100;
-    enum RTLD_LOCAL     = 0x00000;
+    version (X86)
+    {
+        enum RTLD_LAZY      = 0x00001;
+        enum RTLD_NOW       = 0x00002;
+        enum RTLD_GLOBAL    = 0x00100;
+        enum RTLD_LOCAL     = 0x00000;
+    }
+    else version (X86_64)
+    {
+        enum RTLD_LAZY      = 0x00001;
+        enum RTLD_NOW       = 0x00002;
+        enum RTLD_GLOBAL    = 0x00100;
+        enum RTLD_LOCAL     = 0x00000;
+    }
+    else version (MIPS32)
+    {
+        enum RTLD_LAZY      = 0x0001;
+        enum RTLD_NOW       = 0x0002;
+        enum RTLD_GLOBAL    = 0x0004;
+        enum RTLD_LOCAL     = 0;
+    }
+    else
+        static assert(0, "unimplemented");
 
     int   dlclose(void*);
     char* dlerror();
     void* dlopen(in char*, int);
     void* dlsym(void*, in char*);
-    int   dladdr(void* addr, Dl_info* info);
-    void* dlvsym(void* handle, in char* symbol, in char* version_);
 
-    struct Dl_info
+    deprecated("Please use core.sys.linux.dlfcn for non-POSIX extensions")
     {
-        const(char)* dli_fname;
-        void*        dli_fbase;
-        const(char)* dli_sname;
-        void*        dli_saddr;
+        int   dladdr(void* addr, Dl_info* info);
+        void* dlvsym(void* handle, in char* symbol, in char* version_);
+
+        struct Dl_info
+        {
+            const(char)* dli_fname;
+            void*        dli_fbase;
+            const(char)* dli_sname;
+            void*        dli_saddr;
+        }
     }
 }
 else version( OSX )
