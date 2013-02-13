@@ -7104,67 +7104,23 @@ void TypeTypeof::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     toCBuffer2Helper(buf, hgs);
 }
 
-Type *TypeTypeof::semantic(Loc loc, Scope *sc)
+void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
-    Type *t;
+    *pe = NULL;
+    *pt = NULL;
+    *ps = NULL;
 
-    //printf("TypeTypeof::semantic() %s\n", toChars());
-
+    //printf("TypeTypeof::resolve(sc = %p, idents = '%s')\n", sc, toChars());
     //static int nest; if (++nest == 50) *(char*)0=0;
     if (inuse)
     {
         inuse = 2;
         error(loc, "circular typeof definition");
-        return Type::terror;
+        goto Lerr;
     }
     inuse++;
 
-#if 0
-    /* Special case for typeof(this) and typeof(super) since both
-     * should work even if they are not inside a non-static member function
-     */
-    if (exp->op == TOKthis || exp->op == TOKsuper)
-    {
-        // Find enclosing struct or class
-        for (Dsymbol *s = sc->parent; 1; s = s->parent)
-        {
-            ClassDeclaration *cd;
-            StructDeclaration *sd;
-
-            if (!s)
-            {
-                error(loc, "%s is not in a struct or class scope", exp->toChars());
-                goto Lerr;
-            }
-            cd = s->isClassDeclaration();
-            if (cd)
-            {
-                if (exp->op == TOKsuper)
-                {
-                    cd = cd->baseClass;
-                    if (!cd)
-                    {   error(loc, "class %s has no 'super'", s->toChars());
-                        goto Lerr;
-                    }
-                }
-                t = cd->type;
-                break;
-            }
-            sd = s->isStructDeclaration();
-            if (sd)
-            {
-                if (exp->op == TOKsuper)
-                {
-                    error(loc, "struct %s has no 'super'", sd->toChars());
-                    goto Lerr;
-                }
-                t = sd->type->pointerTo();
-                break;
-            }
-        }
-    }
-    else
-#endif
+    Type *t;
     {
         Scope *sc2 = sc->push();
         sc2->intypeof++;
@@ -7197,44 +7153,71 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         {   error(loc, "forward reference to %s", toChars());
             goto Lerr;
         }
-
-        t = t->addMod(mod);
-
-        /* typeof should reflect the true type,
-         * not what 'auto' would have gotten us.
-         */
-        //t = t->toHeadMutable();
     }
-    if (idents.dim)
+    if (idents.dim == 0)
+        *pt = t;
+    else
     {
-        Dsymbol *s = t->toDsymbol(sc);
-        for (size_t i = 0; i < idents.dim; i++)
+        if (Dsymbol *s = t->toDsymbol(sc))
+            resolveHelper(loc, sc, s, NULL, pe, pt, ps);
+        else
         {
-            if (!s)
-                break;
-            Identifier *id = idents[i];
-            s = s->searchX(loc, sc, id);
-        }
-
-        if (s)
-        {
-            t = s->getType();
-            if (!t)
-            {   error(loc, "%s is not a type", s->toChars());
-                goto Lerr;
+            Expression *e = new TypeExp(loc, t);
+            for (size_t i = 0; i < idents.dim; i++)
+            {
+                Identifier *id = idents[i];
+                switch (id->dyncast())
+                {
+                    case DYNCAST_IDENTIFIER:
+                        e = new DotIdExp(loc, e, id);
+                        break;
+                    case DYNCAST_DSYMBOL:
+                    {
+                        TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                        e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    default:
+                        assert(0);
+                }
+            }
+            e = e->semantic(sc);
+            if ((*ps = getDsymbol(e)) == NULL)
+            {
+                if (e->op == TOKtype)
+                    *pt = e->type;
+                else
+                    *pe = e;
             }
         }
-        else
-        {   error(loc, "cannot resolve .property for %s", toChars());
-            goto Lerr;
-        }
     }
+    if (*pt)
+        (*pt) = (*pt)->addMod(mod);
     inuse--;
-    return t;
+    return;
 
 Lerr:
+    *pt = Type::terror;
     inuse--;
-    return terror;
+    return;
+}
+
+Type *TypeTypeof::semantic(Loc loc, Scope *sc)
+{
+    //printf("TypeTypeof::semantic() %s\n", toChars());
+
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+    resolve(loc, sc, &e, &t, &s);
+    if (s && (t = s->getType()) != NULL)
+        t = t->addMod(mod);
+    if (!t)
+    {
+        error(loc, "is not a type");
+        t = Type::terror;
+    }
+    return t;
 }
 
 d_uns64 TypeTypeof::size(Loc loc)
@@ -7275,52 +7258,91 @@ Dsymbol *TypeReturn::toDsymbol(Scope *sc)
     return t->toDsymbol(sc);
 }
 
-Type *TypeReturn::semantic(Loc loc, Scope *sc)
+void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps)
 {
+    *pe = NULL;
+    *pt = NULL;
+    *ps = NULL;
+
+    //printf("TypeReturn::resolve(sc = %p, idents = '%s')\n", sc, toChars());
     Type *t;
-    FuncDeclaration *func = sc->func;
-    if (!func)
-    {   error(loc, "typeof(return) must be inside function");
-        goto Lerr;
-    }
-    if (func->fes)
-        func = func->fes->func;
-
-    t = func->type->nextOf();
-    if (!t)
     {
-        error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
-        goto Lerr;
-    }
-    t = t->addMod(mod);
+        FuncDeclaration *func = sc->func;
+        if (!func)
+        {   error(loc, "typeof(return) must be inside function");
+            goto Lerr;
+        }
+        if (func->fes)
+            func = func->fes->func;
 
-    if (idents.dim)
-    {
-        Dsymbol *s = t->toDsymbol(sc);
-        for (size_t i = 0; i < idents.dim; i++)
+        t = func->type->nextOf();
+        if (!t)
         {
-            if (!s)
-                break;
-            Identifier *id = idents[i];
-            s = s->searchX(loc, sc, id);
-        }
-        if (s)
-        {
-            t = s->getType();
-            if (!t)
-            {   error(loc, "%s is not a type", s->toChars());
-                goto Lerr;
-            }
-        }
-        else
-        {   error(loc, "cannot resolve .property for %s", toChars());
+            error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
             goto Lerr;
         }
     }
-    return t;
+    if (idents.dim == 0)
+        *pt = t;
+    else
+    {
+        if (Dsymbol *s = t->toDsymbol(sc))
+            resolveHelper(loc, sc, s, NULL, pe, pt, ps);
+        else
+        {
+            Expression *e = new TypeExp(loc, t);
+            for (size_t i = 0; i < idents.dim; i++)
+            {
+                Identifier *id = idents[i];
+                switch (id->dyncast())
+                {
+                    case DYNCAST_IDENTIFIER:
+                        e = new DotIdExp(loc, e, id);
+                        break;
+                    case DYNCAST_DSYMBOL:
+                    {
+                        TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                        e = new DotExp(loc, e, new ScopeExp(loc, ti));
+                        break;
+                    }
+                    default:
+                        assert(0);
+                }
+            }
+            e = e->semantic(sc);
+            if ((*ps = getDsymbol(e)) == NULL)
+            {
+                if (e->op == TOKtype)
+                    *pt = e->type;
+                else
+                    *pe = e;
+            }
+        }
+    }
+    if (*pt)
+        (*pt) = (*pt)->addMod(mod);
+    return;
 
 Lerr:
-    return terror;
+    *pt = Type::terror;
+    return;
+}
+
+Type *TypeReturn::semantic(Loc loc, Scope *sc)
+{
+
+    Expression *e;
+    Type *t;
+    Dsymbol *s;
+    resolve(loc, sc, &e, &t, &s);
+    if (s && (t = s->getType()) != NULL)
+        t = t->addMod(mod);
+    if (!t)
+    {
+        error(loc, "is not a type");
+        t = Type::terror;
+    }
+    return t;
 }
 
 void TypeReturn::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
