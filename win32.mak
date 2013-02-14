@@ -328,7 +328,7 @@ $(DOCDIR)\core_runtime.html : src\core\runtime.d
 $(DOCDIR)\core_simd.html : src\core\simd.d
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
-$(DOCDIR)\core_thread.html : $(IMPDIR)\core\thread.di
+$(DOCDIR)\core_thread.html : src\core\thread.di
 	$(DMD) $(DDOCFLAGS) -Df$@ $(DOCFMT) $**
 
 $(DOCDIR)\core_time.html : src\core\time.d
@@ -704,9 +704,9 @@ unittest : $(SRCS) $(DRUNTIME) src\unittest.d
 
 zip: druntime.zip
 
-druntime.zip:
+druntime.zip: doc import
 	del druntime.zip
-	zip32 -ur druntime $(MANIFEST) $(DOCS) $(IMPDIR) src\rt\minit.obj
+	zip32 -T -ur druntime $(MANIFEST) $(DOCS) $(IMPDIR) src\rt\minit.obj
 
 install: druntime.zip
 	unzip -o druntime.zip -d \dmd2\src\druntime
