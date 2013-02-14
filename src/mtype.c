@@ -7214,7 +7214,7 @@ Type *TypeTypeof::semantic(Loc loc, Scope *sc)
         t = t->addMod(mod);
     if (!t)
     {
-        error(loc, "is not a type");
+        error(loc, "%s is used as a type", toChars());
         t = Type::terror;
     }
     return t;
@@ -7330,6 +7330,7 @@ Lerr:
 
 Type *TypeReturn::semantic(Loc loc, Scope *sc)
 {
+    //printf("TypeReturn::semantic() %s\n", toChars());
 
     Expression *e;
     Type *t;
@@ -7339,7 +7340,7 @@ Type *TypeReturn::semantic(Loc loc, Scope *sc)
         t = t->addMod(mod);
     if (!t)
     {
-        error(loc, "is not a type");
+        error(loc, "%s is used as a type", toChars());
         t = Type::terror;
     }
     return t;
