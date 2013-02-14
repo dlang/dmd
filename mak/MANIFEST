@@ -1,10 +1,15 @@
-MANIFEST= \
+MANIFEST=\
 	LICENSE \
-	MANIFEST \
 	README \
 	posix.mak \
 	win32.mak \
 	win64.mak \
+	\
+	mak\COPY \
+	mak\DOCS \
+	mak\IMPORTS \
+	mak\MANIFEST \
+	mak\SRCS \
 	\
 	src\object_.d \
 	src\object.di \
