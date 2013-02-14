@@ -4837,33 +4837,22 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     {
         /* Find template declaration first.
          */
-        tempdecl = findTemplateDeclaration(sc);
-        if (!tempdecl)
-        {   if (!sc->parameterSpecialization)
-                inst = this;
-            //printf("error return %p, %d\n", tempdecl, global.errors);
-            return;             // error recovery
-        }
+        if (!findTemplateDeclaration(sc))
+            goto Lerr;
 
         /* Run semantic on each argument, place results in tiargs[]
-         * (if we have tempdecl, then tiargs is already evaluated)
          */
-        semanticTiargs(sc);
-        if (arrayObjectIsError(tiargs))
-        {   if (!sc->parameterSpecialization)
+        if (!semanticTiargs(sc))
+            goto Lerr;
+
+        if (!findBestMatch(sc, fargs))
+        {
+        Lerr:
+            if (!sc->parameterSpecialization)
                 inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             if (inst)
                 inst->errors = true;
-            return;             // error recovery
-        }
-
-        unsigned errs = global.errors;
-        tempdecl = findBestMatch(sc, fargs);
-        if (!tempdecl || (errs != global.errors))
-        {   if (!sc->parameterSpecialization)
-                inst = this;
-            //printf("error return %p, %d\n", tempdecl, global.errors);
             return;             // error recovery
         }
     }
@@ -5234,13 +5223,14 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 }
 
 
-void TemplateInstance::semanticTiargs(Scope *sc)
+bool TemplateInstance::semanticTiargs(Scope *sc)
 {
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
     if (semantictiargsdone)
-        return;
+        return true;
     semantictiargsdone = 1;
     semanticTiargs(loc, sc, tiargs, 0);
+    return arrayObjectIsError(tiargs) == 0;
 }
 
 /**********************************
@@ -5435,7 +5425,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
  * Find template declaration corresponding to template instance.
  */
 
-TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
+bool TemplateInstance::findTemplateDeclaration(Scope *sc)
 {
     //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
     if (!tempdecl)
@@ -5457,7 +5447,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
                 error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
             else
                 error("template '%s' is not defined", id->toChars());
-            return NULL;
+            return false;
         }
 
         /* If an OverloadSet, look for a unique member that is a template declaration
@@ -5476,7 +5466,7 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
             }
             if (!s)
             {   error("template '%s' is not defined", id->toChars());
-                return NULL;
+                return false;
             }
         }
 
@@ -5515,13 +5505,13 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
         if (!tempdecl)
         {
             if (!s->parent && global.errors)
-                return NULL;
+                return false;
             if (!s->parent && s->getType())
             {   Dsymbol *s2 = s->getType()->toDsymbol(sc);
                 if (!s2)
                 {
                     error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                    return NULL;
+                    return false;
                 }
                 s = s2;
             }
@@ -5547,16 +5537,16 @@ TemplateDeclaration *TemplateInstance::findTemplateDeclaration(Scope *sc)
             else
             {
                 error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                return NULL;
+                return false;
             }
         }
     }
     else
         assert(tempdecl->isTemplateDeclaration());
-    return tempdecl;
+    return (tempdecl != NULL);
 }
 
-TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
+bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 {
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
@@ -5565,6 +5555,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
     TemplateDeclaration *td_best = NULL;
     MATCH m_best = MATCHnomatch;
     Objects dedtypes;
+    unsigned errs = global.errors;
 
 #if LOG
     printf("TemplateInstance::findBestMatch()\n");
@@ -5587,7 +5578,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
             if (!td->semanticRun)
             {
                 error("%s forward references template declaration %s", toChars(), td->toChars());
-                return NULL;
+                return false;
             }
         }
     }
@@ -5658,7 +5649,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
-        return NULL;
+        return false;
     }
     if (td_ambig)
     {
@@ -5694,7 +5685,7 @@ TemplateDeclaration *TemplateInstance::findBestMatch(Scope *sc, Expressions *far
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
 #endif
-    return tempdecl;
+    return (errs == global.errors) && tempdecl;
 }
 
 
@@ -5980,8 +5971,9 @@ void TemplateInstance::declareParameters(Scope *sc)
 int TemplateInstance::needsTypeInference(Scope *sc)
 {
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
-    if (!tempdecl)
-        tempdecl = findTemplateDeclaration(sc);
+    if (!findTemplateDeclaration(sc))
+        return FALSE;
+
     int multipleMatches = FALSE;
     for (TemplateDeclaration *td = tempdecl; td; td = td->overnext)
     {
@@ -6407,13 +6399,15 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Run semantic on each argument, place results in tiargs[]
-    semanticTiargs(sc);
-    if (errors || arrayObjectIsError(tiargs))
-        return;
+    if (!semanticTiargs(sc)/* || errors*/)
+        goto Lerr;
 
-    tempdecl = findBestMatch(sc, NULL);
-    if (!tempdecl)
-    {   inst = this;
+    // Find best match template with tiargs
+    if (!findBestMatch(sc, NULL))
+    {
+    Lerr:
+        inst = this;
+        inst->errors = true;    //?
         return;         // error recovery
     }
 
