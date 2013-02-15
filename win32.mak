@@ -253,6 +253,12 @@ $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\config.d : src\core\sys\linux\config.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\dlfcn.d : src\core\sys\linux\dlfcn.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 	copy $** $@
 
@@ -260,6 +266,9 @@ $(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
