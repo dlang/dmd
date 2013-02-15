@@ -2346,8 +2346,7 @@ unittest
     assert(aa4.byValue.front == "onetwothreefourfive");
 }
 
-// Scheduled for deprecation in December 2012.
-// Please use destroy instead of clear.
+deprecated("Please use destroy instead of clear.")
 alias destroy clear;
 
 /++
