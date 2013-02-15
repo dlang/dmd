@@ -330,7 +330,7 @@ struct OverloadSet : Dsymbol
 {
     Dsymbols a;         // array of Dsymbols
 
-    OverloadSet();
+    OverloadSet(Identifier *ident);
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();

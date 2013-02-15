@@ -47,6 +47,7 @@ Dsymbol::Dsymbol()
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
+    this->depmsg = NULL;
     this->userAttributes = NULL;
     this->unittest = NULL;
 }
@@ -793,8 +794,8 @@ void Dsymbol::addComment(unsigned char *comment)
 /********************************* OverloadSet ****************************/
 
 #if DMDV2
-OverloadSet::OverloadSet()
-    : Dsymbol()
+OverloadSet::OverloadSet(Identifier *ident)
+    : Dsymbol(ident)
 {
 }
 
@@ -908,7 +909,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          */
                         if (s2->isOverloadable() && (a || s->isOverloadable()))
                         {   if (!a)
-                                a = new OverloadSet();
+                                a = new OverloadSet(s->ident);
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
                             for (size_t j = 0; j < a->a.dim; j++)
