@@ -115,6 +115,7 @@ struct CompilerDSOData
 
 T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
 
+package // dmain weak linkage
 extern(C) void _d_dso_registry(CompilerDSOData* data)
 {
     // only one supported currently
