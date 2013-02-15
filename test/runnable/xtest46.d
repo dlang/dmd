@@ -5801,6 +5801,37 @@ struct X164()
 
 
 /***************************************************/
+// 9504
+
+struct Bar9504
+{
+    template Abc(T)
+    {
+        T y;
+    }
+
+    enum size_t num = 123;
+
+    class Def {}
+}
+
+template GetSym9504(alias sym) { static assert(__traits(isSame, sym, Bar9504.Abc)); }
+template GetExp9504(size_t n) { static assert(n == Bar9504.num); }
+template GetTyp9504(T) { static assert(is(T == Bar9504.Def)); }
+
+alias GetSym9504!(typeof(Bar9504.init).Abc) X9504; // NG
+alias GetExp9504!(typeof(Bar9504.init).num) Y9504; // NG
+alias GetTyp9504!(typeof(Bar9504.init).Def) Z9504;
+
+Bar9504 test9504()
+{
+    alias GetSym9504!(typeof(return).Abc) V9504; // NG
+    alias GetExp9504!(typeof(return).num) W9504; // NG
+    alias GetTyp9504!(typeof(return).Def) X9504;
+    return Bar9504();
+}
+
+/***************************************************/
 
 int main()
 {
