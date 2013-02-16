@@ -661,7 +661,7 @@ struct OverExp : Expression
 {
     OverloadSet *vars;
 
-    OverExp(OverloadSet *s);
+    OverExp(Loc loc, OverloadSet *s);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
 };
