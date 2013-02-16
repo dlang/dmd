@@ -5120,7 +5120,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 
 #if DMDV2
 OverExp::OverExp(OverloadSet *s)
-        : Expression(loc, TOKoverloadset, sizeof(OverExp))
+        : Expression(s->loc, TOKoverloadset, sizeof(OverExp))
 {
     //printf("OverExp(this = %p, '%s')\n", this, var->toChars());
     vars = s;
