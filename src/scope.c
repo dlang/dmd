@@ -243,7 +243,7 @@ void Scope::mergeCallSuper(Loc loc, unsigned cs)
     }
 }
 
-Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
+Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym, int flags)
 {   Dsymbol *s;
     Scope *sc;
 
@@ -275,14 +275,14 @@ Dsymbol *Scope::search(Loc loc, Identifier *ident, Dsymbol **pscopesym)
         if (sc->scopesym)
         {
             //printf("\tlooking in scopesym '%s', kind = '%s'\n", sc->scopesym->toChars(), sc->scopesym->kind());
-            s = sc->scopesym->search(loc, ident, 0);
+            s = sc->scopesym->search(loc, ident, flags);
             if (s)
             {
                 if (global.params.Dversion > 1 &&
                     ident == Id::length &&
                     sc->scopesym->isArrayScopeSymbol() &&
                     sc->enclosing &&
-                    sc->enclosing->search(loc, ident, NULL))
+                    sc->enclosing->search(loc, ident, NULL, flags))
                 {
                     warning(s->loc, "array 'length' hides other 'length' name in outer scope");
                 }
@@ -411,7 +411,7 @@ void *scope_search_fp(void *arg, const char *seed)
 
     Scope *sc = (Scope *)arg;
     Module::clearCache();
-    Dsymbol *s = sc->search(0, id, NULL);
+    Dsymbol *s = sc->search(0, id, NULL, SEARCHforImported);
     return s;
 }
 

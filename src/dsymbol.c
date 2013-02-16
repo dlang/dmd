@@ -400,7 +400,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return s->search(0, id, 4|2);
+    return s->search(0, id, SEARCHdontSeeAmbig | SEARCHdontErrPriv);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -871,7 +871,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            s2 = ss->search(loc, ident, ss->isModule() ? SEARCHforImported : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)

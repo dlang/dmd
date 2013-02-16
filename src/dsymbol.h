@@ -163,7 +163,12 @@ struct Dsymbol : Object
     virtual void semantic2(Scope *sc);
     virtual void semantic3(Scope *sc);
     virtual void inlineScan();
+
+    #define SEARCHforImported   1  // ignore private imports
+    #define SEARCHdontErrPriv   2  // return symbol and don't error if private symbol found
+    #define SEARCHdontSeeAmbig  4  // return NULL and don't error if private symbol found
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
+
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
