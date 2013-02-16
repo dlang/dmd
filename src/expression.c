@@ -3025,7 +3025,7 @@ Lagain:
     o = s->isOverloadSet();
     if (o)
     {   //printf("'%s' is an overload set\n", o->toChars());
-        return new OverExp(o);
+        return new OverExp(loc, o);
     }
     imp = s->isImport();
     if (imp)
@@ -5119,8 +5119,8 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 /******************************** OverExp **************************/
 
 #if DMDV2
-OverExp::OverExp(OverloadSet *s)
-        : Expression(s->loc, TOKoverloadset, sizeof(OverExp))
+OverExp::OverExp(Loc loc, OverloadSet *s)
+        : Expression(loc, TOKoverloadset, sizeof(OverExp))
 {
     //printf("OverExp(this = %p, '%s')\n", this, var->toChars());
     vars = s;
@@ -6819,7 +6819,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             OverloadSet *o = s->isOverloadSet();
             if (o)
             {   //printf("'%s' is an overload set\n", o->toChars());
-                return new OverExp(o);
+                return new OverExp(loc, o);
             }
 #endif
 
