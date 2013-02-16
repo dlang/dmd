@@ -8151,7 +8151,7 @@ L1:
     OverloadSet *o = s->isOverloadSet();
     if (o)
     {
-        OverExp *oe = new OverExp(o);
+        OverExp *oe = new OverExp(e->loc, o);
         if (e->op == TOKtype)
             return oe;
         return new DotExp(e->loc, e, oe);
@@ -8752,7 +8752,7 @@ L1:
     OverloadSet *o = s->isOverloadSet();
     if (o)
     {
-        OverExp *oe = new OverExp(o);
+        OverExp *oe = new OverExp(e->loc, o);
         if (e->op == TOKtype)
             return oe;
         return new DotExp(e->loc, e, oe);
