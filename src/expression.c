@@ -7575,7 +7575,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
         {   TypeAArray *taa = (TypeAArray *)t;
             assert(taa->ty == Taarray);
             StructDeclaration *sd = taa->getImpl();
-            Dsymbol *s = sd->search(0, ident, 2);
+            Dsymbol *s = sd->search(0, ident, SEARCHdontErrPriv);
             if (s)
                 return NULL;
             goto Lshift;
