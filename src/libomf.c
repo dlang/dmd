@@ -59,7 +59,7 @@ class LibOMF : public Library
     void addSymbol(ObjModule *om, char *name, int pickAny = 0);
     void scanObjModule(ObjModule *om);
     unsigned short numDictPages(unsigned padding);
-    int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
+    bool FillDict(unsigned char *bucketsP, unsigned short uNumPages);
     void WriteLibToBuffer(OutBuffer *libbuf);
 
     void error(const char *format, ...)
@@ -424,7 +424,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
         file.readv();
         buf = file.buffer;
         buflen = file.len;
-        file.ref = 1;
+        file.ref = true;
     }
 
     unsigned g_page_size;
@@ -764,7 +764,7 @@ static int EnterDict( unsigned char *bucketsP, unsigned short ndicpages, unsigne
  *      0       failure
  */
 
-int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
+bool LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
 {
     unsigned char entry[4 + LIBIDMAX + 2 + 1];
 
@@ -791,7 +791,7 @@ int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
         if ( n & 1 )
             entry[ n + 2 + 2 ] = 0;
         if ( !EnterDict( bucketsP, ndicpages, entry, n + 1 ) )
-            return 0;
+            return false;
     }
 
     // Sort the symbols
@@ -818,10 +818,10 @@ int LibOMF::FillDict(unsigned char *bucketsP, unsigned short ndicpages)
             entry[ n + 3] = 0;
         if ( !EnterDict( bucketsP, ndicpages, entry, n ) )
         {
-            return 0;
+            return false;
         }
     }
-    return 1;
+    return true;
 }
 
 

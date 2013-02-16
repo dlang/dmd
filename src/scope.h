@@ -60,13 +60,13 @@ struct Scope
                                 // semantic() to be done in the lexical field order. It should be
                                 // set in a pass after semantic() on all fields so they can be
                                 // semantic'd in any order.
-    int inunion;                // we're processing members of a union
-    int nofree;                 // set if shouldn't free it
-    int noctor;                 // set if constructor calls aren't allowed
-    int intypeof;               // in typeof(exp)
-    bool speculative;            // in __traits(compiles) or typeof(exp)
-    int parameterSpecialization; // if in template parameter specialization
-    int noaccesscheck;          // don't do access checks
+    bool inunion;               // we're processing members of a union
+    bool nofree;                // set if shouldn't free it
+    bool parameterSpecialization; // if in template parameter specialization
+    bool noaccesscheck;         // don't do access checks
+    bool speculative;           // in __traits(compiles) or typeof(exp)
+    bool intypeof;              // in typeof(exp)
+    int noctor;                 // count if constructor calls aren't allowed
     int mustsemantic;           // cannot defer semantic()
 
     unsigned callSuper;         // primitive flow analysis for constructors
@@ -82,7 +82,7 @@ struct Scope
     enum LINK linkage;          // linkage for external functions
 
     enum PROT protection;       // protection for class members
-    int explicitProtection;     // set if in an explicit protection attribute
+    bool explicitProtection;    // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
     char *depmsg;               // customized deprecation message

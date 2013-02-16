@@ -221,7 +221,7 @@ code *REGSAVE::save(code *c, int reg, unsigned *pidx)
         if (I64)
             code_orrex(c, REX_W);
     }
-    reflocal = TRUE;
+    reflocal = true;
     if (idx > top)
         top = idx;              // keep high water mark
     *pidx = i;
@@ -1744,7 +1744,7 @@ void cod3_ptrchk(code **pc,code *pcs,regm_t keepmsk)
         {
             int push,pop;
 
-            stackchanged = 1;
+            stackchanged = true;
             if (i == ES)
             {   push = 0x06;
                 pop = 0x07;

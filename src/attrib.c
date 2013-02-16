@@ -63,9 +63,9 @@ int AttribDeclaration::apply(Dsymbol_apply_ft_t fp, void *param)
     return 0;
 }
 
-int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    int m = 0;
+    bool m = false;
     Dsymbols *d = include(sc, sd);
 
     if (d)
@@ -80,7 +80,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, enum PROT protection, bool explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -115,7 +115,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, enum PROT protection, bool explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -273,7 +273,7 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
     }
 }
 
-int AttribDeclaration::hasPointers()
+bool AttribDeclaration::hasPointers()
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -283,10 +283,10 @@ int AttribDeclaration::hasPointers()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasPointers())
-                return 1;
+                return true;
         }
     }
-    return 0;
+    return false;
 }
 
 bool AttribDeclaration::hasStaticCtorOrDtor()
@@ -299,10 +299,10 @@ bool AttribDeclaration::hasStaticCtorOrDtor()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasStaticCtorOrDtor())
-                return TRUE;
+                return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 const char *AttribDeclaration::kind()
@@ -310,7 +310,7 @@ const char *AttribDeclaration::kind()
     return "attribute";
 }
 
-int AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -392,10 +392,9 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
     return scd;
 }
 
-int StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
-
-    int t = Dsymbol::oneMembers(decl, ps, ident);
+    bool t = Dsymbol::oneMembers(decl, ps, ident);
     if (t && *ps)
     {
         /* This is to deal with the following case:
@@ -713,14 +712,13 @@ void ProtDeclaration::setScope(Scope *sc)
 void ProtDeclaration::importAll(Scope *sc)
 {
     Scope *newsc = sc;
-    if (sc->protection != protection ||
-       sc->explicitProtection != 1)
+    if (sc->protection != protection || !sc->explicitProtection)
     {
        // create new one for changes
        newsc = new Scope(*sc);
        newsc->flags &= ~SCOPEfree;
        newsc->protection = protection;
-       newsc->explicitProtection = 1;
+       newsc->explicitProtection = true;
     }
 
     for (size_t i = 0; i < decl->dim; i++)
@@ -812,7 +810,7 @@ AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Dsymbols *decl)
     this->loc = loc;
     this->alignment = 0;
     this->isunion = isunion;
-    this->sem = 0;
+    this->sem = false;
 }
 
 Dsymbol *AnonDeclaration::syntaxCopy(Dsymbol *s)
@@ -1140,10 +1138,10 @@ Lnodecl:
     }
 }
 
-int PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 const char *PragmaDeclaration::kind()
@@ -1229,7 +1227,7 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
     if (condition->inc)
@@ -1238,7 +1236,7 @@ int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
         return Dsymbol::oneMembers(d, ps, ident);
     }
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void ConditionalDeclaration::emitComment(Scope *sc)
@@ -1419,7 +1417,7 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
     }
 }
 
-int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("StaticIfDeclaration::addMember() '%s'\n",toChars());
     /* This is deferred until semantic(), so that
@@ -1434,7 +1432,7 @@ int StaticIfDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
      * }
      */
     this->sd = sd;
-    int m = 0;
+    bool m = false;
 
     if (memnum == 0)
     {   m = AttribDeclaration::addMember(sc, sd, memnum);
@@ -1505,7 +1503,7 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
     return sc;
 }
 
-int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
     this->sd = sd;

@@ -86,7 +86,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
  * We need to generate one if a user-specified one does not exist.
  */
 
-int StructDeclaration::needOpAssign()
+bool StructDeclaration::needOpAssign()
 {
 #define X 0
     if (X) printf("StructDeclaration::needOpAssign() %s\n", toChars());
@@ -121,11 +121,11 @@ int StructDeclaration::needOpAssign()
     }
 Ldontneed:
     if (X) printf("\tdontneed\n");
-    return 0;
+    return false;
 
 Lneed:
     if (X) printf("\tneed\n");
-    return 1;
+    return true;
 #undef X
 }
 
@@ -159,7 +159,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
-    Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
+    Type *ftype = new TypeFunction(fparams, handle, false, LINKd);
     ((TypeFunction *)ftype)->isref = 1;
 
     FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
@@ -176,7 +176,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         if (dtor)
         {
             tmp = new VarDeclaration(0, type, idtmp, new VoidInitializer(0));
-            tmp->noscope = 1;
+            tmp->noscope = true;
             tmp->storage_class |= STCctfe;
             e = new DeclarationExp(0, tmp);
             ec = new AssignExp(0,
@@ -273,7 +273,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
  * Generate one if a user-specified one does not exist.
  */
 
-int StructDeclaration::needOpEquals()
+bool StructDeclaration::needOpEquals()
 {
 #define X 0
     if (X) printf("StructDeclaration::needOpEquals() %s\n", toChars());
@@ -318,11 +318,11 @@ int StructDeclaration::needOpEquals()
     }
 Ldontneed:
     if (X) printf("\tdontneed\n");
-    return 0;
+    return false;
 
 Lneed:
     if (X) printf("\tneed\n");
-    return 1;
+    return true;
 #undef X
 }
 
@@ -525,7 +525,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
         Parameters *fparams = new Parameters;
         fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
-        Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd, stc);
+        Type *ftype = new TypeFunction(fparams, Type::tvoid, false, LINKd, stc);
         ftype->mod = MODconst;
 
         fcp = new FuncDeclaration(loc, 0, Id::cpctor, stc, ftype);

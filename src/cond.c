@@ -34,11 +34,11 @@ int findCondition(Strings *ids, Identifier *ident)
             const char *id = (*ids)[i];
 
             if (strcmp(id, ident->toChars()) == 0)
-                return TRUE;
+                return true;
         }
     }
 
-    return FALSE;
+    return false;
 }
 
 /* ============================================================ */
@@ -275,9 +275,9 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {   exp = e;
             inc = 0;
         }
-        else if (e->isBool(TRUE))
+        else if (e->isBool(true))
             inc = 1;
-        else if (e->isBool(FALSE))
+        else if (e->isBool(false))
             inc = 2;
         else
         {
@@ -338,8 +338,8 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
         }
         else if (id && tspec)
         {
-            /* Evaluate to TRUE if targ matches tspec.
-             * If TRUE, declare id as an alias for the specialized type.
+            /* Evaluate to true if targ matches tspec.
+             * If true, declare id as an alias for the specialized type.
              */
 
             MATCH m;
@@ -371,7 +371,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
         }
         else if (id)
         {
-            /* Declare id as an alias for type targ. Evaluate to TRUE
+            /* Declare id as an alias for type targ. Evaluate to true
              */
             Dsymbol *s = new AliasDeclaration(loc, id, targ);
             s->semantic(sc);
@@ -382,7 +382,7 @@ int IftypeCondition::include(Scope *sc, ScopeDsymbol *sd)
         }
         else if (tspec)
         {
-            /* Evaluate to TRUE if targ matches tspec
+            /* Evaluate to true if targ matches tspec
              */
             tspec = tspec->semantic(loc, sc);
             //printf("targ  = %s\n", targ->toChars());

@@ -3009,11 +3009,11 @@ elem *AssignExp::toElem(IRState *irs)
 
                 Symbol *symSave = se->sym;
                 size_t soffsetSave = se->soffset;
-                int fillHolesSave = se->fillHoles;
+                bool fillHolesSave = se->fillHoles;
 
                 se->sym = ex->EV.sp.Vsym;
                 se->soffset = 0;
-                se->fillHoles = (op == TOKconstruct || op == TOKblit) ? 1 : 0;
+                se->fillHoles = (op == TOKconstruct || op == TOKblit);
 
                 el_free(e1);
                 e = this->e2->toElem(irs);

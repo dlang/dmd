@@ -349,7 +349,7 @@ Expression *BinExp::arrayOp(Scope *sc)
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;
-            fd->isArrayOp = 1;
+            fd->isArrayOp = true;
 
             sc->module->importedFrom->members->push(fd);
 
@@ -622,11 +622,11 @@ X(Pow)
  * Test if operand is a valid array op operand.
  */
 
-int Expression::isArrayOperand()
+bool Expression::isArrayOperand()
 {
     //printf("Expression::isArrayOperand() %s\n", toChars());
     if (op == TOKslice)
-        return 1;
+        return true;
     if (type->toBasetype()->ty == Tarray)
     {
         switch (op)
@@ -654,11 +654,11 @@ int Expression::isArrayOperand()
 #endif
             case TOKneg:
             case TOKtilde:
-                return 1;
+                return true;
 
             default:
                 break;
         }
     }
-    return 0;
+    return false;
 }

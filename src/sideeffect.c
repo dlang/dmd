@@ -31,7 +31,7 @@ int lambdaHasSideEffect(Expression *e, void *param);
 
 bool Expression::hasSideEffect()
 {
-    bool has = FALSE;
+    bool has = false;
     apply(&lambdaHasSideEffect, &has);
     return has;
 }
@@ -68,7 +68,7 @@ int lambdaHasSideEffect(Expression *e, void *param)
         case TOKdelete:
         case TOKnew:
         case TOKnewanonclass:
-            *phas = TRUE;
+            *phas = true;
             break;
 
         case TOKcall:
@@ -89,7 +89,7 @@ int lambdaHasSideEffect(Expression *e, void *param)
                 {
                 }
                 else
-                    *phas = TRUE;
+                    *phas = true;
             }
             break;
         }
@@ -101,7 +101,7 @@ int lambdaHasSideEffect(Expression *e, void *param)
              *  cast(classtype)func()  // because it may throw
              */
             if (ce->to->ty == Tclass && ce->e1->op == TOKcall && ce->e1->type->ty == Tclass)
-                *phas = TRUE;
+                *phas = true;
             break;
         }
 
@@ -118,7 +118,7 @@ int lambdaHasSideEffect(Expression *e, void *param)
  */
 void Expression::discardValue()
 {
-    bool has = FALSE;
+    bool has = false;
     lambdaHasSideEffect(this, &has);
     if (!has)
     {

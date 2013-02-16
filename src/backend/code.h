@@ -209,11 +209,11 @@ extern  targ_size_t startoffset;
 extern  targ_size_t retoffset;
 extern  targ_size_t retsize;
 extern  unsigned stackpush;
-extern  int stackchanged;
-extern  int refparam;
-extern  int reflocal;
+extern  bool stackchanged;
+extern  bool refparam;
+extern  bool reflocal;
 extern  bool anyiasm;
-extern  char calledafunc;
+extern  bool calledafunc;
 extern  code *(*cdxxx[])(elem *,regm_t *);
 
 void stackoffsets(int);

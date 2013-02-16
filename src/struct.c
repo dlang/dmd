@@ -36,7 +36,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     handle = NULL;
     structsize = 0;             // size of struct
     alignsize = 0;              // size of struct for alignment purposes
-    hasUnions = 0;
+    hasUnions = false;
     sizeok = SIZEOKnone;        // size not determined yet
     deferred = NULL;
     isdeprecated = false;
@@ -53,7 +53,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     ctor = NULL;
     defaultCtor = NULL;
     aliasthis = NULL;
-    noDefaultCtor = FALSE;
+    noDefaultCtor = false;
 #endif
     dtor = NULL;
     getRTInfo = NULL;
@@ -197,12 +197,12 @@ Type *AggregateDeclaration::getType()
     return type;
 }
 
-int AggregateDeclaration::isDeprecated()
+bool AggregateDeclaration::isDeprecated()
 {
     return isdeprecated;
 }
 
-int AggregateDeclaration::isExport()
+bool AggregateDeclaration::isExport()
 {
     return protection == PROTexport;
 }
@@ -291,7 +291,7 @@ unsigned AggregateDeclaration::placeField(
  * pointer to the enclosing context (enclosing aggregate or function)
  */
 
-int AggregateDeclaration::isNested()
+bool AggregateDeclaration::isNested()
 {
     assert((isnested & ~1) == 0);
     return isnested;
@@ -446,9 +446,9 @@ void StructDeclaration::semantic(Scope *sc)
     sc2->stc &= STCsafe | STCtrusted | STCsystem;
     sc2->parent = this;
     if (isUnionDeclaration())
-        sc2->inunion = 1;
+        sc2->inunion = true;
     sc2->protection = PROTpublic;
-    sc2->explicitProtection = 0;
+    sc2->explicitProtection = false;
     sc2->structalign = STRUCTALIGN_DEFAULT;
     sc2->userAttributes = NULL;
 
@@ -822,7 +822,7 @@ const char *StructDeclaration::kind()
 UnionDeclaration::UnionDeclaration(Loc loc, Identifier *id)
     : StructDeclaration(loc, id)
 {
-    hasUnions = 1;
+    hasUnions = true;
 }
 
 Dsymbol *UnionDeclaration::syntaxCopy(Dsymbol *s)

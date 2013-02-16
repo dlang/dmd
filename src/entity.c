@@ -499,7 +499,7 @@ static NameId namesD[]={
         "DoubleLongLeftRightArrow", 0x027FA,  // LONG LEFT RIGHT DOUBLE ARROW
         "DoubleLongRightArrow", 0x027F9,  // LONG RIGHTWARDS DOUBLE ARROW
         "DoubleRightArrow", 0x021D2,  // RIGHTWARDS DOUBLE ARROW
-        "DoubleRightTee",   0x022A8,  // TRUE
+        "DoubleRightTee",   0x022A8,  // true
         "DoubleUpArrow",    0x021D1,  // UPWARDS DOUBLE ARROW
         "DoubleUpDownArrow", 0x021D5,  // UP DOWN DOUBLE ARROW
         "DoubleVerticalBar", 0x02225,  // PARALLEL TO
@@ -1440,7 +1440,7 @@ static NameId namesN[]={
         "numsp",            0x02007,  // FIGURE SPACE
 //      "nvap",             0x0224D;0x020D2,  // EQUIVALENT TO with vertical line
         "nvdash",           0x022AC,  // DOES NOT PROVE
-        "nvDash",           0x022AD,  // NOT TRUE
+        "nvDash",           0x022AD,  // NOT true
         "nVdash",           0x022AE,  // DOES NOT FORCE
         "nVDash",           0x022AF,  // NEGATED DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
 //      "nvge",             0x02265;0x020D2,  // GREATER-THAN OR EQUAL TO with vertical line
@@ -2219,7 +2219,7 @@ static NameId namesV[]={
         "Vcy",              0x00412,  // CYRILLIC CAPITAL LETTER VE
         "vcy",              0x00432,  // CYRILLIC SMALL LETTER VE
         "vdash",            0x022A2,  // RIGHT TACK
-        "vDash",            0x022A8,  // TRUE
+        "vDash",            0x022A8,  // true
         "Vdash",            0x022A9,  // FORCES
         "VDash",            0x022AB,  // DOUBLE VERTICAL BAR DOUBLE RIGHT TURNSTILE
         "Vdashl",           0x02AE6,  // LONG DASH FROM LEFT MEMBER OF DOUBLE VERTICAL

@@ -40,7 +40,7 @@ struct Object
     Object() { }
     virtual ~Object() { }
 
-    virtual int equals(Object *o);
+    virtual bool equals(Object *o);
 
     /**
      * Returns a hash code, useful for things like building hash tables of Objects.
@@ -85,7 +85,7 @@ struct String : Object
     static hash_t calcHash(const char *str);
     hash_t hashCode();
     size_t len();
-    int equals(Object *obj);
+    bool equals(Object *obj);
     int compare(Object *obj);
     char *toChars();
     void print();
@@ -96,8 +96,8 @@ struct FileName : String
 {
     FileName(const char *str);
     hash_t hashCode();
-    int equals(Object *obj);
-    static int equals(const char *name1, const char *name2);
+    bool equals(Object *obj);
+    static bool equals(const char *name1, const char *name2);
     int compare(Object *obj);
     static int compare(const char *name1, const char *name2);
     static int absolute(const char *name);
@@ -113,9 +113,9 @@ struct FileName : String
     static Strings *splitPath(const char *path);
     static const char *defaultExt(const char *name, const char *ext);
     static const char *forceExt(const char *name, const char *ext);
-    static int equalsExt(const char *name, const char *ext);
+    static bool equalsExt(const char *name, const char *ext);
 
-    int equalsExt(const char *ext);
+    bool equalsExt(const char *ext);
 
     void CopyTo(FileName *to);
     static const char *searchPath(Strings *path, const char *name, int cwd);
@@ -130,9 +130,9 @@ struct FileName : String
 
 struct File : Object
 {
-    int ref;                    // != 0 if this is a reference to someone else's buffer
-    unsigned char *buffer;      // data for our file
+    bool ref;                   // != 0 if this is a reference to someone else's buffer
     size_t len;                 // amount of data in buffer[]
+    unsigned char *buffer;      // data for our file
     void *touchtime;            // system time to use for file
 
     FileName *name;             // name of our file

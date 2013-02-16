@@ -490,7 +490,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
 #if LOG
     printf("LibMach::addObject(%s)\n", module_name);
 #endif
-    int fromfile = 0;
+    bool fromfile = false;
     if (!buf)
     {   assert(module_name[0]);
         FileName f((char *)module_name);
@@ -498,8 +498,8 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
         file.readv();
         buf = file.buffer;
         buflen = file.len;
-        file.ref = 1;
-        fromfile = 1;
+        file.ref = true;
+        fromfile = true;
     }
     int reason = 0;
 

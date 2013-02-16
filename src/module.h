@@ -66,20 +66,20 @@ struct Module : Package
     File *docfile;      // output documentation file
     unsigned errors;    // if any errors in file
     unsigned numlines;  // number of lines in source file
-    int isDocFile;      // if it is a documentation input file, not D source
-    int needmoduleinfo;
+    bool isDocFile;     // if it is a documentation input file, not D source
+    bool needmoduleinfo;
 
-    int selfimports;            // 0: don't know, 1: does not, 2: does
+    uint8_t selfimports;        // 0: don't know, 1: does not, 2: does
     int selfImports();          // returns !=0 if module imports itself
 
-    int insearch;
+    bool insearch;
     Identifier *searchCacheIdent;
     Dsymbol *searchCacheSymbol; // cached value of search
     int searchCacheFlags;       // cached flags
 
-    int semanticstarted;        // has semantic() been started?
-    int semanticRun;            // has semantic() been done?
-    int root;                   // != 0 if this is a 'root' module,
+    uint8_t semanticstarted;    // has semantic() been started?
+    uint8_t semanticRun;        // has semantic() been done?
+    bool root;                  // != 0 if this is a 'root' module,
                                 // i.e. a module that will be taken all the
                                 // way to an object file
     Module *importedFrom;       // module from command line we're imported from,
@@ -140,7 +140,7 @@ struct Module : Package
 
     // Back end
 
-    int doppelganger;           // sub-module
+    bool doppelganger;           // sub-module
     Symbol *cov;                // private uint[] __coverage;
     unsigned *covb;             // bit array of valid code line numbers
 

@@ -221,7 +221,7 @@ void Import::semantic(Scope *sc)
 
         if (mod->needmoduleinfo)
         {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            sc->module->needmoduleinfo = true;
         }
 
         sc = sc->push(mod);
@@ -335,7 +335,7 @@ void Import::semantic2(Scope *sc)
         mod->semantic2();
         if (mod->needmoduleinfo)
         {   //printf("module5 %s because of %s\n", sc->module->toChars(), mod->toChars());
-            sc->module->needmoduleinfo = 1;
+            sc->module->needmoduleinfo = true;
         }
     }
 }
@@ -351,9 +351,9 @@ Dsymbol *Import::toAlias()
  * Add import to sd's symbol table.
  */
 
-int Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+bool Import::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
-    int result = 0;
+    bool result = false;
 
     if (names.dim == 0)
         return Dsymbol::addMember(sc, sd, memnum);
@@ -395,7 +395,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     return pkg->search(loc, ident, flags);
 }
 
-int Import::overloadInsert(Dsymbol *s)
+bool Import::overloadInsert(Dsymbol *s)
 {
     /* Allow multiple imports with the same package base, but disallow
      * alias collisions (Bugzilla 5412).

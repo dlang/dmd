@@ -1168,7 +1168,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
      * will result in a copy.
      * The this->string member is considered immutable.
      */
-    int copied = 0;
+    bool copied = false;
 
     //printf("StringExp::castTo(t = %s), '%s' committed = %d\n", t->toChars(), toChars(), committed);
 
@@ -1182,7 +1182,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (!committed)
     {   se = (StringExp *)copy();
         se->committed = 1;
-        copied = 1;
+        copied = true;
     }
 
     if (type == t)
@@ -1200,7 +1200,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     {
         if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         se->type = t;
         return se;
@@ -1221,14 +1221,14 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     if (tb->ty != Tsarray && tb->ty != Tarray && tb->ty != Tpointer)
     {   if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         goto Lcast;
     }
     if (typeb->ty != Tsarray && typeb->ty != Tarray && typeb->ty != Tpointer)
     {   if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         goto Lcast;
     }
@@ -1237,7 +1237,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
     {
         if (!copied)
         {   se = (StringExp *)copy();
-            copied = 1;
+            copied = true;
         }
         if (tb->ty == Tsarray)
             goto L2;    // handle possible change in static array dimension
@@ -1342,7 +1342,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         L1:
             if (!copied)
             {   se = (StringExp *)copy();
-                copied = 1;
+                copied = true;
             }
             se->string = buffer.extractData();
             se->len = newlen;
@@ -2026,7 +2026,7 @@ bool isVoidArrayLiteral(Expression *e, Type *other)
  *      0       failed
  */
 
-int typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
+bool typeMerge(Scope *sc, Expression *e, Type **pt, Expression **pe1, Expression **pe2)
 {
     //printf("typeMerge() %s op %s\n", (*pe1)->toChars(), (*pe2)->toChars());
     //e->dump(0);
@@ -2524,7 +2524,7 @@ Lcc:
     else
     {
      Lincompatible:
-        return 0;
+        return false;
     }
 Lret:
     if (!*pt)
@@ -2538,7 +2538,7 @@ Lret:
     printf("\ttype = %s\n", t->toChars());
 #endif
     //dump(0);
-    return 1;
+    return true;
 
 
 Lt1:
@@ -2617,13 +2617,13 @@ Expression *Expression::integralPromotions(Scope *sc)
 
 /***********************************
  * See if both types are arrays that can be compared
- * for equality. Return !=0 if so.
+ * for equality. Return true if so.
  * If they are arrays, but incompatible, issue error.
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
 
-int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();
@@ -2637,9 +2637,9 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
         {
             error(loc, "array equality comparison type mismatch, %s vs %s", t1->toChars(), t2->toChars());
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 /***********************************
@@ -2648,7 +2648,7 @@ int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
  * This is to enable comparing things like an immutable
  * array with a mutable one.
  */
-int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
+bool arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
 {
     t1 = t1->toBasetype();
     t2 = t2->toBasetype();
@@ -2658,9 +2658,9 @@ int arrayTypeCompatibleWithoutCasting(Loc loc, Type *t1, Type *t2)
     {
         if (t1->nextOf()->implicitConvTo(t2->nextOf()) >= MATCHconst ||
             t2->nextOf()->implicitConvTo(t1->nextOf()) >= MATCHconst)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 

@@ -448,7 +448,7 @@ ArrayInitializer::ArrayInitializer(Loc loc)
 {
     dim = 0;
     type = NULL;
-    sem = 0;
+    sem = false;
 }
 
 Initializer *ArrayInitializer::syntaxCopy()
@@ -489,7 +489,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
         return this;
-    sem = 1;
+    sem = true;
     type = t;
     Initializer *aa = NULL;
     t = t->toBasetype();
@@ -717,14 +717,14 @@ Lno:
     return new ErrorExp();
 }
 
-int ArrayInitializer::isAssociativeArray()
+bool ArrayInitializer::isAssociativeArray()
 {
     for (size_t i = 0; i < value.dim; i++)
     {
         if (index[i])
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 Type *ArrayInitializer::inferType(Scope *sc)

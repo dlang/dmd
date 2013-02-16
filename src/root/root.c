@@ -92,7 +92,7 @@ void warning(const char *format, ...)
 
 /****************************** Object ********************************/
 
-int Object::equals(Object *o)
+bool Object::equals(Object *o)
 {
     return o == this;
 }
@@ -200,7 +200,7 @@ size_t String::len()
     return strlen(str);
 }
 
-int String::equals(Object *obj)
+bool String::equals(Object *obj)
 {
     return strcmp(str,((String *)obj)->str) == 0;
 }
@@ -392,12 +392,12 @@ int FileName::compare(const char *name1, const char *name2)
 #endif
 }
 
-int FileName::equals(Object *obj)
+bool FileName::equals(Object *obj)
 {
     return compare(obj) == 0;
 }
 
-int FileName::equals(const char *name1, const char *name2)
+bool FileName::equals(const char *name1, const char *name2)
 {
     return compare(name1, name2) == 0;
 }
@@ -633,18 +633,18 @@ const char *FileName::forceExt(const char *name, const char *ext)
  * Return !=0 if extensions match.
  */
 
-int FileName::equalsExt(const char *ext)
+bool FileName::equalsExt(const char *ext)
 {
     return equalsExt(str, ext);
 }
 
-int FileName::equalsExt(const char *name, const char *ext)
+bool FileName::equalsExt(const char *name, const char *ext)
 {
     const char *e = FileName::ext(name);
     if (!e && !ext)
-        return 1;
+        return true;
     if (!e || !ext)
-        return 0;
+        return false;
     return FileName::compare(e, ext) == 0;
 }
 
@@ -938,7 +938,7 @@ void FileName::free(const char *str)
 
 File::File(const FileName *n)
 {
-    ref = 0;
+    ref = false;
     buffer = NULL;
     len = 0;
     touchtime = NULL;
@@ -947,7 +947,7 @@ File::File(const FileName *n)
 
 File::File(const char *n)
 {
-    ref = 0;
+    ref = false;
     buffer = NULL;
     len = 0;
     touchtime = NULL;
@@ -958,7 +958,7 @@ File::~File()
 {
     if (buffer)
     {
-        if (ref == 0)
+        if (!ref)
             mem.free(buffer);
 #if _WIN32
         else if (ref == 2)
@@ -1000,7 +1000,7 @@ int File::read()
 
     if (!ref)
         ::free(buffer);
-    ref = 0;       // we own the buffer now
+    ref = false;       // we own the buffer now
 
     //printf("\tfile opened\n");
     if (fstat(fd, &buf))

@@ -1426,7 +1426,7 @@ void FuncDeclaration::inlineScan()
     }
 }
 
-int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
+bool FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 {
     InlineCostState ics;
     int cost;
@@ -1438,14 +1438,14 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #endif
 
     if (needThis() && !hasthis)
-        return 0;
+        return false;
 
     if (inlineNest || (semanticRun < PASSsemantic3 && !hdrscan))
     {
 #if CANINLINE_LOG
         printf("\t1: no, inlineNest = %d, semanticRun = %d\n", inlineNest, semanticRun);
 #endif
-        return 0;
+        return false;
     }
 
 #if 1
@@ -1455,13 +1455,13 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #if CANINLINE_LOG
             printf("\t1: yes %s\n", toChars());
 #endif
-            return 1;
+            return true;
 
         case ILSno:
 #if CANINLINE_LOG
             printf("\t1: no %s\n", toChars());
 #endif
-            return 0;
+            return false;
 
         case ILSuninitialized:
             break;
@@ -1573,7 +1573,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #if CANINLINE_LOG
     printf("\t2: yes %s\n", toChars());
 #endif
-    return 1;
+    return true;
 
 Lno:
     if (!hdrscan)    // Don't modify inlineStatus for header content scan
@@ -1585,7 +1585,7 @@ Lno:
 #if CANINLINE_LOG
     printf("\t2: no %s\n", toChars());
 #endif
-    return 0;
+    return false;
 }
 
 Expression *FuncDeclaration::expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps)

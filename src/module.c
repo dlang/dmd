@@ -53,10 +53,10 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     errors = 0;
     numlines = 0;
     members = NULL;
-    isDocFile = 0;
-    needmoduleinfo = 0;
+    isDocFile = false;
+    needmoduleinfo = false;
     selfimports = 0;
-    insearch = 0;
+    insearch = false;
     searchCacheIdent = NULL;
     searchCacheSymbol = NULL;
     searchCacheFlags = 0;
@@ -74,7 +74,7 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     sshareddtor = NULL;
     stest = NULL;
     sfilename = NULL;
-    root = 0;
+    root = false;
     importedFrom = NULL;
     srcfile = NULL;
     docfile = NULL;
@@ -88,8 +88,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     macrotable = NULL;
     escapetable = NULL;
-    safe = FALSE;
-    doppelganger = 0;
+    safe = false;
+    doppelganger = false;
     cov = NULL;
     covb = NULL;
 
@@ -527,7 +527,7 @@ void Module::parse()
     if (buflen >= 4 && memcmp(buf, "Ddoc", 4) == 0)
     {
         comment = buf + 4;
-        isDocFile = 1;
+        isDocFile = true;
         if (!docfile)
             setDocfile();
         return;
@@ -868,9 +868,9 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     }
     else
     {
-        insearch = 1;
+        insearch = true;
         s = ScopeDsymbol::search(loc, ident, flags);
-        insearch = 0;
+        insearch = false;
 
         searchCacheIdent = ident;
         searchCacheSymbol = s;
@@ -969,7 +969,7 @@ void Module::runDeferredSemantic()
 
 /************************************
  * Recursively look at every module this module imports,
- * return TRUE if it imports m.
+ * return true if it imports m.
  * Can be used to detect circular imports.
  */
 
@@ -985,16 +985,16 @@ int Module::imports(Module *m)
     for (size_t i = 0; i < aimports.dim; i++)
     {   Module *mi = aimports[i];
         if (mi == m)
-            return TRUE;
+            return true;
         if (!mi->insearch)
         {
-            mi->insearch = 1;
+            mi->insearch = true;
             int r = mi->imports(m);
             if (r)
                 return r;
         }
     }
-    return FALSE;
+    return false;
 }
 
 /*************************************
@@ -1009,7 +1009,7 @@ int Module::selfImports()
         for (size_t i = 0; i < amodules.dim; i++)
         {   Module *mi = amodules[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
+            mi->insearch = false;
         }
 
         selfimports = imports(this) + 1;
@@ -1017,7 +1017,7 @@ int Module::selfImports()
         for (size_t i = 0; i < amodules.dim; i++)
         {   Module *mi = amodules[i];
             //printf("\t[%d] %s\n", i, mi->toChars());
-            mi->insearch = 0;
+            mi->insearch = false;
         }
     }
     return selfimports - 1;

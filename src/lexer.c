@@ -244,7 +244,7 @@ OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(Module *mod,
         unsigned char *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken)
+        bool doDocComment, bool commentToken)
     : loc(mod, 1)
 {
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
@@ -255,7 +255,7 @@ Lexer::Lexer(Module *mod,
     p = base + begoffset;
     this->mod = mod;
     this->doDocComment = doDocComment;
-    this->anyToken = 0;
+    this->anyToken = false;
     this->commentToken = commentToken;
     //initKeywords();
 
@@ -432,7 +432,7 @@ Token *Lexer::peekPastParen(Token *tk)
  *      0       invalid
  */
 
-int Lexer::isValidIdentifier(char *p)
+bool Lexer::isValidIdentifier(char *p)
 {
     size_t len;
     size_t idx;
@@ -455,10 +455,10 @@ int Lexer::isValidIdentifier(char *p)
         if (!((dc >= 0x80 && isUniAlpha(dc)) || isalnum(dc) || dc == '_'))
             goto Linvalid;
     }
-    return 1;
+    return true;
 
 Linvalid:
-    return 0;
+    return false;
 }
 
 /****************************
@@ -628,7 +628,7 @@ void Lexer::scan(Token *t)
                 }
                 t->ident = id;
                 t->value = (enum TOK) id->value;
-                anyToken = 1;
+                anyToken = true;
                 if (*t->ptr == '_')     // if special identifier token
                 {
                     static char date[11+1];
@@ -2934,14 +2934,14 @@ static Keyword keywords[] =
 #endif
 };
 
-int Token::isKeyword()
+bool Token::isKeyword()
 {
     for (size_t u = 0; u < sizeof(keywords) / sizeof(keywords[0]); u++)
     {
         if (keywords[u].value == value)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 void Lexer::initKeywords()

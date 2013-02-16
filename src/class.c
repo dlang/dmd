@@ -601,7 +601,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //sc->stc |= storage_class & STC_TYPECTOR;
     sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
-    sc->inunion = 0;
+    sc->inunion = false;
 
     if (isCOMclass())
     {
@@ -614,7 +614,7 @@ void ClassDeclaration::semantic(Scope *sc)
             sc->linkage = LINKc;
     }
     sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
+    sc->explicitProtection = false;
     sc->structalign = STRUCTALIGN_DEFAULT;
     if (baseClass)
     {   sc->offset = baseClass->structsize;
@@ -862,25 +862,25 @@ void ClassDeclaration::defineRef(Dsymbol *s)
  * This is used to detect circular inheritance only.
  */
 
-int ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
+bool ClassDeclaration::isBaseOf2(ClassDeclaration *cd)
 {
     if (!cd)
-        return 0;
+        return false;
     //printf("ClassDeclaration::isBaseOf2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     for (size_t i = 0; i < cd->baseclasses->dim; i++)
     {   BaseClass *b = (*cd->baseclasses)[i];
 
         if (b->base == this || isBaseOf2(b->base))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /*******************************************
  * Determine if 'this' is a base class of cd.
  */
 
-int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("ClassDeclaration::isBaseOf(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
     if (poffset)
@@ -897,11 +897,11 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
         }
 
         if (this == cd->baseClass)
-            return 1;
+            return true;
 
         cd = cd->baseClass;
     }
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -909,16 +909,16 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int ClassDeclaration::isBaseInfoComplete()
+bool ClassDeclaration::isBaseInfoComplete()
 {
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
@@ -1001,7 +1001,7 @@ int isf(void *param, FuncDeclaration *fd)
     return param == fd;
 }
 
-int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
+bool ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
     Dsymbol *s = search(0, fd->ident, 4|2);
@@ -1010,7 +1010,7 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
         /* Because, due to a hack, if there are multiple definitions
          * of fd->ident, NULL is returned.
          */
-        return 0;
+        return false;
     }
     s = s->toAlias();
     OverloadSet *os = s->isOverloadSet();
@@ -1020,16 +1020,16 @@ int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
         {   Dsymbol *s2 = os->a[i];
             FuncDeclaration *f2 = s2->isFuncDeclaration();
             if (f2 && overloadApply(f2, &isf, fd))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
     else
     {
         FuncDeclaration *fdstart = s->isFuncDeclaration();
         //printf("%s fdstart = %p\n", s->kind(), fdstart);
         if (overloadApply(fdstart, &isf, fd))
-            return 0;
+            return false;
 
         return !fd->parent->isTemplateMixin();
     }
@@ -1148,20 +1148,20 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
 /****************************************
  */
 
-int ClassDeclaration::isCOMclass()
+bool ClassDeclaration::isCOMclass()
 {
     return com;
 }
 
-int ClassDeclaration::isCOMinterface()
+bool ClassDeclaration::isCOMinterface()
 {
-    return 0;
+    return false;
 }
 
 #if DMDV2
-int ClassDeclaration::isCPPinterface()
+bool ClassDeclaration::isCPPinterface()
 {
-    return 0;
+    return false;
 }
 #endif
 
@@ -1169,10 +1169,10 @@ int ClassDeclaration::isCPPinterface()
 /****************************************
  */
 
-int ClassDeclaration::isAbstract()
+bool ClassDeclaration::isAbstract()
 {
     if (isabstract)
-        return TRUE;
+        return true;
     for (size_t i = 1; i < vtbl.dim; i++)
     {
         FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
@@ -1181,10 +1181,10 @@ int ClassDeclaration::isAbstract()
         if (!fd || fd->isAbstract())
         {
             isabstract |= 1;
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 
@@ -1421,7 +1421,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc->linkage = LINKcpp;
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->protection = PROTpublic;
-    sc->explicitProtection = 0;
+    sc->explicitProtection = false;
 //    structalign = sc->structalign;
     sc->offset = PTRSIZE * 2;
     sc->userAttributes = NULL;
@@ -1472,7 +1472,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
  *      1       is a base
  */
 
-int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
+bool InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
@@ -1489,25 +1489,25 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
                 if (j && cd->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
         {   if (j && poffset && cd->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
 
     if (cd->baseClass && isBaseOf(cd->baseClass, poffset))
-        return 1;
+        return true;
 
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 
-int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
+bool InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
@@ -1521,17 +1521,17 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
                 if (j && bc->base->isInterfaceDeclaration())
                     *poffset = OFFSET_RUNTIME;
             }
-            return 1;
+            return true;
         }
         if (isBaseOf(b, poffset))
         {   if (j && poffset && bc->base->isInterfaceDeclaration())
                 *poffset = OFFSET_RUNTIME;
-            return 1;
+            return true;
         }
     }
     if (poffset)
         *poffset = 0;
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -1539,15 +1539,15 @@ int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
  * This is used to detect forward references in covariant overloads.
  */
 
-int InterfaceDeclaration::isBaseInfoComplete()
+bool InterfaceDeclaration::isBaseInfoComplete()
 {
     assert(!baseClass);
     for (size_t i = 0; i < baseclasses->dim; i++)
     {   BaseClass *b = (*baseclasses)[i];
         if (!b->base || !b->base->isBaseInfoComplete ())
-            return 0;
+            return false;
     }
-    return 1;
+    return true;
 }
 
 /****************************************
@@ -1564,13 +1564,13 @@ int InterfaceDeclaration::vtblOffset()
     return 1;
 }
 
-int InterfaceDeclaration::isCOMinterface()
+bool InterfaceDeclaration::isCOMinterface()
 {
     return com;
 }
 
 #if DMDV2
-int InterfaceDeclaration::isCPPinterface()
+bool InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
 }
@@ -1615,10 +1615,10 @@ BaseClass::BaseClass(Type *type, enum PROT protection)
  *      by base classes)
  */
 
-int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
+bool BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
 {
     ClassDeclaration *id = base;
-    int result = 0;
+    bool result = false;
 
     //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", base->toChars(), cd->toChars());
     if (vtbl)
@@ -1653,7 +1653,7 @@ int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newins
                     id->toChars(), ifd->ident->toChars());
 
             if (fd->toParent() == cd)
-                result = 1;
+                result = true;
         }
         else
         {

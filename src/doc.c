@@ -94,7 +94,7 @@ struct DocComment
 
 int cmp(const char *stringz, void *s, size_t slen);
 int icmp(const char *stringz, void *s, size_t slen);
-int isDitto(unsigned char *comment);
+bool isDitto(unsigned char *comment);
 unsigned char *skipwhitespace(unsigned char *p);
 size_t skiptoident(OutBuffer *buf, size_t i);
 size_t skippastident(OutBuffer *buf, size_t i);
@@ -104,8 +104,8 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 Parameter *isFunctionParameter(Dsymbol *s, unsigned char *p, size_t len);
 
-int isIdStart(unsigned char *p);
-int isIdTail(unsigned char *p);
+bool isIdStart(unsigned char *p);
+bool isIdTail(unsigned char *p);
 int utfStride(unsigned char *p);
 
 static unsigned char ddoc_default[] = "\
@@ -338,7 +338,7 @@ void Module::gendocfile()
     // Transfer image to file
     assert(docfile);
     docfile->setbuffer(buf.data, buf.offset);
-    docfile->ref = 1;
+    docfile->ref = true;
     FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #else
@@ -361,7 +361,7 @@ void Module::gendocfile()
 
     // Transfer image to file
     docfile->setbuffer(buf2.data, buf2.offset);
-    docfile->ref = 1;
+    docfile->ref = true;
     FileName::ensurePathToNameExists(docfile->toChars());
     docfile->writev();
 #endif
@@ -1714,16 +1714,16 @@ int icmp(const char *stringz, void *s, size_t slen)
  * Return !=0 if comment consists entirely of "ditto".
  */
 
-int isDitto(unsigned char *comment)
+bool isDitto(unsigned char *comment)
 {
     if (comment)
     {
         unsigned char *p = skipwhitespace(comment);
 
         if (Port::memicmp((char *)p, "ditto", 5) == 0 && *skipwhitespace(p + 5) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /**********************************************
@@ -1856,16 +1856,16 @@ Lno:
 /****************************************************
  */
 
-int isKeyword(unsigned char *p, size_t len)
+bool isKeyword(unsigned char *p, size_t len)
 {
     static const char *table[] = { "true", "false", "null" };
 
     for (int i = 0; i < sizeof(table) / sizeof(table[0]); i++)
     {
         if (cmp(table[i], p, len) == 0)
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************************
@@ -2335,38 +2335,38 @@ const char *Escape::escapeChar(unsigned c)
  * Determine if p points to the start of an identifier.
  */
 
-int isIdStart(unsigned char *p)
+bool isIdStart(unsigned char *p)
 {
     unsigned c = *p;
     if (isalpha(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /****************************************
  * Determine if p points to the rest of an identifier.
  */
 
-int isIdTail(unsigned char *p)
+bool isIdTail(unsigned char *p)
 {
     unsigned c = *p;
     if (isalnum(c) || c == '_')
-        return 1;
+        return true;
     if (c >= 0x80)
     {   size_t i = 0;
         if (utf_decodeChar(p, 4, &i, &c))
-            return 0;   // ignore errors
+            return false;   // ignore errors
         if (isUniAlpha(c))
-            return 1;
+            return true;
     }
-    return 0;
+    return false;
 }
 
 /*****************************************

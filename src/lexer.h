@@ -257,7 +257,7 @@ struct Token
     static void *operator new(size_t sz);
 
     Token() : next(NULL) {}
-    int isKeyword();
+    bool isKeyword();
     void print();
     const char *toChars();
     static const char *toChars(enum TOK);
@@ -276,13 +276,13 @@ struct Lexer
     unsigned char *p;           // current character
     Token token;
     Module *mod;
-    int doDocComment;           // collect doc comment information
-    int anyToken;               // !=0 means seen at least one token
-    int commentToken;           // !=0 means comments are TOKcomment's
+    bool doDocComment;          // collect doc comment information
+    bool anyToken;              // !=0 means seen at least one token
+    bool commentToken;          // !=0 means comments are TOKcomment's
 
     Lexer(Module *mod,
         unsigned char *base, size_t begoffset, size_t endoffset,
-        int doDocComment, int commentToken);
+        bool doDocComment, bool commentToken);
 
     static void initKeywords();
     static Identifier *idPool(const char *s);
@@ -315,7 +315,7 @@ struct Lexer
     unsigned decodeUTF();
     void getDocComment(Token *t, unsigned lineComment);
 
-    static int isValidIdentifier(char *p);
+    static bool isValidIdentifier(char *p);
     static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
 
     Loc tokenLoc();

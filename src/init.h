@@ -94,13 +94,13 @@ struct ArrayInitializer : Initializer
     Initializers value; // of Initializer *'s
     size_t dim;         // length of array being initialized
     Type *type;         // type that array will be used to initialize
-    int sem;            // !=0 if semantic() is run
+    bool sem;           // !=0 if semantic() is run
 
     ArrayInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Expression *index, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    int isAssociativeArray();
+    bool isAssociativeArray();
     Type *inferType(Scope *sc);
     Expression *toExpression();
     Expression *toAssocArrayLiteral();

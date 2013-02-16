@@ -148,19 +148,19 @@ void Statement::deprecation(const char *format, ...)
 bool Statement::hasBreak()
 {
     //printf("Statement::hasBreak()\n");
-    return FALSE;
+    return false;
 }
 
 bool Statement::hasContinue()
 {
-    return FALSE;
+    return false;
 }
 
-// TRUE if statement uses exception handling
+// true if statement uses exception handling
 
 bool Statement::usesEH()
 {
-    return FALSE;
+    return false;
 }
 
 /* Only valid after semantic analysis
@@ -174,19 +174,19 @@ int Statement::blockExit(bool mustNotThrow)
     return BEany;
 }
 
-// TRUE if statement 'comes from' somewhere else, like a goto
+// true if statement 'comes from' somewhere else, like a goto
 
-int Statement::comeFrom()
+bool Statement::comeFrom()
 {
     //printf("Statement::comeFrom()\n");
-    return FALSE;
+    return false;
 }
 
-// Return TRUE if statement has no code in it
-int Statement::isEmpty()
+// Return true if statement has no code in it
+bool Statement::isEmpty()
 {
     //printf("Statement::isEmpty()\n");
-    return FALSE;
+    return false;
 }
 
 Statement *Statement::last()
@@ -321,7 +321,7 @@ int ExpStatement::blockExit(bool mustNotThrow)
         if (exp->op == TOKassert)
         {   AssertExp *a = (AssertExp *)exp;
 
-            if (a->e1->isBool(FALSE))   // if it's an assert(0)
+            if (a->e1->isBool(false))   // if it's an assert(0)
                 return BEhalt;
         }
         if (exp->canThrow(mustNotThrow))
@@ -330,7 +330,7 @@ int ExpStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-int ExpStatement::isEmpty()
+bool ExpStatement::isEmpty()
 {
     return exp == NULL;
 }
@@ -377,7 +377,7 @@ Statement *ExpStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
 #endif
                     *sfinally = new DtorExpStatement(loc, e, v);
                 }
-                v->noscope = 1;         // don't add in dtor again
+                v->noscope = true;      // don't add in dtor again
             }
         }
     }
@@ -577,7 +577,7 @@ Statement *CompoundStatement::semantic(Scope *sc)
                         Identifier *id = Lexer::uniqueId("__o");
 
                         Statement *handler = sexception;
-                        if (sexception->blockExit(FALSE) & BEfallthru)
+                        if (sexception->blockExit(false) & BEfallthru)
                         {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
                             ((ThrowStatement *)handler)->internalThrow = true;
                             handler = new CompoundStatement(0, sexception, handler);
@@ -685,9 +685,9 @@ bool CompoundStatement::usesEH()
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         if (s && s->usesEH())
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 int CompoundStatement::blockExit(bool mustNotThrow)
@@ -736,8 +736,8 @@ int CompoundStatement::blockExit(bool mustNotThrow)
     return result;
 }
 
-int CompoundStatement::comeFrom()
-{   int comefrom = FALSE;
+bool CompoundStatement::comeFrom()
+{   bool comefrom = false;
 
     //printf("CompoundStatement::comeFrom()\n");
     for (size_t i = 0; i < statements->dim; i++)
@@ -751,14 +751,14 @@ int CompoundStatement::comeFrom()
     return comefrom;
 }
 
-int CompoundStatement::isEmpty()
+bool CompoundStatement::isEmpty()
 {
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         if (s && !s->isEmpty())
-            return FALSE;
+            return false;
     }
-    return TRUE;
+    return true;
 }
 
 
@@ -909,12 +909,12 @@ void UnrolledLoopStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 bool UnrolledLoopStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool UnrolledLoopStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool UnrolledLoopStatement::usesEH()
@@ -922,9 +922,9 @@ bool UnrolledLoopStatement::usesEH()
     for (size_t i = 0; i < statements->dim; i++)
     {   Statement *s = (*statements)[i];
         if (s && s->usesEH())
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 int UnrolledLoopStatement::blockExit(bool mustNotThrow)
@@ -942,8 +942,8 @@ int UnrolledLoopStatement::blockExit(bool mustNotThrow)
 }
 
 
-int UnrolledLoopStatement::comeFrom()
-{   int comefrom = FALSE;
+bool UnrolledLoopStatement::comeFrom()
+{   bool comefrom = false;
 
     //printf("UnrolledLoopStatement::comeFrom()\n");
     for (size_t i = 0; i < statements->dim; i++)
@@ -1019,17 +1019,17 @@ Statement *ScopeStatement::semantic(Scope *sc)
 bool ScopeStatement::hasBreak()
 {
     //printf("ScopeStatement::hasBreak() %s\n", toChars());
-    return statement ? statement->hasBreak() : FALSE;
+    return statement ? statement->hasBreak() : false;
 }
 
 bool ScopeStatement::hasContinue()
 {
-    return statement ? statement->hasContinue() : FALSE;
+    return statement ? statement->hasContinue() : false;
 }
 
 bool ScopeStatement::usesEH()
 {
-    return statement ? statement->usesEH() : FALSE;
+    return statement ? statement->usesEH() : false;
 }
 
 int ScopeStatement::blockExit(bool mustNotThrow)
@@ -1039,16 +1039,16 @@ int ScopeStatement::blockExit(bool mustNotThrow)
 }
 
 
-int ScopeStatement::comeFrom()
+bool ScopeStatement::comeFrom()
 {
     //printf("ScopeStatement::comeFrom()\n");
-    return statement ? statement->comeFrom() : FALSE;
+    return statement ? statement->comeFrom() : false;
 }
 
-int ScopeStatement::isEmpty()
+bool ScopeStatement::isEmpty()
 {
-    //printf("ScopeStatement::isEmpty() %d\n", statement ? statement->isEmpty() : TRUE);
-    return statement ? statement->isEmpty() : TRUE;
+    //printf("ScopeStatement::isEmpty() %d\n", statement ? statement->isEmpty() : true);
+    return statement ? statement->isEmpty() : true;
 }
 
 void ScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1093,18 +1093,18 @@ Statement *WhileStatement::semantic(Scope *sc)
 
 bool WhileStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool WhileStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool WhileStatement::usesEH()
 {
     assert(global.errors);
-    return 0;
+    return false;
 }
 
 int WhileStatement::blockExit(bool mustNotThrow)
@@ -1114,10 +1114,10 @@ int WhileStatement::blockExit(bool mustNotThrow)
 }
 
 
-int WhileStatement::comeFrom()
+bool WhileStatement::comeFrom()
 {
     assert(global.errors);
-    return FALSE;
+    return false;
 }
 
 void WhileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1163,17 +1163,17 @@ Statement *DoStatement::semantic(Scope *sc)
 
 bool DoStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool DoStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool DoStatement::usesEH()
 {
-    return body ? body->usesEH() : 0;
+    return body ? body->usesEH() : false;
 }
 
 int DoStatement::blockExit(bool mustNotThrow)
@@ -1192,7 +1192,7 @@ int DoStatement::blockExit(bool mustNotThrow)
     {
         if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
-        if (!(result & BEbreak) && condition->isBool(TRUE))
+        if (!(result & BEbreak) && condition->isBool(true))
             result &= ~BEfallthru;
     }
     result &= ~(BEbreak | BEcontinue);
@@ -1200,11 +1200,11 @@ int DoStatement::blockExit(bool mustNotThrow)
 }
 
 
-int DoStatement::comeFrom()
+bool DoStatement::comeFrom()
 {
     if (body)
         return body->comeFrom();
-    return FALSE;
+    return false;
 }
 
 void DoStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1421,12 +1421,12 @@ Statement *ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **se
 bool ForStatement::hasBreak()
 {
     //printf("ForStatement::hasBreak()\n");
-    return TRUE;
+    return true;
 }
 
 bool ForStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool ForStatement::usesEH()
@@ -1445,9 +1445,9 @@ int ForStatement::blockExit(bool mustNotThrow)
     if (condition)
     {   if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
-        if (condition->isBool(TRUE))
+        if (condition->isBool(true))
             result &= ~BEfallthru;
-        else if (condition->isBool(FALSE))
+        else if (condition->isBool(false))
             return result;
     }
     else
@@ -1464,7 +1464,7 @@ int ForStatement::blockExit(bool mustNotThrow)
 }
 
 
-int ForStatement::comeFrom()
+bool ForStatement::comeFrom()
 {
     //printf("ForStatement::comeFrom()\n");
     if (body)
@@ -1472,7 +1472,7 @@ int ForStatement::comeFrom()
         //printf("result = %d\n", result);
         return result;
     }
-    return FALSE;
+    return false;
 }
 
 void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2317,7 +2317,7 @@ Lagain:
                 }
 
                 s = new CompoundStatement(loc, a);
-                s = new SwitchStatement(loc, e, s, FALSE);
+                s = new SwitchStatement(loc, e, s, false);
             }
             s = s->semantic(sc);
             break;
@@ -2337,7 +2337,7 @@ Lagain:
 }
 
 bool ForeachStatement::checkForArgTypes()
-{   bool result = TRUE;
+{   bool result = true;
 
     for (size_t i = 0; i < arguments->dim; i++)
     {   Parameter *arg = (*arguments)[i];
@@ -2345,7 +2345,7 @@ bool ForeachStatement::checkForArgTypes()
         {
             error("cannot infer type for %s", arg->ident->toChars());
             arg->type = Type::terror;
-            result = FALSE;
+            result = false;
         }
     }
     return result;
@@ -2353,12 +2353,12 @@ bool ForeachStatement::checkForArgTypes()
 
 bool ForeachStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool ForeachStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool ForeachStatement::usesEH()
@@ -2380,11 +2380,11 @@ int ForeachStatement::blockExit(bool mustNotThrow)
 }
 
 
-int ForeachStatement::comeFrom()
+bool ForeachStatement::comeFrom()
 {
     if (body)
         return body->comeFrom();
-    return FALSE;
+    return false;
 }
 
 void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2612,12 +2612,12 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
 
 bool ForeachRangeStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool ForeachRangeStatement::hasContinue()
 {
-    return TRUE;
+    return true;
 }
 
 bool ForeachRangeStatement::usesEH()
@@ -2633,10 +2633,10 @@ int ForeachRangeStatement::blockExit(bool mustNotThrow)
 }
 
 
-int ForeachRangeStatement::comeFrom()
+bool ForeachRangeStatement::comeFrom()
 {
     assert(global.errors);
-    return FALSE;
+    return false;
 }
 
 void ForeachRangeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2722,7 +2722,7 @@ Statement *IfStatement::semantic(Scope *sc)
             Statement *sdtor = new ExpStatement(loc, match->edtor);
             sdtor = new OnScopeStatement(loc, TOKon_scope_exit, sdtor);
             ifbody = new CompoundStatement(loc, sdtor, ifbody);
-            match->noscope = 1;
+            match->noscope = true;
        }
     }
     else
@@ -2766,14 +2766,14 @@ int IfStatement::blockExit(bool mustNotThrow)
     int result = BEnone;
     if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
-    if (condition->isBool(TRUE))
+    if (condition->isBool(true))
     {
         if (ifbody)
             result |= ifbody->blockExit(mustNotThrow);
         else
             result |= BEfallthru;
     }
-    else if (condition->isBool(FALSE))
+    else if (condition->isBool(false))
     {
         if (elsebody)
             result |= elsebody->blockExit(mustNotThrow);
@@ -3147,8 +3147,8 @@ SwitchStatement::SwitchStatement(Loc loc, Expression *c, Statement *b, bool isFi
     sdefault = NULL;
     tf = NULL;
     cases = NULL;
-    hasNoDefault = 0;
-    hasVars = 0;
+    hasNoDefault = false;
+    hasVars = false;
 }
 
 Statement *SwitchStatement::syntaxCopy()
@@ -3228,7 +3228,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
         ;
     }
 
-    bool needswitcherror = FALSE;
+    bool needswitcherror = false;
 #if DMDV2
     if (isFinal)
     {   Type *t = condition->type;
@@ -3262,12 +3262,12 @@ Statement *SwitchStatement::semantic(Scope *sc)
             }
         }
         else
-            needswitcherror = TRUE;
+            needswitcherror = true;
     }
 #endif
 
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
-    {   hasNoDefault = 1;
+    {   hasNoDefault = true;
 
         if (!isFinal)
            deprecation("non-final switch statement without a default is deprecated");
@@ -3300,12 +3300,12 @@ Statement *SwitchStatement::semantic(Scope *sc)
 
 bool SwitchStatement::hasBreak()
 {
-    return TRUE;
+    return true;
 }
 
 bool SwitchStatement::usesEH()
 {
-    return body ? body->usesEH() : 0;
+    return body ? body->usesEH() : false;
 }
 
 int SwitchStatement::blockExit(bool mustNotThrow)
@@ -3390,7 +3390,7 @@ Statement *CaseStatement::semantic(Scope *sc)
             {   /* Flag that we need to do special code generation
                  * for this, i.e. generate a sequence of if-then-else
                  */
-                sw->hasVars = 1;
+                sw->hasVars = true;
                 if (sw->isFinal)
                     error("case variables not allowed in final switch statements");
                 goto L1;
@@ -3459,9 +3459,9 @@ int CaseStatement::blockExit(bool mustNotThrow)
 }
 
 
-int CaseStatement::comeFrom()
+bool CaseStatement::comeFrom()
 {
-    return TRUE;
+    return true;
 }
 
 void CaseStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3619,9 +3619,9 @@ int DefaultStatement::blockExit(bool mustNotThrow)
 }
 
 
-int DefaultStatement::comeFrom()
+bool DefaultStatement::comeFrom()
 {
-    return TRUE;
+    return true;
 }
 
 void DefaultStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -3778,7 +3778,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     // main() returns 0, even if it returns void
     if (!exp && (!tbret || tbret->ty == Tvoid) && fd->isMain())
-    {   implicit0 = 1;
+    {   implicit0 = true;
         exp = new IntegerExp(0);
     }
 
@@ -3798,7 +3798,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
     }
 
     if (!exp)
-        fd->nrvo_can = 0;
+        fd->nrvo_can = false;
 
     if (exp)
     {
@@ -3829,27 +3829,27 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
             if (((TypeFunction *)fd->type)->isref)
                 // Function returns a reference
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
             else if (!v || v->isOut() || v->isRef())
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
             else if (fd->nrvo_var == NULL)
             {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
                 {   //printf("Setting nrvo to %s\n", v->toChars());
                     fd->nrvo_var = v;
                 }
                 else
-                    fd->nrvo_can = 0;
+                    fd->nrvo_can = false;
             }
             else if (fd->nrvo_var != v)
-                fd->nrvo_can = 0;
+                fd->nrvo_can = false;
         }
         else
-            fd->nrvo_can = 0;
+            fd->nrvo_can = false;
 
         if (!fd->nrvo_can &&
             exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
         {
-            exp = callCpCtor(exp->loc, sc, exp, 1);
+            exp = callCpCtor(exp->loc, sc, exp, true);
         }
 
         if (fd->inferRetType)
@@ -3900,10 +3900,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
-                            tf->isref = FALSE;  // return by value
+                            tf->isref = false;  // return by value
                     }
                     else
-                        tf->isref = FALSE;      // return by value
+                        tf->isref = false;      // return by value
                     fd->storage_class &= ~STCauto;
                 }
                 tf->next = exp->type;
@@ -4000,7 +4000,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 if (!fd->outId)
                     fd->outId = Id::result;
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
-                v->noscope = 1;
+                v->noscope = true;
                 v->storage_class |= STCresult;
                 if (((TypeFunction *)fd->type)->isref)
                     v->storage_class |= STCref | STCforeach;
@@ -4435,17 +4435,17 @@ Lbody:
 
 bool SynchronizedStatement::hasBreak()
 {
-    return FALSE; //TRUE;
+    return false; //true;
 }
 
 bool SynchronizedStatement::hasContinue()
 {
-    return FALSE; //TRUE;
+    return false; //true;
 }
 
 bool SynchronizedStatement::usesEH()
 {
-    return TRUE;
+    return true;
 }
 
 int SynchronizedStatement::blockExit(bool mustNotThrow)
@@ -4568,7 +4568,7 @@ void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 bool WithStatement::usesEH()
 {
-    return body ? body->usesEH() : 0;
+    return body ? body->usesEH() : false;
 }
 
 int WithStatement::blockExit(bool mustNotThrow)
@@ -4638,12 +4638,12 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 
 bool TryCatchStatement::hasBreak()
 {
-    return FALSE; //TRUE;
+    return false; //true;
 }
 
 bool TryCatchStatement::usesEH()
 {
-    return TRUE;
+    return true;
 }
 
 int TryCatchStatement::blockExit(bool mustNotThrow)
@@ -4853,17 +4853,17 @@ void TryFinallyStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 bool TryFinallyStatement::hasBreak()
 {
-    return FALSE; //TRUE;
+    return false; //true;
 }
 
 bool TryFinallyStatement::hasContinue()
 {
-    return FALSE; //TRUE;
+    return false; //true;
 }
 
 bool TryFinallyStatement::usesEH()
 {
-    return TRUE;
+    return true;
 }
 
 int TryFinallyStatement::blockExit(bool mustNotThrow)
@@ -4919,7 +4919,7 @@ void OnScopeStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 bool OnScopeStatement::usesEH()
 {
-    return 1;
+    return true;
 }
 
 Statement *OnScopeStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
@@ -5271,7 +5271,7 @@ Statements *LabelStatement::flatten(Scope *sc)
 
 bool LabelStatement::usesEH()
 {
-    return statement ? statement->usesEH() : FALSE;
+    return statement ? statement->usesEH() : false;
 }
 
 int LabelStatement::blockExit(bool mustNotThrow)
@@ -5281,10 +5281,10 @@ int LabelStatement::blockExit(bool mustNotThrow)
 }
 
 
-int LabelStatement::comeFrom()
+bool LabelStatement::comeFrom()
 {
     //printf("LabelStatement::comeFrom()\n");
-    return TRUE;
+    return true;
 }
 
 void LabelStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -5319,8 +5319,8 @@ AsmStatement::AsmStatement(Loc loc, Token *tokens)
     this->tokens = tokens;
     asmcode = NULL;
     asmalign = 0;
-    refparam = FALSE;
-    naked = FALSE;
+    refparam = false;
+    naked = false;
     regs = 0;
 }
 
@@ -5329,11 +5329,9 @@ Statement *AsmStatement::syntaxCopy()
     return new AsmStatement(loc, tokens);
 }
 
-
-
-int AsmStatement::comeFrom()
+bool AsmStatement::comeFrom()
 {
-    return TRUE;
+    return true;
 }
 
 int AsmStatement::blockExit(bool mustNotThrow)
@@ -5429,9 +5427,9 @@ int ImportStatement::blockExit(bool mustNotThrow)
     return BEfallthru;
 }
 
-int ImportStatement::isEmpty()
+bool ImportStatement::isEmpty()
 {
-    return TRUE;
+    return true;
 }
 
 void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
