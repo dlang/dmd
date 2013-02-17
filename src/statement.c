@@ -710,9 +710,9 @@ int CompoundStatement::blockExit(bool mustNotThrow)
                     // Allow if last case/default was empty
                     CaseStatement *sc = slast->isCaseStatement();
                     DefaultStatement *sd = slast->isDefaultStatement();
-                    if (sc && sc->statement->isEmpty())
+                    if (sc && (sc->statement->isEmpty() || sc->statement->isCaseStatement()))
                         ;
-                    else if (sd && sd->statement->isEmpty())
+                    else if (sd && (sd->statement->isEmpty() || sd->statement->isCaseStatement()))
                         ;
                     else
                         s->error("switch case fallthrough - use 'goto %s;' if intended",
