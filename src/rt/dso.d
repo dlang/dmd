@@ -16,6 +16,8 @@ version (Windows)
 else version (linux)
 {
     enum USE_DSO = true;
+    import core.sys.linux.elf;
+    import core.sys.linux.link;
 }
 else version (OSX)
 {
@@ -77,6 +79,11 @@ struct DSO
         return _ehtables[];
     }
 
+    @property inout(void[])[] gcRanges() inout
+    {
+        return _gcRanges[];
+    }
+
 private:
 
     invariant()
@@ -86,10 +93,10 @@ private:
 
     FuncTable[]     _ehtables;
     ModuleGroup  _moduleGroup;
+    Array!(void[]) _gcRanges;
 }
 
 private:
-
 /*
  * Static DSOs loaded by the runtime linker. This includes the
  * executable. These can't be unloaded.
@@ -131,6 +138,11 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         pdso._moduleGroup = ModuleGroup(toRange(data._minfo_beg, data._minfo_end));
         pdso._ehtables = toRange(data._deh_beg, data._deh_end);
 
+        dl_phdr_info info = void;
+        findDSOInfoForAddr(data._slot, &info) || assert(0);
+
+        scanSegments(info, pdso);
+
         _static_dsos.insertBack(pdso);
     }
     // has backlink => unregister
@@ -144,4 +156,61 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         .free(pdso);
     }
 }
+
+///////////////////////////////////////////////////////////////////////////////
+// Elf program header iteration
+///////////////////////////////////////////////////////////////////////////////
+
+
+void scanSegments(in ref dl_phdr_info info, DSO* pdso)
+{
+    foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
+    {
+        if (phdr.p_type == PT_LOAD && phdr.p_flags & PF_W)
+        {
+            auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+            pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
+        }
+    }
+}
+
+nothrow
+bool findDSOInfoForAddr(in void* addr, dl_phdr_info* result=null)
+{
+    static struct DG { const(void)* addr; dl_phdr_info* result; }
+
+    extern(C) nothrow
+    int callback(dl_phdr_info* info, size_t sz, void* arg)
+    {
+        auto p = cast(DG*)arg;
+        if (findSegmentForAddr(*info, p.addr))
+        {
+            if (p.result !is null) *p.result = *info;
+            return 1; // break;
+        }
+        return 0; // continue iteration
+    }
+
+    auto dg = DG(addr, result);
+    return dl_iterate_phdr(&callback, &dg) != 0;
+}
+
+nothrow
+bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* result=null)
+{
+    if (addr < cast(void*)info.dlpi_addr) // quick reject
+        return false;
+
+    foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
+    {
+        auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+        if (cast(size_t)(addr - beg) < phdr.p_memsz)
+        {
+            if (result !is null) *result = phdr;
+            return true;
+        }
+    }
+    return false;
+}
+
 }
