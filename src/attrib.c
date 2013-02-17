@@ -28,9 +28,6 @@
 #include "parse.h"
 #include "template.h"
 
-extern bool obj_includelib(const char *name);
-void obj_startaddress(Symbol *s);
-
 
 /********************************* AttribDeclaration ****************************/
 
@@ -243,19 +240,6 @@ void AttribDeclaration::emitComment(Scope *sc)
         {   Dsymbol *s = (*d)[i];
             //printf("AttribDeclaration::emitComment %s\n", s->toChars());
             s->emitComment(sc);
-        }
-    }
-}
-
-void AttribDeclaration::toObjFile(int multiobj)
-{
-    Dsymbols *d = include(NULL, NULL);
-
-    if (d)
-    {
-        for (size_t i = 0; i < d->dim; i++)
-        {   Dsymbol *s = (*d)[i];
-            s->toObjFile(multiobj);
         }
     }
 }
@@ -1149,49 +1133,6 @@ int PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 const char *PragmaDeclaration::kind()
 {
     return "pragma";
-}
-
-void PragmaDeclaration::toObjFile(int multiobj)
-{
-    if (ident == Id::lib)
-    {
-        assert(args && args->dim == 1);
-
-        Expression *e = (*args)[0];
-
-        assert(e->op == TOKstring);
-
-        StringExp *se = (StringExp *)e;
-        char *name = (char *)mem.malloc(se->len + 1);
-        memcpy(name, se->string, se->len);
-        name[se->len] = 0;
-
-        /* Embed the library names into the object file.
-         * The linker will then automatically
-         * search that library, too.
-         */
-        if (!obj_includelib(name))
-        {
-            /* The format does not allow embedded library names,
-             * so instead append the library name to the list to be passed
-             * to the linker.
-             */
-            global.params.libfiles->push(name);
-        }
-    }
-#if DMDV2
-    else if (ident == Id::startaddress)
-    {
-        assert(args && args->dim == 1);
-        Expression *e = (*args)[0];
-        Dsymbol *sa = getDsymbol(e);
-        FuncDeclaration *f = sa->isFuncDeclaration();
-        assert(f);
-        Symbol *s = f->toSymbol();
-        obj_startaddress(s);
-    }
-#endif
-    AttribDeclaration::toObjFile(multiobj);
 }
 
 void PragmaDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

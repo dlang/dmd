@@ -36,6 +36,8 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+extern bool obj_includelib(const char *name);
+void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
 /* ================================================================== */
@@ -1379,4 +1381,94 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         objmod->export_symbol(s,0);
 }
 
+/* ================================================================== */
+
+void AttribDeclaration::toObjFile(int multiobj)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            s->toObjFile(multiobj);
+        }
+    }
+}
+
+/* ================================================================== */
+
+void PragmaDeclaration::toObjFile(int multiobj)
+{
+    if (ident == Id::lib)
+    {
+        assert(args && args->dim == 1);
+
+        Expression *e = (*args)[0];
+
+        assert(e->op == TOKstring);
+
+        StringExp *se = (StringExp *)e;
+        char *name = (char *)mem.malloc(se->len + 1);
+        memcpy(name, se->string, se->len);
+        name[se->len] = 0;
+
+        /* Embed the library names into the object file.
+         * The linker will then automatically
+         * search that library, too.
+         */
+        if (!obj_includelib(name))
+        {
+            /* The format does not allow embedded library names,
+             * so instead append the library name to the list to be passed
+             * to the linker.
+             */
+            global.params.libfiles->push(name);
+        }
+    }
+#if DMDV2
+    else if (ident == Id::startaddress)
+    {
+        assert(args && args->dim == 1);
+        Expression *e = (*args)[0];
+        Dsymbol *sa = getDsymbol(e);
+        FuncDeclaration *f = sa->isFuncDeclaration();
+        assert(f);
+        Symbol *s = f->toSymbol();
+        obj_startaddress(s);
+    }
+#endif
+    AttribDeclaration::toObjFile(multiobj);
+}
+
+/* ================================================================== */
+
+void TemplateInstance::toObjFile(int multiobj)
+{
+#if LOG
+    printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
+#endif
+    if (!errors && members)
+    {
+        if (multiobj)
+            // Append to list of object files to be written later
+            obj_append(this);
+        else
+        {
+            for (size_t i = 0; i < members->dim; i++)
+            {
+                Dsymbol *s = (*members)[i];
+                s->toObjFile(multiobj);
+            }
+        }
+    }
+}
+
+/* ================================================================== */
+
+void TemplateMixin::toObjFile(int multiobj)
+{
+    //printf("TemplateMixin::toObjFile('%s')\n", toChars());
+    TemplateInstance::toObjFile(0);
+}
 

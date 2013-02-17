@@ -6192,27 +6192,6 @@ void TemplateInstance::printInstantiationTrace()
     }
 }
 
-void TemplateInstance::toObjFile(int multiobj)
-{
-#if LOG
-    printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
-#endif
-    if (!errors && members)
-    {
-        if (multiobj)
-            // Append to list of object files to be written later
-            obj_append(this);
-        else
-        {
-            for (size_t i = 0; i < members->dim; i++)
-            {
-                Dsymbol *s = (*members)[i];
-                s->toObjFile(multiobj);
-            }
-        }
-    }
-}
-
 void TemplateInstance::inlineScan()
 {
 #if LOG
@@ -6851,10 +6830,4 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-
-void TemplateMixin::toObjFile(int multiobj)
-{
-    //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile(0);
-}
 
