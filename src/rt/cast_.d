@@ -50,7 +50,7 @@ Object _d_toObject(void* p)
  * Returns o if successful, null if not.
  */
 
-Object _d_interface_cast(void* p, ClassInfo c)
+void* _d_interface_cast(void* p, ClassInfo c)
 {
     debug(cast_) printf("_d_interface_cast(p = %p, c = '%.*s')\n", p, c.name);
     if(!p)
@@ -62,16 +62,16 @@ Object _d_interface_cast(void* p, ClassInfo c)
     return _d_dynamic_cast(cast(Object)(p - pi.offset), c);
 }
 
-Object _d_dynamic_cast(Object o, ClassInfo c)
+void* _d_dynamic_cast(Object o, ClassInfo c)
 {
     debug(cast_) printf("_d_dynamic_cast(o = %p, c = '%.*s')\n", o, c.name);
 
-    Object res = null;
+    void* res = null;
     size_t offset = 0;
     if(o && _d_isbaseof2(o.classinfo, c, offset))
     {
         debug(cast_) printf("\toffset = %d\n", offset);
-        res = cast(Object) (cast(void*) o + offset);
+        res = cast(void*) o + offset;
     }
     debug(cast_) printf("\tresult = %p\n", res);
     return res;
