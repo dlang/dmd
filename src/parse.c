@@ -309,10 +309,15 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = parseStaticAssert();
                 else if (token.value == TOKif)
                 {   condition = parseStaticIfCondition();
-                    Loc lookingForElseSave = lookingForElse;
-                    lookingForElse = loc;
-                    a = parseBlock();
-                    lookingForElse = lookingForElseSave;
+                    if (token.value == TOKcolon)
+                        a = parseBlock();
+                    else
+                    {
+                        Loc lookingForElseSave = lookingForElse;
+                        lookingForElse = loc;
+                        a = parseBlock();
+                        lookingForElse = lookingForElseSave;
+                    }
                     aelse = NULL;
                     if (token.value == TOKelse)
                     {
