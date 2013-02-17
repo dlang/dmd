@@ -2294,6 +2294,35 @@ void test8847e()
 }
 
 /*******************************************/
+// 9525
+
+void f9525(T)(in T*) { }
+
+void test9525()
+{
+    enum result1 = "S6nested8test9525FZv26__T5test1S136nested5f9525Z5test1MFZ1S";
+    enum result2 = "S6nested8test9525FZv26__T5test2S136nested5f9525Z5test2MFNaNbZ1S";
+
+    void test1(alias a)()
+    {
+        static struct S {}
+        static assert(S.mangleof == result1);
+        S s;
+        a(&s);  // Error: Cannot convert &S to const(S*) at compile time
+    }
+    static assert((test1!f9525(), true));
+
+    void test2(alias a)() pure nothrow
+    {
+        static struct S {}
+        static assert(S.mangleof == result2);
+        S s;
+        a(&s);  // Error: Cannot convert &S to const(S*) at compile time
+    }
+    static assert((test2!f9525(), true));
+}
+
+/*******************************************/
 
 /+
 auto fun8863(T)(T* ret) { *ret = T(); }
