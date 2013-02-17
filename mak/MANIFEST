@@ -166,6 +166,7 @@ MANIFEST=\
 	src\rt\deh.d \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
+	src\rt\dso.d \
 	src\rt\dylib_fixes.c \
 	src\rt\image.d \
 	src\rt\invariant.d \

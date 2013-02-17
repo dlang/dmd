@@ -281,6 +281,12 @@ alias void delegate(Throwable) ExceptionHandler;
 
 extern (C) bool rt_init(ExceptionHandler dg = null)
 {
+    // reference _d_dso_registry in every executable/shared
+    // library for weak linkage support
+    import rt.dso;
+    static if (USE_DSO)
+        __gshared dummy_ref = &_d_dso_registry;
+
     version (OSX)
         _d_osx_image_init2();
     _d_criticalInit();
