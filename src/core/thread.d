@@ -3279,7 +3279,8 @@ private
                 pop EBP;
 
                 // 'return' to complete switch
-                ret;
+                pop ECX;
+                jmp ECX;
             }
         }
         else version( AsmX86_64_Windows )
