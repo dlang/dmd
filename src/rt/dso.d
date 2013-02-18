@@ -84,16 +84,24 @@ struct DSO
         return _gcRanges[];
     }
 
+    @property void[] tlsRange() const
+    {
+        return getTLSRange(_tlsMod, _tlsSize);
+    }
+
 private:
 
     invariant()
     {
         assert(_moduleGroup.modules.length);
+        assert(_tlsMod || !_tlsSize);
     }
 
     FuncTable[]     _ehtables;
     ModuleGroup  _moduleGroup;
     Array!(void[]) _gcRanges;
+    size_t _tlsMod;
+    size_t _tlsSize;
 }
 
 private:
@@ -171,6 +179,12 @@ void scanSegments(in ref dl_phdr_info info, DSO* pdso)
             auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
             pdso._gcRanges.insertBack(beg[0 .. phdr.p_memsz]);
         }
+        else if (phdr.p_type == PT_TLS)
+        {
+            assert(!pdso._tlsSize); // is unique per DSO
+            pdso._tlsMod = info.dlpi_tls_modid;
+            pdso._tlsSize = phdr.p_memsz;
+        }
     }
 }
 
@@ -211,6 +225,35 @@ bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* re
         }
     }
     return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// TLS module helper
+///////////////////////////////////////////////////////////////////////////////
+
+
+/*
+ * Returns: the TLS memory range for a given module and the calling
+ * thread or null if that module has no TLS.
+ *
+ * Note: This will cause the TLS memory to be eagerly allocated.
+ */
+struct tls_index
+{
+    size_t ti_module;
+    size_t ti_offset;
+}
+
+extern(C) void* __tls_get_addr(tls_index* ti);
+
+void[] getTLSRange(size_t mod, size_t sz)
+{
+    if (mod == 0)
+        return null;
+
+    // base offset
+    auto ti = tls_index(mod, 0);
+    return __tls_get_addr(&ti)[0 .. sz];
 }
 
 }
