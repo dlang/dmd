@@ -2884,6 +2884,27 @@ void test9090()
 }
 
 /************************************/
+// 9461
+
+void test9461()
+{
+    class A {}
+    class B : A {}
+
+    void conv(S, T)(ref S x) { T y = x; }
+
+    // should be NG
+    static assert(!__traits(compiles, conv!(inout(B)[],     inout(A)[])));
+    static assert(!__traits(compiles, conv!(int[inout(B)],  int[inout(A)])));
+    static assert(!__traits(compiles, conv!(inout(B)[int],  inout(A)[int])));
+    static assert(!__traits(compiles, conv!(inout(B)*,      inout(A)*)));
+    static assert(!__traits(compiles, conv!(inout(B)[1],    inout(A)[])));
+
+    // should be OK
+    static assert( __traits(compiles, conv!(inout(B),       inout(A))));
+}
+
+/************************************/
 
 int main()
 {
@@ -3005,6 +3026,7 @@ int main()
     test8688();
     test9046();
     test9090();
+    test9461();
 
     printf("Success\n");
     return 0;
