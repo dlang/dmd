@@ -6,4 +6,6 @@
 
 class Foo(T) : Bar
 {
+    /// ensure test documented even if 'Bar' doesn't exist
+    pure void test() { }
 }
