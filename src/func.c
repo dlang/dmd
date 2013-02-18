@@ -276,7 +276,9 @@ void FuncDeclaration::semantic(Scope *sc)
      * the function body.
      */
     if (fbody &&
-        (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
+        (isFuncLiteralDeclaration() ||
+         parent->isTemplateInstance() ||
+         ad && ad->parent && ad->parent->isTemplateInstance()))
     {
         if (f->purity == PUREimpure)        // purity not specified
             flags |= FUNCFLAGpurityInprocess;
@@ -433,6 +435,20 @@ void FuncDeclaration::semantic(Scope *sc)
         // Suppress further errors if the return type is an error
         if (type->nextOf() == Type::terror)
             goto Ldone;
+
+        if (cd->baseClass)
+        {
+            Dsymbol *cbd = cd->baseClass;
+            if (cbd->parent && cbd->parent->isTemplateInstance())
+            {
+                for (size_t i = 0; i < cd->baseClass->vtbl.dim; i++)
+                {
+                    FuncDeclaration *f = cd->baseClass->vtbl[i]->isFuncDeclaration();
+                    if (f && !f->functionSemantic())
+                        goto Ldone;
+                }
+            }
+        }
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
@@ -1681,6 +1697,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!f->deco)
     {
         sc = sc->push();
+        sc->stc = 0;
         sc->linkage = linkage;  // Bugzilla 8496
         type = f->semantic(loc, sc);
         sc = sc->pop();
@@ -1724,8 +1741,11 @@ bool FuncDeclaration::functionSemantic()
     }
 
     // if inferring return type, sematic3 needs to be run
-    if (scope && (inferRetType && type && !type->nextOf() ||
-                  getFuncTemplateDecl(this)))
+    AggregateDeclaration *ad;
+    if (scope &&
+        (inferRetType && type && !type->nextOf() ||
+         getFuncTemplateDecl(this) ||
+         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance()))
     {
         return functionSemantic3();
     }
@@ -2568,6 +2588,8 @@ if (arguments)
 
     if (m.count == 1)           // exactly one match
     {
+        if (!(flags & 1))
+            m.lastf->functionSemantic();
         return m.lastf;
     }
     else
