@@ -3278,7 +3278,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
  */
 void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
 {
-    for (Dsymbol *sx = f; sx != outerFunc; sx = sx->parent)
+    for (Dsymbol *sx = f; sx && sx != outerFunc; sx = sx->parent)
     {
         FuncDeclaration *fy = sx->isFuncDeclaration();
         if (fy && fy->closureVars.dim)
