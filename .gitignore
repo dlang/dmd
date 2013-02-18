@@ -24,3 +24,5 @@ src/verstr.h
 .DS_Store
 trace.def
 trace.log
+/src/vcbuild/x64
+/src/vcbuild/Win32
