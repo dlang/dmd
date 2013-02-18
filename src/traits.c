@@ -268,7 +268,12 @@ Expression *TraitsExp::semantic(Scope *sc)
             if (FuncDeclaration *fd = s->isFuncDeclaration())   // Bugzilla 8943
                 s = fd->toAliasFunc();
             if (!s->isImport())  // Bugzilla 8922
+            {
                 s = s->toParent();
+                UnitTestDeclaration *utd;  // Bugzilla 9531
+                if (s && ((utd = s->isUnitTestDeclaration()) != NULL))
+                    s = utd->toParent();
+            }
         }
         if (!s || s->isImport())
         {
