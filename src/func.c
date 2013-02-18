@@ -3274,20 +3274,20 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
  */
 void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
 {
-    Dsymbol *sx = f;
-    while (sx && sx != outerFunc)
+    for (Dsymbol *sx = f; sx != outerFunc; sx = sx->parent)
     {
-        FuncDeclaration *fy = sx->isFuncDeclaration();
+        FuncDeclaration *fy = sx && sx->isFuncDeclaration();
         if (fy && fy->closureVars.dim)
         {
             /* fy needs a closure if it has closureVars[],
-            * because the frame pointer in the closure will be accessed.
-            */
+             * because the frame pointer in the closure will be accessed.
+             */
             fy->requiresClosure = true;
         }
-        sx = sx ->parent;
     }
 }
+
+
 
 
 /* Given a nested function f inside a function outerFunc, check
