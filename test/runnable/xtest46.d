@@ -5801,6 +5801,43 @@ struct X164()
 
 
 /***************************************************/
+// 9428
+
+void test9428()
+{
+    int[2][] items = [[1, 2]];
+    int[2] x = [3, 4];
+
+    auto r1 = items ~ [x];
+    assert(r1.length == 2);
+    assert(r1[0][0] == 1);
+    assert(r1[0][1] == 2);
+    assert(r1[1][0] == 3);
+    assert(r1[1][1] == 4);
+
+    auto r2 = items ~ x;
+    assert(r2.length == 2);
+    assert(r2[0][0] == 1);
+    assert(r2[0][1] == 2);
+    assert(r2[1][0] == 3);
+    assert(r2[1][1] == 4);
+
+    auto r3 = [x] ~ items;
+    assert(r3.length == 2);
+    assert(r3[0][0] == 3);
+    assert(r3[0][1] == 4);
+    assert(r3[1][0] == 1);
+    assert(r3[1][1] == 2);
+
+    auto r4 = x ~ items;
+    assert(r4.length == 2);
+    assert(r4[0][0] == 3);
+    assert(r4[0][1] == 4);
+    assert(r4[1][0] == 1);
+    assert(r4[1][1] == 2);
+}
+
+/***************************************************/
 // 9504
 
 struct Bar9504
@@ -6087,6 +6124,7 @@ int main()
     test161();
     test8917();
     test163();
+    test9428();
 
     printf("Success\n");
     return 0;
