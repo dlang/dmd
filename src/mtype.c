@@ -6640,6 +6640,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         v = s->isVarDeclaration();
         if (v)
         {
+            if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+            {   error(loc, "circular reference to '%s'", v->toPrettyChars());
+                *pe = new ErrorExp();
+                return;
+            }
             *pe = new VarExp(loc, v);
             return;
         }
@@ -8087,6 +8092,10 @@ L1:
     s = s->toAlias();
 
     v = s->isVarDeclaration();
+    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    {   e->error("circular reference to '%s'", v->toPrettyChars());
+        return new ErrorExp();
+    }
     if (v && !v->isDataseg())
     {
         Expression *ei = v->getConstInitializer();
@@ -8687,10 +8696,15 @@ L1:
     if (!s->isFuncDeclaration())        // because of overloading
         s->checkDeprecated(e->loc, sc);
     s = s->toAlias();
-    v = s->isVarDeclaration();
-    if (v && !v->isDataseg())
-    {   Expression *ei = v->getConstInitializer();
 
+    v = s->isVarDeclaration();
+    if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
+    {   e->error("circular reference to '%s'", v->toPrettyChars());
+        return new ErrorExp();
+    }
+    if (v && !v->isDataseg())
+    {
+        Expression *ei = v->getConstInitializer();
         if (ei)
         {   e = ei->copy();     // need to copy it if it's a StringExp
             e = e->semantic(sc);
