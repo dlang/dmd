@@ -968,7 +968,7 @@ void VarDeclaration::semantic(Scope *sc)
         size_t nelems = Parameter::dim(tt->arguments);
         Objects *exps = new Objects();
         exps->setDim(nelems);
-        Expression *ie = init ? init->toExpression() : NULL;
+        Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
         if (nelems > 0 && ie)
