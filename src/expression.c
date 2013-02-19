@@ -5942,16 +5942,9 @@ Expression *IsExp::semantic(Scope *sc)
          * is(targ id : tspec, tpl)
          */
 
-        if (id)
-        {
-            TemplateParameter *tp = new TemplateTypeParameter(loc, id, NULL, NULL);
-            parameters->insert(0, tp);
-        }
-        else
-        {
-            TemplateParameter *tp = new TemplateTypeParameter(loc, Lexer::uniqueId("is_id"), NULL, NULL);
-            parameters->insert(0, tp);
-        }
+        Identifier *tid = id ? id : Lexer::uniqueId("__isexp_id");
+        TemplateParameter *tp = new TemplateTypeParameter(loc, tid, NULL, NULL);
+        parameters->insert(0, tp);
 
         Objects dedtypes;
         dedtypes.setDim(parameters->dim);
@@ -5967,7 +5960,7 @@ Expression *IsExp::semantic(Scope *sc)
         }
         else
         {
-            tded = id ? (Type *)dedtypes[0] : targ;
+            tded = (Type *)dedtypes[0];
             if (!tded)
                 tded = targ;
 #if DMDV2
