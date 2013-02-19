@@ -1424,7 +1424,10 @@ struct Gcx
             cstdlib.free(pool);
         }
         if (pooltable)
+        {
             cstdlib.free(pooltable);
+            pooltable = null;
+        }
 
         if (roots)
             cstdlib.free(roots);
@@ -2049,11 +2052,12 @@ struct Gcx
         assert(gcx.maxAddr == gcx.pooltable[NPOOLS - 4].topAddr);
 
         // free all
-        foreach(pool; gcx.pooltable[0 .. NPOOLS - 2])
+        foreach(pool; gcx.pooltable[0 .. gcx.npools])
             pool.freepages = NPAGES;
         gcx.minimize();
         assert(gcx.npools == 0);
         cstdlib.free(gcx.pooltable);
+        gcx.pooltable = null;
     }
 
 
@@ -3152,7 +3156,10 @@ struct Pool
             topAddr = null;
         }
         if (pagetable)
+        {
             cstdlib.free(pagetable);
+            pagetable = null;
+        }
 
         if(bPageOffsets)
             cstdlib.free(bPageOffsets);
@@ -3194,10 +3201,13 @@ struct Pool
             assert(ncommitted <= npages);
         }
 
-        for (size_t i = 0; i < npages; i++)
+        if(pagetable !is null)
         {
-            Bins bin = cast(Bins)pagetable[i];
-            assert(bin < B_MAX);
+            for (size_t i = 0; i < npages; i++)
+            {
+                Bins bin = cast(Bins)pagetable[i];
+                assert(bin < B_MAX);
+            }
         }
     }
 
