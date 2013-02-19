@@ -4567,8 +4567,8 @@ StructDeclaration *TypeAArray::getImpl()
         dti->semantic(sc);
         TemplateInstance *ti = dti->ti;
 #endif
-        // instantiate on the first module given in command lines
-        sc = sc->push(Module::rootModule);
+        // Instantiate on the root module of import dependency graph.
+        sc = sc->push(sc->module->importedFrom);
         ti->semantic(sc);
         ti->semantic2(sc);
         ti->semantic3(sc);
