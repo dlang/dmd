@@ -40,6 +40,7 @@
 #include "template.h"
 #include "id.h"
 #include "enum.h"
+#include "module.h"
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
@@ -4566,9 +4567,12 @@ StructDeclaration *TypeAArray::getImpl()
         dti->semantic(sc);
         TemplateInstance *ti = dti->ti;
 #endif
+        // Instantiate on the root module of import dependency graph.
+        sc = sc->push(sc->module->importedFrom);
         ti->semantic(sc);
         ti->semantic2(sc);
         ti->semantic3(sc);
+        sc = sc->pop();
         impl = ti->toAlias()->isStructDeclaration();
 #ifdef DEBUG
         if (!impl)
