@@ -11263,7 +11263,7 @@ Expression *CatExp::semantic(Scope *sc)
             checkPostblit(e2->loc, tb2);
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
-            if (tb2->ty == Tarray)
+            if (tb2->ty == Tarray || tb2->ty == Tsarray)
             {   // Make e2 into [e2]
                 e2 = new ArrayLiteralExp(e2->loc, e2);
                 e2->type = type;
@@ -11277,7 +11277,7 @@ Expression *CatExp::semantic(Scope *sc)
             checkPostblit(e1->loc, tb1);
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
-            if (tb1->ty == Tarray)
+            if (tb1->ty == Tarray || tb1->ty == Tsarray)
             {   // Make e1 into [e1]
                 e1 = new ArrayLiteralExp(e1->loc, e1);
                 e1->type = type;
