@@ -878,7 +878,9 @@ void VarDeclaration::semantic(Scope *sc)
     else
     {   if (!originalType)
             originalType = type->syntaxCopy();
+        inuse++;
         type = type->semantic(loc, sc);
+        inuse--;
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
