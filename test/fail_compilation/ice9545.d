@@ -1,7 +1,8 @@
+// REQUIRED_ARGS: -o-
 /*
 TEST_OUTPUT:
 ----
-fail_compilation/ice9545.d(12): Error: T is not a field, but a alias
+fail_compilation/ice9545.d(13): Error: expression has no value
 ----
 */
 
