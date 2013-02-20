@@ -6480,11 +6480,6 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps)
 {
-    VarDeclaration *v;
-    EnumMember *em;
-    Expression *e;
-    TemplateInstance *ti;
-
 #if 0
     printf("TypeQualified::resolveHelper(sc = %p, idents = '%s')\n", sc, toChars());
     if (scopesym)
@@ -6506,41 +6501,16 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("\tgetType = '%s'\n", s->getType()->toChars());
             if (!sm)
-            {   Type *t;
-
-                v = s->isVarDeclaration();
-                ti = s->isTemplateInstance();
-                if (v && id == Id::length)
-                {
-                    e = new VarExp(loc, v);
-                    t = e->type;
-                    if (!t)
-                        goto Lerror;
-                    goto L3;
-                }
-                else if ((v && (id == Id::stringof || id == Id::offsetof))
-                         || (ti && (id == Id::stringof || id == Id::mangleof)))
-                {
-                    e = new DsymbolExp(loc, s, 0);
-                    do
-                    {
-                        id = idents[i];
-                        e = new DotIdExp(loc, e, id);
-                    } while (++i < idents.dim);
-                    e = e->semantic(sc);
-                    *pe = e;
-                    return;
-                }
-
-                t = s->getType();
-                if (!t && s->isDeclaration())
-                {   t = s->isDeclaration()->type;
-                    if (!t && s->isTupleDeclaration())
-                    {
-                        e = new TupleExp(loc, s->isTupleDeclaration());
-                        e = e->semantic(sc);
-                        t = e->type;
+            {
+                Type *t = s->getType();     // type symbol, type alias, or type tuple?
+                if (!t)
+                {   if (s->isDeclaration())         // var, func, or tuple declaration?
+                    {   t = s->isDeclaration()->type;
+                        if (!t && s->isTupleDeclaration())  // expression tuple?
+                            goto L3;
                     }
+                    else if (s->isTemplateInstance())
+                        goto L3;
                 }
                 if (t)
                 {
@@ -6550,15 +6520,25 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         if (sm)
                             goto L2;
                     }
-                    e = new DsymbolExp(loc, s);
-                    e = e->semantic(sc);
                 L3:
+                    Expression *e = new DsymbolExp(loc, s);
+                    e = e->semantic(sc);
                     for (; i < idents.dim; i++)
                     {
                         id = idents[i];
                         //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
-                        e = new DotIdExp(e->loc, e, id);
-                        e = e->semantic(sc);
+                        if (id->dyncast() == DYNCAST_IDENTIFIER)
+                        {
+                            DotIdExp *die = new DotIdExp(e->loc, e, id);
+                            e = die->semantic(sc, 1);   // don't see UFCS
+                        }
+                        else
+                        {   assert(id->dyncast() == DYNCAST_DSYMBOL);
+                            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+                            assert(ti);
+                            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
+                            e = dte->semantic(sc, 1);   // don't see UFCS
+                        }
                     }
                     if (e->op == TOKtype)
                         *pt = e->type;
@@ -6589,8 +6569,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             s = sm->toAlias();
         }
 
-        v = s->isVarDeclaration();
-        if (v)
+        if (VarDeclaration *v = s->isVarDeclaration())
         {
             if (v && v->inuse && (!v->type || !v->type->deco))  // Bugzilla 9494
             {   error(loc, "circular reference to '%s'", v->toPrettyChars());
@@ -6601,15 +6580,13 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             return;
         }
 #if 0
-        fd = s->isFuncDeclaration();
-        if (fd)
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
         {
             *pe = new DsymbolExp(loc, fd, 1);
             return;
         }
 #endif
-        em = s->isEnumMember();
-        if (em)
+        if (EnumMember *em = s->isEnumMember())
         {
             // It's not a type, it's an expression
             *pe = em->value->copy();
@@ -6621,10 +6598,7 @@ L1:
         if (!t)
         {
             // If the symbol is an import, try looking inside the import
-            Import *si;
-
-            si = s->isImport();
-            if (si)
+            if (Import *si = s->isImport())
             {
                 s = si->search(loc, s->ident, 0);
                 if (s && s != si)
