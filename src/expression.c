@@ -7097,7 +7097,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             if (e)
                 return e;
 
-            if (v->isDataseg())     // fix bugzilla 8238
+            if (v && v->isDataseg())     // fix bugzilla 8238
             {
                 // (e1, v)
                 accessCheck(loc, sc, e1, v);
@@ -7321,7 +7321,7 @@ L1:
             return new ErrorExp();
         Dsymbol *s = ti->inst->toAlias();
         Declaration *v = s->isDeclaration();
-        if (v)
+        if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
         {
             /* Fix for Bugzilla 4003
              * The problem is a class template member function v returning a reference to the same
