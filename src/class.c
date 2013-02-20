@@ -15,6 +15,7 @@
 
 #include "root.h"
 #include "rmem.h"
+#include "target.h"
 
 #include "enum.h"
 #include "init.h"
@@ -620,11 +621,11 @@ void ClassDeclaration::semantic(Scope *sc)
     {   sc->offset = baseClass->structsize;
         alignsize = baseClass->alignsize;
 //      if (isnested)
-//          sc->offset += PTRSIZE;      // room for uplevel context pointer
+//          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
     else
-    {   sc->offset = PTRSIZE * 2;       // allow room for __vptr and __monitor
-        alignsize = PTRSIZE;
+    {   sc->offset = Target::ptrsize * 2;       // allow room for __vptr and __monitor
+        alignsize = Target::ptrsize;
     }
     sc->userAttributes = NULL;
     structsize = sc->offset;
@@ -758,7 +759,7 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
         BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = PTRSIZE;
+        unsigned thissize = Target::ptrsize;
 
         alignmember(STRUCTALIGN_DEFAULT, thissize, &sc->offset);
         assert(b->offset == 0);
@@ -1423,7 +1424,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
 //    structalign = sc->structalign;
-    sc->offset = PTRSIZE * 2;
+    sc->offset = Target::ptrsize * 2;
     sc->userAttributes = NULL;
     structsize = sc->offset;
     inuse++;

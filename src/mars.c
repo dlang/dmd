@@ -23,6 +23,7 @@
 #include "rmem.h"
 #include "root.h"
 #include "async.h"
+#include "target.h"
 
 #include "mars.h"
 #include "module.h"
@@ -1049,6 +1050,7 @@ int tryMain(size_t argc, char *argv[])
     Type::init();
     Id::initialize();
     Module::init();
+    Target::init();
     initPrecedence();
 
     if (global.params.verbose)
