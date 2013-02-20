@@ -309,6 +309,77 @@ else version( linux )
     }
   }
 }
+else version( MinGW )
+{
+    enum
+    {
+        FP_NAN = 0x0100,
+        FP_NORMAL = 0x0400,
+        FP_INFINITE = FP_NAN | FP_NORMAL,
+        FP_ZERO = 0x0400,
+        FP_SUBNORMAL = FP_NORMAL | FP_ZERO
+    }
+
+    int __fpclassifyf(float x);
+    int __fpclassify(double x);
+    int __fpclassifyl(real x);
+
+    int __isnanf(float x);
+    int __isnan(double x);
+    int __isnanl(real x);
+
+    int __signbitf(float x);
+    int __signbit(double x);
+    int __signbitl(real x);
+
+  extern (D)
+  {
+    //int fpclassify(real-floating x);
+    int fpclassify(float x)     { return __fpclassifyf(x); }
+    int fpclassify(double x)    { return __fpclassify(x);  }
+    int fpclassify(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __fpclassify(x)
+            : __fpclassifyl(x);
+    }
+
+    //int isfinite(real-floating x);
+    int isfinite(float x)       { return (fpclassify(x) & FP_NORMAL) == 0; }
+    int isfinite(double x)      { return (fpclassify(x) & FP_NORMAL) == 0; }
+    int isfinite(real x)        { return (fpclassify(x) & FP_NORMAL) == 0; }
+
+    //int isinf(real-floating x);
+    int isinf(float x)          { return fpclassify(x) == FP_INFINITE; }
+    int isinf(double x)         { return fpclassify(x) == FP_INFINITE; }
+    int isinf(real x)           { return fpclassify(x) == FP_INFINITE; }
+
+    //int isnan(real-floating x);
+    int isnan(float x)          { return __isnanf(x);  }
+    int isnan(double x)         { return __isnan(x);   }
+    int isnan(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __isnan(x)
+            : __isnanl(x);
+    }
+
+    //int isnormal(real-floating x);
+    int isnormal(float x)       { return fpclassify(x) == FP_NORMAL; }
+    int isnormal(double x)      { return fpclassify(x) == FP_NORMAL; }
+    int isnormal(real x)        { return fpclassify(x) == FP_NORMAL; }
+
+    //int signbit(real-floating x);
+    int signbit(float x)     { return __signbitf(x); }
+    int signbit(double x)    { return __signbit(x);  }
+    int signbit(real x)
+    {
+        return (real.sizeof == double.sizeof)
+            ? __signbit(x)
+            : __signbitl(x);
+    }
+  }
+}
 else version( OSX )
 {
     enum
