@@ -73,7 +73,7 @@ else
 }
 
 group* getgrnam(in char*);
-group* getgruid(uid_t);
+group* getgrgid(gid_t);
 
 //
 // Thread-Safe Functions (TSF)
