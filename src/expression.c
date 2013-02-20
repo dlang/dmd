@@ -7097,7 +7097,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             if (e)
                 return e;
 
-            if (v->isDataseg())     // fix bugzilla 8238
+            if (v && v->isDataseg())     // fix bugzilla 8238
             {
                 // (e1, v)
                 accessCheck(loc, sc, e1, v);
