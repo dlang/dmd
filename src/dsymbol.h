@@ -115,7 +115,6 @@ typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 struct Dsymbol : Object
 {
     Identifier *ident;
-    Identifier *c_ident;
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
