@@ -23,6 +23,7 @@
 #include "template.h"
 
 #include "rmem.h"
+#include "target.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -907,7 +908,7 @@ int FuncDeclaration::cvMember(unsigned char *p)
             TOIDX(q, cv4_memfunctypidx(this));
             q += cgcv.sz_idx;
             if (introducing)
-            {   TOLONG(q, vtblIndex * PTRSIZE);
+            {   TOLONG(q, vtblIndex * Target::ptrsize);
                 q += 4;
             }
         }

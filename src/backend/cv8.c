@@ -280,37 +280,7 @@ void cv8_func_term(Symbol *sfunc)
     funcdata->write(&currentfuncdata, sizeof(currentfuncdata));
 
     // Write function symbol
-    assert(tyfunc(sfunc->ty()));
-    idx_t typidx;
-    func_t* fn = sfunc->Sfunc;
-    if(fn->Fclass)
-    {
-        // generate member function type info
-        // it would be nicer if this could be in cv4_typidx, but the function info is not available there
-        unsigned nparam;
-        unsigned char call = cv4_callconv(sfunc->Stype);
-        idx_t paramidx = cv4_arglist(sfunc->Stype,&nparam);
-        unsigned next = cv4_typidx(sfunc->Stype->Tnext);
-
-        type* classtype = (type*)fn->Fclass;
-        unsigned classidx = cv4_typidx(classtype);
-        type *tp = type_allocn(TYnptr, classtype);
-        unsigned thisidx = cv4_typidx(tp);  // TODO
-        debtyp_t *d = debtyp_alloc(2 + 4 + 4 + 4 + 1 + 1 + 2 + 4 + 4);
-        TOWORD(d->data,LF_MFUNCTION_V2);
-        TOLONG(d->data + 2,next);       // return type
-        TOLONG(d->data + 6,classidx);   // class type
-        TOLONG(d->data + 10,thisidx);   // this type
-        d->data[14] = call;
-        d->data[15] = 0;                // reserved
-        TOWORD(d->data + 16,nparam);
-        TOLONG(d->data + 18,paramidx);
-        TOLONG(d->data + 22,0);  // this adjust
-        typidx = cv_debtyp(d);
-    }
-    else
-        typidx = cv_typidx(sfunc->Stype);
-
+    idx_t typidx = cv_typidx(sfunc->Stype);
     const char *id = sfunc->prettyIdent ? sfunc->prettyIdent : prettyident(sfunc);
     size_t len = strlen(id);
     /*

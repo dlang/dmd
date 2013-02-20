@@ -25,6 +25,8 @@ extern "C" char * __cdecl __locale_decpoint;
 
 #include "rmem.h"
 #include "port.h"
+#include "root.h"
+#include "target.h"
 
 #include "mtype.h"
 #include "init.h"
@@ -1417,9 +1419,9 @@ dinteger_t IntegerExp::toInteger()
             case Tint64:        value = (d_int64) value;        break;
             case Tuns64:        value = (d_uns64) value;        break;
             case Tpointer:
-                if (PTRSIZE == 4)
+                if (Target::ptrsize == 4)
                     value = (d_uns32) value;
-                else if (PTRSIZE == 8)
+                else if (Target::ptrsize == 8)
                     value = (d_uns64) value;
                 else
                     assert(0);
@@ -1602,9 +1604,9 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->writestring("cast(");
                 buf->writestring(t->toChars());
                 buf->writeByte(')');
-                if (PTRSIZE == 4)
+                if (Target::ptrsize == 4)
                     goto L3;
-                else if (PTRSIZE == 8)
+                else if (Target::ptrsize == 8)
                     goto L4;
                 else
                     assert(0);
@@ -1739,7 +1741,7 @@ int RealEquals(real_t x1, real_t x2)
         /* In some cases, the REALPAD bytes get garbage in them,
          * so be sure and ignore them.
          */
-        memcmp(&x1, &x2, REALSIZE - REALPAD) == 0;
+        memcmp(&x1, &x2, Target::realsize - Target::realpad) == 0;
 }
 
 int RealExp::equals(Object *o)

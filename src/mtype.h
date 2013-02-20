@@ -777,9 +777,6 @@ struct Parameter : Object
     static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
-extern int PTRSIZE;
-extern int REALSIZE;
-extern int REALPAD;
 extern int Tsize_t;
 extern int Tptrdiff_t;
 

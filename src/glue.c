@@ -27,6 +27,7 @@
 #include "import.h"
 #include "template.h"
 #include "lib.h"
+#include "target.h"
 
 #include "rmem.h"
 #include "cc.h"
@@ -1249,7 +1250,7 @@ Symbol *Module::gencritsec()
     s->Sfl = FLdata;
     /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
      */
-    dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
+    dtnzeros(&s->Sdt, Target::ptrsize + (I64 ? os_critsecsize64() : os_critsecsize32()));
     outdata(s);
     return s;
 }

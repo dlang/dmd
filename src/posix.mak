@@ -113,7 +113,7 @@ DMD_OBJS = \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
-    html.o unialpha.o \
+	html.o unialpha.o target.o \
 	pdata.o cv8.o backconfig.o \
 	$(TARGET_OBJS)
 
@@ -141,6 +141,7 @@ SRC = win32.mak posix.mak \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
+	target.c target.h \
 	scanmscoff.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
@@ -585,6 +586,9 @@ strtold.o: $C/strtold.c
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
 
+target.o: target.c target.h
+	$(CC) -c $(CFLAGS) $<
+
 template.o: template.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -712,6 +716,7 @@ endif
 	gcov unialpha.c
 	gcov utf.c
 	gcov version.c
+	gcov target.c
 
 #	gcov hdrgen.c
 #	gcov tocvdebug.c
