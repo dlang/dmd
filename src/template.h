@@ -30,6 +30,7 @@ struct TemplateValueParameter;
 struct TemplateAliasParameter;
 struct TemplateTupleParameter;
 struct Type;
+struct TypeQualified;
 struct TypeTypeof;
 struct Scope;
 struct Expression;
@@ -343,10 +344,9 @@ struct TemplateInstance : ScopeDsymbol
 
 struct TemplateMixin : TemplateInstance
 {
-    Identifiers *idents;
-    Type *tqual;
+    TypeQualified *tqual;
 
-    TemplateMixin(Loc loc, Identifier *ident, Type *tqual, Identifiers *idents, Objects *tiargs);
+    TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
