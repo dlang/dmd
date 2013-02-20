@@ -24,6 +24,7 @@
 #include "statement.h"
 #include "template.h"
 #include "hdrgen.h"
+#include "target.h"
 
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
@@ -1319,7 +1320,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         while (p->storage_class & (STCout | STCref))
                         {
                             --lastNonref;
-                            offset += PTRSIZE;
+                            offset += Target::ptrsize;
                             if (lastNonref < 0)
                             {
                                 p = v_arguments;
@@ -1331,7 +1332,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     else
                         p = v_arguments;            // last parameter is _arguments[]
                     if (global.params.is64bit && global.params.isWindows)
-                    {   offset += PTRSIZE;
+                    {   offset += Target::ptrsize;
                         if (p->storage_class & STClazy)
                         {
                             /* Necessary to offset the extra level of indirection the Win64
@@ -1348,10 +1349,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                     else if (p->storage_class & STClazy)
                         // If the last parameter is lazy, it's the size of a delegate
-                        offset += PTRSIZE * 2;
+                        offset += Target::ptrsize * 2;
                     else
                         offset += p->type->size();
-                    offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
+                    offset = (offset + Target::ptrsize - 1) & ~(Target::ptrsize - 1);  // assume stack aligns on pointer size
                     e = new SymOffExp(0, p, offset);
                     e->type = Type::tvoidptr;
                     //e = e->semantic(sc);

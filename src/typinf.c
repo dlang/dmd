@@ -27,6 +27,7 @@
 #include "enum.h"
 #include "import.h"
 #include "aggregate.h"
+#include "target.h"
 
 #if 0
 #include "dt.h"
@@ -237,6 +238,8 @@ void TypeInfoDeclaration::toDt(dt_t **pdt)
 void TypeInfoConstDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoConstDeclaration::toDt() %s\n", toChars());
+    verifyStructSize(Type::typeinfoconst, 3 * Target::ptrsize);
+
     dtxoff(pdt, Type::typeinfoconst->toVtblSymbol(), 0); // vtbl for TypeInfo_Const
     dtsize_t(pdt, 0);                        // monitor
     Type *tm = tinfo->mutableOf();

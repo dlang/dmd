@@ -14,6 +14,7 @@
 #include        <complex.h>
 
 #include        "port.h"
+#include        "target.h"
 
 #include        "lexer.h"
 #include        "expression.h"
@@ -1472,7 +1473,7 @@ elem *NewExp::toElem(IRState *irs)
 
             // The new functions return an array, so convert to a pointer
             // ex -> (unsigned)(e >> 32)
-            e = el_bin(OPshr, TYdarray, e, el_long(TYint, PTRSIZE * 8));
+            e = el_bin(OPshr, TYdarray, e, el_long(TYint, Target::ptrsize * 8));
             ex = el_una(OP64_32, TYnptr, e);
 
             ectype = NULL;
@@ -1562,7 +1563,7 @@ elem *NewExp::toElem(IRState *irs)
 
         // The new functions return an array, so convert to a pointer
         // e -> (unsigned)(e >> 32)
-        e = el_bin(OPshr, TYdarray, e, el_long(TYsize_t, PTRSIZE * 8));
+        e = el_bin(OPshr, TYdarray, e, el_long(TYsize_t, Target::ptrsize * 8));
         e = el_una(I64 ? OP128_64 : OP64_32, t->totym(), e);
     }
     else
@@ -3230,7 +3231,7 @@ elem *DelegateExp::toElem(IRState *irs)
             assert((int)vindex >= 0);
 
             // Build *(ep + vindex * 4)
-            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * PTRSIZE));
+            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * Target::ptrsize));
             ep = el_una(OPind,TYnptr,ep);
         }
 

@@ -29,7 +29,6 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 
 extern Global global;
-extern int REALSIZE;
 
 Config config;
 Configv configv;
