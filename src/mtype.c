@@ -6550,10 +6550,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         if (sm)
                             goto L2;
                     }
-                    //e = t->getProperty(loc, id);
-                    e = new TypeExp(loc, t);
-                    e = t->dotExp(sc, e, id);
-                    i++;
+                    e = new DsymbolExp(loc, s);
+                    e = e->semantic(sc);
                 L3:
                     for (; i < idents.dim; i++)
                     {
