@@ -39,7 +39,6 @@ Dsymbol::Dsymbol()
 {
     //printf("Dsymbol::Dsymbol(%p)\n", this);
     this->ident = NULL;
-    this->c_ident = NULL;
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
@@ -56,7 +55,6 @@ Dsymbol::Dsymbol(Identifier *ident)
 {
     //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
     this->ident = ident;
-    this->c_ident = NULL;
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;

@@ -260,7 +260,6 @@ Msgtable msgtable[] =
     { "_ArrayEq" },
 
     // For pragma's
-    { "GNU_asm" },
     { "lib" },
     { "msg" },
     { "startaddress" },
