@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -65,14 +65,47 @@ Initializers *Initializer::arraySyntaxCopy(Initializers *ai)
 }
 
 char *Initializer::toChars()
-{   OutBuffer *buf;
+{
     HdrGenState hgs;
 
     memset(&hgs, 0, sizeof(hgs));
-    buf = new OutBuffer();
+    OutBuffer *buf = new OutBuffer();
     toCBuffer(buf, &hgs);
     return buf->toChars();
 }
+
+/********************************** ErrorInitializer ***************************/
+
+ErrorInitializer::ErrorInitializer()
+    : Initializer(0)
+{
+}
+
+
+Initializer *ErrorInitializer::syntaxCopy()
+{
+    return this;
+}
+
+
+Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
+{
+    //printf("ErrorInitializer::semantic(t = %p)\n", t);
+    return this;
+}
+
+
+Expression *ErrorInitializer::toExpression()
+{
+    return new ErrorExp();
+}
+
+
+void ErrorInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring("__error__");
+}
+
 
 /********************************** VoidInitializer ***************************/
 
@@ -100,7 +133,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
 Expression *VoidInitializer::toExpression()
 {
     error(loc, "void initializer has no value");
-    return new IntegerExp(0);
+    return new ErrorExp();
 }
 
 
@@ -230,6 +263,8 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 val = val->semantic(sc, v->type->addMod(t->mod), needInterpret);
                 value[i] = val;
                 vars[i] = v;
+                if (val->isErrorInitializer())
+                    errors = 1;
             }
             else
             {   error(loc, "%s is not a field of %s", id ? id->toChars() : s->toChars(), ad->toChars());
@@ -258,9 +293,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
 Lerror:
     if (errors)
     {
-        field.setDim(0);
-        value.setDim(0);
-        vars.setDim(0);
+        return new ErrorInitializer();
     }
     return this;
 }
@@ -302,7 +335,7 @@ Expression *StructInitializer::toExpression()
             if (!s)
             {
                 error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
-                goto Lno;
+                goto Lerror;
             }
             s = s->toAlias();
 
@@ -312,7 +345,7 @@ Expression *StructInitializer::toExpression()
                 if (fieldi >= nfields)
                 {
                     s->error("is not a per-instance initializable field");
-                    goto Lno;
+                    goto Lerror;
                 }
                 if (s == ad->fields[fieldi])
                     break;
@@ -320,7 +353,7 @@ Expression *StructInitializer::toExpression()
         }
         else if (fieldi >= nfields)
         {   error(loc, "too many initializers for '%s'", ad->toChars());
-            goto Lno;
+            goto Lerror;
         }
         Initializer *iz = value[i];
         if (!iz)
@@ -331,7 +364,7 @@ Expression *StructInitializer::toExpression()
         if ((*elements)[fieldi])
         {   error(loc, "duplicate initializer for field '%s'",
                 ad->fields[fieldi]->toChars());
-            goto Lno;
+            goto Lerror;
         }
         (*elements)[fieldi] = ex;
         ++fieldi;
@@ -396,7 +429,7 @@ Expression *StructInitializer::toExpression()
                     error(loc, "%s cannot have initializers for fields %s and %s in same union",
                         ad->toChars(),
                         v1->toChars(), v->toChars());
-                    goto Lno;
+                    goto Lerror;
                 }
                 found = j;
             }
@@ -404,12 +437,19 @@ Expression *StructInitializer::toExpression()
             {
                 error(loc, "no initializer for union that contains field %s",
                     vd->toChars());
-                goto Lno;
+                goto Lerror;
             }
         }
         i += unionSize;
 #endif
     }
+
+    for (size_t i = 0; i < elements->dim; i++)
+    {   Expression *e = (*elements)[i];
+        if (e && e->op == TOKerror)
+            return e;
+    }
+
     e = new StructLiteralExp(loc, sd, elements);
     e->type = sd->type;
     return e;
@@ -417,6 +457,10 @@ Expression *StructInitializer::toExpression()
 Lno:
     delete elements;
     return NULL;
+
+Lerror:
+    delete elements;
+    return new ErrorExp();
 }
 
 
@@ -485,6 +529,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 {
     size_t length;
     const unsigned amax = 0x80000000;
+    bool errors = false;
 
     //printf("ArrayInitializer::semantic(%s)\n", t->toChars());
     if (sem)                            // if semantic() already run
@@ -523,6 +568,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             idx = idx->ctfeInterpret();
             index[i] = idx;
             length = idx->toInteger();
+            if (idx->op == TOKerror)
+                errors = true;
         }
 
         Initializer *val = value[i];
@@ -530,6 +577,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
         if (ei && !idx)
             ei->expandTuples = 1;
         val = val->semantic(sc, t->nextOf(), needInterpret);
+        if (val->isErrorInitializer())
+            errors = true;
 
         ei = val->isExpInitializer();
         // found a tuple, expand it
@@ -570,6 +619,8 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
             goto Lerr;
         }
     }
+    if (errors)
+        goto Lerr;
 
     if ((uinteger_t) dim * t->nextOf()->size() >= amax)
     {   error(loc, "array dimension %u exceeds max of %u", (unsigned) dim, (unsigned)(amax / t->nextOf()->size()));
@@ -578,7 +629,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     return this;
 
 Lerr:
-    return new ExpInitializer(loc, new ErrorExp());
+    return new ErrorInitializer();
 }
 
 /********************************
@@ -587,11 +638,11 @@ Lerr:
  */
 
 Expression *ArrayInitializer::toExpression()
-{   Expressions *elements;
-
+{
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();
 
+    Expressions *elements;
     size_t edim;
     Type *t = NULL;
     if (type)
@@ -665,6 +716,12 @@ Expression *ArrayInitializer::toExpression()
                 init = ((TypeNext *)t)->next->defaultInit();
             (*elements)[i] = init;
         }
+    }
+
+    for (size_t i = 0; i < edim; i++)
+    {   Expression *e = (*elements)[i];
+        if (e->op == TOKerror)
+            return e;
     }
 
     Expression *e = new ArrayLiteralExp(loc, elements);
@@ -884,13 +941,16 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         return this; // Failed, suppress duplicate error messages
 
     if (exp->op == TOKtype)
+    {
         exp->error("initializer must be an expression, not '%s'", exp->toChars());
+        return new ErrorInitializer();
+    }
 
     // Make sure all pointers are constants
     if (needInterpret && hasNonConstPointers(exp))
     {
         exp->error("cannot use non-constant CTFE pointer in an initializer '%s'", exp->toChars());
-        return this;
+        return new ErrorInitializer();
     }
 
     Type *tb = t->toBasetype();
@@ -980,7 +1040,10 @@ Type *ExpInitializer::inferType(Scope *sc)
     if (exp->op == TOKsymoff)
     {   SymOffExp *se = (SymOffExp *)exp;
         if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
+        {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return Type::terror;
+        }
     }
 
     // Give error for overloaded function addresses
@@ -989,7 +1052,10 @@ Type *ExpInitializer::inferType(Scope *sc)
         if (se->hasOverloads &&
             se->func->isFuncDeclaration() &&
             !se->func->isFuncDeclaration()->isUnique())
+        {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return Type::terror;
+        }
     }
 
     Type *t = exp->type;
