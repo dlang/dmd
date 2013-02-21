@@ -6509,8 +6509,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         if (!t && s->isTupleDeclaration())  // expression tuple?
                             goto L3;
                     }
-                    else if (s->isTemplateInstance())
+                    else if (s->isTemplateInstance() ||
+                             s->isImport() || s->isPackage() || s->isModule())
+                    {
                         goto L3;
+                    }
                 }
                 if (t)
                 {
