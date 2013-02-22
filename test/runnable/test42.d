@@ -5617,22 +5617,22 @@ void test250()
 {
     static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
 
-    if ( bt32(a1,30)) assert(0);
-    if (!bt32(a1,8))  assert(0);
-    if ( bt32(a1,30+32)) assert(0);
-    if (!bt32(a1,1+32))  assert(0);
+    if ( bt32(a1.ptr,30)) assert(0);
+    if (!bt32(a1.ptr,8))  assert(0);
+    if ( bt32(a1.ptr,30+32)) assert(0);
+    if (!bt32(a1.ptr,1+32))  assert(0);
 
     static ulong[2] a2 = [0x1001_1100_12345678, 0x0220_0012_12345678];
 
-    if ( bt64a(a2,30+32)) assert(0);
-    if (!bt64a(a2,8+32))  assert(0);
-    if ( bt64a(a2,30+32+64)) assert(0);
-    if (!bt64a(a2,1+32+64))  assert(0);
+    if ( bt64a(a2.ptr,30+32)) assert(0);
+    if (!bt64a(a2.ptr,8+32))  assert(0);
+    if ( bt64a(a2.ptr,30+32+64)) assert(0);
+    if (!bt64a(a2.ptr,1+32+64))  assert(0);
 
-    if ( bt64b(a2,30+32)) assert(0);
-    if (!bt64b(a2,8+32))  assert(0);
-    if ( bt64b(a2,30+32+64)) assert(0);
-    if (!bt64b(a2,1+32+64))  assert(0);
+    if ( bt64b(a2.ptr,30+32)) assert(0);
+    if (!bt64b(a2.ptr,8+32))  assert(0);
+    if ( bt64b(a2.ptr,30+32+64)) assert(0);
+    if (!bt64b(a2.ptr,1+32+64))  assert(0);
 }
 
 /***************************************************/
