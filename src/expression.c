@@ -1888,6 +1888,33 @@ void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
         e->toCBuffer(buf, hgs);
 }
 
+void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e)
+{
+    if (e->type == Type::tsize_t)
+    {
+        Expression *ex = (e->op == TOKcast ? ((CastExp *)e)->e1 : e);
+        ex = ex->optimize(WANTvalue);
+
+        dinteger_t uval = ex->op == TOKint64 ? ex->toInteger() : (dinteger_t)-1;
+        if ((sinteger_t)uval >= 0)
+        {
+            dinteger_t sizemax;
+            if (Target::ptrsize == 4)
+                sizemax = 0xFFFFFFFFUL;
+            else if (Target::ptrsize == 8)
+                sizemax = 0xFFFFFFFFFFFFFFFFULL;
+            else
+                assert(0);
+            if (uval <= sizemax && uval <= 0x7FFFFFFFFFFFFFFFULL)
+            {
+                buf->printf("%llu", uval);
+                return;
+            }
+        }
+    }
+    expToCBuffer(buf, hgs, e, PREC_assign);
+}
+
 /**************************************************
  * Write out argument list to buf.
  */
@@ -10376,14 +10403,14 @@ void SliceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     if (upr || lwr)
     {
         if (lwr)
-            expToCBuffer(buf, hgs, lwr, PREC_assign);
+            sizeToCBuffer(buf, hgs, lwr);
         else
             buf->writeByte('0');
         buf->writestring("..");
         if (upr)
-            expToCBuffer(buf, hgs, upr, PREC_assign);
+            sizeToCBuffer(buf, hgs, upr);
         else
-            buf->writestring("length");         // BUG: should be array.length
+            buf->writestring("$");
     }
     buf->writeByte(']');
 }
@@ -10886,7 +10913,7 @@ void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     expToCBuffer(buf, hgs, e1, PREC_primary);
     buf->writeByte('[');
-    expToCBuffer(buf, hgs, e2, PREC_assign);
+    sizeToCBuffer(buf, hgs, e2);
     buf->writeByte(']');
 }
 

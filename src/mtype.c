@@ -47,6 +47,7 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
+void sizeToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e);
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
@@ -4099,7 +4100,9 @@ void TypeSArray::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         return;
     }
     next->toCBuffer2(buf, hgs, this->mod);
-    buf->printf("[%s]", dim->toChars());
+    buf->writeByte('[');
+    sizeToCBuffer(buf, hgs, dim);
+    buf->writeByte(']');
 }
 
 Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
@@ -9392,8 +9395,11 @@ void TypeSlice::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
     }
     next->toCBuffer2(buf, hgs, this->mod);
 
-    buf->printf("[%s .. ", lwr->toChars());
-    buf->printf("%s]", upr->toChars());
+    buf->writeByte('[');
+    sizeToCBuffer(buf, hgs, lwr);
+    buf->writestring(" .. ");
+    sizeToCBuffer(buf, hgs, upr);
+    buf->writeByte(']');
 }
 
 /***************************** TypeNull *****************************/
