@@ -1023,6 +1023,26 @@ void test7408()
     static assert(!__traits(compiles, T7408!().offsetof));
 }
 
+/*************************************************************/
+// 9552
+
+class C9552
+{
+    int f() { return 10; }
+    int f(int n) { return n * 2; }
+}
+
+void test9552()
+{
+    auto c = new C9552;
+    auto dg1 = &(__traits(getOverloads, c, "f")[0]); // DMD crashes
+    assert(dg1() == 10);
+    auto dg2 = &(__traits(getOverloads, c, "f")[1]);
+    assert(dg2(10) == 20);
+}
+
+/*************************************************************/
+
 int main()
 {
     test1();
@@ -1054,6 +1074,7 @@ int main()
     test7858();
     test5978();
     test7408();
+    test9552();
 
     writeln("Success");
     return 0;
