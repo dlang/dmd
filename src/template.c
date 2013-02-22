@@ -6192,27 +6192,6 @@ void TemplateInstance::printInstantiationTrace()
     }
 }
 
-void TemplateInstance::toObjFile(int multiobj)
-{
-#if LOG
-    printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
-#endif
-    if (!errors && members)
-    {
-        if (multiobj)
-            // Append to list of object files to be written later
-            obj_append(this);
-        else
-        {
-            for (size_t i = 0; i < members->dim; i++)
-            {
-                Dsymbol *s = (*members)[i];
-                s->toObjFile(multiobj);
-            }
-        }
-    }
-}
-
 void TemplateInstance::inlineScan()
 {
 #if LOG
@@ -6319,38 +6298,20 @@ char *TemplateInstance::toChars()
 
 /* ======================== TemplateMixin ================================ */
 
-TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, Type *tqual,
-        Identifiers *idents, Objects *tiargs)
-        : TemplateInstance(loc, (*idents)[idents->dim - 1])
+TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs)
+        : TemplateInstance(loc, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
+                                                  : ((TypeIdentifier *)tqual)->ident)
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
     this->ident = ident;
     this->tqual = tqual;
-    this->idents = idents;
     this->tiargs = tiargs ? tiargs : new Objects();
 }
 
 Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
-{   TemplateMixin *tm;
-
-    Identifiers *ids = new Identifiers();
-    ids->setDim(idents->dim);
-    for (size_t i = 0; i < idents->dim; i++)
-    {   // Matches TypeQualified::syntaxCopyHelper()
-        Identifier *id = (*idents)[i];
-        if (id->dyncast() == DYNCAST_DSYMBOL)
-        {
-            TemplateInstance *ti = (TemplateInstance *)id;
-
-            ti = (TemplateInstance *)ti->syntaxCopy(NULL);
-            id = (Identifier *)ti;
-        }
-        (*ids)[i] = id;
-    }
-
-    tm = new TemplateMixin(loc, ident,
-                (Type *)(tqual ? tqual->syntaxCopy() : NULL),
-                ids, tiargs);
+{
+    TemplateMixin *tm = new TemplateMixin(loc, ident,
+                (TypeQualified *)tqual->syntaxCopy(), tiargs);
     TemplateInstance::syntaxCopy(tm);
     return tm;
 }
@@ -6397,43 +6358,11 @@ void TemplateMixin::semantic(Scope *sc)
 
     // Follow qualifications to find the TemplateDeclaration
     if (!tempdecl)
-    {   Dsymbol *s;
-        size_t i;
-        Identifier *id;
-
-        if (tqual)
-        {   s = tqual->toDsymbol(sc);
-            i = 0;
-        }
-        else
-        {
-            i = 1;
-            id = (*idents)[0];
-            switch (id->dyncast())
-            {
-                case DYNCAST_IDENTIFIER:
-                    s = sc->search(loc, id, NULL);
-                    break;
-
-                case DYNCAST_DSYMBOL:
-                {
-                    TemplateInstance *ti = (TemplateInstance *)id;
-                    ti->semantic(sc);
-                    s = ti;
-                    break;
-                }
-                default:
-                    assert(0);
-            }
-        }
-
-        for (; i < idents->dim; i++)
-        {
-            if (!s)
-                break;
-            id = (*idents)[i];
-            s = s->searchX(loc, sc, id);
-        }
+    {
+        Expression *e;
+        Type *t;
+        Dsymbol *s;
+        tqual->resolve(loc, sc, &e, &t, &s);
         if (!s)
         {
             error("is not defined");
@@ -6805,13 +6734,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring("mixin ");
 
-    for (size_t i = 0; i < idents->dim; i++)
-    {   Identifier *id = (*idents)[i];
-
-        if (i)
-            buf->writeByte('.');
-        buf->writestring(id->toChars());
-    }
+    tqual->toCBuffer(buf, NULL, hgs);
     buf->writestring("!(");
     if (tiargs)
     {
@@ -6851,10 +6774,4 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-
-void TemplateMixin::toObjFile(int multiobj)
-{
-    //printf("TemplateMixin::toObjFile('%s')\n", toChars());
-    TemplateInstance::toObjFile(0);
-}
 

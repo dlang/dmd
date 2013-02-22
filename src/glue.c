@@ -23,6 +23,7 @@
 #include "import.h"
 #include "template.h"
 #include "lib.h"
+#include "target.h"
 
 #include "rmem.h"
 #include "cc.h"
@@ -574,6 +575,15 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
+
+    // tunnel type of "this" to debug info generation
+    if (AggregateDeclaration* ad = func->parent->isAggregateDeclaration())
+    {
+        ::type* t = ad->getType()->toCtype();
+        if(cd)
+            t = t->Tnext; // skip reference
+        f->Fclass = (Classsym *)t;
+    }
 
 #if TARGET_WINDOS
     /* This is done so that the 'this' pointer on the stack is the same
@@ -1282,7 +1292,7 @@ Symbol *Module::gencritsec()
     s->Sfl = FLdata;
     /* Must match D_CRITICAL_SECTION in phobos/internal/critical.c
      */
-    dtnzeros(&s->Sdt, PTRSIZE + (I64 ? os_critsecsize64() : os_critsecsize32()));
+    dtnzeros(&s->Sdt, Target::ptrsize + (I64 ? os_critsecsize64() : os_critsecsize32()));
     outdata(s);
     return s;
 }

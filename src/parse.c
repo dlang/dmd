@@ -309,10 +309,15 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     s = parseStaticAssert();
                 else if (token.value == TOKif)
                 {   condition = parseStaticIfCondition();
-                    Loc lookingForElseSave = lookingForElse;
-                    lookingForElse = loc;
-                    a = parseBlock();
-                    lookingForElse = lookingForElseSave;
+                    if (token.value == TOKcolon)
+                        a = parseBlock();
+                    else
+                    {
+                        Loc lookingForElseSave = lookingForElse;
+                        lookingForElse = loc;
+                        a = parseBlock();
+                        lookingForElse = lookingForElseSave;
+                    }
                     aelse = NULL;
                     if (token.value == TOKelse)
                     {
@@ -2057,9 +2062,8 @@ Dsymbol *Parser::parseMixin()
 {
     TemplateMixin *tm;
     Identifier *id;
-    Type *tqual;
+    TypeQualified *tqual;
     Objects *tiargs;
-    Identifiers *idents;
 
     //printf("parseMixin()\n");
     nextToken();
@@ -2075,11 +2079,6 @@ Dsymbol *Parser::parseMixin()
             tqual = parseTypeof();
             check(TOKdot);
         }
-        else if (token.value == TOKvector)
-        {
-            tqual = parseVector();
-            check(TOKdot);
-        }
         if (token.value != TOKidentifier)
         {
             error("identifier expected, not %s", token.toChars());
@@ -2090,7 +2089,6 @@ Dsymbol *Parser::parseMixin()
         nextToken();
     }
 
-    idents = new Identifiers();
     while (1)
     {
         tiargs = NULL;
@@ -2103,16 +2101,25 @@ Dsymbol *Parser::parseMixin()
                 tiargs = parseTemplateArgument();
         }
 
-        if (token.value != TOKdot)
-            break;
-
-        if (tiargs)
+        if (tiargs && token.value == TOKdot)
         {   TemplateInstance *tempinst = new TemplateInstance(loc, id);
             tempinst->tiargs = tiargs;
-            id = (Identifier *)tempinst;
+            if (!tqual)
+                tqual = new TypeInstance(loc, tempinst);
+            else
+                tqual->addIdent((Identifier *)tempinst);
             tiargs = NULL;
         }
-        idents->push(id);
+        else
+        {
+            if (!tqual)
+                tqual = new TypeIdentifier(loc, id);
+            else
+                tqual->addIdent(id);
+        }
+
+        if (token.value != TOKdot)
+            break;
 
         nextToken();
         if (token.value != TOKidentifier)
@@ -2122,7 +2129,6 @@ Dsymbol *Parser::parseMixin()
         id = token.ident;
         nextToken();
     }
-    idents->push(id);
 
     if (token.value == TOKidentifier)
     {
@@ -2132,7 +2138,7 @@ Dsymbol *Parser::parseMixin()
     else
         id = NULL;
 
-    tm = new TemplateMixin(loc, id, tqual, idents, tiargs);
+    tm = new TemplateMixin(loc, id, tqual, tiargs);
     if (token.value != TOKsemicolon)
         error("';' expected after mixin");
     nextToken();

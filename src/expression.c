@@ -25,6 +25,7 @@ extern "C" char * __cdecl __locale_decpoint;
 #include "rmem.h"
 #include "port.h"
 #include "root.h"
+#include "target.h"
 
 #include "mtype.h"
 #include "init.h"
@@ -2145,9 +2146,9 @@ dinteger_t IntegerExp::toInteger()
             case Tint64:        value = (d_int64) value;        break;
             case Tuns64:        value = (d_uns64) value;        break;
             case Tpointer:
-                if (PTRSIZE == 4)
+                if (Target::ptrsize == 4)
                     value = (d_uns32) value;
-                else if (PTRSIZE == 8)
+                else if (Target::ptrsize == 8)
                     value = (d_uns64) value;
                 else
                     assert(0);
@@ -2331,9 +2332,9 @@ void IntegerExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                 buf->writestring("cast(");
                 buf->writestring(t->toChars());
                 buf->writeByte(')');
-                if (PTRSIZE == 4)
+                if (Target::ptrsize == 4)
                     goto L3;
-                else if (PTRSIZE == 8)
+                else if (Target::ptrsize == 8)
                     goto L4;
                 else
                     assert(0);
@@ -2478,7 +2479,7 @@ int RealEquals(real_t x1, real_t x2)
         /* In some cases, the REALPAD bytes get garbage in them,
          * so be sure and ignore them.
          */
-        memcmp(&x1, &x2, REALSIZE - REALPAD) == 0;
+        memcmp(&x1, &x2, Target::realsize - Target::realpad) == 0;
 }
 
 int RealExp::equals(Object *o)
@@ -3025,7 +3026,7 @@ Lagain:
     o = s->isOverloadSet();
     if (o)
     {   //printf("'%s' is an overload set\n", o->toChars());
-        return new OverExp(o);
+        return new OverExp(loc, o);
     }
     imp = s->isImport();
     if (imp)
@@ -5119,7 +5120,7 @@ Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 /******************************** OverExp **************************/
 
 #if DMDV2
-OverExp::OverExp(OverloadSet *s)
+OverExp::OverExp(Loc loc, OverloadSet *s)
         : Expression(loc, TOKoverloadset, sizeof(OverExp))
 {
     //printf("OverExp(this = %p, '%s')\n", this, var->toChars());
@@ -6819,7 +6820,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             OverloadSet *o = s->isOverloadSet();
             if (o)
             {   //printf("'%s' is an overload set\n", o->toChars());
-                return new OverExp(o);
+                return new OverExp(loc, o);
             }
 #endif
 
@@ -7096,6 +7097,16 @@ Expression *DotVarExp::semantic(Scope *sc)
             Expression *e = expandVar(WANTvalue, v);
             if (e)
                 return e;
+
+            if (v && v->isDataseg())     // fix bugzilla 8238
+            {
+                // (e1, v)
+                accessCheck(loc, sc, e1, v);
+                VarExp *ve = new VarExp(loc, v);
+                e = new CommaExp(loc, e1, ve);
+                e = e->semantic(sc);
+                return e;
+            }
         }
         Dsymbol *s;
         if (sc->func && !sc->intypeof && t1->hasPointers() &&
@@ -7311,7 +7322,7 @@ L1:
             return new ErrorExp();
         Dsymbol *s = ti->inst->toAlias();
         Declaration *v = s->isDeclaration();
-        if (v)
+        if (v && (v->isFuncDeclaration() || v->isVarDeclaration()))
         {
             /* Fix for Bugzilla 4003
              * The problem is a class template member function v returning a reference to the same
@@ -7845,14 +7856,18 @@ Lagain:
             ad = ((TypeStruct *)t1)->sym;
 #if DMDV2
 
-            if (ad->sizeok == SIZEOKnone && !ad->ctor &&
-                ad->search(0, Id::ctor, 0))
+            if (ad->sizeok == SIZEOKnone)
             {
-                // The constructor hasn't been found yet, see bug 8741
-                // This can happen if we are inferring type from
-                // from VarDeclaration::semantic() in declaration.c
-                error("cannot create a struct until its size is determined");
-                return new ErrorExp();
+                if (ad->scope)
+                    ad->semantic(ad->scope);
+                else if (!ad->ctor && ad->search(0, Id::ctor, 0))
+                {
+                    // The constructor hasn't been found yet, see bug 8741
+                    // This can happen if we are inferring type from
+                    // from VarDeclaration::semantic() in declaration.c
+                    error("cannot create a struct until its size is determined");
+                    return new ErrorExp();
+                }
             }
 
             // First look for constructor
@@ -11249,7 +11264,7 @@ Expression *CatExp::semantic(Scope *sc)
             checkPostblit(e2->loc, tb2);
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
-            if (tb2->ty == Tarray)
+            if (tb2->ty == Tarray || tb2->ty == Tsarray)
             {   // Make e2 into [e2]
                 e2 = new ArrayLiteralExp(e2->loc, e2);
                 e2->type = type;
@@ -11263,7 +11278,7 @@ Expression *CatExp::semantic(Scope *sc)
             checkPostblit(e1->loc, tb1);
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
-            if (tb1->ty == Tarray)
+            if (tb1->ty == Tarray || tb1->ty == Tsarray)
             {   // Make e1 into [e1]
                 e1 = new ArrayLiteralExp(e1->loc, e1);
                 e1->type = type;

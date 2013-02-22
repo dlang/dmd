@@ -5801,6 +5801,101 @@ struct X164()
 
 
 /***************************************************/
+// 9428
+
+void test9428()
+{
+    int[2][] items = [[1, 2]];
+    int[2] x = [3, 4];
+
+    auto r1 = items ~ [x];
+    assert(r1.length == 2);
+    assert(r1[0][0] == 1);
+    assert(r1[0][1] == 2);
+    assert(r1[1][0] == 3);
+    assert(r1[1][1] == 4);
+
+    auto r2 = items ~ x;
+    assert(r2.length == 2);
+    assert(r2[0][0] == 1);
+    assert(r2[0][1] == 2);
+    assert(r2[1][0] == 3);
+    assert(r2[1][1] == 4);
+
+    auto r3 = [x] ~ items;
+    assert(r3.length == 2);
+    assert(r3[0][0] == 3);
+    assert(r3[0][1] == 4);
+    assert(r3[1][0] == 1);
+    assert(r3[1][1] == 2);
+
+    auto r4 = x ~ items;
+    assert(r4.length == 2);
+    assert(r4[0][0] == 3);
+    assert(r4[0][1] == 4);
+    assert(r4[1][0] == 1);
+    assert(r4[1][1] == 2);
+}
+
+/***************************************************/
+// 9504
+
+struct Bar9504
+{
+    template Abc(T)
+    {
+        T y;
+    }
+
+    enum size_t num = 123;
+
+    class Def {}
+}
+
+template GetSym9504(alias sym) { static assert(__traits(isSame, sym, Bar9504.Abc)); }
+template GetExp9504(size_t n) { static assert(n == Bar9504.num); }
+template GetTyp9504(T) { static assert(is(T == Bar9504.Def)); }
+
+alias GetSym9504!(typeof(Bar9504.init).Abc) X9504; // NG
+alias GetExp9504!(typeof(Bar9504.init).num) Y9504; // NG
+alias GetTyp9504!(typeof(Bar9504.init).Def) Z9504;
+
+Bar9504 test9504()
+{
+    alias GetSym9504!(typeof(return).Abc) V9504; // NG
+    alias GetExp9504!(typeof(return).num) W9504; // NG
+    alias GetTyp9504!(typeof(return).Def) X9504;
+    return Bar9504();
+}
+
+/***************************************************/
+// 9538
+
+void test9538()
+{
+    void*[1] x;
+    auto ti = typeid(x.ptr);
+}
+
+/***************************************************/
+// 9539
+
+void test9539()
+{
+    void f(int** ptr)
+    {
+        assert(**ptr == 10);
+    }
+    int* p = new int;
+    *p = 10;
+    int*[1] x = [p];
+    f(&x[0]);
+
+    int*[] arr = [null];
+    static assert(!__traits(compiles, p = arr));    // bad!
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6056,6 +6151,8 @@ int main()
     test161();
     test8917();
     test163();
+    test9428();
+    test9538();
 
     printf("Success\n");
     return 0;

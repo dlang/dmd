@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -22,6 +22,7 @@ struct Scope;
 struct Type;
 struct dt_t;
 struct AggregateDeclaration;
+struct ErrorInitializer;
 struct VoidInitializer;
 struct StructInitializer;
 struct ArrayInitializer;
@@ -47,10 +48,11 @@ struct Initializer : Object
 
     virtual dt_t *toDt();
 
-    virtual VoidInitializer *isVoidInitializer() { return NULL; }
+    virtual ErrorInitializer   *isErrorInitializer() { return NULL; }
+    virtual VoidInitializer    *isVoidInitializer() { return NULL; }
     virtual StructInitializer  *isStructInitializer()  { return NULL; }
-    virtual ArrayInitializer  *isArrayInitializer()  { return NULL; }
-    virtual ExpInitializer  *isExpInitializer()  { return NULL; }
+    virtual ArrayInitializer   *isArrayInitializer()  { return NULL; }
+    virtual ExpInitializer     *isExpInitializer()  { return NULL; }
 };
 
 struct VoidInitializer : Initializer
@@ -66,6 +68,17 @@ struct VoidInitializer : Initializer
     dt_t *toDt();
 
     virtual VoidInitializer *isVoidInitializer() { return this; }
+};
+
+struct ErrorInitializer : Initializer
+{
+    ErrorInitializer();
+    Initializer *syntaxCopy();
+    Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
+    Expression *toExpression();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+
+    virtual ErrorInitializer *isErrorInitializer() { return this; }
 };
 
 struct StructInitializer : Initializer

@@ -19,6 +19,7 @@
 #include "scope.h"
 #include "aggregate.h"
 #include "module.h"
+#include "import.h"
 #include "id.h"
 #include "expression.h"
 #include "statement.h"
@@ -414,6 +415,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Type *type)
     this->loc = loc;
     this->type = type;
     this->aliassym = NULL;
+    this->import = NULL;
     this->htype = NULL;
     this->haliassym = NULL;
     this->overnext = NULL;
@@ -429,6 +431,7 @@ AliasDeclaration::AliasDeclaration(Loc loc, Identifier *id, Dsymbol *s)
     this->loc = loc;
     this->type = NULL;
     this->aliassym = s;
+    this->import = NULL;
     this->htype = NULL;
     this->haliassym = NULL;
     this->overnext = NULL;
@@ -673,6 +676,13 @@ Dsymbol *AliasDeclaration::toAlias()
     }
     else if (aliassym || type->deco)
         ;   // semantic is already done.
+    else if (import)
+    {
+        /* If this is an internal alias for selective import,
+         * resolve it under the correct scope.
+         */
+        import->semantic(NULL);
+    }
     else if (scope)
         semantic(scope);
     Dsymbol *s = aliassym ? aliassym->toAlias() : this;
@@ -868,7 +878,9 @@ void VarDeclaration::semantic(Scope *sc)
     else
     {   if (!originalType)
             originalType = type->syntaxCopy();
+        inuse++;
         type = type->semantic(loc, sc);
+        inuse--;
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
@@ -958,7 +970,7 @@ void VarDeclaration::semantic(Scope *sc)
         size_t nelems = Parameter::dim(tt->arguments);
         Objects *exps = new Objects();
         exps->setDim(nelems);
-        Expression *ie = init ? init->toExpression() : NULL;
+        Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
         if (nelems > 0 && ie)

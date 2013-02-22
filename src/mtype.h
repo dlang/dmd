@@ -777,6 +777,7 @@ struct TypeTypeof : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
 };
@@ -787,6 +788,7 @@ struct TypeReturn : TypeQualified
     const char *kind();
     Type *syntaxCopy();
     Dsymbol *toDsymbol(Scope *sc);
+    void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
@@ -1053,10 +1055,6 @@ struct Parameter : Object
     static int foreach(Parameters *args, ForeachDg dg, void *ctx, size_t *pn=NULL);
 };
 
-extern int PTRSIZE;
-extern int REALSIZE;
-extern int REALPAD;
-extern int REALALIGNSIZE;
 extern int Tsize_t;
 extern int Tptrdiff_t;
 

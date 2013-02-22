@@ -33,6 +33,7 @@
 #include        "dt.h"
 
 #include        "rmem.h"
+#include        "target.h"
 
 static char __file__[] = __FILE__;      // for tassert.h
 #include        "tassert.h"
@@ -583,7 +584,7 @@ void SwitchStatement::toIR(IRState *irs)
         dt_t *dt = NULL;
         Symbol *si = symbol_generate(SCstatic,type_fake(TYdarray));
         dtsize_t(&dt, numcases);
-        dtxoff(&dt, si, PTRSIZE * 2, TYnptr);
+        dtxoff(&dt, si, Target::ptrsize * 2, TYnptr);
 
         for (size_t i = 0; i < numcases; i++)
         {   CaseStatement *cs = (*cases)[i];

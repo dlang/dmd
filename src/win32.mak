@@ -162,7 +162,7 @@ OBJ1= mars.obj enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	eh.obj toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj \
 	sideeffect.obj libmscoff.obj scanmscoff.obj \
-	intrange.obj canthrow.obj
+	intrange.obj canthrow.obj target.obj
 
 # D back end
 OBJ8= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
@@ -205,7 +205,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
-	intrange.h intrange.c canthrow.c
+	intrange.h intrange.c canthrow.c target.c target.h
 
 
 # D back end
@@ -716,6 +716,7 @@ sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
+target.obj : $(TOTALH) target.c target.h
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c

@@ -613,6 +613,50 @@ void test23()
 }
 
 /********************************************************/
+// 1369
+
+void test1369()
+{
+    class C1
+    {
+        static int count;
+        void func() { count++; }
+    }
+
+    // variable symbol
+    C1 c1 = new C1;
+    __traits(getMember, c1, "func")();      // TypeIdentifier -> VarExp
+    __traits(getMember, mixin("c1"), "func")(); // Expression -> VarExp
+    assert(C1.count == 2);
+
+    // nested function symbol
+    @property C1 get() { return c1; }
+    __traits(getMember, get, "func")();
+    __traits(getMember, mixin("get"), "func")();
+    assert(C1.count == 4);
+
+    class C2
+    {
+        C1 c1;
+        this() { c1 = new C1; }
+        void test()
+        {
+            // variable symbol (this.outer.c1)
+            __traits(getMember, c1, "func")();      // TypeIdentifier -> VarExp -> DotVarExp
+            __traits(getMember, mixin("c1"), "func")(); // Expression -> VarExp -> DotVarExp
+            assert(C1.count == 6);
+
+            // nested function symbol (this.outer.get)
+            __traits(getMember, get, "func")();
+            __traits(getMember, mixin("get"), "func")();
+            assert(C1.count == 8);
+        }
+    }
+    C2 c2 = new C2;
+    c2.test();
+}
+
+/********************************************************/
 
 template Foo2234(){ int x; }
 
@@ -1005,6 +1049,7 @@ int main()
     test21();
     test22();
     test23();
+    test1369();
     test7608();
     test7858();
     test5978();

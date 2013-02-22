@@ -1747,7 +1747,7 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
 Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     Expression *oldval,  size_t oldlen, size_t newlen)
 {
-    Type *elemType = elemType = arrayType->next;
+    Type *elemType = arrayType->next;
     assert(elemType);
     Expression *defaultElem = elemType->defaultInitLiteral(loc);
     Expressions *elements = new Expressions();

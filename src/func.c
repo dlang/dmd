@@ -24,6 +24,7 @@
 #include "statement.h"
 #include "template.h"
 #include "hdrgen.h"
+#include "target.h"
 
 /********************************* FuncDeclaration ****************************/
 
@@ -276,7 +277,9 @@ void FuncDeclaration::semantic(Scope *sc)
      * the function body.
      */
     if (fbody &&
-        (isFuncLiteralDeclaration() || parent->isTemplateInstance()))
+        (isFuncLiteralDeclaration() ||
+         parent->isTemplateInstance() ||
+         ad && ad->parent && ad->parent->isTemplateInstance()))
     {
         if (f->purity == PUREimpure)        // purity not specified
             flags |= FUNCFLAGpurityInprocess;
@@ -297,8 +300,12 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
 
-    if ((f->isConst() || f->isImmutable()) && !isThis())
-        error("without 'this' cannot be const/immutable");
+    if (!f->isNaked() && !(isThis() || isNested()))
+    {
+        OutBuffer buf;
+        MODtoBuffer(&buf, f->mod);
+        error("without 'this' cannot be %s", buf.toChars());
+    }
 
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
@@ -429,6 +436,20 @@ void FuncDeclaration::semantic(Scope *sc)
         // Suppress further errors if the return type is an error
         if (type->nextOf() == Type::terror)
             goto Ldone;
+
+        if (cd->baseClass)
+        {
+            Dsymbol *cbd = cd->baseClass;
+            if (cbd->parent && cbd->parent->isTemplateInstance())
+            {
+                for (size_t i = 0; i < cd->baseClass->vtbl.dim; i++)
+                {
+                    FuncDeclaration *f = cd->baseClass->vtbl[i]->isFuncDeclaration();
+                    if (f && !f->functionSemantic())
+                        goto Ldone;
+                }
+            }
+        }
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
@@ -1467,7 +1488,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                          */
                         while (p->storage_class & (STCout | STCref))
                         {
-                            offset += PTRSIZE;
+                            offset += Target::ptrsize;
                             if (lastNonref-- == 0)
                             {
                                 p = v_arguments;
@@ -1479,7 +1500,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     else
                         p = v_arguments;            // last parameter is _arguments[]
                     if (global.params.is64bit && global.params.isWindows)
-                    {   offset += PTRSIZE;
+                    {   offset += Target::ptrsize;
                     if (p->storage_class & STClazy || p->type->size() > 8)
                         {
                             /* Necessary to offset the extra level of indirection the Win64
@@ -1496,10 +1517,10 @@ void FuncDeclaration::semantic3(Scope *sc)
                     }
                     else if (p->storage_class & STClazy)
                         // If the last parameter is lazy, it's the size of a delegate
-                        offset += PTRSIZE * 2;
+                        offset += Target::ptrsize * 2;
                     else
                         offset += p->type->size();
-                    offset = (offset + PTRSIZE - 1) & ~(PTRSIZE - 1);  // assume stack aligns on pointer size
+                    offset = (offset + Target::ptrsize - 1) & ~(Target::ptrsize - 1);  // assume stack aligns on pointer size
                     e = new SymOffExp(0, p, offset);
                     e->type = Type::tvoidptr;
                     //e = e->semantic(sc);
@@ -1677,6 +1698,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (!f->deco)
     {
         sc = sc->push();
+        sc->stc = 0;
         sc->linkage = linkage;  // Bugzilla 8496
         type = f->semantic(loc, sc);
         sc = sc->pop();
@@ -1720,8 +1742,11 @@ bool FuncDeclaration::functionSemantic()
     }
 
     // if inferring return type, sematic3 needs to be run
-    if (scope && (inferRetType && type && !type->nextOf() ||
-                  getFuncTemplateDecl(this)))
+    AggregateDeclaration *ad;
+    if (scope &&
+        (inferRetType && type && !type->nextOf() ||
+         getFuncTemplateDecl(this) ||
+         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance()))
     {
         return functionSemantic3();
     }
@@ -2564,6 +2589,8 @@ if (arguments)
 
     if (m.count == 1)           // exactly one match
     {
+        if (!(flags & 1))
+            m.lastf->functionSemantic();
         return m.lastf;
     }
     else
@@ -3274,7 +3301,7 @@ void FuncDeclaration::checkNestedReference(Scope *sc, Loc loc)
  */
 void markAsNeedingClosure(Dsymbol *f, FuncDeclaration *outerFunc)
 {
-    for (Dsymbol *sx = f; sx != outerFunc; sx = sx->parent)
+    for (Dsymbol *sx = f; sx && sx != outerFunc; sx = sx->parent)
     {
         FuncDeclaration *fy = sx->isFuncDeclaration();
         if (fy && fy->closureVars.dim)
