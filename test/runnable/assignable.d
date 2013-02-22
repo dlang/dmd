@@ -770,6 +770,11 @@ class D9258
     alias n this;
     void opAssign(int n, int y = 0) {}
 }
+class E9258 : A9258
+{
+    void set(A9258 a) {}
+    alias set opAssign;
+}
 
 /***************************************************/
 // 9416
