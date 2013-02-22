@@ -32,8 +32,6 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
 {
     if (assign)
     {
-        assert(assign->ident == Id::assign);
-
         /* check identity opAssign exists
          */
         Expression *er = new NullExp(loc, type);        // dummy rvalue
