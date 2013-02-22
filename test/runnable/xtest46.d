@@ -5878,6 +5878,24 @@ void test9538()
 }
 
 /***************************************************/
+// 9539
+
+void test9539()
+{
+    void f(int** ptr)
+    {
+        assert(**ptr == 10);
+    }
+    int* p = new int;
+    *p = 10;
+    int*[1] x = [p];
+    f(&x[0]);
+
+    int*[] arr = [null];
+    static assert(!__traits(compiles, p = arr));    // bad!
+}
+
+/***************************************************/
 
 int main()
 {

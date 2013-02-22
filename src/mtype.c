@@ -53,8 +53,8 @@ void ObjectNotFound(Identifier *id);
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
 
-// Allow implicit conversion of T[] to T*
-#define IMPLICIT_ARRAY_TO_PTR   global.params.useDeprecated
+// Allow implicit conversion of T[] to T*  --> Removed in 2.063
+#define IMPLICIT_ARRAY_TO_PTR   0
 
 int Tsize_t = Tuns32;
 int Tptrdiff_t = Tint32;
@@ -4296,7 +4296,7 @@ MATCH TypeDArray::implicitConvTo(Type *to)
             return MATCHconvert;
         }
 
-        return next->constConv(to) ? MATCHconvert : MATCHnomatch;
+        return next->constConv(tp->next) ? MATCHconvert : MATCHnomatch;
     }
 
     if (to->ty == Tarray)
