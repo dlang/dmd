@@ -1,3 +1,5 @@
+// PERMUTE_ARGS:
+
 import core.vararg;
 
 int func1(int a, ...)
