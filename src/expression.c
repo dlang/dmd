@@ -8540,9 +8540,9 @@ Expression *AddrExp::semantic(Scope *sc)
         {
             DotVarExp *dve = (DotVarExp *)e1;
             FuncDeclaration *f = dve->var->isFuncDeclaration();
-
             if (f)
             {
+                f = f->toAliasFunc();   // FIXME, should see overlods - Bugzilla 1983
                 if (!dve->hasOverloads)
                     f->tookAddressOf++;
 
@@ -8580,7 +8580,6 @@ Expression *AddrExp::semantic(Scope *sc)
             }
 
             FuncDeclaration *f = ve->var->isFuncDeclaration();
-
             if (f)
             {
                 if (!ve->hasOverloads ||
