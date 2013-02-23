@@ -152,11 +152,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
  */
 
 FuncDeclaration *hasThis(Scope *sc)
-{   FuncDeclaration *fd;
-    FuncDeclaration *fdthis;
-
+{
     //printf("hasThis()\n");
-    fdthis = sc->parent->isFuncDeclaration();
+    Dsymbol *p = sc->parent;
+    while (p && p->isTemplateMixin())
+        p = p->parent;
+    FuncDeclaration *fdthis = p ? p->isFuncDeclaration() : NULL;
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
 
     /* Special case for inside template constraint
@@ -169,7 +170,7 @@ FuncDeclaration *hasThis(Scope *sc)
     }
 
     // Go upwards until we find the enclosing member function
-    fd = fdthis;
+    FuncDeclaration *fd = fdthis;
     while (1)
     {
         if (!fd)
@@ -320,9 +321,12 @@ Expression *checkRightThis(Scope *sc, Expression *e)
     {
         VarExp *ve = (VarExp *)e;
 
+        Dsymbol *p = sc->parent;
+        while (p && p->isTemplateMixin())
+            p = p->parent;
+        FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
         FuncDeclaration *fdthis = hasThis(sc);
-        FuncDeclaration *func = sc->parent->isFuncDeclaration();
-        if (sc->intypeof != 1 && func && !fdthis && ve->var->needThis())
+        if (sc->intypeof != 1 && (func && !fdthis || !func && !sc->getStructClassScope()) && ve->var->needThis())
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);

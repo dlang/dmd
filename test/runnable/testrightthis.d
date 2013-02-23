@@ -319,12 +319,81 @@ void test4()
 
 /********************************************************/
 
+template Test5(string name, bool result)
+{
+    mixin(`static assert(__traits(compiles, `~name~`.add!"months"(1)) == result);`);
+}
+
+static struct Begin5
+{
+    void add(string s)(int n) {}
+}
+
+struct IntervalX5(TP)
+{
+    Begin5 begin;
+
+    static assert(__traits(compiles, begin.add!"months"(1)) == true);
+    mixin Test5!("begin", true);
+
+    void foo()
+    {
+        static assert(__traits(compiles, begin.add!"months"(1)) == true);
+        mixin Test5!("begin", true);
+    }
+    static test()
+    {
+        static assert(__traits(compiles, begin.add!"months"(1)) == false);
+        mixin Test5!("begin", false);
+    }
+}
+
+alias IX5 = IntervalX5!int;
+alias beginX5 = IX5.begin;
+static assert(__traits(compiles, beginX5.add!"months"(1)) == false);
+mixin Test5!("beginG5", false);
+
+void test5()
+{
+    static struct IntervalY5(TP)
+    {
+        Begin5 begin;
+
+        static assert(__traits(compiles, begin.add!"months"(1)) == true);
+        mixin Test5!("begin", true);
+
+        void foo()
+        {
+            static assert(__traits(compiles, begin.add!"months"(1)) == true);
+            mixin Test5!("begin", true);
+        }
+        static test()
+        {
+            static assert(__traits(compiles, begin.add!"months"(1)) == false);
+            mixin Test5!("begin", false);
+        }
+    }
+
+    alias IX = IntervalX5!int;
+    alias beginX = IX.begin;
+    static assert(__traits(compiles, beginX.add!"months"(1)) == false);
+    mixin Test5!("beginX", false);
+
+    alias IY = IntervalY5!int;
+    alias beginY = IY.begin;
+    static assert(__traits(compiles, beginY.add!"months"(1)) == false);
+    mixin Test5!("beginY", false);
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
     test4();
+    test5();
 
     printf("Success\n");
     return 0;
