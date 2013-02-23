@@ -1698,11 +1698,11 @@ struct TickDuration
         {
             foreach(T; _TypeTuple!(TickDuration, const TickDuration, immutable TickDuration))
             {
-                assertApprox((cast(T)TickDuration).from!units(1000).to!(units, long)(),
+                assertApprox((cast(T)TickDuration.from!units(1000)).to!(units, long)(),
                              500, 1500, units);
-                assertApprox((cast(T)TickDuration).from!units(1_000_000).to!(units, long)(),
+                assertApprox((cast(T)TickDuration.from!units(1_000_000)).to!(units, long)(),
                              900_000, 1_100_000, units);
-                assertApprox((cast(T)TickDuration).from!units(2_000_000).to!(units, long)(),
+                assertApprox((cast(T)TickDuration.from!units(2_000_000)).to!(units, long)(),
                              1_900_000, 2_100_000, units);
             }
         }
