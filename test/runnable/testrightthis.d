@@ -293,11 +293,38 @@ void test3()
 
 /********************************************************/
 
+void test4()
+{
+    static struct R
+    {
+        void opIndex(int) {}
+        void opSlice() {}
+        void opSlice(int, int) {}
+        int opDollar() { return 1; }
+        alias length = opDollar;
+    }
+
+    R val;
+    static struct S
+    {
+        R val;
+        void foo()
+        {
+            static assert(__traits(compiles, val[1]));              // TypeSArray
+            static assert(__traits(compiles, val[]));               // TypeDArray
+            static assert(__traits(compiles, val[0..val.length]));  // TypeSlice
+        }
+    }
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
     test2();
     test3();
+    test4();
 
     printf("Success\n");
     return 0;

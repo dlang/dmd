@@ -3705,8 +3705,9 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         Expressions *exps = new Expressions();
         exps->setDim(1);
         (*exps)[0] = dim;
-        Expression *e = new ArrayExp(loc, *pe, exps);
-        *pe = e;
+        if (Dsymbol *s = getDsymbol(*pe))
+            *pe = new DsymbolExp(loc, s, 1);
+        *pe = new ArrayExp(loc, *pe, exps);
     }
     else if (*ps)
     {   Dsymbol *s = *ps;
@@ -4201,8 +4202,9 @@ void TypeDArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     //printf("s = %p, e = %p, t = %p\n", *ps, *pe, *pt);
     if (*pe)
     {   // It's really a slice expression
-        Expression *e = new SliceExp(loc, *pe, NULL, NULL);
-        *pe = e;
+        if (Dsymbol *s = getDsymbol(*pe))
+            *pe = new DsymbolExp(loc, s, 1);
+        *pe = new SliceExp(loc, *pe, NULL, NULL);
     }
     else if (*ps)
     {
@@ -9228,9 +9230,9 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
     next->resolve(loc, sc, pe, pt, ps);
     if (*pe)
     {   // It's really a slice expression
-        Expression *e;
-        e = new SliceExp(loc, *pe, lwr, upr);
-        *pe = e;
+        if (Dsymbol *s = getDsymbol(*pe))
+            *pe = new DsymbolExp(loc, s, 1);
+        *pe = new SliceExp(loc, *pe, lwr, upr);
     }
     else if (*ps)
     {   Dsymbol *s = *ps;
