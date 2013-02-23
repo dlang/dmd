@@ -255,10 +255,49 @@ void test2()
 
 /********************************************************/
 
+struct S3
+{
+    struct T3 { int val; void foo() {} }
+    T3 member;
+    alias member this;
+
+    static void test()
+    {
+        static assert(!__traits(compiles,   S3.val = 1   ));
+        static assert(!__traits(compiles, { S3.val = 1; }));
+        static assert(!__traits(compiles,   T3.val = 1   ));
+        static assert(!__traits(compiles, { T3.val = 1; }));
+        static assert(!__traits(compiles,   __traits(getMember, S3, "val") = 1   ));
+        static assert(!__traits(compiles, { __traits(getMember, S3, "val") = 1; }));
+        static assert(!__traits(compiles,   __traits(getMember, T3, "val") = 1   ));
+        static assert(!__traits(compiles, { __traits(getMember, T3, "val") = 1; }));
+
+        static assert(!__traits(compiles,   S3.foo()   ));
+        static assert(!__traits(compiles, { S3.foo(); }));
+        static assert(!__traits(compiles,   T3.foo()   ));
+        static assert(!__traits(compiles, { T3.foo(); }));
+        static assert(!__traits(compiles,   __traits(getMember, S3, "foo")()   ));
+        static assert(!__traits(compiles, { __traits(getMember, S3, "foo")(); }));
+        static assert(!__traits(compiles,   __traits(getMember, T3, "foo")()   ));
+        static assert(!__traits(compiles, { __traits(getMember, T3, "foo")(); }));
+        static assert(!__traits(compiles,   __traits(getOverloads, S3, "foo")[0]()   ));
+        static assert(!__traits(compiles, { __traits(getOverloads, S3, "foo")[0](); }));
+        static assert(!__traits(compiles,   __traits(getOverloads, T3, "foo")[0]()   ));
+        static assert(!__traits(compiles, { __traits(getOverloads, T3, "foo")[0](); }));
+    }
+}
+
+void test3()
+{
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
     test2();
+    test3();
 
     printf("Success\n");
     return 0;
