@@ -928,6 +928,7 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->noctor = 0;
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
         sc2->userAttributes = NULL;
+        if (sc2->intypeof == 1) sc2->intypeof = 2;
 
         // Declare 'this'
         AggregateDeclaration *ad = isThis();

@@ -7056,7 +7056,7 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     Type *t;
     {
         Scope *sc2 = sc->push();
-        sc2->intypeof++;
+        sc2->intypeof = 1;
         sc2->speculative = true;
         sc2->flags |= sc->flags & SCOPEstaticif;
         unsigned oldspecgag = global.speculativeGag;
@@ -7935,7 +7935,6 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
     VarDeclaration *v;
     Dsymbol *s;
     DotVarExp *de;
-    Declaration *d;
 
 #if LOGDOTEXP
     printf("TypeStruct::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
@@ -8057,7 +8056,10 @@ L1:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
-        e = new DotTemplateExp(e->loc, e, td);
+        if (e->op == TOKtype)
+            e = new TemplateExp(e->loc, td);
+        else
+            e = new DotTemplateExp(e->loc, e, td);
         e = e->semantic(sc);
         return e;
     }
@@ -8094,7 +8096,7 @@ L1:
         return new DotExp(e->loc, e, oe);
     }
 
-    d = s->isDeclaration();
+    Declaration *d = s->isDeclaration();
 #ifdef DEBUG
     if (!d)
         printf("d = %s '%s'\n", s->kind(), s->toChars());
@@ -8102,19 +8104,27 @@ L1:
     assert(d);
 
     if (e->op == TOKtype)
-    {   FuncDeclaration *fd = sc->func;
-
+    {
+        /* It's:
+         *    Struct.d
+         */
         if (d->isTupleDeclaration())
         {
             e = new TupleExp(e->loc, d->isTupleDeclaration());
             e = e->semantic(sc);
             return e;
         }
-        else if (d->needThis() && fd && fd->vthis)
+        if (d->needThis() && sc->intypeof != 1)
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = e->semantic(sc);
-            return e;
+            /* Rewrite as:
+             *  this.d
+             */
+            if (hasThis(sc))
+            {
+                e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
+                e = e->semantic(sc);
+                return e;
+            }
         }
         accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
@@ -8674,7 +8684,10 @@ L1:
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (td)
     {
-        e = new DotTemplateExp(e->loc, e, td);
+        if (e->op == TOKtype)
+            e = new TemplateExp(e->loc, td);
+        else
+            e = new DotTemplateExp(e->loc, e, td);
         e = e->semantic(sc);
         return e;
     }
@@ -8729,21 +8742,12 @@ L1:
             e = e->semantic(sc);
             return e;
         }
-
-      #if 1 // Workaround for Bugzilla 9213
-        FuncDeclaration *fd = sc->func;
-        if (d->needThis() && d->isVarDeclaration() && fd && fd->vthis)
+        if (d->needThis() && sc->intypeof != 1)
         {
-            e = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-            e = e->semantic(sc);
-            return e;
-        }
-      #endif
-
-        FuncDeclaration *fdthis = hasThis(sc);
-        if (d->needThis() && fdthis)
-        {
-            if (d->isFuncDeclaration())
+            /* Rewrite as:
+             *  this.d
+             */
+            if (hasThis(sc))
             {
                 // This is almost same as getRightThis() in expression.c
                 Expression *e1 = new ThisExp(e->loc);
@@ -8800,15 +8804,6 @@ L1:
                         e1 = e1->semantic(sc);
                     goto L2;
                 }
-            }
-            else
-            {
-                /* Rewrite as:
-                 *  this.d
-                 */
-                DotVarExp *de = new DotVarExp(e->loc, new ThisExp(e->loc), d);
-                e = de->semantic(sc);
-                return e;
             }
         }
         accessCheck(e->loc, sc, e, d);
