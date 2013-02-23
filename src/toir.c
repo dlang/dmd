@@ -804,6 +804,10 @@ L2:
                     //printf("  3 RETregs\n");
                     return RETregs;     // return small structs in regs
                                         // (not 3 byte structs!)
+                case 16:
+                    if (!global.params.isWindows && global.params.is64bit)
+                       return RETregs;
+
                 default:
                     break;
             }
