@@ -8057,7 +8057,7 @@ L1:
     if (td)
     {
         if (e->op == TOKtype)
-            e = new TemplateExp(e->loc, td);
+            e = new ScopeExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
         e = e->semantic(sc);
@@ -8685,7 +8685,7 @@ L1:
     if (td)
     {
         if (e->op == TOKtype)
-            e = new TemplateExp(e->loc, td);
+            e = new ScopeExp(e->loc, td);
         else
             e = new DotTemplateExp(e->loc, e, td);
         e = e->semantic(sc);
