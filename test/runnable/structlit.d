@@ -615,6 +615,19 @@ void test9293()
 }
 
 /********************************************/
+// 9566
+
+void test9566()
+{
+    static struct ExpandData
+    {
+        ubyte[4096] window = 0;
+    }
+    ExpandData a;
+    auto b = ExpandData.init;   // bug
+}
+
+/********************************************/
 
 int main()
 {
@@ -640,6 +653,7 @@ int main()
     test7021();
     test9116();
     test9293();
+    test9566();
 
     printf("Success\n");
     return 0;
