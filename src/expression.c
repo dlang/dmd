@@ -3103,7 +3103,8 @@ Lagain:
         Dsymbol *p = td->toParent2();
         FuncDeclaration *fdthis = hasThis(sc);
         AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
-        if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad)
+        if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
+            (td->scope->stc & STCstatic) == 0)
         {
             e = new DotTemplateExp(loc, new ThisExp(loc), td);
         }

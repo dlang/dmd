@@ -1939,6 +1939,27 @@ void test9361()
 }
 
 /**********************************/
+// 9536
+
+struct S9536
+{
+    static A foo(A)(A a)
+    {
+        return a * 2;
+    }
+    int bar() const
+    {
+        return foo(42);
+    }
+}
+
+void test9536()
+{
+    S9536 s;
+    assert(s.bar() == 84);
+}
+
+/**********************************/
 
 int main()
 {
@@ -2011,6 +2032,7 @@ int main()
     test9124b();
     test9143();
     test9266();
+    test9536();
 
     printf("Success\n");
     return 0;
