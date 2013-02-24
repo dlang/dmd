@@ -8193,7 +8193,6 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     for (size_t j = 0; j < structelems->dim; j++)
     {
         VarDeclaration *vd = sym->fields[j];
-        Type *telem = vd->type->addMod(this->mod);
         Expression *e;
         if (vd->init)
         {   if (vd->init->isVoidInitializer())
@@ -8206,6 +8205,18 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         if (e && vd->scope)
         {
             e = e->semantic(vd->scope);
+
+            Type *telem = vd->type->addMod(this->mod);
+            Type *origType = telem;
+            while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
+            {   /* Static array initialization, as in:
+                 *  T[3][5] = e;
+                 */
+                telem = telem->toBasetype()->nextOf();
+            }
+            if (!e->implicitConvTo(telem))
+                telem = origType;  // restore type for better diagnostic
+
             e = e->implicitCastTo(vd->scope, telem);
         }
         (*structelems)[j] = e;
