@@ -563,6 +563,23 @@ void multicollide()
 
 /****************************************************/
 
+void use9568(char [] x, char [] y) {}
+
+int bug9568()
+{
+    try
+        return 7;
+     finally
+        use9568(null,null);
+}
+
+void test9568()
+{
+    assert( bug9568() == 7 );
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -578,6 +595,7 @@ int main()
     doublecollide();
     collideMixed();
     multicollide();
+    test9568();
 
     printf("finish\n");
     return 0;
