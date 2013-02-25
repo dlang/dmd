@@ -1288,7 +1288,11 @@ STATIC void blcodgen(block *bl)
         regcon.indexregs &= regcon.indexregs - 1;
     }
 
-    regsave.idx = 0;
+    /* This doesn't work when calling the BC_finally function,
+     * as it is one block calling another.
+     */
+    //regsave.idx = 0;
+
     reflocal = 0;
     refparamsave = refparam;
     refparam = 0;
