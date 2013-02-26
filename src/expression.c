@@ -7995,9 +7995,6 @@ Lagain:
         {   dte = (DotTemplateExp *)(e1);
             TemplateDeclaration *td = dte->td;
             assert(td);
-            if (!arguments)
-                // Should fix deduceFunctionTemplate() so it works on NULL argument
-                arguments = new Expressions();
             f = td->deduceFunctionTemplate(loc, sc, targsi, ue1, arguments);
             if (!f)
                 return new ErrorExp();

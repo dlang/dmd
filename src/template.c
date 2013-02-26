@@ -1000,7 +1000,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
 
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
-    for (size_t i = 0; i < fargs->dim; i++)
+    for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
     {   Expression *e = (*fargs)[i];
         printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
@@ -2028,7 +2028,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         }
     }
     printf("    fargs:\n");
-    for (size_t i = 0; i < fargs->dim; i++)
+    for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
     {   Expression *arg = (*fargs)[i];
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
