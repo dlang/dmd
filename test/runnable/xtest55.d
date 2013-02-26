@@ -2,7 +2,7 @@
 
 import core.memory, std.stdio;
 
-__thread Stuff* stuff1;
+Stuff* stuff1;
 
 struct Stuff {
     uint num;

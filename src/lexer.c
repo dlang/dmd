@@ -2922,7 +2922,6 @@ static Keyword keywords[] =
 #if DMDV2
     {   "pure",         TOKpure         },
     {   "nothrow",      TOKnothrow      },
-    {   "__thread",     TOKtls          },
     {   "__gshared",    TOKgshared      },
     {   "__traits",     TOKtraits       },
     {   "__vector",     TOKvector       },

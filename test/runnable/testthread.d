@@ -7,8 +7,8 @@ version (Win32)
 {
     extern (C)
     {
-        extern __thread int _tlsstart;
-        extern __thread int _tlsend;
+        extern int _tlsstart;
+        extern int _tlsend;
     }
 }
 
