@@ -726,7 +726,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Expression *ethis,
         Expressions *arguments,
-        int flags);
+        int flags = 0);
 #endif
 
 struct FuncAliasDeclaration : FuncDeclaration

@@ -253,7 +253,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     L1:
         assert(td);
         unsigned errors = global.startGagging();
-        FuncDeclaration *fd = td->deduceFunctionTemplate(e->loc, sc, targsi, ethis, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, targsi, ethis, NULL, 1);
         if (global.endGagging(errors))
             fd = NULL;  // eat "is not a function template" error
         if (fd && fd->type)
@@ -4662,7 +4662,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            f = cd->aggNew->overloadResolve(loc, NULL, newargs);
+            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, newargs);
             allocator = f->isNewDeclaration();
             assert(allocator);
 
@@ -4700,7 +4700,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            FuncDeclaration *f = sd->aggNew->overloadResolve(loc, NULL, newargs);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, newargs);
             allocator = f->isNewDeclaration();
             assert(allocator);
 
@@ -7981,25 +7981,23 @@ Lagain:
             ue1 = NULL;
         }
 
+        Dsymbol *s;
         if (e1->op == TOKdotvar)
-        {   // Do overload resolution
+        {
             dve = (DotVarExp *)(e1);
-
-            f = dve->var->isFuncDeclaration();
-            assert(f);
-            f = f->overloadResolve(loc, ue1, arguments);
-
-            ad = f->toParent()->isAggregateDeclaration();
+            s = dve->var;
         }
         else
         {   dte = (DotTemplateExp *)(e1);
-            TemplateDeclaration *td = dte->td;
-            assert(td);
-            f = td->deduceFunctionTemplate(loc, sc, targsi, ue1, arguments);
-            if (!f)
-                return new ErrorExp();
-            ad = td->toParent()->isAggregateDeclaration();
+            s = dte->td;
         }
+
+        // Do overload resolution
+        f = resolveFuncCall(loc, sc, s, targsi, ue1, arguments);
+        if (!f)
+            return new ErrorExp();
+        ad = f->toParent2()->isAggregateDeclaration();
+
         if (f->needThis())
         {
             ue->e1 = getRightThis(loc, sc, ad, ue->e1, f);
@@ -8166,16 +8164,7 @@ Lagain:
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
         {   s = eo->vars->a[i];
-            FuncDeclaration *f2 = s->isFuncDeclaration();
-            if (f2)
-            {
-                f2 = f2->overloadResolve(loc, ethis, arguments, 1);
-            }
-            else
-            {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                assert(td);
-                f2 = td->deduceFunctionTemplate(loc, sc, targsi, ethis, arguments, 1);
-            }
+            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, targsi, ethis, arguments, 1);
             if (f2)
             {   if (f)
                     /* Error if match in more than one overload set,
@@ -8231,7 +8220,7 @@ Lagain:
         else if (e1->op == TOKtemplate)
         {
             TemplateExp *te = (TemplateExp *)e1;
-            f = te->td->deduceFunctionTemplate(loc, sc, targsi, NULL, arguments);
+            f = resolveFuncCall(loc, sc, te->td, targsi, NULL, arguments);
             if (!f)
             {   if (tierror)
                     tierror->error("errors instantiating template");    // give better error message
@@ -8315,7 +8304,7 @@ Lagain:
         assert(f);
 
         if (ve->hasOverloads)
-            f = f->overloadResolve(loc, NULL, arguments, 2);
+            f = resolveFuncCall(loc, sc, f, targsi, NULL, arguments, 2);
         else
         {
             TypeFunction *tf = (TypeFunction *)f->type;
@@ -8340,6 +8329,8 @@ Lagain:
                 return new ErrorExp();
             }
         }
+        if (!f)
+            return new ErrorExp();
 
         if (f->needThis())
         {
@@ -10358,11 +10349,11 @@ Expression *AssignExp::semantic(Scope *sc)
         Expressions a;
         a.push(e2);
 
-        fd = td->deduceFunctionTemplate(loc, sc, targsi, ethis, &a, 1);
+        fd = resolveFuncCall(loc, sc, td, targsi, ethis, &a, 1);
         if (fd && fd->type)
             goto Lsetter;
 
-        fd = td->deduceFunctionTemplate(loc, sc, targsi, ethis, NULL, 1);
+        fd = resolveFuncCall(loc, sc, td, targsi, ethis, NULL, 1);
         if (fd && fd->type)
             goto Lgetter;
     }
@@ -10391,11 +10382,11 @@ Expression *AssignExp::semantic(Scope *sc)
         Expressions a;
         a.push(e2);
 
-        fd = f->overloadResolve(loc, ethis, &a, 1);
+        fd = resolveFuncCall(loc, sc, f, NULL, ethis, &a, 1);
         if (fd && fd->type)
             goto Lsetter;
 
-        fd = f->overloadResolve(loc, ethis, NULL, 1);
+        fd = resolveFuncCall(loc, sc, f, NULL, ethis, NULL, 1);
         if (fd && fd->type)
             goto Lgetter;
 

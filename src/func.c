@@ -2561,25 +2561,21 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
 
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
 {
-    TypeFunction *tf;
-    Match m;
-
 #if 0
-printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
-if (arguments)
-{   int i;
-
-    for (i = 0; i < arguments->dim; i++)
-    {   Expression *arg;
-
-        arg = (*arguments)[i];
-        assert(arg->type);
-        printf("\t%s: ", arg->toChars());
-        arg->type->print();
+    printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
+    if (arguments)
+    {
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+            Expression *arg = (*arguments)[i];
+            assert(arg->type);
+            printf("\t%s: ", arg->toChars());
+            arg->type->print();
+        }
     }
-}
 #endif
 
+    Match m;
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
     overloadResolveX(&m, this, ethis, arguments);
@@ -2609,7 +2605,7 @@ if (arguments)
             if (flags & 1)              // if do not print error messages
                 return NULL;            // no match
 
-            tf = (TypeFunction *)type;
+            TypeFunction *tf = (TypeFunction *)type;
             if (ethis && !MODimplicitConv(ethis->type->mod, tf->mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
@@ -2755,11 +2751,12 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         return NULL;                    // no match
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
-        f = f->overloadResolve(loc, ethis, arguments);
+        f = f->overloadResolve(loc, ethis, arguments, flags);
     else
     {   TemplateDeclaration *td = s->isTemplateDeclaration();
         assert(td);
-        f = td->deduceFunctionTemplate(loc, sc, tiargs, NULL, arguments, flags);
+        if (!sc) sc = td->scope;
+        f = td->deduceFunctionTemplate(loc, sc, tiargs, ethis, arguments, flags);
     }
     return f;
 }

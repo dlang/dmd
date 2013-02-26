@@ -2068,7 +2068,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 td->error("is not a function template");
                 goto Lerror;
             }
-            fd = fd->overloadResolve(loc, ethis, fargs, flags);
+            fd = resolveFuncCall(loc, sc, fd, NULL, ethis, fargs, flags);
             if (!fd)
                 continue;
 
