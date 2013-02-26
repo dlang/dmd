@@ -53,8 +53,8 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
             Scope *sc2 = sc->push();
             sc2->speculative = true;
 
-                    f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &ar, 1);
-            if (!f) f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &al, 1);
+                    f = td->deduceFunctionTemplate(loc, sc2, NULL, er, &ar, 1);
+            if (!f) f = td->deduceFunctionTemplate(loc, sc2, NULL, er, &al, 1);
 
             sc2->pop();
             global.speculativeGag = oldspec;
@@ -352,7 +352,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 
             TemplateDeclaration *td = eq->isTemplateDeclaration();
             if (td)
-            {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
+            {   fd = td->deduceFunctionTemplate(loc, sc, NULL, e, arguments, 1);
                 if (fd && !(fd->storage_class & STCdisable))
                     return fd;
             }

@@ -1274,7 +1274,7 @@ Type *Type::aliasthisOf()
         if (td)
         {   assert(td->scope);
             Expression *ethis = defaultInit(0);
-            FuncDeclaration *fd = td->deduceFunctionTemplate(td->scope, 0, NULL, ethis, NULL, 1);
+            FuncDeclaration *fd = td->deduceFunctionTemplate(0, td->scope, NULL, ethis, NULL, 1);
             if (fd && fd->functionSemantic())
             {
                 Type *t = fd->type->nextOf();

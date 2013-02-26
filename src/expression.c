@@ -253,7 +253,7 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     L1:
         assert(td);
         unsigned errors = global.startGagging();
-        FuncDeclaration *fd = td->deduceFunctionTemplate(sc, e->loc, targsi, ethis, NULL, 1);
+        FuncDeclaration *fd = td->deduceFunctionTemplate(e->loc, sc, targsi, ethis, NULL, 1);
         if (global.endGagging(errors))
             fd = NULL;  // eat "is not a function template" error
         if (fd && fd->type)
@@ -4627,7 +4627,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (cd->ctor)
-            f = resolveFuncCall(sc, loc, cd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4720,7 +4720,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (sd->ctor)
-            f = resolveFuncCall(sc, loc, sd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, sd->ctor, NULL, NULL, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -7998,7 +7998,7 @@ Lagain:
             if (!arguments)
                 // Should fix deduceFunctionTemplate() so it works on NULL argument
                 arguments = new Expressions();
-            f = td->deduceFunctionTemplate(sc, loc, targsi, ue1, arguments);
+            f = td->deduceFunctionTemplate(loc, sc, targsi, ue1, arguments);
             if (!f)
                 return new ErrorExp();
             ad = td->toParent()->isAggregateDeclaration();
@@ -8102,7 +8102,7 @@ Lagain:
                     sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
                 }
 
-                f = resolveFuncCall(sc, loc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
+                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
                 if (!f)
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
@@ -8142,7 +8142,7 @@ Lagain:
                 sc->callSuper |= CSXany_ctor | CSXthis_ctor;
             }
 
-            f = resolveFuncCall(sc, loc, cd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
             if (!f)
                 return new ErrorExp();
             checkDeprecated(sc, f);
@@ -8177,7 +8177,7 @@ Lagain:
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
                 assert(td);
-                f2 = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments, 1);
+                f2 = td->deduceFunctionTemplate(loc, sc, targsi, ethis, arguments, 1);
             }
             if (f2)
             {   if (f)
@@ -8234,7 +8234,7 @@ Lagain:
         else if (e1->op == TOKtemplate)
         {
             TemplateExp *te = (TemplateExp *)e1;
-            f = te->td->deduceFunctionTemplate(sc, loc, targsi, NULL, arguments);
+            f = te->td->deduceFunctionTemplate(loc, sc, targsi, NULL, arguments);
             if (!f)
             {   if (tierror)
                     tierror->error("errors instantiating template");    // give better error message
@@ -10361,11 +10361,11 @@ Expression *AssignExp::semantic(Scope *sc)
         Expressions a;
         a.push(e2);
 
-        fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, &a, 1);
+        fd = td->deduceFunctionTemplate(loc, sc, targsi, ethis, &a, 1);
         if (fd && fd->type)
             goto Lsetter;
 
-        fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, NULL, 1);
+        fd = td->deduceFunctionTemplate(loc, sc, targsi, ethis, NULL, 1);
         if (fd && fd->type)
             goto Lgetter;
     }

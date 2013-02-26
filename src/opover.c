@@ -39,7 +39,7 @@
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
-static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments);
+static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc, Objects *targsi, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
 
@@ -541,7 +541,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
+                templateResolve(&m, td, loc, sc, targsi, e1, &args2);
             }
         }
 
@@ -556,7 +556,7 @@ Expression *BinExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, e2, &args1);
+                templateResolve(&m, td, loc, sc, targsi, e2, &args1);
             }
         }
 
@@ -634,7 +634,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, e1, &args2);
+                    templateResolve(&m, td, loc, sc, targsi, e1, &args2);
                 }
             }
             FuncDeclaration *lastf = m.lastf;
@@ -648,7 +648,7 @@ L1:
                 }
                 else
                 {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                    templateResolve(&m, td, sc, loc, targsi, e2, &args1);
+                    templateResolve(&m, td, loc, sc, targsi, e2, &args1);
                 }
             }
 
@@ -797,7 +797,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
+                templateResolve(&m, td, loc, sc, targsi, e1, &args2);
             }
         }
 
@@ -813,7 +813,7 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
             }
             else
             {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, e2, &args1);
+                templateResolve(&m, td, loc, sc, targsi, e2, &args1);
             }
         }
 
@@ -1111,7 +1111,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             }
             else
             {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, sc, loc, targsi, e1, &args2);
+                templateResolve(&m, td, loc, sc, targsi, e1, &args2);
             }
         }
 
@@ -1614,12 +1614,13 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
 /**************************************
  */
 
-static void templateResolve(Match *m, TemplateDeclaration *td, Scope *sc, Loc loc, Objects *targsi, Expression *ethis, Expressions *arguments)
+static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
+        Objects *targsi, Expression *ethis, Expressions *arguments)
 {
     FuncDeclaration *fd;
 
     assert(td);
-    fd = td->deduceFunctionTemplate(sc, loc, targsi, ethis, arguments, 1);
+    fd = td->deduceFunctionTemplate(loc, sc, targsi, ethis, arguments, 1);
     if (!fd)
         return;
     m->anyf = fd;
