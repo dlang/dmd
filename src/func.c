@@ -2225,26 +2225,23 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
 int FuncDeclaration::overloadInsert(Dsymbol *s)
 {
-    FuncDeclaration *f;
-    AliasDeclaration *a;
-
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
-    a = s->isAliasDeclaration();
-    if (a)
+    AliasDeclaration *ad = s->isAliasDeclaration();
+    if (ad)
     {
         if (overnext)
-            return overnext->overloadInsert(a);
-        if (!a->aliassym && a->type->ty != Tident && a->type->ty != Tinstance)
+            return overnext->overloadInsert(ad);
+        if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
         {
-            //printf("\ta = '%s'\n", a->type->toChars());
+            //printf("\tad = '%s'\n", ad->type->toChars());
             return FALSE;
         }
-        overnext = a;
+        overnext = ad;
         //printf("\ttrue: no conflict\n");
         return TRUE;
     }
-    f = s->isFuncDeclaration();
-    if (!f)
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (!fd)
         return FALSE;
 
 #if 0
@@ -2255,11 +2252,11 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
      */
     if (type)
     {   printf("type = %s\n", type->toChars());
-        printf("f->type = %s\n", f->type->toChars());
+        printf("fd->type = %s\n", fd->type->toChars());
     }
-    if (type && f->type &&      // can be NULL for overloaded constructors
-        f->type->covariant(type) &&
-        f->type->mod == type->mod &&
+    if (type && fd->type &&      // can be NULL for overloaded constructors
+        fd->type->covariant(type) &&
+        fd->type->mod == type->mod &&
         !isFuncAliasDeclaration())
     {
         //printf("\tfalse: conflict %s\n", kind());
@@ -2268,8 +2265,8 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
 #endif
 
     if (overnext)
-        return overnext->overloadInsert(f);
-    overnext = f;
+        return overnext->overloadInsert(fd);
+    overnext = fd;
     //printf("\ttrue: no conflict\n");
     return TRUE;
 }

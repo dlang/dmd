@@ -591,29 +591,28 @@ const char *TemplateDeclaration::kind()
 
 int TemplateDeclaration::overloadInsert(Dsymbol *s)
 {
-    TemplateDeclaration **pf;
-    TemplateDeclaration *f;
-
 #if LOG
     printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
-    f = s->isTemplateDeclaration();
-    if (!f)
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (!td)
         return FALSE;
+
     TemplateDeclaration *pthis = this;
-    for (pf = &pthis; *pf; pf = &(*pf)->overnext)
+    TemplateDeclaration **ptd;
+    for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
     {
 #if 0
         // Conflict if TemplateParameter's match
         // Will get caught anyway later with TemplateInstance, but
         // should check it now.
-        TemplateDeclaration *f2 = *pf;
+        TemplateDeclaration *f2 = *ptd;
 
-        if (f->parameters->dim != f2->parameters->dim)
+        if (td->parameters->dim != f2->parameters->dim)
             goto Lcontinue;
 
-        for (size_t i = 0; i < f->parameters->dim; i++)
-        {   TemplateParameter *p1 = (*f->parameters)[i];
+        for (size_t i = 0; i < td->parameters->dim; i++)
+        {   TemplateParameter *p1 = (*td->parameters)[i];
             TemplateParameter *p2 = (*f2->parameters)[i];
 
             if (!p1->overloadMatch(p2))
@@ -630,8 +629,8 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 #endif
     }
 
-    f->overroot = this;
-    *pf = f;
+    td->overroot = this;
+    *ptd = td;
 #if LOG
     printf("\ttrue: no conflict\n");
 #endif
