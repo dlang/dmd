@@ -138,8 +138,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         assert(typeid(DSO).init().ptr is null);
         *data._slot = pdso; // store backlink in library record
 
-        auto modules = removeNullPtrs(toRange(data._minfo_beg, data._minfo_end));
-        pdso._moduleGroup = ModuleGroup(modules);
+        pdso._moduleGroup = ModuleGroup(toRange(data._minfo_beg, data._minfo_end));
         pdso._ehtables = toRange(data._deh_beg, data._deh_end);
 
         dl_phdr_info info = void;
@@ -156,25 +155,9 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         assert(pdso == _static_dsos.back); // DSOs are unloaded in reverse order
         _static_dsos.popBack();
 
-        .free(pdso._moduleGroup.modules.ptr);
         *data._slot = null;
         .free(pdso);
     }
-}
-
-// .minfo contains null pointers because of linker padding
-ModuleInfo*[] removeNullPtrs(ModuleInfo*[] modules)
-{
-    size_t cnt;
-    foreach (m; modules)
-        if (m !is null) ++cnt;
-
-    auto result = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
-
-    cnt = 0;
-    foreach (m; modules)
-        if (m !is null) result[cnt++] = m;
-    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

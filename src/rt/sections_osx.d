@@ -55,7 +55,6 @@ void initSections()
 
 void finiSections()
 {
-    .free(_sections.modules.ptr);
 }
 
 private:
@@ -73,16 +72,6 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
         auto p = cast(ModuleInfo**)sect.ptr;
         immutable len = sect.length / (*p).sizeof;
 
-        size_t cnt;
-        foreach (mi; p[0 .. len])
-            if (mi !is null) ++cnt;
-
-        auto modules = (cast(ModuleInfo**).malloc(cnt * size_t.sizeof))[0 .. cnt];
-
-        cnt = 0;
-        foreach (mi; p[0 .. len])
-            if (mi !is null) modules[cnt++] = mi;
-
-        _sections._moduleGroup = ModuleGroup(modules);
+        _sections._moduleGroup = ModuleGroup(p[0 .. len]);
     }
 }
