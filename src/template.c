@@ -795,8 +795,9 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
 
         if (!flag)
             sparam->semantic(paramscope);
-        if (!paramscope->insert(sparam))
-            goto Lnomatch;
+        if (!paramscope->insert(sparam))    // TODO: This check can make more early
+            goto Lnomatch;                  // in TemplateDeclaration::semantic, and
+                                            // then we don't need to make sparam if flags == 0
     }
 
     if (!flag)
@@ -1817,9 +1818,8 @@ Lmatch:
                 {   /* The specialization can work as long as afterwards
                      * the oded == oarg
                      */
-                    Declaration *sparam;
                     (*dedargs)[i] = oded;
-                    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+                    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, NULL);
                     //printf("m2 = %d\n", m2);
                     if (!m2)
                         goto Lnomatch;
@@ -3917,12 +3917,14 @@ MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
     }
     (*dedtypes)[i] = ta;
 
-    *psparam = new AliasDeclaration(loc, ident, ta);
+    if (psparam)
+        *psparam = new AliasDeclaration(loc, ident, ta);
     //printf("\tm = %d\n", m);
     return m;
 
 Lnomatch:
-    *psparam = NULL;
+    if (psparam)
+        *psparam = NULL;
     //printf("\tm = %d\n", MATCHnomatch);
     return MATCHnomatch;
 }
@@ -4243,23 +4245,27 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
     (*dedtypes)[i] = sa;
 
     s = isDsymbol(sa);
-    if (s)
-        *psparam = new AliasDeclaration(loc, ident, s);
-    else
+    if (psparam)
     {
-        assert(ea);
+        if (s)
+            *psparam = new AliasDeclaration(loc, ident, s);
+        else
+        {
+            assert(ea);
 
-        // Declare manifest constant
-        Initializer *init = new ExpInitializer(loc, ea);
-        VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
-        v->storage_class = STCmanifest;
-        v->semantic(sc);
-        *psparam = v;
+            // Declare manifest constant
+            Initializer *init = new ExpInitializer(loc, ea);
+            VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
+            v->storage_class = STCmanifest;
+            v->semantic(sc);
+            *psparam = v;
+        }
     }
     return MATCHexact;
 
 Lnomatch:
-    *psparam = NULL;
+    if (psparam)
+        *psparam = NULL;
     //printf("\tm = %d\n", MATCHnomatch);
     return MATCHnomatch;
 }
@@ -4451,8 +4457,6 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 {
     //printf("TemplateValueParameter::matchArg()\n");
 
-    Initializer *init;
-    Declaration *sparam;
     MATCH m = MATCHexact;
     Expression *ei;
     Object *oarg;
@@ -4546,15 +4550,19 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     }
     (*dedtypes)[i] = ei;
 
-    init = new ExpInitializer(loc, ei);
-    sparam = new VarDeclaration(loc, vt, ident, init);
-    sparam->storage_class = STCmanifest;
-    *psparam = sparam;
+    if (psparam)
+    {
+        Initializer *init = new ExpInitializer(loc, ei);
+        Declaration *sparam = new VarDeclaration(loc, vt, ident, init);
+        sparam->storage_class = STCmanifest;
+        *psparam = sparam;
+    }
     return m;
 
 Lnomatch:
     //printf("\tno match\n");
-    *psparam = NULL;
+    if (psparam)
+        *psparam = NULL;
     return MATCHnomatch;
 }
 
@@ -4698,7 +4706,8 @@ MATCH TemplateTupleParameter::matchArg(Scope *sc, Objects *tiargs,
                 ovar->objects[j] = (*tiargs)[i + j];
         }
     }
-    *psparam = new TupleDeclaration(loc, ident, &ovar->objects);
+    if (psparam)
+        *psparam = new TupleDeclaration(loc, ident, &ovar->objects);
     (*dedtypes)[i] = ovar;
     return MATCHexact;
 }
