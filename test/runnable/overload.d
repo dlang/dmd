@@ -227,6 +227,86 @@ char[8] test1528c()
     return toHexString1528!10(foo);
 }
 
+// ----
+
+int f1528d1(int a, double=10) { return 1; }
+int f1528d1(int a, string="") { return 2; }
+
+int f1528d2(T:int)(T b, double=10) { return 1; }
+int f1528d2(T:int)(T b, string="") { return 2; }
+
+// vs deduced parameter
+int f1528d3(int a) { return 1; }
+int f1528d3(T)(T b) { return 2; }
+
+// vs specialized parameter
+int f1528d4(int a) { return 1; }
+int f1528d4(T:int)(T b) { return 2; }
+
+// vs deduced parameter + template constraint (1)
+int f1528d5(int a) { return 1; }
+int f1528d5(T)(T b) if (is(T == int)) { return 2; }
+
+// vs deduced parameter + template constraint (2)
+int f1528d6(int a) { return 1; }
+int f1528d6(T)(T b) if (is(T : int)) { return 2; }
+
+// vs nallowing conversion
+int f1528d7(ubyte a) { return 1; }
+int f1528d7(T)(T b) if (is(T : int)) { return 2; }
+
+int f1528d10(int, int) { return 1; }
+int f1528d10(T)(T, int) { return 2; }
+
+void test1528d()
+{
+    static assert(!__traits(compiles, f1528d1(1)));  // ambiguous
+    static assert(!__traits(compiles, f1528d1(1L))); // ambiguous
+
+    static assert(!__traits(compiles, f1528d2(1)));  // ambiguous
+    static assert(!__traits(compiles, f1528d2(1L))); // no match
+
+    assert(f1528d3(1) == 1);
+    assert(f1528d3(1L) == 1);    // '1L' matches int
+    short short_val = 42;
+    assert(f1528d3(cast(short) 42) == 1);
+    assert(f1528d3(short_val) == 1);
+
+    static assert(!__traits(compiles, f1528d4(1)));
+    assert(f1528d4(1L) == 1);
+
+    assert(f1528d5(1) == 1);
+    assert(f1528d5(1L) == 1);
+
+    assert(f1528d6(1) == 1);
+    assert(f1528d6(1L) == 1);
+    static assert(!__traits(compiles, f1528d6(ulong.max))); // no match
+                                          // needs to fix bug 9617
+    ulong ulval = 1;
+    static assert(!__traits(compiles, f1528d6(ulval)));     // no match
+
+    assert(f1528d7(200u) == 1);  // '200u' matches ubyte
+    assert(f1528d7(400u) == 2);
+    uint uival = 400;       // TDPL-like range knowledge lost here.
+    assert(f1528d7(uival) == 2);
+    uival = 200;            // Ditto.
+    assert(f1528d7(uival) == 2);
+
+
+    assert(f1528d10(        1, 9) == 1);
+    assert(f1528d10(       1U, 9) == 1);
+    assert(f1528d10(       1L, 9) == 1);
+    assert(f1528d10(      1LU, 9) == 1);
+    assert(f1528d10( long.max, 9) == 2);
+    assert(f1528d10(ulong.max, 9) == 2);
+    assert(f1528d10(        1, 9L) == 1);
+    assert(f1528d10(       1U, 9L) == 1);
+    assert(f1528d10(       1L, 9L) == 1);
+    assert(f1528d10(      1LU, 9L) == 1);
+    assert(f1528d10( long.max, 9L) == 2);
+    assert(f1528d10(ulong.max, 9L) == 2);
+}
+
 /***************************************************/
 // 1680
 
@@ -405,6 +485,7 @@ int main()
     test1528a();
     test1528b();
     test1528c();
+    test1528d();
     test1680();
     test7418();
     test7552();
