@@ -102,8 +102,10 @@ struct Match
     FuncDeclaration *anyf;      // pick a func, any func, to use for error recovery
 };
 
-void overloadResolveX(Match *m, FuncDeclaration *f,
+void functionResolve(Match *m, FuncDeclaration *f,
         Type *tthis, Expressions *arguments, Dsymbol **plast = NULL);
+void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
+        Objects *tiargs, Type *tthis, Expressions *fargs);
 int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param, Dsymbol **plast = NULL);
@@ -669,7 +671,6 @@ public:
     int findVtblIndex(Dsymbols *vtbl, int dim);
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags = 0);
     TemplateDeclaration *findTemplateDeclRoot();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);

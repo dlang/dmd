@@ -1203,6 +1203,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
         }
         else
             inferparams = NULL;
+        //printf("tiargs matchTiargs = %d\n", matchTiargs);
     }
 #if 0
     for (size_t i = 0; i < dedargs->dim; i++)
@@ -1226,6 +1227,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
      */
     if (tp)                             // if variadic
     {
+        // TemplateTupleParameter always makes most lesser matching.
+        matchTiargs = MATCHconvert;
+
         if (nfparams == 0 && nfargs != 0)               // if no function parameters
         {
             if (!tp_is_declared)
@@ -1902,7 +1906,7 @@ Lmatch:
         {
             if (oded)
             {
-                if (tparam->specialization())
+                if (tparam->specialization() || !tparam->isTemplateTypeParameter())
                 {   /* The specialization can work as long as afterwards
                      * the oded == oarg
                      */
@@ -1911,10 +1915,15 @@ Lmatch:
                     //printf("m2 = %d\n", m2);
                     if (!m2)
                         goto Lnomatch;
-                    if (m2 < match)
-                        match = m2;             // pick worst match
+                    if (m2 < matchTiargs)
+                        matchTiargs = m2;             // pick worst match
                     if (dedtypes[i] != oded)
                         error("specialization not allowed for deduced parameter %s", tparam->ident->toChars());
+                }
+                else
+                {
+                    if (MATCHconvert < matchTiargs)
+                        matchTiargs = MATCHconvert;
                 }
             }
             else
@@ -2139,32 +2148,29 @@ bool TemplateDeclaration::isOverloadable()
 
 /*************************************************
  * Given function arguments, figure out which template function
- * to expand, and return that function.
- * If no match, give error message and return NULL.
+ * to expand, and return matching result.
  * Input:
+ *      m               matching result
+ *      tdstart         the root of overloaded function templates
  *      loc             instantiation location
  *      sc              instantiation scope
  *      tiargs          initial list of template arguments
  *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
- *      flags           1: do not issue error message on no match, just return NULL
  */
 
-FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
-        Objects *tiargs, Type *tthis, Expressions *fargs, int flags)
+void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
+        Objects *tiargs, Type *tthis, Expressions *fargs)
 {
-    MATCH mta_best = MATCHnomatch;
-    MATCH mfa_best = MATCHnomatch;
     size_t overload_index;
     TemplateDeclaration *td_ambig = NULL;
     TemplateDeclaration *td_best = NULL;
     Objects *tdargs = new Objects();
-    TemplateInstance *ti;
-    FuncDeclaration *fd_best;
+    MATCH ta_last = m->last ? MATCHexact : MATCHnomatch;
     Type *tthis_best = NULL;
 
 #if 0
-    printf("TemplateDeclaration::deduceFunctionTemplate() %s\n", toChars());
+    printf("templateResolve() tdstart = %s\n", tdstart->toChars());
     printf("    tiargs:\n");
     if (tiargs)
     {   for (size_t i = 0; i < tiargs->dim; i++)
@@ -2178,14 +2184,15 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
-    printf("stc = %llx\n", scope->stc);
+    printf("stc = %llx\n", tdstart->scope->stc);
+    printf("match:t/f = %d/%d\n", ta_last, m->last);
 #endif
 
-    for (TemplateDeclaration *td = this; td; td = td->overnext)
+    for (TemplateDeclaration *td = tdstart; td; td = td->overnext)
     {
         if (!td->semanticRun)
         {
-            error("forward reference to template %s", td->toChars());
+            ::error(loc, "forward reference to template %s", td->toChars());
             goto Lerror;
         }
         FuncDeclaration *f = td->onemember
@@ -2201,7 +2208,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             assert(td->semanticRun);
             MATCH mta = td->matchWithInstance(ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", m2);
-            if (!mta || mta < mta_best)     // no match or less match
+            if (!mta || mta < ta_last)      // no match or less match
                 continue;
 
             ti->semantic(sc, fargs);
@@ -2211,27 +2218,23 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             Dsymbol *s = ti->inst->toAlias();
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (!fd)
-            {
-                if (!(flags & 1))
-                    td->error("is not a function template");
                 goto Lerror;
-            }
-            fd = resolveFuncCall(loc, sc, fd, NULL, tthis, fargs, flags);
+            fd = resolveFuncCall(loc, sc, fd, NULL, tthis, fargs, 1);
             if (!fd)
                 continue;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
             MATCH mfa = tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
-            if (mfa < mfa_best)
+            if (mfa < m->last)
                 continue;
 
             // td is the new best match
             td_ambig = NULL;
             assert(td->scope);
             td_best = td;
-            mta_best = mta;
-            mfa_best = mfa;
-            fd_best = fd;
+            ta_last = mta;
+            m->last = mfa;
+            m->lastf = fd;
             tdargs->setDim(dedtypes.dim);
             memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             continue;
@@ -2244,7 +2247,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             int x = td->deduceFunctionTemplateMatch(f, loc, sc, tiargs, tthis, fargs, &dedargs);
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
-            //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", mfa, mta);
+            //printf("match:t/f = %d/%d\n", mta, mfa);
             if (!mfa)               // if no match
                 continue;
 
@@ -2273,12 +2276,13 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 }
             }
 
-            if (mta < mta_best) goto Ltd_best;
-            if (mta > mta_best) goto Ltd;
+            if (mta < ta_last) goto Ltd_best;
+            if (mta > ta_last) goto Ltd;
 
-            if (mfa < mfa_best) goto Ltd_best;
-            if (mfa > mfa_best) goto Ltd;
+            if (mfa < m->last) goto Ltd_best;
+            if (mfa > m->last) goto Ltd;
 
+            if (td_best)
             {
                 // Disambiguate by picking the most specialized TemplateDeclaration
                 MATCH c1 = td->leastAsSpecialized(td_best, fargs);
@@ -2288,11 +2292,11 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 if (c1 < c2) goto Ltd_best;
             }
 
-            if (!fd_best)
+            if (!m->lastf)
             {
-                fd_best = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
-                if (!fd_best) goto Lerror;
-                tthis_best = fd_best->needThis() ? tthis : NULL;
+                m->lastf = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
+                if (!m->lastf) goto Lerror;
+                tthis_best = m->lastf->needThis() ? tthis : NULL;
             }
             if (!fd)
             {
@@ -2300,12 +2304,12 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 if (!fd) goto Lerror;
                 tthis_fd = fd->needThis() ? tthis : NULL;
             }
-            assert(fd && fd_best);
+            assert(fd && m->lastf);
 
             {
                 // Disambiguate by tf->callMatch
                 TypeFunction *tf1 = (TypeFunction *)fd->type;
-                TypeFunction *tf2 = (TypeFunction *)fd_best->type;
+                TypeFunction *tf2 = (TypeFunction *)m->lastf->type;
                 MATCH c1 = tf1->callMatch(tthis_fd,   fargs);
                 MATCH c2 = tf2->callMatch(tthis_best, fargs);
                 //printf("2: c1 = %d, c2 = %d\n", c1, c2);
@@ -2314,15 +2318,18 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             }
             {
                 // Disambiguate by picking the most specialized FunctionDeclaration
-                MATCH c1 = fd->leastAsSpecialized(fd_best);
-                MATCH c2 = fd_best->leastAsSpecialized(fd);
+                MATCH c1 = fd->leastAsSpecialized(m->lastf);
+                MATCH c2 = m->lastf->leastAsSpecialized(fd);
                 //printf("3: c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto Ltd;
                 if (c1 < c2) goto Ltd_best;
             }
 
           Lambig:           // td_best and td are ambiguous
+            //printf("Lambig\n");
             td_ambig = td;
+            m->nextf = fd;  // Caution! m->nextf isn't complete instantiated fd, so must not call toPrettyChars()
+            m->count++;
             continue;
 
           Ltd_best:         // td_best is the best match so far
@@ -2333,62 +2340,37 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             td_ambig = NULL;
             assert(td->scope);
             td_best = td;
-            mta_best = mta;
-            mfa_best = mfa;
-            fd_best = fd;
+            ta_last = mta;
+            m->last = mfa;
+            m->lastf = fd;
             tthis_best = tthis_fd;
             overload_index = ov_index;
+            m->nextf = NULL;
+            m->count = 1;
             tdargs->setDim(dedargs.dim);
             memcpy(tdargs->tdata(), dedargs.tdata(), tdargs->dim * sizeof(void *));
             continue;
         }
     }
+    //printf("td_best = %p, m->lastf = %p, match:t/f = %d/%d\n", td_best, m->lastf, mta, mfa);
     if (!td_best)
     {
-        if (!(flags & 1))
-        {
-            ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
-                    kind(), parent->toPrettyChars(), ident->toChars());
-
-            // Display candidate template functions
-            int numToDisplay = 5; // sensible number to display
-            for (TemplateDeclaration *td = this; td; td = td->overnext)
-            {
-                ::errorSupplemental(td->loc, "%s", td->toPrettyChars());
-                if (!global.params.verbose && --numToDisplay == 0)
-                {
-                    // Too many overloads to sensibly display.
-                    // Just show count of remaining overloads.
-                    int remaining = 0;
-                    for (; td; td = td->overnext)
-                        ++remaining;
-                    if (remaining > 0)
-                        ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
-                    break;
-                }
-            }
-        }
+        if (m->lastf) return;
         goto Lerror;
-    }
-    if (td_ambig)
-    {
-        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
-                kind(), parent->toPrettyChars(), ident->toChars(),
-                td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
-                td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
 
     if (!td_best->onemember || !td_best->onemember->toAlias()->isFuncDeclaration())
-        return fd_best;
+        return;
 
     /* The best match is td_best with arguments tdargs.
      * Now instantiate the template.
      */
     assert(td_best->scope);
+    TemplateInstance *ti;
     ti = new TemplateInstance(loc, td_best, tdargs);
     ti->semantic(sc, fargs);
-    fd_best = ti->toAlias()->isFuncDeclaration();
-    if (!fd_best)
+    m->lastf = ti->toAlias()->isFuncDeclaration();
+    if (!m->lastf)
         goto Lerror;
 
     // look forward instantiated overload function
@@ -2396,14 +2378,14 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     // it has filled overnext0d
     while (overload_index--)
     {
-        fd_best = fd_best->overnext0;
-        assert(fd_best);
+        m->lastf = m->lastf->overnext0;
+        assert(m->lastf);
     }
 
-    if (!((TypeFunction*)fd_best->type)->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? tthis : NULL, fargs))
+    if (!((TypeFunction*)m->lastf->type)->callMatch(m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL, fargs))
         goto Lerror;
 
-    if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
+    if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
     {
         // Inside template constraint, nested reference check doesn't work correctly.
         if (!(sc->flags & SCOPEstaticif) && fld->tok == TOKreserved)
@@ -2419,49 +2401,20 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
      * Bugzilla 9208: For auto function, completion should be deferred to the end of
      * its semantic3. Should not complete it in here.
      */
-    {   TypeFunction *tf = (TypeFunction *)fd_best->type;
+    {   TypeFunction *tf = (TypeFunction *)m->lastf->type;
         assert(tf->ty == Tfunction);
-        if (tf->next && !fd_best->inferRetType)
+        if (tf->next && !m->lastf->inferRetType)
         {
-            fd_best->type = tf->semantic(loc, sc);
+            m->lastf->type = tf->semantic(loc, sc);
         }
     }
-
-    if (!(flags & 1))
-        fd_best->functionSemantic();
-
-    return fd_best;
+    return;
 
   Lerror:
-#if DMDV2
-    if (!(flags & 1))
-#endif
-    {
-        HdrGenState hgs;
-
-        OutBuffer bufa;
-        Objects *args = tiargs;
-        if (args)
-        {   for (size_t i = 0; i < args->dim; i++)
-            {
-                if (i)
-                    bufa.writestring(", ");
-                RootObject *oarg = (*args)[i];
-                ObjectToCBuffer(&bufa, &hgs, oarg);
-            }
-        }
-
-        OutBuffer buf;
-        argExpTypesToCBuffer(&buf, fargs, &hgs);
-        if (this->overnext)
-            ::error(this->loc, "%s %s.%s cannot deduce template function from argument types !(%s)(%s)",
-                    kind(), parent->toPrettyChars(), ident->toChars(),
-                    bufa.toChars(), buf.toChars());
-        else
-            error(loc, "cannot deduce template function from argument types !(%s)(%s)",
-                  bufa.toChars(), buf.toChars());
-    }
-    return NULL;
+    m->lastf = NULL;
+    m->count = 0;
+    m->last = MATCHnomatch;
+    return;
 }
 
 /*************************************************

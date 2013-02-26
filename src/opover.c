@@ -39,7 +39,8 @@
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
-static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc, Objects *tiargs, Expression *ethis, Expressions *arguments);
+static void overloadResolveX(Match *m, Dsymbol *s, Loc loc, Scope *sc,
+        Objects *tiargs, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
 
@@ -555,32 +556,12 @@ Expression *BinExp::op_overload(Scope *sc)
         m.last = MATCHnomatch;
 
         if (s)
-        {
-            FuncDeclaration *fd = s->isFuncDeclaration();
-            if (fd)
-            {
-                overloadResolveX(&m, fd, NULL, &args2);
-            }
-            else
-            {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, loc, sc, tiargs, e1, &args2);
-            }
-        }
+            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
 
         FuncDeclaration *lastf = m.lastf;
 
         if (s_r)
-        {
-            FuncDeclaration *fd = s_r->isFuncDeclaration();
-            if (fd)
-            {
-                overloadResolveX(&m, fd, NULL, &args1);
-            }
-            else
-            {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, loc, sc, tiargs, e2, &args1);
-            }
-        }
+            overloadResolveX(&m, s_r, loc, sc, tiargs, e2, &args1);
 
         if (m.count > 1)
         {
@@ -648,31 +629,12 @@ L1:
             m.last = MATCHnomatch;
 
             if (s_r)
-            {
-                FuncDeclaration *fd = s_r->isFuncDeclaration();
-                if (fd)
-                {
-                    overloadResolveX(&m, fd, NULL, &args2);
-                }
-                else
-                {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                    templateResolve(&m, td, loc, sc, tiargs, e1, &args2);
-                }
-            }
+                overloadResolveX(&m, s_r, loc, sc, tiargs, e1, &args2);
+
             FuncDeclaration *lastf = m.lastf;
 
             if (s)
-            {
-                FuncDeclaration *fd = s->isFuncDeclaration();
-                if (fd)
-                {
-                    overloadResolveX(&m, fd, NULL, &args1);
-                }
-                else
-                {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                    templateResolve(&m, td, loc, sc, tiargs, e2, &args1);
-                }
-            }
+                overloadResolveX(&m, s, loc, sc, tiargs, e2, &args1);
 
             if (m.count > 1)
             {
@@ -819,33 +781,13 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         }
 
         if (s)
-        {
-            FuncDeclaration *fd = s->isFuncDeclaration();
-            if (fd)
-            {
-                overloadResolveX(&m, fd, NULL, &args2);
-            }
-            else
-            {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, loc, sc, tiargs, e1, &args2);
-            }
-        }
+            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
 
         FuncDeclaration *lastf = m.lastf;
         int count = m.count;
 
         if (s_r)
-        {
-            FuncDeclaration *fd = s_r->isFuncDeclaration();
-            if (fd)
-            {
-                overloadResolveX(&m, fd, NULL, &args1);
-            }
-            else
-            {   TemplateDeclaration *td = s_r->isTemplateDeclaration();
-                templateResolve(&m, td, loc, sc, tiargs, e2, &args1);
-            }
-        }
+            overloadResolveX(&m, s_r, loc, sc, tiargs, e2, &args1);
 
         if (m.count > 1)
         {
@@ -1153,17 +1095,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
         m.last = MATCHnomatch;
 
         if (s)
-        {
-            FuncDeclaration *fd = s->isFuncDeclaration();
-            if (fd)
-            {
-                overloadResolveX(&m, fd, NULL, &args2);
-            }
-            else
-            {   TemplateDeclaration *td = s->isTemplateDeclaration();
-                templateResolve(&m, td, loc, sc, tiargs, e1, &args2);
-            }
-        }
+            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
 
         if (m.count > 1)
         {
@@ -1680,25 +1612,17 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
 /**************************************
  */
 
-static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
+static void overloadResolveX(Match *m, Dsymbol *s, Loc loc, Scope *sc,
         Objects *tiargs, Expression *ethis, Expressions *arguments)
 {
-    FuncDeclaration *fd;
-
-    assert(td);
-    fd = td->deduceFunctionTemplate(loc, sc, tiargs, ethis->type, arguments, 1);
-    if (!fd)
-        return;
-    m->anyf = fd;
-    if (m->last >= MATCHexact)
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (fd)
     {
-        m->nextf = fd;
-        m->count++;
+        functionResolve(m, fd, ethis->type, arguments);
     }
     else
     {
-        m->last = MATCHexact;
-        m->lastf = fd;
-        m->count = 1;
+        TemplateDeclaration *td = s->isTemplateDeclaration();
+        templateResolve(m, td, loc, sc, tiargs, ethis->type, arguments);
     }
 }
