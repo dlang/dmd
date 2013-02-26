@@ -967,7 +967,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  * Input:
  *      loc             instantiation location
  *      sc              instantiation scope
- *      targsi          Expression/Type initial list of template arguments
+ *      tiargs          Expression/Type initial list of template arguments
  *      ethis           'this' argument if !NULL
  *      fargs           arguments to function
  * Output:
@@ -978,17 +978,17 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  *          bit 4-7     Match template parameters by initial template arguments
  */
 
-MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *targsi,
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs,
         Expression *ethis, Expressions *fargs,
         Objects *dedargs)
 {
     size_t nfparams;
     size_t nfargs;
-    size_t nargsi;              // array size of targsi
+    size_t ntargs;              // array size of tiargs
     size_t fptupindex = IDX_NOTFOUND;
     size_t tuple_dim = 0;
     MATCH match = MATCHexact;
-    MATCH matchTargsi = MATCHexact;
+    MATCH matchTiargs = MATCHexact;
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
@@ -1041,15 +1041,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
 #endif
 
 
-    nargsi = 0;
-    if (targsi)
+    ntargs = 0;
+    if (tiargs)
     {   // Set initial template arguments
 
-        nargsi = targsi->dim;
+        ntargs = tiargs->dim;
         size_t n = parameters->dim;
         if (tp)
             n--;
-        if (nargsi > n)
+        if (ntargs > n)
         {   if (!tp)
                 goto Lnomatch;
 
@@ -1060,19 +1060,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             assert(parameters->dim);
             (*dedargs)[parameters->dim - 1] = t;
 
-            tuple_dim = nargsi - n;
+            tuple_dim = ntargs - n;
             t->objects.setDim(tuple_dim);
             for (size_t i = 0; i < tuple_dim; i++)
             {
-                t->objects[i] = (*targsi)[n + i];
+                t->objects[i] = (*tiargs)[n + i];
             }
             declareParameter(paramscope, tp, t);
             tp_is_declared = 1;
         }
         else
-            n = nargsi;
+            n = ntargs;
 
-        memcpy(dedargs->tdata(), targsi->tdata(), n * sizeof(*dedargs->tdata()));
+        memcpy(dedargs->tdata(), tiargs->tdata(), n * sizeof(*dedargs->tdata()));
 
         for (size_t i = 0; i < n; i++)
         {   assert(i < parameters->dim);
@@ -1084,8 +1084,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
-            if (m < matchTargsi)
-                matchTargsi = m;
+            if (m < matchTiargs)
+                matchTiargs = m;
 
             sparam->semantic(paramscope);
             if (!paramscope->insert(sparam))
@@ -1730,7 +1730,7 @@ Lretry:
 
 Lmatch:
 
-    for (size_t i = nargsi; i < dedargs->dim; i++)
+    for (size_t i = ntargs; i < dedargs->dim; i++)
     {
         TemplateParameter *tparam = (*parameters)[i];
         //printf("tparam[%d] = %s\n", i, tparam->ident->toChars());
@@ -1768,7 +1768,7 @@ Lmatch:
                 {
                     if (tp &&                           // if tuple parameter and
                         fptupindex == IDX_NOTFOUND &&   // tuple parameter was not in function parameter list and
-                        nargsi == dedargs->dim - 1)     // we're one argument short (i.e. no tuple argument)
+                        ntargs == dedargs->dim - 1)     // we're one argument short (i.e. no tuple argument)
                     {   // make tuple argument an empty tuple
                         oded = (Object *)new Tuple();
                     }
@@ -1869,7 +1869,7 @@ Lmatch:
 
     paramscope->pop();
     //printf("\tmatch %d\n", match);
-    return (MATCH)(match | (matchTargsi<<4));
+    return (MATCH)(match | (matchTiargs<<4));
 
 Lnomatch:
     paramscope->pop();
@@ -2001,14 +2001,14 @@ int TemplateDeclaration::isOverloadable()
  * Input:
  *      loc             instantiation location
  *      sc              instantiation scope
- *      targsi          initial list of template arguments
+ *      tiargs          initial list of template arguments
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
  */
 
 FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
-        Objects *targsi, Expression *ethis, Expressions *fargs, int flags)
+        Objects *tiargs, Expression *ethis, Expressions *fargs, int flags)
 {
     MATCH m_best = MATCHnomatch;
     MATCH m_best2 = MATCHnomatch;
@@ -2020,10 +2020,10 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
 
 #if 0
     printf("TemplateDeclaration::deduceFunctionTemplate() %s\n", toChars());
-    printf("    targsi:\n");
-    if (targsi)
-    {   for (size_t i = 0; i < targsi->dim; i++)
-        {   Object *arg = (*targsi)[i];
+    printf("    tiargs:\n");
+    if (tiargs)
+    {   for (size_t i = 0; i < tiargs->dim; i++)
+        {   Object *arg = (*tiargs)[i];
             printf("\t%s\n", arg->toChars());
         }
     }
@@ -2045,9 +2045,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
-            if (!targsi)
-                targsi = new Objects();
-            TemplateInstance *ti = new TemplateInstance(loc, td, targsi);
+            if (!tiargs)
+                tiargs = new Objects();
+            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
@@ -2093,7 +2093,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         Objects dedargs;
         FuncDeclaration *fd = NULL;
 
-        m = td->deduceFunctionTemplateMatch(loc, sc, targsi, ethis, fargs, &dedargs);
+        m = td->deduceFunctionTemplateMatch(loc, sc, tiargs, ethis, fargs, &dedargs);
         m2 = (MATCH)(m >> 4);
         m = (MATCH)(m & 0xF);
         //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", m, m2);
@@ -2264,7 +2264,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         HdrGenState hgs;
 
         OutBuffer bufa;
-        Objects *args = targsi;
+        Objects *args = tiargs;
         if (args)
         {   for (size_t i = 0; i < args->dim; i++)
             {

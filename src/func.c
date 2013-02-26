@@ -2731,7 +2731,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
  * a function template, resolve it to a function symbol.
  *      loc             instantiation location
  *      sc              instantiation scope
- *      targsi          initial list of template arguments
+ *      tiargs          initial list of template arguments
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
