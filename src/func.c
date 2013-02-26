@@ -2586,6 +2586,14 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
             m.lastf->functionSemantic();
         return m.lastf;
     }
+    else if (m.last != MATCHnomatch && (flags & 2) && !ethis && m.lastf->needThis())
+    {
+        return m.lastf;
+    }
+    else if (m.last == MATCHnomatch && (flags & 1))
+    {                   // if do not print error messages
+        return NULL;    // no match
+    }
     else
     {
         OutBuffer buf;
@@ -2602,9 +2610,6 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
 
         if (m.last == MATCHnomatch)
         {
-            if (flags & 1)              // if do not print error messages
-                return NULL;            // no match
-
             TypeFunction *tf = (TypeFunction *)type;
             if (ethis && !MODimplicitConv(ethis->type->mod, tf->mod)) // modifier mismatch
             {
@@ -2627,9 +2632,6 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
         }
         else
         {
-            if ((flags & 2) && m.lastf->needThis() && !ethis)
-                return m.lastf;
-#if 1
             TypeFunction *t1 = (TypeFunction *)m.lastf->type;
             TypeFunction *t2 = (TypeFunction *)m.nextf->type;
 
@@ -2637,12 +2639,6 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
                     buf.toChars(),
                     m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
                     m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
-#else
-            error(loc, "overloads %s and %s both match argument list for %s",
-                    m.lastf->type->toChars(),
-                    m.nextf->type->toChars(),
-                    m.lastf->toChars());
-#endif
             return m.lastf;
         }
     }
@@ -2739,6 +2735,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
+ *                      2: overloadResolve only
  */
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
