@@ -2344,6 +2344,14 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         //printf("\ttrue: no conflict\n");
         return true;
     }
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td)
+    {
+        if (overnext)
+            return overnext->overloadInsert(td);
+        overnext = td;
+        return TRUE;
+    }
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
         return false;
@@ -2369,7 +2377,13 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
 #endif
 
     if (overnext)
-        return overnext->overloadInsert(fd);
+    {
+        td = overnext->isTemplateDeclaration();
+        if (td)
+            fd->overloadInsert(td);
+        else
+            return overnext->overloadInsert(fd);
+    }
     overnext = fd;
     //printf("\ttrue: no conflict\n");
     return true;
@@ -2390,7 +2404,7 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
 
 int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
-        void *param)
+        void *param, Dsymbol **plast)
 {
     FuncDeclaration *f;
     Declaration *d;
@@ -2403,7 +2417,7 @@ int overloadApply(FuncDeclaration *fstart,
         {
             if (fa->hasOverloads)
             {
-                if (overloadApply(fa->funcalias, fp, param))
+                if (overloadApply(fa->funcalias, fp, param, plast))
                     return 1;
             }
             else
@@ -2416,7 +2430,8 @@ int overloadApply(FuncDeclaration *fstart,
                 if ((*fp)(param, f))
                     return 1;
             }
-            next = fa->overnext;
+            next = fa->overnext ? fa->overnext->isDeclaration() : NULL;
+            if (plast) *plast = fa->overnext;
         }
         else
         {
@@ -2441,7 +2456,8 @@ int overloadApply(FuncDeclaration *fstart,
                 if ((*fp)(param, f))
                     return 1;
 
-                next = f->overnext;
+                next = f->overnext ? f->overnext->isDeclaration() : NULL;
+                if (plast) *plast = f->overnext;
             }
         }
     }
@@ -2467,8 +2483,8 @@ static int fpunique(void *param, FuncDeclaration *f)
 }
 
 FuncDeclaration *FuncDeclaration::isUnique()
-{   FuncDeclaration *result = NULL;
-
+{
+    FuncDeclaration *result = NULL;
     overloadApply(this, &fpunique, &result);
     return result;
 }
@@ -2644,14 +2660,15 @@ int fp2(void *param, FuncDeclaration *f)
 
 
 void overloadResolveX(Match *m, FuncDeclaration *fstart,
-        Type *tthis, Expressions *arguments)
+        Type *tthis, Expressions *arguments, Dsymbol **plast)
 {
     Param2 p;
     p.m = m;
     p.tthis = tthis;
     p.property = 0;
     p.arguments = arguments;
-    overloadApply(fstart, &fp2, &p);
+    if (plast) *plast = NULL;
+    overloadApply(fstart, &fp2, &p, plast);
 }
 
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
@@ -2696,7 +2713,9 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Type *tthis, Expressi
     Match m;
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
-    overloadResolveX(&m, this, tthis, arguments);
+
+    Dsymbol *lastnext;
+    overloadResolveX(&m, this, tthis, arguments, &lastnext);
 
     if (m.count == 1)           // exactly one match
     {
@@ -2760,6 +2779,24 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Type *tthis, Expressi
                     m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
                     m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
         }
+    }
+    return NULL;
+}
+
+/********************************************
+ * find function template root in overload list
+ */
+
+TemplateDeclaration *FuncDeclaration::findTemplateDeclRoot()
+{
+    FuncDeclaration *f = this;
+    while (f && f->overnext)
+    {
+        //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
+        TemplateDeclaration *td = f->overnext->isTemplateDeclaration();
+        if (td)
+            return td;
+        f = f->overnext->isFuncDeclaration();
     }
     return NULL;
 }

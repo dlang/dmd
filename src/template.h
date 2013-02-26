@@ -64,6 +64,7 @@ public:
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
+    FuncDeclaration *funcroot;          // first function in unified overload list
 
     PASS semanticRun;              // 1 semantic() run
 

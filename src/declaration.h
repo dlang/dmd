@@ -103,10 +103,10 @@ struct Match
 };
 
 void overloadResolveX(Match *m, FuncDeclaration *f,
-        Type *tthis, Expressions *arguments);
+        Type *tthis, Expressions *arguments, Dsymbol **plast = NULL);
 int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
-        void *param);
+        void *param, Dsymbol **plast = NULL);
 
 void ObjectNotFound(Identifier *id);
 
@@ -592,7 +592,7 @@ public:
     VarDeclaration *v_argsave;          // save area for args passed in registers for variadic functions
     VarDeclarations *parameters;        // Array of VarDeclaration's for parameters
     DsymbolTable *labtab;               // statement label symbol table
-    Declaration *overnext;              // next in overload list
+    Dsymbol *overnext;                  // next in overload list
     FuncDeclaration *overnext0;         // next in overload list (only used during IFTI)
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
@@ -670,6 +670,7 @@ public:
     bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags = 0);
+    TemplateDeclaration *findTemplateDeclRoot();
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();

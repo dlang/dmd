@@ -506,6 +506,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->members = decldefs;
     this->overnext = NULL;
     this->overroot = NULL;
+    this->funcroot = NULL;
     this->semanticRun = PASSinit;
     this->onemember = NULL;
     this->literal = 0;
@@ -686,6 +687,15 @@ bool TemplateDeclaration::overloadInsert(Dsymbol *s)
 #if LOG
     printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (fd)
+    {
+        if (funcroot)
+            return funcroot->overloadInsert(fd);
+        funcroot = fd;
+        return funcroot->overloadInsert(this);
+    }
+
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (!td)
         return false;
@@ -5947,7 +5957,14 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
 
         /* It should be a TemplateDeclaration, not some other symbol
          */
-        tempdecl = s->isTemplateDeclaration();
+        if (FuncDeclaration *f = s->isFuncDeclaration())
+        {
+            tempdecl = f->findTemplateDeclRoot();
+        }
+        else
+        {
+            tempdecl = s->isTemplateDeclaration();
+        }
         if (!tempdecl)
         {
             if (!s->parent && global.errors)
