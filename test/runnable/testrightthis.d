@@ -387,6 +387,42 @@ void test5()
 
 /********************************************************/
 
+void test6()
+{
+    static struct Foo
+    {
+        static struct Bar
+        {
+            static int get() { return 0; }
+            static int val;
+            void set() { assert(0); }
+            int num;
+        }
+        static class Baz
+        {
+            static int get() { return 0; }
+            static int val;
+            void set() { assert(0); }
+            int num;
+        }
+        Bar bar;
+        Baz baz;
+    }
+
+    // allowed cases that do 'use' Foo.bar without this
+    assert(Foo.bar.get() == 0);         // Foo.bar.get()
+    assert(Foo.baz.get() == 0);         // Foo.bar.get()
+    static assert(!__traits(compiles, Foo.bar.set()));
+    static assert(!__traits(compiles, Foo.baz.set()));
+
+    assert(Foo.bar.val == 0);           // Foo.bar.val
+    assert(Foo.baz.val == 0);           // Foo.baz.val
+    static assert(!__traits(compiles, Foo.bar.num = 1));
+    static assert(!__traits(compiles, Foo.baz.num = 1));
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -394,6 +430,7 @@ int main()
     test3();
     test4();
     test5();
+    test6();
 
     printf("Success\n");
     return 0;

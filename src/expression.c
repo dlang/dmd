@@ -7574,7 +7574,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
     if (e->op == TOKtype || e->op == TOKimport || e->op == TOKdotexp)
         return NULL;
 
-    e = resolveProperties(sc, e);
+    e = resolvePropertiesX(sc, e);
 
     Type *t = e->type->toBasetype();
     //printf("resolveUCSS %s, e = %s, %s, %s\n",
@@ -8003,6 +8003,7 @@ Lagain:
         UnaExp *ue = (UnaExp *)(e1);
 
         Expression *ue1 = ue->e1;
+        Expression *ue1old = ue1;   // need for 'right this' check
         VarDeclaration *v;
         if (ue1->op == TOKvar &&
             (v = ((VarExp *)ue1)->var->isVarDeclaration()) != NULL &&
@@ -8066,6 +8067,7 @@ Lagain:
         }
         else
         {
+            checkRightThis(sc, ue1old);
             if (e1->op == TOKdotvar)
             {
                 dve->var = f;

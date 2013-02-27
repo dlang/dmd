@@ -8135,14 +8135,13 @@ L1:
         return ve;
     }
 
-    if (d->isDataseg())
+    bool unreal = e->op == TOKvar && (((VarExp *)e)->var->storage_class & STCfield);
+    if (d->isDataseg() || unreal && (d->storage_class & STCfield))
     {
         // (e, d)
-        VarExp *ve;
-
         accessCheck(e->loc, sc, e, d);
-        ve = new VarExp(e->loc, d);
-        e = new CommaExp(e->loc, e, ve);
+        Expression *ve = new VarExp(e->loc, d);
+        e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
         return e;
     }
@@ -8815,14 +8814,13 @@ L1:
         return ve;
     }
 
-    if (d->isDataseg())
+    bool unreal = e->op == TOKvar && (((VarExp *)e)->var->storage_class & STCfield);
+    if (d->isDataseg() || unreal && (d->storage_class & STCfield))
     {
         // (e, d)
-        VarExp *ve;
-
         accessCheck(e->loc, sc, e, d);
-        ve = new VarExp(e->loc, d);
-        e = new CommaExp(e->loc, e, ve);
+        Expression *ve = new VarExp(e->loc, d);
+        e = unreal ? ve : new CommaExp(e->loc, e, ve);
         e = e->semantic(sc);
         return e;
     }
