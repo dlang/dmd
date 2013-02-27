@@ -307,7 +307,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     istatex.localThis = thisarg;
     istatex.framepointer = ctfeStack.startFrame();
 
-    Expressions vsave;          // place to save previous parameter values
     size_t dim = 0;
     if (needThis() && !thisarg)
     {   // error, no this. Prevent segfault.
@@ -324,7 +323,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     {
         dim = arguments->dim;
         assert(!dim || (parameters && (parameters->dim == dim)));
-        vsave.setDim(dim);
 
         /* Evaluate all the arguments to the function,
          * store the results in eargs[]
@@ -3949,7 +3947,7 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
 
     TypeFunction *tf = fd ? (TypeFunction *)(fd->type) : NULL;
     if (!tf)
-    {   // DAC: This should never happen, it's an internal compiler error.
+    {   // This should never happen, it's an internal compiler error.
         //printf("ecall=%s %d %d\n", ecall->toChars(), ecall->op, TOKcall);
         if (ecall->op == TOKidentifier)
             error("cannot evaluate %s at compile time. Circular reference?", toChars());
