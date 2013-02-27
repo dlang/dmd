@@ -1251,9 +1251,8 @@ Type *Type::aliasthisOf()
             }
             else if (d->isFuncDeclaration())
             {
-                FuncDeclaration *fd = (FuncDeclaration *)d;
                 Expression *ethis = this->defaultInit(0);
-                fd = fd->overloadResolve(0, ethis, NULL, 1);
+                FuncDeclaration *fd = resolveFuncCall(0, NULL, d, NULL, ethis, NULL, 1);
                 if (fd && fd->functionSemantic())
                 {
                     t = fd->type->nextOf();
@@ -1274,7 +1273,7 @@ Type *Type::aliasthisOf()
         if (td)
         {   assert(td->scope);
             Expression *ethis = defaultInit(0);
-            FuncDeclaration *fd = td->deduceFunctionTemplate(td->scope, 0, NULL, ethis, NULL, 1);
+            FuncDeclaration *fd = resolveFuncCall(0, NULL, td, NULL, ethis, NULL, 1);
             if (fd && fd->functionSemantic())
             {
                 Type *t = fd->type->nextOf();

@@ -591,29 +591,28 @@ const char *TemplateDeclaration::kind()
 
 int TemplateDeclaration::overloadInsert(Dsymbol *s)
 {
-    TemplateDeclaration **pf;
-    TemplateDeclaration *f;
-
 #if LOG
     printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
-    f = s->isTemplateDeclaration();
-    if (!f)
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (!td)
         return FALSE;
+
     TemplateDeclaration *pthis = this;
-    for (pf = &pthis; *pf; pf = &(*pf)->overnext)
+    TemplateDeclaration **ptd;
+    for (ptd = &pthis; *ptd; ptd = &(*ptd)->overnext)
     {
 #if 0
         // Conflict if TemplateParameter's match
         // Will get caught anyway later with TemplateInstance, but
         // should check it now.
-        TemplateDeclaration *f2 = *pf;
+        TemplateDeclaration *f2 = *ptd;
 
-        if (f->parameters->dim != f2->parameters->dim)
+        if (td->parameters->dim != f2->parameters->dim)
             goto Lcontinue;
 
-        for (size_t i = 0; i < f->parameters->dim; i++)
-        {   TemplateParameter *p1 = (*f->parameters)[i];
+        for (size_t i = 0; i < td->parameters->dim; i++)
+        {   TemplateParameter *p1 = (*td->parameters)[i];
             TemplateParameter *p2 = (*f2->parameters)[i];
 
             if (!p1->overloadMatch(p2))
@@ -630,8 +629,8 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 #endif
     }
 
-    f->overroot = this;
-    *pf = f;
+    td->overroot = this;
+    *ptd = td;
 #if LOG
     printf("\ttrue: no conflict\n");
 #endif
@@ -967,7 +966,8 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  * Match function arguments against a specific template function.
  * Input:
  *      loc             instantiation location
- *      targsi          Expression/Type initial list of template arguments
+ *      sc              instantiation scope
+ *      tiargs          Expression/Type initial list of template arguments
  *      ethis           'this' argument if !NULL
  *      fargs           arguments to function
  * Output:
@@ -978,17 +978,17 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  *          bit 4-7     Match template parameters by initial template arguments
  */
 
-MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objects *targsi,
+MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs,
         Expression *ethis, Expressions *fargs,
         Objects *dedargs)
 {
     size_t nfparams;
     size_t nfargs;
-    size_t nargsi;              // array size of targsi
+    size_t ntargs;              // array size of tiargs
     size_t fptupindex = IDX_NOTFOUND;
     size_t tuple_dim = 0;
     MATCH match = MATCHexact;
-    MATCH matchTargsi = MATCHexact;
+    MATCH matchTiargs = MATCHexact;
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
     Parameters *fparameters;            // function parameter list
     int fvarargs;                       // function varargs
@@ -1000,7 +1000,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
 
 #if 0
     printf("\nTemplateDeclaration::deduceFunctionTemplateMatch() %s\n", toChars());
-    for (size_t i = 0; i < fargs->dim; i++)
+    for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
     {   Expression *e = (*fargs)[i];
         printf("\tfarg[%d] is %s, type is %s\n", i, e->toChars(), e->type->toChars());
     }
@@ -1041,15 +1041,15 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
 #endif
 
 
-    nargsi = 0;
-    if (targsi)
+    ntargs = 0;
+    if (tiargs)
     {   // Set initial template arguments
 
-        nargsi = targsi->dim;
+        ntargs = tiargs->dim;
         size_t n = parameters->dim;
         if (tp)
             n--;
-        if (nargsi > n)
+        if (ntargs > n)
         {   if (!tp)
                 goto Lnomatch;
 
@@ -1060,19 +1060,19 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
             assert(parameters->dim);
             (*dedargs)[parameters->dim - 1] = t;
 
-            tuple_dim = nargsi - n;
+            tuple_dim = ntargs - n;
             t->objects.setDim(tuple_dim);
             for (size_t i = 0; i < tuple_dim; i++)
             {
-                t->objects[i] = (*targsi)[n + i];
+                t->objects[i] = (*tiargs)[n + i];
             }
             declareParameter(paramscope, tp, t);
             tp_is_declared = 1;
         }
         else
-            n = nargsi;
+            n = ntargs;
 
-        memcpy(dedargs->tdata(), targsi->tdata(), n * sizeof(*dedargs->tdata()));
+        memcpy(dedargs->tdata(), tiargs->tdata(), n * sizeof(*dedargs->tdata()));
 
         for (size_t i = 0; i < n; i++)
         {   assert(i < parameters->dim);
@@ -1084,8 +1084,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
-            if (m < matchTargsi)
-                matchTargsi = m;
+            if (m < matchTiargs)
+                matchTiargs = m;
 
             sparam->semantic(paramscope);
             if (!paramscope->insert(sparam))
@@ -1195,7 +1195,6 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                             case X(MODwild,              MODimmutable):
                             case X(MODwild | MODshared,  MODshared):
                             case X(MODwild | MODshared,  MODconst | MODshared):
-
                                 if (mod & MODwild)
                                     wildmatch |= MODwild;
                                 else if (mod == 0)
@@ -1220,14 +1219,13 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                         case X(0, MODconst | MODshared):
                         case X(0, MODwild):
                         case X(0, MODwild | MODshared):
-                            // foo(U:U) T                              => T
-                            // foo(U:U) const(T)                       => const(T)
-                            // foo(U:U) immutable(T)                   => immutable(T)
-                            // foo(U:U) shared(T)                      => shared(T)
-                            // foo(U:U) const(shared(T))               => const(shared(T))
-                            // foo(U:U) wild(T)                        => wild(T)
-                            // foo(U:U) wild(shared(T))                => wild(shared(T))
-
+                            // foo(U:U)                T                => T
+                            // foo(U:U)                const(T)         => const(T)
+                            // foo(U:U)                immutable(T)     => immutable(T)
+                            // foo(U:U)                shared(T)        => shared(T)
+                            // foo(U:U)                const(shared(T)) => const(shared(T))
+                            // foo(U:U)                wild(T)          => wild(T)
+                            // foo(U:U)                wild(shared(T))  => wild(shared(T))
                             tt = farg->type;
                             m = MATCHexact;
                             break;
@@ -1238,13 +1236,12 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                         case X(MODconst | MODshared, MODconst | MODshared):
                         case X(MODwild, MODwild):
                         case X(MODwild | MODshared, MODwild | MODshared):
-                            // foo(U:const(U))        const(T)         => T
-                            // foo(U:immutable(U))    immutable(T)     => T
-                            // foo(U:shared(U))       shared(T)        => T
-                            // foo(U:const(shared(U)) const(shared(T)) => T
-                            // foo(U:wild(U))         wild(T)          => T
-                            // foo(U:wild(shared(U))  wild(shared(T)) => T
-
+                            // foo(U:const(U))         const(T)         => T
+                            // foo(U:immutable(U))     immutable(T)     => T
+                            // foo(U:shared(U))        shared(T)        => T
+                            // foo(U:const(shared(U))) const(shared(T)) => T
+                            // foo(U:wild(U))          wild(T)          => T
+                            // foo(U:wild(shared(U)))  wild(shared(T))  => T
                             tt = farg->type->mutableOf()->unSharedOf();
                             m = MATCHexact;
                             break;
@@ -1255,12 +1252,11 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                         case X(MODconst | MODshared, MODimmutable):
                         case X(MODconst, MODwild):
                         case X(MODconst, MODwild | MODshared):
-                            // foo(U:const(U)) T                       => T
-                            // foo(U:const(U)) immutable(T)            => T
-                            // foo(U:const(U)) const(shared(T))        => shared(T)
-                            // foo(U:const(shared(U)) immutable(T)     => T
-                            // foo(U:const(U)) wild(shared(T))         => shared(T)
-
+                            // foo(U:const(U))         T                => T
+                            // foo(U:const(U))         immutable(T)     => T
+                            // foo(U:const(U))         const(shared(T)) => shared(T)
+                            // foo(U:const(shared(U))) immutable(T)     => T
+                            // foo(U:const(U))         wild(shared(T))  => shared(T)
                             tt = farg->type->mutableOf();
                             m = MATCHconst;
                             break;
@@ -1268,9 +1264,9 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                         case X(MODshared, MODconst | MODshared):
                         case X(MODconst | MODshared, MODshared):
                         case X(MODshared, MODwild | MODshared):
-                            // foo(U:shared(U)) const(shared(T))       => const(T)
-                            // foo(U:const(shared(U)) shared(T)        => T
-                            // foo(U:shared(U)) wild(shared(T))        => wild(T)
+                            // foo(U:shared(U))        const(shared(T)) => const(T)
+                            // foo(U:const(shared(U))) shared(T)        => T
+                            // foo(U:shared(U))        wild(shared(T))  => wild(T)
                             tt = farg->type->unSharedOf();
                             m = MATCHconst;
                             break;
@@ -1302,34 +1298,33 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Scope *sc, Loc loc, Objec
                         case X(MODimmutable,         MODwild | MODshared):
                         case X(MODconst | MODshared, MODwild | MODshared):
                         case X(MODwild,              MODwild | MODshared):
-
-                            // foo(U:immutable(U)) T                   => nomatch
-                            // foo(U:immutable(U)) const(T)            => nomatch
-                            // foo(U:immutable(U)) shared(T)           => nomatch
-                            // foo(U:immutable(U)) const(shared(T))    => nomatch
-                            // foo(U:const(U)) shared(T)               => nomatch
-                            // foo(U:shared(U)) T                      => nomatch
-                            // foo(U:shared(U)) const(T)               => nomatch
-                            // foo(U:shared(U)) immutable(T)           => nomatch
-                            // foo(U:const(shared(U)) T                => nomatch
-                            // foo(U:const(shared(U)) const(T)         => nomatch
-                            // foo(U:immutable(U)) wild(T)             => nomatch
-                            // foo(U:shared(U)) wild(T)                => nomatch
-                            // foo(U:const(shared(U)) wild(T)          => nomatch
-                            // foo(U:wild(U)) T                        => nomatch
-                            // foo(U:wild(U)) const(T)                 => nomatch
-                            // foo(U:wild(U)) immutable(T)             => nomatch
-                            // foo(U:wild(U)) shared(T)                => nomatch
-                            // foo(U:wild(U)) const(shared(T))         => nomatch
-                            // foo(U:wild(shared(U)) T                 => nomatch
-                            // foo(U:wild(shared(U)) const(T)          => nomatch
-                            // foo(U:wild(shared(U)) immutable(T)      => nomatch
-                            // foo(U:wild(shared(U)) shared(T)         => nomatch
-                            // foo(U:wild(shared(U)) const(shared(T))  => nomatch
-                            // foo(U:wild(shared(U)) wild(T)           => nomatch
-                            // foo(U:immutable(U)) wild(shared(T))     => nomatch
-                            // foo(U:const(shared(U))) wild(shared(T)) => nomatch
-                            // foo(U:wild(U)) wild(shared(T))          => nomatch
+                            // foo(U:immutable(U))     T                => nomatch
+                            // foo(U:immutable(U))     const(T)         => nomatch
+                            // foo(U:immutable(U))     shared(T)        => nomatch
+                            // foo(U:immutable(U))     const(shared(T)) => nomatch
+                            // foo(U:const(U))         shared(T)        => nomatch
+                            // foo(U:shared(U))        T                => nomatch
+                            // foo(U:shared(U))        const(T)         => nomatch
+                            // foo(U:shared(U))        immutable(T)     => nomatch
+                            // foo(U:const(shared(U))) T                => nomatch
+                            // foo(U:const(shared(U))) const(T)         => nomatch
+                            // foo(U:immutable(U))     wild(T)          => nomatch
+                            // foo(U:shared(U))        wild(T)          => nomatch
+                            // foo(U:const(shared(U))) wild(T)          => nomatch
+                            // foo(U:wild(U))          T                => nomatch
+                            // foo(U:wild(U))          const(T)         => nomatch
+                            // foo(U:wild(U))          immutable(T)     => nomatch
+                            // foo(U:wild(U))          shared(T)        => nomatch
+                            // foo(U:wild(U))          const(shared(T)) => nomatch
+                            // foo(U:wild(shared(U)))  T                => nomatch
+                            // foo(U:wild(shared(U)))  const(T)         => nomatch
+                            // foo(U:wild(shared(U)))  immutable(T)     => nomatch
+                            // foo(U:wild(shared(U)))  shared(T)        => nomatch
+                            // foo(U:wild(shared(U)))  const(shared(T)) => nomatch
+                            // foo(U:wild(shared(U)))  wild(T)          => nomatch
+                            // foo(U:immutable(U))     wild(shared(T))  => nomatch
+                            // foo(U:const(shared(U))) wild(shared(T))  => nomatch
+                            // foo(U:wild(U))          wild(shared(T))  => nomatch
                             m = MATCHnomatch;
                             break;
 
@@ -1730,7 +1725,7 @@ Lretry:
 
 Lmatch:
 
-    for (size_t i = nargsi; i < dedargs->dim; i++)
+    for (size_t i = ntargs; i < dedargs->dim; i++)
     {
         TemplateParameter *tparam = (*parameters)[i];
         //printf("tparam[%d] = %s\n", i, tparam->ident->toChars());
@@ -1768,7 +1763,7 @@ Lmatch:
                 {
                     if (tp &&                           // if tuple parameter and
                         fptupindex == IDX_NOTFOUND &&   // tuple parameter was not in function parameter list and
-                        nargsi == dedargs->dim - 1)     // we're one argument short (i.e. no tuple argument)
+                        ntargs == dedargs->dim - 1)     // we're one argument short (i.e. no tuple argument)
                     {   // make tuple argument an empty tuple
                         oded = (Object *)new Tuple();
                     }
@@ -1869,7 +1864,7 @@ Lmatch:
 
     paramscope->pop();
     //printf("\tmatch %d\n", match);
-    return (MATCH)(match | (matchTargsi<<4));
+    return (MATCH)(match | (matchTiargs<<4));
 
 Lnomatch:
     paramscope->pop();
@@ -1999,16 +1994,16 @@ int TemplateDeclaration::isOverloadable()
  * to expand, and return that function.
  * If no match, give error message and return NULL.
  * Input:
- *      sc              instantiation scope
  *      loc             instantiation location
- *      targsi          initial list of template arguments
+ *      sc              instantiation scope
+ *      tiargs          initial list of template arguments
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
  */
 
-FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
-        Objects *targsi, Expression *ethis, Expressions *fargs, int flags)
+FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
+        Objects *tiargs, Expression *ethis, Expressions *fargs, int flags)
 {
     MATCH m_best = MATCHnomatch;
     MATCH m_best2 = MATCHnomatch;
@@ -2020,15 +2015,15 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
 
 #if 0
     printf("TemplateDeclaration::deduceFunctionTemplate() %s\n", toChars());
-    printf("    targsi:\n");
-    if (targsi)
-    {   for (size_t i = 0; i < targsi->dim; i++)
-        {   Object *arg = (*targsi)[i];
+    printf("    tiargs:\n");
+    if (tiargs)
+    {   for (size_t i = 0; i < tiargs->dim; i++)
+        {   Object *arg = (*tiargs)[i];
             printf("\t%s\n", arg->toChars());
         }
     }
     printf("    fargs:\n");
-    for (size_t i = 0; i < fargs->dim; i++)
+    for (size_t i = 0; i < (fargs ? fargs->dim : 0); i++)
     {   Expression *arg = (*fargs)[i];
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
@@ -2045,9 +2040,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         }
         if (!td->onemember || !td->onemember->toAlias()->isFuncDeclaration())
         {
-            if (!targsi)
-                targsi = new Objects();
-            TemplateInstance *ti = new TemplateInstance(loc, td, targsi);
+            if (!tiargs)
+                tiargs = new Objects();
+            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
@@ -2068,7 +2063,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
                 td->error("is not a function template");
                 goto Lerror;
             }
-            fd = fd->overloadResolve(loc, ethis, fargs, flags);
+            fd = resolveFuncCall(loc, sc, fd, NULL, ethis, fargs, flags);
             if (!fd)
                 continue;
 
@@ -2093,7 +2088,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         Objects dedargs;
         FuncDeclaration *fd = NULL;
 
-        m = td->deduceFunctionTemplateMatch(sc, loc, targsi, ethis, fargs, &dedargs);
+        m = td->deduceFunctionTemplateMatch(loc, sc, tiargs, ethis, fargs, &dedargs);
         m2 = (MATCH)(m >> 4);
         m = (MATCH)(m & 0xF);
         //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", m, m2);
@@ -2264,7 +2259,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Scope *sc, Loc loc,
         HdrGenState hgs;
 
         OutBuffer bufa;
-        Objects *args = targsi;
+        Objects *args = tiargs;
         if (args)
         {   for (size_t i = 0; i < args->dim; i++)
             {
@@ -2620,31 +2615,31 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             case X(0, MODconst | MODshared):
             case X(0, MODwild):
             case X(0, MODwild | MODshared):
-                // foo(U:U) T                              => T
-                // foo(U:U) const(T)                       => const(T)
-                // foo(U:U) immutable(T)                   => immutable(T)
-                // foo(U:U) shared(T)                      => shared(T)
-                // foo(U:U) const(shared(T))               => const(shared(T))
-                // foo(U:U) wild(T)                        => wild(T)
-                // foo(U:U) wild(shared(T))                => wild(shared(T))
+                // foo(U:U)                T                => T
+                // foo(U:U)                const(T)         => const(T)
+                // foo(U:U)                immutable(T)     => immutable(T)
+                // foo(U:U)                shared(T)        => shared(T)
+                // foo(U:U)                const(shared(T)) => const(shared(T))
+                // foo(U:U)                wild(T)          => wild(T)
+                // foo(U:U)                wild(shared(T))  => wild(shared(T))
                 if (!at)
                 {   (*dedtypes)[i] = tt;
                     goto Lexact;
                 }
                 break;
 
-            case X(MODconst, MODconst):
-            case X(MODimmutable, MODimmutable):
-            case X(MODshared, MODshared):
+            case X(MODconst,             MODconst):
+            case X(MODimmutable,         MODimmutable):
+            case X(MODshared,            MODshared):
             case X(MODconst | MODshared, MODconst | MODshared):
-            case X(MODwild, MODwild):
-            case X(MODwild | MODshared, MODwild | MODshared):
-                // foo(U:const(U))        const(T)         => T
-                // foo(U:immutable(U))    immutable(T)     => T
-                // foo(U:shared(U))       shared(T)        => T
-                // foo(U:const(shared(U)) const(shared(T)) => T
-                // foo(U:wild(U))         wild(T)          => T
-                // foo(U:wild(shared(U))  wild(shared(T)) => T
+            case X(MODwild,              MODwild):
+            case X(MODwild | MODshared,  MODwild | MODshared):
+                // foo(U:const(U))         const(T)         => T
+                // foo(U:immutable(U))     immutable(T)     => T
+                // foo(U:shared(U))        shared(T)        => T
+                // foo(U:const(shared(U))) const(shared(T)) => T
+                // foo(U:wild(U))          wild(T)          => T
+                // foo(U:wild(shared(U)))  wild(shared(T))  => T
                 tt = mutableOf()->unSharedOf();
                 if (!at)
                 {   (*dedtypes)[i] = tt;
@@ -2652,17 +2647,17 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODconst, 0):
-            case X(MODconst, MODimmutable):
-            case X(MODconst, MODconst | MODshared):
+            case X(MODconst,             0):
+            case X(MODconst,             MODimmutable):
+            case X(MODconst,             MODconst | MODshared):
             case X(MODconst | MODshared, MODimmutable):
-            case X(MODconst, MODwild):
-            case X(MODconst, MODwild | MODshared):
-                // foo(U:const(U)) T                       => T
-                // foo(U:const(U)) immutable(T)            => T
-                // foo(U:const(U)) const(shared(T))        => shared(T)
-                // foo(U:const(shared(U)) immutable(T)     => T
-                // foo(U:const(U)) wild(shared(T))         => shared(T)
+            case X(MODconst,             MODwild):
+            case X(MODconst,             MODwild | MODshared):
+                // foo(U:const(U))         T                => T
+                // foo(U:const(U))         immutable(T)     => T
+                // foo(U:const(U))         const(shared(T)) => shared(T)
+                // foo(U:const(shared(U))) immutable(T)     => T
+                // foo(U:const(U))         wild(shared(T))  => shared(T)
                 tt = mutableOf();
                 if (!at)
                 {   (*dedtypes)[i] = tt;
@@ -2670,12 +2665,12 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 }
                 break;
 
-            case X(MODshared, MODconst | MODshared):
+            case X(MODshared,            MODconst | MODshared):
             case X(MODconst | MODshared, MODshared):
-            case X(MODshared, MODwild | MODshared):
-                // foo(U:shared(U)) const(shared(T))       => const(T)
-                // foo(U:const(shared(U)) shared(T)        => T
-                // foo(U:shared(U)) wild(shared(T))        => wild(T)
+            case X(MODshared,            MODwild | MODshared):
+                // foo(U:shared(U))        const(shared(T)) => const(T)
+                // foo(U:const(shared(U))) shared(T)        => T
+                // foo(U:shared(U))        wild(shared(T))  => wild(T)
                 tt = unSharedOf();
                 if (!at)
                 {   (*dedtypes)[i] = tt;
@@ -2684,7 +2679,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                 break;
 
             case X(MODconst,             MODshared):
-                // foo(U:const(U)) shared(T)       => shared(T)
+                // foo(U:const(U))         shared(T)        => shared(T)
                 if (!at)
                 {   (*dedtypes)[i] = tt;
                     goto Lconst;
@@ -2717,34 +2712,33 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
             case X(MODimmutable,         MODwild | MODshared):
             case X(MODconst | MODshared, MODwild | MODshared):
             case X(MODwild,              MODwild | MODshared):
-
-                // foo(U:immutable(U)) T                   => nomatch
-                // foo(U:immutable(U)) const(T)            => nomatch
-                // foo(U:immutable(U)) shared(T)           => nomatch
-                // foo(U:immutable(U)) const(shared(T))    => nomatch
-                // foo(U:const(U)) shared(T)               => nomatch
-                // foo(U:shared(U)) T                      => nomatch
-                // foo(U:shared(U)) const(T)               => nomatch
-                // foo(U:shared(U)) immutable(T)           => nomatch
-                // foo(U:const(shared(U)) T                => nomatch
-                // foo(U:const(shared(U)) const(T)         => nomatch
-                // foo(U:immutable(U)) wild(T)             => nomatch
-                // foo(U:shared(U)) wild(T)                => nomatch
-                // foo(U:const(shared(U)) wild(T)          => nomatch
-                // foo(U:wild(U)) T                        => nomatch
-                // foo(U:wild(U)) const(T)                 => nomatch
-                // foo(U:wild(U)) immutable(T)             => nomatch
-                // foo(U:wild(U)) shared(T)                => nomatch
-                // foo(U:wild(U)) const(shared(T))         => nomatch
-                // foo(U:wild(shared(U)) T                 => nomatch
-                // foo(U:wild(shared(U)) const(T)          => nomatch
-                // foo(U:wild(shared(U)) immutable(T)      => nomatch
-                // foo(U:wild(shared(U)) shared(T)         => nomatch
-                // foo(U:wild(shared(U)) const(shared(T))  => nomatch
-                // foo(U:wild(shared(U)) wild(T)           => nomatch
-                // foo(U:immutable(U)) wild(shared(T))     => nomatch
-                // foo(U:const(shared(U))) wild(shared(T)) => nomatch
-                // foo(U:wild(U)) wild(shared(T))          => nomatch
+                // foo(U:immutable(U))     T                => nomatch
+                // foo(U:immutable(U))     const(T)         => nomatch
+                // foo(U:immutable(U))     shared(T)        => nomatch
+                // foo(U:immutable(U))     const(shared(T)) => nomatch
+                // foo(U:const(U))         shared(T)        => nomatch
+                // foo(U:shared(U))        T                => nomatch
+                // foo(U:shared(U))        const(T)         => nomatch
+                // foo(U:shared(U))        immutable(T)     => nomatch
+                // foo(U:const(shared(U))) T                => nomatch
+                // foo(U:const(shared(U))) const(T)         => nomatch
+                // foo(U:immutable(U))     wild(T)          => nomatch
+                // foo(U:shared(U))        wild(T)          => nomatch
+                // foo(U:const(shared(U))) wild(T)          => nomatch
+                // foo(U:wild(U))          T                => nomatch
+                // foo(U:wild(U))          const(T)         => nomatch
+                // foo(U:wild(U))          immutable(T)     => nomatch
+                // foo(U:wild(U))          shared(T)        => nomatch
+                // foo(U:wild(U))          const(shared(T)) => nomatch
+                // foo(U:wild(shared(U)))  T                => nomatch
+                // foo(U:wild(shared(U)))  const(T)         => nomatch
+                // foo(U:wild(shared(U)))  immutable(T)     => nomatch
+                // foo(U:wild(shared(U)))  shared(T)        => nomatch
+                // foo(U:wild(shared(U)))  const(shared(T)) => nomatch
+                // foo(U:wild(shared(U)))  wild(T)          => nomatch
+                // foo(U:immutable(U))     wild(shared(T))  => nomatch
+                // foo(U:const(shared(U))) wild(shared(T))  => nomatch
+                // foo(U:wild(U))          wild(shared(T))  => nomatch
                 //if (!at)
                     goto Lnomatch;
                 break;
