@@ -204,6 +204,81 @@ MATCH Expression::implicitConvTo(Type *t)
     return MATCHnomatch;
 }
 
+MATCH BinExp::implicitConvToCommon(Type *t)
+{
+    /* Is this (ptr +- offset)? If so, then ask ptr
+     * if the conversion can be done.
+     * This is to support doing things like implicitly converting a mutable unique
+     * pointer to an immutable pointer.
+     */
+
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    if (typeb->ty != Tpointer || tb->ty != Tpointer)
+        return MATCHnomatch;
+    /* It is a pointer conversion
+     */
+
+    /* Ask if the only reason the pointer conversion doesn't work is because of the
+     * addition or subtraction of mod bits. Perform test by stripping out the mod
+     * bits of the to and from types.
+     */
+    Type *typebm = typeb->castMod(0);
+    Type *tbm = tb->castMod(0);
+    MATCH m = typebm->implicitConvTo(tbm);
+    if (m == MATCHnomatch)
+        return m;
+
+    /* Look for (ptr +- offset) or (offset + ptr).
+     * Set e to be ptr, and t1 the pointer type.
+     */
+    Expression *e = e1;
+    Type *t1 = e->type->toBasetype();
+    if (t1->ty != Tpointer)
+    {   e = e2;
+        t1 = e->type->toBasetype();
+        if (t1->ty != Tpointer)
+            return MATCHnomatch;
+    }
+
+    /* Add t's mod bits to t1, and try to convert e to t1
+     */
+    t1 = t1->castMod(tb->mod);
+    MATCH m2 = e->implicitConvTo(t1);
+    if (m2 == MATCHnomatch)
+        return MATCHnomatch;
+
+    /* Allow the conversion. Match level is MATCHconst at best.
+     */
+    if (m == MATCHexact)
+        m = MATCHconst;
+    return m;
+}
+
+MATCH AddExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("AddExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+    MATCH m = Expression::implicitConvTo(t);
+    if (m == MATCHnomatch)
+        m = BinExp::implicitConvToCommon(t);
+    return m;
+}
+
+MATCH MinExp::implicitConvTo(Type *t)
+{
+#if 0
+    printf("MinExp::implicitConvTo(this=%s, type=%s, t=%s)\n",
+        toChars(), type->toChars(), t->toChars());
+#endif
+    MATCH m = Expression::implicitConvTo(t);
+    if (m == MATCHnomatch)
+        m = BinExp::implicitConvToCommon(t);
+    return m;
+}
+
 
 MATCH IntegerExp::implicitConvTo(Type *t)
 {

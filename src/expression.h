@@ -804,6 +804,7 @@ struct BinExp : Expression
     int isunsigned();
     Expression *incompatibleTypes();
     void dump(int indent);
+    MATCH implicitConvToCommon(Type *t);
 
     Expression *interpretCommon(InterState *istate, CtfeGoal goal,
         Expression *(*fp)(Type *, Expression *, Expression *));
@@ -1330,6 +1331,7 @@ struct AddExp : BinExp
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
     IntRange getIntRange();
+    MATCH implicitConvTo(Type *t);
 
     // For operator overloading
     int isCommutative();
@@ -1348,6 +1350,7 @@ struct MinExp : BinExp
     void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
     Expression *buildArrayLoop(Parameters *fparams);
     IntRange getIntRange();
+    MATCH implicitConvTo(Type *t);
 
     // For operator overloading
     Identifier *opId();
