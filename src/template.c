@@ -4835,19 +4835,14 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     }
     else
     {
-        /* Find template declaration first.
+        /* Find template declaration first,
+         * then run semantic on each argument (place results in tiargs[]),
+         * last find most specialized template from overload list/set.
          */
-        if (!findTemplateDeclaration(sc))
-            goto Lerr;
-
-        /* Run semantic on each argument, place results in tiargs[]
-         */
-        if (!semanticTiargs(sc))
-            goto Lerr;
-
-        if (!findBestMatch(sc, fargs))
+        if (!findTemplateDeclaration(sc) ||
+            !semanticTiargs(sc) ||
+            !findBestMatch(sc, fargs))
         {
-        Lerr:
             if (!sc->parameterSpecialization)
                 inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
@@ -6398,16 +6393,14 @@ void TemplateMixin::semantic(Scope *sc)
         }
     }
 
-    // Run semantic on each argument, place results in tiargs[]
-    if (!semanticTiargs(sc)/* || errors*/)
-        goto Lerr;
-
-    // Find best match template with tiargs
-    if (!findBestMatch(sc, NULL))
+    /* Run semantic on each argument, place results in tiargs[],
+     * then find best match template with tiargs
+     */
+    if (!semanticTiargs(sc) ||
+        !findBestMatch(sc, NULL))
     {
-    Lerr:
         inst = this;
-        inst->errors = true;    //?
+        inst->errors = true;
         return;         // error recovery
     }
 
