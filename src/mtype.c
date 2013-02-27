@@ -2149,7 +2149,7 @@ Identifier *Type::getTypeInfoIdent(int internal)
     char *name = namelen <= sizeof(namebuf) ? namebuf : (char *)malloc(namelen);
     assert(name);
 
-    sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+    sprintf(name, "_D%lluTypeInfo_%s6__initZ", (unsigned long long) 9 + len, buf.data);
     //printf("name = %s\n", name);
     assert(strlen(name) < namelen);     // don't overflow the buffer
 
