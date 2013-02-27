@@ -168,7 +168,8 @@ struct Declaration : Dsymbol
     int isParameter()    { return storage_class & STCparameter; }
     int isDeprecated()   { return storage_class & STCdeprecated; }
     int isOverride()     { return storage_class & STCoverride; }
-    StorageClass isResult()       { return storage_class & STCresult; }
+    int isResult()       { return storage_class & STCresult; }
+    int isField()        { return storage_class & STCfield; }
 
     int isIn()    { return storage_class & STCin; }
     int isOut()   { return storage_class & STCout; }

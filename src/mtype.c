@@ -1996,7 +1996,7 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident)
         else if (ident == Id::offsetof)
         {
           Loffset:
-            if (v->storage_class & STCfield)
+            if (v->isField())
             {
                 e = new IntegerExp(e->loc, v->offset, Type::tsize_t);
                 return e;
@@ -8135,8 +8135,8 @@ L1:
         return ve;
     }
 
-    bool unreal = e->op == TOKvar && (((VarExp *)e)->var->storage_class & STCfield);
-    if (d->isDataseg() || unreal && (d->storage_class & STCfield))
+    bool unreal = e->op == TOKvar && ((VarExp *)e)->var->isField();
+    if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
         accessCheck(e->loc, sc, e, d);
@@ -8356,7 +8356,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                 for (size_t i = 0; i < sym->fields.dim; i++)
                 {   Dsymbol *s = sym->fields[i];
                     VarDeclaration *v = s->isVarDeclaration();
-                    assert(v && v->storage_class & STCfield);
+                    assert(v && v->isField());
 
                     // 'from' type
                     Type *tvf = v->type->addMod(mod);
@@ -8814,8 +8814,8 @@ L1:
         return ve;
     }
 
-    bool unreal = e->op == TOKvar && (((VarExp *)e)->var->storage_class & STCfield);
-    if (d->isDataseg() || unreal && (d->storage_class & STCfield))
+    bool unreal = e->op == TOKvar && ((VarExp *)e)->var->isField();
+    if (d->isDataseg() || unreal && d->isField())
     {
         // (e, d)
         accessCheck(e->loc, sc, e, d);
