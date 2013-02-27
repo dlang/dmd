@@ -2225,26 +2225,23 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
 int FuncDeclaration::overloadInsert(Dsymbol *s)
 {
-    FuncDeclaration *f;
-    AliasDeclaration *a;
-
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
-    a = s->isAliasDeclaration();
-    if (a)
+    AliasDeclaration *ad = s->isAliasDeclaration();
+    if (ad)
     {
         if (overnext)
-            return overnext->overloadInsert(a);
-        if (!a->aliassym && a->type->ty != Tident && a->type->ty != Tinstance)
+            return overnext->overloadInsert(ad);
+        if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
         {
-            //printf("\ta = '%s'\n", a->type->toChars());
+            //printf("\tad = '%s'\n", ad->type->toChars());
             return FALSE;
         }
-        overnext = a;
+        overnext = ad;
         //printf("\ttrue: no conflict\n");
         return TRUE;
     }
-    f = s->isFuncDeclaration();
-    if (!f)
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    if (!fd)
         return FALSE;
 
 #if 0
@@ -2255,11 +2252,11 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
      */
     if (type)
     {   printf("type = %s\n", type->toChars());
-        printf("f->type = %s\n", f->type->toChars());
+        printf("fd->type = %s\n", fd->type->toChars());
     }
-    if (type && f->type &&      // can be NULL for overloaded constructors
-        f->type->covariant(type) &&
-        f->type->mod == type->mod &&
+    if (type && fd->type &&      // can be NULL for overloaded constructors
+        fd->type->covariant(type) &&
+        fd->type->mod == type->mod &&
         !isFuncAliasDeclaration())
     {
         //printf("\tfalse: conflict %s\n", kind());
@@ -2268,8 +2265,8 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
 #endif
 
     if (overnext)
-        return overnext->overloadInsert(f);
-    overnext = f;
+        return overnext->overloadInsert(fd);
+    overnext = fd;
     //printf("\ttrue: no conflict\n");
     return TRUE;
 }
@@ -2564,25 +2561,21 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
 
 FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
 {
-    TypeFunction *tf;
-    Match m;
-
 #if 0
-printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
-if (arguments)
-{   int i;
-
-    for (i = 0; i < arguments->dim; i++)
-    {   Expression *arg;
-
-        arg = (*arguments)[i];
-        assert(arg->type);
-        printf("\t%s: ", arg->toChars());
-        arg->type->print();
+    printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
+    if (arguments)
+    {
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+            Expression *arg = (*arguments)[i];
+            assert(arg->type);
+            printf("\t%s: ", arg->toChars());
+            arg->type->print();
+        }
     }
-}
 #endif
 
+    Match m;
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
     overloadResolveX(&m, this, ethis, arguments);
@@ -2592,6 +2585,14 @@ if (arguments)
         if (!(flags & 1))
             m.lastf->functionSemantic();
         return m.lastf;
+    }
+    else if (m.last != MATCHnomatch && (flags & 2) && !ethis && m.lastf->needThis())
+    {
+        return m.lastf;
+    }
+    else if (m.last == MATCHnomatch && (flags & 1))
+    {                   // if do not print error messages
+        return NULL;    // no match
     }
     else
     {
@@ -2609,10 +2610,7 @@ if (arguments)
 
         if (m.last == MATCHnomatch)
         {
-            if (flags & 1)              // if do not print error messages
-                return NULL;            // no match
-
-            tf = (TypeFunction *)type;
+            TypeFunction *tf = (TypeFunction *)type;
             if (ethis && !MODimplicitConv(ethis->type->mod, tf->mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
@@ -2634,9 +2632,6 @@ if (arguments)
         }
         else
         {
-            if ((flags & 2) && m.lastf->needThis() && !ethis)
-                return m.lastf;
-#if 1
             TypeFunction *t1 = (TypeFunction *)m.lastf->type;
             TypeFunction *t2 = (TypeFunction *)m.nextf->type;
 
@@ -2644,12 +2639,6 @@ if (arguments)
                     buf.toChars(),
                     m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
                     m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
-#else
-            error(loc, "overloads %s and %s both match argument list for %s",
-                    m.lastf->type->toChars(),
-                    m.nextf->type->toChars(),
-                    m.lastf->toChars());
-#endif
             return m.lastf;
         }
     }
@@ -2740,15 +2729,16 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
- *      sc              instantiation scope
  *      loc             instantiation location
- *      targsi          initial list of template arguments
+ *      sc              instantiation scope
+ *      tiargs          initial list of template arguments
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
+ *                      2: overloadResolve only
  */
 
-FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Expression *ethis,
         Expressions *arguments,
@@ -2758,11 +2748,12 @@ FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
         return NULL;                    // no match
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
-        f = f->overloadResolve(loc, ethis, arguments);
+        f = f->overloadResolve(loc, ethis, arguments, flags);
     else
     {   TemplateDeclaration *td = s->isTemplateDeclaration();
         assert(td);
-        f = td->deduceFunctionTemplate(sc, loc, tiargs, NULL, arguments, flags);
+        if (!sc) sc = td->scope;
+        f = td->deduceFunctionTemplate(loc, sc, tiargs, ethis, arguments, flags);
     }
     return f;
 }
