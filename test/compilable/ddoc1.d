@@ -4,7 +4,7 @@
 // REQUIRED_ARGS: -d
 
 /** This module is for ABC
- * Copyright: Copyright &copy; $(YEAR)
+ * Copyright: Copyright &copy;
  */
 
 module abc;
