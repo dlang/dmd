@@ -328,9 +328,9 @@ struct TemplateInstance : ScopeDsymbol
 
     // Internal
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
-    void semanticTiargs(Scope *sc);
-    TemplateDeclaration *findTemplateDeclaration(Scope *sc);
-    TemplateDeclaration *findBestMatch(Scope *sc, Expressions *fargs);
+    bool semanticTiargs(Scope *sc);
+    bool findTemplateDeclaration(Scope *sc);
+    bool findBestMatch(Scope *sc, Expressions *fargs);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
     Identifier *genIdent(Objects *args);
