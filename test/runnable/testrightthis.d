@@ -423,6 +423,52 @@ void test6()
 
 /********************************************************/
 
+struct Tuple7(T...)
+{
+    T field;
+
+    enum check1 = is(typeof(field[0] = 1));
+    enum check2 = is(typeof({ field[0] = 1; }));
+
+    this(U, size_t n)(U[n] values)
+    if (is(typeof({ foreach (i, _; T) field[0] = values[0]; })))
+    {}
+}
+
+void test7()
+{
+    alias Tuple7!(int, int) Tup7;
+    static assert(Tup7.check1);
+    static assert(Tup7.check2);
+    int[2] ints = [ 1, 2 ];
+    Tup7 t = ints;
+
+    struct S7
+    {
+        int value;
+
+        enum check1 = is(typeof(value = 1));
+        enum check2 = is(typeof({ value = 1; }));
+
+        void foo()(int v)
+        if (is(typeof({
+            value = v;  // valid
+        }))) {}
+
+        static void bar()(int v)
+        if (is(typeof({
+            value = v;  // always invalid
+        }))) {}
+    }
+    static assert(S7.check1);
+    static assert(S7.check2);
+    S7 s;
+    s.foo(1);
+    static assert(!__traits(compiles, S7.bar(1)));
+}
+
+/********************************************************/
+
 int main()
 {
     test1();
@@ -431,6 +477,7 @@ int main()
     test4();
     test5();
     test6();
+    test7();
 
     printf("Success\n");
     return 0;

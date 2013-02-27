@@ -326,6 +326,33 @@ Expression *checkRightThis(Scope *sc, Expression *e)
             p = p->parent;
         FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
         FuncDeclaration *fdthis = hasThis(sc);
+    #if 1
+        /* Check special cases inside DeclDefs scope and template constraint
+         */
+        if (func && !fdthis && sc->intypeof == 2)
+        {
+            //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
+            for (Dsymbol *s = func->parent; 1; s = s->parent)
+            {
+                if (!s)
+                    break;
+                //printf("\ts = %s %s\n", s->kind(), s->toChars());
+                if (s->isAggregateDeclaration() || s->isThis())
+                    return e;
+                FuncDeclaration *f = s->isFuncDeclaration();
+                if (f)
+                {
+                    if (f->isMember2())
+                        break;
+                    if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
+                    {
+                        if ((td->scope->stc & STCstatic) && td->isMember())
+                            break;  // no valid 'this'
+                    }
+                }
+            }
+        }
+    #endif
         if (sc->intypeof != 1 && (func && !fdthis || !func && !sc->getStructClassScope()) && ve->var->needThis())
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
