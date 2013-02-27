@@ -50,9 +50,6 @@ endif
 
 ifeq (OSX,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
-    ECHO=/bin/echo
-else
-    ECHO=echo
 endif
 LDFLAGS=-lm -lstdc++ -lpthread
 
@@ -199,7 +196,7 @@ impcnvgen : mtype.h impcnvgen.c
 #########
 
 verstr.h : ../VERSION
-	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
+	printf \"`cat ../VERSION`\" > verstr.h
 
 #########
 
