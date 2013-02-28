@@ -2710,7 +2710,7 @@ long elf_align(targ_size_t size, long foffset)
 
 void Obj::moduleinfo(Symbol *scc)
 {
-    int align = I64 ? 4 : 2;
+    int align = I64 ? 3 : 2; // align to NPTRSIZE
 
     int seg = MachObj::getsegment("__minfodata", "__DATA", align, S_REGULAR);
     //printf("Obj::moduleinfo(%s) seg = %d:x%x\n", scc->Sident, seg, Offset(seg));
