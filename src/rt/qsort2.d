@@ -1,7 +1,6 @@
 /**
  * This is a public domain version of qsort.d.  All it does is call C's
- * qsort(), but runs a little slower since it needs to synchronize a global
- * variable.
+ * qsort().
  *
  * Copyright: Copyright Digital Mars 2000 - 2010.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
@@ -34,11 +33,8 @@ extern (C) int cmp(in void* p1, in void* p2)
 
 extern (C) void[] _adSort(void[] a, TypeInfo ti)
 {
-    synchronized
-    {
-        tiglobal = ti;
-        qsort(a.ptr, a.length, cast(size_t)ti.tsize, &cmp);
-    }
+    tiglobal = ti;
+    qsort(a.ptr, a.length, cast(size_t)ti.tsize, &cmp);
     return a;
 }
 
