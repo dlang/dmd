@@ -752,9 +752,9 @@ Identifier *Type::getTypeInfoIdent(int internal)
     buf.writeByte(0);
 #if TARGET_OSX
     // The LINKc will prepend the _
-    sprintf(name, "D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+    sprintf(name, "D%lluTypeInfo_%s6__initZ", (unsigned long long) 9 + len, buf.data);
 #else
-    sprintf(name, "_D%dTypeInfo_%s6__initZ", 9 + len, buf.data);
+    sprintf(name, "_D%lluTypeInfo_%s6__initZ", (unsigned long long) 9 + len, buf.data);
 #endif
     if (global.params.isWindows && !global.params.is64bit)
         name++;                 // C mangling will add it back in

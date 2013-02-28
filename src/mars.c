@@ -316,8 +316,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%s D Compiler %s\n%s %s\n",
-        sizeof(size_t) == 4 ? "32" : "64",
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+           (unsigned long long) sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://www.digitalmars.com/d/1.0/index.html\n\
@@ -405,7 +405,7 @@ int main(size_t argc, char *argv[])
     char *p;
     Module *m;
     int status = EXIT_SUCCESS;
-    int argcstart = argc;
+    size_t argcstart = argc;
     int setdebuglib = 0;
     int setdefaultlib = 0;
     const char *inifilename = NULL;
@@ -825,35 +825,35 @@ int main(size_t argc, char *argv[])
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-windows.html");
 #else
-                browse("http://www.dlang.org/dmd-windows.html");
+                browse("http://dlang.org/dmd-windows.html");
 #endif
 #endif
 #if linux
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-linux.html");
 #else
-                browse("http://www.dlang.org/dmd-linux.html");
+                browse("http://dlang.org/dmd-linux.html");
 #endif
 #endif
 #if __APPLE__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-osx.html");
 #else
-                browse("http://www.dlang.org/dmd-osx.html");
+                browse("http://dlang.org/dmd-osx.html");
 #endif
 #endif
 #if __FreeBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-freebsd.html");
 #else
-                browse("http://www.dlang.org/dmd-freebsd.html");
+                browse("http://dlang.org/dmd-freebsd.html");
 #endif
 #endif
 #if __OpenBSD__
 #if DMDV1
                 browse("http://www.digitalmars.com/d/1.0/dmd-openbsd.html");
 #else
-                browse("http://www.dlang.org/dmd-openbsd.html");
+                browse("http://dlang.org/dmd-openbsd.html");
 #endif
 #endif
                 exit(EXIT_SUCCESS);
@@ -928,7 +928,7 @@ int main(size_t argc, char *argv[])
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (global.params.lib && global.params.dll)
-        error(0, "cannot mix -lib and -shared\n");
+        error(0, "cannot mix -lib and -shared");
 #endif
 
     if (global.params.release)
@@ -1186,7 +1186,7 @@ int main(size_t argc, char *argv[])
                 }
             }
             else
-            {   error(0, "unrecognized file extension %s\n", ext);
+            {   error(0, "unrecognized file extension %s", ext);
                 fatal();
             }
         }
