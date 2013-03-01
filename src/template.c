@@ -1517,12 +1517,11 @@ Lretry:
                     tb->ty == Taarray && (tbn = tb->nextOf())->ty == Tident &&
                                          ((TypeIdentifier *)tbn)->idents.dim == 0)
                 {
-                    unsigned errors = global.startGagging();
-                    Expression *lwr = se->lwr->optimize(WANTvalue);//ctfeInterpret();
-                    Expression *upr = se->upr->optimize(WANTvalue);//ctfeInterpret();
-                    size_t len = upr->toUInteger() - lwr->toUInteger();
-                    if (!global.endGagging(errors))
+                    Expression *lwr = se->lwr->optimize(WANTvalue);
+                    Expression *upr = se->upr->optimize(WANTvalue);
+                    if (lwr->isConst() && upr->isConst())
                     {
+                        size_t len = upr->toUInteger() - lwr->toUInteger();
                         argtype = new TypeSArray(argtype->nextOf(),
                                     new IntegerExp(0, len, Type::tindex));
                     }

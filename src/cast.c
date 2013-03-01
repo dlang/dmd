@@ -994,12 +994,11 @@ MATCH SliceExp::implicitConvTo(Type *t)
     {
         if (typeb->nextOf()->constConv(tb->nextOf()))
         {
-            unsigned errors = global.startGagging();
-            Expression *lwr = this->lwr->optimize(WANTvalue);//ctfeInterpret();
-            Expression *upr = this->upr->optimize(WANTvalue);//ctfeInterpret();
-            size_t len = upr->toUInteger() - lwr->toUInteger();
-            if (!global.endGagging(errors))
+            Expression *lwr = this->lwr->optimize(WANTvalue);
+            Expression *upr = this->upr->optimize(WANTvalue);
+            if (lwr->isConst() && upr->isConst())
             {
+                size_t len = upr->toUInteger() - lwr->toUInteger();
                 typeb = new TypeSArray(typeb->nextOf(),
                             new IntegerExp(0, len, Type::tindex));
                 result = typeb->implicitConvTo(t);
