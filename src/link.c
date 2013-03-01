@@ -232,9 +232,6 @@ int runLINK()
             cmdbuf.writestring("/DLL");
         }
 
-        cmdbuf.writestring(" /MERGE:.minfobg=.minfodt /MERGE:.minfoen=.minfodt");
-        cmdbuf.writestring(" /MERGE:._deh_bg=._deh_eh /MERGE:._deh_en=._deh_eh");
-
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
             cmdbuf.writeByte(' ');
