@@ -232,6 +232,9 @@ int runLINK()
             cmdbuf.writestring("/DLL");
         }
 
+        // Bugzilla 9623
+        cmdbuf.writestring(" /OPT:REF /OPT:NOICF");
+
         for (size_t i = 0; i < global.params.linkswitches->dim; i++)
         {
             cmdbuf.writeByte(' ');
