@@ -6184,13 +6184,25 @@ Expression *Parser::parseUnaryExp()
         case TOKshared:
         case TOKconst:
         case TOKinvariant:
-        case TOKimmutable:      // immutable(type)(arguments)
+        case TOKimmutable:      // immutable(type)(arguments) / immutable(type).init
         {
             StorageClass stc = parseTypeCtor();
             Type *t = parseBasicType();
             t = t->addSTC(stc);
             e = new TypeExp(loc, t);
-            if (token.value != TOKlparen)
+            if (stc == 0 && token.value == TOKdot)
+            {
+                nextToken();
+                if (token.value != TOKidentifier)
+                {   error("Identifier expected following (type).");
+                    return NULL;
+                }
+                e = typeDotIdExp(loc, t, token.ident);
+                nextToken();
+                e = parsePostExp(e);
+                break;
+            }
+            else if (token.value != TOKlparen)
             {
                 error("(arguments) expected following %s", t->toChars());
                 return e;
