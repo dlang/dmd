@@ -152,11 +152,12 @@ Expression *getRightThis(Loc loc, Scope *sc, AggregateDeclaration *ad,
  */
 
 FuncDeclaration *hasThis(Scope *sc)
-{   FuncDeclaration *fd;
-    FuncDeclaration *fdthis;
-
+{
     //printf("hasThis()\n");
-    fdthis = sc->parent->isFuncDeclaration();
+    Dsymbol *p = sc->parent;
+    while (p && p->isTemplateMixin())
+        p = p->parent;
+    FuncDeclaration *fdthis = p ? p->isFuncDeclaration() : NULL;
     //printf("fdthis = %p, '%s'\n", fdthis, fdthis ? fdthis->toChars() : "");
 
     /* Special case for inside template constraint
@@ -169,7 +170,7 @@ FuncDeclaration *hasThis(Scope *sc)
     }
 
     // Go upwards until we find the enclosing member function
-    fd = fdthis;
+    FuncDeclaration *fd = fdthis;
     while (1)
     {
         if (!fd)
@@ -210,10 +211,8 @@ Lno:
  * Pull out any properties.
  */
 
-Expression *resolveProperties(Scope *sc, Expression *e)
+Expression *resolvePropertiesX(Scope *sc, Expression *e)
 {
-    //printf("resolveProperties(%s)\n", e->toChars());
-
     TemplateDeclaration *td;
     Objects *tiargs;
     Expression *ethis;
@@ -289,7 +288,8 @@ Expression *resolveProperties(Scope *sc, Expression *e)
         /* Look for e being a lazy parameter; rewrite as delegate call
          */
         else if (e->op == TOKvar)
-        {   VarExp *ve = (VarExp *)e;
+        {
+            VarExp *ve = (VarExp *)e;
 
             if (ve->var->storage_class & STClazy)
             {
@@ -312,6 +312,64 @@ return_expr:
         error(e->loc, "cannot resolve type for %s", e->toChars());
         e->type = new TypeError();
     }
+    return e;
+}
+
+Expression *checkRightThis(Scope *sc, Expression *e)
+{
+    if (e->op == TOKvar && e->type->ty != Terror)
+    {
+        VarExp *ve = (VarExp *)e;
+
+        Dsymbol *p = sc->parent;
+        while (p && p->isTemplateMixin())
+            p = p->parent;
+        FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
+        FuncDeclaration *fdthis = hasThis(sc);
+    #if 1
+        /* Check special cases inside DeclDefs scope and template constraint
+         */
+        if (func && !fdthis && sc->intypeof == 2)
+        {
+            //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
+            for (Dsymbol *s = func->parent; 1; s = s->parent)
+            {
+                if (!s)
+                    break;
+                //printf("\ts = %s %s\n", s->kind(), s->toChars());
+                if (s->isAggregateDeclaration() || s->isThis())
+                    return e;
+                FuncDeclaration *f = s->isFuncDeclaration();
+                if (f)
+                {
+                    if (f->isMember2())
+                        break;
+                    if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
+                    {
+                        if ((td->scope->stc & STCstatic) && td->isMember())
+                            break;  // no valid 'this'
+                    }
+                }
+            }
+        }
+    #endif
+        if (sc->intypeof != 1 && (func && !fdthis || !func && !sc->getStructClassScope()) && ve->var->needThis())
+        {
+            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+            e->error("need 'this' for %s type %s", ve->var->toChars(), ve->var->type->toChars());
+            e = new ErrorExp();
+        }
+    }
+    return e;
+}
+
+Expression *resolveProperties(Scope *sc, Expression *e)
+{
+    //printf("resolveProperties(%s)\n", e->toChars());
+
+    e = resolvePropertiesX(sc, e);
+    e = checkRightThis(sc, e);
     return e;
 }
 
@@ -3168,7 +3226,7 @@ Expression *ThisExp::semantic(Scope *sc)
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (!fd && sc->intypeof)
+    if (!fd && sc->intypeof == 1)
     {
         // Find enclosing struct or class
         for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
@@ -3264,7 +3322,7 @@ Expression *SuperExp::semantic(Scope *sc)
     /* Special case for typeof(this) and typeof(super) since both
      * should work even if they are not inside a non-static member function
      */
-    if (!fd && sc->intypeof)
+    if (!fd && sc->intypeof == 1)
     {
         // Find enclosing class
         for (Dsymbol *s = sc->getStructClassScope(); 1; s = s->parent)
@@ -6694,7 +6752,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     }
     else
     {
-        e1 = resolveProperties(sc, e1);
+        e1 = resolvePropertiesX(sc, e1);
         eleft = NULL;
         eright = e1;
     }
@@ -6893,7 +6951,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
          *   (*p).ident
          */
         e = new PtrExp(loc, e1);
-        e->type = ((TypePointer *)t1b)->next;
+        e = e->semantic(sc);
         return e->type->dotExp(sc, e, ident);
     }
 #if DMDV2
@@ -7543,7 +7601,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
     if (e->op == TOKtype || e->op == TOKimport || e->op == TOKdotexp)
         return NULL;
 
-    e = resolveProperties(sc, e);
+    e = resolvePropertiesX(sc, e);
 
     Type *t = e->type->toBasetype();
     //printf("resolveUCSS %s, e = %s, %s, %s\n",
@@ -7972,6 +8030,7 @@ Lagain:
         UnaExp *ue = (UnaExp *)(e1);
 
         Expression *ue1 = ue->e1;
+        Expression *ue1old = ue1;   // need for 'right this' check
         VarDeclaration *v;
         if (ue1->op == TOKvar &&
             (v = ((VarExp *)ue1)->var->isVarDeclaration()) != NULL &&
@@ -8035,6 +8094,7 @@ Lagain:
         }
         else
         {
+            checkRightThis(sc, ue1old);
             if (e1->op == TOKdotvar)
             {
                 dve->var = f;
@@ -8236,7 +8296,7 @@ Lagain:
                     e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
                     goto Lagain;
                 }
-                else if (!sc->intypeof && !sc->getStructClassScope())
+                else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
                 {
                     error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
                     return new ErrorExp();
@@ -8342,7 +8402,7 @@ Lagain:
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
-            else if (!sc->intypeof && !sc->getStructClassScope())
+            else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
             {
                 error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
                 return new ErrorExp();
@@ -10291,16 +10351,6 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         Expression *e = resolveProperty(sc, &e1, e2);
         if (e) return e;
-
-        VarDeclaration * vd = NULL;
-        if (e1->op == TOKvar)
-            vd = ((VarExp *)e1)->var->isVarDeclaration();
-
-        if (vd && vd->needThis())
-        {
-            error("need 'this' to access member %s", e1->toChars());
-            return new ErrorExp();
-        }
     }
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)
@@ -10419,6 +10469,8 @@ Expression *AssignExp::semantic(Scope *sc)
         ::error(e1->loc, "not a property %s", e1->toChars());
         return new ErrorExp();
     }
+
+    e1 = checkRightThis(sc, e1);
 
     assert(e1->type);
     Type *t1 = e1->type->toBasetype();

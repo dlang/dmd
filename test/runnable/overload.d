@@ -6,6 +6,53 @@ template Id(      T){ alias T Id; }
 template Id(alias A){ alias A Id; }
 
 /***************************************************/
+// 1680
+
+struct S1680
+{
+    ulong _y;
+
+           ulong blah1()        { return _y; }
+    static S1680 blah1(ulong n) { return S1680(n); }
+
+    static S1680 blah2(ulong n)  { return S1680(n); }
+    static S1680 blah2(char[] n) { return S1680(n.length); }
+}
+
+class C1680
+{
+    ulong _y;
+    this(ulong n){}
+
+           ulong blah1()        { return _y; }
+    static C1680 blah1(ulong n) { return new C1680(n); }
+
+    static C1680 blah2(ulong n)  { return new C1680(n); }
+    static C1680 blah2(char[] n) { return new C1680(n.length); }
+}
+
+void test1680()
+{
+    // OK
+    S1680 s = S1680.blah1(5);
+    void fs()
+    {
+        S1680 s1 = S1680.blah2(5);              // OK
+        S1680 s2 = S1680.blah2("hello".dup);    // OK
+        S1680 s3 = S1680.blah1(5);
+        // Error: 'this' is only allowed in non-static member functions, not f
+    }
+
+    C1680 c = C1680.blah1(5);
+    void fc()
+    {
+        C1680 c1 = C1680.blah2(5);
+        C1680 c2 = C1680.blah2("hello".dup);
+        C1680 c3 = C1680.blah1(5);
+    }
+}
+
+/***************************************************/
 // 7418
 
 int foo7418(uint a)   { return 1; }
@@ -111,6 +158,7 @@ void test9410()
 
 int main()
 {
+    test1680();
     test7418();
     test7552();
     test8943();

@@ -764,6 +764,7 @@ Lagain:
 
 elem *Expression::toElem(IRState *irs)
 {
+    printf("[%s] %s ", loc.toChars(), Token::toChars(op));
     print();
     assert(0);
     return NULL;

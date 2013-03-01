@@ -921,19 +921,64 @@ template isVariable9091(X...) if (X.length == 1)
 }
 class C9091
 {
-    void func()
-    {
-        enum is_x = isVariable9091!(__traits(getMember, C9091, "x"));
-    }
     int x;  // some class members
+    void func(int n){ this.x = n; }
+
+    void test()
+    {
+        alias T = C9091;
+        enum is_x = isVariable9091!(__traits(getMember, T, "x"));
+
+        foreach (i, m; __traits(allMembers, T))
+        {
+            enum x = isVariable9091!(__traits(getMember, T, m));
+            static if (i == 0)  // x
+            {
+                __traits(getMember, T, m) = 10;
+                assert(this.x == 10);
+            }
+            static if (i == 1)  // func
+            {
+                __traits(getMember, T, m)(20);
+                assert(this.x == 20);
+            }
+        }
+    }
 }
 struct S9091
 {
-    void func()
-    {
-        enum is_x = isVariable9091!(__traits(getMember, S9091, "x"));
-    }
     int x;  // some struct members
+    void func(int n){ this.x = n; }
+
+    void test()
+    {
+        alias T = S9091;
+        enum is_x = isVariable9091!(__traits(getMember, T, "x"));
+
+        foreach (i, m; __traits(allMembers, T))
+        {
+            enum x = isVariable9091!(__traits(getMember, T, m));
+            static if (i == 0)  // x
+            {
+                __traits(getMember, T, m) = 10;
+                assert(this.x == 10);
+            }
+            static if (i == 1)  // func
+            {
+                __traits(getMember, T, m)(20);
+                assert(this.x == 20);
+            }
+        }
+    }
+}
+
+void test9091()
+{
+    auto c = new C9091();
+    c.test();
+
+    auto s = S9091();
+    s.test();
 }
 
 /********************************************************/
@@ -1072,6 +1117,7 @@ int main()
     test1369();
     test7608();
     test7858();
+    test9091();
     test5978();
     test7408();
     test9552();
