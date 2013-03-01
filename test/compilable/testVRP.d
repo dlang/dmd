@@ -219,3 +219,88 @@ void bug1977_comment20() {
     int b = a % 1000;
 }
 
+/******************************************/
+// 9617
+
+void test9617()
+{
+    void f1(int) {}
+    void f2(short) {}
+    void f3(byte) {}
+
+    // Why these calls are accepted?
+    static assert(!__traits(compiles, f1(ulong.max)));
+    static assert(!__traits(compiles, f2(ulong.max)));
+    static assert(!__traits(compiles, f3(ulong.max)));
+
+    // But, if argument is not constant value, compilation fails.
+    ulong x;
+    static assert(!__traits(compiles, f1(x)));  // is not callable using argument types (ulong)
+    static assert(!__traits(compiles, f2(x)));  // is not callable using argument types (ulong)
+    static assert(!__traits(compiles, f3(x)));  // is not callable using argument types (ulong)
+
+    void f4(uint) {}
+    void f5(ushort) {}
+    void f6(ubyte) {}
+
+    // If parameter type is unsigned, it is collectly rejected
+    static assert(!__traits(compiles, f4(ulong.max)));  // is not callable using argument types (ulong)
+    static assert(!__traits(compiles, f5(ulong.max)));  // is not callable using argument types (ulong)
+    static assert(!__traits(compiles, f6(ulong.max)));  // is not callable using argument types (ulong)
+}
+
+//import std.typetuple;
+template TypeTuple(T...) { alias TypeTuple = T; }
+template staticIota(size_t end)
+{
+    static if (0 < end)
+        alias staticIota = TypeTuple!(staticIota!(end - 1), end - 1);
+    else
+        alias staticIota = TypeTuple!();
+}
+void test9617a()
+{
+    alias Repr = TypeTuple!(
+        byte,   "127",      // T and literal representation of T.max
+        ubyte,  "255",
+        short,  "32767",
+        ushort, "65535",
+        int,    "2147483647",
+        uint,   "4294967295",
+        long,   "9223372036854775807",
+        ulong,  "18446744073709551615"  // "" or "L" -> "signed integral overflow"
+    );
+    alias Indices = staticIota!(Repr.length / 2);
+
+    foreach (t; Indices)
+    {
+        alias T = Repr[t * 2];
+        void func(T)(T) {}
+        alias func!T f;
+
+        foreach (r; Indices)
+        {
+            alias S = Repr[r * 2];
+            S src = S.max;
+
+            enum x = Repr[r * 2 + 1];
+            foreach (repr; TypeTuple!(S.stringof~".max", x~"", x~"U", x~"L", x~"LU"))
+            {
+                static if (S.sizeof != T.sizeof)
+                static if (is(typeof(mixin(repr)) R))
+                {
+                    // "Compilable" test should be equal, even if
+                    // the given argument is either constant or runtime variable.
+                    enum ct = __traits(compiles, f( mixin(repr) ));
+                    enum rt = __traits(compiles, f( src ));
+
+                    static assert(ct == rt);
+                    //import std.string;
+                    //enum msg = format("%6s.max to %-6s variable/constant = %d/%d, constant_repr = (%s) %s",
+                    //                    S.stringof, T.stringof, rt, ct, R.stringof, repr);
+                    //static if (ct != rt) pragma(msg, msg);
+                }
+            }
+        }
+    }
+}
