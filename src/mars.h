@@ -346,14 +346,6 @@ typedef d_uns32                 d_dchar;
 typedef longdouble real_t;
 #endif
 
-// Modify OutBuffer::writewchar to write the correct size of wchar
-#if _WIN32
-#define writewchar writeword
-#else
-// This needs a configuration test...
-#define writewchar write4
-#endif
-
 #ifdef IN_GCC
 #include "d-gcc-complex_t.h"
 #endif
