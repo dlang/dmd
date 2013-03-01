@@ -3,6 +3,9 @@
 // Test array bounds checking
 
 import core.exception;
+extern(C) int printf(const char*, ...);
+
+/******************************************/
 
 const int foos[10] = [1,2,3,4,5,6,7,8,9,10];
 const int food[]   = [21,22,23,24,25,26,27,28,29,30];
@@ -45,7 +48,7 @@ const(int)[] slicep(int lwr, int upr)
     return foop[lwr .. upr];
 }
 
-int main()
+void test1()
 {
     int i;
 
@@ -61,22 +64,22 @@ int main()
     x = 10;
     try
     {
-	i = tests(0);
+        i = tests(0);
     }
     catch (RangeError a)
     {
-	i = 73;
+        i = 73;
     }
     assert(i == 73);
 
     x = -1;
     try
     {
-	i = testd(0);
+        i = testd(0);
     }
     catch (RangeError a)
     {
-	i = 37;
+        i = 37;
     }
     assert(i == 37);
 
@@ -96,45 +99,45 @@ int main()
 
     try
     {
-	i = 7;
-	r = slices(5,3);
+        i = 7;
+        r = slices(5,3);
     }
     catch (RangeError a)
     {
-	i = 53;
+        i = 53;
     }
     assert(i == 53);
 
     try
     {
-	i = 7;
-	r = slices(5,11);
+        i = 7;
+        r = slices(5,11);
     }
     catch (RangeError a)
     {
-	i = 53;
+        i = 53;
     }
     assert(i == 53);
 
     try
     {
-	i = 7;
-	r = sliced(5,11);
+        i = 7;
+        r = sliced(5,11);
     }
     catch (RangeError a)
     {
-	i = 53;
+        i = 53;
     }
     assert(i == 53);
 
     try
     {
-	i = 7;
-	r = slicep(5,3);
+        i = 7;
+        r = slicep(5,3);
     }
     catch (RangeError a)
     {
-	i = 53;
+        i = 53;
     }
     assert(i == 53);
 
@@ -171,7 +174,14 @@ int main()
     assert(r.length == 1);
     assert(x == 3);
     assert(r[0] == foop[1]);
+}
 
+/******************************************/
 
+int main()
+{
+    test1();
+
+    printf("Success\n");
     return 0;
 }
