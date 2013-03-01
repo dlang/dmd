@@ -1071,7 +1071,7 @@ void VarDeclaration::toJson(JsonOut *json)
     if (init)
         json->property("init", init->toChars());
 
-    if (storage_class & STCfield)
+    if (isField())
         json->property("offset", offset);
 
     if (alignment && alignment != STRUCTALIGN_DEFAULT)

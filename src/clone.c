@@ -96,7 +96,7 @@ int StructDeclaration::needOpAssign()
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -201,7 +201,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         {
             Dsymbol *s = fields[i];
             VarDeclaration *v = s->isVarDeclaration();
-            assert(v && v->storage_class & STCfield);
+            assert(v && v->isField());
             // this.v = s.v;
             AssignExp *ec = new AssignExp(0,
                 new DotVarExp(0, new ThisExp(0), v, 0),
@@ -285,7 +285,7 @@ int StructDeclaration::needOpEquals()
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -365,7 +365,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             assert(0);                  // what should we do with this?
         // this.v == s.v;
@@ -568,7 +568,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -678,7 +678,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();

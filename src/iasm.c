@@ -2422,7 +2422,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
             asmerr(EM_uplevel, v->toChars());
         }
 #endif
-        if (v->storage_class & STCfield)
+        if (v->isField())
         {
             o1->disp += v->offset;
             goto L2;
