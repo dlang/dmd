@@ -957,7 +957,7 @@ int VarDeclaration::cvMember(unsigned char *p)
 
     if (!p)
     {
-        if (storage_class & STCfield)
+        if (isField())
         {
             if (config.fulltypes == CV8)
                 nwritten += 2;
@@ -980,7 +980,7 @@ int VarDeclaration::cvMember(unsigned char *p)
         switch (config.fulltypes)
         {
             case CV8:
-                if (storage_class & STCfield)
+                if (isField())
                 {
                     TOWORD(p,LF_MEMBER_V3);
                     TOWORD(p + 2,attribute);
@@ -1000,7 +1000,7 @@ int VarDeclaration::cvMember(unsigned char *p)
                 break;
 
             case CV4:
-                if (storage_class & STCfield)
+                if (isField())
                 {
                     TOWORD(p,LF_MEMBER);
                     TOWORD(p + 2,typidx);

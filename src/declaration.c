@@ -1233,7 +1233,7 @@ Lnomatch:
         ((TypeStruct *)tb)->sym->noDefaultCtor)
     {
         if (!init)
-        {   if (storage_class & STCfield)
+        {   if (isField())
                 /* For fields, we'll check the constructor later to make sure it is initialized
                  */
                 storage_class |= STCnodefaultctor;
@@ -1766,7 +1766,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         return;
     }
 
-    if (!(storage_class & STCfield))
+    if (!isField())
         return;
     assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
 
@@ -1903,7 +1903,7 @@ AggregateDeclaration *VarDeclaration::isThis()
 int VarDeclaration::needThis()
 {
     //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
-    return storage_class & STCfield;
+    return isField();
 }
 
 int VarDeclaration::isImportedSymbol()
@@ -1917,7 +1917,7 @@ int VarDeclaration::isImportedSymbol()
 void VarDeclaration::checkCtorConstInit()
 {
 #if 0 /* doesn't work if more than one static ctor */
-    if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
+    if (ctorinit == 0 && isCtorinit() && !isField())
         error("missing initializer in static constructor for const variable");
 #endif
 }
@@ -2052,7 +2052,7 @@ int VarDeclaration::canTakeAddressOf()
      */
     if ((isConst() || isImmutable()) &&
         storage_class & STCinit &&
-        (!(storage_class & (STCstatic | STCextern)) || (storage_class & STCfield)) &&
+        (!(storage_class & (STCstatic | STCextern)) || isField()) &&
         (!parent || toParent()->isModule() || toParent()->isTemplateInstance()) &&
         type->toBasetype()->isTypeBasic()
        )
