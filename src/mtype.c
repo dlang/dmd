@@ -6049,6 +6049,11 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             //printf("%s\n", targb->toChars());
             //printf("%s\n", tprmb->toChars());
 
+            if (arg->op == TOKslice && tprmb->ty == Tsarray)
+            {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                targb = tprmb;
+            }
+
             /* find most derived alias this type being matched.
              */
             while (1)

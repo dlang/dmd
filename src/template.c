@@ -1509,6 +1509,26 @@ Lretry:
                 argtype = farg->type;
             }
 
+            if (farg->op == TOKslice)
+            {   SliceExp *se = (SliceExp *)farg;
+                Type *tb = prmtype->toBasetype();
+                Type *tbn;
+                if (tb->ty == Tsarray ||
+                    tb->ty == Taarray && (tbn = tb->nextOf())->ty == Tident &&
+                                         ((TypeIdentifier *)tbn)->idents.dim == 0)
+                {
+                    unsigned errors = global.startGagging();
+                    Expression *lwr = se->lwr->optimize(WANTvalue);//ctfeInterpret();
+                    Expression *upr = se->upr->optimize(WANTvalue);//ctfeInterpret();
+                    size_t len = upr->toUInteger() - lwr->toUInteger();
+                    if (!global.endGagging(errors))
+                    {
+                        argtype = new TypeSArray(argtype->nextOf(),
+                                    new IntegerExp(0, len, Type::tindex));
+                    }
+                }
+            }
+
             if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
                 goto Lnomatch;
 
