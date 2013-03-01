@@ -20,9 +20,6 @@ typedef unsigned short  utf16_t;
 typedef unsigned int    utf32_t;
 typedef utf32_t         dchar_t;
 
-namespace Unicode
-{
-
 static utf16_t const ALPHA_TABLE[][2] =
 {
     { 0x00AA, 0x00AA }, { 0x00B5, 0x00B5 }, { 0x00B7, 0x00B7 }, { 0x00BA, 0x00BA },
@@ -101,8 +98,6 @@ extern char const UTF16_DECODE_TRUNCATED_SEQUENCE[];
 extern char const UTF16_DECODE_INVALID_SURROGATE[];
 extern char const UTF16_DECODE_UNPAIRED_SURROGATE[];
 extern char const UTF16_DECODE_INVALID_CODE_POINT[];
-
-}   // namespace Unicode
 
 /// \return true if \a c is a valid, non-private UTF-32 code point
 bool utf_isValidDchar(dchar_t c);
