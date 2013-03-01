@@ -874,8 +874,8 @@ void test8169()
     }
 
     static assert(ValueImpl.getValue() == 42); // #0, OK
-    static assert(ValueUser.getValue() == 42); // #1, NG
-    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG
+    static assert(ValueUser.getValue() == 42); // #1, NG -> OK
+    static assert(       ValueUser.m_valueImpl .getValue() == 42); // #2, NG -> OK
     static assert(typeof(ValueUser.m_valueImpl).getValue() == 42); // #3, OK
 }
 

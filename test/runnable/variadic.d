@@ -1267,9 +1267,9 @@ template Reduce(fun...)
     Tuple59!(double, double)
     reduce(Range)(Range r)
     {
-	typeof(Tuple59!(double,double).field)[0] y;
-	typeof(typeof(return).field)[0] x;
-	Tuple59!(double, double) s;
+        typeof(Tuple59!(double,double).field)[0] y;
+        typeof(typeof(return).field)[0] x;
+        Tuple59!(double, double) s;
         return s;
     }
 }
