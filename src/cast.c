@@ -280,7 +280,11 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             goto Lyes;
 
         case Tint8:
-            if ((signed char)value != value)
+            if (ty == Tuns64 && value & ~0x7FUL)
+                goto Lno;
+            //else if (ty == Tint64 && 0x7FUL < value && value < ~0x7FUL)
+            //    goto Lno;
+            else if ((signed char)value != value)
                 goto Lno;
             goto Lyes;
 
@@ -294,7 +298,11 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             goto Lyes;
 
         case Tint16:
-            if ((short)value != value)
+            if (ty == Tuns64 && value & ~0x7FFFUL)
+                goto Lno;
+            //else if (ty == Tint64 && 0x7FFFUL < value && value < ~0x7FFFUL)
+            //    goto Lno;
+            else if ((short)value != value)
                 goto Lno;
             goto Lyes;
 
@@ -310,6 +318,10 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             if (ty == Tuns32)
             {
             }
+            else if (ty == Tuns64 && value & ~0x7FFFFFFFUL)
+                goto Lno;
+            //else if (ty == Tint64 && 0x7FFFFFFFUL < value && value < ~0x7FFFFFFFUL)
+            //    goto Lno;
             else if ((int)value != value)
                 goto Lno;
             goto Lyes;
