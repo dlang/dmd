@@ -69,7 +69,7 @@ else
 	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
 endif
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1 -funsigned-char
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
