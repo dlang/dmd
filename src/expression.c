@@ -1196,7 +1196,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                arg = arg->toLvalue(sc, arg);
+                if (arg->op == TOKslice
+                    && p->type->toBasetype()->ty == Tsarray)    // Workaround for bug 2486
+                {
+                    arg = arg->castTo(sc, p->type);
+                    arg = arg->toLvalue(sc, arg);
+                }
+                else
+                    arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
