@@ -982,6 +982,22 @@ MATCH NewExp::implicitConvTo(Type *t)
     return MATCHnomatch;
 }
 
+Type *SliceExp::toStaticArrayType()
+{
+    if (lwr && upr)
+    {
+        Expression *lwr = this->lwr->optimize(WANTvalue);
+        Expression *upr = this->upr->optimize(WANTvalue);
+        if (lwr->isConst() && upr->isConst())
+        {
+            size_t len = upr->toUInteger() - lwr->toUInteger();
+            return new TypeSArray(type->toBasetype()->nextOf(),
+                        new IntegerExp(0, len, Type::tindex));
+        }
+    }
+    return NULL;
+}
+
 MATCH SliceExp::implicitConvTo(Type *t)
 {
     MATCH result = Expression::implicitConvTo(t);
@@ -990,20 +1006,13 @@ MATCH SliceExp::implicitConvTo(Type *t)
     Type *typeb = type->toBasetype();
     if (result == MATCHnomatch &&
         tb->ty == Tsarray && typeb->ty == Tarray &&
-        lwr && upr) // test
+        lwr && upr)
     {
         if (typeb->nextOf()->constConv(tb->nextOf()))
         {
-            Expression *lwr = this->lwr->optimize(WANTvalue);
-            Expression *upr = this->upr->optimize(WANTvalue);
-            if (lwr->isConst() && upr->isConst())
-            {
-                size_t len = upr->toUInteger() - lwr->toUInteger();
-                typeb = new TypeSArray(typeb->nextOf(),
-                            new IntegerExp(0, len, Type::tindex));
+            typeb = toStaticArrayType();
+            if (typeb)
                 result = typeb->implicitConvTo(t);
-            }
-            //printf("targ = %s => %s, m = %d\n", toChars(), typeb->toChars(), result);
         }
     }
     return result;
