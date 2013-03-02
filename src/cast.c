@@ -20,6 +20,7 @@
 #include "aggregate.h"
 #include "template.h"
 #include "scope.h"
+#include "id.h"
 
 //#define DUMP .dump(__PRETTY_FUNCTION__, this)
 #define DUMP
@@ -981,6 +982,42 @@ MATCH NewExp::implicitConvTo(Type *t)
     return MATCHnomatch;
 }
 
+Type *SliceExp::toStaticArrayType()
+{
+    if (lwr && upr)
+    {
+        Expression *lwr = this->lwr->optimize(WANTvalue);
+        Expression *upr = this->upr->optimize(WANTvalue);
+        if (lwr->isConst() && upr->isConst())
+        {
+            size_t len = upr->toUInteger() - lwr->toUInteger();
+            return new TypeSArray(type->toBasetype()->nextOf(),
+                        new IntegerExp(0, len, Type::tindex));
+        }
+    }
+    return NULL;
+}
+
+MATCH SliceExp::implicitConvTo(Type *t)
+{
+    MATCH result = Expression::implicitConvTo(t);
+
+    Type *tb = t->toBasetype();
+    Type *typeb = type->toBasetype();
+    if (result == MATCHnomatch &&
+        tb->ty == Tsarray && typeb->ty == Tarray &&
+        lwr && upr)
+    {
+        if (typeb->nextOf()->constConv(tb->nextOf()))
+        {
+            typeb = toStaticArrayType();
+            if (typeb)
+                result = typeb->implicitConvTo(t);
+        }
+    }
+    return result;
+}
+
 /* ==================== castTo ====================== */
 
 /**************************************
@@ -1749,6 +1786,37 @@ Expression *CommaExp::castTo(Scope *sc, Type *t)
     else
     {   e = this;
         e->type = e2->type;
+    }
+    return e;
+}
+
+Expression *SliceExp::castTo(Scope *sc, Type *t)
+{
+    Type *typeb = type->toBasetype();
+    Type *tb = t->toBasetype();
+    Expression *e;
+    if (typeb->ty == Tarray && tb->ty == Tsarray)
+    {
+        e = copy();
+
+        /* Rewrite:
+         *      arr[lwr .. upr]
+         * as:
+         *      *(cast(T[dim]*)(arr[lwr .. upr].ptr))
+         *
+         * Note that:
+         *      static assert(dim == upr - lwr);
+         */
+        e = new DotIdExp(e->loc, e, Id::ptr);
+        e = e->semantic(sc);
+        e = e->castTo(sc, t->pointerTo());
+        e = new PtrExp(e->loc, e);
+        e = e->semantic(sc);
+        //printf("e = %s, %s => %s %s\n", toChars(), type->toChars(), e->toChars(), e->type->toChars());
+    }
+    else
+    {
+        e = Expression::castTo(sc, t);
     }
     return e;
 }

@@ -1509,6 +1509,20 @@ Lretry:
                 argtype = farg->type;
             }
 
+            if (farg->op == TOKslice)
+            {   SliceExp *se = (SliceExp *)farg;
+                Type *tb = prmtype->toBasetype();
+                Type *tbn;
+                if (tb->ty == Tsarray ||
+                    tb->ty == Taarray && (tbn = tb->nextOf())->ty == Tident &&
+                                         ((TypeIdentifier *)tbn)->idents.dim == 0)
+                {
+                    Type *tsa = se->toStaticArrayType();
+                    if (tsa)
+                        argtype = tsa;
+                }
+            }
+
             if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
                 goto Lnomatch;
 
