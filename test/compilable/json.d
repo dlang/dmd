@@ -78,3 +78,9 @@ import imports.jsonimport1 : target1, target2;
 import imports.jsonimport2 : alias1 = target1, alias2 = target2;
 import imports.jsonimport3 : alias3 = target1, alias4 = target2, target3;
 import imports.jsonimport4;
+
+struct S
+{
+    /** Issue 9480 - Template name should be stripped of parameters */
+    this(T)(T t) { }
+}
