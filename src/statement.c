@@ -2132,7 +2132,7 @@ Lagain:
                 /* Call:
                  *      _aApply(aggr, flde)
                  */
-                static char fntab[9][3] =
+                static const char fntab[9][3] =
                 { "cc","cw","cd",
                   "wc","cc","wd",
                   "dc","dw","dd"
