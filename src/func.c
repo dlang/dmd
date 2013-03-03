@@ -1333,7 +1333,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                         p = v_arguments;            // last parameter is _arguments[]
                     if (global.params.is64bit && global.params.isWindows)
                     {   offset += Target::ptrsize;
-                        if (p->storage_class & STClazy)
+                        if (p->storage_class & STClazy || p->type->size() > Target::ptrsize)
                         {
                             /* Necessary to offset the extra level of indirection the Win64
                              * ABI demands
