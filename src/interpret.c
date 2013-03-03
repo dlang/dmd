@@ -2391,27 +2391,6 @@ BIN_INTERPRET2(Cmp, ctfeCmp)
 /* Helper functions for BinExp::interpretAssignCommon
  */
 
-// Return true if e is derived from UnaryExp.
-// Consider moving this function into Expression.
-UnaExp *isUnaExp(Expression *e)
-{
-   switch (e->op)
-   {
-        case TOKdotvar:
-        case TOKindex:
-        case TOKslice:
-        case TOKcall:
-        case TOKdot:
-        case TOKdotti:
-        case TOKdottype:
-        case TOKcast:
-            return (UnaExp *)e;
-        default:
-            break;
-    }
-    return NULL;
-}
-
 // Returns the variable which is eventually modified, or NULL if an rvalue.
 // thisval is the current value of 'this'.
 VarDeclaration * findParentVar(Expression *e, Expression *thisval)
