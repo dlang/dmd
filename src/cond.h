@@ -54,7 +54,6 @@ struct DebugCondition : DVCondition
 {
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
-    static void addPredefinedGlobalIdent(const char *ident);
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 

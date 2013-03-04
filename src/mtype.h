@@ -248,7 +248,6 @@ struct Type : Object
     void toCBuffer3(OutBuffer *buf, HdrGenState *hgs, int mod);
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
-    void toJsonProperty(JsonOut *json, const char *);
     virtual void toJson(JsonOut *json);
 #if CPP_MANGLE
     virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
@@ -1041,7 +1040,6 @@ struct Parameter : Object
     Type *isLazyArray();
     void toDecoBuffer(OutBuffer *buf);
     int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
-    void toJson(JsonOut *json);
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
     static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
