@@ -86,20 +86,4 @@ struct StaticIfCondition : Condition
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct IftypeCondition : Condition
-{
-    /* iftype (targ id tok tspec)
-     */
-    Type *targ;
-    Identifier *id;     // can be NULL
-    enum TOK tok;       // ':' or '=='
-    Type *tspec;        // can be NULL
-
-    IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec);
-    Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-};
-
-
 #endif
