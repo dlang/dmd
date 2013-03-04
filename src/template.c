@@ -744,7 +744,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
     assert(dedtypes_dim >= ti->tiargs->dim || variadic);
 
     // Set up scope for parameters
-    assert((size_t)scope > 0x10000);
+    assert(scope);
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
@@ -1007,7 +1007,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
         printf("ethis->type = %s\n", ethis->type->toChars());
 #endif
 
-    assert((size_t)scope > 0x10000);
+    assert(scope);
 
     dedargs->setDim(parameters->dim);
     dedargs->zero();
@@ -2085,7 +2085,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
 
             // td is the new best match
             td_ambig = NULL;
-            assert((size_t)td->scope > 0x10000);
+            assert(td->scope);
             td_best = td;
             fd_best = fd;
             m_best = m;
@@ -2177,7 +2177,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
 
       Ltd:              // td is the new best match
         td_ambig = NULL;
-        assert((size_t)td->scope > 0x10000);
+        assert(td->scope);
         td_best = td;
         fd_best = fd;
         m_best = m;
@@ -2227,7 +2227,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     /* The best match is td_best with arguments tdargs.
      * Now instantiate the template.
      */
-    assert((size_t)td_best->scope > 0x10000);
+    assert(td_best->scope);
     ti = new TemplateInstance(loc, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
@@ -2310,7 +2310,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
         printf("\ttdargs[%d] = %s\n", i, ((Object *)tdargs->data[i])->toChars());
 #endif
 
-    assert((size_t)scope > 0x10000);
+    assert(scope);
     TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
     ti->tinst = sc->tinst;
     {
@@ -4666,7 +4666,7 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->isnested = NULL;
     this->speculative = 0;
 
-    assert((size_t)tempdecl->scope > 0x10000);
+    assert(tempdecl->scope);
 }
 
 
@@ -4828,7 +4828,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
     if (havetempdecl)
     {
-        assert((size_t)tempdecl->scope > 0x10000);
+        assert(tempdecl->scope);
         // Deduce tdtypes
         tdtypes.setDim(tempdecl->parameters->dim);
         if (!tempdecl->matchWithInstance(this, &tdtypes, fargs, 2))
