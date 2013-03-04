@@ -166,7 +166,6 @@ struct Dsymbol : Object
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
-    char *toHChars();
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
