@@ -673,9 +673,6 @@ void TemplateDeclaration::makeParamNamesVisibleInConstraint(Scope *paramscope, E
         {
             Parameter *fparam = Parameter::getNth(fparameters, i);
             // Remove addMod same as func.d L1065 of FuncDeclaration::semantic3
-            //Type *vtype = fparam->type;
-            //if (fd->type && fd->isPure())
-            //    vtype = vtype->addMod(MODconst);
             fparam->storageClass &= (STCin | STCout | STCref | STClazy | STCfinal | STC_TYPECTOR | STCnodtor);
             fparam->storageClass |= STCparameter;
             if (fvarargs == 2 && i + 1 == nfparams)

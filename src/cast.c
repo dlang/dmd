@@ -651,7 +651,7 @@ MATCH CallExp::implicitConvTo(Type *t)
     /* Allow the result of strongly pure functions to
      * convert to immutable
      */
-    if (f && f->isPure() == PUREstrong && !f->type->hasWild())
+    if (f && f->isolateReturn())
         return type->invariantOf()->implicitConvTo(t);
 
     return MATCHnomatch;
