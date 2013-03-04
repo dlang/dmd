@@ -1499,7 +1499,7 @@ Lretry:
             if (farg->op == TOKfunction)
             {   FuncExp *fe = (FuncExp *)farg;
                 Type *tp = prmtype;
-                Expression *e = fe->inferType(tp, 1, parameters);
+                Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
                 if (!e)
                     goto Lvarargs;
                 farg = e;
@@ -1687,7 +1687,7 @@ Lretry:
                     {   FuncExp *fe = (FuncExp *)arg;
                         Type *tp = tb->nextOf();
 
-                        Expression *e = fe->inferType(tp, 1, parameters);
+                        Expression *e = fe->inferType(tp, 1, paramscope, inferparams);
                         if (!e)
                             goto Lnomatch;
                         arg = e;

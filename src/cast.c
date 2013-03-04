@@ -1825,15 +1825,18 @@ Expression *SliceExp::castTo(Scope *sc, Type *t)
 
 /****************************************
  * Set type inference target
+ *      t       Target type
  *      flag    1: don't put an error when inference fails
+ *      sc      it is used for the semantic of t, when != NULL
+ *      tparams template parameters should be inferred
  */
 
-Expression *Expression::inferType(Type *t, int flag, TemplateParameters *tparams)
+Expression *Expression::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
     return this;
 }
 
-Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+Expression *ArrayLiteralExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
     if (t)
     {
@@ -1844,7 +1847,7 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tp
             for (size_t i = 0; i < elements->dim; i++)
             {   Expression *e = (*elements)[i];
                 if (e)
-                {   e = e->inferType(tn, flag, tparams);
+                {   e = e->inferType(tn, flag, sc, tparams);
                     (*elements)[i] = e;
                 }
             }
@@ -1853,7 +1856,7 @@ Expression *ArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tp
     return this;
 }
 
-Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
     if (t)
     {
@@ -1865,14 +1868,14 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameter
             for (size_t i = 0; i < keys->dim; i++)
             {   Expression *e = (*keys)[i];
                 if (e)
-                {   e = e->inferType(ti, flag, tparams);
+                {   e = e->inferType(ti, flag, sc, tparams);
                     (*keys)[i] = e;
                 }
             }
             for (size_t i = 0; i < values->dim; i++)
             {   Expression *e = (*values)[i];
                 if (e)
-                {   e = e->inferType(tv, flag, tparams);
+                {   e = e->inferType(tv, flag, sc, tparams);
                     (*values)[i] = e;
                 }
             }
@@ -1881,7 +1884,7 @@ Expression *AssocArrayLiteralExp::inferType(Type *t, int flag, TemplateParameter
     return this;
 }
 
-Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
+Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters *tparams)
 {
     if (!to)
         return this;
@@ -1939,7 +1942,10 @@ Expression *FuncExp::inferType(Type *to, int flag, TemplateParameters *tparams)
                             Type *tprm = p->type;
                             if (tprm->reliesOnTident(tparams))
                                 goto L1;
-                            tprm = tprm->semantic(loc, td->scope);
+                            if (sc)
+                                tprm = tprm->semantic(loc, sc);
+                            if (tprm->ty == Terror)
+                                goto L1;
                             tiargs->push(tprm);
                             u = dim;    // break inner loop
                         }
@@ -1995,13 +2001,13 @@ L1:
     return e;
 }
 
-Expression *CondExp::inferType(Type *t, int flag, TemplateParameters *tparams)
+Expression *CondExp::inferType(Type *t, int flag, Scope *sc, TemplateParameters *tparams)
 {
     if (t)
     {
         t = t->toBasetype();
-        e1 = e1->inferType(t, flag, tparams);
-        e2 = e2->inferType(t, flag, tparams);
+        e1 = e1->inferType(t, flag, sc, tparams);
+        e2 = e2->inferType(t, flag, sc, tparams);
     }
     return this;
 }
