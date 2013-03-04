@@ -658,7 +658,6 @@ struct TypeFunction : TypeNext
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
     void purityLevel();
-    bool hasMutableIndirectionParams();
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
     void toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, HdrGenState* hgs, TypeFunction *attrs, TemplateDeclaration *td);
