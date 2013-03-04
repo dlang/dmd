@@ -298,7 +298,6 @@ struct IdentifierExp : Expression
     Declaration *var;
 
     IdentifierExp(Loc loc, Identifier *ident);
-    IdentifierExp(Loc loc, Declaration *var);
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
