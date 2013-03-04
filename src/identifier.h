@@ -29,7 +29,6 @@ struct Identifier : Object
     int compare(Object *o);
     void print();
     char *toChars();
-    char *toHChars();
     const char *toHChars2();
     int dyncast();
 
