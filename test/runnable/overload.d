@@ -127,6 +127,18 @@ void test7552()
 }
 
 /***************************************************/
+// 8668
+
+import imports.m8668a;
+import imports.m8668c; //replace with m8668b to make it work
+
+void test8668()
+{
+    split8668("abc");
+    split8668(123);
+}
+
+/***************************************************/
 // 8943
 
 void test8943()
@@ -161,6 +173,7 @@ int main()
     test1680();
     test7418();
     test7552();
+    test8668();
     test8943();
     test9410();
 
