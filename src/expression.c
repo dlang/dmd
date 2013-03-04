@@ -216,39 +216,33 @@ bool isNeedThisScope(Scope *sc, Declaration *d)
         return false;
     //printf("d = %s, ad = %s\n", d->toChars(), ad->toChars());
 
-    Dsymbol *p = sc->parent;
-    while (p && p->isTemplateMixin())
-        p = p->parent;
-    FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
-    FuncDeclaration *fdthis = hasThis(sc);
-#if 1
-    /* Check special cases inside DeclDefs scope and template constraint
-     */
-    if (func && !fdthis && sc->intypeof == 2)
+    for (Dsymbol *s = sc->parent; s; s = s->toParent2())
     {
-        //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
-        for (Dsymbol *s = func->parent; 1; s = s->parent)
+        //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
+        if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
         {
-            if (!s)
-                break;
-            //printf("\ts = %s %s\n", s->kind(), s->toChars());
-            if (s->isAggregateDeclaration() || s->isThis())
+            //printf("\t    ad2 = %s\n", ad2->toChars());
+            if (ad2 == ad)
                 return false;
-            FuncDeclaration *f = s->isFuncDeclaration();
-            if (f)
+            else if (ad2->isNested())
+                continue;
+            else
+                return true;
+        }
+        if (FuncDeclaration *f = s->isFuncDeclaration())
+        {
+            if (f->isFuncLiteralDeclaration())
+                continue;
+            if (f->isMember2())
+                break;
+            if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
             {
-                if (f->isMember2())
-                    break;
-                if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
-                {
-                    if ((td->scope->stc & STCstatic) && td->isMember())
-                        break;  // no valid 'this'
-                }
+                if ((td->scope->stc & STCstatic) && td->isMember())
+                    break;  // no valid 'this'
             }
         }
     }
-#endif
-    return (func && !fdthis || !func && !sc->getStructClassScope());
+    return true;
 }
 
 Expression *checkRightThis(Scope *sc, Expression *e)
@@ -8315,7 +8309,7 @@ Lagain:
                     e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
                     goto Lagain;
                 }
-                else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
+                else if (isNeedThisScope(sc, f))
                 {
                     error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                     return new ErrorExp();
@@ -8422,7 +8416,7 @@ Lagain:
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
-            else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
+            else if (isNeedThisScope(sc, f))
             {
                 error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                 return new ErrorExp();
