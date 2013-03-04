@@ -127,6 +127,68 @@ void test5()
 }
 
 /**********************************************/
+// 4617
+
+struct S4617
+{
+    struct F
+    {
+        int  square(int  n) { return n*n; }
+        real square(real n) { return n*n; }
+    }
+    F forward;
+
+    alias forward this;
+
+    alias forward.square sqr;    // okay
+
+    int field;
+    void mfunc();
+    template Templ(){}
+    void tfunc()(){}
+}
+
+template Id4617(alias k) { alias k Id4617; }
+
+void test4617a()
+{
+    alias Id4617!(S4617.square) test1;            //NG
+    alias Id4617!(S4617.forward.square) test2;    //OK
+
+    alias Id4617!(S4617.sqr) test3;               //okay
+
+    static assert(__traits(isSame, S4617.square, S4617.forward.square));
+}
+
+void test4617b()
+{
+    static struct Sub(T)
+    {
+        T value;
+        @property ref inout(T) payload() inout { return value; }
+        alias payload this;
+    }
+
+    alias Id4617!(S4617.field) S_field;
+    alias Id4617!(S4617.mfunc) S_mfunc;
+    alias Id4617!(S4617.Templ) S_Templ;
+    alias Id4617!(S4617.tfunc) S_tfunc;
+
+    alias Sub!S4617 T4617;
+    alias Id4617!(T4617.field) R_field;
+    alias Id4617!(T4617.mfunc) R_mfunc;
+    alias Id4617!(T4617.Templ) R_Templ;
+    alias Id4617!(T4617.tfunc) R_tfunc;
+    static assert(__traits(isSame, R_field, S_field));
+    static assert(__traits(isSame, R_mfunc, S_mfunc));
+    static assert(__traits(isSame, R_Templ, S_Templ));
+    static assert(__traits(isSame, R_tfunc, S_tfunc));
+
+    alias Id4617!(T4617.square) R_sqr;
+    static assert(__traits(isSame, R_sqr, S4617.forward.square));
+}
+
+/**********************************************/
 // 4773
 
 void test4773()
@@ -912,6 +974,8 @@ int main()
     test3();
     test4();
     test5();
+    test4617a();
+    test4617b();
     test4773();
     test5188();
     test6();
