@@ -206,6 +206,67 @@ Lno:
     return NULL;                // don't have 'this' available
 }
 
+bool isNeedThisScope(Scope *sc, Declaration *d)
+{
+    if (sc->intypeof == 1)
+        return false;
+
+    AggregateDeclaration *ad = d->isThis();
+    if (!ad)
+        return false;
+    //printf("d = %s, ad = %s\n", d->toChars(), ad->toChars());
+
+    Dsymbol *p = sc->parent;
+    while (p && p->isTemplateMixin())
+        p = p->parent;
+    FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
+    FuncDeclaration *fdthis = hasThis(sc);
+#if 1
+    /* Check special cases inside DeclDefs scope and template constraint
+     */
+    if (func && !fdthis && sc->intypeof == 2)
+    {
+        //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
+        for (Dsymbol *s = func->parent; 1; s = s->parent)
+        {
+            if (!s)
+                break;
+            //printf("\ts = %s %s\n", s->kind(), s->toChars());
+            if (s->isAggregateDeclaration() || s->isThis())
+                return false;
+            FuncDeclaration *f = s->isFuncDeclaration();
+            if (f)
+            {
+                if (f->isMember2())
+                    break;
+                if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
+                {
+                    if ((td->scope->stc & STCstatic) && td->isMember())
+                        break;  // no valid 'this'
+                }
+            }
+        }
+    }
+#endif
+    return (func && !fdthis || !func && !sc->getStructClassScope());
+}
+
+Expression *checkRightThis(Scope *sc, Expression *e)
+{
+    if (e->op == TOKvar && e->type->ty != Terror)
+    {
+        VarExp *ve = (VarExp *)e;
+        if (isNeedThisScope(sc, ve->var))
+        {
+            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            e = new ErrorExp();
+        }
+    }
+    return e;
+}
+
 
 /***************************************
  * Pull out any properties.
@@ -311,55 +372,6 @@ return_expr:
     {
         error(e->loc, "cannot resolve type for %s", e->toChars());
         e->type = new TypeError();
-    }
-    return e;
-}
-
-Expression *checkRightThis(Scope *sc, Expression *e)
-{
-    if (e->op == TOKvar && e->type->ty != Terror)
-    {
-        VarExp *ve = (VarExp *)e;
-
-        Dsymbol *p = sc->parent;
-        while (p && p->isTemplateMixin())
-            p = p->parent;
-        FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
-        FuncDeclaration *fdthis = hasThis(sc);
-    #if 1
-        /* Check special cases inside DeclDefs scope and template constraint
-         */
-        if (func && !fdthis && sc->intypeof == 2)
-        {
-            //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
-            for (Dsymbol *s = func->parent; 1; s = s->parent)
-            {
-                if (!s)
-                    break;
-                //printf("\ts = %s %s\n", s->kind(), s->toChars());
-                if (s->isAggregateDeclaration() || s->isThis())
-                    return e;
-                FuncDeclaration *f = s->isFuncDeclaration();
-                if (f)
-                {
-                    if (f->isMember2())
-                        break;
-                    if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
-                    {
-                        if ((td->scope->stc & STCstatic) && td->isMember())
-                            break;  // no valid 'this'
-                    }
-                }
-            }
-        }
-    #endif
-        if (sc->intypeof != 1 && (func && !fdthis || !func && !sc->getStructClassScope()) && ve->var->needThis())
-        {
-            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            e = new ErrorExp();
-        }
     }
     return e;
 }
