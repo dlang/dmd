@@ -8386,6 +8386,7 @@ Lagain:
             f = resolveFuncCall(loc, sc, f, tiargs, NULL, arguments, 2);
         else
         {
+            f = f->toAliasFunc();
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!tf->callMatch(NULL, arguments))
             {
@@ -8438,9 +8439,11 @@ Lagain:
 
         ethis = NULL;
 
-        ve->var = f;
-//      ve->hasOverloads = 0;
-        ve->type = f->type;
+        if (ve->hasOverloads)
+        {
+            e1 = new VarExp(ve->loc, f, 0);
+            e1->type = f->type;
+        }
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
