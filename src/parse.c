@@ -6277,15 +6277,14 @@ Expression *Parser::parseUnaryExp()
                         check(TOKrparen);
 
                         // if .identifier
+                        // or .identifier!( ... )
                         if (token.value == TOKdot)
                         {
-                            nextToken();
-                            if (token.value != TOKidentifier)
+                            if (peekNext() != TOKidentifier)
                             {   error("Identifier expected following (type).");
                                 return NULL;
                             }
-                            e = typeDotIdExp(loc, t, token.ident);
-                            nextToken();
+                            e = new TypeExp(loc, t);
                             e = parsePostExp(e);
                         }
                         else
