@@ -717,15 +717,6 @@ void test9153()
 }
 
 /***************************************************/
-<<<<<<< HEAD
-// 9415
-
-void test9415()
-{
-    int z;
-    typeof((int a){return z;}) dg;
-    dg = (int a){return z;};
-=======
 // 9393
 
 template ifThrown9393a(E)
@@ -747,7 +738,16 @@ void test9393()
     ifThrown9393b!Exception(e => 10);
 
     foo9393((x){ assert(x == int.init); });
->>>>>>> 5af207f4650f8ca66da5f824a201c300fbd9342e
+}
+
+/***************************************************/
+// 9415
+
+void test9415()
+{
+    int z;
+    typeof((int a){return z;}) dg;
+    dg = (int a){return z;};
 }
 
 /***************************************************/
@@ -792,11 +792,8 @@ int main()
     test8496();
     test8575();
     test9153();
-<<<<<<< HEAD
-    test9415();
-=======
     test9393();
->>>>>>> 5af207f4650f8ca66da5f824a201c300fbd9342e
+    test9415();
 
     printf("Success\n");
     return 0;
