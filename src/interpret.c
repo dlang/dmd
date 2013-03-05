@@ -33,6 +33,7 @@
 
 #define LOG     0
 #define LOGASSIGN 0
+#define LOGCOMPILE 0
 #define SHOWPERFORMANCE 0
 
 // Maximum allowable recursive function calls in CTFE
@@ -263,6 +264,406 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
 
+
+
+/*************************************
+ * CTFE-object code for a single function
+ *
+ * Currently only counts the number of local variables in the function
+ */
+struct CompiledCtfeFunction
+{
+    FuncDeclaration *func; // Function being compiled, NULL if global scope
+    int numVars;           // Number of variables declared in this function
+
+    CompiledCtfeFunction(FuncDeclaration *f)
+    {
+        func = f;
+        numVars = 0;
+    }
+
+    void onDeclaration(VarDeclaration *v)
+    {
+        //printf("%s CTFE declare %s\n", v->loc.toChars(), v->toChars());
+        ++numVars;
+    }
+    static int walkAllVars(Expression *e, void *_this);
+    void onExpression(Expression *e)
+    {
+        e->apply(&walkAllVars, this);
+    }
+};
+
+int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
+{
+    CompiledCtfeFunction *ccf = (CompiledCtfeFunction *)_this;
+    if (e->op == TOKdeclaration)
+    {
+        DeclarationExp *decl = (DeclarationExp *)e;
+        VarDeclaration *v = decl->declaration->isVarDeclaration();
+        if (!v)
+            return 0;
+        TupleDeclaration *td = v->toAlias()->isTupleDeclaration();
+        if (td)
+        {
+            if (!td->objects)
+                return 0;
+            for(size_t i= 0; i < td->objects->dim; ++i)
+            {
+                Object * o = td->objects->tdata()[i];
+                Expression *ex = isExpression(o);
+                DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
+                assert(s);
+                VarDeclaration *v2 = s->s->isVarDeclaration();
+                assert(v2);
+                if (!v2->isDataseg() || v2->isCTFE())
+                    ccf->onDeclaration(v2);
+            }
+        }
+        else if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
+            ccf->onDeclaration(v);
+        Dsymbol *s = v->toAlias();
+        if (s == v && !v->isStatic() && v->init)
+        {
+            ExpInitializer *ie = v->init->isExpInitializer();
+            if (ie)
+                ccf->onExpression(ie->exp);
+        }
+    }
+    else if (e->op == TOKindex && ((IndexExp *)e)->lengthVar)
+        ccf->onDeclaration( ((IndexExp *)e)->lengthVar);
+    else if (e->op == TOKslice && ((SliceExp *)e)->lengthVar)
+        ccf->onDeclaration( ((SliceExp *)e)->lengthVar);
+    return 0;
+}
+
+void Statement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s Statement::ctfeCompile %s\n", loc.toChars(), toChars());
+#endif
+    assert(0);
+}
+
+void ExpStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ExpStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (exp)
+        ccf->onExpression(exp);
+}
+
+void CompoundStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s CompoundStatement::ctfeCompile\n", loc.toChars());
+#endif
+    for (size_t i = 0; i < statements->dim; i++)
+    {   Statement *s = (*statements)[i];
+        if (s)
+            s->ctfeCompile(ccf);
+    }
+}
+
+void UnrolledLoopStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s UnrolledLoopStatement::ctfeCompile\n", loc.toChars());
+#endif
+    for (size_t i = 0; i < statements->dim; i++)
+    {   Statement *s = (*statements)[i];
+        if (s)
+            s->ctfeCompile(ccf);
+    }
+}
+
+void IfStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s IfStatement::ctfeCompile\n", loc.toChars());
+#endif
+
+    ccf->onExpression(condition);
+    if (ifbody)
+        ifbody->ctfeCompile(ccf);
+    if (elsebody)
+        elsebody->ctfeCompile(ccf);
+}
+
+void ScopeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ScopeStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (statement)
+        statement->ctfeCompile(ccf);
+}
+
+void OnScopeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s OnScopeStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // rewritten to try/catch/finally
+    assert(0);
+}
+
+void DoStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s DoStatement::ctfeCompile\n", loc.toChars());
+#endif
+    ccf->onExpression(condition);
+    if (body)
+        body->ctfeCompile(ccf);
+}
+
+void WhileStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s WhileStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // rewritten to ForStatement
+    assert(0);
+}
+
+void ForStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ForStatement::ctfeCompile\n", loc.toChars());
+#endif
+
+    if (init)
+        init->ctfeCompile(ccf);
+    if (condition)
+        ccf->onExpression(condition);
+    if (increment)
+        ccf->onExpression(increment);
+    if (body)
+        body->ctfeCompile(ccf);
+}
+
+void ForeachStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ForeachStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // rewritten for ForStatement
+    assert(0);
+}
+
+
+void SwitchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s SwitchStatement::ctfeCompile\n", loc.toChars());
+#endif
+    ccf->onExpression(condition);
+    // Note that the body contains the the Case and Default
+    // statements, so we only need to compile the expressions
+    for (size_t i = 0; i < cases->dim; i++)
+    {
+        ccf->onExpression((*cases)[i]->exp);
+    }
+    if (body)
+        body->ctfeCompile(ccf);
+}
+
+void CaseStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s CaseStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (statement)
+        statement->ctfeCompile(ccf);
+}
+
+void DefaultStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s DefaultStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (statement)
+        statement->ctfeCompile(ccf);
+}
+
+void GotoDefaultStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s GotoDefaultStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void GotoCaseStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s GotoCaseStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void SwitchErrorStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s SwitchErrorStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void ReturnStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ReturnStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (exp)
+        ccf->onExpression(exp);
+}
+
+void BreakStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s BreakStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void ContinueStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ContinueStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void WithStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s WithStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // If it is with(Enum) {...}, just execute the body.
+    if (exp->op == TOKimport || exp->op == TOKtype)
+    {}
+    else
+    {
+        ccf->onDeclaration(wthis);
+        ccf->onExpression(exp);
+    }
+    if (body)
+        body->ctfeCompile(ccf);
+}
+
+void TryCatchStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s TryCatchStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (body)
+        body->ctfeCompile(ccf);
+    for (size_t i = 0; i < catches->dim; i++)
+    {
+#if DMDV1
+        Catch *ca = (Catch *)catches->data[i];
+#else
+        Catch *ca = catches->tdata()[i];
+#endif
+        if (ca->var)
+            ccf->onDeclaration(ca->var);
+        if (ca->handler)
+            ca->handler->ctfeCompile(ccf);
+    }
+}
+
+void TryFinallyStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s TryFinallyStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (body)
+        body->ctfeCompile(ccf);
+    if (finalbody)
+        finalbody->ctfeCompile(ccf);
+}
+
+void ThrowStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ThrowStatement::ctfeCompile\n", loc.toChars());
+#endif
+    ccf->onExpression(exp);
+}
+
+void GotoStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s GotoStatement::ctfeCompile\n", loc.toChars());
+#endif
+}
+
+void LabelStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s LabelStatement::ctfeCompile\n", loc.toChars());
+#endif
+    if (statement)
+        statement->ctfeCompile(ccf);
+}
+
+#if DMDV2
+void ImportStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ImportStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // Contains no variables or executable code
+}
+
+void ForeachRangeStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s ForeachRangeStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // rewritten for ForStatement
+    assert(0);
+}
+
+#endif
+
+void AsmStatement::ctfeCompile(CompiledCtfeFunction *ccf)
+{
+#if LOGCOMPILE
+    printf("%s AsmStatement::ctfeCompile\n", loc.toChars());
+#endif
+    // we can't compile asm statements
+}
+
+/*************************************
+ * Compile this function for CTFE.
+ * At present, this merely allocates variables.
+ */
+void FuncDeclaration::ctfeCompile()
+{
+#if LOGCOMPILE
+    printf("\n%s FuncDeclaration::ctfeCompile %s\n", loc.toChars(), toChars());
+#endif
+    assert(!ctfeCode);
+    assert(!semantic3Errors);
+    assert(semanticRun == PASSsemantic3done);
+
+    ctfeCode = new CompiledCtfeFunction(this);
+    if (parameters)
+    {
+        Type *tb = type->toBasetype();
+        assert(tb->ty == Tfunction);
+        TypeFunction *tf = (TypeFunction *)tb;
+        for (size_t i = 0; i < parameters->dim; i++)
+        {
+            Parameter *arg = Parameter::getNth(tf->parameters, i);
+            VarDeclaration *v = (*parameters)[i];
+            ctfeCode->onDeclaration(v);
+        }
+    }
+    if (vresult)
+        ctfeCode->onDeclaration(vresult);
+    fbody->ctfeCompile(ctfeCode);
+}
+
 /*************************************
  *
  * Entry point for CTFE.
@@ -270,6 +671,14 @@ Expression *scrubReturnValue(Loc loc, Expression *e);
  */
 Expression *Expression::ctfeInterpret()
 {
+    if (type == Type::terror)
+        return this;
+
+    // This code is outside a function, but still needs to be compiled
+    // (there are compiler-generated temporary variables such as __dollar).
+    // However, this will only be run once and can then be discarded.
+    CompiledCtfeFunction ctfeCodeGlobal(NULL);
+    ctfeCodeGlobal.onExpression(this);
     return optimize(WANTvalue | WANTinterpret);
 }
 
@@ -349,6 +758,10 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return EXP_CANT_INTERPRET;
     if (semanticRun < PASSsemantic3done)
         return EXP_CANT_INTERPRET;
+
+    // CTFE-compile the function
+    if (!ctfeCode)
+        ctfeCompile();
 
     Type *tb = type->toBasetype();
     assert(tb->ty == Tfunction);
