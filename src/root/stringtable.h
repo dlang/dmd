@@ -28,15 +28,11 @@ struct StringValue
 private:
     size_t length;
 
-#ifndef IN_GCC
-    // Disable warning about nonstandard extension
-    #pragma warning (disable : 4200)
-#endif
-    char lstring[];
+    char lstring;
 
 public:
     size_t len() const { return length; }
-    const char *toDchars() const { return lstring; }
+    const char *toDchars() const { return &lstring; }
 
 private:
     friend struct StringEntry;

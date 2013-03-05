@@ -58,8 +58,8 @@ hash_t calcHash(const char *str, size_t len)
 void StringValue::ctor(const char *p, size_t length)
 {
     this->length = length;
-    this->lstring[length] = 0;
-    memcpy(this->lstring, p, length * sizeof(char));
+    (&this->lstring)[this->length] = 0;
+    memcpy(&this->lstring, p, length * sizeof(char));
 }
 
 void StringTable::init(size_t size)
