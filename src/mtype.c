@@ -6165,6 +6165,7 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isproperty = t->isproperty;
         tf->isref = t->isref;
         tf->trust = t->trust;
+        tf->iswild = t->iswild;
 
         if (stc & STCpure)
             tf->purity = PUREfwdref;
