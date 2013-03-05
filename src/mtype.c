@@ -8116,11 +8116,14 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     //    return defaultInit(loc);
     Expressions *structelems = new Expressions();
     structelems->setDim(sym->fields.dim - sym->isnested);
+    unsigned offset = 0;
     for (size_t j = 0; j < structelems->dim; j++)
     {
         VarDeclaration *vd = sym->fields[j];
         Expression *e;
-        if (vd->init)
+        if (vd->offset < offset)
+            e = NULL;
+        else if (vd->init)
         {   if (vd->init->isVoidInitializer())
                 e = NULL;
             else
@@ -8145,6 +8148,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
 
             e = e->implicitCastTo(vd->scope, telem);
         }
+        offset = vd->offset + vd->type->size();
         (*structelems)[j] = e;
     }
     StructLiteralExp *structinit = new StructLiteralExp(loc, (StructDeclaration *)sym, structelems);
