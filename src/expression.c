@@ -357,7 +357,7 @@ Expression *checkRightThis(Scope *sc, Expression *e)
         {
             //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
             //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for %s type %s", ve->var->toChars(), ve->var->type->toChars());
+            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
             e = new ErrorExp();
         }
     }
@@ -8305,7 +8305,7 @@ Lagain:
                 }
                 else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
                 {
-                    error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
+                    error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                     return new ErrorExp();
                 }
             }
@@ -8411,7 +8411,7 @@ Lagain:
             }
             else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
             {
-                error("need 'this' for %s type %s", f->toChars(), f->type->toChars());
+                error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                 return new ErrorExp();
             }
         }
