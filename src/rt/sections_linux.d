@@ -1,47 +1,27 @@
 /**
- * Runtime support for dynamic libraries.
+ * Written in the D programming language.
+ * This module provides linux-specific support for sections.
  *
  * Copyright: Copyright Martin Nowak 2012-2013.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
  * Authors:   Martin Nowak
- * Source: $(DRUNTIMESRC src/rt/_dso.d)
+ * Source: $(DRUNTIMESRC src/rt/_sections_linux.d)
  */
-module rt.dso;
 
-version (Windows)
-{
-    // missing integration with the existing DLL mechanism
-    enum USE_DSO = false;
-}
-else version (linux)
-{
-    enum USE_DSO = true;
-    import core.sys.linux.elf;
-    import core.sys.linux.link;
-}
-else version (OSX)
-{
-    // missing integration with rt.memory_osx.onAddImage
-    enum USE_DSO = false;
-}
-else version (FreeBSD)
-{
-    // missing elf and link headers
-    enum USE_DSO = false;
-}
-else
-{
-    static assert(0, "Unsupported platform");
-}
+module rt.sections_linux;
 
-static if (USE_DSO) // '{}' instead of ':' => Bugzilla 8898
-{
+version (linux):
 
+// debug = PRINTF;
+debug(PRINTF) import core.stdc.stdio;
+import core.stdc.stdlib : calloc, malloc, free;
+import core.sys.linux.elf;
+import core.sys.linux.link;
 import rt.minfo;
 import rt.deh2;
 import rt.util.container;
-import core.stdc.stdlib;
 
+alias DSO SectionGroup;
 struct DSO
 {
     static int opApply(scope int delegate(ref DSO) dg)
@@ -104,7 +84,22 @@ private:
     size_t _tlsSize;
 }
 
+// drag in _d_dso_registry ref to support weak linkage
+private __gshared void* _dummy_ref;
+void initSections()
+{
+    _dummy_ref = &_d_dso_registry;
+}
+
+void finiSections()
+{
+}
+
 private:
+
+// start of linked list for ModuleInfo references
+deprecated extern (C) __gshared void* _Dmodule_ref;
+
 /*
  * Static DSOs loaded by the runtime linker. This includes the
  * executable. These can't be unloaded.
@@ -254,6 +249,4 @@ void[] getTLSRange(size_t mod, size_t sz)
     // base offset
     auto ti = tls_index(mod, 0);
     return __tls_get_addr(&ti)[0 .. sz];
-}
-
 }

@@ -14,6 +14,7 @@ module rt.dmain2;
 private
 {
     import rt.memory;
+    import rt.sections;
     import rt.util.console;
     import rt.util.string;
     import core.stdc.stddef;
@@ -281,18 +282,13 @@ alias void delegate(Throwable) ExceptionHandler;
 
 extern (C) bool rt_init(ExceptionHandler dg = null)
 {
-    // reference _d_dso_registry in every executable/shared
-    // library for weak linkage support
-    import rt.dso;
-    static if (USE_DSO)
-        __gshared dummy_ref = &_d_dso_registry;
-
     version (OSX)
         _d_osx_image_init2();
     _d_criticalInit();
 
     try
     {
+        initSections();
         gc_init();
         initStaticDataGC();
         rt_moduleCtor();
@@ -325,6 +321,7 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
         thread_joinAll();
         rt_moduleDtor();
         gc_term();
+        finiSections();
         return true;
     }
     catch (Throwable e)
@@ -603,6 +600,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 
     void runAll()
     {
+        initSections();
         gc_init();
         initStaticDataGC();
         rt_moduleCtor();
@@ -615,6 +613,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         thread_joinAll();
         rt_moduleDtor();
         gc_term();
+        finiSections();
     }
 
     tryExec(&runAll);

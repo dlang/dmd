@@ -166,7 +166,6 @@ MANIFEST=\
 	src\rt\deh.d \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
-	src\rt\dso.d \
 	src\rt\dylib_fixes.c \
 	src\rt\image.d \
 	src\rt\invariant.d \
@@ -182,6 +181,13 @@ MANIFEST=\
 	src\rt\obj.d \
 	src\rt\qsort.d \
 	src\rt\qsort2.d \
+	src\rt\sections.d \
+	src\rt\sections_freebsd.d \
+	src\rt\sections_linux.d \
+	src\rt\sections_osx.d \
+	src\rt\sections_solaris.d \
+	src\rt\sections_win32.d \
+	src\rt\sections_win64.d \
 	src\rt\switch_.d \
 	src\rt\tls.S \
 	src\rt\tlsgc.d \
