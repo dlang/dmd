@@ -36,10 +36,6 @@
 #include "outbuf.h"
 #include "irstate.h"
 
-struct Environment;
-
-Environment *benv;
-
 void slist_add(Symbol *s);
 void slist_reset();
 void clearStringTab();
