@@ -168,6 +168,34 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         goto Ltrue;
     }
+    else if (ident == Id::isNested)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        AggregateDeclaration *a;
+        FuncDeclaration *f;
+
+        if (!s) { }
+        else if ((a = s->isAggregateDeclaration()) != NULL)
+        {
+            if (a->isnested)
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if ((f = s->isFuncDeclaration()) != NULL)
+        {
+            if (f->isNested())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+
+        error("aggregate or function expected instead of '%s'", o->toChars());
+        goto Lfalse;
+    }
     else if (ident == Id::isAbstractFunction)
     {
         FuncDeclaration *f;
