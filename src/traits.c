@@ -379,7 +379,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             p.exps = exps;
             p.e1 = e;
             p.ident = ident;
-            overloadApply(f, fptraits, &p);
+            overloadApply(f, &fptraits, &p);
 
             TupleExp *tup = new TupleExp(loc, exps);
             return tup->semantic(sc);
