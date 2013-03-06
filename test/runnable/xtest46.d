@@ -4116,6 +4116,62 @@ void test6473()
 }
 
 /***************************************************/
+
+void test6578()
+{
+    static struct Foo
+    {
+        this(int x) {}
+    }
+    auto f1 = new const(Foo)(1);
+    auto f2 = new immutable(Foo)(1);
+    auto f3 = new shared(Foo)(1);
+    auto f4 = const(Foo)(1);
+    auto f5 = immutable(Foo)(1);
+    auto f6 = shared(Foo)(1);
+    static assert(is(typeof(f1) == const(Foo)*));
+    static assert(is(typeof(f2) == immutable(Foo)*));
+    static assert(is(typeof(f3) == shared(Foo)*));
+    static assert(is(typeof(f4) == const(Foo)));
+    static assert(is(typeof(f5) == immutable(Foo)));
+    static assert(is(typeof(f6) == shared(Foo)));
+
+    static struct Bar
+    {
+        this(int x) const {}
+    }
+    auto g1 = new const(Bar)(1);
+    auto g2 = new immutable(Bar)(1);
+    auto g3 = new shared(Bar)(1);
+    auto g4 = const(Bar)(1);
+    auto g5 = immutable(Bar)(1);
+    auto g6 = shared(Bar)(1);
+    static assert(is(typeof(g1) == const(Bar)*));
+    static assert(is(typeof(g2) == immutable(Bar)*));
+    static assert(is(typeof(g3) == shared(const(Bar))*));
+    static assert(is(typeof(g4) == const(Bar)));
+    static assert(is(typeof(g5) == immutable(Bar)));
+    static assert(is(typeof(g6) == shared(const(Bar))));
+
+    static struct Baz
+    {
+        this()(int x) const {}
+    }
+    auto h1 = new const(Baz)(1);
+    auto h2 = new immutable(Baz)(1);
+    auto h3 = new shared(Baz)(1);
+    auto h4 = const(Baz)(1);
+    auto h5 = immutable(Baz)(1);
+    auto h6 = shared(Baz)(1);
+    static assert(is(typeof(h1) == const(Baz)*));
+    static assert(is(typeof(h2) == immutable(Baz)*));
+    static assert(is(typeof(h3) == shared(const(Baz))*));
+    static assert(is(typeof(h4) == const(Baz)));
+    static assert(is(typeof(h5) == immutable(Baz)));
+    static assert(is(typeof(h6) == shared(const(Baz))));
+}
+
+/***************************************************/
 // 6630
 
 void test6630()
