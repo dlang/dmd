@@ -115,7 +115,7 @@ struct SegRef
 }
 
 
-enum SegRef[5] dataSegs = [{SEG_DATA, SECT_DATA},
+static immutable SegRef[5] dataSegs = [{SEG_DATA, SECT_DATA},
                            {SEG_DATA, SECT_BSS},
                            {SEG_DATA, SECT_COMMON},
                                            // These two must match names used by compiler machobj.c
