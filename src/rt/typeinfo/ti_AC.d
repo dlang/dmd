@@ -91,7 +91,7 @@ class TypeInfo_AC : TypeInfo_Array
         return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(Object);
     }

@@ -60,7 +60,7 @@ class TypeInfo_Ai : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(int);
     }
@@ -104,7 +104,7 @@ class TypeInfo_Ak : TypeInfo_Ai
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(uint);
     }
@@ -116,7 +116,7 @@ class TypeInfo_Aw : TypeInfo_Ak
 {
     override string toString() const { return "dchar[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(dchar);
     }

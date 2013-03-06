@@ -67,7 +67,7 @@ class TypeInfo_Ad : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(double);
     }
@@ -79,7 +79,7 @@ class TypeInfo_Ap : TypeInfo_Ad
 {
     override string toString() const { return "idouble[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(idouble);
     }

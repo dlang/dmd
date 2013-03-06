@@ -61,7 +61,7 @@ class TypeInfo_Al : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(long);
     }
@@ -96,7 +96,7 @@ class TypeInfo_Am : TypeInfo_Al
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(ulong);
     }

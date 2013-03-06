@@ -60,7 +60,7 @@ class TypeInfo_As : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(short);
     }
@@ -94,7 +94,7 @@ class TypeInfo_At : TypeInfo_As
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(ushort);
     }
@@ -106,7 +106,7 @@ class TypeInfo_Au : TypeInfo_At
 {
     override string toString() const { return "wchar[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(wchar);
     }

@@ -61,7 +61,7 @@ class TypeInfo_Ag : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(byte);
     }
@@ -82,7 +82,7 @@ class TypeInfo_Ah : TypeInfo_Ag
         return dstrcmp(s1, s2);
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(ubyte);
     }
@@ -94,7 +94,7 @@ class TypeInfo_Av : TypeInfo_Ah
 {
     override string toString() const { return "void[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(void);
     }
@@ -106,7 +106,7 @@ class TypeInfo_Ab : TypeInfo_Ah
 {
     override string toString() const { return "bool[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(bool);
     }
@@ -168,7 +168,7 @@ else
         return hash;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(char);
     }
@@ -180,7 +180,7 @@ class TypeInfo_Aya : TypeInfo_Aa
 {
     override string toString() const { return "immutable(char)[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(immutable(char));
     }

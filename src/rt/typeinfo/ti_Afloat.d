@@ -67,7 +67,7 @@ class TypeInfo_Af : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(float);
     }
@@ -79,7 +79,7 @@ class TypeInfo_Ao : TypeInfo_Af
 {
     override string toString() const { return "ifloat[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(ifloat);
     }

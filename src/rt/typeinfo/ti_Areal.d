@@ -67,7 +67,7 @@ class TypeInfo_Ae : TypeInfo_Array
         return 0;
     }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(real);
     }
@@ -79,7 +79,7 @@ class TypeInfo_Aj : TypeInfo_Ae
 {
     override string toString() const { return "ireal[]"; }
 
-    override @property inout(TypeInfo) next() nothrow pure inout
+    override @property inout(TypeInfo) next() inout
     {
         return cast(inout)typeid(ireal);
     }
