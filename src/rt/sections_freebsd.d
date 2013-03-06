@@ -15,7 +15,7 @@ version (FreeBSD):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
-import rt.minfo;
+import rt.deh2, rt.minfo;
 
 struct SectionGroup
 {
@@ -37,6 +37,13 @@ struct SectionGroup
     @property ref inout(ModuleGroup) moduleGroup() inout
     {
         return _moduleGroup;
+    }
+
+    @property immutable(FuncTable)[] ehTables() const
+    {
+        auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
+        auto pend = cast(immutable(FuncTable)*)&_deh_end;
+        return pbeg[0 .. pend - pbeg];
     }
 
 private:
@@ -87,4 +94,13 @@ body
         len++;
     }
     return result;
+}
+
+extern(C)
+{
+    /* Symbols created by the compiler and inserted into the object file
+     * that 'bracket' the __deh_eh segment
+     */
+    extern __gshared void* _deh_beg;
+    extern __gshared void* _deh_end;
 }

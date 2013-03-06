@@ -18,7 +18,6 @@ version(OSX):
 import src.core.sys.osx.mach.dyld;
 import src.core.sys.osx.mach.getsect;
 
-extern (C) extern __gshared ubyte[] _deh_eh_array;
 extern (C) extern __gshared ubyte[][2] _tls_data_array;
 
 extern (C) void gc_addRange( void* p, size_t sz );
@@ -85,15 +84,6 @@ extern (C) void onAddImage(in mach_header* h, intptr_t slide)
     {
         if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
             gc_addRange(sect.ptr, sect.length);
-    }
-
-    if (auto sect = getSection(h, slide, "__DATA", "__deh_eh"))
-    {
-        //printf("  deh_eh\n");
-        /* BUG: this will fail if there are multiple images with __deh_eh
-         * sections. Not set up to handle that.
-         */
-        _deh_eh_array = sect.ptr[0 .. sect.length];
     }
 }
 

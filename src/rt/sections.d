@@ -23,13 +23,14 @@ else version (Win64)
 else
     static assert(0, "unimplemented");
 
-import rt.minfo;
+import rt.deh2, rt.minfo;
 
 template isSectionGroup(T)
 {
     enum isSectionGroup =
         is(typeof(T.init.modules) == ModuleInfo*[]) &&
         is(typeof(T.init.moduleGroup) == ModuleGroup) &&
+        (!is(typeof(T.init.ehTables)) || is(typeof(T.init.ehTables) == immutable(FuncTable)[])) &&
         is(typeof({ foreach (ref T; T) {}})) &&
         is(typeof({ foreach_reverse (ref T; T) {}}));
 }
