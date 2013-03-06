@@ -5713,7 +5713,7 @@ Expression *Parser::parsePrimaryExp()
                         tspec = parseType();
                     }
                 }
-                if (ident && tspec)
+                if (tspec)
                 {
                     if (token.value == TOKcomma)
                         tpl = parseTemplateParameterList(1);
@@ -5721,8 +5721,6 @@ Expression *Parser::parsePrimaryExp()
                     {   tpl = new TemplateParameters();
                         check(TOKrparen);
                     }
-                    TemplateParameter *tp = new TemplateTypeParameter(loc, ident, NULL, NULL);
-                    tpl->insert(0, tp);
                 }
                 else
                     check(TOKrparen);
