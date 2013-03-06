@@ -2744,6 +2744,57 @@ void test8212()
 }
 
 /************************************/
+// 8366
+
+class B8366
+{
+    bool foo(in Object o) const { return true; }
+}
+
+class C8366a : B8366
+{
+    bool foo(in Object o)              { return true; }
+  override
+    bool foo(in Object o) const        { return false; }
+    bool foo(in Object o) immutable    { return true; }
+    bool foo(in Object o) shared       { return true; }
+    bool foo(in Object o) shared const { return true; }
+}
+
+class C8366b : B8366
+{
+    bool foo(in Object o)              { return false; }
+    alias super.foo foo;
+    bool foo(in Object o) immutable    { return false; }
+    bool foo(in Object o) shared       { return false; }
+    bool foo(in Object o) shared const { return false; }
+}
+
+void test8366()
+{
+    {
+              C8366a mca = new C8366a();
+        const C8366a cca = new C8366a();
+              B8366  mb  = mca;
+        const B8366  cb  = cca;
+        assert(mca.foo(null) == true);
+        assert(cca.foo(null) == false);
+        assert(mb .foo(null) == false);
+        assert(cb .foo(null) == false);
+    }
+    {
+              C8366b mcb = new C8366b();
+        const C8366b ccb = new C8366b();
+              B8366  mb  = mcb;
+        const B8366  cb  = ccb;
+        assert(mcb.foo(null) == false);
+        assert(ccb.foo(null) == true);
+        assert(mb .foo(null) == true);
+        assert(cb .foo(null) == true);
+    }
+}
+
+/************************************/
 // 8408
 
 template hasMutableIndirection8408(T)
@@ -3022,6 +3073,7 @@ int main()
     test8099();
     test8201();
     test8212();
+    test8366();
     test8408();
     test8688();
     test9046();
