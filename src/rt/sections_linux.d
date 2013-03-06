@@ -156,6 +156,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         _static_dsos.popBack();
 
         *data._slot = null;
+
+        pdso._gcRanges.reset();
         .free(pdso);
     }
 }

@@ -40,13 +40,23 @@ struct SectionGroup
         return _moduleGroup;
     }
 
+    @property inout(void[])[] gcRanges() inout
+    {
+        return _gcRanges[];
+    }
+
 private:
     ModuleGroup _moduleGroup;
+    void[][1] _gcRanges;
 }
 
 void initSections()
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
+
+    auto pbeg = cast(void*)&_xi_a;
+    auto pend = cast(void*)&_end;
+    _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
 void finiSections()
@@ -72,4 +82,14 @@ body
     // _minit directly alters the global _moduleinfo_array
     _minit();
     return _moduleinfo_array;
+}
+
+extern(C)
+{
+  extern __gshared
+  {
+    int _xi_a;      // &_xi_a just happens to be start of data segment
+    //int _edata;   // &_edata is start of BSS segment
+    int _end;       // &_end is past end of BSS
+  }
 }

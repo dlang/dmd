@@ -20,25 +20,6 @@ import src.core.sys.osx.mach.getsect;
 
 extern (C) extern __gshared ubyte[][2] _tls_data_array;
 
-extern (C) void gc_addRange( void* p, size_t sz );
-extern (C) void gc_removeRange( void* p );
-
-
-struct SegRef
-{
-    string seg;
-    string sect;
-}
-
-
-enum SegRef[5] dataSegs = [{SEG_DATA, SECT_DATA},
-                           {SEG_DATA, SECT_BSS},
-                           {SEG_DATA, SECT_COMMON},
-                                           // These two must match names used by compiler machobj.c
-                           {SEG_DATA, "__tls_data"},
-                           {SEG_DATA, "__tlscoal_nt"}];
-
-
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
@@ -76,34 +57,8 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
         return null;
 }
 
-
-extern (C) void onAddImage(in mach_header* h, intptr_t slide)
-{
-    //printf("onAddImage()\n");
-    foreach(i, e; dataSegs)
-    {
-        if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
-            gc_addRange(sect.ptr, sect.length);
-    }
-}
-
-
-extern (C) void onRemoveImage(in mach_header* h, intptr_t slide)
-{
-    //printf("onRemoveImage()\n");
-    foreach(i, e; dataSegs)
-    {
-        if (auto sect = getSection(h, slide, e.seg.ptr, e.sect.ptr))
-            gc_removeRange(sect.ptr);
-    }
-}
-
-
 extern (C) void _d_osx_image_init()
 {
-    //printf("_d_osx_image_init()\n");
-    _dyld_register_func_for_add_image( &onAddImage );
-    _dyld_register_func_for_remove_image( &onRemoveImage );
 }
 
 /*********************************
