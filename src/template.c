@@ -1592,9 +1592,14 @@ Lretry:
             }
 
             if (m && (fparam->storageClass & (STCref | STCauto)) == STCref)
-            {   if (!farg->isLvalue())
+            {
+                if (!farg->isLvalue())
                 {
-                    goto Lnomatch;
+                    if (farg->op == TOKstring && argtype->ty == Tsarray)
+                    {
+                    }
+                    else
+                        goto Lnomatch;
                 }
             }
             if (m && (fparam->storageClass & STCout))
