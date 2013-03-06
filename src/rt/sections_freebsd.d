@@ -46,13 +46,38 @@ struct SectionGroup
         return pbeg[0 .. pend - pbeg];
     }
 
+    @property inout(void[])[] gcRanges() inout
+    {
+        return _gcRanges[];
+    }
+
 private:
     ModuleGroup _moduleGroup;
+    version (X86_64)
+        void[][2] _gcRanges;
+    else
+        void[][1] _gcRanges;
 }
 
 void initSections()
 {
     _sections.moduleGroup = ModuleGroup(getModuleInfos());
+
+    version (X86_64)
+    {
+        auto pbeg = cast(void*)&etext;
+        auto pend = cast(void*)&_deh_end;
+        _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
+        pbeg = cast(void*)&__progname;
+        pend = cast(void*)&_end;
+        _sections._gcRanges[1] = pbeg[0 .. pend - pbeg];
+    }
+    else
+    {
+        auto pbeg = cast(void*)&etext;
+        auto pend = cast(void*)&_end;
+        _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
+    }
 }
 
 void finiSections()
@@ -98,9 +123,18 @@ body
 
 extern(C)
 {
-    /* Symbols created by the compiler and inserted into the object file
-     * that 'bracket' the __deh_eh segment
+    /* Symbols created by the compiler/linker and inserted into the
+     * object file that 'bracket' sections.
      */
-    extern __gshared void* _deh_beg;
-    extern __gshared void* _deh_end;
+    extern __gshared
+    {
+        void* _deh_beg;
+        void* _deh_end;
+
+        size_t etext;
+        size_t _end;
+
+        version (X86_64)
+            size_t __progname;
+    }
 }

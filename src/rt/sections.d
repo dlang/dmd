@@ -31,6 +31,7 @@ template isSectionGroup(T)
         is(typeof(T.init.modules) == ModuleInfo*[]) &&
         is(typeof(T.init.moduleGroup) == ModuleGroup) &&
         (!is(typeof(T.init.ehTables)) || is(typeof(T.init.ehTables) == immutable(FuncTable)[])) &&
+        is(typeof(T.init.gcRanges) == void[][]) &&
         is(typeof({ foreach (ref T; T) {}})) &&
         is(typeof({ foreach_reverse (ref T; T) {}}));
 }

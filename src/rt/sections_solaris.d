@@ -15,7 +15,7 @@ version (Solaris):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
-import rt.minfo;
+import rt.deh2, rt.minfo;
 
 struct SectionGroup
 {
@@ -43,6 +43,13 @@ struct SectionGroup
     {
         auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
         auto pend = cast(immutable(FuncTable)*)&_deh_end;
+        return pbeg[0 .. pend - pbeg];
+    }
+
+    @property inout(void[])[] gcRanges() inout
+    {
+        auto pbeg = cast(void*)&__dso_handle;
+        auto pend = cast(void*)&_end;
         return pbeg[0 .. pend - pbeg];
     }
 
@@ -98,9 +105,14 @@ body
 
 extern(C)
 {
-    /* Symbols created by the compiler and inserted into the object file
-     * that 'bracket' the __deh_eh segment
+    /* Symbols created by the compiler/linker and inserted into the
+     * object file that 'bracket' sections.
      */
-    extern __gshared void* _deh_beg;
-    extern __gshared void* _deh_end;
+    extern __gshared
+    {
+        void* _deh_beg;
+        void* _deh_end;
+        int __dso_handle;
+        int _end;
+    }
 }
