@@ -4795,7 +4795,7 @@ Lagain:
             sd->accessCheck(loc, sc, member);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            type = tf->next;
+            type = type->addMod(tf->nextOf()->mod);
 
             if (!arguments)
                 arguments = new Expressions();
@@ -7967,6 +7967,7 @@ Lagain:
                 }
                 e = new CallExp(loc, e, arguments);
                 e = e->semantic(sc);
+                e->type = e->type->addMod(t1->mod);
                 return e;
             }
 #endif
