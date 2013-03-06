@@ -2449,7 +2449,7 @@ struct Param2
 {
     Match *m;
 #if DMDV2
-    Expression *ethis;
+    Type *tthis;
     int property;       // 0: unintialized
                         // 1: seen @property
                         // 2: not @property
@@ -2458,7 +2458,8 @@ struct Param2
 };
 
 int fp2(void *param, FuncDeclaration *f)
-{   Param2 *p = (Param2 *)param;
+{
+    Param2 *p = (Param2 *)param;
     Match *m = p->m;
     Expressions *arguments = p->arguments;
     MATCH match;
@@ -2474,12 +2475,12 @@ int fp2(void *param, FuncDeclaration *f)
         else if (p->property != property)
             error(f->loc, "cannot overload both property and non-property functions");
 
-        /* For constructors, don't worry about the right type of ethis. It's a problem
-         * anyway, because the constructor attribute may not match the ethis attribute,
-         * but we don't care because the attribute on the ethis doesn't matter until
+        /* For constructors, don't worry about the right type of tthis. It's a problem
+         * anyway, because the constructor attribute may not match the tthis attribute,
+         * but we don't care because the attribute on the tthis doesn't matter until
          * after it's constructed.
          */
-        match = (MATCH) tf->callMatch(f->needThis() && !f->isCtorDeclaration() ? p->ethis : NULL, arguments);
+        match = tf->callMatch(f->needThis() && !f->isCtorDeclaration() ? p->tthis : NULL, arguments);
         //printf("test1: match = %d\n", match);
         if (match != MATCHnomatch)
         {
@@ -2549,11 +2550,11 @@ int fp2(void *param, FuncDeclaration *f)
 
 
 void overloadResolveX(Match *m, FuncDeclaration *fstart,
-        Expression *ethis, Expressions *arguments)
+        Type *tthis, Expressions *arguments)
 {
     Param2 p;
     p.m = m;
-    p.ethis = ethis;
+    p.tthis = tthis;
     p.property = 0;
     p.arguments = arguments;
     overloadApply(fstart, &fp2, &p);
@@ -2582,7 +2583,7 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
         buf->writestring("mutable ");
 }
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags)
+FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags)
 {
 #if 0
     printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
@@ -2601,7 +2602,7 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
     Match m;
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
-    overloadResolveX(&m, this, ethis, arguments);
+    overloadResolveX(&m, this, tthis, arguments);
 
     if (m.count == 1)           // exactly one match
     {
@@ -2610,7 +2611,7 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
         return m.lastf;
     }
 
-    if (m.last != MATCHnomatch && (flags & 2) && !ethis && m.lastf->needThis())
+    if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
     {
         return m.lastf;
     }
@@ -2632,17 +2633,17 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
             argExpTypesToCBuffer(&buf, arguments, &hgs);
         }
         buf.writeByte(')');
-        if (ethis)
-            ethis->type->modToBuffer(&buf);
+        if (tthis)
+            tthis->modToBuffer(&buf);
 
         if (m.last == MATCHnomatch)
         {
             TypeFunction *tf = (TypeFunction *)type;
-            if (ethis && !MODimplicitConv(ethis->type->mod, tf->mod)) // modifier mismatch
+            if (tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
             {
                 OutBuffer thisBuf, funcBuf;
-                MODMatchToBuffer(&thisBuf, ethis->type->mod, tf->mod);
-                MODMatchToBuffer(&funcBuf, tf->mod, ethis->type->mod);
+                MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
+                MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
                 ::error(loc, "%smethod %s is not callable using a %sobject",
                     funcBuf.toChars(), this->toPrettyChars(), thisBuf.toChars());
             }
@@ -2757,7 +2758,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
  *      loc             instantiation location
  *      sc              instantiation scope
  *      tiargs          initial list of template arguments
- *      ethis           if !NULL, the 'this' pointer argument
+ *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
  *                      2: overloadResolve only
@@ -2765,7 +2766,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
-        Expression *ethis,
+        Type *tthis,
         Expressions *arguments,
         int flags)
 {
@@ -2778,12 +2779,12 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
-        f = f->overloadResolve(loc, ethis, arguments, flags);
+        f = f->overloadResolve(loc, tthis, arguments, flags);
     else
     {   TemplateDeclaration *td = s->isTemplateDeclaration();
         assert(td);
         if (!sc) sc = td->scope;
-        f = td->deduceFunctionTemplate(loc, sc, tiargs, ethis, arguments, flags);
+        f = td->deduceFunctionTemplate(loc, sc, tiargs, tthis, arguments, flags);
     }
     return f;
 }

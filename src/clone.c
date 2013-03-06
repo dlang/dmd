@@ -47,8 +47,8 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
         sc = sc->push();
         sc->speculative = true;
 
-                 f = resolveFuncCall(loc, sc, assign, NULL, er, &ar, 1);
-        if (!f)  f = resolveFuncCall(loc, sc, assign, NULL, er, &al, 1);
+                 f = resolveFuncCall(loc, sc, assign, NULL, type, &ar, 1);
+        if (!f)  f = resolveFuncCall(loc, sc, assign, NULL, type, &al, 1);
 
         sc = sc->pop();
         global.speculativeGag = oldspec;
@@ -344,8 +344,8 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         sc = sc->push();
         sc->speculative = true;
 
-                 f = resolveFuncCall(loc, sc, eq, NULL, er, &ar, 1);
-        if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, er, &al, 1);
+                 f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
+        if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
 
         sc = sc->pop();
         global.speculativeGag = oldspec;

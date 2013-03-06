@@ -1163,8 +1163,7 @@ Type *Type::aliasthisOf()
             }
             else if (d->isFuncDeclaration())
             {
-                Expression *ethis = this->defaultInit(0);
-                FuncDeclaration *fd = resolveFuncCall(0, NULL, d, NULL, ethis, NULL, 1);
+                FuncDeclaration *fd = resolveFuncCall(0, NULL, d, NULL, this, NULL, 1);
                 if (fd && fd->functionSemantic())
                 {
                     t = fd->type->nextOf();
@@ -1184,8 +1183,7 @@ Type *Type::aliasthisOf()
         TemplateDeclaration *td = ad->aliasthis->isTemplateDeclaration();
         if (td)
         {   assert(td->scope);
-            Expression *ethis = defaultInit(0);
-            FuncDeclaration *fd = resolveFuncCall(0, NULL, td, NULL, ethis, NULL, 1);
+            FuncDeclaration *fd = resolveFuncCall(0, NULL, td, NULL, this, NULL, 1);
             if (fd && fd->functionSemantic())
             {
                 Type *t = fd->type->nextOf();
@@ -5724,14 +5722,14 @@ void TypeFunction::purityLevel()
  *      MATCHxxxx
  */
 
-MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
+MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
 {
     //printf("TypeFunction::callMatch() %s\n", toChars());
     MATCH match = MATCHexact;           // assume exact match
     unsigned wildmatch = 0;
 
-    if (ethis)
-    {   Type *t = ethis->type;
+    if (tthis)
+    {   Type *t = tthis;
         if (t->toBasetype()->ty == Tpointer)
             t = t->toBasetype()->nextOf();      // change struct* to struct
         if (t->mod != mod)

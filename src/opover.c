@@ -1668,7 +1668,7 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *s
     FuncDeclaration *fd;
 
     assert(td);
-    fd = td->deduceFunctionTemplate(loc, sc, tiargs, ethis, arguments, 1);
+    fd = td->deduceFunctionTemplate(loc, sc, tiargs, ethis->type, arguments, 1);
     if (!fd)
         return;
     m->anyf = fd;

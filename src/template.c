@@ -984,7 +984,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  *      loc             instantiation location
  *      sc              instantiation scope
  *      tiargs          Expression/Type initial list of template arguments
- *      ethis           'this' argument if !NULL
+ *      tthis           'this' argument if !NULL
  *      fargs           arguments to function
  * Output:
  *      dedargs         Expression/Type deduced template arguments
@@ -995,7 +995,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
  */
 
 MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs,
-        Expression *ethis, Expressions *fargs,
+        Type *tthis, Expressions *fargs,
         Objects *dedargs)
 {
     size_t nfparams;
@@ -1022,8 +1022,8 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
     }
     printf("fd = %s\n", fd->toChars());
     printf("fd->type = %s\n", fd->type->toChars());
-    if (ethis)
-        printf("ethis->type = %s\n", ethis->type->toChars());
+    if (tthis)
+        printf("tthis = %s\n", tthis->toChars());
 #endif
 
     assert(scope);
@@ -1180,11 +1180,11 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
     }
 
 #if DMDV2
-    if (ethis)
+    if (tthis)
     {
         bool hasttp = false;
 
-        // Match 'ethis' to any TemplateThisParameter's
+        // Match 'tthis' to any TemplateThisParameter's
         for (size_t i = 0; i < parameters->dim; i++)
         {   TemplateParameter *tp = (*parameters)[i];
             TemplateThisParameter *ttp = tp->isTemplateThisParameter();
@@ -1192,7 +1192,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             {   hasttp = true;
 
                 Type *t = new TypeIdentifier(0, ttp->ident);
-                MATCH m = ethis->type->deduceType(paramscope, t, parameters, &dedtypes);
+                MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
                 if (!m)
                     goto Lnomatch;
                 if (m < match)
@@ -1200,7 +1200,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             }
         }
 
-        // Match attributes of ethis against attributes of fd
+        // Match attributes of tthis against attributes of fd
         if (fd->type && !fd->isCtorDeclaration())
         {
             unsigned mod = fd->type->mod;
@@ -1227,7 +1227,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             if (mod & MODconst)
                 mod &= ~STCwild;
 
-            unsigned thismod = ethis->type->mod;
+            unsigned thismod = tthis->mod;
             if (hasttp)
                 mod = MODmerge(thismod, mod);
             if (thismod != mod)
@@ -2074,13 +2074,13 @@ int TemplateDeclaration::isOverloadable()
  *      loc             instantiation location
  *      sc              instantiation scope
  *      tiargs          initial list of template arguments
- *      ethis           if !NULL, the 'this' pointer argument
+ *      tthis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
  */
 
 FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
-        Objects *tiargs, Expression *ethis, Expressions *fargs, int flags)
+        Objects *tiargs, Type *tthis, Expressions *fargs, int flags)
 {
     MATCH m_best = MATCHnomatch;
     MATCH m_best2 = MATCHnomatch;
@@ -2140,12 +2140,12 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 td->error("is not a function template");
                 goto Lerror;
             }
-            fd = resolveFuncCall(loc, sc, fd, NULL, ethis, fargs, flags);
+            fd = resolveFuncCall(loc, sc, fd, NULL, tthis, fargs, flags);
             if (!fd)
                 continue;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
-            MATCH m = (MATCH) tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? ethis : NULL, fargs);
+            MATCH m = (MATCH) tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
             if (m < m_best)
                 continue;
 
@@ -2165,7 +2165,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         Objects dedargs;
         FuncDeclaration *fd = NULL;
 
-        m = td->deduceFunctionTemplateMatch(loc, sc, tiargs, ethis, fargs, &dedargs);
+        m = td->deduceFunctionTemplateMatch(loc, sc, tiargs, tthis, fargs, &dedargs);
         m2 = (MATCH)(m >> 4);
         m = (MATCH)(m & 0xF);
         //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", m, m2);
@@ -2211,8 +2211,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         // Disambiguate by tf->callMatch
         TypeFunction *tf1 = (TypeFunction *)fd->type;
         TypeFunction *tf2 = (TypeFunction *)fd_best->type;
-        MATCH c1 = (MATCH) tf1->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? ethis : NULL, fargs);
-        MATCH c2 = (MATCH) tf2->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? ethis : NULL, fargs);
+        MATCH c1 = (MATCH) tf1->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
+        MATCH c2 = (MATCH) tf2->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? tthis : NULL, fargs);
         //printf("2: c1 = %d, c2 = %d\n", c1, c2);
 
         if (c1 > c2)
@@ -2299,7 +2299,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     fd_best = ti->toAlias()->isFuncDeclaration();
     if (!fd_best)
         goto Lerror;
-    if (!((TypeFunction*)fd_best->type)->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? ethis : NULL, fargs))
+    if (!((TypeFunction*)fd_best->type)->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? tthis : NULL, fargs))
         goto Lerror;
 
     if (FuncLiteralDeclaration *fld = fd_best->isFuncLiteralDeclaration())
