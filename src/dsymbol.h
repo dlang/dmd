@@ -180,7 +180,7 @@ struct Dsymbol : Object
     ClassDeclaration *isClassMember();          // are we a member of a class?
     virtual int isExport();                     // is Dsymbol exported?
     virtual int isImportedSymbol();             // is Dsymbol imported?
-    virtual int isDeprecated();                 // is Dsymbol deprecated?
+    virtual bool isDeprecated();                // is Dsymbol deprecated?
 #if DMDV2
     virtual int isOverloadable();
     virtual int hasOverloads();

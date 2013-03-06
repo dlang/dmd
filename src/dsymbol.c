@@ -531,9 +531,9 @@ int Dsymbol::isImportedSymbol()
     return FALSE;
 }
 
-int Dsymbol::isDeprecated()
+bool Dsymbol::isDeprecated()
 {
-    return FALSE;
+    return false;
 }
 
 #if DMDV2

@@ -31,7 +31,7 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     minval = NULL;
     defaultval = NULL;
     sinit = NULL;
-    isdeprecated = 0;
+    isdeprecated = false;
     isdone = 0;
     objFileDone = 0;
 }
@@ -120,7 +120,7 @@ void EnumDeclaration::semantic(Scope *sc)
     unsigned dprogress_save = Module::dprogress;
 
     if (sc->stc & STCdeprecated)
-        isdeprecated = 1;
+        isdeprecated = true;
     userAttributes = sc->userAttributes;
 
     parent = sc->parent;
@@ -380,7 +380,7 @@ const char *EnumDeclaration::kind()
     return "enum";
 }
 
-int EnumDeclaration::isDeprecated()
+bool EnumDeclaration::isDeprecated()
 {
     return isdeprecated;
 }
