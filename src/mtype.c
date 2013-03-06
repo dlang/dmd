@@ -5941,27 +5941,26 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
 
         // Non-lvalues do not match ref or out parameters
         if (p->storageClass & STCref)
-        {   if (m && !arg->isLvalue())
-            {
-                Type *ta = targ->aliasthisOf();
-                if (arg->op == TOKstring && tprm->ty == Tsarray)
-                {   if (targ->ty != Tsarray)
-                        targ = new TypeSArray(targ->nextOf(),
-                                new IntegerExp(0, ((StringExp *)arg)->len,
-                                Type::tindex));
-                }
-                else
-                    goto Nomatch;
-            }
-
+        {
             Type *targb = targ->toBasetype();
             Type *tprmb = tprm->toBasetype();
             //printf("%s\n", targb->toChars());
             //printf("%s\n", tprmb->toChars());
 
-            if (arg->op == TOKslice && tprmb->ty == Tsarray)
-            {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                targb = tprmb;
+            if (m && !arg->isLvalue())
+            {
+                if (arg->op == TOKstring && tprmb->ty == Tsarray)
+                {   if (targb->ty != Tsarray)
+                        targb = new TypeSArray(targb->nextOf(),
+                                new IntegerExp(0, ((StringExp *)arg)->len,
+                                Type::tindex));
+                }
+                else if (arg->op == TOKslice && tprmb->ty == Tsarray)
+                {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                    targb = tprmb;
+                }
+                else
+                    goto Nomatch;
             }
 
             /* find most derived alias this type being matched.
