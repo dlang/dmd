@@ -115,9 +115,6 @@ struct SegRef
 }
 
 
-static immutable SegRef[5] dataSegs = [{SEG_DATA, SECT_DATA},
-                           {SEG_DATA, SECT_BSS},
-                           {SEG_DATA, SECT_COMMON},
-                                           // These two must match names used by compiler machobj.c
-                           {SEG_DATA, "__tls_data"},
-                           {SEG_DATA, "__tlscoal_nt"}];
+static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
+                                      {SEG_DATA, SECT_BSS},
+                                      {SEG_DATA, SECT_COMMON}];
