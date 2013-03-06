@@ -2126,7 +2126,7 @@ void* _d_arrayliteralTX(const TypeInfo ti, size_t length)
     auto sizeelem = ti.next.tsize;              // array element size
     void* result;
 
-    //printf("_d_arrayliteralTX(sizeelem = %d, length = %d)\n", sizeelem, length);
+    debug(PRINTF) printf("_d_arrayliteralTX(sizeelem = %d, length = %d)\n", sizeelem, length);
     if (length == 0 || sizeelem == 0)
         result = null;
     else
