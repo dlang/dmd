@@ -5809,6 +5809,26 @@ void test8917()
 }
 
 /***************************************************/
+// 8945
+
+struct S8945 // or `class`, or `union`
+{
+    struct S0(T) { int i; }
+    struct S1(T) { this(int){} }
+}
+
+void test8945()
+{
+    auto cs0a = const S8945.S0!int();  // ok
+    auto cs0b = const S8945.S0!int(1); // ok
+    auto cs1  = const S8945.S1!int(1); // ok
+
+    auto s0a = S8945.S0!int();  // Error: struct S0 does not overload ()
+    auto s0b = S8945.S0!int(1); // Error: struct S0 does not overload ()
+    auto s1  = S8945.S1!int(1); // Error: struct S1 does not overload ()
+}
+
+/***************************************************/
 
 struct S162
 {
@@ -6262,6 +6282,7 @@ int main()
     test161();
     test8819();
     test8917();
+    test8945();
     test163();
     test9428();
     test9538();
