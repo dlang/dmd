@@ -5975,21 +5975,51 @@ Expression *IsExp::semantic(Scope *sc)
         }
         goto Lyes;
     }
-    else if (id && tspec)
+    else if (tspec && !id && !(parameters && parameters->dim))
+    {
+        /* Evaluate to TRUE if targ matches tspec
+         * is(targ == tspec)
+         * is(targ : tspec)
+         */
+        tspec = tspec->semantic(loc, sc);
+        //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
+        //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
+        if (tok == TOKcolon)
+        {   if (targ->implicitConvTo(tspec))
+                goto Lyes;
+            else
+                goto Lno;
+        }
+        else /* == */
+        {   if (targ->equals(tspec))
+                goto Lyes;
+            else
+                goto Lno;
+        }
+    }
+    else if (tspec)
     {
         /* Evaluate to TRUE if targ matches tspec.
          * If TRUE, declare id as an alias for the specialized type.
+         * is(targ == tspec, tpl)
+         * is(targ : tspec, tpl)
+         * is(targ id == tspec)
+         * is(targ id : tspec)
+         * is(targ id == tspec, tpl)
+         * is(targ id : tspec, tpl)
          */
 
-        assert(parameters && parameters->dim);
+        Identifier *tid = id ? id : Lexer::uniqueId("__isexp_id");
+        TemplateParameter *tp = new TemplateTypeParameter(loc, tid, NULL, NULL);
+        parameters->insert(0, tp);
 
         Objects dedtypes;
         dedtypes.setDim(parameters->dim);
         dedtypes.zero();
 
         MATCH m = targ->deduceType(sc, tspec, parameters, &dedtypes);
-//printf("targ: %s\n", targ->toChars());
-//printf("tspec: %s\n", tspec->toChars());
+        //printf("targ: %s\n", targ->toChars());
+        //printf("tspec: %s\n", tspec->toChars());
         if (m == MATCHnomatch ||
             (m != MATCHexact && tok == TOKequal))
         {
@@ -6027,31 +6057,10 @@ Expression *IsExp::semantic(Scope *sc)
     else if (id)
     {
         /* Declare id as an alias for type targ. Evaluate to TRUE
+         * is(targ id)
          */
         tded = targ;
         goto Lyes;
-    }
-    else if (tspec)
-    {
-        /* Evaluate to TRUE if targ matches tspec
-         * is(targ == tspec)
-         * is(targ : tspec)
-         */
-        tspec = tspec->semantic(loc, sc);
-        //printf("targ  = %s, %s\n", targ->toChars(), targ->deco);
-        //printf("tspec = %s, %s\n", tspec->toChars(), tspec->deco);
-        if (tok == TOKcolon)
-        {   if (targ->implicitConvTo(tspec))
-                goto Lyes;
-            else
-                goto Lno;
-        }
-        else /* == */
-        {   if (targ->equals(tspec))
-                goto Lyes;
-            else
-                goto Lno;
-        }
     }
 
 Lyes:
