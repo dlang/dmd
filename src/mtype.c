@@ -4092,7 +4092,11 @@ Expression *TypeSArray::defaultInitLiteral(Loc loc)
     printf("TypeSArray::defaultInitLiteral() '%s'\n", toChars());
 #endif
     size_t d = dim->toInteger();
-    Expression *elementinit = next->defaultInitLiteral(loc);
+    Expression *elementinit;
+    if (next->ty == Tvoid)
+        elementinit = tuns8->defaultInitLiteral(loc);
+    else
+        elementinit = next->defaultInitLiteral(loc);
     Expressions *elements = new Expressions();
     elements->setDim(d);
     for (size_t i = 0; i < d; i++)
