@@ -5706,6 +5706,32 @@ void test161()
 }
 
 /***************************************************/
+// 8819
+
+void test8819()
+{
+    void[0] sa0 = (void[0]).init;
+    assert(sa0.ptr is null);
+
+    void[1] sa1 = (void[1]).init;
+    assert((cast(ubyte*)sa1.ptr)[0] == 0);
+
+    void[4] sa4 = [cast(ubyte)1,cast(ubyte)2,cast(ubyte)3,cast(ubyte)4];
+    assert((cast(ubyte*)sa4.ptr)[0] == 1);
+    assert((cast(ubyte*)sa4.ptr)[1] == 2);
+    assert((cast(ubyte*)sa4.ptr)[2] == 3);
+    assert((cast(ubyte*)sa4.ptr)[3] == 4);
+
+    auto sa22 = (void[2][2]).init;
+    static assert(sa22.sizeof == ubyte.sizeof * 2 * 2);
+    ubyte[4]* psa22 = cast(ubyte[4]*)sa22.ptr;
+    assert((*psa22)[0] == 0);
+    assert((*psa22)[1] == 0);
+    assert((*psa22)[2] == 0);
+    assert((*psa22)[3] == 0);
+}
+
+/***************************************************/
 // 8897
 
 class C8897
@@ -6178,6 +6204,7 @@ int main()
     test6141();
     test8526();
     test161();
+    test8819();
     test8917();
     test163();
     test9428();
