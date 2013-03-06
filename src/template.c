@@ -1598,6 +1598,9 @@ Lretry:
                     if (farg->op == TOKstring && argtype->ty == Tsarray)
                     {
                     }
+                    else if (farg->op == TOKslice && argtype->ty == Tsarray)
+                    {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                    }
                     else
                         goto Lnomatch;
                 }
