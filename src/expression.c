@@ -7422,6 +7422,12 @@ L1:
             e = e->semantic(sc);
             return e;
         }
+        if (eleft->op == TOKtype)
+        {
+            e = new DsymbolExp(loc, s);
+            e = e->semantic(sc);
+            return e;
+        }
         e = new ScopeExp(loc, ti);
         e = new DotExp(loc, eleft, e);
         e = e->semantic(sc);
