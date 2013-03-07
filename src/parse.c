@@ -1126,7 +1126,7 @@ Dsymbol *Parser::parseCtor()
     Loc loc = this->loc;
 
     nextToken();
-    if (token.value == TOKlparen && peek(&token)->value == TOKthis)
+    if (token.value == TOKlparen && peekNext() == TOKthis && peekNext2() == TOKrparen)
     {   // this(this) { ... }
         nextToken();
         nextToken();
