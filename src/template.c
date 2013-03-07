@@ -2196,12 +2196,12 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
 
         if (!fd_best)
         {
-            fd_best = td_best->doHeaderInstantiation(sc, tdargs, fargs);
+            fd_best = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
             if (!fd_best)
                 goto Lerror;
         }
         {
-            fd = td->doHeaderInstantiation(sc, &dedargs, fargs);
+            fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
             if (!fd)
                 goto Lerror;
         }
@@ -2366,7 +2366,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
  * Limited function template instantiation for using fd->leastAsSpecialized()
  */
 FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
-        Objects *tdargs, Expressions *fargs)
+        Objects *tdargs, Type *tthis, Expressions *fargs)
 {
     FuncDeclaration *fd = onemember->toAlias()->isFuncDeclaration();
     if (!fd)
@@ -2403,11 +2403,23 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     ti->argsym->parent = scope->parent;
     scope = scope->push(ti->argsym);
 
+    bool hasttp = false;
+
     Scope *paramscope = scope->push();
     paramscope->stc = 0;
     ti->declareParameters(paramscope);
     paramscope->pop();
 
+    if (tthis)
+    {
+        // Match 'tthis' to any TemplateThisParameter's
+        for (size_t i = 0; i < parameters->dim; i++)
+        {   TemplateParameter *tp = (*parameters)[i];
+            TemplateThisParameter *ttp = tp->isTemplateThisParameter();
+            if (ttp)
+                hasttp = true;
+        }
+    }
     {
         TypeFunction *tf = (TypeFunction *)fd->type;
         if (tf && tf->ty == Tfunction)
@@ -2423,6 +2435,9 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
         Scope *sc = sc2;
         sc = sc->push();
 
+        if (hasttp)
+            fd->type = fd->type->addMod(tthis->mod);
+        //printf("tthis = %s, fdtype = %s\n", tthis->toChars(), fd->type->toChars());
         if (fd->isCtorDeclaration())
         {
             sc->flags |= SCOPEctor;

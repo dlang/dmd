@@ -97,7 +97,7 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, Objects *dedargs);
     FuncDeclaration *deduceFunctionTemplate(Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, int flags = 0);
     Object *declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
-    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Expressions *fargs);
+    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Type *tthis, Expressions *fargs);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
