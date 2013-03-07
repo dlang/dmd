@@ -10714,6 +10714,20 @@ Ltupleassign:
                 e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                 e2 = e2->semantic(sc);
             }
+            else if (global.params.warnings && !global.gag && op == TOKassign &&
+                     e2->op != TOKarrayliteral && e2->op != TOKstring)
+            {   // Disallow sa = da (Converted to sa[] = da[])
+                // Disallow sa = e  (Converted to sa[] = e)
+                const char* e1str = e1->toChars();
+                const char* e2str = e2->toChars();
+                if (e2->op == TOKslice || t2->implicitConvTo(t1->nextOf()))
+                    warning("explicit element-wise assignment (%s)[] = %s is better than %s = %s",
+                        e1str, e2str, e1str, e2str);
+                else
+                    warning("explicit element-wise assignment (%s)[] = (%s)[] is better than %s = %s",
+                        e1str, e2str, e1str, e2str);
+                return new ErrorExp();
+            }
 
             // Convert e1 to e1[]
             Expression *e = new SliceExp(e1->loc, e1, NULL, NULL);
@@ -10809,6 +10823,24 @@ Ltupleassign:
         {
             checkPostblit(e2->loc, t2->nextOf());
         }
+        if (global.params.warnings && !global.gag && op == TOKassign &&
+            e2->op != TOKslice && e2->op != TOKassign &&
+            e2->op != TOKarrayliteral && e2->op != TOKstring &&
+            !(e2->op == TOKadd || e2->op == TOKmin ||
+              e2->op == TOKmul || e2->op == TOKdiv ||
+              e2->op == TOKmod || e2->op == TOKxor ||
+              e2->op == TOKand || e2->op == TOKor  ||
+    #if DMDV2
+              e2->op == TOKpow ||
+    #endif
+              e2->op == TOKtilde || e2->op == TOKneg))
+        {
+            const char* e1str = e1->toChars();
+            const char* e2str = e2->toChars();
+            warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s",
+                e1str, e2str, e1str, e2str);
+            return new ErrorExp();
+        }
         if (op == TOKconstruct)
             e2 = e2->castTo(sc, e1->type->constOf());
         else
@@ -10816,6 +10848,19 @@ Ltupleassign:
     }
     else
     {
+        if (global.params.warnings && !global.gag && op == TOKassign &&
+            t1->ty == Tarray && t2->ty == Tsarray &&
+            e2->op != TOKslice && //e2->op != TOKarrayliteral &&
+            t2->implicitConvTo(t1))
+        {   // Disallow ar[] = sa (Converted to ar[] = sa[])
+            // Disallow da   = sa (Converted to da   = sa[])
+            const char* e1str = e1->toChars();
+            const char* e2str = e2->toChars();
+            warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
+                e1->op == TOKslice ? "element-wise" : "slice",
+                e1str, e2str, e1str, e2str);
+            return new ErrorExp();
+        }
         e2 = e2->implicitCastTo(sc, e1->type);
     }
     if (e2->op == TOKerror)
