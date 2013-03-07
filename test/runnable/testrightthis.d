@@ -480,6 +480,39 @@ void test9619()
 }
 
 /********************************************************/
+// 9633
+
+class Foo9633
+{
+    void baz() {}
+    void bar()
+    {
+        // CallExp::e1->op == TOKvar
+        static assert(!compilesWithoutThis9633!baz);
+    }
+    void vaz()()
+    {
+        static class C
+        {
+            // CallExp::e1->op == TOKtemplate
+            static assert(!__traits(compiles, vaz()));
+        }
+    }
+}
+
+template compilesWithoutThis9633(alias F)
+{
+    enum bool compilesWithoutThis9633 = __traits(compiles, F());
+}
+
+void test9633()
+{
+    auto foo = new Foo9633;
+    foo.bar();
+    foo.vaz();
+}
+
+/********************************************************/
 
 int main()
 {
@@ -491,6 +524,7 @@ int main()
     test6();
     test7();
     test9619();
+    test9633();
 
     printf("Success\n");
     return 0;

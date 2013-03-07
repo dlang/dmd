@@ -207,6 +207,61 @@ Lno:
     return NULL;                // don't have 'this' available
 }
 
+bool isNeedThisScope(Scope *sc, Declaration *d)
+{
+    if (sc->intypeof == 1)
+        return false;
+
+    AggregateDeclaration *ad = d->isThis();
+    if (!ad)
+        return false;
+    //printf("d = %s, ad = %s\n", d->toChars(), ad->toChars());
+
+    for (Dsymbol *s = sc->parent; s; s = s->toParent2())
+    {
+        //printf("\ts = %s %s, toParent2() = %p\n", s->kind(), s->toChars(), s->toParent2());
+        if (AggregateDeclaration *ad2 = s->isAggregateDeclaration())
+        {
+            //printf("\t    ad2 = %s\n", ad2->toChars());
+            if (ad2 == ad)
+                return false;
+            else if (ad2->isNested())
+                continue;
+            else
+                return true;
+        }
+        if (FuncDeclaration *f = s->isFuncDeclaration())
+        {
+            if (f->isFuncLiteralDeclaration())
+                continue;
+            if (f->isMember2())
+                break;
+            if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
+            {
+                if ((td->scope->stc & STCstatic) && td->isMember())
+                    break;  // no valid 'this'
+            }
+        }
+    }
+    return true;
+}
+
+Expression *checkRightThis(Scope *sc, Expression *e)
+{
+    if (e->op == TOKvar && e->type->ty != Terror)
+    {
+        VarExp *ve = (VarExp *)e;
+        if (isNeedThisScope(sc, ve->var))
+        {
+            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
+            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
+            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
+            e = new ErrorExp();
+        }
+    }
+    return e;
+}
+
 
 /***************************************
  * Pull out any properties.
@@ -312,55 +367,6 @@ return_expr:
     {
         error(e->loc, "cannot resolve type for %s", e->toChars());
         e->type = new TypeError();
-    }
-    return e;
-}
-
-Expression *checkRightThis(Scope *sc, Expression *e)
-{
-    if (e->op == TOKvar && e->type->ty != Terror)
-    {
-        VarExp *ve = (VarExp *)e;
-
-        Dsymbol *p = sc->parent;
-        while (p && p->isTemplateMixin())
-            p = p->parent;
-        FuncDeclaration *func = p ? p->isFuncDeclaration() : NULL;
-        FuncDeclaration *fdthis = hasThis(sc);
-    #if 1
-        /* Check special cases inside DeclDefs scope and template constraint
-         */
-        if (func && !fdthis && sc->intypeof == 2)
-        {
-            //printf("[%s] func = %s\n", func->loc.toChars(), func->toChars());
-            for (Dsymbol *s = func->parent; 1; s = s->parent)
-            {
-                if (!s)
-                    break;
-                //printf("\ts = %s %s\n", s->kind(), s->toChars());
-                if (s->isAggregateDeclaration() || s->isThis())
-                    return e;
-                FuncDeclaration *f = s->isFuncDeclaration();
-                if (f)
-                {
-                    if (f->isMember2())
-                        break;
-                    if (TemplateDeclaration *td = f->parent->isTemplateDeclaration())
-                    {
-                        if ((td->scope->stc & STCstatic) && td->isMember())
-                            break;  // no valid 'this'
-                    }
-                }
-            }
-        }
-    #endif
-        if (sc->intypeof != 1 && (func && !fdthis || !func && !sc->getStructClassScope()) && ve->var->needThis())
-        {
-            //printf("checkRightThis sc->intypeof = %d, ad = %p, func = %p, fdthis = %p\n",
-            //        sc->intypeof, sc->getStructClassScope(), func, fdthis);
-            e->error("need 'this' for '%s' of type '%s'", ve->var->toChars(), ve->var->type->toChars());
-            e = new ErrorExp();
-        }
     }
     return e;
 }
@@ -8327,7 +8333,7 @@ Lagain:
                     e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
                     goto Lagain;
                 }
-                else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
+                else if (isNeedThisScope(sc, f))
                 {
                     error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                     return new ErrorExp();
@@ -8398,6 +8404,7 @@ Lagain:
             f = resolveFuncCall(loc, sc, f, tiargs, NULL, arguments, 2);
         else
         {
+            f = f->toAliasFunc();
             TypeFunction *tf = (TypeFunction *)f->type;
             if (!tf->callMatch(NULL, arguments))
             {
@@ -8433,7 +8440,7 @@ Lagain:
                 e1 = new DotVarExp(loc, (new ThisExp(loc))->semantic(sc), ve->var);
                 goto Lagain;
             }
-            else if (sc->intypeof != 1 && sc->parent->isFuncDeclaration())
+            else if (isNeedThisScope(sc, f))
             {
                 error("need 'this' for '%s' of type '%s'", f->toChars(), f->type->toChars());
                 return new ErrorExp();
@@ -8450,9 +8457,11 @@ Lagain:
 
         ethis = NULL;
 
-        ve->var = f;
-//      ve->hasOverloads = 0;
-        ve->type = f->type;
+        if (ve->hasOverloads)
+        {
+            e1 = new VarExp(ve->loc, f, 0);
+            e1->type = f->type;
+        }
         t1 = f->type;
     }
     assert(t1->ty == Tfunction);
