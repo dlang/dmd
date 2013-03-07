@@ -49,6 +49,7 @@ extern "C" char * __cdecl __locale_decpoint;
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
 
 #define LOGSEMANTIC     0
 
@@ -1026,7 +1027,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = p->defaultArg;
                 arg = arg->inlineCopy(sc);
 #if DMDV2
-                arg = arg->resolveLoc(loc, sc);         // __FILE__ and __LINE__
+                // __FILE__, __LINE__, __MODULE__, __FUNCTION__, and __PRETTY_FUNCTION__
+                arg = arg->resolveLoc(loc, sc);
 #endif
                 arguments->push(arg);
                 nargs++;
@@ -2082,7 +2084,7 @@ int Expression::isBit()
 }
 
 /****************************************
- * Resolve __LINE__ and __FILE__ to loc.
+ * Resolve __FILE__, __LINE__, __MODULE__, __FUNCTION__, __PRETTY_FUNCTION__ to loc.
  */
 
 Expression *Expression::resolveLoc(Loc loc, Scope *sc)
@@ -12581,7 +12583,7 @@ FileInitExp::FileInitExp(Loc loc)
 Expression *FileInitExp::semantic(Scope *sc)
 {
     //printf("FileInitExp::semantic()\n");
-    type = Type::tchar->invariantOf()->arrayOf();
+    type = Type::tstring;
     return this;
 }
 
@@ -12611,6 +12613,107 @@ Expression *LineInitExp::semantic(Scope *sc)
 Expression *LineInitExp::resolveLoc(Loc loc, Scope *sc)
 {
     Expression *e = new IntegerExp(loc, loc.linnum, Type::tint32);
+    e = e->castTo(sc, type);
+    return e;
+}
+
+/****************************************************************/
+
+ModuleInitExp::ModuleInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKmodulestring, sizeof(ModuleInitExp))
+{
+}
+
+Expression *ModuleInitExp::semantic(Scope *sc)
+{
+    //printf("ModuleInitExp::semantic()\n");
+    type = Type::tstring;
+    return this;
+}
+
+Expression *ModuleInitExp::resolveLoc(Loc loc, Scope *sc)
+{
+    const char *s;
+    if (sc->callsc)
+        s = sc->callsc->module->toPrettyChars();
+    else
+        s = sc->module->toPrettyChars();
+    Expression *e = new StringExp(loc, (char *)s);
+    e = e->semantic(sc);
+    e = e->castTo(sc, type);
+    return e;
+}
+
+/****************************************************************/
+
+FuncInitExp::FuncInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKfuncstring, sizeof(FuncInitExp))
+{
+}
+
+Expression *FuncInitExp::semantic(Scope *sc)
+{
+    //printf("FuncInitExp::semantic()\n");
+    type = Type::tstring;
+    if (sc->func) return this->resolveLoc(0, sc);
+    return this;
+}
+
+Expression *FuncInitExp::resolveLoc(Loc loc, Scope *sc)
+{
+    const char *s;
+    if (sc->callsc && sc->callsc->func)
+        s = sc->callsc->func->Dsymbol::toPrettyChars();
+    else if (sc->func)
+        s = sc->func->Dsymbol::toPrettyChars();
+    else
+        s = "";
+    Expression *e = new StringExp(loc, (char *)s);
+    e = e->semantic(sc);
+    e = e->castTo(sc, type);
+    return e;
+}
+
+/****************************************************************/
+
+PrettyFuncInitExp::PrettyFuncInitExp(Loc loc)
+    : DefaultInitExp(loc, TOKprettyfunc, sizeof(PrettyFuncInitExp))
+{
+}
+
+Expression *PrettyFuncInitExp::semantic(Scope *sc)
+{
+    //printf("PrettyFuncInitExp::semantic()\n");
+    type = Type::tstring;
+    if (sc->func) return this->resolveLoc(0, sc);
+    return this;
+}
+
+Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
+{
+    FuncDeclaration *fd;
+    if (sc->callsc && sc->callsc->func)
+        fd = sc->callsc->func;
+    else
+        fd = sc->func;
+
+    const char *s;
+    if (fd)
+    {
+        const char *funcStr = fd->Dsymbol::toPrettyChars();
+        HdrGenState hgs;
+        OutBuffer buf;
+        functionToCBuffer2((TypeFunction *)fd->type, &buf, &hgs, 0, funcStr);
+        buf.writebyte(0);
+        s = (const char *)buf.extractData();
+    }
+    else
+    {
+        s = "";
+    }
+
+    Expression *e = new StringExp(loc, (char *)s);
+    e = e->semantic(sc);
     e = e->castTo(sc, type);
     return e;
 }

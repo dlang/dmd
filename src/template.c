@@ -1023,6 +1023,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
+    paramscope->callsc = sc;
     paramscope->stc = 0;
 
     TemplateTupleParameter *tp = isVariadic();

@@ -2928,6 +2928,9 @@ static Keyword keywords[] =
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
     {   "__LINE__",     TOKline         },
+    {   "__MODULE__",   TOKmodulestring },
+    {   "__FUNCTION__", TOKfuncstring   },
+    {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
 #endif
