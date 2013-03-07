@@ -18,24 +18,65 @@ module rt.qsort;
 
 private import core.stdc.stdlib;
 
-struct Array
+version (linux)
 {
-    size_t length;
-    void*  ptr;
+    alias extern (C) int function(const void *, const void *, void *) Cmp;
+    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, Cmp cmp, void *arg);
+
+    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(in void* p1, in void* p2, void* ti)
+        {
+            return (cast(TypeInfo)ti).compare(p1, p2);
+        }
+        qsort_r(a.ptr, a.length, ti.tsize, &cmp, cast(void*)ti);
+        return a;
+    }
 }
-
-private TypeInfo tiglobal;
-
-extern (C) int cmp(in void* p1, in void* p2)
+else version (FreeBSD)
 {
-    return tiglobal.compare(p1, p2);
+    alias extern (C) int function(void *, const void *, const void *) Cmp;
+    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, void *thunk, Cmp cmp);
+
+    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(void* ti, in void* p1, in void* p2)
+        {
+            return (cast(TypeInfo)ti).compare(p1, p2);
+        }
+        qsort_r(a.ptr, a.length, ti.tsize, cast(void*)ti, &cmp);
+        return a;
+    }
 }
-
-extern (C) void[] _adSort(void[] a, TypeInfo ti)
+else version (OSX)
 {
-    tiglobal = ti;
-    qsort(a.ptr, a.length, cast(size_t)ti.tsize, &cmp);
-    return a;
+    alias extern (C) int function(void *, const void *, const void *) Cmp;
+    extern (C) void qsort_r(void *base, size_t nmemb, size_t size, void *thunk, Cmp cmp);
+
+    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(void* ti, in void* p1, in void* p2)
+        {
+            return (cast(TypeInfo)ti).compare(p1, p2);
+        }
+        qsort_r(a.ptr, a.length, ti.tsize, cast(void*)ti, &cmp);
+        return a;
+    }
+}
+else
+{
+    private TypeInfo tiglobal;
+
+    extern (C) void[] _adSort(void[] a, TypeInfo ti)
+    {
+        extern (C) int cmp(in void* p1, in void* p2)
+        {
+            return tiglobal.compare(p1, p2);
+        }
+        tiglobal = ti;
+        qsort(a.ptr, a.length, ti.tsize, &cmp);
+        return a;
+    }
 }
 
 
