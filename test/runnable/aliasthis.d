@@ -248,6 +248,163 @@ void test6() {
 }
 
 /**********************************************/
+// recursive alias this detection
+
+class C0 {}
+
+class C1 { C2 c; alias c this; }
+class C2 { C1 c; alias c this; }
+
+class C3 { C2 c; alias c this; }
+
+struct S0 {}
+
+struct S1 { S2* ps; @property ref get(){return *ps;} alias get this; }
+struct S2 { S1* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S3 { S2* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S4 { S5* ps; @property ref get(){return *ps;} alias get this; }
+struct S5 { S4* ps; @property ref get(){return *ps;} alias get this; }
+
+struct S6 { S5* ps; @property ref get(){return *ps;} alias get this; }
+
+void test7()
+{
+    // Able to check a type is implicitly convertible within a finite time.
+    static assert(!is(C1 : C0));
+    static assert( is(C2 : C1));
+    static assert( is(C1 : C2));
+    static assert(!is(C3 : C0));
+    static assert( is(C3 : C1));
+    static assert( is(C3 : C2));
+
+    static assert(!is(S1 : S0));
+    static assert( is(S2 : S1));
+    static assert( is(S1 : S2));
+    static assert(!is(S3 : S0));
+    static assert( is(S3 : S1));
+    static assert( is(S3 : S2));
+
+    C0 c0;  C1 c1;  C3 c3;
+    S0 s0;  S1 s1;  S3 s3;  S4 s4;  S6 s6;
+
+    // Allow merging types that contains alias this recursion.
+    static assert( __traits(compiles, c0 is c1));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c0 is c3));   // typeMerge(c || c) e2->implicitConvTo(t1);
+    static assert( __traits(compiles, c1 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert( __traits(compiles, c3 is c0));   // typeMerge(c || c) e1->implicitConvTo(t2);
+    static assert(!__traits(compiles, s1 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, s3 is c0));   // typeMerge(c || c) e1
+    static assert(!__traits(compiles, c0 is s1));   // typeMerge(c || c) e2
+    static assert(!__traits(compiles, c0 is s3));   // typeMerge(c || c) e2
+
+    static assert(!__traits(compiles, s1 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s3 is s0));   // typeMerge(s && s) e1
+    static assert(!__traits(compiles, s0 is s1));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s0 is s3));   // typeMerge(s && s) e2
+    static assert(!__traits(compiles, s1 is s4));   // typeMerge(s && s) e1 + e2
+    static assert(!__traits(compiles, s3 is s6));   // typeMerge(s && s) e1 + e2
+
+    static assert(!__traits(compiles, s1 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, s3 is 10));   // typeMerge(s || s) e1
+    static assert(!__traits(compiles, 10 is s1));   // typeMerge(s || s) e2
+    static assert(!__traits(compiles, 10 is s3));   // typeMerge(s || s) e2
+
+    // SliceExp::semantic
+    static assert(!__traits(compiles, c1[]));
+    static assert(!__traits(compiles, c3[]));
+    static assert(!__traits(compiles, s1[]));
+    static assert(!__traits(compiles, s3[]));
+
+    // CallExp::semantic
+//  static assert(!__traits(compiles, c1()));
+//  static assert(!__traits(compiles, c3()));
+    static assert(!__traits(compiles, s1()));
+    static assert(!__traits(compiles, s3()));
+
+    // AssignExp::semantic
+    static assert(!__traits(compiles, { c1[1] = 0; }));
+    static assert(!__traits(compiles, { c3[1] = 0; }));
+    static assert(!__traits(compiles, { s1[1] = 0; }));
+    static assert(!__traits(compiles, { s3[1] = 0; }));
+    static assert(!__traits(compiles, { c1[ ] = 0; }));
+    static assert(!__traits(compiles, { c3[ ] = 0; }));
+    static assert(!__traits(compiles, { s1[ ] = 0; }));
+    static assert(!__traits(compiles, { s3[ ] = 0; }));
+
+    // UnaExp::op_overload
+    static assert(!__traits(compiles, +c1[1]));
+    static assert(!__traits(compiles, +c3[1]));
+    static assert(!__traits(compiles, +s1[1]));
+    static assert(!__traits(compiles, +s3[1]));
+    static assert(!__traits(compiles, +c1[ ]));
+    static assert(!__traits(compiles, +c3[ ]));
+    static assert(!__traits(compiles, +s1[ ]));
+    static assert(!__traits(compiles, +s3[ ]));
+    static assert(!__traits(compiles, +c1));
+    static assert(!__traits(compiles, +c3));
+    static assert(!__traits(compiles, +s1));
+    static assert(!__traits(compiles, +s3));
+
+    // ArrayExp::op_overload
+    static assert(!__traits(compiles, c1[1]));
+    static assert(!__traits(compiles, c3[1]));
+    static assert(!__traits(compiles, s1[1]));
+    static assert(!__traits(compiles, s3[1]));
+
+    // BinExp::op_overload
+    static assert(!__traits(compiles, c1 + 10));    // e1
+    static assert(!__traits(compiles, c3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + c1));    // e2
+    static assert(!__traits(compiles, 10 + c3));    // e2
+    static assert(!__traits(compiles, s1 + 10));    // e1
+    static assert(!__traits(compiles, s3 + 10));    // e1
+    static assert(!__traits(compiles, 10 + s1));    // e2
+    static assert(!__traits(compiles, 10 + s3));    // e2
+
+    // BinExp::compare_overload
+    static assert(!__traits(compiles, c1 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, c3 < 10));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c1));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, 10 < c3));    // (Object.opCmp(int) is invalid)
+    static assert(!__traits(compiles, s1 < 10));    // e1
+    static assert(!__traits(compiles, s3 < 10));    // e1
+    static assert(!__traits(compiles, 10 < s1));    // e2
+    static assert(!__traits(compiles, 10 < s3));    // e2
+
+    // BinAssignExp::op_overload
+    static assert(!__traits(compiles, c1[1] += 1));
+    static assert(!__traits(compiles, c3[1] += 1));
+    static assert(!__traits(compiles, s1[1] += 1));
+    static assert(!__traits(compiles, s3[1] += 1));
+    static assert(!__traits(compiles, c1[ ] += 1));
+    static assert(!__traits(compiles, c3[ ] += 1));
+    static assert(!__traits(compiles, s1[ ] += 1));
+    static assert(!__traits(compiles, s3[ ] += 1));
+    static assert(!__traits(compiles, c1 += c0));   // e1
+    static assert(!__traits(compiles, c3 += c0));   // e1
+    static assert(!__traits(compiles, s1 += s0));   // e1
+    static assert(!__traits(compiles, s3 += s0));   // e1
+    static assert(!__traits(compiles, c0 += c1));   // e2
+    static assert(!__traits(compiles, c0 += c3));   // e2
+    static assert(!__traits(compiles, s0 += s1));   // e2
+    static assert(!__traits(compiles, s0 += s3));   // e2
+    static assert(!__traits(compiles, c1 += s1));   // e1 + e2
+    static assert(!__traits(compiles, c3 += s3));   // e1 + e2
+
+    // ForeachStatement::inferAggregate
+    static assert(!__traits(compiles, { foreach (e; s1){} }));
+    static assert(!__traits(compiles, { foreach (e; s3){} }));
+    static assert(!__traits(compiles, { foreach (e; c1){} }));
+    static assert(!__traits(compiles, { foreach (e; c3){} }));
+
+    // Expression::checkToBoolean
+    static assert(!__traits(compiles, { if (s1){} }));
+    static assert(!__traits(compiles, { if (s3){} }));
+}
+
+/***************************************************/
 // 2781
 
 struct Tuple2781a(T...) {
@@ -979,6 +1136,7 @@ int main()
     test4773();
     test5188();
     test6();
+    test7();
     test2781();
     test6546();
     test6736();
