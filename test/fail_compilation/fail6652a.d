@@ -1,25 +1,24 @@
-// REQUIRED_ARGS: -de
-// PERMUTE_ARGS: -w
+// PERMUTE_ARGS: -w -dw -de -d
+
 /******************************************/
 // 6652
 
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail6652a.d(19): Deprecation: variable modified in foreach body requires ref storage class
-fail_compilation/fail6652a.d(24): Error: cannot modify const expression i
+fail_compilation/fail6652a.d(18): Error: cannot modify const expression i
+fail_compilation/fail6652a.d(23): Error: cannot modify const expression i
 ---
 */
 
 void main()
 {
-    size_t[] res;
-    foreach (i; 0..2)
+    foreach (const i; 0..2)
     {
-        res ~= ++i;
+        ++i;
     }
 
-    foreach (const i; 0..2)
+    foreach (ref const i; 0..2)
     {
         ++i;
     }
