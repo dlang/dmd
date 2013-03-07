@@ -2391,7 +2391,10 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 
     // function body and contracts are not need
     //fd = fd->syntaxCopy(NULL)->isFuncDeclaration();
-    fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
+    if (fd->isCtorDeclaration())
+    	fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
+    else
+    	fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
     Scope *scope = this->scope;
@@ -2421,7 +2424,27 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
         sc = sc->push();
 
         if (fd->isCtorDeclaration())
+        {
             sc->flags |= SCOPEctor;
+
+            Dsymbol *parent = toParent2();
+            Type *tret;
+            AggregateDeclaration *ad = parent->isAggregateDeclaration();
+            if (!ad || parent->isUnionDeclaration())
+            {
+                tret = Type::tvoid;
+            }
+            else
+            {   tret = ad->handle;
+                assert(tret);
+                tret = tret->addStorageClass(fd->storage_class | sc->stc);
+                tret = tret->addMod(fd->type->mod);
+            }
+            ((TypeFunction *)fd->type)->next = tret;
+            if (ad && ad->isStructDeclaration())
+                ((TypeFunction *)fd->type)->isref = 1;
+            //printf("fd->type = %s\n", fd->type->toChars());
+        }
         fd->type = fd->type->semantic(fd->loc, sc);
         sc = sc->pop();
     }
