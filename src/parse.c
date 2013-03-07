@@ -3121,7 +3121,8 @@ L2:
         else if (t != tfirst)
             error("multiple declarations must have the same type, not %s and %s",
                 tfirst->toChars(), t->toChars());
-        if (!ident)
+        bool isThis = (t->ty == Tident && ((TypeIdentifier *)t)->ident == Id::This);
+        if (!isThis && !ident)
             error("no identifier for declarator %s", t->toChars());
 
         if (tok == TOKtypedef || tok == TOKalias)
@@ -3146,8 +3147,16 @@ L2:
                 deprecation("use of typedef is deprecated; use alias instead");
             }
             else
-            {   if (init)
-                    error("alias cannot have initializer");
+            {
+                if (init)
+                {
+                    if (isThis)
+                        error("Cannot use syntax 'alias this = %s', use 'alias %s this' instead",
+                           init->toChars(), init->toChars());
+                    else
+                        error("alias cannot have initializer");
+                }
+
                 v = new AliasDeclaration(loc, ident, t);
             }
             v->storage_class = storage_class;
