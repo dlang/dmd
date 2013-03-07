@@ -431,6 +431,107 @@ void test7814()
     }
 }
 
+/******************************************/
+// 6652
+
+void test6652()
+{
+    size_t sum;
+    foreach (i; 0 .. 10)
+        sum += i++; // 0123456789
+    assert(sum == 45);
+
+    sum = 0;
+    foreach (ref i; 0 .. 10)
+        sum += i++; // 02468
+    assert(sum == 20);
+
+    sum = 0;
+    foreach_reverse (i; 0 .. 10)
+        sum += i--; // 9876543210
+    assert(sum == 45);
+
+    sum = 0;
+    foreach_reverse (ref i; 0 .. 10)
+        sum += i--; // 97531
+    assert(sum == 25);
+
+    enum ary = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    sum = 0;
+    foreach (i, v; ary)
+    {
+        assert(i == v);
+        sum += i++; // 0123456789
+    }
+    assert(sum == 45);
+
+    sum = 0;
+    foreach (ref i, v; ary)
+    {
+        assert(i == v);
+        sum += i++; // 02468
+    }
+    assert(sum == 20);
+
+    sum = 0;
+    foreach_reverse (i, v; ary)
+    {
+        assert(i == v);
+        sum += i--; // 9876543210
+    }
+    assert(sum == 45);
+
+    sum = 0;
+    foreach_reverse (ref i, v; ary)
+    {
+        assert(i == v);
+        sum += i--; // 97531
+    }
+    assert(sum == 25);
+
+    static struct Iter
+    {
+        ~this()
+        {
+            ++_dtorCount;
+        }
+
+        bool opCmp(ref const Iter rhs)
+        {
+            return _pos == rhs._pos;
+        }
+
+        void opUnary(string op)() if(op == "++" || op == "--")
+        {
+            mixin(op ~ q{_pos;});
+        }
+
+        size_t _pos;
+        static size_t _dtorCount;
+    }
+
+    Iter._dtorCount = sum = 0;
+    foreach (v; Iter(0) .. Iter(10))
+        sum += v._pos++; // 0123456789
+    assert(sum == 45 && Iter._dtorCount == 12);
+
+    Iter._dtorCount = sum = 0;
+    foreach (ref v; Iter(0) .. Iter(10))
+        sum += v._pos++; // 02468
+    assert(sum == 20 && Iter._dtorCount == 2);
+
+    // additional dtor calls due to unnecessary postdecrements
+    Iter._dtorCount = sum = 0;
+    foreach_reverse (v; Iter(0) .. Iter(10))
+        sum += v._pos--; // 9876543210
+    assert(sum == 45 && Iter._dtorCount >= 12);
+
+    Iter._dtorCount = sum = 0;
+    foreach_reverse (ref v; Iter(0) .. Iter(10))
+        sum += v._pos--; // 97531
+    assert(sum == 25 && Iter._dtorCount >= 2);
+}
+
 /***************************************/
 // 8595
 
@@ -470,6 +571,7 @@ int main()
     test6659b();
     test6659c();
     test7814();
+    test6652();
 
     printf("Success\n");
     return 0;

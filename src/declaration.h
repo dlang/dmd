@@ -93,10 +93,6 @@ enum PURE;
         STCmanifest | STCimmutable | STCshared | STCnothrow | STCpure | STCref | STCtls | \
         STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable)
 
-#ifdef BUG6652
-#define STCbug6652      0x800000000000LL //
-#endif
-
 struct Match
 {
     int count;                  // number of matches found
