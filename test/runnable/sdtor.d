@@ -1089,11 +1089,11 @@ struct S41 {
 
 void test41()
 {
-    auto s = new S41(3);
+    auto s = new immutable S41(3);
     //writeln(typeid(typeof(s)));
     static assert(is(typeof(s) == immutable(S41)*));
 
-    auto t = S41(3);
+    auto t = immutable S41(3);
     //writeln(typeid(typeof(t)));
     static assert(is(typeof(t) == immutable(S41)));
 }
@@ -1107,9 +1107,9 @@ class C42 {
 
 void test42()
 {
-    auto c = new C42(3);
+    static assert(!__traits(compiles, new C42(3)));
     //writeln(typeid(typeof(c)));
-    static assert(is(typeof(c) == immutable(C42)));
+    //static assert(is(typeof(c) == immutable(C42)));
 
     auto d = new immutable(C42)(3);
     //writeln(typeid(typeof(d)));

@@ -3029,7 +3029,7 @@ void test141()
 struct S142
 {
     int v;
-    this(int n) { v = n; }
+    this(int n) pure { v = n; }
     const bool opCast(T:bool)() { return true; }
 }
 
@@ -4191,7 +4191,7 @@ void test6578()
 {
     static struct Foo
     {
-        this(int x) {}
+        this(int x) pure {}
     }
     auto f1 = new const(Foo)(1);
     auto f2 = new immutable(Foo)(1);
@@ -4208,7 +4208,7 @@ void test6578()
 
     static struct Bar
     {
-        this(int x) const {}
+        this(int x) const pure {}
     }
     auto g1 = new const(Bar)(1);
     auto g2 = new immutable(Bar)(1);
@@ -4218,21 +4218,21 @@ void test6578()
     auto g6 = shared(Bar)(1);
     static assert(is(typeof(g1) == const(Bar)*));
     static assert(is(typeof(g2) == immutable(Bar)*));
-    static assert(is(typeof(g3) == shared(const(Bar))*));
+    static assert(is(typeof(g3) == shared(Bar)*));
     static assert(is(typeof(g4) == const(Bar)));
     static assert(is(typeof(g5) == immutable(Bar)));
-    static assert(is(typeof(g6) == shared(const(Bar))));
+    static assert(is(typeof(g6) == shared(Bar)));
 
     static struct Baz
     {
-        this()(int x) const {}
+        this()(int x) const pure {}
     }
     auto h1 = new const(Baz)(1);
     auto h2 = new immutable(Baz)(1);
-    auto h3 = new shared(Baz)(1);
+    auto h3 = new shared(const(Baz))(1);
     auto h4 = const(Baz)(1);
     auto h5 = immutable(Baz)(1);
-    auto h6 = shared(Baz)(1);
+    auto h6 = shared(const(Baz))(1);
     static assert(is(typeof(h1) == const(Baz)*));
     static assert(is(typeof(h2) == immutable(Baz)*));
     static assert(is(typeof(h3) == shared(const(Baz))*));

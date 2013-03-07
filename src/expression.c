@@ -1019,11 +1019,12 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             fd->functionSemantic3();
         }
     }
+    bool isCtorCall = fd && fd->needThis() && fd->isCtorDeclaration();
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
     unsigned wildmatch = 0;
-    if (tthis && tf->isWild())
+    if (tthis && tf->isWild() && !isCtorCall)
     {
         Type *t = tthis;
         if (t->isWild())
@@ -1388,7 +1389,29 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     }
 
     Type *tret = tf->next;
-    if (wildmatch)
+    if (isCtorCall)
+    {
+        //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
+        //    wildmatch, tf->isWild(), fd->isolateReturn());
+        if (!tthis)
+        {   assert(sc->intypeof || global.errors);
+            tthis = fd->isThis()->type->addMod(fd->type->mod);
+        }
+        if (tf->isWild() && !fd->isolateReturn())
+        {
+            if (wildmatch)
+                tret = tret->substWildTo(wildmatch);
+            if (!tret->implicitConvTo(tthis))
+            {
+                const char* s1 = tret ->isNaked() ? " mutable" : tret ->modToChars();
+                const char* s2 = tthis->isNaked() ? " mutable" : tthis->modToChars();
+                ::error(loc, "inout constructor %s creates%s object, not%s",
+                        fd->toPrettyChars(), s1, s2);
+            }
+        }
+        tret = tthis;
+    }
+    else if (wildmatch)
     {   /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
@@ -4738,7 +4761,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (cd->ctor)
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4752,10 +4775,9 @@ Lagain:
             if (!arguments)
                 arguments = new Expressions();
             unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, arguments, f);
+            type = functionParameters(loc, sc, tf, type, arguments, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
-            type = type->addMod(tf->nextOf()->mod);
         }
         else
         {
@@ -4773,7 +4795,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, newargs);
+            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4784,7 +4806,6 @@ Lagain:
             functionParameters(loc, sc, tf, NULL, newargs, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
-
         }
         else
         {
@@ -4813,7 +4834,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, newargs);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4835,7 +4856,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (sd->ctor && nargs)
-            f = resolveFuncCall(loc, sc, sd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4845,12 +4866,11 @@ Lagain:
             sd->accessCheck(loc, sc, member);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            type = type->addMod(tf->nextOf()->mod);
 
             if (!arguments)
                 arguments = new Expressions();
             unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, arguments, f);
+            type = functionParameters(loc, sc, tf, type, arguments, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
         }
@@ -8062,7 +8082,6 @@ Lagain:
                 }
                 e = new CallExp(loc, e, arguments);
                 e = e->semantic(sc);
-                e->type = e->type->addMod(t1->mod);
                 return e;
             }
 #endif
@@ -8264,7 +8283,7 @@ Lagain:
                 }
 
                 tthis = cd->type->addMod(sc->func->type->mod);
-                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
+                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
                 if (!f)
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
@@ -8305,7 +8324,7 @@ Lagain:
             }
 
             tthis = cd->type->addMod(sc->func->type->mod);
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
             if (!f)
                 return new ErrorExp();
             checkDeprecated(sc, f);

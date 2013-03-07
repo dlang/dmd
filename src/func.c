@@ -2462,7 +2462,6 @@ int fp2(void *param, FuncDeclaration *f)
     Param2 *p = (Param2 *)param;
     Match *m = p->m;
     Expressions *arguments = p->arguments;
-    MATCH match;
 
     if (f != m->lastf)          // skip duplicates
     {
@@ -2475,12 +2474,26 @@ int fp2(void *param, FuncDeclaration *f)
         else if (p->property != property)
             error(f->loc, "cannot overload both property and non-property functions");
 
-        /* For constructors, don't worry about the right type of tthis. It's a problem
-         * anyway, because the constructor attribute may not match the tthis attribute,
-         * but we don't care because the attribute on the tthis doesn't matter until
-         * after it's constructed.
+        /* For constructors, qualifier check will be opposite direction.
+         * Qualified constructor always makes qualified object, then will be checked
+         * that it is implicitly convertible to tthis.
          */
-        match = tf->callMatch(f->needThis() && !f->isCtorDeclaration() ? p->tthis : NULL, arguments);
+        Type *tthis = f->needThis() ? p->tthis : NULL;
+        if (tthis && f->isCtorDeclaration())
+        {
+            //printf("%s tf->mod = x%x tthis->mod = x%x %d\n", tf->toChars(),
+            //        tf->mod, tthis->mod, f->isolateReturn());
+            if (MODimplicitConv(tf->mod, tthis->mod) ||
+                tf->isWild() && tf->isShared() == tthis->isShared() ||
+                f->isolateReturn()/* && tf->isShared() == tthis->isShared()*/)
+            {   // Uniquely constructed object can ignore shared qualifier.
+                // TODO: Is this appropriate?
+                tthis = NULL;
+            }
+            else
+                return 0;   // MATCHnomatch
+        }
+        MATCH match = tf->callMatch(tthis, arguments);
         //printf("test1: match = %d\n", match);
         if (match != MATCHnomatch)
         {
@@ -3326,7 +3339,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
         if (traverseIndirections(tprmi, t))
             return false;
     }
-    if (AggregateDeclaration *ad = isThis())
+    if (AggregateDeclaration *ad = isCtorDeclaration() ? NULL : isThis())
     {
         Type *tthis = ad ? ad->getType()->addMod(tf->mod) : NULL;
         //printf("\ttthis = %s\n", tthis->toChars());

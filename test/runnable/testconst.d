@@ -2116,7 +2116,7 @@ void test5493()
     class C
     {
         int x;
-        this(int i) { x = i; }
+        this(int i) immutable { x = i; }
     }
     C[] cs;
     immutable C ci = new immutable(C)(6);

@@ -2089,6 +2089,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
     Objects *tdargs = new Objects();
     TemplateInstance *ti;
     FuncDeclaration *fd_best;
+    Type *tthis_best = NULL;
 
 #if 0
     printf("TemplateDeclaration::deduceFunctionTemplate() %s\n", toChars());
@@ -2172,6 +2173,31 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         if (!m)                 // if no match
             continue;
 
+        Type *tthis_fd = NULL;
+        if (td->onemember->toAlias()->isFuncDeclaration()->isCtorDeclaration())
+        {
+            // Constructor call requires additional check.
+            // For that, do instantiate in early stage.
+            fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
+            if (!fd)
+                goto Lerror;
+
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            tthis_fd = fd->needThis() ? tthis : NULL;
+            if (tthis_fd)
+            {
+                assert(tf->next);
+                if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
+                    tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                    fd->isolateReturn())
+                {
+                    tthis_fd = NULL;
+                }
+                else
+                    continue;   // MATCHnomatch
+            }
+        }
+
         if (m2 < m_best2)
             goto Ltd_best;
         if (m2 > m_best2)
@@ -2199,11 +2225,14 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             fd_best = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
             if (!fd_best)
                 goto Lerror;
+            tthis_best = fd_best->needThis() ? tthis : NULL;
         }
+        if (!fd)
         {
             fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
             if (!fd)
                 goto Lerror;
+            tthis_fd = fd->needThis() ? tthis : NULL;
         }
         assert(fd && fd_best);
 
@@ -2211,8 +2240,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         // Disambiguate by tf->callMatch
         TypeFunction *tf1 = (TypeFunction *)fd->type;
         TypeFunction *tf2 = (TypeFunction *)fd_best->type;
-        MATCH c1 = (MATCH) tf1->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
-        MATCH c2 = (MATCH) tf2->callMatch(fd_best->needThis() && !fd_best->isCtorDeclaration() ? tthis : NULL, fargs);
+        MATCH c1 = tf1->callMatch(tthis_fd, fargs);
+        MATCH c2 = tf2->callMatch(tthis_best, fargs);
         //printf("2: c1 = %d, c2 = %d\n", c1, c2);
 
         if (c1 > c2)
@@ -2246,6 +2275,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         assert(td->scope);
         td_best = td;
         fd_best = fd;
+        tthis_best = tthis_fd;
         m_best = m;
         m_best2 = m2;
         tdargs->setDim(dedargs.dim);
