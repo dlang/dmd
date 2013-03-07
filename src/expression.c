@@ -1980,8 +1980,12 @@ Expression *Expression::checkToBoolean(Scope *sc)
     assert(type);
 #endif
 
-    // Structs can be converted to bool using opCast(bool)()
+    Expression *e = this;
+    Type *t = type;
     Type *tb = type->toBasetype();
+    Type *att = NULL;
+Lagain:
+    // Structs can be converted to bool using opCast(bool)()
     if (tb->ty == Tstruct)
     {   AggregateDeclaration *ad = ((TypeStruct *)tb)->sym;
         /* Don't really need to check for opCast first, but by doing so we
@@ -1990,26 +1994,29 @@ Expression *Expression::checkToBoolean(Scope *sc)
         Dsymbol *fd = search_function(ad, Id::cast);
         if (fd)
         {
-            Expression *e = new CastExp(loc, this, Type::tbool);
+            e = new CastExp(loc, e, Type::tbool);
             e = e->semantic(sc);
             return e;
         }
 
         // Forward to aliasthis.
-        if (ad->aliasthis)
+        if (ad->aliasthis && tb != att)
         {
-            Expression *e = resolveAliasThis(sc, this);
-            e = e->checkToBoolean(sc);
-            return e;
+            if (!att && tb->checkAliasThisRec())
+                att = tb;
+            e = resolveAliasThis(sc, e);
+            t = e->type;
+            tb = e->type->toBasetype();
+            goto Lagain;
         }
     }
 
-    if (!type->checkBoolean())
-    {   if (type->toBasetype() != Type::terror)
-            error("expression %s of type %s does not have a boolean value", toChars(), type->toChars());
+    if (!t->checkBoolean())
+    {   if (tb != Type::terror)
+            error("expression %s of type %s does not have a boolean value", toChars(), t->toChars());
         return new ErrorExp();
     }
-    return this;
+    return e;
 }
 
 /****************************
@@ -6126,6 +6133,7 @@ UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
         : Expression(loc, op, size)
 {
     this->e1 = e1;
+    this->att1 = NULL;
 }
 
 Expression *UnaExp::syntaxCopy()
@@ -6166,6 +6174,9 @@ BinExp::BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
 {
     this->e1 = e1;
     this->e2 = e2;
+
+    this->att1 = NULL;
+    this->att2 = NULL;
 }
 
 Expression *BinExp::syntaxCopy()
@@ -7992,8 +8003,10 @@ Lagain:
 
             if (e1->op != TOKtype)
             {
-                if (ad->aliasthis)
+                if (ad->aliasthis && e1->type != att1)
                 {
+                    if (!att1 && e1->type->checkAliasThisRec())
+                        att1 = e1->type;
                     e1 = resolveAliasThis(sc, e1);
                     goto Lagain;
                 }
@@ -9421,8 +9434,10 @@ Lagain:
             e = e->semantic(sc);
             return e;
         }
-        if (ad->aliasthis)
+        if (ad->aliasthis && e1->type != att1)
         {
+            if (!att1 && e1->type->checkAliasThisRec())
+                att1 = e1->type;
             e1 = resolveAliasThis(sc, e1);
             goto Lagain;
         }
@@ -10249,6 +10264,7 @@ Expression *AssignExp::semantic(Scope *sc)
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
+        Expression *e1 = ae->e1;
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
@@ -10267,7 +10283,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
-                Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
+                Expression *e = new DotIdExp(loc, e1, Id::indexass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -10275,18 +10291,20 @@ Expression *AssignExp::semantic(Scope *sc)
         }
 
         // No opIndexAssign found yet, but there might be an alias this to try.
-        if (ad && ad->aliasthis)
-        {   Expression *e = resolveAliasThis(sc, ae->e1);
-            Type *t = e->type->toBasetype();
-
-            if (t->ty == Tstruct)
+        if (ad && ad->aliasthis && t1 != att1)
+        {
+            if (!att1 && t1->checkAliasThisRec())
+                att1 = t1;
+            e1 = resolveAliasThis(sc, e1);
+            t1 = e1->type->toBasetype();
+            if (t1->ty == Tstruct)
             {
-                ad = ((TypeStruct *)t)->sym;
+                ad = ((TypeStruct *)t1)->sym;
                 goto L1;
             }
-            else if (t->ty == Tclass)
+            else if (t1->ty == Tclass)
             {
-                ad = ((TypeClass *)t)->sym;
+                ad = ((TypeClass *)t1)->sym;
                 goto L1;
             }
         }
@@ -10296,14 +10314,15 @@ Expression *AssignExp::semantic(Scope *sc)
      * converted to a.opSlice() already.
      */
     if (e1->op == TOKslice)
-    {   Type *t1;
+    {
         SliceExp *ae = (SliceExp *)e1;
         AggregateDeclaration *ad = NULL;
         Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
-        t1 = ae->e1->type->toBasetype();
+        Expression *e1 = ae->e1;
+        Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
             ad = ((TypeStruct *)t1)->sym;
@@ -10324,7 +10343,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 {   a->push(ae->lwr);
                     a->push(ae->upr);
                 }
-                Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
+                Expression *e = new DotIdExp(loc, e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -10332,18 +10351,20 @@ Expression *AssignExp::semantic(Scope *sc)
         }
 
         // No opSliceAssign found yet, but there might be an alias this to try.
-        if (ad && ad->aliasthis)
-        {   Expression *e = resolveAliasThis(sc, ae->e1);
-            Type *t = e->type->toBasetype();
-
-            if (t->ty == Tstruct)
+        if (ad && ad->aliasthis && t1 != att1)
+        {
+            if (!att1 && t1->checkAliasThisRec())
+                att1 = t1;
+            e1 = resolveAliasThis(sc, e1);
+            t1 = e1->type->toBasetype();
+            if (t1->ty == Tstruct)
             {
-                ad = ((TypeStruct *)t)->sym;
+                ad = ((TypeStruct *)t1)->sym;
                 goto L2;
             }
-            else if (t->ty == Tclass)
+            else if (t1->ty == Tclass)
             {
-                ad = ((TypeClass *)t)->sym;
+                ad = ((TypeClass *)t1)->sym;
                 goto L2;
             }
         }

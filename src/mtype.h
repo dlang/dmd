@@ -290,6 +290,7 @@ struct Type : Object
     Type *referenceTo();
     Type *arrayOf();
     Type *aliasthisOf();
+    int checkAliasThisRec();
     virtual Type *makeConst();
     virtual Type *makeInvariant();
     virtual Type *makeShared();
@@ -792,9 +793,20 @@ struct TypeReturn : TypeQualified
     void toJson(JsonOut *json);
 };
 
+// Whether alias this dependency is recursive or not.
+enum AliasThisRec
+{
+    RECno = 0,      // no alias this recursion
+    RECyes = 1,     // alias this has recursive dependency
+    RECfwdref = 2,  // not yet known
+
+    RECtracing = 0x4, // mark in progress of implicitConvTo/wildConvTo
+};
+
 struct TypeStruct : Type
 {
     StructDeclaration *sym;
+    enum AliasThisRec att;
 
     TypeStruct(StructDeclaration *sym);
     const char *kind();
@@ -930,6 +942,7 @@ struct TypeTypedef : Type
 struct TypeClass : Type
 {
     ClassDeclaration *sym;
+    enum AliasThisRec att;
 
     TypeClass(ClassDeclaration *sym);
     const char *kind();

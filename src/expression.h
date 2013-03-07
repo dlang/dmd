@@ -767,6 +767,7 @@ struct IsExp : Expression
 struct UnaExp : Expression
 {
     Expression *e1;
+    Type *att1; // Save alias this type to detect recursion
 
     UnaExp(Loc loc, enum TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
@@ -789,6 +790,9 @@ struct BinExp : Expression
 {
     Expression *e1;
     Expression *e2;
+
+    Type *att1; // Save alias this type to detect recursion
+    Type *att2; // Save alias this type to detect recursion
 
     BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
