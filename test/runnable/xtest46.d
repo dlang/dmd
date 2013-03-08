@@ -2167,8 +2167,9 @@ void test109()
 
 template Boo(T) {}
 struct Foo110(T, alias V = Boo!T)
-{ pragma(msg, V.stringof);
-  const s = V.stringof;
+{
+    pragma(msg, V.stringof);
+    static const s = V.stringof;
 }
 alias Foo110!double B110;
 alias Foo110!int A110;

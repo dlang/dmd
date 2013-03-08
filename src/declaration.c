@@ -1154,13 +1154,6 @@ Lnomatch:
         {
 #if DMDV2
             assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
-
-            if (storage_class & (STCconst | STCimmutable) && init)
-            {
-                if (!tb->isTypeBasic())
-                    storage_class |= STCstatic;
-            }
-            else
 #endif
             {
                 storage_class |= STCfield;
@@ -1886,9 +1879,6 @@ AggregateDeclaration *VarDeclaration::isThis()
     if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
                            STCtls | STCgshared | STCctfe)))
     {
-        if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
-            return NULL;
-
         for (Dsymbol *s = this; s; s = s->parent)
         {
             ad = s->isMember();
