@@ -58,22 +58,30 @@ private:
     Expressions values;   // values on the stack
     VarDeclarations vars; // corresponding variables
     ArrayBase<void> savedId; // id of the previous state of that var
-    ArrayBase<void> frames; // all previous frame pointers
+
+    ArrayBase<void> frames;  // all previous frame pointers
+    Expressions savedThis;   // all previous values of localThis
 
     /* Global constants get saved here after evaluation, so we never
      * have to redo them. This saves a lot of time and memory.
      */
     Expressions globalValues; // values of global constants
-    size_t framepointer; // current frame pointer
-    size_t maxStackPointer; // most stack we've ever used
+
+    size_t framepointer;      // current frame pointer
+    size_t maxStackPointer;   // most stack we've ever used
+    Expression *localThis;    // value of 'this', or NULL if none
 public:
     CtfeStack();
 
     size_t stackPointer();
 
+    // The current value of 'this', or NULL if none
+    Expression *getThis();
+
     // Largest number of stack positions we've used
     size_t maxStackUsage();
-    void startFrame();
+    // Start a new stack frame, using the provided 'this'.
+    void startFrame(Expression *thisexp);
     void endFrame();
     bool isInCurrentFrame(VarDeclaration *v);
     Expression *getValue(VarDeclaration *v);
@@ -93,7 +101,6 @@ struct InterState
                                  * target of labelled EXP_BREAK_INTERPRET or
                                  * EXP_CONTINUE_INTERPRET. (NULL if no label).
                                  */
-    Expression *localThis;      // value of 'this', or NULL if none
     bool awaitingLvalueReturn;  // Support for ref return values:
            // Any return to this function should return an lvalue.
     InterState();
@@ -112,25 +119,34 @@ size_t CtfeStack::stackPointer()
     return values.dim;
 }
 
+Expression *CtfeStack::getThis()
+{
+    return localThis;
+}
+
 // Largest number of stack positions we've used
 size_t CtfeStack::maxStackUsage()
 {
     return maxStackPointer;
 }
 
-void CtfeStack::startFrame()
+void CtfeStack::startFrame(Expression *thisexp)
 {
     size_t oldframe = framepointer;
     frames.push((void *)(size_t)(framepointer));
+    savedThis.push(localThis);
     framepointer = stackPointer();
+    localThis = thisexp;
 }
 
 void CtfeStack::endFrame()
 {
     size_t oldframe = (size_t)(frames[frames.dim-1]);
+    localThis = savedThis[savedThis.dim-1];
     popAll(framepointer);
     framepointer = oldframe;
     frames.setDim(frames.dim - 1);
+    savedThis.setDim(savedThis.dim -1);
 }
 
 bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
@@ -240,9 +256,9 @@ void printCtfePerformanceStats()
 }
 
 
-Expression * resolveReferences(Expression *e, Expression *thisval);
+Expression * resolveReferences(Expression *e);
 Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal);
-VarDeclaration *findParentVar(Expression *e, Expression *thisval);
+VarDeclaration *findParentVar(Expression *e);
 Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     FuncDeclaration *fd, Expressions *arguments, Expression *pthis);
 Expression *scrubReturnValue(Loc loc, Expression *e);
@@ -299,13 +315,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // Func literals report isNested() even if they are in global scope,
     // so we need to check that the parent is a function.
     if (isNested() && toParent2()->isFuncDeclaration() && !thisarg && istate)
-        thisarg = istate->localThis;
-
-    InterState istatex;
-    istatex.caller = istate;
-    istatex.fd = this;
-    istatex.localThis = thisarg;
-    ctfeStack.startFrame();
+        thisarg = ctfeStack.getThis();
 
     size_t dim = 0;
     if (needThis() && !thisarg)
@@ -319,6 +329,11 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             return EXP_CANT_INTERPRET;
     }
     static int evaluatingArgs = 0;
+
+    // Place to hold all the arguments to the function while
+    // we are evaluating them.
+    Expressions eargs;
+
     if (arguments)
     {
         dim = arguments->dim;
@@ -327,7 +342,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         /* Evaluate all the arguments to the function,
          * store the results in eargs[]
          */
-        Expressions eargs;
         eargs.setDim(dim);
         for (size_t i = 0; i < dim; i++)
         {   Expression *earg = (*arguments)[i];
@@ -385,6 +399,18 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
             }
             eargs[i] = earg;
         }
+    }
+
+    // Now that we've evaluated all the arguments, we can start the frame
+    // (this is the moment when the 'call' actually takes place).
+
+    InterState istatex;
+    istatex.caller = istate;
+    istatex.fd = this;
+    ctfeStack.startFrame(thisarg);
+
+    if (arguments)
+    {
 
         for (size_t i = 0; i < dim; i++)
         {   Expression *earg = eargs[i];
@@ -1355,12 +1381,11 @@ Expression *Expression::interpret(InterState *istate, CtfeGoal goal)
 
 Expression *ThisExp::interpret(InterState *istate, CtfeGoal goal)
 {
-    while (istate && !istate->localThis)
-        istate = istate->caller;
-    if (istate && istate->localThis && istate->localThis->op == TOKstructliteral)
-        return istate->localThis;
-    if (istate && istate->localThis)
-        return istate->localThis->interpret(istate, goal);
+    Expression *localThis = ctfeStack.getThis();
+    if (localThis && localThis->op == TOKstructliteral)
+        return localThis;
+    if (localThis)
+        return localThis->interpret(istate, goal);
     error("value of 'this' is not known at compile time");
     return EXP_CANT_INTERPRET;
 }
@@ -1529,12 +1554,13 @@ Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 // -------------------------------------------------------------
 // The variable used in a dotvar, index, or slice expression,
 // after 'out', 'ref', and 'this' have been removed.
-Expression * resolveReferences(Expression *e, Expression *thisval)
+Expression * resolveReferences(Expression *e)
 {
     for(;;)
     {
         if (e->op == TOKthis)
         {
+            Expression *thisval = ctfeStack.getThis();
             assert(thisval);
             assert(e != thisval);
             e = thisval;
@@ -2393,11 +2419,11 @@ BIN_INTERPRET2(Cmp, ctfeCmp)
 
 // Returns the variable which is eventually modified, or NULL if an rvalue.
 // thisval is the current value of 'this'.
-VarDeclaration * findParentVar(Expression *e, Expression *thisval)
+VarDeclaration * findParentVar(Expression *e)
 {
     for (;;)
     {
-        e = resolveReferences(e, thisval);
+        e = resolveReferences(e);
         if (e->op == TOKvar)
             break;
         if (e->op == TOKindex)
@@ -2492,7 +2518,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
          * can be dealt with by making this a non-ref assign (y = x.dup).
          * Otherwise it's a big mess.
          */
-        VarDeclaration * targetVar = findParentVar(e2, istate->localThis);
+        VarDeclaration * targetVar = findParentVar(e2);
         if (!(targetVar && targetVar->isConst()))
             wantRef = true;
         // slice assignment of static arrays is not reference assignment
@@ -2533,7 +2559,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // First, deal with  this = e; and call() = e;
     if (e1->op == TOKthis)
     {
-        e1 = istate->localThis;
+        e1 = ctfeStack.getThis();
     }
     if (e1->op == TOKcall)
     {
@@ -2603,7 +2629,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             return oldval;
         while (oldval->op == TOKvar)
         {
-            oldval = resolveReferences(oldval, istate->localThis);
+            oldval = resolveReferences(oldval);
             oldval = oldval->interpret(istate);
             if (exceptionOrCantInterpret(oldval))
                 return oldval;
@@ -2672,7 +2698,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             {   // Get the old array literal.
                 oldval = e1->interpret(istate);
                 while (oldval->op == TOKvar)
-                {   oldval = resolveReferences(oldval, istate->localThis);
+                {   oldval = resolveReferences(oldval);
                     oldval = oldval->interpret(istate);
                 }
             }
@@ -2724,14 +2750,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // -------------------------------------------------
     // Make sure we're not trying to modify a global or static variable
     // We do this by locating the ultimate parent variable which gets modified.
-    VarDeclaration * ultimateVar = findParentVar(e1, istate->localThis);
+    VarDeclaration * ultimateVar = findParentVar(e1);
     if (ultimateVar && ultimateVar->isDataseg() && !ultimateVar->isCTFE())
     {   // Can't modify global or static data
         error("%s cannot be modified at compile time", ultimateVar->toChars());
         return EXP_CANT_INTERPRET;
     }
 
-    e1 = resolveReferences(e1, istate->localThis);
+    e1 = resolveReferences(e1);
 
     // Unless we have a simple var assignment, we're
     // only modifying part of the variable. So we need to make sure
@@ -2792,7 +2818,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             ie = (IndexExp *)ie->e1;
             ++depth;
         }
-        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
+        Expression *aggregate = resolveReferences(ie->e1);
         Expression *oldagg = aggregate;
         // Get the AA to be modified. (We do an LvalueRef interpret, unless it
         // is a simple ref parameter -- in which case, we just want the value)
@@ -3042,7 +3068,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         ArrayLiteralExp *existingAE = NULL;
         StringExp *existingSE = NULL;
 
-        Expression *aggregate = resolveReferences(ie->e1, istate->localThis);
+        Expression *aggregate = resolveReferences(ie->e1);
 
         // Set the index to modify, and check that it is in range
         dinteger_t indexToModify = index->toInteger();
@@ -3265,7 +3291,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (upperbound == lowerbound)
             return newval;
 
-        Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1, istate->localThis);
+        Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1);
         dinteger_t firstIndex = lowerbound;
 
         ArrayLiteralExp *existingAE = NULL;
@@ -4043,7 +4069,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     InterState istateComma;
     if (!istate &&  firstComma->e1->op == TOKdeclaration)
     {
-        ctfeStack.startFrame();
+        ctfeStack.startFrame(NULL);
         istate = &istateComma;
     }
 
@@ -4800,8 +4826,8 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
 #else // this is required for D1, where structs return *this instead of 'this'.
     else if (e1->op == TOKthis)
     {
-        if(istate->localThis)
-            return istate->localThis->interpret(istate);
+        if (ctfeStack.getThis())
+            return ctfeStack.getThis()->interpret(istate);
     }
 #endif
     else
