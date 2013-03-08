@@ -510,6 +510,9 @@
     <ClCompile Include="backend\pdata.c">
       <Filter>src\backend</Filter>
     </ClCompile>
+    <ClCompile Include="target.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aggregate.h">
@@ -766,6 +769,9 @@
     </ClInclude>
     <ClInclude Include="vcbuild\warnings.h">
       <Filter>src\vcbuild</Filter>
+    </ClInclude>
+    <ClInclude Include="target.h">
+      <Filter>src</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
