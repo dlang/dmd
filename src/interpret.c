@@ -58,6 +58,7 @@ private:
     Expressions values;   // values on the stack
     VarDeclarations vars; // corresponding variables
     ArrayBase<void> savedId; // id of the previous state of that var
+    ArrayBase<void> frames; // all previous frame pointers
 
     /* Global constants get saved here after evaluation, so we never
      * have to redo them. This saves a lot of time and memory.
@@ -72,9 +73,8 @@ public:
 
     // Largest number of stack positions we've used
     size_t maxStackUsage();
-    // return the previous frame
-    size_t startFrame();
-    void endFrame(size_t oldframe);
+    void startFrame();
+    void endFrame();
     bool isInCurrentFrame(VarDeclaration *v);
     Expression *getValue(VarDeclaration *v);
     void setValue(VarDeclaration *v, Expression *e);
@@ -88,7 +88,6 @@ struct InterState
 {
     InterState *caller;         // calling function's InterState
     FuncDeclaration *fd;        // function being interpreted
-    size_t framepointer;        // frame pointer of previous frame
     Statement *start;           // if !=NULL, start execution at this statement
     Statement *gotoTarget;      /* target of EXP_GOTO_INTERPRET result; also
                                  * target of labelled EXP_BREAK_INTERPRET or
@@ -119,18 +118,19 @@ size_t CtfeStack::maxStackUsage()
     return maxStackPointer;
 }
 
-// return the previous frame
-size_t CtfeStack::startFrame()
+void CtfeStack::startFrame()
 {
     size_t oldframe = framepointer;
+    frames.push((void *)(size_t)(framepointer));
     framepointer = stackPointer();
-    return oldframe;
 }
 
-void CtfeStack::endFrame(size_t oldframe)
+void CtfeStack::endFrame()
 {
+    size_t oldframe = (size_t)(frames[frames.dim-1]);
     popAll(framepointer);
     framepointer = oldframe;
+    frames.setDim(frames.dim - 1);
 }
 
 bool CtfeStack::isInCurrentFrame(VarDeclaration *v)
@@ -305,7 +305,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     istatex.caller = istate;
     istatex.fd = this;
     istatex.localThis = thisarg;
-    istatex.framepointer = ctfeStack.startFrame();
+    ctfeStack.startFrame();
 
     size_t dim = 0;
     if (needThis() && !thisarg)
@@ -469,7 +469,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     // Leave the function
     --CtfeStatus::callDepth;
 
-    ctfeStack.endFrame(istatex.framepointer);
+    ctfeStack.endFrame();
 
     // If fell off the end of a void function, return void
     if (!e && type->toBasetype()->nextOf()->ty == Tvoid)
@@ -4071,7 +4071,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             if (exceptionOrCantInterpret(newval))
             {
                 if (istate == &istateComma)
-                    ctfeStack.endFrame(0);
+                    ctfeStack.endFrame();
                 return newval;
             }
             if (newval != EXP_VOID_INTERPRET)
@@ -4093,7 +4093,7 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     }
     // If we created a temporary stack frame, end it now.
     if (istate == &istateComma)
-        ctfeStack.endFrame(0);
+        ctfeStack.endFrame();
     return e;
 }
 
