@@ -686,6 +686,14 @@
 				>
 			</File>
 			<File
+				RelativePath=".\target.c"
+				>
+			</File>
+			<File
+				RelativePath=".\target.h"
+				>
+			</File>
+			<File
 				RelativePath=".\template.c"
 				>
 			</File>

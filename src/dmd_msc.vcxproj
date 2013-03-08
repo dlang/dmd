@@ -171,6 +171,7 @@
     <ClCompile Include="statement.c" />
     <ClCompile Include="staticassert.c" />
     <ClCompile Include="struct.c" />
+    <ClCompile Include="target.c" />
     <ClCompile Include="template.c" />
     <ClCompile Include="tk.c" />
     <ClCompile Include="tocsym.c" />
@@ -461,6 +462,7 @@ if errorlevel 1 goto VCReportError
     <ClInclude Include="scope.h" />
     <ClInclude Include="statement.h" />
     <ClInclude Include="staticassert.h" />
+    <ClInclude Include="target.h" />
     <ClInclude Include="template.h" />
     <ClInclude Include="toir.h" />
     <ClInclude Include="total.h" />
