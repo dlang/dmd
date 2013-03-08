@@ -1150,8 +1150,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = e->trySemantic(sc2);
                     if (!e)
                     {
-                        const char* impGen = ((CtorDeclaration*)this)->isImplicit ? "implicitly generated " : "";
-                        error("no match for implicit super() call in %sconstructor", impGen);
+                        error("no match for implicit super() call in constructor");
                     }
                     else
                     {
