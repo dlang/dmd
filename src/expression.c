@@ -10735,7 +10735,13 @@ Ltupleassign:
                 else
                     warning("explicit element-wise assignment (%s)[] = (%s)[] is better than %s = %s",
                         e1str, e2str, e1str, e2str);
-                return new ErrorExp();
+
+                // Convert e2 to e2[] to avoid duplicated error message.
+                if (t2->ty == Tarray)
+                {
+                    Expression *e = new SliceExp(e2->loc, e2, NULL, NULL);
+                    e2 = e->semantic(sc);
+                }
             }
 
             // Convert e1 to e1[]
@@ -10848,7 +10854,6 @@ Ltupleassign:
             const char* e2str = e2->toChars();
             warning("explicit element-wise assignment %s = (%s)[] is better than %s = %s",
                 e1str, e2str, e1str, e2str);
-            return new ErrorExp();
         }
         if (op == TOKconstruct)
             e2 = e2->castTo(sc, e1->type->constOf());
@@ -10868,7 +10873,6 @@ Ltupleassign:
             warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
                 e1->op == TOKslice ? "element-wise" : "slice",
                 e1str, e2str, e1str, e2str);
-            return new ErrorExp();
         }
         e2 = e2->implicitCastTo(sc, e1->type);
     }
