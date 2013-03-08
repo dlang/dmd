@@ -1296,8 +1296,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     e = e->trySemantic(sc2);
                     if (!e)
                     {
-                        const char* impGen = ((CtorDeclaration*)this)->isImplicit ? "implicitly generated " : "";
-                        error("no match for implicit super() call in %sconstructor", impGen);
+                        error("no match for implicit super() call in constructor");
                     }
                     else
                     {
@@ -3780,7 +3779,6 @@ CtorDeclaration::CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *ty
     : FuncDeclaration(loc, endloc, Id::ctor, stc, type)
 {
     //printf("CtorDeclaration(loc = %s) %s\n", loc.toChars(), toChars());
-    this->isImplicit = false;
 }
 
 Dsymbol *CtorDeclaration::syntaxCopy(Dsymbol *s)
