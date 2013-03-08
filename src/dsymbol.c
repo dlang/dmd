@@ -33,6 +33,9 @@
 #include "attrib.h"
 #include "enum.h"
 
+const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+
+
 /****************************** Dsymbol ******************************/
 
 Dsymbol::Dsymbol()
