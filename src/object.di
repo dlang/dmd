@@ -48,7 +48,6 @@ class Object
 
 bool opEquals(const Object lhs, const Object rhs);
 bool opEquals(Object lhs, Object rhs);
-//bool opEquals(TypeInfo lhs, TypeInfo rhs);
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
