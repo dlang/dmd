@@ -260,41 +260,6 @@ class Semaphore
 
 
     /**
-     * $(RED Deprecated. It will be removed in December 2012. Please use the
-     *       version which takes a $(D Duration) instead.)
-     *
-     * Suspends the calling thread until the current count moves above zero or
-     * until the supplied time period has elapsed.  If the count moves above
-     * zero in this interval, then atomically decrement the count by one and
-     * return true.  Otherwise, return false.
-     *
-     * Params:
-     *  period = The time to wait, in 100 nanosecond intervals.  This value may
-     *           be adjusted to equal to the maximum wait period supported by
-     *           the target platform if it is too large.
-     *
-     * In:
-     *  period must be non-negative.
-     *
-     * Throws:
-     *  SyncException on error.
-     *
-     * Returns:
-     *  true if notified before the timeout and false if not.
-     */
-    deprecated("Please use the overload of wait which takes a Duration.")
-    bool wait( long period )
-    in
-    {
-        assert( period >= 0 );
-    }
-    body
-    {
-        return wait( dur!("hnsecs")( period ) );
-    }
-
-
-    /**
      * Atomically increment the current count by one.  This will notify one
      * waiter, if there are any in the queue.
      *
