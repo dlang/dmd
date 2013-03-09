@@ -1220,29 +1220,6 @@ private:
     {
         m_call = Call.NO;
         m_curr = &m_main;
-
-        version (OSX)
-        {
-            //printf("test2 %p %p\n", _tls_data_array[0].ptr, &_tls_data_array[1][length]);
-            //printf("test2 %p %p\n", &_tls_beg, &_tls_end);
-            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-            //       data output by the compiler is bracketed by _tls_data_array2],
-            //       so make a copy of it for each thread.
-            const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
-            const sz2 = sz0 + _tls_data_array[1].length;
-            auto p = malloc( sz2 );
-            assert( p );
-            m_tls = p[0 .. sz2];
-            memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
-            memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
-            // The free must happen at program end, if anywhere.
-        }
-        else
-        {
-            auto pstart = cast(void*) &_tlsstart;
-            auto pend   = cast(void*) &_tlsend;
-            m_tls = pstart[0 .. pend - pstart];
-        }
     }
 
 
