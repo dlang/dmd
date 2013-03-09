@@ -19,7 +19,7 @@
 #endif
 
 #if _WIN32 && __DMC__
-extern "C" char * __cdecl __locale_decpoint;
+extern "C" const char * __cdecl __locale_decpoint;
 #endif
 
 #include "rmem.h"
@@ -2625,7 +2625,7 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
     ld_sprint(buffer, 'g', value);
     assert(strlen(buffer) < sizeof(buffer));
 #if _WIN32 && __DMC__
-    char *save = __locale_decpoint;
+    const char *save = __locale_decpoint;
     __locale_decpoint = ".";
     real_t r = strtold(buffer, NULL);
     __locale_decpoint = save;
