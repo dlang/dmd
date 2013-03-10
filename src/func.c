@@ -445,7 +445,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 for (size_t i = 0; i < cd->baseClass->vtbl.dim; i++)
                 {
                     FuncDeclaration *f = cd->baseClass->vtbl[i]->isFuncDeclaration();
-                    if (f && !f->functionSemantic())
+                    if (f && f->ident == ident && !f->functionSemantic())
                         goto Ldone;
                 }
             }
