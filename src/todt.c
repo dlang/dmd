@@ -29,12 +29,11 @@
 #include        "aggregate.h"
 #include        "declaration.h"
 #include        "target.h"
-
-
+#include        "ctfe.h"
+#include        "arraytypes.h"
 // Back end
 #include        "dt.h"
 
-typedef ArrayBase<dt_t> Dts;
 
 /* ================================================================ */
 
@@ -287,6 +286,9 @@ dt_t *ExpInitializer::toDt()
 
 /* ================================================================ */
 
+
+
+
 dt_t **Expression::toDt(dt_t **pdt)
 {
 #if 0
@@ -297,6 +299,52 @@ dt_t **Expression::toDt(dt_t **pdt)
     pdt = dtnzeros(pdt, 1);
     return pdt;
 }
+
+dt_t **CastExp::toDt(dt_t **pdt)
+{
+#if 0
+  printf("CastExp::toDt() %d from %s to %s\n", op, e1->type->toChars(), type->toChars());
+#endif
+  if(e1->type->ty == Tclass && type->ty == Tclass)
+  {
+    if(((TypeClass*)type)->sym->isInterfaceDeclaration())//casting from class to interface
+    {
+      ClassDeclaration *from = ((TypeClass*)e1->type)->sym;
+      InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
+      int off = 0;
+      int isbase = to->isBaseOf(from, &off);
+      assert(isbase);
+  
+      return ((ClassReferenceExp*)e1)->toDtI(pdt, off);
+
+    }
+    else //casting from class to class
+    {
+      return e1->toDt(pdt);
+    }
+  }
+  
+  return UnaExp::toDt(pdt);
+  
+  
+}
+
+dt_t **AddrExp::toDt(dt_t **pdt)
+{
+#if 0
+  printf("AddrExp::toDt() %d\n", op);
+#endif
+  if(e1->op == TOKstructliteral)
+  {
+    dt_t* d = NULL;
+    e1->toDt(&d);
+    dtdtoff(pdt, d, 0);
+    return pdt;
+  }
+
+  return UnaExp::toDt(pdt);
+}
+
 
 dt_t **IntegerExp::toDt(dt_t **pdt)
 {
@@ -903,5 +951,190 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
     return pdt;
 }
 
+/*****************************************************/
+/*                   CTFE stuff                      */
+/*****************************************************/
 
+dt_t **ClassReferenceExp::toDt(dt_t **pdt)
+{
+    return toDtI(pdt, 0);
+}
 
+dt_t **ClassReferenceExp::toDtI(dt_t **pdt, int off)
+{
+#if 0
+    printf("ClassReferenceExp::toDtI() %d\n", op);
+#endif
+		dt_t *d = NULL;
+    dt_t **pdtend = &d;
+
+		
+    Dts dts;
+    dts.setDim(value->elements->dim);
+    dts.zero();
+    //assert(value->elements->dim <= value->sd->fields.dim);
+    for (size_t i = 0; i < value->elements->dim; i++)
+    {
+        Expression *e = (*value->elements)[i];
+        if (!e)
+            continue;
+        dt_t *dt = NULL;
+        e->toDt(&dt);           // convert e to an initializer dt
+        dts[i] = dt;
+    }
+		
+		
+		dtxoff(pdtend, originalClass()->toVtblSymbol(), 0);
+    dtsize_t(pdtend, 0);                    // monitor
+    // Put in the rest
+    toDt2(&d, originalClass(), &dts);
+    
+		dtdtoff(pdt, d, off);
+    
+    return pdt;
+}
+
+// Generates the data for the static initializer of class variable.
+// dts is an array of dt fields, which values have been evaluated in compile time.
+// cd - is a ClassDeclaration, for which initializing data is being built
+// this function, being alike to ClassDeclaration::toDt2, recursively builds the dt for all base classes.
+
+dt_t ** ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts* dts)
+{
+    unsigned offset;
+    unsigned csymoffset;
+#define LOG 0
+
+#if LOG
+    printf("ClassReferenceExp::toDt2(this = '%s', cd = '%s')\n", toChars(), cd->toChars());
+#endif
+    if (cd->baseClass)
+    {
+        toDt2(pdt, cd->baseClass, dts);
+        offset = cd->baseClass->structsize;
+    }
+    else
+    {
+        offset = Target::ptrsize * 2;
+    }
+
+    for (size_t i = 0; i < cd->fields.dim; i++)
+    {
+        VarDeclaration *v = cd->fields[i];
+        int idx = findFieldIndexByName(v);
+        assert(idx != -1);
+        dt_t *d = (*dts)[idx];
+				
+        if(!d)
+        {
+            dt_t *dt = NULL;
+            Initializer *init = v->init;
+            if (init)
+            {   //printf("\t\t%s has initializer %s\n", v->toChars(), init->toChars());
+                ExpInitializer *ei = init->isExpInitializer();
+                Type *tb = v->type->toBasetype();
+                if (init->isVoidInitializer())
+                    ;
+                else if (ei && tb->ty == Tsarray)
+                    ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
+                else
+                    dt = init->toDt();
+            }
+            else if (v->offset >= offset)
+            {   //printf("\t\tdefault initializer\n");
+                v->type->toDt(&dt);
+            }
+            if (dt)
+            {
+                if (v->offset < offset)
+                    error("duplicated union initialization for %s", v->toChars());
+                else
+                {
+                    if (offset < v->offset)
+                        dtnzeros(pdt, v->offset - offset);
+                    dtcat(pdt, dt);
+                    offset = v->offset + v->type->size();
+                }
+            }
+        }
+        else
+        {
+          if (v->offset < offset)
+              error("duplicate union initialization for %s", v->toChars());
+          else
+          {
+              unsigned sz = dt_size(d);
+              unsigned vsz = v->type->size();
+              unsigned voffset = v->offset;
+              
+              if (sz > vsz)
+              {   assert(v->type->ty == Tsarray && vsz == 0);
+                  error("zero length array %s has non-zero length initializer", v->toChars());
+              }
+              
+              size_t dim = 1;
+              Type *vt;
+              for (vt = v->type->toBasetype();
+                   vt->ty == Tsarray;
+                   vt = vt->nextOf()->toBasetype())
+              {   TypeSArray *tsa = (TypeSArray *)vt;
+                  dim *= tsa->dim->toInteger();
+              }
+              //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
+              assert(sz == vsz || sz * dim <= vsz);
+              
+              for (size_t i = 0; i < dim; i++)
+              {
+                  if (offset < voffset)
+                      pdt = dtnzeros(pdt, voffset - offset);
+                  if (!d)
+                  {
+                      if (v->init)
+                          d = v->init->toDt();
+                      else
+                          vt->toDt(&d);
+                  }
+                  pdt = dtcat(pdt, d);
+                  d = NULL;
+                  offset = voffset + sz;
+                  voffset += vsz / dim;
+                  if (sz == vsz)
+                      break;
+              }
+          }
+        }
+    }
+
+    // Interface vptr initializations
+    cd->toSymbol();                                         // define csym
+
+    for (size_t i = 0; i < cd->vtblInterfaces->dim; i++)
+    {   BaseClass *b = (*cd->vtblInterfaces)[i];
+
+#if 1 || INTERFACE_VIRTUAL
+        for (ClassDeclaration *cd2 = originalClass(); 1; cd2 = cd2->baseClass)
+        {
+            assert(cd2);
+            csymoffset = cd2->baseVtblOffset(b);
+            if (csymoffset != ~0)
+            {
+                if (offset < b->offset)
+                    dtnzeros(pdt, b->offset - offset);
+                dtxoff(pdt, cd2->toSymbol(), csymoffset);
+                break;
+            }
+        }
+#else
+        csymoffset = baseVtblOffset(b);
+        assert(csymoffset != ~0);
+        dtxoff(pdt, csym, csymoffset);
+#endif
+        offset = b->offset + Target::ptrsize;
+    }
+
+    if (offset < cd->structsize)
+        dtnzeros(pdt, cd->structsize - offset);
+
+#undef LOG
+    return pdt;
+}

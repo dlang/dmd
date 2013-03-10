@@ -14,6 +14,7 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include "arraytypes.h"
 
 /**
    Global status of the CTFE engine. Mostly used for performance diagnostics
@@ -39,6 +40,7 @@ struct CtfeStatus
   A reference to a class, or an interface. We need this when we
   point to a base class (we must record what the type is).
  */
+
 struct ClassReferenceExp : Expression
 {
     StructLiteralExp *value;
@@ -53,6 +55,9 @@ struct ClassReferenceExp : Expression
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
+		dt_t **toDt(dt_t **pdt);
+    dt_t **toDtI(dt_t **pdt, int offset);
+		dt_t **toDt2(dt_t **pdt, ClassDeclaration *cd, Dts* dts);
 };
 
 /// Return index of the field, or -1 if not found

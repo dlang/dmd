@@ -2803,6 +2803,95 @@ void test8818()
 }
 
 
+
+/************************************************/
+
+struct Test104Node
+{
+  int val;
+  Test104Node* next;
+}
+
+Test104Node* CreateList(int[] arr)
+{
+  if(!arr.length) return null;
+  Test104Node* ret = new Test104Node;
+  ret.val = arr[0];
+  ret.next = CreateList(arr[1..$]);
+  return ret;
+}
+
+Test104Node* root = CreateList([1, 2, 3, 4, 5]);
+
+void test104()
+{
+  assert(root.val == 1);
+  assert(root.next.val == 2);
+  assert(root.next.next.val == 3);
+  assert(root.next.next.next.val == 4);
+  assert(root.next.next.next.next.val == 5);
+}
+
+/************************************************/
+interface ITest105a
+{
+  string test105a();
+}
+class Test105a: ITest105a
+{
+  char a;
+  int b;
+  char c = 'C';
+  int d = 42;
+  string test105a() {return "test105a";}
+}
+
+interface ITest105b
+{
+  string test105b();
+}
+
+class Test105b: Test105a, ITest105b
+{
+  char e;
+  int f;
+  this(char _e, int _f, char _a, int _b)
+  {
+    e = _e;
+    f = _f;
+    a = _a;
+    b = _b;
+  }
+  string test105b() {return "test105b";}
+}
+
+Test105b t105b = new Test105b('E', 88, 'A', 99);
+Test105a t105a = new Test105b('E', 88, 'A', 99);
+ITest105b t105ib = new Test105b('E', 88, 'A', 99);
+ITest105a t105ia = new Test105b('E', 88, 'A', 99);
+
+void test105()
+{
+  assert(t105b.a == 'A');
+  assert(t105b.b == 99);
+  assert(t105b.c == 'C');
+  assert(t105b.d == 42);
+  assert(t105b.e == 'E');
+  assert(t105b.f == 88);
+  assert(t105b.test105a() == "test105a");
+  assert(t105b.test105b() == "test105b");
+  
+  assert(t105a.a == 'A');
+  assert(t105a.b == 99);
+  assert(t105a.c == 'C');
+  assert(t105a.d == 42);
+  assert(t105a.test105a() == "test105a");
+  
+  assert(t105ia.test105a() == "test105a");
+  assert(t105ib.test105b() == "test105b");
+}
+
+
 int main()
 {
     test1();
@@ -2908,6 +2997,8 @@ int main()
     test101();
     test102();
     test103();
+    test104();
+    test105();
     test6504();
     test8818();
     

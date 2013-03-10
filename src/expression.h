@@ -993,6 +993,7 @@ struct AddrExp : UnaExp
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct PtrExp : UnaExp
@@ -1107,6 +1108,7 @@ struct CastExp : UnaExp
     // For operator overloading
     Identifier *opId();
     Expression *op_overload(Scope *sc);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct VectorExp : UnaExp

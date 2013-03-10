@@ -729,8 +729,10 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
 {
     if (e->op == TOKclassreference)
     {
-        error(loc, "%s class literals cannot be returned from CTFE", ((ClassReferenceExp*)e)->originalClass()->toChars());
-        return EXP_CANT_INTERPRET;
+        StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
+        se->ownedByCtfe = false;
+        if (!scrubArray(loc, se->elements, true))
+            return EXP_CANT_INTERPRET;
     }
     if (e->op == TOKvoid)
     {

@@ -3683,7 +3683,7 @@ SomeClass classtest2(int n)
     return n==5 ? (new SomeClass) : null;
 }
 static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
-static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
+static assert(is(typeof( (){ enum xx = classtest2(5);}() )));
 
 class RecursiveClass
 {

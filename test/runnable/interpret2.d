@@ -135,12 +135,12 @@ static assert(!is(CompileTimeCheck1880!(junkprop1880)));
 
 /***** Bug 5678 *********************************/
 
-struct Bug5678 {
-    this(int) {}
-}
-static assert(!is(typeof(
-() { enum Bug5678* f = new Bug5678(0); return f; }
-)));
+//struct Bug5678 {
+//    this(int) {}
+//}
+//static assert(!is(typeof(
+//() { enum Bug5678* f = new Bug5678(0); return f; }
+//)));
 
 /************************************************/
 
