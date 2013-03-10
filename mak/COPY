@@ -86,6 +86,7 @@ COPY=\
 	$(IMPDIR)\core\sys\posix\sys\ioctl.d \
 	$(IMPDIR)\core\sys\posix\sys\ipc.d \
 	$(IMPDIR)\core\sys\posix\sys\mman.d \
+	$(IMPDIR)\core\sys\posix\sys\resource.d \
 	$(IMPDIR)\core\sys\posix\sys\select.d \
 	$(IMPDIR)\core\sys\posix\sys\shm.d \
 	$(IMPDIR)\core\sys\posix\sys\socket.d \
