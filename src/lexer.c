@@ -2783,7 +2783,7 @@ Identifier *Lexer::uniqueId(const char *s, int num)
 {   char buffer[32];
     size_t slen = strlen(s);
 
-    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer));
+    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer) / sizeof(buffer[0]));
     sprintf(buffer, "%s%d", s, num);
     return idPool(buffer);
 }
