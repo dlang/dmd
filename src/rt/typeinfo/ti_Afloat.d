@@ -22,20 +22,15 @@ class TypeInfo_Af : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "float[]"; }
 
-    override string toString() const pure nothrow @safe { return "float[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         float[] s = *cast(float[]*)p;
         return hashOf(s.ptr, s.length * float.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         float[] s1 = *cast(float[]*)p1;
         float[] s2 = *cast(float[]*)p2;
@@ -51,7 +46,7 @@ class TypeInfo_Af : TypeInfo_Array
         return true;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         float[] s1 = *cast(float[]*)p1;
         float[] s2 = *cast(float[]*)p2;
@@ -72,9 +67,9 @@ class TypeInfo_Af : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(float);
+        return cast(inout)typeid(float);
     }
 }
 
@@ -82,15 +77,10 @@ class TypeInfo_Af : TypeInfo_Array
 
 class TypeInfo_Ao : TypeInfo_Af
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "ifloat[]"; }
 
-    override string toString() const pure nothrow @safe { return "ifloat[]"; }
-
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(ifloat);
+        return cast(inout)typeid(ifloat);
     }
 }

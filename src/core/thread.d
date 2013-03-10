@@ -1065,41 +1065,6 @@ class Thread
 
 
     /**
-     * $(RED Deprecated. It will be removed in December 2012. Please use the
-     *       version which takes a $(D Duration) instead.)
-     *
-     * Suspends the calling thread for at least the supplied period.  This may
-     * result in multiple OS calls if period is greater than the maximum sleep
-     * duration supported by the operating system.
-     *
-     * Params:
-     *  period = The minimum duration the calling thread should be suspended,
-     *           in 100 nanosecond intervals.
-     *
-     * In:
-     *  period must be non-negative.
-     *
-     * Example:
-     * ------------------------------------------------------------------------
-     *
-     * Thread.sleep( 500_000 );    // sleep for 50 milliseconds
-     * Thread.sleep( 50_000_000 ); // sleep for 5 seconds
-     *
-     * ------------------------------------------------------------------------
-     */
-    deprecated("Please use the overload of sleep which takes a Duration.")
-    static void sleep( long period )
-    in
-    {
-        assert( period >= 0 );
-    }
-    body
-    {
-        sleep( dur!"hnsecs"( period ) );
-    }
-
-
-    /**
      * Forces a context switch to occur away from the calling thread.
      */
     static void yield()
@@ -1255,29 +1220,6 @@ private:
     {
         m_call = Call.NO;
         m_curr = &m_main;
-
-        version (OSX)
-        {
-            //printf("test2 %p %p\n", _tls_data_array[0].ptr, &_tls_data_array[1][length]);
-            //printf("test2 %p %p\n", &_tls_beg, &_tls_end);
-            // NOTE: OSX does not support TLS, so we do it ourselves.  The TLS
-            //       data output by the compiler is bracketed by _tls_data_array2],
-            //       so make a copy of it for each thread.
-            const sz0 = (_tls_data_array[0].length + 15) & ~cast(size_t)15;
-            const sz2 = sz0 + _tls_data_array[1].length;
-            auto p = malloc( sz2 );
-            assert( p );
-            m_tls = p[0 .. sz2];
-            memcpy( p, _tls_data_array[0].ptr, _tls_data_array[0].length );
-            memcpy( p + sz0, _tls_data_array[1].ptr, _tls_data_array[1].length );
-            // The free must happen at program end, if anywhere.
-        }
-        else
-        {
-            auto pstart = cast(void*) &_tlsstart;
-            auto pend   = cast(void*) &_tlsend;
-            m_tls = pstart[0 .. pend - pstart];
-        }
     }
 
 

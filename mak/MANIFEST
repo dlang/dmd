@@ -180,7 +180,6 @@ MANIFEST=\
 	src\rt\monitor_.d \
 	src\rt\obj.d \
 	src\rt\qsort.d \
-	src\rt\qsort2.d \
 	src\rt\sections.d \
 	src\rt\sections_freebsd.d \
 	src\rt\sections_linux.d \

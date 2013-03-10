@@ -315,33 +315,6 @@ class Thread
 
 
     /**
-     * $(RED Deprecated. It will be removed in December 2012. Please use the
-     *       version which takes a $(D Duration) instead.)
-     *
-     * Suspends the calling thread for at least the supplied period.  This may
-     * result in multiple OS calls if period is greater than the maximum sleep
-     * duration supported by the operating system.
-     *
-     * Params:
-     *  period = The minimum duration the calling thread should be suspended,
-     *           in 100 nanosecond intervals.
-     *
-     * In:
-     *  period must be non-negative.
-     *
-     * Example:
-     * ------------------------------------------------------------------------
-     *
-     * Thread.sleep( 500_000 );    // sleep for 50 milliseconds
-     * Thread.sleep( 50_000_000 ); // sleep for 5 seconds
-     *
-     * ------------------------------------------------------------------------
-     */
-    deprecated("Please use the overload of sleep which takes a Duration.")
-    static void sleep( long period );
-
-
-    /**
      * Forces a context switch to occur away from the calling thread.
      */
     static void yield();

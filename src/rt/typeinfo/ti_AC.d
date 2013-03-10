@@ -21,12 +21,7 @@ class TypeInfo_AC : TypeInfo_Array
 
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    //pure:
-    //nothrow:
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         Object[] s = *cast(Object[]*)p;
         size_t hash = 0;
@@ -39,7 +34,7 @@ class TypeInfo_AC : TypeInfo_Array
         return hash;
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
@@ -62,7 +57,7 @@ class TypeInfo_AC : TypeInfo_Array
         return false;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         Object[] s1 = *cast(Object[]*)p1;
         Object[] s2 = *cast(Object[]*)p2;
@@ -96,8 +91,8 @@ class TypeInfo_AC : TypeInfo_Array
         return c < 0 ? -1 : c > 0 ? 1 : 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(Object);
+        return cast(inout)typeid(Object);
     }
 }

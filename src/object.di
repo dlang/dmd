@@ -48,7 +48,6 @@ class Object
 
 bool opEquals(const Object lhs, const Object rhs);
 bool opEquals(Object lhs, Object rhs);
-//bool opEquals(TypeInfo lhs, TypeInfo rhs);
 
 void setSameMutex(shared Object ownee, shared Object owner);
 
@@ -76,7 +75,7 @@ class TypeInfo
     int      compare(in void* p1, in void* p2) const;
     @property size_t   tsize() nothrow pure const @safe;
     void     swap(void* p1, void* p2) const;
-    @property const(TypeInfo) next() nothrow pure const;
+    @property inout(TypeInfo) next() nothrow pure inout;
     const(void)[]   init() nothrow pure const @safe; // TODO: make this a property, but may need to be renamed to diambiguate with T.init...
     @property uint     flags() nothrow pure const @safe;
     // 1:    // has possible pointers into GC memory
@@ -114,17 +113,12 @@ class TypeInfo_Array : TypeInfo
     override int compare(in void* p1, in void* p2) const;
     override @property size_t tsize() nothrow pure const;
     override void swap(void* p1, void* p2) const;
-    override @property const(TypeInfo) next() nothrow pure const;
+    override @property inout(TypeInfo) next() nothrow pure inout;
     override @property uint flags() nothrow pure const;
     override @property size_t talign() nothrow pure const;
     version (X86_64) override int argTypes(out TypeInfo arg1, out TypeInfo arg2);
 
     TypeInfo value;
-}
-
-class TypeInfo_Vector : TypeInfo
-{
-    TypeInfo base;
 }
 
 class TypeInfo_StaticArray : TypeInfo
@@ -138,6 +132,11 @@ class TypeInfo_AssociativeArray : TypeInfo
     TypeInfo value;
     TypeInfo key;
     TypeInfo impl;
+}
+
+class TypeInfo_Vector : TypeInfo
+{
+    TypeInfo base;
 }
 
 class TypeInfo_Function : TypeInfo

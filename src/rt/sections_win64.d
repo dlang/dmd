@@ -17,7 +17,7 @@ version(Win64):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
-import rt.minfo;
+import rt.deh2, rt.minfo;
 
 struct SectionGroup
 {
@@ -41,13 +41,30 @@ struct SectionGroup
         return _moduleGroup;
     }
 
+    @property immutable(FuncTable)[] ehTables() const
+    {
+        auto pbeg = cast(immutable(FuncTable)*)&_deh_beg;
+        auto pend = cast(immutable(FuncTable)*)&_deh_end;
+        return pbeg[0 .. pend - pbeg];
+    }
+
+    @property inout(void[])[] gcRanges() inout
+    {
+        return _gcRanges[];
+    }
+
 private:
     ModuleGroup _moduleGroup;
+    void[][1] _gcRanges;
 }
 
 void initSections()
 {
     _sections._moduleGroup = ModuleGroup(getModuleInfos());
+
+    auto pbeg = cast(void*)&__xc_a;
+    auto pend = cast(void*)&_deh_beg;
+    _sections._gcRanges[0] = pbeg[0 .. pend - pbeg];
 }
 
 void finiSections()
@@ -94,4 +111,20 @@ body
         if (*p !is null) result[cnt++] = *p;
 
     return result;
+}
+
+extern(C)
+{
+    /* Symbols created by the compiler/linker and inserted into the
+     * object file that 'bracket' sections.
+     */
+    extern __gshared
+    {
+        void* _deh_beg;
+        void* _deh_end;
+
+        int __xc_a;      // &__xc_a just happens to be start of data segment
+        //int _edata;    // &_edata is start of BSS segment
+        //void* _deh_beg;  // &_deh_beg is past end of BSS
+    }
 }

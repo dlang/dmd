@@ -23,20 +23,15 @@ class TypeInfo_Ag : TypeInfo_Array
 {
     override bool opEquals(Object o) { return TypeInfo.opEquals(o); }
 
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "byte[]"; }
 
-    override string toString() const pure nothrow @safe { return "byte[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         byte[] s = *cast(byte[]*)p;
         return hashOf(s.ptr, s.length * byte.sizeof);
     }
 
-    override bool equals(in void* p1, in void* p2)
+    override bool equals(in void* p1, in void* p2) const
     {
         byte[] s1 = *cast(byte[]*)p1;
         byte[] s2 = *cast(byte[]*)p2;
@@ -45,7 +40,7 @@ class TypeInfo_Ag : TypeInfo_Array
                memcmp(cast(byte *)s1, cast(byte *)s2, s1.length) == 0;
     }
 
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         byte[] s1 = *cast(byte[]*)p1;
         byte[] s2 = *cast(byte[]*)p2;
@@ -66,9 +61,9 @@ class TypeInfo_Ag : TypeInfo_Array
         return 0;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(byte);
+        return cast(inout)typeid(byte);
     }
 }
 
@@ -77,14 +72,9 @@ class TypeInfo_Ag : TypeInfo_Array
 
 class TypeInfo_Ah : TypeInfo_Ag
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "ubyte[]"; }
 
-    override string toString() const pure nothrow @safe { return "ubyte[]"; }
-
-    override int compare(in void* p1, in void* p2)
+    override int compare(in void* p1, in void* p2) const
     {
         char[] s1 = *cast(char[]*)p1;
         char[] s2 = *cast(char[]*)p2;
@@ -92,9 +82,9 @@ class TypeInfo_Ah : TypeInfo_Ag
         return dstrcmp(s1, s2);
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(ubyte);
+        return cast(inout)typeid(ubyte);
     }
 }
 
@@ -102,16 +92,11 @@ class TypeInfo_Ah : TypeInfo_Ag
 
 class TypeInfo_Av : TypeInfo_Ah
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "void[]"; }
 
-    override string toString() const pure nothrow @safe { return "void[]"; }
-
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(void);
+        return cast(inout)typeid(void);
     }
 }
 
@@ -119,16 +104,11 @@ class TypeInfo_Av : TypeInfo_Ah
 
 class TypeInfo_Ab : TypeInfo_Ah
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "bool[]"; }
 
-    override string toString() const pure nothrow @safe { return "bool[]"; }
-
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(bool);
+        return cast(inout)typeid(bool);
     }
 }
 
@@ -136,14 +116,9 @@ class TypeInfo_Ab : TypeInfo_Ah
 
 class TypeInfo_Aa : TypeInfo_Ag
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "char[]"; }
 
-    override string toString() const pure nothrow @safe { return "char[]"; }
-
-    override size_t getHash(in void* p)
+    override size_t getHash(in void* p) @trusted const
     {
         char[] s = *cast(char[]*)p;
         size_t hash = 0;
@@ -193,9 +168,9 @@ else
         return hash;
     }
 
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(char);
+        return cast(inout)typeid(char);
     }
 }
 
@@ -203,16 +178,11 @@ else
 
 class TypeInfo_Aya : TypeInfo_Aa
 {
-    @trusted:
-    const:
-    pure:
-    nothrow:
+    override string toString() const { return "immutable(char)[]"; }
 
-    override string toString() const pure nothrow @safe { return "immutable(char)[]"; }
-
-    override @property const(TypeInfo) next() nothrow pure
+    override @property inout(TypeInfo) next() inout
     {
-        return typeid(immutable(char));
+        return cast(inout)typeid(immutable(char));
     }
 }
 
