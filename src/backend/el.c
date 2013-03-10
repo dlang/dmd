@@ -1589,6 +1589,7 @@ elem * el_var(symbol *s)
         {
             e2 = el_bin(OPmul,TYint,el_var(rtlsym[RTLSYM_TLS_INDEX]),el_long(TYint,REGSIZE));
             ea = el_var(rtlsym[RTLSYM_TLS_ARRAY]);
+            ea->Ety = TYsize_t;
             e2 = el_bin(OPadd,ea->Ety,ea,e2);
         }
         e2 = el_una(OPind,TYsize_t,e2);
