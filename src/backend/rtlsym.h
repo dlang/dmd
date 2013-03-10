@@ -134,7 +134,7 @@ SYMBOL_MARS(D_LOCAL_UNWIND2, FLfunc,FREGSAVED,"_d_local_unwind2", 0, 0) \
 SYMBOL_SCPP(LOCAL_UNWIND2, FLfunc,FREGSAVED,"_local_unwind2", 0, 0) \
 \
 SYMBOL_Z(TLS_INDEX, FLextern,0,"_tls_index",0,tsint) \
-SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tsint) \
+SYMBOL_Z(TLS_ARRAY, FLextern,0,"_tls_array",0,tspvoid) \
 SYMBOL_SCPP(AHSHIFT,   FLfunc,0,"_AHSHIFT",0,tstrace) \
 \
 SYMBOL_SCPP_TX86(HDIFFN, FLfunc,mBX|mCX|mSI|mDI|mBP|mES,"_aNahdiff", 0, 0) \
