@@ -116,6 +116,33 @@ void test8221()
     assert(a.foo() is null);
 }
 
+/***************************************************/
+// 8589
+
+void test8589()
+{
+    static typeof(null) retnull() { return null; }
+
+    void test(bool result, T)()
+    {
+        void f(T function() dg) { assert(!dg()); }
+
+        static assert((T.sizeof == typeof(null).sizeof) == result);
+        static assert(is(typeof( f(&retnull) )) == result);
+        static assert(is(typeof( f(()=>null) )) == result);
+        static if (result)
+        {
+            f(&retnull);
+            f(()=>null);
+        }
+    }
+    test!(true,  int*)();
+    test!(true,  Object)();
+    test!(true,  int[int])();
+    test!(false, int[])();
+    test!(false, void delegate())();
+}
+
 /**********************************************/
 // 9385
 
@@ -134,6 +161,7 @@ int main()
     test2();
     test7278();
     test8221();
+    test8589();
     test9385();
 
     printf("Success\n");

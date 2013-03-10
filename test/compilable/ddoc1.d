@@ -4,7 +4,7 @@
 // REQUIRED_ARGS: -d
 
 /** This module is for ABC
- * Copyright: Copyright &copy; $(YEAR)
+ * Copyright: Copyright &copy;
  */
 
 module abc;
@@ -22,7 +22,7 @@ typedef int mytypedefint;
  * #include <stdio.h>
   * void main()
  * {
- *	printf("hello\n");
+ * 	printf("hello\n");
  * }
  * -----
  * Copyright: 1998

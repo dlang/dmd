@@ -60,6 +60,7 @@ Scope::Scope()
     this->sbreak = NULL;
     this->scontinue = NULL;
     this->fes = NULL;
+    this->callsc = NULL;
     this->structalign = global.structalign;
     this->func = NULL;
     this->slabel = NULL;
@@ -100,6 +101,7 @@ Scope::Scope(Scope *enclosing)
     this->sbreak = enclosing->sbreak;
     this->scontinue = enclosing->scontinue;
     this->fes = enclosing->fes;
+    this->callsc = enclosing->callsc;
     this->structalign = enclosing->structalign;
     this->enclosing = enclosing;
 #ifdef DEBUG

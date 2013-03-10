@@ -2922,13 +2922,15 @@ static Keyword keywords[] =
 #if DMDV2
     {   "pure",         TOKpure         },
     {   "nothrow",      TOKnothrow      },
-    {   "__thread",     TOKtls          },
     {   "__gshared",    TOKgshared      },
     {   "__traits",     TOKtraits       },
     {   "__vector",     TOKvector       },
     {   "__overloadset", TOKoverloadset },
     {   "__FILE__",     TOKfile         },
     {   "__LINE__",     TOKline         },
+    {   "__MODULE__",   TOKmodulestring },
+    {   "__FUNCTION__", TOKfuncstring   },
+    {   "__PRETTY_FUNCTION__", TOKprettyfunc   },
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
 #endif

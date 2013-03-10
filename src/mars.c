@@ -96,7 +96,7 @@ Global::Global()
 #include "verstr.h"
     ;
 
-    global.structalign = STRUCTALIGN_DEFAULT;
+    structalign = STRUCTALIGN_DEFAULT;
 
     memset(&params, 0, sizeof(Param));
 }
@@ -310,8 +310,8 @@ void usage()
 #else
     const char fpic[] = "";
 #endif
-    printf("DMD%d D Compiler %s\n%s %s\n",
-        sizeof(size_t) * 8,
+    printf("DMD%llu D Compiler %s\n%s %s\n",
+           (unsigned long long) sizeof(size_t) * 8,
         global.version, global.copyright, global.written);
     printf("\
 Documentation: http://dlang.org/\n\

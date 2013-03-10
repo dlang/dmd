@@ -798,6 +798,18 @@ void test9416()
 }
 
 /***************************************************/
+// 9658
+
+struct S9658
+{
+    private bool _isNull = true;
+    this(int v) const
+    {
+        _isNull = false;    // cannot modify const expression this._isNull
+    }
+}
+
+/***************************************************/
 
 int main()
 {

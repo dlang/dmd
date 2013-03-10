@@ -4,7 +4,7 @@ import std.c.stdio;
 
 int foo()()
 {
-    static __thread int z = 7;
+    static int z = 7;
     return ++z;
 }
 
@@ -13,9 +13,9 @@ int foo()()
 
 int abc4(T)(T t)
 {
-    static __thread T qqq;		// TLS comdef
-    static       T rrr;		// comdef
-    static __thread T sss = 8;	// TLS comdat
+    static T qqq;		// TLS comdef
+    static       T rrr;	// comdef
+    static T sss = 8;	// TLS comdat
     static       T ttt = 9;	// comdat
     printf("qqq = %d, rrr = %d, sss = %d, ttt = %d\n", qqq, rrr, sss, ttt);
     qqq += 2;
