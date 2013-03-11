@@ -26,6 +26,7 @@
 #include "template.h"
 
 #include "rmem.h"
+#include "target.h"
 #include "cc.h"
 #include "global.h"
 #include "oper.h"
@@ -36,6 +37,8 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+extern bool obj_includelib(const char *name);
+void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
 
 /* ================================================================== */
@@ -48,12 +51,12 @@ void Module::genmoduleinfo()
 
     Symbol *msym = toSymbol();
 #if DMDV2
-    unsigned sizeof_ModuleInfo = 16 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 16 * Target::ptrsize;
 #else
-    unsigned sizeof_ModuleInfo = 14 * PTRSIZE;
+    unsigned sizeof_ModuleInfo = 14 * Target::ptrsize;
 #endif
 #if !MODULEINFO_IS_STRUCT
-    sizeof_ModuleInfo -= 2 * PTRSIZE;
+    sizeof_ModuleInfo -= 2 * Target::ptrsize;
 #endif
     //printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
 
@@ -235,7 +238,7 @@ void Module::genmoduleinfo()
     // localClasses[]
     dtdword(&dt, aclasses.dim);
     if (aclasses.dim)
-        dtxoff(&dt, csym, sizeof_ModuleInfo + aimports_dim * PTRSIZE, TYnptr);
+        dtxoff(&dt, csym, sizeof_ModuleInfo + aimports_dim * Target::ptrsize, TYnptr);
     else
         dtdword(&dt, 0);
 
@@ -608,7 +611,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += vtblInterfaces->dim * (4 * PTRSIZE);
+    offset += vtblInterfaces->dim * (4 * Target::ptrsize);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
@@ -633,7 +636,7 @@ void ClassDeclaration::toObjFile(int multiobj)
 
         dtsize_t(&dt, b->offset);                        // this offset
 
-        offset += id->vtbl.dim * PTRSIZE;
+        offset += id->vtbl.dim * Target::ptrsize;
     }
 
     // Put out the (*vtblInterfaces)[].vtbl[]
@@ -651,7 +654,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
             // First entry is struct Interface reference
-            dtxoff(&dt, csym, classinfo_size + i * (4 * PTRSIZE), TYnptr);
+            dtxoff(&dt, csym, classinfo_size + i * (4 * Target::ptrsize), TYnptr);
             j = 1;
         }
         assert(id->vtbl.dim == b->vtbl.dim);
@@ -700,7 +703,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                     //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
                     // First entry is struct Interface reference
-                    dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * PTRSIZE), TYnptr);
+                    dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
                     j = 1;
                 }
 
@@ -744,7 +747,7 @@ void ClassDeclaration::toObjFile(int multiobj)
                         //dtxoff(&dt, id->toSymbol(), 0, TYnptr);
 
                         // First entry is struct Interface reference
-                        dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * PTRSIZE), TYnptr);
+                        dtxoff(&dt, cd->toSymbol(), classinfo_size + k * (4 * Target::ptrsize), TYnptr);
                         j = 1;
                     }
 
@@ -838,7 +841,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", toChars(), bc);
     csymoffset = global.params.is64bit ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
-    csymoffset += vtblInterfaces->dim * (4 * PTRSIZE);
+    csymoffset += vtblInterfaces->dim * (4 * Target::ptrsize);
 
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
@@ -846,7 +849,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
 
         if (b == bc)
             return csymoffset;
-        csymoffset += b->base->vtbl.dim * PTRSIZE;
+        csymoffset += b->base->vtbl.dim * Target::ptrsize;
     }
 
 #if 1
@@ -867,7 +870,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
                 {   //printf("\tcsymoffset = x%x\n", csymoffset);
                     return csymoffset;
                 }
-                csymoffset += bs->base->vtbl.dim * PTRSIZE;
+                csymoffset += bs->base->vtbl.dim * Target::ptrsize;
             }
         }
     }
@@ -888,7 +891,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
                     return csymoffset;
                 }
                 if (b->base == bs->base)
-                    csymoffset += bs->base->vtbl.dim * PTRSIZE;
+                    csymoffset += bs->base->vtbl.dim * Target::ptrsize;
             }
         }
     }
@@ -1045,7 +1048,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     // Put out (*vtblInterfaces)[]. Must immediately follow csym, because
     // of the fixup (*)
 
-    offset += vtblInterfaces->dim * (4 * PTRSIZE);
+    offset += vtblInterfaces->dim * (4 * Target::ptrsize);
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {   BaseClass *b = (*vtblInterfaces)[i];
         ClassDeclaration *id = b->base;
@@ -1379,4 +1382,94 @@ void TypeInfoDeclaration::toObjFile(int multiobj)
         objmod->export_symbol(s,0);
 }
 
+/* ================================================================== */
+
+void AttribDeclaration::toObjFile(int multiobj)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (size_t i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (*d)[i];
+            s->toObjFile(multiobj);
+        }
+    }
+}
+
+/* ================================================================== */
+
+void PragmaDeclaration::toObjFile(int multiobj)
+{
+    if (ident == Id::lib)
+    {
+        assert(args && args->dim == 1);
+
+        Expression *e = (*args)[0];
+
+        assert(e->op == TOKstring);
+
+        StringExp *se = (StringExp *)e;
+        char *name = (char *)mem.malloc(se->len + 1);
+        memcpy(name, se->string, se->len);
+        name[se->len] = 0;
+
+        /* Embed the library names into the object file.
+         * The linker will then automatically
+         * search that library, too.
+         */
+        if (!obj_includelib(name))
+        {
+            /* The format does not allow embedded library names,
+             * so instead append the library name to the list to be passed
+             * to the linker.
+             */
+            global.params.libfiles->push(name);
+        }
+    }
+#if DMDV2
+    else if (ident == Id::startaddress)
+    {
+        assert(args && args->dim == 1);
+        Expression *e = (*args)[0];
+        Dsymbol *sa = getDsymbol(e);
+        FuncDeclaration *f = sa->isFuncDeclaration();
+        assert(f);
+        Symbol *s = f->toSymbol();
+        obj_startaddress(s);
+    }
+#endif
+    AttribDeclaration::toObjFile(multiobj);
+}
+
+/* ================================================================== */
+
+void TemplateInstance::toObjFile(int multiobj)
+{
+#if LOG
+    printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
+#endif
+    if (!errors && members)
+    {
+        if (multiobj)
+            // Append to list of object files to be written later
+            obj_append(this);
+        else
+        {
+            for (size_t i = 0; i < members->dim; i++)
+            {
+                Dsymbol *s = (*members)[i];
+                s->toObjFile(multiobj);
+            }
+        }
+    }
+}
+
+/* ================================================================== */
+
+void TemplateMixin::toObjFile(int multiobj)
+{
+    //printf("TemplateMixin::toObjFile('%s')\n", toChars());
+    TemplateInstance::toObjFile(0);
+}
 

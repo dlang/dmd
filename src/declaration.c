@@ -148,7 +148,7 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
         return 0;
     }
 
-    if (v && isCtorinit())
+    if (v && (isCtorinit() || isField()))
     {   // It's only modifiable if inside the right constructor
         if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
             return 2;
@@ -878,7 +878,9 @@ void VarDeclaration::semantic(Scope *sc)
     else
     {   if (!originalType)
             originalType = type->syntaxCopy();
+        inuse++;
         type = type->semantic(loc, sc);
+        inuse--;
     }
     //printf(" semantic type = %s\n", type ? type->toChars() : "null");
 
@@ -968,7 +970,7 @@ void VarDeclaration::semantic(Scope *sc)
         size_t nelems = Parameter::dim(tt->arguments);
         Objects *exps = new Objects();
         exps->setDim(nelems);
-        Expression *ie = init ? init->toExpression() : NULL;
+        Expression *ie = (init && !init->isVoidInitializer()) ? init->toExpression() : NULL;
         if (ie) ie = ie->semantic(sc);
 
         if (nelems > 0 && ie)
@@ -1152,13 +1154,6 @@ Lnomatch:
         {
 #if DMDV2
             assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
-
-            if (storage_class & (STCconst | STCimmutable) && init)
-            {
-                if (!tb->isTypeBasic())
-                    storage_class |= STCstatic;
-            }
-            else
 #endif
             {
                 storage_class |= STCfield;
@@ -1231,7 +1226,7 @@ Lnomatch:
         ((TypeStruct *)tb)->sym->noDefaultCtor)
     {
         if (!init)
-        {   if (storage_class & STCfield)
+        {   if (isField())
                 /* For fields, we'll check the constructor later to make sure it is initialized
                  */
                 storage_class |= STCnodefaultctor;
@@ -1764,7 +1759,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
         return;
     }
 
-    if (!(storage_class & STCfield))
+    if (!isField())
         return;
     assert(!(storage_class & (STCstatic | STCextern | STCparameter | STCtls)));
 
@@ -1884,9 +1879,6 @@ AggregateDeclaration *VarDeclaration::isThis()
     if (!(storage_class & (STCstatic | STCextern | STCmanifest | STCtemplateparameter |
                            STCtls | STCgshared | STCctfe)))
     {
-        if ((storage_class & (STCconst | STCimmutable | STCwild)) && init)
-            return NULL;
-
         for (Dsymbol *s = this; s; s = s->parent)
         {
             ad = s->isMember();
@@ -1901,7 +1893,7 @@ AggregateDeclaration *VarDeclaration::isThis()
 int VarDeclaration::needThis()
 {
     //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
-    return storage_class & STCfield;
+    return isField();
 }
 
 int VarDeclaration::isImportedSymbol()
@@ -1915,7 +1907,7 @@ int VarDeclaration::isImportedSymbol()
 void VarDeclaration::checkCtorConstInit()
 {
 #if 0 /* doesn't work if more than one static ctor */
-    if (ctorinit == 0 && isCtorinit() && !(storage_class & STCfield))
+    if (ctorinit == 0 && isCtorinit() && !isField())
         error("missing initializer in static constructor for const variable");
 #endif
 }
@@ -1969,6 +1961,16 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                     if (FuncLiteralDeclaration *fld = s->isFuncLiteralDeclaration())
                     {
                         fld->tok = TOKdelegate;
+
+                        /* This is necessary to avoid breaking tests for 8751 & 8793.
+                         * See: compilable/testInference.d
+                         */
+                        if (type->isMutable() ||                            // mutable variable
+                            !type->implicitConvTo(type->invariantOf()) ||   // has any mutable indirections
+                            !fdv->isPureBypassingInference())               // does not belong to pure function
+                        {
+                            fld->setImpure();   // Bugzilla 9415
+                        }
                     }
                 }
 
@@ -2050,7 +2052,7 @@ int VarDeclaration::canTakeAddressOf()
      */
     if ((isConst() || isImmutable()) &&
         storage_class & STCinit &&
-        (!(storage_class & (STCstatic | STCextern)) || (storage_class & STCfield)) &&
+        (!(storage_class & (STCstatic | STCextern)) || isField()) &&
         (!parent || toParent()->isModule() || toParent()->isTemplateInstance()) &&
         type->toBasetype()->isTypeBasic()
        )

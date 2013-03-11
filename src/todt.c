@@ -28,6 +28,7 @@
 #include        "enum.h"
 #include        "aggregate.h"
 #include        "declaration.h"
+#include        "target.h"
 
 
 // Back end
@@ -332,9 +333,9 @@ dt_t **RealExp::toDt(dt_t **pdt)
         case Tfloat80:
         case Timaginary80:
         {   d_float80 evalue = value;
-            pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
-            pdt = dtnbytes(pdt,REALPAD,zeropad);
-            assert(REALPAD <= sizeof(zeropad));
+            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+            pdt = dtnbytes(pdt,Target::realpad,zeropad);
+            assert(Target::realpad <= sizeof(zeropad));
             break;
         }
 
@@ -371,11 +372,11 @@ dt_t **ComplexExp::toDt(dt_t **pdt)
 
         case Tcomplex80:
         {   d_float80 evalue = creall(value);
-            pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
-            pdt = dtnbytes(pdt,REALPAD,zeropad);
+            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+            pdt = dtnbytes(pdt,Target::realpad,zeropad);
             evalue = cimagl(value);
-            pdt = dtnbytes(pdt,REALSIZE - REALPAD,(char *)&evalue);
-            pdt = dtnbytes(pdt,REALPAD,zeropad);
+            pdt = dtnbytes(pdt,Target::realsize - Target::realpad,(char *)&evalue);
+            pdt = dtnbytes(pdt,Target::realpad,zeropad);
             break;
         }
 
@@ -695,7 +696,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
     }
     else
     {
-        offset = PTRSIZE * 2;
+        offset = Target::ptrsize * 2;
     }
 
     // Note equivalence of this loop to struct's
@@ -760,7 +761,7 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
         assert(csymoffset != ~0);
         dtxoff(pdt, csym, csymoffset);
 #endif
-        offset = b->offset + PTRSIZE;
+        offset = b->offset + Target::ptrsize;
     }
 
     if (offset < structsize)
@@ -784,7 +785,7 @@ void StructDeclaration::toDt(dt_t **pdt)
 
         if (v->storage_class & STCref)
         {
-            sz = PTRSIZE;
+            sz = Target::ptrsize;
             if (v->offset >= offset)
                 dtnzeros(&dt, sz);
         }

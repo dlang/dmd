@@ -770,6 +770,11 @@ class D9258
     alias n this;
     void opAssign(int n, int y = 0) {}
 }
+class E9258 : A9258
+{
+    void set(A9258 a) {}
+    alias set opAssign;
+}
 
 /***************************************************/
 // 9416
@@ -790,6 +795,18 @@ void test9416()
     U9416 u;
     static assert(__traits(allMembers, U9416)[$-1] == "opAssign");
     static assert(!__traits(compiles, u = u));
+}
+
+/***************************************************/
+// 9658
+
+struct S9658
+{
+    private bool _isNull = true;
+    this(int v) const
+    {
+        _isNull = false;    // cannot modify const expression this._isNull
+    }
 }
 
 /***************************************************/

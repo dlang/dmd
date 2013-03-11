@@ -14,6 +14,7 @@
 //#include        <complex.h>
 
 #include        "port.h"
+#include        "target.h"
 
 #include        "lexer.h"
 #include        "expression.h"
@@ -558,6 +559,8 @@ elem *array_toDarray(Type *t, elem *e)
                             ty = TYint;
                         else if (sz <= 8)
                             ty = TYllong;
+                        else if (sz <= 16)
+                            ty = TYcent;
                     }
                     e->Ety = ty;
                     stmp = symbol_genauto(type_fake(ty));
@@ -761,6 +764,7 @@ Lagain:
 
 elem *Expression::toElem(IRState *irs)
 {
+    printf("[%s] %s ", loc.toChars(), Token::toChars(op));
     print();
     assert(0);
     return NULL;
@@ -3562,7 +3566,7 @@ elem *DelegateExp::toElem(IRState *irs)
             assert((int)vindex >= 0);
 
             // Build *(ep + vindex * 4)
-            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * PTRSIZE));
+            ep = el_bin(OPadd,TYnptr,ep,el_long(TYsize_t, vindex * Target::ptrsize));
             ep = el_una(OPind,TYnptr,ep);
         }
 
@@ -4810,6 +4814,11 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
 
     //printf("ArrayLiteralExp::toElem() %s, type = %s\n", toChars(), type->toChars());
     Type *tb = type->toBasetype();
+    if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
+    {   // Convert void[n] to ubyte[n]
+        tb = new TypeSArray(Type::tuns8, ((TypeSArray *)tb)->dim);
+        tb = tb->semantic(loc, NULL);
+    }
     if (elements)
     {
         /* Instead of passing the initializers on the stack, allocate the

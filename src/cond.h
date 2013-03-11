@@ -54,7 +54,6 @@ struct DebugCondition : DVCondition
 {
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
-    static void addPredefinedGlobalIdent(const char *ident);
 
     DebugCondition(Module *mod, unsigned level, Identifier *ident);
 
@@ -86,21 +85,5 @@ struct StaticIfCondition : Condition
     int include(Scope *sc, ScopeDsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
-
-struct IftypeCondition : Condition
-{
-    /* iftype (targ id tok tspec)
-     */
-    Type *targ;
-    Identifier *id;     // can be NULL
-    enum TOK tok;       // ':' or '=='
-    Type *tspec;        // can be NULL
-
-    IftypeCondition(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec);
-    Condition *syntaxCopy();
-    int include(Scope *sc, ScopeDsymbol *s);
-    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-};
-
 
 #endif

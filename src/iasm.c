@@ -36,6 +36,7 @@
 #include        "init.h"
 #include        "enum.h"
 #include        "module.h"
+#include        "target.h"
 
 // C/C++ compiler
 #define SCOPE_H 1               // avoid conflicts with D's Scope
@@ -2166,7 +2167,7 @@ STATIC opflag_t asm_float_type_size(Type *ptype, opflag_t *pusFloat)
     if (ptype && ptype->isscalar())
     {
         int sz = (int)ptype->size();
-        if (sz == REALSIZE)
+        if (sz == Target::realsize)
         {   *pusFloat = _f80;
             return 0;
         }
@@ -2421,7 +2422,7 @@ STATIC void asm_merge_symbol(OPND *o1, Dsymbol *s)
             asmerr(EM_uplevel, v->toChars());
         }
 #endif
-        if (v->storage_class & STCfield)
+        if (v->isField())
         {
             o1->disp += v->offset;
             goto L2;

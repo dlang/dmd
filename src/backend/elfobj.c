@@ -3062,12 +3062,14 @@ long elf_align(targ_size_t size,long foffset)
 
 void Obj::moduleinfo(Symbol *scc)
 {
+    const int CFflags = I64 ? (CFoffset64 | CFoff) : CFoff;
+
     {
         ElfObj::getsegment(".minfo_beg", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
         const int seg = ElfObj::getsegment(".minfo", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
         ElfObj::getsegment(".minfo_end", NULL, SHT_PROGDEF, SHF_ALLOC, NPTRSIZE);
         SegData[seg]->SDoffset +=
-            reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
+            reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
     }
 
 #if !REQUIRE_DSO_REGISTRY
@@ -3087,7 +3089,7 @@ void Obj::moduleinfo(Symbol *scc)
         refOffset = SegData[seg]->SDoffset;
         SegData[seg]->SDbuf->writezeros(NPTRSIZE);
         SegData[seg]->SDoffset += NPTRSIZE;
-        SegData[seg]->SDoffset += Obj::reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFoffset64 | CFoff);
+        SegData[seg]->SDoffset += Obj::reftoident(seg, SegData[seg]->SDoffset, scc, 0, CFflags);
     }
 
     {

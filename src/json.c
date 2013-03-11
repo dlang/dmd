@@ -68,7 +68,6 @@ struct JsonOut
     void property(const char *name, Type* type);
     void property(const char *name, const char *deconame, Type* type);
     void property(const char *name, Parameters* parameters);
-    void property(const char *name, Expressions* expressions);
     void property(const char *name, enum TRUST trust);
     void property(const char *name, enum PURE purity);
     void property(const char *name, enum LINK linkage);
@@ -629,9 +628,11 @@ void Dsymbol::toJson(JsonOut *json)
 
 void Dsymbol::jsonProperties(JsonOut *json)
 {
-    json->property("name", toChars());
     if (!isTemplateDeclaration()) // TemplateDeclaration::kind() acts weird sometimes
+    {
+        json->property("name", toChars());
         json->property("kind", kind());
+    }
 
     if (prot() != PROTpublic)
         json->property("protection", Pprotectionnames[prot()]);
@@ -846,6 +847,16 @@ void Declaration::jsonProperties(JsonOut *json)
         else
             json->property("originalType", ostr);
     }
+}
+
+void TemplateDeclaration::jsonProperties(JsonOut *json)
+{
+    Dsymbol::jsonProperties(json);
+
+    if (onemember && onemember->isCtorDeclaration())
+        json->property("name", "this");  // __ctor -> this
+    else
+        json->property("name", ident->toChars());  // Foo(T) -> Foo
 }
 
 void TypedefDeclaration::toJson(JsonOut *json)
@@ -1071,7 +1082,7 @@ void VarDeclaration::toJson(JsonOut *json)
     if (init)
         json->property("init", init->toChars());
 
-    if (storage_class & STCfield)
+    if (isField())
         json->property("offset", offset);
 
     if (alignment && alignment != STRUCTALIGN_DEFAULT)

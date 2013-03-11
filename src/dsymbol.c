@@ -33,13 +33,15 @@
 #include "attrib.h"
 #include "enum.h"
 
+const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+
+
 /****************************** Dsymbol ******************************/
 
 Dsymbol::Dsymbol()
 {
     //printf("Dsymbol::Dsymbol(%p)\n", this);
     this->ident = NULL;
-    this->c_ident = NULL;
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
@@ -47,6 +49,7 @@ Dsymbol::Dsymbol()
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
+    this->depmsg = NULL;
     this->userAttributes = NULL;
     this->unittest = NULL;
 }
@@ -55,7 +58,6 @@ Dsymbol::Dsymbol(Identifier *ident)
 {
     //printf("Dsymbol::Dsymbol(%p, ident)\n", this);
     this->ident = ident;
-    this->c_ident = NULL;
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
@@ -793,8 +795,8 @@ void Dsymbol::addComment(unsigned char *comment)
 /********************************* OverloadSet ****************************/
 
 #if DMDV2
-OverloadSet::OverloadSet()
-    : Dsymbol()
+OverloadSet::OverloadSet(Identifier *ident)
+    : Dsymbol(ident)
 {
 }
 
@@ -903,12 +905,20 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          )
                        )
                     {
+                        /* Bugzilla 8668:
+                         * Public selective import adds AliasDeclaration in module.
+                         * To make an overload set, resolve aliases in here and
+                         * get actual overload roots which accessible via s and s2.
+                         */
+                        s = s->toAlias();
+                        s2 = s2->toAlias();
+
                         /* If both s2 and s are overloadable (though we only
                          * need to check s once)
                          */
                         if (s2->isOverloadable() && (a || s->isOverloadable()))
                         {   if (!a)
-                                a = new OverloadSet();
+                                a = new OverloadSet(s->ident);
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
                             for (size_t j = 0; j < a->a.dim; j++)

@@ -168,6 +168,34 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         goto Ltrue;
     }
+    else if (ident == Id::isNested)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        Object *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        AggregateDeclaration *a;
+        FuncDeclaration *f;
+
+        if (!s) { }
+        else if ((a = s->isAggregateDeclaration()) != NULL)
+        {
+            if (a->isnested)
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+        else if ((f = s->isFuncDeclaration()) != NULL)
+        {
+            if (f->isNested())
+                goto Ltrue;
+            else
+                goto Lfalse;
+        }
+
+        error("aggregate or function expected instead of '%s'", o->toChars());
+        goto Lfalse;
+    }
     else if (ident == Id::isAbstractFunction)
     {
         FuncDeclaration *f;
@@ -305,17 +333,17 @@ Expression *TraitsExp::semantic(Scope *sc)
         }
         Identifier *id = Lexer::idPool((char *)se->string);
 
-        Type *t = isType(o);
-        e = isExpression(o);
-        Dsymbol *s = isDsymbol(o);
-        if (t)
-            e = typeDotIdExp(loc, t, id);
-        else if (e)
-            e = new DotIdExp(loc, e, id);
-        else if (s)
-        {   e = new DsymbolExp(loc, s);
+        /* Prefer dsymbol, because it might need some runtime contexts.
+         */
+        Dsymbol *sym = getDsymbol(o);
+        if (sym)
+        {   e = new DsymbolExp(loc, sym);
             e = new DotIdExp(loc, e, id);
         }
+        else if (Type *t = isType(o))
+            e = typeDotIdExp(loc, t, id);
+        else if (Expression *ex = isExpression(o))
+            e = new DotIdExp(loc, ex, id);
         else
         {   error("invalid first argument");
             goto Lfalse;
@@ -323,21 +351,16 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (ident == Id::hasMember)
         {
-            if (t)
+            if (sym)
             {
-                Dsymbol *sym = t->toDsymbol(sc);
-                if (sym)
-                {
-                    Dsymbol *sm = sym->search(loc, id, 0);
-                    if (sm)
-                        goto Ltrue;
-                }
+                Dsymbol *sm = sym->search(loc, id, 0);
+                if (sm)
+                    goto Ltrue;
             }
 
             /* Take any errors as meaning it wasn't found
              */
             Scope *sc2 = sc->push();
-            //sc2->inHasMember++;
             e = e->trySemantic(sc2);
             sc2->pop();
             if (!e)
@@ -384,7 +407,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             p.exps = exps;
             p.e1 = e;
             p.ident = ident;
-            overloadApply(f, fptraits, &p);
+            overloadApply(f, &fptraits, &p);
 
             TupleExp *tup = new TupleExp(loc, exps);
             return tup->semantic(sc);

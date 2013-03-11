@@ -1547,6 +1547,88 @@ void test8129()
 }
 
 /**********************************/
+// 8238
+
+void test8238()
+{
+    static struct S { template t(){ int t; } }
+
+    S s1, s2;
+    assert(cast(void*)&s1      != cast(void*)&s2     );
+    assert(cast(void*)&s1      != cast(void*)&s1.t!());
+    assert(cast(void*)&s2      != cast(void*)&s2.t!());
+    assert(cast(void*)&s1.t!() == cast(void*)&s2.t!());
+    s1.t!() = 256;
+    assert(s2.t!() == 256);
+}
+
+/**********************************/
+// 8669
+
+struct X8669
+{
+    void mfoo(this T)()
+    {
+        static assert(is(typeof(this) == T));
+    }
+    void cfoo(this T)() const
+    {
+        static assert(is(typeof(this) == const(T)));
+    }
+    void sfoo(this T)() shared
+    {
+        static assert(is(typeof(this) == shared(T)));
+    }
+    void scfoo(this T)() shared const
+    {
+        static assert(is(typeof(this) == shared(const(T))));
+    }
+    void ifoo(this T)() immutable
+    {
+        static assert(is(typeof(this) == immutable(T)));
+    }
+}
+
+void test8669()
+{
+                 X8669 mx;
+           const X8669 cx;
+      immutable  X8669 ix;
+          shared X8669 sx;
+    shared const X8669 scx;
+
+     mx.mfoo();
+     cx.mfoo();
+     ix.mfoo();
+     sx.mfoo();
+    scx.mfoo();
+
+     mx.cfoo();
+     cx.cfoo();
+     ix.cfoo();
+     sx.cfoo();
+    scx.cfoo();
+
+    static assert(!is(typeof(  mx.sfoo() )));
+    static assert(!is(typeof(  cx.sfoo() )));
+     ix.sfoo();
+     sx.sfoo();
+    scx.sfoo();
+
+    static assert(!is(typeof(  mx.scfoo() )));
+    static assert(!is(typeof(  cx.scfoo() )));
+     ix.scfoo();
+     sx.scfoo();
+    scx.scfoo();
+
+    static assert(!is(typeof(  mx.ifoo() )));
+    static assert(!is(typeof(  cx.ifoo() )));
+     ix.ifoo();
+    static assert(!is(typeof(  sx.ifoo() )));
+    static assert(!is(typeof( scx.ifoo() )));
+}
+
+/**********************************/
 // 8976
 
 void f8976(ref int) { }
@@ -1939,6 +2021,39 @@ void test9361()
 }
 
 /**********************************/
+// 9536
+
+struct S9536
+{
+    static A foo(A)(A a)
+    {
+        return a * 2;
+    }
+    int bar() const
+    {
+        return foo(42);
+    }
+}
+
+void test9536()
+{
+    S9536 s;
+    assert(s.bar() == 84);
+}
+
+/**********************************/
+// 9654
+
+void foo9654(ref const char[8] str) {}
+void bar9654(T)(ref const T[8] str) {}
+
+void test9654()
+{
+    foo9654("testinfo");
+    bar9654("testinfo");
+}
+
+/******************************************/
 
 int main()
 {
@@ -2001,6 +2116,8 @@ int main()
     test13();
     test14();
     test8129();
+    test8238();
+    test8669();
     test8976();
     test8940();
     test9026();
@@ -2011,6 +2128,8 @@ int main()
     test9124b();
     test9143();
     test9266();
+    test9536();
+    test9654();
 
     printf("Success\n");
     return 0;

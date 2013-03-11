@@ -36,7 +36,10 @@ Expression *resolveAliasThis(Scope *sc, Expression *e)
     L1:
         if (ad && ad->aliasthis)
         {
+            bool isstatic = (e->op == TOKtype);
             e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
+            if (isstatic && ad->aliasthis->needThis())
+                e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
             e = e->semantic(sc);
             e = resolveProperties(sc, e);
         }

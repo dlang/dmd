@@ -12,7 +12,7 @@ class A
 {
     class B : A
     {
-        const int C = 5;
+        static const int C = 5;
     }
 }
 

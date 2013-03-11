@@ -15,6 +15,7 @@
 
 #include "root.h"
 #include "rmem.h"
+#include "target.h"
 
 #include "enum.h"
 #include "init.h"
@@ -620,11 +621,11 @@ void ClassDeclaration::semantic(Scope *sc)
     {   sc->offset = baseClass->structsize;
         alignsize = baseClass->alignsize;
 //      if (isnested)
-//          sc->offset += PTRSIZE;      // room for uplevel context pointer
+//          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
     else
-    {   sc->offset = PTRSIZE * 2;       // allow room for __vptr and __monitor
-        alignsize = PTRSIZE;
+    {   sc->offset = Target::ptrsize * 2;       // allow room for __vptr and __monitor
+        alignsize = Target::ptrsize;
     }
     sc->userAttributes = NULL;
     structsize = sc->offset;
@@ -726,22 +727,28 @@ void ClassDeclaration::semantic(Scope *sc)
     aggNew    = (NewDeclaration *)search(0, Id::classNew, 0);
     aggDelete = (DeleteDeclaration *)search(0, Id::classDelete, 0);
 
-    // If this class has no constructor, but base class does, create
-    // a constructor:
+    // If this class has no constructor, but base class has a default
+    // ctor, create a constructor:
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        //printf("Creating default this(){} for class %s\n", toChars());
-        Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
-        CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
-        ctor->isImplicit = true;
-        ctor->fbody = new CompoundStatement(0, new Statements());
-        members->push(ctor);
-        ctor->addMember(sc, this, 1);
-        *sc = scsave;   // why? What about sc->nofree?
-        ctor->semantic(sc);
-        this->ctor = ctor;
-        defaultCtor = ctor;
+        if (baseClass->defaultCtor)
+        {
+            //printf("Creating default this(){} for class %s\n", toChars());
+            Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+            CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
+            ctor->fbody = new CompoundStatement(0, new Statements());
+            members->push(ctor);
+            ctor->addMember(sc, this, 1);
+            *sc = scsave;   // why? What about sc->nofree?
+            ctor->semantic(sc);
+            this->ctor = ctor;
+            defaultCtor = ctor;
+        }
+        else
+        {
+            error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
+        }
     }
 
 #if 0
@@ -758,7 +765,7 @@ void ClassDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
     {
         BaseClass *b = (*vtblInterfaces)[i];
-        unsigned thissize = PTRSIZE;
+        unsigned thissize = Target::ptrsize;
 
         alignmember(STRUCTALIGN_DEFAULT, thissize, &sc->offset);
         assert(b->offset == 0);
@@ -1423,7 +1430,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
 //    structalign = sc->structalign;
-    sc->offset = PTRSIZE * 2;
+    sc->offset = Target::ptrsize * 2;
     sc->userAttributes = NULL;
     structsize = sc->offset;
     inuse++;

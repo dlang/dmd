@@ -95,7 +95,7 @@ enum PROT
 };
 
 // this is used for printing the protection in json, traits, docs, etc.
-static const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
+extern const char* Pprotectionnames[];
 
 /* State of symbol in winding its way through the passes of the compiler
  */
@@ -115,7 +115,6 @@ typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 struct Dsymbol : Object
 {
     Identifier *ident;
-    Identifier *c_ident;
     Dsymbol *parent;
     Symbol *csym;               // symbol for code generator
     Symbol *isym;               // import version of csym
@@ -167,7 +166,6 @@ struct Dsymbol : Object
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
     virtual int overloadInsert(Dsymbol *s);
-    char *toHChars();
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
@@ -330,7 +328,7 @@ struct OverloadSet : Dsymbol
 {
     Dsymbols a;         // array of Dsymbols
 
-    OverloadSet();
+    OverloadSet(Identifier *ident);
     void push(Dsymbol *s);
     OverloadSet *isOverloadSet() { return this; }
     const char *kind();

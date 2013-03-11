@@ -32,8 +32,6 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
 {
     if (assign)
     {
-        assert(assign->ident == Id::assign);
-
         /* check identity opAssign exists
          */
         Expression *er = new NullExp(loc, type);        // dummy rvalue
@@ -42,26 +40,20 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *a
         Expressions ar;  ar.push(er);
         Expressions al;  al.push(el);
         FuncDeclaration *f = NULL;
-        if (FuncDeclaration *fd = assign->isFuncDeclaration())
-        {
-                    f = fd->overloadResolve(loc, er, &ar, 1);
-            if (!f) f = fd->overloadResolve(loc, er, &al, 1);
-        }
-        if (TemplateDeclaration *td = assign->isTemplateDeclaration())
-        {
-            unsigned errors = global.startGagging();    // Do not report errors, even if the
-            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-            global.speculativeGag = global.gag;
-            Scope *sc2 = sc->push();
-            sc2->speculative = true;
 
-                    f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &ar, 1);
-            if (!f) f = td->deduceFunctionTemplate(sc2, loc, NULL, er, &al, 1);
+        unsigned errors = global.startGagging();    // Do not report errors, even if the
+        unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+        global.speculativeGag = global.gag;
+        sc = sc->push();
+        sc->speculative = true;
 
-            sc2->pop();
-            global.speculativeGag = oldspec;
-            global.endGagging(errors);
-        }
+                 f = resolveFuncCall(loc, sc, assign, NULL, er, &ar, 1);
+        if (!f)  f = resolveFuncCall(loc, sc, assign, NULL, er, &al, 1);
+
+        sc = sc->pop();
+        global.speculativeGag = oldspec;
+        global.endGagging(errors);
+
         if (f)
         {
             int varargs;
@@ -104,7 +96,7 @@ int StructDeclaration::needOpAssign()
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -209,7 +201,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         {
             Dsymbol *s = fields[i];
             VarDeclaration *v = s->isVarDeclaration();
-            assert(v && v->storage_class & STCfield);
+            assert(v && v->isField());
             // this.v = s.v;
             AssignExp *ec = new AssignExp(0,
                 new DotVarExp(0, new ThisExp(0), v, 0),
@@ -293,7 +285,7 @@ int StructDeclaration::needOpEquals()
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -345,19 +337,9 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
             arguments->push(e);
 
             // check identity opEquals exists
-            FuncDeclaration *fd = eq->isFuncDeclaration();
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, eq, NULL, e, arguments, 1);
             if (fd)
-            {   fd = fd->overloadResolve(loc, e, arguments, 1);
-                if (fd && !(fd->storage_class & STCdisable))
-                    return fd;
-            }
-
-            TemplateDeclaration *td = eq->isTemplateDeclaration();
-            if (td)
-            {   fd = td->deduceFunctionTemplate(sc, loc, NULL, e, arguments, 1);
-                if (fd && !(fd->storage_class & STCdisable))
-                    return fd;
-            }
+                return (fd->storage_class & STCdisable) ? NULL : fd;
         }
         return NULL;
     }
@@ -383,7 +365,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             assert(0);                  // what should we do with this?
         // this.v == s.v;
@@ -586,7 +568,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
@@ -696,7 +678,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     {
         Dsymbol *s = fields[i];
         VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->storage_class & STCfield);
+        assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
