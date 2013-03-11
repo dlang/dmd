@@ -1708,6 +1708,18 @@ Dsymbol *Parser::parseAggregate()
                 nextToken();
                 baseclasses = parseBaseClasses();
 
+                if (tpl)
+                {
+                    Expression *tempCons = parseConstraint();
+                    if (tempCons)
+                    {
+                        if (constraint)
+                            error("members expected");
+                        else
+                            constraint = tempCons;
+                    }
+                }
+
                 if (token.value != TOKlcurly)
                     error("members expected");
             }
