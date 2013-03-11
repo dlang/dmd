@@ -328,19 +328,30 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     Dsymbol *eq = search_function(this, Id::eq);
     if (eq)
     {
-        for (size_t i = 0; i <= 1; i++)
-        {
-            Expression *e =
-                i == 0 ? new NullExp(loc, type->constOf())  // dummy rvalue
-                       : type->constOf()->defaultInit();    // dummy lvalue
-            Expressions *arguments = new Expressions();
-            arguments->push(e);
+        /* check identity opEquals exists
+         */
+        Expression *er = new NullExp(loc, type);        // dummy rvalue
+        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        el->type = type;
+        Expressions ar;  ar.push(er);
+        Expressions al;  al.push(el);
+        FuncDeclaration *f = NULL;
 
-            // check identity opEquals exists
-            FuncDeclaration *fd = resolveFuncCall(loc, sc, eq, NULL, e, arguments, 1);
-            if (fd)
-                return (fd->storage_class & STCdisable) ? NULL : fd;
-        }
+        unsigned errors = global.startGagging();    // Do not report errors, even if the
+        unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+        global.speculativeGag = global.gag;
+        sc = sc->push();
+        sc->speculative = true;
+
+                 f = resolveFuncCall(loc, sc, eq, NULL, er, &ar, 1);
+        if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, er, &al, 1);
+
+        sc = sc->pop();
+        global.speculativeGag = oldspec;
+        global.endGagging(errors);
+
+        if (f)
+            return (f->storage_class & STCdisable) ? NULL : f;
         return NULL;
     }
 
