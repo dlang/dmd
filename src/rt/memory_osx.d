@@ -15,10 +15,8 @@ module rt.memory_osx;
 version(OSX):
 
 //import core.stdc.stdio;   // printf
-import src.core.sys.osx.mach.dyld;
-import src.core.sys.osx.mach.getsect;
-
-extern (C) extern __gshared ubyte[][2] _tls_data_array;
+import core.sys.osx.mach.dyld;
+import core.sys.osx.mach.getsect;
 
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
@@ -56,51 +54,3 @@ ubyte[] getSection(in mach_header* header, intptr_t slide,
     else
         return null;
 }
-
-extern (C) void _d_osx_image_init()
-{
-}
-
-/*********************************
- * The following is done separately because it must be done before Thread gets initialized.
- */
-
-extern (C) void onAddImage2(in mach_header* h, intptr_t slide)
-{
-    //printf("onAddImage2()\n");
-
-    if (auto sect = getSection(h, slide, "__DATA", "__tls_data"))
-    {
-        //printf("  tls_data %p %p\n", &sect[0], &sect[length]);
-        /* BUG: this will fail if there are multiple images with __tls_data
-         * sections. Not set up to handle that.
-         */
-        if (!_tls_data_array[0].ptr)
-            _tls_data_array[0] = sect.ptr[0 .. sect.length];
-    }
-
-    if (auto sect = getSection(h, slide, "__DATA", "__tlscoal_nt"))
-    {
-        //printf("  tlscoal_nt %p %p\n", &sect[0], &sect[length]);
-        /* BUG: this will fail if there are multiple images with __tlscoal_nt
-         * sections. Not set up to handle that.
-         */
-        if (!_tls_data_array[1].ptr)
-            _tls_data_array[1] = sect.ptr[0 .. sect.length];
-    }
-}
-
-
-extern (C) void onRemoveImage2(in mach_header* h, intptr_t slide)
-{
-    //printf("onRemoveImage2()\n");
-}
-
-
-extern (C) void _d_osx_image_init2()
-{
-    //printf("_d_osx_image_init2()\n");
-    _dyld_register_func_for_add_image( &onAddImage2 );
-    _dyld_register_func_for_remove_image( &onRemoveImage2 );
-}
-

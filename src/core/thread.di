@@ -394,19 +394,19 @@ private:
     // These must be kept in sync with core/thread.d
     version (D_LP64)
     {
-        version (Windows)      enum ThreadSize = 312;
-        else version (OSX)     enum ThreadSize = 320;
-        else version (Solaris) enum ThreadSize = 176;
-        else version (Posix)   enum ThreadSize = 184;
+        version (Windows)      enum ThreadSize = 296;
+        else version (OSX)     enum ThreadSize = 304;
+        else version (Solaris) enum ThreadSize = 160;
+        else version (Posix)   enum ThreadSize = 168;
         else static assert(0, "Platform not supported.");
     }
     else
     {
         static assert((void*).sizeof == 4); // 32-bit
 
-        version (Windows)      enum ThreadSize = 128;
-        else version (OSX)     enum ThreadSize = 128;
-        else version (Posix)   enum ThreadSize =  92;
+        version (Windows)      enum ThreadSize = 120;
+        else version (OSX)     enum ThreadSize = 120;
+        else version (Posix)   enum ThreadSize =  84;
         else static assert(0, "Platform not supported.");
     }
 
