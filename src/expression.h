@@ -496,7 +496,7 @@ struct StructLiteralExp : Expression
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
-
+    StructLiteralExp* origin;
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();
@@ -510,6 +510,7 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     dt_t **toDt(dt_t **pdt);
+    Symbol *toSymbol();
     MATCH implicitConvTo(Type *t);
 
     int inlineCost3(InlineCostState *ics);

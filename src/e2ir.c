@@ -41,7 +41,7 @@
 #include        "id.h"
 #include        "type.h"
 #include        "toir.h"
-
+#include        "ctfe.h"
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
@@ -3715,11 +3715,26 @@ elem *CallExp::toElem(IRState *irs)
 elem *AddrExp::toElem(IRState *irs)
 {
     //printf("AddrExp::toElem('%s')\n", toChars());
-    elem *e = e1->toElem(irs);
-    e = addressElem(e, e1->type);
-    e->Ety = type->totym();
-    el_setLoc(e,loc);
-    return e;
+    
+    if(e1->op == TOKstructliteral)
+    {
+        StructLiteralExp* sl = (StructLiteralExp*)e1;
+        //printf("AddrExp::toElem('%s') %d\n", toChars(), this);
+        //printf("StructLiteralExp(%p); origin:%p\n", sl, sl->origin);
+        //printf("sl->toSymbol() (%p)\n", sl->toSymbol());
+        elem *e = el_ptr(sl->origin->toSymbol());
+        e->ET = type->toCtype();
+        el_setLoc(e,loc);
+        return e;
+    }
+    else
+    {
+        elem *e = e1->toElem(irs);
+        e = addressElem(e, e1->type);
+        e->Ety = type->totym();
+        el_setLoc(e,loc);
+        return e;
+    }
 }
 
 elem *PtrExp::toElem(IRState *irs)
@@ -5310,3 +5325,16 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
     return er;
 }
 
+/*****************************************************/
+/*                   CTFE stuff                      */
+/*****************************************************/
+
+
+elem *ClassReferenceExp::toElem(IRState *irs)
+{
+#if 0
+    printf("ClassReferenceExp::toElem() %p, value=%p, %s\n", this, value, toChars());
+#endif
+    elem *e = el_ptr(toSymbol());
+    return e;
+}

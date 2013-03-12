@@ -17,7 +17,7 @@ int foo1()
 {   int x;
 
     foreach (i; 0 .. 10)
-	x += i;
+    x += i;
     return x;
 }
 
@@ -25,8 +25,8 @@ int bar1()
 {   int x;
 
     foreach_reverse (i; 0 .. 10)
-    {	x <<= 1;
-	x += i;
+    {    x <<= 1;
+    x += i;
     }
     return x;
 }
@@ -132,17 +132,6 @@ struct CompileTimeCheck1880(Property1880 Prop)
 }
 Property1880 junkprop1880;
 static assert(!is(CompileTimeCheck1880!(junkprop1880)));
-
-/***** Bug 5678 *********************************/
-
-//struct Bug5678 {
-//    this(int) {}
-//}
-//static assert(!is(typeof(
-//() { enum Bug5678* f = new Bug5678(0); return f; }
-//)));
-
-/************************************************/
 
 int main()
 {

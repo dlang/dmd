@@ -25,7 +25,7 @@
 #include "lexer.h"
 #include "dsymbol.h"
 #include "id.h"
-
+#include "ctfe.h"
 #include "rmem.h"
 
 // Back end
@@ -752,3 +752,44 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         return s;
     }
 
+/*****************************************************/
+/*                   CTFE stuff                      */
+/*****************************************************/
+
+Symbol* StructLiteralExp::toSymbol()
+{
+    if(sym) return sym;
+    dt_t* d = NULL;
+    toDt(&d);
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    s->Sdt = d;
+    slist_add(s);
+    outdata(s);
+    sym = s;
+    return sym;
+}
+
+Symbol* ClassReferenceExp::toSymbol()
+{
+    if(value->sym) return value->sym;
+    dt_t* d = NULL;
+    toInstanceDt(&d);
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    s->Sdt = d;
+    slist_add(s);
+    outdata(s);
+    value->sym = s;
+    return value->sym;
+}

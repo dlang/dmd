@@ -33,8 +33,6 @@
 #include        "arraytypes.h"
 // Back end
 #include        "dt.h"
-
-
 /* ================================================================ */
 
 dt_t *Initializer::toDt()
@@ -303,28 +301,28 @@ dt_t **Expression::toDt(dt_t **pdt)
 dt_t **CastExp::toDt(dt_t **pdt)
 {
 #if 0
-  printf("CastExp::toDt() %d from %s to %s\n", op, e1->type->toChars(), type->toChars());
+    printf("CastExp::toDt() %d from %s to %s\n", op, e1->type->toChars(), type->toChars());
 #endif
-  if(e1->type->ty == Tclass && type->ty == Tclass)
-  {
-    if(((TypeClass*)type)->sym->isInterfaceDeclaration())//casting from class to interface
+    if(e1->type->ty == Tclass && type->ty == Tclass)
     {
-      ClassDeclaration *from = ((TypeClass*)e1->type)->sym;
-      InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
-      int off = 0;
-      int isbase = to->isBaseOf(from, &off);
-      assert(isbase);
-  
-      return ((ClassReferenceExp*)e1)->toDtI(pdt, off);
-
+        if(((TypeClass*)type)->sym->isInterfaceDeclaration())//casting from class to interface
+        {
+            ClassDeclaration *from = ((TypeClass*)e1->type)->sym;
+            InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
+            int off = 0;
+            int isbase = to->isBaseOf(from, &off);
+            assert(isbase);
+        
+            return ((ClassReferenceExp*)e1)->toDtI(pdt, off);
+        
+        }
+        else //casting from class to class
+        {
+            return e1->toDt(pdt);
+        }
     }
-    else //casting from class to class
-    {
-      return e1->toDt(pdt);
-    }
-  }
-  
-  return UnaExp::toDt(pdt);
+    
+    return UnaExp::toDt(pdt);
   
   
 }
@@ -332,17 +330,16 @@ dt_t **CastExp::toDt(dt_t **pdt)
 dt_t **AddrExp::toDt(dt_t **pdt)
 {
 #if 0
-  printf("AddrExp::toDt() %d\n", op);
+    printf("AddrExp::toDt() %d\n", op);
 #endif
-  if(e1->op == TOKstructliteral)
-  {
-    dt_t* d = NULL;
-    e1->toDt(&d);
-    dtdtoff(pdt, d, 0);
-    return pdt;
-  }
-
-  return UnaExp::toDt(pdt);
+    if(e1->op == TOKstructliteral)
+    {
+        StructLiteralExp* sl = (StructLiteralExp*)e1;
+        dtxoff(pdt, sl->toSymbol(), 0);
+        return pdt;
+    }
+    
+    return UnaExp::toDt(pdt);
 }
 
 
@@ -965,10 +962,21 @@ dt_t **ClassReferenceExp::toDtI(dt_t **pdt, int off)
 #if 0
     printf("ClassReferenceExp::toDtI() %d\n", op);
 #endif
-		dt_t *d = NULL;
+
+    dtxoff(pdt, toSymbol(), off);
+    return pdt;
+}
+
+
+dt_t **ClassReferenceExp::toInstanceDt(dt_t **pdt)
+{
+#if 0
+    printf("ClassReferenceExp::toInstanceDt() %d\n", op);
+#endif
+    dt_t *d = NULL;
     dt_t **pdtend = &d;
 
-		
+        
     Dts dts;
     dts.setDim(value->elements->dim);
     dts.zero();
@@ -982,15 +990,14 @@ dt_t **ClassReferenceExp::toDtI(dt_t **pdt, int off)
         e->toDt(&dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
-		
-		
-		dtxoff(pdtend, originalClass()->toVtblSymbol(), 0);
+        
+        
+    dtxoff(pdtend, originalClass()->toVtblSymbol(), 0);
     dtsize_t(pdtend, 0);                    // monitor
     // Put in the rest
     toDt2(&d, originalClass(), &dts);
-    
-		dtdtoff(pdt, d, off);
-    
+    *pdt = d;
+
     return pdt;
 }
 
@@ -1024,7 +1031,7 @@ dt_t ** ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts* dts)
         int idx = findFieldIndexByName(v);
         assert(idx != -1);
         dt_t *d = (*dts)[idx];
-				
+                
         if(!d)
         {
             dt_t *dt = NULL;
