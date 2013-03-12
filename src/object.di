@@ -594,7 +594,7 @@ void destroy(T)(ref T obj) if (is(T == struct))
 
 void destroy(T : U[n], U, size_t n)(ref T obj)
 {
-    obj = T.init;
+    obj[] = U.init;
 }
 
 void destroy(T)(ref T obj)
