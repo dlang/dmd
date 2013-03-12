@@ -1041,8 +1041,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     // xgetRTInfo
     if (getRTInfo)
         getRTInfo->toDt(&dt);
-		else
-			dtsize_t(&dt, 0);       // no pointers
+    else
+        dtsize_t(&dt, 0);       // no pointers
 #endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo

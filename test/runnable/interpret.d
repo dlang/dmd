@@ -2952,35 +2952,35 @@ void test107()
 
 interface Getter
 {
-    int getNum();
+    int getNum() const;
 }
 class Test108:Getter
 {
 
     int f;
-    this(int v)
+    this(int v) inout
     {
         f = v;
     }
 
-    int getNum()
+    int getNum() const
     {
         return f;
     }
 }
 
 
-enum Test108 t108 = new Test108(38);
+enum const(Test108) t108 = new Test108(38);
 
 void test108()
 {
-    Test108 obj = t108;
+    const Test108 obj = t108;
     assert(obj.classinfo is Test108.classinfo);
     assert(obj.f == 38);
     
-    Getter iobj = t108;
-    assert(obj.getNum() == 38);
-    
+    const Getter iobj = t108;
+    assert(iobj.getNum() == 38);
+    assert((cast(Object)iobj).classinfo is Test108.classinfo);
     assert(t108 is t108);
 }
 
@@ -2991,7 +2991,7 @@ struct Bug5678
 {
     this(int) {}
 }
-enum Bug5678* b5678 = new Bug5678(0);
+enum const(Bug5678)* b5678 = new const(Bug5678)(0);
 
 void test5678()
 {
@@ -2999,6 +2999,7 @@ void test5678()
 }
 
 /************************************************/
+
 int main()
 {
     test1();

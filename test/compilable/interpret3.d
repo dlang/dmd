@@ -3682,8 +3682,8 @@ SomeClass classtest2(int n)
 {
     return n==5 ? (new SomeClass) : null;
 }
-static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
-static assert(is(typeof( (){ enum xx = classtest2(5);}() )));
+static assert(is(typeof( (){ enum const(SomeClass) xx = classtest2(2);}() )));
+static assert(is(typeof( (){ enum const(SomeClass) xx = classtest2(5);}() )));
 
 class RecursiveClass
 {
@@ -5021,3 +5021,40 @@ label:
 static assert(bug8865());
 
 
+
+/******************************************************/
+
+
+struct Test75
+{
+    this(int, int) {}//mutable
+    this(int) inout{}
+}
+
+static assert(!__traits(compiles, {enum t75 = new shared(Test75)(0); return t75;}));
+static assert(!__traits(compiles, {enum t75 = new Test75(0,0); return t75;}));
+static assert(!__traits(compiles, {enum shared(Test75)* t75 = new shared(Test75)(0); return t75;}));
+static assert(!__traits(compiles, {enum Test75* t75 = new Test75(0,0); return t75;}));
+
+static assert(__traits(compiles, {enum t75 = new const(Test75)(0); return t75;}));
+static assert(__traits(compiles, {enum t75 = new immutable(Test75)(0); return t75;}));
+static assert(__traits(compiles, {enum const(Test75)* t75 = new const(Test75)(0); return t75;}));
+static assert(__traits(compiles, {enum immutable(Test75)* t75 = new immutable(Test75)(0); return t75;}));
+
+/******************************************************/
+
+class Test76
+{
+    this(int, int) {}//mutable
+    this(int) inout{}
+}
+
+static assert(!__traits(compiles, {enum t76 = new shared(Test76)(0); return t76;}));
+static assert(!__traits(compiles, {enum t76 = new Test76(0,0); return t76;}));
+static assert(!__traits(compiles, {enum shared(Test76) t76 = new shared(Test76)(0); return t76;}));
+static assert(!__traits(compiles, {enum Test76 t76 = new Test76(0,0); return t76;}));
+
+static assert(__traits(compiles, {enum t76 = new const(Test76)(0); return t76;}));
+static assert(__traits(compiles, {enum t76 = new immutable(Test76)(0); return t76;}));
+static assert(__traits(compiles, {enum const(Test76) t76 = new const(Test76)(0); return t76;}));
+static assert(__traits(compiles, {enum immutable(Test76) t76 = new immutable(Test76)(0); return t76;}));

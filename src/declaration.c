@@ -1737,6 +1737,22 @@ void VarDeclaration::semantic2(Scope *sc)
         init = init->semantic(sc, type, INITinterpret);
         inuse--;
     }
+    
+    if(storage_class & STCmanifest)
+    {
+        if((type->ty == Tclass)&&type->isMutable())
+        {
+            error("is mutable. Only const and immutable class enum are allowed, not %s", type->toChars());
+        }
+        else if(type->ty == Tpointer && type->nextOf()->ty == Tstruct && type->nextOf()->isMutable())
+        {
+            ExpInitializer *ei = init->isExpInitializer();
+            if (ei->exp->op == TOKaddress && ((AddrExp *)ei->exp)->e1->op == TOKstructliteral)
+            {
+                error("is a pointer to mutable struct. Only pointers to const or immutable struct enum are allowed, not %s", type->toChars());
+            }
+        }
+    }
     sem = Semantic2Done;
 }
 
