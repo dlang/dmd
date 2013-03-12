@@ -63,6 +63,22 @@ void finiSections()
 {
 }
 
+void[] initTLSRanges()
+{
+    auto pbeg = cast(void*)&_tlsstart;
+    auto pend = cast(void*)&_tlsend;
+    return pbeg[0 .. pend - pbeg];
+}
+
+void finiTLSRanges(void[] rng)
+{
+}
+
+void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) dg)
+{
+    dg(rng.ptr, rng.ptr + rng.length);
+}
+
 private:
 
 __gshared SectionGroup _sections;
@@ -86,10 +102,16 @@ body
 
 extern(C)
 {
-  extern __gshared
-  {
-    int _xi_a;      // &_xi_a just happens to be start of data segment
-    //int _edata;   // &_edata is start of BSS segment
-    int _end;       // &_end is past end of BSS
-  }
+    extern __gshared
+    {
+        int _xi_a;      // &_xi_a just happens to be start of data segment
+        //int _edata;   // &_edata is start of BSS segment
+        int _end;       // &_end is past end of BSS
+    }
+
+    extern
+    {
+        int _tlsstart;
+        int _tlsend;
+    }
 }

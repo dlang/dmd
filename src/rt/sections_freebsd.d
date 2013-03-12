@@ -85,6 +85,22 @@ void finiSections()
     .free(_sections.modules.ptr);
 }
 
+void[] initTLSRanges()
+{
+    auto pbeg = cast(void*)&_tlsstart;
+    auto pend = cast(void*)&_tlsend;
+    return pbeg[0 .. pend - pbeg];
+}
+
+void finiTLSRanges(void[] rng)
+{
+}
+
+void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) dg)
+{
+    dg(rng.ptr, rng.ptr + rng.length);
+}
+
 private:
 
 __gshared SectionGroup _sections;
@@ -136,5 +152,11 @@ extern(C)
 
         version (X86_64)
             size_t __progname;
+    }
+
+    extern
+    {
+        void* _tlsstart;
+        void* _tlsend;
     }
 }

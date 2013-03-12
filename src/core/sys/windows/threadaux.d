@@ -267,9 +267,14 @@ private:
         alias extern(C) void function() externCVoidFunc;
         static void impersonate_thread( uint id, externCVoidFunc fn )
         {
+            impersonate_thread(id, () => fn());
+        }
+
+        static void impersonate_thread( uint id, scope void delegate() dg)
+        {
             if( id == GetCurrentThreadId() )
             {
-                fn();
+                dg();
                 return;
             }
 
@@ -284,7 +289,7 @@ private:
                 return;
 
             curteb[11] = tlsarray;
-            fn();
+            dg();
             curteb[11] = curtlsarray;
         }
     }
@@ -295,6 +300,7 @@ public:
     alias thread_aux.getThreadStackBottom getThreadStackBottom;
     alias thread_aux.OpenThreadHandle OpenThreadHandle;
     alias thread_aux.enumProcessThreads enumProcessThreads;
+    alias thread_aux.impersonate_thread impersonate_thread;
 
     // get the start of the TLS memory of the thread with the given handle
     void* GetTlsDataAddress( HANDLE hnd ) nothrow

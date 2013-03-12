@@ -101,8 +101,6 @@ version (OSX)
 {
     // The bottom of the stack
     extern (C) __gshared void* __osx_stack_end = cast(void*)0xC0000000;
-
-    extern (C) extern (C) void _d_osx_image_init2();
 }
 
 /***********************************
@@ -282,8 +280,6 @@ alias void delegate(Throwable) ExceptionHandler;
 
 extern (C) bool rt_init(ExceptionHandler dg = null)
 {
-    version (OSX)
-        _d_osx_image_init2();
     _d_criticalInit();
 
     try
@@ -398,8 +394,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
          * of the main thread's stack, so save the address of that.
          */
         __osx_stack_end = cast(void*)&argv;
-
-        _d_osx_image_init2();
     }
 
     version (FreeBSD) version (D_InlineAsm_X86)

@@ -72,6 +72,22 @@ void finiSections()
     .free(_sections.modules.ptr);
 }
 
+void[] initTLSRanges()
+{
+    auto pbeg = cast(void*)&_tls_start;
+    auto pend = cast(void*)&_tls_end;
+    return pbeg[0 .. pend - pbeg];
+}
+
+void finiTLSRanges(void[] rng)
+{
+}
+
+void scanTLSRanges(void[] rng, scope void delegate(void* pbeg, void* pend) dg)
+{
+    dg(rng.ptr, rng.ptr + rng.length);
+}
+
 private:
 __gshared SectionGroup _sections;
 
@@ -126,5 +142,11 @@ extern(C)
         int __xc_a;      // &__xc_a just happens to be start of data segment
         //int _edata;    // &_edata is start of BSS segment
         //void* _deh_beg;  // &_deh_beg is past end of BSS
+    }
+
+    extern
+    {
+        int _tls_start;
+        int _tls_end;
     }
 }

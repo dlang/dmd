@@ -64,11 +64,6 @@ struct DSO
         return _gcRanges[];
     }
 
-    @property void[] tlsRange() const
-    {
-        return getTLSRange(_tlsMod, _tlsSize);
-    }
-
 private:
 
     invariant()
@@ -95,6 +90,25 @@ void finiSections()
 {
 }
 
+Array!(void[])* initTLSRanges()
+{
+    _tlsRanges.length = _static_dsos.length;
+    foreach (i, ref dso; _static_dsos)
+        _tlsRanges[i] = getTLSRange(dso._tlsMod, dso._tlsSize);
+    return &_tlsRanges;
+}
+
+void finiTLSRanges(Array!(void[])* rngs)
+{
+    rngs.reset();
+}
+
+void scanTLSRanges(Array!(void[])* rngs, scope void delegate(void* pbeg, void* pend) dg)
+{
+    foreach (rng; *rngs)
+        dg(rng.ptr, rng.ptr + rng.length);
+}
+
 private:
 
 // start of linked list for ModuleInfo references
@@ -105,6 +119,8 @@ deprecated extern (C) __gshared void* _Dmodule_ref;
  * executable. These can't be unloaded.
  */
 __gshared Array!(DSO*) _static_dsos;
+
+Array!(void[]) _tlsRanges;
 
 
 ///////////////////////////////////////////////////////////////////////////////
