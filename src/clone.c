@@ -330,9 +330,10 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     {
         /* check identity opEquals exists
          */
-        Expression *er = new NullExp(loc, type);        // dummy rvalue
+        Type *tthis = type->constOf();
+        Expression *er = new NullExp(loc, tthis);       // dummy rvalue
         Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = type;
+        el->type = tthis;
         Expressions ar;  ar.push(er);
         Expressions al;  al.push(el);
         FuncDeclaration *f = NULL;
