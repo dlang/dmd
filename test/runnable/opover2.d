@@ -1003,6 +1003,26 @@ void test9689()
 }
 
 /**************************************/
+// 9694
+
+struct S9694
+{
+    bool opEquals(ref S9694 rhs)
+    {
+        assert(0);
+    }
+}
+struct T9694
+{
+    S9694 s;
+}
+void test9694()
+{
+    T9694 t;
+    assert(typeid(T9694).equals(&t, &t));
+}
+
+/**************************************/
 
 int main()
 {
@@ -1031,6 +1051,7 @@ int main()
     test9453();
     test9496();
     test9689();
+    test9694();
 
     printf("Success\n");
     return 0;
