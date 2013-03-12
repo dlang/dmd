@@ -11,7 +11,7 @@ version (Posix):
 
 public import core.sys.posix.sys.time;
 public import core.sys.posix.sys.types: id_t;
-import core.stdc.config;
+import core.sys.posix.config;
 
 nothrow extern(C):
 
@@ -83,12 +83,12 @@ version (linux)
         PRIO_USER    = 2,
     }
 
-    version (__USE_FILE_OFFSET64)
+    static if (__USE_FILE_OFFSET64)
          alias ulong rlim_t;
     else
          alias c_ulong rlim_t;
 
-    version (__USE_FILE_OFFSET64)
+    static if (__USE_FILE_OFFSET64)
         enum RLIM_INFINITY = 0xffffffffffffffffUL;
     else
         enum RLIM_INFINITY = cast(c_ulong)(~0UL);
