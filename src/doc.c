@@ -141,6 +141,7 @@ LINK2 = <a href=\"$1\">$+</a>\n\
 LPAREN= (\n\
 RPAREN= )\n\
 DOLLAR= $\n\
+DEPRECATED= $0\n\
 \n\
 RED =   <font color=red>$0</font>\n\
 BLUE =  <font color=blue>$0</font>\n\
@@ -875,6 +876,9 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
     //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
     if (decl->ident)
     {
+        if (decl->isDeprecated())
+            buf->writestring("$(DEPRECATED ");
+
         prefix(buf, decl);
 
         if (decl->type)
@@ -891,6 +895,10 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
         }
         else
             buf->writestring(decl->ident->toChars());
+
+        if (decl->isDeprecated())
+            buf->writestring(")");
+
         buf->writestring(";\n");
     }
 }
