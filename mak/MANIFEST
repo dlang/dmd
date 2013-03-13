@@ -169,7 +169,6 @@ MANIFEST=\
 	src\rt\dylib_fixes.c \
 	src\rt\image.d \
 	src\rt\invariant.d \
-	src\rt\invariant_.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
 	src\rt\memory.d \
