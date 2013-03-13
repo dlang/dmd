@@ -107,8 +107,6 @@ __gshared ModuleGroup _moduleGroup;
 
 int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
 {
-    int ret = 0;
-
     foreach (ref sg; SectionGroup)
     {
         foreach (m; sg.modules)
@@ -116,13 +114,12 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
             // TODO: Should null ModuleInfo be allowed?
             if (m !is null)
             {
-                ret = dg(m);
-                if (ret)
-                    break;
+                if (auto res = dg(m))
+                    return res;
             }
         }
     }
-    return ret;
+    return 0;
 }
 
 /********************************************
