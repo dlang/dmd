@@ -423,43 +423,52 @@ struct GC
      *
      * Example:
      * ----
-     * //Manually create a slice
-     * int[] arr;
-     * void* p = GC.malloc(1000 * int.sizeof, GC.BlkAttr.NO_SCAN);
-     * arr = (cast(int*)p)[0 .. 1000];
-     *
+     * size_t size = 1000;
+     * int* p = cast(int*)GC.malloc(size * int.sizeof, GC.BlkAttr.NO_SCAN);
+     * 
      * //Try to extend the slice by 1000 elements, preferred 2000.
      * size_t u = GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof);
      * if (u != 0)
-     *     arr = p[0 .. u / int.sizeof];
+     *     size = u / int.sizeof;
      * ----
      *
      * Note:
-     *  Extend may also be used to extend slices, but with caveats.
+     * Extend may also be used to extend slices, but with caveats.
      *
-     *  First, some of the memory block is used by the underlying array
-     *  implementation for bookeeping. Furthermore, the slice may not actually
-     *  start at the begining of the underlying array. Because of this, the
-     *  value returned by extend can only be used as an indicator of success.
+     * First, some of the memory block is used by the underlying array
+     * implementation for bookkeeping. Furthermore, the slice may not actually
+     * start at the beginning of the underlying array. Because of this, the
+     * value returned by extend can only be used as an indicator of success.
      *
-     *  To find the actual "usable" size of the slice, please use
-     *  $(XREF object, capacity). Note that while it is possible to extend a
-     *  slice that does not have a capacity, it will not be possible to exploit
-     *  the extended memory.
+     * To find the actual "usable" size of the slice, please use
+     * $(XREF object, capacity). Note that while it is possible to extend a
+     * slice that does not have a capacity, it will not be possible to exploit
+     * the extended memory.
      *
-     *  Finally, do not access the new memory until the underlying array has
-     *  made it legally accessible.
+     * Finally, do not access the new memory until the underlying array has
+     * made it legally accessible.
      *
      * Example:
      * ----
-     * //Autmoatically create a slice
+     * //Create a slice
      * int[] arr = new int[](1000);
-     * void* p = arr.ptr;
-     *
+     * int*  p   = arr.ptr;
+     * 
      * //Try to extend the slice by 1000 elements, preferred 2000.
-     * if (arr.capacity && GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof))
-     *     //arr = arr.ptr[0 .. arr.capacity] //No.
-     *     arr.length = arr.capacity;         //Yes.
+     * if (arr.capacity)
+     * {
+     *     size_t u = GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof);
+     *     if (u != 0)
+     *     {
+     *         //arr = p[0 .. u / int.sizeof]
+     *             //No: Clobbers the memory block's Appendable info.
+     * 
+     *         //arr = p[0 .. arr.capacity];
+     *             //No: Slice not informed of usage. Items not initialized.
+     * 
+     *         arr.length = arr.capacity; //Yes.
+     *     }
+     * }
      * ----
      */
     static size_t extend( void* p, size_t mx, size_t sz ) pure nothrow
