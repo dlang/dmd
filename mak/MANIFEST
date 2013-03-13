@@ -13,6 +13,8 @@ MANIFEST=\
 	\
 	src\object_.d \
 	src\object.di \
+	src\test_runner.d \
+	src\unittest.d \
 	\
 	src\core\atomic.d \
 	src\core\bitop.d \
