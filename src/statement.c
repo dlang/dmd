@@ -3907,7 +3907,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 }
             }
             if (fd->returnLabel)
-                eorg = exp;
+                eorg = exp->copy();
 
             if (!fd->returns)
                 fd->returns = new ReturnStatements();

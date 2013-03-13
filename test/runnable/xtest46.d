@@ -6033,6 +6033,26 @@ void test9539()
 }
 
 /***************************************************/
+// 9700
+
+mixin template Proxy9700(alias a)
+{
+    auto ref opOpAssign(string op, V)(V v) { return a += v; }  // NG
+  //auto ref opOpAssign(string op, V)(V v) { a += v; } // OK
+}
+struct MyInt9700
+{
+    int value;
+    invariant() { assert(value >= 0); }
+    mixin Proxy9700!value;
+}
+void test9700()
+{
+    MyInt9700 a = { 2 };
+    a *= 3;   // object.Error: Access Violation
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6293,6 +6313,7 @@ int main()
     test163();
     test9428();
     test9538();
+    test9700();
 
     printf("Success\n");
     return 0;
