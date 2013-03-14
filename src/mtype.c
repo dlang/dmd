@@ -2759,41 +2759,8 @@ d_uns64 TypeBasic::size(Loc loc)
 }
 
 unsigned TypeBasic::alignsize()
-{   unsigned sz;
-
-    switch (ty)
-    {
-        case Tfloat80:
-        case Timaginary80:
-        case Tcomplex80:
-            sz = Target::realalignsize;
-            break;
-
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        case Tint64:
-        case Tuns64:
-            sz = global.params.is64bit ? 8 : 4;
-            break;
-
-        case Tfloat64:
-        case Timaginary64:
-            sz = global.params.is64bit ? 8 : 4;
-            break;
-
-        case Tcomplex32:
-            sz = 4;
-            break;
-
-        case Tcomplex64:
-            sz = global.params.is64bit ? 8 : 4;
-            break;
-#endif
-
-        default:
-            sz = size(0);
-            break;
-    }
-    return sz;
+{
+    return Target::alignsize(this);
 }
 
 
