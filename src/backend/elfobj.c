@@ -3206,17 +3206,38 @@ static void obj_rtinit()
         assert(!buf->size());
         size_t off = 0;
 
-        {
-            // 16-byte align for call
-            const size_t sizeof_dso = 6 * NPTRSIZE;
-            const size_t align = -(2 * NPTRSIZE + sizeof_dso) & 0xF;
+        // 16-byte align for call
+        const size_t sizeof_dso = 6 * NPTRSIZE;
+        const size_t align = I64 ?
+            // return address, RBP, DSO
+            (-(2 * NPTRSIZE + sizeof_dso) & 0xF) :
+            // return address, EBP, EBX, DSO, arg
+            (-(3 * NPTRSIZE + sizeof_dso + NPTRSIZE) & 0xF);
 
-            // enter align, 0
-            buf->writeByte(0xC8);
-            buf->writeByte(align & 0xFF);
-            buf->writeByte(align >> 8 & 0xFF);
-            buf->writeByte(0);
-            off += 4;
+        // enter align, 0
+        buf->writeByte(0xC8);
+        buf->writeByte(align & 0xFF);
+        buf->writeByte(align >> 8 & 0xFF);
+        buf->writeByte(0);
+        off += 4;
+
+        if (!I64)
+        {   // see cod3_load_got() for reference
+            // push EBX
+            buf->writeByte(0x50 + BX);
+            off += 1;
+            // call L1
+            buf->writeByte(0xE8);
+            buf->write32(0);
+            // L1: pop EBX (now contains EIP)
+            buf->writeByte(0x58 + BX);
+            off += 6;
+            // add EBX,_GLOBAL_OFFSET_TABLE_+3
+            buf->writeByte(0x81);
+            buf->writeByte(modregrm(3,0,BX));
+            buf->write32(3);
+            ElfObj::addrel(codseg, off + 2, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 0);
+            off += 6;
         }
 
         int reltype = I64 ? R_X86_64_PC32 : RI_TYPE_SYM32;
@@ -3269,12 +3290,20 @@ static void obj_rtinit()
 
 #if REQUIRE_DSO_REGISTRY
 
+        const IDXSYM symidx = Obj::external_def("_d_dso_registry");
+
         // call _d_dso_registry@PLT
         buf->writeByte(0xE8);
-        buf->write32(0);
-
-        reltype = I64 ? R_X86_64_PLT32 : RI_TYPE_PLT32;
-        ElfObj::addrel(codseg, off + 1, reltype, Obj::external("_d_dso_registry"), -4);
+        if (I64)
+        {
+            buf->write32(0);
+            ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
+        }
+        else
+        {
+            buf->write32(-4);
+            ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
+        }
         off += 5;
 
 #else
@@ -3297,24 +3326,10 @@ static void obj_rtinit()
                 off += 8;
             }
             else
-            {  // see cod3_load_got() for reference
-                // call L1
-                buf->writeByte(0xE8);
-                buf->write32(0);
-                // L1: pop ECX (now contains EIP)
-                buf->writeByte(0x58 + CX);
-                off += 6;
-
-                // add ECX,_GLOBAL_OFFSET_TABLE_+3
-                buf->writeByte(0x81);
-                buf->writeByte(modregrm(3,0,CX));
-                buf->write32(3);
-                ElfObj::addrel(codseg, off + 2, RI_TYPE_GOTPC, Obj::external(Obj::getGOTsym()), 0);
-                off += 6;
-
+            {
                 // cmp foo[GOT], 0
                 buf->writeByte(0x81);
-                buf->writeByte(modregrm(2,7,CX));
+                buf->writeByte(modregrm(2,7,BX));
                 buf->write32(0);
                 buf->write32(0);
                 ElfObj::addrel(codseg, off + 2, RI_TYPE_GOT32, symidx, 0);
@@ -3374,6 +3389,13 @@ static void obj_rtinit()
 
 #endif // REQUIRE_DSO_REGISTRY
 
+        if (!I64)
+        {   // mov EBX,[EBP-4-align]
+            buf->writeByte(0x8B);
+            buf->writeByte(modregrm(1,BX,BP));
+            buf->writeByte(-4-align);
+            off += 3;
+        }
         // leave
         buf->writeByte(0xC9);
         // ret
