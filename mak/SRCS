@@ -41,6 +41,7 @@ SRCS=\
 	\
 	src\core\sys\posix\signal.d \
 	src\core\sys\posix\dirent.d \
+	src\core\sys\posix\sys\resource.d \
 	src\core\sys\posix\sys\select.d \
 	src\core\sys\posix\sys\socket.d \
 	src\core\sys\posix\sys\stat.d \

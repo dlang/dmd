@@ -371,6 +371,9 @@ $(IMPDIR)\core\sys\posix\sys\ipc.d : src\core\sys\posix\sys\ipc.d
 $(IMPDIR)\core\sys\posix\sys\mman.d : src\core\sys\posix\sys\mman.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\posix\sys\resource.d : src\core\sys\posix\sys\resource.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\posix\sys\select.d : src\core\sys\posix\sys\select.d
 	copy $** $@
 
