@@ -508,6 +508,49 @@ void Dsymbol::emitDitto(Scope *sc)
     sc->lastoffset += b.offset;
 }
 
+/** Remove leading indentation from 'src' which represents lines of code. */
+static const char *unindent(const char *src)
+{
+    OutBuffer codebuf;
+    codebuf.writestring(src);
+    codebuf.writebyte(0);
+
+    while (src && *src == '\n')
+        ++src;  // skip until we find the first non-empty line
+
+    size_t codeIndent = 0;
+    while (src && ((*src == ' ') || (*src == '\t')))
+    {
+        codeIndent++;
+        src++;
+    }
+
+    bool lineStart = true;
+    unsigned char *endp = codebuf.data + codebuf.offset;
+    for (unsigned char *p = codebuf.data; p < endp; )
+    {
+        if (lineStart)
+        {
+            size_t j = codeIndent;
+            unsigned char *q = p;
+            while (j-- > 0 && q < endp && ((*q == ' ') || (*q == '\t')))
+                ++q;
+            codebuf.remove(p - codebuf.data, q - p);
+            assert(codebuf.data <= p);
+            assert(p < codebuf.data + codebuf.offset);
+            lineStart = false;
+            endp = codebuf.data + codebuf.offset; // update
+            continue;
+        }
+        if (*p == '\n')
+            lineStart = true;
+        ++p;
+    }
+
+    codebuf.writebyte(0);
+    return codebuf.extractData();
+}
+
 void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
 {
     static char pre[] = "$(D_CODE \n";
@@ -519,10 +562,9 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
         if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
             continue;
 
-        OutBuffer codebuf;
-        const char *body = utd->fbody->toChars();
-        if (strlen(body))
+        if (utd->codedoc && strlen(utd->codedoc))
         {
+            OutBuffer codebuf;
             if (!exampleFound)
             {
                 exampleFound = true;
@@ -531,7 +573,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
             }
 
             codebuf.writestring(pre);
-            codebuf.writestring(body);
+            codebuf.writestring(unindent(utd->codedoc));
             codebuf.writestring(")");
             codebuf.writeByte(0);
             highlightCode2(sc, s, &codebuf, 0);
