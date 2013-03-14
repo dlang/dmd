@@ -649,6 +649,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 
 void Dsymbol::emitComment(Scope *sc)               { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
+void UnitTestDeclaration::emitComment(Scope *sc)   { }
 #if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
 #endif
