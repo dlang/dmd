@@ -629,6 +629,18 @@ body
             jc  Loverflow;
         }
     }
+    else version (D_InlineAsm_X86_64)
+    {
+        size_t reqsize = void;
+
+        asm
+        {
+            mov RAX, newcapacity;
+            mul RAX, size;
+            mov reqsize, RAX;
+            jc  Loverflow;
+        }
+    }
     else
     {
         size_t reqsize = size * newcapacity;
