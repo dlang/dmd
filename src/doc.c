@@ -1374,7 +1374,7 @@ void DocComment::parseSections(unsigned char *comment)
 void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     //printf("DocComment::writeSections()\n");
-    if (sections.dim)
+    if (sections.dim || s->unittest)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (size_t i = 0; i < sections.dim; i++)

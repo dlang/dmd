@@ -171,5 +171,13 @@ unittest
     foo(4);
 }
 
+// ------------------------------------
+
+/// test for bugzilla 9713
+void fooNoDescription() {}
+///
+unittest { fooNoDescription(); }
+
+// ------------------------------------
 
 void main() { }
