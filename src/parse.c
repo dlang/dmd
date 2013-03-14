@@ -1331,9 +1331,21 @@ UnitTestDeclaration *Parser::parseUnitTest()
     char *docline = NULL;
     if (global.params.doDocComments && endPtr > begPtr)
     {
-        docline = (char *)mem.malloc((endPtr - begPtr) + 1);
-        memcpy(docline, begPtr, endPtr - begPtr);
-        docline[endPtr - begPtr] = 0;
+        /* Remove trailing whitespaces */
+        for (unsigned char *p = endPtr - 1;
+             begPtr <= p && (*p == ' ' || *p == '\n' || *p == '\t'); --p)
+        {
+            endPtr = p;
+        }
+
+        size_t len = endPtr - begPtr;
+        if (len > 0)
+        {
+            docline = (char *)mem.malloc(len + 2);
+            memcpy(docline, begPtr, len);
+            docline[len  ] = '\n';  // Terminate all lines by LF
+            docline[len+1] = '\0';
+        }
     }
 
     f = new UnitTestDeclaration(loc, this->loc, docline);

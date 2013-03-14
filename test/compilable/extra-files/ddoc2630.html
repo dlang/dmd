@@ -10,7 +10,8 @@
 <b>Examples:</b><br>
 <pre class="d_code">
 <font color=blue>assert</font>(<u>foo</u>(1, 1) == 2);
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="bar"></a>bool <u>bar</u>();
 </big></dt>
@@ -19,7 +20,8 @@
 <pre class="d_code">
 <font color=green>// documented
 </font><font color=blue>assert</font>(<u>bar</u>());
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="doo"></a>void <u>doo</u>();
 </big></dt>
@@ -39,12 +41,14 @@
 <font color=green>// documented
 </font><font color=blue>assert</font>(<u>add</u>(3, 3) == 6);
 <font color=blue>assert</font>(<u>add</u>(4, 4) == 8);
-</pre><br><br><b>Examples:</b><br>
+</pre>
+<br><br><b>Examples:</b><br>
 <pre class="d_code">
 <font color=green>// documented
 </font><font color=blue>assert</font>(<u>add</u>(5, 5) == 10);
 <font color=blue>assert</font>(<u>add</u>(6, 6) == 12);
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="Foo"></a>class <u>Foo</u>;
 </big></dt>
@@ -52,7 +56,8 @@
 <b>Examples:</b><br>
 <pre class="d_code">
 <u>Foo</u> foo = <font color=blue>new</font> <u>Foo</u>;
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="SomeClass"></a>class <u>SomeClass</u>;
 </big></dt>
@@ -60,7 +65,8 @@
 <b>Examples:</b><br>
 <pre class="d_code">
 <u>SomeClass</u> sc = <font color=blue>new</font> <u>SomeClass</u>;
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="Outer"></a>class <u>Outer</u>;
 </big></dt>
@@ -68,14 +74,16 @@
 <b>Examples:</b><br>
 <pre class="d_code">
 <u>Outer</u> outer = <font color=blue>new</font> <u>Outer</u>;
-</pre><br><br>
+</pre>
+<br><br>
 <dl><dt><big><a name="Outer.Inner"></a>class <u>Inner</u>;
 </big></dt>
 <dd><u>Inner</u><br><br>
 <b>Examples:</b><br>
 <pre class="d_code">
 <u>Inner</u> inner = <font color=blue>new</font> <u>Inner</u>;
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 </dl>
 </dd>
@@ -100,16 +108,23 @@
 <b>Examples:</b><br>
 <pre class="d_code">
 <u>foo</u>(2);
-</pre><br><br><b>Examples:</b><br>
+</pre>
+<br><br><b>Examples:</b><br>
 <pre class="d_code">
 <u>foo</u>(4);
-</pre><br><br>
+</pre>
+<br><br>
 </dd>
 <dt><big><a name="fooNoDescription"></a>void <u>fooNoDescription</u>();
 </big></dt>
 <dd>test for bugzilla 9713<br><br>
 <b>Examples:</b><br>
-<pre class="d_code"><u>fooNoDescription</u>(); </pre><br><br>
+<pre class="d_code"><u>fooNoDescription</u>();
+</pre>
+<br><br><b>Examples:</b><br>
+<pre class="d_code"><font color=blue>if</font> (<font color=blue>true</font>) {<u>fooNoDescription</u>(); } <font color=green>/* comment */</font>
+</pre>
+<br><br>
 </dd>
 </dl>
 

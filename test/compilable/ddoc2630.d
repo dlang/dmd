@@ -177,6 +177,8 @@ unittest
 void fooNoDescription() {}
 ///
 unittest { fooNoDescription(); }
+///
+unittest { if (true) {fooNoDescription(); } /* comment */ }
 
 // ------------------------------------
 
