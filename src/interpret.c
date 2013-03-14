@@ -1783,6 +1783,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
                 if (!v2->isDataseg() || v2->isCTFE())
                     ctfeStack.push(v2);
             }
+            return NULL;
         }
         if (!v->isDataseg() || v->isCTFE())
             ctfeStack.push(v);
