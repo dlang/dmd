@@ -3290,12 +3290,20 @@ static void obj_rtinit()
 
 #if REQUIRE_DSO_REGISTRY
 
+        const IDXSYM symidx = Obj::external_def("_d_dso_registry");
+
         // call _d_dso_registry@PLT
         buf->writeByte(0xE8);
-        buf->write32(0);
-
-        reltype = I64 ? R_X86_64_PLT32 : RI_TYPE_PLT32;
-        ElfObj::addrel(codseg, off + 1, reltype, Obj::external("_d_dso_registry"), -4);
+        if (I64)
+        {
+            buf->write32(0);
+            ElfObj::addrel(codseg, off + 1, R_X86_64_PLT32, symidx, -4);
+        }
+        else
+        {
+            buf->write32(-4);
+            ElfObj::addrel(codseg, off + 1, RI_TYPE_PLT32, symidx, 0);
+        }
         off += 5;
 
 #else
