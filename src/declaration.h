@@ -127,10 +127,6 @@ struct Declaration : Dsymbol
     enum LINK linkage;
     int inuse;                  // used to detect cycles
 
-#ifdef IN_GCC
-    Expressions *attributes;    // GCC decl/type attributes
-#endif
-
     enum Semantic sem;
 
     Declaration(Identifier *id);
