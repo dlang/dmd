@@ -2054,6 +2054,15 @@ void test9654()
 }
 
 /******************************************/
+// 9712
+
+auto func9712(T)(T[2] arg) { return arg; }
+static assert(is(typeof(func9712([1,2])) == int[2]));
+
+auto deduceLength9712(T,size_t n)(T[n] a) { return a; }
+static assert(is(typeof(deduceLength9712([1,2,3])) == int[3]));
+
+/******************************************/
 
 int main()
 {
