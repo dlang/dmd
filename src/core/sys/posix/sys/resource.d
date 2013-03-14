@@ -296,8 +296,17 @@ struct rlimit
     rlim_t rlim_max;
 }
 
-int getpriority(int, id_t);
+version (FreeBSD)
+{
+    int getpriority(int, int);
+    int setpriority(int, int, int);
+}
+else
+{
+    int getpriority(int, id_t);
+    int setpriority(int, id_t, int);
+}
+
 int getrlimit(int, rlimit*);
 int getrusage(int, rusage*);
-int setpriority(int, id_t, int);
 int setrlimit(int, const rlimit*);
