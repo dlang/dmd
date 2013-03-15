@@ -2802,8 +2802,6 @@ void test8818()
     assert(test());
 }
 
-
-
 /************************************************/
 
 struct Test104Node
@@ -2821,7 +2819,7 @@ Test104Node* CreateList(int[] arr)
     return ret;
 }
 
-Test104Node* root = CreateList([1, 2, 3, 4, 5]);
+const(Test104Node)* root = CreateList([1, 2, 3, 4, 5]);
 
 void test104()
 {
@@ -2835,7 +2833,7 @@ void test104()
 /************************************************/
 interface ITest105a
 {
-    string test105a();
+    string test105a() const;
 }
 class Test105a: ITest105a
 {
@@ -2843,12 +2841,12 @@ class Test105a: ITest105a
     int b;
     char c = 'C';
     int d = 42;
-    string test105a() {return "test105a";}
+    string test105a() const {return "test105a";}
 }
 
 interface ITest105b
 {
-    string test105b();
+    string test105b() const;
 }
 
 class Test105b: Test105a, ITest105b
@@ -2862,14 +2860,16 @@ class Test105b: Test105a, ITest105b
         a = _a;
         b = _b;
     }
-    string test105b() {return "test105b";}
+    string test105b() const {return "test105b";}
 }
 
-Test105b t105b = new Test105b('E', 88, 'A', 99);
-Test105a t105a = new Test105b('E', 88, 'A', 99);
-ITest105b t105ib = new Test105b('E', 88, 'A', 99);
-ITest105a t105ia = new Test105b('E', 88, 'A', 99);
-
+const Test105b t105b = new Test105b('E', 88, 'A', 99);
+const Test105a t105a = new Test105b('E', 88, 'A', 99);
+const ITest105b t105ib = new Test105b('E', 88, 'A', 99);
+const ITest105a t105ia = new Test105b('E', 88, 'A', 99);
+__gshared Test105b t105gs = new Test105b('E', 88, 'A', 99);
+shared Test105b t105bs = new shared(Test105b)('E', 88, 'A', 99);
+immutable Test105b t105bi = new immutable(Test105b)('E', 88, 'A', 99);
 void test105()
 {
     assert(t105b.a == 'A');
@@ -2891,9 +2891,35 @@ void test105()
     assert(t105ib.test105b() == "test105b");
     
     assert(t105a.classinfo is Test105b.classinfo);
-    t105b.d = -1;
-    assert(t105b.d == -1);
-    assert(t105a.d == 42);
+    //t105b.d = -1;
+    //assert(t105b.d == -1);
+    //assert(t105a.d == 42);
+    
+    assert(t105gs.a == 'A');
+    assert(t105gs.b == 99);
+    assert(t105gs.c == 'C');
+    assert(t105gs.d == 42);
+    assert(t105gs.e == 'E');
+    assert(t105gs.f == 88);
+    assert(t105gs.test105a() == "test105a");
+    assert(t105gs.test105b() == "test105b");
+    
+    assert(t105bs.a == 'A');
+    assert(t105bs.b == 99);
+    assert(t105bs.c == 'C');
+    assert(t105bs.d == 42);
+    assert(t105bs.e == 'E');
+    assert(t105bs.f == 88);
+    
+    assert(t105bi.a == 'A');
+    assert(t105bi.b == 99);
+    assert(t105bi.c == 'C');
+    assert(t105bi.d == 42);
+    assert(t105bi.e == 'E');
+    assert(t105bi.f == 88);
+    assert(t105bi.test105a() == "test105a");
+    assert(t105bi.test105b() == "test105b");   
+    
 }
 
 /************************************************/
@@ -2914,7 +2940,7 @@ Test106* ctfe106()
     return s;
 }
 
-Test106* t106 = ctfe106();
+const(Test106)* t106 = ctfe106();
 
 void test106()
 {
@@ -2941,7 +2967,7 @@ class Test107
 }
 
 
-Test107 t107 = new Test107(1);
+const Test107 t107 = new Test107(1);
 
 void test107()
 {
@@ -2950,6 +2976,7 @@ void test107()
 
 /************************************************/
 
+/*
 interface Getter
 {
     int getNum() const;
@@ -2983,20 +3010,25 @@ void test108()
     assert((cast(Object)iobj).classinfo is Test108.classinfo);
     assert(t108 is t108);
 }
-
+*/
 
 /***** Bug 5678 *********************************/
+
+
+/*
 
 struct Bug5678 
 {
     this(int) {}
 }
+
 enum const(Bug5678)* b5678 = new const(Bug5678)(0);
 
 void test5678()
 {
     assert(b5678 is b5678);
-}
+}*/
+
 
 /************************************************/
 
@@ -3109,8 +3141,7 @@ int main()
     test105();
     test106();
     test107();
-    test108(); 
-    test5678();
+    //test108(); 
     test6504();
     test8818();
     
