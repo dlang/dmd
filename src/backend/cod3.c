@@ -3756,7 +3756,6 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[BX]                           jump to virtual function
          */
 
-
         c = genregs(CNIL,0x89,SP,BX);                   /* MOV BX,SP    */
         c1 = genc(CNIL,0x81,modregrm(2,0,7),
             FLconst,p,                                  /* to this      */
@@ -3833,6 +3832,12 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     }
     else
     {
+        localgot = NULL;                // no local variables
+        code *c1 = load_localgot();
+        if (c1)
+        {   assignaddrc(c1);
+            c = cat(c, c1);
+        }
         c1 = gencs(CNIL,(LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); /* JMP sfunc */
         c1->Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
         c = cat(c,c1);
