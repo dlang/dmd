@@ -5948,13 +5948,19 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
             {
                 if (arg->op == TOKstring && tprmb->ty == Tsarray)
                 {   if (targb->ty != Tsarray)
+                	{
                         targb = new TypeSArray(targb->nextOf(),
                                 new IntegerExp(0, ((StringExp *)arg)->len,
                                 Type::tindex));
+                        targb = targb->semantic(0, NULL);
+                    }
                 }
                 else if (arg->op == TOKslice && tprmb->ty == Tsarray)
                 {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                    targb = tprmb;
+                    targb = new TypeSArray(targb->nextOf(),
+                            new IntegerExp(0, ((TypeSArray *)tprmb)->dim->toUInteger(),
+                            Type::tindex));
+                    targb = targb->semantic(0, NULL);
                 }
                 else
                     goto Nomatch;
