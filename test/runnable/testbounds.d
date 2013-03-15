@@ -244,6 +244,9 @@ void test3652a() @safe
     size_t calc2(){ return n; }
     static assert(!__traits(compiles, foo(str[n .. 16])));
     static assert(!__traits(compiles, foo(str[calc2() .. 16])));
+
+    //void hoo(size_t dim)(char[dim]) { static assert(dim == 2); }
+    //hoo(str[0 .. 2]);
 }
 void test3652b() @safe
 {
@@ -280,6 +283,9 @@ void test3652b() @safe
     static assert(!__traits(compiles, baz1(da[0..4], da[0..4])));
     baz2(da[0..3], da[0..3], 3);
     baz2(da[0..4], da[0..4], 4);
+
+    void hoo(size_t dim)(int[dim]) { static assert(dim == 2); }
+    hoo(da[0 .. 2]);
 }
 
 /******************************************/

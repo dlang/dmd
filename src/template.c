@@ -1490,11 +1490,11 @@ Lretry:
 #if DMDV2
             /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
              */
-            Type *tpn;
+            Type *taai;
             if ( argtype->ty == Tarray &&
                 (prmtype->ty == Tsarray ||
-                 prmtype->ty == Taarray && (tpn = prmtype->nextOf())->ty == Tident &&
-                                           ((TypeIdentifier *)tpn)->idents.dim == 0))
+                 prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
+                                           ((TypeIdentifier *)taai)->idents.dim == 0))
             {
                 if (farg->op == TOKstring && !((StringExp *)farg)->committed)
                 {   StringExp *se = (StringExp *)farg;
