@@ -1008,12 +1008,9 @@ MATCH SliceExp::implicitConvTo(Type *t)
         tb->ty == Tsarray && typeb->ty == Tarray &&
         lwr && upr)
     {
-        if (typeb->nextOf()->constConv(tb->nextOf()))
-        {
-            typeb = toStaticArrayType();
-            if (typeb)
-                result = typeb->implicitConvTo(t);
-        }
+        typeb = toStaticArrayType();
+        if (typeb)
+            result = typeb->implicitConvTo(t);
     }
     return result;
 }

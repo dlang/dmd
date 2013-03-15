@@ -1488,16 +1488,29 @@ Lretry:
             }
 
 #if DMDV2
-            /* Allow string literals which are type [] to match with [dim]
+            /* Allow expressions that have CT-known boundaries and type [] to match with [dim]
              */
-            if (farg->op == TOKstring)
-            {   StringExp *se = (StringExp *)farg;
-                if (!se->committed && argtype->ty == Tarray &&
-                    prmtype->toBasetype()->ty == Tsarray)
-                {
+            Type *taai;
+            if ( argtype->ty == Tarray &&
+                (prmtype->ty == Tsarray ||
+                 prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
+                                           ((TypeIdentifier *)taai)->idents.dim == 0))
+            {
+                if (farg->op == TOKstring && !((StringExp *)farg)->committed)
+                {   StringExp *se = (StringExp *)farg;
                     argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
                     argtype = argtype->semantic(se->loc, NULL);
-                    argtype = argtype->invariantOf();
+                }
+                else if (farg->op == TOKslice)
+                {   SliceExp *se = (SliceExp *)farg;
+                    Type *tsa = se->toStaticArrayType();
+                    if (tsa)
+                        argtype = tsa;
+                }
+                else if (farg->op == TOKarrayliteral)
+                {   ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
+                    argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(ae->loc, ae->elements->dim, Type::tindex));
+                    argtype = argtype->semantic(ae->loc, NULL);
                 }
             }
 
@@ -1511,20 +1524,6 @@ Lretry:
                     goto Lvarargs;
                 farg = e;
                 argtype = farg->type;
-            }
-
-            if (farg->op == TOKslice)
-            {   SliceExp *se = (SliceExp *)farg;
-                Type *tb = prmtype->toBasetype();
-                Type *tbn;
-                if (tb->ty == Tsarray ||
-                    tb->ty == Taarray && (tbn = tb->nextOf())->ty == Tident &&
-                                         ((TypeIdentifier *)tbn)->idents.dim == 0)
-                {
-                    Type *tsa = se->toStaticArrayType();
-                    if (tsa)
-                        argtype = tsa;
-                }
             }
 
             if (!(fparam->storageClass & STClazy) && argtype->ty == Tvoid)
