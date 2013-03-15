@@ -2994,7 +2994,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             }
 #endif
             ce = gencs(ce,farfunc ? 0x9A : 0xE8,0,fl,s);      // CALL extern
-            ce->Iflags |= farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff);
+            code_orflag(ce, farfunc ? (CFseg | CFoff) : (CFselfrel | CFoff));
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (s == tls_get_addr_sym)
             {
