@@ -17,6 +17,11 @@
 #endif
 #include "port.h"
 
+#if POSIX
+#include <unistd.h>
+uid_t getuid(void);
+#endif
+
 #if __DMC__
 #pragma once
 #endif
@@ -124,6 +129,7 @@ struct FileName : String
     static void ensurePathExists(const char *path);
     static void ensurePathToNameExists(const char *name);
     static const char *canonicalName(const char *name);
+    static const char *getTempDir();
 
     static void free(const char *str);
 };

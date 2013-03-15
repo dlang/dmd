@@ -922,6 +922,32 @@ const char *FileName::canonicalName(const char *name)
 }
 
 /********************************
+ * Return a path to a temporary directory
+ */
+const char *FileName::getTempDir()
+{
+    const char *path = NULL;
+
+#if POSIX
+    OutBuffer buf;
+    buf.printf("/tmp/.rdmd-%d", getuid());
+    path = buf.extractData();
+#elif _WIN32
+    path = getenv("TEMP");
+    if (path == NULL || !strlen(path))
+        path = getenv("TMP");
+
+    if (path == NULL || !strlen(path))
+        path = combine(".", ".dmd");
+    else
+        path = combine(path, ".dmd");
+#endif
+
+    FileName::ensurePathExists(path);
+    return path;
+}
+
+/********************************
  * Free memory allocated by FileName routines
  */
 void FileName::free(const char *str)
