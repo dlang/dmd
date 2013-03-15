@@ -2027,7 +2027,7 @@ code *load_localgot()
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && I32)
     {
-        if (localgot)
+        if (localgot && !(localgot->Sflags & SFLdead))
         {
             localgot->Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
             elem *e = el_var(localgot);
