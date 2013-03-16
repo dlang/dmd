@@ -1068,16 +1068,21 @@ void FuncDeclaration::toObjFile(int multiobj)
 
 bool onlyOneMain(Loc loc)
 {
+    static Loc lastLoc;
     static bool hasMain = false;
     if (hasMain)
     {
+        const char *msg = NULL;
+        if (global.params.addMain)
+            msg = ", -main switch added another main()";
 #if TARGET_WINDOS
-        error(loc, "only one main/WinMain/DllMain allowed");
+        error(lastLoc, "only one main/WinMain/DllMain allowed%s", msg ? msg : "");
 #else
-        error(loc, "only one main allowed");
+        error(lastLoc, "only one main allowed%s", msg ? msg : "");
 #endif
         return false;
     }
+    lastLoc = loc;
     hasMain = true;
     return true;
 }
