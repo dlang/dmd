@@ -981,6 +981,8 @@ void File::mark()
 
 int File::read()
 {
+    if (len)
+        return 0;               // already read the file
 #if POSIX
     off_t size;
     ssize_t numread;
