@@ -62,14 +62,13 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <AdditionalOptions>/TP %(AdditionalOptions)</AdditionalOptions>
       <AdditionalIncludeDirectories>.\root;.\tk;.\backend;.;vcbuild;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <PreprocessorDefinitions>DEBUG;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDebug</RuntimeLibrary>
       <StructMemberAlignment>1Byte</StructMemberAlignment>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>Default</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ForcedIncludeFiles>vcbuild\warnings.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
@@ -82,7 +81,6 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <AdditionalOptions>/TP %(AdditionalOptions)</AdditionalOptions>
       <Optimization>Full</Optimization>
       <InlineFunctionExpansion>OnlyExplicitInline</InlineFunctionExpansion>
       <IntrinsicFunctions>true</IntrinsicFunctions>
@@ -95,7 +93,7 @@
       <BufferSecurityCheck>false</BufferSecurityCheck>
       <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <CompileAs>Default</CompileAs>
+      <CompileAs>CompileAsCpp</CompileAs>
       <ForcedIncludeFiles>vcbuild\warnings.h;%(ForcedIncludeFiles)</ForcedIncludeFiles>
     </ClCompile>
     <Link>
@@ -188,12 +186,6 @@
     <ClCompile Include="toobj.c" />
     <ClCompile Include="traits.c" />
     <ClCompile Include="typinf.c" />
-    <ClCompile Include="unialpha.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <ClCompile Include="unittests.c" />
     <ClCompile Include="utf.c" />
     <ClCompile Include="version.c" />
@@ -288,74 +280,32 @@
     <ClCompile Include="root\root.c" />
     <ClCompile Include="root\speller.c" />
     <ClCompile Include="root\stringtable.c" />
-    <ClCompile Include="root\gc\bits.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="root\gc\gc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="root\gc\testgc.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
-    <ClCompile Include="root\gc\win32.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
     <CustomBuild Include="idgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">idgen.c;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="impcnvgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mtype.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">impcnvtab.c;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">mtype.h;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">impcnvtab.c;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="backend\optabgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
-if errorlevel 1 goto VCReportError
-"$(IntDir)%(Filename).exe"
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)" &amp;&amp; "$(IntDir)%(Filename).exe"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
-if errorlevel 1 goto VCReportError
-"$(IntDir)%(Filename).exe"
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)" &amp;&amp; "$(IntDir)%(Filename).exe"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
@@ -425,12 +375,6 @@ if errorlevel 1 goto VCReportError
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
       <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
     </ClCompile>
-    <ClCompile Include="root\gc\linux.c">
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">true</ExcludedFromBuild>
-      <ExcludedFromBuild Condition="'$(Configuration)|$(Platform)'=='Release|x64'">true</ExcludedFromBuild>
-    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aggregate.h" />
@@ -475,7 +419,6 @@ if errorlevel 1 goto VCReportError
     <ClInclude Include="backend\cdeflnx.h" />
     <ClInclude Include="backend\cgcv.h" />
     <ClInclude Include="backend\code.h" />
-    <ClInclude Include="backend\cpp.h" />
     <ClInclude Include="backend\cv4.h" />
     <ClInclude Include="backend\dt.h" />
     <ClInclude Include="backend\dwarf.h" />
@@ -509,11 +452,6 @@ if errorlevel 1 goto VCReportError
     <ClInclude Include="root\root.h" />
     <ClInclude Include="root\speller.h" />
     <ClInclude Include="root\stringtable.h" />
-    <ClInclude Include="root\gc\bits.h" />
-    <ClInclude Include="root\gc\gc.h" />
-    <ClInclude Include="root\gc\gccbitops.h" />
-    <ClInclude Include="root\gc\mscbitops.h" />
-    <ClInclude Include="root\gc\os.h" />
     <ClInclude Include="id.h" />
     <ClInclude Include="vcbuild\alloca.h" />
     <ClInclude Include="vcbuild\fenv.h" />
