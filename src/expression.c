@@ -9196,6 +9196,9 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (tob->isintegral() && t1b->ty == Tarray)
             deprecation("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
+
+        if (tob->ty == Tpointer && t1b->ty == Tdelegate)
+            deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
     }
     else if (!to)
     {   error("cannot cast tuple");
