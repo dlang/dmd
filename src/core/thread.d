@@ -1953,44 +1953,68 @@ in
 }
 body
 {
-    // The purpose of the 'shell' is to ensure all the registers
-    // get put on the stack so they'll be scanned
-    void *sp;
+    // The purpose of the 'shell' is to ensure all the registers get
+    // put on the stack so they'll be scanned. We only need to push
+    // the callee-save registers.
+    void *sp = void;
 
     version (GNU)
     {
         __builtin_unwind_init();
-        sp = & sp;
+        sp = &sp;
     }
-    else version (D_InlineAsm_X86)
+    else version (AsmX86_Posix)
     {
+        size_t[3] regs = void;
         asm
         {
-            pushad              ;
-            mov sp[EBP],ESP     ;
+            mov [regs + 0 * 4], EBX;
+            mov [regs + 1 * 4], ESI;
+            mov [regs + 2 * 4], EDI;
+
+            mov sp[EBP], ESP;
         }
     }
-    else version (D_InlineAsm_X86_64)
+    else version (AsmX86_Windows)
     {
+        size_t[3] regs = void;
         asm
         {
-            push RAX ;
-            push RBX ;
-            push RCX ;
-            push RDX ;
-            push RSI ;
-            push RDI ;
-            push RBP ;
-            push R8  ;
-            push R9  ;
-            push R10  ;
-            push R11  ;
-            push R12  ;
-            push R13  ;
-            push R14  ;
-            push R15  ;
-            push RAX ;   // 16 byte align the stack
-            mov sp[RBP],RSP     ;
+            mov [regs + 0 * 4], EBX;
+            mov [regs + 1 * 4], ESI;
+            mov [regs + 2 * 4], EDI;
+
+            mov sp[EBP], ESP;
+        }
+    }
+    else version (AsmX86_64_Posix)
+    {
+        size_t[5] regs = void;
+        asm
+        {
+            mov [regs + 0 * 8], RBX;
+            mov [regs + 1 * 8], R12;
+            mov [regs + 2 * 8], R13;
+            mov [regs + 3 * 8], R14;
+            mov [regs + 4 * 8], R15;
+
+            mov sp[RBP], RSP;
+        }
+    }
+    else version (AsmX86_64_Windows)
+    {
+        size_t[7] regs = void;
+        asm
+        {
+            mov [regs + 0 * 8], RBX;
+            mov [regs + 1 * 8], RSI;
+            mov [regs + 2 * 8], RDI;
+            mov [regs + 3 * 8], R12;
+            mov [regs + 4 * 8], R13;
+            mov [regs + 5 * 8], R14;
+            mov [regs + 6 * 8], R15;
+
+            mov sp[RBP], RSP;
         }
     }
     else
@@ -1999,44 +2023,6 @@ body
     }
 
     fn(sp);
-
-    version (GNU)
-    {
-        // registers will be popped automatically
-    }
-    else version (D_InlineAsm_X86)
-    {
-        asm
-        {
-            popad;
-        }
-    }
-    else version (D_InlineAsm_X86_64)
-    {
-        asm
-        {
-            pop RAX ;   // 16 byte align the stack
-            pop R15  ;
-            pop R14  ;
-            pop R13  ;
-            pop R12  ;
-            pop R11  ;
-            pop R10  ;
-            pop R9  ;
-            pop R8  ;
-            pop RBP ;
-            pop RDI ;
-            pop RSI ;
-            pop RDX ;
-            pop RCX ;
-            pop RBX ;
-            pop RAX ;
-        }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
 }
 
 
