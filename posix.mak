@@ -35,7 +35,21 @@ DOCDIR=doc
 IMPDIR=import
 
 MODEL=32
-override PIC:=$(if $(PIC),-fPIC,)
+# default to SHARED on some platforms
+ifeq (linux,$(OS))
+	ifeq (64,$(MODEL))
+		SHARED:=1
+	endif
+endif
+override PIC:=$(if $(or $(PIC), $(SHARED)),-fPIC,)
+
+ifeq (osx,$(OS))
+	DOTDLL:=.dylib
+	DOTLIB:=.a
+else
+	DOTDLL:=.so
+	DOTLIB:=.a
+endif
 
 DFLAGS=-m$(MODEL) -O -release -inline -w -Isrc -Iimport -property $(PIC)
 UDFLAGS=-m$(MODEL) -O -release -w -Isrc -Iimport -property $(PIC)
@@ -147,7 +161,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
 
-unittest : $(UT_MODULES) $(DRUNTIME) $(OBJDIR)/emptymain.d
+unittest : $(UT_MODULES)
 	@echo done
 
 ifeq ($(OS),freebsd)
@@ -159,19 +173,34 @@ endif
 $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 	@echo $@ - disabled
 
-$(OBJDIR)/% : src/%.d $(DRUNTIME) $(OBJDIR)/emptymain.d
-	@echo Testing $@
-	$(QUIET)$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ $(OBJDIR)/emptymain.d $< -L-Llib -debuglib=$(DRUNTIME_BASE) -defaultlib=$(DRUNTIME_BASE)
+ifeq (,$(SHARED))
+
+$(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
+	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
+
+else
+
+UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
+
+$(UT_DRUNTIME): $(OBJS) $(SRCS)
+	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -debuglib= -defaultlib=
+
+$(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
+	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L-L$(OBJDIR) -L-rpath=$(OBJDIR) -debuglib=$(DRUNTIME_BASE)-ut -defaultlib=$(DRUNTIME_BASE)-ut
+
+endif
+
+# macro that returns the module name given the src path
+moduleName=$(subst rt.invariant,invariant,$(subst object_,object,$(subst /,.,$(1))))
+
+$(OBJDIR)/% : $(OBJDIR)/test_runner
+	@mkdir -p $(dir $@)
 # make the file very old so it builds and runs again if it fails
 	@touch -t 197001230123 $@
 # run unittest in its own directory
-	$(QUIET)$(RUN) $@
+	$(QUIET)$(RUN) $(OBJDIR)/test_runner $(call moduleName,$*)
 # succeeded, render the file new again
 	@touch $@
-
-$(OBJDIR)/emptymain.d :
-	@mkdir -p $(OBJDIR)
-	@echo 'void main(){}' >$@
 
 detab:
 	detab $(MANIFEST)
