@@ -52,6 +52,9 @@ void printCtfePerformanceStats();
 
 static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
+// glue.c
+bool onlyOneMain(Loc loc);
+
 Global global;
 
 Global::Global()
@@ -354,6 +357,7 @@ Usage:\n\
 #endif
 "  -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
+  -main          add a stub main function (e.g. for unittesting)\n\
   -noboundscheck turns off array bounds checking for all functions\n\
   -O             optimize\n\
   -o-            do not write object file\n\
@@ -560,6 +564,8 @@ int tryMain(size_t argc, char *argv[])
 #endif
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
+            else if (strcmp(p + 1, "main") == 0)
+                global.params.addmain = 1;
             else if (strcmp(p + 1, "multiobj") == 0)
                 global.params.multiobj = 1;
             else if (strcmp(p + 1, "g") == 0)
@@ -1097,7 +1103,21 @@ int tryMain(size_t argc, char *argv[])
 
     // Create Modules
     Modules modules;
-    modules.reserve(files.dim);
+    modules.reserve(files.dim + (int)global.params.addmain);
+    if (global.params.addmain)  // create file with stub main function
+    {
+        const char *filename = FileName::combine(FileName::getTempDir(), ".dmd_stub_main.d");
+        File *stubFile = new File(filename);
+        const char *mainstub = "module dmd_stub_main; void main() { }\n";
+        stubFile->buffer = (unsigned char *)mainstub;
+        stubFile->len = strlen(mainstub);
+        stubFile->write();
+
+        files.push((char*)filename);
+        global.params.stubfilename = filename;
+        onlyOneMain(Loc());  // announce we already have a main
+    }
+
     int firstmodule = 1;
     for (size_t i = 0; i < files.dim; i++)
     {

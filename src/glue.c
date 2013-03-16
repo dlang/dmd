@@ -1068,9 +1068,19 @@ void FuncDeclaration::toObjFile(int multiobj)
 
 bool onlyOneMain(Loc loc)
 {
+    if (global.params.addmain &&  // don't error on generated stub main
+        loc.filename && strcmp(loc.filename, global.params.stubfilename) == 0)
+        return true;
+
     static bool hasMain = false;
     if (hasMain)
     {
+        if (global.params.addmain)
+        {
+            error(loc, "-main switch already added a stub main function");
+            return false;
+        }
+
 #if TARGET_WINDOS
         error(loc, "only one main/WinMain/DllMain allowed");
 #else
