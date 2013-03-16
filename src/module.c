@@ -536,7 +536,8 @@ void Module::parse()
     p.nextToken();
     members = p.parseModule();
 
-    ::free(srcfile->buffer);
+    if (srcfile->ref == 0)
+        ::free(srcfile->buffer);
     srcfile->buffer = NULL;
     srcfile->len = 0;
 

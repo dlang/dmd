@@ -96,6 +96,8 @@ Global::Global()
 #include "verstr.h"
     ;
 
+    main_d = "__main.d";
+
     structalign = STRUCTALIGN_DEFAULT;
 
     memset(&params, 0, sizeof(Param));
@@ -352,7 +354,8 @@ Usage:\n\
 "  -m32           generate 32 bit code\n\
   -m64           generate 64 bit code\n"
 #endif
-"  -man           open web browser on manual page\n\
+"  -main          add default main() (e.g. for unittesting)\n\
+  -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
   -noboundscheck turns off array bounds checking for all functions\n\
   -O             optimize\n\
@@ -819,6 +822,10 @@ int tryMain(size_t argc, char *argv[])
                     goto Lnoarg;
                 global.params.moduleDeps = new OutBuffer;
             }
+            else if (strcmp(p + 1, "main") == 0)
+            {
+                global.params.addMain = true;
+            }
             else if (memcmp(p + 1, "man", 3) == 0)
             {
 #if _WIN32
@@ -1095,10 +1102,15 @@ int tryMain(size_t argc, char *argv[])
         }
     }
 
+    if (global.params.addMain)
+    {
+        files.push(const_cast<char*>(global.main_d)); // a dummy name, we never actually look up this file
+    }
+
     // Create Modules
     Modules modules;
     modules.reserve(files.dim);
-    int firstmodule = 1;
+    bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
         const char *ext;
@@ -1215,11 +1227,30 @@ int tryMain(size_t argc, char *argv[])
 
         if (firstmodule)
         {   global.params.objfiles->push((char *)m->objfile->name->str);
-            firstmodule = 0;
+            firstmodule = false;
         }
     }
 
     // Read files
+
+    /* Start by "reading" the dummy main.d file
+     */
+    if (global.params.addMain)
+    {
+        for (size_t i = 0; 1; i++)
+        {
+            assert(i != modules.dim);
+            Module *m = modules[i];
+            if (strcmp(m->srcfile->name->str, global.main_d) == 0)
+            {
+                static const char buf[] = "int main(){return 0;}";
+                m->srcfile->setbuffer((void *)buf, sizeof(buf));
+                m->srcfile->ref = 1;
+                break;
+            }
+        }
+    }
+
 #define ASYNCREAD 1
 #if ASYNCREAD
     // Multi threaded
