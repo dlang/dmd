@@ -42,14 +42,13 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/TP"
 				AdditionalIncludeDirectories=".\root;.\tk;.\backend;.;vcbuild"
 				PreprocessorDefinitions="DEBUG,_DEBUG;TARGET_WINDOS=1"
 				RuntimeLibrary="1"
 				StructMemberAlignment="1"
 				WarningLevel="4"
 				DebugInformationFormat="4"
-				CompileAs="0"
+				CompileAs="2"
 				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool
@@ -189,7 +188,6 @@
 			/>
 			<Tool
 				Name="VCCLCompilerTool"
-				AdditionalOptions="/TP"
 				Optimization="3"
 				InlineFunctionExpansion="1"
 				EnableIntrinsicFunctions="true"
@@ -202,7 +200,7 @@
 				BufferSecurityCheck="false"
 				WarningLevel="4"
 				DebugInformationFormat="3"
-				CompileAs="0"
+				CompileAs="2"
 				ForcedIncludeFiles="vcbuild\warnings.h"
 			/>
 			<Tool

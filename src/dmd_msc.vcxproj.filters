@@ -13,9 +13,6 @@
     <Filter Include="src\root">
       <UniqueIdentifier>{f109049a-11c8-4419-bdda-9d44c65b2900}</UniqueIdentifier>
     </Filter>
-    <Filter Include="src\root\gc">
-      <UniqueIdentifier>{93137d89-fe84-4502-818f-e8f38fcffb3b}</UniqueIdentifier>
-    </Filter>
     <Filter Include="src\gen">
       <UniqueIdentifier>{8f21dd4e-1670-48be-9a72-1dccf0c17166}</UniqueIdentifier>
     </Filter>
@@ -237,9 +234,6 @@
     <ClCompile Include="typinf.c">
       <Filter>src</Filter>
     </ClCompile>
-    <ClCompile Include="unialpha.c">
-      <Filter>src</Filter>
-    </ClCompile>
     <ClCompile Include="unittests.c">
       <Filter>src</Filter>
     </ClCompile>
@@ -447,18 +441,6 @@
     <ClCompile Include="root\stringtable.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\gc\bits.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\gc.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\testgc.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\win32.c">
-      <Filter>src\root\gc</Filter>
-    </ClCompile>
     <ClCompile Include="cdxxx.c">
       <Filter>src\generated</Filter>
     </ClCompile>
@@ -487,9 +469,6 @@
       <Filter>src\no_win</Filter>
     </ClCompile>
     <ClCompile Include="libmach.c">
-      <Filter>src\no_win</Filter>
-    </ClCompile>
-    <ClCompile Include="root\gc\linux.c">
       <Filter>src\no_win</Filter>
     </ClCompile>
     <ClCompile Include="backend\backconfig.c">
@@ -638,9 +617,6 @@
     <ClInclude Include="backend\code.h">
       <Filter>src\backend</Filter>
     </ClInclude>
-    <ClInclude Include="backend\cpp.h">
-      <Filter>src\backend</Filter>
-    </ClInclude>
     <ClInclude Include="backend\cv4.h">
       <Filter>src\backend</Filter>
     </ClInclude>
@@ -739,21 +715,6 @@
     </ClInclude>
     <ClInclude Include="root\stringtable.h">
       <Filter>src\root</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\bits.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\gc.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\gccbitops.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\mscbitops.h">
-      <Filter>src\root\gc</Filter>
-    </ClInclude>
-    <ClInclude Include="root\gc\os.h">
-      <Filter>src\root\gc</Filter>
     </ClInclude>
     <ClInclude Include="id.h">
       <Filter>src\generated</Filter>
