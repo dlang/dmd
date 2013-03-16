@@ -552,38 +552,49 @@ static const char *unindent(const char *src)
     return codebuf.extractData();
 }
 
+/** Return true if entire string is made out of whitespace. */
+static bool isAllWhitespace(const char *src)
+{
+    for (const char *c = src; *c && *c != '\0'; c++)
+    {
+        switch (*c)
+        {
+            case ' ':
+            case '\t':
+            case '\n':
+            case '\r':
+                continue;
+
+            default: return false;
+        }
+    }
+
+    return true;
+}
+
 void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
 {
     static char pre[] = "$(D_CODE \n";
     OutBuffer *buf = sc->docbuf;
 
-    bool exampleFound = false;
     for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
     {
         if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
             continue;
 
-        if (utd->codedoc && strlen(utd->codedoc))
+        OutBuffer codebuf;
+        if (utd->codedoc && strlen(utd->codedoc) && !isAllWhitespace(utd->codedoc))
         {
-            OutBuffer codebuf;
-            if (!exampleFound)
-            {
-                exampleFound = true;
-                buf->writestring("$(DDOC_SECTION ");
-                buf->writestring("$(B Example:)");
-            }
-
+            buf->writestring("$(DDOC_EXAMPLES ");
             codebuf.writestring(pre);
             codebuf.writestring(unindent(utd->codedoc));
             codebuf.writestring(")");
             codebuf.writeByte(0);
             highlightCode2(sc, s, &codebuf, 0);
             buf->writestring(codebuf.toChars());
+            buf->writestring(")");
         }
     }
-
-    if (exampleFound)
-        buf->writestring(")");
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)

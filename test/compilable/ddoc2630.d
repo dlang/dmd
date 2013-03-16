@@ -47,7 +47,7 @@ unittest
 /**
 add function - 3 examples
 
-Example:
+Examples:
 
 ----
 assert(add(1, 1) == 2);
@@ -102,7 +102,7 @@ pure
     {
         immutable
         {
-            /// some class
+            /// some class - 1 example
             class SomeClass {}
         }
     }
@@ -144,5 +144,32 @@ unittest
 {
     foobar();
 }
+
+/**
+func - 4 examples
+Examples:
+---
+foo(1);
+---
+
+Examples:
+---
+foo(2);
+---
+*/
+void foo(int x) {  }
+
+///
+unittest
+{
+    foo(2);
+}
+
+///
+unittest
+{
+    foo(4);
+}
+
 
 void main() { }
