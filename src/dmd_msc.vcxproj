@@ -282,48 +282,30 @@
     <ClCompile Include="root\stringtable.c" />
     <CustomBuild Include="idgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">idgen.c;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">id.c;id.h;$(IntDir)%(Filename).exe;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="impcnvgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">mtype.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">impcnvtab.c;%(Outputs)</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension)
-if errorlevel 1 goto VCReportError
-$(IntDir)%(Filename).exe
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /FIvcbuild\warnings.h /Fo$(IntDir)%(Filename).obj /Fe$(IntDir)%(Filename).exe %(Filename)%(Extension) &amp;&amp; $(IntDir)%(Filename).exe</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">mtype.h;%(AdditionalInputs)</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">impcnvtab.c;%(Outputs)</Outputs>
     </CustomBuild>
     <CustomBuild Include="backend\optabgen.c">
       <Message Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
-if errorlevel 1 goto VCReportError
-"$(IntDir)%(Filename).exe"
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)" &amp;&amp; "$(IntDir)%(Filename).exe"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
       <Message Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Building and running $(IntDir)%(Filename).exe</Message>
-      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
-if errorlevel 1 goto VCReportError
-"$(IntDir)%(Filename).exe"
-</Command>
+      <Command Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)" &amp;&amp; "$(IntDir)%(Filename).exe"</Command>
       <AdditionalInputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">backend\cc.h;backend\oper.h</AdditionalInputs>
       <Outputs Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">optab.c;debtab.c;cdxxx.c;elxxx.c;tytab.c;fltables.c</Outputs>
       <Command Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">cl /TP /Itk /Iroot /Ivcbuild /I. /FIwarnings.h /Fo"$(IntDir)%(Filename).obj" /Fe"$(IntDir)%(Filename).exe" "%(FullPath)"
