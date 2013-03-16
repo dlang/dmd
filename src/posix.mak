@@ -49,28 +49,12 @@ ifneq (x,x$(MODEL))
 endif
 
 ifeq (OSX,$(OS))
-    SDKDIR=/Developer/SDKs
-    ifeq "$(wildcard $(SDKDIR))" ""
-        SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-    endif
-    ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
-    ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    SDKVERS:=1 2 3 4 5 6 7 8
-    SDKFILES=$(foreach SDKVER, $(SDKVERS), $(wildcard $(SDKDIR)/MacOSX10.$(SDKVER).sdk))
-    SDK=$(firstword $(SDKFILES))
-    TARGET_CFLAGS=-isysroot ${SDK}
-    #-syslibroot is only passed to libtool, not ld.
-    #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
-    #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
-    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
-    ECHO=/bin/echo
-else
-    LDFLAGS=-lm -lstdc++ -lpthread
-    ECHO=echo
+    export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
+LDFLAGS=-lm -lstdc++ -lpthread
 
 HOST_CC=g++
-CC=$(HOST_CC) $(MODEL_FLAG) $(TARGET_CFLAGS)
+CC=$(HOST_CC) $(MODEL_FLAG)
 
 #OPT=-g -g3
 #OPT=-O2
@@ -174,7 +158,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) $(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -185,7 +169,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(ENVP) $(CC) $(MFLAGS) $< -o optabgen
+	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -197,7 +181,7 @@ idgen_output = id.h id.c
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	$(ENVP) $(CC) idgen.c -o idgen
+	$(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -206,13 +190,13 @@ impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
 
 verstr.h : ../VERSION
-	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
+	printf \"`cat ../VERSION`\" > verstr.h
 
 #########
 
