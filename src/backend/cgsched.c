@@ -2711,7 +2711,7 @@ code *schedule(code *c,regm_t scratch)
     while (c)
     {
         if ((c->Iop == NOP ||
-             ((c->Iop & 0xFF) == ESCAPE && c->Iop != (ESCAPE | ESCadjfpu)) ||
+             ((c->Iop & ESCAPEmask) == ESCAPE && c->Iop != (ESCAPE | ESCadjfpu)) ||
              c->Iflags & CFclassinit) &&
             !(c->Iflags & (CFtarg | CFtarg2)))
         {   code *cn;

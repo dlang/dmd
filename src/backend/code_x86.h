@@ -231,6 +231,7 @@ extern regm_t BYTEREGS;
 #define NOP     0x2E    /* actually CS: (we don't use 0x90 because the  */
                         /* silly Windows stuff wants to output 0x90's)  */
 
+#define ESCAPEmask 0xFF // code.Iop & ESCAPEmask ==> actual Iop
 #define ESCAPE  0x3E    // marker that special information is here
                         // (Iop2 is the type of special information)
                         // (Same as DS:, but we will never generate
