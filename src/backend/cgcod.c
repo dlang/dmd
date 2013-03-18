@@ -121,12 +121,8 @@ static regm_t lastretregs,last2retregs,last3retregs,last4retregs,last5retregs;
  */
 
 void codgen()
-{   block *b,*bn;
+{
     bool flag;
-    targ_size_t swoffset,coffset;
-    tym_t functy;
-    unsigned nretblocks;                // number of return blocks
-    code *cprolog;
 #if SCPP
     block *btry;
 #endif
@@ -138,7 +134,7 @@ void codgen()
     cgreg_init();
     csmax = 64;
     csextab = (struct CSE *) util_calloc(sizeof(struct CSE),csmax);
-    functy = tybasic(funcsym_p->ty());
+    tym_t functy = tybasic(funcsym_p->ty());
     cod3_initregs();
     allregs = ALLREGS;
     pass = PASSinit;
@@ -190,11 +186,11 @@ tryagain:
     memset(&regcon,0,sizeof(regcon));
     regcon.cse.mval = regcon.cse.mops = 0;      // no common subs yet
     msavereg = 0;
-    nretblocks = 0;
+    unsigned nretblocks = 0;
     mfuncreg = fregsaved;               // so we can see which are used
                                         // (bit is cleared each time
                                         //  we use one)
-    for (b = startblock; b; b = b->Bnext)
+    for (block* b = startblock; b; b = b->Bnext)
     {   memset(&b->Bregcon,0,sizeof(b->Bregcon));       // Clear out values in registers
         if (b->Belem)
             resetEcomsub(b->Belem);     // reset all the Ecomsubs
@@ -235,7 +231,7 @@ tryagain:
         cgreg_reset();
         for (dfoidx = 0; dfoidx < dfotop; dfoidx++)
         {   regcon.used = msavereg | regcon.cse.mval;   // registers already in use
-            b = dfo[dfoidx];
+            block* b = dfo[dfoidx];
             blcodgen(b);                        // gen code in depth-first order
             //printf("b->Bregcon.used = %s\n", regm_str(b->Bregcon.used));
             cgreg_used(dfoidx,b->Bregcon.used); // gather register used information
@@ -243,7 +239,7 @@ tryagain:
     }
     else
     {   pass = PASSfinal;
-        for (b = startblock; b; b = b->Bnext)
+        for (block* b = startblock; b; b = b->Bnext)
             blcodgen(b);                // generate the code for each block
     }
     regcon.immed.mval = 0;
@@ -265,7 +261,7 @@ tryagain:
             pass = PASSreg;
         else
             pass = PASSfinal;
-        for (b = startblock; b; b = b->Bnext)
+        for (block* b = startblock; b; b = b->Bnext)
         {   code_free(b->Bcode);
             b->Bcode = NULL;
         }
@@ -291,17 +287,17 @@ tryagain:
     // Otherwise, jmp's to startblock will execute the prolog again
     assert(!startblock->Bpred);
 
-    cprolog = prolog();                 // gen function start code
+    code* cprolog = prolog();                 // gen function start code
     if (cprolog)
         pinholeopt(cprolog,NULL);       // optimize
 
     funcoffset = Coffset;
-    coffset = Coffset;
+    targ_size_t coffset = Coffset;
 
     if (eecontext.EEelem)
         genEEcode();
 
-    for (b = startblock; b; b = b->Bnext)
+    for (block* b = startblock; b; b = b->Bnext)
     {
         // We couldn't do this before because localsize was unknown
         switch (b->BC)
@@ -340,7 +336,7 @@ tryagain:
     // Do jump optimization
     do
     {   flag = FALSE;
-        for (b = startblock; b; b = b->Bnext)
+        for (block* b = startblock; b; b = b->Bnext)
         {   if (b->Bflags & BFLjmpoptdone)      /* if no more jmp opts for this blk */
                 continue;
             int i = branch(b,0);            // see if jmp => jmp short
@@ -349,7 +345,7 @@ tryagain:
 
                 b->Bsize -= i;
                 offset = b->Boffset + b->Bsize;
-                for (bn = b->Bnext; bn; bn = bn->Bnext)
+                for (block* bn = b->Bnext; bn; bn = bn->Bnext)
                 {
                     if (bn->Balign)
                     {   targ_size_t u = bn->Balign - 1;
@@ -380,9 +376,9 @@ tryagain:
 
     // Compute starting offset for switch tables
 #if ELFOBJ || MACHOBJ
-    swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
+    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : CDoffset;
 #else
-    swoffset = (config.flags & CFGromable) ? coffset : Doffset;
+    targ_size_t swoffset = (config.flags & CFGromable) ? coffset : Doffset;
 #endif
     swoffset = align(0,swoffset);
 
@@ -397,7 +393,7 @@ tryagain:
     }
     else
     {
-        for (b = startblock; b; b = b->Bnext)
+        for (block* b = startblock; b; b = b->Bnext)
         {
             if (b->BC == BCjmptab || b->BC == BCswitch)
             {   b->Btableoffset = swoffset;     /* offset of sw tab */
@@ -465,7 +461,7 @@ tryagain:
 
     // Write out switch tables
     flag = FALSE;                       // TRUE if last active block was a ret
-    for (b = startblock; b; b = b->Bnext)
+    for (block* b = startblock; b; b = b->Bnext)
     {
         switch (b->BC)
         {   case BCjmptab:              /* if jump table                */
@@ -538,7 +534,7 @@ tryagain:
         ;
     }
 #endif
-    for (b = startblock; b; b = b->Bnext)
+    for (block* b = startblock; b; b = b->Bnext)
     {
         code_free(b->Bcode);
         b->Bcode = NULL;
@@ -606,10 +602,7 @@ targ_size_t alignsection(targ_size_t base, unsigned alignment, int bias)
 
 code *prolog()
 {
-    SYMIDX si;
     bool enter;
-    unsigned xlocalsize;     // amount to subtract from ESP to make room for locals
-    char guessneedframe;
     regm_t namedargs = 0;
 
     //printf("cod3.prolog() %s, needframe = %d, Auto.alignment = %d\n", funcsym_p->Sident, needframe, Auto.alignment);
@@ -629,7 +622,7 @@ code *prolog()
 
 Lagain:
     spoff = 0;
-    guessneedframe = needframe;
+    char guessneedframe = needframe;
 //    if (needframe && config.exe & (EX_LINUX | EX_FREEBSD | EX_SOLARIS) && !(usednteh & ~NTEHjmonitor))
 //      usednteh |= NTEHpassthru;
 
@@ -727,7 +720,7 @@ Lagain:
     //printf("Foff x%02x Auto.size x%02x NDPoff x%02x CSoff x%02x Para.size x%02x localsize x%02x\n",
         //(int)Foff,(int)Auto.size,(int)NDPoff,(int)CSoff,(int)Para.size,(int)localsize);
 
-    xlocalsize = localsize;
+    unsigned xlocalsize = localsize;    // amount to subtract from ESP to make room for locals
 
     if (tyf & mTYnaked)                 // if no prolog/epilog for function
     {
@@ -1188,12 +1181,8 @@ void stackoffsets(int flags)
 
 STATIC void blcodgen(block *bl)
 {
-    code *c;
-    list_t bpl;
-    int refparamsave;
     regm_t mfuncregsave = mfuncreg;
     char *sflsave = NULL;
-    int anyspill;
 
     //dbg_printf("blcodgen(%p)\n",bl);
 
@@ -1203,7 +1192,7 @@ STATIC void blcodgen(block *bl)
     assert(bl->Bregcon.immed.mval == 0);
     regcon.immed.mval = 0;      // assume no previous contents in registers
 //    regcon.cse.mval = 0;
-    for (bpl = bl->Bpred; bpl; bpl = list_next(bpl))
+    for (list_t bpl = bl->Bpred; bpl; bpl = list_next(bpl))
     {   block *bp = list_block(bpl);
 
         if (bpl == bl->Bpred)
@@ -1227,11 +1216,11 @@ STATIC void blcodgen(block *bl)
     regcon.cse.mops &= regcon.cse.mval;
 
     // Set regcon.mvar according to what variables are in registers for this block
-    c = NULL;
+    code* c = NULL;
     regcon.mvar = 0;
     regcon.mpvar = 0;
     regcon.indexregs = 1;
-    anyspill = 0;
+    int anyspill = 0;
     if (config.flags4 & CFG4optimized)
     {   SYMIDX i;
         code *cload = NULL;
@@ -1294,7 +1283,7 @@ STATIC void blcodgen(block *bl)
     //regsave.idx = 0;
 
     reflocal = 0;
-    refparamsave = refparam;
+    int refparamsave = refparam;
     refparam = 0;
     assert((regcon.cse.mops & regcon.cse.mval) == regcon.cse.mops);
 
@@ -1572,23 +1561,23 @@ unsigned findreg(regm_t regm
  */
 
 void freenode(elem *e)
-{ unsigned i;
-
-  elem_debug(e);
-  //dbg_printf("freenode(%p) : comsub = %d, count = %d\n",e,e->Ecomsub,e->Ecount);
-  if (e->Ecomsub--) return;             /* usage count                  */
-  if (e->Ecount)                        /* if it was a CSE              */
-  {     for (i = 0; i < arraysize(regcon.cse.value); i++)
+{
+    elem_debug(e);
+    //dbg_printf("freenode(%p) : comsub = %d, count = %d\n",e,e->Ecomsub,e->Ecount);
+    if (e->Ecomsub--) return;             /* usage count                  */
+    if (e->Ecount)                        /* if it was a CSE              */
+    {
+        for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
         {   if (regcon.cse.value[i] == e)       /* if a register is holding it  */
             {   regcon.cse.mval &= ~mask[i];
                 regcon.cse.mops &= ~mask[i];    /* free masks                   */
             }
         }
-        for (i = 0; i < cstop; i++)
+        for (unsigned i = 0; i < cstop; i++)
         {   if (csextab[i].e == e)
-                csextab[i].e = NULL;
+            csextab[i].e = NULL;
         }
-  }
+    }
 }
 
 /*********************************
@@ -1596,20 +1585,19 @@ void freenode(elem *e)
  */
 
 STATIC void resetEcomsub(elem *e)
-{   unsigned op;
-
+{
     while (1)
     {
         elem_debug(e);
         e->Ecomsub = e->Ecount;
-        op = e->Eoper;
+        unsigned op = e->Eoper;
         if (!OTleaf(op))
-        {       if (OTbinary(op))
-                    resetEcomsub(e->E2);
-                e = e->E1;
+        {   if (OTbinary(op))
+                resetEcomsub(e->E2);
+            e = e->E1;
         }
         else
-                break;
+            break;
     }
 }
 
@@ -1713,12 +1701,7 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
 #endif
 {
 #if TX86
-        regm_t r;
-        regm_t retregs;
         unsigned reg;
-        unsigned msreg,lsreg;
-        int count;
-        unsigned size;
 
 #if 0
         if (pass == PASSfinal)
@@ -1731,9 +1714,9 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
         }
 #endif
         tym = tybasic(tym);
-        size = tysize[tym];
+        unsigned size = tysize[tym];
         *pretregs &= mES | allregs | XMMREGS;
-        retregs = *pretregs;
+        regm_t retregs = *pretregs;
         if ((retregs & regcon.mvar) == retregs) // if exactly in reg vars
         {
             if (size <= REGSIZE || (retregs & XMMREGS))
@@ -1748,15 +1731,15 @@ code *allocreg(regm_t *pretregs,unsigned *preg,tym_t tym
                 assert(0);
             return getregs(retregs);
         }
-        count = 0;
+        int count = 0;
 L1:
         //printf("L1: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
         assert(++count < 20);           /* fail instead of hanging if blocked */
         assert(retregs);
-        msreg = lsreg = (unsigned)-1;           /* no value assigned yet        */
+        unsigned msreg = -1, lsreg = -1;  /* no value assigned yet        */
 L3:
         //printf("L2: allregs = %s, *pretregs = %s\n", regm_str(allregs), regm_str(*pretregs));
-        r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
+        regm_t r = retregs & ~(msavereg | regcon.cse.mval | regcon.params);
         if (!r)
         {
             r = retregs & ~(msavereg | regcon.cse.mval);
@@ -1904,10 +1887,9 @@ void useregs(regm_t regm)
  */
 
 code *getregs(regm_t r)
-{   regm_t ms;
-
+{
     //printf("getregs(x%x) %s\n", r, regm_str(r));
-    ms = r & regcon.cse.mops;           // mask of common subs we must save
+    regm_t ms = r & regcon.cse.mops;           // mask of common subs we must save
     useregs(r);
     regcon.cse.mval &= ~r;
     msavereg &= ~r;                     // regs that are destroyed
@@ -1920,29 +1902,24 @@ code *getregs(regm_t r)
  */
 
 STATIC code * cse_save(regm_t ms)
-{   unsigned reg,i,op;
+{
     code *c = NULL;
-    regm_t regm;
 
     assert((ms & regcon.cse.mops) == ms);
     regcon.cse.mops &= ~ms;
 
     /* Skip CSEs that are already saved */
-    for (regm = 1; regm < mask[NUMREGS]; regm <<= 1)
+    for (regm_t regm = 1; regm < mask[NUMREGS]; regm <<= 1)
     {
         if (regm & ms)
-        {   elem *e;
-
-            e = regcon.cse.value[findreg(regm)];
-            for (i = 0; i < csmax; i++)
+        {
+            elem *e = regcon.cse.value[findreg(regm)];
+            for (unsigned i = 0; i < csmax; i++)
             {
                 if (csextab[i].e == e)
                 {
-                    tym_t tym;
-                    unsigned sz;
-
-                    tym = e->Ety;
-                    sz = tysize(tym);
+                    tym_t tym = e->Ety;
+                    unsigned sz = tysize(tym);
                     if (sz <= REGSIZE ||
                         sz <= 2 * REGSIZE &&
                             (regm & mMSW && csextab[i].regm & mMSW ||
@@ -1960,7 +1937,7 @@ STATIC code * cse_save(regm_t ms)
         }
     }
 
-    for (i = cstop; ms; i++)
+    for (unsigned i = cstop; ms; i++)
     {
         if (i >= csmax)                 /* array overflow               */
         {   unsigned cseinc;
@@ -1984,7 +1961,7 @@ STATIC code * cse_save(regm_t ms)
         if (csextab[i].e == NULL || i >= cstop)
         {
         L1:
-            reg = findreg(ms);          /* the register to save         */
+            unsigned reg = findreg(ms);          /* the register to save         */
             csextab[i].e = regcon.cse.value[reg];
             csextab[i].regm = mask[reg];
             csextab[i].flags &= CSEload;
@@ -2012,11 +1989,9 @@ Lret:
  */
 
 code *getregs_imm(regm_t r)
-{   code *c;
-    regm_t save;
-
-    save = regcon.immed.mval;
-    c = getregs(r);
+{
+    regm_t save = regcon.immed.mval;
+    code* c = getregs(r);
     regcon.immed.mval = save;
     return c;
 }
@@ -2028,10 +2003,9 @@ code *getregs_imm(regm_t r)
  */
 
 code *cse_flush(int do87)
-{   code *c;
-
+{
     //dbg_printf("cse_flush()\n");
-    c = cse_save(regcon.cse.mops);      // save any CSEs to memory
+    code* c = cse_save(regcon.cse.mops);      // save any CSEs to memory
     if (do87)
         c = cat(c,save87());    // save any 8087 temporaries
     return c;
@@ -2098,61 +2072,56 @@ bool cssave(elem *e,regm_t regm,unsigned opsflag)
  */
 
 bool evalinregister(elem *e)
-{       regm_t emask;
-        unsigned i;
-        unsigned sz;
+{
+    if (config.exe == EX_WIN64 && e->Eoper == OPrelconst)
+        return TRUE;
 
-        if (config.exe == EX_WIN64 && e->Eoper == OPrelconst)
-            return TRUE;
+    if (e->Ecount == 0)             /* elem is not a CSE, therefore */
+                                    /* we don't need to evaluate it */
+                                    /* in a register                */
+        return FALSE;
+    if (EOP(e))                     /* operators are always in register */
+        return TRUE;
 
-        if (e->Ecount == 0)             /* elem is not a CSE, therefore */
-                                        /* we don't need to evaluate it */
-                                        /* in a register                */
-                return FALSE;
-        if (EOP(e))                     /* operators are always in register */
-                return TRUE;
-
-        // Need to rethink this code if float or double can be CSE'd
-        sz = tysize(e->Ety);
-        if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
-                                        /* to be generated              */
+    // Need to rethink this code if float or double can be CSE'd
+    unsigned sz = tysize(e->Ety);
+    if (e->Ecount == e->Ecomsub)    /* elem is a CSE that needs     */
+                                    /* to be generated              */
+    {
+        if ((I32 || I64) &&
+            //pass == PASSfinal && // bug 8987
+            sz <= REGSIZE)
         {
-            if ((I32 || I64) &&
-                //pass == PASSfinal && // bug 8987
-                sz <= REGSIZE)
-            {
-                // Do it only if at least 2 registers are available
-                regm_t m;
-
-                m = allregs & ~regcon.mvar;
-                if (sz == 1)
-                    m &= BYTEREGS;
-                if (m & (m - 1))        // if more than one register
-                {   // Need to be at least 3 registers available, as
-                    // addressing modes can use up 2.
-                    while (!(m & 1))
-                        m >>= 1;
+            // Do it only if at least 2 registers are available
+            regm_t m = allregs & ~regcon.mvar;
+            if (sz == 1)
+                m &= BYTEREGS;
+            if (m & (m - 1))        // if more than one register
+            {   // Need to be at least 3 registers available, as
+                // addressing modes can use up 2.
+                while (!(m & 1))
                     m >>= 1;
-                    if (m & (m - 1))
-                        return TRUE;
-                }
+                m >>= 1;
+                if (m & (m - 1))
+                    return TRUE;
             }
-            return FALSE;
         }
+        return FALSE;
+    }
 
-        /* Elem is now a CSE that might have been generated. If so, and */
-        /* it's in a register already, the computation should be done   */
-        /* using that register.                                         */
-        emask = 0;
-        for (i = 0; i < arraysize(regcon.cse.value); i++)
-                if (regcon.cse.value[i] == e)
-                        emask |= mask[i];
-        emask &= regcon.cse.mval;       // mask of available CSEs
-        if (sz <= REGSIZE)
-                return emask != 0;      /* the CSE is in a register     */
-        else if (sz <= 2 * REGSIZE)
-                return (emask & mMSW) && (emask & mLSW);
-        return TRUE;                    /* cop-out for now              */
+    /* Elem is now a CSE that might have been generated. If so, and */
+    /* it's in a register already, the computation should be done   */
+    /* using that register.                                         */
+    regm_t emask = 0;
+    for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
+        if (regcon.cse.value[i] == e)
+            emask |= mask[i];
+    emask &= regcon.cse.mval;       // mask of available CSEs
+    if (sz <= REGSIZE)
+        return emask != 0;      /* the CSE is in a register     */
+    else if (sz <= 2 * REGSIZE)
+        return (emask & mMSW) && (emask & mLSW);
+    return TRUE;                    /* cop-out for now              */
 }
 
 /*******************************************************
@@ -2160,9 +2129,8 @@ bool evalinregister(elem *e)
  */
 
 regm_t getscratch()
-{   regm_t scratch;
-
-    scratch = 0;
+{
+    regm_t scratch = 0;
     if (pass == PASSfinal)
     {
         scratch = allregs & ~(regcon.mvar | regcon.mpvar | regcon.cse.mval |
@@ -2181,7 +2149,6 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 {   tym_t tym;
     regm_t regm,emask,csemask;
     unsigned reg,i,byte,sz;
-    code *c;
 
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
@@ -2191,8 +2158,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 #endif
     assert(e->Ecomsub <= e->Ecount);
 
-  c = CNIL;
-  if (*pretregs == 0) goto done;        /* no possible side effects anyway */
+    code* c = CNIL;
+    if (*pretregs == 0) goto done;        /* no possible side effects anyway */
 
     if (tyfloating(e->Ety) && config.inline8087)
         return comsub87(e,pretregs);
@@ -2201,7 +2168,7 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
   /* have the right contents.                                   */
 
   emask = 0;
-  for (i = 0; i < arraysize(regcon.cse.value); i++)
+  for (unsigned i = 0; i < arraysize(regcon.cse.value); i++)
   {
         //dbg_printf("regcon.cse.value[%d] = %p\n",i,regcon.cse.value[i]);
         if (regcon.cse.value[i] == e)   /* if contents are right        */
@@ -2211,7 +2178,7 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
 
   /* create mask of what's in csextab[] */
   csemask = 0;
-  for (i = 0; i < cstop; i++)
+  for (unsigned i = 0; i < cstop; i++)
   {     if (csextab[i].e)
             elem_debug(csextab[i].e);
         if (csextab[i].e == e)
@@ -2250,7 +2217,7 @@ if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
 
         if (!EOP(e))                    /* if not op or func            */
                 goto reload;            /* reload data                  */
-        for (i = cstop; i--;)           /* look through saved comsubs   */
+        for (unsigned i = cstop; i--;)           /* look through saved comsubs   */
                 if (csextab[i].e == e)  /* found it             */
                 {   regm_t retregs;
 
@@ -2452,7 +2419,6 @@ elem_print(e);
 code *codelem(elem *e,regm_t *pretregs,bool constflag)
 { code *c;
   Symbol *s;
-  unsigned op;
 
 #ifdef DEBUG
   if (debugw)
@@ -2479,7 +2445,7 @@ code *codelem(elem *e,regm_t *pretregs,bool constflag)
 
   if (!constflag && *pretregs & (mES | ALLREGS | mBP | XMMREGS) & ~regcon.mvar)
         *pretregs &= ~regcon.mvar;                      /* can't use register vars */
-  op = e->Eoper;
+  unsigned op = e->Eoper;
   if (e->Ecount && e->Ecount != e->Ecomsub)     /* if common subexp     */
   {     c = comsub(e,pretregs);
         goto L1;
@@ -2587,11 +2553,7 @@ L1:
 
 code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
 { code *c,*cs1,*cs2,*cs3;
-  unsigned i,j;
-  regm_t oldmfuncreg,oldregcon,oldregimmed,overlap,tosave,touse;
-  int adjesp;
-  unsigned stackpushsave;
-  char calledafuncsave;
+  regm_t touse;
 
 #ifdef DEBUG
     if (debugw)
@@ -2623,18 +2585,18 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
                 return c;
         }
   }
-  overlap = msavereg & keepmsk;
+  regm_t overlap = msavereg & keepmsk;
   msavereg |= keepmsk;          /* add to mask of regs to save          */
-  oldregcon = regcon.cse.mval;
-  oldregimmed = regcon.immed.mval;
-  oldmfuncreg = mfuncreg;       /* remember old one                     */
+  regm_t oldregcon = regcon.cse.mval;
+  regm_t oldregimmed = regcon.immed.mval;
+  regm_t oldmfuncreg = mfuncreg;       /* remember old one                     */
   mfuncreg = (XMMREGS | mBP | mES | ALLREGS) & ~regcon.mvar;
-  stackpushsave = stackpush;
-  calledafuncsave = calledafunc;
+  unsigned stackpushsave = stackpush;
+  char calledafuncsave = calledafunc;
   calledafunc = 0;
   c = codelem(e,pretregs,constflag);    /* generate code for the elem   */
 
-  tosave = keepmsk & ~msavereg; /* registers to save                    */
+  regm_t tosave = keepmsk & ~msavereg; /* registers to save                    */
   if (tosave)
   {     cgstate.stackclean++;
         c = genstackclean(c,stackpush - stackpushsave,*pretregs | msavereg);
@@ -2679,16 +2641,18 @@ code *scodelem(elem *e,regm_t *pretregs,regm_t keepmsk,bool constflag)
   }
 
   cs1 = cs2 = cs3 = NULL;
-  adjesp = 0;
+  int adjesp = 0;
 
-  for (i = 0; tosave; i++)
+  for (unsigned i = 0; tosave; i++)
   {     regm_t mi = mask[i];
 
         assert(i < REGMAX);
         if (mi & tosave)        /* i = register to save                 */
         {
             if (touse)          /* if any scratch registers             */
-            {   for (j = 0; j < 8; j++)
+            {
+                unsigned j;
+                for (j = 0; j < 8; j++)
                 {   regm_t mj = mask[j];
 
                     if (touse & mj)
@@ -2811,29 +2775,23 @@ const char *regm_str(regm_t rm)
  */
 
 code *docommas(elem **pe)
-{   elem *e;
-    code *cc;
-    unsigned stackpushsave;
-    int stackcleansave;
-
-    stackpushsave = stackpush;
-    stackcleansave = cgstate.stackclean;
+{
+    unsigned stackpushsave = stackpush;
+    int stackcleansave = cgstate.stackclean;
     cgstate.stackclean = 0;
-    cc = CNIL;
-    e = *pe;
+    code* cc = CNIL;
+    elem* e = *pe;
     while (1)
-    {   elem *eold;
-        regm_t retregs;
-
+    {
         if (configv.addlinenumbers && e->Esrcpos.Slinnum)
         {       cc = genlinnum(cc,e->Esrcpos);
                 //e->Esrcpos.Slinnum = 0;               // don't do it twice
         }
         if (e->Eoper != OPcomma)
                 break;
-        retregs = 0;
+        regm_t retregs = 0;
         cc = cat(cc,codelem(e->E1,&retregs,TRUE));
-        eold = e;
+        elem* eold = e;
         e = e->E2;
         freenode(eold);
     }
