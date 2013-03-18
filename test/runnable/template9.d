@@ -2041,39 +2041,6 @@ void test9536()
     assert(s.bar() == 84);
 }
 
-/**********************************/
-// 9654
-
-auto foo9654a(ref           char[8] str) { return str; }
-auto foo9654b(ref     const char[8] str) { return str; }
-auto foo9654c(ref immutable char[8] str) { return str; }
-static assert(!is(typeof(foo9654a("testinfo"))));
-static assert( is(typeof(foo9654b("testinfo")) ==     const char[8]));
-static assert( is(typeof(foo9654c("testinfo")) == immutable char[8]));
-
-auto bar9654a(T)(ref           T[8] str) { return str; static assert(is(T == immutable char)); }
-auto bar9654b(T)(ref     const T[8] str) { return str; static assert(is(T ==           char)); }
-auto bar9654c(T)(ref immutable T[8] str) { return str; static assert(is(T ==           char)); }
-static assert( is(typeof(bar9654a("testinfo")) == immutable char[8]));
-static assert( is(typeof(bar9654b("testinfo")) ==     const char[8]));
-static assert( is(typeof(bar9654c("testinfo")) == immutable char[8]));
-
-auto baz9654a(T, size_t dim)(ref           T[dim] str) { return str; static assert(is(T == immutable char)); }
-auto baz9654b(T, size_t dim)(ref     const T[dim] str) { return str; static assert(is(T ==           char)); }
-auto baz9654c(T, size_t dim)(ref immutable T[dim] str) { return str; static assert(is(T ==           char)); }
-static assert( is(typeof(baz9654a("testinfo")) == immutable char[8]));
-static assert( is(typeof(baz9654b("testinfo")) ==     const char[8]));
-static assert( is(typeof(baz9654c("testinfo")) == immutable char[8]));
-
-/******************************************/
-// 9712
-
-auto func9712(T)(T[2] arg) { return arg; }
-static assert(is(typeof(func9712([1,2])) == int[2]));
-
-auto deduceLength9712(T,size_t n)(T[n] a) { return a; }
-static assert(is(typeof(deduceLength9712([1,2,3])) == int[3]));
-
 /******************************************/
 
 int main()
