@@ -2345,6 +2345,52 @@ bool bug7216() {
 static assert(bug7216());
 
 /**************************************************
+    9745 Allow pointers to static variables
+**************************************************/
+
+shared int x9745;
+shared int[5] y9745;
+
+shared (int) * bug9745(int m)
+{
+    auto k = &x9745;
+    auto j = &x9745;
+    auto p = &y9745[0];
+    auto q = &y9745[3];
+    assert (j - k == 0);
+    assert( j == k );
+    assert( q - p == 3);
+    --q;
+    int a = 0;
+    assert(p + 2 == q);
+    if (m==7)
+    {
+        auto z1 = y9745[0..2]; // slice global pointer
+    }
+    if (m==8)
+        p[1] = 7; // modify through a pointer
+    if (m==9)
+         a = p[1]; // read from a pointer
+    if (m == 0)
+        return & x9745;
+    return &y9745[1];
+}
+
+int test9745(int m)
+{
+    bug9745(m);
+    return 1;
+}
+
+shared int * w9745a = bug9745(0);
+shared int * w9745b = bug9745(1);
+static assert( is(typeof(compiles!(test9745(6)))));
+static assert(!is(typeof(compiles!(test9745(7)))));
+static assert(!is(typeof(compiles!(test9745(8)))));
+static assert(!is(typeof(compiles!(test9745(9)))));
+
+
+/**************************************************
     4065 [CTFE] AA "in" operator doesn't work
 **************************************************/
 
