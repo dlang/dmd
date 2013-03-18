@@ -7,7 +7,7 @@ module ddoc9475;
 /// foo
 void foo() { }
 
-/// Example
+///
 unittest
 {
     // comment 1
@@ -21,7 +21,7 @@ unittest
 /// bar
 void bar() { }
 
-/// Example
+///
 unittest
 {
     // bar comment
