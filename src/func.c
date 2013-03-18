@@ -295,7 +295,16 @@ void FuncDeclaration::semantic(Scope *sc)
         error("functions cannot be scope");
 
     if (isAbstract() && !isVirtual())
-        error("non-virtual functions cannot be abstract");
+    {
+        const char *sfunc;
+        if (isStatic())
+            sfunc = "static";
+        else if (protection == PROTprivate || protection == PROTpackage)
+            sfunc = Pprotectionnames[protection];
+        else
+            sfunc = "non-virtual";
+        error("%s functions cannot be abstract", sfunc);
+    }
 
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
