@@ -4,6 +4,8 @@
 
 extern(C) int printf(const char*, ...);
 
+template TypeTuple(T...) { alias T TypeTuple; }
+
 /******************************************/
 // 3652
 
@@ -162,12 +164,76 @@ auto deduceLength9712(T,size_t n)(T[n] a) { return a; }
 static assert(is(typeof(deduceLength9712([1,2,3])) == int[3]));
 
 /******************************************/
+// 9743
+
+void test9743()
+{
+    //    +-Char
+    //    |+-Immutable or Const or Mutable
+    //    ||+-Value or Ref
+    //    |||+-Function                           or +-Template
+    void fCIVF(    immutable  char[4]) {}   void fCIVT()(    immutable  char[4]) {}
+    void fCCVF(        const  char[4]) {}   void fCCVT()(        const  char[4]) {}
+    void fCMVF(               char[4]) {}   void fCMVT()(               char[4]) {}
+    void fCIRF(ref immutable  char[4]) {}   void fCIRT()(ref immutable  char[4]) {}
+    void fCCRF(ref     const  char[4]) {}   void fCCRT()(ref     const  char[4]) {}
+    void fCMRF(ref            char[4]) {}   void fCMRT()(ref            char[4]) {}
+    alias fcOK = TypeTuple!(fCIVF, fCIVT, fCCVF, fCCVT, fCMVF, fCMVT, fCIRF, fCIRT, fCCRF, fCCRT);
+    foreach (f; fcOK)                                   f("1234" )   ;
+    foreach (f; fcOK)                                   f("1234"c)   ;
+    foreach (f; fcOK) static assert(!__traits(compiles, f("1234"w) ));
+    foreach (f; fcOK) static assert(!__traits(compiles, f("1234"d) ));
+    alias fcNG = TypeTuple!(fCMRF, fCMRT);  // cannot hold immutable data by mutable ref
+    foreach (f; fcNG) static assert(!__traits(compiles, f("1234" ) ));
+    foreach (f; fcNG) static assert(!__traits(compiles, f("1234"c) ));
+    foreach (f; fcNG) static assert(!__traits(compiles, f("1234"w) ));
+    foreach (f; fcNG) static assert(!__traits(compiles, f("1234"d) ));
+
+    //    +-Wchar
+    void fWIVF(    immutable wchar[4]) {}   void fWIVT()(    immutable wchar[4]) {}
+    void fWCVF(        const wchar[4]) {}   void fWCVT()(        const wchar[4]) {}
+    void fWMVF(              wchar[4]) {}   void fWMVT()(              wchar[4]) {}
+    void fWIRF(ref immutable wchar[4]) {}   void fWIRT()(ref immutable wchar[4]) {}
+    void fWCRF(ref     const wchar[4]) {}   void fWCRT()(ref     const wchar[4]) {}
+    void fWMRF(ref           wchar[4]) {}   void fWMRT()(ref           wchar[4]) {}
+    alias fwOK = TypeTuple!(fWIVF, fWIVT, fWCVF, fWCVT, fWMVF, fWMVT, fWIRF, fWIRT, fWCRF, fWCRT);
+    foreach (f; fwOK)                                   f("1234" )   ;
+    foreach (f; fwOK) static assert(!__traits(compiles, f("1234"c) ));
+    foreach (f; fwOK)                                   f("1234"w)   ;
+    foreach (f; fwOK) static assert(!__traits(compiles, f("1234"d) ));
+    alias fwNG = TypeTuple!(fWMRF, fWMRT);  // cannot hold immutable data by mutable ref
+    foreach (f; fwNG) static assert(!__traits(compiles, f("1234" ) ));
+    foreach (f; fwNG) static assert(!__traits(compiles, f("1234"c) ));
+    foreach (f; fwNG) static assert(!__traits(compiles, f("1234"w) ));
+    foreach (f; fwNG) static assert(!__traits(compiles, f("1234"d) ));
+
+    //    +-Dchar
+    void fDIVF(    immutable dchar[4]) {}   void fDIVT()(    immutable dchar[4]) {}
+    void fDCVF(        const dchar[4]) {}   void fDCVT()(        const dchar[4]) {}
+    void fDMVF(              dchar[4]) {}   void fDMVT()(              dchar[4]) {}
+    void fDIRF(ref immutable dchar[4]) {}   void fDIRT()(ref immutable dchar[4]) {}
+    void fDCRF(ref     const dchar[4]) {}   void fDCRT()(ref     const dchar[4]) {}
+    void fDMRF(ref           dchar[4]) {}   void fDMRT()(ref           dchar[4]) {}
+    alias fdOK = TypeTuple!(fDIVF, fDIVT, fDCVF, fDCVT, fDMVF, fDMVT, fDIRF, fDIRT, fDCRF, fDCRT);
+    foreach (f; fdOK)                                   f("1234" )   ;
+    foreach (f; fdOK) static assert(!__traits(compiles, f("1234"c) ));
+    foreach (f; fdOK) static assert(!__traits(compiles, f("1234"w) ));
+    foreach (f; fdOK)                                   f("1234"d)   ;
+    alias fdNG = TypeTuple!(fDMRF, fDMRT);  // cannot hold immutable data by mutable ref
+    foreach (f; fdNG) static assert(!__traits(compiles, f("1234" ) ));
+    foreach (f; fdNG) static assert(!__traits(compiles, f("1234"c) ));
+    foreach (f; fdNG) static assert(!__traits(compiles, f("1234"w) ));
+    foreach (f; fdNG) static assert(!__traits(compiles, f("1234"d) ));
+}
+
+/******************************************/
 
 int main()
 {
     test3652();
     test3652a();
     test3652b();
+    test9743();
 
     printf("Success\n");
     return 0;

@@ -1496,7 +1496,7 @@ Lretry:
                  prmtype->ty == Taarray && (taai = ((TypeAArray *)prmtype)->index)->ty == Tident &&
                                            ((TypeIdentifier *)taai)->idents.dim == 0))
             {
-                if (farg->op == TOKstring && !((StringExp *)farg)->committed)
+                if (farg->op == TOKstring)
                 {   StringExp *se = (StringExp *)farg;
                     argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
                     argtype = argtype->semantic(se->loc, NULL);
