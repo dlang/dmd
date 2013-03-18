@@ -227,6 +227,24 @@ void test9743()
 }
 
 /******************************************/
+// 9747
+
+void foo9747A(T)(T[4]) {}
+void foo9747C(size_t dim)(char[dim]) {}
+void foo9747W(size_t dim)(wchar[dim]) {}
+void foo9747D(size_t dim)(dchar[dim]) {}
+
+void test9747()
+{
+    foo9747A("abcd"c);
+    foo9747A("abcd"w);
+    foo9747A("abcd"d);
+    foo9747C("abcd"c);
+    foo9747W("abcd"w);
+    foo9747D("abcd"d);
+}
+
+/******************************************/
 
 int main()
 {
@@ -234,6 +252,7 @@ int main()
     test3652a();
     test3652b();
     test9743();
+    test9747();
 
     printf("Success\n");
     return 0;
