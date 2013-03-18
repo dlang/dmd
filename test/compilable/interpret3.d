@@ -4720,6 +4720,21 @@ enum int bug7197 = 7;
 static assert(bar7197!(bug7197));
 
 /**************************************************
+    Enum string compare
+**************************************************/
+
+enum EScmp : string { a = "aaa" }
+
+bool testEScmp()
+{
+    EScmp x = EScmp.a;
+    assert( x < "abc" );
+    return true;
+}
+
+static assert(testEScmp());
+
+/**************************************************
     7667
 **************************************************/
 

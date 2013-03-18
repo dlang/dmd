@@ -1408,7 +1408,9 @@ int ctfeIdentity(Loc loc, enum TOK op, Expression *e1, Expression *e2)
 int ctfeCmp(Loc loc, enum TOK op, Expression *e1, Expression *e2)
 {
     int n;
-    if (e1->type->isString() && e2->type->isString())
+    Type *t1 = e1->type->toBasetype();
+    Type *t2 = e2->type->toBasetype();
+    if (t1->isString() && t2->isString())
     {
         int cmp = ctfeRawCmp(loc, e1, e2);
         switch (op)
@@ -1431,15 +1433,15 @@ int ctfeCmp(Loc loc, enum TOK op, Expression *e1, Expression *e2)
                 assert(0);
         }
     }
-    else if (e1->type->isreal())
+    else if (t1->isreal())
     {
         n = realCmp(op, e1->toReal(), e2->toReal());
     }
-    else if (e1->type->isimaginary())
+    else if (t1->isimaginary())
     {
         n = realCmp(op, e1->toImaginary(), e2->toImaginary());
     }
-    else if (e1->type->isunsigned() || e2->type->isunsigned())
+    else if (t1->isunsigned() || t2->isunsigned())
     {
         n = intUnsignedCmp(op, e1->toInteger(), e2->toInteger());
     }
