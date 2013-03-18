@@ -5949,7 +5949,7 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                 if (arg->op == TOKstring && tprmb->ty == Tsarray)
                 {   if (targb->ty != Tsarray)
                 	{
-                        targb = new TypeSArray(targb->nextOf(),
+                        targb = new TypeSArray(tprmb->nextOf()->castMod(targb->nextOf()->mod),
                                 new IntegerExp(0, ((StringExp *)arg)->len,
                                 Type::tindex));
                         targb = targb->semantic(0, NULL);
