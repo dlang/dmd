@@ -692,7 +692,13 @@ Expression *Expression::ctfeInterpret()
     CompiledCtfeFunction ctfeCodeGlobal(NULL);
     ctfeCodeGlobal.callingloc = loc;
     ctfeCodeGlobal.onExpression(this);
-    return optimize(WANTvalue | WANTinterpret);
+
+    Expression *e = interpret(NULL);
+    if (e != EXP_CANT_INTERPRET)
+        e = scrubReturnValue(loc, e);
+    if (e == EXP_CANT_INTERPRET)
+        e = new ErrorExp();
+    return e;
 }
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
