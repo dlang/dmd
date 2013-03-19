@@ -172,7 +172,8 @@ struct Param
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
     bool pic;           // generate position-independent-code for shared libs
-    char cov;           // generate code coverage data
+    bool cov;           // generate code coverage data
+    unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
