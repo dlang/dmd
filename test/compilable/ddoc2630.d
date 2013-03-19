@@ -182,4 +182,41 @@ unittest { if (true) {fooNoDescription(); } /* comment */ }
 
 // ------------------------------------
 
+/// test for bugzilla 9757
+void foo9757() {}
+/// ditto
+void bar9757() {}
+/// ditto
+void baz9757() {}
+///
+unittest { foo9757(); bar9757(); }
+///
+unittest { bar9757(); foo9757(); }
+
+/// with template functions
+auto redBlackTree(E)(E[] elems...)
+{
+    return 1;
+}
+/// ditto
+auto redBlackTree(bool allowDuplicates, E)(E[] elems...)
+{
+    return 2;
+}
+/// ditto
+auto redBlackTree(alias less, E)(E[] elems...)
+{
+    return 3;
+}
+///
+unittest
+{
+    auto rbt1 = redBlackTree(0, 1, 5, 7);
+    auto rbt2 = redBlackTree!string("hello", "world");
+    auto rbt3 = redBlackTree!true(0, 1, 5, 7, 5);
+    auto rbt4 = redBlackTree!"a > b"(0, 1, 5, 7);
+}
+
+// ------------------------------------
+
 void main() { }

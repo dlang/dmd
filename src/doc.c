@@ -550,6 +550,12 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
+
+    Dsymbol *s = this;
+    if (!s->unittest && parent)
+        s = parent->isTemplateDeclaration();
+    if (s)
+        emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
