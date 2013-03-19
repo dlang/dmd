@@ -64,6 +64,7 @@ Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComm
     endloc = 0;
     inBrackets = 0;
     lookingForElse = 0;
+    lastDecl = NULL;
     //nextToken();              // start up the scanner
 }
 
@@ -232,6 +233,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKinterface:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
+                if (a->dim) lastDecl = (*a)[a->dim-1];
                 decldefs->append(a);
                 continue;
 
@@ -269,20 +271,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKunittest:
                 s = parseUnitTest();
-                if (decldefs && decldefs->dim)
-                {
-                    Dsymbol *ds = (*decldefs)[decldefs->dim-1];
-                    AttribDeclaration *ad;
-                    while ((ad = ds->isAttribDeclaration()) != NULL)
-                    {
-                        if (ad->decl && ad->decl->dim)
-                            ds = (*ad->decl)[ad->decl->dim-1];
-                        else
-                            break;
-                    }
-
-                    ds->unittest = (UnitTestDeclaration *)s;
-                }
+                if (lastDecl) lastDecl->unittest = (UnitTestDeclaration *)s;
+                lastDecl = s;
                 break;
 
             case TOKnew:

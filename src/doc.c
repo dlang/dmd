@@ -1400,6 +1400,8 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
     }
     else
     {
+        if (s->unittest)
+            emitUnittestComment(sc, s, s->unittest);
         buf->writestring("$(DDOC_BLANKLINE)\n");
     }
 }

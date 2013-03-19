@@ -4447,6 +4447,8 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
 
 void UnitTestDeclaration::semantic(Scope *sc)
 {
+    protection = sc->protection;
+
     if (scope)
     {   sc = scope;
         scope = NULL;
