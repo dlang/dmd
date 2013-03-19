@@ -1613,7 +1613,18 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 #else
         if (v->isConst() && v->init && !v->isCTFE())
 #endif
-        {   e = v->init->toExpression();
+        {
+            // Ensure v->init has had semantic run on it
+            // (TODO: should we ungag errors?)
+            if (v->sem < Semantic2Done && v->scope)
+                v->semantic2(v->scope);
+
+            e = v->init->toExpression();
+
+            // If the semantic failed, give up now.
+            if (e->op == TOKerror)
+                return EXP_CANT_INTERPRET;
+
             if (e && (e->op == TOKconstruct || e->op == TOKblit))
             {   AssignExp *ae = (AssignExp *)e;
                 e = ae->e2;

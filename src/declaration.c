@@ -1670,6 +1670,11 @@ Lnomatch:
                 else
                     init = i2;          // no errors, keep result
             }
+            else
+            {   // Save scope so that semantic2 can run later
+                scope = new Scope(*sc);
+                scope->setNoFree();
+            }
         }
         else if (parent->isAggregateDeclaration())
         {

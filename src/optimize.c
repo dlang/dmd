@@ -68,6 +68,12 @@ Expression *expandVar(int result, VarDeclaration *v)
                         v->error("recursive initialization of constant");
                     goto L1;
                 }
+                // Ensure v->init has had semantic run on it
+                // (TODO: should we ungag errors?)
+                if (v->sem < Semantic2Done && v->scope)
+                {
+                    v->semantic2(v->scope);
+                }
                 Expression *ei = v->init->toExpression();
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
@@ -97,18 +103,8 @@ Expression *expandVar(int result, VarDeclaration *v)
                     else
                         goto L1;
                 }
-                if (v->scope)
-                {
-                    v->inuse++;
-                    e = ei->syntaxCopy();
-                    e = e->semantic(v->scope);
-                    e = e->implicitCastTo(v->scope, v->type);
-                    // enabling this line causes test22 in test suite to fail
-                    //ei->type = e->type;
-                    v->scope = NULL;
-                    v->inuse--;
-                }
-                else if (!ei->type)
+
+                if (!ei->type)
                 {
                     goto L1;
                 }
