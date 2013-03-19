@@ -1645,7 +1645,12 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     // Allow TypeInfo type painting
     if (isTypeInfo_Class(e->type) && e->type->implicitConvTo(to))
         return paintTypeOntoLiteral(to, e);
-
+#if DMDV2
+    // Allow casting away const for struct literals
+    if (e->op == TOKstructliteral &&
+        e->type->toBasetype()->castMod(0) == to->toBasetype()->castMod(0))
+        return paintTypeOntoLiteral(to, e);
+#endif
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());

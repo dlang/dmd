@@ -3612,6 +3612,27 @@ static assert(!is(typeof(compiles!(bug7780(1)))));
 static assert(!is(typeof(compiles!(bug7780(2)))));
 
 /**************************************************
+    10275 cast struct literals to immutable
+**************************************************/
+
+struct Bug10275
+{
+    uint[] ivals;
+}
+
+Bug10275 bug10275() {
+    return Bug10275([1,2,3]);
+}
+
+int test10275()
+{
+    immutable(Bug10275) xxx = cast(immutable(Bug10275))bug10275();
+    return 1;
+}
+
+static assert(test10275());
+
+/**************************************************
     6851 passing pointer by argument
 **************************************************/
 
