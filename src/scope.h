@@ -26,6 +26,7 @@ struct ForeachStatement;
 struct ClassDeclaration;
 struct AggregateDeclaration;
 struct FuncDeclaration;
+struct TypeFunction;
 struct DocComment;
 struct TemplateInstance;
 
@@ -47,6 +48,7 @@ struct Scope
     ScopeDsymbol *sd;           // if in static if, and declaring new symbols,
                                 // sd gets the addMember()
     FuncDeclaration *func;      // function we are in
+    TypeFunction *paramtf;      // if in param scope, the TypeFunction of param
     Dsymbol *parent;            // parent to use
     LabelStatement *slabel;     // enclosing labelled statement
     SwitchStatement *sw;        // enclosing switch statement

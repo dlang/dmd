@@ -5584,6 +5584,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         argsc->stc = 0;                 // don't inherit storage class
         argsc->protection = PROTpublic;
         argsc->func = NULL;
+        argsc->paramtf = this;
 
         size_t dim = Parameter::dim(tf->parameters);
         for (size_t i = 0; i < dim; i++)
@@ -7121,18 +7122,30 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
     Type *t;
     {
         FuncDeclaration *func = sc->func;
-        if (!func)
-        {   error(loc, "typeof(return) must be inside function");
-            goto Lerr;
-        }
-        if (func->fes)
-            func = func->fes->func;
-
-        t = func->type->nextOf();
-        if (!t)
+        if (!func && sc->paramtf)
         {
-            error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
-            goto Lerr;
+            t = sc->paramtf->nextOf();
+            if (!t)
+            {
+                error(loc, "cannot use typeof(return) inside a function with inferred return type");
+                goto Lerr;
+            }
+        }
+        else
+        {
+            if (!func)
+            {   error(loc, "typeof(return) must be inside function");
+                goto Lerr;
+            }
+            if (func->fes)
+                func = func->fes->func;
+
+            t = func->type->nextOf();
+            if (!t)
+            {
+                error(loc, "cannot use typeof(return) inside function %s with inferred return type", sc->func->toChars());
+                goto Lerr;
+            }
         }
     }
     if (idents.dim == 0)
