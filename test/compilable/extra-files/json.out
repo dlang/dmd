@@ -376,6 +376,73 @@
       ]
      }
     ]
+   },
+   {
+    "kind" : "template",
+    "protection" : "private",
+    "line" : 89,
+    "name" : "S1_9755",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "S1_9755",
+      "kind" : "struct",
+      "line" : 89,
+      "members" : []
+     }
+    ]
+   },
+   {
+    "kind" : "template",
+    "protection" : "package",
+    "line" : 90,
+    "name" : "S2_9755",
+    "parameters" : [
+     {
+      "name" : "T",
+      "kind" : "type"
+     }
+    ],
+    "members" : [
+     {
+      "name" : "S2_9755",
+      "kind" : "struct",
+      "line" : 90,
+      "members" : []
+     }
+    ]
+   },
+   {
+    "name" : "C_9755",
+    "kind" : "class",
+    "line" : 93,
+    "members" : [
+     {
+      "kind" : "template",
+      "protection" : "protected",
+      "line" : 94,
+      "name" : "CI_9755",
+      "parameters" : [
+       {
+        "name" : "T",
+        "kind" : "type"
+       }
+      ],
+      "members" : [
+       {
+        "name" : "CI_9755",
+        "kind" : "class",
+        "line" : 94,
+        "members" : []
+       }
+      ]
+     }
+    ]
    }
   ]
  }

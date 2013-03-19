@@ -84,3 +84,12 @@ struct S
     /** Issue 9480 - Template name should be stripped of parameters */
     this(T)(T t) { }
 }
+
+/** Issue 9755 - Protection not emitted properly for Templates. */
+private struct S1_9755(T) { }
+package struct S2_9755(T) { }
+
+class C_9755
+{
+    protected static class CI_9755(T) { }
+}

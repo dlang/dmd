@@ -422,6 +422,7 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->literal = 0;
     this->ismixin = ismixin;
     this->previous = NULL;
+    this->protection = PROTundefined;
 
     // Compute in advance for Ddoc's use
     if (members)
@@ -2476,6 +2477,11 @@ char *TemplateDeclaration::toChars()
 #endif
     buf.writeByte(0);
     return (char *)buf.extractData();
+}
+
+enum PROT TemplateDeclaration::prot()
+{
+    return protection;
 }
 
 /* ======================== Type ============================================ */
