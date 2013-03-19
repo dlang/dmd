@@ -655,6 +655,15 @@ void StructDeclaration::semantic(Scope *sc)
         deferred->semantic2(sc);
         deferred->semantic3(sc);
     }
+
+#if 0
+    if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
+    {
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d %s, sym = %p\n", type->ty, type->toChars(), ((TypeStruct *)type)->sym);
+    }
+#endif
+    assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
