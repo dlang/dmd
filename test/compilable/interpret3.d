@@ -2379,6 +2379,8 @@ shared (int) * bug9745(int m)
 int test9745(int m)
 {
     bug9745(m);
+    // type painting
+    shared int * w = bug9745(0);
     return 1;
 }
 

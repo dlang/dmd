@@ -4720,17 +4720,21 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                 return e;
             }
         }
-        if (e1->op == TOKvar)
+        if (e1->op == TOKvar || e1->op == TOKsymoff)
         {   // type painting operation
-            Type *origType = ((VarExp *)e1)->var->type;
+            Type *origType = (e1->op == TOKvar) ? ((VarExp *)e1)->var->type :
+                    ((SymOffExp *)e1)->var->type;
             if (castBackFromVoid && !isSafePointerCast(origType, pointee))
             {
                 error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                     origType->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            e = new VarExp(loc, ((VarExp *)e1)->var);
-            e->type = type;
+            if (e1->op == TOKvar)
+                e = new VarExp(loc, ((VarExp *)e1)->var);
+            else
+                e = new SymOffExp(loc, ((SymOffExp *)e1)->var, 0);
+            e->type = to;
             return e;
         }
 
