@@ -21,7 +21,6 @@ import core.sys.posix.pthread;
 import core.sys.osx.mach.dyld;
 import core.sys.osx.mach.getsect;
 import rt.deh2, rt.minfo;
-import rt.memory_osx;
 import rt.util.container;
 
 struct SectionGroup
@@ -197,3 +196,41 @@ struct SegRef
 static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
                                       {SEG_DATA, SECT_BSS},
                                       {SEG_DATA, SECT_COMMON}];
+
+
+ubyte[] getSection(in mach_header* header, intptr_t slide,
+                   in char* segmentName, in char* sectionName)
+{
+    if (header.magic == MH_MAGIC)
+    {
+        auto sect = getsectbynamefromheader(header,
+                                            segmentName,
+                                            sectionName);
+
+        if (sect !is null && sect.size > 0)
+        {
+            auto addr = cast(size_t) sect.addr;
+            auto size = cast(size_t) sect.size;
+            return (cast(ubyte*) addr)[slide .. slide + size];
+        }
+        return null;
+
+    }
+    else if (header.magic == MH_MAGIC_64)
+    {
+        auto header64 = cast(mach_header_64*) header;
+        auto sect     = getsectbynamefromheader_64(header64,
+                                                   segmentName,
+                                                   sectionName);
+
+        if (sect !is null && sect.size > 0)
+        {
+            auto addr = cast(size_t) sect.addr;
+            auto size = cast(size_t) sect.size;
+            return (cast(ubyte*) addr)[slide .. slide + size];
+        }
+        return null;
+    }
+    else
+        return null;
+}
