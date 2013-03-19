@@ -1375,7 +1375,7 @@ STATIC void cgcod_eh()
         stack = NULL;
         for (c = b->Bcode; c; c = code_next(c))
         {
-            if ((c->Iop & 0xFF) == ESCAPE)
+            if ((c->Iop & ESCAPEmask) == ESCAPE)
             {
                 c1 = NULL;
                 switch (c->Iop & 0xFFFF00)
