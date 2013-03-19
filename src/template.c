@@ -5050,7 +5050,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
     // Copy the syntax trees from the TemplateDeclaration
-    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    if (members && speculative)
+    {}  // Don't copy again so they were previously created.
+    else
+        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+
     // todo for TemplateThisParameter
     for (size_t i = 0; i < tempdecl->parameters->dim; i++)
     {
@@ -6511,7 +6515,10 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     // Copy the syntax trees from the TemplateDeclaration
-    members = Dsymbol::arraySyntaxCopy(tempdecl->members);
+    if (scx && members)
+    {}  // Don't copy again so they were previously created.
+    else
+        members = Dsymbol::arraySyntaxCopy(tempdecl->members);
     if (!members)
         return;
 
