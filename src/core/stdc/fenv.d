@@ -106,7 +106,7 @@ enum
 
 version( Windows )
 {
-    private extern fenv_t _FE_DFL_ENV;
+    private extern __gshared fenv_t _FE_DFL_ENV;
     fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( linux )
@@ -115,7 +115,7 @@ else version( linux )
 }
 else version( OSX )
 {
-    private extern fenv_t _FE_DFL_ENV;
+    private extern __gshared fenv_t _FE_DFL_ENV;
     fenv_t* FE_DFL_ENV = &_FE_DFL_ENV;
 }
 else version( FreeBSD )
