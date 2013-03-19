@@ -190,7 +190,6 @@ MANIFEST=\
 	src\rt\sections_win32.d \
 	src\rt\sections_win64.d \
 	src\rt\switch_.d \
-	src\rt\tls.S \
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	\
