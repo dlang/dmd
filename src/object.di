@@ -35,7 +35,6 @@ class Object
     size_t   toHash() @trusted nothrow;
     int      opCmp(Object o);
     bool     opEquals(Object o);
-    bool     opEquals(Object lhs, Object rhs);
 
     interface Monitor
     {
