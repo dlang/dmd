@@ -4650,6 +4650,7 @@ beg:
                infinite loops)
              */
             if (e2->Eoper == op &&
+                e2->E1->Eoper != OPconst &&
                 e2->E2->Eoper == OPconst &&
                 tysize(e2->E1->Ety) == tysize(e2->E2->Ety) &&
                 (!tyfloating(e1->Ety) || e1->Ety == e2->Ety)
