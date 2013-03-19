@@ -324,6 +324,7 @@ Usage:\n\
   @cmdfile       read arguments from cmdfile\n\
   -c             do not link\n\
   -cov           do code coverage analysis\n\
+  -cov=nnn       require at least %%nnn code coverage\n\
   -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
@@ -548,8 +549,29 @@ int tryMain(size_t argc, char *argv[])
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;
-            else if (strcmp(p + 1, "cov") == 0)
-                global.params.cov = 1;
+            else if (memcmp(p + 1, "cov", 3) == 0)
+            {
+                global.params.cov = true;
+                // Parse:
+                //      -cov
+                //      -cov=nnn
+                if (p[4] == '=')
+                {
+                    if (isdigit((unsigned char)p[5]))
+                    {   long percent;
+
+                        errno = 0;
+                        percent = strtol(p + 5, &p, 10);
+                        if (*p || errno || percent > 100)
+                            goto Lerror;
+                        global.params.covPercent = percent;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else if (p[4])
+                    goto Lerror;
+            }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             else if (strcmp(p + 1, "shared") == 0
 #if TARGET_OSX

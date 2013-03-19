@@ -390,11 +390,13 @@ void Module::genobjfile(int multiobj)
             ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
         }
 
-        elem *e = el_params(ecov,
+        elem *e = el_params(
+                      el_long(TYuchar, global.params.covPercent),
+                      ecov,
                       ebcov,
                       toEfilename(),
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }

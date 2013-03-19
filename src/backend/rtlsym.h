@@ -46,6 +46,7 @@ SYMBOL_MARS(MONITOR_HANDLER, FLfunc,FREGSAVED,"_d_monitor_handler", 0, 0) \
 SYMBOL_MARS(MONITOR_PROLOG,  FLfunc,FREGSAVED,"_d_monitor_prolog",0,t) \
 SYMBOL_MARS(MONITOR_EPILOG,  FLfunc,FREGSAVED,"_d_monitor_epilog",0,t) \
 SYMBOL_MARS(DCOVER,          FLfunc,FREGSAVED,"_d_cover_register", 0, t) \
+SYMBOL_MARS(DCOVER2,         FLfunc,FREGSAVED,"_d_cover_register2", 0, t) \
 SYMBOL_MARS(DASSERT,         FLfunc,FREGSAVED,"_d_assert", SFLexit, t) \
 SYMBOL_MARS(DASSERTM,        FLfunc,FREGSAVED,"_d_assertm", SFLexit, t) \
 SYMBOL_MARS(DASSERT_MSG,     FLfunc,FREGSAVED,"_d_assert_msg", SFLexit, t) \
