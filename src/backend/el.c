@@ -1150,7 +1150,13 @@ symbol *el_alloc_localgot()
         char name[15];
         static int tmpnum;
         sprintf(name, "_LOCALGOT%d", tmpnum++);
-        localgot = symbol_name(name, SCauto, type_fake(TYnptr));
+        type *t = type_fake(TYnptr);
+        /* Make it volatile because we need it for calling functions, but that isn't
+         * noticed by the data flow analysis. Hence, it may get deleted if we don't
+         * make it volatile.
+         */
+        type_setcv(&t, mTYvolatile);
+        localgot = symbol_name(name, SCauto, t);
         symbol_add(localgot);
         localgot->Sfl = FLauto;
         localgot->Sflags = SFLfree | SFLunambig | GTregcand;
