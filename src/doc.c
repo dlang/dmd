@@ -2306,6 +2306,9 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     unsigned char *lastp = buf->data;
     const char *highlight;
 
+    if (s->isModule() && ((Module *)s)->isDocFile)
+        sid = "";
+
     //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
     res.reserve(buf->offset);
     while (1)
