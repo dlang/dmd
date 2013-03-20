@@ -174,8 +174,9 @@ unittest
 }
 
 // ------------------------------------
+// 9713
 
-/// test for bugzilla 9713
+///
 void fooNoDescription() {}
 ///
 unittest { fooNoDescription(); }
