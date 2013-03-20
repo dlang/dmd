@@ -586,6 +586,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
         if (utd->codedoc && strlen(utd->codedoc) && !isAllWhitespace(utd->codedoc))
         {
             buf->writestring("$(DDOC_EXAMPLES ");
+            buf->writestring((char *)utd->comment);
             codebuf.writestring(pre);
             codebuf.writestring(unindent(utd->codedoc));
             codebuf.writestring(")");
