@@ -998,7 +998,30 @@ class Thread
         // NOTE: This function may not be called until thread_init has
         //       completed.  See thread_suspendAll for more information
         //       on why this might occur.
-        return sm_this;
+        version( Windows )
+        {
+            auto t = cast(Thread) TlsGetValue( sm_this );
+
+            // NOTE: If this thread was attached via thread_attachByAddr then
+            //       this TLS lookup won't initially be set, so when the TLS
+            //       lookup fails, try an exhaustive search.
+            if( t is null )
+            {
+                t = thread_findByAddr( GetCurrentThreadId() );
+                setThis( t );
+            }
+            return t;
+        }
+        else version( Posix )
+        {
+            auto t = cast(Thread) pthread_getspecific( sm_this );
+
+            // NOTE: See the comment near thread_findByAddr() for why the
+            //       secondary thread_findByAddr lookup can't be done on
+            //       Posix.  However, because thread_attachByAddr() is for
+            //       Windows only, the secondary lookup is pointless anyway.
+            return t;
+        }
     }
 
 
@@ -1154,7 +1177,7 @@ private:
     //
     // Local storage
     //
-    static Thread       sm_this;
+    __gshared TLSKey    sm_this;
 
 
     //
@@ -1203,7 +1226,14 @@ private:
     //
     static void setThis( Thread t )
     {
-        sm_this = t;
+        version( Windows )
+        {
+            TlsSetValue( sm_this, cast(void*) t );
+        }
+        else version( Posix )
+        {
+            pthread_setspecific( sm_this, cast(void*) t );
+        }
     }
 
 
@@ -1628,8 +1658,17 @@ extern (C) void thread_init()
     //       exist to be scanned at this point, it is sufficient for these
     //       functions to detect the condition and return immediately.
 
-    version( OSX )
+    version( Windows )
     {
+        Thread.sm_this = TlsAlloc();
+        assert( Thread.sm_this != TLS_OUT_OF_INDEXES );
+    }
+    else version( OSX )
+    {
+        int status;
+
+        status = pthread_key_create( &Thread.sm_this, null );
+        assert( status == 0 );
     }
     else version( Posix )
     {
@@ -1672,6 +1711,9 @@ extern (C) void thread_init()
         assert( status == 0 );
 
         status = sem_init( &suspendCount, 0, 0 );
+        assert( status == 0 );
+
+        status = pthread_key_create( &Thread.sm_this, null );
         assert( status == 0 );
     }
     Thread.sm_main = thread_attachThis();
@@ -1781,11 +1823,7 @@ version( Windows )
         else
         {
             thisThread.m_hndl = OpenThreadHandle( addr );
-            impersonate_thread(addr,
-            {
-                thisThread.m_tlsgcdata = rt.tlsgc.init();
-                Thread.setThis( thisThread );
-            });
+            impersonate_thread(addr, { thisThread.m_tlsgcdata = rt.tlsgc.init(); });
         }
 
         Thread.add( thisThread );
