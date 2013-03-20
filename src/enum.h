@@ -78,6 +78,7 @@ struct EnumMember : Dsymbol
 {
     Expression *value;
     Type *type;
+    bool isUserValue;  // user-specified value, for ddoc
 
     EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *s);

@@ -410,6 +410,7 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
     this->value = value;
     this->type = type;
     this->loc = loc;
+    this->isUserValue = value != NULL;
 }
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
