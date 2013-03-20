@@ -1,8 +1,10 @@
 // PERMUTE_ARGS: -unittest
 // REQUIRED_ARGS: -D -w -o- -c -Ddtest_results/compilable -o-
-// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh 2630
+// POST_SCRIPT: compilable/extra-files/ddocAny-postscript.sh unittest
 
-module ddoc2630;
+module ddocunittest;
+
+/* Insert test-cases for documented unittests feature here. */
 
 /// foo function - 1 example
 int foo(int a, int b) { return a + b; }
@@ -23,7 +25,7 @@ unittest
     assert(bar());
 }
 
-/// no code
+/// placeholder
 unittest
 {
 }
@@ -218,5 +220,14 @@ unittest
 }
 
 // ------------------------------------
+
+// Issue 9758
+
+/// test
+void foo(){}
+
+///
+unittest {  }
+
 
 void main() { }
