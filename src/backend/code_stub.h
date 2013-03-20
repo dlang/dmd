@@ -85,5 +85,6 @@ struct code
 
     bool isJumpOP() { return false; }
 
+    void print() {}
 };
 
