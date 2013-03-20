@@ -477,6 +477,49 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
 
 /******************************* emitComment **********************************/
 
+/** Get leading indentation from 'src' which represents lines of code. */
+static size_t getCodeIndent(const char *src)
+{
+    while (src && *src == '\n')
+        ++src;  // skip until we find the first non-empty line
+
+    size_t codeIndent = 0;
+    while (src && (*src == ' ' || *src == '\t'))
+    {
+        codeIndent++;
+        src++;
+    }
+    return codeIndent;
+}
+
+void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
+{
+    OutBuffer *buf = sc->docbuf;
+
+    for (UnitTestDeclaration *utd = s->unittest; utd; utd = utd->unittest)
+    {
+        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody || !utd->codedoc)
+            continue;
+
+        // Strip whitespaces to avoid showing empty summary
+        unsigned char *c = utd->comment;
+        while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
+
+        OutBuffer codebuf;
+        codebuf.writestring("$(DDOC_EXAMPLES \n");
+        size_t o = codebuf.offset;
+        codebuf.writestring((char *)c);
+        size_t i = getCodeIndent(utd->codedoc);
+        while (i--) codebuf.writeByte(' ');
+        codebuf.writestring("----\n");
+        codebuf.writestring(utd->codedoc);
+        codebuf.writestring("----\n");
+        highlightText(sc, s, &codebuf, o);
+        codebuf.writestring(")");
+        buf->insert(buf->offset - ofs, codebuf.data, codebuf.offset);
+    }
+}
+
 /*
  * Emit doc comment to documentation file
  */
@@ -507,95 +550,12 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
-}
 
-/** Remove leading indentation from 'src' which represents lines of code. */
-static const char *unindent(const char *src)
-{
-    OutBuffer codebuf;
-    codebuf.writestring(src);
-    codebuf.writebyte(0);
-
-    while (src && *src == '\n')
-        ++src;  // skip until we find the first non-empty line
-
-    size_t codeIndent = 0;
-    while (src && ((*src == ' ') || (*src == '\t')))
-    {
-        codeIndent++;
-        src++;
-    }
-
-    bool lineStart = true;
-    unsigned char *endp = codebuf.data + codebuf.offset;
-    for (unsigned char *p = codebuf.data; p < endp; )
-    {
-        if (lineStart)
-        {
-            size_t j = codeIndent;
-            unsigned char *q = p;
-            while (j-- > 0 && q < endp && ((*q == ' ') || (*q == '\t')))
-                ++q;
-            codebuf.remove(p - codebuf.data, q - p);
-            assert(codebuf.data <= p);
-            assert(p < codebuf.data + codebuf.offset);
-            lineStart = false;
-            endp = codebuf.data + codebuf.offset; // update
-            continue;
-        }
-        if (*p == '\n')
-            lineStart = true;
-        ++p;
-    }
-
-    codebuf.writebyte(0);
-    return codebuf.extractData();
-}
-
-/** Return true if entire string is made out of whitespace. */
-static bool isAllWhitespace(const char *src)
-{
-    for (const char *c = src; *c && *c != '\0'; c++)
-    {
-        switch (*c)
-        {
-            case ' ':
-            case '\t':
-            case '\n':
-            case '\r':
-                continue;
-
-            default: return false;
-        }
-    }
-
-    return true;
-}
-
-void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
-{
-    static char pre[] = "$(D_CODE \n";
-    OutBuffer *buf = sc->docbuf;
-
-    for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
-    {
-        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
-            continue;
-
-        OutBuffer codebuf;
-        if (utd->codedoc && strlen(utd->codedoc) && !isAllWhitespace(utd->codedoc))
-        {
-            buf->writestring("$(DDOC_EXAMPLES ");
-            buf->writestring((char *)utd->comment);
-            codebuf.writestring(pre);
-            codebuf.writestring(unindent(utd->codedoc));
-            codebuf.writestring(")");
-            codebuf.writeByte(0);
-            highlightCode2(sc, s, &codebuf, 0);
-            buf->writestring(codebuf.toChars());
-            buf->writestring(")");
-        }
-    }
+    Dsymbol *s = this;
+    if (!s->unittest && parent)
+        s = parent->isTemplateDeclaration();
+    if (s)
+        emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -649,6 +609,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 
 void Dsymbol::emitComment(Scope *sc)               { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
+void UnitTestDeclaration::emitComment(Scope *sc)   { }
 #if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
 #endif
@@ -1374,7 +1335,7 @@ void DocComment::parseSections(unsigned char *comment)
 void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     //printf("DocComment::writeSections()\n");
-    if (sections.dim)
+    if (sections.dim || s->unittest)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (size_t i = 0; i < sections.dim; i++)
@@ -1396,7 +1357,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             }
         }
         if (s->unittest)
-            emitUnittestComment(sc, s, s->unittest);
+            emitUnittestComment(sc, s, 0);
         buf->writestring(")\n");
     }
     else
