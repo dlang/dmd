@@ -1426,11 +1426,11 @@ Expression *StringExp::interpret(InterState *istate, CtfeGoal goal)
      * In D2, we also disallow casts of read-only literals to mutable,
      * though it isn't strictly necessary.
      */
-#if DMDV2
+#if 0 //DMDV2
     // Fixed-length char arrays always get duped later anyway.
     if (type->ty == Tsarray)
         return this;
-    if (!(((TypeNext *)type)->next->mod & (MODconst | MODimmutable)))
+    if (!(((TypeNext *)type)->next->toBasetype()->mod & (MODconst | MODimmutable)))
     {   // It seems this happens only when there has been an explicit cast
         error("cannot cast a read-only string literal to mutable in CTFE");
         return EXP_CANT_INTERPRET;
