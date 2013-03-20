@@ -498,7 +498,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
 
     for (UnitTestDeclaration *utd = s->unittest; utd; utd = utd->unittest)
     {
-        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody || !utd->codedoc)
+        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
             continue;
 
         // Strip whitespaces to avoid showing empty summary
@@ -509,12 +509,17 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
         codebuf.writestring("$(DDOC_EXAMPLES \n");
         size_t o = codebuf.offset;
         codebuf.writestring((char *)c);
-        size_t i = getCodeIndent(utd->codedoc);
-        while (i--) codebuf.writeByte(' ');
-        codebuf.writestring("----\n");
-        codebuf.writestring(utd->codedoc);
-        codebuf.writestring("----\n");
-        highlightText(sc, s, &codebuf, o);
+
+        if (utd->codedoc)
+        {
+            size_t i = getCodeIndent(utd->codedoc);
+            while (i--) codebuf.writeByte(' ');
+            codebuf.writestring("----\n");
+            codebuf.writestring(utd->codedoc);
+            codebuf.writestring("----\n");
+            highlightText(sc, s, &codebuf, o);
+        }
+
         codebuf.writestring(")");
         buf->insert(buf->offset - ofs, codebuf.data, codebuf.offset);
     }
