@@ -1781,32 +1781,54 @@ public:
                     assert(exp.op == TOKarray || exp.op == TOKslice);
                     AggregateDeclaration ad = isAggregate(t);
                     assert(ad);
-                    Dsymbol s = ad.search(loc, Id.opDollar);
-                    if (!s) // no dollar exists -- search in higher scope
-                        return null;
-                    s = s.toAlias();
-                    Expression e = null;
-                    // Check for multi-dimensional opDollar(dim) template.
-                    if (TemplateDeclaration td = s.isTemplateDeclaration())
+
+                    Dsymbol sx = ad.search(loc, Id.opDollar);
+                    Dsymbol s;
+                    if (!sx)
                     {
-                        dinteger_t dim = 0;
-                        if (exp.op == TOKarray)
-                        {
-                            dim = (cast(ArrayExp)exp).currentDimension;
-                        }
-                        else if (exp.op == TOKslice)
-                        {
-                            dim = 0; // slices are currently always one-dimensional
-                        }
-                        else
-                        {
-                            assert(0);
-                        }
+                        // See module scope opDollar
+                        Dsymbol sm = sc.search(loc, Id.empty, null);
+                        assert(sm);
+                        Dsymbol sa = sm.search(loc, Id.opDollar);
+                        if (!sa) // no dollar exists -- search in higher scope
+                            return null;
+                        s = sa.toAlias();
+                    }
+                    else
+                        s = sx.toAlias();
+
+                    dinteger_t curdim, maxdim;
+                    if (exp.op == TOKarray)
+                    {
+                        ArrayExp ae = cast(ArrayExp)exp;
+                        curdim = ae.currentDimension;
+                        maxdim = ae.arguments.dim;
+                    }
+                    else //if (exp.op == TOKslice)
+                    {
+                        curdim = 0; // slices are currently always one-dimensional
+                        maxdim = 1;
+                    }
+
+                    Expression e = null;
+                    auto td = s.isTemplateDeclaration();
+                    // Check for multi-dimensional opDollar(dim) template.
+                    if (td && td.parameters.dim &&
+                        (*td.parameters)[0].isTemplateValueParameter())
+                    {
                         auto tiargs = new Objects();
-                        Expression edim = new IntegerExp(Loc(), dim, Type.tsize_t);
+                        Expression edim = new IntegerExp(Loc(), curdim, Type.tsize_t);
                         edim = edim.semantic(sc);
                         tiargs.push(edim);
-                        e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
+                        if (!sx)    // UFCS version
+                        {
+                            e = new IdentifierExp(loc, Id.empty);
+                            e = new DotTemplateInstanceExp(loc, e, td.ident, tiargs);
+                            e = new CallExp(loc, e, ce);
+                            //printf("1 e = %s\n", e.toChars());
+                        }
+                        else
+                            e = new DotTemplateInstanceExp(loc, ce, td.ident, tiargs);
                     }
                     else
                     {
@@ -1815,21 +1837,28 @@ public:
                          * Note that it's impossible to have both template & function opDollar,
                          * because both take no arguments.
                          */
-                        if (exp.op == TOKarray && (cast(ArrayExp)exp).arguments.dim != 1)
+                        if (maxdim != 1)
                         {
-                            exp.error("%s only defines opDollar for one dimension", ad.toChars());
-                            return null;
+                            if (!sx)
+                                exp.error("multi-dimensional opDollar for %s is not found", ad.toChars());
+                            else
+                                exp.error("%s only defines opDollar for one dimension", ad.toChars());
                         }
-                        Declaration d = s.isDeclaration();
-                        assert(d);
-                        e = new DotVarExp(loc, ce, d);
+                        if (!sx)    // UFCS version
+                        {
+                            e = new IdentifierExp(loc, Id.empty);
+                            e = new DotIdExp(loc, e, s.ident);
+                            e = new CallExp(loc, e, ce);
+                            //printf("2 e = %s\n", e.toChars());
+                        }
+                        else
+                            e = new DotIdExp(loc, ce, s.ident);
                     }
                     e = e.semantic(sc);
-                    if (!e.type)
-                        exp.error("%s has no value", e.toChars());
-                    t = e.type.toBasetype();
-                    if (t && t.ty == Tfunction)
+                    if (e.type && e.type.toBasetype().ty == Tfunction)
                         e = new CallExp(e.loc, e);
+                    if (e.checkValue())
+                        return null;
                     v = new VarDeclaration(loc, null, Id.dollar, new ExpInitializer(Loc(), e));
                     v.storage_class |= STCtemp | STCctfe | STCrvalue;
                 }

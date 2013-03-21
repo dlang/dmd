@@ -1337,6 +1337,60 @@ void test19()
 }
 
 /**************************************/
+// 7177
+
+auto opDollar(R)(R r) { return r.length; }
+
+void test7177()
+{
+    struct A(E)
+    {
+        E[] arr;
+
+        @property size_t length() const { return arr.length; }
+
+        E opIndex(size_t i) { return arr[i]; }
+
+        E opIndex(size_t i, int ofs) { return arr[i+ofs]; }
+
+        A opSlice(size_t b, size_t e)
+        {
+            return A(arr[b .. e]);
+        }
+    }
+    auto a = A!int([1,2,3]);
+    assert(a[0] == 1);
+    assert(a[$-1] == 3);
+    auto b = a[2 .. $];
+    assert(b.length == 1);
+
+    // Even if 'length' found, e.length!(dim) will never be invoked.
+    struct X1
+    {
+        @property size_t length()() const { return 1; }
+        @property void length(T)(T) {}
+        void opIndex(size_t i) {}
+        void opIndex(size_t i, size_t j) {}
+        void opSlice(size_t b, size_t e) {}
+    }
+    X1 x1;
+    x1.length = 1;
+    static assert( __traits(compiles, x1[$]));
+    static assert(!__traits(compiles, x1[$, $]));
+
+    struct X2
+    {
+        @property size_t length(size_t dim)() const { return 2; }
+        void opIndex(size_t i) {}
+        void opIndex(size_t i, size_t j) {}
+        void opSlice(size_t b, size_t e) {}
+    }
+    X2 x2;
+    static assert(!__traits(compiles, x2[$]));
+    static assert(!__traits(compiles, x2[$, $]));
+}
+
+/**************************************/
 // 9453
 
 struct Foo9453
@@ -2039,6 +2093,7 @@ int main()
     test8434();
     test18();
     test19();
+    test7177();
     test9453();
     test9496();
     test9689();
