@@ -63,6 +63,7 @@ Global::Global()
     ddoc_ext = "ddoc";
     json_ext = "json";
     map_ext  = "map";
+    mxn_ext  = "mixin";
 
 #if TARGET_WINDOS
     obj_ext  = "obj";
@@ -350,7 +351,10 @@ Usage:\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
-  -lib           generate library rather than object files\n"
+  -lib           generate library rather than object files\n\
+  -M             generate 'mixin' file\n\
+  -Mddirectory   write 'mixin' file to directory\n\
+  -Mffilename    write 'mixin' file to filename\n"
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
 "  -m32           generate 32 bit code\n\
   -m64           generate 64 bit code\n"
@@ -696,6 +700,29 @@ int tryMain(size_t argc, char *argv[])
                         if (!p[3])
                             goto Lnoarg;
                         global.params.hdrname = p + 3;
+                        break;
+
+                    case 0:
+                        break;
+
+                    default:
+                        goto Lerror;
+                }
+            }
+            else if (p[1] == 'M')
+            {   global.params.doMxnGeneration = 1;
+                switch (p[2])
+                {
+                    case 'd':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.mxndir = p + 3;
+                        break;
+
+                    case 'f':
+                        if (!p[3])
+                            goto Lnoarg;
+                        global.params.mxnname = p + 3;
                         break;
 
                     case 0:

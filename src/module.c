@@ -846,6 +846,64 @@ void Module::gensymfile()
     symfile->writev();
 }
 
+/****************************************************
+ */
+
+Loc Module::writeMixin(unsigned char *str, size_t len, Loc loc)
+{
+    assert(global.params.doMxnGeneration);
+
+    if (!mxnfile)
+    {
+        FileName *mxnfilename;
+        char *argmxn;
+
+        if (global.params.mxnname)
+            argmxn = global.params.mxnname;
+        else if (global.params.preservePaths)
+            argmxn = (char *)arg;
+        else
+            argmxn = FileName::name((char *)arg);
+        if (!FileName::absolute(argmxn))
+        {   //FileName::ensurePathExists(global.params.hdrdir);
+            argmxn = FileName::combine(global.params.mxndir, argmxn);
+        }
+        if (global.params.mxnname)
+            mxnfilename = new FileName(argmxn);
+        else
+            mxnfilename = FileName::forceExt(argmxn, global.mxn_ext);
+
+        if (mxnfilename->equals(srcfile->name))
+        {   error("Source file and 'mixin' file have same name '%s'", srcfile->name->str);
+            fatal();
+        }
+
+        char *pt = FileName::path(mxnfilename->str);
+        if (*pt)
+            FileName::ensurePathExists(pt);
+        mem.free(pt);
+
+        mxnfile = new File(mxnfilename);
+        mxnfile->remove();
+        mxnloc = Loc(1);
+        mxnloc.filename = mxnfilename->str;
+    }
+    OutBuffer buf;
+
+    buf.printf("// mixin at %s", loc.toChars());
+    buf.writenl();
+    ++mxnloc.linnum;
+    Loc start = mxnloc;
+    buf.write(str, len);
+    buf.writenl();
+    ++mxnloc.linnum;
+
+    mxnfile->setbuffer(buf.data, buf.offset);
+    mxnfile->appendv();
+
+    return start;
+}
+
 /**********************************
  * Determine if we need to generate an instance of ModuleInfo
  * for this Module.

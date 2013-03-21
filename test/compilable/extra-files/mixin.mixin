@@ -1,0 +1,37 @@
+// mixin at compilable/mixin.d(64)
+
+int bar2()
+{
+    mixin Foo2;
+    return result();
+}
+
+// mixin at compilable/mixin.d(9)
+5 + 3
+// mixin at compilable/mixin.d(10)
+int a1 = 5;
+int b1 = 10;
+auto res1 = a1 * b1;
+
+// mixin at compilable/mixin.d(16)
+
+          int a2 = 5;
+          int b2 = 10;
+          auto res2 = a2 * b2;
+
+// mixin at compilable/mixin.d(41)
+5 + 3
+// mixin at compilable/mixin.d(42)
+int s1a = 5;
+int s1b = 10;
+auto s1res = s1a * s1b;
+
+// mixin at compilable/mixin.d(61)
+
+    int result()
+    {
+        auto tmp = a + mixin(bar2nested2());
+        return tmp;
+    };
+// mixin at test_results/compilable/mixin.mixin(33)
+getb

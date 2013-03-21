@@ -1172,37 +1172,7 @@ Lerr:
 int File::write()
 {
 #if POSIX
-    int fd;
-    ssize_t numwritten;
-    char *name;
-
-    name = this->name->toChars();
-    fd = open(name, O_CREAT | O_WRONLY | O_TRUNC, 0644);
-    if (fd == -1)
-        goto err;
-
-    numwritten = ::write(fd, buffer, len);
-    if (len != numwritten)
-        goto err2;
-
-    if (close(fd) == -1)
-        goto err;
-
-    if (touchtime)
-    {   struct utimbuf ubuf;
-
-        ubuf.actime = ((struct stat *)touchtime)->st_atime;
-        ubuf.modtime = ((struct stat *)touchtime)->st_mtime;
-        if (utime(name, &ubuf))
-            goto err;
-    }
-    return 0;
-
-err2:
-    close(fd);
-    ::remove(name);
-err:
-    return 1;
+    return writePosix(false);
 #elif _WIN32
     HANDLE h;
     DWORD numwritten;
@@ -1246,7 +1216,7 @@ err:
 int File::append()
 {
 #if POSIX
-    return 1;
+    return writePosix(true);
 #elif _WIN32
     HANDLE h;
     DWORD numwritten;
@@ -1287,6 +1257,54 @@ err:
 #endif
 }
 
+/*********************************************
+ * Writes or Append to a file.
+ * Returns:
+ *      0       success
+ */
+
+#if POSIX
+int File::writePosix(bool append)
+{
+    int fd;
+    ssize_t numwritten;
+    char *name;
+    int flags = O_CREAT | O_WRONLY;
+
+    if (append)
+        flags |= O_APPEND;
+    else
+        flags |= O_TRUNC;
+    name = this->name->toChars();
+    fd = open(name, flags, 0644);
+    if (fd == -1)
+        goto err;
+
+    numwritten = ::write(fd, buffer, len);
+    if (len != numwritten)
+        goto err2;
+
+    if (close(fd) == -1)
+        goto err;
+
+    if (touchtime)
+    {   struct utimbuf ubuf;
+
+        ubuf.actime = ((struct stat *)touchtime)->st_atime;
+        ubuf.modtime = ((struct stat *)touchtime)->st_mtime;
+        if (utime(name, &ubuf))
+            goto err;
+    }
+    return 0;
+
+err2:
+    close(fd);
+    ::remove(name);
+err:
+    return 1;
+}
+#endif
+
 /**************************************
  */
 
@@ -1313,7 +1331,7 @@ void File::writev()
 
 void File::appendv()
 {
-    if (write())
+    if (append())
         error("Error appending to file '%s'",name->toChars());
 }
 

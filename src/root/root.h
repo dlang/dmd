@@ -167,6 +167,7 @@ struct File : Object
 
     void mmreadv();
 
+
     /* Write file, return !=0 if error
      */
 
@@ -200,6 +201,12 @@ struct File : Object
      *  1:      normal file
      *  2:      directory
      */
+
+#if POSIX
+    /* POSIX implementation of write and append
+     */
+    int writePosix(bool append);
+#endif
 
     int exists();
 

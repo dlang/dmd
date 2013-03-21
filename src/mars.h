@@ -193,9 +193,13 @@ struct Param
     char *docname;      // write documentation file to docname
     Strings *ddocfiles;   // macro include files for Ddoc
 
-    char doHdrGeneration;       // process embedded documentation comments
-    char *hdrdir;               // write 'header' file to docdir directory
-    char *hdrname;              // write 'header' file to docname
+    char doHdrGeneration;       // generate header files
+    char *hdrdir;               // write 'header' file to hdrdir directory
+    char *hdrname;              // write 'header' file to hdrname
+
+    char doMxnGeneration;       // write mixins to file
+    char *mxndir;               // write 'mixin' file to mxndir directory
+    char *mxnname;              // write 'mixin' file to mxnname
 
     char doXGeneration;         // write JSON file
     char *xfilename;            // write JSON file to xfilename
@@ -254,6 +258,7 @@ struct Global
     const char *hdr_ext;        // for D 'header' import files
     const char *json_ext;       // for JSON files
     const char *map_ext;        // for .map files
+    const char *mxn_ext;        // for D 'mixin' files
     const char *copyright;
     const char *written;
     const char *main_d;         // dummy filename for dummy main()
