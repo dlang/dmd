@@ -88,7 +88,6 @@ SRCS=\
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
 	src\rt\memory.d \
-	src\rt\memory_osx.d \
 	src\rt\memset.d \
 	src\rt\minfo.d \
 	src\rt\monitor_.d \
