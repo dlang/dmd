@@ -43,7 +43,7 @@ C=backend
 TK=tk
 ROOT=root
 
-MODEL=32
+# Use make MODEL=32 or MODEL=64 to force the architecture
 ifneq (x,x$(MODEL))
     MODEL_FLAG=-m$(MODEL)
 endif
