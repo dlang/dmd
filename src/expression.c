@@ -1208,14 +1208,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             if (p->storageClass & STCref)
             {
-                if (arg->op == TOKslice
-                    && p->type->toBasetype()->ty == Tsarray)    // Workaround for bug 2486
-                {
-                    arg = arg->castTo(sc, p->type);
-                    arg = arg->toLvalue(sc, arg);
-                }
-                else
-                    arg = arg->toLvalue(sc, arg);
+                arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STCout)
             {
@@ -3744,13 +3737,14 @@ int StringExp::isLvalue()
     /* string literal is rvalue in default, but
      * conversion to reference of static array is only allowed.
      */
-    return 0;
+    return (type && type->toBasetype()->ty == Tsarray);
 }
 
 Expression *StringExp::toLvalue(Scope *sc, Expression *e)
 {
-    //printf("StringExp::toLvalue(%s)\n", toChars());
-    return this;
+    //printf("StringExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
+    return (type && type->toBasetype()->ty == Tsarray)
+            ? this : Expression::toLvalue(sc, e);
 }
 
 Expression *StringExp::modifiableLvalue(Scope *sc, Expression *e)
