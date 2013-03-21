@@ -1380,10 +1380,11 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 }
                 assert(ad);
 
-                Dsymbol *s = ad->search(loc, Id::opDollar, 0);
-                if (!s)  // no dollar exists -- search in higher scope
+                Dsymbol *sx = ad->search(loc, Id::opDollar, 0);
+                if (!sx) sx = ad->search(loc, Id::length, 0);
+                if (!sx) // no dollar exists -- search in higher scope
                     return NULL;
-                s = s->toAlias();
+                Dsymbol *s = sx->toAlias();
 
                 if (ce->hasSideEffect())
                 {
@@ -1408,28 +1409,27 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     ce = ve;
                 }
 
-                Expression *e = NULL;
-                // Check for multi-dimensional opDollar(dim) template.
-                if (TemplateDeclaration *td = s->isTemplateDeclaration())
+                dinteger_t curdim, maxdim;
+                if (exp->op == TOKarray)
+                {   ArrayExp *ae = (ArrayExp *)exp;
+                    curdim = ae->currentDimension;
+                    maxdim = ae->arguments->dim;
+                }
+                else //if (exp->op == TOKslice)
                 {
-                    dinteger_t dim;
-                    if (exp->op == TOKarray)
-                    {
-                        dim = ((ArrayExp *)exp)->currentDimension;
-                    }
-                    else if (exp->op == TOKslice)
-                    {
-                        dim = 0; // slices are currently always one-dimensional
-                    }
+                    curdim = 0; // slices are currently always one-dimensional
+                    maxdim = 1;
+                }
 
+                Expression *e = NULL;
+                TemplateDeclaration *td = s->isTemplateDeclaration();
+                // Check for multi-dimensional opDollar(dim) template.
+                if (td && sx->ident == Id::opDollar)    // don't see ce.length!(dim)
+                {
                     Objects *tdargs = new Objects();
-                    Expression *edim = new IntegerExp(0, dim, Type::tsize_t);
+                    Expression *edim = new IntegerExp(0, curdim, Type::tsize_t);
                     edim = edim->semantic(sc);
                     tdargs->push(edim);
-
-                    //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
-                    //ti->semantic(sc);
-
                     e = new DotTemplateInstanceExp(loc, ce, td->ident, tdargs);
                 }
                 else
@@ -1438,21 +1438,15 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                      * Note that it's impossible to have both template & function opDollar,
                      * because both take no arguments.
                      */
-                    if (exp->op == TOKarray && ((ArrayExp *)exp)->arguments->dim != 1)
-                    {
-                        exp->error("%s only defines opDollar for one dimension", ad->toChars());
-                        return NULL;
-                    }
-                    Declaration *d = s->isDeclaration();
-                    assert(d);
-                    e = new DotVarExp(loc, ce, d);
+                    if (maxdim != 1)
+                        exp->error("%s only defines %s for one dimension", ad->toChars(), sx->ident->toChars());
+                    e = new DotIdExp(loc, ce, s->ident);
                 }
                 e = e->semantic(sc);
-                if (!e->type)
-                    exp->error("%s has no value", e->toChars());
-                t = e->type->toBasetype();
-                if (t && t->ty == Tfunction)
+                if (e->type && e->type->toBasetype()->ty == Tfunction)
                     e = new CallExp(e->loc, e);
+                if (!e->rvalue())
+                    return NULL;
                 v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, e));
             }
             else
