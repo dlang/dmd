@@ -69,8 +69,10 @@ ifeq (OSX,$(TARGET))
     #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
     #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
     LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
+    GIT=git
 else
     LDFLAGS=-lm -lstdc++ -lpthread
+    GIT=git
 endif
 
 HOST_CC=g++
@@ -214,8 +216,22 @@ impcnvgen : mtype.h impcnvgen.c
 
 #########
 
-verstr.h : ../VERSION1
-	printf \"`cat ../VERSION1`\" > verstr.h
+# Create (or update) the verstr.h file.
+# The file is only updated if the VERSION1 file changes, or, only when RELEASE=1
+# is not used, when the full version string changes (i.e. when the git hash or
+# the working tree dirty states changes).
+# The full version string have the form VERSION-devel-HASH(-dirty).
+# The "-dirty" part is only present when the repository had uncommitted changes
+# at the moment it was compiled (only files already tracked by git are taken
+# into account, untracked files don't affect the dirty state).
+VERSION := $(shell cat ../VERSION1)
+ifneq (1,$(RELEASE))
+VERSION_GIT := $(shell $(GIT) rev-parse --short HEAD)$(shell \
+       test -n "`$(GIT) status --porcelain -uno`" && echo -dirty)
+VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+endif
+$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
+               && printf \"$(VERSION)\" > verstr.h )
 
 #########
 
