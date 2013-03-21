@@ -76,17 +76,7 @@ void finiSections()
 
 void[]* initTLSRanges()
 {
-    auto pary = cast(void[]*).calloc(1, (void[]).sizeof);
-
-    auto imgs = _sections._tlsImage;
-    immutable sz0 = (imgs[0].length + 15) & ~cast(size_t)15;
-    immutable sz2 = sz0 + imgs[1].length;
-    auto p = .malloc(sz2);
-    memcpy(p, imgs[0].ptr, imgs[0].length);
-    memcpy(p + sz0, imgs[1].ptr, imgs[1].length);
-    *pary = p[0 .. sz2];
-    pthread_setspecific(_tlsKey, pary);
-    return pary;
+    return &getTLSBlock();
 }
 
 void finiTLSRanges(void[]* rng)
@@ -107,33 +97,78 @@ void scanTLSRanges(void[]* rng, scope void delegate(void* pbeg, void* pend) dg)
 //       This function is called by the code emitted by the compiler.  It
 //       is expected to translate an address into the TLS static data to
 //       the corresponding address in the TLS dynamic per-thread data.
-extern (D) void* ___tls_get_addr( void* p )
+
+// NB: the compiler mangles this function as '___tls_get_addr' even though it is extern(D)
+extern(D) void* ___tls_get_addr( void* p )
+{
+    immutable off = tlsOffset(p);
+    auto tls = getTLSBlockAlloc();
+    assert(off < tls.length);
+    return tls.ptr + off;
+}
+
+private:
+
+__gshared pthread_key_t _tlsKey;
+
+size_t tlsOffset(void* p)
+in
+{
+    assert(_sections._tlsImage[0].ptr !is null ||
+           _sections._tlsImage[1].ptr !is null);
+}
+body
 {
     // NOTE: p is an address in the TLS static data emitted by the
     //       compiler.  If it isn't, something is disastrously wrong.
-    auto tls = cast(void[]*)pthread_getspecific(_tlsKey);
-    assert(tls !is null);
-
     immutable off0 = cast(size_t)(p - _sections._tlsImage[0].ptr);
     if (off0 < _sections._tlsImage[0].length)
     {
-        return tls.ptr + off0;
+        return off0;
     }
     immutable off1 = cast(size_t)(p - _sections._tlsImage[1].ptr);
     if (off1 < _sections._tlsImage[1].length)
     {
         size_t sz = (_sections._tlsImage[0].length + 15) & ~cast(size_t)15;
-        return tls.ptr + sz + off1;
+        return sz + off1;
     }
     assert(0);
-    //assert( p >= cast(void*) &_tls_beg && p < cast(void*) &_tls_end );
-    //return obj.m_tls.ptr + (p - cast(void*) &_tls_beg);
 }
 
-private:
+ref void[] getTLSBlock()
+{
+    auto pary = cast(void[]*)pthread_getspecific(_tlsKey);
+    if (pary is null)
+    {
+        pary = cast(void[]*).calloc(1, (void[]).sizeof);
+        if (pthread_setspecific(_tlsKey, pary) != 0)
+        {
+            import core.stdc.stdio;
+            perror("pthread_setspecific failed with");
+            assert(0);
+        }
+    }
+    return *pary;
+}
+
+ref void[] getTLSBlockAlloc()
+{
+    auto pary = &getTLSBlock();
+    if (!pary.length)
+    {
+        auto imgs = _sections._tlsImage;
+        immutable sz0 = (imgs[0].length + 15) & ~cast(size_t)15;
+        immutable sz2 = sz0 + imgs[1].length;
+        auto p = .malloc(sz2);
+        memcpy(p, imgs[0].ptr, imgs[0].length);
+        memcpy(p + sz0, imgs[1].ptr, imgs[1].length);
+        *pary = p[0 .. sz2];
+    }
+    return *pary;
+}
+
 
 __gshared SectionGroup _sections;
-__gshared pthread_key_t _tlsKey;
 
 extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
 {
