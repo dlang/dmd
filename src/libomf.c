@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1986-1995 by Symantec
- * Copyright (c) 2000-2012 by Digital Mars
+ * Copyright (c) 2000-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Walter Bright
@@ -55,8 +55,8 @@ class LibOMF : public Library
     void addLibrary(void *buf, size_t buflen);
     void write();
 
-  private:
     void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+  private:
     void scanObjModule(ObjModule *om);
     unsigned short numDictPages(unsigned padding);
     int FillDict(unsigned char *bucketsP, unsigned short uNumPages);
@@ -75,6 +75,8 @@ class LibOMF : public Library
         ::verror(loc, format, ap);
         va_end(ap);
     }
+
+    Loc loc;
 };
 
 Library *Library::factory()
@@ -109,6 +111,9 @@ void LibOMF::setFilename(char *dir, char *filename)
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
+
+    loc.filename = libfile->name->toChars();
+    loc.linnum = 0;
 }
 
 void LibOMF::write()
@@ -140,54 +145,6 @@ void LibOMF::addLibrary(void *buf, size_t buflen)
 /*****************************************************************************/
 /*****************************************************************************/
 
-/**************************
- * Record types:
- */
-
-#define RHEADR  0x6E
-#define REGINT  0x70
-#define REDATA  0x72
-#define RIDATA  0x74
-#define OVLDEF  0x76
-#define ENDREC  0x78
-#define BLKDEF  0x7A
-#define BLKEND  0x7C
-#define DEBSYM  0x7E
-#define THEADR  0x80
-#define LHEADR  0x82
-#define PEDATA  0x84
-#define PIDATA  0x86
-#define COMENT  0x88
-#define MODEND  0x8A
-#define M386END 0x8B    /* 32 bit module end record */
-#define EXTDEF  0x8C
-#define TYPDEF  0x8E
-#define PUBDEF  0x90
-#define PUB386  0x91
-#define LOCSYM  0x92
-#define LINNUM  0x94
-#define LNAMES  0x96
-#define SEGDEF  0x98
-#define GRPDEF  0x9A
-#define FIXUPP  0x9C
-/*#define (none)        0x9E    */
-#define LEDATA  0xA0
-#define LIDATA  0xA2
-#define LIBHED  0xA4
-#define LIBNAM  0xA6
-#define LIBLOC  0xA8
-#define LIBDIC  0xAA
-#define COMDEF  0xB0
-#define LEXTDEF 0xB4
-#define LPUBDEF 0xB6
-#define LCOMDEF 0xB8
-#define CEXTDEF 0xBC
-#define COMDAT  0xC2
-#define LINSYM  0xC4
-#define ALIAS   0xC6
-#define LLNAMES 0xCA
-
-
 #define LIBIDMAX (512 - 0x25 - 3 - 4)   // max size that will fit in dictionary
 
 
@@ -196,37 +153,11 @@ struct ObjModule
     unsigned char *base;        // where are we holding it in memory
     unsigned length;            // in bytes
     unsigned short page;        // page module starts in output file
-    unsigned char flags;
-#define MFgentheadr     1       // generate THEADR record
-#define MFtheadr        2       // module name comes from THEADR record
     char *name;                 // module name
 };
 
-static void parseName(unsigned char **pp, char *name)
-{
-    unsigned char *p = *pp;
-    unsigned len = *p++;
-    if (len == 0xFF && *p == 0)  // if long name
-    {
-        len = p[1] & 0xFF;
-        len |= (unsigned)p[2] << 8;
-        p += 3;
-        assert(len <= LIBIDMAX);
-    }
-    memcpy(name, p, len);
-    name[len] = 0;
-    *pp = p + len;
-}
-
-static unsigned short parseIdx(unsigned char **pp)
-{
-    unsigned char *p = *pp;
-    unsigned char c = *p++;
-
-    unsigned short idx = (0x80 & c) ? ((0x7F & c) << 8) + *p++ : c;
-    *pp = p;
-    return idx;
-}
+unsigned OMFObjSize(const void *base, unsigned length, const char *name);
+void writeOMFObj(OutBuffer *buf, const void *base, unsigned length, const char *name);
 
 void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
 {
@@ -261,148 +192,32 @@ void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
  */
 
 void LibOMF::scanObjModule(ObjModule *om)
-{   int easyomf;
-    unsigned u;
-    unsigned char result = 0;
-    char name[LIBIDMAX + 1];
+{
+#if LOG
+    printf("LibMSCoff::scanObjModule(%s)\n", om->name);
+#endif
 
-    Strings names;
-    names.push(NULL);           // don't use index 0
-
-    assert(om);
-    easyomf = 0;                                // assume not EASY-OMF
-    unsigned char *pend = om->base + om->length;
-
-    unsigned char *pnext;
-    for (unsigned char *p = om->base; 1; p = pnext)
+    struct Context
     {
-        assert(p < pend);
-        unsigned char recTyp = *p++;
-        unsigned short recLen = *(unsigned short *)p;
-        p += 2;
-        pnext = p + recLen;
-        recLen--;                               // forget the checksum
+        LibOMF *lib;
+        ObjModule *om;
 
-        switch (recTyp)
+        Context(LibOMF *lib, ObjModule *om)
         {
-            case LNAMES:
-            case LLNAMES:
-                while (p + 1 < pnext)
-                {
-                    parseName(&p, name);
-                    names.push(strdup(name));
-                }
-                break;
-
-            case PUBDEF:
-                if (easyomf)
-                    recTyp = PUB386;            // convert to MS format
-            case PUB386:
-                if (!(parseIdx(&p) | parseIdx(&p)))
-                    p += 2;                     // skip seg, grp, frame
-                while (p + 1 < pnext)
-                {
-                    parseName(&p, name);
-                    p += (recTyp == PUBDEF) ? 2 : 4;    // skip offset
-                    parseIdx(&p);                               // skip type index
-                    addSymbol(om, name);
-                }
-                break;
-
-            case COMDAT:
-                if (easyomf)
-                    recTyp = COMDAT+1;          // convert to MS format
-            case COMDAT+1:
-            {
-                int pickAny = 0;
-
-                if (*p++ & 5)           // if continuation or local comdat
-                    break;
-
-                unsigned char attr = *p++;
-                if (attr & 0xF0)        // attr: if multiple instances allowed
-                    pickAny = 1;
-                p++;                    // align
-
-                p += 2;                 // enum data offset
-                if (recTyp == COMDAT+1)
-                    p += 2;                     // enum data offset
-
-                parseIdx(&p);                   // type index
-
-                if ((attr & 0x0F) == 0) // if explicit allocation
-                {   parseIdx(&p);               // base group
-                    parseIdx(&p);               // base segment
-                }
-
-                unsigned idx = parseIdx(&p);    // public name index
-                if( idx == 0 || idx >= names.dim)
-                {
-                    //debug(printf("[s] name idx=%d, uCntNames=%d\n", idx, uCntNames));
-                    error("corrupt COMDAT");
-                    return;
-                }
-
-                //printf("[s] name='%s'\n",name);
-                addSymbol(om, names[idx],pickAny);
-                break;
-            }
-            case ALIAS:
-                while (p + 1 < pnext)
-                {
-                    parseName(&p, name);
-                    addSymbol(om, name);
-                    parseName(&p, name);
-                }
-                break;
-
-            case MODEND:
-            case M386END:
-                result = 1;
-                goto Ret;
-
-            case COMENT:
-                // Recognize Phar Lap EASY-OMF format
-                {   static unsigned char omfstr[7] =
-                        {0x80,0xAA,'8','0','3','8','6'};
-
-                    if (recLen == sizeof(omfstr))
-                    {
-                        for (unsigned i = 0; i < sizeof(omfstr); i++)
-                            if (*p++ != omfstr[i])
-                                goto L1;
-                        easyomf = 1;
-                        break;
-                    L1: ;
-                    }
-                }
-                // Recognize .IMPDEF Import Definition Records
-                {   static unsigned char omfstr[] =
-                        {0,0xA0,1};
-
-                    if (recLen >= 7)
-                    {
-                        p++;
-                        for (unsigned i = 1; i < sizeof(omfstr); i++)
-                            if (*p++ != omfstr[i])
-                                goto L2;
-                        p++;            // skip OrdFlag field
-                        parseName(&p, name);
-                        addSymbol(om, name);
-                        break;
-                    L2: ;
-                    }
-                }
-                break;
-
-            default:
-                // ignore
-                ;
+            this->lib = lib;
+            this->om = om;
         }
-    }
-Ret:
-    for (u = 1; u < names.dim; u++)
-        free(names[u]);
+
+        static void addSymbol(void *pctx, char *name, int pickAny)
+        {
+            ((Context *)pctx)->lib->addSymbol(((Context *)pctx)->om, name, pickAny);
+        }
+    };
+
+    Context ctx(this, om);
+
+    extern void scanOmfObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+    scanOmfObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
 /***************************************
@@ -429,7 +244,7 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 
     unsigned g_page_size;
     unsigned char *pstart = (unsigned char *)buf;
-    int islibrary = 0;
+    bool islibrary = false;
 
     /* See if it's an OMF library.
      * Don't go by file extension.
@@ -442,7 +257,6 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned short      pagesize;
         unsigned long       lSymSeek;
         unsigned short      ndicpages;
-        unsigned char       flags;
     };
     #pragma pack()
 
@@ -477,89 +291,64 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
         g_page_size = 16;
     }
 
-    /* Split up the buffer buf[0..buflen] into multiple object modules,
-     * each aligned on a g_page_size boundary.
-     */
-
-    ObjModule *om = NULL;
-    int first_module    = 1;
-
-    unsigned char *p = (unsigned char *)buf;
-    unsigned char *pend = p + buflen;
-    unsigned char *pnext;
-    for (; p < pend; p = pnext)         // for each OMF record
+    struct Context
     {
-        if (p + 3 >= pend)
-            goto Lcorrupt;
-        unsigned char recTyp = *p;
-        unsigned short recLen = *(unsigned short *)(p + 1);
-        pnext = p + 3 + recLen;
-        if (pnext > pend)
-            goto Lcorrupt;
-        recLen--;                          /* forget the checksum */
+        LibOMF *lib;
+        unsigned char *pstart;
+        unsigned pagesize;
+        bool firstmodule;
+        bool islibrary;
+        const char *module_name;
 
-        switch (recTyp)
+        Context(LibOMF *lib, unsigned char *pstart, unsigned pagesize, bool islibrary, const char *module_name)
         {
-            case LHEADR :
-            case THEADR :
-                if (!om)
-                {   char name[LIBIDMAX + 1];
-                    om = new ObjModule();
-                    om->flags = 0;
-                    om->base = p;
-                    p += 3;
-                    parseName(&p, name);
-                    if (first_module && module_name && !islibrary)
-                    {   // Remove path and extension
-                        om->name = strdup(FileName::name(module_name));
-                        char *ext = (char *)FileName::ext(om->name);
-                        if (ext)
-                            ext[-1] = 0;
-                    }
-                    else
-                    {   /* Use THEADR name as module name,
-                         * removing path and extension.
-                         */
-                        om->name = strdup(FileName::name(name));
-                        char *ext = (char *)FileName::ext(om->name);
-                        if (ext)
-                            ext[-1] = 0;
-
-                        om->flags |= MFtheadr;
-                    }
-                    if (strcmp(name, "C") == 0)    // old C compilers did this
-                    {   om->flags |= MFgentheadr;  // generate our own THEADR
-                        om->base = pnext;          // skip past THEADR
-                    }
-                    objmodules.push(om);
-                    first_module = 0;
-                }
-                break;
-
-            case MODEND :
-            case M386END:
-            {
-                if (om)
-                {   om->page = (om->base - pstart) / g_page_size;
-                    om->length = pnext - om->base;
-                    om = NULL;
-                }
-                // Round up to next page
-                unsigned t = pnext - pstart;
-                t = (t + g_page_size - 1) & ~(unsigned)(g_page_size - 1);
-                pnext = pstart + t;
-                break;
-            }
-            default:
-                // ignore
-                ;
+            this->lib = lib;
+            this->pstart = pstart;
+            this->pagesize = pagesize;
+            this->firstmodule = false;
+            this->islibrary = islibrary;
+            this->module_name = module_name;
         }
-    }
 
-    if (om)
-        goto Lcorrupt;          // missing MODEND record
+        static void addObjModule(void *pctx, char *name, void *base, size_t length)
+        {
+            Context *ctx = (Context *)pctx;
+            ObjModule *om = new ObjModule();
+            om->base = (unsigned char *)base;
+            om->page = om->page = (om->base - ctx->pstart) / ctx->pagesize;
+            om->length = length;
+
+            /* Determine the name of the module
+             */
+            if (ctx->firstmodule && ctx->module_name && !ctx->islibrary)
+            {   // Remove path and extension
+                om->name = strdup(FileName::name(ctx->module_name));
+                char *ext = (char *)FileName::ext(om->name);
+                if (ext)
+                    ext[-1] = 0;
+            }
+            else
+            {   /* Use THEADR name as module name,
+                 * removing path and extension.
+                 */
+                om->name = strdup(FileName::name(name));
+                char *ext = (char *)FileName::ext(om->name);
+                if (ext)
+                    ext[-1] = 0;
+            }
+
+            ctx->firstmodule = false;
+
+            ctx->lib->objmodules.push(om);
+        }
+    };
+
+    Context ctx(this, pstart, g_page_size, islibrary, module_name);
+
+    extern bool scanOmfLib(void*, void (*pAddObjModule)(void*, char*, void *, size_t), void *, size_t, unsigned);
+    if (scanOmfLib(&ctx, &Context::addObjModule, buf, buflen, g_page_size))
+        goto Lcorrupt;
 }
-
 
 /*****************************************************************************/
 /*****************************************************************************/
@@ -869,18 +658,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
                 goto Lagain;
             }
 
-            // Write out the object module m
-            if (om->flags & MFgentheadr)                // if generate THEADR record
-            {
-                size_t size = strlen(om->name);
-                assert(size <= LIBIDMAX);
-
-                offset += size + 5;
-                //offset += om->length - (size + 5);
-                offset += om->length;
-            }
-            else
-                offset += om->length;
+            offset += OMFObjSize(om->base, om->length, om->name);
 
             // Round the size of the file up to the next page size
             // by filling with 0s
@@ -907,35 +685,7 @@ void LibOMF::WriteLibToBuffer(OutBuffer *libbuf)
         om->page = page;
 
         // Write out the object module om
-        if (om->flags & MFgentheadr)            // if generate THEADR record
-        {
-            unsigned size = strlen(om->name);
-            unsigned char header[4 + LIBIDMAX + 1];
-
-            header [0] = THEADR;
-            header [1] = 2 + size;
-            header [2] = 0;
-            header [3] = size;
-            assert(size <= 0xFF - 2);
-
-            memcpy(4 + header, om->name, size);
-
-            // Compute and store record checksum
-            unsigned n = size + 4;
-            unsigned char checksum = 0;
-            unsigned char *p = header;
-            while (n--)
-            {   checksum -= *p;
-                p++;
-            }
-            *p = checksum;
-
-            libbuf->write(header, size + 5);
-            //libbuf->write(om->base, om->length - (size + 5));
-            libbuf->write(om->base, om->length);
-        }
-        else
-            libbuf->write(om->base, om->length);
+        writeOMFObj(libbuf, om->base, om->length, om->name);
 
         // Round the size of the file up to the next page size
         // by filling with 0s
