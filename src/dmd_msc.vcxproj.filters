@@ -492,6 +492,9 @@
     <ClCompile Include="target.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="scanomf.c">
+      <Filter>src</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="aggregate.h">

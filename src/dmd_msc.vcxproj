@@ -164,6 +164,7 @@
     <ClCompile Include="parse.c" />
     <ClCompile Include="s2ir.c" />
     <ClCompile Include="scanmscoff.c" />
+    <ClCompile Include="scanomf.c" />
     <ClCompile Include="scope.c" />
     <ClCompile Include="sideeffect.c" />
     <ClCompile Include="statement.c" />
