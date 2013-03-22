@@ -275,6 +275,7 @@ struct CompiledCtfeFunction
 {
     FuncDeclaration *func; // Function being compiled, NULL if global scope
     int numVars;           // Number of variables declared in this function
+    Loc callingloc;
 
     CompiledCtfeFunction(FuncDeclaration *f)
     {
@@ -297,6 +298,17 @@ struct CompiledCtfeFunction
 int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
 {
     CompiledCtfeFunction *ccf = (CompiledCtfeFunction *)_this;
+    if (e->op == TOKerror)
+    {
+        // Currently there's a front-end bug: silent errors
+        // can occur inside delegate literals inside is(typeof()).
+        // Suppress the check in this case.
+        if (global.gag && ccf->func)
+            return 1;
+
+        printf("CTFE: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() :  ccf->callingloc.toChars());
+        assert(0);
+    }
     if (e->op == TOKdeclaration)
     {
         DeclarationExp *decl = (DeclarationExp *)e;
@@ -678,6 +690,7 @@ Expression *Expression::ctfeInterpret()
     // (there are compiler-generated temporary variables such as __dollar).
     // However, this will only be run once and can then be discarded.
     CompiledCtfeFunction ctfeCodeGlobal(NULL);
+    ctfeCodeGlobal.callingloc = loc;
     ctfeCodeGlobal.onExpression(this);
     return optimize(WANTvalue | WANTinterpret);
 }
