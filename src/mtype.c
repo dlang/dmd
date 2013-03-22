@@ -4931,10 +4931,19 @@ L1:
     if (!s)
     {
         // See if it's a base class
-        if (Dsymbol *cbase = sym->searchBase(e->loc, ident))
+        ClassDeclaration *cbase = sym->searchBase(e->loc, ident);
+        if (cbase)
         {
-            e = new DotTypeExp(0, e, cbase);
-            return e;
+            if (InterfaceDeclaration *ifbase = cbase->isInterfaceDeclaration())
+            {
+                e = new CastExp(0, e, ifbase->type);
+                return e;
+            }
+            else
+            {
+                e = new DotTypeExp(0, e, cbase);
+                return e;
+            }
         }
 
         if (ident == Id::classinfo)
