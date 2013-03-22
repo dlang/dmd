@@ -34,6 +34,8 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     isdeprecated = 0;
     isdone = 0;
     objFileDone = 0;
+    protection = PROTundefined;
+    parent = NULL;
 }
 
 Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
@@ -75,6 +77,10 @@ void EnumDeclaration::semantic0(Scope *sc)
 
     if (isdone || !scope)
         return;
+
+    parent = scope->parent;
+    protection = scope->protection;
+
     if (!isAnonymous() || memtype)
         return;
     for (size_t i = 0; i < members->dim; i++)
