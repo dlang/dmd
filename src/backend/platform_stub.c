@@ -40,6 +40,8 @@ code* REGSAVE::save(code* c, int reg, unsigned* pidx) { assert(0); return NULL; 
 FuncParamRegs::FuncParamRegs(tym_t tyf) { assert(0); }
 int FuncParamRegs::alloc(type *t, tym_t ty, unsigned char *preg1, unsigned char *preg2) { assert(0); return 0; }
 
+int dwarf_regno(int reg) { assert(0); return 0; }
+
 code* prolog_ifunc(tym_t* tyf) { assert(0); return NULL; }
 code* prolog_ifunc2(tym_t tyf, tym_t tym, bool pushds) { assert(0); return NULL; }
 code* prolog_16bit_windows_farfunc(tym_t* tyf, bool* pushds) { assert(0); return NULL; }

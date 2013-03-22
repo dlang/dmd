@@ -149,6 +149,7 @@ struct CFA_state
     CFA_reg regstates[17];      // register states
 };
 
+#if TX86
 int dwarf_regno(int reg)
 {
     assert(reg < NUMGENREGS);
@@ -162,6 +163,7 @@ int dwarf_regno(int reg)
         return reg < 8 ? to_amd64_reg_map[reg] : reg;
     }
 }
+#endif
 
 static CFA_state CFA_state_init_32 =       // initial CFA state as defined by CIE
 {   0,                // location
