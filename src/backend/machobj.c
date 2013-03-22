@@ -26,13 +26,6 @@
 #include        <unistd.h>
 #endif
 
-#if __APPLE__
-#import <CoreServices/CoreServices.h>
-
-const SInt32 MacOSX_10_5 = 0x1050;
-const SInt32 MacOSX_10_6 = 0x1060;
-#endif
-
 #include        "cc.h"
 #include        "global.h"
 #include        "code.h"
@@ -1642,40 +1635,6 @@ void Obj::ehtables(Symbol *sfunc,targ_size_t size,Symbol *ehsym)
 void Obj::ehsections()
 {
     //printf("Obj::ehsections()\n");
-#if 0
-    /* Determine Mac OSX version, and put out the sections slightly differently for each.
-     * This is needed because the linker on OSX 10.5 behaves differently than
-     * the linker on 10.6.
-     * See Bugzilla 3502 for more information.
-     */
-    static SInt32 MacVersion;
-    if (!MacVersion)
-        Gestalt(gestaltSystemVersion, &MacVersion);
-
-    /* Exception handling sections
-     */
-    // 12 is size of struct FuncTable in D runtime
-    MachObj::getsegment("__deh_beg", "__DATA", 2, S_COALESCED, 12);
-    int seg = MachObj::getsegment("__deh_eh", "__DATA", 2, S_REGULAR);
-    Outbuffer *buf = SegData[seg]->SDbuf;
-    buf->writezeros(12);                // 12 is size of struct FuncTable in D runtime,
-                                        // this entry gets skipped over by __eh_finddata()
-
-    MachObj::getsegment("__deh_end", "__DATA", 2, S_COALESCED, 4);
-
-    /* Thread local storage sections
-     */
-    MachObj::getsegment("__tls_beg", "__DATA", 2, S_COALESCED, 4);
-    MachObj::getsegment("__tls_data", "__DATA", 2, S_REGULAR, 4);
-    MachObj::getsegment("__tlscoal_nt", "__DATA", 4, S_COALESCED, 4);
-    MachObj::getsegment("__tls_end", "__DATA", 2, S_COALESCED, 4);
-
-    /* Module info sections
-     */
-    MachObj::getsegment("__minfo_beg", "__DATA", 2, S_COALESCED, 4);
-    MachObj::getsegment("__minfodata", "__DATA", 2, S_REGULAR, 4);
-    MachObj::getsegment("__minfo_end", "__DATA", 2, S_COALESCED, 4);
-#endif
 }
 
 /*********************************
@@ -1742,14 +1701,13 @@ int Obj::comdat(Symbol *s)
 /**********************************
  * Get segment.
  * Input:
- *      flags2  put out some data for this, so the linker will keep things in order
  *      align   segment alignment as power of 2
  * Returns:
  *      segment index of found or newly created segment
  */
 
 int MachObj::getsegment(const char *sectname, const char *segname,
-        int align, int flags, int flags2)
+        int align, int flags)
 {
     assert(strlen(sectname) <= 16);
     assert(strlen(segname)  <= 16);
@@ -1827,25 +1785,6 @@ int MachObj::getsegment(const char *sectname, const char *segname,
     pseg->SDshtidx = section_cnt++;
     pseg->SDaranges_offset = 0;
     pseg->SDlinnum_count = 0;
-
-    if (flags2)
-    {
-        /* If we don't write something to each seg, then the linker won't put
-         * them in this necessary order. In fact, it will ignore the segment entirely.
-         */
-        static SInt32 MacVersion;
-        if (!MacVersion)
-            Gestalt(gestaltSystemVersion, &MacVersion);
-
-        if (flags == S_COALESCED)
-        {   type *t = type_fake(TYint);
-            t->Tmangle = mTYman_c;
-            symbol *s_deh_beg = symbol_name(sectname + 1, SCcomdat, t);
-            Obj::pubdef(seg, s_deh_beg, 0);
-        }
-        if (MacVersion >= MacOSX_10_6)
-            Obj::bytes(seg, 0, flags2, NULL);    // 12 is size of struct FuncTable in D runtime
-    }
 
     //printf("seg_count = %d\n", seg_count);
     return seg;
