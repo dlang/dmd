@@ -644,6 +644,8 @@ elem * evalu8(elem *e, goal_t goal)
         i1 = l1 = el_tolong(e1);
         d1 = el_toldouble(e1);
         tym = tybasic(typemask(e1));    /* type of op is type of left child */
+        if (tym == TYvoid)
+            tym = tybasic(typemask(e));
 
 #if TARGET_SEGMENTED && SCPP
         // Huge pointers are always evaluated at runtime
