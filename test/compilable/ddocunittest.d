@@ -174,6 +174,53 @@ unittest
 }
 
 // ------------------------------------
+// 9474
+
+///
+void foo9474() { }
+
+version(none)
+unittest { }
+
+/// Example
+unittest { foo9474(); }
+
+/// doc
+void bar9474() { }
+
+version(none)
+unittest { }
+
+/// Example
+unittest { bar9474(); }
+
+///
+struct S9474
+{
+}
+///
+unittest { S9474 s; }
+
+///
+auto autovar9474 = 1;
+///
+unittest { int v = autovar9474; }
+
+///
+auto autofun9474() { return 1; }
+///
+    unittest { int n = autofun9474(); }
+
+///
+template Template9474()
+{
+    /// Shouldn't link following unittest to here
+    void foo() {}
+}
+///
+unittest { alias Template9474!() T; }
+
+// ------------------------------------
 // 9713
 
 ///
@@ -221,7 +268,6 @@ unittest
 }
 
 // ------------------------------------
-
 // Issue 9758
 
 /// test
@@ -230,5 +276,6 @@ void foo(){}
 ///
 unittest {  }
 
+// ------------------------------------
 
 void main() { }
