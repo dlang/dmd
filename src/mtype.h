@@ -182,6 +182,7 @@ struct Type : Object
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     static Type *tvalist;               // va_list alias
+    #define tnone       basic[Tnone]    // for type inference
     #define terror      basic[Terror]   // for error recovery
 
     #define tnull       basic[Tnull]    // for null type
@@ -344,6 +345,14 @@ struct Type : Object
 
     // For eliminating dynamic_cast
     virtual TypeBasic *isTypeBasic();
+};
+
+struct TypeNone : Type
+{
+    TypeNone();
+
+    Type *syntaxCopy();
+    void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 };
 
 struct TypeError : Type

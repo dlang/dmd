@@ -66,6 +66,7 @@ struct Parser : Lexer
     enum LINK linkage;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
+    int inStatements;           // inside runnable code
     Loc lookingForElse;         // location of lonely if looking for an else
 
     Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
@@ -73,6 +74,7 @@ struct Parser : Lexer
     Dsymbols *parseModule();
     Dsymbols *parseDeclDefs(int once);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
+    Dsymbols *parseMultiVarDeclaration(StorageClass storageClass, unsigned char *comment);
     Dsymbols *parseBlock();
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
@@ -125,7 +127,7 @@ struct Parser : Lexer
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
     int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
-    int isParameters(Token **pt);
+    int isParameters(Token **pt, int needId = 1);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
     int skipAttributes(Token *t, Token **pt);

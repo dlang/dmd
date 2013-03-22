@@ -187,7 +187,6 @@ void Type::init()
     mangleChar[Ttypedef] = 'T';
     mangleChar[Tdelegate] = 'D';
 
-    mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';
     mangleChar[Tint8] = 'g';
     mangleChar[Tuns8] = 'h';
@@ -223,8 +222,9 @@ void Type::init()
     mangleChar[Tvector] = '@';
     mangleChar[Tint128] = '@';
     mangleChar[Tuns128] = '@';
+    mangleChar[Tnone] = '@';
 
-    mangleChar[Tnull] = 'n';    // same as TypeNone
+    mangleChar[Tnull] = 'n';
 
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
@@ -248,6 +248,9 @@ void Type::init()
         basic[basetab[i]] = t;
     }
     basic[Terror] = new TypeError();
+
+    tnone = new TypeNone();
+    tnone->deco = tnone->merge()->deco;
 
     tnull = new TypeNull();
     tnull->deco = tnull->merge()->deco;
@@ -2278,6 +2281,23 @@ uinteger_t Type::sizemask()
                 assert(0);
     }
     return m;
+}
+
+/* ============================= TypeNone =========================== */
+
+TypeNone::TypeNone()
+        : Type(Tnone)
+{
+}
+
+Type *TypeNone::syntaxCopy()
+{
+    return this;
+}
+
+void TypeNone::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
+{
+    buf->writestring("_none_");
 }
 
 /* ============================= TypeError =========================== */
