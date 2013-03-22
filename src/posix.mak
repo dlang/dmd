@@ -206,8 +206,8 @@ impcnvgen : mtype.h impcnvgen.c
 # into account, untracked files don't affect the dirty state).
 VERSION := $(shell cat ../VERSION)
 ifneq (1,$(RELEASE))
-VERSION_GIT := $(shell $(GIT) rev-parse --short HEAD)$(shell \
-	test -n "`$(GIT) status --porcelain -uno`" && echo -dirty)
+VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
+       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
 VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
 endif
 $(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
