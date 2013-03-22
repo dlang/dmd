@@ -1174,6 +1174,20 @@ void EnumMember::toDocBuffer(OutBuffer *buf, Scope *sc)
     if (ident)
     {
         buf->writestring(toChars());
+        if (value && isUserValue)
+        {
+            Type *bt = value->type;
+
+            // strip cast() expression (e.g. see 'IntegerExp::toCBuffer')
+            if (value->type->ty == Tenum)
+            {
+                TypeEnum *te = (TypeEnum *)value->type;
+                value->type = te->sym->memtype;
+            }
+
+            buf->printf(" = %s", value->toChars());
+            value->type = bt;
+        }
     }
 }
 
