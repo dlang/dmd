@@ -9195,7 +9195,10 @@ Expression *CastExp::semantic(Scope *sc)
         }
 
         if (tob->isintegral() && t1b->ty == Tarray)
-            deprecation("casting %s to %s is deprecated", e1->type->toChars(), to->toChars());
+        {
+            error("cannot cast %s to integral type %s", e1->toChars(), to->toChars());
+            return new ErrorExp();
+        }
 
         if (tob->ty == Tpointer && t1b->ty == Tdelegate)
             deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
