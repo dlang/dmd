@@ -652,6 +652,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\scanomf.c"
+				>
+			</File>
+			<File
 				RelativePath=".\scope.c"
 				>
 			</File>
