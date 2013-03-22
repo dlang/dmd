@@ -1146,6 +1146,8 @@ struct SliceExp : UnaExp
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

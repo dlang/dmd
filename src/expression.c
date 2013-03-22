@@ -9617,6 +9617,21 @@ int SliceExp::checkModifiable(Scope *sc, int flag)
     return 1;
 }
 
+int SliceExp::isLvalue()
+{
+    /* slice expression is rvalue in default, but
+     * conversion to reference of static array is only allowed.
+     */
+    return (type && type->toBasetype()->ty == Tsarray);
+}
+
+Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
+{
+    //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
+    return (type && type->toBasetype()->ty == Tsarray)
+            ? this : Expression::toLvalue(sc, e);
+}
+
 Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     error("slice expression %s is not a modifiable lvalue", toChars());
