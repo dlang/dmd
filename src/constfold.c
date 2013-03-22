@@ -629,10 +629,23 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
 }
 
 Expression *Shl(Type *type, Expression *e1, Expression *e2)
-{   Expression *e;
+{
     Loc loc = e1->loc;
+    dinteger_t value = e1->toInteger() << e2->toInteger();
 
-    e = new IntegerExp(loc, e1->toInteger() << e2->toInteger(), type);
+    /* Allow things like:
+     *  int i = 1 << 31;
+     */
+    switch (e1->type->toBasetype()->ty)
+    {
+        case Tint8:
+        case Tint16:
+        case Tint32: value = (d_int32)value; break;
+        case Tint64: value = (d_int64)value; break;
+        default:
+            break;
+    }
+    Expression *e = new IntegerExp(loc, value, type);
     return e;
 }
 
@@ -1261,7 +1274,19 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         else if (type->isunsigned())
             e = new IntegerExp(loc, e1->toUInteger(), type);
         else
-            e = new IntegerExp(loc, e1->toInteger(), type);
+        {
+            dinteger_t v = e1->toInteger();
+            switch (typeb->ty)
+            {
+                case Tint8:      v = (d_int8) v;     break;
+                case Tint16:     v = (d_int16)v;     break;
+                case Tint32:     v = (d_int32)v;     break;
+                case Tint64:     v = (d_int64)v;     break;
+                default:
+                    break;
+            }
+            e = new IntegerExp(loc, v, type);
+        }
     }
     else if (tb->isreal())
     {   real_t value = e1->toReal();
