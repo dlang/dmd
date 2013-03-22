@@ -55,7 +55,24 @@ ifneq (x,x$(MODEL))
 endif
 
 ifeq (OSX,$(TARGET))
-    export MACOSX_DEPLOYMENT_TARGET=10.3
+    SDKDIR=/Developer/SDKs
+    ifeq "$(wildcard $(SDKDIR))" ""
+        SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
+    endif
+    ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
+    ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
+    SDKVERS:=1 2 3 4 5 6 7 8
+    SDKFILES=$(foreach SDKVER, $(SDKVERS), $(wildcard $(SDKDIR)/MacOSX10.$(SDKVER).sdk))
+    SDK=$(firstword $(SDKFILES))
+    TARGET_CFLAGS=-isysroot ${SDK}
+    #-syslibroot is only passed to libtool, not ld.
+    #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
+    #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
+    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
+    GIT=git
+else
+    LDFLAGS=-lm -lstdc++ -lpthread
+    GIT=git
 endif
 LDFLAGS=-lm -lstdc++ -lpthread
 
@@ -200,8 +217,22 @@ impcnvgen : mtype.h impcnvgen.c
 
 #########
 
-verstr.h : ../VERSION1
-	printf \"`cat ../VERSION1`\" > verstr.h
+# Create (or update) the verstr.h file.
+# The file is only updated if the VERSION1 file changes, or, only when RELEASE=1
+# is not used, when the full version string changes (i.e. when the git hash or
+# the working tree dirty states changes).
+# The full version string have the form VERSION-devel-HASH(-dirty).
+# The "-dirty" part is only present when the repository had uncommitted changes
+# at the moment it was compiled (only files already tracked by git are taken
+# into account, untracked files don't affect the dirty state).
+VERSION := $(shell cat ../VERSION1)
+ifneq (1,$(RELEASE))
+VERSION_GIT := $(shell $(GIT) rev-parse --short HEAD)$(shell \
+       test -n "`$(GIT) status --porcelain -uno`" && echo -dirty)
+VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+endif
+$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
+               && printf \"$(VERSION)\" > verstr.h )
 
 #########
 
