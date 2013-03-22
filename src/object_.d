@@ -2497,7 +2497,7 @@ version (unittest)
 }
 
 /**
- * (Property) Get the current capacity of a slice.  The capacity is the size
+ * (Property) Get the current capacity of a slice. The capacity is the size
  * that the slice can grow to before the underlying array must be
  * reallocated or extended.
  *
@@ -2506,93 +2506,55 @@ version (unittest)
  * if another slice references elements past the end of the current slice.
  *
  * Note: The capacity of a slice may be impacted by operations on other slices.
- * 
- * Example:
- * ----
- * //Static array slice: no capacity
- * int[4] sarr = [1, 2, 3, 4];
- * int[]  darr = sarr[];
- * assert(darr.capacity == 0);
- * //Appending to sarr will reallocate to a new array
- * darr ~= 5;
- * assert(darr.capacity >= 5);
- * 
- * //Dynamic slices
- * int[] a = [1, 2, 3, 4];
- * int[] b = a[1 .. $];
- * int[] c = a[1 .. $ - 1];
- * assert(a.capacity != 0);              //the runtime can't evaluate a's capacity
- * assert(a.capacity == b.capacity + 1); //both a and b share the same tail
- * assert(c.capacity == 0);              //an append to c must relocate c.
- * ----
  */
 @property size_t capacity(T)(T[] arr) pure nothrow
 {
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
+///
 unittest
 {
-    //Static array slice: No capacity
-    int[4] sarr = [1, 2, 3, 4];
-    int[]  darr = sarr[];
-    assert(darr.capacity == 0);
-    //Appending to sarr will reallocate to a new array
-    darr ~= 5;
-    assert(darr.capacity >= 5);
+    //Static array slice: no capacity
+    int[4] sarray = [1, 2, 3, 4];
+    int[]  slice  = sarray[];
+    assert(sarray.capacity == 0);
+    //Appending to slice will reallocate to a new array
+    slice ~= 5;
+    assert(slice.capacity >= 5);
     
-    //Dynamic slices
+    //Dynamic array slices
     int[] a = [1, 2, 3, 4];
     int[] b = a[1 .. $];
     int[] c = a[1 .. $ - 1];
-    assert(a.capacity != 0);              //the runtime can't evaluate a's capacity
+    assert(a.capacity != 0);
     assert(a.capacity == b.capacity + 1); //both a and b share the same tail
     assert(c.capacity == 0);              //an append to c must relocate c.
 }
 
 /**
- * Reserves capacity for a slice.  The capacity is the size
+ * Reserves capacity for a slice. The capacity is the size
  * that the slice can grow to before the underlying array must be
  * reallocated or extended.
  *
  * The return value is the new capacity of the array (which may be larger than
  * the requested capacity).
- *
- * ----
- * //Static array slice: no capacity. Reserve relocates.
- * int[4] sarr = [1, 2, 3, 4];
- * int[]  darr = sarr[];
- * darr.reserve(2); //No relocation should occur
- * assert(darr.capacity == 0);
- * auto u = darr.reserve(5); 
- * assert(u >= 5);
- * assert(darr.capacity == u);
- * 
- * //Dynamic slices
- * int[] a = [1, 2, 3, 4];
- * a.reserve(8); //prepare a for appending 4 more items
- * auto p = a.ptr;
- * u = a.capacity;
- * a ~= [5, 6, 7, 8];
- * assert(p == a.ptr);      //a should not have been reallocated
- * assert(u == a.capacity); //a should not have been extended
- * ----
  */
 size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }
+///
 unittest
 {
     //Static array slice: no capacity. Reserve relocates.
-    int[4] sarr = [1, 2, 3, 4];
-    int[]  darr = sarr[];
-    darr.reserve(2); //No relocation should occur
-    assert(darr.capacity == 0);
-    auto u = darr.reserve(5); 
-    assert(u >= 5);
-    assert(darr.capacity == u);
+    int[4] sarray = [1, 2, 3, 4];
+    int[]  slice  = sarray[];
+    auto u = slice.reserve(8); 
+    assert(u >= 8);
+    assert(sarray.ptr !is slice.ptr);
+    assert(slice.capacity == u);
     
-    //Dynamic slices
+    //Dynamic array slices
     int[] a = [1, 2, 3, 4];
     a.reserve(8); //prepare a for appending 4 more items
     auto p = a.ptr;
@@ -2603,7 +2565,7 @@ unittest
 }
 
 /**
- * Assume that it is safe to append to this array.  Appends made to this array
+ * Assume that it is safe to append to this array. Appends made to this array
  * after calling this function may append in place, even if the array was a
  * slice of a larger array to begin with.
  *
@@ -2613,23 +2575,12 @@ unittest
  *
  * Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
- *
- * Example:
- * ----
- * int[] a = [1, 2, 3, 4];
- * int[] b = a[1 .. $ - 1];
- * assert(a.capacity >= 4);
- * assert(b.capacity == 0);
- * b.assumeSafeAppend();
- * assert(a.capacity == 0);
- * assert(b.capacity >= 3);
- * ----
  */
 void assumeSafeAppend(T)(T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
 }
-
+///
 unittest
 {
     int[] a = [1, 2, 3, 4];
@@ -2637,7 +2588,6 @@ unittest
     assert(a.capacity >= 4);
     assert(b.capacity == 0);
     b.assumeSafeAppend();
-    assert(a.capacity == 0);
     assert(b.capacity >= 3);
 }
 
