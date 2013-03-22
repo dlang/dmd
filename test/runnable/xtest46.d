@@ -4300,25 +4300,78 @@ static assert(typeof(cfunc6596).stringof == "extern (C) int()");
 
 interface Timer
 {
-    final int run() { printf("Timer.run()\n"); return 1; };
+    final int run() { printf("Timer.run()\n"); fun(); return 1; };
+    int fun();
 }
 
 interface Application
 {
-    final int run() { printf("Application.run()\n"); return 2; };
+    final int run() { printf("Application.run()\n"); fun(); return 2; };
+    int fun();
 }
 
 class TimedApp : Timer, Application
 {
+    int funCalls;
+    override int fun()
+    {
+        printf("TimedApp.fun()\n");
+        funCalls++;
+        return 2;
+    }
+}
+
+class SubTimedApp : TimedApp
+{
+    int subFunCalls;
+
+    override int fun()
+    {
+        printf("SubTimedApp.fun()\n");
+        subFunCalls++;
+        return 1;
+    }
 }
 
 void test4647()
 {
-    auto app = new TimedApp;
-    assert(app.Timer.run() == 1);       // error, no Timer property
+    //Test access to TimedApps base interfaces
+    auto app = new TimedApp();
+    assert((cast(Application)app).run() == 2);
+    assert((cast(Timer)app).run() == 1);
+    assert(app.Timer.run() == 1); // error, no Timer property
     assert(app.Application.run() == 2); // error, no Application property
     assert(app.run() == 1);             // This would call Timer.run() if the two calls
                                         // above were commented out
+    assert(app.funCalls == 5);
+    
+    assert(app.TimedApp.fun() == 2);
+    assert(app.funCalls == 6);
+    
+    //Test direct access to SubTimedApp interfaces
+    auto app2 = new SubTimedApp();
+    assert((cast(Application)app2).run() == 2);
+    assert((cast(Timer)app2).run() == 1);
+    assert(app2.Application.run() == 2);
+    assert(app2.Timer.run() == 1);
+    assert(app2.funCalls == 0);
+    assert(app2.subFunCalls == 4);
+    
+    assert(app2.fun() == 1);
+    assert(app2.SubTimedApp.fun() == 1);
+    assert(app2.funCalls == 0);
+    assert(app2.subFunCalls == 6);
+
+    //Test access to SubTimedApp interfaces via TimedApp
+    auto app3 = new SubTimedApp();
+    (cast(Timer)cast(TimedApp)app3).run();
+    app3.TimedApp.Timer.run();
+    assert((cast(Application)cast(TimedApp)app3).run() == 2);
+    assert((cast(Timer)cast(TimedApp)app3).run() == 1);
+    assert(app3.TimedApp.Application.run() == 2);
+    assert(app3.TimedApp.Timer.run() == 1);
+    assert(app3.funCalls == 0);
+    assert(app3.subFunCalls == 6);
 }
 
 /***************************************************/
