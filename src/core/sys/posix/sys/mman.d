@@ -184,10 +184,14 @@ version( linux )
     enum MAP_PRIVATE    = 0x02;
     enum MAP_FIXED      = 0x10;
 
-    version (MIPS)
+    version (X86)
+        enum MAP_ANON       = 0x20;   // non-standard
+    else version (X86_64)
+        enum MAP_ANON       = 0x20;   // non-standard
+    else version (MIPS32)
         enum MAP_ANON       = 0x0800; // non-standard
     else
-        enum MAP_ANON       = 0x20;   // non-standard
+        static assert(0, "unimplemented");
 
     enum MAP_FAILED     = cast(void*) -1;
 
