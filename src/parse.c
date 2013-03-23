@@ -143,7 +143,7 @@ Lerr:
     return new Dsymbols();
 }
 
-Dsymbols *Parser::parseDeclDefs(int once)
+Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 {   Dsymbol *s;
     Dsymbols *decldefs;
     Dsymbols *a;
@@ -153,6 +153,9 @@ Dsymbols *Parser::parseDeclDefs(int once)
     StorageClass storageClass;
     Condition *condition;
     unsigned char *comment;
+    Dsymbol *lastDecl = NULL;   // used to link unittest to its previous declaration
+    if (!pLastDecl)
+        pLastDecl = &lastDecl;
 
     //printf("Parser::parseDeclDefs()\n");
     decldefs = new Dsymbols();
@@ -232,6 +235,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             case TOKinterface:
             Ldeclaration:
                 a = parseDeclarations(STCundefined, NULL);
+                if (a->dim) *pLastDecl = (*a)[a->dim-1];
                 decldefs->append(a);
                 continue;
 
@@ -269,20 +273,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
 
             case TOKunittest:
                 s = parseUnitTest();
-                if (decldefs && decldefs->dim)
-                {
-                    Dsymbol *ds = (*decldefs)[decldefs->dim-1];
-                    AttribDeclaration *ad;
-                    while ((ad = ds->isAttribDeclaration()) != NULL)
-                    {
-                        if (ad->decl && ad->decl->dim)
-                            ds = (*ad->decl)[ad->decl->dim-1];
-                        else
-                            break;
-                    }
-
-                    ds->unittest = (UnitTestDeclaration *)s;
-                }
+                if (*pLastDecl) (*pLastDecl)->unittest = (UnitTestDeclaration *)s;
                 break;
 
             case TOKnew:
@@ -310,12 +301,12 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 else if (token.value == TOKif)
                 {   condition = parseStaticIfCondition();
                     if (token.value == TOKcolon)
-                        a = parseBlock();
+                        a = parseBlock(pLastDecl);
                     else
                     {
                         Loc lookingForElseSave = lookingForElse;
                         lookingForElse = loc;
-                        a = parseBlock();
+                        a = parseBlock(pLastDecl);
                         lookingForElse = lookingForElseSave;
                     }
                     aelse = NULL;
@@ -323,7 +314,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     {
                         Loc elseloc = this->loc;
                         nextToken();
-                        aelse = parseBlock();
+                        aelse = parseBlock(pLastDecl);
                         checkDanglingElse(elseloc);
                     }
                     s = new StaticIfDeclaration(condition, a, aelse);
@@ -394,7 +385,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 stc = parseAttribute(&exps);
                 if (stc)
                     goto Lstc;                  // it's a predefined attribute
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new UserAttributeDeclaration(exps, a);
                 break;
             }
@@ -471,6 +462,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                     peek(&token)->value == TOKassign)
                 {
                     a = parseAutoDeclarations(storageClass, comment);
+                    if (a->dim) *pLastDecl = (*a)[a->dim-1];
                     decldefs->append(a);
                     continue;
                 }
@@ -491,10 +483,11 @@ Dsymbols *Parser::parseDeclDefs(int once)
                    )
                 {
                     a = parseDeclarations(storageClass, comment);
+                    if (a->dim) *pLastDecl = (*a)[a->dim-1];
                     decldefs->append(a);
                     continue;
                 }
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new StorageClassDeclaration(storageClass, a);
                 break;
 
@@ -509,7 +502,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 check(TOKlparen);
                 Expression *e = parseAssignExp();
                 check(TOKrparen);
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new DeprecatedDeclaration(e, a);
                 break;
             }
@@ -518,7 +511,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             {
                 warning(loc, "use @(attributes) instead of [attributes]");
                 Expressions *exps = parseArguments();
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new UserAttributeDeclaration(exps, a);
                 break;
             }
@@ -531,7 +524,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
             {
                 enum LINK linksave = linkage;
                 linkage = parseLinkage();
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new LinkDeclaration(linkage, a);
                 linkage = linksave;
                 break;
@@ -555,7 +548,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                         break;
                     default: break;
                 }
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new ProtDeclaration(prot, a);
                 break;
 
@@ -583,7 +576,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 else
                     n = global.structalign;             // default
 
-                a = parseBlock();
+                a = parseBlock(pLastDecl);
                 s = new AlignDeclaration(n, a);
                 break;
             }
@@ -608,7 +601,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 if (token.value == TOKsemicolon)
                     a = NULL;
                 else
-                    a = parseBlock();
+                    a = parseBlock(pLastDecl);
                 s = new PragmaDeclaration(loc, ident, args, a);
                 break;
             }
@@ -661,12 +654,12 @@ Dsymbols *Parser::parseDeclDefs(int once)
             Lcondition:
                 {
                     if (token.value == TOKcolon)
-                        a = parseBlock();
+                        a = parseBlock(pLastDecl);
                     else
                     {
                         Loc lookingForElseSave = lookingForElse;
                         lookingForElse = loc;
-                        a = parseBlock();
+                        a = parseBlock(pLastDecl);
                         lookingForElse = lookingForElseSave;
                     }
                 }
@@ -675,7 +668,7 @@ Dsymbols *Parser::parseDeclDefs(int once)
                 {
                     Loc elseloc = this->loc;
                     nextToken();
-                    aelse = parseBlock();
+                    aelse = parseBlock(pLastDecl);
                     checkDanglingElse(elseloc);
                 }
                 s = new ConditionalDeclaration(condition, a, aelse);
@@ -698,6 +691,8 @@ Dsymbols *Parser::parseDeclDefs(int once)
         if (s)
         {   decldefs->push(s);
             addComment(s, comment);
+            if (!s->isAttribDeclaration())
+                *pLastDecl = s;
         }
     } while (!once);
     return decldefs;
@@ -851,7 +846,7 @@ StorageClass Parser::parseTypeCtor()
  * Parse declarations after an align, protection, or extern decl.
  */
 
-Dsymbols *Parser::parseBlock()
+Dsymbols *Parser::parseBlock(Dsymbol **pLastDecl)
 {
     Dsymbols *a = NULL;
 
@@ -873,7 +868,7 @@ Dsymbols *Parser::parseBlock()
             lookingForElse = 0;
 
             nextToken();
-            a = parseDeclDefs(0);
+            a = parseDeclDefs(0, pLastDecl);
             if (token.value != TOKrcurly)
             {   /* { */
                 error("matching '}' expected, not %s", token.toChars());
@@ -889,12 +884,12 @@ Dsymbols *Parser::parseBlock()
 #if 0
             a = NULL;
 #else
-            a = parseDeclDefs(0);       // grab declarations up to closing curly bracket
+            a = parseDeclDefs(0, pLastDecl);    // grab declarations up to closing curly bracket
 #endif
             break;
 
         default:
-            a = parseDeclDefs(1);
+            a = parseDeclDefs(1, pLastDecl);
             break;
     }
     return a;

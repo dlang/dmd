@@ -71,9 +71,9 @@ struct Parser : Lexer
     Parser(Module *module, unsigned char *base, size_t length, int doDocComment);
 
     Dsymbols *parseModule();
-    Dsymbols *parseDeclDefs(int once);
+    Dsymbols *parseDeclDefs(int once, Dsymbol **pLastDecl = NULL);
     Dsymbols *parseAutoDeclarations(StorageClass storageClass, unsigned char *comment);
-    Dsymbols *parseBlock();
+    Dsymbols *parseBlock(Dsymbol **pLastDecl);
     void composeStorageClass(StorageClass stc);
     StorageClass parseAttribute(Expressions **pexps);
     StorageClass parsePostfix();
