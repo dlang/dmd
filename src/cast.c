@@ -25,6 +25,138 @@
 //#define DUMP .dump(__PRETTY_FUNCTION__, this)
 #define DUMP
 
+/** Get TypeFunction from a function pointer or delegate. */
+TypeFunction *getTypeFunction(Type *t)
+{
+    if (t->ty == Tdelegate)
+    {
+        TypeDelegate *td = (TypeDelegate *)t;
+        return (TypeFunction *)td->nextOf();
+    }
+    else if (t->ty == Tpointer && t->nextOf()->ty == Tfunction)
+    {
+        return (TypeFunction *)t->nextOf();
+    }
+
+    assert(0);  // unhandled case
+    return NULL;
+}
+
+/** Return a string representation of linkage. */
+const char *linkageToString(enum LINK link)
+{
+    const char *p = NULL;
+    switch (link)
+    {
+        case LINKd:         p = "D";        break;
+        case LINKc:         p = "C";        break;
+        case LINKwindows:   p = "Windows";  break;
+        case LINKpascal:    p = "Pascal";   break;
+        case LINKcpp:       p = "C++";      break;
+        default:
+            assert(0);
+    }
+    return p;
+}
+
+/** Emits an informative diagnostic on implicit function pointer conversion mismatch. */
+void onMismatchFuncConv(Expression *e, Type *tSrc, Type *tTgt)
+{
+    TypeFunction *tfSrc = getTypeFunction(tSrc);
+    TypeFunction *tfTgt = getTypeFunction(tTgt);
+
+    Type *retSrc = tfSrc->next;
+    Type *retTgt = tfTgt->next;
+    Parameters *parsSrc = tfSrc->parameters;
+    Parameters *parsTgt = tfTgt->parameters;
+    enum LINK linkSrc = tfSrc->linkage;
+    enum LINK linkTgt = tfTgt->linkage;
+    OutBuffer buf;
+
+    if ((tSrc->ty == Tdelegate && tTgt->ty == Tpointer) ||
+        (tTgt->ty == Tdelegate && tSrc->ty == Tpointer))
+    {
+        buf.printf(": Function type mismatch ('%s' vs '%s')",
+                   (tSrc->ty == Tpointer) ? tSrc->nextOf()->kind() : tSrc->kind(),
+                   (tTgt->ty == Tpointer) ? tTgt->nextOf()->kind() : tTgt->kind());
+    }
+    else if (!tfSrc->isnothrow && tfTgt->isnothrow)
+    {
+        buf.writestring(": Throw attribute mismatch ('throwable' vs 'nothrow')");
+    }
+    else if (linkSrc != linkTgt)
+    {
+        buf.printf(": Linkage mismatch ('%s' vs '%s')",
+                   linkageToString(linkSrc), linkageToString(linkTgt));
+    }
+    else if (!retSrc->equals(retTgt))
+    {
+        buf.printf(": Return type mismatch: ('%s' vs '%s')",
+                   retSrc->toChars(), retTgt->toChars());
+    }
+    else if (parsSrc->dim != parsTgt->dim)
+    {
+        // give better error msg when only one parameter is missing from the source type
+        if (parsTgt->dim > parsSrc->dim && abs(parsSrc->dim - parsTgt->dim) == 1)
+        {
+            Parameters *temp;
+            if (parsSrc->dim > parsTgt->dim)
+            {
+                temp = parsSrc;
+                parsSrc = parsTgt;
+                parsTgt = temp;
+            }
+
+            bool foundMismatch = false;
+            for (size_t p1 = 0; p1 < parsSrc->dim; p1++)
+            {
+                Parameter *par1 = (*parsSrc)[p1];
+                Parameter *par2 = (*parsTgt)[p1];
+
+                if (!par1->type->equals(par2->type))
+                {
+                    buf.printf(": Parameter #%d ('%s') is missing", p1 + 1, par2->type->toChars());
+                    foundMismatch = true;
+                    break;
+                }
+            }
+
+            if (!foundMismatch)
+            {
+                buf.printf(": Missing extra parameter #%d ('%s')",
+                           parsSrc->dim + 1, (*parsTgt)[parsSrc->dim]->type->toChars());
+            }
+        }
+        else
+        {
+            buf.printf(": Parameter count mismatch (%d vs %d)",
+                       parsSrc->dim, parsTgt->dim);
+        }
+    }
+    else
+    {
+        assert(parsSrc->dim == parsTgt->dim);
+        for (size_t p1 = 0; p1 < parsSrc->dim; p1++)
+        {
+            Parameter *par1 = (*parsSrc)[p1];
+            Parameter *par2 = (*parsTgt)[p1];
+
+            if (!par1->type->equals(par2->type))
+            {
+                buf.printf(": Type mismatch at parameter #%d ('%s' vs '%s')",
+                           p1 + 1, par1->type->toChars(), par2->type->toChars());
+                break;
+            }
+        }
+    }
+
+    if (buf.offset)
+        buf.writebyte(0);
+
+    e->error("cannot implicitly convert expression (%s) of type '%s' to '%s'%s",
+             e->toChars(), tSrc->toChars(), tTgt->toChars(), buf.offset ? (char *)buf.extractData() : "");
+}
+
 /* ==================== implicitCast ====================== */
 
 /**************************************
@@ -114,8 +246,14 @@ fflush(stdout);
 //printf("type %p ty %d deco %p\n", type, type->ty, type->deco);
 //type = type->semantic(loc, sc);
 //printf("type %s t %s\n", type->deco, t->deco);
-        error("cannot implicitly convert expression (%s) of type %s to %s",
-            toChars(), type->toChars(), t->toChars());
+        if ((type->ty == Tpointer && type->nextOf()->ty == Tfunction || type->ty == Tdelegate)
+            && (t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
+        {
+            onMismatchFuncConv(this, type, t);
+        }
+        else
+            error("cannot implicitly convert expression (%s) of type %s to %s",
+                toChars(), type->toChars(), t->toChars());
     }
     return new ErrorExp();
 }
