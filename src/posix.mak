@@ -97,9 +97,9 @@ DMD_OBJS = \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(OS))
-    DMD_OBJS += libmach.o machobj.o
+    DMD_OBJS += libmach.o scanmach.o machobj.o
 else
-    DMD_OBJS += libelf.o elfobj.o
+    DMD_OBJS += libelf.o scanelf.o elfobj.o
 endif
 
 SRC = win32.mak posix.mak \
@@ -118,7 +118,7 @@ SRC = win32.mak posix.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	libmscoff.c \
+	libmscoff.c scanelf.c scanmach.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
@@ -552,6 +552,12 @@ rtlsym.o: $C/rtlsym.c $C/rtlsym.h
 
 s2ir.o: s2ir.c $C/rtlsym.h statement.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
+
+scanelf.o: scanelf.c $C/melf.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
+scanmach.o: scanmach.c $C/mach.h
+	$(CC) -c $(CFLAGS) -I$C $<
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<
