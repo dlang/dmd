@@ -6539,7 +6539,10 @@ Expression *CompileExp::semantic(Scope *sc)
     p.loc = loc;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
+    unsigned errors = global.errors;
     Expression *e = p.parseExpression();
+    if (global.errors != errors)
+        return new ErrorExp();
     if (p.token.value != TOKeof)
     {   error("incomplete mixin expression (%s)", se->toChars());
         return new ErrorExp();
