@@ -937,7 +937,7 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             buf->writestring("deprecated ");
 
         emitProtection(buf, protection);
-        buf->writestring("alias ");
+        buf->printf("alias %s = ", toChars());
 
         if (Dsymbol *s = aliassym)  // ident alias
         {
@@ -959,8 +959,6 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             }
         }
 
-        buf->writestring(" ");
-        buf->writestring(toChars());
         buf->writestring(";\n");
     }
 }
