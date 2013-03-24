@@ -202,7 +202,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
 	macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c ctfeexpr.c traits.c builtin.c \
-	clone.c lib.h libomf.c scanomf.c libelf.c libmach.c arrayop.c \
+	clone.c lib.h libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sideeffect.c libmscoff.c scanmscoff.c ctfe.h \
 	intrange.h intrange.c canthrow.c target.c target.h
