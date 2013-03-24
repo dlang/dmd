@@ -2669,7 +2669,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
         buf->writestring("NAN");        // no -NAN bugs
     else
     {
-        char buffer[32];
+        char buffer[36];
         int n = ld_sprint(buffer, 'A', value);
         assert(n > 0 && n < sizeof(buffer));
         for (int i = 0; i < n; i++)
