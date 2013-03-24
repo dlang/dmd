@@ -189,7 +189,28 @@ struct GC
         FINALIZE    = 0b0000_0001, /// Finalize the data in this block on collect.
         NO_SCAN     = 0b0000_0010, /// Do not scan through this block on collect.
         NO_MOVE     = 0b0000_0100, /// Do not move this memory block on collect.
-        APPENDABLE  = 0b0000_1000, /// This block contains the info to allow appending.
+        /**
+        This block contains the info to allow appending.
+
+        This can be used to manually allocate arrays. Initial slice size is 0.
+
+        Note: The slice's useable size will not match the block size. Use
+        $(LREF capacity) to retrieve actual useable capacity.
+
+        Example:
+        ----
+        // Allocate the underlying array.
+        int*  pToArray = cast(int*)GC.malloc(10 * int.sizeof, GC.BlkAttr.NO_SCAN | GC.BlkAttr.APPENDABLE);
+        // Bind a slice. Check the slice has capacity information.
+        int[] slice = pToArray[0 .. 0];
+        assert(capacity(slice) > 0);
+        // Appending to the slice will not relocate it.
+        slice.length = 5;
+        slice ~= 1;
+        assert(slice.ptr == p);
+        ----
+        */
+        APPENDABLE  = 0b0000_1000,
 
         /**
         This block is guaranteed to have a pointer to its base while it is
@@ -407,21 +428,57 @@ struct GC
     /**
      * Requests that the managed memory block referenced by p be extended in
      * place by at least mx bytes, with a desired extension of sz bytes.  If an
-     * extension of the required size is not possible, if p references memory
-     * not originally allocated by this garbage collector, or if p points to
-     * the interior of a memory block, no action will be taken.
+     * extension of the required size is not possible or if p references memory
+     * not originally allocated by this garbage collector, no action will be
+     * taken.
      *
      * Params:
+     *  p  = A pointer to the root of a valid memory block or to null.
      *  mx = The minimum extension size in bytes.
-     *  sz = The  desired extension size in bytes.
+     *  sz = The desired extension size in bytes.
      *
      * Returns:
      *  The size in bytes of the extended memory block referenced by p or zero
      *  if no extension occurred.
+     *
+     * Note:
+     *  Extend may also be used to extend slices (or memory blocks with
+     *  $(LREF APPENDABLE) info). However, use the return value only
+     *  as an indicator of success. $(LREF capacity) should be used to
+     *  retrieve actual useable slice capacity.
      */
     static size_t extend( void* p, size_t mx, size_t sz ) pure nothrow
     {
         return gc_extend( p, mx, sz );
+    }
+    /// Standard extending
+    unittest
+    {
+        size_t size = 1000;
+        int* p = cast(int*)GC.malloc(size * int.sizeof, GC.BlkAttr.NO_SCAN);
+
+        //Try to extend the allocated data by 1000 elements, preferred 2000.
+        size_t u = GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof);
+        if (u != 0)
+            size = u / int.sizeof;
+    }
+    /// slice extending
+    unittest
+    {
+        int[] slice = new int[](1000);
+        int*  p     = slice.ptr;
+
+        //Check we have access to capacity before attempting the extend
+        if (slice.capacity)
+        {
+            //Try to extend slice by 1000 elements, preferred 2000.
+            size_t u = GC.extend(p, 1000 * int.sizeof, 2000 * int.sizeof);
+            if (u != 0)
+            {
+                slice.length = slice.capacity;
+                assert(slice.length >= 2000);
+            }
+        }
     }
 
 
