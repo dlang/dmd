@@ -187,6 +187,11 @@ The value of
 .B DFLAGS
 is treated as if it were appended on the command line to
 \fBdmd\fR.
+.IP DFLAGS_PRE 10
+The contents of
+.B DFLAGS_PRE
+are treated as the first arguments on the \fBdmd\fR command line:
+after argv[0], but before any of the other options provided.
 .SH BUGS
 .B -g
 is only implemented for line numbers, not local symbols,
