@@ -43,6 +43,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 int response_expand(size_t *pargc, char ***pargv);
 void browse(const char *url);
 void getenv_setargv(const char *envvar, size_t *pargc, char** *pargv);
+void getenv_prepend_argv(const char *envvar, size_t *pargc, char** *pargv);
 
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
@@ -514,6 +515,7 @@ int tryMain(size_t argc, char *argv[])
     size_t dflags_argc = 0;
     char** dflags_argv = NULL;
     getenv_setargv("DFLAGS", &dflags_argc, &dflags_argv);
+    getenv_prepend_argv("DFLAGS_PRE", &dflags_argc, &dflags_argv);
 
     bool is64bit = global.params.is64bit; // use default
     is64bit = parse_arch(argc, argv, is64bit);
@@ -523,6 +525,7 @@ int tryMain(size_t argc, char *argv[])
     inifile(argv[0], inifilename, is64bit ? "Environment64" : "Environment32");
 
     getenv_setargv("DFLAGS", &argc, &argv);
+    getenv_prepend_argv("DFLAGS_PRE", &argc, &argv);
 
 #if 0
     for (size_t i = 0; i < argc; i++)
@@ -1682,6 +1685,51 @@ Ldone:
     *pargc = argc;
     *pargv = argv->tdata();
 }
+
+/***********************************
+ * Parse and PRE-pend contents of environment variable envvar
+ * to argc and argv[].
+ */
+
+void getenv_prepend_argv(const char *envvar, size_t *pargc, char** *pargv)
+{
+  if (!envvar) return;
+  assert(pargc);
+  assert(pargv);
+
+  char *env = getenv(envvar);
+  if (!env)
+    return;
+
+  size_t orig_argc = *pargc;
+  getenv_setargv(envvar, pargc, pargv);
+
+  size_t new_argc = *pargc;
+  if (new_argc == orig_argc)
+    return;
+
+  assert(new_argc > orig_argc);
+  size_t addcount = new_argc - orig_argc;
+  assert(addcount > 0); 
+
+  Strings *argv = new Strings();
+  argv->setDim(new_argc);
+  
+  /* new args come foward */
+  for (size_t k = 0; k < addcount; ++k)
+  {
+      (*argv)[1+k] = (*pargv)[orig_argc + k];
+  }
+
+  /* original args go after */
+  for (size_t j = 1; j < orig_argc; ++j)
+  {
+      (*argv)[j+addcount] = (*pargv)[j];
+  }
+
+  *pargv = argv->tdata();
+}
+
 
 /***********************************
  * Parse command line arguments for -m32 or -m64
