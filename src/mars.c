@@ -370,7 +370,8 @@ Usage:\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n"
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-"  -shared        generate shared library\n"
+"  -shared        generate shared library\n\
+  -shared-druntime link with shared version of druntime\n"
 #endif
 "  -unittest      compile in unit tests\n\
   -v             verbose\n\
@@ -409,7 +410,7 @@ int tryMain(size_t argc, char *argv[])
     size_t argcstart = argc;
     int setdebuglib = 0;
     char noboundscheck = 0;
-        int setdefaultlib = 0;
+    int setdefaultlib = 0;
     const char *inifilename = NULL;
 
 #ifdef DEBUG
@@ -583,6 +584,8 @@ int tryMain(size_t argc, char *argv[])
             else if (strcmp(p + 1, "fPIC") == 0)
                 global.params.pic = 1;
 #endif
+            else if (strcmp(p + 1, "shared-druntime") == 0)
+                global.params.shared_druntime = true;
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
             else if (strcmp(p + 1, "multiobj") == 0)
