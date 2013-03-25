@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -27,9 +27,6 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "mach.h"
-
-#include "rmem.h"
 #include "root.h"
 #include "stringtable.h"
 
@@ -66,24 +63,20 @@ class LibMach : public Library
     void addLibrary(void *buf, size_t buflen);
     void write();
 
-  private:
     void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+  private:
     void scanObjModule(ObjModule *om);
     void WriteLibToBuffer(OutBuffer *libbuf);
 
     void error(const char *format, ...)
     {
-        Loc loc;
-        if (libfile)
-        {
-            loc.filename = libfile->name->toChars();
-            loc.linnum = 0;
-        }
         va_list ap;
         va_start(ap, format);
         ::verror(loc, format, ap);
         va_end(ap);
     }
+
+    Loc loc;
 };
 
 Library *Library::factory()
@@ -122,6 +115,9 @@ void LibMach::setFilename(char *dir, char *filename)
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
+
+    loc.filename = libfile->name->toChars();
+    loc.linnum = 0;
 }
 
 void LibMach::write()
@@ -152,9 +148,6 @@ void LibMach::addLibrary(void *buf, size_t buflen)
 
 /*****************************************************************************/
 /*****************************************************************************/
-
-static uint32_t mach_signature   = MH_MAGIC;    // Mach-O file signature for 32 bit files
-static uint32_t mach_signature64 = MH_MAGIC_64; // Mach-O file signature for 64 bit files
 
 void sputl(int value, void* buffer)
 {
@@ -212,8 +205,7 @@ void OmToHeader(Header *h, ObjModule *om)
      * write into the next field, which we will promptly overwrite
      * anyway. (So make sure to write the fields in ascending order.)
      */
-
-    len = sprintf(h->file_time, "%lu", om->file_time);
+    len = sprintf(h->file_time, "%llu", (longlong)om->file_time);
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
@@ -287,193 +279,29 @@ void LibMach::scanObjModule(ObjModule *om)
 #if LOG
     printf("LibMach::scanObjModule(%s)\n", om->name);
 #endif
-    unsigned char *buf = (unsigned char *)om->base;
-    size_t buflen = om->length;
-    int reason = 0;
-    uint32_t ncmds;
 
-    struct mach_header *header = (struct mach_header *)buf;
-    struct mach_header_64 *header64 = NULL;
 
-    /* First do sanity checks on object file
-     */
-    if (buflen < sizeof(struct mach_header))
+    struct Context
     {
-      Lcorrupt:
-        error("Mach-O object module %s corrupt, %d", om->name, reason);
-        return;
-    }
-    if (header->magic == MH_MAGIC)
+        LibMach *lib;
+        ObjModule *om;
+
+        Context(LibMach *lib, ObjModule *om)
     {
-        if (header->cputype != CPU_TYPE_I386)
-        {
-            error("Mach-O object module %s has cputype = %d, should be %d",
-                    om->name, header->cputype, CPU_TYPE_I386);
-            return;
-        }
-        if (header->filetype != MH_OBJECT)
-        {
-            error("Mach-O object module %s has file type = %d, should be %d",
-                    om->name, header->filetype, MH_OBJECT);
-            return;
-        }
-        if (buflen < sizeof(struct mach_header) + header->sizeofcmds)
-        {   reason = 2;
-            goto Lcorrupt;
-        }
-        ncmds = header->ncmds;
-    }
-    else if (header->magic == MH_MAGIC_64)
-    {
-        header64 = (struct mach_header_64 *)buf;
-        if (buflen < sizeof(struct mach_header_64))
-            goto Lcorrupt;
-        if (header64->cputype != CPU_TYPE_X86_64)
-        {
-            error("Mach-O object module %s has cputype = %d, should be %d",
-                    om->name, header64->cputype, CPU_TYPE_X86_64);
-            return;
-        }
-        if (header64->filetype != MH_OBJECT)
-        {
-            error("Mach-O object module %s has file type = %d, should be %d",
-                    om->name, header64->filetype, MH_OBJECT);
-            return;
-        }
-        if (buflen < sizeof(struct mach_header_64) + header64->sizeofcmds)
-        {   reason = 2;
-            goto Lcorrupt;
-        }
-        ncmds = header64->ncmds;
-    }
-    else
-    {   reason = 1;
-        goto Lcorrupt;
-    }
-
-    struct segment_command *segment_commands = NULL;
-    struct segment_command_64 *segment_commands64 = NULL;
-    struct symtab_command *symtab_commands = NULL;
-    struct dysymtab_command *dysymtab_commands = NULL;
-
-    // Commands immediately follow mach_header
-    char *commands = (char *)buf +
-        (header->magic == MH_MAGIC_64
-                ? sizeof(struct mach_header_64)
-                : sizeof(struct mach_header));
-    for (uint32_t i = 0; i < ncmds; i++)
-    {   struct load_command *command = (struct load_command *)commands;
-        //printf("cmd = 0x%02x, cmdsize = %u\n", command->cmd, command->cmdsize);
-        switch (command->cmd)
-        {
-            case LC_SEGMENT:
-                segment_commands = (struct segment_command *)command;
-                break;
-            case LC_SEGMENT_64:
-                segment_commands64 = (struct segment_command_64 *)command;
-                break;
-            case LC_SYMTAB:
-                symtab_commands = (struct symtab_command *)command;
-                break;
-            case LC_DYSYMTAB:
-                dysymtab_commands = (struct dysymtab_command *)command;
-                break;
-        }
-        commands += command->cmdsize;
-    }
-
-    if (symtab_commands)
-    {
-        // Get pointer to string table
-        char *strtab = (char *)buf + symtab_commands->stroff;
-        if (buflen < symtab_commands->stroff + symtab_commands->strsize)
-        {   reason = 3;
-            goto Lcorrupt;
+            this->lib = lib;
+            this->om = om;
         }
 
-        if (header->magic == MH_MAGIC_64)
+        static void addSymbol(void *pctx, char *name, int pickAny)
         {
-            // Get pointer to symbol table
-            struct nlist_64 *symtab = (struct nlist_64 *)((char *)buf + symtab_commands->symoff);
-            if (buflen < symtab_commands->symoff + symtab_commands->nsyms * sizeof(struct nlist_64))
-            {   reason = 4;
-                goto Lcorrupt;
+            ((Context *)pctx)->lib->addSymbol(((Context *)pctx)->om, name, pickAny);
             }
+    };
 
-            // For each symbol
-            for (int i = 0; i < symtab_commands->nsyms; i++)
-            {   struct nlist_64 *s = symtab + i;
-                char *name = strtab + s->n_un.n_strx;
+    Context ctx(this, om);
 
-                if (s->n_type & N_STAB)
-                    // values in /usr/include/mach-o/stab.h
-                    ; //printf(" N_STAB");
-                else
-                {
-                    if (s->n_type & N_PEXT)
-                        ;
-                    if (s->n_type & N_EXT)
-                        ;
-                    switch (s->n_type & N_TYPE)
-                    {
-                        case N_UNDF:
-                            break;
-                        case N_ABS:
-                            break;
-                        case N_SECT:
-                            if (s->n_type & N_EXT /*&& !(s->n_desc & N_REF_TO_WEAK)*/)
-                                addSymbol(om, name, 1);
-                            break;
-                        case N_PBUD:
-                            break;
-                        case N_INDR:
-                            break;
-                    }
-                }
-            }
-        }
-        else
-        {
-            // Get pointer to symbol table
-            struct nlist *symtab = (struct nlist *)((char *)buf + symtab_commands->symoff);
-            if (buflen < symtab_commands->symoff + symtab_commands->nsyms * sizeof(struct nlist))
-            {   reason = 4;
-                goto Lcorrupt;
-            }
-
-            // For each symbol
-            for (int i = 0; i < symtab_commands->nsyms; i++)
-            {   struct nlist *s = symtab + i;
-                char *name = strtab + s->n_un.n_strx;
-
-                if (s->n_type & N_STAB)
-                    // values in /usr/include/mach-o/stab.h
-                    ; //printf(" N_STAB");
-                else
-                {
-                    if (s->n_type & N_PEXT)
-                        ;
-                    if (s->n_type & N_EXT)
-                        ;
-                    switch (s->n_type & N_TYPE)
-                    {
-                        case N_UNDF:
-                            break;
-                        case N_ABS:
-                            break;
-                        case N_SECT:
-                            if (s->n_type & N_EXT /*&& !(s->n_desc & N_REF_TO_WEAK)*/)
-                                addSymbol(om, name, 1);
-                            break;
-                        case N_PBUD:
-                            break;
-                        case N_INDR:
-                            break;
-                    }
-                }
-            }
-        }
-    }
+    extern void scanMachObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+    scanMachObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
 /***************************************
@@ -528,7 +356,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
         while (offset < buflen)
         {
             if (offset + sizeof(Header) >= buflen)
-            {   reason = 1;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             Header *header = (Header *)((unsigned char *)buf + offset);
@@ -536,11 +364,11 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
             char *endptr = NULL;
             unsigned long size = strtoul(header->file_size, &endptr, 10);
             if (endptr >= &header->file_size[10] || *endptr != ' ')
-            {   reason = 2;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             if (offset + size > buflen)
-            {   reason = 3;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
 
@@ -551,13 +379,13 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
                  * library, just use the already created symbol table.
                  */
                 if (symtab)
-                {   reason = 4;
+                {   reason = __LINE__;
                     goto Lcorrupt;
                 }
                 symtab = (char *)buf + offset;
                 symtab_size = size;
                 if (size < 4)
-                {   reason = 5;
+                {   reason = __LINE__;
                     goto Lcorrupt;
                 }
             }
@@ -572,13 +400,13 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
                 om->user_id   = strtoul(header->user_id, &endptr, 10);
                 om->group_id  = strtoul(header->group_id, &endptr, 10);
                 om->file_mode = strtoul(header->file_mode, &endptr, 8);
-                om->scan = 0;
+                om->scan = 0;                   // don't scan object module for symbols
                 objmodules.push(om);
             }
             offset += (size + 1) & ~1;
         }
         if (offset != buflen)
-        {   reason = 9;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
 
@@ -591,7 +419,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned nsymbols = sgetl(symtab) / 8;
         char *s = symtab + 4 + nsymbols * 8 + 4;
         if (4 + nsymbols * 8 + 4 > symtab_size)
-        {   reason = 10;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
         for (unsigned i = 0; i < nsymbols; i++)
@@ -600,14 +428,14 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
             char *name = s + soff;
             //printf("soff = x%x name = %s\n", soff, name);
             if (s + strlen(name) + 1 - symtab > symtab_size)
-            {   reason = 11;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             unsigned moff = sgetl(symtab + 4 + i * 8 + 4);
             //printf("symtab[%d] moff = x%x  x%x, name = %s\n", i, moff, moff + sizeof(Header), name);
             for (unsigned m = mstart; 1; m++)
             {   if (m == objmodules.dim)
-                {   reason = 12;
+                {   reason = __LINE__;
                     goto Lcorrupt;              // didn't find it
                 }
                 ObjModule *om = objmodules[m];
@@ -625,13 +453,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
         return;
     }
 
-    if (memcmp(buf, &mach_signature,   sizeof(mach_signature))   != 0 &&
-        memcmp(buf, &mach_signature64, sizeof(mach_signature64)) != 0)
-    {   reason = 13;
-        goto Lcorrupt;
-    }
-
-    /* It's a Mach-O object module
+    /* It's an object module
      */
     ObjModule *om = new ObjModule();
     om->base = (unsigned char *)buf;
@@ -643,7 +465,7 @@ void LibMach::addObject(const char *module_name, void *buf, size_t buflen)
     {   struct stat statbuf;
         int i = stat(module_name, &statbuf);
         if (i == -1)            // error, errno is set
-        {   reason = 14;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
         om->file_time = statbuf.st_ctime;
@@ -693,7 +515,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Scan Object Modules for Symbols ******************/
 
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
         if (om->scan)
         {
@@ -705,7 +527,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     unsigned moffset = 8 + sizeof(Header) + 4 + 4;
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         moffset += 8 + strlen(os->name) + 1;
@@ -719,7 +541,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     printf("\tmoffset = x%x\n", moffset);
 #endif
 
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
 
         moffset += moffset & 1;
@@ -770,7 +592,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     libbuf->write(buf, 4);
 
     int stringoff = 0;
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         sputl(stringoff, buf);
@@ -785,7 +607,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
     sputl(stringoff, buf);
     libbuf->write(buf, 4);
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         libbuf->writestring(os->name);
@@ -804,7 +626,7 @@ void LibMach::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write out each of the object modules
      */
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
 
         if (libbuf->offset & 1)

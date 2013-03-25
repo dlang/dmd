@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -17,13 +17,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
-#include "rmem.h"
 #include "root.h"
 #include "stringtable.h"
 
 #include "mars.h"
 #include "lib.h"
-#include "melf.h"
 
 #define LOG 0
 
@@ -55,24 +53,20 @@ class LibElf : public Library
     void addLibrary(void *buf, size_t buflen);
     void write();
 
-  private:
     void addSymbol(ObjModule *om, char *name, int pickAny = 0);
+  private:
     void scanObjModule(ObjModule *om);
     void WriteLibToBuffer(OutBuffer *libbuf);
 
     void error(const char *format, ...)
     {
-        Loc loc;
-        if (libfile)
-        {
-            loc.filename = libfile->name->toChars();
-            loc.linnum = 0;
-        }
         va_list ap;
         va_start(ap, format);
         ::verror(loc, format, ap);
         va_end(ap);
     }
+
+    Loc loc;
 };
 
 Library *Library::factory()
@@ -111,6 +105,9 @@ void LibElf::setFilename(char *dir, char *filename)
     const char *libfilename = FileName::defaultExt(arg, global.lib_ext);
 
     libfile = new File(libfilename);
+
+    loc.filename = libfile->name->toChars();
+    loc.linnum = 0;
 }
 
 void LibElf::write()
@@ -141,8 +138,6 @@ void LibElf::addLibrary(void *buf, size_t buflen)
 
 /*****************************************************************************/
 /*****************************************************************************/
-
-static char elf[4] = { 0x7F, 'E', 'L', 'F' };   // ELF file signature
 
 void sputl(int value, void* buffer)
 {
@@ -208,8 +203,7 @@ void OmToHeader(Header *h, ObjModule *om)
      * write into the next field, which we will promptly overwrite
      * anyway. (So make sure to write the fields in ascending order.)
      */
-
-    len = sprintf(h->file_time, "%lu", om->file_time);
+    len = sprintf(h->file_time, "%llu", (longlong)om->file_time);
     assert(len <= 12);
     memset(h->file_time + len, ' ', 12 - len);
 
@@ -272,143 +266,29 @@ void LibElf::scanObjModule(ObjModule *om)
 #if LOG
     printf("LibElf::scanObjModule(%s)\n", om->name);
 #endif
-    unsigned char *buf = (unsigned char *)om->base;
-    size_t buflen = om->length;
-    int reason = 0;
 
-    if (buflen < EI_NIDENT + sizeof(Elf32_Hdr))
-    {
-      Lcorrupt:
-        error("corrupt ELF object module %s %d", om->name, reason);
-        return;
-    }
 
-    if (memcmp(buf, elf, 4))
-    {   reason = 1;
-        goto Lcorrupt;
-    }
-    if (buf[EI_VERSION] != EV_CURRENT)
+    struct Context
     {
-        error("ELF object module %s has EI_VERSION = %d, should be %d", om->name, buf[EI_VERSION], EV_CURRENT);
-        return;
-    }
-    if (buf[EI_DATA] != ELFDATA2LSB)
-    {
-        error("ELF object module %s is byte swapped and unsupported", om->name);
-        return;
-    }
-    if (buf[EI_CLASS] == ELFCLASS32)
-    {
-        Elf32_Hdr *eh = (Elf32_Hdr *)(buf + EI_NIDENT);
-        if (eh->e_type != ET_REL)
+        LibElf *lib;
+        ObjModule *om;
+
+        Context(LibElf *lib, ObjModule *om)
         {
-            error("ELF object module %s is not relocatable", om->name);
-            return;                             // not relocatable object module
+            this->lib = lib;
+            this->om = om;
         }
-        if (eh->e_version != EV_CURRENT)
-            goto Lcorrupt;
 
-        /* For each Section
-         */
-        for (unsigned u = 0; u < eh->e_shnum; u++)
-        {   Elf32_Shdr *section = (Elf32_Shdr *)(buf + eh->e_shoff + eh->e_shentsize * u);
-
-            if (section->sh_type == SHT_SYMTAB)
-            {   /* sh_link gives the particular string table section
-                 * used for the symbol names.
-                 */
-                Elf32_Shdr *string_section = (Elf32_Shdr *)(buf + eh->e_shoff +
-                    eh->e_shentsize * section->sh_link);
-                if (string_section->sh_type != SHT_STRTAB)
-                {
-                    reason = 3;
-                    goto Lcorrupt;
-                }
-                char *string_tab = (char *)(buf + string_section->sh_offset);
-
-                for (unsigned offset = 0; offset < section->sh_size; offset += sizeof(Elf32_Sym))
-                {   Elf32_Sym *sym = (Elf32_Sym *)(buf + section->sh_offset + offset);
-
-                    if (((sym->st_info >> 4) == STB_GLOBAL ||
-                         (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHN_UNDEF)     // not extern
-                    {
-                        char *name = string_tab + sym->st_name;
-                        //printf("sym st_name = x%x\n", sym->st_name);
-                        addSymbol(om, name, 1);
-                    }
-                }
-            }
-        }
-    }
-    else if (buf[EI_CLASS] == ELFCLASS64)
-    {
-        Elf64_Ehdr *eh = (Elf64_Ehdr *)(buf + EI_NIDENT);
-        if (buflen < EI_NIDENT + sizeof(Elf64_Ehdr))
-            goto Lcorrupt;
-        if (eh->e_type != ET_REL)
+        static void addSymbol(void *pctx, char *name, int pickAny)
         {
-            error("ELF object module %s is not relocatable", om->name);
-            return;                             // not relocatable object module
+            ((Context *)pctx)->lib->addSymbol(((Context *)pctx)->om, name, pickAny);
         }
-        if (eh->e_version != EV_CURRENT)
-            goto Lcorrupt;
+    };
 
-        /* For each Section
-         */
-        for (unsigned u = 0; u < eh->e_shnum; u++)
-        {   Elf64_Shdr *section = (Elf64_Shdr *)(buf + eh->e_shoff + eh->e_shentsize * u);
+    Context ctx(this, om);
 
-            if (section->sh_type == SHT_SYMTAB)
-            {   /* sh_link gives the particular string table section
-                 * used for the symbol names.
-                 */
-                Elf64_Shdr *string_section = (Elf64_Shdr *)(buf + eh->e_shoff +
-                    eh->e_shentsize * section->sh_link);
-                if (string_section->sh_type != SHT_STRTAB)
-                {
-                    reason = 3;
-                    goto Lcorrupt;
-                }
-                char *string_tab = (char *)(buf + string_section->sh_offset);
-
-                for (unsigned offset = 0; offset < section->sh_size; offset += sizeof(Elf64_Sym))
-                {   Elf64_Sym *sym = (Elf64_Sym *)(buf + section->sh_offset + offset);
-
-                    if (((sym->st_info >> 4) == STB_GLOBAL ||
-                         (sym->st_info >> 4) == STB_WEAK) &&
-                        sym->st_shndx != SHN_UNDEF)     // not extern
-                    {
-                        char *name = string_tab + sym->st_name;
-                        //printf("sym st_name = x%x\n", sym->st_name);
-                        addSymbol(om, name, 1);
-                    }
-                }
-            }
-        }
-    }
-    else
-    {
-        error("ELF object module %s is unrecognized class %d", om->name, buf[EI_CLASS]);
-        return;
-    }
-
-#if 0
-    /* String table section
-     */
-    Elf32_Shdr *string_section = (Elf32_Shdr *)(buf + eh->e_shoff +
-        eh->e_shentsize * eh->e_shstrndx);
-    if (string_section->sh_type != SHT_STRTAB)
-    {
-        //printf("buf = %p, e_shentsize = %d, e_shstrndx = %d\n", buf, eh->e_shentsize, eh->e_shstrndx);
-        //printf("sh_type = %d, SHT_STRTAB = %d\n", string_section->sh_type, SHT_STRTAB);
-        reason = 2;
-        goto Lcorrupt;
-    }
-    printf("strtab sh_offset = x%x\n", string_section->sh_offset);
-    char *string_tab = (char *)(buf + string_section->sh_offset);
-#endif
-
+    extern void scanElfObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+    scanElfObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
 /***************************************
@@ -465,7 +345,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
         while (offset < buflen)
         {
             if (offset + sizeof(Header) >= buflen)
-            {   reason = 1;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             Header *header = (Header *)((unsigned char *)buf + offset);
@@ -473,11 +353,11 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
             char *endptr = NULL;
             unsigned long size = strtoul(header->file_size, &endptr, 10);
             if (endptr >= &header->file_size[10] || *endptr != ' ')
-            {   reason = 2;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             if (offset + size > buflen)
-            {   reason = 3;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
 
@@ -488,13 +368,13 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
                  * library, just use the already created symbol table.
                  */
                 if (symtab)
-                {   reason = 4;
+                {   reason = __LINE__;
                     goto Lcorrupt;
                 }
                 symtab = (char *)buf + offset;
                 symtab_size = size;
                 if (size < 4)
-                {   reason = 5;
+                {   reason = __LINE__;
                     goto Lcorrupt;
                 }
             }
@@ -504,7 +384,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
                 /* This is the file name table, save it for later.
                  */
                 if (filenametab)
-                {   reason = 6;
+                {   reason = __LINE__;
                     goto Lcorrupt;
                 }
                 filenametab = (char *)buf + offset;
@@ -542,7 +422,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
                     assert(om->name);
                     for (int i = 0; 1; i++)
                     {   if (i == OBJECT_NAME_SIZE)
-                        {   reason = 8;
+                        {   reason = __LINE__;
                             goto Lcorrupt;
                         }
                         char c = header->object_name[i];
@@ -558,13 +438,13 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
                 om->user_id   = strtoul(header->user_id, &endptr, 10);
                 om->group_id  = strtoul(header->group_id, &endptr, 10);
                 om->file_mode = strtoul(header->file_mode, &endptr, 8);
-                om->scan = 0;
+                om->scan = 0;                   // don't scan object module for symbols
                 objmodules.push(om);
             }
             offset += (size + 1) & ~1;
         }
         if (offset != buflen)
-        {   reason = 9;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
 
@@ -577,21 +457,21 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
         unsigned nsymbols = sgetl(symtab);
         char *s = symtab + 4 + nsymbols * 4;
         if (4 + nsymbols * (4 + 1) > symtab_size)
-        {   reason = 10;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
         for (unsigned i = 0; i < nsymbols; i++)
         {   char *name = s;
             s += strlen(name) + 1;
             if (s - symtab > symtab_size)
-            {   reason = 11;
+            {   reason = __LINE__;
                 goto Lcorrupt;
             }
             unsigned moff = sgetl(symtab + 4 + i * 4);
 //printf("symtab[%d] moff = %x  %x, name = %s\n", i, moff, moff + sizeof(Header), name);
             for (unsigned m = mstart; 1; m++)
             {   if (m == objmodules.dim)
-                {   reason = 12;
+                {   reason = __LINE__;
                     goto Lcorrupt;              // didn't find it
                 }
                 ObjModule *om = objmodules[m];
@@ -609,12 +489,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
         return;
     }
 
-    if (memcmp(buf, elf, 4) != 0)
-    {   reason = 13;
-        goto Lcorrupt;
-    }
-
-    /* It's an ELF object module
+    /* It's an object module
      */
     ObjModule *om = new ObjModule();
     om->base = (unsigned char *)buf;
@@ -627,7 +502,7 @@ void LibElf::addObject(const char *module_name, void *buf, size_t buflen)
     {   struct stat statbuf;
         int i = stat(module_name, &statbuf);
         if (i == -1)            // error, errno is set
-        {   reason = 14;
+        {   reason = __LINE__;
             goto Lcorrupt;
         }
         om->file_time = statbuf.st_ctime;
@@ -676,7 +551,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     /************* Scan Object Modules for Symbols ******************/
 
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
         if (om->scan)
         {
@@ -689,7 +564,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     /* The string section is where we store long file names.
      */
     unsigned noffset = 0;
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
         size_t len = strlen(om->name);
         if (len >= OBJECT_NAME_SIZE)
@@ -709,7 +584,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     unsigned moffset = 8 + sizeof(Header) + 4;
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         moffset += 4 + strlen(os->name) + 1;
@@ -724,7 +599,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     if (noffset)
          moffset += sizeof(Header) + noffset;
 
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
 
         moffset += moffset & 1;
@@ -755,14 +630,14 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
     sputl(objsymbols.dim, buf);
     libbuf->write(buf, 4);
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         sputl(os->om->offset, buf);
         libbuf->write(buf, 4);
     }
 
-    for (int i = 0; i < objsymbols.dim; i++)
+    for (size_t i = 0; i < objsymbols.dim; i++)
     {   ObjSymbol *os = objsymbols[i];
 
         libbuf->writestring(os->name);
@@ -791,7 +666,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
         h.trailer[1] = '\n';
         libbuf->write(&h, sizeof(h));
 
-        for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
         {   ObjModule *om = objmodules[i];
             if (om->name_offset >= 0)
             {   libbuf->writestring(om->name);
@@ -803,7 +678,7 @@ void LibElf::WriteLibToBuffer(OutBuffer *libbuf)
 
     /* Write out each of the object modules
      */
-    for (int i = 0; i < objmodules.dim; i++)
+    for (size_t i = 0; i < objmodules.dim; i++)
     {   ObjModule *om = objmodules[i];
 
         if (libbuf->offset & 1)
