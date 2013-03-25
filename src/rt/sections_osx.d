@@ -236,36 +236,24 @@ static immutable SegRef[] dataSegs = [{SEG_DATA, SECT_DATA},
 ubyte[] getSection(in mach_header* header, intptr_t slide,
                    in char* segmentName, in char* sectionName)
 {
-    if (header.magic == MH_MAGIC)
+    version (X86)
     {
+        assert(header.magic == MH_MAGIC);
         auto sect = getsectbynamefromheader(header,
                                             segmentName,
                                             sectionName);
-
-        if (sect !is null && sect.size > 0)
-        {
-            auto addr = cast(size_t) sect.addr;
-            auto size = cast(size_t) sect.size;
-            return (cast(ubyte*) addr)[slide .. slide + size];
-        }
-        return null;
-
     }
-    else if (header.magic == MH_MAGIC_64)
+    else version (X86_64)
     {
-        auto header64 = cast(mach_header_64*) header;
-        auto sect     = getsectbynamefromheader_64(header64,
-                                                   segmentName,
-                                                   sectionName);
-
-        if (sect !is null && sect.size > 0)
-        {
-            auto addr = cast(size_t) sect.addr;
-            auto size = cast(size_t) sect.size;
-            return (cast(ubyte*) addr)[slide .. slide + size];
-        }
-        return null;
+        assert(header.magic == MH_MAGIC_64);
+        auto sect = getsectbynamefromheader_64(cast(mach_header_64*)header,
+                                            segmentName,
+                                            sectionName);
     }
     else
-        return null;
+        static assert(0, "unimplemented");
+
+    if (sect !is null && sect.size > 0)
+        return (cast(ubyte*)sect.addr + slide)[0 .. cast(size_t)sect.size];
+    return null;
 }
