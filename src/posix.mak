@@ -29,7 +29,7 @@ ifeq (,$(TARGET))
 endif
 
 ifeq (,$(TARGET_CPU))
-    $(warning no cpu specified, assuming X86)
+    $(info no cpu specified, assuming X86)
     TARGET_CPU=X86
 endif
 
