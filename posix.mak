@@ -152,7 +152,7 @@ dll: override PIC:=-fPIC
 dll: $(DRUNTIMESO)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
-	$(DMD) -shared -of$(DRUNTIMESO) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -shared -defaultlib= -of$(DRUNTIMESO) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 ################### Library generation #########################
 
