@@ -511,6 +511,7 @@ struct StructLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     dt_t **toDt(dt_t **pdt);
     MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
