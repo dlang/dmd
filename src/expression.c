@@ -3063,7 +3063,7 @@ Lagain:
 
         if ((v->storage_class & STCmanifest) && v->init)
         {
-            e = v->init->toExpression();
+            e = v->init->toExpression(v->type);
             if (!e)
             {   error("cannot make expression out of initializer for %s", v->toChars());
                 return new ErrorExp();

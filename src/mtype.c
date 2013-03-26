@@ -7948,11 +7948,12 @@ L1:
     {
         // Defer constant folding for the statically initialized
         // const/immutable field until optimize-phase.
-        Expression *ei = v->getConstInitializer();
+        Expression *ei = v->init->toExpression(v->type);
         if (ei)
-        {   e = ei->copy();     // need to copy it if it's a StringExp
-            e = e->semantic(sc);
-            return e;
+        {   ei = ei->copy();    // need to copy it if it's a StringExp
+            ei->loc = e->loc;   // for better error message
+            ei = ei->semantic(sc);
+            return ei;
         }
     }
 
@@ -8602,11 +8603,12 @@ L1:
     {
         // Defer constant folding for the statically initialized
         // const/immutable field until optimize-phase.
-        Expression *ei = v->getConstInitializer();
+        Expression *ei = v->init->toExpression(v->type);
         if (ei)
-        {   e = ei->copy();     // need to copy it if it's a StringExp
-            e = e->semantic(sc);
-            return e;
+        {   ei = ei->copy();    // need to copy it if it's a StringExp
+            ei->loc = e->loc;   // for better error message
+            ei = ei->semantic(sc);
+            return ei;
         }
     }
 

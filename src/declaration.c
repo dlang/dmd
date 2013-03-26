@@ -815,8 +815,10 @@ void VarDeclaration::semantic(Scope *sc)
 //      return;
 //    sem = SemanticIn;
 
+    Scope *scx = NULL;
     if (scope)
     {   sc = scope;
+        scx = sc;
         scope = NULL;
     }
 
@@ -1544,7 +1546,7 @@ Lnomatch:
         }
         else if (parent->isAggregateDeclaration())
         {
-            scope = new Scope(*sc);
+            scope = scx ? scx : new Scope(*sc);
             scope->setNoFree();
         }
         else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
@@ -1559,15 +1561,14 @@ Lnomatch:
             if (!global.errors && !inferred)
             {
                 unsigned errors = global.errors;
-                Expression *exp;
-                Initializer *i2 = init;
                 inuse++;
+#if DMDV2
                 if (ei)
                 {
+                    Expression *exp;
                     exp = ei->exp->syntaxCopy();
                     exp = exp->semantic(sc);
                     exp = resolveProperties(sc, exp);
-#if DMDV2
                     Type *tb = type->toBasetype();
                     Type *ti = exp->type->toBasetype();
 
@@ -1609,80 +1610,16 @@ Lnomatch:
                             ;
                         }
                     }
-
-                    // Look for implicit constructor call
-                    if (tb->ty == Tstruct &&
-                        !(ti->ty == Tstruct && tb->toDsymbol(sc) == ti->toDsymbol(sc)) &&
-                        !exp->implicitConvTo(type))
-                    {
-                        StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-                        if (sd->ctor)
-                        {   // Look for constructor first
-                            // Rewrite as e1.ctor(arguments)
-                            Expression *e;
-                            e = new StructLiteralExp(loc, sd, NULL, NULL);
-                            e = new DotIdExp(loc, e, Id::ctor);
-                            e = new CallExp(loc, e, exp);
-                            e = e->semantic(sc);
-                            exp = e->ctfeInterpret();
-                        }
-                    }
+                    ei->exp = exp;
+                }
 #endif
-                    //printf("v->type = %s, exp = %s %s\n", type->toChars(), exp->type->toChars(), exp->toChars());
-                    if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
-                    {
-                        TypeSArray *tsa = (TypeSArray *)tb;
-                        size_t d = tsa->dim->toInteger();
-                        Expressions *elements = new Expressions();
-                        elements->setDim(d);
-                        for (size_t i = 0; i < d; i++)
-                            (*elements)[i] = exp;
-                        ArrayLiteralExp *ae = new ArrayLiteralExp(exp->loc, elements);
-                        ae->type = type;
-                        exp = ae;
-                    }
-                    exp = exp->implicitCastTo(sc, type);
-                }
-                else if (si || ai)
-                {   i2 = init->syntaxCopy();
-                    i2 = i2->semantic(sc, type, INITinterpret);
-                }
+                init = init->semantic(sc, type, INITinterpret);
                 inuse--;
                 if (global.errors > errors)
                 {
                     init = new ErrorInitializer();
                     type = Type::terror;
                 }
-                else if (ei)
-                {
-                    if (isDataseg() || (storage_class & STCmanifest))
-                        exp = exp->ctfeInterpret();
-                    else
-                        exp = exp->optimize(WANTvalue);
-                    switch (exp->op)
-                    {
-                        case TOKint64:
-                        case TOKfloat64:
-                        case TOKstring:
-                        case TOKarrayliteral:
-                        case TOKassocarrayliteral:
-                        case TOKstructliteral:
-                        case TOKnull:
-                            ei->exp = exp;          // no errors, keep result
-                            break;
-
-                        default:
-#if DMDV2
-                            /* Save scope for later use, to try again
-                             */
-                            scope = new Scope(*sc);
-                            scope->setNoFree();
-#endif
-                            break;
-                    }
-                }
-                else
-                    init = i2;          // no errors, keep result
             }
         }
         sc = sc->pop();

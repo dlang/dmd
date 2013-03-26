@@ -72,7 +72,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                 {
                     v->init->semantic(v->scope, v->type, INITinterpret);
                 }
-                Expression *ei = v->init->toExpression();
+                Expression *ei = v->init->toExpression(v->type);
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
                         v->error("enum cannot be initialized with %s", v->init->toChars());
@@ -133,20 +133,6 @@ Expression *expandVar(int result, VarDeclaration *v)
             }
             if (e->type != v->type)
             {
-                //printf("v->type = %s, e = %s %s\n", v->type->toChars(), e->type->toChars(), e->toChars());
-                Type *tb = v->type->toBasetype();
-                if (tb->ty == Tsarray && e->implicitConvTo(tb->nextOf()))
-                {
-                    TypeSArray *tsa = (TypeSArray *)tb;
-                    size_t d = tsa->dim->toInteger();
-                    Expressions *elements = new Expressions();
-                    elements->setDim(d);
-                    for (size_t i = 0; i < d; i++)
-                        (*elements)[i] = e;
-                    ArrayLiteralExp *ae = new ArrayLiteralExp(e->loc, elements);
-                    ae->type = v->type;
-                    e = ae;
-                }
                 e = e->castTo(NULL, v->type);
             }
             v->inuse++;
