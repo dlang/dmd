@@ -5705,7 +5705,9 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
     if (!td_best)
     {
-        if (tempdecl && !tempdecl->overnext)
+        if (errs != global.errors)
+            errorSupplemental(loc, "while looking for match for %s", toChars());
+        else if (tempdecl && !tempdecl->overnext)
             // Only one template, so we can give better error message
             error("%s does not match template declaration %s", toChars(), tempdecl->toChars());
         else
