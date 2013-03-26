@@ -152,7 +152,7 @@ dll: override PIC:=-fPIC
 dll: $(DRUNTIMESO)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
-	$(DMD) -shared -of$(DRUNTIMESO) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 ################### Library generation #########################
 
@@ -186,7 +186,7 @@ $(UT_DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
 $(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
-	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L-L$(OBJDIR) -L-rpath=$(OBJDIR) -debuglib=$(DRUNTIME_BASE)-ut -defaultlib=$(DRUNTIME_BASE)-ut
+	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L-L$(OBJDIR) -L-rpath=$(OBJDIR) -L-l$(DRUNTIME_BASE)-ut -debuglib= -defaultlib=
 
 endif
 
