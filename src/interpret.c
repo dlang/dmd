@@ -731,8 +731,12 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
         se->ownedByCtfe = false;
-        if (!scrubArray(loc, se->elements, true))
-            return EXP_CANT_INTERPRET;
+        if (!se->isscurbdone)
+        {
+            se->isscurbdone = 1;
+            if (!scrubArray(loc, se->elements, true))
+                return EXP_CANT_INTERPRET;
+        }
     }
     if (e->op == TOKvoid)
     {

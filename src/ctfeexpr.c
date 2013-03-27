@@ -306,6 +306,7 @@ Expression *copyLiteral(Expression *e)
 #endif
         r->type = e->type;
         r->ownedByCtfe = true;
+        r->origin = ((StructLiteralExp*)e)->origin;
         return r;
     }
     else if (e->op == TOKfunction || e->op == TOKdelegate

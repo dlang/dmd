@@ -3715,10 +3715,9 @@ elem *CallExp::toElem(IRState *irs)
 elem *AddrExp::toElem(IRState *irs)
 {
     //printf("AddrExp::toElem('%s')\n", toChars());
-    
-    if(e1->op == TOKstructliteral)
+    if (e1->op == TOKstructliteral)
     {
-        StructLiteralExp* sl = (StructLiteralExp*)e1;
+        StructLiteralExp *sl = (StructLiteralExp*)e1;
         //printf("AddrExp::toElem('%s') %d\n", toChars(), this);
         //printf("StructLiteralExp(%p); origin:%p\n", sl, sl->origin);
         //printf("sl->toSymbol() (%p)\n", sl->toSymbol());
@@ -5328,7 +5327,6 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi)
 /*****************************************************/
 /*                   CTFE stuff                      */
 /*****************************************************/
-
 
 elem *ClassReferenceExp::toElem(IRState *irs)
 {

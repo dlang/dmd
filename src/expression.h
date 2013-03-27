@@ -496,7 +496,11 @@ struct StructLiteralExp : Expression
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
-    StructLiteralExp* origin;
+    StructLiteralExp *origin;
+    StructLiteralExp *inlinecopy;
+    int isscurbdone;
+    int isinlinescan;
+    
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();

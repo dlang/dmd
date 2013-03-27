@@ -897,10 +897,12 @@ Expression *AssocArrayLiteralExp::doInline(InlineDoState *ids)
 
 Expression *StructLiteralExp::doInline(InlineDoState *ids)
 {
+    if(inlinecopy) return inlinecopy;
     StructLiteralExp *ce;
-
     ce = (StructLiteralExp *)copy();
+    inlinecopy = ce;
     ce->elements = arrayExpressiondoInline(elements, ids);
+    inlinecopy = NULL;
     return ce;
 }
 
@@ -1381,6 +1383,8 @@ Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
 {   Expression *e = this;
 
     //printf("StructLiteralExp::inlineScan()\n");
+    if(isinlinescan >= 1) return e;
+    isinlinescan = 1;
     arrayInlineScan(iss, elements);
 
     return e;

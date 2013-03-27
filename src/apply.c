@@ -129,6 +129,8 @@ int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 
 int StructLiteralExp::apply(fp_t fp, void *param)
 {
+    if(origin->isscurbdone >= 3) return 0;
+    origin->isscurbdone = 3;
     return condApply(elements, fp, param) ||
            (*fp)(this, param);
 }

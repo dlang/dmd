@@ -2835,6 +2835,7 @@ interface ITest105a
 {
     string test105a() const;
 }
+
 class Test105a: ITest105a
 {
     char a;
@@ -2966,7 +2967,6 @@ class Test107
     }
 }
 
-
 const Test107 t107 = new Test107(1);
 
 void test107()
@@ -2981,9 +2981,9 @@ interface Getter
 {
     int getNum() const;
 }
+
 class Test108:Getter
 {
-
     int f;
     this(int v) inout
     {
@@ -2995,7 +2995,6 @@ class Test108:Getter
         return f;
     }
 }
-
 
 enum const(Test108) t108 = new Test108(38);
 
@@ -3014,9 +3013,7 @@ void test108()
 
 /***** Bug 5678 *********************************/
 
-
 /*
-
 struct Bug5678 
 {
     this(int) {}
@@ -3029,9 +3026,21 @@ void test5678()
     assert(b5678 is b5678);
 }*/
 
-
 /************************************************/
 
+class Test109C { this(){ this.c = this; } Test109C c; }
+const t109c = new Test109C();
+
+struct Test109S { this(int){ this.s = &this; } Test109S* s; }
+const t109s = new Test109S(0);
+
+void test109()
+{
+    assert(t109c.c is t109c);
+    assert(t109s.s is t109s);
+}
+
+/************************************************/
 int main()
 {
     test1();
@@ -3142,6 +3151,7 @@ int main()
     test106();
     test107();
     //test108(); 
+    test109();
     test6504();
     test8818();
     

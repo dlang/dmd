@@ -902,10 +902,18 @@ bool hasNonConstPointers(Expression *e)
     if(e->op == TOKaddress)
     {
         AddrExp *ae = (AddrExp *)e;
-        if(ae->e1->op == TOKstructliteral)
+        if (ae->e1->op == TOKstructliteral)
         {
             StructLiteralExp *se = (StructLiteralExp *)ae->e1;
-            return arrayHasNonConstPointers(se->elements);
+            if (!se->isscurbdone)
+            {
+                se->isscurbdone = 1;
+                return arrayHasNonConstPointers(se->elements);
+            }
+            else
+            {
+                return false;
+            }
         }
         return true;
     }

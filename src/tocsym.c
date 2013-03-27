@@ -758,9 +758,7 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
 
 Symbol* StructLiteralExp::toSymbol()
 {
-    if(sym) return sym;
-    dt_t* d = NULL;
-    toDt(&d);
+    if (sym) return sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -768,18 +766,18 @@ Symbol* StructLiteralExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
+    sym = s;
+    dt_t *d = NULL;
+    toDt(&d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    sym = s;
     return sym;
 }
 
 Symbol* ClassReferenceExp::toSymbol()
 {
-    if(value->sym) return value->sym;
-    dt_t* d = NULL;
-    toInstanceDt(&d);
+    if (value->sym) return value->sym;
     TYPE *t = type_alloc(TYint);
     t->Tcount++;
     Symbol *s = symbol_calloc("internal");
@@ -787,9 +785,11 @@ Symbol* ClassReferenceExp::toSymbol()
     s->Sfl = FLextern;
     s->Sflags |= SFLnodebug;
     s->Stype = t;
+    value->sym = s;
+    dt_t *d = NULL;
+    toInstanceDt(&d);
     s->Sdt = d;
     slist_add(s);
     outdata(s);
-    value->sym = s;
     return value->sym;
 }
