@@ -2174,15 +2174,12 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
         : Expression(loc, TOKint64, sizeof(IntegerExp))
 {
     //printf("IntegerExp(value = %lld, type = '%s')\n", value, type ? type->toChars() : "");
-    if (type && !type->isscalar())
-    {
-        //printf("%s, loc = %d\n", toChars(), loc.linnum);
-        if (type->ty != Terror)
-            error("integral constant must be scalar type, not %s", type->toChars());
-        type = Type::terror;
-    }
     this->type = type;
     this->value = value;
+    if (type && type->deco)
+    {
+        semantic(NULL);                 // range check
+    }
 }
 
 IntegerExp::IntegerExp(dinteger_t value)
@@ -2313,6 +2310,73 @@ Expression *IntegerExp::semantic(Scope *sc)
     else
     {   if (!type->deco)
             type = type->semantic(loc, sc);
+
+        /* Check for out-of-range integers
+         */
+        Type *t = type;
+        while (1)
+        {
+            switch (t->ty)
+            {
+                case Tbool:  if (value != (bool)    value) goto Lrange; break;
+                case Tint8:  if (value != (d_int8)  value) goto Lrange; break;
+                case Tint16: if (value != (d_int16) value) goto Lrange; break;
+                case Tint32: if (value != (d_int32) value) goto Lrange; break;
+                case Tint64: if (value != (d_int64) value) goto Lrange; break;
+
+                /* Not checked so these kinds of expressions work:
+                 *    uint x = (1024u * 1024 * 1024 * 6) & 0xFFFF;
+                 */
+                case Tchar:
+                case Tuns8:  value = (d_uns8)  value; break;
+                case Twchar:
+                case Tuns16: value = (d_uns16) value; break;
+                case Tdchar:
+                case Tuns32: value = (d_uns32) value; break;
+                case Tuns64: value = (d_uns64) value; break;
+
+                case Tpointer:
+                    if (Target::ptrsize == 4)
+                    {
+                        value = (d_uns32)value;
+                    }
+                    else if (Target::ptrsize == 8)
+                    {
+                        value = (d_uns64)value;
+                    }
+                    else
+                    {
+                        assert(0);
+                    }
+                    break;
+
+                case Tenum:
+                {
+                    TypeEnum *te = (TypeEnum *)t;
+                    t = te->sym->memtype;
+                    continue;
+                }
+
+                case Ttypedef:
+                {
+                    TypeTypedef *tt = (TypeTypedef *)t;
+                    t = tt->sym->basetype;
+                    continue;
+                }
+
+                Lrange:
+                    error("value %llx is out of range for type %s", (long long)value, t->toChars());
+                    goto Lerror;
+
+                default:
+                    error("integral constant must be scalar type, not %s", type->toChars());
+                Lerror:
+                    type = Type::terror;
+                case Terror:
+                    return new ErrorExp();
+            }
+            break;
+        }
     }
     return this;
 }
