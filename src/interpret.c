@@ -1785,7 +1785,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
             }
             return NULL;
         }
-        if (!v->isDataseg() || v->isCTFE())
+        if (!(v->isDataseg() || v->storage_class & STCmanifest) || v->isCTFE())
             ctfeStack.push(v);
         Dsymbol *s = v->toAlias();
         if (s == v && !v->isStatic() && v->init)
