@@ -304,6 +304,35 @@ bool bug4837()
 static assert(bug4837());
 
 /**************************************************
+  10252 shift out of range
+**************************************************/
+int lshr10252(int shift)
+{
+     int a = 5;
+     return a << shift;
+}
+
+int rshr10252(int shift)
+{
+     int a = 5;
+     return a >> shift;
+}
+
+int ushr10252(int shift)
+{
+     int a = 5;
+     return a >>> shift;
+}
+
+static assert(is(typeof(compiles!(lshr10252(4)))));
+static assert(!is(typeof(compiles!(lshr10252(60)))));
+static assert(is(typeof(compiles!(rshr10252(4)))));
+static assert(!is(typeof(compiles!(rshr10252(80)))));
+static assert(is(typeof(compiles!(ushr10252(2)))));
+static assert(!is(typeof(compiles!(ushr10252(60)))));
+
+
+/**************************************************
   'this' parameter bug revealed during refactoring
 **************************************************/
 int thisbug1(int x) { return x; }
