@@ -211,6 +211,7 @@ enum
     ERROR_ACCESS_DENIED =              5,
     ERROR_INVALID_HANDLE =             6,
     ERROR_NO_MORE_FILES =              18,
+    ERROR_INSUFFICIENT_BUFFER =        122,
     ERROR_MORE_DATA =          234,
     ERROR_NO_MORE_ITEMS =          259,
 }
