@@ -609,6 +609,12 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
 */
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2)
 {
+    // For integers cast to pointers, we regard them as non-comparable
+    // unless they are identical. (This may be overly strict).
+    if (agg1->op == TOKint64 && agg2->op == TOKint64
+        && agg1->toInteger() == agg2->toInteger())
+        return true;
+
     // Note that type painting can occur with VarExp, so we
     // must compare the variables being pointed to.
     return agg1 == agg2 ||

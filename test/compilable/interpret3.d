@@ -2391,6 +2391,18 @@ static assert(!is(typeof(compiles!(test9745(7)))));
 static assert(!is(typeof(compiles!(test9745(8)))));
 static assert(!is(typeof(compiles!(test9745(9)))));
 
+// pointers cast from an absolute address
+// (mostly applies to fake pointers, eg Windows HANDLES)
+bool test9745b()
+{
+    void *b6 = cast(void *)0xFEFEFEFE;
+    void *b7 = cast(void *)0xFEFEFEFF;
+    assert(b6 is b6);
+    assert(b7 != b6);
+    return true;
+}
+static assert(test9745b());
+
 
 /**************************************************
     4065 [CTFE] AA "in" operator doesn't work
