@@ -1386,7 +1386,7 @@ Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
     if(isinlinescan >= 1) return e;
     isinlinescan = 1;
     arrayInlineScan(iss, elements);
-
+    isinlinescan = 0;
     return e;
 }
 

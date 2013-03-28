@@ -16,9 +16,9 @@ template eval( A... )
 int Foo1(int i)
 {
     if (i == 0)
-    return 1;
+	return 1;
     else
-    return i * Foo1(i - 1);
+	return i * Foo1(i - 1);
 }
 
 void test1()
@@ -33,11 +33,11 @@ void test1()
 int find2(string s, char c)
 {
     if (s.length == 0)
-    return -1;
+	return -1;
     else if (c == s[0])
-    return 0;
+	return 0;
     else
-    return 1 + find2(s[1..$], c);
+	return 1 + find2(s[1..$], c);
 }
 
 void test2()
@@ -52,8 +52,8 @@ void test2()
 int bar3(int i)
 {   int j;
     while (i)
-    {    j += i;
-    i--;
+    {	j += i;
+	i--;
     }
     return j;
 }
@@ -70,7 +70,7 @@ void test3()
 int bar4(int i)
 {
     for (int j = 0; j < 10; j++)
-    i += j;
+	i += j;
     return i;
 }
 
@@ -88,8 +88,8 @@ int bar5(int i)
     int j;
     do
     {
-    i += j;
-    j++;
+	i += j;
+	j++;
     } while (j < 10);
     return i;
 }
@@ -108,10 +108,10 @@ int bar6(int i)
     int j;
     do
     {
-    i += j;
-    j++;
-    if (j == 4)
-        break;
+	i += j;
+	j++;
+	if (j == 4)
+	    break;
     } while (j < 10);
     return i;
 }
@@ -130,10 +130,10 @@ int bar7(int i)
     int j;
     do
     {
-    i += j;
-    j++;
-    if (j == 4)
-        return 80;
+	i += j;
+	j++;
+	if (j == 4)
+	    return 80;
     } while (j < 10);
     return i;
 }
@@ -152,10 +152,10 @@ int bar8(int i)
     int j;
     do
     {
-    j++;
-    if (j == 4)
-        continue;
-    i += j;
+	j++;
+	if (j == 4)
+	    continue;
+	i += j;
     } while (j < 10);
     return i;
 }
@@ -174,10 +174,10 @@ int bar9(int i)
     int j;
     while (j < 10)
     {
-    j++;
-    if (j == 4)
-        continue;
-    i += j;
+	j++;
+	if (j == 4)
+	    continue;
+	i += j;
     }
     return i;
 }
@@ -196,10 +196,10 @@ int bar10(int i)
     int j;
     while (j < 10)
     {
-    j++;
-    if (j == 4)
-        break;
-    i += j;
+	j++;
+	if (j == 4)
+	    break;
+	i += j;
     }
     return i;
 }
@@ -218,10 +218,10 @@ int bar11(int i)
     int j;
     while (j < 10)
     {
-    j++;
-    if (j == 4)
-        return i << 3;
-    i += j;
+	j++;
+	if (j == 4)
+	    return i << 3;
+	i += j;
     }
     return i;
 }
@@ -239,9 +239,9 @@ int bar12(int i)
 {
     for (int j; j < 10; j++)
     {
-    if (j == 4)
-        return i << 3;
-    i += j;
+	if (j == 4)
+	    return i << 3;
+	i += j;
     }
     return i;
 }
@@ -259,9 +259,9 @@ int bar13(int i)
 {
     for (int j; j < 10; j++)
     {
-    if (j == 4)
-        break;
-    i += j;
+	if (j == 4)
+	    break;
+	i += j;
     }
     return i;
 }
@@ -279,9 +279,9 @@ int bar14(int i)
 {
     for (int j; j < 10; j++)
     {
-    if (j == 4)
-        continue;
-    i += j;
+	if (j == 4)
+	    continue;
+	i += j;
     }
     return i;
 }
@@ -299,10 +299,10 @@ int bar15(int i)
 {
     foreach (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 4)
-        continue;
-    i += v;
+	i <<= 1;
+	if (k == 4)
+	    continue;
+	i += v;
     }
     return i;
 }
@@ -320,10 +320,10 @@ int bar16(int i)
 {
     foreach_reverse (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 4)
-        continue;
-    i += v;
+	i <<= 1;
+	if (k == 4)
+	    continue;
+	i += v;
     }
     return i;
 }
@@ -341,10 +341,10 @@ int bar17(int i)
 {
     foreach (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 2)
-        break;
-    i += v;
+	i <<= 1;
+	if (k == 2)
+	    break;
+	i += v;
     }
     return i;
 }
@@ -362,10 +362,10 @@ int bar18(int i)
 {
     foreach_reverse (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 2)
-        break;
-    i += v;
+	i <<= 1;
+	if (k == 2)
+	    break;
+	i += v;
     }
     return i;
 }
@@ -384,10 +384,10 @@ int bar19(int i)
     assert(i > 0);
     foreach_reverse (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 2)
-        return 8;
-    i += v;
+	i <<= 1;
+	if (k == 2)
+	    return 8;
+	i += v;
     }
     return i;
 }
@@ -406,10 +406,10 @@ int bar20(int i)
     assert(i > 0);
     foreach (k, v; "hello")
     {
-    i <<= 1;
-    if (k == 2)
-        return 8;
-    i += v;
+	i <<= 1;
+	if (k == 2)
+	    return 8;
+	i += v;
     }
     return i;
 }
@@ -428,8 +428,8 @@ int bar21(int i)
     assert(i > 0);
     foreach (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    i += v;
+	i <<= 1;
+	i += v;
     }
     return i;
 }
@@ -448,8 +448,8 @@ int bar22(int i)
     assert(i > 0);
     foreach_reverse (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    i += v;
+	i <<= 1;
+	i += v;
     }
     return i;
 }
@@ -468,10 +468,10 @@ int bar23(int i)
     assert(i > 0);
     foreach_reverse (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        return i + 1;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    return i + 1;
+	i += v;
     }
     return i;
 }
@@ -490,10 +490,10 @@ int bar24(int i)
     assert(i > 0);
     foreach (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        return i + 1;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    return i + 1;
+	i += v;
     }
     return i;
 }
@@ -512,10 +512,10 @@ int bar25(int i)
     assert(i > 0);
     foreach_reverse (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        break;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    break;
+	i += v;
     }
     return i;
 }
@@ -534,10 +534,10 @@ int bar26(int i)
     assert(i > 0);
     foreach (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        break;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    break;
+	i += v;
     }
     return i;
 }
@@ -555,10 +555,10 @@ int bar27(int i)
 {
     foreach_reverse (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        continue;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    continue;
+	i += v;
     }
     return i;
 }
@@ -576,10 +576,10 @@ int bar28(int i)
 {
     foreach (v; Tuple!(57, 23, 8))
     {
-    i <<= 1;
-    if (v == 23)
-        continue;
-    i += v;
+	i <<= 1;
+	if (v == 23)
+	    continue;
+	i += v;
     }
     return i;
 }
@@ -597,13 +597,13 @@ int bar29(int i)
 {
     switch (i)
     {
-    case 1:
-        i = 4;
-        break;
-    case 7:
-        i = 3;
-        break;
-    default: assert(0);
+	case 1:
+	    i = 4;
+	    break;
+	case 7:
+	    i = 3;
+	    break;
+	default: assert(0);
     }
     return i;
 }
@@ -621,15 +621,15 @@ int bar30(int i)
 {
     switch (i)
     {
-    case 1:
-        i = 4;
-        break;
-    case 8:
-        i = 2;
-        break;
-    default:
-        i = 3;
-        break;
+	case 1:
+	    i = 4;
+	    break;
+	case 8:
+	    i = 2;
+	    break;
+	default:
+	    i = 3;
+	    break;
     }
     return i;
 }
@@ -648,15 +648,15 @@ int bar31(string s)
 
     switch (s)
     {
-    case "hello":
-        i = 4;
-        break;
-    case "betty":
-        i = 2;
-        break;
-    default:
-        i = 3;
-        break;
+	case "hello":
+	    i = 4;
+	    break;
+	case "betty":
+	    i = 2;
+	    break;
+	default:
+	    i = 3;
+	    break;
     }
     return i;
 }
@@ -674,15 +674,15 @@ int bar32(int i)
 {
     switch (i)
     {
-    case 7:
-        i = 4;
-        goto case;
-    case 5:
-        i = 2;
-        break;
-    default:
-        i = 3;
-        break;
+	case 7:
+	    i = 4;
+	    goto case;
+	case 5:
+	    i = 2;
+	    break;
+	default:
+	    i = 3;
+	    break;
     }
     return i;
 }
@@ -700,15 +700,15 @@ int bar33(int i)
 {
     switch (i)
     {
-    case 5:
-        i = 2;
-        break;
-    case 7:
-        i = 4;
-        goto case 5;
-    default:
-        i = 3;
-        break;
+	case 5:
+	    i = 2;
+	    break;
+	case 7:
+	    i = 4;
+	    goto case 5;
+	default:
+	    i = 3;
+	    break;
     }
     return i;
 }
@@ -726,15 +726,15 @@ int bar34(int i)
 {
     switch (i)
     {
-    default:
-        i = 3;
-        break;
-    case 5:
-        i = 2;
-        break;
-    case 7:
-        i = 4;
-        goto default;
+	default:
+	    i = 3;
+	    break;
+	case 5:
+	    i = 2;
+	    break;
+	case 7:
+	    i = 4;
+	    goto default;
     }
     return i;
 }
@@ -753,17 +753,17 @@ int bar35(int i)
   L1:
     switch (i)
     {
-    default:
-        i = 3;
-        break;
-    case 5:
-        i = 2;
-        break;
-    case 3:
-        return 8;
-    case 7:
-        i = 4;
-        goto default;
+	default:
+	    i = 3;
+	    break;
+	case 5:
+	    i = 2;
+	    break;
+	case 3:
+	    return 8;
+	case 7:
+	    i = 4;
+	    goto default;
     }
     goto L1;
 }
@@ -901,7 +901,7 @@ int bar(string A)
     for (int i = 0; i < A.length; i++)
     {
         if (A[i] != ' ')
-    {
+	{
             v += A.length;
         }
     }
@@ -1112,7 +1112,7 @@ void test55()
 
 string retsth56(int i)
 {
-    static const string foo[2] = ["a","b"];
+	static const string foo[2] = ["a","b"];
         return foo[i];
 }
 
@@ -1438,7 +1438,7 @@ int f76()
 {
         int[3] a = void;
         a[0] = 1;
-    assert(a[0] == 1);
+	assert(a[0] == 1);
         return 1;
 }
 
@@ -1682,53 +1682,53 @@ int foo88()
 
     if (s)
     {
-    i |= 1;
+	i |= 1;
     }
 
     if (s == null)
     {
-    i |= 2;
+	i |= 2;
     }
 
     if (s is null)
     {
-    i |= 4;
+	i |= 4;
     }
 
     if (s == "")
     {
-    i |= 8;
+	i |= 8;
     }
 
     if (s.length)
     {
-    i |= 16;
+	i |= 16;
     }
 
     if (s == ['c'][0..0])
     {
-    i |= 32;
+	i |= 32;
     }
 
 
     if (null == s)
     {
-    i |= 64;
+	i |= 64;
     }
 
     if (null is s)
     {
-    i |= 128;
+	i |= 128;
     }
 
     if ("" == s)
     {
-    i |= 256;
+	i |= 256;
     }
 
     if (['c'][0..0] == s)
     {
-    i |= 512;
+	i |= 512;
     }
 
     return i;
@@ -1737,8 +1737,8 @@ int foo88()
 void test88()
 {
         static x = foo88();
-    printf("x = %x\n", x);
-    assert(x == (2|4|8|32|64|128|256|512));
+	printf("x = %x\n", x);
+	assert(x == (2|4|8|32|64|128|256|512));
 }
 
 /************************************************/
@@ -1754,8 +1754,8 @@ string gen89()
 {
     foreach (i, type; Tup89.val)
     {
-    assert(i == 0);
-    assert(is(type == int));
+	assert(i == 0);
+	assert(is(type == int));
     }
     return null;
 }
@@ -1824,21 +1824,21 @@ void test92()
 static string hello93()
 {
         string result="";
-    int i = 0;
+	int i = 0;
         for(;;)
-    {
+	{
            result ~= `abc`;
-       i += 1;
-       if (i == 3)
-        break;
-    }
+	   i += 1;
+	   if (i == 3)
+		break;
+	}
         return result;
 }
 
 void test93()
 {
-    static string s = hello93();
-    assert(s == "abcabcabc");
+	static string s = hello93();
+	assert(s == "abcabcabc");
 }
 
 /************************************************/
@@ -1846,10 +1846,10 @@ void test93()
 int foo94 (string [] list, string s)
 {
     if (list.length == 0)
-    return 1;
+	return 1;
     else
     {
-    return 2 + foo94 (list [1..$], list [0]);
+	return 2 + foo94 (list [1..$], list [0]);
     }
 }
 
@@ -3041,6 +3041,13 @@ void test109()
 }
 
 /************************************************/
+
+struct Test110f { int f1; Test110s f2;}
+struct Test110s { this(int, int, int){} }
+auto test110 = [Test110f(1, Test110s(1, 2, 3))];
+
+/************************************************/
+
 int main()
 {
     test1();

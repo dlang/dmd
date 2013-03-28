@@ -733,9 +733,11 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
         se->ownedByCtfe = false;
         if (!se->isscurbdone)
         {
+            int old = se->isscurbdone;
             se->isscurbdone = 1;
             if (!scrubArray(loc, se->elements, true))
                 return EXP_CANT_INTERPRET;
+            se->isscurbdone = old;
         }
     }
     if (e->op == TOKvoid)
@@ -751,8 +753,14 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
         se->ownedByCtfe = false;
-        if (!scrubArray(loc, se->elements, true))
-            return EXP_CANT_INTERPRET;
+        if (!se->isscurbdone)
+        {
+            int old = se->isscurbdone;
+            se->isscurbdone = 1;
+            if (!scrubArray(loc, se->elements, true))
+                return EXP_CANT_INTERPRET;
+            se->isscurbdone = old;
+        }
     }
     if (e->op == TOKstring)
     {

@@ -907,8 +907,11 @@ bool hasNonConstPointers(Expression *e)
             StructLiteralExp *se = (StructLiteralExp *)ae->e1;
             if (!se->isscurbdone)
             {
+                int old = se->isscurbdone;
                 se->isscurbdone = 1;
-                return arrayHasNonConstPointers(se->elements);
+                bool ret = arrayHasNonConstPointers(se->elements);
+                se->isscurbdone = old; 
+                return ret;
             }
             else
             {
