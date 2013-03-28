@@ -1267,7 +1267,7 @@ static assert(!is(typeof(compiles!(zfs(2)))));
 static assert(!is(typeof(compiles!(zfs(3)))));
 static assert(!is(typeof(compiles!(zfs(4)))));
 static assert(is(typeof(compiles!(zfs(1)))));
-static assert(!is(typeof(compiles!(zfs(5)))));
+static assert(is(typeof(compiles!(zfs(5)))));
 
 /**************************************************
    .dup must protect string literals
@@ -4718,6 +4718,21 @@ template bar7197(y...) {
 }
 enum int bug7197 = 7;
 static assert(bar7197!(bug7197));
+
+/**************************************************
+    Enum string compare
+**************************************************/
+
+enum EScmp : string { a = "aaa" }
+
+bool testEScmp()
+{
+    EScmp x = EScmp.a;
+    assert( x < "abc" );
+    return true;
+}
+
+static assert(testEScmp());
 
 /**************************************************
     7667
