@@ -1586,18 +1586,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         //printf("aggr: op = %d, %s\n", aggr->op, aggr->toChars());
         size_t n;
         TupleExp *te = NULL;
-        Expression *prelude = NULL;
         if (aggr->op == TOKtuple)       // expression tuple
         {   te = (TupleExp *)aggr;
             n = te->exps->dim;
-
-            if (te->exps->dim > 0 && (*te->exps)[0]->op == TOKdotvar &&
-                ((DotVarExp *)(*te->exps)[0])->e1->isTemp())
-            {
-                CommaExp *ce = (CommaExp *)((DotVarExp *)(*te->exps)[0])->e1;
-                prelude = ce->e1;
-                ((DotVarExp *)(*te->exps)[0])->e1 = ce->e2;
-            }
         }
         else if (aggr->op == TOKtype)   // type tuple
         {
@@ -1703,9 +1694,9 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
-        if (prelude)
+        if (te && te->e0)
             s = new CompoundStatement(loc,
-                    new ExpStatement(prelude->loc, prelude), s);
+                    new ExpStatement(te->e0->loc, te->e0), s);
         s = s->semantic(sc);
         return s;
     }

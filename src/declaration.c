@@ -1006,6 +1006,7 @@ void VarDeclaration::semantic(Scope *sc)
 
                     iexps->remove(pos);
                     iexps->insert(pos, te->exps);
+                    (*iexps)[pos] = Expression::combine(te->e0, (*iexps)[pos]);
                     goto Lexpand1;
                 }
                 else if (isAliasThisTuple(e))
@@ -1061,11 +1062,13 @@ void VarDeclaration::semantic(Scope *sc)
 Lnomatch:
 
         if (ie && ie->op == TOKtuple)
-        {   size_t tedim = ((TupleExp *)ie)->exps->dim;
+        {
+            TupleExp *te = (TupleExp *)ie;
+            size_t tedim = te->exps->dim;
             if (tedim != nelems)
             {   ::error(loc, "tuple of %d elements cannot be assigned to tuple of %d elements", (int)tedim, (int)nelems);
                 for (size_t u = tedim; u < nelems; u++) // fill dummy expression
-                    ((TupleExp *)ie)->exps->push(new ErrorExp());
+                    te->exps->push(new ErrorExp());
             }
         }
 
@@ -1080,7 +1083,11 @@ Lnomatch:
 
             Expression *einit = ie;
             if (ie && ie->op == TOKtuple)
-            {   einit = (*((TupleExp *)ie)->exps)[i];
+            {
+                TupleExp *te = (TupleExp *)ie;
+                einit = (*te->exps)[i];
+                if (i == 0)
+                    einit = Expression::combine(te->e0, einit);
             }
             Initializer *ti = init;
             if (einit)

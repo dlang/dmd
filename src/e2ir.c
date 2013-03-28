@@ -4783,13 +4783,15 @@ elem *IndexExp::toElem(IRState *irs)
 
 
 elem *TupleExp::toElem(IRState *irs)
-{   elem *e = NULL;
-
+{
     //printf("TupleExp::toElem() %s\n", toChars());
+    elem *e = NULL;
+    if (e0)
+        e = e0->toElem(irs);
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *el = (*exps)[i];
+    {
+        Expression *el = (*exps)[i];
         elem *ep = el->toElem(irs);
-
         e = el_combine(e, ep);
     }
     return e;
