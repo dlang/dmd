@@ -1613,7 +1613,18 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 #else
         if (v->isConst() && v->init && !v->isCTFE())
 #endif
-        {   e = v->init->toExpression();
+        {
+            // Ensure v->init has had semantic run on it
+            // (TODO: should we ungag errors?)
+            if (v->sem < Semantic2Done && v->scope)
+                v->semantic2(v->scope);
+
+            e = v->init->toExpression();
+
+            // If the semantic failed, give up now.
+            if (e->op == TOKerror)
+                return EXP_CANT_INTERPRET;
+
             if (e && (e->op == TOKconstruct || e->op == TOKblit))
             {   AssignExp *ae = (AssignExp *)e;
                 e = ae->e2;
@@ -1668,7 +1679,15 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         else
         {   e = v->hasValue() ? v->getValue() : NULL;
             if (!e && !v->isCTFE() && v->isDataseg())
-            {   error(loc, "static variable %s cannot be read at compile time", v->toChars());
+            {   // If the variable was forward referenced, it might not
+                // really be a static variable (because the 'const' hasn't been
+                // transferred from the AtributeDeclaration onto the variable).
+                // Avoid giving a misleading error message if that's possible.
+                // If there was no initializer, it's definitely impossible.
+                if (v->sem < Semantic2Done && v->init)
+                    error(loc, "forward referenced variable %s cannot be read at compile time", v->toChars());
+                else
+                    error(loc, "static variable %s cannot be read at compile time", v->toChars());
                 e = EXP_CANT_INTERPRET;
             }
             else if (!e)

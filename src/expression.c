@@ -3063,6 +3063,11 @@ Lagain:
 
         if ((v->storage_class & STCmanifest) && v->init)
         {
+            // Ensure v->init has had semantic run on it
+            // (TODO: should we ungag errors?)
+            if (v->sem < Semantic2Done && v->scope)
+                v->semantic2(v->scope);
+
             e = v->init->toExpression();
             if (!e)
             {   error("cannot make expression out of initializer for %s", v->toChars());

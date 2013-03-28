@@ -600,6 +600,7 @@ void test29()
 static assert((10_000_000_000_000_000 / 1_000_000_000_000_000) == 10);
 
 /*************************************/
+// http://www.digitalmars.com/d/archives/digitalmars/D/bugs/5773.html
 
 template chook(int n)
 {
@@ -616,11 +617,29 @@ const int goose = dog!(pig);
 
 void test30()
 {
-    printf("%d\n", goose);
     assert(goose == 3);
 }
 
 /*************************************/
+
+template Tym(alias T)
+{
+    alias Tym = T;
+}
+
+template Zym(alias waq){
+    alias waq Zym;
+}
+
+struct Qym {
+    int value;
+}
+
+enum Bym : Qym { aq = Qym(1) }
+alias Tym!( Zym!(Bym.aq) ) Xym;
+
+/*************************************/
+// http://forum.dlang.org/thread/dn45s8$vd9$1@digitaldaemon.com
 
 template dog31(string sheep)
 {
