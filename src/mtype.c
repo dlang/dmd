@@ -3875,14 +3875,6 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
             Parameter *arg = (*tt->arguments)[(size_t)d];
             return arg->type->addMod(this->mod);
         }
-        case Tstruct:
-        {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (0 && ts->sym->isnested)
-            {   error(loc, "cannot have static array of inner struct %s", ts->toChars());
-                goto Lerror;
-            }
-            break;
-        }
         case Tfunction:
         case Tnone:
             error(loc, "can't have array of %s", tbn->toChars());
@@ -4171,13 +4163,6 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             error(loc, "can't have array of %s", tbn->toChars());
         case Terror:
             return Type::terror;
-
-        case Tstruct:
-        {   TypeStruct *ts = (TypeStruct *)tbn;
-            if (0 && ts->sym->isnested)
-                error(loc, "cannot have dynamic array of inner struct %s", ts->toChars());
-            break;
-        }
     }
     if (tn->isscope())
         error(loc, "cannot have array of scope %s", tn->toChars());
@@ -8120,7 +8105,7 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
     //if (sym->isNested())
     //    return defaultInit(loc);
     Expressions *structelems = new Expressions();
-    structelems->setDim(sym->fields.dim - sym->isnested);
+    structelems->setDim(sym->fields.dim - sym->isNested());
     unsigned offset = 0;
     for (size_t j = 0; j < structelems->dim; j++)
     {
@@ -8186,7 +8171,7 @@ int TypeStruct::needsDestruction()
 
 bool TypeStruct::needsNested()
 {
-    if (sym->isnested)
+    if (sym->isNested())
         return true;
 
     for (size_t i = 0; i < sym->fields.dim; i++)
