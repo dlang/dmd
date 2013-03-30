@@ -113,7 +113,7 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
+	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	html.o unialpha.o target.o \
 	pdata.o cv8.o backconfig.o \
 	$(TARGET_OBJS)
@@ -142,7 +142,7 @@ SRC = win32.mak posix.mak \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
 	libmscoff.c scanelf.c scanmach.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c sideeffect.c \
+	argtypes.c apply.c sapply.c sideeffect.c \
 	target.c target.h \
 	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
@@ -574,6 +574,9 @@ root.o: $(ROOT)/root.c
 
 rtlsym.o: $C/rtlsym.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
+
+sapply.o: sapply.c
+	$(CC) -c $(CFLAGS) $<
 
 s2ir.o: s2ir.c $C/rtlsym.h statement.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
