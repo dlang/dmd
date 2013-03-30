@@ -1171,14 +1171,6 @@ Statement *ThrowStatement::inlineScan(InlineScanState *iss)
 }
 
 
-Statement *VolatileStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
 Statement *LabelStatement::inlineScan(InlineScanState *iss)
 {
     if (statement)
