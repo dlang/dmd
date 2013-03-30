@@ -40,7 +40,7 @@ struct Initializer : Object
     // needInterpret is INITinterpret if must be a manifest constant, 0 if not.
     virtual Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     virtual Type *inferType(Scope *sc);
-    virtual Expression *toExpression() = 0;
+    virtual Expression *toExpression(Type *t = NULL) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     char *toChars();
 
@@ -62,7 +62,7 @@ struct VoidInitializer : Initializer
     VoidInitializer(Loc loc);
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
@@ -75,7 +75,7 @@ struct ErrorInitializer : Initializer
     ErrorInitializer();
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     virtual ErrorInitializer *isErrorInitializer() { return this; }
@@ -93,7 +93,7 @@ struct StructInitializer : Initializer
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
@@ -115,7 +115,7 @@ struct ArrayInitializer : Initializer
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     int isAssociativeArray();
     Type *inferType(Scope *sc);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     Expression *toAssocArrayLiteral();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -133,7 +133,7 @@ struct ExpInitializer : Initializer
     Initializer *syntaxCopy();
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Type *inferType(Scope *sc);
-    Expression *toExpression();
+    Expression *toExpression(Type *t = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();
