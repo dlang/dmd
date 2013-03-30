@@ -206,11 +206,13 @@ bool VolatileStatement::apply(fp_t fp, void *param)
            (*fp)(this, param);
 }
 
+#if DMDV2
 bool DebugStatement::apply(fp_t fp, void *param)
 {
     return condApply(statement, fp, param) ||
            (*fp)(this, param);
 }
+#endif
 
 bool LabelStatement::apply(fp_t fp, void *param)
 {
