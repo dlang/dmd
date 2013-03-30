@@ -1208,6 +1208,14 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     return e;
 }
 
+Expression *StructLiteralExp::castTo(Scope *sc, Type *t)
+{
+    Expression *e = Expression::castTo(sc, t);
+    if (e->op == TOKstructliteral)
+        ((StructLiteralExp *)e)->stype = t; // commit type
+    return e;
+}
+
 Expression *StringExp::castTo(Scope *sc, Type *t)
 {
     /* This follows copy-on-write; any changes to 'this'

@@ -1542,6 +1542,11 @@ Lnomatch:
                 init = init->semantic(sc, type, INITinterpret);
             }
         }
+        else if (parent->isAggregateDeclaration())
+        {
+            scope = new Scope(*sc);
+            scope->setNoFree();
+        }
         else if (storage_class & (STCconst | STCimmutable | STCmanifest) ||
                  type->isConst() || type->isImmutable())
         {
@@ -1553,7 +1558,7 @@ Lnomatch:
 
             if (!global.errors && !inferred)
             {
-                unsigned errors = global.startGagging();
+                unsigned errors = global.errors;
                 Expression *exp;
                 Initializer *i2 = init;
                 inuse++;
@@ -1623,6 +1628,19 @@ Lnomatch:
                         }
                     }
 #endif
+                    //printf("v->type = %s, exp = %s %s\n", type->toChars(), exp->type->toChars(), exp->toChars());
+                    if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
+                    {
+                        TypeSArray *tsa = (TypeSArray *)tb;
+                        size_t d = tsa->dim->toInteger();
+                        Expressions *elements = new Expressions();
+                        elements->setDim(d);
+                        for (size_t i = 0; i < d; i++)
+                            (*elements)[i] = exp;
+                        ArrayLiteralExp *ae = new ArrayLiteralExp(exp->loc, elements);
+                        ae->type = type;
+                        exp = ae;
+                    }
                     exp = exp->implicitCastTo(sc, type);
                 }
                 else if (si || ai)
@@ -1630,14 +1648,10 @@ Lnomatch:
                     i2 = i2->semantic(sc, type, INITinterpret);
                 }
                 inuse--;
-                if (global.endGagging(errors))    // if errors happened
+                if (global.errors > errors)
                 {
-#if DMDV2
-                    /* Save scope for later use, to try again
-                     */
-                    scope = new Scope(*sc);
-                    scope->setNoFree();
-#endif
+                    init = new ErrorInitializer();
+                    type = Type::terror;
                 }
                 else if (ei)
                 {
@@ -1670,11 +1684,6 @@ Lnomatch:
                 else
                     init = i2;          // no errors, keep result
             }
-        }
-        else if (parent->isAggregateDeclaration())
-        {
-            scope = new Scope(*sc);
-            scope->setNoFree();
         }
         sc = sc->pop();
     }
