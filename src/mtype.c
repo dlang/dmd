@@ -6112,7 +6112,7 @@ bool TypeFunction::parameterEscapes(Parameter *p)
     if (!nextOf())
         return TRUE;
 
-    if (purity)
+    if (purity > PUREweak)
     {   /* With pure functions, we need only be concerned if p escapes
          * via any return statement.
          */

@@ -6106,6 +6106,30 @@ void test9700()
 }
 
 /***************************************************/
+// 9834
+
+struct Event9834
+{
+    void delegate() dg;
+    void set(void delegate() h) pure { dg = h; }  // AV occurs
+    void call() { dg(); }
+}
+void test9834()
+{
+    Event9834 ev;
+    auto a = new class
+    {
+        Object o;
+        this()
+        {
+            o = new Object;
+            ev.set((){ o.toString(); });
+        }
+    };
+    ev.call();
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6367,6 +6391,7 @@ int main()
     test9428();
     test9538();
     test9700();
+    test9834();
 
     printf("Success\n");
     return 0;
