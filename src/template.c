@@ -3428,6 +3428,12 @@ MATCH TypeEnum::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramete
         if (sym != tp->sym)
             return MATCHnomatch;
     }
+    Type *tb = toBasetype();
+    if (tb->ty == tparam->ty ||
+        tb->ty == Tsarray && tparam->ty == Taarray)
+    {
+        return tb->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
+    }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
 }
 

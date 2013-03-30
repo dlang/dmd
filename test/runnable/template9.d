@@ -2042,6 +2042,47 @@ void test9536()
 }
 
 /******************************************/
+// 9837
+
+void test9837()
+{
+    enum DA : int[] { a = [1,2,3] }
+    DA da;
+    int[] bda = da;
+    static assert(is(DA : int[]));
+    void fda1(int[] a) {}
+    void fda2(T)(T[] a) {}
+    fda1(da);
+    fda2(da);
+
+    enum SA : int[3] { a = [1,2,3] }
+    SA sa;
+    int[3] bsa = sa;
+    static assert(is(SA : int[3]));
+    void fsa1(int[3] a) {}
+    void fsa2(T)(T[3] a) {}
+    void fsa3(size_t d)(int[d] a) {}
+    void fsa4(T, size_t d)(T[d] a) {}
+    fsa1(sa);
+    fsa2(sa);
+    fsa3(sa);
+    fsa4(sa);
+
+    enum AA : int[int] { a = null }
+    AA aa;
+    int[int] baa = aa;
+    static assert(is(AA : int[int]));
+    void faa1(int[int] a) {}
+    void faa2(V)(V[int] a) {}
+    void faa3(K)(int[K] a) {}
+    void faa4(K, V)(V[K] a) {}
+    faa1(aa);
+    faa2(aa);
+    faa3(aa);
+    faa4(aa);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2117,6 +2158,7 @@ int main()
     test9143();
     test9266();
     test9536();
+    test9837();
 
     printf("Success\n");
     return 0;
