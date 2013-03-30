@@ -367,49 +367,6 @@ void ContinueStatement::toIR(IRState *irs)
     block_next(blx, BCgoto, NULL);
 }
 
-/**************************************
- */
-
-void el_setVolatile(elem *e)
-{
-    elem_debug(e);
-    while (1)
-    {
-        e->Ety |= mTYvolatile;
-        if (OTunary(e->Eoper))
-            e = e->E1;
-        else if (OTbinary(e->Eoper))
-        {   el_setVolatile(e->E2);
-            e = e->E1;
-        }
-        else
-            break;
-    }
-}
-
-void VolatileStatement::toIR(IRState *irs)
-{
-    block *b;
-
-    if (statement)
-    {
-        Blockx *blx = irs->blx;
-
-        block_goto(blx, BCgoto, NULL);
-        b = blx->curblock;
-
-        statement->toIR(irs);
-
-        block_goto(blx, BCgoto, NULL);
-
-        // Mark the blocks generated as volatile
-        for (; b != blx->curblock; b = b->Bnext)
-        {   b->Bflags |= BFLvolatile;
-            if (b->Belem)
-                el_setVolatile(b->Belem);
-        }
-    }
-}
 
 /**************************************
  */

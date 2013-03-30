@@ -5027,64 +5027,6 @@ void ThrowStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writenl();
 }
 
-/******************************** VolatileStatement **************************/
-
-VolatileStatement::VolatileStatement(Loc loc, Statement *statement)
-    : Statement(loc)
-{
-    this->statement = statement;
-}
-
-Statement *VolatileStatement::syntaxCopy()
-{
-    VolatileStatement *s = new VolatileStatement(loc,
-                statement ? statement->syntaxCopy() : NULL);
-    return s;
-}
-
-Statement *VolatileStatement::semantic(Scope *sc)
-{
-    if (statement)
-        statement = statement->semantic(sc);
-    return this;
-}
-
-Statements *VolatileStatement::flatten(Scope *sc)
-{
-    Statements *a;
-
-    a = statement ? statement->flatten(sc) : NULL;
-    if (a)
-    {   for (size_t i = 0; i < a->dim; i++)
-        {   Statement *s = (*a)[i];
-
-            s = new VolatileStatement(loc, s);
-            (*a)[i] = s;
-        }
-    }
-
-    return a;
-}
-
-int VolatileStatement::blockExit(bool mustNotThrow)
-{
-    return statement ? statement->blockExit(mustNotThrow) : BEfallthru;
-}
-
-
-void VolatileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
-{
-    buf->writestring("volatile");
-    if (statement)
-    {   if (statement->isScopeStatement())
-            buf->writenl();
-        else
-            buf->writebyte(' ');
-        statement->toCBuffer(buf, hgs);
-    }
-}
-
-
 /******************************** DebugStatement **************************/
 
 DebugStatement::DebugStatement(Loc loc, Statement *statement)

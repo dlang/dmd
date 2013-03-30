@@ -200,12 +200,6 @@ bool OnScopeStatement::apply(fp_t fp, void *param)
            (*fp)(this, param);
 }
 
-bool VolatileStatement::apply(fp_t fp, void *param)
-{
-    return condApply(statement, fp, param) ||
-           (*fp)(this, param);
-}
-
 bool DebugStatement::apply(fp_t fp, void *param)
 {
     return condApply(statement, fp, param) ||
