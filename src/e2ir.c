@@ -2977,7 +2977,7 @@ elem *AssignExp::toElem(IRState *irs)
             elem *ey = NULL;
             unsigned sz = e1->type->size();
             StructDeclaration *sd = ((TypeStruct *)t1b)->sym;
-            if (sd->isnested && op == TOKconstruct)
+            if (sd->isNested() && op == TOKconstruct)
             {
                 ey = el_una(OPaddr, TYnptr, eleft);
                 eleft = el_same(&ey);
@@ -2989,7 +2989,7 @@ elem *AssignExp::toElem(IRState *irs)
             elem *enbytes = el_long(TYsize_t, sz);
             elem *evalue = el_long(TYsize_t, 0);
 
-            if (!(sd->isnested && op == TOKconstruct))
+            if (!(sd->isNested() && op == TOKconstruct))
                 el = el_una(OPaddr, TYnptr, el);
             e = el_param(enbytes, evalue);
             e = el_bin(OPmemset,TYnptr,el,e);
@@ -5103,7 +5103,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     if (elements)
     {
         size_t dim = elements->dim;
-        assert(dim <= sd->fields.dim - sd->isnested);
+        assert(dim <= sd->fields.dim - sd->isNested());
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (*elements)[i];
             if (!el)
@@ -5201,7 +5201,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
     }
 
 #if DMDV2
-    if (sd->isnested)
+    if (sd->isNested())
     {   // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
         Dsymbol *s = sd->fields[sd->fields.dim - 1];

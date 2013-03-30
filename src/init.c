@@ -203,9 +203,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             errors = 1;
             goto Lerror;
         }
-        size_t nfields = sd->fields.dim;
-        if (sd->isnested)
-            nfields--;
+        size_t nfields = sd->fields.dim - sd->isNested();
         for (size_t i = 0; i < field.dim; i++)
         {
             Identifier *id = field[i];
@@ -315,11 +313,7 @@ Expression *StructInitializer::toExpression()
         return NULL;
 
     Expressions *elements = new Expressions();
-    size_t nfields = ad->fields.dim;
-#if DMDV2
-    if (sd->isnested)
-       nfields--;
-#endif
+    size_t nfields = ad->fields.dim - sd->isNested();
     elements->setDim(nfields);
     for (size_t i = 0; i < elements->dim; i++)
     {

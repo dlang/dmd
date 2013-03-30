@@ -56,7 +56,7 @@ struct AggregateDeclaration : ScopeDsymbol
     bool isdeprecated;          // !=0 if deprecated
 
 #if DMDV2
-    bool isnested;              // !=0 if is nested
+    Dsymbol *isnested;          // !=NULL if is nested
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
@@ -92,7 +92,8 @@ struct AggregateDeclaration : ScopeDsymbol
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     int isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
-    int isNested();
+    bool isNested();
+    void makeNested();
     int isExport();
 
     void emitComment(Scope *sc);
@@ -160,7 +161,6 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *buildCpCtor(Scope *sc);
 
     FuncDeclaration *buildXopEquals(Scope *sc);
-    void makeNested();
 #endif
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
@@ -244,10 +244,6 @@ struct ClassDeclaration : AggregateDeclaration
                                         // it derives from IUnknown)
     int isscope;                         // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
-#if DMDV1
-    bool isnested;                      // !=0 if is nested
-    VarDeclaration *vthis;              // 'this' parameter if this class is nested
-#endif
     int inuse;                          // to prevent recursive attempts
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
@@ -267,9 +263,6 @@ struct ClassDeclaration : AggregateDeclaration
 #endif
     FuncDeclaration *findFunc(Identifier *ident, TypeFunction *tf);
     void interfaceSemantic(Scope *sc);
-#if DMDV1
-    int isNested();
-#endif
     int isCOMclass();
     virtual int isCOMinterface();
 #if DMDV2

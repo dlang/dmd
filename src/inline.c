@@ -213,7 +213,7 @@ int VarExp::inlineCost3(InlineCostState *ics)
     if (tb->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->isnested)
+        if (sd->isNested())
             /* An inner struct will be nested inside another function hierarchy than where
              * we're inlining into, so don't inline it.
              * At least not until we figure out how to 'move' the struct to be nested
@@ -246,7 +246,7 @@ int StructLiteralExp::inlineCost3(InlineCostState *ics)
 {
     //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
 #if DMDV2
-    if (sd->isnested)
+    if (sd->isNested())
         return COST_MAX;
 #endif
     return 1;
