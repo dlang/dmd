@@ -29,7 +29,7 @@ AggregateDeclaration *isAggregate(Type *t); // from opover.c
 
 void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
 {
-    if (!ad->isnested)
+    if (!ad->isNested())
         return;
 
     Dsymbol *s = sc->func;

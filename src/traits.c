@@ -180,7 +180,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         if (!s) { }
         else if ((a = s->isAggregateDeclaration()) != NULL)
         {
-            if (a->isnested)
+            if (a->isNested())
                 goto Ltrue;
             else
                 goto Lfalse;

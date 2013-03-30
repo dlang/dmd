@@ -505,6 +505,7 @@ void ClassDeclaration::semantic(Scope *sc)
         com = baseClass->isCOMclass();
         isscope = baseClass->isscope;
         vthis = baseClass->vthis;
+        isnested = baseClass->isnested;
         storage_class |= baseClass->storage_class & STC_TYPECTOR;
     }
     else
@@ -532,7 +533,6 @@ void ClassDeclaration::semantic(Scope *sc)
          */
         if (vthis)              // if inheriting from nested class
         {   // Use the base class's 'this' member
-            isnested = true;
             if (storage_class & STCstatic)
                 error("static class cannot inherit from nested class %s", baseClass->toChars());
             if (toParent2() != baseClass->toParent2() &&
@@ -553,41 +553,11 @@ void ClassDeclaration::semantic(Scope *sc)
                         baseClass->toChars(),
                         baseClass->toParent2()->toChars());
                 }
-                isnested = false;
+                isnested = NULL;
             }
         }
-        else if (!(storage_class & STCstatic))
-        {   Dsymbol *s = toParent2();
-            if (s)
-            {
-                AggregateDeclaration *ad = s->isClassDeclaration();
-                FuncDeclaration *fd = s->isFuncDeclaration();
-
-
-                if (ad || fd)
-                {   isnested = true;
-                    Type *t;
-                    if (ad)
-                        t = ad->handle;
-                    else if (fd)
-                    {   AggregateDeclaration *ad2 = fd->isMember2();
-                        if (ad2)
-                            t = ad2->handle;
-                        else
-                        {
-                            t = Type::tvoidptr;
-                        }
-                    }
-                    else
-                        assert(0);
-                    if (t->ty == Tstruct)       // ref to struct
-                        t = Type::tvoidptr;
-                    assert(!vthis);
-                    vthis = new ThisDeclaration(loc, t);
-                    members->push(vthis);
-                }
-            }
-        }
+        else
+            makeNested();
     }
 
     if (storage_class & STCauto)

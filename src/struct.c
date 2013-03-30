@@ -46,7 +46,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 
     stag = NULL;
     sinit = NULL;
-    isnested = false;
+    isnested = NULL;
     vthis = NULL;
 
 #if DMDV2
@@ -291,14 +291,68 @@ unsigned AggregateDeclaration::placeField(
 
 
 /****************************************
- * Returns !=0 if there's an extra member which is the 'this'
+ * Returns true if there's an extra member which is the 'this'
  * pointer to the enclosing context (enclosing aggregate or function)
  */
 
-int AggregateDeclaration::isNested()
+bool AggregateDeclaration::isNested()
 {
-    assert((isnested & ~1) == 0);
-    return isnested;
+    return isnested != NULL;
+}
+
+void AggregateDeclaration::makeNested()
+{
+    if (!isnested && sizeok != SIZEOKdone && !isUnionDeclaration() && !isInterfaceDeclaration())
+    {
+        // If nested struct, add in hidden 'this' pointer to outer scope
+        if (!(storage_class & STCstatic))
+        {
+            Dsymbol *s = toParent2();
+            if (s)
+            {
+                AggregateDeclaration *ad = s->isAggregateDeclaration();
+                FuncDeclaration *fd = s->isFuncDeclaration();
+
+                if (fd)
+                {
+                    isnested = fd;
+                }
+                else if (isClassDeclaration() && ad && ad->isClassDeclaration())
+                {
+                    isnested = ad;
+                }
+                else if (isStructDeclaration() && ad)
+                {
+                    if (TemplateInstance *ti = ad->parent->isTemplateInstance())
+                    {
+                        isnested = ti->isnested;
+                    }
+                }
+                if (isnested)
+                {
+                    //printf("makeNested %s, isnested = %s\n", toChars(), isnested->toChars());
+                    Type *t;
+                    if (ad)
+                        t = ad->handle;
+                    else if (fd)
+                    {   AggregateDeclaration *ad2 = fd->isMember2();
+                        if (ad2)
+                            t = ad2->handle;
+                        else
+                            t = Type::tvoidptr;
+                    }
+                    else
+                        assert(0);
+                    if (t->ty == Tstruct)
+                        t = Type::tvoidptr;     // t should not be a ref type
+                    assert(!vthis);
+                    vthis = new ThisDeclaration(loc, t);
+                    //vthis->storage_class |= STCref;
+                    members->push(vthis);
+                }
+            }
+        }
+    }
 }
 
 /****************************************
@@ -716,45 +770,6 @@ void StructDeclaration::finalizeSize(Scope *sc)
         structsize = (structsize + alignment - 1) & ~(alignment - 1);
 
     sizeok = SIZEOKdone;
-}
-
-void StructDeclaration::makeNested()
-{
-    if (!isnested && sizeok != SIZEOKdone && !isUnionDeclaration())
-    {
-        // If nested struct, add in hidden 'this' pointer to outer scope
-        if (!(storage_class & STCstatic))
-        {   Dsymbol *s = toParent2();
-            if (s)
-            {
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                FuncDeclaration *fd = s->isFuncDeclaration();
-
-                TemplateInstance *ti;
-                if (ad && (ti = ad->parent->isTemplateInstance()) != NULL && ti->isnested || fd)
-                {   isnested = true;
-                    Type *t;
-                    if (ad)
-                        t = ad->handle;
-                    else if (fd)
-                    {   AggregateDeclaration *ad = fd->isMember2();
-                        if (ad)
-                            t = ad->handle;
-                        else
-                            t = Type::tvoidptr;
-                    }
-                    else
-                        assert(0);
-                    if (t->ty == Tstruct)
-                        t = Type::tvoidptr;     // t should not be a ref type
-                    assert(!vthis);
-                    vthis = new ThisDeclaration(loc, t);
-                    //vthis->storage_class |= STCref;
-                    members->push(vthis);
-                }
-            }
-        }
-    }
 }
 
 /***************************************
