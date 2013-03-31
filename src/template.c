@@ -1661,7 +1661,7 @@ Lretry:
                         taa->index->resolve(loc, sc, &e, &t, &s);
                         if (!e)
                             goto Lnomatch;
-                        e = e->optimize(WANTvalue | WANTinterpret);
+                        e = e->ctfeInterpret();
                         e = e->implicitCastTo(sc, Type::tsize_t);
                         e = e->optimize(WANTvalue);
                         if (!dim->equals(e))

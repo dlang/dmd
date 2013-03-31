@@ -321,6 +321,14 @@ Expression *BoolExp::optimize(int result, bool keepLvalue)
     return e;
 }
 
+Expression *SymOffExp::optimize(int result, bool keepLvalue)
+{
+    assert(var);
+    if ((result & WANTinterpret) && var->isThreadlocal())
+            error("cannot take address of thread-local variable %s at compile time", var->toChars());
+    return this;
+}
+
 Expression *AddrExp::optimize(int result, bool keepLvalue)
 {   Expression *e;
 
