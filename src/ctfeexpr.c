@@ -574,6 +574,8 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
     *ofs = 0;
     if (e->op == TOKaddress)
         e = ((AddrExp *)e)->e1;
+    if (e->op == TOKsymoff)
+        *ofs = ((SymOffExp *)e)->offset;
     if (e->op == TOKdotvar)
     {
         Expression *ex = ((DotVarExp *)e)->e1;
@@ -607,11 +609,19 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
 */
 bool pointToSameMemoryBlock(Expression *agg1, Expression *agg2)
 {
+    // For integers cast to pointers, we regard them as non-comparable
+    // unless they are identical. (This may be overly strict).
+    if (agg1->op == TOKint64 && agg2->op == TOKint64
+        && agg1->toInteger() == agg2->toInteger())
+        return true;
+
     // Note that type painting can occur with VarExp, so we
     // must compare the variables being pointed to.
     return agg1 == agg2 ||
             (agg1->op == TOKvar && agg2->op == TOKvar &&
-            ((VarExp *)agg1)->var == ((VarExp *)agg2)->var);
+            ((VarExp *)agg1)->var == ((VarExp *)agg2)->var) ||
+            (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
+            ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var);
 }
 
 // return e1 - e2 as an integer, or error if not possible
@@ -630,10 +640,15 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
     {
         if (((StringExp *)agg1)->string == ((StringExp *)agg2)->string)
         {
-        Type *pointee = ((TypePointer *)agg1->type)->next;
-        dinteger_t sz = pointee->size();
-        return new IntegerExp(loc, (ofs1-ofs2)*sz, type);
+            Type *pointee = ((TypePointer *)agg1->type)->next;
+            dinteger_t sz = pointee->size();
+            return new IntegerExp(loc, (ofs1-ofs2)*sz, type);
         }
+    }
+    else if (agg1->op == TOKsymoff && agg2->op == TOKsymoff &&
+            ((SymOffExp *)agg1)->var == ((SymOffExp *)agg2)->var)
+    {
+        return new IntegerExp(loc, ofs1-ofs2, type);
     }
     error(loc, "%s - %s cannot be interpreted at compile time: cannot subtract "
         "pointers to two different memory blocks",
@@ -655,21 +670,36 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     if (eptr->op == TOKaddress)
         eptr = ((AddrExp *)eptr)->e1;
     Expression *agg1 = getAggregateFromPointer(eptr, &ofs1);
-    if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
+    if (agg1->op == TOKsymoff)
+    {
+        if (((SymOffExp *)agg1)->var->type->ty != Tsarray)
+        {
+            error(loc, "cannot perform pointer arithmetic on arrays of unknown length at compile time");
+            return EXP_CANT_INTERPRET;
+        }
+    }
+    else if (agg1->op != TOKstring && agg1->op != TOKarrayliteral)
     {
         error(loc, "cannot perform pointer arithmetic on non-arrays at compile time");
         return EXP_CANT_INTERPRET;
     }
     ofs2 = e2->toInteger();
     Type *pointee = ((TypePointer *)agg1->type)->next;
+    sinteger_t indx = ofs1;
     dinteger_t sz = pointee->size();
-    Expression *dollar = ArrayLength(Type::tsize_t, agg1);
-    assert(dollar != EXP_CANT_INTERPRET);
+    Expression *dollar;
+    if (agg1->op == TOKsymoff)
+    {
+        dollar = ((TypeSArray *)(((SymOffExp *)agg1)->var->type))->dim;
+        indx = ofs1/sz;
+    }
+    else
+    {
+        dollar = ArrayLength(Type::tsize_t, agg1);
+        assert(dollar != EXP_CANT_INTERPRET);
+    }
     dinteger_t len = dollar->toInteger();
 
-    Expression *val = agg1;
-    TypeArray *tar = (TypeArray *)val->type;
-    sinteger_t indx = ofs1;
     if (op == TOKadd || op == TOKaddass || op == TOKplusplus)
         indx = indx + ofs2/sz;
     else if (op == TOKmin || op == TOKminass || op == TOKminusminus)
@@ -679,14 +709,24 @@ Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
         error(loc, "CTFE Internal compiler error: bad pointer operation");
         return EXP_CANT_INTERPRET;
     }
-    if (val->op != TOKarrayliteral && val->op != TOKstring)
-    {
-        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
-        return EXP_CANT_INTERPRET;
-    }
+
     if (indx < 0 || indx > len)
     {
         error(loc, "cannot assign pointer to index %lld inside memory block [0..%lld]", indx, len);
+        return EXP_CANT_INTERPRET;
+    }
+
+    if (agg1->op == TOKsymoff)
+    {
+        SymOffExp *se = new SymOffExp(loc, ((SymOffExp *)agg1)->var, indx*sz);
+        se->type = type;
+        return se;
+    }
+
+    Expression *val = agg1;
+    if (val->op != TOKarrayliteral && val->op != TOKstring)
+    {
+        error(loc, "CTFE Internal compiler error: pointer arithmetic %s", val->toChars());
         return EXP_CANT_INTERPRET;
     }
 
@@ -1879,6 +1919,8 @@ bool isCtfeValueValid(Expression *newval)
     {
         if (((SymOffExp *)newval)->var->isFuncDeclaration())
             return true;
+        if (((SymOffExp *)newval)->var->isDataseg())
+            return true;    // pointer to static variable
     }
     if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
         newval->op == TOKchar || newval->op == TOKcomplex80)

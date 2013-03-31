@@ -1462,6 +1462,32 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
         return EXP_CANT_INTERPRET;
     }
     Type *pointee = ((TypePointer *)type)->next;
+    if ( var->isThreadlocal())
+    {
+        error("cannot take address of thread-local variable %s at compile time", var->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+    // Check for taking an address of a shared variable.
+    // If the shared variable is an array, the offset might not be zero.
+    VarDeclaration *vd = var->isVarDeclaration();
+    Type *fromType = NULL;
+    if (var->type->ty == Tarray || var->type->ty == Tsarray)
+    {
+        fromType = ((TypeArray *)(var->type))->next;
+    }
+    if ( var->isDataseg() && (
+         (offset == 0 && isSafePointerCast(var->type, pointee)) ||
+         (fromType && isSafePointerCast(fromType, pointee))
+        ) && !(vd && vd->init &&
+#if DMDV2
+        (var->isConst() || var->isImmutable())
+#else
+        var>isConst()
+#endif
+        ))
+    {
+        return this;
+    }
     Expression *val = getVarExp(loc, istate, var, goal);
     if (val == EXP_CANT_INTERPRET)
         return val;
@@ -3095,6 +3121,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (aggregate->op != TOKslice && aggregate->op != TOKstring &&
                 aggregate->op != TOKarrayliteral && aggregate->op != TOKassocarrayliteral)
             {
+                if (aggregate->op == TOKsymoff)
+                {
+                    error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
                 if (indexToModify != 0)
                 {
                     error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
@@ -3245,6 +3276,11 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
             && oldval->op != TOKslice && oldval->op != TOKnull)
         {
+            if (oldval->op == TOKsymoff)
+            {
+                error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
+                return EXP_CANT_INTERPRET;
+            }
             if (assignmentToSlicedPointer)
             {
                 error("pointer %s cannot be sliced at compile time (it does not point to an array)",
@@ -4221,6 +4257,11 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         }
         else
         {   // Pointer to a non-array variable
+            if (agg->op == TOKsymoff)
+            {
+                    error("mutable variable %s cannot be read at compile time, even through a pointer", ((SymOffExp *)agg)->var->toChars());
+                    return EXP_CANT_INTERPRET;
+            }
             if ((indx + ofs) != 0)
             {
                 error("pointer index [%lld] lies outside memory block [0..1]",
@@ -4372,6 +4413,11 @@ Expression *SliceExp::interpret(InterState *istate, CtfeGoal goal)
                 return e;
             }
             error("cannot slice null pointer %s", this->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        if (agg->op == TOKsymoff)
+        {
+            error("slicing pointers to static variables is not supported in CTFE");
             return EXP_CANT_INTERPRET;
         }
         if (agg->op != TOKarrayliteral && agg->op != TOKstring)
@@ -4675,17 +4721,21 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
                 return e;
             }
         }
-        if (e1->op == TOKvar)
+        if (e1->op == TOKvar || e1->op == TOKsymoff)
         {   // type painting operation
-            Type *origType = ((VarExp *)e1)->var->type;
+            Type *origType = (e1->op == TOKvar) ? ((VarExp *)e1)->var->type :
+                    ((SymOffExp *)e1)->var->type;
             if (castBackFromVoid && !isSafePointerCast(origType, pointee))
             {
                 error("using void* to reinterpret cast from %s* to %s* is not supported in CTFE",
                     origType->toChars(), pointee->toChars());
                 return EXP_CANT_INTERPRET;
             }
-            e = new VarExp(loc, ((VarExp *)e1)->var);
-            e->type = type;
+            if (e1->op == TOKvar)
+                e = new VarExp(loc, ((VarExp *)e1)->var);
+            else
+                e = new SymOffExp(loc, ((SymOffExp *)e1)->var, 0);
+            e->type = to;
             return e;
         }
 
@@ -4840,7 +4890,10 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
         if (!(e->op == TOKvar || e->op == TOKdotvar || e->op == TOKindex
             || e->op == TOKslice || e->op == TOKaddress))
         {
-            error("dereference of invalid pointer '%s'", e->toChars());
+            if (e->op == TOKsymoff)
+                error("cannot dereference pointer to static variable %s at compile time", ((SymOffExp *)e)->var->toChars());
+            else
+                error("dereference of invalid pointer '%s'", e->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (goal != ctfeNeedLvalue)
