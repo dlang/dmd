@@ -452,7 +452,10 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     {
         m = MATCHconst;
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (*elements)[i];
+        {
+            Expression *e = (*elements)[i];
+            if (!e)
+                continue;
             Type *te = e->type;
             te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
