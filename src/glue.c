@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -904,7 +904,7 @@ void FuncDeclaration::toObjFile(int multiobj)
              *     _c_trace_epi();
              */
             StringExp *se = new StringExp(0, s->Sident);
-            se->type = new TypeDArray(Type::tchar->invariantOf());
+            se->type = new TypeDArray(Type::tchar);
             se->type = se->type->semantic(0, NULL);
             Expressions *exps = new Expressions();
             exps->push(se);
@@ -921,7 +921,7 @@ void FuncDeclaration::toObjFile(int multiobj)
             Statement *sf = new ExpStatement(loc, e);
 
             Statement *stf;
-            if (sbody->blockExit(tf->isnothrow) == BEfallthru)
+            if (sbody->blockExit(false) == BEfallthru)
                 stf = new CompoundStatement(0, sbody, sf);
             else
                 stf = new TryFinallyStatement(0, sbody, sf);
