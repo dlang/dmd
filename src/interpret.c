@@ -1887,6 +1887,12 @@ Expression *TupleExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
     Expressions *expsx = NULL;
 
+    if (e0)
+    {
+        if (e0->interpret(istate) == EXP_CANT_INTERPRET)
+            return EXP_CANT_INTERPRET;
+    }
+
     for (size_t i = 0; i < exps->dim; i++)
     {   Expression *e = (*exps)[i];
         Expression *ex;

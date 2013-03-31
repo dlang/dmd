@@ -136,7 +136,8 @@ int StructLiteralExp::apply(fp_t fp, void *param)
 
 int TupleExp::apply(fp_t fp, void *param)
 {
-    return condApply(exps, fp, param) ||
+    return (e0 ? (*fp)(e0, param) : 0) ||
+           condApply(exps, fp, param) ||
            (*fp)(this, param);
 }
 

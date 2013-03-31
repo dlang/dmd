@@ -7863,27 +7863,24 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
+        Expression *e0 = NULL;
         Expression *ev = e;
-        for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields[i];
-            Expression *fe;
-            if (i == 0 && sc->func && sym->fields.dim > 1 &&
-                e->hasSideEffect())
-            {
-                Identifier *id = Lexer::uniqueId("__tup");
-                ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-                vd->storage_class |= STCctfe | STCref | STCforeach;
+        if (sc->func && sym->fields.dim > 1 && e->hasSideEffect())
+        {
+            Identifier *id = Lexer::uniqueId("__tup");
+            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
+            vd->storage_class |= STCctfe | STCref | STCforeach;
 
-                ev = new VarExp(e->loc, vd);
-                fe = new CommaExp(e->loc, new DeclarationExp(e->loc, vd), ev);
-                fe = new DotVarExp(e->loc, fe, v);
-            }
-            else
-                fe = new DotVarExp(ev->loc, ev, v);
-            exps->push(fe);
+            e0 = new DeclarationExp(e->loc, vd);
+            ev = new VarExp(e->loc, vd);
         }
-        e = new TupleExp(e->loc, exps);
+        for (size_t i = 0; i < sym->fields.dim; i++)
+        {
+            VarDeclaration *v = sym->fields[i];
+            exps->push(new DotVarExp(ev->loc, ev, v));
+        }
+        e = new TupleExp(e->loc, e0, exps);
         sc = sc->push();
         sc->noaccesscheck = 1;
         e = e->semantic(sc);
@@ -8017,9 +8014,9 @@ L1:
         /* It's:
          *    Struct.d
          */
-        if (d->isTupleDeclaration())
+        if (TupleDeclaration *tup = d->isTupleDeclaration())
         {
-            e = new TupleExp(e->loc, d->isTupleDeclaration());
+            e = new TupleExp(e->loc, tup);
             e = e->semantic(sc);
             return e;
         }
@@ -8435,30 +8432,26 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)
         Expressions *exps = new Expressions;
         exps->reserve(sym->fields.dim);
 
+        Expression *e0 = NULL;
         Expression *ev = e;
+        if (sc->func && sym->fields.dim > 1 && e->hasSideEffect())
+        {
+            Identifier *id = Lexer::uniqueId("__tup");
+            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
+            vd->storage_class |= STCctfe | STCref | STCforeach;
+
+            e0 = new DeclarationExp(e->loc, vd);
+            ev = new VarExp(e->loc, vd);
+        }
         for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *v = sym->fields[i];
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
-            Expression *fe;
-            if (i == 0 && sc->func && sym->fields.dim > 1 &&
-                e->hasSideEffect())
-            {
-                Identifier *id = Lexer::uniqueId("__tup");
-                ExpInitializer *ei = new ExpInitializer(e->loc, e);
-                VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
-                vd->storage_class |= STCctfe | STCref | STCforeach;
-
-                ev = new VarExp(e->loc, vd);
-                fe = new CommaExp(e->loc, new DeclarationExp(e->loc, vd), ev);
-                fe = new DotVarExp(e->loc, fe, v);
-            }
-            else
-                fe = new DotVarExp(e->loc, ev, v);
-            exps->push(fe);
+            exps->push(new DotVarExp(ev->loc, ev, v));
         }
-        e = new TupleExp(e->loc, exps);
+        e = new TupleExp(e->loc, e0, exps);
         sc = sc->push();
         sc->noaccesscheck = 1;
         e = e->semantic(sc);
@@ -8672,9 +8665,9 @@ L1:
         /* It's:
          *    Class.d
          */
-        if (d->isTupleDeclaration())
+        if (TupleDeclaration *tup = d->isTupleDeclaration())
         {
-            e = new TupleExp(e->loc, d->isTupleDeclaration());
+            e = new TupleExp(e->loc, tup);
             e = e->semantic(sc);
             return e;
         }

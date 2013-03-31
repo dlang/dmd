@@ -203,9 +203,11 @@ Expression *VarExp::optimize(int result, bool keepLvalue)
 
 Expression *TupleExp::optimize(int result, bool keepLvalue)
 {
+    if (e0)
+        e0 = e0->optimize(WANTvalue | (result & WANTinterpret));
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
+    {
+        Expression *e = (*exps)[i];
         e = e->optimize(WANTvalue | (result & WANTinterpret));
         (*exps)[i] = e;
     }

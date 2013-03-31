@@ -1519,7 +1519,9 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
 
 Expression *TupleExp::castTo(Scope *sc, Type *t)
-{   TupleExp *e = (TupleExp *)copy();
+{
+    TupleExp *e = (TupleExp *)copy();
+    e->e0 = e0 ? e0->copy() : NULL;
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
     {   Expression *ex = (*e->exps)[i];
