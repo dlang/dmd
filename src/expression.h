@@ -412,8 +412,17 @@ struct StringExp : Expression
 
 struct TupleExp : Expression
 {
+    Expression *e0;     // side-effect part
+    /* Tuple-field access may need to take out its side effect part.
+     * For example:
+     *      foo().tupleof
+     * is rewritten as:
+     *      (ref __tup = foo(); tuple(__tup.field0, __tup.field1, ...))
+     * The declaration of temporary variable __tup will be stored in TupleExp::e0.
+     */
     Expressions *exps;
 
+    TupleExp(Loc loc, Expression *e0, Expressions *exps);
     TupleExp(Loc loc, Expressions *exps);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();

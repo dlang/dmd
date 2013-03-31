@@ -620,12 +620,13 @@ void expandTuples(Expressions *exps)
 
             // Inline expand all the tuples
             while (arg->op == TOKtuple)
-            {   TupleExp *te = (TupleExp *)arg;
-
+            {
+                TupleExp *te = (TupleExp *)arg;
                 exps->remove(i);                // remove arg
                 exps->insert(i, te->exps);      // replace with tuple contents
                 if (i == exps->dim)
                     return;             // empty tuple, no more arguments
+                (*exps)[i] = Expression::combine(te->e0, (*exps)[i]);
                 arg = (*exps)[i];
             }
         }
@@ -5216,22 +5217,29 @@ Expression *OverExp::toLvalue(Scope *sc, Expression *e)
 
 /******************************** TupleExp **************************/
 
+TupleExp::TupleExp(Loc loc, Expression *e0, Expressions *exps)
+        : Expression(loc, TOKtuple, sizeof(TupleExp))
+{
+    //printf("TupleExp(this = %p)\n", this);
+    this->e0 = e0;
+    this->exps = exps;
+}
+
 TupleExp::TupleExp(Loc loc, Expressions *exps)
         : Expression(loc, TOKtuple, sizeof(TupleExp))
 {
     //printf("TupleExp(this = %p)\n", this);
+    this->e0 = NULL;
     this->exps = exps;
-    this->type = NULL;
 }
-
 
 TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
         : Expression(loc, TOKtuple, sizeof(TupleExp))
 {
-    exps = new Expressions();
-    type = NULL;
+    this->e0 = NULL;
+    this->exps = new Expressions();
 
-    exps->reserve(tup->objects->dim);
+    this->exps->reserve(tup->objects->dim);
     for (size_t i = 0; i < tup->objects->dim; i++)
     {   Object *o = (*tup->objects)[i];
         if (o->dyncast() == DYNCAST_EXPRESSION)
@@ -5239,19 +5247,19 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
             Expression *e = (Expression *)o;
             if (e->op == TOKdsymbol)
                 e = e->syntaxCopy();
-            exps->push(e);
+            this->exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_DSYMBOL)
         {
             Dsymbol *s = (Dsymbol *)o;
             Expression *e = new DsymbolExp(loc, s);
-            exps->push(e);
+            this->exps->push(e);
         }
         else if (o->dyncast() == DYNCAST_TYPE)
         {
             Type *t = (Type *)o;
             Expression *e = new TypeExp(loc, t);
-            exps->push(e);
+            this->exps->push(e);
         }
         else
         {
@@ -5269,6 +5277,8 @@ int TupleExp::equals(Object *o)
         TupleExp *te = (TupleExp *)o;
         if (exps->dim != te->exps->dim)
             return 0;
+        if (e0 && !e0->equals(te->e0) || !e0 && te->e0)
+            return 0;
         for (size_t i = 0; i < exps->dim; i++)
         {   Expression *e1 = (*exps)[i];
             Expression *e2 = (*te->exps)[i];
@@ -5283,7 +5293,7 @@ int TupleExp::equals(Object *o)
 
 Expression *TupleExp::syntaxCopy()
 {
-    return new TupleExp(loc, arraySyntaxCopy(exps));
+    return new TupleExp(loc, e0 ? e0->syntaxCopy() : NULL, arraySyntaxCopy(exps));
 }
 
 Expression *TupleExp::semantic(Scope *sc)
@@ -5293,6 +5303,9 @@ Expression *TupleExp::semantic(Scope *sc)
 #endif
     if (type)
         return this;
+
+    if (e0)
+        e0 = e0->semantic(sc);
 
     // Run semantic() on each argument
     for (size_t i = 0; i < exps->dim; i++)
@@ -5315,9 +5328,20 @@ Expression *TupleExp::semantic(Scope *sc)
 
 void TupleExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("tuple(");
-    argsToCBuffer(buf, exps, hgs);
-    buf->writeByte(')');
+    if (e0)
+    {
+        buf->writeByte('(');
+        e0->toCBuffer(buf, hgs);
+        buf->writestring(", tuple(");
+        argsToCBuffer(buf, exps, hgs);
+        buf->writestring("))");
+    }
+    else
+    {
+        buf->writestring("tuple(");
+        argsToCBuffer(buf, exps, hgs);
+        buf->writeByte(')');
+    }
 }
 
 
@@ -6800,7 +6824,8 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             e = new DotIdExp(e->loc, e, Id::offsetof);
             (*exps)[i] = e;
         }
-        e = new TupleExp(loc, exps);
+        // Don't evaluate te->e0 in runtime
+        e = new TupleExp(loc, /*te->e0*/NULL, exps);
         e = e->semantic(sc);
         return e;
     }
@@ -6809,6 +6834,7 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     if (e1->op == TOKtuple && ident == Id::length)
     {
         TupleExp *te = (TupleExp *)e1;
+        // Don't evaluate te->e0 in runtime
         e = new IntegerExp(loc, te->exps->dim, Type::tsize_t);
         return e;
     }
@@ -7100,8 +7126,21 @@ Expression *DotVarExp::semantic(Scope *sc)
              * with:
              *  tuple(e1.a, e1.b, e1.c)
              */
+            e1 = e1->semantic(sc);
             Expressions *exps = new Expressions;
+            Expression *e0 = NULL;
             Expression *ev = e1;
+            if (sc->func && tup->objects->dim > 1 && e1->hasSideEffect())
+            {
+                Identifier *id = Lexer::uniqueId("__tup");
+                ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
+                VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
+                v->storage_class |= STCctfe | STCref | STCforeach;
+                e0 = new DeclarationExp(e1->loc, v);
+                ev = new VarExp(e1->loc, v);
+                e0 = e0->semantic(sc);
+                ev = ev->semantic(sc);
+            }
 
             exps->reserve(tup->objects->dim);
             for (size_t i = 0; i < tup->objects->dim; i++)
@@ -7113,20 +7152,7 @@ Expression *DotVarExp::semantic(Scope *sc)
                     if (e->op == TOKdsymbol)
                     {
                         Dsymbol *s = ((DsymbolExp *)e)->s;
-                        if (i == 0 && sc->func && tup->objects->dim > 1 &&
-                            e1->hasSideEffect())
-                        {
-                            Identifier *id = Lexer::uniqueId("__tup");
-                            ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
-                            VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
-                            v->storage_class |= STCctfe | STCref | STCforeach;
-
-                            ev = new VarExp(e->loc, v);
-                            e = new CommaExp(e1->loc, new DeclarationExp(e1->loc, v), ev);
-                            e = new DotVarExp(loc, e, s->isDeclaration());
-                        }
-                        else
-                            e = new DotVarExp(loc, ev, s->isDeclaration());
+                        e = new DotVarExp(loc, ev, s->isDeclaration());
                     }
                 }
                 else if (o->dyncast() == DYNCAST_DSYMBOL)
@@ -7144,7 +7170,7 @@ Expression *DotVarExp::semantic(Scope *sc)
                 }
                 exps->push(e);
             }
-            Expression *e = new TupleExp(loc, exps);
+            Expression *e = new TupleExp(loc, e0, exps);
             e = e->semantic(sc);
             return e;
         }
@@ -9539,13 +9565,7 @@ Lagain:
                 {   Expression *e = (*te->exps)[j1 + i];
                     (*exps)[i] = e;
                 }
-                if (j1 > 0 && j1 != j2 && sc->func && (*te->exps)[0]->op == TOKdotvar)
-                {
-                    Expression *einit = ((DotVarExp *)(*te->exps)[0])->e1->isTemp();
-                    if (einit)
-                        ((DotVarExp *)(*exps)[0])->e1 = einit;
-                }
-                e = new TupleExp(loc, exps);
+                e = new TupleExp(loc, te->e0, exps);
             }
             else
             {   Parameters *args = new Parameters;
@@ -10039,12 +10059,7 @@ Expression *IndexExp::semantic(Scope *sc)
                 if (e1->op == TOKtuple)
                 {
                     e = (*te->exps)[(size_t)index];
-                    if (sc->func && (*te->exps)[0]->op == TOKdotvar)
-                    {
-                        Expression *einit = ((DotVarExp *)(*te->exps)[0])->e1->isTemp();
-                        if (einit)
-                            ((DotVarExp *)e)->e1 = einit;
-                    }
+                    e = combine(te->e0, e);
                 }
                 else
                     e = new TypeExp(e1->loc, Parameter::getNth(tup->arguments, (size_t)index)->type);
@@ -10551,15 +10566,17 @@ Ltupleassign:
             return new ErrorExp();
         }
         else
-        {   Expressions *exps = new Expressions;
+        {
+            Expressions *exps = new Expressions;
             exps->setDim(dim);
 
+            Expression *e0 = combine(tup1->e0, tup2->e0);
             for (size_t i = 0; i < dim; i++)
             {   Expression *ex1 = (*tup1->exps)[i];
                 Expression *ex2 = (*tup2->exps)[i];
                 (*exps)[i] =  new AssignExp(loc, ex1, ex2);
             }
-            Expression *e = new TupleExp(loc, exps);
+            Expression *e = new TupleExp(loc, e0, exps);
             e = e->semantic(sc);
             return e;
         }
@@ -10576,11 +10593,12 @@ Ltupleassign:
             ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
             VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
             v->storage_class = STCctfe | STCref | STCforeach;
-            Expression *ve = new VarExp(e2->loc, v);
-            ve->type = e2->type;
+            Expression *e0 = new DeclarationExp(e2->loc, v);
+            Expression *ev = new VarExp(e2->loc, v);
+            ev->type = e2->type;
 
             Expressions *iexps = new Expressions();
-            iexps->push(ve);
+            iexps->push(ev);
 
             for (size_t u = 0; u < iexps->dim ; u++)
             {
@@ -10601,8 +10619,7 @@ Ltupleassign:
                     goto Lnomatch;
                 }
             }
-            (*iexps)[0] = new CommaExp(loc, new DeclarationExp(e2->loc, v), (*iexps)[0]);
-            e2 = new TupleExp(e2->loc, iexps);
+            e2 = new TupleExp(e2->loc, e0, iexps);
             e2 = e2->semantic(sc);
             goto Ltupleassign;
 

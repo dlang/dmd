@@ -869,6 +869,8 @@ Expression *TupleExp::doInline(InlineDoState *ids)
     TupleExp *ce;
 
     ce = (TupleExp *)copy();
+    if (e0)
+        ce->e0 = e0->doInline(ids);
     ce->exps = arrayExpressiondoInline(exps, ids);
     return ce;
 }
@@ -1342,6 +1344,8 @@ Expression *TupleExp::inlineScan(InlineScanState *iss)
 {   Expression *e = this;
 
     //printf("TupleExp::inlineScan()\n");
+    if (e0)
+        e0->inlineScan(iss);
     arrayInlineScan(iss, exps);
 
     return e;
