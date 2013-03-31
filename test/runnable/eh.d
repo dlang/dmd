@@ -580,6 +580,45 @@ void test9568()
 
 /****************************************************/
 
+void test8()
+{
+  int a;
+  goto L2;    // L2 is not addressable.
+
+  try {
+      a += 2;
+  }
+  catch (Exception e) {
+      a += 3;
+L2: ;
+      a += 100;
+  }
+  assert(a == 100);
+}
+
+/****************************************************/
+
+uint foo9(uint i)
+{
+    try
+    {
+        ++i;
+        return 3;
+    }
+    catch (Exception e)
+    {
+        debug printf("Exception happened\n");
+    }
+    return 4;
+}
+
+void test9()
+{
+    assert(foo9(7) == 3);
+}
+
+/****************************************************/
+
 int main()
 {
     printf("start\n");
@@ -596,6 +635,9 @@ int main()
     collideMixed();
     multicollide();
     test9568();
+
+    test8();
+    test9();
 
     printf("finish\n");
     return 0;
