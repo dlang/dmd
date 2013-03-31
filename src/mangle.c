@@ -260,7 +260,7 @@ char *TemplateInstance::mangle(bool isv)
         error("is not defined");
     else
     {
-        Dsymbol *par = isnested || isTemplateMixin() ? parent : tempdecl->parent;
+        Dsymbol *par = enclosing || isTemplateMixin() ? parent : tempdecl->parent;
         if (par)
         {
             char *p = par->mangle();

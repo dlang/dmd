@@ -505,7 +505,7 @@ void ClassDeclaration::semantic(Scope *sc)
         com = baseClass->isCOMclass();
         isscope = baseClass->isscope;
         vthis = baseClass->vthis;
-        isnested = baseClass->isnested;
+        enclosing = baseClass->enclosing;
         storage_class |= baseClass->storage_class & STC_TYPECTOR;
     }
     else
@@ -553,7 +553,7 @@ void ClassDeclaration::semantic(Scope *sc)
                         baseClass->toChars(),
                         baseClass->toParent2()->toChars());
                 }
-                isnested = NULL;
+                enclosing = NULL;
             }
         }
         else
@@ -590,7 +590,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (baseClass)
     {   sc->offset = baseClass->structsize;
         alignsize = baseClass->alignsize;
-//      if (isnested)
+//      if (enclosing)
 //          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
     else
