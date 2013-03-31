@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -4634,7 +4634,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
 #if DMDV2
             deprecation("volatile statements deprecated; use synchronized statements instead");
 #endif
-            s = new VolatileStatement(loc, s);
+            s = new SynchronizedStatement(loc, (Expression *)NULL, s);
             break;
 
         case TOKasm:
