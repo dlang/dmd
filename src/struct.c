@@ -472,7 +472,7 @@ void StructDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    int errors = global.gaggedErrors;
+    int errors = global.errors;
 
     unsigned dprogress_save = Module::dprogress;
 
@@ -701,8 +701,8 @@ void StructDeclaration::semantic(Scope *sc)
         semantic3(sc);
     }
 
-    if (global.gag && global.gaggedErrors != errors)
-    {   // The type is no good, yet the error messages were gagged.
+    if (global.errors != errors)
+    {   // The type is no good.
         type = Type::terror;
     }
 
@@ -716,7 +716,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
     {
         printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d %s, sym = %p\n", type->ty, type->toChars(), ((TypeStruct *)type)->sym);
+        printf("type = %d sym = %p\n", type->ty, ((TypeStruct *)type)->sym);
     }
 #endif
     assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);

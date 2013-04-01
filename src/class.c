@@ -297,7 +297,7 @@ void ClassDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
     unsigned dprogress_save = Module::dprogress;
-    int errors = global.gaggedErrors;
+    int errors = global.errors;
 
     if (sc->stc & STCdeprecated)
     {
@@ -637,8 +637,8 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     sc->offset = structsize;
 
-    if (global.gag && global.gaggedErrors != errors)
-    {   // The type is no good, yet the error messages were gagged.
+    if (global.errors != errors)
+    {   // The type is no good.
         type = Type::terror;
     }
 
@@ -783,6 +783,15 @@ void ClassDeclaration::semantic(Scope *sc)
         deferred->semantic2(sc);
         deferred->semantic3(sc);
     }
+
+#if 0
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+    }
+#endif
+    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1251,7 +1260,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
         scope = NULL;
     }
 
-    int errors = global.gaggedErrors;
+    int errors = global.errors;
 
     if (sc->stc & STCdeprecated)
     {
@@ -1426,8 +1435,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
         s->semantic(sc);
     }
 
-    if (global.gag && global.gaggedErrors != errors)
-    {   // The type is no good, yet the error messages were gagged.
+    if (global.errors != errors)
+    {   // The type is no good.
         type = Type::terror;
     }
 
@@ -1435,6 +1444,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
     //members->print();
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
+
+#if 0
+    if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
+    {
+        printf("this = %p %s\n", this, this->toChars());
+        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+    }
+#endif
+    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 
