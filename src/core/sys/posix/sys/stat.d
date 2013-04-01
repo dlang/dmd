@@ -298,6 +298,55 @@ version( linux )
             c_long[14]  st_pad5;
         }
     }
+    else version (PPC)
+    {
+        struct stat_t
+        {
+            c_ulong     st_dev;
+            ino_t       st_ino;
+            mode_t      st_mode;
+            nlink_t     st_nlink;
+            uid_t       st_uid;
+            gid_t       st_gid;
+            c_ulong     st_rdev;
+            off_t       st_size;
+            c_ulong     st_blksize;
+            c_ulong     st_blocks;
+            c_ulong     st_atime;
+            c_ulong     st_atime_nsec;
+            c_ulong     st_mtime;
+            c_ulong     st_mtime_nsec;
+            c_ulong     st_ctime;
+            c_ulong     st_ctime_nsec;
+            c_ulong     __unused4;
+            c_ulong     __unused5;
+        }
+    }
+    else version (PPC64)
+    {
+        struct stat_t
+        {
+            c_ulong     st_dev;
+            ino_t       st_ino;
+            nlink_t     st_nlink;
+            mode_t      st_mode;
+            uid_t       st_uid;
+            gid_t       st_gid;
+            c_ulong     st_rdev;
+            off_t       st_size;
+            c_ulong     st_blksize;
+            c_ulong     st_blocks;
+            c_ulong     st_atime;
+            c_ulong     st_atime_nsec;
+            c_ulong     st_mtime;
+            c_ulong     st_mtime_nsec;
+            c_ulong     st_ctime;
+            c_ulong     st_ctime_nsec;
+            c_ulong     __unused4;
+            c_ulong     __unused5;
+            c_ulong     __unused6;
+        }
+    }
     else
         static assert(0, "unimplemented");
 
@@ -578,13 +627,13 @@ else version (Solaris)
     enum S_ISVTX = 0x200;
 
     private
-    {   
+    {
         extern (D) bool S_ISTYPE(mode_t mode, uint mask)
         {
             return (mode & S_IFMT) == mask;
         }
     }
-      
+
     extern (D) bool S_ISBLK(mode_t mode) { return S_ISTYPE(mode, S_IFBLK); }
     extern (D) bool S_ISCHR(mode_t mode) { return S_ISTYPE(mode, S_IFCHR); }
     extern (D) bool S_ISDIR(mode_t mode) { return S_ISTYPE(mode, S_IFDIR); }
