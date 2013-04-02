@@ -7874,6 +7874,14 @@ void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         buf->writestring(sym->toChars());
 }
 
+Expression *TypeStruct::getProperty(Loc loc, Identifier *ident)
+{
+    Expression *e = Type::getProperty(loc, ident);
+    if (sym->type == Type::terror)
+        e = new ErrorExp();
+    return e;
+}
+
 Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident)
 {
     VarDeclaration *v;
@@ -8417,6 +8425,14 @@ void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
         return;
     }
     buf->writestring(sym->toChars());
+}
+
+Expression *TypeClass::getProperty(Loc loc, Identifier *ident)
+{
+    Expression *e = Type::getProperty(loc, ident);
+    if (sym->type == Type::terror)
+        e = new ErrorExp();
+    return e;
 }
 
 Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident)

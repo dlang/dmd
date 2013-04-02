@@ -96,3 +96,25 @@ static if (is(typeof(X7.init))) {}
 alias d7[1] X7;
 
 /***************************************/
+// 9879
+/*
+TEST_OUTPUT:
+---
+fail_compilation/fail4269.d(112): Error: undefined identifier SX8, did you mean struct S8?
+fail_compilation/fail4269.d(113): Error: undefined identifier CX8, did you mean class C8?
+fail_compilation/fail4269.d(117): Error: undefined identifier SX9, did you mean struct S9?
+fail_compilation/fail4269.d(118): Error: undefined identifier CX9, did you mean class C9?
+---
+*/
+
+static if (__traits(compiles, S8.sizeof)) pragma(msg, "S8.sizeof compiles!");
+static if (__traits(compiles, C8.sizeof)) pragma(msg, "C8.sizeof compiles!");
+struct S8 { void foo(SX8 b); }
+class  C8 { void foo(CX8 b); }
+
+static if (is(typeof(S9.sizeof))) pragma(msg, "S9.sizeof compiles!");
+static if (is(typeof(C9.sizeof))) pragma(msg, "C9.sizeof compiles!");
+struct S9 { void foo(SX9 b); }
+class  C9 { void foo(CX9 b); }
+
+/***************************************/

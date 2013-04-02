@@ -578,7 +578,9 @@ Expression *TraitsExp::semantic(Scope *sc)
 
             sc->speculative = scSpec;
             global.speculativeGag = oldspec;
-            if (global.endGagging(errors))
+            if (global.endGagging(errors) ||
+                t && t->ty == Terror ||
+                e && e->type->ty == Terror)
             {
                 goto Lfalse;
             }
