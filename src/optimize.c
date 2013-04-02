@@ -70,7 +70,10 @@ Expression *expandVar(int result, VarDeclaration *v)
                 }
                 if (v->scope)
                 {
+                    v->inuse++;
                     v->init->semantic(v->scope, v->type, INITinterpret);
+                    v->scope = NULL;
+                    v->inuse--;
                 }
                 Expression *ei = v->init->toExpression(v->type);
                 if (!ei)
@@ -101,18 +104,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                     else
                         goto L1;
                 }
-                if (v->scope)
-                {
-                    v->inuse++;
-                    e = ei->syntaxCopy();
-                    e = e->semantic(v->scope);
-                    e = e->implicitCastTo(v->scope, v->type);
-                    // enabling this line causes test22 in test suite to fail
-                    //ei->type = e->type;
-                    v->scope = NULL;
-                    v->inuse--;
-                }
-                else if (!ei->type)
+                if (!ei->type)
                 {
                     goto L1;
                 }

@@ -1628,6 +1628,11 @@ Lnomatch:
                     type = Type::terror;
                 }
             }
+            else
+            {
+                scope = scx ? scx : new Scope(*sc);
+                scope->setNoFree();
+            }
         }
         sc = sc->pop();
     }

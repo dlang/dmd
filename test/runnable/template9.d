@@ -2042,6 +2042,42 @@ void test9536()
 }
 
 /******************************************/
+// 9806
+
+struct S9806a(alias x)
+{
+    alias S9806a!0 N;
+}
+enum expr9806a = 0 * 0;
+alias S9806a!expr9806a T9806a;
+
+// --------
+
+struct S9806b(alias x)
+{
+    template Next()
+    {
+        enum expr = x + 1;
+        alias S9806b!expr Next;
+    }
+}
+alias S9806b!1 One9806b;
+alias S9806b!0.Next!() OneAgain9806b;
+
+// --------
+
+struct S9806c(x...)
+{
+    template Next()
+    {
+        enum expr = x[0] + 1;
+        alias S9806c!expr Next;
+    }
+}
+alias S9806c!1 One9806c;
+alias S9806c!0.Next!() OneAgain9806c;
+
+/******************************************/
 // 9837
 
 void test9837()
