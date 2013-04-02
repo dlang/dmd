@@ -2405,6 +2405,53 @@ void test9441()
 
 /**********************************/
 
+struct Payload
+{
+    size_t _capacity; //Comment me
+    int[] _pay;       //Comment me
+
+    size_t insertBack(Data d)
+    {
+        immutable newLen   = _pay.length + 3;
+        _pay.length = newLen;
+        _pay = _pay[0 .. newLen]; //Comment me
+        return 3;
+    }
+}
+
+struct Impl
+{
+    Payload _payload;
+    size_t _count;
+}
+
+struct Data
+{
+    Impl* _store;
+
+    this(int i)
+    {
+        _store = new Impl;
+        _store._payload = Payload.init;
+    }
+
+    ~this()
+    {
+        printf("%d\n", _store._count);
+        --_store._count;
+    }
+}
+
+
+void test9720()
+{
+    auto a = Data(1);
+    auto b = Data(1);
+    a._store._payload.insertBack(b); //Fails
+}
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -2487,6 +2534,7 @@ int main()
     test8335();
     test8356();
     test9441();
+    test9720();
 
     printf("Success\n");
     return 0;
