@@ -8115,27 +8115,18 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         {   if (vd->init->isVoidInitializer())
                 e = NULL;
             else
-                e = vd->init->toExpression();
+            {
+                if (vd->scope)
+                {
+                    vd->inuse++;
+                    vd->init->semantic(vd->scope, vd->type, INITinterpret);
+                    vd->inuse--;
+                }
+                e = vd->init->toExpression(/*vd->type*/);
+            }
         }
         else
             e = vd->type->defaultInitLiteral(loc);
-        if (e && vd->scope)
-        {
-            e = e->semantic(vd->scope);
-
-            Type *telem = vd->type->addMod(this->mod);
-            Type *origType = telem;
-            while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
-            {   /* Static array initialization, as in:
-                 *  T[3][5] = e;
-                 */
-                telem = telem->toBasetype()->nextOf();
-            }
-            if (!e->implicitConvTo(telem))
-                telem = origType;  // restore type for better diagnostic
-
-            e = e->implicitCastTo(vd->scope, telem);
-        }
         offset = vd->offset + vd->type->size();
         (*structelems)[j] = e;
     }

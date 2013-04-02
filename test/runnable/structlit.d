@@ -666,6 +666,28 @@ void test9566()
 }
 
 /********************************************/
+// 9775
+
+enum Month9775 : ubyte { jan = 1, }
+struct Date9775
+{
+    this(int year, int month, int day) pure
+    {
+        _year  = cast(short)year;
+        _month = cast(Month9775)month;
+        _day   = cast(ubyte)day;
+    }
+    short     _year  = 1;
+    Month9775 _month = Month9775.jan;
+    ubyte     _day   = 1;
+}
+
+const Date9775 date9775c1 = Date9775(2012, 12, 21);
+const          date9775c2 = Date9775(2012, 12, 21);
+enum  Date9775 date9775e1 = Date9775(2012, 12, 21);
+enum           date9775e2 = Date9775(2012, 12, 21);
+
+/********************************************/
 
 int main()
 {
