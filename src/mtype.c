@@ -473,6 +473,8 @@ Type *Type::unSharedOf()
         t->wto = NULL;
         t->swto = NULL;
         t->vtinfo = NULL;
+        if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+        if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
         t = t->merge();
 
         t->fixTo(this);
@@ -884,6 +886,8 @@ Type *Type::makeConst()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
 }
@@ -908,6 +912,8 @@ Type *Type::makeInvariant()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
@@ -931,6 +937,8 @@ Type *Type::makeShared()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
@@ -954,6 +962,8 @@ Type *Type::makeSharedConst()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
@@ -977,6 +987,8 @@ Type *Type::makeWild()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
@@ -1000,6 +1012,8 @@ Type *Type::makeSharedWild()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
@@ -1021,6 +1035,8 @@ Type *Type::makeMutable()
     t->swto = NULL;
     t->vtinfo = NULL;
     t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 

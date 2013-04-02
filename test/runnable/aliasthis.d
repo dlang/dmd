@@ -1123,6 +1123,24 @@ struct S9177
 pragma(msg, is(S9177 : int));
 
 /***************************************************/
+// 9858
+
+struct S9858()
+{
+    @property int get() const
+    {
+        return 42;
+    }
+    alias get this;
+    void opAssign(int) {}
+}
+void test9858()
+{
+    const S9858!() s;
+    int i = s;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1161,6 +1179,7 @@ int main()
     test7992();
     test8169();
     test9174();
+    test9858();
 
     printf("Success\n");
     return 0;
