@@ -1999,6 +1999,8 @@ L1:
             unsigned idxtype = I32 ? 0x12 : 0x11;  // T_LONG : T_SHORT
             if (I64)
                 idxtype = 0x23;                    // T_UQUAD
+            if(next == dttab4[TYvoid])    // do not encode void[n], this confuses the debugger
+                next = dttab4[TYuchar];   // use ubyte instead
             switch (config.fulltypes)
             {
                 case CV8:
