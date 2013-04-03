@@ -4182,23 +4182,15 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             {   if (v->init->isVoidInitializer())
                     e = NULL;
                 else
-                {   e = v->init->toExpression();
-                    if (!e)
-                    {   error("cannot make expression out of initializer for %s", v->toChars());
-                        return new ErrorExp();
+                {
+                    if (v->scope)
+                    {
+                        v->inuse++;
+                        v->init->semantic(v->scope, v->type, INITinterpret);
+                        v->scope = NULL;
+                        v->inuse--;
                     }
-                    else if (v->scope)
-                    {   // Do deferred semantic analysis
-                        Initializer *i2 = v->init->syntaxCopy();
-                        i2 = i2->semantic(v->scope, v->type, INITinterpret);
-                        e = i2->toExpression();
-                        // remove v->scope (see bug 3426)
-                        // but not if gagged, for we might be called again.
-                        if (!global.gag)
-                        {   v->scope = NULL;
-                            v->init = i2;   // save result
-                        }
-                    }
+                    e = v->init->toExpression(/*vd->type*/);
                 }
             }
             else if (v->type->needsNested() && ctorinit)
