@@ -6834,11 +6834,23 @@ Type *TypeInstance::semantic(Loc loc, Scope *sc)
         }
     }
     else
+    {
+        unsigned errors = global.errors;
         resolve(loc, sc, &e, &t, &s);
+        // if we had an error evaluating the symbol, suppress further errors
+        if (!t && errors != global.errors)
+            return terror;
+    }
 
     if (!t)
     {
-        error(loc, "%s is used as a type", toChars());
+        if (!e && s && s->errors)
+        {   // if there was an error evaluating the symbol, it might actually
+            // be a type. Avoid misleading error messages.
+            error(loc, "%s had previous errors", toChars());
+        }
+        else
+            error(loc, "%s is used as a type", toChars());
         t = terror;
     }
     return t;
