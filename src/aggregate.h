@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -56,7 +56,13 @@ struct AggregateDeclaration : ScopeDsymbol
     bool isdeprecated;          // !=0 if deprecated
 
 #if DMDV2
-    Dsymbol *isnested;          // !=NULL if is nested
+    Dsymbol *enclosing;         /* !=NULL if is nested
+                                 * pointing to the dsymbol that directly enclosing it.
+                                 * 1. The function that enclosing it (nested struct and class)
+                                 * 2. The class that enclosing it (nested class only)
+                                 * 3. If enclosing aggregate is template, its enclosing dsymbol.
+                                 * See AggregateDeclaraton::makeNested for the details.
+                                 */
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
