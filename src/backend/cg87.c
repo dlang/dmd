@@ -1,5 +1,5 @@
 // Copyright (C) 1987-1995 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -569,6 +569,7 @@ STATIC code * cg87_87topsw(code *c)
         /* Note that SAHF is not available on some early I64 processors
          * and will cause a seg fault
          */
+        assert(!NOSAHF);
         c = cat(c,getregs(mAX));
         if (config.target_cpu >= TARGET_80286)
             c = genf2(c,0xDF,0xE0);             // FSTSW AX
@@ -580,6 +581,27 @@ STATIC code * cg87_87topsw(code *c)
         gen1(c,0x9E);                           // SAHF
         code_orflag(c,CFpsw);
         return c;
+}
+
+/*****************************************
+ * Jump to ctarget if condition code C2 is set.
+ */
+
+STATIC code *genjmpifC2(code *c, code *ctarget)
+{
+    if (NOSAHF)
+    {
+        c = cat(c,getregs(mAX));
+        c = genf2(c,0xDF,0xE0);                       // FSTSW AX
+        genc2(c,0xF6,modregrm(3,0,4),4);              // TEST AH,4
+        c = genjmp(c, JNE, FLcode, (block *)ctarget); // JNE ctarget
+    }
+    else
+    {
+        c = cg87_87topsw(c);
+        c = genjmp(c, JP, FLcode, (block *)ctarget);  // JP ctarget
+    }
+    return c;
 }
 
 /***************************
@@ -1452,14 +1474,12 @@ code *orth87(elem *e,regm_t *pretregs)
             c3 = genf2(c3, 0xD9, 0xC8 + 1);             // FXCH ST(1)
 
             cx = gen2(NULL, 0xD9, 0xF8);                // FPREM
-            cx = cg87_87topsw(cx);
-            cx = genjmp(cx, JP, FLcode, (block *)cx);   // JP FM1
+            cx = genjmpifC2(cx, cx);                    // JC2 FM1
             cx = genf2(cx, 0xD9, 0xC8 + 2);             // FXCH ST(2)
             c3 = cat(c3,cx);
 
             cx = gen2(NULL, 0xD9, 0xF8);                // FPREM
-            cx = cg87_87topsw(cx);
-            cx = genjmp(cx, JP, FLcode, (block *)cx);   // JP FM2
+            cx = genjmpifC2(cx, cx);                    // JC2 FM2
             cx = genf2(cx,0xDD,0xD8 + 1);               // FSTP ST(1)
             cx = genf2(cx, 0xD9, 0xC8 + 1);             // FXCH ST(1)
             c3 = cat(c3,cx);
@@ -1541,8 +1561,7 @@ code *orth87(elem *e,regm_t *pretregs)
             c2 = genf2(c2,0xD9,0xC8 + 1);       // FXCH ST(1)
 
         c3 = gen2(NULL, 0xD9, 0xF8);            // FM1: FPREM
-        c3 = cg87_87topsw(c3);
-        c3 = genjmp(c3, JP, FLcode, (block *)c3); // JP FM1
+        c3 = genjmpifC2(c3, c3);                // JC2 FM1
         c3 = genf2(c3,0xDD,0xD8 + 1);           // FSTP ST(1)
 
         pop87();
@@ -1628,6 +1647,7 @@ code *load87(elem *e,unsigned eoffset,regm_t *pretregs,elem *eleft,int op)
 #if NDPP
         printf("+load87(e=%p, eoffset=%d, *pretregs=%s, eleft=%p, op=%d, stackused = %d)\n",e,eoffset,regm_str(*pretregs),eleft,op,stackused);
 #endif
+        assert(!(NOSAHF && op == 3));
         elem_debug(e);
         ccomma = NULL;
         cpush = NULL;
@@ -2338,8 +2358,7 @@ code *opass87(elem *e,regm_t *pretregs)
             c = gen(c,&cs);                     // FLD   e->E1
 
             c1 = gen2(NULL, 0xD9, 0xF8);        // FPREM
-            c1 = cg87_87topsw(c1);
-            c1 = genjmp(c1, JP, FLcode, (block *)c1);   // JP FM1
+            c1 = genjmpifC2(c1, c1);            // JC2 FM1
             c1 = genf2(c1,0xDD,0xD8 + 1);       // FSTP ST(1)
             c = cat(c,c1);
 
@@ -2440,8 +2459,7 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
     code *c1;
 
     c1 = gen2(NULL, 0xD9, 0xF8);                // FPREM
-    c1 = cg87_87topsw(c1);
-    c1 = genjmp(c1, JP, FLcode, (block *)c1);   // JP FM1
+    c1 = genjmpifC2(c1, c1);                    // JC2 FM1
     c1 = genf2(c1, 0xD9, 0xC8 + 1);             // FXCH ST(1)
     c = cat(c,c1);
 
@@ -2450,8 +2468,7 @@ code *opmod_complex87(elem *e,regm_t *pretregs)
     gen(c, &cs);                                // FLD E1.im
 
     c1 = gen2(NULL, 0xD9, 0xF8);                // FPREM
-    c1 = cg87_87topsw(c1);
-    c1 = genjmp(c1, JP, FLcode, (block *)c1);   // JP FM2
+    c1 = genjmpifC2(c1, c1);                    // JC2 FM2
     c1 = genf2(c1,0xDD,0xD8 + 1);               // FSTP ST(1)
     c = cat(c,c1);
 
@@ -3560,6 +3577,17 @@ __body
 #endif
 {
     // Generate:
+    //  if (NOSAHF && pop)
+    //          FLDZ
+    //          FUCOMIP
+    //          JNE     L1
+    //          JP      L1              // if NAN
+    //          FLDZ
+    //          FUCOMIP ST(2)
+    //      L1:
+    //        if (pop)
+    //          FPOP
+    //          FPOP
     //  if (pop)
     //          FLDZ
     //          FUCOMPP
@@ -3585,12 +3613,26 @@ __body
     //      L1:
     // FUCOMP doesn't raise exceptions on QNANs, unlike FTST
 
-    code *cnop;
-
-    cnop = gennop(CNIL);
+    code *cnop = gennop(CNIL);
     c = cat(c,push87());
     c = gen2(c,0xD9,0xEE);              // FLDZ
-    if (pop)
+    if (NOSAHF)
+    {
+        gen2(c,0xDF,0xE9);              // FUCOMIP
+        pop87();
+        genjmp(c,JNE,FLcode,(block *) cnop); // JNE     L1
+        genjmp(c,JP, FLcode,(block *) cnop); // JP      L1
+        gen2(c,0xD9,0xEE);                   // FLDZ
+        gen2(c,0xDF,0xEA);                   // FUCOMIP ST(2)
+        if (pop)
+        {
+            genf2(cnop,0xDD,modregrm(3,3,0));   // FPOP
+            genf2(cnop,0xDD,modregrm(3,3,0));   // FPOP
+            pop87();
+            pop87();
+        }
+    }
+    else if (pop)
     {
         gen2(c,0xDA,0xE9);              // FUCOMPP
         pop87();
