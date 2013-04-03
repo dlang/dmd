@@ -1,11 +1,10 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/test8556.d(45): Error: template test8556.grabExactly matches more than one template declaration, fail_compilation/test8556.d(31):grabExactly(R)(R range) if (!isSliceable!(R)) and fail_compilation/test8556.d(32):grabExactly(R)(R range) if (isSliceable!(R))
-fail_compilation/test8556.d(20): Error: template instance test8556.isSliceable!(Circle!(uint[])) error instantiating
-fail_compilation/test8556.d(25): Error: template instance Grab!(Circle!(uint[])) Grab!(Circle!(uint[])) does not match template declaration Grab(Range) if (!isSliceable!(Range))
-fail_compilation/test8556.d(25): Error: Grab!(Circle!(uint[])) is used as a type
-fail_compilation/test8556.d(56): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
+fail_compilation/test8556.d(44): Error: template test8556.grabExactly matches more than one template declaration, fail_compilation/test8556.d(30):grabExactly(R)(R range) if (!isSliceable!(R)) and fail_compilation/test8556.d(31):grabExactly(R)(R range) if (isSliceable!(R))
+fail_compilation/test8556.d(19): Error: template instance test8556.isSliceable!(Circle!(uint[])) error instantiating
+fail_compilation/test8556.d(24):        while looking for match for Grab!(Circle!(uint[]))
+fail_compilation/test8556.d(55): Error: template instance test8556.grab!(Circle!(uint[])) error instantiating
 ---
 */
 
