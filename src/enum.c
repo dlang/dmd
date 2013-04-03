@@ -52,6 +52,14 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
     else
         ed = new EnumDeclaration(loc, ident, t);
     ScopeDsymbol::syntaxCopy(ed);
+    if (isAnonymous())
+    {
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            EnumMember *em = (*members)[i]->isEnumMember();
+            em->ed = ed;
+        }
+    }
     return ed;
 }
 
@@ -60,6 +68,23 @@ void EnumDeclaration::setScope(Scope *sc)
     if (isdone)
         return;
     ScopeDsymbol::setScope(sc);
+}
+
+int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
+{
+    if (!isAnonymous())
+       return ScopeDsymbol::addMember(sc, sd, memnum);
+
+    /* Anonymous enum members get added to enclosing scope.
+     */
+    for (size_t i = 0; i < members->dim; i++)
+    {
+        EnumMember *em = (*members)[i]->isEnumMember();
+        em->ed = this;
+        //printf("add %s\n", em->toChars());
+        em->addMember(sc, sd, 1);
+    }
+    return 1;
 }
 
 void EnumDeclaration::semantic0(Scope *sc)
@@ -177,6 +202,26 @@ void EnumDeclaration::semantic(Scope *sc)
     }
     if (members->dim == 0)
         error("enum %s must have at least one member", toChars());
+
+    ScopeDsymbol *scopesym;
+    if (isAnonymous())
+    {
+        /* Anonymous enum members get added to enclosing scope.
+         */
+        for (Scope *sct = sce; sct; sct = sct->enclosing)
+        {
+            if (sct->scopesym)
+            {
+                scopesym = sct->scopesym;
+                if (!sct->scopesym->symtab)
+                    sct->scopesym->symtab = new DsymbolTable();
+                break;
+            }
+        }
+    }
+    else
+        scopesym = this;
+
     int first = 1;
     Expression *elast = NULL;
     for (size_t i = 0; i < members->dim; i++)
@@ -271,23 +316,12 @@ void EnumDeclaration::semantic(Scope *sc)
         em->value = e;
 
         // Add to symbol table only after evaluating 'value'
-        if (isAnonymous())
+        if (isAnonymous() && !sc->func)
         {
-            /* Anonymous enum members get added to enclosing scope.
-             */
-            for (Scope *sct = sce; sct; sct = sct->enclosing)
-            {
-                if (sct->scopesym)
-                {
-                    if (!sct->scopesym->symtab)
-                        sct->scopesym->symtab = new DsymbolTable();
-                    em->addMember(sce, sct->scopesym, 1);
-                    break;
-                }
-            }
+            // already inserted to enclosing scope in addMember
         }
         else
-            em->addMember(sc, this, 1);
+            em->addMember(sc, scopesym, 1);
 
         /* Compute .min, .max and .default values.
          * If enum doesn't have a name, we can never identify the enum type,
@@ -413,6 +447,7 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
     : Dsymbol(id)
 {
+    this->ed = NULL;
     this->value = value;
     this->type = type;
     this->loc = loc;
@@ -458,4 +493,9 @@ const char *EnumMember::kind()
     return "enum member";
 }
 
+void EnumMember::semantic(Scope *sc)
+{
+    if (ed)
+        ed->semantic(NULL);
+}
 
