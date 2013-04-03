@@ -201,7 +201,7 @@ Type *AggregateDeclaration::getType()
     return type;
 }
 
-int AggregateDeclaration::isDeprecated()
+bool AggregateDeclaration::isDeprecated()
 {
     return isdeprecated;
 }

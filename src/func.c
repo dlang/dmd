@@ -934,7 +934,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
-        sc2->flags = sc->flags & ~SCOPEcontract;
+        if (this->ident != Id::require && this->ident != Id::ensure)
+            sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;
         sc2->noctor = 0;
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
