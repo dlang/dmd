@@ -96,7 +96,7 @@ struct AggregateDeclaration : ScopeDsymbol
     Type *getType();
     int firstFieldInUnion(int indx); // first field in union that includes indx
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
-    int isDeprecated();         // is aggregate deprecated?
+    bool isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
     bool isNested();
     void makeNested();

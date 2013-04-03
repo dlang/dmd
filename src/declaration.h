@@ -143,29 +143,29 @@ struct Declaration : Dsymbol
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     char *mangle(bool isv = false);
-    int isStatic() { return storage_class & STCstatic; }
+    bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual int isDelete();
     virtual int isDataseg();
     virtual int isThreadlocal();
     virtual int isCodeseg();
-    int isCtorinit()     { return storage_class & STCctorinit; }
-    int isFinal()        { return storage_class & STCfinal; }
-    int isAbstract()     { return storage_class & STCabstract; }
-    int isConst()        { return storage_class & STCconst; }
-    int isImmutable()    { return storage_class & STCimmutable; }
-    int isWild()         { return storage_class & STCwild; }
-    int isAuto()         { return storage_class & STCauto; }
-    int isScope()        { return storage_class & STCscope; }
-    int isSynchronized() { return storage_class & STCsynchronized; }
-    int isParameter()    { return storage_class & STCparameter; }
-    int isDeprecated()   { return storage_class & STCdeprecated; }
-    int isOverride()     { return storage_class & STCoverride; }
-    int isResult()       { return storage_class & STCresult; }
-    int isField()        { return storage_class & STCfield; }
+    bool isCtorinit()     { return (storage_class & STCctorinit) != 0; }
+    bool isFinal()        { return (storage_class & STCfinal) != 0; }
+    bool isAbstract()     { return (storage_class & STCabstract) != 0; }
+    bool isConst()        { return (storage_class & STCconst) != 0; }
+    bool isImmutable()    { return (storage_class & STCimmutable) != 0; }
+    bool isWild()         { return (storage_class & STCwild) != 0; }
+    bool isAuto()         { return (storage_class & STCauto) != 0; }
+    bool isScope()        { return (storage_class & STCscope) != 0; }
+    bool isSynchronized() { return (storage_class & STCsynchronized) != 0; }
+    bool isParameter()    { return (storage_class & STCparameter) != 0; }
+    bool isDeprecated()   { return (storage_class & STCdeprecated) != 0; }
+    bool isOverride()     { return (storage_class & STCoverride) != 0; }
+    bool isResult()       { return (storage_class & STCresult) != 0; }
+    bool isField()        { return (storage_class & STCfield) != 0; }
 
-    int isIn()    { return storage_class & STCin; }
-    int isOut()   { return storage_class & STCout; }
-    int isRef()   { return storage_class & STCref; }
+    bool isIn()    { return (storage_class & STCin) != 0; }
+    bool isOut()   { return (storage_class & STCout) != 0; }
+    bool isRef()   { return (storage_class & STCref) != 0; }
 
     enum PROT prot();
 
