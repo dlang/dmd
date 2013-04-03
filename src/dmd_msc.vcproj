@@ -648,6 +648,10 @@
 				>
 			</File>
 			<File
+				RelativePath=".\sapply.c"
+				>
+			</File>
+			<File
 				RelativePath=".\scanmscoff.c"
 				>
 			</File>
