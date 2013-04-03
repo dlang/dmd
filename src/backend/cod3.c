@@ -833,6 +833,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             }
                         }
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                        regcon.immed.mval = 0;
                         if (nalign)
                             cs = cod3_stackadj(cs, -nalign);
                         c = cat3(c,cs,cr);
@@ -878,7 +879,10 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
         case BC_finally:
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in finally blocks.
-            assert(!getregs(allregs));
+            {
+                code *cy = getregs(allregs);
+                assert(!cy);
+            }
             assert(!e);
             assert(!bl->Bcode);
 #if 1
@@ -890,6 +894,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 }
                 // CALL bl->Bsucc
                 c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
+                regcon.immed.mval = 0;
                 if (nalign)
                     c = cod3_stackadj(c, -nalign);
                 // JMP list_next(bl->Bsucc)
@@ -1004,6 +1009,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             c = cat(c,nteh_gensindex(-1));
                             gensaverestore(retregs,&cs,&cr);
                             cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                            regcon.immed.mval = 0;
                             bl->Bcode = cat3(c,cs,cr);
                         }
                         else
@@ -1027,6 +1033,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         }
                         // CALL bf->Bsucc
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                        regcon.immed.mval = 0;
                         if (nalign)
                             cs = cod3_stackadj(cs, -nalign);
                         bl->Bcode = c = cat3(c,cs,cr);
