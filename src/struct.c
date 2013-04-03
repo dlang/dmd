@@ -46,7 +46,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
 
     stag = NULL;
     sinit = NULL;
-    isnested = NULL;
+    enclosing = NULL;
     vthis = NULL;
 
 #if DMDV2
@@ -106,7 +106,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         }
         sc->pop();
 
-        if (!getRTInfo && Type::rtinfo && 
+        if (!getRTInfo && Type::rtinfo &&
             (!isDeprecated() || global.params.useDeprecated) && // don't do it for unused deprecated types
             (type && type->ty != Terror)) // or error types
         {   // Evaluate: gcinfo!type
@@ -297,12 +297,12 @@ unsigned AggregateDeclaration::placeField(
 
 bool AggregateDeclaration::isNested()
 {
-    return isnested != NULL;
+    return enclosing != NULL;
 }
 
 void AggregateDeclaration::makeNested()
 {
-    if (!isnested && sizeok != SIZEOKdone && !isUnionDeclaration() && !isInterfaceDeclaration())
+    if (!enclosing && sizeok != SIZEOKdone && !isUnionDeclaration() && !isInterfaceDeclaration())
     {
         // If nested struct, add in hidden 'this' pointer to outer scope
         if (!(storage_class & STCstatic))
@@ -315,22 +315,22 @@ void AggregateDeclaration::makeNested()
 
                 if (fd)
                 {
-                    isnested = fd;
+                    enclosing = fd;
                 }
                 else if (isClassDeclaration() && ad && ad->isClassDeclaration())
                 {
-                    isnested = ad;
+                    enclosing = ad;
                 }
                 else if (isStructDeclaration() && ad)
                 {
                     if (TemplateInstance *ti = ad->parent->isTemplateInstance())
                     {
-                        isnested = ti->isnested;
+                        enclosing = ti->enclosing;
                     }
                 }
-                if (isnested)
+                if (enclosing)
                 {
-                    //printf("makeNested %s, isnested = %s\n", toChars(), isnested->toChars());
+                    //printf("makeNested %s, enclosing = %s\n", toChars(), enclosing->toChars());
                     Type *t;
                     if (ad)
                         t = ad->handle;
@@ -786,7 +786,7 @@ void StructDeclaration::finalizeSize(Scope *sc)
  */
 bool StructDeclaration::isPOD()
 {
-    if (isnested || cpctor || postblit || ctor || dtor)
+    if (enclosing || cpctor || postblit || ctor || dtor)
         return false;
 
     /* Recursively check any fields have a constructor.
