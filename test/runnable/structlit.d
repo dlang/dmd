@@ -428,7 +428,8 @@ void test5885()
 struct S5889a { int n; }
 struct S5889b { this(int n){} }
 
-bool isLvalue(S)(auto ref S s){ return __traits(isRef, s); }
+bool isLvalue(S)(    S s){ return 0; }
+bool isLvalue(S)(ref S s){ return 1; }
 
 int foo(ref S5889a s) { return 1; }
 int foo(    S5889a s) { return 2; }

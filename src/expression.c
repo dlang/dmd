@@ -1214,6 +1214,16 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     arg = arg->castTo(sc, p->type);
                     arg = arg->toLvalue(sc, arg);
                 }
+                else if (!arg->isLvalue() && p->storageClass & STCauto)
+                {
+                    Identifier *idtmp = Lexer::uniqueId("__tmprv");
+                    VarDeclaration *tmp = new VarDeclaration(loc, arg->type, idtmp, new ExpInitializer(0, arg));
+                    tmp->storage_class |= STCctfe;
+                    Expression *ae = new DeclarationExp(loc, tmp);
+                    Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
+                    arg = e->semantic(sc);
+                    arg = arg->toLvalue(sc, arg);
+                }
                 else
                     arg = arg->toLvalue(sc, arg);
             }

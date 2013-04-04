@@ -5033,7 +5033,6 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, e
     this->isproperty = false;
     this->isref = false;
     this->iswild = false;
-    this->fargs = NULL;
 
     if (stc & STCpure)
         this->purity = PUREfwdref;
@@ -5077,7 +5076,6 @@ Type *TypeFunction::syntaxCopy()
     t->isproperty = isproperty;
     t->isref = isref;
     t->trust = trust;
-    t->fargs = fargs;
     return t;
 }
 
@@ -5682,22 +5680,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 continue;
             }
 
-            /* Resolve "auto ref" storage class to be either ref or value,
-             * based on the argument matching the parameter
-             */
-            if (fparam->storageClass & STCauto)
-            {
-                if (fargs && i < fargs->dim)
-                {   Expression *farg = (*fargs)[i];
-                    if (farg->isLvalue())
-                        ;                               // ref parameter
-                    else
-                        fparam->storageClass &= ~STCref;        // value parameter
-                }
-                else
-                    error(loc, "auto can only be used for template function parameters");
-            }
-
             // Remove redundant storage classes for type, they are already applied
             fparam->storageClass &= ~(STC_TYPECTOR | STCin);
         }
@@ -5963,6 +5945,8 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
                             Type::tindex));
                     targb = targb->semantic(0, NULL);
                 }
+                else if (p->storageClass & STCauto)
+                    m = MATCHconvert;
                 else
                     goto Nomatch;
             }
@@ -6162,7 +6146,6 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         // Klunky to change these
         TypeFunction *tf = new TypeFunction(t->parameters, t->next, t->varargs, t->linkage, 0);
         tf->mod = t->mod;
-        tf->fargs = fargs;
         tf->purity = t->purity;
         tf->isnothrow = t->isnothrow;
         tf->isproperty = t->isproperty;
@@ -9495,12 +9478,15 @@ void Parameter::toDecoBuffer(OutBuffer *buf)
 {
     if (storageClass & STCscope)
         buf->writeByte('M');
-    switch (storageClass & (STCin | STCout | STCref | STClazy))
+    switch (storageClass & (STCin | STCout | STCref | STClazy | STCauto))
     {   case 0:
         case STCin:
             break;
         case STCout:
             buf->writeByte('J');
+            break;
+        case STCauto | STCref:
+            buf->writestring("KK");
             break;
         case STCref:
             buf->writeByte('K');

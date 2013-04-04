@@ -648,7 +648,6 @@ struct TypeFunction : TypeNext
     enum TRUST trust;   // level of trust
     enum PURE purity;   // PURExxxx
     bool iswild;        // is inout function
-    Expressions *fargs; // function arguments
 
     int inuse;
 
