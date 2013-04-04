@@ -90,7 +90,7 @@ SRCS:=$(subst \,/,$(SRCS))
 # NOTE: a pre-compiled minit.obj has been provided in dmd for Win32	 and
 #       minit.asm is not used by dmd for Linux
 
-OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o $(OBJDIR)/complex.o
+OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o
 
 ######################## All of'em ##############################
 
