@@ -5417,6 +5417,23 @@ void test9248()
 }
 
 /***************************************************/
+// 9739
+
+class Foo9739
+{
+    int val = 1;
+    this(int arg = 2) { val = arg; }
+}
+
+class Bar9739 : Foo9739 { }
+
+void test9739()
+{
+    Bar9739 bar = new Bar9739;
+    assert(bar.val == 2);
+}
+
+/***************************************************/
 // 6057
 void test6057()
 {
@@ -5938,6 +5955,7 @@ int main()
     test8796();
     test9171();
     test9248();
+    test9739();
     testdbl_to_ulong();
     testdbl_to_uint();
     testreal_to_ulong();
