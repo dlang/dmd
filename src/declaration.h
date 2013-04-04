@@ -674,13 +674,11 @@ struct FuncDeclaration : Declaration
     FuncDeclaration *isFuncDeclaration() { return this; }
 };
 
-#if DMDV2
-FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Expression *ethis,
         Expressions *arguments,
         int flags);
-#endif
 
 struct FuncAliasDeclaration : FuncDeclaration
 {
