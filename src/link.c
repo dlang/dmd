@@ -573,19 +573,25 @@ int runLINK()
                                 ? global.params.debuglibname
                                 : global.params.defaultlibname;
     size_t slen = strlen(libname);
-    if (slen)
+    if (slen)    // 0-length library name means do not include default libraries
     {
         char *buf = (char *)malloc(2 + slen + 1);
         strcpy(buf, "-l");
         strcpy(buf + 2, libname);
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
+
+#if linux
+        if (global.params.shared_druntime)
+            argv.push(const_cast<char*>("-ldruntimeso"));
+        else
+            argv.push(const_cast<char*>("-ldruntime"));
+#endif
     }
 
 #ifdef __sun
     argv.push((char *)"-mt");
 #endif
 
-//    argv.push((void *)"-ldruntime");
     argv.push((char *)"-lpthread");
     argv.push((char *)"-lm");
 #if linux && DMDV2
