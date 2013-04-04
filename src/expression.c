@@ -4161,7 +4161,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (e->op == TOKerror)
             return e;
 
-        (*elements)[i] = e;
+        (*elements)[i] = callCpCtor(e->loc, sc, e, 1);
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]

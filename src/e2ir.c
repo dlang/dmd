@@ -5203,7 +5203,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
             {
                 if (t2b->implicitConvTo(t1b))
                 {
-#if DMDV2
+#if 0
                     // Determine if postblit is needed
                     int postblit = 0;
                     if (needsPostblit(t1b))
@@ -5252,7 +5252,7 @@ elem *StructLiteralExp::toElem(IRState *irs)
                 {   e1->Eoper = OPstreq;
                     e1->ET = v->type->toCtype();
                 }
-#if DMDV2
+#if 0
                 /* Call postblit() on e1
                  */
                 StructDeclaration *sd = needsPostblit(v->type);
