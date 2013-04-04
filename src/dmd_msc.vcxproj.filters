@@ -742,11 +742,6 @@
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CustomBuildStep Include="vcbuild\ldfpu.asm">
-      <Filter>src\vcbuild</Filter>
-    </CustomBuildStep>
-  </ItemGroup>
-  <ItemGroup>
     <CustomBuild Include="idgen.c">
       <Filter>src\gen</Filter>
     </CustomBuild>
@@ -757,5 +752,8 @@
       <Filter>src\gen</Filter>
     </CustomBuild>
     <CustomBuild Include="..\VERSION" />
+    <CustomBuild Include="vcbuild\ldfpu.asm">
+      <Filter>src\vcbuild</Filter>
+    </CustomBuild>
   </ItemGroup>
 </Project>
