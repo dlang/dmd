@@ -212,7 +212,9 @@ struct Param
     const char *debuglibname;   // default library for debug builds
 
     char *moduleDepsFile;       // filename for deps output
+    char *fileModuleDepsFile;       // filename for file (string imports) deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
+    OutBuffer *fileModuleDeps;      // contents to be written to file deps file
 
     // Hidden debug switches
     char debuga;

@@ -335,7 +335,8 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
-  -deps=filename write module dependencies to filename\n%s"
+  -deps=filename write module dependencies to filename\n\
+  -filedeps=filename write module string import dependencies to filename\n%s"
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
@@ -888,6 +889,13 @@ Language changes listed by -transition=id:\n\
                 if (!global.params.moduleDepsFile[0])
                     goto Lnoarg;
                 global.params.moduleDeps = new OutBuffer;
+            }
+            else if (memcmp(p + 1, "filedeps=", 9) == 0)
+            {
+                global.params.fileModuleDepsFile = p + 1 + 9;
+                if (!global.params.fileModuleDepsFile[0])
+                    goto Lnoarg;
+                global.params.fileModuleDeps = new OutBuffer;
             }
             else if (strcmp(p + 1, "main") == 0)
             {
@@ -1497,6 +1505,15 @@ Language changes listed by -transition=id:\n\
         OutBuffer* ob = global.params.moduleDeps;
         deps.setbuffer((void*)ob->data, ob->offset);
         deps.writev();
+    }
+    if (global.params.fileModuleDeps != NULL)
+    {
+        assert(global.params.fileModuleDepsFile != NULL);
+
+        File fileDeps(global.params.fileModuleDepsFile);
+        OutBuffer* ob = global.params.fileModuleDeps;
+        fileDeps.setbuffer((void*)ob->data, ob->offset);
+        fileDeps.writev();
     }
 
     // Scan for functions to inline
