@@ -51,6 +51,7 @@ bool initFPU()
     int old_cw = _control87(_MCW_EM | _PC_64  | _RC_NEAR,
                             _MCW_EM | _MCW_PC | _MCW_RC);
 #endif
+    _set_output_format(_TWO_DIGIT_EXPONENT);
     return true;
 }
 static bool doInitFPU = initFPU();
@@ -592,6 +593,9 @@ static bool unittest()
 
     ld_sprint(buffer, 'g', ldouble(2.0));
     assert(strcmp(buffer, "2.00000") == 0);
+
+    ld_sprint(buffer, 'g', ldouble(1234567.89));
+    assert(strcmp(buffer, "1.23457e+06") == 0);
 
     longdouble ldb = ldouble(0.4);
     long long b = ldb;
