@@ -1302,16 +1302,16 @@ void FuncDeclaration::semantic3(Scope *sc)
                     sc2->callSuper = 0;
 
                     // Insert implicit super() at start of fbody
-                    Expression *e1 = new SuperExp(0);
-                    Expression *e = new CallExp(0, e1);
-
-                    e = e->trySemantic(sc2);
-                    if (!e)
+                    if (!resolveFuncCall(0, sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1))
                     {
                         error("no match for implicit super() call in constructor");
                     }
                     else
                     {
+                        Expression *e1 = new SuperExp(0);
+                        Expression *e = new CallExp(0, e1);
+                        e = e->semantic(sc2);
+
                         Statement *s = new ExpStatement(0, e);
                         fbody = new CompoundStatement(0, s, fbody);
                     }
