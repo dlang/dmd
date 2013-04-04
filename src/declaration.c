@@ -515,6 +515,12 @@ void AliasDeclaration::semantic(Scope *sc)
      * try to alias y to 3.
      */
     s = type->toDsymbol(sc);
+    if (s && s == this)
+    {
+        error("cannot resolve");
+        s = NULL;
+        type = Type::terror;
+    }
     if (s
 #if DMDV2
         && ((s->getType() && type->equals(s->getType())) || s->isEnumMember())
@@ -683,7 +689,9 @@ Dsymbol *AliasDeclaration::toAlias()
         /* If this is an internal alias for selective import,
          * resolve it under the correct scope.
          */
-        import->semantic(NULL);
+        if (import->scope)
+            import->semantic(NULL);
+        import = NULL;
     }
     else if (scope)
         semantic(scope);
