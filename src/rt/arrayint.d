@@ -707,7 +707,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
         {
             auto n = aptr + (a.length & ~7);
 
-            if (((cast(uint) aptr) & 15) != 0)
+            if (((cast(size_t) aptr) & 15) != 0)
             {
                 asm // unaligned case
                 {
@@ -1274,7 +1274,7 @@ body
         {
             auto n = aptr + (a.length & ~7);
 
-            if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
+            if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
             {
                 asm // unaligned case
                 {
@@ -2454,7 +2454,7 @@ body
         {
             auto n = aptr + (a.length & ~7);
 
-            if (((cast(uint) aptr | cast(uint) bptr) & 15) != 0)
+            if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
             {
                 asm // unaligned case
                 {
