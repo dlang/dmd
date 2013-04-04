@@ -183,6 +183,9 @@
     <ClCompile Include="s2ir.c">
       <Filter>src</Filter>
     </ClCompile>
+    <ClCompile Include="sapply.c">
+      <Filter>src</Filter>
+    </ClCompile>
     <ClCompile Include="scanmscoff.c">
       <Filter>src</Filter>
     </ClCompile>
