@@ -2160,6 +2160,20 @@ void test9837()
 }
 
 /******************************************/
+// 9874
+
+bool foo9874() { return true; }
+void bar9874(T)(T) if (foo9874()) {} // OK
+void baz9874(T)(T) if (foo9874)   {} // error
+
+void test9874()
+{
+    foo9874;                      // OK
+    bar9874(0);
+    baz9874(0);
+}
+
+/******************************************/
 
 void test9885()
 {
@@ -2314,6 +2328,7 @@ int main()
     test9266();
     test9536();
     test9837();
+    test9874();
     test9885();
 
     printf("Success\n");
