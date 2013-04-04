@@ -702,7 +702,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        if (baseClass->defaultCtor)
+        if (resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
