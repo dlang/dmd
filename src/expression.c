@@ -4094,8 +4094,7 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->ownedByCtfe = false;
     this->ctorinit = 0;
     this->origin = this;
-    this->isscurbdone = 0;
-    this->isinlinescan = 0;
+    this->stageflags = 0;
     this->inlinecopy = NULL;
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }

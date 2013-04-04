@@ -240,9 +240,9 @@ Expression *AssocArrayLiteralExp::optimize(int result, bool keepLvalue)
 
 Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
 {
-    if(isscurbdone >= 2) return this;
-    int old = isscurbdone;
-    isscurbdone = 2;
+    if(stageflags & 4) return this;
+    int old = stageflags;
+    stageflags |= 4;
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
@@ -253,7 +253,7 @@ Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
             (*elements)[i] = e;
         }
     }
-    isscurbdone = old;
+    stageflags = old;
     return this;
 }
 

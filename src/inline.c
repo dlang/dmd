@@ -1383,10 +1383,11 @@ Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
 {   Expression *e = this;
 
     //printf("StructLiteralExp::inlineScan()\n");
-    if(isinlinescan >= 1) return e;
-    isinlinescan = 1;
+    if(stageflags & 16) return e;
+    int old = stageflags;
+    stageflags |= 16;
     arrayInlineScan(iss, elements);
-    isinlinescan = 0;
+    stageflags = old;
     return e;
 }
 
