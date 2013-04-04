@@ -522,6 +522,13 @@ size_t ld_sprint(char* str, int fmt, longdouble x)
     // fmt is 'a','A','f' or 'g'
     if(fmt != 'a' && fmt != 'A')
     {
+        if (ldouble((unsigned long long)x) == x)
+        {   // ((1.5 -> 1 -> 1.0) == 1.5) is false
+            // ((1.0 -> 1 -> 1.0) == 1.0) is true
+            // see http://en.cppreference.com/w/cpp/io/c/fprintf
+            char format[] = {'%', '#', 'L', fmt, 0};
+            return sprintf(str, format, ld_read(&x));
+        }
         char format[] = { '%', fmt, 0 };
         return sprintf(str, format, ld_read(&x));
     }
@@ -582,6 +589,9 @@ static bool unittest()
     char buffer[32];
     ld_sprint(buffer, 'a', ld_pi);
     assert(strcmp(buffer, "0x1.921fb54442d1846ap+1") == 0);
+
+    ld_sprint(buffer, 'g', ldouble(2.0));
+    assert(strcmp(buffer, "2.00000") == 0);
 
     longdouble ldb = ldouble(0.4);
     long long b = ldb;
