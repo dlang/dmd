@@ -364,15 +364,12 @@ unittest
             const int dim = 67;
             T[] a = new T[dim + j];     // aligned on 16 byte boundary
             a = a[j .. dim + j];        // misalign for second iteration
-            T[] b = new T[dim + j];
-            b = b[j .. dim + j];
             T[] c = new T[dim + j];
             c = c[j .. dim + j];
 
             for (int i = 0; i < dim; i++)
             {
                 a[i] = cast(T)(i-10);
-                b[i] = cast(T)(i-3);
                 c[i] = cast(T)((i-10) * 2);
             }
 
@@ -942,15 +939,12 @@ unittest
             const int dim = 67;
             T[] a = new T[dim + j];     // aligned on 16 byte boundary
             a = a[j .. dim + j];        // misalign for second iteration
-            T[] b = new T[dim + j];
-            b = b[j .. dim + j];
             T[] c = new T[dim + j];
             c = c[j .. dim + j];
 
             for (int i = 0; i < dim; i++)
             {
                 a[i] = cast(T)(i-10);
-                b[i] = cast(T)(i-3);
                 c[i] = cast(T)((i-10) * 2);
             }
 
@@ -1534,15 +1528,12 @@ unittest
             const int dim = 67;
             T[] a = new T[dim + j];     // aligned on 16 byte boundary
             a = a[j .. dim + j];        // misalign for second iteration
-            T[] b = new T[dim + j];
-            b = b[j .. dim + j];
             T[] c = new T[dim + j];
             c = c[j .. dim + j];
 
             for (int i = 0; i < dim; i++)
             {
                 a[i] = cast(T)(i-10);
-                b[i] = cast(T)(i-3);
                 c[i] = cast(T)((i-10) * 2);
             }
 
@@ -1812,15 +1803,12 @@ unittest
             const int dim = 67;
             T[] a = new T[dim + j];     // aligned on 16 byte boundary
             a = a[j .. dim + j];        // misalign for second iteration
-            T[] b = new T[dim + j];
-            b = b[j .. dim + j];
             T[] c = new T[dim + j];
             c = c[j .. dim + j];
 
             for (int i = 0; i < dim; i++)
             {
                 a[i] = cast(T)(i-10);
-                b[i] = cast(T)(i-3);
                 c[i] = cast(T)((i-10) * 2);
             }
 
@@ -2389,15 +2377,12 @@ unittest
             const int dim = 67;
             T[] a = new T[dim + j];     // aligned on 16 byte boundary
             a = a[j .. dim + j];        // misalign for second iteration
-            T[] b = new T[dim + j];
-            b = b[j .. dim + j];
             T[] c = new T[dim + j];
             c = c[j .. dim + j];
 
             for (int i = 0; i < dim; i++)
             {
                 a[i] = cast(T)(i-10);
-                b[i] = cast(T)(i-3);
                 c[i] = cast(T)((i-10) * 2);
             }
 
@@ -2950,27 +2935,24 @@ unittest
         for (size_t dim = 7; dim < 68; dim += 60)
             for (int j = 0; j < 2; j++)
             {
-                T[] a = new T[dim + j];     // aligned on 16 byte boundary
-                a = a[j .. dim + j];        // misalign for second iteration
-                T[] b = new T[dim + j];
-                b = b[j .. dim + j];
+                T[] b = new T[dim + j];     // aligned on 16 byte boundary
+                b = b[j .. dim + j];        // misalign for second iteration
                 T[] c = new T[dim + j];
                 c = c[j .. dim + j];
     
                 for (int i = 0; i < dim; i++)
                 {
-                    a[i] = cast(T)(i-10);
                     b[i] = cast(T)(i-3);
                     c[i] = cast(T)((i-10) * 2);
                 }
     
-                c[] = a[] * 6;
+                c[] = b[] * 6;
                 for (int i = 0; i < dim; i++)
                 {
-              //printf("[%d]: %d ?= %d * 6\n", i, c[i], a[i]);
-                    if (c[i] != cast(T)(a[i] * 6))
+              //printf("[%d]: %d ?= %d * 6\n", i, c[i], b[i]);
+                    if (c[i] != cast(T)(b[i] * 6))
                     {
-                        printf("[%d]: %d != %d * 6\n", i, c[i], a[i]);
+                        printf("[%d]: %d != %d * 6\n", i, c[i], b[i]);
                         assert(0);
                     }
                 }
