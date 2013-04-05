@@ -5828,6 +5828,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         else if (sa)
         {
           Lsa:
+            sa = sa->toAlias();
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             AggregateDeclaration *ad = sa->isAggregateDeclaration();
             Declaration *d = sa->isDeclaration();
@@ -5971,6 +5972,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         {
           Lsa:
             buf.writeByte('S');
+            sa = sa->toAlias();
             Declaration *d = sa->isDeclaration();
           Lsa2:
             if (d && (!d->type || !d->type->deco))
