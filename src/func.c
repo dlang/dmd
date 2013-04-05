@@ -2769,6 +2769,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 {
     if (!s)
         return NULL;                    // no match
+    if (tiargs    && arrayObjectIsError(tiargs) ||
+        arguments && arrayObjectIsError((Objects *)arguments))
+    {
+        return NULL;
+    }
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
         f = f->overloadResolve(loc, ethis, arguments, flags);
