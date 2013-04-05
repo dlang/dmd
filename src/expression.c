@@ -2839,11 +2839,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
     s = sc->search(loc, ident, &scopesym);
     if (s)
     {   Expression *e;
-        WithScopeSymbol *withsym;
+
+        if (s->errors)
+            return new ErrorExp();
 
         /* See if the symbol was a member of an enclosing 'with'
          */
-        withsym = scopesym->isWithScopeSymbol();
+        WithScopeSymbol *withsym = scopesym->isWithScopeSymbol();
         if (withsym)
         {
 #if DMDV2
@@ -12413,6 +12415,40 @@ Expression *EqualExp::semantic(Scope *sc)
     {
         incompatibleTypes();
         return new ErrorExp();
+    }
+
+    if (e1->op == TOKtuple && e2->op == TOKtuple)
+    {
+        TupleExp *tup1 = (TupleExp *)e1;
+        TupleExp *tup2 = (TupleExp *)e2;
+        size_t dim = tup1->exps->dim;
+        if (dim != tup2->exps->dim)
+        {
+            error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
+            return new ErrorExp();
+        }
+        else
+        {
+            Expressions *exps = new Expressions;
+            exps->setDim(dim);
+
+            Expression *e = combine(tup1->e0, tup2->e0);
+            for (size_t i = 0; i < dim; i++)
+            {
+                Expression *ex1 = (*tup1->exps)[i];
+                Expression *ex2 = (*tup2->exps)[i];
+                Expression *eeq = new EqualExp(op, loc, ex1, ex2);
+                if (!e)
+                    e = eeq;
+                else if (op == TOKequal)
+                    e = new AndAndExp(loc, e, eeq);
+                else
+                    e = new OrOrExp(loc, e, eeq);
+            }
+            e = e->semantic(sc);
+            //printf("e = %s\n", e->toChars());
+            return e;
+        }
     }
 
     e = typeCombine(sc);
