@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+
+name=`basename $0 .sh`
+dir=${RESULTS_DIR}/compilable
+
+for kind in main winmain dllmain
+do
+	file_name=${name}${kind}
+	src_file=compilable/extra-files/${file_name}.d
+	expect_file=compilable/extra-files/${file_name}.out
+	output_file=${dir}/${file_name}.out
+
+	rm -f ${output_file}{,.2}
+
+	$DMD -m${MODEL} -v -o- ${src_file} > ${output_file}
+	grep "^entry     ${kind}" ${output_file} > ${output_file}.2
+	if [ `wc -c ${output_file}.2 | while read a b; do echo $a; done` -eq 0 ]; then
+		echo "Error: not found expected entry point '${kind}' in ${src_file}"
+		exit 1;
+	fi
+
+	rm ${output_file}.2
+done

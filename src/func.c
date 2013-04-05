@@ -830,6 +830,21 @@ Ldone:
      */
     scope = new Scope(*sc);
     scope->setNoFree();
+
+    static bool printedMain = false;  // semantic might run more than once
+    if (global.params.verbose && !printedMain)
+    {
+        const char *type = isMain() ? "main" : isWinMain() ? "winmain" : isDllMain() ? "dllmain" : NULL;
+        Module *mod = sc->module;
+
+        if (type && mod)
+        {
+            printedMain = true;
+            const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), 1);
+            printf("%-10s%-10s\t%s\n", "entry", type, name);
+        }
+    }
+
     return;
 }
 
