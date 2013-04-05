@@ -5724,7 +5724,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             errorSupplemental(loc, "while looking for match for %s", toChars());
         else if (tempdecl && !tempdecl->overnext)
             // Only one template, so we can give better error message
-            error("%s does not match template declaration %s", toChars(), tempdecl->toChars());
+            error("does not match template declaration %s", tempdecl->toChars());
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
