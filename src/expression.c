@@ -4735,6 +4735,8 @@ Lagain:
             newargs->shift(e);
 
             f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, newargs);
+            if (!f)
+                goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
 
@@ -4773,6 +4775,8 @@ Lagain:
             newargs->shift(e);
 
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, newargs);
+            if (!f)
+                goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
 
