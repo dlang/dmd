@@ -5830,7 +5830,7 @@ Expression *IsExp::semantic(Scope *sc)
     }
 
     Type *t = targ->trySemantic(loc, sc);
-    if (!t)
+    if (!t || t->ty == Terror)
         goto Lno;                       // errors, so condition is false
     targ = t;
     if (tok2 != TOKreserved)
