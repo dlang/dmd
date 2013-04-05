@@ -67,6 +67,8 @@ OBJDIR=obj/$(MODEL)
 DRUNTIME_BASE=druntime-$(OS)$(MODEL)
 DRUNTIME=lib/lib$(DRUNTIME_BASE).a
 DRUNTIMESO=lib/lib$(DRUNTIME_BASE).so
+DRUNTIMESOOBJ=lib/lib$(DRUNTIME_BASE)so.o
+DRUNTIMESOLIB=lib/lib$(DRUNTIME_BASE)so.a
 
 DOCFMT=-version=CoreDdoc
 
@@ -94,7 +96,11 @@ OBJS= $(OBJDIR)/errno_c.o $(OBJDIR)/threadasm.o
 
 ######################## All of'em ##############################
 
+ifeq (linux,$(OS))
+target : import copy dll $(DRUNTIME) doc
+else
 target : import copy $(DRUNTIME) doc
+endif
 
 ######################## Doc .html file generation ##############################
 
@@ -149,10 +155,14 @@ $(OBJDIR)/threadasm.o : src/core/threadasm.S
 ######################## Create a shared library ##############################
 
 dll: override PIC:=-fPIC
-dll: $(DRUNTIMESO)
+dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
-	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS)
+
+$(DRUNTIMESOLIB): $(OBJS) $(SRCS)
+	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
+	$(DMD) -lib -of$(DRUNTIMESOLIB) $(DRUNTIMESOOBJ) $(OBJS)
 
 ################### Library generation #########################
 
