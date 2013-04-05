@@ -2839,11 +2839,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
     s = sc->search(loc, ident, &scopesym);
     if (s)
     {   Expression *e;
-        WithScopeSymbol *withsym;
+
+        if (s->errors)
+            return new ErrorExp();
 
         /* See if the symbol was a member of an enclosing 'with'
          */
-        withsym = scopesym->isWithScopeSymbol();
+        WithScopeSymbol *withsym = scopesym->isWithScopeSymbol();
         if (withsym)
         {
 #if DMDV2

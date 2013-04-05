@@ -104,6 +104,9 @@ int isError(Object *o)
     Tuple *v = isTuple(o);
     if (v)
         return arrayObjectIsError(&v->objects);
+    Dsymbol *s = isDsymbol(o);
+    if (s->errors)
+        return 1;
     return 0;
 }
 
