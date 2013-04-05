@@ -1682,7 +1682,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
             {
                 e = copyLiteral(e);
-                ctfeStack.saveGlobalConstant(v, e);
+                if (v->isDataseg() || (v->storage_class & STCmanifest ))
+                    ctfeStack.saveGlobalConstant(v, e);
             }
         }
         else if (v->isCTFE() && !v->hasValue())
