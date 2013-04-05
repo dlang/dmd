@@ -905,10 +905,10 @@ bool hasNonConstPointers(Expression *e)
         if (ae->e1->op == TOKstructliteral)
         {
             StructLiteralExp *se = (StructLiteralExp *)ae->e1;
-            if (!(se->stageflags & 2))
+            if (!(se->stageflags & stageSearchPointers))
             {
                 int old = se->stageflags;
-                se->stageflags |= 2;
+                se->stageflags |= stageSearchPointers;
                 bool ret = arrayHasNonConstPointers(se->elements);
                 se->stageflags = old; 
                 return ret;

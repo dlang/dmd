@@ -1383,9 +1383,9 @@ Expression *StructLiteralExp::inlineScan(InlineScanState *iss)
 {   Expression *e = this;
 
     //printf("StructLiteralExp::inlineScan()\n");
-    if(stageflags & 16) return e;
+    if(stageflags & stageInlineScan) return e;
     int old = stageflags;
-    stageflags |= 16;
+    stageflags |= stageInlineScan;
     arrayInlineScan(iss, elements);
     stageflags = old;
     return e;

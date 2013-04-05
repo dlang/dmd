@@ -508,6 +508,17 @@ struct StructLiteralExp : Expression
                                   // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
                                   // (with infinite recursion) of this expression.
 
+    // scrubReturnValue is running
+    #define stageScrub          0x1 
+    // hasNonConstPointers is running
+    #define stageSearchPointers 0x2 
+    // optimize is running
+    #define stageOptimize       0x4
+    // apply is running
+    #define stageApply          0x8
+    //inlineScan is running
+    #define stageInlineScan     0x10
+                         
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();

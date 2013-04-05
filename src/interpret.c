@@ -731,10 +731,10 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = ((ClassReferenceExp*)e)->value;
         se->ownedByCtfe = false;
-        if (!(se->stageflags & 1))
+        if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
-            se->stageflags |= 1;
+            se->stageflags |= stageScrub;
             if (!scrubArray(loc, se->elements, true))
                 return EXP_CANT_INTERPRET;
             se->stageflags = old;
@@ -753,10 +753,10 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     {
         StructLiteralExp *se = (StructLiteralExp *)e;
         se->ownedByCtfe = false;
-        if (!(se->stageflags & 1))
+        if (!(se->stageflags & stageScrub))
         {
             int old = se->stageflags;
-            se->stageflags |= 1;
+            se->stageflags |= stageScrub;
             if (!scrubArray(loc, se->elements, true))
                 return EXP_CANT_INTERPRET;
             se->stageflags = old;

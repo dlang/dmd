@@ -240,9 +240,9 @@ Expression *AssocArrayLiteralExp::optimize(int result, bool keepLvalue)
 
 Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
 {
-    if(stageflags & 4) return this;
+    if(stageflags & stageOptimize) return this;
     int old = stageflags;
-    stageflags |= 4;
+    stageflags |= stageOptimize;
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
