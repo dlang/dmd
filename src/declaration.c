@@ -368,7 +368,7 @@ void TypedefDeclaration::semantic2(Scope *sc)
             Initializer *savedinit = init;
             int errors = global.errors;
             init = init->semantic(sc, basetype, INITinterpret);
-            if (errors != global.errors)
+            if (errors != global.errors || init->isErrorInitializer())
             {
                 init = savedinit;
                 return;
@@ -1662,6 +1662,9 @@ Ldtor:
     }
 
     sem = SemanticDone;
+
+    if (type->toBasetype()->ty == Terror)
+        errors = true;
 }
 
 void VarDeclaration::semantic2(Scope *sc)
