@@ -272,6 +272,7 @@ struct Type : Object
     int isWild()        { return mod & MODwild; }
     int isSharedWild()  { return mod == (MODshared | MODwild); }
     int isNaked()       { return mod == 0; }
+    Type *nullAttributes();
     Type *constOf();
     Type *invariantOf();
     Type *mutableOf();
