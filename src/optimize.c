@@ -516,12 +516,8 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
         size_t pdim = Parameter::dim(tf->parameters) - (tf->varargs == 2 ? 1 : 0);
         for (size_t i = 0; i < arguments->dim; i++)
         {
-            bool keepLvalue = false;
-            if (i < pdim)
-            {
-                Parameter *p = Parameter::getNth(tf->parameters, i);
-                keepLvalue = ((p->storageClass & (STCref | STCout)) != 0);
-            }
+            Parameter *p = Parameter::getNth(tf->parameters, i);
+            bool keepLvalue = (p ? (p->storageClass & (STCref | STCout)) != 0 : false);
             Expression *e = (*arguments)[i];
             e = e->optimize(WANTvalue, keepLvalue);
             (*arguments)[i] = e;
