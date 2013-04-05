@@ -117,18 +117,6 @@ class Object
         return this is o;
     }
 
-    bool opEquals(Object lhs, Object rhs)
-    {
-        if (lhs is rhs)
-            return true;
-        if (lhs is null || rhs is null)
-            return false;
-        if (typeid(lhs) == typeid(rhs))
-            return lhs.opEquals(rhs);
-        return lhs.opEquals(rhs) &&
-               rhs.opEquals(lhs);
-    }
-
     interface Monitor
     {
         void lock();
