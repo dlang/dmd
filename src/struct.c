@@ -450,7 +450,7 @@ void StructDeclaration::semantic(Scope *sc)
     //static int count; if (++count == 20) halt();
 
     assert(type);
-    if (!members)                       // if forward reference
+    if (!members)               // if opaque declaration
     {
         return;
     }
@@ -729,7 +729,7 @@ Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
     if (scope && !symtab)
         semantic(scope);
 
-    if (!members || !symtab)
+    if (!members || !symtab)    // opaque or semantic() is not yet called
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         return NULL;
