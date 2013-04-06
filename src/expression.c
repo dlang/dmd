@@ -4157,7 +4157,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (e->op == TOKerror)
             return e;
 
-        (*elements)[i] = e;
+        (*elements)[i] = callCpCtor(e->loc, sc, e, 1);
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
@@ -4735,6 +4735,8 @@ Lagain:
             newargs->shift(e);
 
             f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, newargs);
+            if (!f)
+                goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
 
@@ -4773,6 +4775,8 @@ Lagain:
             newargs->shift(e);
 
             FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, newargs);
+            if (!f)
+                goto Lerr;
             allocator = f->isNewDeclaration();
             assert(allocator);
 
@@ -9615,6 +9619,21 @@ int SliceExp::checkModifiable(Scope *sc, int flag)
         return e1->checkModifiable(sc, flag);
     }
     return 1;
+}
+
+int SliceExp::isLvalue()
+{
+    /* slice expression is rvalue in default, but
+     * conversion to reference of static array is only allowed.
+     */
+    return (type && type->toBasetype()->ty == Tsarray);
+}
+
+Expression *SliceExp::toLvalue(Scope *sc, Expression *e)
+{
+    //printf("SliceExp::toLvalue(%s) type = %s\n", toChars(), type ? type->toChars() : NULL);
+    return (type && type->toBasetype()->ty == Tsarray)
+            ? this : Expression::toLvalue(sc, e);
 }
 
 Expression *SliceExp::modifiableLvalue(Scope *sc, Expression *e)

@@ -309,6 +309,34 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
 }
 
 /********************************
+ * Return a copy of this type with all attributes null-initialized.
+ * Useful for creating a type with different modifiers.
+ */
+
+Type *Type::nullAttributes()
+{
+    unsigned sz = sizeTy[ty];
+    Type *t = (Type *)mem.malloc(sz);
+    memcpy(t, this, sz);
+    // t->mod = NULL;  // leave mod unchanged
+    t->deco = NULL;
+    t->arrayof = NULL;
+    t->pto = NULL;
+    t->rto = NULL;
+    t->cto = NULL;
+    t->ito = NULL;
+    t->sto = NULL;
+    t->scto = NULL;
+    t->wto = NULL;
+    t->swto = NULL;
+    t->vtinfo = NULL;
+    t->ctype = NULL;
+    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
+    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
+    return t;
+}
+
+/********************************
  * Convert to 'const'.
  */
 
@@ -458,23 +486,9 @@ Type *Type::unSharedOf()
 
     if (!t)
     {
-        unsigned sz = sizeTy[ty];
-        t = (Type *)mem.malloc(sz);
-        memcpy(t, this, sz);
+        t = this->nullAttributes();
         t->mod = mod & ~MODshared;
-        t->deco = NULL;
-        t->arrayof = NULL;
-        t->pto = NULL;
-        t->rto = NULL;
-        t->cto = NULL;
-        t->ito = NULL;
-        t->sto = NULL;
-        t->scto = NULL;
-        t->wto = NULL;
-        t->swto = NULL;
-        t->vtinfo = NULL;
-        if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-        if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
+        t->ctype = ctype;
         t = t->merge();
 
         t->fixTo(this);
@@ -868,175 +882,57 @@ void Type::check()
 Type *Type::makeConst()
 {
     //printf("Type::makeConst() %p, %s\n", this, toChars());
-    if (cto)
-        return cto;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (cto) return cto;
+    Type *t = this->nullAttributes();
     t->mod = MODconst;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     //printf("-Type::makeConst() %p, %s\n", t, toChars());
     return t;
 }
 
 Type *Type::makeInvariant()
 {
-    if (ito)
-        return ito;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (ito) return ito;
+    Type *t = this->nullAttributes();
     t->mod = MODimmutable;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
 Type *Type::makeShared()
 {
-    if (sto)
-        return sto;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (sto) return sto;
+    Type *t = this->nullAttributes();
     t->mod = MODshared;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
 Type *Type::makeSharedConst()
 {
-    if (scto)
-        return scto;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (scto) return scto;
+    Type *t = this->nullAttributes();
     t->mod = MODshared | MODconst;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
 Type *Type::makeWild()
 {
-    if (wto)
-        return wto;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (wto) return wto;
+    Type *t = this->nullAttributes();
     t->mod = MODwild;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
 Type *Type::makeSharedWild()
 {
-    if (swto)
-        return swto;
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
+    if (swto) return swto;
+    Type *t = this->nullAttributes();
     t->mod = MODshared | MODwild;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
     return t;
 }
 
 Type *Type::makeMutable()
 {
-    unsigned sz = sizeTy[ty];
-    Type *t = (Type *)mem.malloc(sz);
-    memcpy(t, this, sz);
-    t->mod =  mod & MODshared;
-    t->deco = NULL;
-    t->arrayof = NULL;
-    t->pto = NULL;
-    t->rto = NULL;
-    t->cto = NULL;
-    t->ito = NULL;
-    t->sto = NULL;
-    t->scto = NULL;
-    t->wto = NULL;
-    t->swto = NULL;
-    t->vtinfo = NULL;
-    t->ctype = NULL;
-    if (t->ty == Tstruct) ((TypeStruct *)t)->att = RECfwdref;
-    if (t->ty == Tclass) ((TypeClass *)t)->att = RECfwdref;
+    Type *t = this->nullAttributes();
+    t->mod = mod & MODshared;
     return t;
 }
 

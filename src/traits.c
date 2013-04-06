@@ -458,7 +458,12 @@ Expression *TraitsExp::semantic(Scope *sc)
             error("argument has no members");
             goto Lfalse;
         }
-        if ((sd = s->isScopeDsymbol()) == NULL)
+        Import *import;
+        if ((import = s->isImport()) != NULL)
+        {   // Bugzilla 9692
+            sd = import->mod;
+        }
+        else if ((sd = s->isScopeDsymbol()) == NULL)
         {
             error("%s %s has no members", s->kind(), s->toChars());
             goto Lfalse;
