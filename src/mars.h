@@ -85,6 +85,8 @@ typedef Array<const char *> Strings;
 // Put command line switches in here
 struct Param
 {
+    bool buildRecurse;    // build modules recursively
+    Strings *excludeList; // exclude filters for modules not to be built when building recursively
     char obj;           // write object file
     char link;          // perform link
     char dll;           // generate shared dynamic library

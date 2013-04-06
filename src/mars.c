@@ -442,6 +442,8 @@ Usage:\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
+  -rb            recursively build all dependencies (if not filtered by -rx)\n\
+  -rx            do not build a dependency (e.g. -rx=foo.bar -rx=foo.*)\n\
   -release       compile release version\n\
   -run srcfile args...   run resulting program, passing args\n\
   -shared        generate shared library (DLL)\n\
@@ -643,6 +645,8 @@ int tryMain(size_t argc, const char *argv[])
     }
 #endif
 
+    global.params.excludeList = new Strings();
+
     for (size_t i = 1; i < argc; i++)
     {
         const char *p = argv[i];
@@ -722,6 +726,10 @@ int tryMain(size_t argc, const char *argv[])
                 global.params.is64bit = true;
             else if (strcmp(p + 1, "profile") == 0)
                 global.params.trace = 1;
+            else if (strcmp(p + 1, "rb") == 0)
+                global.params.buildRecurse = 1;
+            else if (memcmp(p + 1, "rx=", 3) == 0)
+                global.params.excludeList->push(p + 4);
             else if (strcmp(p + 1, "v") == 0)
                 global.params.verbose = 1;
             else if (strcmp(p + 1, "vtls") == 0)
@@ -1270,8 +1278,7 @@ Language changes listed by -transition=id:\n\
     }
 
     // Create Modules
-    Modules modules;
-    modules.reserve(files.dim);
+    Module::buildModules.reserve(files.dim);
     bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
@@ -1381,7 +1388,7 @@ Language changes listed by -transition=id:\n\
 
         Identifier *id = Lexer::idPool(name);
         Module *m = new Module(files[i], id, global.params.doDocComments, global.params.doHdrGeneration);
-        modules.push(m);
+        Module::buildModules.push(m);
 
         if (firstmodule)
         {   global.params.objfiles->push(m->objfile->name->str);
@@ -1397,8 +1404,8 @@ Language changes listed by -transition=id:\n\
     {
         for (size_t i = 0; 1; i++)
         {
-            assert(i != modules.dim);
-            Module *m = modules[i];
+            assert(i != Module::buildModules.dim);
+            Module *m = Module::buildModules[i];
             if (strcmp(m->srcfile->name->str, global.main_d) == 0)
             {
                 static const char buf[] = "int main(){return 0;}";
@@ -1412,28 +1419,29 @@ Language changes listed by -transition=id:\n\
 #define ASYNCREAD 1
 #if ASYNCREAD
     // Multi threaded
-    AsyncRead *aw = AsyncRead::create(modules.dim);
-    for (size_t i = 0; i < modules.dim; i++)
+    AsyncRead *aw = AsyncRead::create(Module::buildModules.dim);
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-        Module *m = modules[i];
+        Module *m = Module::buildModules[i];
         aw->addFile(m->srcfile);
     }
     aw->start();
 #else
     // Single threaded
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-        Module *m = modules[i];
+        m = Module::buildModules[i];
         m->read(Loc());
     }
 #endif
 
     // Parse files
     bool anydocfiles = false;
-    size_t filecount = modules.dim;
+    size_t filecount = Module::buildModules.dim;
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
-        Module *m = modules[modi];
+        Module *m = Module::buildModules[modi];
+
         if (global.params.verbose)
             fprintf(global.stdmsg, "parse     %s\n", m->toChars());
         if (!Module::rootModule)
@@ -1454,8 +1462,8 @@ Language changes listed by -transition=id:\n\
             anydocfiles = true;
             m->gendocfile();
 
-            // Remove m from list of modules
-            modules.remove(modi);
+            // Remove m from list of Module::buildModules
+            Module::buildModules.remove(modi);
             modi--;
 
             // Remove m's object file from list of object files
@@ -1476,7 +1484,7 @@ Language changes listed by -transition=id:\n\
     AsyncRead::dispose(aw);
 #endif
 
-    if (anydocfiles && modules.dim &&
+    if (anydocfiles && Module::buildModules.dim &&
         (global.params.oneobj || global.params.objname))
     {
         error(Loc(), "conflicting Ddoc and obj generation options");
@@ -1491,9 +1499,9 @@ Language changes listed by -transition=id:\n\
          * line switches and what else is imported, they are generated
          * before any semantic analysis.
          */
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < Module::buildModules.dim; i++)
         {
-            Module *m = modules[i];
+            Module *m = Module::buildModules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "import    %s\n", m->toChars());
             m->genhdrfile();
@@ -1503,9 +1511,9 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     // load all unconditional imports for better symbol resolving
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-       Module *m = modules[i];
+       Module *m = Module::buildModules[i];
        if (global.params.verbose)
            fprintf(global.stdmsg, "importall %s\n", m->toChars());
        m->importAll(NULL);
@@ -1516,9 +1524,9 @@ Language changes listed by -transition=id:\n\
     backend_init();
 
     // Do semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-        Module *m = modules[i];
+        Module *m = Module::buildModules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
         m->semantic();
@@ -1530,9 +1538,9 @@ Language changes listed by -transition=id:\n\
     Module::runDeferredSemantic();
 
     // Do pass 2 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-        Module *m = modules[i];
+        Module *m = Module::buildModules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
         m->semantic2();
@@ -1541,9 +1549,9 @@ Language changes listed by -transition=id:\n\
         fatal();
 
     // Do pass 3 semantic analysis
-    for (size_t i = 0; i < modules.dim; i++)
+    for (size_t i = 0; i < Module::buildModules.dim; i++)
     {
-        Module *m = modules[i];
+        Module *m = Module::buildModules[i];
         if (global.params.verbose)
             fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
         m->semantic3();
@@ -1593,9 +1601,9 @@ Language changes listed by -transition=id:\n\
     // Scan for functions to inline
     if (global.params.useInline)
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < Module::buildModules.dim; i++)
         {
-            Module *m = modules[i];
+            Module *m = Module::buildModules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "inline scan %s\n", m->toChars());
             inlineScan(m);
@@ -1627,7 +1635,7 @@ Language changes listed by -transition=id:\n\
     if (global.params.doXGeneration)
     {
         OutBuffer buf;
-        json_generate(&buf, &modules);
+        json_generate(&buf, &Module::buildModules);
 
         // Write buf to file
         const char *name = global.params.xfilename;
@@ -1672,11 +1680,12 @@ Language changes listed by -transition=id:\n\
 
     if (global.params.oneobj)
     {
-        if (modules.dim)
-            obj_start(modules[0]->srcfile->toChars());
-        for (size_t i = 0; i < modules.dim; i++)
+        if (Module::buildModules.dim)
+            obj_start(Module::buildModules[0]->srcfile->toChars());
+
+        for (size_t i = 0; i < Module::buildModules.dim; i++)
         {
-            Module *m = modules[i];
+            Module *m = Module::buildModules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             m->genobjfile(0);
@@ -1685,16 +1694,16 @@ Language changes listed by -transition=id:\n\
             if (!global.errors && global.params.doDocComments)
                 m->gendocfile();
         }
-        if (!global.errors && modules.dim)
+        if (!global.errors && Module::buildModules.dim)
         {
-            obj_end(library, modules[0]->objfile);
+            obj_end(library, Module::buildModules[0]->objfile);
         }
     }
     else
     {
-        for (size_t i = 0; i < modules.dim; i++)
+        for (size_t i = 0; i < Module::buildModules.dim; i++)
         {
-            Module *m = modules[i];
+            Module *m = Module::buildModules[i];
             if (global.params.verbose)
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             if (global.params.obj)
@@ -1745,9 +1754,10 @@ Language changes listed by -transition=id:\n\
 
                 /* Delete .obj files and .exe file
                  */
-                for (size_t i = 0; i < modules.dim; i++)
+                for (size_t i = 0; i < Module::buildModules.dim; i++)
                 {
-                    modules[i]->deleteObjFile();
+                    Module *m = Module::buildModules[i];
+                    m->deleteObjFile();
                     if (global.params.oneobj)
                         break;
                 }

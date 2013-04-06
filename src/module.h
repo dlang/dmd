@@ -63,6 +63,7 @@ public:
     static Module *rootModule;
     static DsymbolTable *modules;       // symbol table of all modules
     static Modules amodules;            // array of all modules
+    static Modules buildModules;  // array of modules to build
     static Dsymbols deferred;   // deferred Dsymbol's needing semantic() run on them
     static Dsymbols deferred3;  // deferred Dsymbol's needing semantic3() run on them
     static unsigned dprogress;  // progress resolving the deferred list
