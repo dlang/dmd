@@ -1155,6 +1155,22 @@ class B8032b : A8032b
     override void f() { }
 }
 
+/*********************************************/
+// 9417
+
+mixin template Foo9417()
+{
+    void foo() {}
+}
+
+void test9417()
+{
+    struct B
+    {
+        mixin Foo9417;
+    }
+}
+
 /*******************************************/
 
 int main()
@@ -1203,6 +1219,7 @@ int main()
     test2245();
     test2740();
     test42();
+    test9417();
 
     printf("Success\n");
     return 0;
