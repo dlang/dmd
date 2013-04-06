@@ -2,7 +2,7 @@
 
 module breaker;
 
-import std.c.stdio;
+import core.stdc.stdio, core.vararg;
 
 /**********************************/
 
@@ -2120,6 +2120,83 @@ void test9837()
 
 /******************************************/
 
+void test9885()
+{
+    void foo(int[1][]) {}
+    void boo()(int[1][]){}
+    struct X(T...) { static void xoo(T){} }
+    struct Y(T...) { static void yoo()(T){} }
+    struct Z(T...) { static void zoo(U...)(T, U){} }
+
+    struct V(T...) { static void voo()(T, ...){} }
+    struct W(T...) { static void woo()(T...){} }
+
+    struct R(T...) { static void roo(U...)(int, U, T){} }
+
+    // OK
+    foo([[10]]);
+    boo([[10]]);
+
+    // OK
+    X!(int[1][]).xoo([[10]]);
+
+    // NG!
+    Y!().yoo();
+    Y!(int).yoo(1);
+    Y!(int, int[]).yoo(1, [10]);
+    static assert(!__traits(compiles, Y!().yoo(1)));
+    static assert(!__traits(compiles, Y!(int).yoo("a")));
+    static assert(!__traits(compiles, Y!().yoo!(int)()));
+
+    // NG!
+    Z!().zoo();
+    Z!().zoo([1], [1:1]);
+    Z!(int, string).zoo(1, "a");
+    Z!(int, string).zoo(1, "a", [1], [1:1]);
+    Z!().zoo!()();
+    static assert(!__traits(compiles, Z!().zoo!()(1)));     // (none) <- 1
+    static assert(!__traits(compiles, Z!(int).zoo!()()));   // int <- (none)
+    static assert(!__traits(compiles, Z!(int).zoo!()(""))); // int <- ""
+    static assert(!__traits(compiles, Z!().zoo!(int)()));   // int <- (none)
+    static assert(!__traits(compiles, Z!().zoo!(int)(""))); // int <- ""
+
+    V!().voo(1,2,3);
+    V!(int).voo(1,2,3);
+    V!(int, long).voo(1,2,3);
+    static assert(!__traits(compiles, V!(int).voo()));          // int <- (none)
+    static assert(!__traits(compiles, V!(int, long).voo(1)));       // long <- (none)
+    static assert(!__traits(compiles, V!(int, string).voo(1,2,3)));     // string <- 2
+
+    W!().woo();
+    //W!().woo(1, 2, 3);    // Access Violation
+    {   // this behavior is consistent with:
+        //alias TL = TypeTuple!();
+        //void foo(TL...) {}
+        //foo(1, 2, 3);     // Access Violation
+        //pragma(msg, typeof(foo));   // void(...)  -> D-style variadic function?
+    }
+    W!(int,int[]).woo(1,2,3);
+    W!(int,int[2]).woo(1,2,3);
+    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));	// int... <- 2
+    static assert(!__traits(compiles, W!(int,int).woo(1,2)));		// int... <- 2
+    static assert(!__traits(compiles, W!(int,int[2]).woo(1,2)));    // int[2]... <- 2
+
+    R!().roo(1, "", []);
+    R!(int).roo(1, "", [], 1);
+    R!(int, string).roo(1, "", [], 1, "");
+    R!(int, string).roo(1, 2, "");
+    static assert(!__traits(compiles, R!(int).roo(1, "", []))); // int <- []
+    static assert(!__traits(compiles, R!(int, int).roo(1, "", [])));    // int <- []
+    static assert(!__traits(compiles, R!(int, string).roo(1, 2, 3)));   // string <- 3
+
+    // test case
+    struct Tuple(T...) { this()(T values) {} }
+    alias T = Tuple!(int[1][]);
+    auto t = T([[10]]);
+}
+
+/******************************************/
+
 int main()
 {
     test1();
@@ -2195,6 +2272,7 @@ int main()
     test9266();
     test9536();
     test9837();
+    test9885();
 
     printf("Success\n");
     return 0;
