@@ -229,6 +229,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     isscope = 0;
     isabstract = 0;
     inuse = 0;
+    doAncestorsSemantic = SemanticStart;
 }
 
 Dsymbol *ClassDeclaration::syntaxCopy(Dsymbol *s)
@@ -277,7 +278,7 @@ void ClassDeclaration::semantic(Scope *sc)
     type = type->semantic(loc, sc);
     handle = type;
 
-    if (!members)                       // if forward reference
+    if (!members)               // if opaque declaration
     {   //printf("\tclass '%s' is forward referenced\n", toChars());
         return;
     }
@@ -373,7 +374,7 @@ void ClassDeclaration::semantic(Scope *sc)
                 }
                 if (!tc->sym->symtab || tc->sym->sizeok == SIZEOKnone)
                 {   // Try to resolve forward reference
-                    if (/*sc->mustsemantic &&*/ tc->sym->scope)
+                    if (/*doAncestorsSemantic == SemanticIn &&*/ tc->sym->scope)
                         tc->sym->semantic(NULL);
                 }
                 if (!tc->sym->symtab || tc->sym->scope || tc->sym->sizeok == SIZEOKnone)
@@ -441,7 +442,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
             if (!tc->sym->symtab)
             {   // Try to resolve forward reference
-                if (/*sc->mustsemantic &&*/ tc->sym->scope)
+                if (/*doAncestorsSemantic == SemanticIn &&*/ tc->sym->scope)
                     tc->sym->semantic(NULL);
             }
 
@@ -461,6 +462,8 @@ void ClassDeclaration::semantic(Scope *sc)
         }
         i++;
     }
+    if (doAncestorsSemantic == SemanticIn)
+        doAncestorsSemantic = SemanticDone;
 
 
     // If no base class, and this is not an Object, use Object as base class
@@ -912,19 +915,24 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     //printf("%s.ClassDeclaration::search('%s')\n", toChars(), ident->toChars());
 
-    if (scope && !symtab)
-    {   Scope *sc = scope;
-        sc->mustsemantic++;
+    //if (scope) printf("%s doAncestorsSemantic = %d\n", toChars(), doAncestorsSemantic);
+    if (scope && doAncestorsSemantic == SemanticStart)
+    {
+        // must semantic on base class/interfaces
+        doAncestorsSemantic = SemanticIn;
+
         // If speculatively gagged, ungag now.
         unsigned oldgag = global.gag;
         if (global.isSpeculativeGagging())
             global.gag = 0;
-        semantic(sc);
+        semantic(scope);
         global.gag = oldgag;
-        sc->mustsemantic--;
+
+        if (doAncestorsSemantic != SemanticDone)
+            doAncestorsSemantic = SemanticStart;
     }
 
-    if (!members || !symtab)
+    if (!members || !symtab)    // opaque or semantic() is not yet called
     {
         error("is forward referenced when looking for '%s'", ident->toChars());
         //*(char*)0=0;
@@ -1330,7 +1338,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
             }
             if (!b->base->symtab)
             {   // Try to resolve forward reference
-                if (sc->mustsemantic && b->base->scope)
+                if (doAncestorsSemantic == SemanticIn && b->base->scope)
                     b->base->semantic(NULL);
             }
             if (!b->base->symtab || b->base->scope || b->base->inuse)
@@ -1350,6 +1358,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 #endif
         i++;
     }
+    if (doAncestorsSemantic == SemanticIn)
+        doAncestorsSemantic = SemanticDone;
 
     interfaces_dim = baseclasses->dim;
     interfaces = baseclasses->tdata();
