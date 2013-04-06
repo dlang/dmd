@@ -19,6 +19,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "scope.h"
+#include "init.h"
 
 /********************************************
  * Convert from expression to delegate that returns the expression,
@@ -133,6 +134,30 @@ int lambdaCheckForNestedRef(Expression *e, void *param)
             VarDeclaration *v = te->var->isVarDeclaration();
             if (v)
                 v->checkNestedReference(sc, 0);
+            break;
+        }
+
+        case TOKdeclaration:
+        {   DeclarationExp *de = (DeclarationExp *)e;
+            VarDeclaration *v = de->declaration->isVarDeclaration();
+            if (v)
+            {
+                v->checkNestedReference(sc, 0);
+
+                /* Some expressions cause the frontend to create a temporary.
+                 * For example, structs with cpctors replace the original
+                 * expression e with:
+                 *  __cpcttmp = __cpcttmp.cpctor(e);
+                 *
+                 * In this instance, we need to ensure that the original
+                 * expression e does not have any nested references by
+                 * checking the declaration initializer too.
+                 */
+                if (v->init && v->init->isExpInitializer())
+                {   Expression *ie = v->init->toExpression();
+                    ie->apply (&lambdaCheckForNestedRef, param);
+                }
+            }
             break;
         }
 
