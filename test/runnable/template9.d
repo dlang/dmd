@@ -1629,6 +1629,23 @@ void test8669()
 }
 
 /**********************************/
+// 8833
+
+template TypeTuple8833(T...) { alias TypeTuple = T; }
+
+void func8833(alias arg)() { }
+
+void test8833()
+{
+    int x, y;
+
+    alias TypeTuple8833!(
+        func8833!(x),
+        func8833!(y),
+    ) Map;
+}
+
+/**********************************/
 // 8976
 
 void f8976(ref int) { }
@@ -2260,6 +2277,7 @@ int main()
     test8129();
     test8238();
     test8669();
+    test8833();
     test8976();
     test8940();
     test9026();

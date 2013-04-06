@@ -5878,7 +5878,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
             {
                 // if module level template
                 if (tempdecl->toParent()->isModule())
-                {   Dsymbol *dparent = sa->toParent();
+                {   Dsymbol *dparent = sa->toParent2();
                     if (!enclosing)
                         enclosing = dparent;
                     else if (enclosing != dparent)
