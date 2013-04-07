@@ -1988,19 +1988,56 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
     AggregateDeclaration *sym = toDsymbol(sc)->isAggregateDeclaration();
     assert(sym);
 
-    if (ident != Id::__sizeof &&
-        ident != Id::__xalignof &&
-        ident != Id::init &&
-        ident != Id::mangleof &&
-        ident != Id::stringof &&
-        ident != Id::offsetof)
+    if (ident == Id::__sizeof ||
+        ident == Id::__xalignof ||
+        ident == Id::init ||
+        ident == Id::mangleof ||
+        ident == Id::stringof ||
+        ident == Id::offsetof)
     {
+        return Type::dotExp(sc, e, ident);
+    }
+
+    static Type *tmissing = NULL;
+    Dsymbol *fd = NULL;
+    if (!tmissing)
+    {
+        fd = search_function(sym, Id::opDot);
+        if (!fd)
+            fd = search_function(sym, Id::opDispatch);
+
+        if (fd)
+            tmissing = this;
+    }
+
+    /* See if we should forward to the alias this first.
+     */
+    if (sym->aliasthis)
+    {   /* Rewrite e.ident as:
+         *  e.aliasthis.ident
+         */
+        Expression *exp = resolveAliasThis(sc, e);
+        DotIdExp *die = new DotIdExp(exp->loc, exp, ident);
+        unsigned errors = global.startGagging();
+        exp = die->semantic(sc, 1);
+        if (!global.endGagging(errors))
+        {
+            if (tmissing == this)
+                tmissing = NULL;
+            return exp;
+        }
+    }
+
+    if (tmissing == this)
+    {   assert(fd);
+        tmissing = NULL;
+
         /* Look for overloaded opDot() to see if we should forward request
          * to it.
          */
-        Dsymbol *fd = search_function(sym, Id::opDot);
-        if (fd)
-        {   /* Rewrite e.ident as:
+        if (fd->ident == Id::opDot)
+        {
+            /* Rewrite e.ident as:
              *  e.opDot().ident
              */
             e = build_overload(e->loc, sc, e, NULL, fd);
@@ -2011,8 +2048,7 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
         /* Look for overloaded opDispatch to see if we should forward request
          * to it.
          */
-        fd = search_function(sym, Id::opDispatch);
-        if (fd)
+        assert(fd->ident == Id::opDispatch);
         {
             /* Rewrite e.ident as:
              *  e.opDispatch!("ident")
@@ -2029,17 +2065,6 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
             return dti->semantic(sc, 1);
-        }
-
-        /* See if we should forward to the alias this.
-         */
-        if (sym->aliasthis)
-        {   /* Rewrite e.ident as:
-             *  e.aliasthis.ident
-             */
-            e = resolveAliasThis(sc, e);
-            DotIdExp *die = new DotIdExp(e->loc, e, ident);
-            return die->semantic(sc, 1);
         }
     }
 
