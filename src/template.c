@@ -4487,6 +4487,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         else if (sa)
         {
           Lsa:
+            sa = sa->toAlias();
             //printf("sa = %s %s\n", sa->kind(), sa->toChars());
             Declaration *d = sa->isDeclaration();
             TemplateInstance *ad = sa->isTemplateInstance();
@@ -4620,6 +4621,7 @@ Identifier *TemplateInstance::genIdent()
         {
           Lsa:
             buf.writeByte('S');
+            sa = sa->toAlias();
             Declaration *d = sa->isDeclaration();
             if (d && (!d->type || !d->type->deco))
                 error("forward reference of %s", d->toChars());
