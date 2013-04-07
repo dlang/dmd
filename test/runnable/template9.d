@@ -461,6 +461,30 @@ void test5896()
 }
 
 /**********************************/
+// 6312
+
+void h6312() {}
+
+class Bla6312
+{
+    mixin wrap6312!h6312;
+}
+
+mixin template wrap6312(alias f)
+{
+    void blub(alias g = f)()
+    {
+        g();
+    }
+}
+
+void test6312()
+{
+    Bla6312 b = new Bla6312();
+    b.blub();
+}
+
+/**********************************/
 // 6825
 
 void test6825()
@@ -1218,7 +1242,7 @@ template T7643(A...){ alias A T7643; }
 
 alias T7643!(long, "x", string, "y") Specs7643;
 
-alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
+alias T7643!( Specs7643[] ) U7643;  // Error: tuple A is used as a type
 
 /**********************************/
 // 7671
