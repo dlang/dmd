@@ -201,6 +201,8 @@ struct Type : Object
     char *toChars();
     static char needThisPrefix();
     static void init();
+
+    #define SIZE_INVALID (~(d_uns64)0)
     d_uns64 size();
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
