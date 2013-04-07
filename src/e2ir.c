@@ -471,7 +471,8 @@ elem *array_toPtr(Type *t, elem *e)
             break;
 
         case Tsarray:
-            e = el_una(OPaddr, TYnptr, e);
+            //e = el_una(OPaddr, TYnptr, e);
+            e = addressElem(e, t);
             break;
 
         default:

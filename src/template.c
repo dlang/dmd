@@ -846,6 +846,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         }
 
         e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -1906,6 +1908,7 @@ Lmatch:
         }
 
         e = e->semantic(paramscope);
+        e = resolveProperties(sc, e);
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
@@ -5861,6 +5864,7 @@ int TemplateInstance::hasNestedArgs(Objects *args)
         else if (sa)
         {
           Lsa:
+            sa = sa->toAlias();
             TemplateDeclaration *td = sa->isTemplateDeclaration();
             AggregateDeclaration *ad = sa->isAggregateDeclaration();
             Declaration *d = sa->isDeclaration();
@@ -6004,6 +6008,7 @@ Identifier *TemplateInstance::genIdent(Objects *args)
         {
           Lsa:
             buf.writeByte('S');
+            sa = sa->toAlias();
             Declaration *d = sa->isDeclaration();
           Lsa2:
             if (d && (!d->type || !d->type->deco))

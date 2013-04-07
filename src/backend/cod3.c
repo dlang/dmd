@@ -2467,7 +2467,10 @@ L1:
                 if (flags & 64)
                     c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
                 else
-                    c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                    if (I64)
+                        value &= 0xFFFFFFFF;
+                }
             }
         }
     done:
