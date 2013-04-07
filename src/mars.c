@@ -536,6 +536,9 @@ int tryMain(size_t argc, char *argv[])
     }
 #endif
 
+    StringTable *fnt = new StringTable;
+    fnt->init();
+
     for (size_t i = 1; i < argc; i++)
     {
         p = argv[i];
@@ -931,6 +934,13 @@ int tryMain(size_t argc, char *argv[])
                 continue;
             }
 #endif
+            const char *fullname = FileName::canonicalName(p);
+            if (fullname == NULL)
+                fullname = p;
+
+            if (fnt->insert(fullname, strlen(fullname)) == NULL)
+                error(0, "Duplicate file on command-line: '%s'", p);
+
             files.push(p);
         }
     }
