@@ -5683,6 +5683,17 @@ void test6962()
 
 /***************************************************/
 
+void test9844() {
+    int a = -1;
+    long b = -1;
+    assert(a == -1);
+    assert(b == -1L);
+    printf("%d\n", a); // -1
+    printf("%lld\n", b); // (2^32)-1
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -5965,6 +5976,7 @@ int main()
     test6057();
     test251();
     test6962();
+    test9844();
 
     writefln("Success");
     return 0;
