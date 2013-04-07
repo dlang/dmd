@@ -7072,9 +7072,10 @@ Expression *FileExp::semantic(Scope *sc)
 
     if (global.params.verbose)
         printf("file      %s\t(%s)\n", (char *)se->string, name);
-    if (global.params.fileModuleDeps != NULL) 
+    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL) 
     {
-        OutBuffer *ob = global.params.fileModuleDeps;
+        OutBuffer *ob = global.params.moduleDeps;
+        ob->writestring("depsFile ");
         ob->writestring(sc->module->toPrettyChars());
         ob->writestring(" (");
         escapePath(ob, sc->module->srcfile->toChars());

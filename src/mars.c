@@ -335,8 +335,8 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
-  -deps=filename write module dependencies to filename\n\
-  -filedeps=filename write module string import dependencies to filename\n%s"
+  -deps write module import dependencies to stdoutput. (All dependencies including file/version/debug/lib)\n\
+  -deps=filename write module dependencies to filename (only imports - deprecated)\n%s"
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
@@ -883,19 +883,20 @@ Language changes listed by -transition=id:\n\
                 setdebuglib = 1;
                 global.params.debuglibname = p + 1 + 9;
             }
-            else if (memcmp(p + 1, "deps=", 5) == 0)
+            else if (memcmp(p + 1, "deps", 4) == 0)
             {
-                global.params.moduleDepsFile = p + 1 + 5;
-                if (!global.params.moduleDepsFile[0])
-                    goto Lnoarg;
+                if(global.params.moduleDeps)
+                {
+                    error(0, "-deps[=file] can only be provided once!");
+                    break;
+                }
+                if(p[5]=='=')
+                {
+                    global.params.moduleDepsFile = p + 1 + 5;
+                    if (!global.params.moduleDepsFile[0])
+                        goto Lnoarg;
+                } // Else output to stdout.
                 global.params.moduleDeps = new OutBuffer;
-            }
-            else if (memcmp(p + 1, "filedeps=", 9) == 0)
-            {
-                global.params.fileModuleDepsFile = p + 1 + 9;
-                if (!global.params.fileModuleDepsFile[0])
-                    goto Lnoarg;
-                global.params.fileModuleDeps = new OutBuffer;
             }
             else if (strcmp(p + 1, "main") == 0)
             {
@@ -1499,21 +1500,17 @@ Language changes listed by -transition=id:\n\
 
     if (global.params.moduleDeps != NULL)
     {
-        assert(global.params.moduleDepsFile != NULL);
-
-        File deps(global.params.moduleDepsFile);
         OutBuffer* ob = global.params.moduleDeps;
-        deps.setbuffer((void*)ob->data, ob->offset);
-        deps.writev();
-    }
-    if (global.params.fileModuleDeps != NULL)
-    {
-        assert(global.params.fileModuleDepsFile != NULL);
-
-        File fileDeps(global.params.fileModuleDepsFile);
-        OutBuffer* ob = global.params.fileModuleDeps;
-        fileDeps.setbuffer((void*)ob->data, ob->offset);
-        fileDeps.writev();
+        if(global.params.moduleDepsFile != NULL) 
+        {
+            File deps(global.params.moduleDepsFile);
+            deps.setbuffer((void*)ob->data, ob->offset);
+            deps.writev();
+        }
+        else
+        {
+            printf("%.*s", ob->offset, ob->data);
+        }
     }
 
     // Scan for functions to inline
@@ -1804,6 +1801,27 @@ Ldone:
     *pargc = argc;
     *pargv = argv->tdata();
 }
+
+void escapePath(OutBuffer *buf, const char *fname)
+{
+    while (1)
+    {
+        switch (*fname)
+        {
+            case 0:
+                return;
+            case '(':
+            case ')':
+            case '\\':
+                buf->writebyte('\\');
+            default:
+                buf->writebyte(*fname);
+                break;
+        }
+        fname++;
+    }
+}
+
 
 /***********************************
  * Parse command line arguments for -m32 or -m64

@@ -240,6 +240,19 @@ void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 VersionCondition::VersionCondition(Module *mod, unsigned level, Identifier *ident)
     : DVCondition(mod, level, ident)
 {
+    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL) 
+    {
+        OutBuffer *ob = global.params.moduleDeps;
+        ob->writestring("depsVersion ");
+        ob->writestring(mod->toPrettyChars());
+        ob->writestring(" (");
+        escapePath(ob, mod->srcfile->toChars());
+        ob->writestring(") : ");
+        if(ident)
+            ob->printf("%s\n", ident->toChars());
+        else
+            ob->printf("%d\n", level);
+    }
 }
 
 int VersionCondition::include(Scope *sc, ScopeDsymbol *s)

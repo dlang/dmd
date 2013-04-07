@@ -212,9 +212,7 @@ struct Param
     const char *debuglibname;   // default library for debug builds
 
     char *moduleDepsFile;       // filename for deps output
-    char *fileModuleDepsFile;       // filename for file (string imports) deps output
     OutBuffer *moduleDeps;      // contents to be written to deps file
-    OutBuffer *fileModuleDeps;      // contents to be written to file deps file
 
     // Hidden debug switches
     char debuga;
@@ -449,5 +447,7 @@ void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
 const char *importHint(const char *s);
+/// Little helper function for writting out deps. 
+void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_MARS_H */

@@ -1038,12 +1038,26 @@ void PragmaDeclaration::semantic(Scope *sc)
             StringExp *se = e->toString();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
-            else if (global.params.verbose)
+            else 
             {
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
-                printf("library   %s\n", name);
+                if (global.params.verbose)
+                {
+                    printf("library   %s\n", name);
+                }
+                if(global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL)
+                {
+                    OutBuffer *ob = global.params.moduleDeps;
+                    ob->writestring("depsLib ");
+                    ob->writestring(sc->module->toPrettyChars());
+                    ob->writestring(" (");
+                    escapePath(ob, sc->module->srcfile->toChars());
+                    ob->writestring(") : ");
+                    ob->writestring((char *) name);
+                    ob->writenl();
+                }
                 mem.free(name);
             }
         }

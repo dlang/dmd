@@ -65,7 +65,5 @@ public:
     Import *isImport() { return this; }
 };
 
-/// Little helper function for writting out deps. (Also used in expression.c for string imports)
-void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_IMPORT_H */
