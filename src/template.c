@@ -846,6 +846,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         }
 
         e = e->semantic(sc);
+        e = resolveProperties(sc, e);
+
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -1906,6 +1908,7 @@ Lmatch:
         }
 
         e = e->semantic(paramscope);
+        e = resolveProperties(sc, e);
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
