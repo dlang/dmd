@@ -452,7 +452,10 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
     {
         m = MATCHconst;
         for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (*elements)[i];
+        {
+            Expression *e = (*elements)[i];
+            if (!e)
+                continue;
             Type *te = e->type;
             te = te->castMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
@@ -1008,12 +1011,9 @@ MATCH SliceExp::implicitConvTo(Type *t)
         tb->ty == Tsarray && typeb->ty == Tarray &&
         lwr && upr)
     {
-        if (typeb->nextOf()->constConv(tb->nextOf()))
-        {
-            typeb = toStaticArrayType();
-            if (typeb)
-                result = typeb->implicitConvTo(t);
-        }
+        typeb = toStaticArrayType();
+        if (typeb)
+            result = typeb->implicitConvTo(t);
     }
     return result;
 }
@@ -1208,6 +1208,14 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     }
 #endif
     e->type = t;
+    return e;
+}
+
+Expression *StructLiteralExp::castTo(Scope *sc, Type *t)
+{
+    Expression *e = Expression::castTo(sc, t);
+    if (e->op == TOKstructliteral)
+        ((StructLiteralExp *)e)->stype = t; // commit type
     return e;
 }
 
@@ -1514,7 +1522,9 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
 
 Expression *TupleExp::castTo(Scope *sc, Type *t)
-{   TupleExp *e = (TupleExp *)copy();
+{
+    TupleExp *e = (TupleExp *)copy();
+    e->e0 = e0 ? e0->copy() : NULL;
     e->exps = (Expressions *)exps->copy();
     for (size_t i = 0; i < e->exps->dim; i++)
     {   Expression *ex = (*e->exps)[i];
@@ -1799,22 +1809,11 @@ Expression *SliceExp::castTo(Scope *sc, Type *t)
     Expression *e;
     if (typeb->ty == Tarray && tb->ty == Tsarray)
     {
-        e = copy();
-
-        /* Rewrite:
-         *      arr[lwr .. upr]
-         * as:
-         *      *(cast(T[dim]*)(arr[lwr .. upr].ptr))
-         *
-         * Note that:
-         *      static assert(dim == upr - lwr);
+        /* If a SliceExp has Tsarray, it will become lvalue.
+         * That's handled in SliceExp::isLvalue and toLvalue
          */
-        e = new DotIdExp(e->loc, e, Id::ptr);
-        e = e->semantic(sc);
-        e = e->castTo(sc, t->pointerTo());
-        e = new PtrExp(e->loc, e);
-        e = e->semantic(sc);
-        //printf("e = %s, %s => %s %s\n", toChars(), type->toChars(), e->toChars(), e->type->toChars());
+        e = copy();
+        e->type = t;
     }
     else
     {
@@ -2698,6 +2697,11 @@ Expression *BinExp::typeCombine(Scope *sc)
 
     if (!typeMerge(sc, this, &type, &e1, &e2))
         goto Lerror;
+    // If the types have no value, return an error
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     return this;
 
 Lerror:

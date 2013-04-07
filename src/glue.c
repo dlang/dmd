@@ -390,11 +390,13 @@ void Module::genobjfile(int multiobj)
             ebcov = addressElem(ebcov, Type::tvoid->arrayOf(), false);
         }
 
-        elem *e = el_params(ecov,
+        elem *e = el_params(
+                      el_long(TYuchar, global.params.covPercent),
+                      ecov,
                       ebcov,
                       toEfilename(),
                       NULL);
-        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER]), e);
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DCOVER2]), e);
         eictor = el_combine(e, eictor);
         ictorlocalgot = localgot;
     }
@@ -911,27 +913,42 @@ void FuncDeclaration::toObjFile(int multiobj)
         bx.module = getModule();
         irs.blx = &bx;
 
-        /* If profiling, insert call to the profiler here.
-         *      _c_trace_pro(char* funcname);
+        /* Doing this in semantic3() caused all kinds of problems:
+         * 1. couldn't reliably get the final mangling of the function name due to fwd refs
+         * 2. impact on function inlining
+         * 3. what to do when writing out .di files, or other pretty printing
          */
         if (global.params.trace)
-        {
-            dt_t *dt = NULL;
+        {   /* Wrap the entire function body in:
+             *   trace_pro("funcname");
+             *   try
+             *     body;
+             *   finally
+             *     _c_trace_epi();
+             */
+            StringExp *se = new StringExp(0, s->Sident);
+            se->type = new TypeDArray(Type::tchar->invariantOf());
+            se->type = se->type->semantic(0, NULL);
+            Expressions *exps = new Expressions();
+            exps->push(se);
+            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(Type::tvoid, "trace_pro");
+            Expression *ec = new VarExp(0, fdpro);
+            Expression *e = new CallExp(0, ec, exps);
+            e->type = Type::tvoid;
+            Statement *sp = new ExpStatement(loc, e);
 
-            char *id = s->Sident;
-            size_t len = strlen(id);
-            dtnbytes(&dt, len + 1, id);
+            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(Type::tvoid, "_c_trace_epi");
+            ec = new VarExp(0, fdepi);
+            e = new CallExp(0, ec);
+            e->type = Type::tvoid;
+            Statement *sf = new ExpStatement(loc, e);
 
-            Symbol *sfuncname = symbol_generate(SCstatic,type_fake(TYchar));
-            sfuncname->Sdt = dt;
-            sfuncname->Sfl = FLdata;
-            out_readonly(sfuncname);
-            outdata(sfuncname);
-            elem *efuncname = el_ptr(sfuncname);
-
-            elem *eparam = el_params(efuncname, el_long(TYsize_t, len), NULL);
-            elem *e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_TRACE_CPRO]), eparam);
-            block_appendexp(bx.curblock, e);
+            Statement *stf;
+            if (sbody->blockExit(tf->isnothrow) == BEfallthru)
+                stf = new CompoundStatement(0, sbody, sf);
+            else
+                stf = new TryFinallyStatement(0, sbody, sf);
+            sbody = new CompoundStatement(0, sp, stf);
         }
 
 #if DMDV2
@@ -940,7 +957,7 @@ void FuncDeclaration::toObjFile(int multiobj)
 
 #if TARGET_WINDOS
         if (func->isSynchronized() && cd && config.flags2 & CFG2seh &&
-            !func->isStatic() && !sbody->usesEH())
+            !func->isStatic() && !sbody->usesEH() && !global.params.trace)
         {
             /* The "jmonitor" hack uses an optimized exception handling frame
              * which is a little shorter than the more general EH frame.
@@ -1068,16 +1085,21 @@ void FuncDeclaration::toObjFile(int multiobj)
 
 bool onlyOneMain(Loc loc)
 {
+    static Loc lastLoc;
     static bool hasMain = false;
     if (hasMain)
     {
+        const char *msg = NULL;
+        if (global.params.addMain)
+            msg = ", -main switch added another main()";
 #if TARGET_WINDOS
-        error(loc, "only one main/WinMain/DllMain allowed");
+        error(lastLoc, "only one main/WinMain/DllMain allowed%s", msg ? msg : "");
 #else
-        error(loc, "only one main allowed");
+        error(lastLoc, "only one main allowed%s", msg ? msg : "");
 #endif
         return false;
     }
+    lastLoc = loc;
     hasMain = true;
     return true;
 }

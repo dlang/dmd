@@ -26,6 +26,8 @@
 #include "hdrgen.h"
 #include "target.h"
 
+void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int mod, const char *kind);
+
 /********************************* FuncDeclaration ****************************/
 
 FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageClass storage_class, Type *type)
@@ -295,7 +297,16 @@ void FuncDeclaration::semantic(Scope *sc)
         error("functions cannot be scope");
 
     if (isAbstract() && !isVirtual())
-        error("non-virtual functions cannot be abstract");
+    {
+        const char *sfunc;
+        if (isStatic())
+            sfunc = "static";
+        else if (protection == PROTprivate || protection == PROTpackage)
+            sfunc = Pprotectionnames[protection];
+        else
+            sfunc = "non-virtual";
+        error("%s functions cannot be abstract", sfunc);
+    }
 
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
@@ -819,6 +830,21 @@ Ldone:
      */
     scope = new Scope(*sc);
     scope->setNoFree();
+
+    static bool printedMain = false;  // semantic might run more than once
+    if (global.params.verbose && !printedMain)
+    {
+        const char *type = isMain() ? "main" : isWinMain() ? "winmain" : isDllMain() ? "dllmain" : NULL;
+        Module *mod = sc->module;
+
+        if (type && mod)
+        {
+            printedMain = true;
+            const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), 1);
+            printf("%-10s%-10s\t%s\n", "entry", type, name);
+        }
+    }
+
     return;
 }
 
@@ -923,7 +949,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->protection = PROTpublic;
         sc2->explicitProtection = 0;
         sc2->structalign = STRUCTALIGN_DEFAULT;
-        sc2->flags = sc->flags & ~SCOPEcontract;
+        if (this->ident != Id::require && this->ident != Id::ensure)
+            sc2->flags = sc->flags & ~SCOPEcontract;
         sc2->tf = NULL;
         sc2->noctor = 0;
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
@@ -1290,16 +1317,16 @@ void FuncDeclaration::semantic3(Scope *sc)
                     sc2->callSuper = 0;
 
                     // Insert implicit super() at start of fbody
-                    Expression *e1 = new SuperExp(0);
-                    Expression *e = new CallExp(0, e1);
-
-                    e = e->trySemantic(sc2);
-                    if (!e)
+                    if (!resolveFuncCall(0, sc2, cd->baseClass->ctor, NULL, NULL, NULL, 1))
                     {
                         error("no match for implicit super() call in constructor");
                     }
                     else
                     {
+                        Expression *e1 = new SuperExp(0);
+                        Expression *e = new CallExp(0, e1);
+                        e = e->semantic(sc2);
+
                         Statement *s = new ExpStatement(0, e);
                         fbody = new CompoundStatement(0, s, fbody);
                     }
@@ -1639,7 +1666,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     if (!global.params.is64bit &&
                         global.params.isWindows &&
-                        !isStatic() && !fbody->usesEH())
+                        !isStatic() && !fbody->usesEH() && !global.params.trace)
                     {
                         /* The back end uses the "jmonitor" hack for syncing;
                          * no need to do the sync at this level.
@@ -2582,13 +2609,17 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
             m.lastf->functionSemantic();
         return m.lastf;
     }
-    else if (m.last != MATCHnomatch && (flags & 2) && !ethis && m.lastf->needThis())
+
+    if (m.last != MATCHnomatch && (flags & 2) && !ethis && m.lastf->needThis())
     {
         return m.lastf;
     }
-    else if (m.last == MATCHnomatch && (flags & 1))
+
+    /* Failed to find a best match.
+     * Do nothing or print error.
+     */
+    if (m.last == MATCHnomatch && (flags & 1))
     {                   // if do not print error messages
-        return NULL;    // no match
     }
     else
     {
@@ -2623,8 +2654,6 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
                     tf->modToChars(),
                     buf.toChars());
             }
-
-            return m.anyf;              // as long as it's not a FuncAliasDeclaration
         }
         else
         {
@@ -2635,9 +2664,9 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Expression *ethis, Ex
                     buf.toChars(),
                     m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
                     m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
-            return m.lastf;
         }
     }
+    return NULL;
 }
 
 /*************************************
@@ -2742,6 +2771,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 {
     if (!s)
         return NULL;                    // no match
+    if (tiargs    && arrayObjectIsError(tiargs) ||
+        arguments && arrayObjectIsError((Objects *)arguments))
+    {
+        return NULL;
+    }
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
         f = f->overloadResolve(loc, ethis, arguments, flags);
@@ -2911,6 +2945,16 @@ const char *FuncDeclaration::toPrettyChars()
         return "D main";
     else
         return Dsymbol::toPrettyChars();
+}
+
+/** for diagnostics, e.g. 'int foo(int x, int y) pure' */
+const char *FuncDeclaration::toFullSignature()
+{
+    OutBuffer buf;
+    HdrGenState hgs;
+    functionToCBuffer2((TypeFunction *)type, &buf, &hgs, 0, toChars());
+    buf.writeByte(0);
+    return buf.extractData();
 }
 
 int FuncDeclaration::isMain()
@@ -4408,9 +4452,10 @@ static Identifier *unitTestId(Loc loc)
 #undef snprintf
 #endif
 
-UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc)
+UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
     : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
 {
+    this->codedoc = codedoc;
 }
 
 Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
@@ -4418,13 +4463,15 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
     UnitTestDeclaration *utd;
 
     assert(!s);
-    utd = new UnitTestDeclaration(loc, endloc);
+    utd = new UnitTestDeclaration(loc, endloc, codedoc);
     return FuncDeclaration::syntaxCopy(utd);
 }
 
 
 void UnitTestDeclaration::semantic(Scope *sc)
 {
+    protection = sc->protection;
+
     if (scope)
     {   sc = scope;
         scope = NULL;

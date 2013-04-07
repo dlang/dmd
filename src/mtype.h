@@ -235,6 +235,8 @@ struct Type : Object
     char *toChars();
     static char needThisPrefix();
     static void init();
+
+    #define SIZE_INVALID (~(d_uns64)0)
     d_uns64 size();
     virtual d_uns64 size(Loc loc);
     virtual unsigned alignsize();
@@ -272,6 +274,7 @@ struct Type : Object
     int isWild()        { return mod & MODwild; }
     int isSharedWild()  { return mod == (MODshared | MODwild); }
     int isNaked()       { return mod == 0; }
+    Type *nullAttributes();
     Type *constOf();
     Type *invariantOf();
     Type *mutableOf();
@@ -1054,7 +1057,9 @@ struct Parameter : Object
     int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
+#if CPP_MANGLE
     static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
+#endif
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
     static int isTPL(Parameters *arguments);

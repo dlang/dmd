@@ -1123,6 +1123,59 @@ struct S9177
 pragma(msg, is(S9177 : int));
 
 /***************************************************/
+// 9858
+
+struct S9858()
+{
+    @property int get() const
+    {
+        return 42;
+    }
+    alias get this;
+    void opAssign(int) {}
+}
+void test9858()
+{
+    const S9858!() s;
+    int i = s;
+}
+
+/***************************************************/
+// 9873
+
+void test9873()
+{
+    struct Tup(T...) { T field; alias field this; }
+
+    auto seq1 = Seq!(1, "hi");
+    assert(Seq!(1, "hi") == Seq!(1, "hi"));
+    assert(seq1          == Seq!(1, "hi"));
+    assert(Seq!(1, "hi") == seq1);
+    assert(seq1          == seq1);
+
+    auto seq2 = Seq!(2, "hi");
+    assert(Seq!(1, "hi") != Seq!(2, "hi"));
+    assert(seq2          != Seq!(1, "hi"));
+    assert(Seq!(1, "hi") != seq2);
+    assert(seq2          != seq1);
+
+    auto tup1 = Tup!(int, string)(1, "hi");
+    assert(Seq!(1, "hi") == tup1);
+    assert(seq1          == tup1);
+    assert(tup1          == Seq!(1, "hi"));
+    assert(tup1          == seq1);
+
+    auto tup2 = Tup!(int, string)(2, "hi");
+    assert(Seq!(1, "hi") != tup2);
+    assert(seq1          != tup2);
+    assert(tup2          != Seq!(1, "hi"));
+    assert(tup2          != seq1);
+
+    static assert(!__traits(compiles, seq1 == Seq!(1, "hi", [1,2])));
+    static assert(!__traits(compiles, tup1 == Seq!(1, "hi", [1,2])));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1161,6 +1214,8 @@ int main()
     test7992();
     test8169();
     test9174();
+    test9858();
+    test9873();
 
     printf("Success\n");
     return 0;

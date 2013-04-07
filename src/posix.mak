@@ -23,7 +23,7 @@ ifeq (,$(OS))
 endif
 
 ifeq (,$(TARGET_CPU))
-    $(warning no cpu specified, assuming X86)
+    $(info no cpu specified, assuming X86)
     TARGET_CPU=X86
 endif
 
@@ -43,34 +43,19 @@ C=backend
 TK=tk
 ROOT=root
 
-MODEL=32
+# Use make MODEL=32 or MODEL=64 to force the architecture
 ifneq (x,x$(MODEL))
     MODEL_FLAG=-m$(MODEL)
 endif
 
 ifeq (OSX,$(OS))
-    SDKDIR=/Developer/SDKs
-    ifeq "$(wildcard $(SDKDIR))" ""
-        SDKDIR=/Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs
-    endif
-    ## See: http://developer.apple.com/documentation/developertools/conceptual/cross_development/Using/chapter_3_section_2.html#//apple_ref/doc/uid/20002000-1114311-BABGCAAB
-    ENVP= MACOSX_DEPLOYMENT_TARGET=10.3
-    SDKVERS:=1 2 3 4 5 6 7 8
-    SDKFILES=$(foreach SDKVER, $(SDKVERS), $(wildcard $(SDKDIR)/MacOSX10.$(SDKVER).sdk))
-    SDK=$(firstword $(SDKFILES))
-    TARGET_CFLAGS=-isysroot ${SDK}
-    #-syslibroot is only passed to libtool, not ld.
-    #if gcc sees -isysroot it should pass -syslibroot to the linker when needed
-    #LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl,-syslibroot,${SDK} -framework CoreServices
-    LDFLAGS=-lstdc++ -isysroot ${SDK} -Wl -framework CoreServices
-    ECHO=/bin/echo
-else
-    LDFLAGS=-lm -lstdc++ -lpthread
-    ECHO=echo
+    export MACOSX_DEPLOYMENT_TARGET=10.3
 endif
+LDFLAGS=-lm -lstdc++ -lpthread
 
 HOST_CC=g++
-CC=$(HOST_CC) $(MODEL_FLAG) $(TARGET_CFLAGS)
+CC=$(HOST_CC) $(MODEL_FLAG)
+GIT=git
 
 #OPT=-g -g3
 #OPT=-O2
@@ -106,15 +91,15 @@ DMD_OBJS = \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
 	builtin.o ctfeexpr.o clone.o aliasthis.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
-	imphint.o argtypes.o ti_pvoid.o apply.o sideeffect.o \
+	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o \
 	pdata.o cv8.o backconfig.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(OS))
-    DMD_OBJS += libmach.o machobj.o
+    DMD_OBJS += libmach.o scanmach.o machobj.o
 else
-    DMD_OBJS += libelf.o elfobj.o
+    DMD_OBJS += libelf.o scanelf.o elfobj.o
 endif
 
 SRC = win32.mak posix.mak \
@@ -133,11 +118,11 @@ SRC = win32.mak posix.mak \
 	doc.h doc.c macro.h macro.c hdrgen.h hdrgen.c arraytypes.h \
 	delegatize.c toir.h toir.c interpret.c traits.c cppmangle.c \
 	builtin.c clone.c lib.h libomf.c libelf.c libmach.c arrayop.c \
-	libmscoff.c \
+	libmscoff.c scanelf.c scanmach.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
-	argtypes.c apply.c sideeffect.c \
+	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
-	scanmscoff.c ctfe.h ctfeexpr.c \
+	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
@@ -174,7 +159,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(ENVP) $(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
@@ -185,7 +170,7 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(ENVP) $(CC) $(MFLAGS) $< -o optabgen
+	$(CC) $(MFLAGS) $< -o optabgen
 	./optabgen
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
@@ -197,7 +182,7 @@ idgen_output = id.h id.c
 $(idgen_output) : idgen
 
 idgen : idgen.c
-	$(ENVP) $(CC) idgen.c -o idgen
+	$(CC) idgen.c -o idgen
 	./idgen
 
 ######### impcnvgen generates some source
@@ -206,13 +191,27 @@ impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : impcnvgen
 
 impcnvgen : mtype.h impcnvgen.c
-	$(ENVP) $(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
+	$(CC) $(CFLAGS) impcnvgen.c -o impcnvgen
 	./impcnvgen
 
 #########
 
-verstr.h : ../VERSION
-	$(ECHO) -n \"`cat ../VERSION`\" > verstr.h
+# Create (or update) the verstr.h file.
+# The file is only updated if the VERSION file changes, or, only when RELEASE=1
+# is not used, when the full version string changes (i.e. when the git hash or
+# the working tree dirty states changes).
+# The full version string have the form VERSION-devel-HASH(-dirty).
+# The "-dirty" part is only present when the repository had uncommitted changes
+# at the moment it was compiled (only files already tracked by git are taken
+# into account, untracked files don't affect the dirty state).
+VERSION := $(shell cat ../VERSION)
+ifneq (1,$(RELEASE))
+VERSION_GIT := $(shell printf "`$(GIT) rev-parse --short HEAD`"; \
+       test -n "`$(GIT) status --porcelain -uno`" && printf -- -dirty)
+VERSION := $(addsuffix -devel$(if $(VERSION_GIT),-$(VERSION_GIT)),$(VERSION))
+endif
+$(shell test \"$(VERSION)\" != "`cat verstr.h 2> /dev/null`" \
+		&& printf \"$(VERSION)\" > verstr.h )
 
 #########
 
@@ -551,8 +550,17 @@ root.o: $(ROOT)/root.c
 rtlsym.o: $C/rtlsym.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
 
+sapply.o: sapply.c
+	$(CC) -c $(CFLAGS) $<
+
 s2ir.o: s2ir.c $C/rtlsym.h statement.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
+
+scanelf.o: scanelf.c $C/melf.h
+	$(CC) -c $(CFLAGS) -I$C $<
+
+scanmach.o: scanmach.c $C/mach.h
+	$(CC) -c $(CFLAGS) -I$C $<
 
 scope.o: scope.c
 	$(CC) -c $(CFLAGS) $<

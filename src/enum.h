@@ -40,15 +40,13 @@ struct EnumDeclaration : ScopeDsymbol
     Expression *minval;
     Expression *defaultval;     // default initializer
 #endif
-    int isdeprecated;
+    bool isdeprecated;
     int isdone;                 // 0: not done
                                 // 1: semantic() successfully completed
-#ifdef IN_GCC
-    Expressions *attributes;    // GCC decl/type attributes
-#endif
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
+    int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void setScope(Scope *sc);
     void semantic0(Scope *sc);
     void semantic(Scope *sc);
@@ -59,7 +57,7 @@ struct EnumDeclaration : ScopeDsymbol
 #if DMDV2
     Dsymbol *search(Loc, Identifier *ident, int flags);
 #endif
-    int isDeprecated();                 // is Dsymbol deprecated?
+    bool isDeprecated();                // is Dsymbol deprecated?
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
@@ -79,6 +77,7 @@ struct EnumDeclaration : ScopeDsymbol
 
 struct EnumMember : Dsymbol
 {
+    EnumDeclaration *ed;
     Expression *value;
     Type *type;
 
@@ -86,6 +85,7 @@ struct EnumMember : Dsymbol
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void semantic(Scope *sc);
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

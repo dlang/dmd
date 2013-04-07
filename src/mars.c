@@ -96,6 +96,8 @@ Global::Global()
 #include "verstr.h"
     ;
 
+    main_d = "__main.d";
+
     structalign = STRUCTALIGN_DEFAULT;
 
     memset(&params, 0, sizeof(Param));
@@ -322,6 +324,7 @@ Usage:\n\
   @cmdfile       read arguments from cmdfile\n\
   -c             do not link\n\
   -cov           do code coverage analysis\n\
+  -cov=nnn       require at least %%nnn code coverage\n\
   -D             generate documentation\n\
   -Dddocdir      write documentation file to docdir directory\n\
   -Dffilename    write documentation file to filename\n\
@@ -352,14 +355,15 @@ Usage:\n\
 "  -m32           generate 32 bit code\n\
   -m64           generate 64 bit code\n"
 #endif
-"  -man           open web browser on manual page\n\
+"  -main          add default main() (e.g. for unittesting)\n\
+  -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
   -noboundscheck turns off array bounds checking for all functions\n\
   -O             optimize\n\
   -o-            do not write object file\n\
   -odobjdir      write object & library files to directory objdir\n\
   -offilename    name output file to filename\n\
-  -op            do not strip paths from source file\n\
+  -op            preserve source path for output files\n\
   -profile       profile runtime performance of generated code\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
@@ -545,8 +549,29 @@ int tryMain(size_t argc, char *argv[])
                 global.params.useDeprecated = 2;
             else if (strcmp(p + 1, "c") == 0)
                 global.params.link = 0;
-            else if (strcmp(p + 1, "cov") == 0)
-                global.params.cov = 1;
+            else if (memcmp(p + 1, "cov", 3) == 0)
+            {
+                global.params.cov = true;
+                // Parse:
+                //      -cov
+                //      -cov=nnn
+                if (p[4] == '=')
+                {
+                    if (isdigit((unsigned char)p[5]))
+                    {   long percent;
+
+                        errno = 0;
+                        percent = strtol(p + 5, &p, 10);
+                        if (*p || errno || percent > 100)
+                            goto Lerror;
+                        global.params.covPercent = percent;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else if (p[4])
+                    goto Lerror;
+            }
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             else if (strcmp(p + 1, "shared") == 0
 #if TARGET_OSX
@@ -818,6 +843,10 @@ int tryMain(size_t argc, char *argv[])
                 if (!global.params.moduleDepsFile[0])
                     goto Lnoarg;
                 global.params.moduleDeps = new OutBuffer;
+            }
+            else if (strcmp(p + 1, "main") == 0)
+            {
+                global.params.addMain = true;
             }
             else if (memcmp(p + 1, "man", 3) == 0)
             {
@@ -1095,10 +1124,15 @@ int tryMain(size_t argc, char *argv[])
         }
     }
 
+    if (global.params.addMain)
+    {
+        files.push(const_cast<char*>(global.main_d)); // a dummy name, we never actually look up this file
+    }
+
     // Create Modules
     Modules modules;
     modules.reserve(files.dim);
-    int firstmodule = 1;
+    bool firstmodule = true;
     for (size_t i = 0; i < files.dim; i++)
     {
         const char *ext;
@@ -1215,11 +1249,30 @@ int tryMain(size_t argc, char *argv[])
 
         if (firstmodule)
         {   global.params.objfiles->push((char *)m->objfile->name->str);
-            firstmodule = 0;
+            firstmodule = false;
         }
     }
 
     // Read files
+
+    /* Start by "reading" the dummy main.d file
+     */
+    if (global.params.addMain)
+    {
+        for (size_t i = 0; 1; i++)
+        {
+            assert(i != modules.dim);
+            Module *m = modules[i];
+            if (strcmp(m->srcfile->name->str, global.main_d) == 0)
+            {
+                static const char buf[] = "int main(){return 0;}";
+                m->srcfile->setbuffer((void *)buf, sizeof(buf));
+                m->srcfile->ref = 1;
+                break;
+            }
+        }
+    }
+
 #define ASYNCREAD 1
 #if ASYNCREAD
     // Multi threaded

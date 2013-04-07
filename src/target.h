@@ -14,6 +14,8 @@
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
 
+struct Type;
+
 struct Target
 {
     static int ptrsize;
@@ -22,6 +24,7 @@ struct Target
     static int realalignsize;   // alignment for reals
     
     static void init();
+    static unsigned alignsize(Type* type);
 };
 
 #endif

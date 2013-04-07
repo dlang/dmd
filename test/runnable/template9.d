@@ -2,7 +2,7 @@
 
 module breaker;
 
-import std.c.stdio;
+import core.stdc.stdio, core.vararg;
 
 /**********************************/
 
@@ -458,6 +458,30 @@ void test5896()
     assert(cast(int)xi == 3);
     assert(cast(int)xs == 4);
     assert(cast(int)xcs== 5);
+}
+
+/**********************************/
+// 6312
+
+void h6312() {}
+
+class Bla6312
+{
+    mixin wrap6312!h6312;
+}
+
+mixin template wrap6312(alias f)
+{
+    void blub(alias g = f)()
+    {
+        g();
+    }
+}
+
+void test6312()
+{
+    Bla6312 b = new Bla6312();
+    b.blub();
 }
 
 /**********************************/
@@ -1218,7 +1242,7 @@ template T7643(A...){ alias A T7643; }
 
 alias T7643!(long, "x", string, "y") Specs7643;
 
-alias T7643!( Specs7643[] ) U7643;	// Error: tuple A is used as a type
+alias T7643!( Specs7643[] ) U7643;  // Error: tuple A is used as a type
 
 /**********************************/
 // 7671
@@ -1626,6 +1650,23 @@ void test8669()
      ix.ifoo();
     static assert(!is(typeof(  sx.ifoo() )));
     static assert(!is(typeof( scx.ifoo() )));
+}
+
+/**********************************/
+// 8833
+
+template TypeTuple8833(T...) { alias TypeTuple = T; }
+
+void func8833(alias arg)() { }
+
+void test8833()
+{
+    int x, y;
+
+    alias TypeTuple8833!(
+        func8833!(x),
+        func8833!(y),
+    ) Map;
 }
 
 /**********************************/
@@ -2041,16 +2082,172 @@ void test9536()
     assert(s.bar() == 84);
 }
 
-/**********************************/
-// 9654
+/******************************************/
+// 9806
 
-void foo9654(ref const char[8] str) {}
-void bar9654(T)(ref const T[8] str) {}
-
-void test9654()
+struct S9806a(alias x)
 {
-    foo9654("testinfo");
-    bar9654("testinfo");
+    alias S9806a!0 N;
+}
+enum expr9806a = 0 * 0;
+alias S9806a!expr9806a T9806a;
+
+// --------
+
+struct S9806b(alias x)
+{
+    template Next()
+    {
+        enum expr = x + 1;
+        alias S9806b!expr Next;
+    }
+}
+alias S9806b!1 One9806b;
+alias S9806b!0.Next!() OneAgain9806b;
+
+// --------
+
+struct S9806c(x...)
+{
+    template Next()
+    {
+        enum expr = x[0] + 1;
+        alias S9806c!expr Next;
+    }
+}
+alias S9806c!1 One9806c;
+alias S9806c!0.Next!() OneAgain9806c;
+
+/******************************************/
+// 9837
+
+void test9837()
+{
+    enum DA : int[] { a = [1,2,3] }
+    DA da;
+    int[] bda = da;
+    static assert(is(DA : int[]));
+    void fda1(int[] a) {}
+    void fda2(T)(T[] a) {}
+    fda1(da);
+    fda2(da);
+
+    enum SA : int[3] { a = [1,2,3] }
+    SA sa;
+    int[3] bsa = sa;
+    static assert(is(SA : int[3]));
+    void fsa1(int[3] a) {}
+    void fsa2(T)(T[3] a) {}
+    void fsa3(size_t d)(int[d] a) {}
+    void fsa4(T, size_t d)(T[d] a) {}
+    fsa1(sa);
+    fsa2(sa);
+    fsa3(sa);
+    fsa4(sa);
+
+    enum AA : int[int] { a = null }
+    AA aa;
+    int[int] baa = aa;
+    static assert(is(AA : int[int]));
+    void faa1(int[int] a) {}
+    void faa2(V)(V[int] a) {}
+    void faa3(K)(int[K] a) {}
+    void faa4(K, V)(V[K] a) {}
+    faa1(aa);
+    faa2(aa);
+    faa3(aa);
+    faa4(aa);
+}
+
+/******************************************/
+// 9874
+
+bool foo9874() { return true; }
+void bar9874(T)(T) if (foo9874()) {} // OK
+void baz9874(T)(T) if (foo9874)   {} // error
+
+void test9874()
+{
+    foo9874;                      // OK
+    bar9874(0);
+    baz9874(0);
+}
+
+/******************************************/
+
+void test9885()
+{
+    void foo(int[1][]) {}
+    void boo()(int[1][]){}
+    struct X(T...) { static void xoo(T){} }
+    struct Y(T...) { static void yoo()(T){} }
+    struct Z(T...) { static void zoo(U...)(T, U){} }
+
+    struct V(T...) { static void voo()(T, ...){} }
+    struct W(T...) { static void woo()(T...){} }
+
+    struct R(T...) { static void roo(U...)(int, U, T){} }
+
+    // OK
+    foo([[10]]);
+    boo([[10]]);
+
+    // OK
+    X!(int[1][]).xoo([[10]]);
+
+    // NG!
+    Y!().yoo();
+    Y!(int).yoo(1);
+    Y!(int, int[]).yoo(1, [10]);
+    static assert(!__traits(compiles, Y!().yoo(1)));
+    static assert(!__traits(compiles, Y!(int).yoo("a")));
+    static assert(!__traits(compiles, Y!().yoo!(int)()));
+
+    // NG!
+    Z!().zoo();
+    Z!().zoo([1], [1:1]);
+    Z!(int, string).zoo(1, "a");
+    Z!(int, string).zoo(1, "a", [1], [1:1]);
+    Z!().zoo!()();
+    static assert(!__traits(compiles, Z!().zoo!()(1)));     // (none) <- 1
+    static assert(!__traits(compiles, Z!(int).zoo!()()));   // int <- (none)
+    static assert(!__traits(compiles, Z!(int).zoo!()(""))); // int <- ""
+    static assert(!__traits(compiles, Z!().zoo!(int)()));   // int <- (none)
+    static assert(!__traits(compiles, Z!().zoo!(int)(""))); // int <- ""
+
+    V!().voo(1,2,3);
+    V!(int).voo(1,2,3);
+    V!(int, long).voo(1,2,3);
+    static assert(!__traits(compiles, V!(int).voo()));          // int <- (none)
+    static assert(!__traits(compiles, V!(int, long).voo(1)));       // long <- (none)
+    static assert(!__traits(compiles, V!(int, string).voo(1,2,3)));     // string <- 2
+
+    W!().woo();
+    //W!().woo(1, 2, 3);    // Access Violation
+    {   // this behavior is consistent with:
+        //alias TL = TypeTuple!();
+        //void foo(TL...) {}
+        //foo(1, 2, 3);     // Access Violation
+        //pragma(msg, typeof(foo));   // void(...)  -> D-style variadic function?
+    }
+    W!(int,int[]).woo(1,2,3);
+    W!(int,int[2]).woo(1,2,3);
+    static assert(!__traits(compiles, W!(int,int,int).woo(1,2,3)));	// int... <- 2
+    static assert(!__traits(compiles, W!(int,int).woo(1,2)));		// int... <- 2
+    static assert(!__traits(compiles, W!(int,int[2]).woo(1,2)));    // int[2]... <- 2
+
+    R!().roo(1, "", []);
+    R!(int).roo(1, "", [], 1);
+    R!(int, string).roo(1, "", [], 1, "");
+    R!(int, string).roo(1, 2, "");
+    static assert(!__traits(compiles, R!(int).roo(1, "", []))); // int <- []
+    static assert(!__traits(compiles, R!(int, int).roo(1, "", [])));    // int <- []
+    static assert(!__traits(compiles, R!(int, string).roo(1, 2, 3)));   // string <- 3
+
+    // test case
+    struct Tuple(T...) { this()(T values) {} }
+    alias T = Tuple!(int[1][]);
+    auto t = T([[10]]);
 }
 
 /******************************************/
@@ -2118,6 +2315,7 @@ int main()
     test8129();
     test8238();
     test8669();
+    test8833();
     test8976();
     test8940();
     test9026();
@@ -2129,7 +2327,9 @@ int main()
     test9143();
     test9266();
     test9536();
-    test9654();
+    test9837();
+    test9874();
+    test9885();
 
     printf("Success\n");
     return 0;

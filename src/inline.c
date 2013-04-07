@@ -213,7 +213,7 @@ int VarExp::inlineCost3(InlineCostState *ics)
     if (tb->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tb)->sym;
-        if (sd->isnested)
+        if (sd->isNested())
             /* An inner struct will be nested inside another function hierarchy than where
              * we're inlining into, so don't inline it.
              * At least not until we figure out how to 'move' the struct to be nested
@@ -246,7 +246,7 @@ int StructLiteralExp::inlineCost3(InlineCostState *ics)
 {
     //printf("StructLiteralExp::inlineCost3() %s\n", toChars());
 #if DMDV2
-    if (sd->isnested)
+    if (sd->isNested())
         return COST_MAX;
 #endif
     return 1;
@@ -869,6 +869,8 @@ Expression *TupleExp::doInline(InlineDoState *ids)
     TupleExp *ce;
 
     ce = (TupleExp *)copy();
+    if (e0)
+        ce->e0 = e0->doInline(ids);
     ce->exps = arrayExpressiondoInline(exps, ids);
     return ce;
 }
@@ -1171,14 +1173,6 @@ Statement *ThrowStatement::inlineScan(InlineScanState *iss)
 }
 
 
-Statement *VolatileStatement::inlineScan(InlineScanState *iss)
-{
-    if (statement)
-        statement = statement->inlineScan(iss);
-    return this;
-}
-
-
 Statement *LabelStatement::inlineScan(InlineScanState *iss)
 {
     if (statement)
@@ -1350,6 +1344,8 @@ Expression *TupleExp::inlineScan(InlineScanState *iss)
 {   Expression *e = this;
 
     //printf("TupleExp::inlineScan()\n");
+    if (e0)
+        e0->inlineScan(iss);
     arrayInlineScan(iss, exps);
 
     return e;

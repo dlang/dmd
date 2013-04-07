@@ -141,6 +141,7 @@ LINK2 = <a href=\"$1\">$+</a>\n\
 LPAREN= (\n\
 RPAREN= )\n\
 DOLLAR= $\n\
+DEPRECATED= $0\n\
 \n\
 RED =   <font color=red>$0</font>\n\
 BLUE =  <font color=blue>$0</font>\n\
@@ -476,6 +477,54 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
 
 /******************************* emitComment **********************************/
 
+/** Get leading indentation from 'src' which represents lines of code. */
+static size_t getCodeIndent(const char *src)
+{
+    while (src && *src == '\n')
+        ++src;  // skip until we find the first non-empty line
+
+    size_t codeIndent = 0;
+    while (src && (*src == ' ' || *src == '\t'))
+    {
+        codeIndent++;
+        src++;
+    }
+    return codeIndent;
+}
+
+void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
+{
+    OutBuffer *buf = sc->docbuf;
+
+    for (UnitTestDeclaration *utd = s->unittest; utd; utd = utd->unittest)
+    {
+        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
+            continue;
+
+        // Strip whitespaces to avoid showing empty summary
+        unsigned char *c = utd->comment;
+        while (*c == ' ' || *c == '\t' || *c == '\n' || *c == '\r') ++c;
+
+        OutBuffer codebuf;
+        codebuf.writestring("$(DDOC_EXAMPLES \n");
+        size_t o = codebuf.offset;
+        codebuf.writestring((char *)c);
+
+        if (utd->codedoc)
+        {
+            size_t i = getCodeIndent(utd->codedoc);
+            while (i--) codebuf.writeByte(' ');
+            codebuf.writestring("----\n");
+            codebuf.writestring(utd->codedoc);
+            codebuf.writestring("----\n");
+            highlightText(sc, s, &codebuf, o);
+        }
+
+        codebuf.writestring(")");
+        buf->insert(buf->offset - ofs, codebuf.data, codebuf.offset);
+    }
+}
+
 /*
  * Emit doc comment to documentation file
  */
@@ -506,41 +555,12 @@ void Dsymbol::emitDitto(Scope *sc)
     buf->spread(sc->lastoffset, b.offset);
     memcpy(buf->data + sc->lastoffset, b.data, b.offset);
     sc->lastoffset += b.offset;
-}
 
-void emitUnittestComment(Scope *sc, Dsymbol *s, UnitTestDeclaration *test)
-{
-    static char pre[] = "$(D_CODE \n";
-    OutBuffer *buf = sc->docbuf;
-
-    bool exampleFound = false;
-    for (UnitTestDeclaration *utd = test; utd; utd = utd->unittest)
-    {
-        if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
-            continue;
-
-        OutBuffer codebuf;
-        const char *body = utd->fbody->toChars();
-        if (strlen(body))
-        {
-            if (!exampleFound)
-            {
-                exampleFound = true;
-                buf->writestring("$(DDOC_SECTION ");
-                buf->writestring("$(B Example:)");
-            }
-
-            codebuf.writestring(pre);
-            codebuf.writestring(body);
-            codebuf.writestring(")");
-            codebuf.writeByte(0);
-            highlightCode2(sc, s, &codebuf, 0);
-            buf->writestring(codebuf.toChars());
-        }
-    }
-
-    if (exampleFound)
-        buf->writestring(")");
+    Dsymbol *s = this;
+    if (!s->unittest && parent)
+        s = parent->isTemplateDeclaration();
+    if (s)
+        emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
 }
 
 void ScopeDsymbol::emitMemberComments(Scope *sc)
@@ -594,6 +614,7 @@ void emitProtection(OutBuffer *buf, PROT prot)
 
 void Dsymbol::emitComment(Scope *sc)               { }
 void InvariantDeclaration::emitComment(Scope *sc)  { }
+void UnitTestDeclaration::emitComment(Scope *sc)   { }
 #if DMDV2
 void PostBlitDeclaration::emitComment(Scope *sc)   { }
 #endif
@@ -875,6 +896,9 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
     //printf("declarationToDocBuffer() %s, originalType = %s, td = %s\n", decl->toChars(), decl->originalType ? decl->originalType->toChars() : "--", td ? td->toChars() : "--");
     if (decl->ident)
     {
+        if (decl->isDeprecated())
+            buf->writestring("$(DEPRECATED ");
+
         prefix(buf, decl);
 
         if (decl->type)
@@ -891,6 +915,10 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
         }
         else
             buf->writestring(decl->ident->toChars());
+
+        if (decl->isDeprecated())
+            buf->writestring(")");
+
         buf->writestring(";\n");
     }
 }
@@ -909,7 +937,7 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             buf->writestring("deprecated ");
 
         emitProtection(buf, protection);
-        buf->writestring("alias ");
+        buf->printf("alias %s = ", toChars());
 
         if (Dsymbol *s = aliassym)  // ident alias
         {
@@ -931,8 +959,6 @@ void AliasDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
             }
         }
 
-        buf->writestring(" ");
-        buf->writestring(toChars());
         buf->writestring(";\n");
     }
 }
@@ -1312,7 +1338,7 @@ void DocComment::parseSections(unsigned char *comment)
 void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     //printf("DocComment::writeSections()\n");
-    if (sections.dim)
+    if (sections.dim || s->unittest)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (size_t i = 0; i < sections.dim; i++)
@@ -1334,7 +1360,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
             }
         }
         if (s->unittest)
-            emitUnittestComment(sc, s, s->unittest);
+            emitUnittestComment(sc, s, 0);
         buf->writestring(")\n");
     }
     else
@@ -2277,6 +2303,9 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
     OutBuffer res;
     unsigned char *lastp = buf->data;
     const char *highlight;
+
+    if (s->isModule() && ((Module *)s)->isDocFile)
+        sid = "";
 
     //printf("highlightCode2('%.*s')\n", buf->offset - 1, buf->data);
     res.reserve(buf->offset);

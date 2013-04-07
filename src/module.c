@@ -536,7 +536,8 @@ void Module::parse()
     p.nextToken();
     members = p.parseModule();
 
-    ::free(srcfile->buffer);
+    if (srcfile->ref == 0)
+        ::free(srcfile->buffer);
     srcfile->buffer = NULL;
     srcfile->len = 0;
 
@@ -574,8 +575,14 @@ void Module::parse()
         assert(prev);
         Module *mprev = prev->isModule();
         if (mprev)
-            error(loc, "from file %s conflicts with another module %s from file %s",
-                srcname, mprev->toChars(), mprev->srcfile->toChars());
+        {
+            if (strcmp(srcname, mprev->srcfile->toChars()) == 0)
+                error(loc, "from file %s must be imported as module '%s'",
+                    srcname, toPrettyChars());
+            else
+                error(loc, "from file %s conflicts with another module %s from file %s",
+                    srcname, mprev->toChars(), mprev->srcfile->toChars());
+        }
         else
         {
             Package *pkg = prev->isPackage();

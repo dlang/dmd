@@ -11,6 +11,7 @@
 
 #include "target.h"
 #include "mars.h"
+#include "mtype.h"
 
 int Target::ptrsize;
 int Target::realsize;
@@ -56,5 +57,38 @@ void Target::init()
             realalignsize = 16;
         }
     }
+}
+
+unsigned Target::alignsize (Type* type)
+{
+    assert (type->isTypeBasic());
+
+    switch (type->ty)
+    {
+        case Tfloat80:
+        case Timaginary80:
+        case Tcomplex80:
+            return Target::realalignsize;
+
+        case Tcomplex32:
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD
+                || global.params.isOpenBSD || global.params.isSolaris)
+                return 4;
+            break;
+
+        case Tint64:
+        case Tuns64:
+        case Tfloat64:
+        case Timaginary64:
+        case Tcomplex64:
+            if (global.params.isLinux || global.params.isOSX || global.params.isFreeBSD
+                || global.params.isOpenBSD || global.params.isSolaris)
+                return global.params.is64bit ? 8 : 4;
+            break;
+
+        default:
+            break;
+    }
+    return type->size(0);
 }
 

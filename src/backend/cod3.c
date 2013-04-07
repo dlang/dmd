@@ -737,12 +737,6 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
             goto case_goto;
 #endif
 #if SCPP
@@ -750,12 +744,6 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs(allregs | mES));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
             goto case_goto;
 
         case BCtry:
@@ -833,6 +821,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             }
                         }
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                        regcon.immed.mval = 0;
                         if (nalign)
                             cs = cod3_stackadj(cs, -nalign);
                         c = cat3(c,cs,cr);
@@ -878,7 +867,10 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
         case BC_finally:
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in finally blocks.
-            assert(!getregs(allregs));
+            {
+                code *cy = getregs(allregs);
+                assert(!cy);
+            }
             assert(!e);
             assert(!bl->Bcode);
 #if 1
@@ -890,6 +882,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                 }
                 // CALL bl->Bsucc
                 c = genc(c,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bl->Bsucc));
+                regcon.immed.mval = 0;
                 if (nalign)
                     c = cod3_stackadj(c, -nalign);
                 // JMP list_next(bl->Bsucc)
@@ -1004,6 +997,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                             c = cat(c,nteh_gensindex(-1));
                             gensaverestore(retregs,&cs,&cr);
                             cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                            regcon.immed.mval = 0;
                             bl->Bcode = cat3(c,cs,cr);
                         }
                         else
@@ -1027,6 +1021,7 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
                         }
                         // CALL bf->Bsucc
                         cs = genc(cs,0xE8,0,0,0,FLblock,(targ_size_t)list_block(bf->Bsucc));
+                        regcon.immed.mval = 0;
                         if (nalign)
                             cs = cod3_stackadj(cs, -nalign);
                         bl->Bcode = c = cat3(c,cs,cr);
@@ -2027,7 +2022,7 @@ code *load_localgot()
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (config.flags3 & CFG3pic && I32)
     {
-        if (localgot)
+        if (localgot && !(localgot->Sflags & SFLdead))
         {
             localgot->Sflags &= ~GTregcand;     // because this hack doesn't work with reg allocator
             elem *e = el_var(localgot);
@@ -2472,7 +2467,10 @@ L1:
                 if (flags & 64)
                     c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
                 else
-                    c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                    if (I64)
+                        value &= 0xFFFFFFFF;
+                }
             }
         }
     done:
@@ -3602,33 +3600,6 @@ targ_size_t cod3_spoff()
     return spoff + localsize;
 }
 
-/**********************************
- * Load value of _GLOBAL_OFFSET_TABLE_ into EBX
- */
-
-code *cod3_load_got()
-{
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    code *c;
-    code *cgot;
-
-    c = genc2(NULL,CALL,0,0);   //     CALL L1
-    gen1(c, 0x58 + BX);         // L1: POP EBX
-
-                                //     ADD EBX,_GLOBAL_OFFSET_TABLE_+3
-    symbol *gotsym = Obj::getGOTsym();
-    cgot = gencs(CNIL,0x81,0xC3,FLextern,gotsym);
-    cgot->Iflags = CFoff;
-    cgot->IEVoffset2 = 3;
-
-    makeitextern(gotsym);
-    return cat(c,cgot);
-#else
-    assert(0);
-    return NULL;
-#endif
-}
-
 code* gen_spill_reg(Symbol* s, bool toreg)
 {
     code *c;
@@ -3756,7 +3727,6 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
             JMP i[BX]                           jump to virtual function
          */
 
-
         c = genregs(CNIL,0x89,SP,BX);                   /* MOV BX,SP    */
         c1 = genc(CNIL,0x81,modregrm(2,0,7),
             FLconst,p,                                  /* to this      */
@@ -3833,6 +3803,12 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     }
     else
     {
+        localgot = NULL;                // no local variables
+        code *c1 = load_localgot();
+        if (c1)
+        {   assignaddrc(c1);
+            c = cat(c, c1);
+        }
         c1 = gencs(CNIL,(LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); /* JMP sfunc */
         c1->Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
         c = cat(c,c1);

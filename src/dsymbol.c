@@ -534,9 +534,9 @@ int Dsymbol::isImportedSymbol()
     return FALSE;
 }
 
-int Dsymbol::isDeprecated()
+bool Dsymbol::isDeprecated()
 {
-    return FALSE;
+    return false;
 }
 
 #if DMDV2
@@ -729,7 +729,7 @@ Module *Dsymbol::getAccessModule()
         if (m)
             return m;
         TemplateInstance *ti = s->isTemplateInstance();
-        if (ti && ti->isnested)
+        if (ti && ti->enclosing)
             /* Because of local template instantiation, the parent isn't where the access
              * rights come from - it's the template declaration
              */

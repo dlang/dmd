@@ -103,7 +103,7 @@ struct syment
         {   long _n_zeroes;
             long _n_offset;
         } _n_n;
-        char *_n_nptr[2];
+        //char *_n_nptr[2]; // Breaks struct on x64
     } _n;
 #define n_name          _n._n_name
 #define n_zeroes        _n._n_n._n_zeroes

@@ -95,7 +95,7 @@ Initializer *ErrorInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
 }
 
 
-Expression *ErrorInitializer::toExpression()
+Expression *ErrorInitializer::toExpression(Type *t)
 {
     return new ErrorExp();
 }
@@ -130,7 +130,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
 }
 
 
-Expression *VoidInitializer::toExpression()
+Expression *VoidInitializer::toExpression(Type *t)
 {
     error(loc, "void initializer has no value");
     return new ErrorExp();
@@ -203,9 +203,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             errors = 1;
             goto Lerror;
         }
-        size_t nfields = sd->fields.dim;
-        if (sd->isnested)
-            nfields--;
+        size_t nfields = sd->fields.dim - sd->isNested();
         for (size_t i = 0; i < field.dim; i++)
         {
             Identifier *id = field[i];
@@ -303,7 +301,7 @@ Lerror:
  * a struct literal. In the future, the two should be the
  * same thing.
  */
-Expression *StructInitializer::toExpression()
+Expression *StructInitializer::toExpression(Type *t)
 {   Expression *e;
     size_t offset;
 
@@ -315,11 +313,7 @@ Expression *StructInitializer::toExpression()
         return NULL;
 
     Expressions *elements = new Expressions();
-    size_t nfields = ad->fields.dim;
-#if DMDV2
-    if (sd->isnested)
-       nfields--;
-#endif
+    size_t nfields = ad->fields.dim - sd->isNested();
     elements->setDim(nfields);
     for (size_t i = 0; i < elements->dim; i++)
     {
@@ -637,7 +631,7 @@ Lerr:
  * Otherwise return NULL.
  */
 
-Expression *ArrayInitializer::toExpression()
+Expression *ArrayInitializer::toExpression(Type *tx)
 {
     //printf("ArrayInitializer::toExpression(), dim = %d\n", dim);
     //static int i; if (++i == 2) halt();
@@ -1006,6 +1000,9 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
         exp->implicitConvTo(tb->nextOf())
        )
     {
+        /* If the variable is not actually used in compile time, array creation is
+         * redundant. So delay it until invocation of toExpression() or toDt().
+         */
         t = tb->nextOf();
     }
 
@@ -1064,8 +1061,24 @@ Type *ExpInitializer::inferType(Scope *sc)
     return t;
 }
 
-Expression *ExpInitializer::toExpression()
+Expression *ExpInitializer::toExpression(Type *t)
 {
+    if (t)
+    {
+        Type *tb = t->toBasetype();
+        if (tb->ty == Tsarray && exp->implicitConvTo(tb->nextOf()))
+        {
+            TypeSArray *tsa = (TypeSArray *)tb;
+            size_t d = tsa->dim->toInteger();
+            Expressions *elements = new Expressions();
+            elements->setDim(d);
+            for (size_t i = 0; i < d; i++)
+                (*elements)[i] = exp;
+            ArrayLiteralExp *ae = new ArrayLiteralExp(exp->loc, elements);
+            ae->type = t;
+            exp = ae;
+        }
+    }
     return exp;
 }
 

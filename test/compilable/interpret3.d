@@ -304,6 +304,27 @@ bool bug4837()
 static assert(bug4837());
 
 /**************************************************
+  'this' parameter bug revealed during refactoring
+**************************************************/
+int thisbug1(int x) { return x; }
+
+struct ThisBug1
+{
+    int m = 1;
+    int wut() {
+        return thisbug1(m);
+    }
+}
+
+int thisbug2()
+{
+    ThisBug1 spec;
+    return spec.wut();
+}
+
+static assert(thisbug2());
+
+/**************************************************
    6972 ICE with cast()cast()assign
 **************************************************/
 
@@ -1246,7 +1267,7 @@ static assert(!is(typeof(compiles!(zfs(2)))));
 static assert(!is(typeof(compiles!(zfs(3)))));
 static assert(!is(typeof(compiles!(zfs(4)))));
 static assert(is(typeof(compiles!(zfs(1)))));
-static assert(!is(typeof(compiles!(zfs(5)))));
+static assert(is(typeof(compiles!(zfs(5)))));
 
 /**************************************************
    .dup must protect string literals
@@ -2322,6 +2343,66 @@ bool bug7216() {
 }
 
 static assert(bug7216());
+
+/**************************************************
+    9745 Allow pointers to static variables
+**************************************************/
+
+shared int x9745;
+shared int[5] y9745;
+
+shared (int) * bug9745(int m)
+{
+    auto k = &x9745;
+    auto j = &x9745;
+    auto p = &y9745[0];
+    auto q = &y9745[3];
+    assert (j - k == 0);
+    assert( j == k );
+    assert( q - p == 3);
+    --q;
+    int a = 0;
+    assert(p + 2 == q);
+    if (m==7)
+    {
+        auto z1 = y9745[0..2]; // slice global pointer
+    }
+    if (m==8)
+        p[1] = 7; // modify through a pointer
+    if (m==9)
+         a = p[1]; // read from a pointer
+    if (m == 0)
+        return & x9745;
+    return &y9745[1];
+}
+
+int test9745(int m)
+{
+    bug9745(m);
+    // type painting
+    shared int * w = bug9745(0);
+    return 1;
+}
+
+shared int * w9745a = bug9745(0);
+shared int * w9745b = bug9745(1);
+static assert( is(typeof(compiles!(test9745(6)))));
+static assert(!is(typeof(compiles!(test9745(7)))));
+static assert(!is(typeof(compiles!(test9745(8)))));
+static assert(!is(typeof(compiles!(test9745(9)))));
+
+// pointers cast from an absolute address
+// (mostly applies to fake pointers, eg Windows HANDLES)
+bool test9745b()
+{
+    void *b6 = cast(void *)0xFEFEFEFE;
+    void *b7 = cast(void *)0xFEFEFEFF;
+    assert(b6 is b6);
+    assert(b7 != b6);
+    return true;
+}
+static assert(test9745b());
+
 
 /**************************************************
     4065 [CTFE] AA "in" operator doesn't work
@@ -4697,6 +4778,21 @@ template bar7197(y...) {
 }
 enum int bug7197 = 7;
 static assert(bar7197!(bug7197));
+
+/**************************************************
+    Enum string compare
+**************************************************/
+
+enum EScmp : string { a = "aaa" }
+
+bool testEScmp()
+{
+    EScmp x = EScmp.a;
+    assert( x < "abc" );
+    return true;
+}
+
+static assert(testEScmp());
 
 /**************************************************
     7667

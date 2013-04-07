@@ -172,12 +172,14 @@ struct Param
                         // 1: warnings as errors
                         // 2: informational warnings (no errors)
     bool pic;           // generate position-independent-code for shared libs
-    char cov;           // generate code coverage data
+    bool cov;           // generate code coverage data
+    unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
     char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
+    bool addMain;       // add a default main() function
 
     char *argv0;        // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
@@ -254,6 +256,7 @@ struct Global
     const char *map_ext;        // for .map files
     const char *copyright;
     const char *written;
+    const char *main_d;         // dummy filename for dummy main()
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 

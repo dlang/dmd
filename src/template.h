@@ -88,6 +88,7 @@ struct TemplateDeclaration : ScopeDsymbol
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
+    enum PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
@@ -298,7 +299,7 @@ struct TemplateInstance : ScopeDsymbol
     int semantictiargsdone;     // has semanticTiargs() been done?
     int nest;           // for recursion detection
     int havetempdecl;   // 1 if used second constructor
-    Dsymbol *isnested;  // if referencing local symbols, this is the context
+    Dsymbol *enclosing;  // if referencing local symbols, this is the context
     int speculative;    // 1 if only instantiated with errors gagged
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol

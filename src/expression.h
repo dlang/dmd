@@ -412,8 +412,17 @@ struct StringExp : Expression
 
 struct TupleExp : Expression
 {
+    Expression *e0;     // side-effect part
+    /* Tuple-field access may need to take out its side effect part.
+     * For example:
+     *      foo().tupleof
+     * is rewritten as:
+     *      (ref __tup = foo(); tuple(__tup.field0, __tup.field1, ...))
+     * The declaration of temporary variable __tup will be stored in TupleExp::e0.
+     */
     Expressions *exps;
 
+    TupleExp(Loc loc, Expression *e0, Expressions *exps);
     TupleExp(Loc loc, Expressions *exps);
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
@@ -511,6 +520,7 @@ struct StructLiteralExp : Expression
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     dt_t **toDt(dt_t **pdt);
     MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
 
     int inlineCost3(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -616,6 +626,7 @@ struct SymOffExp : SymbolExp
 
     SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
     Expression *semantic(Scope *sc);
+    Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void checkEscape();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1135,6 +1146,8 @@ struct SliceExp : UnaExp
     void checkEscape();
     void checkEscapeRef();
     int checkModifiable(Scope *sc, int flag);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
     Expression *modifiableLvalue(Scope *sc, Expression *e);
     int isBool(int result);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

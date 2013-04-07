@@ -977,6 +977,52 @@ void test9496()
 }
 
 /**************************************/
+// 9689
+
+struct B9689(T)
+{
+    T val;
+    @disable this(this);
+
+    bool opEquals(this X, B)(auto ref B b)
+    {
+        //pragma(msg, "+", X, ", B = ", B, ", ref = ", __traits(isRef, b));
+        return this.val == b.val;
+        //pragma(msg, "-", X, ", B = ", B, ", ref = ", __traits(isRef, b));
+    }
+}
+
+struct S9689
+{
+    B9689!int num;
+}
+
+void test9689()
+{
+    B9689!S9689 b;
+}
+
+/**************************************/
+// 9694
+
+struct S9694
+{
+    bool opEquals(ref S9694 rhs)
+    {
+        assert(0);
+    }
+}
+struct T9694
+{
+    S9694 s;
+}
+void test9694()
+{
+    T9694 t;
+    assert(typeid(T9694).equals(&t, &t));
+}
+
+/**************************************/
 
 int main()
 {
@@ -1004,6 +1050,8 @@ int main()
     test19();
     test9453();
     test9496();
+    test9689();
+    test9694();
 
     printf("Success\n");
     return 0;

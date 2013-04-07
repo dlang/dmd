@@ -68,7 +68,6 @@ struct Scope
     bool speculative;            // in __traits(compiles) or typeof(exp)
     int parameterSpecialization; // if in template parameter specialization
     int noaccesscheck;          // don't do access checks
-    int mustsemantic;           // cannot defer semantic()
 
     unsigned callSuper;         // primitive flow analysis for constructors
 #define CSXthis_ctor    1       // called this()
@@ -100,9 +99,6 @@ struct Scope
 #define SCOPEensure     0x60    // inside out contract code
 #define SCOPEcontract   0x60    // [mask] we're inside contract code
 
-#ifdef IN_GCC
-    Expressions *attributes;    // GCC decl/type attributes
-#endif
     Expressions *userAttributes;        // user defined attributes
 
     DocComment *lastdc;         // documentation comment for last symbol at this scope
