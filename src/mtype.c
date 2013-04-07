@@ -276,7 +276,7 @@ d_uns64 Type::size()
 d_uns64 Type::size(Loc loc)
 {
     error(loc, "no size for type %s", toChars());
-    return 1;
+    return SIZE_INVALID;
 }
 
 unsigned Type::alignsize()
@@ -1845,7 +1845,10 @@ Expression *Type::getProperty(Loc loc, Identifier *ident)
 #endif
     if (ident == Id::__sizeof)
     {
-        e = new IntegerExp(loc, size(loc), Type::tsize_t);
+        d_uns64 sz = size(loc);
+        if (sz == SIZE_INVALID)
+            return new ErrorExp();
+        e = new IntegerExp(loc, sz, Type::tsize_t);
     }
     else if (ident == Id::__xalignof)
     {
@@ -2212,7 +2215,7 @@ void TypeError::toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs)
     buf->writestring("_error_");
 }
 
-d_uns64 TypeError::size(Loc loc) { return 1; }
+d_uns64 TypeError::size(Loc loc) { return SIZE_INVALID; }
 Expression *TypeError::getProperty(Loc loc, Identifier *ident) { return new ErrorExp(); }
 Expression *TypeError::dotExp(Scope *sc, Expression *e, Identifier *ident) { return new ErrorExp(); }
 Expression *TypeError::defaultInit(Loc loc) { return new ErrorExp(); }
@@ -3562,7 +3565,7 @@ d_uns64 TypeSArray::size(Loc loc)
 
 Loverflow:
     error(loc, "index %lld overflow for static array", (long long)sz);
-    return 1;
+    return SIZE_INVALID;
 }
 
 unsigned TypeSArray::alignsize()
@@ -6289,7 +6292,7 @@ void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 d_uns64 TypeQualified::size(Loc loc)
 {
     error(this->loc, "size of type %s is not known", toChars());
-    return 1;
+    return SIZE_INVALID;
 }
 
 /*************************************
@@ -7166,7 +7169,7 @@ d_uns64 TypeEnum::size(Loc loc)
     if (!sym->memtype)
     {
         error(loc, "enum %s is forward referenced", sym->toChars());
-        return 4;
+        return SIZE_INVALID;
     }
     return sym->memtype->size(loc);
 }
