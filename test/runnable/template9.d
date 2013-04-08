@@ -1177,6 +1177,25 @@ void test7563()
 }
 
 /**********************************/
+// 7572
+
+class F7572
+{
+    Tr fn7572(Tr, T...)(T t) { return 1; }
+}
+Tr Fn7572(Tr, T...)(T t) { return 2; }
+
+void test7572()
+{
+    F7572 f = new F7572();
+    int delegate() dg = &f.fn7572!int;
+    assert(dg() == 1);
+
+    int function() fn = &Fn7572!int;
+    assert(fn() == 2);
+}
+
+/**********************************/
 // 7580
 
 struct S7580(T)
@@ -2336,6 +2355,7 @@ int main()
     test7359();
     test7416();
     test7563();
+    test7572();
     test7580();
     test7585();
     test7671();

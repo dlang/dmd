@@ -8692,6 +8692,36 @@ Expression *AddrExp::semantic(Scope *sc)
         if (e1->type == Type::terror)
             return new ErrorExp();
         int wasCond = e1->op == TOKquestion;
+        if (e1->op == TOKdotti)
+        {
+            DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+            TemplateInstance *ti = dti->ti;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new DotVarExp(e1->loc, dti->e1, f);
+            e1 = e1->semantic(sc);
+        }
+        else if (e1->op == TOKimport &&
+                 ((ScopeExp *)e1)->sds->isTemplateInstance())
+        {
+            TemplateInstance *ti = (TemplateInstance *)((ScopeExp *)e1)->sds;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new VarExp(e1->loc, f);
+            e1 = e1->semantic(sc);
+        }
         e1 = e1->toLvalue(sc, NULL);
         if (e1->op == TOKerror)
             return e1;
