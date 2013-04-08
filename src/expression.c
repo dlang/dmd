@@ -5914,6 +5914,8 @@ Expression *IsExp::semantic(Scope *sc)
                 {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
+                    if (cd->scope && !cd->symtab)
+                        cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
                     {   BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
