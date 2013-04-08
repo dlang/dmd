@@ -669,6 +669,20 @@ static assert([__traits(allMembers, S2234b)] == ["x"]);
 static assert([__traits(allMembers, S2234c)] == ["foo"]);
 
 /********************************************************/
+// 5878
+
+template J5878(A)
+{
+    static if (is(A P == super))
+        alias P J5878;
+}
+
+alias J5878!(A5878) Z5878;
+
+class X5878 {}
+class A5878 : X5878 {}
+
+/********************************************************/
 
 mixin template Members6674()
 {
