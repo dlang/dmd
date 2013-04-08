@@ -185,6 +185,27 @@ const char *Module::kind()
     return "module";
 }
 
+/**
+    Set the object file to the fully-qualified module name
+    if the -oq switch is present and the module has a
+    module declaration. Periods in the module declaration are
+    replaced with underscores in the file name.
+ */
+void Module::setQualifiedObjectFile()
+{
+    if (!global.params.qualifyObjects || !md)
+        return;  // already set
+
+    // workaround: setOutfile would replace "foo.bar" with "foo.o" instead of "foo.bar.o"
+    OutBuffer buf;
+    buf.writestring(md->toChars());
+    buf.writestring(".");
+    buf.writestring(global.obj_ext);
+    buf.writebyte(0);
+
+    objfile = setOutfile(global.params.objname, global.params.objdir, buf.extractData(), global.obj_ext);
+}
+
 Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 {   Module *m;
     char *filename;
@@ -273,6 +294,8 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
         return NULL;
 
     m->parse();
+    if (!m->isDocFile && global.params.qualifyObjects)
+        m->setQualifiedObjectFile();
 
 #ifdef IN_GCC
     d_gcc_magic_module(m);

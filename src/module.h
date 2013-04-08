@@ -110,6 +110,7 @@ struct Module : Package
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();
 
+    void setQualifiedObjectFile();  // set qualified filename when -oq is set
     static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

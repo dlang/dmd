@@ -167,6 +167,7 @@ struct Param
     char useUnitTests;  // generate unittest code
     char useInline;     // inline expand functions
     char release;       // build release version
+    bool qualifyObjects; // == true means use fully qualified module name for object file name
     char preservePaths; // !=0 means don't strip path from source file
     char warnings;      // 0: enable warnings
                         // 1: warnings as errors
