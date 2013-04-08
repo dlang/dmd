@@ -61,10 +61,12 @@ static int fptraits(void *param, FuncDeclaration *f)
         return 0;
 
     Expression *e;
+    FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
+    alias->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(0, p->e1, new FuncAliasDeclaration(f, 0));
+        e = new DotVarExp(0, p->e1, alias);
     else
-        e = new DsymbolExp(0, new FuncAliasDeclaration(f, 0));
+        e = new DsymbolExp(0, alias);
     p->exps->push(e);
     return 0;
 }
@@ -282,6 +284,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         const char *protName = Pprotectionnames[protection];
 
+        assert(protName);
         StringExp *se = new StringExp(loc, (char *) protName);
         return se->semantic(sc);
     }
