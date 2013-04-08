@@ -3,7 +3,13 @@
 name=`basename $0 .sh`
 dir=${RESULTS_DIR}/compilable
 
-for kind in main winmain dllmain
+if [ "${OS}" == "win32" -o "${OS}" == "Windows_NT" ]; then
+    kinds=( main winmain dllmain )
+else
+    kinds=( main )
+fi
+
+for kind in "${kinds[@]}"
 do
 	file_name=${name}${kind}
 	src_file=compilable/extra-files/${file_name}.d
