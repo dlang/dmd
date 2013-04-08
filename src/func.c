@@ -4011,15 +4011,15 @@ DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc)
 {
 }
 
-DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc, Identifier *id)
-    : FuncDeclaration(loc, endloc, id, STCundefined, NULL)
+DtorDeclaration::DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
+    : FuncDeclaration(loc, endloc, id, stc, NULL)
 {
 }
 
 Dsymbol *DtorDeclaration::syntaxCopy(Dsymbol *s)
 {
     assert(!s);
-    DtorDeclaration *dd = new DtorDeclaration(loc, endloc, ident);
+    DtorDeclaration *dd = new DtorDeclaration(loc, endloc, storage_class, ident);
     return FuncDeclaration::syntaxCopy(dd);
 }
 
@@ -4043,7 +4043,7 @@ void DtorDeclaration::semantic(Scope *sc)
         ad->dtors.push(this);
 
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static destructor
