@@ -475,6 +475,42 @@ void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
     }
 }
 
+static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
+{
+    if (!s || s->isPackage() || s->isModule())
+        return false;
+
+    TemplateDeclaration *td;
+    bool dot;
+
+    // Add parent names first
+    dot = emitAnchorName(buf, s->parent);
+    // Eponymous template members can share the parent anchor name
+    if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
+        td->onemember == s)
+        return dot;
+    if (dot)
+        buf->writeByte('.');
+    // Use "this" not "__ctor"
+    if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
+        td->onemember && td->onemember->isCtorDeclaration()))
+        buf->writestring("this");
+    else
+    {
+        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
+         * We don't want the template parameter list and constraints. */
+        buf->writestring(s->Dsymbol::toChars());
+    }
+    return true;
+}
+
+static void emitAnchor(OutBuffer *buf, Dsymbol *s)
+{
+    buf->writestring("$(DDOC_ANCHOR ");
+    emitAnchorName(buf, s);
+    buf->writeByte(')');
+}
+
 /******************************* emitComment **********************************/
 
 /** Get leading indentation from 'src' which represents lines of code. */
@@ -679,8 +715,10 @@ void AggregateDeclaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-    toDocBuffer(buf, sc);
-    sc->lastoffset = buf->offset;
+        size_t o = buf->offset;
+        toDocBuffer(buf, sc);
+        highlightCode(sc, this, buf, o);
+        sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
     buf->writestring(ddoc_decl_dd_s);
@@ -776,7 +814,9 @@ void EnumDeclaration::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
+        size_t o = buf->offset;
         toDocBuffer(buf, sc);
+        highlightCode(sc, this, buf, o);
         sc->lastoffset = buf->offset;
     buf->writestring(ddoc_decl_e);
 
@@ -796,7 +836,6 @@ void EnumMember::emitComment(Scope *sc)
 
     OutBuffer *buf = sc->docbuf;
     DocComment *dc = DocComment::parse(sc, this, comment);
-    size_t o;
 
     if (!dc)
     {
@@ -806,7 +845,7 @@ void EnumMember::emitComment(Scope *sc)
     dc->pmacrotable = &sc->module->macrotable;
 
     buf->writestring(ddoc_decl_s);
-        o = buf->offset;
+        size_t o = buf->offset;
         toDocBuffer(buf, sc);
         highlightCode(sc, this, buf, o);
         sc->lastoffset = buf->offset;
@@ -815,42 +854,6 @@ void EnumMember::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_s);
     dc->writeSections(sc, this, buf);
     buf->writestring(ddoc_decl_dd_e);
-}
-
-static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
-{
-    if (!s || s->isPackage() || s->isModule())
-        return false;
-
-    TemplateDeclaration *td;
-    bool dot;
-
-    // Add parent names first
-    dot = emitAnchorName(buf, s->parent);
-    // Eponymous template members can share the parent anchor name
-    if (s->parent && (td = s->parent->isTemplateDeclaration()) != NULL &&
-        td->onemember == s)
-        return dot;
-    if (dot)
-        buf->writeByte('.');
-    // Use "this" not "__ctor"
-    if (s->isCtorDeclaration() || ((td = s->isTemplateDeclaration()) != NULL &&
-        td->onemember && td->onemember->isCtorDeclaration()))
-        buf->writestring("this");
-    else
-    {
-        /* We just want the identifier, not overloads like TemplateDeclaration::toChars.
-         * We don't want the template parameter list and constraints. */
-        buf->writestring(s->Dsymbol::toChars());
-    }
-    return true;
-}
-
-static void emitAnchor(OutBuffer *buf, Dsymbol *s)
-{
-    buf->writestring("$(DDOC_ANCHOR ");
-    emitAnchorName(buf, s);
-    buf->writeByte(')');
 }
 
 /******************************* toDocBuffer **********************************/
@@ -1067,11 +1070,10 @@ void AggregateDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
 {
     if (ident)
     {
-        emitAnchor(buf, this);
 #if 0
         emitProtection(buf, protection);
 #endif
-        buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+        buf->printf("%s %s", kind(), toChars());
         buf->writestring(";\n");
     }
 }
@@ -1095,8 +1097,7 @@ void StructDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         }
         else
         {
-            emitAnchor(buf, this);
-            buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+            buf->printf("%s %s", kind(), toChars());
         }
         buf->writestring(";\n");
     }
@@ -1121,10 +1122,9 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         }
         else
         {
-            emitAnchor(buf, this);
             if (isAbstract())
                 buf->writestring("abstract ");
-            buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+            buf->printf("%s %s", kind(), toChars());
         }
         int any = 0;
         for (size_t i = 0; i < baseclasses->dim; i++)
@@ -1161,8 +1161,7 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
 {
     if (ident)
     {
-        emitAnchor(buf, this);
-        buf->printf("%s $(DDOC_PSYMBOL %s)", kind(), toChars());
+        buf->printf("%s %s", kind(), toChars());
         buf->writestring(";\n");
     }
 }
