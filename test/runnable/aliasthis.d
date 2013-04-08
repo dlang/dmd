@@ -1176,6 +1176,32 @@ void test9873()
 }
 
 /***************************************************/
+// 9890
+
+void test9890()
+{
+    struct RefCounted(T)
+    {
+        T _payload;
+
+        ref T refCountedPayload() 
+        {
+            return _payload;
+        }
+
+        alias refCountedPayload this;
+    }
+
+    struct S(int x_) 
+    {
+        alias x_ x;
+    }
+
+    alias RefCounted!(S!1) Rs;
+    static assert(Rs.x == 1);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1216,6 +1242,7 @@ int main()
     test9174();
     test9858();
     test9873();
+    test9890();
 
     printf("Success\n");
     return 0;
