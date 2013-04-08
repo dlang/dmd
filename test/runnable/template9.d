@@ -392,16 +392,26 @@ static assert(is(typeof(bug4953(3))));
 /**********************************/
 // 5886 & 5393
 
-struct K5886 {
-    void get1(this T)() const {
+struct K5886
+{
+    void get1(this T)() const
+    {
         pragma(msg, T);
     }
-    void get2(int N=4, this T)() const {
+    void get2(int N=4, this T)() const
+    {
         pragma(msg, N, " ; ", T);
+    }
+    void test() const
+    {
+        get1;       // OK
+        get2;       // OK
+        get2!8;     // NG
     }
 }
 
-void test5886() {
+void test5886()
+{
     K5886 km;
     const(K5886) kc;
     immutable(K5886) ki;

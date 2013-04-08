@@ -299,6 +299,16 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
             tthis  = NULL;
             goto L1;
         }
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->semanticRun)
+        {
+            //assert(ti->needsTypeInference(sc));
+            td     = ti->tempdecl;
+                     ti->semanticTiargs(sc);
+            tiargs = ti->tiargs;
+            tthis  = NULL;
+            goto L1;
+        }
     }
     else if (e->op == TOKtemplate)
     {
@@ -4473,6 +4483,20 @@ Lagain:
     if (ti && !ti->errors)
     {
         unsigned olderrs = global.errors;
+        if (ti->needsTypeInference(sc))
+        {
+            TemplateDeclaration *td = ti->tempdecl;
+            Dsymbol *p = td->toParent2();
+            FuncDeclaration *fdthis = hasThis(sc);
+            AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+            if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
+                (td->scope->stc & STCstatic) == 0)
+            {
+                Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
+                return e->semantic(sc);
+            }
+            return this;
+        }
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -7873,7 +7897,8 @@ Expression *CallExp::semantic(Scope *sc)
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                e1 = new IdentifierExp(loc, ti->name);
+                assert(ti->tempdecl);
+                e1 = new TemplateExp(loc, ti->tempdecl);
             }
             else
             {
