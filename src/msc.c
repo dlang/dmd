@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -73,7 +73,9 @@ void backend_init()
     bool exe;
 #if TARGET_WINDOS
     exe = false;
-    if (params->run)
+    if (params->dll)
+        ;
+    else if (params->run)
         exe = true;         // EXE file only optimizations
     else if (params->link && !global.params.deffile)
         exe = true;         // EXE file only optimizations
