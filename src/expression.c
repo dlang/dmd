@@ -1,6 +1,5 @@
-
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -4963,6 +4962,7 @@ Expression *IsExp::semantic(Scope *sc)
                 break;
 
             case TOKinvariant:
+                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:
                 if (!targ->isImmutable())
                     goto Lno;
@@ -4971,6 +4971,12 @@ Expression *IsExp::semantic(Scope *sc)
 
             case TOKshared:
                 if (!targ->isShared())
+                    goto Lno;
+                tded = targ;
+                break;
+
+            case TOKwild:
+                if (!targ->isWild())
                     goto Lno;
                 tded = targ;
                 break;
@@ -4984,8 +4990,10 @@ Expression *IsExp::semantic(Scope *sc)
                 {   ClassDeclaration *cd = ((TypeClass *)targ)->sym;
                     Parameters *args = new Parameters;
                     args->reserve(cd->baseclasses->dim);
+                    if (cd->scope && !cd->symtab)
+                        cd->semantic(cd->scope);
                     for (size_t i = 0; i < cd->baseclasses->dim; i++)
-                    {   BaseClass *b = (BaseClass *)cd->baseclasses->data[i];
+                    {   BaseClass *b = (*cd->baseclasses)[i];
                         args->push(new Parameter(STCin, b->type, NULL, NULL));
                     }
                     tded = new TypeTuple(args);
