@@ -2593,6 +2593,7 @@ Lcc:
     {
         e2 = e2->castTo(sc, t1);
         t2 = t1;
+        t = t1;
         goto Lagain;
     }
     else if (t2->ty == Tvector && t1->ty != Tvector &&
@@ -2600,6 +2601,7 @@ Lcc:
     {
         e1 = e1->castTo(sc, t2);
         t1 = t2;
+        t = t1;
         goto Lagain;
     }
     else if (t1->isintegral() && t2->isintegral())
