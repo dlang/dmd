@@ -5277,6 +5277,18 @@ void bar8870(S8870 t1, S8870 t2, bool someBool, float finalFloat)
 
 /***************************************************/
 
+int foo9781(int[1] x)
+{
+    return x[0] * x[0];
+}
+
+void test9781()
+{
+    foo9781([7]);
+}
+
+/***************************************************/
+
 struct S247 { size_t length; size_t ptr; }
 
 S247 foo247()
@@ -5986,6 +5998,7 @@ int main()
     test8840();
     test8889();
     test8870();
+    test9781();
     test247();
     test8340();
     test8376();
