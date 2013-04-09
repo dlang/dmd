@@ -3,14 +3,16 @@ import core.vararg;
 
 extern (C) int printf(const(char*) fmt, ...);
 
+template TypeTuple(T...) { alias TypeTuple = T; }
+
+/**********************************/
+
 int sdtor;
 
 struct S1
 {
     ~this() { printf("~S()\n"); sdtor++; }
 }
-
-/**********************************/
 
 void test1()
 {
@@ -2564,6 +2566,70 @@ void test9899() @safe pure nothrow
 }
 
 /**********************************/
+// 9907
+
+void test9907()
+{
+    static struct SX(bool hasCtor, bool hasDtor)
+    {
+        int i;
+        static size_t assign;
+        static size_t dtor;
+
+        static if (hasCtor)
+        {
+            this(int i) { this.i = i; }
+        }
+
+        void opAssign(SX rhs)
+        {
+            printf("%08X(%d) from Rvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            ++assign;
+        }
+
+        void opAssign(ref SX rhs)
+        {
+            printf("%08X(%d) from Lvalue %08X(%d)\n", &this.i, this.i, &rhs.i, rhs.i);
+            assert(0);
+        }
+
+        static if (hasDtor)
+        {
+            ~this()
+            {
+                printf("destroying %08X(%d)\n", &this.i, this.i);
+                ++dtor;
+            }
+        }
+    }
+
+    S test(S)(int i)
+    {
+        return S(i);
+    }
+
+    foreach (hasCtor; TypeTuple!(false, true))
+    foreach (hasDtor; TypeTuple!(false, true))
+    {
+        alias S = SX!(hasCtor, hasDtor);
+        alias test!S foo;
+
+        printf("----\n");
+        auto s = S(1);
+
+        // Assignment from two kinds of rvalues
+        assert(S.assign == 0);
+        s = foo(2);
+        static if (hasDtor) assert(S.dtor == 1);
+        assert(S.assign == 1);
+        s = S(3);
+        assert(S.assign == 2);
+        static if (hasDtor) assert(S.dtor == 2);
+    }
+    printf("----\n");
+}
+
+/**********************************/
 
 int main()
 {
@@ -2650,6 +2716,7 @@ int main()
     test9441();
     test9720();
     test9899();
+    test9907();
 
     printf("Success\n");
     return 0;
