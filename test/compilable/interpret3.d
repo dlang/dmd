@@ -4952,6 +4952,23 @@ int bug9113(T)()
 
 static assert( !is( typeof( compiles!(bug9113!(int)())) ) );
 
+/**************************************************
+    Creation of unions
+**************************************************/
+
+union UnionTest1
+{
+    int x;
+    float y;
+}
+
+int uniontest1()
+{
+    UnionTest1 u = UnionTest1(1);
+    return 1;
+}
+
+static assert(uniontest1());
 
 /**************************************************
     6438 void
