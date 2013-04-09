@@ -1639,7 +1639,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 #else
         if (v->isConst() && v->init && !v->isCTFE())
 #endif
-        {   e = v->init->toExpression();
+        {   e = v->init->toExpression(v->type);
             if (e && (e->op == TOKconstruct || e->op == TOKblit))
             {   AssignExp *ae = (AssignExp *)e;
                 e = ae->e2;
