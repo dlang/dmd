@@ -479,14 +479,17 @@ void opover2_test2()
 // http://www.digitalmars.com/d/archives/10750.html
 // test12.d, test7(). ICE(constfold.c)
 
+version(none) // This contains an incredibly nasty cast
+{
 template base7( T )
 {
  void errfunc() { throw new Exception("no init"); }
- typedef T safeptr = cast(T)&errfunc;
+ typedef T safeptr = cast(T)&errfunc; // Nasty cast
 }
 
 alias int function(int) mfp;
 alias base7!(mfp) I_V_fp;
+}
 
 typedef bool antibool = 1;
 antibool[8] z21 = [ cast(antibool) 0, ];
