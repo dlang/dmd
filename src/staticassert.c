@@ -57,6 +57,8 @@ void StaticAssert::semantic2(Scope *sc)
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->ctfeSemantic(sc);
     e = resolveProperties(sc, e);
+    // Simplify expression, to make error messages nicer if CTFE fails
+    e = e->optimize(0);
     sc = sc->pop();
     if (!e->type->checkBoolean())
     {
