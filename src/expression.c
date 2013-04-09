@@ -750,15 +750,40 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
     Expression *e0;
     size_t j0;
     for (size_t i = 0; i < exps->dim; i++)
-    {   Expression *e = (*exps)[i];
-
+    {
+        Expression *e = (*exps)[i];
         e = resolveProperties(sc, e);
         if (!e->type)
         {   e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
-        e = callCpCtor(e->loc, sc, e, 1);
+        if (Expression *ex = e->isTemp())
+            e = ex;
+        if (e->isLvalue())
+        {
+            e = callCpCtor(e->loc, sc, e, 1);
+        }
+        else
+        {
+            Type *tb = e->type->toBasetype();
+            if (tb->ty == Tsarray)
+            {
+                e = callCpCtor(e->loc, sc, e, 1);
+            }
+            else if (tb->ty == Tstruct)
+            {
+                if (e->op == TOKcall && !e->isLvalue())
+                {
+                    valueNoDtor(e);
+                }
+                else
+                {   /* Not transferring it, so call the copy constructor
+                     */
+                    e = callCpCtor(e->loc, sc, e, 1);
+                }
+            }
+        }
 
         if (t0)
         {   if (t0 != e->type)
