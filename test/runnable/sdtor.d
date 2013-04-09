@@ -2678,7 +2678,7 @@ void test9985()
     }
     auto p = &(retN());        // OK
     assert(p == &n);
-    alias ref const(int) F1();
+    alias pure nothrow @nogc @safe ref const(int) F1();
     static assert(is(typeof(retN) == F1));
 
     enum const(int) x = 1;
@@ -2687,7 +2687,7 @@ void test9985()
         return x;
     }
     static assert(!__traits(compiles, { auto q = &(retX()); }));
-    alias const(int) F2();
+    alias pure nothrow @nogc @safe const(int) F2();
     static assert(is(typeof(retX) == F2));
 }
 

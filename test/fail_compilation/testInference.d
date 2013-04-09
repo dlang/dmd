@@ -140,7 +140,7 @@ TEST_OUTPUT:
 fail_compilation/testInference.d(154): Error: pure function 'testInference.bar14049' cannot call impure function 'testInference.foo14049!int.foo14049'
 ---
 */
-auto impure14049() { return 1; }
+auto impure14049() { static int i = 1; return i; }
 
 void foo14049(T)(T val)
 {
