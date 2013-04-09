@@ -2242,10 +2242,18 @@ STATIC elem * eloror(elem *e, goal_t goal)
     {
         if (boolres(e1))                /* (x,1) || e2  =>  (x,1),1     */
         {
-        L2:
-            e->Eoper = OPcomma;
-            el_free(e->E2);
-            e->E2 = el_int(t,1);
+            if (tybasic(e->E2->Ety) == TYvoid)
+            {   assert(!goal);
+                el_free(e);
+                return NULL;
+            }
+            else
+            {
+            L2:
+                e->Eoper = OPcomma;
+                el_free(e->E2);
+                e->E2 = el_int(t,1);
+            }
         }
         else                            /* (x,0) || e2  =>  (x,0),(bool e2) */
         {   e->Eoper = OPcomma;
