@@ -4874,6 +4874,25 @@ void TemplateInstance::trySemantic3(Scope *sc2)
     --nest;
 }
 
+Module* TemplateInstance::getRootModule()
+{
+	TemplateInstance *ti = this;
+
+	while (true)
+	{
+		while (ti->tinst)
+			ti = ti->tinst;
+
+		TemplateInstance *enclosing_tmpl = NULL;
+		if ((ti->enclosing) && (enclosing_tmpl = dynamic_cast<TemplateInstance*>(ti->enclosing)))
+			ti = enclosing_tmpl;
+		else
+			break;
+	}
+
+	return ti->getModule();
+}
+
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
@@ -5089,8 +5108,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
         else
         {
-            Module *m = (enclosing ? sc : tempdecl->scope)->module->importedFrom;
-            //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
+            Module *m = getRootModule();
+           // printf("\t2: adding %s to module %s instead of module %s\n", this->name->string, m->toChars(), sc->module->toChars());
             a = m->members;
             if (m->semanticRun >= 3)
             {

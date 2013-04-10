@@ -325,6 +325,7 @@ struct TemplateInstance : ScopeDsymbol
     char *toChars();
     char *mangle(bool isv = false);
     void printInstantiationTrace();
+    Module* getRootModule(); // tracks down the root module of template instantiation chain
 
     void toObjFile(int multiobj);                       // compile to .obj file
 
