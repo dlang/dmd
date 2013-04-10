@@ -10816,7 +10816,7 @@ Ltupleassign:
         else
         {
             // Convert e2 to e2[], unless e2-> e1[0]
-            if (t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
+            if (e2->op != TOKarrayliteral && t2->ty == Tsarray && !t2->implicitConvTo(t1->nextOf()))
             {
                 e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                 e2 = e2->semantic(sc);
