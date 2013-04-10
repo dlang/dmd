@@ -150,6 +150,8 @@ Dsymbol *getDsymbol(Object *oarg)
     {   // Try to convert Expression to symbol
         if (ea->op == TOKvar)
             sa = ((VarExp *)ea)->var;
+        else if (ea->op == TOKdotvar)
+            sa = ((DotVarExp *)ea)->var;
         else if (ea->op == TOKfunction)
         {
             if (((FuncExp *)ea)->td)
