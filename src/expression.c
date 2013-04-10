@@ -3064,6 +3064,12 @@ Lagain:
     if (em)
     {
         e = em->value;
+        if (!e)
+        {
+            em->errors = true;
+            error("forward reference of %s %s", s->kind(), s->toChars());
+            return new ErrorExp();
+        }
         e->loc = loc;
         e = e->semantic(sc);
         return e;
@@ -3077,7 +3083,7 @@ Lagain:
                 v->semantic(v->scope);
             type = v->type;
             if (!v->type)
-            {   error("forward reference of %s %s", v->kind(), v->toChars());
+            {   error("forward reference of %s %s", s->kind(), s->toChars());
                 return new ErrorExp();
             }
         }
