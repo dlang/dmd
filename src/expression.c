@@ -10377,6 +10377,8 @@ Expression *IndexExp::semantic(Scope *sc)
     {
         case Tpointer:
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
+            if (e2->type == Type::terror)
+                goto Lerr;
             e2 = e2->optimize(WANTvalue);
             if (e2->op == TOKint64 && e2->toInteger() == 0)
                 ;
@@ -10391,12 +10393,16 @@ Expression *IndexExp::semantic(Scope *sc)
 
         case Tarray:
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
+            if (e2->type == Type::terror)
+                goto Lerr;
             e->type = ((TypeNext *)t1)->next;
             break;
 
         case Tsarray:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
+            if (e2->type == Type::terror)
+                goto Lerr;
             TypeSArray *tsa = (TypeSArray *)t1;
             e->type = t1->nextOf();
             break;
@@ -10418,6 +10424,8 @@ Expression *IndexExp::semantic(Scope *sc)
         case Ttuple:
         {
             e2 = e2->implicitCastTo(sc, Type::tsize_t);
+            if (e2->type == Type::terror)
+                goto Lerr;
             e2 = e2->ctfeInterpret();
             uinteger_t index = e2->toUInteger();
             size_t length;
