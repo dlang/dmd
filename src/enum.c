@@ -182,6 +182,11 @@ void EnumDeclaration::semantic(Scope *sc)
                 return;
             }
         }
+        if (memtype->ty == Tvoid)
+        {
+            error("base type must not be void");
+            memtype = Type::terror;
+        }
 #if 0   // Decided to abandon this restriction for D 2.0
         if (!memtype->isintegral())
         {   error("base type must be of integral type, not %s", memtype->toChars());
@@ -281,6 +286,13 @@ void EnumDeclaration::semantic(Scope *sc)
             if (!isAnonymous())
                 e = e->castTo(sce, type);
         }
+        else if (memtype && memtype == Type::terror)
+        {
+            e = new ErrorExp();
+            minval = e;
+            maxval = e;
+            defaultval = e;
+        }
         else
         {
             // Lazily evaluate enum.max
@@ -331,7 +343,7 @@ void EnumDeclaration::semantic(Scope *sc)
          * If enum doesn't have a name, we can never identify the enum type,
          * so there is no purpose for a .min, .max or .default
          */
-        if (!isAnonymous())
+        if (!isAnonymous() && memtype != Type::terror)
         {
             if (first)
             {   defaultval = e;
