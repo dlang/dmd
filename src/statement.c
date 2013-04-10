@@ -2696,10 +2696,10 @@ Statement *ConditionalStatement::syntaxCopy()
     return s;
 }
 
+
 Statement *ConditionalStatement::semantic(Scope *sc)
 {
     //printf("ConditionalStatement::semantic()\n");
-
     // If we can short-circuit evaluate the if statement, don't do the
     // semantic analysis of the skipped code.
     // This feature allows a limited form of conditional compilation.
@@ -2728,7 +2728,6 @@ Statement *ConditionalStatement::semantic(Scope *sc)
 Statements *ConditionalStatement::flatten(Scope *sc)
 {
     Statement *s;
-
     //printf("ConditionalStatement::flatten()\n");
     if (condition->include(sc, NULL))
     {

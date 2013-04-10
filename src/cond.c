@@ -84,16 +84,39 @@ DebugCondition::DebugCondition(Module *mod, unsigned level, Identifier *ident)
 {
 }
 
+// Helper for printing dependency information
+void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType) 
+{
+    if(global.params.moduleDeps == NULL || global.params.moduleDepsFile != NULL || !sc || !sc->module)
+        return;
+    OutBuffer *ob = global.params.moduleDeps;
+    Module* md = sc->module;
+    ob->writestring(depType);
+    ob->writestring(md->toPrettyChars());
+    ob->writestring(" (");
+    escapePath(ob, md->srcfile->toChars());
+    ob->writestring(") : ");
+    if(condition->ident)
+        ob->printf("%s\n", condition->ident->toChars());
+    else
+        ob->printf("%d\n", condition->level);
+}
+
+
 int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
 {
     //printf("DebugCondition::include() level = %d, debuglevel = %d\n", level, global.params.debuglevel);
     if (inc == 0)
     {
         inc = 2;
+        bool definedInModule = false;
         if (ident)
         {
             if (findCondition(mod->debugids, ident))
+            {
                 inc = 1;
+                definedInModule = true;
+            }
             else if (findCondition(global.params.debugids, ident))
                 inc = 1;
             else
@@ -104,6 +127,8 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
         }
         else if (level <= global.params.debuglevel || level <= mod->debuglevel)
             inc = 1;
+        if(!definedInModule)
+            printDepsConditional(sc, this, "depsDebug ");
     }
     return (inc == 1);
 }
@@ -123,7 +148,7 @@ void VersionCondition::setGlobalLevel(unsigned level)
     global.params.versionlevel = level;
 }
 
-void VersionCondition::checkPredefined(Loc loc, const char *ident)
+bool VersionCondition::isPredefined(const char *ident)
 {
     static const char* reserved[] =
     {
@@ -211,16 +236,12 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
     for (unsigned i = 0; i < sizeof(reserved) / sizeof(reserved[0]); i++)
     {
         if (strcmp(ident, reserved[i]) == 0)
-            goto Lerror;
+            return true;
     }
 
     if (ident[0] == 'D' && ident[1] == '_')
-        goto Lerror;
-
-    return;
-
-  Lerror:
-    error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+        return true;
+    return false;
 }
 
 void VersionCondition::addGlobalIdent(const char *ident)
@@ -240,19 +261,6 @@ void VersionCondition::addPredefinedGlobalIdent(const char *ident)
 VersionCondition::VersionCondition(Module *mod, unsigned level, Identifier *ident)
     : DVCondition(mod, level, ident)
 {
-    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL) 
-    {
-        OutBuffer *ob = global.params.moduleDeps;
-        ob->writestring("depsVersion ");
-        ob->writestring(mod->toPrettyChars());
-        ob->writestring(" (");
-        escapePath(ob, mod->srcfile->toChars());
-        ob->writestring(") : ");
-        if(ident)
-            ob->printf("%s\n", ident->toChars());
-        else
-            ob->printf("%d\n", level);
-    }
 }
 
 int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
@@ -262,10 +270,14 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
     if (inc == 0)
     {
         inc = 2;
+        bool definedInModule=false;
         if (ident)
         {
             if (findCondition(mod->versionids, ident))
+            {
                 inc = 1;
+                definedInModule = true;
+            }
             else if (findCondition(global.params.versionids, ident))
                 inc = 1;
             else
@@ -277,6 +289,8 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
+        if(!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
+            printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);
 }
