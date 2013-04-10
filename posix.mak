@@ -35,13 +35,7 @@ DOCDIR=doc
 IMPDIR=import
 
 MODEL=32
-# default to SHARED on some platforms
-ifeq (linux,$(OS))
-	ifeq (64,$(MODEL))
-		SHARED:=1
-	endif
-endif
-override PIC:=$(if $(or $(PIC), $(SHARED)),-fPIC,)
+override PIC:=$(if $(PIC),-fPIC,)
 
 ifeq (osx,$(OS))
 	DOTDLL:=.dylib
@@ -183,7 +177,7 @@ endif
 $(addprefix $(OBJDIR)/,$(DISABLED_TESTS)) :
 	@echo $@ - disabled
 
-ifeq (,$(SHARED))
+ifneq (linux,$(OS))
 
 $(OBJDIR)/test_runner: $(OBJS) $(SRCS) src/test_runner.d
 	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest -of$@ src/test_runner.d $(SRCS) $(OBJS) -debuglib= -defaultlib=
@@ -192,6 +186,7 @@ else
 
 UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
 
+$(UT_DRUNTIME): override PIC:=-fPIC
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -debuglib= -defaultlib=
 
