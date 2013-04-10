@@ -4648,6 +4648,57 @@ L1:     pop     EAX;
     }
 }
 
+
+void test9866()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+        0x66, 0x0f, 0xbe, 0xc0, // movsx AX, AL;
+        0x66, 0x0f, 0xbe, 0x00, // movsx AX, byte ptr [EAX];
+              0x0f, 0xbe, 0xc0, // movsx EAX, AL;
+              0x0f, 0xbe, 0x00, // movsx EAX, byte ptr [EAX];
+              0x0f, 0xbf, 0xc0, // movsx EAX, AX;
+              0x0f, 0xbf, 0x00, // movsx EAX, word ptr [EAX];
+
+        0x66, 0x0f, 0xb6, 0xc0, // movzx AX, AL;
+        0x66, 0x0f, 0xb6, 0x00, // movzx AX, byte ptr [EAX];
+              0x0f, 0xb6, 0xc0, // movzx EAX, AL;
+              0x0f, 0xb6, 0x00, // movzx EAX, byte ptr [EAX];
+              0x0f, 0xb7, 0xc0, // movzx EAX, AX;
+              0x0f, 0xb7, 0x00, // movzx EAX, word ptr [EAX];
+    ];
+
+    asm
+    {
+        call L1;
+
+        movsx AX, AL;
+        movsx AX, byte ptr [EAX];
+        movsx EAX, AL;
+        movsx EAX, byte ptr [EAX];
+        movsx EAX, AX;
+        movsx EAX, word ptr [EAX];
+
+        movzx AX, AL;
+        movzx AX, byte ptr [EAX];
+        movzx EAX, AL;
+        movzx EAX, byte ptr [EAX];
+        movzx EAX, AX;
+        movzx EAX, word ptr [EAX];
+
+L1:     pop     EAX;
+        mov     p[EBP],EAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop EAX
+}
+
 /****************************************************/
 
 int main()
@@ -4717,6 +4768,7 @@ int main()
     test57();
     test58();
     test59();
+    test9866();
   }
     printf("Success\n");
     return 0;
@@ -4727,4 +4779,3 @@ else
 {
     int main() { return 0; }
 }
-
