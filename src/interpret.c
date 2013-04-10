@@ -5064,7 +5064,10 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             ex = ((AddrExp *)ex)->e1;
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
+        {
             error("CTFE internal error: %s", toChars());
+            return EXP_CANT_INTERPRET;
+        }
         if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
         {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
             return EXP_CANT_INTERPRET;
@@ -5109,7 +5112,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (!e)
             {
                 error("couldn't find field %s in %s", v->toChars(), type->toChars());
-                e = EXP_CANT_INTERPRET;
+                return EXP_CANT_INTERPRET;
             }
             // If it is an rvalue literal, return it...
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
