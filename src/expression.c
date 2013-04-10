@@ -9464,6 +9464,26 @@ Lagain:
         e = new TypeExp(loc, e1->type->arrayOf());
         return e->semantic(sc);
     }
+    if (!lwr && !upr)
+    {
+        if (e1->op == TOKarrayliteral)
+        {   // Convert [a,b,c][] to [a,b,c]
+            Type *t1b = e1->type->toBasetype();
+            Expression *e = e1;
+            if (t1b->ty == Tsarray)
+            {
+                e = e->copy();
+                e->type = t1b->nextOf()->arrayOf();
+            }
+            return e;
+        }
+        if (e1->op == TOKslice)
+        {   // Convert e[][] to e[]
+            SliceExp *se = (SliceExp *)e1;
+            if (!se->lwr && !se->upr)
+                return se;
+        }
+    }
 
     e = this;
 
@@ -10889,19 +10909,25 @@ Ltupleassign:
         (t2->ty == Tarray || t2->ty == Tsarray) &&
         t2->nextOf()->implicitConvTo(t1->nextOf()))
     {
-        if (((SliceExp *)e1)->lwr == NULL)
+        SliceExp *se1 = (SliceExp *)e1;
+        Type *tx1 = se1->e1->type->toBasetype();
+        if (se1->lwr == NULL && tx1->ty == Tsarray)
         {
-            Type *tx1 = ((SliceExp *)e1)->e1->type->toBasetype();
             Type *tx2 = t2;
             if (e2->op == TOKslice && ((SliceExp *)e2)->lwr == NULL)
                 tx2 = ((SliceExp *)e2)->e1->type->toBasetype();
-            if (tx1->ty == Tsarray && tx2->ty == Tsarray)
+            uinteger_t dim1, dim2;
+            if (e2->op == TOKarrayliteral)
+            {   dim2 = ((ArrayLiteralExp *)e2)->elements->dim;
+                goto Lsa;
+            }
+            if (tx2->ty == Tsarray)
             {   // sa1[] = sa2[];
                 // sa1[] = sa2;
-                TypeSArray *tsa1 = (TypeSArray *)tx1;
-                TypeSArray *tsa2 = (TypeSArray *)tx2;
-                uinteger_t dim1 = tsa1->dim->toInteger();
-                uinteger_t dim2 = tsa2->dim->toInteger();
+                // sa1[] = [ ... ];
+                dim2 = ((TypeSArray *)tx2)->dim->toInteger();
+            Lsa:
+                dim1 = ((TypeSArray *)tx1)->dim->toInteger();
                 if (dim1 != dim2)
                 {
                     error("mismatched array lengths, %d and %d", (int)dim1, (int)dim2);
