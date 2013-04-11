@@ -594,21 +594,21 @@ public:
     Declaration *overnext;              // next in overload list
     Loc endloc;                         // location of closing curly bracket
     int vtblIndex;                      // for member functions, index into vtbl[]
-    bool naked;                         // !=0 if naked
+    bool naked;                         // true if naked
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
     int inlineNest;                     // !=0 if nested inline
-    bool isArrayOp;                     // !=0 if array operation
+    bool isArrayOp;                     // true if array operation
     FuncDeclaration *dArrayOp;          // D version of array op for ctfe
     PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
-    bool introducing;                   // !=0 if 'introducing' function
+    bool introducing;                   // true if 'introducing' function
     Type *tintro;                       // if !=NULL, then this is the type
                                         // of the 'introducing' function
                                         // this one is overriding
-    bool inferRetType;                  // !=0 if return type is to be inferred
+    bool inferRetType;                  // true if return type is to be inferred
     StorageClass storage_class2;        // storage class for template onemember's
 
     // Things that should really go into Scope
@@ -618,7 +618,7 @@ public:
                                         // 8 if there's inline asm
 
     // Support for NRVO (named return value optimization)
-    bool nrvo_can;                      // !=0 means we can do it
+    bool nrvo_can;                      // true means we can do it
     VarDeclaration *nrvo_var;           // variable to replace with shidden
     Symbol *shidden;                    // hidden pointer passed to function
 
