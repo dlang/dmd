@@ -640,25 +640,23 @@ PTRNTAB2  aptb2MOVS[] = /* MOVS */ {
         { ASM_END }
 };
 PTRNTAB2  aptb2MOVSX[] = /* MOVSX */ {
-        { 0x0fbe,       _r|_16_bit,                     _r16,   _rm8 },
-        { 0x0fbe,       _r|_32_bit,                     _r32,   _rm8 },
-#if 1
-        { 0x0fbf,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fbf,       _r|_32_bit,             _r32,   _rm16 },
-#else
+        { 0x0fbe,       _r|_16_bit,             _r16,   _rm8 },
+        { 0x0fbe,       _r|_32_bit,             _r32,   _rm8 },
+        { 0x0fbe,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
         { 0x0fbf,       _r,                     _r32,   _rm16 },
-#endif
+        { 0x0fbf,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
+        { ASM_END }
+};
+PTRNTAB2  aptb2MOVSXD[] = /* MOVSXD */ {
+        { 0x63,         _r|_64_bit,             _r64,   _rm32 }, // TODO: REX_W override is implicit
         { ASM_END }
 };
 PTRNTAB2  aptb2MOVZX[] = /* MOVZX */ {
-        { 0x0fb6,       _r|_16_bit,                     _r16,   _rm8 },
-        { 0x0fb6,       _r|_32_bit,                     _r32,   _rm8 },
-#if 1
-        { 0x0fb7,       _r|_16_bit,             _r16,   _rm16 },
-        { 0x0fb7,       _r|_32_bit,             _r32,   _rm16 },
-#else
+        { 0x0fb6,       _r|_16_bit,             _r16,   _rm8 },
+        { 0x0fb6,       _r|_32_bit,             _r32,   _rm8 },
+        { 0x0fb6,       _r|_64_bit,             _r64,   _rm8 },  // TODO: REX_W override is implicit
         { 0x0fb7,       _r,                     _r32,   _rm16 },
-#endif
+        { 0x0fb7,       _r|_64_bit,             _r64,   _rm16 }, // TODO: REX_W override is implicit
         { ASM_END }
 };
 PTRNTAB2  aptb2MUL[] = /* MUL */ {
@@ -5063,6 +5061,7 @@ PTRNTAB3 aptb3VFMSUB231SS[] = /* VFMSUB231SS */ {
         X("movss",          2,              (P) aptb2MOVSS )                \
         X("movsw",          0,              aptb0MOVSW )                    \
         X("movsx",          2,              (P) aptb2MOVSX )                \
+        X("movsxd",         2,              (P) aptb2MOVSXD )               \
         X("movupd",         2,              (P) aptb2MOVUPD )               \
         X("movups",         2,              (P) aptb2MOVUPS )               \
         X("movzx",          2,              (P) aptb2MOVZX )                \
