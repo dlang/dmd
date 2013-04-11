@@ -3143,12 +3143,12 @@ int FuncDeclaration::isCodeseg()
     return TRUE;                // functions are always in the code segment
 }
 
-int FuncDeclaration::isOverloadable()
+bool FuncDeclaration::isOverloadable()
 {
-    return 1;                   // functions can be overloaded
+    return true;                // functions can be overloaded
 }
 
-int FuncDeclaration::hasOverloads()
+bool FuncDeclaration::hasOverloads()
 {
     return overnext != NULL;
 }
@@ -3423,7 +3423,7 @@ int FuncDeclaration::isNested()
            (f->toParent2()->isFuncDeclaration() != NULL);
 }
 
-int FuncDeclaration::needThis()
+bool FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
     return toAliasFunc()->isThis() != NULL;

@@ -188,7 +188,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     const char *kind();
     Type *getType();
-    int needThis();
+    bool needThis();
 
     TupleDeclaration *isTupleDeclaration() { return this; }
 };
@@ -301,13 +301,13 @@ public:
     Type *htype;
     Initializer *hinit;
     AggregateDeclaration *isThis();
-    int needThis();
+    bool needThis();
     bool isExport();
     bool isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
     int isCTFE();
-    int hasPointers();
+    bool hasPointers();
 #if DMDV2
     int canTakeAddressOf();
     int needsAutoDtor();
@@ -684,8 +684,8 @@ public:
     bool isImportedSymbol();
     int isAbstract();
     int isCodeseg();
-    int isOverloadable();
-    int hasOverloads();
+    bool isOverloadable();
+    bool hasOverloads();
     PURE isPure();
     PURE isPureBypassingInference();
     bool setImpure();
@@ -696,7 +696,7 @@ public:
     bool isolateReturn();
     bool parametersIntersect(Type *t);
     virtual int isNested();
-    int needThis();
+    bool needThis();
     int isVirtualMethod();
     virtual int isVirtual();
     virtual int isFinal();

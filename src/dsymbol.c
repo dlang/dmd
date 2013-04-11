@@ -160,10 +160,10 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
  * Is Dsymbol a variable that contains pointers?
  */
 
-int Dsymbol::hasPointers()
+bool Dsymbol::hasPointers()
 {
     //printf("Dsymbol::hasPointers() %s\n", toChars());
-    return 0;
+    return false;
 }
 
 bool Dsymbol::hasStaticCtorOrDtor()
@@ -539,14 +539,14 @@ bool Dsymbol::isDeprecated()
 }
 
 #if DMDV2
-int Dsymbol::isOverloadable()
+bool Dsymbol::isOverloadable()
 {
-    return 0;
+    return false;
 }
 
-int Dsymbol::hasOverloads()
+bool Dsymbol::hasOverloads()
 {
-    return 0;
+    return false;
 }
 #endif
 
@@ -568,9 +568,9 @@ Type *Dsymbol::getType()
     return NULL;
 }
 
-int Dsymbol::needThis()
+bool Dsymbol::needThis()
 {
-    return FALSE;
+    return false;
 }
 
 int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)

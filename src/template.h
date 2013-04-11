@@ -104,7 +104,7 @@ public:
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
-    int isOverloadable();
+    bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
@@ -372,7 +372,7 @@ public:
     const char *kind();
     int oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    int hasPointers();
+    bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

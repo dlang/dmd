@@ -259,7 +259,7 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
     }
 }
 
-int AttribDeclaration::hasPointers()
+bool AttribDeclaration::hasPointers()
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -269,10 +269,10 @@ int AttribDeclaration::hasPointers()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasPointers())
-                return 1;
+                return true;
         }
     }
-    return 0;
+    return false;
 }
 
 bool AttribDeclaration::hasStaticCtorOrDtor()

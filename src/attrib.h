@@ -51,7 +51,7 @@ public:
     const char *kind();
     int oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    int hasPointers();
+    bool hasPointers();
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);

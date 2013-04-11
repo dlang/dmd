@@ -2056,9 +2056,9 @@ TemplateTupleParameter *TemplateDeclaration::isVariadic()
  * We can overload templates.
  */
 
-int TemplateDeclaration::isOverloadable()
+bool TemplateDeclaration::isOverloadable()
 {
-    return 1;
+    return true;
 }
 
 /*************************************************
@@ -6858,21 +6858,23 @@ int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
     return 0;
 }
 
-int TemplateMixin::hasPointers()
+bool TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
 
     if (members)
+    {
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             //printf(" s = %s %s\n", s->kind(), s->toChars());
             if (s->hasPointers())
             {
-                return 1;
+                return true;
             }
         }
-    return 0;
+    }
+    return false;
 }
 
 void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)

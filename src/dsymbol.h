@@ -182,20 +182,20 @@ public:
     virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
 #if DMDV2
-    virtual int isOverloadable();
-    virtual int hasOverloads();
+    virtual bool isOverloadable();
+    virtual bool hasOverloads();
 #endif
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual const char *mangle(bool isv = false);
-    virtual int needThis();                     // need a 'this' pointer?
+    virtual bool needThis();                    // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     virtual int oneMember(Dsymbol **ps, Identifier *ident);
     static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
     virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    virtual int hasPointers();
+    virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }

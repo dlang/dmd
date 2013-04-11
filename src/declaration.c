@@ -253,7 +253,7 @@ Type *TupleDeclaration::getType()
     return tupletype;
 }
 
-int TupleDeclaration::needThis()
+bool TupleDeclaration::needThis()
 {
     //printf("TupleDeclaration::needThis(%s)\n", toChars());
     for (size_t i = 0; i < objects->dim; i++)
@@ -265,12 +265,12 @@ int TupleDeclaration::needThis()
                 Declaration *d = ve->s->isDeclaration();
                 if (d && d->needThis())
                 {
-                    return 1;
+                    return true;
                 }
             }
         }
     }
-    return 0;
+    return false;
 }
 
 
@@ -1938,7 +1938,7 @@ AggregateDeclaration *VarDeclaration::isThis()
     return ad;
 }
 
-int VarDeclaration::needThis()
+bool VarDeclaration::needThis()
 {
     //printf("VarDeclaration::needThis(%s, x%x)\n", toChars(), storage_class);
     return isField();
@@ -2188,7 +2188,7 @@ int VarDeclaration::isCTFE()
     return (storage_class & STCctfe) != 0; // || !isDataseg();
 }
 
-int VarDeclaration::hasPointers()
+bool VarDeclaration::hasPointers()
 {
     //printf("VarDeclaration::hasPointers() %s, ty = %d\n", toChars(), type->ty);
     return (!isDataseg() && type->hasPointers());
