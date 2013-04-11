@@ -3429,7 +3429,7 @@ bool FuncDeclaration::needThis()
     return toAliasFunc()->isThis() != NULL;
 }
 
-int FuncDeclaration::addPreInvariant()
+bool FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
@@ -3440,7 +3440,7 @@ int FuncDeclaration::addPreInvariant()
             ident != Id::cpctor);
 }
 
-int FuncDeclaration::addPostInvariant()
+bool FuncDeclaration::addPostInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
@@ -3974,12 +3974,12 @@ bool CtorDeclaration::isVirtual()
     return false;
 }
 
-int CtorDeclaration::addPreInvariant()
+bool CtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int CtorDeclaration::addPostInvariant()
+bool CtorDeclaration::addPostInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
@@ -4037,12 +4037,12 @@ bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
     return false;       // cannot overload postblits
 }
 
-int PostBlitDeclaration::addPreInvariant()
+bool PostBlitDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int PostBlitDeclaration::addPostInvariant()
+bool PostBlitDeclaration::addPostInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
@@ -4114,14 +4114,14 @@ bool DtorDeclaration::overloadInsert(Dsymbol *s)
     return false;       // cannot overload destructors
 }
 
-int DtorDeclaration::addPreInvariant()
+bool DtorDeclaration::addPreInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
 
-int DtorDeclaration::addPostInvariant()
+bool DtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 const char *DtorDeclaration::kind()
@@ -4235,14 +4235,14 @@ bool StaticCtorDeclaration::hasStaticCtorOrDtor()
     return TRUE;
 }
 
-int StaticCtorDeclaration::addPreInvariant()
+bool StaticCtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int StaticCtorDeclaration::addPostInvariant()
+bool StaticCtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4370,14 +4370,14 @@ bool StaticDtorDeclaration::hasStaticCtorOrDtor()
     return TRUE;
 }
 
-int StaticDtorDeclaration::addPreInvariant()
+bool StaticDtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int StaticDtorDeclaration::addPostInvariant()
+bool StaticDtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void StaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4469,14 +4469,14 @@ bool InvariantDeclaration::isVirtual()
     return false;
 }
 
-int InvariantDeclaration::addPreInvariant()
+bool InvariantDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int InvariantDeclaration::addPostInvariant()
+bool InvariantDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4569,14 +4569,14 @@ bool UnitTestDeclaration::isVirtual()
     return false;
 }
 
-int UnitTestDeclaration::addPreInvariant()
+bool UnitTestDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int UnitTestDeclaration::addPostInvariant()
+bool UnitTestDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4659,14 +4659,14 @@ bool NewDeclaration::isVirtual()
     return false;
 }
 
-int NewDeclaration::addPreInvariant()
+bool NewDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int NewDeclaration::addPostInvariant()
+bool NewDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4752,14 +4752,14 @@ bool DeleteDeclaration::isVirtual()
     return false;
 }
 
-int DeleteDeclaration::addPreInvariant()
+bool DeleteDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int DeleteDeclaration::addPostInvariant()
+bool DeleteDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void DeleteDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

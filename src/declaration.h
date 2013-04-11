@@ -700,8 +700,8 @@ public:
     bool isVirtualMethod();
     virtual bool isVirtual();
     virtual bool isFinal();
-    virtual int addPreInvariant();
-    virtual int addPostInvariant();
+    virtual bool addPreInvariant();
+    virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
     void inlineScan();
     int canInline(int hasthis, int hdrscan, int statementsToo);
@@ -781,8 +781,8 @@ public:
     const char *kind();
     char *toChars();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
 
     CtorDeclaration *isCtorDeclaration() { return this; }
 };
@@ -797,8 +797,8 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
@@ -817,8 +817,8 @@ public:
     const char *kind();
     char *toChars();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
@@ -834,8 +834,8 @@ public:
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     bool hasStaticCtorOrDtor();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -867,8 +867,8 @@ public:
     AggregateDeclaration *isThis();
     bool isVirtual();
     bool hasStaticCtorOrDtor();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -894,8 +894,8 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -911,8 +911,8 @@ public:
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     void emitComment(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -931,8 +931,8 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
 
     NewDeclaration *isNewDeclaration() { return this; }
 };
@@ -950,8 +950,8 @@ public:
     const char *kind();
     bool isDelete();
     bool isVirtual();
-    int addPreInvariant();
-    int addPostInvariant();
+    bool addPreInvariant();
+    bool addPostInvariant();
     DeleteDeclaration *isDeleteDeclaration() { return this; }
 };
 
