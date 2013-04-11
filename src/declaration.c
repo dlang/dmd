@@ -629,7 +629,7 @@ void AliasDeclaration::semantic(Scope *sc)
     this->inSemantic = 0;
 }
 
-int AliasDeclaration::overloadInsert(Dsymbol *s)
+bool AliasDeclaration::overloadInsert(Dsymbol *s)
 {
     /* Don't know yet what the aliased symbol is, so assume it can
      * be overloaded and check later for correctness.
@@ -652,10 +652,10 @@ int AliasDeclaration::overloadInsert(Dsymbol *s)
     {
         if (s == this)
         {
-            return TRUE;
+            return true;
         }
         overnext = s;
-        return TRUE;
+        return true;
     }
     else
     {

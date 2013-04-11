@@ -49,7 +49,7 @@ public:
     void addComment(unsigned char *comment);
     void emitComment(Scope *sc);
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
     bool hasStaticCtorOrDtor();
@@ -71,7 +71,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static const char *stcToChars(char tmp[], StorageClass& stc);
@@ -154,7 +154,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setScope(Scope *sc);
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -168,7 +168,7 @@ public:
 
     ConditionalDeclaration(Condition *condition, Dsymbols *decl, Dsymbols *elsedecl);
     Dsymbol *syntaxCopy(Dsymbol *s);
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void emitComment(Scope *sc);
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
     void addComment(unsigned char *comment);

@@ -239,7 +239,7 @@ public:
     AliasDeclaration(Loc loc, Identifier *ident, Dsymbol *s);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     const char *kind();
     Type *getType();
     Dsymbol *toAlias();
@@ -663,7 +663,7 @@ public:
     void toJson(JsonOut *json);
     int overrides(FuncDeclaration *fd);
     int findVtblIndex(Dsymbols *vtbl, int dim);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
     FuncDeclaration *overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags = 0);
     MATCH leastAsSpecialized(FuncDeclaration *g);
@@ -799,7 +799,7 @@ public:
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
     PostBlitDeclaration *isPostBlitDeclaration() { return this; }
@@ -819,7 +819,7 @@ public:
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void emitComment(Scope *sc);
 
     DtorDeclaration *isDtorDeclaration() { return this; }

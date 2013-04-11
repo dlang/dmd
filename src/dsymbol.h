@@ -165,7 +165,7 @@ public:
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Object *id);
-    virtual int overloadInsert(Dsymbol *s);
+    virtual bool overloadInsert(Dsymbol *s);
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
@@ -192,8 +192,8 @@ public:
     virtual bool needThis();                    // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
-    virtual int oneMember(Dsymbol **ps, Identifier *ident);
-    static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
+    virtual bool oneMember(Dsymbol **ps, Identifier *ident);
+    static bool oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
     virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();

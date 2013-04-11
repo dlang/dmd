@@ -98,23 +98,23 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 /**************************************
  * Determine if this symbol is only one.
  * Returns:
- *      FALSE, *ps = NULL: There are 2 or more symbols
- *      TRUE,  *ps = NULL: There are zero symbols
- *      TRUE,  *ps = symbol: The one and only one symbol
+ *      false, *ps = NULL: There are 2 or more symbols
+ *      true,  *ps = NULL: There are zero symbols
+ *      true,  *ps = symbol: The one and only one symbol
  */
 
-int Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
+bool Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMember()\n");
     *ps = this;
-    return TRUE;
+    return true;
 }
 
 /*****************************************
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
+bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
@@ -124,13 +124,13 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *sx = (*members)[i];
 
-            int x = sx->oneMember(ps, ident);
+            bool x = sx->oneMember(ps, ident);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
             if (!x)
             {
                 //printf("\tfalse 1\n");
                 assert(*ps == NULL);
-                return FALSE;
+                return false;
             }
             if (*ps)
             {
@@ -146,14 +146,14 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                 else                    // more than one symbol
                 {   *ps = NULL;
                     //printf("\tfalse 2\n");
-                    return FALSE;
+                    return false;
                 }
             }
         }
     }
     *ps = s;            // s is the one symbol, NULL if none
     //printf("\ttrue\n");
-    return TRUE;
+    return true;
 }
 
 /*****************************************
@@ -469,10 +469,10 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Object *id)
     return sm;
 }
 
-int Dsymbol::overloadInsert(Dsymbol *s)
+bool Dsymbol::overloadInsert(Dsymbol *s)
 {
     //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
-    return FALSE;
+    return false;
 }
 
 void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

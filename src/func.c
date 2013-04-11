@@ -2293,10 +2293,10 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
 /****************************************************
  * Overload this FuncDeclaration with the new one f.
- * Return !=0 if successful; i.e. no conflict.
+ * Return true if successful; i.e. no conflict.
  */
 
-int FuncDeclaration::overloadInsert(Dsymbol *s)
+bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
     AliasDeclaration *ad = s->isAliasDeclaration();
@@ -2307,15 +2307,15 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
         if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
         {
             //printf("\tad = '%s'\n", ad->type->toChars());
-            return FALSE;
+            return false;
         }
         overnext = ad;
         //printf("\ttrue: no conflict\n");
-        return TRUE;
+        return true;
     }
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
-        return FALSE;
+        return false;
 
 #if 0
     /* Disable this check because:
@@ -2341,7 +2341,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
         return overnext->overloadInsert(fd);
     overnext = fd;
     //printf("\ttrue: no conflict\n");
-    return TRUE;
+    return true;
 }
 
 /********************************************
@@ -4032,9 +4032,9 @@ void PostBlitDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int PostBlitDeclaration::overloadInsert(Dsymbol *s)
+bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
 {
-    return FALSE;       // cannot overload postblits
+    return false;       // cannot overload postblits
 }
 
 int PostBlitDeclaration::addPreInvariant()
@@ -4109,9 +4109,9 @@ void DtorDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int DtorDeclaration::overloadInsert(Dsymbol *s)
+bool DtorDeclaration::overloadInsert(Dsymbol *s)
 {
-    return FALSE;       // cannot overload destructors
+    return false;       // cannot overload destructors
 }
 
 int DtorDeclaration::addPreInvariant()

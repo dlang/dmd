@@ -81,7 +81,7 @@ public:
         Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
@@ -334,7 +334,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
     const char *mangle(bool isv = false);
@@ -370,7 +370,7 @@ public:
     void semantic3(Scope *sc);
     void inlineScan();
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
     bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
