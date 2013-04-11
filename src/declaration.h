@@ -791,7 +791,7 @@ struct PostBlitDeclaration : FuncDeclaration
 struct DtorDeclaration : FuncDeclaration
 {
     DtorDeclaration(Loc loc, Loc endloc);
-    DtorDeclaration(Loc loc, Loc endloc, Identifier *id);
+    DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

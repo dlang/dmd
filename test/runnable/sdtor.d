@@ -5,7 +5,7 @@ extern (C) int printf(const(char*) fmt, ...);
 
 int sdtor;
 
-struct S
+struct S1
 {
     ~this() { printf("~S()\n"); sdtor++; }
 }
@@ -14,7 +14,7 @@ struct S
 
 void test1()
 {
-    S* s = new S();
+    S1* s = new S1();
     delete s;
     assert(sdtor == 1);
 }
@@ -2546,6 +2546,24 @@ void test9720()
 }
 
 /**********************************/
+// 9899
+
+struct S9899
+{
+    @safe pure nothrow ~this() {}
+}
+
+struct MemberS9899
+{
+    S9899 s;
+}
+
+void test9899() @safe pure nothrow
+{
+    MemberS9899 s; // 11
+}
+
+/**********************************/
 
 int main()
 {
@@ -2631,6 +2649,7 @@ int main()
     test9386();
     test9441();
     test9720();
+    test9899();
 
     printf("Success\n");
     return 0;
