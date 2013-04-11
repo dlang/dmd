@@ -2019,7 +2019,7 @@ void VarDeclaration::checkNestedReference(Scope *sc, Loc loc)
                          * See: compilable/testInference.d
                          */
                         if (type->isMutable() ||                            // mutable variable
-                            !type->implicitConvTo(type->invariantOf()) ||   // has any mutable indirections
+                            !type->implicitConvTo(type->immutableOf()) ||   // has any mutable indirections
                             !fdv->isPureBypassingInference())               // does not belong to pure function
                         {
                             fld->setImpure();   // Bugzilla 9415

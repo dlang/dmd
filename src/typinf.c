@@ -583,7 +583,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         tftohash->mod = MODconst;
         tftohash = (TypeFunction *)tftohash->semantic(Loc(), &sc);
 
-        tftostring = new TypeFunction(NULL, Type::tchar->invariantOf()->arrayOf(), 0, LINKd);
+        tftostring = new TypeFunction(NULL, Type::tstring, 0, LINKd);
         tftostring = (TypeFunction *)tftostring->semantic(Loc(), &sc);
     }
 

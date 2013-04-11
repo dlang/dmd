@@ -384,7 +384,7 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             Type *tthis;
             if (i == 0) tthis = type;
             if (i == 1) tthis = type->constOf();
-            if (i == 2) tthis = type->invariantOf();
+            if (i == 2) tthis = type->immutableOf();
             if (i == 3) tthis = type->sharedOf();
             if (i == 4) tthis = type->sharedConstOf();
             if (i == 5) break;
