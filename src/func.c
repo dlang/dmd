@@ -3138,9 +3138,9 @@ int FuncDeclaration::isAbstract()
     return storage_class & STCabstract;
 }
 
-int FuncDeclaration::isCodeseg()
+bool FuncDeclaration::isCodeseg()
 {
-    return TRUE;                // functions are always in the code segment
+    return true;                // functions are always in the code segment
 }
 
 bool FuncDeclaration::isOverloadable()
@@ -4742,9 +4742,9 @@ const char *DeleteDeclaration::kind()
     return "deallocator";
 }
 
-int DeleteDeclaration::isDelete()
+bool DeleteDeclaration::isDelete()
 {
-    return TRUE;
+    return true;
 }
 
 int DeleteDeclaration::isVirtual()

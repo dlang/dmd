@@ -102,24 +102,24 @@ unsigned Declaration::size(Loc loc)
     return type->size();
 }
 
-int Declaration::isDelete()
+bool Declaration::isDelete()
 {
-    return FALSE;
+    return false;
 }
 
-int Declaration::isDataseg()
+bool Declaration::isDataseg()
 {
-    return FALSE;
+    return false;
 }
 
-int Declaration::isThreadlocal()
+bool Declaration::isThreadlocal()
 {
-    return FALSE;
+    return false;
 }
 
-int Declaration::isCodeseg()
+bool Declaration::isCodeseg()
 {
-    return FALSE;
+    return false;
 }
 
 PROT Declaration::prot()
@@ -2134,7 +2134,7 @@ int VarDeclaration::canTakeAddressOf()
  * Includes extern variables.
  */
 
-int VarDeclaration::isDataseg()
+bool VarDeclaration::isDataseg()
 {
 #if 0
     printf("VarDeclaration::isDataseg(%p, '%s')\n", this, toChars());
@@ -2142,12 +2142,12 @@ int VarDeclaration::isDataseg()
     printf("parent = '%s'\n", parent->toChars());
 #endif
     if (storage_class & STCmanifest)
-        return 0;
+        return false;
     Dsymbol *parent = this->toParent();
     if (!parent && !(storage_class & STCstatic))
     {   error("forward referenced");
         type = Type::terror;
-        return 0;
+        return false;
     }
     return canTakeAddressOf() &&
         (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
@@ -2159,7 +2159,7 @@ int VarDeclaration::isDataseg()
  * Does symbol go into thread local storage?
  */
 
-int VarDeclaration::isThreadlocal()
+bool VarDeclaration::isThreadlocal()
 {
     //printf("VarDeclaration::isThreadlocal(%p, '%s')\n", this, toChars());
 #if 0 //|| TARGET_OSX
@@ -2172,7 +2172,7 @@ int VarDeclaration::isThreadlocal()
     /* Data defaults to being thread-local. It is not thread-local
      * if it is immutable, const or shared.
      */
-    int i = isDataseg() &&
+    bool i = isDataseg() &&
         !(storage_class & (STCimmutable | STCconst | STCshared | STCgshared));
     //printf("\treturn %d\n", i);
     return i;

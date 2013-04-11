@@ -146,10 +146,10 @@ public:
 
     const char *mangle(bool isv = false);
     bool isStatic() { return (storage_class & STCstatic) != 0; }
-    virtual int isDelete();
-    virtual int isDataseg();
-    virtual int isThreadlocal();
-    virtual int isCodeseg();
+    virtual bool isDelete();
+    virtual bool isDataseg();
+    virtual bool isThreadlocal();
+    virtual bool isCodeseg();
     bool isCtorinit()     { return (storage_class & STCctorinit) != 0; }
     bool isFinal()        { return (storage_class & STCfinal) != 0; }
     bool isAbstract()     { return (storage_class & STCabstract) != 0; }
@@ -304,8 +304,8 @@ public:
     bool needThis();
     bool isExport();
     bool isImportedSymbol();
-    int isDataseg();
-    int isThreadlocal();
+    bool isDataseg();
+    bool isThreadlocal();
     int isCTFE();
     bool hasPointers();
 #if DMDV2
@@ -683,7 +683,7 @@ public:
     bool isExport();
     bool isImportedSymbol();
     int isAbstract();
-    int isCodeseg();
+    bool isCodeseg();
     bool isOverloadable();
     bool hasOverloads();
     PURE isPure();
@@ -948,7 +948,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
-    int isDelete();
+    bool isDelete();
     int isVirtual();
     int addPreInvariant();
     int addPostInvariant();
