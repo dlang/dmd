@@ -710,8 +710,8 @@ public:
     void toDocBuffer(OutBuffer *buf, Scope *sc);
     FuncDeclaration *isUnique();
     void checkNestedReference(Scope *sc, Loc loc);
-    int needsClosure();
-    int hasNestedFrameRefs();
+    bool needsClosure();
+    bool hasNestedFrameRefs();
     void buildResultVar();
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
