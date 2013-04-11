@@ -3028,17 +3028,17 @@ const char *FuncDeclaration::toFullSignature()
     return buf.extractData();
 }
 
-int FuncDeclaration::isMain()
+bool FuncDeclaration::isMain()
 {
     return ident == Id::main &&
         linkage != LINKc && !isMember() && !isNested();
 }
 
-int FuncDeclaration::isWinMain()
+bool FuncDeclaration::isWinMain()
 {
     //printf("FuncDeclaration::isWinMain() %s\n", toChars());
 #if 0
-    int x = ident == Id::WinMain &&
+    bool x = ident == Id::WinMain &&
         linkage != LINKc && !isMember();
     printf("%s\n", x ? "yes" : "no");
     return x;
@@ -3048,7 +3048,7 @@ int FuncDeclaration::isWinMain()
 #endif
 }
 
-int FuncDeclaration::isDllMain()
+bool FuncDeclaration::isDllMain()
 {
     return ident == Id::DllMain &&
         linkage != LINKc && !isMember();
