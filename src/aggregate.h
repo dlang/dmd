@@ -284,7 +284,7 @@ public:
 #if DMDV2
     virtual int isCPPinterface();
 #endif
-    int isAbstract();
+    bool isAbstract();
     virtual int vtblOffset();
     const char *kind();
     const char *mangle(bool isv = false);

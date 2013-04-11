@@ -3133,9 +3133,9 @@ int FuncDeclaration::isFinal()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
-int FuncDeclaration::isAbstract()
+bool FuncDeclaration::isAbstract()
 {
-    return storage_class & STCabstract;
+    return (storage_class & STCabstract) != 0;
 }
 
 bool FuncDeclaration::isCodeseg()
@@ -3204,7 +3204,7 @@ bool FuncDeclaration::setImpure()
     return FALSE;
 }
 
-int FuncDeclaration::isSafe()
+bool FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
@@ -3220,7 +3220,7 @@ bool FuncDeclaration::isSafeBypassingInference()
         return isSafe();
 }
 
-int FuncDeclaration::isTrusted()
+bool FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
