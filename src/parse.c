@@ -4802,6 +4802,7 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
 {
     //printf("isDeclaration(needId = %d)\n", needId);
     int haveId = 0;
+    int haveTpl = 0;
 
 #if DMDV2
     while (1)
@@ -4828,7 +4829,7 @@ int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
     {
         goto Lisnot;
     }
-    if (!isDeclarator(&t, &haveId, endtok))
+    if (!isDeclarator(&t, &haveId, &haveTpl, endtok))
         goto Lisnot;
     if ( needId == 1 ||
         (needId == 0 && !haveId) ||
@@ -4972,7 +4973,7 @@ Lfalse:
     return FALSE;
 }
 
-int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
+int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, enum TOK endtok)
 {   // This code parallels parseDeclarator()
     Token *t = *pt;
     int parens;
@@ -5045,7 +5046,7 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
                 }
 
 
-                if (!isDeclarator(&t, haveId, TOKrparen))
+                if (!isDeclarator(&t, haveId, NULL, TOKrparen))
                     return FALSE;
                 t = peek(t);
                 parens = TRUE;
@@ -5093,6 +5094,13 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
 
             case TOKlparen:
                 parens = FALSE;
+                if (Token *tk = peekPastParen(t))
+                {   if (tk->value == TOKlparen)
+                    {   if (!haveTpl) return FALSE;
+                        *haveTpl = 1;
+                        t = tk;
+                    }
+                }
                 if (!isParameters(&t))
                     return FALSE;
 #if DMDV2
@@ -5138,6 +5146,8 @@ int Parser::isDeclarator(Token **pt, int *haveId, enum TOK endtok)
                     return TRUE;
                 }
                 return FALSE;
+            case TOKif:
+                return haveTpl ? TRUE : FALSE;
 
             default:
                 return FALSE;
@@ -5216,7 +5226,7 @@ int Parser::isParameters(Token **pt)
             L2:
                 int tmp = FALSE;
                 if (t->value != TOKdotdotdot &&
-                    !isDeclarator(&t, &tmp, TOKreserved))
+                    !isDeclarator(&t, &tmp, NULL, TOKreserved))
                     return FALSE;
                 if (t->value == TOKassign)
                 {   t = peek(t);
