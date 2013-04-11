@@ -3774,7 +3774,7 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 // Used as a way to import a set of functions from another scope into this one.
 
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads)
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
         funcalias->storage_class, funcalias->type)
 {
@@ -3790,7 +3790,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOv
     else
     {   // for internal use
         assert(!funcalias->isFuncAliasDeclaration());
-        this->hasOverloads = 0;
+        this->hasOverloads = false;
     }
     userAttributes = funcalias->userAttributes;
 }

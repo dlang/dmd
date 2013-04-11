@@ -1674,7 +1674,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t && hasOverloads == 0)
+    if (type == t && !hasOverloads)
         return this;
     Expression *e;
     Type *tb = t->toBasetype();
@@ -1732,7 +1732,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     else
     {   e = copy();
         e->type = t;
-        ((SymOffExp *)e)->hasOverloads = 0;
+        ((SymOffExp *)e)->hasOverloads = false;
     }
     return e;
 }

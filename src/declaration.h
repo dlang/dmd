@@ -743,9 +743,9 @@ class FuncAliasDeclaration : public FuncDeclaration
 {
 public:
     FuncDeclaration *funcalias;
-    int hasOverloads;
+    bool hasOverloads;
 
-    FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads = 1);
+    FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads = true);
 
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();

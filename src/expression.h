@@ -326,9 +326,9 @@ class DsymbolExp : public Expression
 {
 public:
     Dsymbol *s;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads = 0);
+    DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
@@ -663,9 +663,9 @@ class SymbolExp : public Expression
 {
 public:
     Declaration *var;
-    int hasOverloads;
+    bool hasOverloads;
 
-    SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloads);
+    SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverloads);
 
     elem *toElem(IRState *irs);
 };
@@ -678,7 +678,7 @@ class SymOffExp : public SymbolExp
 public:
     unsigned offset;
 
-    SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
+    SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -698,7 +698,7 @@ public:
 class VarExp : public SymbolExp
 {
 public:
-    VarExp(Loc loc, Declaration *var, int hasOverloads = 0);
+    VarExp(Loc loc, Declaration *var, bool hasOverloads = false);
     bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
@@ -984,9 +984,9 @@ class DotVarExp : public UnaExp
 {
 public:
     Declaration *var;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DotVarExp(Loc loc, Expression *e, Declaration *var, int hasOverloads = 0);
+    DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
@@ -1017,9 +1017,9 @@ class DelegateExp : public UnaExp
 {
 public:
     FuncDeclaration *func;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, int hasOverloads = 0);
+    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);

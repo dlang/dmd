@@ -3352,7 +3352,7 @@ DollarExp::DollarExp(Loc loc)
 
 /******************************** DsymbolExp **************************/
 
-DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads)
+DsymbolExp::DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads)
         : Expression(loc, TOKdsymbol, sizeof(DsymbolExp))
 {
     this->s = s;
@@ -5415,7 +5415,7 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 /********************** SymbolExp **************************************/
 
 #if DMDV2
-SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloads)
+SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverloads)
     : Expression(loc, op, size)
 {
     assert(var);
@@ -5426,7 +5426,7 @@ SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloa
 
 /********************** SymOffExp **************************************/
 
-SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads)
+SymOffExp::SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads)
     : SymbolExp(loc, TOKsymoff, sizeof(SymOffExp), var, hasOverloads)
 {
     this->offset = offset;
@@ -5484,7 +5484,7 @@ void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** VarExp **************************/
 
-VarExp::VarExp(Loc loc, Declaration *var, int hasOverloads)
+VarExp::VarExp(Loc loc, Declaration *var, bool hasOverloads)
     : SymbolExp(loc, TOKvar, sizeof(VarExp), var, hasOverloads)
 {
     //printf("VarExp(this = %p, '%s', loc = %s)\n", this, var->toChars(), loc.toChars());
@@ -7529,7 +7529,7 @@ void DotTemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v, int hasOverloads)
+DotVarExp::DotVarExp(Loc loc, Expression *e, Declaration *v, bool hasOverloads)
         : UnaExp(loc, TOKdotvar, sizeof(DotVarExp), e)
 {
     //printf("DotVarExp()\n");
@@ -7953,7 +7953,7 @@ void DotTemplateInstanceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f, int hasOverloads)
+DelegateExp::DelegateExp(Loc loc, Expression *e, FuncDeclaration *f, bool hasOverloads)
         : UnaExp(loc, TOKdelegate, sizeof(DelegateExp), e)
 {
     this->func = f;
