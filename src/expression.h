@@ -929,7 +929,7 @@ struct DotTemplateInstanceExp : UnaExp
 {
     TemplateInstance *ti;
 
-    DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs);
+    DotTemplateInstanceExp(Loc loc, Module* mod, Expression *e, Identifier *name, Objects *tiargs);
     Expression *syntaxCopy();
     TemplateDeclaration *getTempdecl(Scope *sc);
     Expression *semantic(Scope *sc);

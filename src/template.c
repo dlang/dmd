@@ -927,7 +927,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
      * as td2.
      */
 
-    TemplateInstance ti(0, ident);      // create dummy template instance
+    TemplateInstance ti(0, NULL, ident);      // create dummy template instance
     Objects dedtypes;
 
 #define LOG_LEASTAS     0
@@ -2119,7 +2119,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         {
             if (!tiargs)
                 tiargs = new Objects();
-            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, sc->module, td, tiargs);
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
@@ -2294,7 +2294,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
      * Now instantiate the template.
      */
     assert(td_best->scope);
-    ti = new TemplateInstance(loc, td_best, tdargs);
+    ti = new TemplateInstance(loc, sc->module, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
     if (!fd_best)
@@ -2379,7 +2379,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 #endif
 
     assert(scope);
-    TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
+    TemplateInstance *ti = new TemplateInstance(loc, sc->module, this, tdargs);
     ti->tinst = sc->tinst;
     {
         ti->tdtypes.setDim(ti->tempdecl->parameters->dim);
@@ -4695,8 +4695,8 @@ Object *TemplateTupleParameter::defaultArg(Loc loc, Scope *sc)
 
 /* ======================== TemplateInstance ================================ */
 
-TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
-    : ScopeDsymbol(NULL)
+TemplateInstance::TemplateInstance(Loc loc, Module* where, Identifier *ident)
+    : ScopeDsymbol(NULL), instantiatedIn(where)
 {
 #if LOG
     printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident->toChars() : "null");
@@ -4723,8 +4723,8 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
  * template to instantiate.
  */
 
-TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *tiargs)
-    : ScopeDsymbol(NULL)
+TemplateInstance::TemplateInstance(Loc loc, Module* where, TemplateDeclaration *td, Objects *tiargs)
+    : ScopeDsymbol(NULL), instantiatedIn(where)
 {
 #if LOG
     printf("TemplateInstance(this = %p, tempdecl = '%s')\n", this, td->toChars());
@@ -4770,7 +4770,7 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     if (s)
         ti = (TemplateInstance *)s;
     else
-        ti = new TemplateInstance(loc, name);
+        ti = new TemplateInstance(loc, instantiatedIn, name);
 
     ti->tiargs = arraySyntaxCopy(tiargs);
 
@@ -4872,6 +4872,14 @@ void TemplateInstance::trySemantic3(Scope *sc2)
         semantic3(sc2);
 
     --nest;
+}
+
+Module* TemplateInstance::getInstantiatingModule() 
+{
+    TemplateInstance* mti = this;
+    while(mti->tinst)
+        mti = mti->tinst;
+    return mti->instantiatedIn;
 }
 
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
@@ -5061,42 +5069,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     size_t target_symbol_list_idx;
 
     if (!sc->parameterSpecialization)
-    {   Dsymbols *a;
-
-        Scope *scx = sc;
-#if 0
-        for (scx = sc; scx; scx = scx->enclosing)
-            if (scx->scopesym)
-                break;
-#endif
-
-        //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
-        if (scx && scx->scopesym &&
-            scx->scopesym->members && !scx->scopesym->isTemplateMixin()
-#if 0 // removed because it bloated compile times
-            /* The problem is if A imports B, and B imports A, and both A
-             * and B instantiate the same template, does the compilation of A
-             * or the compilation of B do the actual instantiation?
-             *
-             * see bugzilla 2500.
-             */
-            && !scx->module->selfImports()
-#endif
-           )
-        {
-            //printf("\t1: adding to %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
-            a = scx->scopesym->members;
-        }
-        else
-        {
-            Module *m = (enclosing ? sc : tempdecl->scope)->module->importedFrom;
-            //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
-            a = m->members;
-            if (m->semanticRun >= 3)
-            {
-                dosemantic3 = 1;
-            }
-        }
+    {   
+        Module *md = getInstantiatingModule();
+        assert(md);
+        Dsymbols *a = md->members;
+        assert(a);
         for (size_t i = 0; 1; i++)
         {
             if (i == a->dim)
@@ -6408,7 +6385,7 @@ char *TemplateInstance::toChars()
 /* ======================== TemplateMixin ================================ */
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs)
-        : TemplateInstance(loc, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
+        : TemplateInstance(loc, NULL, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
                                                   : ((TypeIdentifier *)tqual)->ident)
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");

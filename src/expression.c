@@ -449,7 +449,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
          */
         e = new IdentifierExp(loc, Id::empty);
         if (tiargs)
-            e = new DotTemplateInstanceExp(loc, e, ident, tiargs);
+            e = new DotTemplateInstanceExp(loc, dti->ti->instantiatedIn, e, ident, tiargs);
         else
             e = new DotIdExp(loc, e, ident);
 
@@ -5531,7 +5531,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
                 }
             }
 
-            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, sc ? sc->module : NULL, td, tiargs);
             return (new ScopeExp(loc, ti))->semantic(sc);
         }
         error("cannot infer function literal type");
@@ -7356,17 +7356,17 @@ void DotVarExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  *      foo.bar!(args)
  */
 
-DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs)
+DotTemplateInstanceExp::DotTemplateInstanceExp(Loc loc, Module* where, Expression *e, Identifier *name, Objects *tiargs)
         : UnaExp(loc, TOKdotti, sizeof(DotTemplateInstanceExp), e)
 {
     //printf("DotTemplateInstanceExp()\n");
-    this->ti = new TemplateInstance(loc, name);
+    this->ti = new TemplateInstance(loc, where, name);
     this->ti->tiargs = tiargs;
 }
 
 Expression *DotTemplateInstanceExp::syntaxCopy()
 {
-    DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc,
+    DotTemplateInstanceExp *de = new DotTemplateInstanceExp(loc, ti->instantiatedIn,
         e1->syntaxCopy(),
         ti->name,
         TemplateInstance::arraySyntaxCopy(ti->tiargs));
@@ -7669,6 +7669,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
     Expression *e;
     Identifier *ident;
     Objects *tiargs;
+    Module  *instantiating;
 
     if (e1->op == TOKdot)
     {
@@ -7683,6 +7684,7 @@ Expression *CallExp::resolveUFCS(Scope *sc)
         e      = (dti->e1 = dti->e1->semantic(sc));
         ident  = dti->ti->name;
         tiargs = dti->ti->tiargs;
+        instantiating = dti->ti->instantiatedIn;
     }
     else
         return NULL;
@@ -7767,7 +7769,7 @@ Lshift:
             /* Transform:
              *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
              */
-            e1 = new DotTemplateInstanceExp(e1->loc,
+            e1 = new DotTemplateInstanceExp(e1->loc, instantiating,
                             new IdentifierExp(e1->loc, Id::empty),
                             ident, tiargs);
         }

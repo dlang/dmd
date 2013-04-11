@@ -2029,7 +2029,8 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident)
             StringExp *se = new StringExp(e->loc, ident->toChars());
             Objects *tiargs = new Objects();
             tiargs->push(se);
-            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
+            assert(sc); // We need a scope for referencing the module.
+            DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, sc->module, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
             return dti->semantic(sc, 1);
         }
@@ -4406,7 +4407,7 @@ StructDeclaration *TypeAArray::getImpl()
         {
             ObjectNotFound(Id::AssociativeArray);
         }
-        TemplateInstance *ti = new TemplateInstance(loc, Type::associativearray, tiargs);
+        TemplateInstance *ti = new TemplateInstance(loc, sc->module, Type::associativearray, tiargs);
 #else
         //Expression *e = new IdentifierExp(loc, Id::object);
         Expression *e = new IdentifierExp(loc, Id::empty);
@@ -4419,7 +4420,7 @@ StructDeclaration *TypeAArray::getImpl()
         TemplateInstance *ti = dti->ti;
 #endif
         // Instantiate on the root module of import dependency graph.
-        sc = sc->push(sc->module->importedFrom);
+        sc = sc->push(sc->module->importedFrom); // Still needed ?!
         ti->semantic(sc);
         ti->semantic2(sc);
         ti->semantic3(sc);
@@ -6366,7 +6367,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                         {   assert(id->dyncast() == DYNCAST_DSYMBOL);
                             TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
                             assert(ti);
-                            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, e, ti->name, ti->tiargs);
+                            DotTemplateInstanceExp *dte = new DotTemplateInstanceExp(e->loc, ti->instantiatedIn, e, ti->name, ti->tiargs);
                             e = dte->semantic(sc, 1);   // don't see UFCS
                         }
                     }

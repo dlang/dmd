@@ -112,7 +112,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
         {   // Evaluate: gcinfo!type
             Objects *tiargs = new Objects();
             tiargs->push(type);
-            TemplateInstance *ti = new TemplateInstance(loc, Type::rtinfo, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, sc->module, Type::rtinfo, tiargs);
             ti->semantic(sc);
             ti->semantic2(sc);
             ti->semantic3(sc);

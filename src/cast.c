@@ -1960,7 +1960,7 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 if (!fld->type->nextOf() && tfv->next)
                     fld->treq = to;
 
-                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+                TemplateInstance *ti = new TemplateInstance(loc, sc ? sc->module : NULL, td, tiargs);
                 e = (new ScopeExp(loc, ti))->semantic(td->scope);
 
                 // Reset inference target for the later re-semantic

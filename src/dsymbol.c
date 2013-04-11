@@ -1430,7 +1430,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     //TemplateInstance *ti = new TemplateInstance(loc, td, tdargs);
                     //ti->semantic(sc);
 
-                    e = new DotTemplateInstanceExp(loc, ce, td->ident, tdargs);
+                    e = new DotTemplateInstanceExp(loc, sc->module, ce, td->ident, tdargs);
                 }
                 else
                 {   /* opDollar exists, but it's not a template.
