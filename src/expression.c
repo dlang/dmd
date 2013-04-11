@@ -1208,8 +1208,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
         for (size_t i = 0; i < ae->elements->dim; i++)
         {
-            ae->elements->tdata()[i] =
-                callCpCtor(loc, sc, ae->elements->tdata()[i], noscope);
+            (*ae->elements)[i] =
+                callCpCtor(loc, sc, (*ae->elements)[i], noscope);
         }
         e = ae->semantic(sc);
         return e;

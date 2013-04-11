@@ -1710,7 +1710,7 @@ Lretry:
                     }
                     else
                     {   // This code matches code in TypeInstance::deduceType()
-                        TemplateParameter *tprm = parameters->tdata()[i];
+                        TemplateParameter *tprm = (*parameters)[i];
                         TemplateValueParameter *tvp = tprm->isTemplateValueParameter();
                         if (!tvp)
                             goto Lnomatch;
