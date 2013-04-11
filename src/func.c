@@ -3068,7 +3068,7 @@ bool FuncDeclaration::isImportedSymbol()
 
 // Determine if function goes into virtual function pointer table
 
-int FuncDeclaration::isVirtual()
+bool FuncDeclaration::isVirtual()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isVirtual();
@@ -3091,23 +3091,23 @@ int FuncDeclaration::isVirtual()
 
 // Determine if a function is pedantically virtual
 
-int FuncDeclaration::isVirtualMethod()
+bool FuncDeclaration::isVirtualMethod()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isVirtualMethod();
 
     //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
     if (!isVirtual())
-        return 0;
+        return false;
     // If it's a final method, and does not override anything, then it is not virtual
     if (isFinal() && foverrides.dim == 0)
     {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
-int FuncDeclaration::isFinal()
+bool FuncDeclaration::isFinal()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isFinal();
@@ -3414,7 +3414,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
 // Determine if function needs
 // a static frame pointer to its lexically enclosing function
 
-int FuncDeclaration::isNested()
+bool FuncDeclaration::isNested()
 {
     FuncDeclaration *f = toAliasFunc();
     //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
@@ -3845,15 +3845,15 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
     return f;
 }
 
-int FuncLiteralDeclaration::isNested()
+bool FuncLiteralDeclaration::isNested()
 {
     //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
     return (tok != TOKfunction);
 }
 
-int FuncLiteralDeclaration::isVirtual()
+bool FuncLiteralDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 const char *FuncLiteralDeclaration::kind()
@@ -3969,9 +3969,9 @@ char *CtorDeclaration::toChars()
     return (char *)"this";
 }
 
-int CtorDeclaration::isVirtual()
+bool CtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 int CtorDeclaration::addPreInvariant()
@@ -4047,9 +4047,9 @@ int PostBlitDeclaration::addPostInvariant()
     return (isThis() && vthis && global.params.useInvariants);
 }
 
-int PostBlitDeclaration::isVirtual()
+bool PostBlitDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4134,10 +4134,10 @@ char *DtorDeclaration::toChars()
     return (char *)"~this";
 }
 
-int DtorDeclaration::isVirtual()
+bool DtorDeclaration::isVirtual()
 {
-    // FALSE so that dtor's don't get put into the vtbl[]
-    return FALSE;
+    // false so that dtor's don't get put into the vtbl[]
+    return false;
 }
 
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4225,9 +4225,9 @@ AggregateDeclaration *StaticCtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticCtorDeclaration::isVirtual()
+bool StaticCtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 bool StaticCtorDeclaration::hasStaticCtorOrDtor()
@@ -4360,9 +4360,9 @@ AggregateDeclaration *StaticDtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticDtorDeclaration::isVirtual()
+bool StaticDtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 bool StaticDtorDeclaration::hasStaticCtorOrDtor()
@@ -4464,9 +4464,9 @@ void InvariantDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int InvariantDeclaration::isVirtual()
+bool InvariantDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 int InvariantDeclaration::addPreInvariant()
@@ -4564,9 +4564,9 @@ AggregateDeclaration *UnitTestDeclaration::isThis()
     return NULL;
 }
 
-int UnitTestDeclaration::isVirtual()
+bool UnitTestDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 int UnitTestDeclaration::addPreInvariant()
@@ -4654,9 +4654,9 @@ const char *NewDeclaration::kind()
     return "allocator";
 }
 
-int NewDeclaration::isVirtual()
+bool NewDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 int NewDeclaration::addPreInvariant()
@@ -4747,9 +4747,9 @@ bool DeleteDeclaration::isDelete()
     return true;
 }
 
-int DeleteDeclaration::isVirtual()
+bool DeleteDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 int DeleteDeclaration::addPreInvariant()

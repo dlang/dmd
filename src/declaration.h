@@ -695,11 +695,11 @@ public:
     bool setUnsafe();
     bool isolateReturn();
     bool parametersIntersect(Type *t);
-    virtual int isNested();
+    virtual bool isNested();
     bool needThis();
-    int isVirtualMethod();
-    virtual int isVirtual();
-    virtual int isFinal();
+    bool isVirtualMethod();
+    virtual bool isVirtual();
+    virtual bool isFinal();
     virtual int addPreInvariant();
     virtual int addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
@@ -765,8 +765,8 @@ public:
         ForeachStatement *fes);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
-    int isNested();
-    int isVirtual();
+    bool isNested();
+    bool isVirtual();
 
     FuncLiteralDeclaration *isFuncLiteralDeclaration() { return this; }
     const char *kind();
@@ -780,7 +780,7 @@ public:
     void semantic(Scope *sc);
     const char *kind();
     char *toChars();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
 
@@ -796,7 +796,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     bool overloadInsert(Dsymbol *s);
@@ -816,7 +816,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     char *toChars();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     bool overloadInsert(Dsymbol *s);
@@ -833,7 +833,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     bool hasStaticCtorOrDtor();
@@ -865,7 +865,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
+    bool isVirtual();
     bool hasStaticCtorOrDtor();
     int addPreInvariant();
     int addPostInvariant();
@@ -893,7 +893,7 @@ public:
     InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
@@ -910,7 +910,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     void emitComment(Scope *sc);
@@ -930,7 +930,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
 
@@ -949,7 +949,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     bool isDelete();
-    int isVirtual();
+    bool isVirtual();
     int addPreInvariant();
     int addPostInvariant();
     DeleteDeclaration *isDeleteDeclaration() { return this; }
