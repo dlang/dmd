@@ -301,9 +301,9 @@ TemplateInstance *Dsymbol::isSpeculative()
     return NULL;
 }
 
-int Dsymbol::isAnonymous()
+bool Dsymbol::isAnonymous()
 {
-    return ident ? 0 : 1;
+    return ident == NULL;
 }
 
 /*************************************
@@ -486,9 +486,9 @@ unsigned Dsymbol::size(Loc loc)
     return 0;
 }
 
-int Dsymbol::isforwardRef()
+bool Dsymbol::isforwardRef()
 {
-    return FALSE;
+    return false;
 }
 
 AggregateDeclaration *Dsymbol::isThis()
@@ -523,14 +523,14 @@ void Dsymbol::defineRef(Dsymbol *s)
     assert(0);
 }
 
-int Dsymbol::isExport()
+bool Dsymbol::isExport()
 {
-    return FALSE;
+    return false;
 }
 
-int Dsymbol::isImportedSymbol()
+bool Dsymbol::isImportedSymbol()
 {
-    return FALSE;
+    return false;
 }
 
 bool Dsymbol::isDeprecated()
@@ -1007,7 +1007,7 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
     }
 }
 
-int ScopeDsymbol::isforwardRef()
+bool ScopeDsymbol::isforwardRef()
 {
     return (members == NULL);
 }

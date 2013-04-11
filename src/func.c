@@ -3054,12 +3054,12 @@ int FuncDeclaration::isDllMain()
         linkage != LINKc && !isMember();
 }
 
-int FuncDeclaration::isExport()
+bool FuncDeclaration::isExport()
 {
     return protection == PROTexport;
 }
 
-int FuncDeclaration::isImportedSymbol()
+bool FuncDeclaration::isImportedSymbol()
 {
     //printf("isImportedSymbol()\n");
     //printf("protection = %d\n", protection);

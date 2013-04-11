@@ -302,8 +302,8 @@ public:
     Initializer *hinit;
     AggregateDeclaration *isThis();
     int needThis();
-    int isExport();
-    int isImportedSymbol();
+    bool isExport();
+    bool isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
     int isCTFE();
@@ -680,8 +680,8 @@ public:
     int isWinMain();
     int isDllMain();
     BUILTIN isBuiltin();
-    int isExport();
-    int isImportedSymbol();
+    bool isExport();
+    bool isImportedSymbol();
     int isAbstract();
     int isCodeseg();
     int isOverloadable();

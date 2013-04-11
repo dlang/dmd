@@ -132,7 +132,7 @@ public:
     Loc& getLoc();
     char *locToChars();
     bool equals(Object *o);
-    int isAnonymous();
+    bool isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
     void deprecation(Loc loc, const char *format, ...);
@@ -172,14 +172,14 @@ public:
     virtual void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
     virtual unsigned size(Loc loc);
-    virtual int isforwardRef();
+    virtual bool isforwardRef();
     virtual void defineRef(Dsymbol *s);
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
     AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
     ClassDeclaration *isClassMember();          // are we a member of a class?
-    virtual int isExport();                     // is Dsymbol exported?
-    virtual int isImportedSymbol();             // is Dsymbol imported?
+    virtual bool isExport();                    // is Dsymbol exported?
+    virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
 #if DMDV2
     virtual int isOverloadable();
@@ -273,7 +273,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
     void importScope(Dsymbol *s, PROT protection);
-    int isforwardRef();
+    bool isforwardRef();
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);

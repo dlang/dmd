@@ -104,7 +104,7 @@ public:
     FuncDeclaration *buildInv(Scope *sc);
     bool isNested();
     void makeNested();
-    int isExport();
+    bool isExport();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

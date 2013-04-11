@@ -1944,17 +1944,17 @@ int VarDeclaration::needThis()
     return isField();
 }
 
-int VarDeclaration::isExport()
+bool VarDeclaration::isExport()
 {
     return protection == PROTexport;
 }
 
-int VarDeclaration::isImportedSymbol()
+bool VarDeclaration::isImportedSymbol()
 {
     if (protection == PROTexport && !init &&
         (storage_class & STCstatic || parent->isModule()))
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 void VarDeclaration::checkCtorConstInit()
