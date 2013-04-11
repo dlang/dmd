@@ -2147,6 +2147,7 @@ elem *AssertExp::toElem(IRState *irs)
 
 elem *PostExp::toElem(IRState *irs)
 {
+    //printf("PostExp::toElem() '%s'\n", toChars());
     elem *e = e1->toElem(irs);
     elem *einc = e2->toElem(irs);
     e = el_bin((op == TOKplusplus) ? OPpostinc : OPpostdec,

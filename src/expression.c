@@ -6444,8 +6444,9 @@ Expression *BinAssignExp::semantic(Scope *sc)
         return arrayOp(sc);
     }
 
-    e1 = e1->modifiableLvalue(sc, e1);
     e1 = e1->semantic(sc);
+    e1 = e1->optimize(WANTvalue);
+    e1 = e1->modifiableLvalue(sc, e1);
     type = e1->type;
     checkScalar();
 
@@ -10187,6 +10188,9 @@ PostExp::PostExp(enum TOK op, Loc loc, Expression *e)
 Expression *PostExp::semantic(Scope *sc)
 {   Expression *e = this;
 
+#if LOGSEMANTIC
+    printf("PostExp::semantic('%s')\n", toChars());
+#endif
     if (!type)
     {
         BinExp::semantic(sc);
@@ -10203,6 +10207,7 @@ Expression *PostExp::semantic(Scope *sc)
             return new ErrorExp();
         }
 
+        e1 = e1->optimize(WANTvalue);
         if (e1->op != TOKarraylength)
             e1 = e1->modifiableLvalue(sc, e1);
 
