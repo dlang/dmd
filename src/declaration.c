@@ -184,7 +184,7 @@ TupleDeclaration::TupleDeclaration(Loc loc, Identifier *id, Objects *objects)
     this->loc = loc;
     this->type = NULL;
     this->objects = objects;
-    this->isexp = 0;
+    this->isexp = false;
     this->tupletype = NULL;
 }
 
@@ -1134,7 +1134,7 @@ Lnomatch:
         }
         TupleDeclaration *v2 = new TupleDeclaration(loc, ident, exps);
         v2->parent = this->parent;
-        v2->isexp = 1;
+        v2->isexp = true;
         aliassym = v2;
         return;
     }

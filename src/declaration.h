@@ -180,7 +180,7 @@ class TupleDeclaration : public Declaration
 {
 public:
     Objects *objects;
-    int isexp;                  // 1: expression tuple
+    bool isexp;                 // true: expression tuple
 
     TypeTuple *tupletype;       // !=NULL if this is a type tuple
 
