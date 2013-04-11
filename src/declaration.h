@@ -306,11 +306,11 @@ public:
     bool isImportedSymbol();
     bool isDataseg();
     bool isThreadlocal();
-    int isCTFE();
+    bool isCTFE();
     bool hasPointers();
 #if DMDV2
-    int canTakeAddressOf();
-    int needsAutoDtor();
+    bool canTakeAddressOf();
+    bool needsAutoDtor();
 #endif
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
