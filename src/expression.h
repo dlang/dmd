@@ -222,7 +222,7 @@ public:
 
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -259,7 +259,7 @@ public:
     real_t value;
 
     RealExp(Loc loc, real_t value, Type *type);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -283,7 +283,7 @@ public:
     complex_t value;
 
     ComplexExp(Loc loc, complex_t value, Type *type);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -375,7 +375,7 @@ public:
     unsigned char committed;    // !=0 if type is committed
 
     NullExp(Loc loc, Type *t = NULL);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
@@ -403,7 +403,7 @@ public:
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     //Expression *syntaxCopy();
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
@@ -444,7 +444,7 @@ public:
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
@@ -549,7 +549,7 @@ public:
                                   // (with infinite recursion) of this expression.
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -699,7 +699,7 @@ class VarExp : public SymbolExp
 {
 public:
     VarExp(Loc loc, Declaration *var, int hasOverloads = 0);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

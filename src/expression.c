@@ -2549,15 +2549,20 @@ IntegerExp::IntegerExp(dinteger_t value)
     this->value = value;
 }
 
-int IntegerExp::equals(Object *o)
-{   IntegerExp *ne;
-
-    if (this == o ||
-        (((Expression *)o)->op == TOKint64 &&
-         ((ne = (IntegerExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
-         value == ne->value))
-        return 1;
-    return 0;
+bool IntegerExp::equals(Object *o)
+{
+    if (this == o)
+        return true;
+    if (((Expression *)o)->op == TOKint64)
+    {
+        IntegerExp *ne = (IntegerExp *)o;
+        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+            value == ne->value)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 char *IntegerExp::toChars()
@@ -2922,17 +2927,20 @@ int RealEquals(real_t x1, real_t x2)
         memcmp(&x1, &x2, Target::realsize - Target::realpad) == 0;
 }
 
-int RealExp::equals(Object *o)
-{   RealExp *ne;
-
-    if (this == o ||
-        (((Expression *)o)->op == TOKfloat64 &&
-         ((ne = (RealExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
-         RealEquals(value, ne->value)
-        )
-       )
-        return 1;
-    return 0;
+bool RealExp::equals(Object *o)
+{
+    if (this == o)
+        return true;
+    if (((Expression *)o)->op == TOKfloat64)
+    {
+        RealExp *ne = (RealExp *)o;
+        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+            RealEquals(value, ne->value))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Expression *RealExp::semantic(Scope *sc)
@@ -3122,18 +3130,21 @@ complex_t ComplexExp::toComplex()
     return value;
 }
 
-int ComplexExp::equals(Object *o)
-{   ComplexExp *ne;
-
-    if (this == o ||
-        (((Expression *)o)->op == TOKcomplex80 &&
-         ((ne = (ComplexExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
-         RealEquals(creall(value), creall(ne->value)) &&
-         RealEquals(cimagl(value), cimagl(ne->value))
-        )
-       )
-        return 1;
-    return 0;
+bool ComplexExp::equals(Object *o)
+{
+    if (this == o)
+        return true;
+    if (((Expression *)o)->op == TOKcomplex80)
+    {
+        ComplexExp *ne = (ComplexExp *)o;
+        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+            RealEquals(creall(value), creall(ne->value)) &&
+            RealEquals(cimagl(value), cimagl(ne->value)))
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Expression *ComplexExp::semantic(Scope *sc)
@@ -3775,15 +3786,15 @@ NullExp::NullExp(Loc loc, Type *type)
     this->type = type;
 }
 
-int NullExp::equals(Object *o)
+bool NullExp::equals(Object *o)
 {
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
-    {   Expression *e = (Expression *)o;
-
+    {
+        Expression *e = (Expression *)o;
         if (e->op == TOKnull)
-            return TRUE;
+            return true;
     }
-    return FALSE;
+    return false;
 }
 
 Expression *NullExp::semantic(Scope *sc)
@@ -3866,18 +3877,18 @@ Expression *StringExp::syntaxCopy()
 }
 #endif
 
-int StringExp::equals(Object *o)
+bool StringExp::equals(Object *o)
 {
     //printf("StringExp::equals('%s') %s\n", o->toChars(), toChars());
     if (o && o->dyncast() == DYNCAST_EXPRESSION)
-    {   Expression *e = (Expression *)o;
-
+    {
+        Expression *e = (Expression *)o;
         if (e->op == TOKstring)
         {
             return compare(o) == 0;
         }
     }
-    return FALSE;
+    return false;
 }
 
 Expression *StringExp::semantic(Scope *sc)
@@ -4450,26 +4461,26 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
-int StructLiteralExp::equals(Object *o)
+bool StructLiteralExp::equals(Object *o)
 {
     if (this == o)
-        return 1;
+        return true;
     if (o && o->dyncast() == DYNCAST_EXPRESSION &&
         ((Expression *)o)->op == TOKstructliteral)
     {
         StructLiteralExp *se = (StructLiteralExp *)o;
         if (sd != se->sd)
-            return 0;
+            return false;
         if (elements->dim != se->elements->dim)
-            return 0;
+            return false;
         for (size_t i = 0; i < elements->dim; i++)
         {
             if (!(*elements)[i]->equals((*se->elements)[i]))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 Expression *StructLiteralExp::syntaxCopy()
@@ -5481,15 +5492,20 @@ VarExp::VarExp(Loc loc, Declaration *var, int hasOverloads)
     this->type = var->type;
 }
 
-int VarExp::equals(Object *o)
-{   VarExp *ne;
-
-    if (this == o ||
-        (((Expression *)o)->op == TOKvar &&
-         ((ne = (VarExp *)o), type->toHeadMutable()->equals(ne->type->toHeadMutable())) &&
-         var == ne->var))
-        return 1;
-    return 0;
+bool VarExp::equals(Object *o)
+{
+    if (this == o)
+        return true;
+    if (((Expression *)o)->op == TOKvar)
+    {
+        VarExp *ne = (VarExp *)o;
+        if (type->toHeadMutable()->equals(ne->type->toHeadMutable()) &&
+            var == ne->var)
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
 Expression *VarExp::semantic(Scope *sc)
@@ -5689,27 +5705,27 @@ TupleExp::TupleExp(Loc loc, TupleDeclaration *tup)
     }
 }
 
-int TupleExp::equals(Object *o)
+bool TupleExp::equals(Object *o)
 {
     if (this == o)
-        return 1;
+        return true;
     if (((Expression *)o)->op == TOKtuple)
     {
         TupleExp *te = (TupleExp *)o;
         if (exps->dim != te->exps->dim)
-            return 0;
+            return false;
         if (e0 && !e0->equals(te->e0) || !e0 && te->e0)
-            return 0;
+            return false;
         for (size_t i = 0; i < exps->dim; i++)
-        {   Expression *e1 = (*exps)[i];
+        {
+            Expression *e1 = (*exps)[i];
             Expression *e2 = (*te->exps)[i];
-
             if (!e1->equals(e2))
-                return 0;
+                return false;
         }
-        return 1;
+        return true;
     }
-    return 0;
+    return false;
 }
 
 Expression *TupleExp::syntaxCopy()

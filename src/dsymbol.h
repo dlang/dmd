@@ -131,7 +131,7 @@ public:
     char *toChars();
     Loc& getLoc();
     char *locToChars();
-    int equals(Object *o);
+    bool equals(Object *o);
     int isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);

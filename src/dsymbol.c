@@ -70,16 +70,15 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->unittest = NULL;
 }
 
-int Dsymbol::equals(Object *o)
-{   Dsymbol *s;
-
+bool Dsymbol::equals(Object *o)
+{
     if (this == o)
-        return TRUE;
-    s = (Dsymbol *)(o);
+        return true;
+    Dsymbol *s = (Dsymbol *)(o);
     // Overload sets don't have an ident
     if (s && ident && s->ident && ident->equals(s->ident))
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 /**************************************

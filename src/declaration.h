@@ -656,7 +656,7 @@ public:
     bool functionSemantic3();
     // called from semantic3
     VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
-    int equals(Object *o);
+    bool equals(Object *o);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs);

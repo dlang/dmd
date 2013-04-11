@@ -41,7 +41,7 @@ public:
     Object() { }
     virtual ~Object() { }
 
-    virtual int equals(Object *o);
+    virtual bool equals(Object *o);
 
     /**
      * Returns a hash code, useful for things like building hash tables of Objects.
@@ -87,7 +87,7 @@ public:
     static hash_t calcHash(const char *str);
     hash_t hashCode();
     size_t len();
-    int equals(Object *obj);
+    bool equals(Object *obj);
     int compare(Object *obj);
     char *toChars();
     void print();
@@ -99,7 +99,7 @@ class FileName : public String
 public:
     FileName(const char *str);
     hash_t hashCode();
-    int equals(Object *obj);
+    bool equals(Object *obj);
     static int equals(const char *name1, const char *name2);
     int compare(Object *obj);
     static int compare(const char *name1, const char *name2);
