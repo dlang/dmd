@@ -4658,6 +4658,8 @@ void test9866()
         0x66, 0x0f, 0xbe, 0x00, // movsx AX, byte ptr [EAX];
               0x0f, 0xbe, 0xc0, // movsx EAX, AL;
               0x0f, 0xbe, 0x00, // movsx EAX, byte ptr [EAX];
+        0x66, 0x0f, 0xbf, 0xc0, // movsx AX, AX;
+        0x66, 0x0f, 0xbf, 0x00, // movsx AX, word ptr [EAX];
               0x0f, 0xbf, 0xc0, // movsx EAX, AX;
               0x0f, 0xbf, 0x00, // movsx EAX, word ptr [EAX];
 
@@ -4665,6 +4667,8 @@ void test9866()
         0x66, 0x0f, 0xb6, 0x00, // movzx AX, byte ptr [EAX];
               0x0f, 0xb6, 0xc0, // movzx EAX, AL;
               0x0f, 0xb6, 0x00, // movzx EAX, byte ptr [EAX];
+        0x66, 0x0f, 0xb7, 0xc0, // movzx AX, AX;
+        0x66, 0x0f, 0xb7, 0x00, // movzx AX, word ptr [EAX];
               0x0f, 0xb7, 0xc0, // movzx EAX, AX;
               0x0f, 0xb7, 0x00, // movzx EAX, word ptr [EAX];
     ];
@@ -4677,6 +4681,8 @@ void test9866()
         movsx AX, byte ptr [EAX];
         movsx EAX, AL;
         movsx EAX, byte ptr [EAX];
+        movsx AX, AX;
+        movsx AX, word ptr [EAX];
         movsx EAX, AX;
         movsx EAX, word ptr [EAX];
 
@@ -4684,6 +4690,8 @@ void test9866()
         movzx AX, byte ptr [EAX];
         movzx EAX, AL;
         movzx EAX, byte ptr [EAX];
+        movzx AX, AX;
+        movzx AX, word ptr [EAX];
         movzx EAX, AX;
         movzx EAX, word ptr [EAX];
 
