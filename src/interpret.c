@@ -5226,7 +5226,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         }
         if (e1->op == TOKaddress)
         {
-            Type *origType = ((AddrExp *)e1)->type;
+            Type *origType = ((AddrExp *)e1)->e1->type;
             if (isSafePointerCast(origType, pointee))
             {
                 e = new AddrExp(loc, ((AddrExp *)e1)->e1);
