@@ -4972,6 +4972,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
         if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
             goto L1;
+        if(ti->getInstantiatingModule()!=getInstantiatingModule())
+            goto L1;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
