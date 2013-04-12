@@ -4121,12 +4121,17 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->fillHoles = 1;
     this->ownedByCtfe = false;
     this->ctorinit = 0;
+    this->origin = this;
+    this->stageflags = 0;
+    this->inlinecopy = NULL;
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
 Expression *StructLiteralExp::syntaxCopy()
 {
-    return new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);
+    StructLiteralExp *exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);
+    exp->origin = this;
+    return exp;
 }
 
 Expression *StructLiteralExp::semantic(Scope *sc)
@@ -8782,6 +8787,7 @@ Expression *AddrExp::semantic(Scope *sc)
             ce->e2->type = NULL;
             ce->e2 = ce->e2->semantic(sc);
         }
+        
         return optimize(WANTvalue);
     }
     return this;

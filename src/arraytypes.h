@@ -76,4 +76,5 @@ typedef ArrayBase<struct block> Blocks;
 
 typedef ArrayBase<struct Symbol> Symbols;
 
+typedef ArrayBase<struct dt_t> Dts;
 #endif

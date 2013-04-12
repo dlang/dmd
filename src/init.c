@@ -893,6 +893,27 @@ bool hasNonConstPointers(Expression *e)
             return arrayHasNonConstPointers(ae->keys);
         return false;
     }
+    if(e->op == TOKaddress)
+    {
+        AddrExp *ae = (AddrExp *)e;
+        if (ae->e1->op == TOKstructliteral)
+        {
+            StructLiteralExp *se = (StructLiteralExp *)ae->e1;
+            if (!(se->stageflags & stageSearchPointers))
+            {
+                int old = se->stageflags;
+                se->stageflags |= stageSearchPointers;
+                bool ret = arrayHasNonConstPointers(se->elements);
+                se->stageflags = old; 
+                return ret;
+            }
+            else
+            {
+                return false;
+            }
+        }
+        return true;
+    }
     if (e->type->ty== Tpointer && e->type->nextOf()->ty != Tfunction)
     {
         if (e->op == TOKsymoff) // address of a global is OK

@@ -238,6 +238,9 @@ Expression *AssocArrayLiteralExp::optimize(int result, bool keepLvalue)
 
 Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
 {
+    if(stageflags & stageOptimize) return this;
+    int old = stageflags;
+    stageflags |= stageOptimize;
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
@@ -248,6 +251,7 @@ Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
             (*elements)[i] = e;
         }
     }
+    stageflags = old;
     return this;
 }
 
@@ -496,7 +500,13 @@ Expression *NewExp::optimize(int result, bool keepLvalue)
     }
     if (result & WANTinterpret)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        Expression *eresult = interpret(NULL);
+        if (eresult == EXP_CANT_INTERPRET)
+            return this;
+        if (eresult && eresult != EXP_VOID_INTERPRET)
+            return eresult;
+        else
+            error("cannot evaluate %s at compile time", toChars());
     }
     return this;
 }

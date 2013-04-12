@@ -3765,13 +3765,13 @@ static assert(classtest1(1));
 static assert(classtest1(2));
 static assert(classtest1(7)); // bug 7154
 
-// can't return classes literals outside CTFE
+// can't initialize enum with not null class
 SomeClass classtest2(int n)
 {
     return n==5 ? (new SomeClass) : null;
 }
-static assert(is(typeof( (){ enum xx = classtest2(2);}() )));
-static assert(!is(typeof( (){ enum xx = classtest2(5);}() )));
+static assert(is(typeof( (){ enum const(SomeClass) xx = classtest2(2);}() )));
+static assert(!is(typeof( (){ enum const(SomeClass) xx = classtest2(5);}() )));
 
 class RecursiveClass
 {
@@ -5136,3 +5136,65 @@ label:
 static assert(bug8865());
 
 
+
+/******************************************************/
+
+
+struct Test75
+{
+    this(int){}
+}
+
+static assert(__traits(compiles, {static shared Test75* t75 = new shared(Test75)(0); return t75;}));
+static assert(__traits(compiles, {static shared(Test75)* t75 = new shared(Test75)(0); return t75;}));
+static assert(__traits(compiles, {static __gshared Test75* t75 = new Test75(0); return t75;}));
+static assert(__traits(compiles, {static const Test75* t75 = new const(Test75)(0); return t75;}));
+static assert(__traits(compiles, {static immutable Test75* t75 = new immutable(Test75)(0); return t75;}));
+static assert(!__traits(compiles, {static Test75* t75 = new Test75(0); return t75;}));
+
+//static assert(!__traits(compiles, {enum t75 = new shared(Test75)(0); return t75;}));
+//static assert(!__traits(compiles, {enum t75 = new Test75(0); return t75;}));
+//static assert(!__traits(compiles, {enum shared(Test75)* t75 = new shared(Test75)(0); return t75;}));
+//static assert(!__traits(compiles, {enum Test75* t75 = new Test75(0); return t75;}));
+
+//static assert(__traits(compiles, {enum t75 = new const(Test75)(0); return t75;}));
+//static assert(__traits(compiles, {enum t75 = new immutable(Test75)(0); return t75;}));
+//static assert(__traits(compiles, {enum const(Test75)* t75 = new const(Test75)(0); return t75;}));
+//static assert(__traits(compiles, {enum immutable(Test75)* t75 = new immutable(Test75)(0); return t75;}));
+
+/******************************************************/
+
+class Test76
+{
+    this(int){}
+}
+
+//static assert(!__traits(compiles, {enum t76 = new shared(Test76)(0); return t76;}));
+//static assert(!__traits(compiles, {enum t76 = new Test76(0); return t76;}));
+//static assert(!__traits(compiles, {enum shared(Test76) t76 = new shared(Test76)(0); return t76;}));
+//static assert(!__traits(compiles, {enum Test76 t76 = new Test76(0); return t76;}));
+
+//static assert(__traits(compiles, {enum t76 = new const(Test76)(0); return t76;}));
+//static assert(__traits(compiles, {enum t76 = new immutable(Test76)(0); return t76;}));
+//static assert(__traits(compiles, {enum const(Test76) t76 = new const(Test76)(0); return t76;}));
+//static assert(__traits(compiles, {enum immutable(Test76) t76 = new immutable(Test76)(0); return t76;}));
+
+
+/******************************************************/
+static assert(__traits(compiles, {static shared Test76 t76 = new shared(Test76)(0); return t76;}));
+static assert(__traits(compiles, {static shared(Test76) t76 = new shared(Test76)(0); return t76;}));
+static assert(__traits(compiles, {static __gshared Test76 t76 = new Test76(0); return t76;}));
+static assert(__traits(compiles, {static const Test76 t76 = new const(Test76)(0); return t76;}));
+static assert(__traits(compiles, {static immutable Test76 t76 = new immutable Test76(0); return t76;}));
+static assert(!__traits(compiles, {static Test76 t76 = new Test76(0); return t76;}));
+
+/***** Bug 5678 *********************************/
+
+struct Bug5678 
+{
+    this(int) {}
+}
+
+static assert(!__traits(compiles, {enum const(Bug5678)* b5678 = new const(Bug5678)(0); return b5678;}));
+
+/******************************************************/
