@@ -12903,6 +12903,13 @@ Expression *CondExp::semantic(Scope *sc)
     e2 = resolveProperties(sc, e2);
     sc->mergeCallSuper(loc, cs1);
 
+    if (econd->type == Type::terror)
+        return econd;
+    if (e1->type == Type::terror)
+        return e1;
+    if (e2->type == Type::terror)
+        return e2;
+
 
     // If either operand is void, the result is void
     t1 = e1->type;
