@@ -12218,11 +12218,6 @@ CmpExp::CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 {
 }
 
-bool isdisjoint(const IntRange& r1, const IntRange& r2)
-{
-    return r1.imax < r2.imin || r1.imin > r2.imax;
-}
-
 Expression *CmpExp::semantic(Scope *sc)
 {   Expression *e;
 
