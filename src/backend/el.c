@@ -123,53 +123,9 @@ void el_term()
  * Allocate an element.
  */
 
-#if SCPP && __SC__ && __INTSIZE == 4 && TX86 && !_DEBUG_TRACE && !MEM_DEBUG && _WIN32 && !defined(DEBUG)
-
-__declspec(naked) elem *el_calloc()
-{
-    __asm
-    {
-        mov     EAX,elcount
-        push    EDI
-
-        inc     EAX
-        mov     EDI,nextfree
-
-        test    EDI,EDI
-        je      L27
-
-        mov     EDX,E1[EDI]
-        mov     elcount,EAX
-
-        xor     EAX,EAX
-        mov     nextfree,EDX
-        jmp     L30
-
-L27:    push    sizeof(elem)
-        mov     elcount,EAX
-        call    mem_fmalloc
-        mov     EDI,EAX
-        xor     EAX,EAX
-
-L30:    mov     EDX,EDI
-        mov     ECX,(sizeof(elem) + 3) / 4
-    #if DOS386
-        push    DS
-        pop     ES
-    #endif
-        rep     stosd
-        mov     EAX,EDX
-        pop     EDI
-        ret
-    }
-}
-
-#else
-
 elem *el_calloc()
 {
     elem *e;
-    static elem ezero;
 
     elcount++;
     if (nextfree)
@@ -181,7 +137,7 @@ elem *el_calloc()
 #ifdef STATS
     eprm_cnt++;
 #endif
-    *e = ezero;                         /* clear it             */
+    MEMCLEAR(e, sizeof(*e));
 
 #ifdef DEBUG
     e->id = IDelem;
@@ -192,7 +148,6 @@ elem *el_calloc()
     return e;
 }
 
-#endif
 
 /***************
  * Free element
