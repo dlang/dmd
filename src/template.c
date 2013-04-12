@@ -5074,6 +5074,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         assert(md);
         Dsymbols *a = md->members;
         assert(a);
+        if (md->semanticRun >= 3)
+        {
+            dosemantic3 = 1;
+        }
         for (size_t i = 0; 1; i++)
         {
             if (i == a->dim)
