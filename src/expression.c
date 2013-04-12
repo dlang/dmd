@@ -13279,8 +13279,56 @@ Expression *CmpExp::semantic(Scope *sc)
         return e;
     }
 
+    Expression *eb1 = e1;
+    Expression *eb2 = e2;
+
+    // typeCombine mutates this->type, this->e1, this->e2
     if (Expression *ex = typeCombine(this, sc))
         return ex;
+
+    // For integer comparisons, ensure the signed-unsigned comparison is safe. (bug 259)
+    if ((op == TOKlt || op == TOKle || op == TOKgt || op == TOKge) &&
+        type && type->isintegral() && t1->isunsigned() != t2->isunsigned())
+    {
+        Expression *se;
+        Type *s, *u;
+        if (t1->isunsigned())
+        {
+            se = eb2;
+            s = t2;
+            u = t1;
+        }
+        else
+        {
+            se = eb1;
+            s = t1;
+            u = t2;
+        }
+        // Here, s is signed, u is unsigned
+        if (s->size() > u->size())
+        {
+            // 1. If sizeof(signed type) > sizeof(unsigned type), it's safe to cast unsigned to signed
+            assert(!type->isunsigned());
+        }
+        else if (type->size() > u->size())
+        {
+            // 1b. If both types can be cast to the bigger signed type, the cast is safe
+            assert(type->size() > s->size());
+            assert(!type->isunsigned());
+        }
+        else if (!getIntRange(se->optimize(0)).imin.negative)
+        {
+            // 2. If min(signed value) >= 0, it's safe to cast signed to unsigned
+            assert(type->isunsigned());
+        }
+        else
+        {
+            // Otherwise, the comparison is in error.
+            // Issue a deprecation warning, since an error causes template instantiations to fail silently.
+            deprecation("implicit conversion of '%s' from %s to %s is unsafe in comparison",
+                se->toChars(), s->toChars(), type->toChars());
+        }
+    }
 
     type = Type::tbool;
 
