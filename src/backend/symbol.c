@@ -601,55 +601,7 @@ symbol * lookupsym(const char *p)
 
 symbol * findsy(const char *p,symbol *rover)
 {
-#if __INTSIZE == 2 && TX86 && !defined(_MSC_VER)
-    volatile int len;
-    __asm
-    {
-        push    DS
-        mov     DS,word ptr p+2
-        les     DI,p
-        mov     DX,word ptr p
-        mov     BX,ES:[DI]
-        xor     AL,AL
-        mov     CX,0FFFFh
-        repne   scasb
-        not     CX
-        sub     CX,2
-        mov     len,CX
-        add     DX,2
-        mov     AX,BX
-        les     BX,rover
-        jmp     short L1
-
-L38C:           les     BX,ES:symbol.Sl[BX]
-L1:             test    BX,BX
-                je      L3A5
-                cmp     AL,ES:symbol.Sident[BX]
-                js      L38C
-                je      L2
-                les     BX,ES:symbol.Sr[BX]
-                jmp     L1
-
-L2:             cmp     AH,ES:symbol.Sident+1[BX]
-                js      L38C
-                je      L3
-                les     BX,ES:symbol.Sr[BX]
-                jmp     L1
-
-L3:             mov     SI,DX
-                lea     DI,symbol.Sident+2[BX]
-                mov     CX,len
-                rep     cmpsb
-                js      L38C
-                je      L3A5
-                les     BX,ES:symbol.Sr[BX]
-                jmp     L1
-
-L3A5:   mov     DX,ES
-        mov     AX,BX
-        pop     DS
-    }
-#elif __INTSIZE == 4 && TX86 && !defined(_MSC_VER) && !M_UNIX
+#if __INTSIZE == 4 && TX86 && __DMC__
     volatile int len;
     __asm
     {

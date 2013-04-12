@@ -1,5 +1,5 @@
 // Copyright (C) 1987-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -12,7 +12,9 @@
 #if !SPP
 
 #include        <stdio.h>
+#include        <string.h>
 #include        <time.h>
+
 #include        "cc.h"
 #include        "el.h"
 #include        "code.h"
@@ -24,64 +26,21 @@ static code *code_list;
  * Allocate code
  */
 
-#if SCPP && __SC__ && __INTSIZE == 4 && TX86 && !_DEBUG_TRACE && !MEM_DEBUG
-
-__declspec(naked) code *code_calloc()
-{
-    if (sizeof(code) != 0x28)
-        util_assert("code",__LINE__);
-    __asm
-    {
-        mov     EAX,code_list
-        test    EAX,EAX
-        je      L20
-        mov     ECX,[EAX]
-        mov     code_list,ECX
-        jmp     L29
-
-L20:    push    sizeof(code)
-        call    mem_fmalloc
-        ;add    ESP,4
-L29:
-        xor     ECX,ECX
-        mov     DWORD PTR [EAX],0
-
-        mov     4[EAX],ECX      ;these pair
-        mov     8[EAX],ECX
-
-        mov     12[EAX],ECX
-        mov     16[EAX],ECX
-
-        mov     20[EAX],ECX
-        mov     24[EAX],ECX
-
-        mov     28[EAX],ECX
-        mov     32[EAX],ECX
-
-        mov     36[EAX],ECX
-
-        ret
-    }
-}
-
-#else
-
 code *code_calloc()
-{   code *c;
-    static code czero;
-
-    //printf("code %x\n", sizeof(code));
-    c = code_list;
+{
+    //printf("code %d\n", sizeof(code));
+    code *c = code_list;
     if (c)
         code_list = code_next(c);
     else
         c = (code *)mem_fmalloc(sizeof(*c));
-    *c = czero;                         // zero it out
+
+    MEMCLEAR(c, sizeof(*c));
+
     //dbg_printf("code_calloc: %p\n",c);
     return c;
 }
 
-#endif
 
 /*****************
  * Free code
