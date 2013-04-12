@@ -4972,8 +4972,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
         if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
             goto L1;
-        if(ti->getInstantiatingModule()!=getInstantiatingModule())
-            goto L1;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
@@ -5025,6 +5023,23 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             // It had succeeded, mark it is a non-speculative instantiation,
             // and reuse it.
             inst->speculative = 0;
+        }
+        if (!sc->parameterSpecialization)
+        {   
+            Module *md = getInstantiatingModule();
+            assert(md);
+            Dsymbols *a = md->members;
+            assert(a);
+            for (size_t i = 0; 1; i++)
+            {
+                if (i == a->dim)
+                {
+                    a->push(inst);
+                    break;
+                }
+                if (inst == (*a)[i])  // if already in Array
+                    break;
+            }
         }
 
 #if LOG
