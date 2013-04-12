@@ -506,6 +506,28 @@ struct StructLiteralExp : Expression
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
 
+    StructLiteralExp *origin;   // pointer to the origin instance of the expression. 
+                                // once a new expression is created, origin is set to 'this'. 
+                                // anytime when an expression copy is created, 'origin' pointer is set to 
+                                // 'origin' pointer value of the original expression.
+                                
+    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer. 
+    int stageflags;               // anytime when recursive function is calling, 'stageflags' marks with bit flag of
+                                  // current stage and unmarks before return from this function. 
+                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
+                                  // (with infinite recursion) of this expression.
+
+    // scrubReturnValue is running
+    #define stageScrub          0x1 
+    // hasNonConstPointers is running
+    #define stageSearchPointers 0x2 
+    // optimize is running
+    #define stageOptimize       0x4
+    // apply is running
+    #define stageApply          0x8
+    //inlineScan is running
+    #define stageInlineScan     0x10
+                         
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();
@@ -519,6 +541,7 @@ struct StructLiteralExp : Expression
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     dt_t **toDt(dt_t **pdt);
+    Symbol *toSymbol();
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
 
@@ -1004,6 +1027,7 @@ struct AddrExp : UnaExp
     Expression *castTo(Scope *sc, Type *t);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct PtrExp : UnaExp
@@ -1118,6 +1142,7 @@ struct CastExp : UnaExp
     // For operator overloading
     Identifier *opId();
     Expression *op_overload(Scope *sc);
+    dt_t **toDt(dt_t **pdt);
 };
 
 struct VectorExp : UnaExp
