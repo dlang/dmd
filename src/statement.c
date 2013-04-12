@@ -2071,7 +2071,7 @@ Lagain:
             gotos = new CompoundStatements();
             FuncLiteralDeclaration *fld = new FuncLiteralDeclaration(loc, 0, tfld, TOKdelegate, this);
             fld->fbody = body;
-            Expression *flde = new FuncExp(loc, fld);
+            Expression *flde = new FuncExp(loc, sc->module, fld);
             flde = flde->semantic(sc);
             fld->tookAddressOf = 0;
 

@@ -279,7 +279,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
         FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
-        Expression *e = new FuncExp(loc, fd);
+        Expression *e = new FuncExp(loc, sc->module, fd);
         ExpInitializer *ie = new ExpInitializer(loc, e);
         return ie->semantic(sc, t, needInterpret);
     }

@@ -5999,7 +5999,7 @@ Expression *Parser::parsePrimaryExp()
                 td->literal = 1;    // it's a template 'literal'
             }
 
-            e = new FuncExp(loc, fd, td);
+            e = new FuncExp(loc, mod, fd, td);
             break;
         }
 

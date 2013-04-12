@@ -683,9 +683,10 @@ struct FuncExp : Expression
 {
     FuncLiteralDeclaration *fd;
     TemplateDeclaration *td;
+    Module* module;
     enum TOK tok;
 
-    FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
+    FuncExp(Loc loc, Module* module, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);

@@ -3109,7 +3109,7 @@ Lagain:
     fld = s->isFuncLiteralDeclaration();
     if (fld)
     {   //printf("'%s' is a function literal\n", fld->toChars());
-        e = new FuncExp(loc, fld);
+        e = new FuncExp(loc, sc->module, fld);
         return e->semantic(sc);
     }
     f = s->isFuncDeclaration();
@@ -5378,8 +5378,8 @@ void TupleExp::checkEscape()
 
 /******************************** FuncExp *********************************/
 
-FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
-        : Expression(loc, TOKfunction, sizeof(FuncExp))
+FuncExp::FuncExp(Loc loc, Module* module, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
+        : Expression(loc, TOKfunction, sizeof(FuncExp)), module(module)
 {
     this->fd = fd;
     this->td = td;
@@ -5389,7 +5389,7 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
 Expression *FuncExp::syntaxCopy()
 {
     TemplateDeclaration *td2 = td ? (TemplateDeclaration *)td->syntaxCopy(NULL) : NULL;
-    return new FuncExp(loc, (FuncLiteralDeclaration *)fd->syntaxCopy(NULL), td2);
+    return new FuncExp(loc, module, (FuncLiteralDeclaration *)fd->syntaxCopy(NULL), td2);
 }
 
 Expression *FuncExp::semantic(Scope *sc)
@@ -5531,7 +5531,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
                 }
             }
 
-            TemplateInstance *ti = new TemplateInstance(loc, sc ? sc->module : NULL, td, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, module, td, tiargs);
             return (new ScopeExp(loc, ti))->semantic(sc);
         }
         error("cannot infer function literal type");
