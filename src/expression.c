@@ -12218,6 +12218,11 @@ CmpExp::CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
 {
 }
 
+bool isdisjoint(const IntRange& r1, const IntRange& r2)
+{
+    return r1.imax < r2.imin || r1.imin > r2.imax;
+}
+
 Expression *CmpExp::semantic(Scope *sc)
 {   Expression *e;
 
@@ -12265,9 +12270,73 @@ Expression *CmpExp::semantic(Scope *sc)
     Expression *eb1 = e1;
     Expression *eb2 = e2;
 
+    // typeCombine mutates this->type, this->e1, this->e2
     e = typeCombine(sc);
     if (e->op == TOKerror)
         return e;
+
+    // For integer comparisons, ensure the signed-unsigned comparison is safe.
+    if (type && type->isintegral() && (op == TOKlt || op == TOKle ||
+                                       op == TOKgt || op == TOKge))
+    {
+        // TODO: enums? do we need basetype()?
+        if (eb1->type->isunsigned() && !eb2->type->isunsigned())
+        {
+            // e1 is unsigned, e2 is signed
+            if (eb1->type->size() < eb2->type->size())
+            {
+                // 1. If the sizeof(signed type) > sizeof(unsigned type), cast to unsigned to signed
+                type = eb2->type;
+                e1 = eb1->implicitCastTo(sc, type);
+            }
+            else if (!eb2->getIntRange().imin.negative)
+            {
+                // 2. If min(signed value) >= 0, cast signed to unsigned
+                // For now, assume typeCombine does the trick
+            }
+            else if (eb1->getIntRange().imax <= (IntRange::fromType(eb1->type).imax / 2))
+            {
+                // 3. If max(unsigned value) < max(unsigned type)/2, cast unsigned to signed-of-same-size
+                type = Type::basic[eb1->type->ty - 1];
+                e1 = eb1->implicitCastTo(sc, type);
+                e2 = eb2->implicitCastTo(sc, type);
+            }
+            else
+            {
+                error("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
+                    eb2->type->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
+                return new ErrorExp();
+            }
+        }
+        else if (!eb1->type->isunsigned() && eb2->type->isunsigned())
+        {
+            // e2 is unsigned, e1 is signed
+            if (eb2->type->size() < eb1->type->size())
+            {
+                // 1. If the sizeof(signed type) > sizeof(unsigned type), cast to unsigned to signed
+                type = eb1->type;
+                e2 = eb2->implicitCastTo(sc, type);
+            }
+            else if (!eb1->getIntRange().imin.negative)
+            {
+                // 2. If min(signed value) >= 0, cast signed to unsigned
+                // For now, assume typeCombine does the trick
+            }
+            else if (eb2->getIntRange().imax <= (IntRange::fromType(eb2->type).imax / 2))
+            {
+                // 3. If max(unsigned value) < max(unsigned type)/2, cast unsigned to signed-of-same-size
+                type = Type::basic[eb2->type->ty - 1];
+                e1 = eb1->implicitCastTo(sc, type);
+                e2 = eb2->implicitCastTo(sc, type);
+            }
+            else
+            {
+                error("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
+                    eb1->type->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
+                return new ErrorExp();
+            }
+        }
+    }
 
     type = Type::tboolean;
 
