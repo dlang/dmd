@@ -2223,19 +2223,20 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 #endif
     return MATCHnomatch;
 }
+#endif
 
 /*******************************************
  * Given a symbol that could be either a FuncDeclaration or
  * a function template, resolve it to a function symbol.
- *      sc              instantiation scope
  *      loc             instantiation location
+ *      sc              instantiation scope
  *      targsi          initial list of template arguments
  *      ethis           if !NULL, the 'this' pointer argument
  *      fargs           arguments to function
  *      flags           1: do not issue error message on no match, just return NULL
  */
 
-FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
+FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Expression *ethis,
         Expressions *arguments,
@@ -2253,7 +2254,6 @@ FuncDeclaration *resolveFuncCall(Scope *sc, Loc loc, Dsymbol *s,
     }
     return f;
 }
-#endif
 
 /********************************
  * Labels are in a separate scope, one per function.
