@@ -703,7 +703,7 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        if (baseClass->defaultCtor)
+        if (resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             CtorDeclaration *ctor = new CtorDeclaration(loc, 0, NULL, 0);
