@@ -2141,13 +2141,16 @@ STATIC elem * eldiv(elem *e, goal_t goal)
         {   int sz = tysize(tym);
 
             // See if we can replace with OPremquo
-            if (sz == REGSIZE /*&& !I64*/)  // need cent and ucent working for I64 to work
+            if (sz == REGSIZE
+                // Currently don't allow this because OPmsw doesn't work for the case
+                //|| (I64 && sz == 4)
+                )
             {
                 // Don't do it if there are special code sequences in the
                 // code generator (see cdmul())
                 int pow2;
                 if (e->E2->Eoper == OPconst &&
-                    sz == REGSIZE && !uns &&
+                    !uns &&
                     (pow2 = ispow2(el_tolong(e->E2))) != -1 &&
                     !(config.target_cpu < TARGET_80286 && pow2 != 1 && e->Eoper == OPdiv)
                    )

@@ -1,5 +1,5 @@
 // Copyright (C) 1984-1998 by Symantec
-// Copyright (C) 2000-2011 by Digital Mars
+// Copyright (C) 2000-2013 by Digital Mars
 // All Rights Reserved
 // http://www.digitalmars.com
 // Written by Walter Bright
@@ -29,6 +29,11 @@ static char __file__[] = __FILE__;      /* for tassert.h                */
 
 int cdcmp_flag;
 extern signed char regtorm[8];
+
+// from divcoeff.c
+extern bool choose_multiplier(int N, targ_ullong d, int prec, targ_ullong *pm, int *pshpost);
+extern bool udiv_coefficients(int N, targ_ullong d, int *pshpre, targ_ullong *pm, int *pshpost);
+
 
 /*******************************************
  * !=0 if cannot use this EA in anything other than a MOV instruction.
@@ -839,6 +844,8 @@ code *cdmul(elem *e,regm_t *pretregs)
     elem *e1,*e2;
     int sz;
     targ_size_t e2factor;
+    targ_size_t d;
+    bool neg;
     int opunslng;
     int pow2;
 
@@ -960,14 +967,16 @@ code *cdmul(elem *e,regm_t *pretregs)
 
     case OPconst:
         e2factor = el_tolong(e2);
+        neg = false;
+        d = e2factor;
+        if (!uns && (targ_llong)e2factor < 0)
+        {   neg = true;
+            d = -d;
+        }
 
+        // Multiply by a constant
         if (oper == OPmul && I32 && sz == REGSIZE * 2)
-        {   targ_int msw,lsw;
-            regm_t scratch;
-            unsigned reg;
-            targ_llong e2factor;
-
-            cl = codelem(e1,&retregs,FALSE);    // eval left leaf
+        {
             /*  IMUL    EDX,EDX,lsw
                 IMUL    reg,EAX,msw
                 ADD     reg,EDX
@@ -981,13 +990,14 @@ code *cdmul(elem *e,regm_t *pretregs)
                 MUL     EDX
                 ADD     EDX,reg
              */
-            scratch = allregs & ~(mAX | mDX);
+            cl = codelem(e1,&retregs,FALSE);    // eval left leaf
+            regm_t scratch = allregs & ~(mAX | mDX);
+            unsigned reg;
             cr = allocreg(&scratch,&reg,TYint);
             cg = getregs(mDX | mAX);
 
-            e2factor = el_tolong(e2);
-            lsw = e2factor & ((1LL << (REGSIZE * 8)) - 1);
-            msw = e2factor >> (REGSIZE * 8);
+            targ_int lsw = e2factor & ((1LL << (REGSIZE * 8)) - 1);
+            targ_int msw = e2factor >> (REGSIZE * 8);
 
             if (msw)
             {   cg = genmulimm(cg,DX,DX,lsw);
@@ -1007,55 +1017,247 @@ code *cdmul(elem *e,regm_t *pretregs)
             goto L3;
         }
 
-        if (oper != OPmul && e2factor == 10 &&
-            (!I16 && sz == 4) &&
+        // Signed divide by a constant
+        if (oper != OPmul &&
+            (d & (d - 1)) &&
+            ((I32 && sz == 4) || (I64 && (sz == 4 || sz == 8))) &&
             config.flags4 & CFG4speed && !uns)
         {
             /* R1 / 10
              *
-             *  MOV     EAX,0x66666667
+             *  MOV     EAX,m
              *  IMUL    R1
              *  MOV     EAX,R1
              *  SAR     EAX,31
-             *  SAR     EDX,2
+             *  SAR     EDX,shpost
              *  SUB     EDX,EAX
-             *  IMUL    EAX,EDX,10
+             *  IMUL    EAX,EDX,d
              *  SUB     R1,EAX
              *
              * EDX = quotient
              * R1 = remainder
              */
-            regm_t regm;
-            unsigned reg;
+            assert(sz == 4 || sz == 8);
+            unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+            unsigned grex = rex << 16;                  // 64 bit operands
 
-            regm = allregs & ~(mAX | mDX);
+            unsigned r3;
+
+            targ_ullong m;
+            int shpost;
+            int N = sz * 8;
+            bool mhighbit = choose_multiplier(N, d, N - 1, &m, &shpost);
+
+            regm_t regm = allregs & ~(mAX | mDX);
             cl = codelem(e1,&regm,FALSE);       // eval left leaf
-            reg = findreg(regm);
+            unsigned reg = findreg(regm);
             cg = getregs(regm | mDX | mAX);
 
-            cg = movregconst(cg, AX, 0x66666667, 0);    // MOV EAX,0x66666667
-            cg = gen2(cg,0xF7,modregrmx(3,5,reg));      // IMUL R1
-            genmovreg(cg, AX, reg);                     // MOV EAX,R1
-            genc2(cg,0xC1,modregrm(3,7,AX),31);         // SAR EAX,31
-            genc2(cg,0xC1,modregrm(3,7,DX),2);          // SAR EDX,2
-            gen2(cg,0x2B,modregrm(3,DX,AX));            // SUB EDX,EAX
+            /* Algorithm 5.2
+             * if m>=2**(N-1)
+             *    q = SRA(n + MULSH(m-2**N,n), shpost) - XSIGN(n)
+             * else
+             *    q = SRA(MULSH(m,n), shpost) - XSIGN(n)
+             * if (neg)
+             *    q = -q
+             */
+            bool mgt = mhighbit || m >= (1ULL << (N - 1));
+            cg = movregconst(cg, AX, m, (sz == 8) ? 0x40 : 0);      // MOV EAX,m
+            cg = gen2(cg,0xF7,grex | modregrmx(3,5,reg));           // IMUL R1
+            if (mgt)
+                gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
+            genmovreg(cg, AX, reg);                                 // MOV EAX,R1
+            genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
+            genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);          // SAR EDX,shpost
+            if (neg && oper == OPdiv)
+            {   gen2(cg,0x2B,grex | modregrm(3,AX,DX));             // SUB EAX,EDX
+                r3 = AX;
+            }
+            else
+            {   gen2(cg,0x2B,grex | modregrm(3,DX,AX));             // SUB EDX,EAX
+                r3 = DX;
+            }
 
+            // r3 is quotient
             switch (oper)
             {   case OPdiv:
-                    resreg = mDX;
+                    resreg = mask[r3];
                     break;
 
                 case OPmod:
-                    genmulimm(cg,AX,DX,10);             // IMUL EAX,EDX,10
-                    gen2(cg,0x2B,modregxrm(3,reg,AX));  // SUB R1,EAX
+                    assert(reg != AX && r3 == DX);
+                    if (sz == 4 || (sz == 8 && (targ_long)d == d))
+                    {
+                        genc2(cg,0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
+                    }
+                    else
+                    {
+                        cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
+                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                    }
+                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
                     resreg = regm;
                     break;
 
                 case OPremquo:
-                    genmulimm(cg,AX,DX,10);             // IMUL EAX,EDX,10
-                    gen2(cg,0x2B,modregxrm(3,reg,AX));  // SUB R1,EAX
-                    genmovreg(cg, AX, DX);              // MOV EAX,EDX
-                    genmovreg(cg, DX, reg);             // MOV EDX,R1
+                    assert(reg != AX && r3 == DX);
+                    if (sz == 4 || (sz == 8 && (targ_long)d == d))
+                    {
+                        genc2(cg,0x69,grex | modregrm(3,AX,DX),d);      // IMUL EAX,EDX,d
+                    }
+                    else
+                    {
+                        cg = movregconst(cg,AX,d,(sz == 8) ? 0x40 : 0); // MOV EAX,d
+                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,DX)); // IMUL EAX,EDX
+                    }
+                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));           // SUB R1,EAX
+                    genmovreg(cg, AX, r3);                              // MOV EAX,r3
+                    if (neg)
+                        gen2(cg,0xF7,grex | modregrm(3,3,AX));          // NEG EAX
+                    genmovreg(cg, DX, reg);                             // MOV EDX,R1
+                    resreg = mDX | mAX;
+                    break;
+
+                default:
+                    assert(0);
+            }
+            freenode(e2);
+            goto L3;
+        }
+
+        // Unsigned divide by a constant
+        if (oper != OPmul &&
+            e2factor > 2 && (e2factor & (e2factor - 1)) &&
+            ((I32 && sz == 4) || (I64 && (sz == 4 || sz == 8))) &&
+            config.flags4 & CFG4speed && uns)
+        {
+            assert(sz == 4 || sz == 8);
+            unsigned rex = (I64 && sz == 8) ? REX_W : 0;
+            unsigned grex = rex << 16;                  // 64 bit operands
+
+            unsigned r3;
+            regm_t regm;
+            unsigned reg;
+            targ_ullong m;
+            int shpre;
+            int shpost;
+            if (udiv_coefficients(sz * 8, e2factor, &shpre, &m, &shpost))
+            {
+                /* t1 = MULUH(m, n)
+                 * q = SRL(t1 + SRL(n - t1, 1), shpost - 1)
+                 *   MOV   EAX,reg
+                 *   MOV   EDX,m
+                 *   MUL   EDX
+                 *   MOV   EAX,reg
+                 *   SUB   EAX,EDX
+                 *   SHR   EAX,1
+                 *   LEA   R3,[EAX][EDX]
+                 *   SHR   R3,shpost-1
+                 */
+                assert(shpre == 0);
+
+                regm = allregs & ~(mAX | mDX);
+                cl = codelem(e1,&regm,FALSE);       // eval left leaf
+                reg = findreg(regm);
+                cg = NULL;
+                cg = cat(cg,getregs(mAX | mDX));
+                cg = genmovreg(cg,AX,reg);                            // MOV EAX,reg
+                cg = movregconst(cg, DX, m, (sz == 8) ? 0x40 : 0);    // MOV EDX,m
+                cg = cat(cg, getregs(regm | mDX | mAX));
+                cg = gen2(cg,0xF7,grex | modregrmx(3,4,DX));          // MUL EDX
+                cg = genmovreg(cg,AX,reg);                            // MOV EAX,reg
+                gen2(cg,0x2B,grex | modregrm(3,AX,DX));               // SUB EAX,EDX
+                genc2(cg,0xC1,grex | modregrm(3,5,AX),1);             // SHR EAX,1
+                unsigned regm3 = allregs;
+                if (oper == OPmod || oper == OPremquo)
+                {
+                    regm3 &= ~regm;
+                    if (oper == OPremquo || !el_signx32(e2))
+                        regm3 &= ~mAX;
+                }
+                cg = cat(cg,allocreg(&regm3,&r3,TYint));
+                gen2sib(cg,LEA,grex | modregxrm(0,r3,4),modregrm(0,AX,DX)); // LEA R3,[EAX][EDX]
+                if (shpost != 1)
+                    genc2(cg,0xC1,grex | modregrmx(3,5,r3),shpost-1);   // SHR R3,shpost-1
+            }
+            else
+            {
+                /* q = SRL(MULUH(m, SRL(n, shpre)), shpost)
+                 *   SHR   EAX,shpre
+                 *   MOV   reg,m
+                 *   MUL   reg
+                 *   SHR   EDX,shpost
+                 */
+                regm = mAX;
+                if (oper == OPmod || oper == OPremquo)
+                    regm = allregs & ~(mAX|mDX);
+                cl = codelem(e1,&regm,FALSE);       // eval left leaf
+                reg = findreg(regm);
+                cg = NULL;
+
+                if (reg != AX)
+                {   cg = cat(cg, getregs(mAX));
+                    cg = genmovreg(cg,AX,reg);                          // MOV EAX,reg
+                }
+                if (shpre)
+                {   cg = cat(cg, getregs(mAX));
+                    cg = genc2(cg,0xC1,grex | modregrm(3,5,AX),shpre);  // SHR EAX,shpre
+                }
+                cg = movregconst(cg, DX, m, (sz == 8) ? 0x40 : 0);      // MOV EDX,m
+                cg = cat(cg, getregs(mDX | mAX));
+                cg = gen2(cg,0xF7,grex | modregrmx(3,4,DX));            // MUL EDX
+                if (shpost)
+                    cg = genc2(cg,0xC1,grex | modregrm(3,5,DX),shpost); // SHR EDX,shpost
+                r3 = DX;
+            }
+
+            switch (oper)
+            {   case OPdiv:
+                    // r3 = quotient
+                    resreg = mask[r3];
+                    break;
+
+                case OPmod:
+                    /* reg = original value
+                     * r3  = quotient
+                     */
+                    assert(!(regm & mAX));
+                    if (el_signx32(e2))
+                    {
+                        genc2(cg,0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
+                    }
+                    else
+                    {
+                        assert(!(mask[r3] & mAX));
+                        cg = movregconst(cg,AX,e2factor,(sz == 8) ? 0x40 : 0);  // MOV EAX,e2factor
+                        cg = cat(cg,getregs(mAX));
+                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,r3));      // IMUL EAX,r3
+                    }
+                    cg = cat(cg,getregs(regm));
+                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));         // SUB reg,EAX
+                    resreg = regm;
+                    break;
+
+                case OPremquo:
+                    /* reg = original value
+                     * r3  = quotient
+                     */
+                    assert(!(mask[r3] & (mAX|regm)));
+                    assert(!(regm & mAX));
+                    if (el_signx32(e2))
+                    {
+                        genc2(cg,0x69,grex | modregrmx(3,AX,r3),e2factor); // IMUL EAX,r3,e2factor
+                    }
+                    else
+                    {
+                        cg = movregconst(cg,AX,e2factor,(sz == 8) ? 0x40 : 0); // MOV EAX,e2factor
+                        cg = cat(cg,getregs(mAX));
+                        cg = gen2(cg,0x0FAF,grex | modregrmx(3,AX,r3));      // IMUL EAX,r3
+                    }
+                    cg = cat(cg,getregs(regm));
+                    gen2(cg,0x2B,grex | modregxrm(3,reg,AX));         // SUB reg,EAX
+                    genmovreg(cg, AX, r3);                            // MOV EAX,r3
+                    genmovreg(cg, DX, reg);                           // MOV EDX,reg
                     resreg = mDX | mAX;
                     break;
 
