@@ -6419,6 +6419,43 @@ L1:
     }
 }
 
+
+void test9866()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+        0x48, 0x0f, 0xbe, 0xc0, // movsx RAX, AL
+        0x48, 0x0f, 0xbe, 0x00, // movsx RAX, byte ptr [RAX]
+        0x48, 0x0f, 0xbf, 0xc0, // movsx RAX, AX
+        0x48, 0x0f, 0xbf, 0x00, // movsx RAX, word ptr [RAX]
+        0x48, 0x63, 0xc0,       // movsxd RAX, EAX
+        0x48, 0x63, 0x00,       // movsxd RAX, dword ptr [RAX]
+    ];
+
+    asm
+    {
+        call L1;
+
+        movsx RAX, AL;
+        movsx RAX, byte ptr [RAX];
+        movsx RAX, AX;
+        movsx RAX, word ptr [RAX];
+        movsxd RAX, EAX;
+        movsxd RAX, dword ptr [RAX];
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop RAX
+}
+
 /****************************************************/
 
 void testxadd()
@@ -6519,6 +6556,7 @@ int main()
     test60();
     test61();
     test2941();
+    test9866();
     testxadd();
 
     printf("Success\n");

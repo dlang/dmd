@@ -1,4 +1,4 @@
-// PERMUTE_ARGS:
+// REQUIRED_ARGS:
 
 // Test compile time boundaries checking
 

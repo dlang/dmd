@@ -129,8 +129,13 @@ int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 
 int StructLiteralExp::apply(fp_t fp, void *param)
 {
-    return condApply(elements, fp, param) ||
+    if(stageflags & stageApply) return 0;
+    int old = stageflags;
+    stageflags |= stageApply;
+    int ret = condApply(elements, fp, param) ||
            (*fp)(this, param);
+    stageflags = old;      
+    return ret;
 }
 
 

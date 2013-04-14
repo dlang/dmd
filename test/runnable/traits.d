@@ -613,6 +613,16 @@ void test23()
 }
 
 /********************************************************/
+
+struct Test24
+{
+    public void test24(int){}
+    private void test24(int, int){}
+}
+
+static assert(__traits(getProtection, __traits(getOverloads, Test24, "test24")[1]) == "private");
+
+/********************************************************/
 // 1369
 
 void test1369()

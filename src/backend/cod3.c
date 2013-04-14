@@ -392,12 +392,51 @@ void cod3_set64()
  */
 void cod3_align_bytes(size_t nbytes)
 {
-    static unsigned char nops[] = {
-        0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
-    }; // XCHG AX,AX
-    assert(nbytes < sizeof(nops));
+    /* Table 4-2 from Intel Instruction Set Reference M-Z
+     * 1 bytes NOP                                        90
+     * 2 bytes 66 NOP                                     66 90
+     * 3 bytes NOP DWORD ptr [EAX]                        0F 1F 00
+     * 4 bytes NOP DWORD ptr [EAX + 00H]                  0F 1F 40 00
+     * 5 bytes NOP DWORD ptr [EAX + EAX*1 + 00H]          0F 1F 44 00 00
+     * 6 bytes 66 NOP DWORD ptr [EAX + EAX*1 + 00H]       66 0F 1F 44 00 00
+     * 7 bytes NOP DWORD ptr [EAX + 00000000H]            0F 1F 80 00 00 00 00
+     * 8 bytes NOP DWORD ptr [EAX + EAX*1 + 00000000H]    0F 1F 84 00 00 00 00 00
+     * 9 bytes 66 NOP DWORD ptr [EAX + EAX*1 + 00000000H] 66 0F 1F 84 00 00 00 00 00
+     * only for CPUs: CPUID.01H.EAX[Bytes 11:8] = 0110B or 1111B
+     */
+
     assert(SegData[cseg]->SDseg == cseg);
-    objmod->write_bytes(SegData[cseg],nbytes,nops);
+
+    while (nbytes)
+    {   size_t n = nbytes;
+        const char *p;
+
+        if (nbytes > 1 && (I64 || config.fpxmmregs))
+        {
+            switch (n)
+            {
+                case 2:  p = "\x66\x90"; break;
+                case 3:  p = "\x0F\x1F\x00"; break;
+                case 4:  p = "\x0F\x1F\x40\x00"; break;
+                case 5:  p = "\x0F\x1F\x44\x00\x00"; break;
+                case 6:  p = "\x66\x0F\x1F\x44\x00\x00"; break;
+                case 7:  p = "\x0F\x1F\x80\x00\x00\x00\x00"; break;
+                case 8:  p = "\x0F\x1F\x84\x00\x00\x00\x00\x00"; break;
+                default: p = "\x66\x0F\x1F\x84\x00\x00\x00\x00\x00"; n = 9; break;
+            }
+        }
+        else
+        {
+            static const char nops[] = {
+                0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90,0x90
+            }; // XCHG AX,AX
+            if (n > sizeof(nops))
+                n = sizeof(nops);
+            p = nops;
+        }
+        objmod->write_bytes(SegData[cseg],n,const_cast<char*>(p));
+        nbytes -= n;
+    }
 }
 
 void cod3_align()
@@ -418,7 +457,7 @@ void cod3_align()
         }
     }
 #else
-    nbytes = -Coffset & 3;
+    nbytes = -Coffset & 7;
     cod3_align_bytes(nbytes);
 #endif
 }

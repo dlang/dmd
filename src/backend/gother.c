@@ -399,6 +399,15 @@ STATIC void chkrd(elem *n,list_t rdlist)
         if (sv->Stype->Ttag->Sstruct->Sflags & (STRbitfields | STR0size))
             return;
     }
+#if 0
+    // If variable is zero length static array, don't print message.
+    // BUG: Suppress error even if variable is initialized with void.
+    if (sv->Stype->Tty == TYarray && sv->Stype->Tdim == 0)
+    {
+        printf("sv->Sident = %s\n", sv->Sident);
+        return;
+    }
+#endif
 #if SCPP
     {   Outbuffer buf;
         char *p2;

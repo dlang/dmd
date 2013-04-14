@@ -3279,6 +3279,52 @@ void cantthrow() nothrow
 }
 
 /***************************************************/
+// 2356
+
+void test2356()
+{
+    int[3] x = [1,2,3];
+    printf("x[] = [%d %d %d]\n", x[0], x[1], x[2]);
+    assert(x[0] == 1 && x[1] == 2 && x[2] == 3);
+
+    struct S
+    {
+        static int pblit;
+        int n;
+        this(this) { ++pblit; printf("postblit: %d\n", n); }
+    }
+    S s2 = S(2);
+    S[3] s = [S(1), s2, S(3)];
+    assert(s[0].n == 1 && s[1].n == 2 && s[2].n == 3);
+    printf("s[].n = [%d %d %d]\n", s[0].n, s[1].n, s[2].n);
+    assert(S.pblit == 1);
+
+    ubyte[1024] v;
+    v = typeof(v).init;
+    printf("v[] = [%d %d %d, ..., %d]\n", v[0], v[1], v[2], v[$-1]);
+    foreach (ref a; v) assert(a == 0);
+
+    int n = 5;
+    int[3] y = [n, n, n];
+    printf("y[] = [%d %d %d]\n", y[0], y[1], y[2]);
+    assert(y[0] == 5 && y[1] == 5 && y[2] == 5);
+
+    S[3] z = [s2, s2, s2];
+    assert(z[0].n == 2 && z[1].n == 2 && z[2].n == 2);
+    printf("z[].n = [%d %d %d]\n", z[0].n, z[1].n, z[2].n);
+    assert(S.pblit == 1 + 3);
+
+    int[0] nsa0 = [];
+    void[0] vsa0 = [];
+
+    void foo(T)(T){}
+    foo(vsa0);
+
+    ref int[0] bar() { static int[1] sa; return *cast(int[0]*)&sa; }
+    bar() = [];
+}
+
+/***************************************************/
 
 class A2540
 {
@@ -6369,6 +6415,7 @@ int main()
     test6685();
     test148();
     test149();
+    test2356();
     test2540();
     test150();
     test151();

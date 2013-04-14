@@ -5,7 +5,7 @@ extern (C) int printf(const(char*) fmt, ...);
 
 int sdtor;
 
-struct S
+struct S1
 {
     ~this() { printf("~S()\n"); sdtor++; }
 }
@@ -14,7 +14,7 @@ struct S
 
 void test1()
 {
-    S* s = new S();
+    S1* s = new S1();
     delete s;
     assert(sdtor == 1);
 }
@@ -2388,6 +2388,101 @@ Foo9320 test9320(Foo9320 a, Foo9320 b, Foo9320 c) {
 }
 
 /**********************************/
+// 9386
+
+struct Test9386
+{
+    string name;
+    static string op;
+
+    this(string name)
+    {
+        this.name = name;
+        printf("Created %.*s...\n", name.length, name.ptr);
+        op ~= "a";
+    }
+
+    this(this)
+    {
+        printf("Copied %.*s...\n", name.length, name.ptr);
+        op ~= "b";
+    }
+
+    ~this()
+    {
+        printf("Deleted %.*s\n", name.length, name.ptr);
+        op ~= "c";
+    }
+}
+
+void test9386()
+{
+    {
+        Test9386.op = null;
+
+        Test9386[] tests =
+            [ Test9386("one"),
+              Test9386("two"),
+              Test9386("three"),
+              Test9386("four") ];
+
+        assert(Test9386.op == "aaaa");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 test; tests)
+        {
+            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            Test9386.op ~= "x";
+        }
+
+        assert(Test9386.op == "bxcbxcbxcbxc");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (ref Test9386 test; tests)
+        {
+            printf("\tForeach %.*s\n", test.name.length, test.name.ptr);
+            Test9386.op ~= "x";
+        }
+        assert(Test9386.op == "xxxx");
+    }
+    printf("====\n");
+    {
+        Test9386.op = null;
+
+        Test9386[Test9386] tests =
+            [ Test9386("1") : Test9386("one"),
+              Test9386("2") : Test9386("two"),
+              Test9386("3") : Test9386("three"),
+              Test9386("4") : Test9386("four") ];
+
+        assert(Test9386.op == "aaaaaaaa");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 k, Test9386 v; tests)
+        {
+            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
+                                              v.name.length, v.name.ptr);
+            Test9386.op ~= "x";
+        }
+
+        assert(Test9386.op == "bbxccbbxccbbxccbbxcc");
+        Test9386.op = null;
+
+        printf("----\n");
+        foreach (Test9386 k, ref Test9386 v; tests)
+        {
+            printf("\tForeach %.*s : %.*s\n", k.name.length, k.name.ptr,
+                                              v.name.length, v.name.ptr);
+            Test9386.op ~= "x";
+        }
+        assert(Test9386.op == "bxcbxcbxcbxc");
+    }
+}
+
+/**********************************/
 // 9441
 
 auto x9441 = X9441(0.123);
@@ -2448,6 +2543,24 @@ void test9720()
     auto a = Data(1);
     auto b = Data(1);
     a._store._payload.insertBack(b); //Fails
+}
+
+/**********************************/
+// 9899
+
+struct S9899
+{
+    @safe pure nothrow ~this() {}
+}
+
+struct MemberS9899
+{
+    S9899 s;
+}
+
+void test9899() @safe pure nothrow
+{
+    MemberS9899 s; // 11
 }
 
 /**********************************/
@@ -2533,8 +2646,10 @@ int main()
     test7579b();
     test8335();
     test8356();
+    test9386();
     test9441();
     test9720();
+    test9899();
 
     printf("Success\n");
     return 0;

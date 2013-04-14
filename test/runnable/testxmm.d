@@ -1149,6 +1149,18 @@ void test9304()
 
 /*****************************************/
 
+void test9910()
+{
+    float4 f = [1, 1, 1, 1];
+    auto works = f + 3;
+    auto bug = 3 + f;
+
+    assert (works.array == [4,4,4,4]);
+    assert (bug.array == [4,4,4,4]);    // no property 'array' for type 'int'
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -1175,6 +1187,7 @@ int main()
     test7413_2();
 //    test9200();
     test9304();
+    test9910();
 
     return 0;
 }
