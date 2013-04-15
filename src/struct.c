@@ -104,7 +104,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
-        sc->pop();
+        sc = sc->pop();
 
         if (!getRTInfo && Type::rtinfo &&
             (!isDeprecated() || global.params.useDeprecated) && // don't do it for unused deprecated types
