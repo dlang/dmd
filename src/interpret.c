@@ -1470,6 +1470,10 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return this;
     }
+    if((type->ty == Tclass)&&((Type::typeinfo == ((TypeClass*)type)->sym)||Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL)))
+    {
+        return this;
+    }
     if (type->ty != Tpointer)
     {   // Probably impossible
         error("Cannot interpret %s at compile time", toChars());
