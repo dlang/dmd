@@ -1599,6 +1599,7 @@ code *cdshass(elem *e,regm_t *pretregs)
               }
               if (oper == OPshlass)
               {       cg = gen(CNIL,&cs);               // cg: SHIFT EA
+                      code_orflag(cg,CFpsw);
                       c = cat(c,cg);
                       getlvalue_msw(&cs);
                       NEWREG(cs.Irm,op2);
@@ -1608,6 +1609,7 @@ code *cdshass(elem *e,regm_t *pretregs)
               else
               {       getlvalue_msw(&cs);
                       cg = gen(CNIL,&cs);
+                      code_orflag(cg,CFpsw);
                       c = cat(c,cg);
                       NEWREG(cs.Irm,op2);
                       getlvalue_lsw(&cs);
