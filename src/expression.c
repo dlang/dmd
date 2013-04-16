@@ -4591,6 +4591,7 @@ Expression *NewExp::semantic(Scope *sc)
 {
     Type *tb;
     ClassDeclaration *cdthis = NULL;
+    size_t nargs;
 
 #if LOGSEMANTIC
     printf("NewExp::semantic() %s\n", toChars());
@@ -4635,6 +4636,8 @@ Lagain:
     arrayExpressionSemantic(arguments, sc);
     preFunctionParameters(loc, sc, arguments);
 
+    nargs = arguments ? arguments->dim : 0;
+
     if (thisexp && tb->ty != Tclass)
     {   error("e.new is only for allocating nested classes, not %s", tb->toChars());
         goto Lerr;
@@ -4660,7 +4663,7 @@ Lagain:
             goto Lerr;
         }
 
-        if (cd->noDefaultCtor && (!arguments || !arguments->dim))
+        if (cd->noDefaultCtor && !nargs)
         {   error("default construction is disabled for type %s", cd->toChars());
             goto Lerr;
         }
@@ -4756,7 +4759,7 @@ Lagain:
         }
         else
         {
-            if (arguments && arguments->dim)
+            if (nargs)
             {   error("no constructor for %s", cd->toChars());
                 goto Lerr;
             }
@@ -4797,7 +4800,7 @@ Lagain:
         StructDeclaration *sd = ts->sym;
         if (sd->scope)
             sd->semantic(NULL);
-        if (sd->noDefaultCtor && (!arguments || !arguments->dim))
+        if (sd->noDefaultCtor && !nargs)
         {   error("default construction is disabled for type %s", sd->toChars());
             goto Lerr;
         }
@@ -4831,7 +4834,7 @@ Lagain:
         }
 
         FuncDeclaration *f = NULL;
-        if (sd->ctor)
+        if (sd->ctor && nargs)
             f = resolveFuncCall(loc, sc, sd->ctor, NULL, NULL, arguments, 0);
         if (f)
         {
@@ -4851,7 +4854,7 @@ Lagain:
             if (olderrors != global.errors)
                 return new ErrorExp();
         }
-        else if (arguments && arguments->dim)
+        else if (nargs)
         {
             Type *tptr = type->pointerTo();
 
@@ -4880,9 +4883,9 @@ Lagain:
 
         type = type->pointerTo();
     }
-    else if (tb->ty == Tarray && (arguments && arguments->dim))
+    else if (tb->ty == Tarray && nargs)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < nargs; i++)
         {
             if (tb->ty != Tarray)
             {   error("too many arguments for array");
@@ -4903,7 +4906,7 @@ Lagain:
     }
     else if (tb->isscalar())
     {
-        if (arguments && arguments->dim)
+        if (nargs)
         {   error("no constructor for %s", type->toChars());
             goto Lerr;
         }
