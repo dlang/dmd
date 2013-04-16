@@ -510,9 +510,21 @@ Expression *BinExp::op_overload(Scope *sc)
         /* Try the new D2 scheme, opBinary and opBinaryRight
          */
         if (ad1)
+        {
             s = search_function(ad1, Id::opBinary);
+            if (s && !s->isTemplateDeclaration())
+            {   e1->error("%s.opBinary isn't a template", e1->toChars());
+                return new ErrorExp();
+            }
+        }
         if (ad2)
+        {
             s_r = search_function(ad2, Id::opBinaryRight);
+            if (s_r && !s_r->isTemplateDeclaration())
+            {   e2->error("%s.opBinaryRight isn't a template", e2->toChars());
+                return new ErrorExp();
+            }
+        }
 
         // Set tiargs, the template argument list, which will be the operator string
         if (s || s_r)
@@ -1110,7 +1122,13 @@ Expression *BinAssignExp::op_overload(Scope *sc)
     {   /* Try the new D2 scheme, opOpAssign
          */
         if (ad1)
+        {
             s = search_function(ad1, Id::opOpAssign);
+            if (s && !s->isTemplateDeclaration())
+            {   error("%s.opOpAssign isn't a template", e1->toChars());
+                return new ErrorExp();
+            }
+        }
 
         // Set tiargs, the template argument list, which will be the operator string
         if (s)
