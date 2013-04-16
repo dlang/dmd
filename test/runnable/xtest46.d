@@ -6244,6 +6244,28 @@ void test9834()
 }
 
 /***************************************************/
+// 9912
+
+template TypeTuple9912(Stuff...)
+{
+    alias Stuff TypeTuple9912;
+}
+
+struct S9912
+{
+    int i;
+    alias TypeTuple9912!i t;
+
+    void testA() {
+        auto x = t;
+    }
+
+    void testB() {
+        auto x = t;
+    }
+}
+
+/***************************************************/
 
 int main()
 {
