@@ -115,7 +115,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	html.o unialpha.o target.o \
-	pdata.o cv8.o backconfig.o \
+	pdata.o cv8.o backconfig.o divcoeff.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(TARGET))
@@ -162,7 +162,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
     $C/html.h $C/html.c $C/unialpha.c \
 	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
@@ -373,6 +373,9 @@ declaration.o: declaration.c
 
 delegatize.o: delegatize.c
 	$(CC) -c $(CFLAGS) $<
+
+divcoeff.o: $C/divcoeff.c
+	$(CC) -c $(MFLAGS) $<
 
 doc.o: doc.c
 	$(CC) -c $(CFLAGS) $<
