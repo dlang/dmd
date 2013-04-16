@@ -3048,6 +3048,19 @@ auto test110 = [Test110f(1, Test110s(1, 2, 3))];
 
 /************************************************/
 
+TypeInfo getTi()
+{
+    return typeid(int);
+}
+
+auto t112 = getTi();
+
+void test112()
+{
+    assert(t112.toString() == "int");
+}
+
+/************************************************/
 int main()
 {
     test1();
@@ -3159,6 +3172,7 @@ int main()
     test107();
     //test108(); 
     test109();
+    test112();
     test6504();
     test8818();
     
