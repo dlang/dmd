@@ -1760,7 +1760,8 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
             e = e->castTo(sc, t);
         else if (!e->type->equals(t))
         {
-            assert(e->type->nextOf()->covariant(t->nextOf()) == 1);
+            assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
+                   e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
         }
