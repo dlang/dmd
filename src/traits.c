@@ -499,6 +499,14 @@ Expression *TraitsExp::semantic(Scope *sc)
 
                     idents->push(sm->ident);
                 }
+                else
+                {
+                    EnumDeclaration *ed = sm->isEnumDeclaration();
+                    if (ed)
+                    {
+                        ScopeDsymbol::foreach(NULL, ed->members, &PushIdentsDg::dg, (Identifiers *)ctx);
+                    }
+                }
                 return 0;
             }
         };
