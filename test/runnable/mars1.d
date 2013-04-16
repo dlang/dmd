@@ -259,7 +259,408 @@ void testulldiv()
     }
 }
 
-///////////////////////
+////////////////////////////////////////////////////////////////////////
+
+
+uint udiv10(uint x)
+{
+    return x / 10;
+}
+
+uint udiv14(uint x)
+{
+    return x / 14;
+}
+
+uint udiv14007(uint x)
+{
+    return x / 14007;
+}
+
+uint umod10(uint x)
+{
+    return x % 10;
+}
+
+uint umod14(uint x)
+{
+    return x % 14;
+}
+
+uint umod14007(uint x)
+{
+    return x % 14007;
+}
+
+uint uremquo10(uint x)
+{
+    return (x / 10) | (x % 10);
+}
+
+uint uremquo14(uint x)
+{
+    return (x / 14) | (x % 14);
+}
+
+uint uremquo14007(uint x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+
+ulong uldiv10(ulong x)
+{
+    return x / 10;
+}
+
+ulong uldiv14(ulong x)
+{
+    return x / 14;
+}
+
+ulong uldiv14007(ulong x)
+{
+    return x / 14007;
+}
+
+ulong ulmod10(ulong x)
+{
+    return x % 10;
+}
+
+ulong ulmod14(ulong x)
+{
+    return x % 14;
+}
+
+ulong ulmod14007(ulong x)
+{
+    return x % 14007;
+}
+
+ulong ulremquo10(ulong x)
+{
+    return (x / 10) | (x % 10);
+}
+
+ulong ulremquo14(ulong x)
+{
+    return (x / 14) | (x % 14);
+}
+
+ulong ulremquo14007(ulong x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+void testfastudiv()
+{
+  {
+    static uint x10 = 10;
+    static uint x14 = 14;
+    static uint x14007 = 14007;
+
+    uint u = 10000;
+    uint r;
+    r = udiv10(u);  assert(r == u/x10);
+    r = udiv14(u);  assert(r == u/x14);
+    r = udiv14007(u);  assert(r == u/x14007);
+    r = umod10(u);  assert(r == u%x10);
+    r = umod14(u);  assert(r == u%x14);
+    r = umod14007(u);  assert(r == u%x14007);
+    r = uremquo10(u);  assert(r == ((u/10)|(u%x10)));
+    r = uremquo14(u);  assert(r == ((u/14)|(u%x14)));
+    r = uremquo14007(u);  assert(r == ((u/14007)|(u%x14007)));
+  }
+  {
+    static ulong y10 = 10;
+    static ulong y14 = 14;
+    static ulong y14007 = 14007;
+
+    ulong u = 10000;
+    ulong r;
+    r = uldiv10(u);  assert(r == u/y10);
+    r = uldiv14(u);  assert(r == u/y14);
+    r = uldiv14007(u);  assert(r == u/y14007);
+    r = ulmod10(u);  assert(r == u%y10);
+    r = ulmod14(u);  assert(r == u%y14);
+    r = ulmod14007(u);  assert(r == u%y14007);
+    r = ulremquo10(u);  assert(r == ((u/10)|(u%y10)));
+    r = ulremquo14(u);  assert(r == ((u/14)|(u%y14)));
+    r = ulremquo14007(u);  assert(r == ((u/14007)|(u%y14007)));
+  }
+}
+
+
+////////////////////////////////////////////////////////////////////////
+
+
+int div10(int x)
+{
+    return x / 10;
+}
+
+int div14(int x)
+{
+    return x / 14;
+}
+
+int div14007(int x)
+{
+    return x / 14007;
+}
+
+int mod10(int x)
+{
+    return x % 10;
+}
+
+int mod14(int x)
+{
+    return x % 14;
+}
+
+int mod14007(int x)
+{
+    return x % 14007;
+}
+
+int remquo10(int x)
+{
+    return (x / 10) | (x % 10);
+}
+
+int remquo14(int x)
+{
+    return (x / 14) | (x % 14);
+}
+
+int remquo14007(int x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+////////////////////
+
+int mdiv10(int x)
+{
+    return x / -10;
+}
+
+int mdiv14(int x)
+{
+    return x / -14;
+}
+
+int mdiv14007(int x)
+{
+    return x / -14007;
+}
+
+int mmod10(int x)
+{
+    return x % -10;
+}
+
+int mmod14(int x)
+{
+    return x % -14;
+}
+
+int mmod14007(int x)
+{
+    return x % -14007;
+}
+
+int mremquo10(int x)
+{
+    return (x / -10) | (x % -10);
+}
+
+int mremquo14(int x)
+{
+    return (x / -14) | (x % -14);
+}
+
+int mremquo14007(int x)
+{
+    return (x / -14007) | (x % -14007);
+}
+
+////////////////////
+
+
+long ldiv10(long x)
+{
+    return x / 10;
+}
+
+long ldiv14(long x)
+{
+    return x / 14;
+}
+
+long ldiv14007(long x)
+{
+    return x / 14007;
+}
+
+long lmod10(long x)
+{
+    return x % 10;
+}
+
+long lmod14(long x)
+{
+    return x % 14;
+}
+
+long lmod14007(long x)
+{
+    return x % 14007;
+}
+
+long lremquo10(long x)
+{
+    return (x / 10) | (x % 10);
+}
+
+long lremquo14(long x)
+{
+    return (x / 14) | (x % 14);
+}
+
+long lremquo14007(long x)
+{
+    return (x / 14007) | (x % 14007);
+}
+
+
+////////////////////
+
+
+long mldiv10(long x)
+{
+    return x / -10;
+}
+
+long mldiv14(long x)
+{
+    return x / -14;
+}
+
+long mldiv14007(long x)
+{
+    return x / -14007;
+}
+
+long mlmod10(long x)
+{
+    return x % -10;
+}
+
+long mlmod14(long x)
+{
+    return x % -14;
+}
+
+long mlmod14007(long x)
+{
+    return x % -14007;
+}
+
+long mlremquo10(long x)
+{
+    return (x / -10) | (x % -10);
+}
+
+long mlremquo14(long x)
+{
+    return (x / -14) | (x % -14);
+}
+
+long mlremquo14007(long x)
+{
+    return (x / -14007) | (x % -14007);
+}
+
+
+
+void testfastdiv()
+{
+  {
+    static int x10 = 10;
+    static int x14 = 14;
+    static int x14007 = 14007;
+
+    int u = 10000;
+    int r;
+    r = div10(u);  assert(r == u/x10);
+    r = div14(u);  assert(r == u/x14);
+    r = div14007(u);  assert(r == u/x14007);
+    r = mod10(u);  assert(r == u%x10);
+    r = mod14(u);  assert(r == u%x14);
+    r = mod14007(u);  assert(r == u%x14007);
+    r = remquo10(u);  assert(r == ((u/x10)|(u%x10)));
+    r = remquo14(u);  assert(r == ((u/x14)|(u%x14)));
+    r = remquo14007(u);  assert(r == ((u/x14007)|(u%x14007)));
+  }
+  {
+    static int t10 = -10;
+    static int t14 = -14;
+    static int t14007 = -14007;
+
+    int u = 10000;
+    int r;
+    r = mdiv10(u);  assert(r == u/t10);
+    r = mdiv14(u);  assert(r == u/t14);
+    r = mdiv14007(u);  assert(r == u/t14007);
+    r = mmod10(u);  assert(r == u%t10);
+    r = mmod14(u);  assert(r == u%t14);
+    r = mmod14007(u);  assert(r == u%t14007);
+    r = mremquo10(u);  assert(r == ((u/t10)|(u%t10)));
+    r = mremquo14(u);  assert(r == ((u/t14)|(u%t14)));
+    r = mremquo14007(u);  assert(r == ((u/t14007)|(u%t14007)));
+  }
+  {
+    static long y10 = 10;
+    static long y14 = 14;
+    static long y14007 = 14007;
+
+    long u = 10000;
+    long r;
+    r = ldiv10(u);  assert(r == u/y10);
+    r = ldiv14(u);  assert(r == u/y14);
+    r = ldiv14007(u);  assert(r == u/y14007);
+    r = lmod10(u);  assert(r == u%y10);
+    r = lmod14(u);  assert(r == u%y14);
+    r = lmod14007(u);  assert(r == u%y14007);
+    r = lremquo10(u);  assert(r == ((u/y10)|(u%y10)));
+    r = lremquo14(u);  assert(r == ((u/y14)|(u%y14)));
+    r = lremquo14007(u);  assert(r == ((u/y14007)|(u%y14007)));
+  }
+  {
+    static long z10 = -10;
+    static long z14 = -14;
+    static long z14007 = -14007;
+
+    long u = 10000;
+    long r;
+    r = mldiv10(u);  assert(r == u/z10);
+    r = mldiv14(u);  assert(r == u/z14);
+    r = mldiv14007(u);  assert(r == u/z14007);
+    r = mlmod10(u);  assert(r == u%z10);
+    r = mlmod14(u);  assert(r == u%z14);
+    r = mlmod14007(u);  assert(r == u%z14007);
+    r = mlremquo10(u);  assert(r == ((u/z10)|(u%z10)));
+    r = mlremquo14(u);  assert(r == ((u/z14)|(u%z14)));
+    r = mlremquo14007(u);  assert(r == ((u/z14007)|(u%z14007)));
+  }
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -273,6 +674,8 @@ int main()
     testarrayinit();
     testU();
     testulldiv();
+    testfastudiv();
+    testfastdiv();
     printf("Success\n");
     return 0;
 }
