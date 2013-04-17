@@ -335,7 +335,7 @@ Usage:\n\
   -debug=ident   compile in debug code identified by ident\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
-  -deps write module import dependencies to stdoutput. (All dependencies including file/version/debug/lib)\n\
+  -deps write module import dependencies to stdout. (All dependencies including file/version/debug/lib)\n\
   -deps=filename write module dependencies to filename (only imports - deprecated)\n%s"
 "  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
@@ -896,6 +896,10 @@ Language changes listed by -transition=id:\n\
                     if (!global.params.moduleDepsFile[0])
                         goto Lnoarg;
                 } // Else output to stdout.
+                else if(p[5]!='\0')
+                {
+                    goto Lerror;
+                }
                 global.params.moduleDeps = new OutBuffer;
             }
             else if (strcmp(p + 1, "main") == 0)
