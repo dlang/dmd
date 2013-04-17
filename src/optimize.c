@@ -104,6 +104,13 @@ Expression *expandVar(int result, VarDeclaration *v)
                     else
                         goto L1;
                 }
+                else if (!(result & WANTinterpret) &&
+                         !(v->storage_class & STCmanifest) &&
+                         ei->isConst() != 1 && ei->op != TOKstring &&
+                         ei->op != TOKaddress)
+                {
+                    goto L1;
+                }
                 if (!ei->type)
                 {
                     goto L1;
