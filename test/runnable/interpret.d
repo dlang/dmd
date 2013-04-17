@@ -2831,6 +2831,7 @@ void test104()
 }
 
 /************************************************/
+
 interface ITest105a
 {
     string test105a() const;
@@ -2922,6 +2923,16 @@ void test105()
     assert(t105bi.test105b() == "test105b");   
     
 }
+
+int bug9938()
+{
+    assert(t105ia.test105a() == "test105a");
+    return 1;
+}
+
+static assert(t105ia.test105a() == "test105a");
+static assert(bug9938());
+
 
 /************************************************/
 
