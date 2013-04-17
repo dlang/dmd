@@ -4950,6 +4950,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     hasNestedArgs(tiargs);
 
+    Module *instantiatingModule = getInstantiatingModule();
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
@@ -4971,7 +4973,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         //printf("parent = %s, ti->parent = %s\n", tempdecl->parent->toPrettyChars(), ti->parent->toPrettyChars());
 
         if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
-            goto L1;
+            continue;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
@@ -4990,20 +4992,23 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                     {
                         if (farg->isLvalue())
                         {   if (!(fparam->storageClass & STCref))
-                                goto L1;                        // auto ref's don't match
+                                continue;                        // auto ref's don't match
                         }
                         else
                         {   if (fparam->storageClass & STCref)
-                                goto L1;                        // auto ref's don't match
+                                continue;                        // auto ref's don't match
                         }
                     }
                 }
             }
         }
 
+        //if(ti->getInstantiatingModule() != instantiatingModule)
+            //continue;
         // It's a match
         inst = ti;
         parent = ti->parent;
+
 
         // If both this and the previous instantiation were speculative,
         // use the number of errors that happened last time.
@@ -5019,36 +5024,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             // If the first instantiation had failed, re-run semantic,
             // so that error messages are shown.
             if (inst->errors)
-                goto L1;
+                continue;
             // It had succeeded, mark it is a non-speculative instantiation,
             // and reuse it.
             inst->speculative = 0;
         }
-        if (!sc->parameterSpecialization)
-        {   
-            Module *md = getInstantiatingModule();
-            assert(md);
-            Dsymbols *a = md->members;
-            assert(a);
-            for (size_t i = 0; 1; i++)
-            {
-                if (i == a->dim)
-                {
-                    a->push(inst);
-                    break;
-                }
-                if (inst == (*a)[i])  // if already in Array
-                    break;
-            }
-        }
-
 #if LOG
         printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
         return;
 
-     L1:
-        ;
     }
 
     /* So, we need to implement 'this' instance.
@@ -5086,14 +5071,42 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     size_t target_symbol_list_idx;
 
     if (!sc->parameterSpecialization)
-    {   
-        Module *md = getInstantiatingModule();
-        assert(md);
-        Dsymbols *a = md->members;
-        assert(a);
-        if (md->semanticRun >= 3)
+    {   Dsymbols *a;
+
+        Scope *scx = sc;
+#if 0
+        for (scx = sc; scx; scx = scx->enclosing)
+            if (scx->scopesym)
+                break;
+#endif
+
+        //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
+        if (scx && scx->scopesym &&
+                scx->scopesym->members && !scx->scopesym->isTemplateMixin()
+#if 0 // removed because it bloated compile times
+                /* The problem is if A imports B, and B imports A, and both A
+                 * and B instantiate the same template, does the compilation of A
+                 * or the compilation of B do the actual instantiation?
+                 *
+                 * see bugzilla 2500.
+                 */
+                && !scx->module->selfImports()
+#endif
+           )
         {
-            dosemantic3 = 1;
+            //printf("\t1: adding to %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
+            a = scx->scopesym->members;
+        }
+        else
+        {
+            Module *md = instantiatingModule;
+            assert(md);
+            a = md->members;
+            assert(a);
+            if (md->semanticRun >= 3)
+            {
+                dosemantic3 = 1;
+            }
         }
         for (size_t i = 0; 1; i++)
         {
