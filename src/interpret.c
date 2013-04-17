@@ -4042,8 +4042,10 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         {   // Make a virtual function call.
             Expression *thisval = pthis;
             if (pthis->op == TOKvar)
-            {   assert(((VarExp*)thisval)->var->isVarDeclaration());
-                thisval = ((VarExp*)thisval)->var->isVarDeclaration()->getValue();
+            {
+                VarDeclaration *vthis = ((VarExp*)thisval)->var->isVarDeclaration();
+                assert(vthis);
+                thisval = getVarExp(loc, istate, vthis, ctfeNeedLvalue);
                 // If it is a reference, resolve it
                 if (thisval->op != TOKnull && thisval->op != TOKclassreference)
                     thisval = pthis->interpret(istate);
