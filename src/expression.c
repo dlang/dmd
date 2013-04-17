@@ -1248,6 +1248,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             }
             else
             {
+                if (Expression *e = arg->isTemp())
+                    arg = e;
                 Type *tb = arg->type->toBasetype();
                 if (tb->ty == Tsarray)
                 {

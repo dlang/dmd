@@ -5818,6 +5818,8 @@ MATCH TypeFunction::callMatch(Expression *ethis, Expressions *args, int flag)
         {
         Expression *arg = (*args)[u];
         assert(arg);
+        if (Expression *e = arg->isTemp())
+            arg = e;
 
         if (arg->op == TOKfunction)
         {
