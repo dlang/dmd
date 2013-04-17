@@ -1470,7 +1470,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return this;
     }
-    if((type->ty == Tclass)&&((Type::typeinfo == ((TypeClass*)type)->sym)||Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL)))
+    if (isTypeInfo_Class(type) && offset == 0)
     {
         return this;
     }
@@ -4906,7 +4906,34 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
     }
 #endif
     else
-    {   // It's possible we have an array bounds error. We need to make sure it
+    {
+        // Check for .classinfo, which is lowered in the semantic pass into **(class).
+        if (e1->op == TOKstar && e1->type->ty == Tpointer && isTypeInfo_Class(e1->type->nextOf()))
+        {
+            e = (((PtrExp *)e1)->e1)->interpret(istate, ctfeNeedLvalue);
+            if (exceptionOrCantInterpret(e))
+                return e;
+            if (e->op == TOKnull)
+            {
+                error("Null pointer dereference evaluating typeid. '%s' is null", ((PtrExp *)e1)->e1->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            if (e->op != TOKclassreference)
+            {   error("CTFE internal error determining classinfo");
+                return EXP_CANT_INTERPRET;
+            }
+            ClassDeclaration *cd = ((ClassReferenceExp *)e)->originalClass();
+            assert(cd);
+
+            // Create the classinfo, if it doesn't yet exist.
+            // TODO: This belongs in semantic, CTFE should not have to do this.
+            if (!cd->vclassinfo)
+                cd->vclassinfo = new TypeInfoClassDeclaration(cd->type);
+            e = new SymOffExp(loc, cd->vclassinfo, 0);
+            e->type = type;
+            return e;
+        }
+       // It's possible we have an array bounds error. We need to make sure it
         // errors with this line number, not the one where the pointer was set.
         e = e1->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e))
