@@ -3794,6 +3794,27 @@ int classtest3()
 static assert(classtest3());
 
 /**************************************************
+    7147 typeid()
+**************************************************/
+
+static assert({
+    TypeInfo xxx = typeid(Object);
+    TypeInfo yyy = typeid(new Error("xxx"));
+    return true;
+    }());
+
+int bug7147(int n)
+{
+    Error err = n ? new Error("xxx") : null;
+    TypeInfo qqq = typeid(err);
+    return 1;
+}
+
+// Must not segfault if class is null
+static assert(!is(typeof(compiles!(bug7147(0)))));
+static assert( is(typeof(compiles!(bug7147(1)))));
+
+/**************************************************
     6885 wrong code with new array
 **************************************************/
 

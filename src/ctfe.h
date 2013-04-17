@@ -208,6 +208,9 @@ TypeAArray *toBuiltinAAType(Type *t);
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
 
+/// True if type is TypeInfo_Class
+bool isTypeInfo_Class(Type *type);
+
 /***********************************************
       In-place integer operations
 ***********************************************/
