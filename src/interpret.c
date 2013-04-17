@@ -1470,7 +1470,7 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     {
         return this;
     }
-    if((type->ty == Tclass)&&((Type::typeinfo == ((TypeClass*)type)->sym)||Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL)))
+    if (isTypeInfo_Class(type) && offset == 0)
     {
         return this;
     }
