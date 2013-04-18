@@ -182,6 +182,12 @@ int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger
 Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
     Expression *eptr, Expression *e2);
 
+// True if conversion from type 'from' to 'to' involves a reinterpret_cast
+// floating point -> integer or integer -> floating point
+bool isFloatIntPaint(Type *to, Type *from);
+
+// Reinterpret float/int value 'fromVal' as a float/integer of type 'to'.
+Expression *paintFloatInt(Expression *fromVal, Type *to);
 
 /// Return true if t is an AA, or AssociativeArray!(key, value)
 bool isAssocArray(Type *t);
