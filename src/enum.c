@@ -126,7 +126,7 @@ void EnumDeclaration::semantic(Scope *sc)
 
     //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
     //printf("EnumDeclaration::semantic() %s\n", toChars());
-    if (!members)               // enum ident;
+    if (!members && !memtype)               // enum ident;
         return;
 
     if (!memtype && !isAnonymous())
@@ -191,6 +191,10 @@ void EnumDeclaration::semantic(Scope *sc)
     }
 
     isdone = 1;
+
+    if (!members)               // enum ident : memtype;
+        return;
+
     Module::dprogress++;
 
     type = type->semantic(loc, sc);
