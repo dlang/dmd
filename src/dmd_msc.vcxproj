@@ -175,6 +175,7 @@
     <ClCompile Include="backend\code.c" />
     <ClCompile Include="backend\cppman.c" />
     <ClCompile Include="backend\debug.c" />
+    <ClCompile Include="backend\divcoeff.c" />
     <ClCompile Include="backend\dt.c" />
     <ClCompile Include="backend\dwarf.c" />
     <ClCompile Include="backend\ee.c" />
