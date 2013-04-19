@@ -323,7 +323,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         immutable size_t totalArgsLength = WideCharToMultiByte(65001, 0, wCommandLine, cast(int)wCommandLineLength, null, 0, null, null);
         {
             char* totalArgsBuff = cast(char*) alloca(totalArgsLength);
-            int j = 0;
+            size_t j = 0;
             foreach (i; 0 .. wargc)
             {
                 immutable size_t wlen = wcslen(wargs[i]);
