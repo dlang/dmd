@@ -44,6 +44,13 @@ enum TestMode
     RUN
 }
 
+enum CaptureOutput
+{
+    STDOUT = 1,
+    STDERR = 2,
+    BOTH = STDOUT|STDERR
+}
+
 struct TestArgs
 {
     TestMode mode;
@@ -63,6 +70,7 @@ struct TestArgs
     // reason for disabling the test (if empty, the test is not disabled)
     string[] disabledPlatforms;
     bool     disabled;
+    CaptureOutput capture;
 }
 
 struct EnvData
@@ -239,6 +247,18 @@ bool gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     if (findTestParameter(file, "POST_SCRIPT", testArgs.postScript))
         testArgs.postScript = replace(testArgs.postScript, "/", to!string(envData.sep));
 
+    string captureOutputStr;
+    findTestParameter(file, "CAPTURE_OUTPUT", captureOutputStr);
+    if (captureOutputStr == "stderr")
+        testArgs.capture = CaptureOutput.STDERR;
+    else if (captureOutputStr == "stdout")
+        testArgs.capture = CaptureOutput.STDOUT;
+    else
+    {
+        enforce(captureOutputStr == "", "invalid CAPTURE_OUTPUT value; should be stdout, stderr, or empty");
+        testArgs.capture = CaptureOutput.BOTH;
+    }
+
     return true;
 }
 
@@ -310,12 +330,24 @@ void removeIfExists(in char[] filename)
         std.file.remove(filename);
 }
 
-string execute(ref File f, string command, bool expectpass, string result_path)
+string execute(ref File f, string command, bool expectpass, string result_path, CaptureOutput capture)
 {
     auto filename = genTempFilename(result_path);
     scope(exit) removeIfExists(filename);
 
-    auto rc = system(command ~ " > " ~ filename ~ " 2>&1");
+    version(Windows)
+        enum DevNull = "NUL:";
+    else
+        enum DevNull = "/dev/null";
+
+    string commandstr;
+    if (capture == CaptureOutput.STDOUT)
+        commandstr = command ~ " > " ~ filename ~ " 2> " ~ DevNull;
+    else if (capture == CaptureOutput.STDERR)
+        commandstr = command ~ " 2> " ~ filename ~ " > " ~ DevNull;
+    else
+        commandstr = command ~ " > " ~ filename ~ " 2>&1";
+    auto rc = system(commandstr);
 
     string output = readText(filename);
     f.writeln(command);
@@ -559,7 +591,7 @@ int main(string[] args)
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
-                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                compile_output = execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path, testArgs.capture);
             }
             else
             {
@@ -570,7 +602,7 @@ int main(string[] args)
 
                     string command = format("%s -conf= -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
                         reqArgs, c, output_dir, filename);
-                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
+                    compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path, testArgs.capture);
                 }
 
                 if (testArgs.mode == TestMode.RUN)
@@ -580,7 +612,7 @@ int main(string[] args)
                             testArgs.requiredArgsForLink, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
-                    execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true, result_path, testArgs.capture);
                 }
             }
 
@@ -612,7 +644,7 @@ int main(string[] args)
                     string command = test_app_dmd;
                     if (testArgs.executeArgs) command ~= " " ~ testArgs.executeArgs;
 
-                    execute(fThisRun, command, true, result_path);
+                    execute(fThisRun, command, true, result_path, testArgs.capture);
                 }
                 else version (linux)
                 {
@@ -621,7 +653,7 @@ int main(string[] args)
                     with (File(script, "w"))
                         write(testArgs.gdbScript);
                     string command = "gdb "~test_app_dmd~" --batch -x "~script;
-                    auto gdb_output = execute(fThisRun, command, true, result_path);
+                    auto gdb_output = execute(fThisRun, command, true, result_path, testArgs.capture);
                     if (testArgs.gdbMatch !is null)
                     {
                         enforce(match(gdb_output, regex(testArgs.gdbMatch)),
@@ -637,7 +669,7 @@ int main(string[] args)
                 f.write("Executing post-test script: ");
                 string prefix = "";
                 version (Windows) prefix = "bash ";
-                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path);
+                execute(f, prefix ~ testArgs.postScript ~ " " ~ thisRunName, true, result_path, testArgs.capture);
             }
 
             foreach (file; toCleanup) collectException(std.file.remove(file));
