@@ -677,7 +677,7 @@ struct TypeFunction : TypeNext
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
-    MATCH callMatch(Expression *ethis, Expressions *toargs, int flag = 0);
+    MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
     enum RET retStyle();
 

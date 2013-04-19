@@ -1141,6 +1141,24 @@ void test9136()
 
 /********************************************************/
 
+struct Test25
+{
+    int f;
+    enum /*Anonymous enum*/
+    {
+        A,
+        B
+    }
+    enum NamedEnum
+    {
+        C,
+        D
+    }
+}
+
+static assert([__traits(allMembers, Test25)] == ["f", "A", "B", "NamedEnum"]);
+/********************************************************/
+
 int main()
 {
     test1();

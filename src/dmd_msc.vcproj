@@ -951,6 +951,10 @@
 					>
 				</File>
 				<File
+					RelativePath=".\backend\divcoeff.c"
+					>
+				</File>
+				<File
 					RelativePath=".\backend\dt.c"
 					>
 				</File>

@@ -533,6 +533,16 @@ TypeAArray *toBuiltinAAType(Type *t)
 #endif
 }
 
+/************** TypeInfo operations ************************************/
+
+// Return true if type is TypeInfo_Class
+bool isTypeInfo_Class(Type *type)
+{
+    return type->ty == Tclass &&
+        (( Type::typeinfo == ((TypeClass*)type)->sym)
+        || Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL));
+}
+
 /************** Pointer operations ************************************/
 
 // Return true if t is a pointer (not a function pointer)
@@ -1623,6 +1633,10 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         else
             return new NullExp(loc, to);
     }
+    // Allow TypeInfo type painting
+    if (isTypeInfo_Class(e->type) && e->type->implicitConvTo(to))
+        return paintTypeOntoLiteral(to, e);
+
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());

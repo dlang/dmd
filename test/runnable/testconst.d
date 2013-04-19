@@ -2116,7 +2116,7 @@ void test5493()
     class C
     {
         int x;
-        this(int i) { x = i; }
+        this(int i) immutable { x = i; }
     }
     C[] cs;
     immutable C ci = new immutable(C)(6);
@@ -2957,6 +2957,17 @@ void test9461()
 
 /************************************/
 
+struct S9209 { int x; }
+
+void bar9209(const S9209*) {}
+
+void test9209() {
+    const f = new S9209(1);
+    bar9209(f);
+}
+
+/************************************/
+
 int main()
 {
     test1();
@@ -3079,6 +3090,7 @@ int main()
     test9046();
     test9090();
     test9461();
+    test9209();
 
     printf("Success\n");
     return 0;
