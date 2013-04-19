@@ -35,9 +35,7 @@ in
     assert(ca.length >= 0);
 
     // Make sure table[] is sorted correctly
-    int j;
-
-    for (j = 1; j < table.length; j++)
+    for (size_t j = 1u; j < table.length; j++)
     {
         auto len1 = table[j - 1].length;
         auto len2 = table[j].length;
@@ -54,14 +52,13 @@ in
 }
 out (result)
 {
-    int i;
     int cj;
 
     //printf("out _d_switch_string()\n");
     if (result == -1)
     {
         // Not found
-        for (i = 0; i < table.length; i++)
+        for (auto i = 0u; i < table.length; i++)
         {
             if (table[i].length == ca.length)
             {   cj = memcmp(table[i].ptr, ca.ptr, ca.length);
@@ -71,8 +68,8 @@ out (result)
     }
     else
     {
-        assert(0 <= result && result < table.length);
-        for (i = 0; 1; i++)
+        assert(0 <= result && cast(size_t)result < table.length);
+        for (auto i = 0u; 1; i++)
         {
             assert(i < table.length);
             if (table[i].length == ca.length)
@@ -182,9 +179,7 @@ in
     assert(ca.length >= 0);
 
     // Make sure table[] is sorted correctly
-    int j;
-
-    for (j = 1; j < table.length; j++)
+    for (size_t j = 1u; j < table.length; j++)
     {
         auto len1 = table[j - 1].length;
         auto len2 = table[j].length;
@@ -201,14 +196,13 @@ in
 }
 out (result)
 {
-    int i;
     int c;
 
     //printf("out _d_switch_ustring()\n");
     if (result == -1)
     {
         // Not found
-        for (i = 0; i < table.length; i++)
+        for (auto i = 0u; i < table.length; i++)
         {
             if (table[i].length == ca.length)
             {   c = memcmp(table[i].ptr, ca.ptr, ca.length * wchar.sizeof);
@@ -218,8 +212,8 @@ out (result)
     }
     else
     {
-        assert(0 <= result && result < table.length);
-        for (i = 0; 1; i++)
+        assert(0 <= result && cast(size_t)result < table.length);
+        for (auto i = 0u; 1; i++)
         {
             assert(i < table.length);
             if (table[i].length == ca.length)
@@ -315,7 +309,7 @@ in
     assert(ca.length >= 0);
 
     // Make sure table[] is sorted correctly
-    for (auto j = 1; j < table.length; j++)
+    for (auto j = 1u; j < table.length; j++)
     {
         auto len1 = table[j - 1].length;
         auto len2 = table[j].length;
@@ -334,7 +328,7 @@ out (result)
     if (result == -1)
     {
         // Not found
-        for (auto i = 0; i < table.length; i++)
+        for (auto i = 0u; i < table.length; i++)
         {
             if (table[i].length == ca.length)
             {   auto c = memcmp(table[i].ptr, ca.ptr, ca.length * dchar.sizeof);
@@ -344,8 +338,8 @@ out (result)
     }
     else
     {
-        assert(0 <= result && result < table.length);
-        for (auto i = 0; 1; i++)
+        assert(0 <= result && cast(size_t)result < table.length);
+        for (auto i = 0u; 1; i++)
         {
             assert(i < table.length);
             if (table[i].length == ca.length)
