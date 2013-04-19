@@ -270,8 +270,17 @@ void vdeprecation(Loc loc, const char *format, va_list ap,
                 const char *p1, const char *p2)
 {
     static const char *header = "Deprecation: ";
+    // 0: don't allow use of deprecated features
+    // 1: silently allow use of deprecated features
+    // 2: warn about the use of deprecated features
     if (global.params.useDeprecated == 0)
+    {
         verror(loc, format, ap, p1, p2, header);
+        // The error will cause a template instantiation to fail,
+        // but it wouldn't get printed by verror() when gagged (bug 9960)
+        if (global.gag)
+            verrorPrint(loc, header, format, ap, p1, p2);
+    }
     else if (global.params.useDeprecated == 2 && !global.gag)
         verrorPrint(loc, header, format, ap, p1, p2);
 }

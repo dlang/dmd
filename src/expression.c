@@ -12343,9 +12343,46 @@ Expression *CmpExp::semantic(Scope *sc)
     Expression *eb1 = e1;
     Expression *eb2 = e2;
 
+    // typeCombine mutates this->type, this->e1, this->e2
     e = typeCombine(sc);
     if (e->op == TOKerror)
         return e;
+
+    // For integer comparisons, ensure the signed-unsigned comparison is safe. (bug 259)
+    if ((op == TOKlt || op == TOKle || op == TOKgt || op == TOKge) &&
+        type && type->isintegral() && t1->isunsigned() != t2->isunsigned())
+    {
+        Expression *ae;
+        Type *a, *b;
+        if (t1->isunsigned())
+        {
+            ae = eb2;
+            a = t2;
+            b = t1;
+        }
+        else
+        {
+            ae = eb1;
+            a = t1;
+            b = t2;
+        }
+        // a is signed, b is unsigned
+        if (a->size() > b->size())
+        {
+            // 1. If the sizeof(signed type) > sizeof(unsigned type), it's safe to cast unsigned to signed
+        }
+        else if (!ae->getIntRange().imin.negative)
+        {
+            // 2. If min(signed value) >= 0, it's safe to cast signed to unsigned
+        }
+        else
+        {
+            // Otherwise, the comparison is in error.
+            // Issue a deprecation warning, since an error causes template instantiations to fail silently.
+            deprecation("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
+                a->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
+        }
+    }
 
     type = Type::tboolean;
 
