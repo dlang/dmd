@@ -271,14 +271,14 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
 {
     TemplateDeclaration *td;
     Objects *tiargs;
-    Expression *ethis;
+    Type *tthis;
     if (e->op == TOKdotti)
     {
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e;
         td     = dti->getTempdecl(sc);
                  dti->ti->semanticTiargs(sc);
         tiargs = dti->ti->tiargs;
-        ethis  = dti->e1;
+        tthis  = dti->e1->type;
         goto L1;
     }
     else if (e->op == TOKdottd)
@@ -286,7 +286,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
         DotTemplateExp *dte = (DotTemplateExp *)e;
         td     = dte->td;
         tiargs = NULL;
-        ethis  = dte->e1;
+        tthis  = dte->e1->type;
         goto L1;
     }
     else if (e->op == TOKimport)
@@ -296,7 +296,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
         if (td)
         {
             tiargs = NULL;
-            ethis  = NULL;
+            tthis  = NULL;
             goto L1;
         }
     }
@@ -304,11 +304,11 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
     {
         td     = ((TemplateExp *)e)->td;
         tiargs = NULL;
-        ethis  = NULL;
+        tthis  = NULL;
     L1:
         assert(td);
         unsigned errors = global.startGagging();
-        FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, tiargs, ethis, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, tiargs, tthis, NULL, 1);
         if (global.endGagging(errors))
             fd = NULL;  // eat "is not a function template" error
         if (fd && fd->type)
@@ -993,7 +993,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
  */
 
 Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
-        Expression *ethis, Expressions *arguments, FuncDeclaration *fd)
+        Type *tthis, Expressions *arguments, FuncDeclaration *fd)
 {
     //printf("functionParameters()\n");
     assert(arguments);
@@ -1019,13 +1019,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             fd->functionSemantic3();
         }
     }
+    bool isCtorCall = fd && fd->needThis() && fd->isCtorDeclaration();
 
     size_t n = (nargs > nparams) ? nargs : nparams;   // n = max(nargs, nparams)
 
     unsigned wildmatch = 0;
-    if (ethis && tf->isWild())
+    if (tthis && tf->isWild() && !isCtorCall)
     {
-        Type *t = ethis->type;
+        Type *t = tthis;
         if (t->isWild())
             wildmatch |= MODwild;
         else if (t->isConst())
@@ -1390,7 +1391,29 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
     }
 
     Type *tret = tf->next;
-    if (wildmatch)
+    if (isCtorCall)
+    {
+        //printf("[%s] fd = %s %s, %d %d %d\n", loc.toChars(), fd->toChars(), fd->type->toChars(),
+        //    wildmatch, tf->isWild(), fd->isolateReturn());
+        if (!tthis)
+        {   assert(sc->intypeof || global.errors);
+            tthis = fd->isThis()->type->addMod(fd->type->mod);
+        }
+        if (tf->isWild() && !fd->isolateReturn())
+        {
+            if (wildmatch)
+                tret = tret->substWildTo(wildmatch);
+            if (!tret->implicitConvTo(tthis))
+            {
+                const char* s1 = tret ->isNaked() ? " mutable" : tret ->modToChars();
+                const char* s2 = tthis->isNaked() ? " mutable" : tthis->modToChars();
+                ::error(loc, "inout constructor %s creates%s object, not%s",
+                        fd->toPrettyChars(), s1, s2);
+            }
+        }
+        tret = tthis;
+    }
+    else if (wildmatch)
     {   /* Adjust function return type based on wildmatch
          */
         //printf("wildmatch = x%x, tret = %s\n", wildmatch, tret->toChars());
@@ -4720,7 +4743,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (cd->ctor)
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4734,10 +4757,9 @@ Lagain:
             if (!arguments)
                 arguments = new Expressions();
             unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, arguments, f);
+            type = functionParameters(loc, sc, tf, type, arguments, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
-            type = type->addMod(tf->nextOf()->mod);
         }
         else
         {
@@ -4755,7 +4777,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, NULL, newargs);
+            f = resolveFuncCall(loc, sc, cd->aggNew, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4766,7 +4788,6 @@ Lagain:
             functionParameters(loc, sc, tf, NULL, newargs, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
-
         }
         else
         {
@@ -4795,7 +4816,7 @@ Lagain:
                 newargs = new Expressions();
             newargs->shift(e);
 
-            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, NULL, newargs);
+            FuncDeclaration *f = resolveFuncCall(loc, sc, sd->aggNew, NULL, tb, newargs);
             if (!f)
                 goto Lerr;
             allocator = f->isNewDeclaration();
@@ -4817,7 +4838,7 @@ Lagain:
 
         FuncDeclaration *f = NULL;
         if (sd->ctor && nargs)
-            f = resolveFuncCall(loc, sc, sd->ctor, NULL, NULL, arguments, 0);
+            f = resolveFuncCall(loc, sc, sd->ctor, NULL, tb, arguments, 0);
         if (f)
         {
             checkDeprecated(sc, f);
@@ -4827,12 +4848,11 @@ Lagain:
             sd->accessCheck(loc, sc, member);
 
             TypeFunction *tf = (TypeFunction *)f->type;
-            type = type->addMod(tf->nextOf()->mod);
 
             if (!arguments)
                 arguments = new Expressions();
             unsigned olderrors = global.errors;
-            functionParameters(loc, sc, tf, NULL, arguments, f);
+            type = functionParameters(loc, sc, tf, type, arguments, f);
             if (olderrors != global.errors)
                 return new ErrorExp();
         }
@@ -7783,6 +7803,7 @@ Expression *CallExp::semantic(Scope *sc)
     Objects *tiargs = NULL;     // initial list of template arguments
     TemplateInstance *tierror = NULL;
     Expression *ethis = NULL;
+    Type *tthis = NULL;
 
 #if LOGSEMANTIC
     printf("CallExp::semantic() %s\n", toChars());
@@ -7964,6 +7985,7 @@ Lagain:
             if (de->e2->op == TOKoverloadset)
             {
                 ethis = de->e1;
+                tthis = de->e1->type;
                 e1 = de->e2;
             }
 
@@ -8042,7 +8064,6 @@ Lagain:
                 }
                 e = new CallExp(loc, e, arguments);
                 e = e->semantic(sc);
-                e->type = e->type->addMod(t1->mod);
                 return e;
             }
 #endif
@@ -8137,7 +8158,7 @@ Lagain:
         }
 
         // Do overload resolution
-        f = resolveFuncCall(loc, sc, s, tiargs, ue1, arguments);
+        f = resolveFuncCall(loc, sc, s, tiargs, ue1 ? ue1->type : NULL, arguments);
         if (!f)
             return new ErrorExp();
         ad = f->toParent2()->isAggregateDeclaration();
@@ -8148,6 +8169,7 @@ Lagain:
             if (ue->e1->op == TOKerror)
                 return ue->e1;
             ethis = ue->e1;
+            tthis = ue->e1->type;
         }
 
         /* Cannot call public functions from inside invariant
@@ -8242,7 +8264,8 @@ Lagain:
                     sc->callSuper |= CSXany_ctor | CSXsuper_ctor;
                 }
 
-                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, NULL, arguments, 0);
+                tthis = cd->type->addMod(sc->func->type->mod);
+                f = resolveFuncCall(loc, sc, cd->baseClass->ctor, NULL, tthis, arguments, 0);
                 if (!f)
                     return new ErrorExp();
                 accessCheck(loc, sc, NULL, f);
@@ -8282,7 +8305,8 @@ Lagain:
                 sc->callSuper |= CSXany_ctor | CSXthis_ctor;
             }
 
-            f = resolveFuncCall(loc, sc, cd->ctor, NULL, NULL, arguments, 0);
+            tthis = cd->type->addMod(sc->func->type->mod);
+            f = resolveFuncCall(loc, sc, cd->ctor, NULL, tthis, arguments, 0);
             if (!f)
                 return new ErrorExp();
             checkDeprecated(sc, f);
@@ -8309,7 +8333,7 @@ Lagain:
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
         {   s = eo->vars->a[i];
-            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, ethis, arguments, 1);
+            FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
             {   if (f)
                     /* Error if match in more than one overload set,
@@ -8418,8 +8442,8 @@ Lagain:
 
                 argExpTypesToCBuffer(&buf, arguments, &hgs);
                 buf.writeByte(')');
-                if (ethis)
-                    ethis->type->modToBuffer(&buf);
+                if (tthis)
+                    tthis->modToBuffer(&buf);
             }
             else
                 buf.writeByte(')');
@@ -8504,6 +8528,7 @@ Lagain:
         accessCheck(loc, sc, NULL, f);
 
         ethis = NULL;
+        tthis = NULL;
 
         if (ve->hasOverloads)
         {
@@ -8518,7 +8543,7 @@ Lagain:
     if (!arguments)
         arguments = new Expressions();
     int olderrors = global.errors;
-    type = functionParameters(loc, sc, tf, ethis, arguments, f);
+    type = functionParameters(loc, sc, tf, tthis, arguments, f);
     if (olderrors != global.errors)
         return new ErrorExp();
 
@@ -10490,14 +10515,14 @@ Expression *AssignExp::semantic(Scope *sc)
     TemplateDeclaration *td;
     Objects *tiargs;
     FuncDeclaration *fd;
-    Expression *ethis;
+    Type *tthis;
     if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
         td     = dti->getTempdecl(sc);
                  dti->ti->semanticTiargs(sc);
         tiargs = dti->ti->tiargs;
-        ethis  = dti->e1;
+        tthis  = dti->e1->type;
         goto L3;
     }
     else if (e1->op == TOKdottd)
@@ -10505,14 +10530,14 @@ Expression *AssignExp::semantic(Scope *sc)
         DotTemplateExp *dte = (DotTemplateExp *)e1;
         td     = dte->td;
         tiargs = NULL;
-        ethis  = dte->e1;
+        tthis  = dte->e1->type;
         goto L3;
     }
     else if (e1->op == TOKtemplate)
     {
         td     = ((TemplateExp *)e1)->td;
         tiargs = NULL;
-        ethis  = NULL;
+        tthis  = NULL;
     L3:
     {
         e2 = e2->semantic(sc);
@@ -10524,11 +10549,11 @@ Expression *AssignExp::semantic(Scope *sc)
         Expressions a;
         a.push(e2);
 
-        fd = resolveFuncCall(loc, sc, td, tiargs, ethis, &a, 1);
+        fd = resolveFuncCall(loc, sc, td, tiargs, tthis, &a, 1);
         if (fd && fd->type)
             goto Lsetter;
 
-        fd = resolveFuncCall(loc, sc, td, tiargs, ethis, NULL, 1);
+        fd = resolveFuncCall(loc, sc, td, tiargs, tthis, NULL, 1);
         if (fd && fd->type)
             goto Lgetter;
     }
@@ -10538,13 +10563,13 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         DotVarExp *dve = (DotVarExp *)e1;
         fd    = dve->var->isFuncDeclaration();
-        ethis = dve->e1;
+        tthis = dve->e1->type;
         goto L4;
     }
     else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
     {
         fd = ((VarExp *)e1)->var->isFuncDeclaration();
-        ethis = NULL;
+        tthis = NULL;
     L4:
     {
         e2 = e2->semantic(sc);
@@ -10557,11 +10582,11 @@ Expression *AssignExp::semantic(Scope *sc)
         Expressions a;
         a.push(e2);
 
-        fd = resolveFuncCall(loc, sc, f, NULL, ethis, &a, 1);
+        fd = resolveFuncCall(loc, sc, f, NULL, tthis, &a, 1);
         if (fd && fd->type)
             goto Lsetter;
 
-        fd = resolveFuncCall(loc, sc, f, NULL, ethis, NULL, 1);
+        fd = resolveFuncCall(loc, sc, f, NULL, tthis, NULL, 1);
         if (fd && fd->type)
             goto Lgetter;
 

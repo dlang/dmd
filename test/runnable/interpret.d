@@ -2855,7 +2855,7 @@ class Test105b: Test105a, ITest105b
 {
     char e;
     int f;
-    this(char _e, int _f, char _a, int _b)
+    this(char _e, int _f, char _a, int _b) pure
     {
         e = _e;
         f = _f;
