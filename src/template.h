@@ -94,10 +94,10 @@ struct TemplateDeclaration : ScopeDsymbol
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
     MATCH leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs);
 
-    MATCH deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs, Expression *ethis, Expressions *fargs, Objects *dedargs);
-    FuncDeclaration *deduceFunctionTemplate(Loc loc, Scope *sc, Objects *tiargs, Expression *ethis, Expressions *fargs, int flags = 0);
+    MATCH deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, Objects *dedargs);
+    FuncDeclaration *deduceFunctionTemplate(Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, int flags = 0);
     Object *declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
-    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Expressions *fargs);
+    FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Type *tthis, Expressions *fargs);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 

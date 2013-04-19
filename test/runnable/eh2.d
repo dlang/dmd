@@ -4,7 +4,7 @@ extern(C) int printf(const char*, ...);
 
 class Abc : Throwable
 {
-    this()
+    this() pure
     {
         super("");
     }
@@ -13,20 +13,20 @@ class Abc : Throwable
 
     synchronized void test()
     {
-	printf("test 1\n");
-	x |= 1;
-	foo();
-	printf("test 2\n");
-	x |= 2;
+        printf("test 1\n");
+        x |= 1;
+        foo();
+        printf("test 2\n");
+        x |= 2;
     }
 
     shared void foo()
     {
-	printf("foo 1\n");
-	x |= 4;
-	throw this;
-	printf("foo 2\n");
-	x |= 8;
+        printf("foo 1\n");
+        x |= 4;
+        throw this;
+        printf("foo 2\n");
+        x |= 8;
     }
 }
 
@@ -41,21 +41,22 @@ struct RefCounted
 
 struct S
 {
-  RefCounted _data;
+    RefCounted _data;
 
-  int get() @property
-  {
-      throw new Exception("");
-  }
+    int get() @property
+    {
+        throw new Exception("");
+    }
 }
 
 void b9438()
 {
-     try {
+    try
+    {
         S s;
         S().get;
-     }
-     catch (Exception e){ }
+    }
+    catch (Exception e){ }
 }
 
 int main()
@@ -67,16 +68,16 @@ int main()
 
     try
     {
-	Abc.x |= 0x20;
-	a.test();
-	Abc.x |= 0x40;
+        Abc.x |= 0x20;
+        a.test();
+        Abc.x |= 0x40;
     }
     catch (shared(Abc) b)
     {
-	Abc.x |= 0x80;
-	printf("Caught %p, x = x%x\n", b, Abc.x);
-	assert(a is b);
-	assert(Abc.x == 0xB5);
+        Abc.x |= 0x80;
+        printf("Caught %p, x = x%x\n", b, Abc.x);
+        assert(a is b);
+        assert(Abc.x == 0xB5);
     }
     printf("Success!\n");
     b9438();
