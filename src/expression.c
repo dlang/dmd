@@ -7053,7 +7053,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          */
         e = new PtrExp(loc, e1);
         e = e->semantic(sc);
-        return e->type->dotExp(sc, e, ident, 0);
+        return e->type->dotExp(sc, e, ident, flag);
     }
     else
     {

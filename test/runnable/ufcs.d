@@ -304,6 +304,19 @@ void test8180()
 }
 
 /*******************************************/
+// 8245
+
+          string toStr8245(immutable(char)* p) { return null; }
+@property string asStr8245(immutable(char)* p) { return null; }
+
+void test8245()
+{
+    immutable(char)* p = "foobar".ptr;
+    p.toStr8245();
+    p.asStr8245;    // Error: no property 'asStr' for type 'immutable(char)'
+}
+
+/*******************************************/
 // 8252
 
 bool f(int x) { return !x; }
@@ -382,6 +395,7 @@ int main()
     test7773();
     test7943();
     test8180();
+    test8245();
     test8252();
     test8453();
     test8503();
