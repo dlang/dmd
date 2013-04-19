@@ -12270,7 +12270,7 @@ Expression *CmpExp::semantic(Scope *sc)
     if (e->op == TOKerror)
         return e;
 
-    // For integer comparisons, ensure the signed-unsigned comparison is safe.
+    // For integer comparisons, ensure the signed-unsigned comparison is safe. (bug 259)
     if ((op == TOKlt || op == TOKle || op == TOKgt || op == TOKge) &&
         type && type->isintegral() && t1->isunsigned() != t2->isunsigned())
     {
@@ -12300,9 +12300,9 @@ Expression *CmpExp::semantic(Scope *sc)
         else
         {
             // Otherwise, the comparison is in error.
-            error("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
+            // Issue a deprecation warning, since an error causes template instantiations to fail silently.
+            deprecation("implicit conversion of '%s' to '%s' is unsafe in '(%s) %s (%s)'",
                 a->toChars(), type->toChars(), eb1->toChars(), Token::toChars(op), eb2->toChars());
-            return new ErrorExp();
         }
     }
 
