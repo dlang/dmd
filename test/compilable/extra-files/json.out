@@ -142,6 +142,7 @@
       "kind" : "constructor",
       "line" : 23,
       "deco" : "FZC4json4Bar2",
+      "originalType" : "()",
       "endline" : 23
      },
      {
@@ -205,6 +206,7 @@
       "kind" : "constructor",
       "line" : 33,
       "deco" : "FiZC4json4Bar3",
+      "originalType" : "(int i)",
       "parameters" : [
        {
         "name" : "i",

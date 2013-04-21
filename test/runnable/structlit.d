@@ -491,6 +491,40 @@ void test15c()
     auto c2 = new immutable C(1);
 }
 
+void test15d()  // Bugzilla 9974
+{
+    class CM { this() {} }
+    auto cm = new CM();
+
+    const class CC { this() {} }
+    const cc = new const CC();
+
+    immutable class CI { this() {} }
+    immutable ci = new immutable CI();
+
+    shared class CS { this() {} }
+    shared cs = new shared CS();
+
+    shared const class CSC { this() {} }
+    shared const csc = new shared const CSC();
+
+
+    struct SM { this(int) {} }
+    auto sm = new SM(1);
+
+    const struct SC { this(int) {} }
+    const sc = new const SC(1);
+
+    immutable struct SI { this(int) {} }
+    immutable si = new immutable SI(1);
+
+    shared struct SS { this(int) {} }
+    shared ss = new shared SS(1);
+
+    shared const struct SSC { this(int) {} }
+    shared const ssc = new shared const SSC(1);
+}
+
 /********************************************/
 
 struct Bug1914a
@@ -873,6 +907,7 @@ int main()
     test15a();
     test15b();
     test15c();
+    test15d();
     test3198and1914();
     test5885();
     test5889();
