@@ -2280,56 +2280,80 @@ code *cdcmp(elem *e,regm_t *pretregs)
 
 L3:
   if ((retregs = (*pretregs & (ALLREGS | mBP))) != 0) // if return result in register
-  {     code *nop = CNIL;
-        regm_t save = regcon.immed.mval;
-        cg = allocreg(&retregs,&reg,TYint);
-        regcon.immed.mval = save;
-        if ((*pretregs & mPSW) == 0 &&
-            (jop == JC || jop == JNC))
+  {
+        if (config.target_cpu >= TARGET_80386 && !flag && !(jop & 0xFF00))
         {
-            cg = cat(cg,getregs(retregs));
-            cg = genregs(cg,0x19,reg,reg);              /* SBB reg,reg  */
-            if (rex)
-                code_orrex(cg, rex);
-            if (flag)
-                ;                                       // cdcond() will handle it
-            else if (jop == JNC)
-            {
-                if (I64)
-                {
-                    cg = gen2(cg,0xFF,modregrmx(3,0,reg));      // INC reg
-                    code_orrex(cg, rex);
-                }
-                else
-                    gen1(cg,0x40 + reg);                 // INC reg
+            regm_t resregs = retregs;
+            if (!I64)
+            {   resregs &= BYTEREGS;
+                if (!resregs)
+                    resregs = BYTEREGS;
             }
-            else
-            {   gen2(cg,0xF7,modregrmx(3,3,reg));        /* NEG reg      */
-                code_orrex(cg, rex);
-            }
-        }
-        else if (I64 && sz == 8)
-        {
-            assert(!flag);
-            cg = movregconst(cg,reg,1,64|8);               // MOV reg,1
-            nop = gennop(nop);
-            cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
-                                                        // MOV reg,0
-            movregconst(cg,reg,0,(*pretregs & mPSW) ? 64|8 : 64);
-            regcon.immed.mval &= ~mask[reg];
+            cg = allocreg(&resregs,&reg,TYint);
+            cg = gen2(cg,0x0F90 + (jop & 0x0F),modregrmx(3,0,reg)); // SETcc reg
+            if (I64 && reg >= 4)
+                code_orrex(cg,REX);
+            genregs(cg,0x0FB6,reg,reg);                 // MOVZX reg,reg
+            if (I64 && sz == 8)
+                code_orrex(cg,REX_W);
+            if (I64 && reg >= 4)
+                code_orrex(cg,REX);
+            *pretregs &= ~mPSW;
+            c = cat3(c,cg,fixresult(e,resregs,pretregs));
         }
         else
         {
-            assert(!flag);
-            cg = movregconst(cg,reg,1,8);               // MOV reg,1
-            nop = gennop(nop);
-            cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
-                                                        // MOV reg,0
-            movregconst(cg,reg,0,(*pretregs & mPSW) ? 8 : 0);
-            regcon.immed.mval &= ~mask[reg];
+            code *nop = CNIL;
+            regm_t save = regcon.immed.mval;
+            cg = allocreg(&retregs,&reg,TYint);
+            regcon.immed.mval = save;
+            if ((*pretregs & mPSW) == 0 &&
+                (jop == JC || jop == JNC))
+            {
+                cg = cat(cg,getregs(retregs));
+                cg = genregs(cg,0x19,reg,reg);              /* SBB reg,reg  */
+                if (rex)
+                    code_orrex(cg, rex);
+                if (flag)
+                    ;                                       // cdcond() will handle it
+                else if (jop == JNC)
+                {
+                    if (I64)
+                    {
+                        cg = gen2(cg,0xFF,modregrmx(3,0,reg));      // INC reg
+                        code_orrex(cg, rex);
+                    }
+                    else
+                        gen1(cg,0x40 + reg);                 // INC reg
+                }
+                else
+                {   gen2(cg,0xF7,modregrmx(3,3,reg));        /* NEG reg      */
+                    code_orrex(cg, rex);
+                }
+            }
+            else if (I64 && sz == 8)
+            {
+                assert(!flag);
+                cg = movregconst(cg,reg,1,64|8);               // MOV reg,1
+                nop = gennop(nop);
+                cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
+                                                            // MOV reg,0
+                movregconst(cg,reg,0,(*pretregs & mPSW) ? 64|8 : 64);
+                regcon.immed.mval &= ~mask[reg];
+            }
+            else
+            {
+                assert(!flag);
+                cg = movregconst(cg,reg,1,8);               // MOV reg,1
+                nop = gennop(nop);
+                cg = genjmp(cg,jop,FLcode,(block *) nop);   // Jtrue nop
+                                                            // MOV reg,0
+                movregconst(cg,reg,0,(*pretregs & mPSW) ? 8 : 0);
+                regcon.immed.mval &= ~mask[reg];
+            }
+            *pretregs = retregs;
+            c = cat3(c,cg,nop);
         }
-        *pretregs = retregs;
-        c = cat3(c,cg,nop);
   }
 ret:
   return cat3(cl,cr,c);
