@@ -199,6 +199,8 @@ typedef struct
         char regstr[6];
         unsigned char val;
         opflag_t ty;
+
+    bool isSIL_DIL_BPL_SPL();
 } REG;
 
 static REG regFp =      { "ST", 0, _st };
@@ -436,6 +438,16 @@ static REG regtab64[] =
 "YMM14", 14,    _ymm,
 "YMM15", 15,    _ymm,
 };
+
+bool REG::isSIL_DIL_BPL_SPL()
+{
+    // Be careful as these have the same val's as AH CH DH BH
+    return ty == _r8 &&
+        ((val == _SIL && strcmp(regstr, "SIL") == 0) ||
+         (val == _DIL && strcmp(regstr, "DIL") == 0) ||
+         (val == _BPL && strcmp(regstr, "BPL") == 0) ||
+         (val == _SPL && strcmp(regstr, "SPL") == 0));
+}
 
 typedef enum {
     ASM_JUMPTYPE_UNSPECIFIED,
@@ -1928,6 +1940,11 @@ printf("usOpcode = %x\n", usOpcode);
                                 pc->Irex |= REX_B;
                                 assert(I64);
                             }
+                            else if (popnd1->base->isSIL_DIL_BPL_SPL())
+                            {
+                                pc->Irex |= REX;
+                                assert(I64);
+                            }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
                             else
@@ -1945,6 +1962,11 @@ printf("usOpcode = %x\n", usOpcode);
                             if (reg & 8)
                             {   reg &= 7;
                                 pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            else if (popnd1->base->isSIL_DIL_BPL_SPL())
+                            {
+                                pc->Irex |= REX;
                                 assert(I64);
                             }
                             if (asmstate.ucItype == ITfloat)
