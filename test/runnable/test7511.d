@@ -103,10 +103,13 @@ class D : C
 
 void test7511c() pure nothrow @safe
 {
+// Disabled for Bigzilla 9952
+/+
     assert((new C()).foo() == 1);
     assert((new D()).foo() == 2);
     static assert(typeof(&C.init.foo).stringof == "int delegate() pure nothrow @safe");
     static assert(typeof(&D.init.foo).stringof == "int delegate() pure nothrow @safe");
++/
 }
 
 /**********************************/
@@ -154,6 +157,8 @@ class D4 : BX!(D4, false)
 
 void test7511d()
 {
+// Disabled for Bigzilla 9952
+/+
     // mutual dependent and attribute inference impure, un-@safe, and may throw is default.
     auto d1 = new D1(10);
     static assert(is(typeof(&d1.B.foo) == int function()));
@@ -177,6 +182,35 @@ void test7511d()
     static assert(is(typeof(&d4.B.foo) == int function() pure nothrow @safe));
     static assert(is(typeof(&d4  .foo) == int delegate() pure nothrow @safe));
     assert(d4.foo() == 10);
++/
+}
+
+/**********************************/
+// 9952
+
+@system void writeln9952(int) {}    // impure throwable
+
+class C9952(T)
+{
+    T foo()
+    {
+        return 2;
+    }
+}
+
+class D9952 : C9952!int
+{
+    override int foo()
+    {
+        writeln9952(super.foo());
+        return 3;
+    }
+}
+
+void test9952()
+{
+    static assert(typeof(&C9952!int.init.foo).stringof == "int delegate()");
+    static assert(typeof(&D9952    .init.foo).stringof == "int delegate()");
 }
 
 /**********************************/
@@ -187,6 +221,7 @@ int main()
     test7511b();
     test7511c();
     test7511d();
+    test9952();
 
     printf("Success\n");
     return 0;
