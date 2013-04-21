@@ -1211,7 +1211,8 @@ private struct Demangle
                     if( num >= 0x20 && num < 0x7F )
                     {
                         put( "'" );
-                        put( __ctfe ? [cast(char)num] : (cast(char*) &num)[0 .. 1] );
+                        char[1] tmp = cast(char)num;
+                        put( tmp[] );
                         put( "'" );
                         return;
                     }
