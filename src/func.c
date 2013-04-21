@@ -275,24 +275,6 @@ void FuncDeclaration::semantic(Scope *sc)
     f = (TypeFunction *)(type);
     size_t nparams = Parameter::dim(f->parameters);
 
-    /* Purity and safety can be inferred for some functions by examining
-     * the function body.
-     */
-    if (fbody &&
-        (isFuncLiteralDeclaration() ||
-         parent->isTemplateInstance() ||
-         ad && ad->parent && ad->parent->isTemplateInstance()))
-    {
-        if (f->purity == PUREimpure)        // purity not specified
-            flags |= FUNCFLAGpurityInprocess;
-
-        if (f->trust == TRUSTdefault)
-            flags |= FUNCFLAGsafetyInprocess;
-
-        if (!f->isnothrow)
-            flags |= FUNCFLAGnothrowInprocess;
-    }
-
     if (storage_class & STCscope)
         error("functions cannot be scope");
 
@@ -822,6 +804,26 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
 Ldone:
+    /* Purity and safety can be inferred for some functions by examining
+     * the function body.
+     */
+    if (fbody &&
+        (isFuncLiteralDeclaration() ||
+         parent->isTemplateInstance() ||
+         ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
+    {
+        /* isVirtualMethod() needs setting correct foverrides
+         */
+        if (f->purity == PUREimpure)        // purity not specified
+            flags |= FUNCFLAGpurityInprocess;
+
+        if (f->trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
+
+        if (!f->isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
+    }
+
     Module::dprogress++;
     semanticRun = PASSsemanticdone;
 
@@ -1771,7 +1773,7 @@ bool FuncDeclaration::functionSemantic()
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
          getFuncTemplateDecl(this) ||
-         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance()))
+         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         return functionSemantic3();
     }
