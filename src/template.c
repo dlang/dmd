@@ -927,7 +927,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
      * as td2.
      */
 
-    TemplateInstance ti(0, ident);      // create dummy template instance
+    TemplateInstance ti(0, NULL, ident);      // create dummy template instance
     Objects dedtypes;
 
 #define LOG_LEASTAS     0
@@ -2120,7 +2120,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         {
             if (!tiargs)
                 tiargs = new Objects();
-            TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+            TemplateInstance *ti = new TemplateInstance(loc, sc->module, td, tiargs);
 
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
@@ -2324,7 +2324,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
      * Now instantiate the template.
      */
     assert(td_best->scope);
-    ti = new TemplateInstance(loc, td_best, tdargs);
+    ti = new TemplateInstance(loc, sc->module, td_best, tdargs);
     ti->semantic(sc, fargs);
     fd_best = ti->toAlias()->isFuncDeclaration();
     if (!fd_best)
@@ -2409,7 +2409,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
 #endif
 
     assert(scope);
-    TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
+    TemplateInstance *ti = new TemplateInstance(loc, sc->module, this, tdargs);
     ti->tinst = sc->tinst;
     {
         ti->tdtypes.setDim(ti->tempdecl->parameters->dim);
@@ -4763,8 +4763,8 @@ Object *TemplateTupleParameter::defaultArg(Loc loc, Scope *sc)
 
 /* ======================== TemplateInstance ================================ */
 
-TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
-    : ScopeDsymbol(NULL)
+TemplateInstance::TemplateInstance(Loc loc, Module* where, Identifier *ident)
+    : ScopeDsymbol(NULL), instantiatedIn(where)
 {
 #if LOG
     printf("TemplateInstance(this = %p, ident = '%s')\n", this, ident ? ident->toChars() : "null");
@@ -4791,8 +4791,8 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
  * template to instantiate.
  */
 
-TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *tiargs)
-    : ScopeDsymbol(NULL)
+TemplateInstance::TemplateInstance(Loc loc, Module* where, TemplateDeclaration *td, Objects *tiargs)
+    : ScopeDsymbol(NULL), instantiatedIn(where)
 {
 #if LOG
     printf("TemplateInstance(this = %p, tempdecl = '%s')\n", this, td->toChars());
@@ -4838,7 +4838,7 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     if (s)
         ti = (TemplateInstance *)s;
     else
-        ti = new TemplateInstance(loc, name);
+        ti = new TemplateInstance(loc, instantiatedIn, name);
 
     ti->tiargs = arraySyntaxCopy(tiargs);
 
@@ -4942,6 +4942,14 @@ void TemplateInstance::trySemantic3(Scope *sc2)
     --nest;
 }
 
+Module* TemplateInstance::getInstantiatingModule() 
+{
+    TemplateInstance* mti = this;
+    while(mti->tinst)
+        mti = mti->tinst;
+    return mti->instantiatedIn;
+}
+
 void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 {
     //printf("TemplateInstance::semantic('%s', this=%p, gag = %d, sc = %p)\n", toChars(), this, global.gag, sc);
@@ -5010,6 +5018,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     hasNestedArgs(tiargs);
 
+    Module *instantiatingModule = getInstantiatingModule();
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
@@ -5031,7 +5041,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         //printf("parent = %s, ti->parent = %s\n", tempdecl->parent->toPrettyChars(), ti->parent->toPrettyChars());
 
         if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
-            goto L1;
+            continue;
 
         /* Template functions may have different instantiations based on
          * "auto ref" parameters.
@@ -5050,20 +5060,23 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                     {
                         if (farg->isLvalue())
                         {   if (!(fparam->storageClass & STCref))
-                                goto L1;                        // auto ref's don't match
+                                continue;                        // auto ref's don't match
                         }
                         else
                         {   if (fparam->storageClass & STCref)
-                                goto L1;                        // auto ref's don't match
+                                continue;                        // auto ref's don't match
                         }
                     }
                 }
             }
         }
 
+        //if(ti->getInstantiatingModule() != instantiatingModule)
+            //continue;
         // It's a match
         inst = ti;
         parent = ti->parent;
+
 
         // If both this and the previous instantiation were speculative,
         // use the number of errors that happened last time.
@@ -5079,19 +5092,16 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             // If the first instantiation had failed, re-run semantic,
             // so that error messages are shown.
             if (inst->errors)
-                goto L1;
+                continue;
             // It had succeeded, mark it is a non-speculative instantiation,
             // and reuse it.
             inst->speculative = 0;
         }
-
 #if LOG
         printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
         return;
 
-     L1:
-        ;
     }
 
     /* So, we need to implement 'this' instance.
@@ -5140,15 +5150,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
         //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
         if (scx && scx->scopesym &&
-            scx->scopesym->members && !scx->scopesym->isTemplateMixin()
+                scx->scopesym->members && !scx->scopesym->isTemplateMixin()
 #if 0 // removed because it bloated compile times
-            /* The problem is if A imports B, and B imports A, and both A
-             * and B instantiate the same template, does the compilation of A
-             * or the compilation of B do the actual instantiation?
-             *
-             * see bugzilla 2500.
-             */
-            && !scx->module->selfImports()
+                /* The problem is if A imports B, and B imports A, and both A
+                 * and B instantiate the same template, does the compilation of A
+                 * or the compilation of B do the actual instantiation?
+                 *
+                 * see bugzilla 2500.
+                 */
+                && !scx->module->selfImports()
 #endif
            )
         {
@@ -5157,10 +5167,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
         else
         {
-            Module *m = (enclosing ? sc : tempdecl->scope)->module->importedFrom;
-            //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
-            a = m->members;
-            if (m->semanticRun >= 3)
+            Module *md = instantiatingModule;
+            assert(md);
+            a = md->members;
+            assert(a);
+            if (md->semanticRun >= 3)
             {
                 dosemantic3 = 1;
             }
@@ -6476,7 +6487,7 @@ char *TemplateInstance::toChars()
 /* ======================== TemplateMixin ================================ */
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs)
-        : TemplateInstance(loc, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
+        : TemplateInstance(loc, NULL, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
                                                   : ((TypeIdentifier *)tqual)->ident)
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");

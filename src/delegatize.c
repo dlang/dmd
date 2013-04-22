@@ -55,7 +55,7 @@ Expression *Expression::toDelegate(Scope *sc, Type *t)
     else
         s = new ReturnStatement(loc, e);
     fld->fbody = s;
-    e = new FuncExp(loc, fld);
+    e = new FuncExp(loc, sc->module, fld);
     e = e->semantic(sc);
     return e;
 }

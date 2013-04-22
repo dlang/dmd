@@ -238,7 +238,7 @@ Expression *UnaExp::op_overload(Scope *sc)
             {
                 ae = resolveOpDollar(sc, ae);
                 Objects *tiargs = opToArg(sc, op);
-                Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, tiargs);
+                Expression *e = new DotTemplateInstanceExp(loc, sc->module, ae->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, ae->arguments);
                 e = e->semantic(sc);
                 return e;
@@ -285,7 +285,7 @@ Expression *UnaExp::op_overload(Scope *sc)
                     a->push(se->upr);
                 }
                 Objects *tiargs = opToArg(sc, op);
-                Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, tiargs);
+                Expression *e = new DotTemplateInstanceExp(loc, sc->module, se->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -351,7 +351,7 @@ Expression *UnaExp::op_overload(Scope *sc)
         if (fd)
         {
             Objects *tiargs = opToArg(sc, op);
-            Expression *e = new DotTemplateInstanceExp(loc, e1, fd->ident, tiargs);
+            Expression *e = new DotTemplateInstanceExp(loc, sc->module, e1, fd->ident, tiargs);
             e = new CallExp(loc, e);
             e = e->semantic(sc);
             return e;
@@ -438,7 +438,7 @@ Expression *CastExp::op_overload(Scope *sc)
 #endif
             Objects *tiargs = new Objects();
             tiargs->push(to);
-            Expression *e = new DotTemplateInstanceExp(loc, e1, fd->ident, tiargs);
+            Expression *e = new DotTemplateInstanceExp(loc, sc->module, e1, fd->ident, tiargs);
             e = new CallExp(loc, e);
             e = e->semantic(sc);
             return e;
@@ -1018,7 +1018,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 a->insert(0, e2);
 
                 Objects *tiargs = opToArg(sc, op);
-                Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, tiargs);
+                Expression *e = new DotTemplateInstanceExp(loc, sc->module, ae->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;
@@ -1067,7 +1067,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
                 }
 
                 Objects *tiargs = opToArg(sc, op);
-                Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, tiargs);
+                Expression *e = new DotTemplateInstanceExp(loc, sc->module, se->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
                 e = e->semantic(sc);
                 return e;

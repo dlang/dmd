@@ -1960,8 +1960,8 @@ Expression *FuncExp::inferType(Type *to, int flag, Scope *sc, TemplateParameters
                 assert(fld);
                 if (!fld->type->nextOf() && tfv->next)
                     fld->treq = to;
-
-                TemplateInstance *ti = new TemplateInstance(loc, td, tiargs);
+                // Not entirely sure about this, is for FuncExp the template declaration always the place of instantiation?
+                TemplateInstance *ti = new TemplateInstance(loc, module, td, tiargs);
                 e = (new ScopeExp(loc, ti))->semantic(td->scope);
 
                 // Reset inference target for the later re-semantic

@@ -2130,7 +2130,7 @@ Dsymbol *Parser::parseMixin()
         }
 
         if (tiargs && token.value == TOKdot)
-        {   TemplateInstance *tempinst = new TemplateInstance(loc, id);
+        {   TemplateInstance *tempinst = new TemplateInstance(loc, mod, id);
             tempinst->tiargs = tiargs;
             if (!tqual)
                 tqual = new TypeInstance(loc, tempinst);
@@ -2475,7 +2475,7 @@ Type *Parser::parseBasicType()
             nextToken();
             if (token.value == TOKnot)
             {   // ident!(template_arguments)
-                TemplateInstance *tempinst = new TemplateInstance(loc, id);
+                TemplateInstance *tempinst = new TemplateInstance(loc, mod, id);
                 nextToken();
                 if (token.value == TOKlparen)
                     // ident!(template_arguments)
@@ -2499,7 +2499,7 @@ Type *Parser::parseBasicType()
                 nextToken();
                 if (token.value == TOKnot)
                 {
-                    TemplateInstance *tempinst = new TemplateInstance(loc, id);
+                    TemplateInstance *tempinst = new TemplateInstance(loc, mod, id);
                     nextToken();
                     if (token.value == TOKlparen)
                         // ident!(template_arguments)
@@ -5504,7 +5504,7 @@ Expression *Parser::parsePrimaryExp()
             {   // identifier!(template-argument-list)
                 TemplateInstance *tempinst;
 
-                tempinst = new TemplateInstance(loc, id);
+                tempinst = new TemplateInstance(loc, mod, id);
                 nextToken();
                 if (token.value == TOKlparen)
                     // ident!(template_arguments)
@@ -6011,7 +6011,7 @@ Expression *Parser::parsePrimaryExp()
                 td->literal = 1;    // it's a template 'literal'
             }
 
-            e = new FuncExp(loc, fd, td);
+            e = new FuncExp(loc, mod, fd, td);
             break;
         }
 
@@ -6043,7 +6043,7 @@ Expression *Parser::parsePostExp(Expression *e)
                     nextToken();
                     if (token.value == TOKnot && peekNext() != TOKis && peekNext() != TOKin)
                     {   // identifier!(template-argument-list)
-                        TemplateInstance *tempinst = new TemplateInstance(loc, id);
+                        TemplateInstance *tempinst = new TemplateInstance(loc, mod, id);
                         Objects *tiargs;
                         nextToken();
                         if (token.value == TOKlparen)
@@ -6052,7 +6052,7 @@ Expression *Parser::parsePostExp(Expression *e)
                         else
                             // ident!template_argument
                             tiargs = parseTemplateArgument();
-                        e = new DotTemplateInstanceExp(loc, e, id, tiargs);
+                        e = new DotTemplateInstanceExp(loc, mod, e, id, tiargs);
                     }
                     else
                         e = new DotIdExp(loc, e, id);
