@@ -2681,7 +2681,8 @@ L1:
 
 /***************************
  * Convert short to long.
- * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64
+ * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64,
+ * OPu64_128, OPs64_128
  */
 
 code *cdshtlng(elem *e,regm_t *pretregs)
@@ -2703,15 +2704,16 @@ code *cdshtlng(elem *e,regm_t *pretregs)
            (I32 && op == OPu32_64)
           )
   {
-        regm_t regm;
-        tym_t tym1;
+        /* Result goes into a register pair.
+         * Zero extend by putting a zero into most significant reg.
+         */
 
         retregs = *pretregs & mLSW;
         assert(retregs);
-        tym1 = tybasic(e->E1->Ety);
+        tym_t tym1 = tybasic(e->E1->Ety);
         c = codelem(e->E1,&retregs,FALSE);
 
-        regm = *pretregs & (mMSW & ALLREGS);
+        regm_t regm = *pretregs & (mMSW & ALLREGS);
         if (regm == 0)                  /* *pretregs could be mES       */
             regm = mMSW & ALLREGS;
         ce = allocreg(&regm,&reg,TYint);
@@ -2759,6 +2761,16 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         }
         c4 = fixresult(e,retregs,pretregs);
         c = cat4(c1,c2,c3,c4);
+  }
+  else if (I64 && op == OPs32_64 && OTrel(e->E1->Eoper) && !e->E1->Ecount)
+  {
+        /* Due to how e1 is calculated, the high 32 bits of the register
+         * are already 0.
+         */
+        retregs = *pretregs;
+        c1 = codelem(e->E1,&retregs,FALSE);
+        c2 = fixresult(e,retregs,pretregs);
+        c = cat(c1,c2);
   }
   else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
             I64 && op == OPs32_64)
