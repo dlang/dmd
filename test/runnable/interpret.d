@@ -3059,6 +3059,30 @@ auto test110 = [Test110f(1, Test110s(1, 2, 3))];
 
 /************************************************/
 
+interface IBug9954 
+{
+    string foo() const;
+}
+
+class Bug9954: IBug9954 
+{
+    string foo() const {return "hello";}
+}
+
+IBug9954 makeIBug9954() 
+{
+    return new Bug9954;
+}
+
+const IBug9954 b9954 = makeIBug9954();
+
+void test9954()
+{
+    assert(b9954.foo() == "hello");
+}
+
+/************************************************/
+
 TypeInfo getTi()
 {
     return typeid(int);
@@ -3186,7 +3210,7 @@ int main()
     test112();
     test6504();
     test8818();
-    
+    test9954();    
     writefln("Success");
     return 0;
 }

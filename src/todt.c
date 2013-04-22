@@ -304,7 +304,8 @@ dt_t **CastExp::toDt(dt_t **pdt)
     {
         if (((TypeClass*)type)->sym->isInterfaceDeclaration())//casting from class to interface
         {
-            ClassDeclaration *from = ((TypeClass*)e1->type)->sym;
+            assert(e1->op == TOKclassreference);
+            ClassDeclaration *from = ((ClassReferenceExp*)e1)->originalClass();
             InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
             int off = 0;
             int isbase = to->isBaseOf(from, &off);
@@ -945,6 +946,16 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
 
 dt_t **ClassReferenceExp::toDt(dt_t **pdt)
 {
+    InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
+    
+    if (to) //Static typeof this literal is an interface. We must add offset to symbol
+    {
+        ClassDeclaration *from = originalClass();
+        int off = 0;
+        int isbase = to->isBaseOf(from, &off);
+        assert(isbase);
+        return toDtI(pdt, off);
+    }      
     return toDtI(pdt, 0);
 }
 
