@@ -2251,6 +2251,35 @@ void test9885()
 }
 
 /******************************************/
+// 9977
+
+void test9977()
+{
+    struct S1(T) { T value; }
+    auto func1(T)(T value) { return value; }
+    static assert(is(S1!int == struct));
+    assert(func1(10) == 10);
+
+    template S2(T) { struct S2 { T value; } }
+    template func2(T) { auto func2(T value) { return value; } }
+    static assert(is(S2!int == struct));
+    assert(func2(10) == 10);
+
+    template X(T) { alias X = T[3]; }
+    static assert(is(X!int == int[3]));
+
+    int a;
+    template Y(T) { alias Y = T[typeof(a)]; }
+    static assert(is(Y!double == double[int]));
+
+    int v = 10;
+    template Z() { alias Z = v; }
+    assert(v == 10);
+    Z!() = 20;
+    assert(v == 20);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2330,6 +2359,7 @@ int main()
     test9837();
     test9874();
     test9885();
+    test9977();
 
     printf("Success\n");
     return 0;

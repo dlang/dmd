@@ -4741,8 +4741,10 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
         }
 
         case TOKtemplate:
-            error("template definitions aren't allowed inside functions");
-            goto Lerror;
+        {   Dsymbol *d = parseTemplateDeclaration(0);
+            s = new ExpStatement(loc, d);
+            break;
+        }
 
         default:
             error("found '%s' instead of statement", token.toChars());
