@@ -3083,6 +3083,108 @@ void test9954()
 
 /************************************************/
 
+enum t111exp1 = 32.0f;
+enum t111exp2 = 32.0;
+enum t111exp3 = 15.0L;
+enum t111exp4 = 1f+999fi;
+enum t111exp5 = 1+999i;
+enum t111exp6 = 1L+999Li;
+
+T pCast(T, T2)(T2 val, size_t idx)
+{
+    return (cast(T*)&val)[idx];
+}
+
+T2 pCastAssign(T, T2)(T2 val, size_t idx, T aval)
+{
+    auto ret = ((cast(T*)&val)[idx] = aval);
+    assert(cast(short)ret == cast(short)aval);
+    return val;
+}
+
+auto t111e1 = pCast!short(t111exp1, 1);
+auto t111e2 = pCast!short(t111exp2, 2);
+auto t111e3 = pCast!short(t111exp3, 2);
+auto t111e4 = pCast!short(t111exp4, 1);
+auto t111e5 = pCast!short(t111exp5, 2);
+auto t111e6 = pCast!short(t111exp6, 2);
+auto t111e7 = pCast!short(t111exp4, 3);
+auto t111e8 = pCast!short(t111exp5, 7);
+auto t111e9 = pCast!short(t111exp6, 9);
+
+auto t111e11 = pCast!byte(t111exp1, 1);
+auto t111e12 = pCast!byte(t111exp2, 2);
+auto t111e13 = pCast!byte(t111exp3, 2);
+auto t111e14 = pCast!byte(t111exp4, 1);
+auto t111e15 = pCast!byte(t111exp5, 2);
+auto t111e16 = pCast!byte(t111exp6, 2);
+auto t111e17 = pCast!byte(t111exp4, 3);
+auto t111e18 = pCast!byte(t111exp5, 14);
+auto t111e19 = pCast!byte(t111exp6, 16);
+static if(t111exp3.sizeof > 10) static assert(!pCast!byte(t111exp3, 11));
+
+auto t111ae1  = pCastAssign!short(t111exp1, 0, -1);
+auto t111ae2  = pCastAssign!short(t111exp2, 2, -1);
+auto t111ae3  = pCastAssign!short(t111exp3, 2, -1);
+auto t111ae4  = pCastAssign!short(t111exp4, 0, -1);
+auto t111ae5  = pCastAssign!short(t111exp5, 2, -1);
+auto t111ae6  = pCastAssign!short(t111exp6, 2, -1);
+auto t111ae7  = pCastAssign!short(t111exp4, 2, -1);
+auto t111ae8  = pCastAssign!short(t111exp5, 6, -1);
+auto t111ae9  = pCastAssign!short(t111exp6, 9, -1);
+auto t111ae11 = pCastAssign!byte(t111exp1,  1, -1);
+auto t111ae12 = pCastAssign!byte(t111exp2,  2, -1);
+auto t111ae13 = pCastAssign!byte(t111exp3,  2, -1);
+auto t111ae14 = pCastAssign!byte(t111exp4,  1, -1);
+auto t111ae15 = pCastAssign!byte(t111exp5,  2, -1);
+auto t111ae16 = pCastAssign!byte(t111exp6,  2, -1);
+auto t111ae17 = pCastAssign!byte(t111exp4,  3, -1);
+auto t111ae18 = pCastAssign!byte(t111exp5, 14, -1);
+auto t111ae19 = pCastAssign!byte(t111exp6, 16, -1);
+
+void test111()
+{
+    assert(t111e1 is pCast!short(t111exp1, 1));
+    assert(t111e2 is pCast!short(t111exp2, 2));
+    assert(t111e3 is pCast!short(t111exp3, 2));
+    assert(t111e4 is pCast!short(t111exp4, 1));
+    assert(t111e5 is pCast!short(t111exp5, 2));
+    assert(t111e6 is pCast!short(t111exp6, 2));
+    assert(t111e7 is pCast!short(t111exp4, 3));
+    assert(t111e8 is pCast!short(t111exp5, 7));
+    assert(t111e9 is pCast!short(t111exp6, 9));
+    assert(t111e11 is pCast!byte(t111exp1, 1));
+    assert(t111e12 is pCast!byte(t111exp2, 2));
+    assert(t111e13 is pCast!byte(t111exp3, 2));
+    assert(t111e14 is pCast!byte(t111exp4, 1));
+    assert(t111e15 is pCast!byte(t111exp5, 2));
+    assert(t111e16 is pCast!byte(t111exp6, 2));
+    assert(t111e17 is pCast!byte(t111exp4, 3));
+    assert(t111e18 is pCast!byte(t111exp5, 14));
+    assert(t111e19 is pCast!byte(t111exp6, 16));   
+    
+    assert(t111ae1  is pCastAssign!short(t111exp1, 0, -1));
+    assert(t111ae2  is pCastAssign!short(t111exp2, 2, -1));
+    assert(t111ae3  is pCastAssign!short(t111exp3, 2, -1));
+    assert(t111ae4  is pCastAssign!short(t111exp4, 0, -1));
+    assert(t111ae5  is pCastAssign!short(t111exp5, 2, -1));
+    assert(t111ae6  is pCastAssign!short(t111exp6, 2, -1));
+    assert(t111ae7  is pCastAssign!short(t111exp4, 2, -1));
+    assert(t111ae8  is pCastAssign!short(t111exp5, 6, -1));
+    assert(t111ae9  is pCastAssign!short(t111exp6, 9, -1));
+    assert(t111ae11 is pCastAssign!byte(t111exp1,  1, -1));
+    assert(t111ae12 is pCastAssign!byte(t111exp2,  2, -1));
+    assert(t111ae13 is pCastAssign!byte(t111exp3,  2, -1));
+    assert(t111ae14 is pCastAssign!byte(t111exp4,  1, -1));
+    assert(t111ae15 is pCastAssign!byte(t111exp5,  2, -1));
+    assert(t111ae16 is pCastAssign!byte(t111exp6,  2, -1));
+    assert(t111ae17 is pCastAssign!byte(t111exp4,  3, -1));
+    assert(t111ae18 is pCastAssign!byte(t111exp5, 14, -1));
+    assert(t111ae19 is pCastAssign!byte(t111exp6, 16, -1)); 
+}
+
+/************************************************/
+
 TypeInfo getTi()
 {
     return typeid(int);
@@ -3207,6 +3309,7 @@ int main()
     test107();
     //test108(); 
     test109();
+    test111();
     test112();
     test6504();
     test8818();

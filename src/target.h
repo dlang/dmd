@@ -23,8 +23,16 @@ struct Target
     static int realpad;         // 'padding' added to the CPU real size to bring it up to realsize
     static int realalignsize;   // alignment for reals
     
+    enum ByteOrder
+    {
+        BigEndian    = 0x00,
+        LittleEndian = 0xff
+    };
+    static ByteOrder byteorder;   // byte order
+    
     static void init();
     static unsigned alignsize(Type* type);
+    static void toTargetByteOrder (void *p, unsigned size);
 };
 
 #endif

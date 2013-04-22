@@ -30,6 +30,7 @@
 #include "template.h"
 #include "port.h"
 #include "ctfe.h"
+#include "target.h"
 
 #define LOG     0
 #define LOGASSIGN 0
@@ -271,6 +272,40 @@ Expression *scrubReturnValue(Loc loc, Expression *e);
 Expression *Expression::ctfeInterpret()
 {
     return optimize(WANTvalue | WANTinterpret);
+}
+
+/*************************************/
+
+bool isFloating(Type* t)
+{
+    switch(t->ty)
+    {
+        case Tfloat32:
+        case Tfloat64:
+        case Tfloat80:
+        case Timaginary32:
+        case Timaginary64:
+        case Timaginary80:
+        case Tcomplex32:
+        case Tcomplex64:
+        case Tcomplex80:
+            return true;
+    }
+    return false;
+}
+
+//We can not ot cast real* to int* because real can contains not a integer count of int (if real.sizeof == 10)
+bool isByteOrShort(Type* t)
+{
+    switch(t->ty)
+    {
+        case Tint8:
+        case Tuns8:
+        case Tint16:
+        case Tuns16:
+            return true;
+    }
+    return false;
 }
 
 /*************************************
@@ -2493,6 +2528,349 @@ VarDeclaration * findParentVar(Expression *e)
     return v;
 }
 
+bool isIndexFloatPtrCast(Expression *e, InterState *istate, Expression **floatexp, Type** target, sinteger_t *idx)
+{
+    if (e->op != TOKindex) return false;
+    IndexExp* ie = (IndexExp*)e;
+    //printf("%s: %d\n", ie->toChars(), ie->e1->op == TOKcast && ie->e1->type->ty == Tpointer);
+    if (ie->e1->op == TOKcast && ie->e1->type->ty == Tpointer && isByteOrShort(ie->e1->type->nextOf()) && (((CastExp*)ie->e1)->e1->op == TOKsymoff))
+    {
+        Expression *eidx = ie->e2->interpret(istate);
+        if (exceptionOrCantInterpret(eidx))
+            return false;
+        *idx = eidx->toInteger();
+        Expression *e1 = ((CastExp*)ie->e1)->e1;
+        Expression *e2 = ((SymOffExp*)((CastExp*)ie->e1)->e1)->var->isVarDeclaration()->getValue()->interpret(istate);
+        if (exceptionOrCantInterpret(e2))
+            return false;
+        *floatexp = e2;
+        *target = ie->e1->type->nextOf();
+        return true;
+    }
+    return false;
+}
+
+template<class T>
+union Caster
+{
+    char bytes[sizeof(T)];
+    T val;
+};
+
+//Try to evaluate (cast(to)cast(void*)from)[idx]
+Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx, Expression* assignval)
+{
+    if (!isFloating(from->type)) return NULL;
+    d_uns64 sz = to->size();
+    if (sz*idx >= from->type->size())
+    {
+        from->error("%d index out of bounds (max: %d)", (int)idx, (from->type->size()/sz)-1);
+        return EXP_CANT_INTERPRET;
+    }
+    
+    switch(from->type->ty)
+    {
+        case Tfloat32:
+        case Timaginary32:
+        {
+            Caster<d_float32> cc;
+            cc.val = ((RealExp*)from)->value;
+            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            d_uns64 ival = -1;
+            if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                ((RealExp*)from)->value = cc.val;
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+        case Tfloat64:
+        case Timaginary64:
+        {
+            Caster<d_float64> cc;
+            cc.val = ((RealExp*)from)->value;
+            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            d_uns64 ival = -1;
+            if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                ((RealExp*)from)->value = cc.val;
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+        case Tfloat80:
+        case Timaginary80:
+        {
+            Caster<d_float80> cc;
+            cc.val = ((RealExp*)from)->value;
+            Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+            assert(!((Target::realsize-Target::realpad)%2)); //realsize is an even number
+            d_uns64 ival = -1;
+            if (sz*idx >= (Target::realsize-Target::realpad))
+            {
+                ival = 0;
+                if (assignval)
+                {
+                    from->error("can not assign integer value to real padding space");
+                    return EXP_CANT_INTERPRET;
+                }
+            }
+            else if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+                ((RealExp*)from)->value = cc.val;
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+        case Tcomplex32:
+        {
+            Caster<d_float32> cc;
+            bool accessim = false;
+            if (sz*idx >= from->type->size()/2)
+            {
+                accessim = true;
+                cc.val = cimagl(((ComplexExp*)from)->value);
+                idx -= from->type->size()/(2*sz);
+            }
+            else
+            {
+                cc.val = creall(((ComplexExp*)from)->value);
+            }
+            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            d_uns64 ival = -1;
+            if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                if (accessim)
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 
+                }
+                else
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[0] = cc.val; 
+                }
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+        case Tcomplex64:
+        {
+            Caster<d_float64> cc;
+            
+            bool accessim = false;
+            if (sz*idx >= from->type->size()/2)
+            {
+                accessim = true;
+                cc.val = cimagl(((ComplexExp*)from)->value);
+                idx -= from->type->size()/(2*sz);
+            }
+            else
+            {
+                cc.val = creall(((ComplexExp*)from)->value);
+            }
+            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            d_uns64 ival = -1;
+            if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                if (accessim)
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 
+                }
+                else
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[0] = cc.val; 
+                }
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+        case Tcomplex80:
+        {
+            Caster<d_float80> cc;
+            
+            bool accessim = false;
+            if (sz*idx >= from->type->size()/2)
+            {
+                accessim = true;
+                cc.val = cimagl(((ComplexExp*)from)->value);
+                idx -= from->type->size()/(2*sz);
+            }
+            else
+            {
+                cc.val = creall(((ComplexExp*)from)->value);
+            }
+            Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+            assert(!((Target::realsize-Target::realpad)%2)); //realsize is an even number
+            d_uns64 ival = -1;
+            if (sz*idx >= (Target::realsize-Target::realpad))
+            {
+                ival = 0;
+                if (assignval)
+                {
+                    from->error("can not assign integer value to real padding space");
+                    return EXP_CANT_INTERPRET;
+                }
+            }
+            else if (sz == 2)
+            {
+                if (assignval)
+                {
+                    d_uns16 aval = assignval->toInteger();
+                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    ((d_uns16*)&cc.bytes)[idx] = aval;
+                }
+                ival = ((d_uns16*)&cc.bytes)[idx];
+                Target::toTargetByteOrder(&ival, sizeof(sz));
+            }
+            else if (sz == 1)
+            {
+                if (assignval)
+                {
+                    cc.bytes[idx] = assignval->toInteger();
+                }
+                ival = cc.bytes[idx];
+            }
+            else
+            {
+                assert(0);
+            }
+            
+            if (assignval)
+            {
+                Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+                if (accessim)
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 
+                }
+                else
+                {
+                    ((real_t *)&((ComplexExp*)from)->value)[0] = cc.val; 
+                }
+            }
+            return new IntegerExp(from->loc, ival, to);
+        }
+    }
+    return NULL;
+} 
 
 Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post)
 {
@@ -2507,6 +2885,26 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         return returnValue;
     }
     ++CtfeStatus::numAssignments;
+    
+    {
+        Expression *floatexp;
+        Type* target;
+        sinteger_t indx;
+        if (isIndexFloatPtrCast(this->e1, istate, &floatexp, &target, &indx))
+        {
+            Expression *ae = this->e2->interpret(istate);
+            if (exceptionOrCantInterpret(ae))
+                return ae;
+            if (!ae->type->isintegral())
+            {
+                error("can not assign %s value to %s type", ae->toChars(), target->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            Expression *ret = tryReinterpretPointerCast(floatexp, target, indx, ae);
+            if (ret) return ret;  
+        }
+    }
+    
     /* Before we begin, we need to know if this is a reference assignment
      * (dynamic array, AA, or class) or a value assignment.
      * Determining this for slice assignments are tricky: we need to know
@@ -4252,6 +4650,17 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
     if (this->e1->type->toBasetype()->ty == Tpointer)
     {
+        {
+            Expression *floatexp;
+            Type* target;
+            sinteger_t indx;
+            if (isIndexFloatPtrCast(this, istate, &floatexp, &target, &indx))
+            {
+                Expression *ret = tryReinterpretPointerCast(floatexp, target, indx, NULL);
+                if (ret) return ret;  
+            }
+        } 
+
         // Indexing a pointer. Note that there is no $ in this case.
         e1 = this->e1->interpret(istate);
         if (exceptionOrCantInterpret(e1))

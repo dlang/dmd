@@ -17,6 +17,16 @@ int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
+Target::ByteOrder Target::byteorder;
+
+Target::ByteOrder currentByteOrder()
+{
+    const int probe = 0xff;
+    return (Target::ByteOrder)(*(unsigned char*)&probe);
+}
+
+
+
 
 
 void Target::init()
@@ -57,6 +67,8 @@ void Target::init()
             realalignsize = 16;
         }
     }
+    
+    byteorder = currentByteOrder();
 }
 
 unsigned Target::alignsize (Type* type)
@@ -90,5 +102,19 @@ unsigned Target::alignsize (Type* type)
             break;
     }
     return type->size(0);
+}
+
+void Target::toTargetByteOrder (void *p, unsigned size)
+{
+    if(byteorder != currentByteOrder())
+    {
+        char* c = (char*)p;
+        for(unsigned i=0; i<size/2; ++i)
+        {
+            char tmp = c[i];
+            c[i] = c[size - 1 - i];
+            c[size - 1 - i] = c[i];
+        }
+    }
 }
 
