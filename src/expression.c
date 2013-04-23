@@ -6843,38 +6843,6 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
 
 //{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
 
-    /* Special case: rewrite this.id and super.id
-     * to be classtype.id and baseclasstype.id
-     * if we have no this pointer.
-     */
-    if ((e1->op == TOKthis || e1->op == TOKsuper) && !hasThis(sc))
-    {
-        if (AggregateDeclaration *ad = sc->getStructClassScope())
-        {
-            if (ClassDeclaration *cd = ad->isClassDeclaration())
-            {
-                if (e1->op == TOKthis)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, cd->type, ident);
-                    return die->semanticY(sc, flag);
-                }
-                else if (cd->baseClass && e1->op == TOKsuper)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, cd->baseClass->type, ident);
-                    return die->semanticY(sc, flag);
-                }
-            }
-            else if (StructDeclaration *sd = ad->isStructDeclaration())
-            {
-                if (e1->op == TOKthis)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, sd->type, ident);
-                    return die->semanticY(sc, flag);
-                }
-            }
-        }
-    }
-
     Expression *e = semanticX(sc);
     if (e != this)
         return e;
