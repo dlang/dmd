@@ -634,6 +634,24 @@ void test9058()
 }
 
 /************************************/
+// 9957
+
+void test9957()
+{
+    enum float[3][1] A = [[1.0, 2.0, 3.0]];
+    auto a = A[0].ptr;
+    assert(a[0] == 1);
+    assert(a[1] == 2);
+    assert(a[2] == 3);
+
+    enum float[3] B = [1.0, 2.0, 3.0];
+    auto b = B.ptr;
+    assert(b[0] == 1);
+    assert(b[1] == 2);
+    assert(b[2] == 3);
+}
+
+/************************************/
 
 int main()
 {
@@ -644,6 +662,7 @@ int main()
     test8400();
     test8939();
     test9058();
+    test9957();
 
     printf("Success\n");
     return 0;
