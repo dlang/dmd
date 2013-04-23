@@ -1,7 +1,7 @@
 
 /*
  * Copyright (c) 1992-1999 by Symantec
- * Copyright (c) 1999-2012 by Digital Mars
+ * Copyright (c) 1999-2013 by Digital Mars
  * All Rights Reserved
  * http://www.digitalmars.com
  * Written by Mike Cote, John Micco and Walter Bright
@@ -199,6 +199,8 @@ typedef struct
         char regstr[6];
         unsigned char val;
         opflag_t ty;
+
+    bool isSIL_DIL_BPL_SPL();
 } REG;
 
 static REG regFp =      { "ST", 0, _st };
@@ -436,6 +438,16 @@ static REG regtab64[] =
 "YMM14", 14,    _ymm,
 "YMM15", 15,    _ymm,
 };
+
+bool REG::isSIL_DIL_BPL_SPL()
+{
+    // Be careful as these have the same val's as AH CH DH BH
+    return ty == _r8 &&
+        ((val == _SIL && strcmp(regstr, "SIL") == 0) ||
+         (val == _DIL && strcmp(regstr, "DIL") == 0) ||
+         (val == _BPL && strcmp(regstr, "BPL") == 0) ||
+         (val == _SPL && strcmp(regstr, "SPL") == 0));
+}
 
 typedef enum {
     ASM_JUMPTYPE_UNSPECIFIED,
@@ -1119,7 +1131,7 @@ STATIC opflag_t asm_determine_operand_flags(OPND *popnd)
 
         // If specified 'offset' or 'segment' but no symbol
         if ((popnd->bOffset || popnd->bSeg) && !popnd->s)
-            asmerr(EM_bad_addr_mode);           // illegal addressing mode
+            error(asmstate.loc, "specified 'offset' or 'segment' but no symbol");
 
         if (asmstate.ucItype == ITfloat)
             return asm_determine_float_flags(popnd);
@@ -1928,6 +1940,11 @@ printf("usOpcode = %x\n", usOpcode);
                                 pc->Irex |= REX_B;
                                 assert(I64);
                             }
+                            else if (popnd1->base->isSIL_DIL_BPL_SPL())
+                            {
+                                pc->Irex |= REX;
+                                assert(I64);
+                            }
                             if (asmstate.ucItype == ITfloat)
                                 pc->Irm += reg;
                             else
@@ -1945,6 +1962,11 @@ printf("usOpcode = %x\n", usOpcode);
                             if (reg & 8)
                             {   reg &= 7;
                                 pc->Irex |= REX_B;
+                                assert(I64);
+                            }
+                            else if (popnd1->base->isSIL_DIL_BPL_SPL())
+                            {
+                                pc->Irex |= REX;
                                 assert(I64);
                             }
                             if (asmstate.ucItype == ITfloat)
@@ -2272,7 +2294,7 @@ ILLEGAL_ADDRESS_ERROR:
             printf("Invalid addr because /%s/\n", psz);
 #endif
 
-            asmerr(EM_bad_addr_mode);           // illegal addressing mode
+            error(asmstate.loc, "cannot have two symbols in addressing mode");
         }
         else if (o2->s)
             o1->s = o2->s;
@@ -2627,9 +2649,10 @@ STATIC void asm_make_modrm_byte(
             assert(d);
             if (d->isDataseg() || d->isCodeseg())
             {
-                if ((I32 && amod == _addr16) ||
-                    (I16 && amod == _addr32))
-                    asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                if (I32 && amod == _addr16)
+                    error(asmstate.loc, "cannot have 16 bit addressing mode in 32 bit code");
+                else if (I16 && amod == _addr32)
+                    error(asmstate.loc, "cannot have 32 bit addressing mode in 16 bit code");
                 goto DATA_REF;
             }
             mrmb.modregrm.rm = BPRM;
@@ -2722,16 +2745,16 @@ STATIC void asm_make_modrm_byte(
             mrmb.modregrm.rm = 0x5;
         else if (popnd->pregDisp2 ||
                  popnd->uchMultiplier ||
-                 popnd->pregDisp1->val == _ESP)
+                 (popnd->pregDisp1->val & NUM_MASK) == _ESP)
         {
             if (popnd->pregDisp2)
             {   if (popnd->pregDisp2->val == _ESP)
-                    asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                    error(asmstate.loc, "ESP cannot be scaled index register");
             }
             else
             {   if (popnd->uchMultiplier &&
                     popnd->pregDisp1->val ==_ESP)
-                    asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                    error(asmstate.loc, "ESP cannot be scaled index register");
                 bDisp = TRUE;
             }
 
@@ -2740,10 +2763,12 @@ STATIC void asm_make_modrm_byte(
             if (bDisp)
             {
                 if (!popnd->uchMultiplier &&
-                    popnd->pregDisp1->val==_ESP)
+                    (popnd->pregDisp1->val & NUM_MASK) == _ESP)
                 {
-                    sib.sib.base = popnd->pregDisp1->val;
+                    sib.sib.base = 4;           // _ESP or _R12
                     sib.sib.index = 0x4;
+                    if (popnd->pregDisp1->val & NUM_MASKR)
+                        pc->Irex |= REX_B;
                 }
                 else
                 {
@@ -2754,7 +2779,7 @@ STATIC void asm_make_modrm_byte(
                     if (popnd->pregDisp2)
                     {
                         if (popnd->pregDisp2->val != _EBP)
-                            asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                            error(asmstate.loc, "EBP cannot be base register");
                     }
                     else
                     {   mrmb.modregrm.mod = 0x0;
@@ -2767,7 +2792,7 @@ STATIC void asm_make_modrm_byte(
             }
             else
             {
-                sib.sib.base = popnd->pregDisp1->val;
+                sib.sib.base = popnd->pregDisp1->val & NUM_MASK;
                 if (popnd->pregDisp1->val & NUM_MASKR)
                     pc->Irex |= REX_B;
                 //
@@ -2791,7 +2816,7 @@ STATIC void asm_make_modrm_byte(
                     bModset = TRUE;
                 }
 
-                sib.sib.index = popnd->pregDisp2->val;
+                sib.sib.index = popnd->pregDisp2->val & NUM_MASK;
                 if (popnd->pregDisp2->val & NUM_MASKR)
                     pc->Irex |= REX_X;
 
@@ -2805,7 +2830,7 @@ STATIC void asm_make_modrm_byte(
                 case 8: sib.sib.ss = 3; break;
 
                 default:
-                    asmerr(EM_bad_addr_mode);           // illegal addressing mode
+                    error(asmstate.loc, "scale factor must be one of 0,1,2,4,8");
                     break;
             }
         }
@@ -2813,16 +2838,9 @@ STATIC void asm_make_modrm_byte(
         {   unsigned rm;
 
             if (popnd->uchMultiplier)
-                asmerr(EM_bad_addr_mode);               // illegal addressing mode
-            switch (popnd->pregDisp1->val & NUM_MASK)
+                error(asmstate.loc, "scale factor not allowed");
+            switch (popnd->pregDisp1->val & (NUM_MASKR | NUM_MASK))
             {
-                case _EAX:      rm = 0; break;
-                case _ECX:      rm = 1; break;
-                case _EDX:      rm = 2; break;
-                case _EBX:      rm = 3; break;
-                case _ESI:      rm = 6; break;
-                case _EDI:      rm = 7; break;
-
                 case _EBP:
                     if (!popnd->disp && !s)
                     {
@@ -2833,9 +2851,13 @@ STATIC void asm_make_modrm_byte(
                     rm = 5;
                     break;
 
-                default:
-                    asmerr(EM_bad_addr_mode);   // illegal addressing mode
+                case _ESP:
+                    error(asmstate.loc, "[ESP] addressing mode not allowed");
                     rm = 0;                     // no uninitialized data
+                    break;
+
+                default:
+                    rm = popnd->pregDisp1->val & NUM_MASK;
                     break;
             }
             if (popnd->pregDisp1->val & NUM_MASKR)
@@ -3484,17 +3506,14 @@ STATIC code *asm_da_parse(OP *pop)
     code *clst = NULL;
 
     while (1)
-    {   code *c;
-
+    {
         if (tok_value == TOKidentifier)
         {
-            LabelDsymbol *label;
-
-            label = asmstate.sc->func->searchLabel(asmtok->ident);
+            LabelDsymbol *label = asmstate.sc->func->searchLabel(asmtok->ident);
             if (!label)
                 error(asmstate.loc, "label '%s' not found", asmtok->ident->toChars());
 
-            c = code_calloc();
+            code *c = code_calloc();
             c->Iop = ASM;
             c->Iflags = CFaddrsize;
             c->IFL1 = FLblockoff;
@@ -3503,7 +3522,7 @@ STATIC code *asm_da_parse(OP *pop)
             clst = cat(clst,c);
         }
         else
-            asmerr(EM_bad_addr_mode);   // illegal addressing mode
+            error(asmstate.loc, "label expected as argument to DA pseudo-op"); // illegal addressing mode
         asm_token();
         if (tok_value != TOKcomma)
             break;

@@ -188,7 +188,7 @@ void FuncDeclaration::semantic(Scope *sc)
     userAttributes = sc->userAttributes;
 
     if (!originalType)
-        originalType = type;
+        originalType = type->syntaxCopy();
     if (!type->deco)
     {
         sc = sc->push();
@@ -203,7 +203,26 @@ void FuncDeclaration::semantic(Scope *sc)
         if (tf->trust == TRUSTtrusted)  sc->stc |= STCtrusted;
 
         if (isCtorDeclaration())
+        {
             sc->flags |= SCOPEctor;
+
+            Type *tret;
+            if (!ad || parent->isUnionDeclaration())
+            {
+                error("constructors are only for class or struct definitions");
+                tret = Type::tvoid;
+            }
+            else
+            {   tret = ad->handle;
+                assert(tret);
+                tret = tret->addStorageClass(storage_class | sc->stc);
+                tret = tret->addMod(type->mod);
+            }
+            tf->next = tret;
+
+            if (ad && ad->isStructDeclaration())
+                sc->stc |= STCref;
+        }
 
         sc->linkage = linkage;
 
@@ -274,24 +293,6 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     f = (TypeFunction *)(type);
     size_t nparams = Parameter::dim(f->parameters);
-
-    /* Purity and safety can be inferred for some functions by examining
-     * the function body.
-     */
-    if (fbody &&
-        (isFuncLiteralDeclaration() ||
-         parent->isTemplateInstance() ||
-         ad && ad->parent && ad->parent->isTemplateInstance()))
-    {
-        if (f->purity == PUREimpure)        // purity not specified
-            flags |= FUNCFLAGpurityInprocess;
-
-        if (f->trust == TRUSTdefault)
-            flags |= FUNCFLAGsafetyInprocess;
-
-        if (!f->isnothrow)
-            flags |= FUNCFLAGnothrowInprocess;
-    }
 
     if (storage_class & STCscope)
         error("functions cannot be scope");
@@ -822,6 +823,26 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
 Ldone:
+    /* Purity and safety can be inferred for some functions by examining
+     * the function body.
+     */
+    if (fbody &&
+        (isFuncLiteralDeclaration() ||
+         parent->isTemplateInstance() ||
+         ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
+    {
+        /* isVirtualMethod() needs setting correct foverrides
+         */
+        if (f->purity == PUREimpure)        // purity not specified
+            flags |= FUNCFLAGpurityInprocess;
+
+        if (f->trust == TRUSTdefault)
+            flags |= FUNCFLAGsafetyInprocess;
+
+        if (!f->isnothrow)
+            flags |= FUNCFLAGnothrowInprocess;
+    }
+
     Module::dprogress++;
     semanticRun = PASSsemanticdone;
 
@@ -1771,7 +1792,7 @@ bool FuncDeclaration::functionSemantic()
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
          getFuncTemplateDecl(this) ||
-         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance()))
+         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         return functionSemantic3();
     }
@@ -3868,32 +3889,12 @@ void CtorDeclaration::semantic(Scope *sc)
     sc->stc &= ~STCstatic;              // not a static constructor
     sc->flags |= SCOPEctor;
 
-    parent = sc->parent;
-    Dsymbol *parent = toParent2();
-    Type *tret;
-    AggregateDeclaration *ad = parent->isAggregateDeclaration();
-    if (!ad || parent->isUnionDeclaration())
-    {
-        error("constructors are only for class or struct definitions");
-        tret = Type::tvoid;
-    }
-    else
-    {   tret = ad->handle;
-        assert(tret);
-        tret = tret->addStorageClass(storage_class | sc->stc);
-        tret = tret->addMod(type->mod);
-    }
-    tf->next = tret;
-    if (!originalType)
-        originalType = type->syntaxCopy();
-    type = type->semantic(loc, sc);
-
-    if (ad && ad->isStructDeclaration())
-        ((TypeFunction *)type)->isref = 1;
-
     FuncDeclaration::semantic(sc);
 
     sc->pop();
+
+    Dsymbol *parent = toParent2();
+    AggregateDeclaration *ad = parent->isAggregateDeclaration();
 
     /* See if it's the default constructor
      * But, template constructor should not become a default constructor.

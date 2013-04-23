@@ -3946,6 +3946,9 @@ void test53()
 	0x49, 0x8D, 0x44, 0x05, 0x12,    			// lea	RAX,012h[RAX][R13]
 	0x49, 0x8D, 0x84, 0x05, 0x34, 0x12, 0x00, 0x00, 	// lea	RAX,01234h[RAX][R13]
 	0x49, 0x8D, 0x84, 0x05, 0x78, 0x56, 0x34, 0x12, 	// lea	RAX,012345678h[RAX][R13]
+
+	0x48, 0x8D, 0x04, 0x24,       	// lea	RAX,[RSP]
+	0x49, 0x8D, 0x04, 0x24,       	// lea	RAX,[R12]
     ];
 
     asm
@@ -4007,6 +4010,9 @@ void test53()
 	lea RAX, [R13+RAX+0x12];
 	lea RAX, [R13+RAX+0x1234];
 	lea RAX, [R13+RAX+0x1234_5678];
+
+	lea RAX, [RSP];
+	lea RAX, [R12];
 
 L1:	pop	RAX	;
 	mov	p[RBP],RAX ;
@@ -6491,6 +6497,44 @@ L1:     pop     RAX;
 
 /****************************************************/
 
+void test9965()
+{
+    ubyte* p;
+    static ubyte data[] =
+    [
+	0xB7, 0x01,             // mov	BH,1
+	0x40, 0xB6, 0x01,       // mov	SIL,1
+	0x40, 0xB7, 0x01,       // mov	DIL,1
+	0x40, 0xB5, 0x01,       // mov	BPL,1
+	0x40, 0xB4, 0x01,       // mov	SPL,1
+	0x41, 0xB0, 0x01,       // mov	R8B,1
+    ];
+
+    asm
+    {
+        call L1;
+
+	mov BH, 1;
+	mov SIL, 1;
+	mov DIL, 1;
+	mov BPL, 1;
+	mov SPL, 1;
+	mov R8B, 1;
+
+L1:     pop     RAX;
+        mov     p[RBP],RAX;
+    }
+
+    foreach (ref i, b; data)
+    {
+        // printf("data[%d] = 0x%02x, should be 0x%02x\n", i, p[i], b);
+        assert(p[i] == b);
+    }
+    assert(p[data.length] == 0x58); // pop RAX
+}
+
+/****************************************************/
+
 int main()
 {
     printf("Testing iasm64.d\n");
@@ -6558,6 +6602,7 @@ int main()
     test2941();
     test9866();
     testxadd();
+    test9965();
 
     printf("Success\n");
     return 0;

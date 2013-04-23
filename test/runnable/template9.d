@@ -392,16 +392,26 @@ static assert(is(typeof(bug4953(3))));
 /**********************************/
 // 5886 & 5393
 
-struct K5886 {
-    void get1(this T)() const {
+struct K5886
+{
+    void get1(this T)() const
+    {
         pragma(msg, T);
     }
-    void get2(int N=4, this T)() const {
+    void get2(int N=4, this T)() const
+    {
         pragma(msg, N, " ; ", T);
+    }
+    void test() const
+    {
+        get1;       // OK
+        get2;       // OK
+        get2!8;     // NG
     }
 }
 
-void test5886() {
+void test5886()
+{
     K5886 km;
     const(K5886) kc;
     immutable(K5886) ki;
@@ -1164,6 +1174,25 @@ void test7563()
     auto test = new Test7563;
     pragma(msg, typeof(test.test!(int, true)).stringof);
     pragma(msg, typeof(test.test!(int)).stringof); // Error: expression (test.test!(int)) has no type
+}
+
+/**********************************/
+// 7572
+
+class F7572
+{
+    Tr fn7572(Tr, T...)(T t) { return 1; }
+}
+Tr Fn7572(Tr, T...)(T t) { return 2; }
+
+void test7572()
+{
+    F7572 f = new F7572();
+    int delegate() dg = &f.fn7572!int;
+    assert(dg() == 1);
+
+    int function() fn = &Fn7572!int;
+    assert(fn() == 2);
 }
 
 /**********************************/
@@ -2251,6 +2280,35 @@ void test9885()
 }
 
 /******************************************/
+// 9977
+
+void test9977()
+{
+    struct S1(T) { T value; }
+    auto func1(T)(T value) { return value; }
+    static assert(is(S1!int == struct));
+    assert(func1(10) == 10);
+
+    template S2(T) { struct S2 { T value; } }
+    template func2(T) { auto func2(T value) { return value; } }
+    static assert(is(S2!int == struct));
+    assert(func2(10) == 10);
+
+    template X(T) { alias X = T[3]; }
+    static assert(is(X!int == int[3]));
+
+    int a;
+    template Y(T) { alias Y = T[typeof(a)]; }
+    static assert(is(Y!double == double[int]));
+
+    int v = 10;
+    template Z() { alias Z = v; }
+    assert(v == 10);
+    Z!() = 20;
+    assert(v == 20);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2297,6 +2355,7 @@ int main()
     test7359();
     test7416();
     test7563();
+    test7572();
     test7580();
     test7585();
     test7671();
@@ -2330,6 +2389,7 @@ int main()
     test9837();
     test9874();
     test9885();
+    test9977();
 
     printf("Success\n");
     return 0;
