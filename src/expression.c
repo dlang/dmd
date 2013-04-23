@@ -299,6 +299,16 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
             tthis  = NULL;
             goto L1;
         }
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->semanticRun)
+        {
+            //assert(ti->needsTypeInference(sc));
+            td     = ti->tempdecl;
+                     ti->semanticTiargs(sc);
+            tiargs = ti->tiargs;
+            tthis  = NULL;
+            goto L1;
+        }
     }
     else if (e->op == TOKtemplate)
     {
@@ -449,9 +459,11 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
          */
         e = new IdentifierExp(loc, Id::empty);
         if (tiargs)
-            e = new DotTemplateInstanceExp(loc, e, ident, tiargs);
+            e = (new DotTemplateInstanceExp(loc, e, ident, tiargs))->semanticY(sc, 1);
         else
-            e = new DotIdExp(loc, e, ident);
+            e = (new DotIdExp(loc, e, ident))->semanticY(sc, 1);
+        if (!e)
+            return eleft->type->Type::getProperty(eleft->loc, ident, 0);
 
         if (e2)
         {
@@ -460,7 +472,7 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
 
             /* .f(e1) = e2
              */
-            Expression *ex = e->syntaxCopy();
+            Expression *ex = e->copy();
             Expressions *a1 = new Expressions();
             a1->setDim(1);
             (*a1)[0] = eleft;
@@ -504,48 +516,6 @@ Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NU
         }
     }
     return e;
-}
-
-/*********************************
- * Attempt to find a type property. If failed, attempt to find
- * UFCS property. If UFCS found, return expression. Otherwise
- * show type property error message.
- * Returns non-NULL only if UFCS property found.
- */
-Expression * resolveProperty(Scope *sc, Expression **e1, Expression *e2)
-{
-    enum TOK op = (*e1)->op;
-    UnaExp *una = (UnaExp *)(*e1);
-    Type *t = una->e1->type;
-    int olderrors = global.errors;
-    una->e1 = una->e1->semantic(sc);
-    if (global.errors == olderrors && una->e1->type)
-    {
-        unsigned errors = global.startGagging();
-        // try property gagged
-        if (op == TOKdotti)
-            *e1 = ((DotTemplateInstanceExp *)una)->semantic(sc, 1);
-        else if (op == TOKdot)
-            *e1 = ((DotIdExp *)una)->semantic(sc, 1);
-
-        if (global.endGagging(errors) || (*e1)->op == TOKerror)
-        {
-            (*e1)->op = op;
-            errors = global.startGagging();  // try UFCS gagged
-            Expression *e = resolveUFCSProperties(sc, una, e2);
-            if (!global.endGagging(errors) && (*e1)->op != TOKerror)
-                return e;  // found UFCS
-
-            // try property non-gagged
-            una->type = t;  // restore type
-            if (op == TOKdotti)
-                *e1 = ((DotTemplateInstanceExp *)una)->semantic(sc, 1);
-            else if (op == TOKdot)
-                *e1 = ((DotIdExp *)una)->semantic(sc, 1);
-        }
-    }
-
-    return NULL;
 }
 
 /******************************
@@ -4377,7 +4347,7 @@ void StructLiteralExp::toMangleBuffer(OutBuffer *buf)
  *      cast(foo).size
  */
 
-Expression *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
+DotIdExp *typeDotIdExp(Loc loc, Type *type, Identifier *ident)
 {
     return new DotIdExp(loc, new TypeExp(loc, type), ident);
 }
@@ -4473,6 +4443,20 @@ Lagain:
     if (ti && !ti->errors)
     {
         unsigned olderrs = global.errors;
+        if (ti->needsTypeInference(sc))
+        {
+            TemplateDeclaration *td = ti->tempdecl;
+            Dsymbol *p = td->toParent2();
+            FuncDeclaration *fdthis = hasThis(sc);
+            AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+            if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
+                (td->scope->stc & STCstatic) == 0)
+            {
+                Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
+                return e->semantic(sc);
+            }
+            return this;
+        }
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -6757,66 +6741,32 @@ DotIdExp::DotIdExp(Loc loc, Expression *e, Identifier *ident)
 
 Expression *DotIdExp::semantic(Scope *sc)
 {
-    // Indicate we need to resolve by UFCS.
-    return semantic(sc, 0);
-}
-
-Expression *DotIdExp::semantic(Scope *sc, int flag)
-{   Expression *e;
-    Expression *eleft;
-    Expression *eright;
-
 #if LOGSEMANTIC
     printf("DotIdExp::semantic(this = %p, '%s')\n", this, toChars());
     //printf("e1->op = %d, '%s'\n", e1->op, Token::toChars(e1->op));
 #endif
-
-//{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
-
-    /* Special case: rewrite this.id and super.id
-     * to be classtype.id and baseclasstype.id
-     * if we have no this pointer.
-     */
-    if ((e1->op == TOKthis || e1->op == TOKsuper) && !hasThis(sc))
-    {   ClassDeclaration *cd;
-        StructDeclaration *sd;
-        AggregateDeclaration *ad;
-
-        ad = sc->getStructClassScope();
-        if (ad)
-        {
-            cd = ad->isClassDeclaration();
-            if (cd)
-            {
-                if (e1->op == TOKthis)
-                {
-                    e = typeDotIdExp(loc, cd->type, ident);
-                    return e->semantic(sc);
-                }
-                else if (cd->baseClass && e1->op == TOKsuper)
-                {
-                    e = typeDotIdExp(loc, cd->baseClass->type, ident);
-                    return e->semantic(sc);
-                }
-            }
-            else
-            {
-                sd = ad->isStructDeclaration();
-                if (sd)
-                {
-                    if (e1->op == TOKthis)
-                    {
-                        e = typeDotIdExp(loc, sd->type, ident);
-                        return e->semantic(sc);
-                    }
-                }
-            }
-        }
+    Expression *e = semanticY(sc, 1);
+    if (!e)     // if failed to find the property
+    {
+        /* If ident is not a valid property, rewrite:
+         *   e1.ident
+         * as:
+         *   .ident(e1)
+         */
+        e = resolveUFCSProperties(sc, this);
     }
+    return e;
+}
 
-//    Type *t1save = e1->type;
+// Run sematnic in e1
+Expression *DotIdExp::semanticX(Scope *sc)
+{
+    //printf("DotIdExp::semanticX(this = %p, '%s')\n", this, toChars());
+    Expression *e;
 
     UnaExp::semantic(sc);
+    if (e1->op == TOKerror)
+        return e1;
 
     if (ident == Id::mangleof)
     {   // symbol.mangleof
@@ -6837,15 +6787,10 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
 
     if (e1->op == TOKdotexp)
     {
-        DotExp *de = (DotExp *)e1;
-        eleft = de->e1;
-        eright = de->e2;
     }
     else
     {
         e1 = resolvePropertiesX(sc, e1);
-        eleft = NULL;
-        eright = e1;
     }
 #if DMDV2
     if (e1->op == TOKtuple && ident == Id::offsetof)
@@ -6885,6 +6830,67 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
     {
         error("expression %s does not have property %s", e1->toChars(), ident->toChars());
         return new ErrorExp();
+    }
+
+    return this;
+}
+
+// Resolve e1.ident without seeing UFCS.
+// If flag == 1, stop "not a property" error and return NULL.
+Expression *DotIdExp::semanticY(Scope *sc, int flag)
+{
+    //printf("DotIdExp::semanticY(this = %p, '%s')\n", this, toChars());
+
+//{ static int z; fflush(stdout); if (++z == 10) *(char*)0=0; }
+
+    /* Special case: rewrite this.id and super.id
+     * to be classtype.id and baseclasstype.id
+     * if we have no this pointer.
+     */
+    if ((e1->op == TOKthis || e1->op == TOKsuper) && !hasThis(sc))
+    {
+        if (AggregateDeclaration *ad = sc->getStructClassScope())
+        {
+            if (ClassDeclaration *cd = ad->isClassDeclaration())
+            {
+                if (e1->op == TOKthis)
+                {
+                    DotIdExp *die = typeDotIdExp(loc, cd->type, ident);
+                    return die->semanticY(sc, flag);
+                }
+                else if (cd->baseClass && e1->op == TOKsuper)
+                {
+                    DotIdExp *die = typeDotIdExp(loc, cd->baseClass->type, ident);
+                    return die->semanticY(sc, flag);
+                }
+            }
+            else if (StructDeclaration *sd = ad->isStructDeclaration())
+            {
+                if (e1->op == TOKthis)
+                {
+                    DotIdExp *die = typeDotIdExp(loc, sd->type, ident);
+                    return die->semanticY(sc, flag);
+                }
+            }
+        }
+    }
+
+    Expression *e = semanticX(sc);
+    if (e != this)
+        return e;
+
+    Expression *eleft;
+    Expression *eright;
+    if (e1->op == TOKdotexp)
+    {
+        DotExp *de = (DotExp *)e1;
+        eleft = de->e1;
+        eright = de->e2;
+    }
+    else
+    {
+        eleft = NULL;
+        eright = e1;
     }
 
     Type *t1b = e1->type->toBasetype();
@@ -7026,6 +7032,8 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
             e = e->semantic(sc);
             return e;
         }
+        if (flag)
+            return NULL;
         s = ie->sds->search_correct(ident);
         if (s)
             error("undefined identifier '%s', did you mean '%s %s'?",
@@ -7045,66 +7053,13 @@ Expression *DotIdExp::semantic(Scope *sc, int flag)
          */
         e = new PtrExp(loc, e1);
         e = e->semantic(sc);
-        return e->type->dotExp(sc, e, ident);
+        return e->type->dotExp(sc, e, ident, flag);
     }
-#if DMDV2
-    else if (!flag)
-    {   /* If ident is not a valid property, rewrite:
-         *   e1.ident
-         * as:
-         *   .ident(e1)
-         */
-        if (e1->op == TOKtype ||
-            t1b->ty == Tvoid ||
-            (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray) &&
-            (ident == Id::sort || ident == Id::reverse || ident == Id::dup || ident == Id::idup))
-        {   goto L2;
-        }
-
-        /* This would be much better if we added a "hasProperty" method to types,
-         * i.e. the gagging is a bad way.
-         */
-
-        if (t1b->ty == Taarray)
-        {
-            TypeAArray *taa = (TypeAArray *)t1b;
-            if (!taa->impl &&
-                ident != Id::__sizeof &&
-                ident != Id::__xalignof &&
-                ident != Id::init &&
-                ident != Id::mangleof &&
-                ident != Id::stringof &&
-                ident != Id::offsetof)
-            {
-                // Find out about these errors when not gagged
-                taa->getImpl();
-            }
-        }
-
-        Type *t1 = e1->type;
-        unsigned errors = global.startGagging();
-        e = t1->dotExp(sc, e1, ident);
-        if (global.endGagging(errors))  // if failed to find the property
-        {
-            e1->type = t1;              // kludge to restore type
-            errors = global.startGagging();
-            e = resolveUFCSProperties(sc, this);
-            if (global.endGagging(errors))
-            {
-                // both lookups failed, lookup property again for better error message
-                e1->type = t1;  // restore type
-                e = t1->dotExp(sc, e1, ident);
-            }
-        }
-        e = e->semantic(sc);
-        return e;
-    }
-#endif
     else
     {
-    L2:
-        e = e1->type->dotExp(sc, e1, ident);
-        e = e->semantic(sc);
+        e = e1->type->dotExp(sc, e1, ident, flag);
+        if (!flag || e)
+            e = e->semantic(sc);
         return e;
     }
 }
@@ -7407,53 +7362,47 @@ TemplateDeclaration *DotTemplateInstanceExp::getTempdecl(Scope *sc)
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
 {
-    // Indicate we need to resolve by UFCS.
-    return semantic(sc, 0);
-}
-Expression *DotTemplateInstanceExp::semantic(Scope *sc, int flag)
-{
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::semantic('%s')\n", toChars());
 #endif
 
-    UnaExp::semantic(sc);
-    if (e1->op == TOKerror)
-        return e1;
+    // Indicate we need to resolve by UFCS.
+    Expression *e = semanticY(sc, 1);
+    if (!e)
+        e = resolveUFCSProperties(sc, this);
+    return e;
+}
 
-    Expression *e;
+// Resolve e1.ident!tiargs without seeing UFCS.
+// If flag == 1, stop "not a property" error and return NULL.
+Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
+{
+#if LOGSEMANTIC
+    printf("DotTemplateInstanceExpY::semantic('%s')\n", toChars());
+#endif
+
     DotIdExp *die = new DotIdExp(loc, e1, ti->name);
 
-    if (flag || !e1->type || e1->op == TOKtype ||
-        (e1->op == TOKimport && ((ScopeExp *)e1)->sds->isModule()))
+    Expression *e = die->semanticX(sc);
+    if (e == die)
     {
-        e = die->semantic(sc, 1);
-    }
-    else
-    {
+        e1 = die->e1;   // take back
+
         Type *t1b = e1->type->toBasetype();
         if (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
             t1b->ty == Tnull  || (t1b->isTypeBasic() && t1b->ty != Tvoid))
         {
-            /* No built-in type has templatized property, so can short cut.
+            /* No built-in type has templatized property, so do shortcut.
+             * It is necessary in: 1024.max!"a < b"
              */
-            return resolveUFCSProperties(sc, this);
+            if (flag)
+                return NULL;
         }
-
-        unsigned errors = global.startGagging();
-        e = die->semantic(sc, 1);
-        Type *t = e1->type;
-        if (global.endGagging(errors))
-        {
-            errors = global.startGagging();
-            e = resolveUFCSProperties(sc, this);
-            if (!global.endGagging(errors))
-                return e;
-
-            // both lookups failed, lookup property again for better error message
-            e->type = t;  // restore type
-            e = die->semantic(sc, 1);
-        }
+        e = die->semanticY(sc, flag);
+        if (flag && !e)
+            return NULL;
     }
+    assert(e);
 
 L1:
     if (e->op == TOKerror)
@@ -7786,9 +7735,8 @@ Lshift:
     {
         DotIdExp *die = new DotIdExp(e->loc, e, ident);
 
-        unsigned errors = global.startGagging();
-        Expression *ex = die->semantic(sc, 1);
-        if (global.endGagging(errors))
+        Expression *ex = die->semanticY(sc, 1);
+        if (!ex)
         {
             goto Lshift;
         }
@@ -7873,7 +7821,8 @@ Expression *CallExp::semantic(Scope *sc)
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                e1 = new IdentifierExp(loc, ti->name);
+                assert(ti->tempdecl);
+                e1 = new TemplateExp(loc, ti->tempdecl);
             }
             else
             {
@@ -8667,6 +8616,36 @@ Expression *AddrExp::semantic(Scope *sc)
         if (e1->type == Type::terror)
             return new ErrorExp();
         int wasCond = e1->op == TOKquestion;
+        if (e1->op == TOKdotti)
+        {
+            DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+            TemplateInstance *ti = dti->ti;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new DotVarExp(e1->loc, dti->e1, f);
+            e1 = e1->semantic(sc);
+        }
+        else if (e1->op == TOKimport &&
+                 ((ScopeExp *)e1)->sds->isTemplateInstance())
+        {
+            TemplateInstance *ti = (TemplateInstance *)((ScopeExp *)e1)->sds;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new VarExp(e1->loc, f);
+            e1 = e1->semantic(sc);
+        }
         e1 = e1->toLvalue(sc, NULL);
         if (e1->op == TOKerror)
             return e1;
@@ -10494,13 +10473,19 @@ Expression *AssignExp::semantic(Scope *sc)
      */
     if (e1->op == TOKdotti)
     {
-        Expression *e = resolveProperty(sc, &e1, e2);
-        if (e) return e;
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
+        Expression *e = dti->semanticY(sc, 1);
+        if (!e)
+            return resolveUFCSProperties(sc, e1, e2);
+        e1 = e;
     }
     else if (e1->op == TOKdot)
     {
-        Expression *e = resolveProperty(sc, &e1, e2);
-        if (e) return e;
+        DotIdExp *die = (DotIdExp *)e1;
+        Expression *e = die->semanticY(sc, 1);
+        if (!e)
+            return resolveUFCSProperties(sc, e1, e2);
+        e1 = e;
     }
     e1 = e1->semantic(sc);
     if (e1->op == TOKerror)

@@ -550,7 +550,8 @@ struct StructLiteralExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 };
 
-Expression *typeDotIdExp(Loc loc, Type *type, Identifier *ident);
+struct DotIdExp;
+DotIdExp *typeDotIdExp(Loc loc, Type *type, Identifier *ident);
 
 struct TypeExp : Expression
 {
@@ -917,7 +918,8 @@ struct DotIdExp : UnaExp
 
     DotIdExp(Loc loc, Expression *e, Identifier *ident);
     Expression *semantic(Scope *sc);
-    Expression *semantic(Scope *sc, int flag);
+    Expression *semanticX(Scope *sc);
+    Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int i);
 };
@@ -956,7 +958,7 @@ struct DotTemplateInstanceExp : UnaExp
     Expression *syntaxCopy();
     TemplateDeclaration *getTempdecl(Scope *sc);
     Expression *semantic(Scope *sc);
-    Expression *semantic(Scope *sc, int flag);
+    Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void dump(int indent);
 };
