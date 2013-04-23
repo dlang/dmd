@@ -400,6 +400,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         e = new IntegerExp(loc, 1, Type::tbool);
     fop->fbody = new ReturnStatement(loc, e);
 
+#if 0
     members->push(fop);
     fop->addMember(sc, this, 1);
 
@@ -410,6 +411,33 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     fop->semantic(sc);
 
     sc->pop();
+#else
+    Dsymbol *s = fop;
+
+    members->push(s);
+    s->addMember(sc, this, 1);
+    this->hasIdentityEquals = 1;        // temporary mark identity comparable
+
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opEquals fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
+
+    s->semantic(sc2);
+    s->semantic2(sc2);
+    s->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {   // Disable generated opEquals, because some members forbid identity comparison.
+        fop->storage_class |= STCdisable;
+        fop->fbody = NULL;  // remove fbody which contains the error
+    }
+#endif
 
     //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
 
