@@ -54,7 +54,7 @@ struct Module : Package
     static unsigned dprogress;  // progress resolving the deferred list
     static void init();
 
-    static ClassDeclaration *moduleinfo;
+    static AggregateDeclaration *moduleinfo;
 
 
     const char *arg;    // original argument name

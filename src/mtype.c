@@ -47,8 +47,6 @@
 #include "hdrgen.h"
 
 FuncDeclaration *hasThis(Scope *sc);
-void ObjectNotFound(Identifier *id);
-
 
 #define LOGDOTEXP       0       // log ::dotExp()
 #define LOGDEFAULTINIT  0       // log ::defaultInit()
