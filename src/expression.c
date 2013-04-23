@@ -299,6 +299,16 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
             tthis  = NULL;
             goto L1;
         }
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->semanticRun)
+        {
+            //assert(ti->needsTypeInference(sc));
+            td     = ti->tempdecl;
+                     ti->semanticTiargs(sc);
+            tiargs = ti->tiargs;
+            tthis  = NULL;
+            goto L1;
+        }
     }
     else if (e->op == TOKtemplate)
     {
@@ -4473,6 +4483,20 @@ Lagain:
     if (ti && !ti->errors)
     {
         unsigned olderrs = global.errors;
+        if (ti->needsTypeInference(sc))
+        {
+            TemplateDeclaration *td = ti->tempdecl;
+            Dsymbol *p = td->toParent2();
+            FuncDeclaration *fdthis = hasThis(sc);
+            AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+            if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
+                (td->scope->stc & STCstatic) == 0)
+            {
+                Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
+                return e->semantic(sc);
+            }
+            return this;
+        }
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -7873,7 +7897,8 @@ Expression *CallExp::semantic(Scope *sc)
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                e1 = new IdentifierExp(loc, ti->name);
+                assert(ti->tempdecl);
+                e1 = new TemplateExp(loc, ti->tempdecl);
             }
             else
             {
@@ -8667,6 +8692,36 @@ Expression *AddrExp::semantic(Scope *sc)
         if (e1->type == Type::terror)
             return new ErrorExp();
         int wasCond = e1->op == TOKquestion;
+        if (e1->op == TOKdotti)
+        {
+            DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+            TemplateInstance *ti = dti->ti;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new DotVarExp(e1->loc, dti->e1, f);
+            e1 = e1->semantic(sc);
+        }
+        else if (e1->op == TOKimport &&
+                 ((ScopeExp *)e1)->sds->isTemplateInstance())
+        {
+            TemplateInstance *ti = (TemplateInstance *)((ScopeExp *)e1)->sds;
+            assert(!ti->semanticRun);
+            //assert(ti->needsTypeInference(sc));
+            ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp;
+            Dsymbol *s = ti->inst->toAlias();
+            FuncDeclaration *f = s->isFuncDeclaration();
+            assert(f);
+            e1 = new VarExp(e1->loc, f);
+            e1 = e1->semantic(sc);
+        }
         e1 = e1->toLvalue(sc, NULL);
         if (e1->op == TOKerror)
             return e1;
