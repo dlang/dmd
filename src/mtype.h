@@ -310,10 +310,10 @@ struct Type : Object
     Type *substWildTo(unsigned mod);
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
-    virtual Expression *getProperty(Loc loc, Identifier *ident);
-    virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
-    Expression *noMember(Scope *sc, Expression *e, Identifier *ident);
+    Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual Expression *defaultInit(Loc loc = 0);
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
@@ -357,8 +357,8 @@ struct TypeError : Type
     void toCBuffer(OutBuffer *buf, Identifier *ident, HdrGenState *hgs);
 
     d_uns64 size(Loc loc);
-    Expression *getProperty(Loc loc, Identifier *ident);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeTuple *toArgTypes();
@@ -396,8 +396,8 @@ struct TypeBasic : Type
     Type *syntaxCopy();
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Expression *getProperty(Loc loc, Identifier *ident);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 #if CPP_MANGLE
@@ -430,8 +430,8 @@ struct TypeVector : Type
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
     unsigned alignsize();
-    Expression *getProperty(Loc loc, Identifier *ident);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
@@ -458,7 +458,7 @@ struct TypeVector : Type
 struct TypeArray : TypeNext
 {
     TypeArray(TY ty, Type *next);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
 };
 
 // Static array, one with a fixed dimension
@@ -476,7 +476,7 @@ struct TypeSArray : TypeArray
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
     int isZeroInit(Loc loc);
     structalign_t alignment();
@@ -515,7 +515,7 @@ struct TypeDArray : TypeArray
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int isString();
     int isZeroInit(Loc loc);
     int checkBoolean();
@@ -551,7 +551,7 @@ struct TypeAArray : TypeArray
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     int isZeroInit(Loc loc);
@@ -606,7 +606,7 @@ struct TypeReference : TypeNext
     d_uns64 size(Loc loc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
 #if CPP_MANGLE
@@ -703,7 +703,7 @@ struct TypeDelegate : TypeNext
     int isZeroInit(Loc loc);
     int checkBoolean();
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
     TypeTuple *toArgTypes();
 #if CPP_MANGLE
@@ -822,7 +822,7 @@ struct TypeStruct : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
@@ -863,8 +863,8 @@ struct TypeEnum : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
-    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
     int isintegral();
     int isfloating();
     int isreal();
@@ -907,9 +907,9 @@ struct TypeTypedef : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     structalign_t alignment();
-    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
     int isintegral();
     int isfloating();
     int isreal();
@@ -957,7 +957,7 @@ struct TypeClass : Type
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
+    Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     ClassDeclaration *isClassHandle();
     int isBaseOf(Type *t, int *poffset);
     MATCH implicitConvTo(Type *to);
@@ -999,7 +999,7 @@ struct TypeTuple : Type
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
-    Expression *getProperty(Loc loc, Identifier *ident);
+    Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
 };
@@ -1032,10 +1032,7 @@ struct TypeNull : Type
     void toJson(JsonOut *json);
 
     d_uns64 size(Loc loc);
-    //Expression *getProperty(Loc loc, Identifier *ident);
-    //Expression *dotExp(Scope *sc, Expression *e, Identifier *ident);
     Expression *defaultInit(Loc loc);
-    //Expression *defaultInitLiteral(Loc loc);
 };
 
 /**************************************************************/
