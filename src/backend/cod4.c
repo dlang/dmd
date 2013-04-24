@@ -783,6 +783,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   regm_t varregm;
   unsigned varreg;
   unsigned cflags;
+  unsigned jop;
 
   //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
   op = e->Eoper;
@@ -1075,6 +1076,43 @@ code *cdaddass(elem *e,regm_t *pretregs)
         reverse = 2;                            // remember we toggled it
         cl = gen(cl,&cs);
         c = cat(cr,cl);
+        retregs = 0;            /* to trigger a bug if we attempt to use it */
+  }
+  else if ((op == OPaddass || op == OPminass) &&
+        sz <= REGSIZE &&
+        !e2->Ecount &&
+            ((jop = jmpopcode(e2)) == JC || jop == JNC ||
+             (OTconv(e2->Eoper) && !e2->E1->Ecount && ((jop = jmpopcode(e2->E1)) == JC || jop == JNC)))
+        )
+  {
+        /* e1 += (x < y)    ADC EA,0
+         * e1 -= (x < y)    SBB EA,0
+         * e1 += (x >= y)   SBB EA,-1
+         * e1 -= (x >= y)   ADC EA,-1
+         */
+        cl = getlvalue(&cs,e1,0);               // get lvalue
+        cl = cat(cl,modEA(&cs));
+        regm_t keepmsk = idxregm(&cs);
+        retregs = mPSW;
+        if (OTconv(e2->Eoper))
+        {
+            cr = scodelem(e2->E1,&retregs,keepmsk,TRUE);
+            freenode(e2);
+        }
+        else
+            cr = scodelem(e2,&retregs,keepmsk,TRUE);
+        cs.Iop = 0x81 ^ byte;                   // ADC EA,imm16/32
+        unsigned reg = 2;                       // ADC
+        if ((op == OPaddass) ^ (jop == JC))
+            reg = 3;                            // SBB
+        code_newreg(&cs,reg);
+        cs.Iflags |= opsize;
+        if (forccs)
+            cs.Iflags |= CFpsw;
+        cs.IFL2 = FLconst;
+        cs.IEV2.Vsize_t = (jop == JC) ? 0 : ~(targ_size_t)0;
+        cr = gen(cr,&cs);
+        c = cat(cl,cr);
         retregs = 0;            /* to trigger a bug if we attempt to use it */
   }
   else // evaluate e2 into register

@@ -661,6 +661,73 @@ void testfastdiv()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+
+T docond1(T)(T l, ubyte thresh, ubyte val) {
+    l += (thresh < val);
+    return l;
+}
+
+T docond2(T)(T l, ubyte thresh, ubyte val) {
+    l -= (thresh >= val);
+    return l;
+}
+
+T docond3(T)(T l, ubyte thresh, ubyte val) {
+    l += (thresh >= val);
+    return l;
+}
+
+T docond4(T)(T l, ubyte thresh, ubyte val) {
+    l -= (thresh < val);
+    return l;
+}
+
+void testdocond()
+{
+    assert(docond1!ubyte(10,3,5)  == 11);
+    assert(docond1!ushort(10,3,5) == 11);
+    assert(docond1!uint(10,3,5)   == 11);
+    assert(docond1!ulong(10,3,5)  == 11);
+
+    assert(docond2!ubyte(10,3,5)  == 10);
+    assert(docond2!ushort(10,3,5) == 10);
+    assert(docond2!uint(10,3,5)   == 10);
+    assert(docond2!ulong(10,3,5)  == 10);
+
+    assert(docond3!ubyte(10,3,5)  == 10);
+    assert(docond3!ushort(10,3,5) == 10);
+    assert(docond3!uint(10,3,5)   == 10);
+    assert(docond3!ulong(10,3,5)  == 10);
+
+    assert(docond4!ubyte(10,3,5)  == 9);
+    assert(docond4!ushort(10,3,5) == 9);
+    assert(docond4!uint(10,3,5)   == 9);
+    assert(docond4!ulong(10,3,5)  == 9);
+
+
+    assert(docond1!ubyte(10,5,3)  == 10);
+    assert(docond1!ushort(10,5,3) == 10);
+    assert(docond1!uint(10,5,3)   == 10);
+    assert(docond1!ulong(10,5,3)  == 10);
+
+    assert(docond2!ubyte(10,5,3)  == 9);
+    assert(docond2!ushort(10,5,3) == 9);
+    assert(docond2!uint(10,5,3)   == 9);
+    assert(docond2!ulong(10,5,3)  == 9);
+
+    assert(docond3!ubyte(10,5,3)  == 11);
+    assert(docond3!ushort(10,5,3) == 11);
+    assert(docond3!uint(10,5,3)   == 11);
+    assert(docond3!ulong(10,5,3)  == 11);
+
+    assert(docond4!ubyte(10,5,3)  == 10);
+    assert(docond4!ushort(10,5,3) == 10);
+    assert(docond4!uint(10,5,3)   == 10);
+    assert(docond4!ulong(10,5,3)  == 10);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -676,6 +743,7 @@ int main()
     testulldiv();
     testfastudiv();
     testfastdiv();
+    testdocond();
     printf("Success\n");
     return 0;
 }
