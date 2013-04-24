@@ -2422,9 +2422,9 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     // function body and contracts are not need
     //fd = fd->syntaxCopy(NULL)->isFuncDeclaration();
     if (fd->isCtorDeclaration())
-    	fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
+        fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
     else
-    	fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
+        fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
     Scope *scope = this->scope;
@@ -2490,6 +2490,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
                 ((TypeFunction *)fd->type)->isref = 1;
             //printf("fd->type = %s\n", fd->type->toChars());
         }
+        fd->type = fd->type->addSTC(sc->stc);
         fd->type = fd->type->semantic(fd->loc, sc);
         sc = sc->pop();
     }

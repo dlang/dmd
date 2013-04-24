@@ -525,6 +525,14 @@ void test15d()  // Bugzilla 9974
     shared const ssc = new shared const SSC(1);
 }
 
+struct Foo9984
+{
+    int[] p;
+    // Prefix storage class and tempalte constructor
+    inout this()(inout int[] a) { p = a; }
+    auto foo() inout { return inout(Foo9984)(p); }
+}
+
 /********************************************/
 
 struct Bug1914a
