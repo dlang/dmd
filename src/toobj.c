@@ -49,6 +49,11 @@ void Module::genmoduleinfo()
 {
     //printf("Module::genmoduleinfo() %s\n", toChars());
 
+    if (! Module::moduleinfo)
+    {
+        ObjectNotFound(Id::ModuleInfo);
+    }
+
     Symbol *msym = toSymbol();
 #if DMDV2
     unsigned sizeof_ModuleInfo = 16 * Target::ptrsize;
