@@ -1696,6 +1696,15 @@ int jmpopcode(elem *e)
   }
 
   jp = jops[i][zero][op - OPle];        /* table starts with OPle       */
+
+  /* Try to rewrite unsigned comparisons so they rely on just the Carry flag
+   */
+  if (i == 1 && (jp == JA || jp == JBE) &&
+      (e->E2->Eoper != OPconst && e->E2->Eoper != OPrelconst))
+  {
+        jp = (jp == JA) ? JC : JNC;
+  }
+
 L1:
 #if DEBUG
   if ((jp & 0xF0) != 0x70)

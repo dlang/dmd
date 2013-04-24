@@ -1732,12 +1732,11 @@ code *cdshass(elem *e,regm_t *pretregs)
 
 code *cdcmp(elem *e,regm_t *pretregs)
 { regm_t retregs,rretregs;
-  unsigned reg,rreg,op,jop,byte;
+  unsigned reg,rreg,op,byte;
   tym_t tym;
   code *cl,*cr,*c,cs,*ce,*cg;
   elem *e1,*e2;
   bool eqorne;
-  unsigned reverse;
   unsigned sz;
   int fl;
   int flag;
@@ -1756,9 +1755,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
         return cat(cl,cr);
   }
 
-  jop = jmpopcode(e);                   // must be computed before
+  unsigned jop = jmpopcode(e);          // must be computed before
                                         // leaves are free'd
-  reverse = 0;
+  unsigned reverse = 0;
+
   cl = cr = CNIL;
   op = e->Eoper;
   assert(OTrel(op));
@@ -1827,7 +1827,9 @@ code *cdcmp(elem *e,regm_t *pretregs)
         (I16 && tym == TYlong  && tybasic(e2->Ety) == TYlong ||
          I32 && tym == TYllong && tybasic(e2->Ety) == TYllong)
      )
-  {     retregs = mDX | mAX;
+  {
+        assert(jop != JC && jop != JNC);
+        retregs = mDX | mAX;
         cl = codelem(e1,&retregs,FALSE);
         retregs = mCX | mBX;
         cr = scodelem(e2,&retregs,mDX | mAX,FALSE);
@@ -1868,11 +1870,23 @@ code *cdcmp(elem *e,regm_t *pretregs)
         goto L3;
   }
 
+  /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
+   * (This is already reflected in the jop)
+   */
+  if ((jop == JC || jop == JNC) &&
+      (op == OPgt || op == OPle) &&
+      (tyuns(tym) || tyuns(e2->Ety))
+     )
+  {     // jmpopcode() sez comparison should be reversed
+        assert(e2->Eoper != OPconst && e2->Eoper != OPrelconst);
+        reverse ^= 2;
+  }
+
   /* See if we should swap operands     */
   if (e1->Eoper == OPvar && e2->Eoper == OPvar && evalinregister(e2))
   {     e1 = e->E2;
         e2 = e->E1;
-        reverse = 2;
+        reverse ^= 2;
   }
 
   retregs = allregs;
