@@ -276,7 +276,7 @@ Expression *Expression::ctfeInterpret()
 
 /*************************************/
 
-bool isFloating(Type* t)
+bool isfloating(Type* t)
 {
     switch(t->ty)
     {
@@ -295,7 +295,7 @@ bool isFloating(Type* t)
 }
 
 //We can not ot cast real* to int* because real can contains not a integer count of int (if real.sizeof == 10)
-bool isByteOrShort(Type* t)
+bool isbyteorshort(Type* t)
 {
     switch(t->ty)
     {
@@ -2533,7 +2533,7 @@ bool isIndexFloatPtrCast(Expression *e, InterState *istate, Expression **floatex
     if (e->op != TOKindex) return false;
     IndexExp* ie = (IndexExp*)e;
     //printf("%s: %d\n", ie->toChars(), ie->e1->op == TOKcast && ie->e1->type->ty == Tpointer);
-    if (ie->e1->op == TOKcast && ie->e1->type->ty == Tpointer && isByteOrShort(ie->e1->type->nextOf()) && (((CastExp*)ie->e1)->e1->op == TOKsymoff))
+    if (ie->e1->op == TOKcast && ie->e1->type->ty == Tpointer && isbyteorshort(ie->e1->type->nextOf()) && (((CastExp*)ie->e1)->e1->op == TOKsymoff))
     {
         Expression *eidx = ie->e2->interpret(istate);
         if (exceptionOrCantInterpret(eidx))
@@ -2560,7 +2560,7 @@ union Caster
 //Try to evaluate (cast(to)cast(void*)from)[idx]
 Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx, Expression* assignval)
 {
-    if (!isFloating(from->type)) return NULL;
+    if (!isfloating(from->type)) return NULL;
     d_uns64 sz = to->size();
     if (sz*idx >= from->type->size())
     {
@@ -2575,18 +2575,18 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
         {
             Caster<d_float32> cc;
             cc.val = ((RealExp*)from)->value;
-            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
             d_uns64 ival = -1;
             if (sz == 2)
             {
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2603,7 +2603,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
                 ((RealExp*)from)->value = cc.val;
             }
             return new IntegerExp(from->loc, ival, to);
@@ -2613,18 +2613,18 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
         {
             Caster<d_float64> cc;
             cc.val = ((RealExp*)from)->value;
-            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
             d_uns64 ival = -1;
             if (sz == 2)
             {
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2641,7 +2641,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
                 ((RealExp*)from)->value = cc.val;
             }
             return new IntegerExp(from->loc, ival, to);
@@ -2651,7 +2651,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
         {
             Caster<d_float80> cc;
             cc.val = ((RealExp*)from)->value;
-            Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+            Target::toTargetFloatBO(&cc.val, Target::realsize-Target::realpad);
             assert(!((Target::realsize-Target::realpad)%2)); //realsize is an even number
             d_uns64 ival = -1;
             if (sz*idx >= (Target::realsize-Target::realpad))
@@ -2668,11 +2668,11 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2689,7 +2689,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+                Target::toTargetFloatBO(&cc.val, Target::realsize-Target::realpad);
                 ((RealExp*)from)->value = cc.val;
             }
             return new IntegerExp(from->loc, ival, to);
@@ -2708,18 +2708,18 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             {
                 cc.val = creall(((ComplexExp*)from)->value);
             }
-            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
             d_uns64 ival = -1;
             if (sz == 2)
             {
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2736,7 +2736,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
                 if (accessim)
                 {
                     ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 
@@ -2763,18 +2763,18 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             {
                 cc.val = creall(((ComplexExp*)from)->value);
             }
-            Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+            Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
             d_uns64 ival = -1;
             if (sz == 2)
             {
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2791,7 +2791,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, sizeof(cc.val));
+                Target::toTargetFloatBO(&cc.val, sizeof(cc.val));
                 if (accessim)
                 {
                     ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 
@@ -2818,7 +2818,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             {
                 cc.val = creall(((ComplexExp*)from)->value);
             }
-            Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+            Target::toTargetFloatBO(&cc.val, Target::realsize-Target::realpad);
             assert(!((Target::realsize-Target::realpad)%2)); //realsize is an even number
             d_uns64 ival = -1;
             if (sz*idx >= (Target::realsize-Target::realpad))
@@ -2835,11 +2835,11 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
                 if (assignval)
                 {
                     d_uns16 aval = assignval->toInteger();
-                    Target::toTargetByteOrder(&aval, sizeof(aval));
+                    Target::toTargetWordBO(&aval, sizeof(aval));
                     ((d_uns16*)&cc.bytes)[idx] = aval;
                 }
                 ival = ((d_uns16*)&cc.bytes)[idx];
-                Target::toTargetByteOrder(&ival, sizeof(sz));
+                Target::toTargetWordBO(&ival, sizeof(sz));
             }
             else if (sz == 1)
             {
@@ -2856,7 +2856,7 @@ Expression *tryReinterpretPointerCast(Expression *from, Type* to, sinteger_t idx
             
             if (assignval)
             {
-                Target::toTargetByteOrder(&cc.val, Target::realsize-Target::realpad);
+                Target::toTargetFloatBO(&cc.val, Target::realsize-Target::realpad);
                 if (accessim)
                 {
                     ((real_t *)&((ComplexExp*)from)->value)[1] = cc.val; 

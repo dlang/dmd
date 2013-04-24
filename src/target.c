@@ -17,15 +17,29 @@ int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
-Target::ByteOrder Target::byteorder;
 
-Target::ByteOrder currentByteOrder()
+bool Target::bytesbigendian;
+bool Target::wordsbigendian;
+bool Target::floatbigendian;
+
+bool hostBytesBigEndian()
 {
     const int probe = 0xff;
-    return (Target::ByteOrder)(*(unsigned char*)&probe);
+    return !((*(unsigned char*)&probe) == 0xff);
 }
 
+bool hostWordsBigEndian()
+{
+    const d_uns32 probe = 0xa1b2c3d4;
+    //e.g. PDP-11 order: 0xb2, 0xa1, 0xd4, 0xc3 (hostBytesBigEndian() == false; hostWordsBigEndian() == true)
+    return hostBytesBigEndian() ? ((*(unsigned char*)&probe) == 0xa1) : ((*(unsigned char*)&probe) == 0xb1);
+}
 
+bool hostFloatBigEndian()
+{
+    const float probe = 1;
+    return !!(*cast(ubyte*)&probe);
+}
 
 
 
@@ -68,7 +82,9 @@ void Target::init()
         }
     }
     
-    byteorder = currentByteOrder();
+    bytesbigendian = hostBytesBigEndian();
+    wordsbigendian = hostWordsBigEndian();
+    floatbigendian = hostFloatBigEndian();
 }
 
 unsigned Target::alignsize (Type* type)
@@ -104,9 +120,23 @@ unsigned Target::alignsize (Type* type)
     return type->size(0);
 }
 
-void Target::toTargetByteOrder (void *p, unsigned size)
+void Target::toTargetFloatBO (void *p, unsigned size)
 {
-    if(byteorder != currentByteOrder())
+    if(floatbigendian != hostFloatBigEndian())
+    {
+        char* c = (char*)p;
+        for(unsigned i=0; i<size/2; ++i)
+        {
+            char tmp = c[i];
+            c[i] = c[size - 1 - i];
+            c[size - 1 - i] = c[i];
+        }
+    }
+}
+
+void Target::toTargetWordBO (void *p, unsigned size)
+{
+    if(bytesbigendian != hostBytesBigEndian())
     {
         char* c = (char*)p;
         for(unsigned i=0; i<size/2; ++i)
