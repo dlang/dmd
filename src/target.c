@@ -82,9 +82,9 @@ void Target::init()
         }
     }
     
-    bytesbigendian = hostBytesBigEndian();
-    wordsbigendian = hostWordsBigEndian();
-    floatbigendian = hostFloatBigEndian();
+    bytesbigendian = false;
+    wordsbigendian = false;
+    floatbigendian = false;
 }
 
 unsigned Target::alignsize (Type* type)
