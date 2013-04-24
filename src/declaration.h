@@ -108,6 +108,8 @@ int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param);
 
+void ObjectNotFound(Identifier *id);
+
 enum Semantic
 {
     SemanticStart,      // semantic has not been run
