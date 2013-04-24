@@ -38,7 +38,7 @@ bool hostWordsBigEndian()
 bool hostFloatBigEndian()
 {
     const float probe = 1;
-    return !!(*cast(ubyte*)&probe);
+    return !!(*(unsigned char*)&probe);
 }
 
 
