@@ -382,6 +382,23 @@ void test9014()
 }
 
 /*******************************************/
+// 9590
+
+auto func9590(E)(lazy E expr) { }
+
+int f9590a()  { assert(0); }
+void f9590b() { assert(0); }
+
+void test9590()
+{
+    func9590(f9590a());  // ok, no exceptions (lazy)
+    f9590a().func9590;   // ok, no exceptions (lazy)
+
+    func9590(f9590b());  // ok, no exceptions (lazy)
+    f9590b().func9590;   // L12: NG
+}
+
+/*******************************************/
 
 int main()
 {
@@ -401,6 +418,7 @@ int main()
     test8503();
     test4();
     test9014();
+    test9590();
 
     printf("Success\n");
     return 0;
