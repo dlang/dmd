@@ -86,7 +86,7 @@ int StructDeclaration::needOpAssign()
     if (hasIdentityAssign)
         goto Lneed;         // because has identity==elaborate opAssign
 
-    if (dtor || postblit)
+    if (postblit)
         goto Lneed;
 
     /* If any of the fields need an opAssign, then we
