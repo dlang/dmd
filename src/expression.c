@@ -6957,6 +6957,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (f)
             {
                 //printf("it's a function\n");
+                if (!f->functionSemantic())
+                    return new ErrorExp();
                 if (f->needThis())
                 {
                     if (!eleft)
