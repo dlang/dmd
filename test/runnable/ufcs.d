@@ -407,6 +407,22 @@ void test9590()
 }
 
 /*******************************************/
+// 9946
+
+size_t count9946(alias x)(int[] haystack)
+{
+    return 0;
+}
+void test9946()
+{
+    int[] data;
+    auto n1 = count9946!5(data);          // OK
+    auto n2 = data.count9946!5;           // OK
+    auto a1 = new int[count9946!5(data)]; // OK
+    auto a2 = new int[data.count9946!5];  // Error
+}
+
+/*******************************************/
 
 int main()
 {
@@ -427,6 +443,7 @@ int main()
     test4();
     test9014();
     test9590();
+    test9946();
 
     printf("Success\n");
     return 0;

@@ -6687,7 +6687,16 @@ Expression *TypeIdentifier::toExpression()
     for (size_t i = 0; i < idents.dim; i++)
     {
         Identifier *id = idents[i];
-        e = new DotIdExp(loc, e, id);
+        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            e = new DotIdExp(loc, e, id);
+        }
+        else
+        {   assert(id->dyncast() == DYNCAST_DSYMBOL);
+            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+            assert(ti);
+            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+        }
     }
 
     return e;
