@@ -219,11 +219,16 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         }
 
 #if !MODULEINFO_IS_STRUCT
+  #ifdef DMDV2
+        if (id == Id::ModuleInfo && !Module::moduleinfo)
+            Module::moduleinfo = this;
+  #else
         if (id == Id::ModuleInfo)
         {   if (Module::moduleinfo)
                 Module::moduleinfo->error("%s", msg);
             Module::moduleinfo = this;
         }
+  #endif
 #endif
     }
 

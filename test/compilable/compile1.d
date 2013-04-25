@@ -397,3 +397,23 @@ void test9348()
     assert(F!0 !is null);
     assert(F!0 !in [new Object():1]);
 }
+
+
+/***************************************************/
+// 9987
+
+static if (is(object.ModuleInfo == struct))
+{
+    struct ModuleInfo {}
+
+    static assert(!is(object.ModuleInfo == ModuleInfo));
+    static assert(object.ModuleInfo.sizeof != ModuleInfo.sizeof);
+}
+static if (is(object.ModuleInfo == class))
+{
+    class ModuleInfo {}
+
+    static assert(!is(object.ModuleInfo == ModuleInfo));
+    static assert(__traits(classInstanceSize, object.ModuleInfo) !=
+                  __traits(classInstanceSize, ModuleInfo));
+}
