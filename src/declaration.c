@@ -685,14 +685,12 @@ Dsymbol *AliasDeclaration::toAlias()
     }
     else if (aliassym || type->deco)
         ;   // semantic is already done.
-    else if (import)
+    else if (import && import->scope)
     {
-        /* If this is an internal alias for selective import,
+        /* If this is an internal alias for selective/renamed import,
          * resolve it under the correct scope.
          */
-        if (import->scope)
-            import->semantic(NULL);
-        import = NULL;
+        import->semantic(NULL);
     }
     else if (scope)
         semantic(scope);
