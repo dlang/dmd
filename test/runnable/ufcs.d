@@ -1,3 +1,5 @@
+// EXTRA_SOURCES: imports/ufcs5a.d imports/ufcs5b.d imports/ufcs5c.d imports/ufcs5d.d imports/ufcs5e.d
+
 module ufcs;
 
 extern (C) int printf(const char*, ...);
@@ -158,6 +160,266 @@ void test3()
 
     assert(3.14.infinity!"+" == 1);
     assert(3.14.infinity == (double).infinity);
+}
+
+/*******************************************/
+
+template Signal4()
+{
+    void connect(){}
+}
+struct S4
+{
+    mixin Signal4!() s;
+}
+void test4()
+{
+    S4 s;
+    s.s.connect();  // s.s is TOKdotexp, so never match UFCS
+}
+
+/*******************************************/
+
+auto f5_1(int)    { return 1; }
+auto f5_2(string) { return 2; }
+auto f5_3(double) { return 3; }
+alias f5_4 = f5_1, f5_4 = f5_2;
+alias f5_5 = f5_3, f5_5 = f5_4;
+
+@property p5_1(int)    { return 1; }    @property p5_1(int,    int) { return 1; }
+@property p5_2(string) { return 2; }    @property p5_2(string, int) { return 2; }
+@property p5_3(double) { return 3; }    @property p5_3(double, int) { return 3; }
+alias p5_4 = p5_1, p5_4 = p5_2;         alias p5_4 = p5_1, p5_4 = p5_2;
+alias p5_5 = p5_3, p5_5 = p5_4;         alias p5_5 = p5_3, p5_5 = p5_4;
+
+// import overload set 'f5ov' and 'p5ov'
+import imports.ufcs5b, imports.ufcs5c;
+
+void test5()
+{
+    {
+        // f5_1 .. f5_5 are symbols which declared in module scope
+        assert(100.f5_1() == 1);
+        assert("s".f5_2() == 2);
+        assert(1.4.f5_3() == 3);
+        assert(100.f5_4() == 1);
+        assert("s".f5_4() == 2);
+        assert(100.f5_5() == 1);
+        assert("s".f5_5() == 2);
+        assert(1.4.f5_5() == 3);
+        // overload set
+        assert(100.f5ov() == 1);
+        assert("s".f5ov() == 2);
+        // UFCS does not see function local alias
+        alias func5 = f5_1;
+        static assert(!__traits(compiles, { 1.func5(); }));
+
+        // property getter/setter
+        assert(100.p5_1 == 1);      assert((100.p5_1 = 1) == 1);
+        assert("s".p5_2 == 2);      assert(("s".p5_2 = 1) == 2);
+        assert(1.4.p5_3 == 3);      assert((1.4.p5_3 = 1) == 3);
+        assert(100.p5_4 == 1);      assert((100.p5_4 = 1) == 1);
+        assert("s".p5_4 == 2);      assert(("s".p5_4 = 1) == 2);
+        assert(100.p5_5 == 1);      assert((100.p5_5 = 1) == 1);
+        assert("s".p5_5 == 2);      assert(("s".p5_5 = 1) == 2);
+        assert(1.4.p5_5 == 3);      assert((1.4.p5_5 = 1) == 3);
+        // overload set     );      assert(
+        assert(100.p5ov == 1);      assert((100.p5ov = 1) == 1);
+        assert("s".p5ov == 2);      assert(("s".p5ov = 1) == 2);
+        // local alias
+        alias prop5 = p5_1;
+        static assert(!__traits(compiles, { 1.prop5; }));
+        static assert(!__traits(compiles, { 1.prop5 = 1; }));
+    }
+
+    {
+        // f5a1 .. f5a5 are symbols which declared in module scope
+        import imports.ufcs5a;
+        // overload set 'f5ov' and 'p5ov'
+        import imports.ufcs5b, imports.ufcs5c;
+
+        assert(100.f5a1() == 1);
+        assert("s".f5a2() == 2);
+        assert(1.4.f5a3() == 3);
+        assert(100.f5a4() == 1);
+        assert("s".f5a4() == 2);
+        assert(100.f5a5() == 1);
+        assert("s".f5a5() == 2);
+        assert(1.4.f5a5() == 3);
+        assert(100.f5ov() == 1);
+        assert("s".f5ov() == 2);
+
+        assert(100.p5a1 == 1);      assert((100.p5a1 = 1) == 1);
+        assert("s".p5a2 == 2);      assert(("s".p5a2 = 1) == 2);
+        assert(1.4.p5a3 == 3);      assert((1.4.p5a3 = 1) == 3);
+        assert(100.p5a4 == 1);      assert((100.p5a4 = 1) == 1);
+        assert("s".p5a4 == 2);      assert(("s".p5a4 = 1) == 2);
+        assert(100.p5a5 == 1);      assert((100.p5a5 = 1) == 1);
+        assert("s".p5a5 == 2);      assert(("s".p5a5 = 1) == 2);
+        assert(1.4.p5a5 == 3);      assert((1.4.p5a5 = 1) == 3);
+        assert(100.p5ov == 1);      assert((100.p5ov = 1) == 1);
+        assert("s".p5ov == 2);      assert(("s".p5ov = 1) == 2);
+    }
+
+    {
+        // selective imports also work as expected
+        import imports.ufcs5a : f5a1, f5a2;
+        import imports.ufcs5a : p5a1, p5a2;
+
+        assert(100.f5a1() == 1);
+        assert("s".f5a2() == 2);
+        static assert(!__traits(compiles, { 1.4.f5a3(); }));
+        static assert(!__traits(compiles, { 100.f5a4(); }));
+        static assert(!__traits(compiles, { "s".f5a4(); }));
+        static assert(!__traits(compiles, { 100.f5a5(); }));
+        static assert(!__traits(compiles, { "s".f5a5(); }));
+        static assert(!__traits(compiles, { 1.4.f5a5(); }));
+
+        assert(100.p5a1 == 1);      assert((100.p5a1 = 1) == 1);
+        assert("s".p5a2 == 2);      assert(("s".p5a2 = 1) == 2);
+        static assert(!__traits(compiles, { 1.4.p5a3; }) && !__traits(compiles, { 1.4.p5a3 = 1; }));
+        static assert(!__traits(compiles, { 100.p5a4; }) && !__traits(compiles, { 100.p5a4 = 1; }));
+        static assert(!__traits(compiles, { "s".p5a4; }) && !__traits(compiles, { "s".p5a4 = 1; }));
+        static assert(!__traits(compiles, { 100.p5a5; }) && !__traits(compiles, { 100.p5a5 = 1; }));
+        static assert(!__traits(compiles, { "s".p5a5; }) && !__traits(compiles, { "s".p5a5 = 1; }));
+        static assert(!__traits(compiles, { 1.4.p5a5; }) && !__traits(compiles, { 1.4.p5a5 = 1; }));
+    }
+
+    {
+        // renamed imports also work as expected
+        import imports.ufcs5a : f5x1 = f5a1, f5x2 = f5a2;
+        import imports.ufcs5a : p5x1 = p5a1, p5x2 = p5a2;
+
+        assert(100.f5x1() == 1);
+        assert("s".f5x2() == 2);
+        static assert(!__traits(compiles, { 100.f5a1(); }));
+        static assert(!__traits(compiles, { "s".f5a2(); }));
+        static assert(!__traits(compiles, { 1.4.f5a3(); }));
+        static assert(!__traits(compiles, { 100.f5a4(); }));
+        static assert(!__traits(compiles, { "s".f5a4(); }));
+        static assert(!__traits(compiles, { 100.f5a5(); }));
+        static assert(!__traits(compiles, { "s".f5a5(); }));
+        static assert(!__traits(compiles, { 1.4.f5a5(); }));
+
+        assert(100.p5x1 == 1);      assert((100.p5x1 = 1) == 1);
+        assert("s".p5x2 == 2);      assert(("s".p5x2 = 1) == 2);
+        static assert(!__traits(compiles, { 100.p5a1; }) && !__traits(compiles, { 100.p5a1 = 1; }));
+        static assert(!__traits(compiles, { "s".p5a2; }) && !__traits(compiles, { "s".p5a2 = 1; }));
+        static assert(!__traits(compiles, { 1.4.p5a3; }) && !__traits(compiles, { 1.4.p5a3 = 1; }));
+        static assert(!__traits(compiles, { 100.p5a4; }) && !__traits(compiles, { 100.p5a4 = 1; }));
+        static assert(!__traits(compiles, { "s".p5a4; }) && !__traits(compiles, { "s".p5a4 = 1; }));
+        static assert(!__traits(compiles, { 100.p5a5; }) && !__traits(compiles, { 100.p5a5 = 1; }));
+        static assert(!__traits(compiles, { "s".p5a5; }) && !__traits(compiles, { "s".p5a5 = 1; }));
+        static assert(!__traits(compiles, { 1.4.p5a5; }) && !__traits(compiles, { 1.4.p5a5 = 1; }));
+    }
+
+    {
+        auto c5 = new C5();
+        foreach (name; __traits(allMembers, C5))
+        {
+            static if (name.length >= 4 && name[0..4] == "test")
+            {
+                mixin("c5."~name~"();");    // call test function
+            }
+        }
+    }
+}
+
+class B5
+{
+    int g5bm(int) { return 0; }
+    static int g5bs(int) { return 0; }
+
+}
+class C5 : B5
+{
+    // normal import works.
+    import imports.ufcs5a;
+    void test1()
+    {
+        assert(100.f5a1() == 1);
+        assert("s".f5a2() == 2);
+        assert(1.4.f5a3() == 3);
+        assert(100.f5a4() == 1);
+        assert("s".f5a4() == 2);
+        assert(100.f5a5() == 1);
+        assert("s".f5a5() == 2);
+        assert(1.4.f5a5() == 3);
+
+        assert(100.p5a1 == 1);      assert((100.p5a1 = 1) == 1);
+        assert("s".p5a2 == 2);      assert(("s".p5a2 = 1) == 2);
+        assert(1.4.p5a3 == 3);      assert((1.4.p5a3 = 1) == 3);
+        assert(100.p5a4 == 1);      assert((100.p5a4 = 1) == 1);
+        assert("s".p5a4 == 2);      assert(("s".p5a4 = 1) == 2);
+        assert(100.p5a5 == 1);      assert((100.p5a5 = 1) == 1);
+        assert("s".p5a5 == 2);      assert(("s".p5a5 = 1) == 2);
+        assert(1.4.p5a5 == 3);      assert((1.4.p5a5 = 1) == 3);
+    }
+
+    // selective imports also work as expected
+    import imports.ufcs5d : f5d1, f5d2;
+    import imports.ufcs5d : p5d1, p5d2;
+    void test2()
+    {
+        assert(100.f5d1() == 1);
+        assert("s".f5d2() == 2);
+        static assert(!__traits(compiles, { 1.4.f5d3(); }));
+        static assert(!__traits(compiles, { 100.f5d4(); }));
+        static assert(!__traits(compiles, { "s".f5d4(); }));
+        static assert(!__traits(compiles, { 100.f5d5(); }));
+        static assert(!__traits(compiles, { "s".f5d5(); }));
+        static assert(!__traits(compiles, { 1.4.f5d5(); }));
+
+        assert(100.p5d1 == 1);  assert((100.p5d1 = 1) == 1);
+        assert("s".p5d2 == 2);  assert(("s".p5d2 = 1) == 2);
+        static assert(!__traits(compiles, { 1.4.p5d3; }) && !__traits(compiles, { 1.4.p5d3 = 1; }));
+        static assert(!__traits(compiles, { 100.p5d4; }) && !__traits(compiles, { 100.p5d4 = 1; }));
+        static assert(!__traits(compiles, { "s".p5d4; }) && !__traits(compiles, { "s".p5d4 = 1; }));
+        static assert(!__traits(compiles, { 100.p5d5; }) && !__traits(compiles, { 100.p5d5 = 1; }));
+        static assert(!__traits(compiles, { "s".p5d5; }) && !__traits(compiles, { "s".p5d5 = 1; }));
+        static assert(!__traits(compiles, { 1.4.p5d5; }) && !__traits(compiles, { 1.4.p5d5 = 1; }));
+    }
+
+    // renamed imports also work as expected
+    import imports.ufcs5e : f5y1 = f5e1, f5y2 = f5e2;
+    import imports.ufcs5e : p5y1 = p5e1, p5y2 = p5e2;
+    void test3()
+    {
+        assert(100.f5y1() == 1);
+        assert("s".f5y2() == 2);
+        static assert(!__traits(compiles, { 100.f5e1(); }));
+        static assert(!__traits(compiles, { "s".f5e2(); }));
+        static assert(!__traits(compiles, { 1.4.f5e3(); }));
+        static assert(!__traits(compiles, { 100.f5e4(); }));
+        static assert(!__traits(compiles, { "s".f5e4(); }));
+        static assert(!__traits(compiles, { 100.f5e5(); }));
+        static assert(!__traits(compiles, { "s".f5e5(); }));
+        static assert(!__traits(compiles, { 1.4.f5e5(); }));
+
+        assert(100.p5y1 == 1);  assert((100.p5y1 = 1) == 1);
+        assert("s".p5y2 == 2);  assert(("s".p5y2 = 1) == 2);
+        static assert(!__traits(compiles, { 100.p5e1; }) && !__traits(compiles, { (100.p5e1 = 1); }));
+        static assert(!__traits(compiles, { "s".p5e2; }) && !__traits(compiles, { ("s".p5e2 = 1); }));
+        static assert(!__traits(compiles, { 1.4.p5e3; }) && !__traits(compiles, { (1.4.p5e3 = 1); }));
+        static assert(!__traits(compiles, { 100.p5e4; }) && !__traits(compiles, { (100.p5e4 = 1); }));
+        static assert(!__traits(compiles, { "s".p5e4; }) && !__traits(compiles, { ("s".p5e4 = 1); }));
+        static assert(!__traits(compiles, { 100.p5e5; }) && !__traits(compiles, { (100.p5e5 = 1); }));
+        static assert(!__traits(compiles, { "s".p5e5; }) && !__traits(compiles, { ("s".p5e5 = 1); }));
+        static assert(!__traits(compiles, { 1.4.p5e5; }) && !__traits(compiles, { (1.4.p5e5 = 1); }));
+    }
+
+    int g5cm(int) { return 0; }
+    static int g5cs(int) { return 0; }
+    void test4()
+    {
+        // UFCS does not see aggregate members
+        static assert(!__traits(compiles, { 1.g5cm(); }));
+        static assert(!__traits(compiles, { 1.g5cs(); }));
+
+        // Even if it is in base class
+        static assert(!__traits(compiles, { 1.g5bm(); }));
+        static assert(!__traits(compiles, { 1.g5bs(); }));
+    }
 }
 
 /*******************************************/
@@ -359,22 +621,6 @@ void test8503()
 }
 
 /*******************************************/
-
-template Signal4()
-{
-    void connect(){}
-}
-struct S4
-{
-    mixin Signal4!() s;
-}
-void test4()
-{
-    S4 s;
-    s.s.connect();  // s.s is TOKdotexp, so never match UFCS
-}
-
-/*******************************************/
 // 9014
 
 @property ref int foo9014(int[] a)
@@ -413,6 +659,8 @@ int main()
     test1();
     test2();
     test3();
+    test4();
+    test5();
     test682();
     test3382();
     test7670();
@@ -424,7 +672,6 @@ int main()
     test8252();
     test8453();
     test8503();
-    test4();
     test9014();
     test9590();
 

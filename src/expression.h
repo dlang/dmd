@@ -1002,7 +1002,6 @@ struct CallExp : UnaExp
 
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
-    Expression *resolveUFCS(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

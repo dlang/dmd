@@ -426,96 +426,250 @@ void checkPropertyCall(Expression *e, Expression *emsg)
     }
 }
 
+
+/******************************
+ * Find symbol in accordance with the UFCS name look up rule
+ */
+
+Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
+{
+    Loc loc = ue->loc;
+    Dsymbol *s = NULL;
+
+    for (Scope *scx = sc; scx; scx = scx->enclosing)
+    {
+        if (!scx->scopesym)
+            continue;
+        s = scx->scopesym->search(loc, ident, 0);
+        if (s)
+        {
+            // overload set contains only module scope symbols.
+            if (s->isOverloadSet())
+                break;
+            // selective/renamed imports also be picked up
+            if (AliasDeclaration *ad = s->isAliasDeclaration())
+            {
+                if (ad->import)
+                    break;
+            }
+            // See only module scope symbols for UFCS target.
+            Dsymbol *p = s->toParent2();
+            if (p && p->isModule())
+                break;
+        }
+        s = NULL;
+    }
+    if (!s)
+        return ue->e1->type->Type::getProperty(loc, ident, 0);
+
+    if (ue->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
+        TemplateDeclaration *td = s->toAlias()->isTemplateDeclaration();
+        if (!td)
+        {   s->error(loc, "is not a template");
+            return new ErrorExp();
+        }
+        if (!dti->ti->semanticTiargs(sc))
+            return new ErrorExp();
+        return new ScopeExp(loc, new TemplateInstance(loc, td, dti->ti->tiargs));
+    }
+    else
+    {
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (f)
+        {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
+            if (tempdecl)
+            {
+                if (tempdecl->overroot)
+                    tempdecl = tempdecl->overroot;
+                s = tempdecl;
+            }
+        }
+        return new DsymbolExp(loc, s, 1);
+    }
+}
+
+/******************************
+ * Pull out callable entity with UFCS.
+ */
+
+Expression *resolveUFCS(Scope *sc, CallExp *ce)
+{
+    Loc loc = ce->loc;
+    Expression *eleft;
+    Expression *e;
+
+    if (ce->e1->op == TOKdot)
+    {
+        DotIdExp *die = (DotIdExp *)ce->e1;
+        Identifier *ident = die->ident;
+
+        Expression *ex = die->semanticX(sc);
+        if (ex != die)
+        {   ce->e1 = ex;
+            return NULL;
+        }
+        eleft = die->e1;
+
+        Type *t = eleft->type->toBasetype();
+        if (t->ty == Tarray || t->ty == Tsarray ||
+            t->ty == Tnull  || (t->isTypeBasic() && t->ty != Tvoid))
+        {
+            /* Built-in types and arrays have no callable properties, so do shortcut.
+             * It is necessary in: e.init()
+             */
+        }
+#if 1
+        else if (t->ty == Taarray)
+        {
+            if (ident == Id::remove)
+            {
+                /* Transform:
+                 *  aa.remove(arg) into delete aa[arg]
+                 */
+                if (!ce->arguments || ce->arguments->dim != 1)
+                {   ce->error("expected key as argument to aa.remove()");
+                    return new ErrorExp();
+                }
+                if (!eleft->type->isMutable())
+                {   ce->error("cannot remove key from %s associative array %s",
+                            MODtoChars(t->mod), eleft->toChars());
+                    return new ErrorExp();
+                }
+                Expression *key = (*ce->arguments)[0];
+                key = key->semantic(sc);
+                key = resolveProperties(sc, key);
+
+                TypeAArray *taa = (TypeAArray *)t;
+                key = key->implicitCastTo(sc, taa->index);
+
+                if (!key->rvalue())
+                    return new ErrorExp();
+
+                return new RemoveExp(loc, eleft, key);
+            }
+            else if (ident == Id::apply || ident == Id::applyReverse)
+            {
+                return NULL;
+            }
+            else
+            {   TypeAArray *taa = (TypeAArray *)t;
+                assert(taa->ty == Taarray);
+                StructDeclaration *sd = taa->getImpl();
+                Dsymbol *s = sd->search(0, ident, 2);
+                if (s)
+                    return NULL;
+            }
+        }
+#endif
+        else
+        {
+            if (Expression *ey = die->semanticY(sc, 1))
+            {   ce->e1 = ey;
+                return NULL;
+            }
+        }
+        e = searchUFCS(sc, die, ident);
+    }
+    else if (ce->e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ce->e1;
+        if (Expression *ey = dti->semanticY(sc, 1))
+        {   ce->e1 = ey;
+            return NULL;
+        }
+        eleft = dti->e1;
+        e = searchUFCS(sc, dti, dti->ti->name);
+    }
+    else
+        return NULL;
+
+    // Rewrite
+    ce->e1 = e;
+    if (!ce->arguments)
+        ce->arguments = new Expressions();
+    ce->arguments->shift(eleft);
+
+    return NULL;
+}
+
 /******************************
  * Pull out property with UFCS.
  */
 
 Expression *resolveUFCSProperties(Scope *sc, Expression *e1, Expression *e2 = NULL)
 {
-    Expression *e = NULL;
-    Expression *eleft;
-    Identifier *ident;
-    Objects* tiargs;
     Loc loc = e1->loc;
+    Expression *eleft;
+    Expression *e;
 
     if (e1->op == TOKdot)
     {
         DotIdExp *die = (DotIdExp *)e1;
-        eleft  = die->e1;
-        ident  = die->ident;
-        tiargs = NULL;
-        goto L1;
+        eleft = die->e1;
+        e = searchUFCS(sc, die, die->ident);
     }
     else if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp *dti;
         dti = (DotTemplateInstanceExp *)e1;
-        eleft  = dti->e1;
-        ident  = dti->ti->name;
-        tiargs = dti->ti->tiargs;
-    L1:
-        /* .ident
-         * .ident!tiargs
-         */
-        e = new IdentifierExp(loc, Id::empty);
-        if (tiargs)
-            e = (new DotTemplateInstanceExp(loc, e, ident, tiargs))->semanticY(sc, 1);
-        else
-            e = (new DotIdExp(loc, e, ident))->semanticY(sc, 1);
-        if (!e)
-            return eleft->type->Type::getProperty(eleft->loc, ident, 0);
-
-        if (e2)
-        {
-            // run semantic without gagging
-            e2 = e2->semantic(sc);
-
-            /* .f(e1) = e2
-             */
-            Expression *ex = e->copy();
-            Expressions *a1 = new Expressions();
-            a1->setDim(1);
-            (*a1)[0] = eleft;
-            ex = new CallExp(loc, ex, a1);
-            ex = ex->trySemantic(sc);
-
-            /* .f(e1, e2)
-             */
-            Expressions *a2 = new Expressions();
-            a2->setDim(2);
-            (*a2)[0] = eleft;
-            (*a2)[1] = e2;
-            e = new CallExp(loc, e, a2);
-            if (ex)
-            {   // if fallback setter exists, gag errors
-                e = e->trySemantic(sc);
-                if (!e)
-                {   checkPropertyCall(ex, e1);
-                    ex = new AssignExp(loc, ex, e2);
-                    return ex->semantic(sc);
-                }
-            }
-            else
-            {   // strict setter prints errors if fails
-                e = e->semantic(sc);
-            }
-            checkPropertyCall(e, e1);
-            return e;
-        }
-        else
-        {
-            /* .f(e1)
-             */
-            Expressions *arguments = new Expressions();
-            arguments->setDim(1);
-            (*arguments)[0] = eleft;
-            e = new CallExp(loc, e, arguments);
-            e = e->semantic(sc);
-            checkPropertyCall(e, e1);
-            return e->semantic(sc);
-        }
+        eleft = dti->e1;
+        e = searchUFCS(sc, dti, dti->ti->name);
     }
-    return e;
+    else
+        return NULL;
+
+    // Rewrite
+    if (e2)
+    {
+        // run semantic without gagging
+        e2 = e2->semantic(sc);
+
+        /* f(e1) = e2
+         */
+        Expression *ex = e->copy();
+        Expressions *a1 = new Expressions();
+        a1->setDim(1);
+        (*a1)[0] = eleft;
+        ex = new CallExp(loc, ex, a1);
+        ex = ex->trySemantic(sc);
+
+        /* f(e1, e2)
+         */
+        Expressions *a2 = new Expressions();
+        a2->setDim(2);
+        (*a2)[0] = eleft;
+        (*a2)[1] = e2;
+        e = new CallExp(loc, e, a2);
+        if (ex)
+        {   // if fallback setter exists, gag errors
+            e = e->trySemantic(sc);
+            if (!e)
+            {   checkPropertyCall(ex, e1);
+                ex = new AssignExp(loc, ex, e2);
+                return ex->semantic(sc);
+            }
+        }
+        else
+        {   // strict setter prints errors if fails
+            e = e->semantic(sc);
+        }
+        checkPropertyCall(e, e1);
+        return e;
+    }
+    else
+    {
+        /* f(e1)
+         */
+        Expressions *arguments = new Expressions();
+        arguments->setDim(1);
+        (*arguments)[0] = eleft;
+        e = new CallExp(loc, e, arguments);
+        e = e->semantic(sc);
+        checkPropertyCall(e, e1);
+        return e->semantic(sc);
+    }
 }
 
 /******************************
@@ -7394,7 +7548,7 @@ Expression *DotTemplateInstanceExp::semanticY(Scope *sc, int flag)
         if (t1b->ty == Tarray || t1b->ty == Tsarray || t1b->ty == Taarray ||
             t1b->ty == Tnull  || (t1b->isTypeBasic() && t1b->ty != Tvoid))
         {
-            /* No built-in type has templatized property, so do shortcut.
+            /* No built-in type has templatized properties, so do shortcut.
              * It is necessary in: 1024.max!"a < b"
              */
             if (flag)
@@ -7624,128 +7778,6 @@ Expression *CallExp::syntaxCopy()
     return new CallExp(loc, e1->syntaxCopy(), arraySyntaxCopy(arguments));
 }
 
-
-Expression *CallExp::resolveUFCS(Scope *sc)
-{
-    Expression *e;
-    Identifier *ident;
-    Objects *tiargs;
-
-    if (e1->op == TOKdot)
-    {
-        DotIdExp *die = (DotIdExp *)e1;
-        e      = (die->e1 = die->e1->semantic(sc));
-        ident  = die->ident;
-        tiargs = NULL;
-    }
-    else if (e1->op == TOKdotti)
-    {
-        DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)e1;
-        e      = (dti->e1 = dti->e1->semantic(sc));
-        ident  = dti->ti->name;
-        tiargs = dti->ti->tiargs;
-    }
-    else
-        return NULL;
-
-    if (e->op == TOKerror || !e->type)
-        return NULL;
-
-    if (e->op == TOKtype || e->op == TOKimport || e->op == TOKdotexp)
-        return NULL;
-
-    e = resolvePropertiesX(sc, e);
-
-    Type *t = e->type->toBasetype();
-    //printf("resolveUCSS %s, e = %s, %s, %s\n",
-    //    toChars(), Token::toChars(e->op), t->toChars(), e->toChars());
-    if (t->ty == Taarray)
-    {
-        if (tiargs)
-        {
-            goto Lshift;
-        }
-        else if (ident == Id::remove)
-        {
-            /* Transform:
-             *  aa.remove(arg) into delete aa[arg]
-             */
-            if (!arguments || arguments->dim != 1)
-            {   error("expected key as argument to aa.remove()");
-                return new ErrorExp();
-            }
-            if (!e->type->isMutable())
-            {   error("cannot remove key from %s associative array %s", MODtoChars(e->type->mod), e->toChars());
-                return new ErrorExp();
-            }
-            Expression *key = (*arguments)[0];
-            key = key->semantic(sc);
-            key = resolveProperties(sc, key);
-
-            TypeAArray *taa = (TypeAArray *)t;
-            key = key->implicitCastTo(sc, taa->index);
-
-            if (!key->rvalue())
-                return new ErrorExp();
-
-            return new RemoveExp(loc, e, key);
-        }
-        else if (ident == Id::apply || ident == Id::applyReverse)
-        {
-            return NULL;
-        }
-        else
-        {   TypeAArray *taa = (TypeAArray *)t;
-            assert(taa->ty == Taarray);
-            StructDeclaration *sd = taa->getImpl();
-            Dsymbol *s = sd->search(0, ident, 2);
-            if (s)
-                return NULL;
-            goto Lshift;
-        }
-    }
-    else if (t->ty == Tarray || t->ty == Tsarray ||
-             t->ty == Tnull  || (t->isTypeBasic() && t->ty != Tvoid))
-    {
-        /* In basic, built-in types don't have normal and templatized
-         * member functions. So can short cut.
-         */
-Lshift:
-        if (!arguments)
-            arguments = new Expressions();
-        arguments->shift(e);
-        if (!tiargs)
-        {
-            /* Transform:
-             *  array.id(args) into .id(array,args)
-             */
-            e1 = new DotIdExp(e1->loc,
-                              new IdentifierExp(e1->loc, Id::empty),
-                              ident);
-        }
-        else
-        {
-            /* Transform:
-             *  array.foo!(tiargs)(args) into .foo!(tiargs)(array,args)
-             */
-            e1 = new DotTemplateInstanceExp(e1->loc,
-                            new IdentifierExp(e1->loc, Id::empty),
-                            ident, tiargs);
-        }
-    }
-    else
-    {
-        DotIdExp *die = new DotIdExp(e->loc, e, ident);
-
-        Expression *ex = die->semanticY(sc, 1);
-        if (!ex)
-        {
-            goto Lshift;
-        }
-    }
-    return NULL;
-}
-
 Expression *CallExp::semantic(Scope *sc)
 {
     Type *t1;
@@ -7798,7 +7830,7 @@ Expression *CallExp::semantic(Scope *sc)
             return e1;
     }
 
-    Expression *e = resolveUFCS(sc);
+    Expression *e = resolveUFCS(sc, this);
     if (e)
         return e;
 
