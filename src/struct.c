@@ -429,11 +429,16 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     type = new TypeStruct(this);
 
 #if MODULEINFO_IS_STRUCT
+  #ifdef DMDV2
+    if (id == Id::ModuleInfo && !Module::moduleinfo)
+        Module::moduleinfo = this;
+  #else
     if (id == Id::ModuleInfo)
     {   if (Module::moduleinfo)
             Module::moduleinfo->error("only object.d can define this reserved struct name");
         Module::moduleinfo = this;
     }
+  #endif
 #endif
 }
 
