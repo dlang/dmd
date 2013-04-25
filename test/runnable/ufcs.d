@@ -489,6 +489,20 @@ void test3382()
 }
 
 /*******************************************/
+// 6185
+
+void test6185()
+{
+    import std.algorithm;
+
+    auto r1 = [1,2,3].map!"a*2";
+    assert(equal(r1, [2,4,6]));
+
+    auto r2 = r1.map!"a+2"();
+    assert(equal(r2, [4,6,8]));
+}
+
+/*******************************************/
 // 6070
 
 enum test6070a = ["test"].foo6070();
@@ -663,6 +677,7 @@ int main()
     test5();
     test682();
     test3382();
+    test6185();
     test7670();
     test7703();
     test7773();
