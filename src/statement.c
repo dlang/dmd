@@ -2598,6 +2598,7 @@ Statement *IfStatement::semantic(Scope *sc)
 
         match = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, condition));
         match->parent = sc->func;
+        match->storage_class |= arg->storageClass;
 
         DeclarationExp *de = new DeclarationExp(loc, match);
         VarExp *ve = new VarExp(0, match);
