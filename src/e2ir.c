@@ -113,6 +113,7 @@ elem *callfunc(Loc loc,
     int reverse;
     TypeFunction *tf;
     int op;
+    elem *eresult = ehidden;
 
 #if 0
     printf("callfunc(directcall = %d, tret = '%s', ec = %p, fd = %p)\n",
@@ -211,6 +212,7 @@ elem *callfunc(Loc loc,
                 tc = type_fake(tret->totym());
             Symbol *stmp = symbol_genauto(tc);
             ehidden = el_ptr(stmp);
+            eresult = ehidden;
         }
         if ((global.params.isLinux ||
              global.params.isOSX ||
@@ -371,6 +373,10 @@ if (I32) assert(tysize[TYnptr] == 4);
 
     if (retmethod == RETstack)
     {
+        if (global.params.isOSX && eresult)
+            /* ABI quirk: hidden pointer is not returned in registers
+             */
+            e = el_combine(e, el_copytree(eresult));
         e->Ety = TYnptr;
         e = el_una(OPind, tyret, e);
     }
