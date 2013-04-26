@@ -5578,6 +5578,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             {
                 td->semantic(sc);
             }
+            FuncDeclaration *fd = sa->isFuncDeclaration();
+            if (fd)
+                fd->functionSemantic();
         }
         else if (isParameter(o))
         {
