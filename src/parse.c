@@ -4093,22 +4093,29 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 Type *at;
 
                 StorageClass storageClass = 0;
+                StorageClass stc = 0;
             Lagain:
+                if (stc)
+                {
+                    if (storageClass & stc)
+                        error("redundant storage class '%s'", Token::toChars(token.value));
+                    storageClass |= stc;
+                    composeStorageClass(storageClass);
+                    nextToken();
+                }
                 switch (token.value)
                 {
                     case TOKref:
 #if D1INOUT
                     case TOKinout:
 #endif
-                        storageClass |= STCref;
-                        nextToken();
+                        stc = STCref;
                         goto Lagain;
 
                     case TOKconst:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCconst;
-                            nextToken();
+                            stc = STCconst;
                             goto Lagain;
                         }
                         break;
@@ -4116,26 +4123,23 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                     case TOKimmutable:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCimmutable;
+                            stc = STCimmutable;
                             if (token.value == TOKinvariant)
                                 deprecation("use of 'invariant' rather than 'immutable' is deprecated");
-                            nextToken();
                             goto Lagain;
                         }
                         break;
                     case TOKshared:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCshared;
-                            nextToken();
+                            stc = STCshared;
                             goto Lagain;
                         }
                         break;
                     case TOKwild:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCwild;
-                            nextToken();
+                            stc = STCwild;
                             goto Lagain;
                         }
                         break;
