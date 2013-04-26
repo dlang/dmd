@@ -157,7 +157,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::assign, STCundefined, ftype);
 
     Expression *e = NULL;
-    if (postblit)
+    if (dtor || postblit)
     {   /* Swap:
          *    tmp = *this; *this = s; tmp.dtor();
          */
