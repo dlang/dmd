@@ -2630,6 +2630,21 @@ void test9907()
 }
 
 /**********************************/
+// 9989
+
+struct S9989
+{
+    ~this(){}
+}
+
+void test9989()
+{
+    S9989 s;
+    static assert(!__traits(compiles, s.opAssign(s)));
+    static assert(!__traits(compiles, s.__postblit()));
+}
+
+/**********************************/
 
 int main()
 {
