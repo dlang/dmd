@@ -4195,49 +4195,89 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             nextToken();
             check(TOKlparen);
 
-            if (token.value == TOKauto)
+            StorageClass storageClass = 0;
+        LagainStc:
+            switch (token.value)
             {
-                nextToken();
-                if (token.value == TOKidentifier)
-                {
-                    Token *t = peek(&token);
-                    if (t->value == TOKassign)
+                case TOKref:
+                    storageClass |= STCref;
+                    composeStorageClass(storageClass);
+                    nextToken();
+                    goto LagainStc;
+                case TOKauto:
+                    storageClass |= STCauto;
+                    composeStorageClass(storageClass);
+                    nextToken();
+                    goto LagainStc;
+                case TOKconst:
+                    if (peekNext() != TOKlparen)
                     {
-                        arg = new Parameter(0, NULL, token.ident, NULL);
+                        storageClass |= STCconst;
+                        composeStorageClass(storageClass);
                         nextToken();
+                        goto LagainStc;
+                    }
+                    break;
+                case TOKinvariant:
+                case TOKimmutable:
+                    if (peekNext() != TOKlparen)
+                    {
+                        storageClass |= STCimmutable;
+                        if (token.value == TOKinvariant)
+                            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                        composeStorageClass(storageClass);
                         nextToken();
+                        goto LagainStc;
                     }
-                    else
-                    {   error("= expected following auto identifier");
-                        goto Lerror;
+                    break;
+                case TOKshared:
+                    if (peekNext() != TOKlparen)
+                    {
+                        storageClass |= STCshared;
+                        composeStorageClass(storageClass);
+                        nextToken();
+                        goto LagainStc;
                     }
-                }
-                else
-                {   error("identifier expected following auto");
-                    goto Lerror;
-                }
+                    break;
+                case TOKwild:
+                    if (peekNext() != TOKlparen)
+                    {
+                        storageClass |= STCwild;
+                        composeStorageClass(storageClass);
+                        nextToken();
+                        goto LagainStc;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            if (storageClass != 0 &&
+                token.value == TOKidentifier &&
+                peek(&token)->value == TOKassign)
+            {
+                Identifier *ai = token.ident;
+                Type *at = NULL;        // infer argument type
+                nextToken();
+                check(TOKassign);
+                arg = new Parameter(storageClass, at, ai, NULL);
+            }
+            // Check for " ident;"
+            else if (storageClass == 0 &&
+                     token.value == TOKidentifier &&
+                     peek(&token)->value == TOKsemicolon)
+            {
+                arg = new Parameter(0, NULL, token.ident, NULL);
+                nextToken();
+                nextToken();
+                error("if (v; e) is deprecated, use if (auto v = e)");
             }
             else if (isDeclaration(&token, 2, TOKassign, NULL))
             {
-                Type *at;
                 Identifier *ai;
-
-                at = parseType(&ai);
+                Type *at = parseType(&ai);
                 check(TOKassign);
-                arg = new Parameter(0, at, ai, NULL);
-            }
-
-            // Check for " ident;"
-            else if (token.value == TOKidentifier)
-            {
-                Token *t = peek(&token);
-                if (t->value == TOKsemicolon)
-                {
-                    arg = new Parameter(0, NULL, token.ident, NULL);
-                    nextToken();
-                    nextToken();
-                    error("if (v; e) is deprecated, use if (auto v = e)");
-                }
+                arg = new Parameter(storageClass, at, ai, NULL);
             }
 
             condition = parseExpression();
