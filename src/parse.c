@@ -393,7 +393,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             Lstc:
                 if (storageClass & stc)
-                    error("redundant storage class %s", Token::toChars(token.value));
+                    error("redundant storage class '%s'", Token::toChars(token.value));
                 composeStorageClass(storageClass | stc);
                 nextToken();
             Lstc2:
@@ -1464,7 +1464,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         (storageClass & STCin && stc & (STCconst | STCscope)) ||
                         (stc & STCin && storageClass & (STCconst | STCscope))
                        )
-                        error("redundant storage class %s", Token::toChars(token.value));
+                        error("redundant storage class '%s'", Token::toChars(token.value));
                     storageClass |= stc;
                     composeStorageClass(storageClass);
                     continue;

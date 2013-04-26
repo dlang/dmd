@@ -25,3 +25,13 @@ void test2()
     foreach (const const x; [1,2,3]) {}
     foreach (const immutable x; [1,2,3]) {}
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/parseStc.d(36): Error: redundant storage class 'const'
+fail_compilation/parseStc.d(37): Error: redundant storage class 'const'
+---
+*/
+struct S3 { const const test3() {} }
+void test4(const const int x) {}
