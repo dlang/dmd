@@ -167,6 +167,56 @@ void test9410()
 }
 
 /***************************************************/
+// 9999
+
+auto foo9999(bool) { return 1; }
+auto foo9999(long) { return 2; }
+
+void test9999()
+{
+    enum int  x0 = 0, x1 = 1, x2 = 2;
+    enum byte b0 = 0, b1 = 1, b2 = 2;
+
+    assert(foo9999(true) == 1);
+    assert(foo9999(false) == 1);
+    assert(foo9999(0) == 2);
+    assert(foo9999(1) == 2);
+    assert(foo9999(2) == 2);
+    assert(foo9999(x0) == 2);
+    assert(foo9999(x1) == 2);
+    assert(foo9999(x2) == 2);
+    assert(foo9999(b0) == 2);
+    assert(foo9999(b1) == 2);
+    assert(foo9999(b2) == 2);
+    assert(foo9999('\0') == 2);
+    assert(foo9999('\1') == 2);
+    assert(foo9999('\2') == 2);
+
+    void fooInt(int) {}
+    void fooLong(long) {}
+    void fooBool(bool) {}
+
+    // bool value matches to integer types
+    bool f;
+    fooInt(true);
+    fooInt(false);
+    fooInt(f);
+    fooLong(true);
+    fooLong(false);
+    fooLong(f);
+
+    // Integer literal 0 and 1 matches to bool
+    fooBool(0);
+    fooBool(1);
+    // from core.stdc.windows.windows
+    enum : int { FALSE = 0, TRUE = 1 }
+    fooBool(FALSE);
+    fooBool(TRUE);
+    // other integer literals don't match to bool
+    static assert(!__traits(compiles, fooBool(2)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -176,6 +226,7 @@ int main()
     test8668();
     test8943();
     test9410();
+    test9999();
 
     printf("Success\n");
     return 0;

@@ -5855,8 +5855,25 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
         {
             //printf("%s of type %s implicitConvTo %s\n", arg->toChars(), targ->toChars(), tprm->toChars());
             if (flag)
+            {
                 // for partial ordering, value is an irrelevant mockup, just look at the type
-                m = targ->implicitConvTo(tprm);
+#if DMDV2
+                /* Special rule for partial ordering between bool and non-bool integral types.
+                 * In basic, bool is more specialized than other integers.
+                 * But partial ordering should prefer integer parameters for integer literal arguments.
+                 * So reverse match result in here - bool is less specialized than other integer types.
+                 * See Bugzilla 9999.
+                 */
+                Type *tba = targ->toBasetype();
+                Type *tbp = tprm->toBasetype();
+                if (tba->ty == Tbool && (tbp->ty != Tbool && tbp->isintegral()))
+                    m = MATCHnomatch;
+                else if ((tba->ty != Tbool && tba->isintegral()) && tbp->ty == Tbool)
+                    m = MATCHconvert;
+                else
+#endif
+                    m = targ->implicitConvTo(tprm);
+            }
             else
                 m = arg->implicitConvTo(tprm);
             //printf("match %d\n", m);
