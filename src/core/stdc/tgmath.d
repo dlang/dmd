@@ -168,13 +168,13 @@ version( FreeBSD )
     alias core.stdc.math.log1pf        log1p;
     alias core.stdc.math.log1pl        log1p;
 
-    alias core.stdc.math.log2          log1p;
-    alias core.stdc.math.log2f         log1p;
-    alias core.stdc.math.log2l         log1p;
+    alias core.stdc.math.log2          log2;
+    alias core.stdc.math.log2f         log2;
+    alias core.stdc.math.log2l         log2;
 
-    alias core.stdc.math.logb          log1p;
-    alias core.stdc.math.logbf         log1p;
-    alias core.stdc.math.logbl         log1p;
+    alias core.stdc.math.logb          logb;
+    alias core.stdc.math.logbf         logb;
+    alias core.stdc.math.logbl         logb;
 
     alias core.stdc.math.modf          modf;
     alias core.stdc.math.modff         modf;
@@ -486,13 +486,13 @@ else
     alias core.stdc.math.log1pf        log1p;
     alias core.stdc.math.log1pl        log1p;
 
-    alias core.stdc.math.log2          log1p;
-    alias core.stdc.math.log2f         log1p;
-    alias core.stdc.math.log2l         log1p;
+    alias core.stdc.math.log2          log2;
+    alias core.stdc.math.log2f         log2;
+    alias core.stdc.math.log2l         log2;
 
-    alias core.stdc.math.logb          log1p;
-    alias core.stdc.math.logbf         log1p;
-    alias core.stdc.math.logbl         log1p;
+    alias core.stdc.math.logb          logb;
+    alias core.stdc.math.logbf         logb;
+    alias core.stdc.math.logbl         logb;
 
     alias core.stdc.math.modf          modf;
     alias core.stdc.math.modff         modf;
