@@ -716,7 +716,8 @@ struct TypeDelegate : TypeNext
 struct TypeQualified : Type
 {
     Loc loc;
-    Identifiers idents;       // array of Identifier's representing ident.ident.ident etc.
+    Identifiers idents;     // array of Identifier and TypeInstance,
+                            // representing ident.ident!tiargs.ident. ... etc.
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
