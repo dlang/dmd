@@ -454,8 +454,6 @@ int runLINK()
     argv.push((char *)"-o");
     if (global.params.exefile)
     {
-        if (global.params.dll)
-            global.params.exefile = const_cast<char *>(FileName::forceExt(global.params.exefile, global.dll_ext));
         argv.push(global.params.exefile);
     }
     else
