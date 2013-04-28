@@ -3614,7 +3614,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
 
-    Type *tret = fd->type->nextOf();
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    assert(tf->ty == Tfunction);
+    bool isRefReturn = tf->isref && !(fd->storage_class & STCauto);
+    // Until 'ref' deduction finished, 'auto ref' is treated as a 'value return'.
+
+    Type *tret = tf->next;
     if (fd->tintro)
         /* We'll be implicitly casting the return expression to tintro
          */
@@ -3659,7 +3664,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (!((TypeFunction *)fd->type)->isref)
+        // Until 'ref' deduction finished, don't invoke constant folding
+        if (!tf->isref)
             exp = exp->optimize(WANTvalue);
 
         if (exp->op == TOKcall)
@@ -3675,7 +3681,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {   VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
 
-            if (((TypeFunction *)fd->type)->isref)
+            if (isRefReturn)
                 // Function returns a reference
                 fd->nrvo_can = 0;
             else if (!v || v->isOut() || v->isRef())
@@ -3694,15 +3700,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
-        if (!fd->nrvo_can &&
-            exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
-        {
-            exp = callCpCtor(exp->loc, sc, exp, 1);
-        }
-
         if (fd->inferRetType)
-        {   TypeFunction *tf = (TypeFunction *)fd->type;
-            assert(tf->ty == Tfunction);
+        {
             Type *tfret = tf->nextOf();
             if (tfret)
             {
@@ -3748,18 +3747,26 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
-                            tf->isref = FALSE;  // return by value
+                            tf->isref = false;  // return by value
                     }
                     else
-                        tf->isref = FALSE;      // return by value
+                        tf->isref = false;      // return by value
                     fd->storage_class &= ~STCauto;
+
+                    isRefReturn = tf->isref;    // 'ref' deduction finished
+                    if (!isRefReturn)
+                        exp = exp->optimize(WANTvalue);
                 }
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)
-                {   tret = fd->type->nextOf();
+                {   tret = tf->next;
                     tbret = tret->toBasetype();
                 }
+            }
+            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
+            {
+                exp = callCpCtor(exp->loc, sc, exp, 1);
             }
             if (fd->returnLabel)
                 eorg = exp->copy();
@@ -3770,6 +3777,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
+            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
+            {
+                exp = callCpCtor(exp->loc, sc, exp, 1);
+            }
+
             if (!exp->type->implicitConvTo(tret) &&
                 fd->parametersIntersect(exp->type))
             {
@@ -3779,28 +3791,28 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     exp = exp->castTo(sc, exp->type->wildOf());
             }
             if (fd->tintro)
-                exp = exp->implicitCastTo(sc, fd->type->nextOf());
+                exp = exp->implicitCastTo(sc, tf->next);
 
             // eorg isn't casted to tret (== fd->tintro->nextOf())
             if (fd->returnLabel)
                 eorg = exp->copy();
             exp = exp->implicitCastTo(sc, tret);
 
-            if (!((TypeFunction *)fd->type)->isref)
+            if (!isRefReturn)
                 exp = exp->optimize(WANTvalue);
         }
     }
     else if (fd->inferRetType)
     {
-        if (fd->type->nextOf())
+        if (tf->next)
         {
-            if (fd->type->nextOf()->ty != Tvoid)
+            if (tf->next->ty != Tvoid)
                 error("mismatched function return type inference of void and %s",
-                    fd->type->nextOf()->toChars());
+                    tf->next->toChars());
         }
         else
         {
-            ((TypeFunction *)fd->type)->next = Type::tvoid;
+            tf->next = Type::tvoid;
             //fd->type = fd->type->semantic(loc, sc);   // Remove with7321, same as 6902
             if (!fd->tintro)
             {   tret = Type::tvoid;
@@ -3828,7 +3840,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             // Construct: return cases->dim+1;
             s = new ReturnStatement(0, new IntegerExp(sc->fes->cases->dim + 1));
         }
-        else if (fd->type->nextOf()->toBasetype() == Type::tvoid)
+        else if (tf->next->toBasetype() == Type::tvoid)
         {
             s = new ReturnStatement(0, NULL);
             sc->fes->cases->push(s);
@@ -3849,7 +3861,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
                 v->noscope = 1;
                 v->storage_class |= STCresult;
-                if (((TypeFunction *)fd->type)->isref)
+                if (isRefReturn)
                     v->storage_class |= STCref | STCforeach;
                 v->semantic(sco);
                 if (!sco->insert(v))
@@ -3873,7 +3885,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
-        if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
+        if (isRefReturn && !fd->isCtorDeclaration())
         {   // Function returns a reference
             exp = exp->toLvalue(sc, exp);
             exp->checkEscapeRef();
