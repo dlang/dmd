@@ -549,6 +549,51 @@ void test8390() {
 }
 
 /************************************************************************/
+// 9656
+
+void test9656()
+{
+    static class C {}
+    static struct S
+    {
+        immutable int[] narr;
+        immutable C[] carr;
+        immutable C[] carr2;
+        this(int n) {
+            narr = new int[](3); // OK, expected
+            narr = [1,2,3].dup;  // NG -> OK
+            carr = [new C].dup;  // NG -> OK
+
+            C c = new C;
+            static assert(!__traits(compiles, carr2 = [c]));
+        }
+    }
+
+    {
+        int[] ma = [1,2,3];
+        immutable ia = ma.dup;
+    }
+
+
+    {
+        static struct V { int val; }
+        V[] ma = [V(1), V(2)];
+        immutable ia = ma.dup;
+    }
+
+    {
+        static struct R { int* ptr; }
+        R[] ma = [R(new int), R(null)];
+        static assert(!__traits(compiles, { immutable ia = rarr.dup; }));
+    }
+
+    {
+        C[] ma = [new C(), new C()];
+        static assert(!__traits(compiles, { immutable ia = carr.dup; }));
+    }
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -559,6 +604,7 @@ int main()
     test5();
     test6();
     test8390();
+    test9656();
 
     printf("Success\n");
     return 0;

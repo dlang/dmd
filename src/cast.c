@@ -657,6 +657,33 @@ MATCH CallExp::implicitConvTo(Type *t)
     if (f && f->isolateReturn())
         return type->invariantOf()->implicitConvTo(t);
 
+    /* The result of arr.dup and arr.idup can be unique essentially.
+     * So deal with this case specially.
+     */
+    if (!f && e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::adDup &&
+        t->toBasetype()->ty == Tarray)
+    {
+        assert(type->toBasetype()->ty == Tarray);
+        assert(arguments->dim == 2);
+        Expression *eorg = (*arguments)[1];
+        Type *tn = t->nextOf();
+        if (type->nextOf()->implicitConvTo(tn) < MATCHconst)
+        {
+            /* If the operand is an unique array literal, then allow conversion.
+             */
+            if (eorg->op != TOKarrayliteral)
+                return MATCHnomatch;
+            Expressions *elements = ((ArrayLiteralExp *)eorg)->elements;
+            for (size_t i = 0; i < elements->dim; i++)
+            {
+                if (!(*elements)[i]->implicitConvTo(tn))
+                    return MATCHnomatch;
+            }
+        }
+        m = type->invariantOf()->implicitConvTo(t);
+        return m;
+    }
+
     return MATCHnomatch;
 }
 
