@@ -12518,7 +12518,7 @@ Expression *EqualExp::semantic(Scope *sc)
             Expressions *exps = new Expressions;
             exps->setDim(dim);
 
-            Expression *e = combine(tup1->e0, tup2->e0);
+            Expression *e = NULL;
             for (size_t i = 0; i < dim; i++)
             {
                 Expression *ex1 = (*tup1->exps)[i];
@@ -12531,6 +12531,7 @@ Expression *EqualExp::semantic(Scope *sc)
                 else
                     e = new OrOrExp(loc, e, eeq);
             }
+            e = combine(combine(tup1->e0, tup2->e0), e);
             e = e->semantic(sc);
             //printf("e = %s\n", e->toChars());
             return e;
