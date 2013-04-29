@@ -1460,7 +1460,7 @@ Lnomatch:
                         /* Look for form of constructor call which is:
                          *    *__ctmp.ctor(arguments...)
                          */
-                        if (1)
+                        if ((*pinit)->type->implicitConvTo(t))
                         {   CallExp *ce = (CallExp *)(*pinit);
                             if (ce->e1->op == TOKdotvar)
                             {   DotVarExp *dve = (DotVarExp *)ce->e1;
