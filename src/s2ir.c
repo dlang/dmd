@@ -47,7 +47,12 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments);
+        Expressions *arguments
+#if DMD_OBJC
+        ,
+        elem *esel = NULL       // selector for Objective-C methods (when fd is NULL)
+#endif
+        );
 
 elem *exp2_copytotemp(elem *e);
 elem *incUsageElem(IRState *irs, Loc loc);
@@ -1015,6 +1020,16 @@ void ThrowStatement::toIR(IRState *irs)
 
     incUsage(irs, loc);
     elem *e = exp->toElemDtor(irs);
+
+#if DMD_OBJC
+    ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+    if (cd && cd->objc) // throwing Objective-C exception
+    {
+        e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROW_OBJC_AS_D]),e);
+        block_appendexp(blx->curblock, e);
+        return;
+    }
+#endif
     e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_THROWC]),e);
     block_appendexp(blx->curblock, e);
 }
@@ -1277,3 +1292,13 @@ void ImportStatement::toIR(IRState *irs)
 
 
 
+
+#if DMD_OBJC
+
+void ObjcExceptionBridge::toIR(IRState *irs)
+{
+    assert(wrapped);
+    wrapped->toIR(irs);
+}
+
+#endif

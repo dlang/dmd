@@ -37,6 +37,10 @@
 #include "outbuf.h"
 #include "irstate.h"
 
+#if DMD_OBJC
+#include "objc.h"
+#endif
+
 extern bool obj_includelib(const char *name);
 void obj_startaddress(Symbol *s);
 void obj_lzext(Symbol *s1,Symbol *s2);
@@ -320,6 +324,19 @@ void Module::genmoduleinfo()
     }
 #endif
 
+#if DMD_OBJC
+    // generate the list of objc classes and categories in this module
+    ClassDeclarations objccls;
+    ClassDeclarations objccat;
+    for (int i = 0; i < members->dim; i++)
+    {   Dsymbol *member = members->tdata()[i];
+        member->addObjcSymbols(&objccls, &objccat);
+    }
+    // only emit objc module info for modules with Objective-C symbols
+    if (objccls.dim || objccat.dim || ObjcSymbols::hassymbols)
+        ObjcSymbols::getModuleInfo(&objccls, &objccat);
+#endif
+
     csym->Sdt = dt;
     // Cannot be CONST because the startup code sets flag bits in it
     outdata(csym);
@@ -355,6 +372,13 @@ void ClassDeclaration::toObjFile(int multiobj)
     if (!members)
         return;
 
+#if DMD_OBJC
+    // Objective-C classes and protocols must belong to the same object file
+    // as their corresponding Objective-C module info.
+    if (objc)
+    {}
+    else
+#endif
     if (multiobj && !hasStaticCtorOrDtor())
     {   obj_append(this);
         return;
@@ -433,6 +457,17 @@ void ClassDeclaration::toObjFile(int multiobj)
             symbol_add(sthis);
             writefunc(sdtor);
         }
+    }
+#endif
+
+#if DMD_OBJC
+    if (objc)
+	{	if (!objcmeta)
+		{   ObjcClassDeclaration objcdecl(this);
+			objcdecl.toObjFile(multiobj);
+			sobjccls = objcdecl.symbol;
+		}
+        return; // skip rest of output
     }
 #endif
 

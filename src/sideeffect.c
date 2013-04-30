@@ -85,6 +85,11 @@ int lambdaHasSideEffect(Expression *e, void *param)
                     ||
                     (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->purity > PUREweak &&
                                            ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+#if DMD_OBJC
+                    ||
+                    (t->ty == Tobjcselector && ((TypeFunction *)((TypeObjcSelector *)t)->next)->purity > PUREweak &&
+                                           ((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+#endif
                    )
                 {
                 }

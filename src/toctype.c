@@ -125,6 +125,32 @@ type *TypeDelegate::toCtype()
     return ctype;
 }
 
+#if DMD_OBJC
+type *TypeObjcSelector::toCtype()
+{   type *tn;
+    type *t;
+
+    //printf("TypePointer::toCtype() %s\n", toChars());
+    if (ctype)
+        return ctype;
+
+    if (1 || global.params.symdebug)
+    {   /* Need to always do this, otherwise C++ name mangling
+         * goes awry.
+         */
+        t = type_alloc(TYnptr);
+        ctype = t;
+        tn = tschar; // expose selector as a char*
+        t->Tnext = tn;
+        tn->Tcount++;
+    }
+    else
+        t = type_fake(totym());
+    t->Tcount++;
+    ctype = t;
+    return t;
+}
+#endif
 
 type *TypeStruct::toCtype()
 {

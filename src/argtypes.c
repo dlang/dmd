@@ -276,6 +276,13 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
     return t;
 }
 
+#if DMD_OBJC
+TypeTuple *TypeObjcSelector::toArgTypes()
+{
+    return new TypeTuple();     // pass on the stack for efficiency
+}
+#endif
+
 TypeTuple *TypeStruct::toArgTypes()
 {
     //printf("TypeStruct::toArgTypes() %s\n", toChars());

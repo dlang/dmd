@@ -340,7 +340,7 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
     if (!cms->substitute(buf, this))
     {
         buf->writeByte('F');
-        if (linkage == LINKc)
+        if (linkage == LINKc || linkage == LINKobjc)
             buf->writeByte('Y');
         next->toCppMangle(buf, cms);
         Parameter::argsCppMangle(buf, cms, parameters, varargs);
@@ -353,6 +353,14 @@ void TypeDelegate::toCppMangle(OutBuffer *buf, CppMangleState *cms)
 {
     Type::toCppMangle(buf, cms);
 }
+
+
+#if DMD_OBJC
+void TypeObjcSelector::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+{
+    buf->writestring("P13objc_selector");
+}
+#endif
 
 
 void TypeStruct::toCppMangle(OutBuffer *buf, CppMangleState *cms)

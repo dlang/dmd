@@ -375,8 +375,12 @@ int ExpStatement::blockExit(bool mustNotThrow)
             if (a->e1->isBool(FALSE))   // if it's an assert(0)
                 return BEhalt;
         }
+#if DMD_OBJC
+        result |= exp->canThrow(mustNotThrow);
+#else
         if (exp->canThrow(mustNotThrow))
             result |= BEthrow;
+#endif
     }
     return result;
 }
@@ -1141,8 +1145,12 @@ int DoStatement::blockExit(bool mustNotThrow)
         result = BEfallthru;
     if (result & BEfallthru)
     {
+#if DMD_OBJC
+        result |= condition->canThrow(mustNotThrow);
+#else
         if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
+#endif
         if (!(result & BEbreak) && condition->isBool(TRUE))
             result &= ~BEfallthru;
     }
@@ -1382,8 +1390,13 @@ int ForStatement::blockExit(bool mustNotThrow)
             return result;
     }
     if (condition)
-    {   if (condition->canThrow(mustNotThrow))
+    {
+#if DMD_OBJC
+        result |= condition->canThrow(mustNotThrow);
+#else
+        if (condition->canThrow(mustNotThrow))
             result |= BEthrow;
+#endif
         if (condition->isBool(TRUE))
             result &= ~BEfallthru;
         else if (condition->isBool(FALSE))
@@ -1397,8 +1410,13 @@ int ForStatement::blockExit(bool mustNotThrow)
             result |= BEfallthru;
         result |= r & ~(BEfallthru | BEbreak | BEcontinue);
     }
+#if DMD_OBJC
+    if (increment)
+        result |= increment->canThrow(mustNotThrow);
+#else
     if (increment && increment->canThrow(mustNotThrow))
         result |= BEthrow;
+#endif
     return result;
 }
 
@@ -2279,8 +2297,12 @@ bool ForeachStatement::hasContinue()
 int ForeachStatement::blockExit(bool mustNotThrow)
 {   int result = BEfallthru;
 
+#if DMD_OBJC
+    result |= aggr->canThrow(mustNotThrow);
+#else
     if (aggr->canThrow(mustNotThrow))
         result |= BEthrow;
+#endif
 
     if (body)
     {
@@ -2647,8 +2669,12 @@ int IfStatement::blockExit(bool mustNotThrow)
     //printf("IfStatement::blockExit(%p)\n", this);
 
     int result = BEnone;
+#if DMD_OBJC
+    result |= condition->canThrow(mustNotThrow);
+#else
     if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
+#endif
     if (condition->isBool(TRUE))
     {
         if (ifbody)
@@ -2938,8 +2964,12 @@ int PragmaStatement::blockExit(bool mustNotThrow)
 {
     int result = BEfallthru;
 #if 0 // currently, no code is generated for Pragma's, so it's just fallthru
+#if DMD_OBJC
+    result |= arrayExpressionCanThrow(args);
+#else
     if (arrayExpressionCanThrow(args))
         result |= BEthrow;
+#endif
     if (body)
         result |= body->blockExit(mustNotThrow);
 #endif
@@ -3178,8 +3208,12 @@ bool SwitchStatement::hasBreak()
 
 int SwitchStatement::blockExit(bool mustNotThrow)
 {   int result = BEnone;
+#if DMD_OBJC
+    result |= condition->canThrow(mustNotThrow);
+#else
     if (condition->canThrow(mustNotThrow))
         result |= BEthrow;
+#endif
 
     if (body)
     {   result |= body->blockExit(mustNotThrow);
@@ -3614,7 +3648,12 @@ Statement *ReturnStatement::semantic(Scope *sc)
     if (fd->fes)
         fd = fd->fes->func;             // fd is now function enclosing foreach
 
-    Type *tret = fd->type->nextOf();
+    TypeFunction *tf = (TypeFunction *)fd->type;
+    assert(tf->ty == Tfunction);
+    bool isRefReturn = tf->isref && !(fd->storage_class & STCauto);
+    // Until 'ref' deduction finished, 'auto ref' is treated as a 'value return'.
+
+    Type *tret = tf->next;
     if (fd->tintro)
         /* We'll be implicitly casting the return expression to tintro
          */
@@ -3659,7 +3698,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             exp = exp->inferType(fld->treq->nextOf()->nextOf());
         exp = exp->semantic(sc);
         exp = resolveProperties(sc, exp);
-        if (!((TypeFunction *)fd->type)->isref)
+        // Until 'ref' deduction finished, don't invoke constant folding
+        if (!tf->isref)
             exp = exp->optimize(WANTvalue);
 
         if (exp->op == TOKcall)
@@ -3675,7 +3715,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
         {   VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
 
-            if (((TypeFunction *)fd->type)->isref)
+            if (isRefReturn)
                 // Function returns a reference
                 fd->nrvo_can = 0;
             else if (!v || v->isOut() || v->isRef())
@@ -3694,15 +3734,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         else
             fd->nrvo_can = 0;
 
-        if (!fd->nrvo_can &&
-            exp->isLvalue() && !((TypeFunction *)fd->type)->isref)
-        {
-            exp = callCpCtor(exp->loc, sc, exp, 1);
-        }
-
         if (fd->inferRetType)
-        {   TypeFunction *tf = (TypeFunction *)fd->type;
-            assert(tf->ty == Tfunction);
+        {
             Type *tfret = tf->nextOf();
             if (tfret)
             {
@@ -3748,18 +3781,26 @@ Statement *ReturnStatement::semantic(Scope *sc)
                         unsigned errors = global.startGagging();
                         exp->checkEscapeRef();
                         if (global.endGagging(errors))
-                            tf->isref = FALSE;  // return by value
+                            tf->isref = false;  // return by value
                     }
                     else
-                        tf->isref = FALSE;      // return by value
+                        tf->isref = false;      // return by value
                     fd->storage_class &= ~STCauto;
+
+                    isRefReturn = tf->isref;    // 'ref' deduction finished
+                    if (!isRefReturn)
+                        exp = exp->optimize(WANTvalue);
                 }
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)
-                {   tret = fd->type->nextOf();
+                {   tret = tf->next;
                     tbret = tret->toBasetype();
                 }
+            }
+            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
+            {
+                exp = callCpCtor(exp->loc, sc, exp, 1);
             }
             if (fd->returnLabel)
                 eorg = exp->copy();
@@ -3770,6 +3811,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
+            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
+            {
+                exp = callCpCtor(exp->loc, sc, exp, 1);
+            }
+
             if (!exp->type->implicitConvTo(tret) &&
                 fd->parametersIntersect(exp->type))
             {
@@ -3779,28 +3825,28 @@ Statement *ReturnStatement::semantic(Scope *sc)
                     exp = exp->castTo(sc, exp->type->wildOf());
             }
             if (fd->tintro)
-                exp = exp->implicitCastTo(sc, fd->type->nextOf());
+                exp = exp->implicitCastTo(sc, tf->next);
 
             // eorg isn't casted to tret (== fd->tintro->nextOf())
             if (fd->returnLabel)
                 eorg = exp->copy();
             exp = exp->implicitCastTo(sc, tret);
 
-            if (!((TypeFunction *)fd->type)->isref)
+            if (!isRefReturn)
                 exp = exp->optimize(WANTvalue);
         }
     }
     else if (fd->inferRetType)
     {
-        if (fd->type->nextOf())
+        if (tf->next)
         {
-            if (fd->type->nextOf()->ty != Tvoid)
+            if (tf->next->ty != Tvoid)
                 error("mismatched function return type inference of void and %s",
-                    fd->type->nextOf()->toChars());
+                    tf->next->toChars());
         }
         else
         {
-            ((TypeFunction *)fd->type)->next = Type::tvoid;
+            tf->next = Type::tvoid;
             //fd->type = fd->type->semantic(loc, sc);   // Remove with7321, same as 6902
             if (!fd->tintro)
             {   tret = Type::tvoid;
@@ -3828,7 +3874,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
             // Construct: return cases->dim+1;
             s = new ReturnStatement(0, new IntegerExp(sc->fes->cases->dim + 1));
         }
-        else if (fd->type->nextOf()->toBasetype() == Type::tvoid)
+        else if (tf->next->toBasetype() == Type::tvoid)
         {
             s = new ReturnStatement(0, NULL);
             sc->fes->cases->push(s);
@@ -3849,7 +3895,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 VarDeclaration *v = new VarDeclaration(loc, tret, fd->outId, NULL);
                 v->noscope = 1;
                 v->storage_class |= STCresult;
-                if (((TypeFunction *)fd->type)->isref)
+                if (isRefReturn)
                     v->storage_class |= STCref | STCforeach;
                 v->semantic(sco);
                 if (!sco->insert(v))
@@ -3873,7 +3919,7 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp)
     {
-        if (((TypeFunction *)fd->type)->isref && !fd->isCtorDeclaration())
+        if (isRefReturn && !fd->isCtorDeclaration())
         {   // Function returns a reference
             exp = exp->toLvalue(sc, exp);
             exp->checkEscapeRef();
@@ -3944,8 +3990,13 @@ Statement *ReturnStatement::semantic(Scope *sc)
 int ReturnStatement::blockExit(bool mustNotThrow)
 {   int result = BEreturn;
 
+#if DMD_OBJC
+    if (exp)
+        result |= exp->canThrow(mustNotThrow);
+#else
     if (exp && exp->canThrow(mustNotThrow))
         result |= BEthrow;
+#endif
     return result;
 }
 
@@ -4192,6 +4243,10 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         ClassDeclaration *cd = exp->type->isClassHandle();
         if (!cd)
             error("can only synchronize on class objects, not '%s'", exp->type->toChars());
+#if DMD_OBJC
+        else if (cd->objc)
+        { /* interface declaration not a special case in Objective-C */ }
+#endif
         else if (cd->isInterfaceDeclaration())
         {   /* Cast the interface to an object, as the object has the monitor,
              * not the interface.
@@ -4224,11 +4279,19 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         cs->push(new ExpStatement(loc, tmp));
 
         FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
+#if DMD_OBJC
+        if (cd && cd->objc) // replace with Objective-C's equivalent function
+            fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_enter);
+#endif
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
         FuncDeclaration *fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorexit);
+#if DMD_OBJC
+        if (cd && cd->objc) // replace with Objective-C's equivalent function
+            fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::objc_sync_exit);
+#endif
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);
@@ -4411,8 +4474,12 @@ void WithStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 int WithStatement::blockExit(bool mustNotThrow)
 {
     int result = BEnone;
+#if DMD_OBJC
+    result |= exp->canThrow(mustNotThrow);
+#else
     if (exp->canThrow(mustNotThrow))
         result = BEthrow;
+#endif
     if (body)
         result |= body->blockExit(mustNotThrow);
     else
@@ -4450,6 +4517,10 @@ Statement *TryCatchStatement::semantic(Scope *sc)
 
     /* Even if body is NULL, still do semantic analysis on catches
      */
+#if DMD_OBJC
+    Catches *newCatches = NULL;
+    Catches *objcCatches = NULL;
+#endif
     for (size_t i = 0; i < catches->dim; i++)
     {   Catch *c = (*catches)[i];
         c->semantic(sc);
@@ -4463,8 +4534,50 @@ Statement *TryCatchStatement::semantic(Scope *sc)
             if (c->type->toBasetype()->implicitConvTo(cj->type->toBasetype()))
                 error("catch at %s hides catch at %s", sj, si);
         }
-    }
 
+#if DMD_OBJC
+        // check if catching Objective-C exception, if so rewrite as one catch
+        // for all wrapped Objective-C exceptions and check Objective-C type
+        // in code.
+        ClassDeclaration *cd = c->type->toBasetype()->isClassHandle();
+        if (cd && cd->objc)
+        {
+            if (newCatches == NULL)
+            {   // create new catches array, fill up to were we are, don't add this one
+                objcCatches = new Catches;
+                newCatches = new Catches;
+                newCatches->push(NULL); // reserve first catch for later
+                for (size_t j = 0; j < i; ++j)
+                    newCatches->push(catches->tdata()[j]);
+            }
+            c->handler = new PeelStatement(c->handler);
+            objcCatches->push(c);
+        }
+        else if (newCatches)
+            newCatches->push(c);
+#endif
+    }
+#if DMD_OBJC
+    if (newCatches)
+    {
+        assert(objcCatches);
+        assert(objcCatches->dim > 0);
+        Catch *objcCatch = objcMakeCatch(loc, objcCatches, sc);
+        objcCatch->semantic(sc);
+
+        // set previously reserved first catch for handling Objective-C wrapper
+        newCatches->tdata()[0] = objcCatch;
+        catches = newCatches;
+
+        // Make sure all Objective-C exceptions from body are rethrown in D
+        if (body->blockExit(false) & BEthrowobjc)
+        {
+            body = new PeelStatement(body);
+            body = new ObjcExceptionBridge(loc, body, THROWd);
+            body = body->semantic(sc);
+        }
+    }
+#endif
     if (!body || !body->hasCode())
     {
         return NULL;
@@ -4523,7 +4636,11 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
             result &= ~BEthrow;
         }
     }
+#if DMD_OBJC
+    if (mustNotThrow && (result & BEthrowany))
+#else
     if (mustNotThrow && (result & BEthrow))
+#endif
     {
         body->blockExit(mustNotThrow); // now explain why this is nothrow
     }
@@ -4595,6 +4712,11 @@ void Catch::semantic(Scope *sc)
         type = new TypeIdentifier(0, Id::Throwable);
     type = type->semantic(loc, sc);
     ClassDeclaration *cd = type->toBasetype()->isClassHandle();
+#if DMD_OBJC
+    if (cd && cd->objc) // allow catching of Objective-C exceptions
+    {}
+    else
+#endif
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
     {
         if (type != Type::terror)
@@ -4654,6 +4776,9 @@ TryFinallyStatement::TryFinallyStatement(Loc loc, Statement *body, Statement *fi
 {
     this->body = body;
     this->finalbody = finalbody;
+#if DMD_OBJC
+    this->objcdisable = 0;
+#endif
 }
 
 Statement *TryFinallyStatement::syntaxCopy()
@@ -4667,6 +4792,15 @@ Statement *TryFinallyStatement::semantic(Scope *sc)
 {
     //printf("TryFinallyStatement::semantic()\n");
     body = body->semantic(sc);
+#if DMD_OBJC
+    // Make sure all Objective-C exceptions from body are rethrown in D
+    if (!objcdisable && body && (body->blockExit(false) & BEthrowobjc))
+    {
+        body = new PeelStatement(body);
+        body = new ObjcExceptionBridge(loc, body, THROWd);
+        body = body->semantic(sc);
+    }
+#endif
     sc = sc->push();
     sc->tf = this;
     sc->sbreak = NULL;
@@ -4847,6 +4981,12 @@ Statement *ThrowStatement::semantic(Scope *sc)
     if (exp->op == TOKerror)
         return this;
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
+#if DMD_OBJC
+    if (cd && cd->objc) // allow throwing of Objective-C exceptions
+    {   // FIXME: must derive from NSException
+    }
+    else
+#endif
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
         error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
 
@@ -5206,3 +5346,239 @@ void ImportStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         s->toCBuffer(buf, hgs);
     }
 }
+
+#if DMD_OBJC
+
+// Special catch for handling wrapped Objective-C exceptions: unwrap them
+// and pass to matching handler, or rethrow.
+
+Catch *objcMakeCatch(Loc loc, Catches *objccatches, Scope *sc)
+{
+    assert(objccatches->dim);
+
+    // Construct a handler with a switch statement for various possible
+    // Objective-C matches
+    //
+    // catch (... __ex) {
+    //    void*[__count] __objc_ex_cls_ref = [A.class, B.class];
+    //    void* __objc_ex = _dobjc_exception_extract(cast(void*)__ex);
+    //    switch (_dobjc_exception_select(__objc_ex, __objc_ex_cls_ref))
+    //    {
+    //        case 0: A e = cast(A)__objc_ex; ..handler..; break;
+    //        case 1: B e = cast(B)__objc_ex; ..handler..; break;
+    //        default: throw __ex;
+    //    }
+    // }
+
+    Statements *h = new Statements();
+
+    // void*[__count] __objc_ex_cls_ref = [A.class, B.class];
+    Expressions *clsrefs = new Expressions();
+    Expressions *creflist = new Expressions();
+    for (size_t i = 0; i < objccatches->dim; i++)
+    {
+        Catch *c = objccatches->tdata()[i];
+        assert(c->type->ty == Tclass);
+        creflist->push(new CastExp(0, new ObjcClassRefExp(0, ((TypeClass *)c->type)->sym), Type::tvoidptr));
+    }
+    VarDeclaration *varobjcexclsref = new VarDeclaration(loc, new TypeSArray(Type::tvoidptr, new IntegerExp(objccatches->dim)), Lexer::uniqueId("__objc_ex_cls_ref"), new ExpInitializer(loc, new ArrayLiteralExp(loc, creflist)));
+    varobjcexclsref->parent = sc->parent;
+    sc->insert(varobjcexclsref);
+    Statement *objcexclsref = new ExpStatement(loc, new DeclarationExp(loc, varobjcexclsref));
+    h->push(objcexclsref);
+
+    // void* __objc_ex = _dobjc_exception_extract(cast(void*)__ex);
+    Identifier *idex = Lexer::uniqueId("__ex");
+    FuncDeclaration *eextractfun = FuncDeclaration::genCfunc(Type::tvoidptr, "_dobjc_exception_extract", Type::tvoidptr);
+    Expression *eextract = new CallExp(0, new VarExp(0, eextractfun), new CastExp(0, new IdentifierExp(0, idex), Type::tvoidptr));
+    VarDeclaration *varobjcex = new VarDeclaration(loc, Type::tvoidptr, Lexer::uniqueId("__objc_ex"), new ExpInitializer(loc, eextract));
+    varobjcex->parent = sc->parent;
+    sc->insert(varobjcex);
+    Statement *objcex = new ExpStatement(loc, new DeclarationExp(loc, varobjcex));
+    h->push(objcex);
+
+    // (_dobjc_exception_select(__objc_ex, __objc_ex_cls_ref))
+    Parameters *selectparams = new Parameters();
+    selectparams->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+    selectparams->push(new Parameter(STCin, new TypeDArray(Type::tvoidptr), NULL, NULL));
+    FuncDeclaration *fselect = FuncDeclaration::genCfunc(Type::tsize_t, "_dobjc_exception_select", selectparams);
+    Expression *argobjcex = new VarExp(0, varobjcex);
+    Expression *argcrefarray = new VarExp(0, varobjcexclsref);
+    Expression *eselect = new CallExp(0, new VarExp(0, fselect), argobjcex, argcrefarray);
+
+    // switch's body
+    Statements *a = new Statements();
+
+    // default: throw cast(Throwable)cast(void*)__e;
+    {
+        Statement *s = new ThrowStatement(0, new CastExp(0, new CastExp(0, new IdentifierExp(0, idex), Type::tvoidptr), ClassDeclaration::throwable->type));
+        a->push(new DefaultStatement(0, s));
+    }
+
+    // cases 0...
+    for (size_t i = 0; i < objccatches->dim; i++)
+    {
+        Catch *c = objccatches->tdata()[i];
+
+        // create handler for this case
+        ExpInitializer *iinex = new ExpInitializer(loc, new CastExp(0, new VarExp(0, varobjcex), c->type));
+        VarDeclaration *varinex = new VarDeclaration(loc, c->type, c->ident, iinex);
+        varinex->parent = sc->parent;
+        sc->insert(varinex);
+        Statement *s = new ExpStatement(loc, new DeclarationExp(loc, varinex));
+        s = new CompoundStatement(0, s, c->handler);
+        s = new CompoundStatement(0, s, new BreakStatement(0, NULL));
+        s = new CaseStatement(0, new IntegerExp(i), s);
+        a->push(s);
+    }
+
+    Statement *sw = new SwitchStatement(loc, eselect, new CompoundStatement(loc, a), FALSE);
+    h->push(sw);
+    Statement *handler = new CompoundStatement(loc, h);
+
+    Type *catchType = NULL;
+    if (ClassDeclaration::objcthrowable == NULL)
+        error(loc, "Missing ObjcThrowable declaration in object.d");
+    else
+        catchType = ClassDeclaration::objcthrowable->type;
+    return new Catch(loc, catchType, idex, handler);
+}
+
+/************************ ObjcExceptionBridge *******************************/
+// Either convert D exceptions to Objective-C ones, or the reverse depending
+// on throw mode.
+
+ObjcExceptionBridge::ObjcExceptionBridge(Loc loc, Statement *body, ObjcThrowMode mode)
+    : Statement(loc)
+{
+    this->body = body;
+    this->mode = mode;
+}
+
+Statement *ObjcExceptionBridge::syntaxCopy()
+{
+    return new ObjcExceptionBridge(loc, body->syntaxCopy(), mode);
+}
+
+int ObjcExceptionBridge::blockExit(bool mustNotThrow)
+{
+    int result = body->blockExit(mustNotThrow);
+    if (mode == THROWobjc)
+    {   if (result & BEthrow)
+        {
+            result &= ~BEthrow;
+            result |= BEthrowobjc;
+        }
+    }
+    else if (mode == THROWd)
+    {   if (result & BEthrowobjc)
+        {
+            result &= ~BEthrowobjc;
+            result |= BEthrow;
+        }
+    }
+    return result;
+}
+
+void ObjcExceptionBridge::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    // this is a transparent expression
+    return body->toCBuffer(buf, hgs);
+}
+
+Statement *ObjcExceptionBridge::semantic(Scope *sc)
+{
+    if (wrapped)
+        return this; // already done
+
+    body = body->semantic(sc);
+
+    if (mode == THROWobjc)
+    {
+        // Rewrite as this:
+        //
+        // try
+        //    body;
+        // catch (... __ex)
+        // {
+        //    _dobjc_throwAs_objc(__ex);
+        //    halt;
+        // }
+
+        Identifier *idex = Lexer::uniqueId("__ex");
+        FuncDeclaration *fhandler = FuncDeclaration::genCfunc(Type::tvoid, "_dobjc_throwAs_objc", Type::tvoidptr);
+        Statement *handler = new ExpStatement(loc, new CallExp(loc, new VarExp(0, fhandler), new CastExp(loc, new IdentifierExp(loc, idex), Type::tvoidptr)));
+        handler = new CompoundStatement(loc, handler, new ExpStatement(loc, new HaltExp(loc)));
+
+        Catch *c = new Catch(loc, NULL, idex, handler);
+        Catches *catches = new Catches();
+        catches->push(c);
+
+        wrapped = new TryCatchStatement(loc, new PeelStatement(body), catches);
+        wrapped->semantic(sc);
+        return this;
+    }
+    else if (mode == THROWd)
+    {
+        // Rewrite as this (Apple Objective-C Legacy Runtime ABI):
+        //
+        // size_t[__edatalen] __dobjc_ex_data;
+        // objc_exception_try_enter(__dobjc_ex_data.ptr);
+        // if (!_setjmp(__dobjc_ex_data.ptr)) {
+        //    try // D-ABI only
+        //        body
+        //    finally
+        //        objc_exception_try_exit(__dobjc_ex_data.ptr);
+        // } else {
+        //    _dobjc_throwAs_d(objc_exception_extract(__dobjc_ex_data.ptr));
+        //    halt;
+        // }
+
+        Statements *a = new Statements();
+
+        // determine platform-specific setjmp data size
+        int jblen;
+        if (!global.params.is64bit)
+            jblen = 18;
+        else
+        {   error("64-bit Objective-C exception ABI unsupported");
+            fatal();
+        }
+        // derive edata length from jblen
+        int edatalen = jblen + 4;
+
+        FuncDeclaration *ftry_enter = FuncDeclaration::genCfunc(Type::tvoid, "objc_exception_try_enter", Type::tvoidptr);
+        FuncDeclaration *fsetjmp = FuncDeclaration::genCfunc(Type::tuns32, "_setjmp", Type::tvoidptr);
+        FuncDeclaration *ftry_exit = FuncDeclaration::genCfunc(Type::tvoid, "objc_exception_try_exit", Type::tvoidptr);
+        FuncDeclaration *fextract = FuncDeclaration::genCfunc(Type::tvoidptr, "objc_exception_extract", Type::tvoidptr);
+        FuncDeclaration *fthrowd = FuncDeclaration::genCfunc(Type::tvoid, "_dobjc_throwAs_d", Type::tvoidptr);
+
+        TypeSArray *tedata = new TypeSArray(Type::tsize_t, new IntegerExp(loc, edatalen, Type::tsize_t));
+        VarDeclaration *varedata = new VarDeclaration(loc, tedata, Lexer::uniqueId("__dobjc_ex_data"), new VoidInitializer(loc));
+        varedata->semantic(sc);
+        a->push(new ExpStatement(loc, new DeclarationExp(loc, varedata)));
+        a->push(new ExpStatement(loc, new CallExp(loc, new VarExp(0, ftry_enter), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
+
+        Expression *cond = new CallExp(loc, new VarExp(0, fsetjmp), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr));
+        cond = new NotExp(loc, cond);
+        Statement *etry_exit = new ExpStatement(loc, new CallExp(loc, new VarExp(0, ftry_exit), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr)));
+        TryFinallyStatement *ifbody = new TryFinallyStatement(loc, new PeelStatement(body), etry_exit);
+        ifbody->objcdisable = 1; // make try-finally D-EH-only
+        Statement *elsebody = new ExpStatement(loc, new CallExp(loc, new VarExp(0, fthrowd), new CallExp(loc, new VarExp(0, fextract), new DotIdExp(loc, new VarExp(loc, varedata), Id::ptr))));
+        elsebody = new CompoundStatement(loc, elsebody, new ExpStatement(loc, new HaltExp(loc)));
+        a->push(new IfStatement(loc, NULL, cond, ifbody, elsebody));
+
+        wrapped = new CompoundStatement(loc, a);
+        wrapped = wrapped->semantic(sc);
+        return this;
+    }
+    assert(0);
+}
+
+int ObjcExceptionBridge::usesEH()
+{
+    return 1;
+}
+
+#endif
+

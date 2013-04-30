@@ -171,6 +171,9 @@ void Type::init()
     sizeTy[Treturn] = sizeof(TypeReturn);
     sizeTy[Terror] = sizeof(TypeError);
     sizeTy[Tnull] = sizeof(TypeNull);
+#if DMD_OBJC
+    sizeTy[Tobjcselector] = sizeof(TypeObjcSelector);
+#endif
 
     mangleChar[Tarray] = 'A';
     mangleChar[Tsarray] = 'G';
@@ -184,6 +187,9 @@ void Type::init()
     mangleChar[Tenum] = 'E';
     mangleChar[Ttypedef] = 'T';
     mangleChar[Tdelegate] = 'D';
+#if DMD_OBJC
+    mangleChar[Tobjcselector] = '@';
+#endif
 
     mangleChar[Tnone] = 'n';
     mangleChar[Tvoid] = 'v';
@@ -839,7 +845,11 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && tn->ty != Tfunction)
+    if (tn && ty != Tfunction && tn->ty != Tfunction
+#if DMD_OBJC
+        && ty != Tobjcselector && tn->ty != Tobjcselector
+#endif
+        )
     {   // Verify transitivity
         switch (mod)
         {
@@ -2289,6 +2299,9 @@ Type *TypeNext::makeConst()
     }
     TypeNext *t = (TypeNext *)Type::makeConst();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst())
     {   if (next->isShared())
@@ -2313,6 +2326,9 @@ Type *TypeNext::makeInvariant()
     }
     TypeNext *t = (TypeNext *)Type::makeInvariant();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
     {   t->next = next->invariantOf();
@@ -2333,6 +2349,9 @@ Type *TypeNext::makeShared()
     }
     TypeNext *t = (TypeNext *)Type::makeShared();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isShared())
     {
@@ -2360,6 +2379,9 @@ Type *TypeNext::makeSharedConst()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedConst();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -2382,6 +2404,9 @@ Type *TypeNext::makeWild()
     }
     TypeNext *t = (TypeNext *)Type::makeWild();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isConst() && !next->isWild())
     {
@@ -2407,6 +2432,9 @@ Type *TypeNext::makeSharedWild()
     }
     TypeNext *t = (TypeNext *)Type::makeSharedWild();
     if (ty != Tfunction && next->ty != Tfunction &&
+#if DMD_OBJC
+        ty != Tobjcselector && next->ty != Tobjcselector &&
+#endif
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable() && !next->isSharedConst())
     {
@@ -5203,6 +5231,7 @@ void TypeFunction::toDecoBuffer(OutBuffer *buf, int flag)
         case LINKwindows:       mc = 'W';       break;
         case LINKpascal:        mc = 'V';       break;
         case LINKcpp:           mc = 'R';       break;
+        case LINKobjc:          mc = 'Y';       break;
         default:
             assert(0);
     }
@@ -5294,6 +5323,7 @@ void TypeFunction::toCBufferWithAttributes(OutBuffer *buf, Identifier *ident, Hd
             case LINKwindows:   p = "Windows";  break;
             case LINKpascal:    p = "Pascal";   break;
             case LINKcpp:       p = "C++";      break;
+            case LINKobjc:      p = "Objective-C";  break;
             default:
                 assert(0);
         }
@@ -5347,6 +5377,7 @@ void functionToCBuffer2(TypeFunction *t, OutBuffer *buf, HdrGenState *hgs, int m
             case LINKwindows:   p = "Windows";  break;
             case LINKpascal:    p = "Pascal";   break;
             case LINKcpp:       p = "C++";      break;
+            case LINKobjc:      p = "Objective-C";   break;
             default:
                 assert(0);
         }
@@ -8490,6 +8521,14 @@ L1:
             e = e->semantic(sc);
             return e;
         }
+#if DMD_OBJC
+        if (ident == Id::protocolof)
+        {
+            e = new ObjcProtocolOfExp(e->loc, e);
+            e = e->semantic(sc);
+            return e;
+        }
+#endif
 
         if (ident == Id::typeinfo)
         {
@@ -8672,6 +8711,15 @@ L1:
                 }
             }
         }
+#if DMD_OBJC
+        else if (sym->objc && d->isFuncDeclaration() && d->isStatic() && ((FuncDeclaration *)d)->objcSelector)
+        {
+            // Objective-C class methods uses the class object as 'this'
+            DotVarExp *de = new DotVarExp(e->loc, new ObjcClassRefExp(e->loc, sym), d);
+            e = de->semantic(sc);
+            return e;
+        }
+#endif
         //printf("e = %s, d = %s\n", e->toChars(), d->toChars());
         accessCheck(e->loc, sc, e, d);
         VarExp *ve = new VarExp(e->loc, d, 1);
@@ -9212,6 +9260,9 @@ MATCH TypeNull::implicitConvTo(Type *to)
         Type *tb= to->toBasetype();
         if (tb->ty == Tpointer || tb->ty == Tarray ||
             tb->ty == Taarray  || tb->ty == Tclass ||
+#if DMD_OBJC
+            tb->ty == Tobjcselector ||
+#endif
             tb->ty == Tdelegate)
             return MATCHconst;
     }

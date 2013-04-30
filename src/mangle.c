@@ -135,6 +135,7 @@ char *Declaration::mangle(bool isv)
                 case LINKc:
                 case LINKwindows:
                 case LINKpascal:
+                case LINKobjc:
                     return ident->toChars();
 
                 case LINKcpp:

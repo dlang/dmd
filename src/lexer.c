@@ -2934,6 +2934,9 @@ static Keyword keywords[] =
     {   "shared",       TOKshared       },
     {   "immutable",    TOKimmutable    },
 #endif
+#if DMD_OBJC
+    {   "__selector",   TOKobjcselector },
+#endif
 };
 
 int Token::isKeyword()
@@ -3082,6 +3085,11 @@ void Lexer::initKeywords()
     Token::tochars[TOKon_scope_exit]    = "scope(exit)";
     Token::tochars[TOKon_scope_success] = "scope(success)";
     Token::tochars[TOKon_scope_failure] = "scope(failure)";
+#if DMD_OBJC
+    Token::tochars[TOKobjcclsref] = "objcclsref";
+    Token::tochars[TOKobjc_dotclass] = ".class";
+    Token::tochars[TOKobjc_dotprotocolof] = ".protocolof";
+#endif
 
 #if UNITTEST
     unittest_lexer();

@@ -35,6 +35,9 @@
 ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
+#if DMD_OBJC
+ClassDeclaration *ClassDeclaration::objcthrowable;
+#endif
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 
@@ -66,6 +69,18 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 
     vtblsym = NULL;
     vclassinfo = NULL;
+
+#if DMD_OBJC
+    objc = 0;
+    objcmeta = 0;
+    objcextern = 0;
+    objctakestringliteral = 0;
+    objcident = NULL;
+    sobjccls = NULL;
+    objcMethods = NULL;
+    metaclass = NULL;
+    objchaspreinit = 0;
+#endif
 
     if (id)
     {   // Look for special class names
@@ -199,6 +214,14 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
             throwable = this;
         }
 
+#if DMD_OBJC
+        if (id == Id::ObjcThrowable)
+        {   if (objcthrowable)
+                objcthrowable->error("%s", msg);
+            objcthrowable = this;
+        }
+#endif
+
         if (id == Id::Exception)
         {   if (exception)
                 exception->error("%s", msg);
@@ -315,6 +338,15 @@ void ClassDeclaration::semantic(Scope *sc)
 
     if (sc->linkage == LINKcpp)
         error("cannot create C++ classes");
+    if (sc->linkage == LINKobjc)
+    {
+#if DMD_OBJC
+        objc = 1;
+        objcextern = 1;
+#else
+        error("Objective-C classes not supported");
+#endif
+    }
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -472,7 +504,11 @@ void ClassDeclaration::semantic(Scope *sc)
     if (doAncestorsSemantic == SemanticIn)
         doAncestorsSemantic = SemanticDone;
 
-
+#if DMD_OBJC
+    if (objc || (baseClass && baseClass->objc))
+        objc = 1; // Objective-C classes do not inherit from Object
+    else
+#endif
     // If no base class, and this is not an Object, use Object as base class
     if (!baseClass && ident != Id::Object)
     {
@@ -497,6 +533,48 @@ void ClassDeclaration::semantic(Scope *sc)
 
     interfaces_dim = baseclasses->dim;
     interfaces = baseclasses->tdata();
+
+#if DMD_OBJC
+    if (objc && !objcmeta && !metaclass)
+	{
+        if (!objcident)
+            objcident = ident;
+
+        if (objcident == Id::Protocol)
+        {   if (ObjcProtocolOfExp::protocolClassDecl == NULL)
+                ObjcProtocolOfExp::protocolClassDecl = this;
+            else if (ObjcProtocolOfExp::protocolClassDecl != this)
+            {   error("duplicate definition of Objective-C class '%s'", Id::Protocol);
+            }
+        }
+
+        // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < baseclasses->dim; ++i)
+        {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
+            assert(basecd);
+            if (basecd->objc)
+            {   assert(basecd->metaclass);
+                assert(basecd->metaclass->objcmeta);
+                assert(basecd->metaclass->type->ty == Tclass);
+                assert(((TypeClass *)basecd->metaclass->type)->sym == basecd->metaclass);
+                BaseClass *metabase = new BaseClass(basecd->metaclass->type, PROTpublic);
+                metabase->base = basecd->metaclass;
+                metabases->push(metabase);
+            }
+            else
+                error("base class and interfaces for an Objective-C class must be extern (Objective-C)");
+        }
+        metaclass = new ClassDeclaration(loc, Id::Class, metabases);
+        metaclass->storage_class |= STCstatic;
+        metaclass->objc = 1;
+        metaclass->objcmeta = 1;
+        metaclass->objcextern = objcextern;
+        metaclass->objcident = objcident;
+        members->push(metaclass);
+        metaclass->addMember(sc, this, 1);
+    }
+#endif
 
 
     if (baseClass)
@@ -594,6 +672,12 @@ void ClassDeclaration::semantic(Scope *sc)
              */
             sc->linkage = LINKc;
     }
+#if DMD_OBJC
+    else if (objc)
+    {
+        sc->linkage = LINKobjc;
+    }
+#endif
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
     sc->structalign = STRUCTALIGN_DEFAULT;
@@ -603,6 +687,11 @@ void ClassDeclaration::semantic(Scope *sc)
 //      if (enclosing)
 //          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
+#if DMD_OBJC
+    else if (objc)
+    {   sc->offset = 0; // no hidden member for an Objective-C class
+    }
+#endif
     else
     {   sc->offset = Target::ptrsize * 2;       // allow room for __vptr and __monitor
         alignsize = Target::ptrsize;
@@ -612,6 +701,10 @@ void ClassDeclaration::semantic(Scope *sc)
     Scope scsave = *sc;
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->members = new Dsymbols();
+#endif
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -666,6 +759,10 @@ void ClassDeclaration::semantic(Scope *sc)
         structsize = 0;
         alignsize = 0;
 //        structalign = 0;
+#if DMD_OBJC
+        if (metaclass)
+            metaclass->members = NULL;
+#endif
 
         sc = sc->pop();
 
@@ -682,6 +779,92 @@ void ClassDeclaration::semantic(Scope *sc)
     //printf("\tsemantic('%s') successful\n", toChars());
 
     //members->print();
+
+#if DMD_OBJC
+	if (objc && !objcextern && !objcmeta)
+	{	// Look for static initializers to create initializing function if needed
+		Expression *inite = NULL;
+		for (size_t i = 0; i < members_dim; i++)
+		{
+			VarDeclaration *vd = ((Dsymbol *)members->data[i])->isVarDeclaration();
+			if (vd && vd->toParent() == this &&
+				((vd->init && !vd->init->isVoidInitializer()) && (vd->init || !vd->getType()->isZeroInit())))
+			{
+				Expression *thise = new ThisExp(vd->loc);
+				thise->type = type;
+				Expression *ie = vd->init->toExpression();
+				if (!ie)
+					ie = vd->type->defaultInit(loc);
+				if (!ie)
+					continue; // skip
+				Expression *ve = new DotVarExp(vd->loc, thise, vd);
+				ve->type = vd->type;
+				Expression *e = new AssignExp(vd->loc, ve, ie);
+				e->op = TOKblit;
+				e->type = ve->type;
+				inite = inite ? new CommaExp(loc, inite, e) : e;
+			}
+		}
+
+		TypeFunction *tf = new TypeFunction(new Parameters, type, 0, LINKd);
+		FuncDeclaration *initfd = findFunc(Id::_dobjc_preinit, tf);
+
+		if (inite)
+		{   // we have static initializers, need to create any '_dobjc_preinit' instance
+			// method to handle them.
+			FuncDeclaration *newinitfd = new FuncDeclaration(loc, loc, Id::_dobjc_preinit, STCundefined, tf);
+			Expression *retvale;
+			if (initfd)
+			{	// call _dobjc_preinit in superclass
+				retvale = new CallExp(loc, new DotIdExp(loc, new SuperExp(loc), Id::_dobjc_preinit));
+				retvale->type = type;
+			}
+			else
+			{	// no _dobjc_preinit to call in superclass, just return this
+				retvale = new ThisExp(loc);
+				retvale->type = type;
+			}
+			newinitfd->fbody = new ReturnStatement(loc, new CommaExp(loc, inite, retvale));
+			members->push(newinitfd);
+			newinitfd->addMember(sc, this, 1);
+			newinitfd->semantic(sc);
+
+			// replace initfd for next step
+			initfd = newinitfd;
+		}
+
+		if (initfd)
+		{	// replace alloc functions with stubs ending with a call to _dobjc_preinit
+            // this is done by the backend glue in objc.c, we just need to set a flag
+            objchaspreinit = 1;
+		}
+
+        // invariant for Objective-C class is handled by adding a _dobjc_invariant
+        // dynamic method calling the invariant function and then the parent's
+        // _dobjc_invariant if applicable.
+        if (inv)
+        {
+            Loc iloc = inv->loc;
+            TypeFunction *invtf = new TypeFunction(new Parameters, Type::tvoid, 0, LINKobjc);
+            FuncDeclaration *invfd = findFunc(Id::_dobjc_invariant, invtf);
+
+            // create dynamic dispatch handler for invariant
+			FuncDeclaration *newinvfd = new FuncDeclaration(iloc, iloc, Id::_dobjc_invariant, STCundefined, invtf);
+
+            Expression *e;
+            e = new DsymbolExp(iloc, inv);
+            e = new CallExp(iloc, e);
+            if (invfd)
+            {   // call super's _dobjc_invariant
+                e = new CommaExp(iloc, e, new CallExp(iloc, new DotIdExp(iloc, new SuperExp(iloc), Id::_dobjc_invariant)));
+            }
+			newinvfd->fbody = new ExpStatement(iloc, e);
+			members->push(newinvfd);
+			newinvfd->addMember(sc, this, 1);
+			newinvfd->semantic(sc);
+        }
+	}
+#endif
 
     /* Look for special member functions.
      * They must be in this class, not in a base class.
@@ -775,6 +958,10 @@ void ClassDeclaration::semantic(Scope *sc)
                 error("identity assignment operator overload is illegal");
         }
     }
+#if DMD_OBJC
+//    if (metaclass)
+//        metaclass->semantic(sc);
+#endif
     sc->pop();
 
 #if 0 // Do not call until toObjfile() because of forward references
@@ -907,6 +1094,11 @@ int ClassDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 
 int ClassDeclaration::isBaseInfoComplete()
 {
+#if DMD_OBJC
+    if (objc)
+    {}  // skip !baseClass check for Objective-C objects
+    else
+#endif
     if (!baseClass)
         return ident == Id::Object;
     for (size_t i = 0; i < baseclasses->dim; i++)
@@ -1166,6 +1358,13 @@ int ClassDeclaration::isCPPinterface()
 }
 #endif
 
+#if DMD_OBJC
+int ClassDeclaration::isObjCinterface()
+{
+    return objc;
+}
+#endif
+
 
 /****************************************
  */
@@ -1214,8 +1413,21 @@ const char *ClassDeclaration::kind()
 
 void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 {
+#if DMD_OBJC
+    if (objc)
+        return;
+#endif
     aclasses->push(this);
 }
+
+#if DMD_OBJC
+void ClassDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    if (objc && !objcextern && !objcmeta)
+        classes->push(this);
+}
+#endif
+
 
 /********************************* InterfaceDeclaration ****************************/
 
@@ -1306,6 +1518,22 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     if (!baseclasses->dim && sc->linkage == LINKcpp)
         cpp = 1;
+    if (sc->linkage == LINKobjc)
+    {
+#if DMD_OBJC
+        objc = 1;
+        // In the abscense of a better solution, classes with Objective-C linkage
+        // are only a declaration. A class that derives from one with Objective-C
+        // linkage but which does not have Objective-C linkage itself will
+        // generate a definition in the object file.
+        objcextern = 1; // this one is only a declaration
+
+        if (!objcident)
+            objcident = ident;
+#else
+        error("Objective-C interfaces not supported");
+#endif
+    }
 
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
@@ -1328,6 +1556,25 @@ void InterfaceDeclaration::semantic(Scope *sc)
         }
         else
         {
+#if DMD_OBJC
+            // Check for mixin Objective-C and non-Objective-C interfaces
+            if (!objc && tc->sym->objc)
+            {   if (i == 0)
+                {   // This is the first -- there's no non-Objective-C interface before this one.
+                    // Implicitly switch this interface to Objective-C.
+                    objc = 1;
+                }
+                else
+                    goto Lobjcmix; // same error as below
+            }
+            else if (objc && !tc->sym->objc)
+            {
+            Lobjcmix:
+                error ("cannot mix Objective-C and non-Objective-C interfaces");
+                baseclasses->remove(i);
+                continue;
+            }
+#endif
             // Check for duplicate interfaces
             for (size_t j = 0; j < i; j++)
             {
@@ -1370,6 +1617,38 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     interfaces_dim = baseclasses->dim;
     interfaces = baseclasses->tdata();
+
+#if DMD_OBJC
+    if (objc && !objcmeta && !metaclass)
+    {   // Create meta class derived from all our base's metaclass
+        BaseClasses *metabases = new BaseClasses();
+        for (size_t i = 0; i < baseclasses->dim; ++i)
+        {   ClassDeclaration *basecd = ((BaseClass *)baseclasses->data[i])->base;
+            assert(basecd);
+            InterfaceDeclaration *baseid = basecd->isInterfaceDeclaration();
+            assert(baseid);
+            if (baseid->objc)
+            {   assert(baseid->metaclass);
+                assert(baseid->metaclass->objcmeta);
+                assert(baseid->metaclass->type->ty == Tclass);
+                assert(((TypeClass *)baseid->metaclass->type)->sym == baseid->metaclass);
+                BaseClass *metabase = new BaseClass(baseid->metaclass->type, PROTpublic);
+                metabase->base = baseid->metaclass;
+                metabases->push(metabase);
+            }
+            else
+                error("base interfaces for an Objective-C interface must be extern (Objective-C)");
+        }
+        metaclass = new InterfaceDeclaration(loc, Id::Class, metabases);
+        metaclass->storage_class |= STCstatic;
+        metaclass->objc = 1;
+        metaclass->objcmeta = 1;
+        metaclass->objcextern = objcextern;
+        metaclass->objcident = objcident;
+        members->push(metaclass);
+        metaclass->addMember(sc, this, 1);
+    }
+#endif
 
     interfaceSemantic(sc);
 
@@ -1422,6 +1701,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
         sc->linkage = LINKwindows;
     else if (isCPPinterface())
         sc->linkage = LINKcpp;
+#if DMD_OBJC
+    else if (isObjCinterface())
+        sc->linkage = LINKobjc;
+#endif
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->protection = PROTpublic;
     sc->explicitProtection = 0;
@@ -1430,6 +1713,11 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->userAttributes = NULL;
     structsize = sc->offset;
     inuse++;
+
+#if DMD_OBJC
+    if (metaclass)
+        metaclass->members = new Dsymbols();
+#endif
 
     /* Set scope so if there are forward references, we still might be able to
      * resolve individual members like enums.
@@ -1459,6 +1747,10 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     inuse--;
     //members->print();
+#if DMD_OBJC
+//    if (metaclass)
+//        metaclass->semantic(sc);
+#endif
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
@@ -1486,6 +1778,15 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
 int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 {
+#if DMD_OBJC
+    if (poffset && objc && cd->objc)
+    {   // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
+#endif
+
     //printf("%s.InterfaceDeclaration::isBaseOf(cd = '%s')\n", toChars(), cd->toChars());
     assert(!baseClass);
     for (size_t j = 0; j < cd->interfaces_dim; j++)
@@ -1522,6 +1823,14 @@ int InterfaceDeclaration::isBaseOf(ClassDeclaration *cd, int *poffset)
 int InterfaceDeclaration::isBaseOf(BaseClass *bc, int *poffset)
 {
     //printf("%s.InterfaceDeclaration::isBaseOf(bc = '%s')\n", toChars(), bc->base->toChars());
+#if DMD_OBJC
+    if (poffset && objc && bc->base && bc->base->objc)
+    {   // Objective-C interfaces inside Objective-C classes have no offset.
+        // Set offset to zero then set poffset to null to avoid it being changed.
+        *poffset = 0;
+        poffset = NULL;
+    }
+#endif
     for (size_t j = 0; j < bc->baseInterfaces_dim; j++)
     {
         BaseClass *b = &bc->baseInterfaces[j];
@@ -1585,6 +1894,13 @@ int InterfaceDeclaration::isCOMinterface()
 int InterfaceDeclaration::isCPPinterface()
 {
     return cpp;
+}
+#endif
+
+#if DMD_OBJC
+void InterfaceDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    // nothing to do
 }
 #endif
 

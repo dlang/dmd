@@ -285,6 +285,9 @@ void Module::genobjfile(int multiobj)
     lastmname = srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, toPrettyChars());
+#if DMD_OBJC
+    ObjcSymbols::init();
+#endif
 
     eictor = NULL;
     ictorlocalgot = NULL;
@@ -791,7 +794,10 @@ void FuncDeclaration::toObjFile(int multiobj)
     size_t pi = (v_arguments != NULL);
     if (parameters)
         pi += parameters->dim;
-
+#if DMD_OBJC
+    if (objcSelector)
+        pi += 1; // Extra arument for Objective-C selector
+#endif
     // Create a temporary buffer, params[], to hold function parameters
     Symbol *paramsbuf[10];
     Symbol **params = paramsbuf;    // allocate on stack if possible
@@ -844,6 +850,24 @@ void FuncDeclaration::toObjFile(int multiobj)
         pi++;
     }
 
+#if DMD_OBJC
+    if (objcSelector)
+    {
+        // Need to add Objective-C self and _cmd arguments as last/first parameters
+        //        error("Objective-C method ABI not implemented yet.");
+        assert(vobjccmd);
+        Symbol *sobjccmd = vobjccmd->toSymbol();
+#if 0
+        // sthis becomes last parameter
+        params[pi] = sobjccmd;
+#else
+        // sthis becomes first parameter
+        memmove(params + 1, params, pi * sizeof(params[0]));
+        params[0] = sobjccmd;
+#endif
+        pi += 1;
+    }
+#endif
 
     if (sthis)
     {
@@ -1152,6 +1176,9 @@ unsigned Type::totym()
         case Tarray:    t = TYdarray;   break;
         case Tsarray:   t = TYstruct;   break;
         case Tstruct:   t = TYstruct;   break;
+#if DMD_OBJC
+        case Tobjcselector: t = TYnptr; break;
+#endif
 
         case Tenum:
         case Ttypedef:
@@ -1260,6 +1287,7 @@ unsigned TypeFunction::totym()
 
         case LINKc:
         case LINKcpp:
+        case LINKobjc:
             tyf = TYnfunc;
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
             if (I32 && retStyle() == RETstack)

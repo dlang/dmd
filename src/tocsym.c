@@ -273,6 +273,7 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKc:
+            case LINKobjc:
                 m = mTYman_c;
                 break;
 
@@ -408,6 +409,11 @@ Symbol *FuncDeclaration::toSymbol()
 
                 case LINKd:
                     t->Tmangle = mTYman_d;
+                    break;
+
+                case LINKobjc:
+                    // using C mangling only for global functions
+                    t->Tmangle = isMember2() ? mTYman_d : mTYman_c;
                     break;
 
                 case LINKcpp:

@@ -1592,6 +1592,16 @@ Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
     return this;
 }
 
+#if DMD_OBJC
+Expression *ObjcSelectorExp::interpret(InterState *istate)
+{
+#if LOG
+    printf("ObjcSelectorExp::interpret() %s\n", toChars());
+#endif
+    return this;
+}
+#endif
+
 
 // -------------------------------------------------------------
 //         Remove out, ref, and this
@@ -5139,6 +5149,17 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
 #endif
     return e;
 }
+
+#if DMD_OBJC
+
+Expression *ObjcExceptionBridge::interpret(InterState *istate)
+{
+    // transparently pass to body, translating exception ABI model does nothing
+    // when interpreting code
+    return body->interpret(istate);
+}
+
+#endif
 
 Expression *RemoveExp::interpret(InterState *istate, CtfeGoal goal)
 {

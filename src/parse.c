@@ -35,6 +35,10 @@
 #include "version.h"
 #include "aliasthis.h"
 
+#if DMD_OBJC
+#include "objc.h"
+#endif
+
 // How multiple declarations are parsed.
 // If 1, treat as C.
 // If 0, treat:
@@ -393,7 +397,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             Lstc:
                 if (storageClass & stc)
-                    error("redundant storage class %s", Token::toChars(token.value));
+                    error("redundant storage class '%s'", Token::toChars(token.value));
                 composeStorageClass(storageClass | stc);
                 nextToken();
             Lstc2:
@@ -990,6 +994,20 @@ enum LINK Parser::parseLinkage()
                 nextToken();
             }
         }
+        else if (id == Id::Objective) // Looking for tokens "Objective-C"
+        {
+            if (token.value == TOKmin)
+            {   nextToken();
+                if (token.ident == Id::C)
+                {   link = LINKobjc;
+                    nextToken();
+                }
+                else
+                    goto LinvalidLinkage;
+            }
+            else
+                goto LinvalidLinkage;
+        }
         else if (id == Id::System)
         {
 #if _WIN32
@@ -1000,7 +1018,8 @@ enum LINK Parser::parseLinkage()
         }
         else
         {
-            error("valid linkage identifiers are D, C, C++, Pascal, Windows, System");
+        LinvalidLinkage:
+            error("valid linkage identifiers are D, C, C++, Objective-C, Pascal, Windows, System");
             link = LINKd;
         }
     }
@@ -1174,6 +1193,15 @@ Dsymbol *Parser::parseCtor()
     tf = tf->addSTC(stc);
 
     CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
+#if DMD_OBJC
+    f->objcSelector = parseObjCSelector();
+    if (f->objcSelector)
+    {   if (tpl)
+            error("constructor template cannot have an Objective-C selector attached");
+        if (f->objcSelector->paramCount != parameters->dim)
+            error("number of colons in Objective-C selector must match the number of parameters");
+    }
+#endif
     parseContracts(f);
     return f;
 }
@@ -1195,6 +1223,9 @@ DtorDeclaration *Parser::parseDtor()
     check(TOKrparen);
 
     f = new DtorDeclaration(loc, 0);
+#if DMD_OBJC
+    f->objcSelector = parseObjCSelector();
+#endif
     parseContracts(f);
     return f;
 }
@@ -1464,7 +1495,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         (storageClass & STCin && stc & (STCconst | STCscope)) ||
                         (stc & STCin && storageClass & (STCconst | STCscope))
                        )
-                        error("redundant storage class %s", Token::toChars(token.value));
+                        error("redundant storage class '%s'", Token::toChars(token.value));
                     storageClass |= stc;
                     composeStorageClass(storageClass);
                     continue;
@@ -2491,6 +2522,14 @@ Type *Parser::parseBasicType()
         Lident2:
             while (token.value == TOKdot)
             {   nextToken();
+#if DMD_OBJC && 0
+                if (token.value == TOKclass)
+                {   // allow this for Objective-C types
+                    assert(token.ident);
+                    break;
+                }
+                else
+#endif
                 if (token.value != TOKidentifier)
                 {   error("identifier expected following '.' instead of '%s'", token.toChars());
                     break;
@@ -2601,6 +2640,7 @@ Type *Parser::parseBasicType()
  *      t [expression .. expression]
  *      t function
  *      t delegate
+ *      t __selector  (Objective-C)
  */
 
 Type *Parser::parseBasicType2(Type *t)
@@ -2653,9 +2693,13 @@ Type *Parser::parseBasicType2(Type *t)
 
             case TOKdelegate:
             case TOKfunction:
+#if DMD_OBJC
+            case TOKobjcselector:
+#endif
             {   // Handle delegate declaration:
                 //      t delegate(parameter list) nothrow pure
                 //      t function(parameter list) nothrow pure
+                //      t __selector(parameter list) nothrow pure
                 Parameters *arguments;
                 int varargs;
                 enum TOK save = token.value;
@@ -2675,6 +2719,12 @@ Type *Parser::parseBasicType2(Type *t)
 
                 if (save == TOKdelegate)
                     t = new TypeDelegate(tf);
+#if DMD_OBJC
+                else if (save == TOKobjcselector)
+                {   tf->linkage = LINKobjc; // force Objective-C linkage
+                    t = new TypeObjcSelector(tf);
+                }
+#endif
                 else
                     t = new TypePointer(tf);    // pointer to function
                 continue;
@@ -3155,6 +3205,10 @@ L2:
         if (!isThis && !ident)
             error("no identifier for declarator %s", t->toChars());
 
+#if DMD_OBJC
+        if (t->ty == Tobjcselector)
+            link = LINKobjc; // force Objective-C linkage
+#endif
         if (tok == TOKtypedef || tok == TOKalias)
         {   Declaration *v;
             Initializer *init = NULL;
@@ -3232,6 +3286,15 @@ L2:
             FuncDeclaration *f =
                 new FuncDeclaration(loc, 0, ident, storage_class | (disable ? STCdisable : 0), t);
             addComment(f, comment);
+#if DMD_OBJC
+            f->objcSelector = parseObjCSelector();
+            if (f->objcSelector)
+            {   if (tpl)
+                    error("function template cannot have an Objective-C selector attached");
+                if (f->objcSelector->paramCount != tf->parameters->dim)
+                    error("number of colons in Objective-C selector must match number of parameters");
+            }
+#endif
             if (tpl)
                 constraint = parseConstraint();
             parseContracts(f);
@@ -3308,6 +3371,60 @@ L2:
     }
     return a;
 }
+
+#if DMD_OBJC
+/*****************************************
+ * Parse Objective-C selector name enclosed in brackets. Such as:
+ *   [setObject:forKey:otherArgs::]
+ * Return NULL when no bracket found.
+ */
+
+ObjcSelector *Parser::parseObjCSelector()
+{
+    if (token.value != TOKlbracket)
+        return NULL; // no selector
+
+    ObjcSelectorBuilder selBuilder;
+    nextToken();
+    while (1)
+    {
+        switch (token.value)
+        {
+            case TOKidentifier:
+            Lcaseident:
+                selBuilder.addIdentifier(token.ident);
+                break;
+            case TOKcolon:
+                selBuilder.addColon();
+                break;
+            case TOKrbracket:
+                goto Lendloop;
+            default:
+                // special case to allow D keywords in Objective-C selector names
+                if (token.ident)
+                    goto Lcaseident;
+                goto Lparseerror;
+        }
+        nextToken();
+    }
+Lendloop:
+    nextToken();
+    if (!selBuilder.isValid())
+    {   error("illegal Objective-C selector name");
+        return NULL;
+    }
+    return ObjcSelector::lookup(&selBuilder);
+
+Lparseerror:
+    error("illegal Objective-C selector name");
+    // exit bracket ignoring content
+    while (token.value != TOKrbracket && token.value != TOKeof)
+        nextToken();
+    nextToken();
+    return NULL;
+}
+#endif
+
 
 /*****************************************
  * Parse auto declarations of the form:
@@ -3815,6 +3932,9 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
         case TOKfuncstring:
         case TOKprettyfunc:
 #endif
+#if DMD_OBJC
+        case TOKobjcselector:
+#endif
         Lexp:
         {
             Expression *exp = parseExpression();
@@ -4093,22 +4213,29 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 Type *at;
 
                 StorageClass storageClass = 0;
+                StorageClass stc = 0;
             Lagain:
+                if (stc)
+                {
+                    if (storageClass & stc)
+                        error("redundant storage class '%s'", Token::toChars(token.value));
+                    storageClass |= stc;
+                    composeStorageClass(storageClass);
+                    nextToken();
+                }
                 switch (token.value)
                 {
                     case TOKref:
 #if D1INOUT
                     case TOKinout:
 #endif
-                        storageClass |= STCref;
-                        nextToken();
+                        stc = STCref;
                         goto Lagain;
 
                     case TOKconst:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCconst;
-                            nextToken();
+                            stc = STCconst;
                             goto Lagain;
                         }
                         break;
@@ -4116,26 +4243,23 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                     case TOKimmutable:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCimmutable;
+                            stc = STCimmutable;
                             if (token.value == TOKinvariant)
                                 deprecation("use of 'invariant' rather than 'immutable' is deprecated");
-                            nextToken();
                             goto Lagain;
                         }
                         break;
                     case TOKshared:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCshared;
-                            nextToken();
+                            stc = STCshared;
                             goto Lagain;
                         }
                         break;
                     case TOKwild:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCwild;
-                            nextToken();
+                            stc = STCwild;
                             goto Lagain;
                         }
                         break;
@@ -4196,25 +4320,28 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             check(TOKlparen);
 
             StorageClass storageClass = 0;
+            StorageClass stc = 0;
         LagainStc:
+            if (stc)
+            {
+                if (storageClass & stc)
+                    error("redundant storage class '%s'", Token::toChars(token.value));
+                storageClass |= stc;
+                composeStorageClass(storageClass);
+                nextToken();
+            }
             switch (token.value)
             {
                 case TOKref:
-                    storageClass |= STCref;
-                    composeStorageClass(storageClass);
-                    nextToken();
+                    stc = STCref;
                     goto LagainStc;
                 case TOKauto:
-                    storageClass |= STCauto;
-                    composeStorageClass(storageClass);
-                    nextToken();
+                    stc = STCauto;
                     goto LagainStc;
                 case TOKconst:
                     if (peekNext() != TOKlparen)
                     {
-                        storageClass |= STCconst;
-                        composeStorageClass(storageClass);
-                        nextToken();
+                        stc = STCconst;
                         goto LagainStc;
                     }
                     break;
@@ -4222,29 +4349,23 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 case TOKimmutable:
                     if (peekNext() != TOKlparen)
                     {
-                        storageClass |= STCimmutable;
+                        stc = STCimmutable;
                         if (token.value == TOKinvariant)
                             deprecation("use of 'invariant' rather than 'immutable' is deprecated");
-                        composeStorageClass(storageClass);
-                        nextToken();
                         goto LagainStc;
                     }
                     break;
                 case TOKshared:
                     if (peekNext() != TOKlparen)
                     {
-                        storageClass |= STCshared;
-                        composeStorageClass(storageClass);
-                        nextToken();
+                        stc = STCshared;
                         goto LagainStc;
                     }
                     break;
                 case TOKwild:
                     if (peekNext() != TOKlparen)
                     {
-                        storageClass |= STCwild;
-                        composeStorageClass(storageClass);
-                        nextToken();
+                        stc = STCwild;
                         goto LagainStc;
                     }
                     break;
@@ -5096,6 +5217,9 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, enum TOK endtok)
 
             case TOKdelegate:
             case TOKfunction:
+#if DMD_OBJC
+            case TOKobjcselector:
+#endif
                 t = peek(t);
                 if (!isParameters(&t))
                     return FALSE;
@@ -5828,6 +5952,9 @@ Expression *Parser::parsePrimaryExp()
 #endif
                          token.value == TOKfunction ||
                          token.value == TOKdelegate ||
+#if DMD_OBJC
+                         token.value == TOKobjcselector ||
+#endif
                          token.value == TOKreturn))
                     {
                         if (token.value == TOKinvariant)
@@ -6103,6 +6230,14 @@ Expression *Parser::parsePostExp(Expression *e)
                     e = parseNewExp(e);
                     continue;
                 }
+#if DMD_OBJC
+                else if (token.value == TOKclass)
+                {
+                    e = new ObjcDotClassExp(loc, e);
+                    nextToken();
+                    continue;
+                }
+#endif
                 else
                     error("identifier expected following '.', not '%s'", token.toChars());
                 break;
@@ -6395,6 +6530,9 @@ Expression *Parser::parseUnaryExp()
                     case TOKmodulestring:
                     case TOKfuncstring:
                     case TOKprettyfunc:
+#endif
+#if DMD_OBJC
+                    case TOKobjcselector:
 #endif
                     case BASIC_TYPES:           // (type)int.size
                     {   // (type) una_exp
@@ -6997,6 +7135,9 @@ void initPrecedence()
 
     precedence[TOKtype] = PREC_expr;
     precedence[TOKerror] = PREC_expr;
+#if DMD_OBJC
+    precedence[TOKobjcclsref] = PREC_expr, // Objective-C class reference, same as TOKtype
+#endif
 
     precedence[TOKtypeof] = PREC_primary;
     precedence[TOKmixin] = PREC_primary;
@@ -7070,6 +7211,9 @@ void initPrecedence()
     precedence[TOKnew] = PREC_unary;
     precedence[TOKnewanonclass] = PREC_unary;
     precedence[TOKcast] = PREC_unary;
+#if DMD_OBJC
+    precedence[TOKobjcselector] = PREC_unary; // same as delegate
+#endif
 
 #if DMDV2
     precedence[TOKvector] = PREC_unary;

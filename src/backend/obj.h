@@ -62,7 +62,11 @@ struct Obj
     VIRTUAL void pubdef(int seg, Symbol *s, targ_size_t offset);
     VIRTUAL void pubdefsize(int seg, Symbol *s, targ_size_t offset, targ_size_t symsize);
     VIRTUAL int external_def(const char *);
+#if MACHOBJ
+    VIRTUAL int data_start(Symbol *sdata, targ_size_t datasize, int seg, int noalign = 0);
+#else
     VIRTUAL int data_start(Symbol *sdata, targ_size_t datasize, int seg);
+#endif
     VIRTUAL int external(Symbol *);
     VIRTUAL int common_block(Symbol *s, targ_size_t size, targ_size_t count);
     VIRTUAL int common_block(Symbol *s, int flag, targ_size_t size, targ_size_t count);

@@ -105,6 +105,12 @@ Msgtable msgtable[] =
     { "_match" },
     { "destroy" },
     { "postblit" },
+    // DMD_OBJC
+    { "_cmd" },
+    { "Class" },
+    { "Protocol" },
+    { "protocolof" },
+    { "ObjcThrowable" },
 
     { "LINE", "__LINE__" },
     { "FILE", "__FILE__" },
@@ -136,6 +142,7 @@ Msgtable msgtable[] =
     { "Windows" },
     { "Pascal" },
     { "System" },
+    { "Objective" },
 
     { "exit" },
     { "success" },
@@ -261,11 +268,21 @@ Msgtable msgtable[] =
     { "criticalenter", "_d_criticalenter" },
     { "criticalexit", "_d_criticalexit" },
     { "_ArrayEq" },
+    // DMD_OBJC
+    { "_dobjc_preinit" },
+    { "_dobjc_invariant" },
+    { "objc_sync_enter" },
+    { "objc_sync_exit" },
 
     // For pragma's
     { "lib" },
     { "msg" },
     { "startaddress" },
+    // DMD_OBJC
+    { "objc_takestringliteral" },
+    { "objc_nameoverride" },
+	{ "objc_selectortarget" },
+	{ "objc_isselector" },
 
     // For special functions
     { "tohash", "toHash" },
@@ -303,6 +320,9 @@ Msgtable msgtable[] =
     { "bsf" },
     { "bsr" },
     { "bswap" },
+
+    // Builtin Objective-C selectors
+    { "alloc" },
 
     // Traits
     { "isAbstractClass" },

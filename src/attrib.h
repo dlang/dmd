@@ -54,6 +54,10 @@ struct AttribDeclaration : Dsymbol
     bool hasStaticCtorOrDtor();
     void checkCtorConstInit();
     void addLocalClass(ClassDeclarations *);
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
+
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     AttribDeclaration *isAttribDeclaration() { return this; }

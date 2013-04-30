@@ -506,28 +506,28 @@ struct StructLiteralExp : Expression
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
 
-    StructLiteralExp *origin;   // pointer to the origin instance of the expression. 
-                                // once a new expression is created, origin is set to 'this'. 
-                                // anytime when an expression copy is created, 'origin' pointer is set to 
+    StructLiteralExp *origin;   // pointer to the origin instance of the expression.
+                                // once a new expression is created, origin is set to 'this'.
+                                // anytime when an expression copy is created, 'origin' pointer is set to
                                 // 'origin' pointer value of the original expression.
-                                
-    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer. 
+
+    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     int stageflags;               // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-                                  // current stage and unmarks before return from this function. 
-                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
+                                  // current stage and unmarks before return from this function.
+                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
                                   // (with infinite recursion) of this expression.
 
     // scrubReturnValue is running
-    #define stageScrub          0x1 
+    #define stageScrub          0x1
     // hasNonConstPointers is running
-    #define stageSearchPointers 0x2 
+    #define stageSearchPointers 0x2
     // optimize is running
     #define stageOptimize       0x4
     // apply is running
     #define stageApply          0x8
     //inlineScan is running
     #define stageInlineScan     0x10
-                         
+
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();
@@ -595,6 +595,9 @@ struct NewExp : Expression
 
     CtorDeclaration *member;    // constructor function
     NewDeclaration *allocator;  // allocator function
+#if DMD_OBJC
+    FuncDeclaration *objcalloc; // allocator function (for Objective-C classes)
+#endif
     int onstack;                // allocate on stack
 
     NewExp(Loc loc, Expression *thisexp, Expressions *newargs,
@@ -980,6 +983,27 @@ struct DelegateExp : UnaExp
     elem *toElem(IRState *irs);
 };
 
+#if DMD_OBJC
+struct ObjcSelectorExp : Expression
+{
+    FuncDeclaration *func;
+    char *selname;
+    int hasOverloads;
+
+    ObjcSelectorExp(Loc loc, FuncDeclaration *func, int hasOverloads = 0);
+    ObjcSelectorExp(Loc loc, char *selname, int hasOverloads = 0);
+    Expression *semantic(Scope *sc);
+    Expression *interpret(InterState *istate);
+    MATCH implicitConvTo(Type *t);
+    Expression *castTo(Scope *sc, Type *t);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void dump(int indent);
+
+    int inlineCost3(InlineCostState *ics);
+    elem *toElem(IRState *irs);
+};
+#endif
+
 struct DotTypeExp : UnaExp
 {
     Dsymbol *sym;               // symbol that represents a type
@@ -994,6 +1018,9 @@ struct CallExp : UnaExp
 {
     Expressions *arguments;     // function arguments
     FuncDeclaration *f;         // symbol to call
+#if DMD_OBJC
+    Expression *argument0;      // this argument for Objective-C selector
+#endif
 
     CallExp(Loc loc, Expression *e, Expressions *exps);
     CallExp(Loc loc, Expression *e);

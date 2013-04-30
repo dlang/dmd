@@ -36,10 +36,15 @@ int lambdaCanThrow(Expression *e, void *param);
 
 struct CanThrow
 {
-    bool can;
+    int can;
     bool mustnot;
 };
 
+#if DMD_OBJC
+// Changed to return flags BEthrow and/or BEthrowobjc depending on which
+// throwing mechanism is used. Both flags can be present at the same time
+// which means that both types of exceptions can be thrown by this expression.
+#endif
 int Expression::canThrow(bool mustNotThrow)
 {
     //printf("Expression::canThrow(%d) %s\n", mustNotThrow, toChars());
@@ -72,15 +77,29 @@ int lambdaCanThrow(Expression *e, void *param)
              * Note that pure functions can throw.
              */
             Type *t = ce->e1->type->toBasetype();
+#if DMD_OBJC
+            if (t->ty == Tfunction && !((TypeFunction *)t)->isnothrow)
+                pct->can |= (((TypeFunction *)t)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+            else if (t->ty == Tdelegate && !((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
+                pct->can |= (((TypeFunction *)((TypeDelegate *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+            else if (t->ty == Tobjcselector && !((TypeFunction *)((TypeObjcSelector *)t)->next)->isnothrow)
+                pct->can |= (((TypeFunction *)((TypeObjcSelector *)t)->next)->linkage == LINKobjc ? BEthrowobjc : BEthrow);
+#else
             if (t->ty == Tfunction && ((TypeFunction *)t)->isnothrow)
                 ;
             else if (t->ty == Tdelegate && ((TypeFunction *)((TypeDelegate *)t)->next)->isnothrow)
                 ;
+#endif
             else
             {
                 if (pct->mustnot)
+#if DMD_OBJC
+                    if (pct->can)
+#endif
                     e->error("%s is not nothrow", ce->e1->toChars());
+#if !DMD_OBJC
                 pct->can = TRUE;
+#endif
             }
             break;
         }
@@ -95,7 +114,14 @@ int lambdaCanThrow(Expression *e, void *param)
                 {
                     if (pct->mustnot)
                         e->error("constructor %s is not nothrow", ne->member->toChars());
+#if DMD_OBJC
+                    if (((TypeFunction *)t)->linkage == LINKobjc)
+                        pct->can |= BEthrowobjc;
+                    else
+                        pct->can |= BEthrow;
+#else
                     pct->can = TRUE;
+#endif
                 }
             }
             // regard storage allocation failures as not recoverable
@@ -119,6 +145,9 @@ int lambdaCanThrow(Expression *e, void *param)
 
 int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
 {
+#if DMD_OBJC
+    int result = 0;
+#endif
     AttribDeclaration *ad;
     VarDeclaration *vd;
     TemplateMixin *tm;
@@ -134,8 +163,14 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             for (size_t i = 0; i < decl->dim; i++)
             {
                 s = (*decl)[i];
+#if DMD_OBJC
+                result |= Dsymbol_canThrow(s, mustNotThrow);
+                if (result == BEthrowany)
+                    return result;
+#else
                 if (Dsymbol_canThrow(s, mustNotThrow))
                     return 1;
+#endif
             }
         }
     }
@@ -143,7 +178,14 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
     {
         s = s->toAlias();
         if (s != vd)
+#if DMD_OBJC
+        {   result |= Dsymbol_canThrow(s, mustNotThrow);
+            if (result == BEthrowany)
+                return result;
+        }
+#else
             return Dsymbol_canThrow(s, mustNotThrow);
+#endif
         if (vd->storage_class & STCmanifest)
             ;
         else if (vd->isStatic() || vd->storage_class & (STCextern | STCtls | STCgshared))
@@ -152,11 +194,23 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
         {
             if (vd->init)
             {   ExpInitializer *ie = vd->init->isExpInitializer();
+#if DMD_OBJC
+                if (ie)
+                {   result |= ie->exp->canThrow(mustNotThrow);
+                    if (result == BEthrowany)
+                        return result;
+                }
+#else
                 if (ie && ie->exp->canThrow(mustNotThrow))
                     return 1;
+#endif
             }
             if (vd->edtor && !vd->noscope)
+#if DMD_OBJC
+                return result | vd->edtor->canThrow(mustNotThrow);
+#else
                 return vd->edtor->canThrow(mustNotThrow);
+#endif
         }
     }
     else if ((tm = s->isTemplateMixin()) != NULL)
@@ -167,8 +221,14 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             for (size_t i = 0; i < tm->members->dim; i++)
             {
                 Dsymbol *sm = (*tm->members)[i];
+#if DMD_OBJC
+                result |= Dsymbol_canThrow(sm, mustNotThrow);
+                if (result == BEthrowany)
+                    return result;
+#else
                 if (Dsymbol_canThrow(sm, mustNotThrow))
                     return 1;
+#endif
             }
         }
     }
@@ -180,11 +240,21 @@ int Dsymbol_canThrow(Dsymbol *s, bool mustNotThrow)
             {   Expression *eo = (Expression *)o;
                 if (eo->op == TOKdsymbol)
                 {   DsymbolExp *se = (DsymbolExp *)eo;
+#if DMD_OBJC
+                    result |= Dsymbol_canThrow(se->s, mustNotThrow);
+                    if (result == BEthrowany)
+                        return result;
+#else
                     if (Dsymbol_canThrow(se->s, mustNotThrow))
                         return 1;
+#endif
                 }
             }
         }
     }
+#if DMD_OBJC
+    return result;
+#else
     return 0;
+#endif
 }

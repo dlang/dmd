@@ -142,6 +142,10 @@ struct StructDeclaration : AggregateDeclaration
 
     structalign_t alignment;    // alignment applied outside of the struct
 #endif
+#if DMD_OBJC
+    int selectortarget;         // !=0 if valid target for a selector
+    int isselector;             // !=0 if represents a selector
+#endif
 
     // For 64 bit Efl function call/return ABI
     Type *arg1type;
@@ -223,6 +227,9 @@ struct ClassDeclaration : AggregateDeclaration
     static ClassDeclaration *object;
     static ClassDeclaration *classinfo;
     static ClassDeclaration *throwable;
+#if DMD_OBJC
+    static ClassDeclaration *objcthrowable;
+#endif
     static ClassDeclaration *exception;
     static ClassDeclaration *errorException;
 
@@ -255,6 +262,18 @@ struct ClassDeclaration : AggregateDeclaration
     enum Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
+#if DMD_OBJC
+    int objc;                           // !=0 if this is an Objective-C class/interface
+    int objcmeta;                       // !=0 if this is an Objective-C metaclass
+    int objcextern;                     // !=0 if this is a delcaration for a class defined externally
+    int objctakestringliteral;          // !=0 if this class can represent NSString literals
+    Identifier *objcident;              // name of this class
+    Symbol *sobjccls;                   // generated symbol for this class (if not objcextern)
+    StringTable *objcMethods;           // table of selectors for methods
+    Dsymbols objcMethodList;               // list of non-inherited methods
+    ClassDeclaration *metaclass;        // class declaration for metaclass
+    int objchaspreinit;                 // !=0 if this class has _dobjc_preinit
+#endif
 
     ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -278,6 +297,9 @@ struct ClassDeclaration : AggregateDeclaration
 #if DMDV2
     virtual int isCPPinterface();
 #endif
+#if DMD_OBJC
+    virtual int isObjCinterface();
+#endif
     int isAbstract();
     virtual int vtblOffset();
     const char *kind();
@@ -287,6 +309,9 @@ struct ClassDeclaration : AggregateDeclaration
     PROT getAccess(Dsymbol *smember);   // determine access to smember
 
     void addLocalClass(ClassDeclarations *);
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
 
     // Back end
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -319,6 +344,10 @@ struct InterfaceDeclaration : ClassDeclaration
     int isCPPinterface();
 #endif
     virtual int isCOMinterface();
+
+#if DMD_OBJC
+    void addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories);
+#endif
 
     void toObjFile(int multiobj);                       // compile to .obj file
     Symbol *toSymbol();

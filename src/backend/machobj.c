@@ -1996,11 +1996,12 @@ void Obj::export_symbol(Symbol *s,unsigned argsize)
  *      sdata           data symbol
  *      datasize        output size
  *      seg             default seg if not known
+ *      noalign         set to 1 to avoid alignment
  * Returns:
  *      actual seg
  */
 
-int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
+int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg, int noalign)
 {
     targ_size_t alignbytes;
 
@@ -2020,6 +2021,8 @@ int Obj::data_start(Symbol *sdata, targ_size_t datasize, int seg)
     }
     else
         alignbytes = align(datasize, offset) - offset;
+    if (noalign)
+        alignbytes = 0;
     if (alignbytes)
         Obj::lidata(seg, offset, alignbytes);
     sdata->Soffset = offset + alignbytes;

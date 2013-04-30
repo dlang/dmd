@@ -155,6 +155,19 @@ SRC = win32.mak posix.mak \
 	$(ROOT)/speller.h $(ROOT)/speller.c \
 	$(TARGET_CH)
 
+ifeq ($(D_OBJC),1)
+# Files to add for Objective-C support
+
+DMD_OBJS:=$(DMD_OBJS)\
+	objc.o
+
+SRC:=$(SRC)\
+	objc.c
+
+GFLAGS:=$(GFLAGS) -DD_OBJC=1
+
+endif
+
 
 all: dmd
 
@@ -298,7 +311,7 @@ cgsched.o: $C/cgsched.c $C/rtlsym.h
 cgxmm.o: $C/cgxmm.c
 	$(CC) -c $(MFLAGS) $<
 
-class.o: class.c
+class.o: class.c objc.h
 	$(CC) -c $(CFLAGS) $<
 
 clone.o: clone.c
@@ -370,7 +383,7 @@ dump.o: dump.c
 dwarf.o: $C/dwarf.c $C/dwarf.h
 	$(CC) -c $(MFLAGS) -I. $<
 
-e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h
+e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h objc.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 ee.o: $C/ee.c
@@ -511,6 +524,9 @@ mtype.o: mtype.c
 nteh.o: $C/nteh.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $<
 
+objc.o: objc.c objc.h $(ROOT)/root.h $(ROOT)/stringtable.h
+	$(CC) -c -I$C -I$(TK) $(CFLAGS) $<
+
 opover.o: opover.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -526,7 +542,7 @@ out.o: $C/out.c
 outbuf.o: $C/outbuf.c $C/outbuf.h
 	$(CC) -c $(MFLAGS) $<
 
-parse.o: parse.c
+parse.o: parse.c objc.h
 	$(CC) -c $(CFLAGS) $<
 
 pdata.o: $C/pdata.c
@@ -619,7 +635,7 @@ toelfdebug.o: toelfdebug.c $(CH) mars.h
 toir.o: toir.c $C/rtlsym.h expression.h toir.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
-toobj.o: toobj.c $(CH) mars.h module.h
+toobj.o: toobj.c $(CH) mars.h module.h objc.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $<
 
 traits.o: traits.c

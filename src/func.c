@@ -53,6 +53,10 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     fbody = NULL;
     localsymtab = NULL;
     vthis = NULL;
+#if DMD_OBJC
+    objcSelector = NULL;
+    vobjccmd = NULL;
+#endif
     v_arguments = NULL;
 #ifdef IN_GCC
     v_argptr = NULL;
@@ -325,6 +329,11 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isAbstract() && fbody)
         error("abstract functions cannot have bodies");
 #endif
+#if DMD_OBJC
+    // Because static functions are virtual in Objective-C objects
+    if (isAbstract() && isStatic())
+        error("static functions cannot be abstract");
+#endif
 
 #if 0
     if (isStaticConstructor() || isStaticDestructor())
@@ -375,6 +384,13 @@ void FuncDeclaration::semantic(Scope *sc)
     {
         storage_class |= STCabstract;
 
+#if DMD_OBJC
+        if (id->objc && isCtorDeclaration() || isDtorDeclaration())
+        {   // constructors and destructor allowed in Objective-C interfaces
+            // to map them to selectors.
+        }
+        else
+#endif
         if (isCtorDeclaration() ||
 #if DMDV2
             isPostBlitDeclaration() ||
@@ -462,6 +478,18 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
             }
         }
+
+#if DMD_OBJC
+        // Handle Objective-C static member functions, which are virtual
+        // functions of the metaclass, by changing the parent class
+        // declaration to the metaclass.
+        if (cd->objc && isStatic())
+        {   if (!cd->objcmeta) // but check that it hasn't already been done
+            {   assert(cd->metaclass);
+                parent = cd = cd->metaclass;
+            }
+        }
+#endif
 
         /* Find index of existing function in base class's vtbl[] to override
          * (the index will be the same as in cd's current vtbl[])
@@ -681,6 +709,49 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
     L2: ;
+
+#if DMD_OBJC
+        if (cd->objc)
+        {
+            // Check for Objective-C selector inherited form overriden functions
+            for (size_t i = 0; i < foverrides.dim; ++i)
+            {
+                FuncDeclaration *foverride = (FuncDeclaration *)foverrides.data[i];
+                if (foverride && foverride->objcSelector)
+                {
+                    if (!objcSelector)
+                        objcSelector = foverride->objcSelector; // inherit selector
+                    else if (objcSelector != foverride->objcSelector)
+                        error("Objective-C selector %s must be the same as selector %s in overriden function.", objcSelector->stringvalue, foverride->objcSelector->stringvalue);
+                }
+            }
+
+            // Add to class method lists
+            createObjCSelector(); // create a selector if needed
+            if (objcSelector && cd)
+            {
+                assert(isStatic() ? cd->objcmeta : !cd->objcmeta);
+
+                cd->objcMethodList.push(this);
+                if (cd->objcMethods == NULL)
+                    cd->objcMethods = new StringTable;
+                StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
+
+                if (sv->ptrvalue)
+                {   // check if the other function with the same selector is
+                    // overriden by this one
+                    FuncDeclaration *selowner = (FuncDeclaration *)sv->ptrvalue;
+                    if (selowner != this && !overrides(selowner))
+                        error("Objcective-C selector '%s' already in use by function '%s'.", objcSelector->stringvalue, selowner->toChars());
+                }
+                else
+                    sv->ptrvalue = this;
+            }
+        }
+
+        if (linkage != LINKobjc && objcSelector)
+            error("function must have Objective-C linkage to attach a selector");
+#endif
 
         /* Go through all the interface bases.
          * Disallow overriding any final functions in the interface(s).
@@ -990,7 +1061,11 @@ void FuncDeclaration::semantic3(Scope *sc)
             else
                 assert(!isNested() || sc->intypeof);    // can't be both member and nested
         }
+#if DMD_OBJC
+        vthis = declareThis(sc2, ad, &vobjccmd);
+#else
         vthis = declareThis(sc2, ad);
+#endif
 
         // Declare hidden variable _arguments[] and _argptr
         if (f->varargs == 1)
@@ -1677,6 +1752,32 @@ void FuncDeclaration::semantic3(Scope *sc)
             flags &= ~FUNCFLAGnothrowInprocess;
 #endif
 
+#if DMD_OBJC
+            {
+                // Convert throws to Objective-C EH if has Objective-C linkage
+                // otherwise convert throws to D EH (if necessary)
+                ++global.gag; // suppress warnings about unreachable statements
+                int blockexit = fbody->blockExit(false);
+                --global.gag;
+                if (linkage == LINKobjc)
+                {   // Objective-C linkage must throw using Objective-C EH.
+                    if ((blockexit & BEthrow))
+                    {   fbody = new PeelStatement(fbody);
+                        fbody = new ObjcExceptionBridge(0, fbody, THROWobjc);
+                        fbody = fbody->semantic(sc2);
+                    }
+                }
+                else
+                {   // other functions must throw using D EH.
+                    if (blockexit & BEthrowobjc)
+                    {   fbody = new PeelStatement(fbody);
+                        fbody = new ObjcExceptionBridge(0, fbody, THROWd);
+                        fbody = fbody->semantic(sc2);
+                    }
+                }
+            }
+#endif
+
             if (isSynchronized())
             {   /* Wrap the entire function body in a synchronized statement
                  */
@@ -1850,8 +1951,7 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         bodyToCBuffer(buf, hgs);
     buf->writenl();
 }
-
-VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad)
+VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad, VarDeclaration** vobjccmd)
 {
     if (ad)
     {   VarDeclaration *v;
@@ -1870,6 +1970,18 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
             if (!sc->insert(v))
                 assert(0);
             v->parent = this;
+#if DMD_OBJC
+            if (vobjccmd && objcSelector)
+            {
+                v = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
+                v->storage_class |= STCparameter;
+                v->semantic(sc);
+                if (!sc->insert(v))
+                    assert(0);
+                v->parent = this;
+                *vobjccmd = v;
+            }
+#endif
             return v;
         }
     }
@@ -2865,6 +2977,16 @@ AggregateDeclaration *FuncDeclaration::isThis()
     {
         ad = isMember2();
     }
+#if DMD_OBJC
+    else if (objcSelector) // static Objective-C functions
+    {
+        // Use Objective-C class object as 'this'
+        ClassDeclaration *cd = isMember2()->isClassDeclaration();
+        if (cd->objc)
+            if (!cd->objcmeta) // but check that it hasn't already been done
+                ad = cd->metaclass;
+    }
+#endif
     //printf("-FuncDeclaration::isThis() %p\n", ad);
     return ad;
 }
@@ -3053,6 +3175,18 @@ int FuncDeclaration::isVirtual()
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
         !(p->isInterfaceDeclaration() && isFinal()));
+#endif
+
+#if DMD_OBJC
+    if (linkage == LINKobjc)
+    {   // * final member functions are kept virtual with Objective-C linkage
+        //   because the Objective-C runtime always use dynamic dispatch.
+        // * static member functions are kept virtual too, as they represent
+        //   methods of the metaclass.
+        return isMember() &&
+            !(protection == PROTprivate || protection == PROTpackage) &&
+            p->isClassDeclaration();
+    }
 #endif
     return isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
@@ -3404,6 +3538,10 @@ int FuncDeclaration::addPreInvariant()
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&
+#if DMD_OBJC
+            ident != Id::_dobjc_preinit &&
+            ident != Id::_dobjc_invariant &&
+#endif
             ident != Id::cpctor);
 }
 
@@ -3416,6 +3554,10 @@ int FuncDeclaration::addPostInvariant()
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
             !naked &&
+#if DMD_OBJC
+            ident != Id::_dobjc_preinit &&
+            ident != Id::_dobjc_invariant &&
+#endif
             ident != Id::cpctor);
 }
 
@@ -3423,12 +3565,19 @@ int FuncDeclaration::addPostInvariant()
  * Generate a FuncDeclaration for a runtime library function.
  */
 
-FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name)
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name, Type *param1)
 {
-    return genCfunc(treturn, Lexer::idPool(name));
+    Parameters *params = new Parameters();
+    params->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+    return genCfunc(treturn, name, params);
 }
 
-FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, const char *name, Parameters *params)
+{
+    return genCfunc(treturn, Lexer::idPool(name), params);
+}
+
+FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id, Parameters *params)
 {
     FuncDeclaration *fd;
     TypeFunction *tf;
@@ -3450,7 +3599,7 @@ FuncDeclaration *FuncDeclaration::genCfunc(Type *treturn, Identifier *id)
     }
     else
     {
-        tf = new TypeFunction(NULL, treturn, 0, LINKc);
+        tf = new TypeFunction(params, treturn, 0, LINKc);
         fd = new FuncDeclaration(0, 0, id, STCstatic, tf);
         fd->protection = PROTpublic;
         fd->linkage = LINKc;
@@ -3735,6 +3884,21 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
 }
+
+#if DMD_OBJC
+/*********************************************
+ * Create the Objective-C selector for this function if this is a
+ * virtual member with Objective-C linkage.
+ */
+
+void FuncDeclaration::createObjCSelector()
+{
+    if (objcSelector == NULL && linkage == LINKobjc && isVirtual() && type)
+    {   TypeFunction *ftype = (TypeFunction *)type;
+        objcSelector = ObjcSelector::create(this);
+    }
+}
+#endif
 
 
 /****************************** FuncAliasDeclaration ************************/

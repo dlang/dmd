@@ -18,6 +18,9 @@
 #include "arraytypes.h"
 #include "lexer.h"
 #include "enum.h"
+#if DMD_OBJC
+#include "objc.h"
+#endif
 
 struct Type;
 struct TypeQualified;
@@ -112,6 +115,9 @@ struct Parser : Lexer
     Type *parseBasicType2(Type *t);
     Type *parseDeclarator(Type *t, Identifier **pident, TemplateParameters **tpl = NULL, StorageClass storage_class = 0, int* pdisable = NULL);
     Dsymbols *parseDeclarations(StorageClass storage_class, unsigned char *comment);
+#if DMD_OBJC
+    ObjcSelector *parseObjCSelector();
+#endif
     void parseContracts(FuncDeclaration *f);
     void checkDanglingElse(Loc elseloc);
     /** endPtr used for documented unittests */

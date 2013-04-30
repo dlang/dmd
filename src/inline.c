@@ -265,6 +265,13 @@ int DelegateExp::inlineCost3(InlineCostState *ics)
     return COST_MAX;
 }
 
+#if DMD_OBJC
+int ObjcSelectorExp::inlineCost3(InlineCostState *ics)
+{
+    return COST_MAX;
+}
+#endif
+
 int DeclarationExp::inlineCost3(InlineCostState *ics)
 {   int cost = 0;
     VarDeclaration *vd;

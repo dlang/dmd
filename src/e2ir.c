@@ -101,7 +101,12 @@ elem *callfunc(Loc loc,
         FuncDeclaration *fd,    // if !=NULL, this is the function being called
         Type *t,                // TypeDelegate or TypeFunction for this function
         elem *ehidden,          // if !=NULL, this is the 'hidden' argument
-        Expressions *arguments)
+        Expressions *arguments
+#if DMD_OBJC
+        ,
+        elem *esel = NULL       // selector for Objective-C methods (when not provided by fd)
+#endif
+        )
 {
     elem *ep;
     elem *e;
@@ -139,6 +144,16 @@ elem *callfunc(Loc loc,
         ec = array_toPtr(t, ec);                // get funcptr
         ec = el_una(OPind, tf->totym(), ec);
     }
+#if DMD_OBJC
+    else if (t->ty == Tobjcselector)
+    {
+        assert(!fd);
+        assert(esel);
+        assert(t->nextOf()->ty == Tfunction);
+        tf = (TypeFunction *)(t->nextOf());
+        ethis = ec;
+    }
+#endif
     else
     {   assert(t->ty == Tfunction);
         tf = (TypeFunction *)(t);
@@ -198,6 +213,19 @@ elem *callfunc(Loc loc,
         }
     }
 
+#if DMD_OBJC
+    if (fd && fd->objcSelector && !esel)
+        esel = fd->objcSelector->toElem();
+    if (esel)
+    {   // using objc-style "virtual" call
+        // add hidden argument (second to 'this') for selector used by dispatch function
+        if (reverse)
+            ep = el_param(esel,ep);
+        else
+            ep = el_param(ep,esel);
+    }
+#endif
+
     if (retmethod == RETstack)
     {
         if (!ehidden)
@@ -253,9 +281,55 @@ elem *callfunc(Loc loc,
         {
             // Evaluate ec for side effects
             eside = ec;
+
+#if DMD_OBJC
+            if (esel)
+            {
+                // All functions with a selector need a this pointer.
+                assert(ethis);
+            }
+#endif
         }
         Symbol *sfunc = fd->toSymbol();
 
+#if DMD_OBJC
+        if (esel)
+        {
+            if (fd->fbody && (!fd->isVirtual() || directcall || fd->isFinal()))
+            {
+                // make static call
+                // this is an optimization that the Objective-C compiler
+                // does not make, we do it only if the function to call is
+                // defined in D code (has a body)
+                ec = el_var(sfunc);
+            }
+            else if (directcall)
+            {
+                // call through Objective-C runtime dispatch
+                ec = el_var(ObjcSymbols::getMsgSendSuper(ehidden != 0));
+
+                // need to change this pointer to a pointer to an two-word
+                // objc_super struct of the form { this ptr, class ptr }.
+                AggregateDeclaration *ad = fd->isThis();
+                ClassDeclaration *cd = ad->isClassDeclaration();
+                assert(cd /* call to objc_msgSendSuper with no class delcaration */);
+
+                // FIXME: faking delegate type and objc_super types
+                elem *eclassref = el_var(ObjcSymbols::getClassReference(cd->ident));
+                elem *esuper = el_pair(TYdelegate, ethis, eclassref);
+
+                ethis = addressElem(esuper, t); // get a pointer to our objc_super struct
+            }
+            else
+            {
+                // make objc-style "virtual" call using dispatch function
+                assert(ethis);
+                Type *tret = tf->next;
+                ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+            }
+        }
+        else
+#endif
         if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
             fd->isFinal()
@@ -287,6 +361,15 @@ if (I32) assert(tysize[TYnptr] == 4);
         assert(!ethis);
         ethis = getEthis(loc, irs, fd);
     }
+#if DMD_OBJC
+    else if (esel)
+    {
+        // make objc-style "virtual" call using dispatch function
+        assert(ethis);
+        Type *tret = tf->next;
+        ec = el_var(ObjcSymbols::getMsgSend(tret, ehidden != 0));
+    }
+#endif
 
     ep = el_param(ep, ethis);
     if (ehidden)
@@ -1632,6 +1715,13 @@ elem *StringExp::toElem(IRState *irs)
         e->EV.ss.Vstrlen = (len + 1) * sz;
         e->Ety = TYnptr;
     }
+#if DMD_OBJC
+    else if (tb->ty == Tclass)
+    {
+        Symbol *si = ObjcSymbols::getStringLiteral(string, len, sz);
+        e = el_ptr(si);
+    }
+#endif
     else
     {
         printf("type is %s\n", type->toChars());
@@ -1670,6 +1760,47 @@ elem *NewExp::toElem(IRState *irs)
         elem *ey = NULL;
         elem *ez = NULL;
 
+#if DMD_OBJC
+        if (cd->objc)
+        {   elem *ei;
+            Symbol *si;
+
+            if (onstack)
+                error("cannot allocate Objective-C class on the stack");
+
+            if (objcalloc)
+            {   // Call allocator func with class reference
+                ex = el_var(ObjcSymbols::getClassReference(cd->ident));
+                ex = callfunc(loc, irs, 0, type, ex, objcalloc->type,
+                        objcalloc, objcalloc->type, NULL, newargs);
+            }
+            else
+            {   error("Cannot allocate Objective-C class, missing 'alloc' function.");
+                exit(-1);
+            }
+
+            // FIXME: skipping initialization (actually, all fields will be zeros)
+            // Need to assign each non-zero field separately.
+
+            //si = tclass->sym->toInitializer();
+            //ei = el_var(si);
+
+            if (cd->isNested())
+            {
+                ey = el_same(&ex);
+                ez = el_copytree(ey);
+            }
+            else if (member)
+                ez = el_same(&ex);
+
+            //ex = el_una(OPind, TYstruct, ex);
+            //ex = el_bin(OPstreq, TYnptr, ex, ei);
+            //ex->Enumbytes = cd->size(loc);
+            //ex = el_una(OPaddr, TYnptr, ex);
+            ectype = tclass;
+        }
+        else
+#endif
         if (allocator || onstack)
         {   elem *ei;
             Symbol *si;
@@ -1772,6 +1903,12 @@ elem *NewExp::toElem(IRState *irs)
             ey = setEthis(loc, irs, ey, cd);
         }
 
+#if DMD_OBJC
+        if (member && cd->objc)
+            // Call Objective-C constructor (not a direct call)
+            ez = callfunc(loc, irs, 0, type, ez, ectype, member, member->type, NULL, arguments);
+        else
+#endif
         if (member)
             // Call constructor
             ez = callfunc(loc, irs, 1, type, ez, ectype, member, member->type, NULL, arguments);
@@ -2047,6 +2184,15 @@ elem *AssertExp::toElem(IRState *irs)
 
         InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
 
+#if DMD_OBJC
+        if (global.params.useInvariants && t1->ty == Tclass &&
+            ((TypeClass *)t1)->sym->objc)
+        {
+            // Call Objective-C invariant
+            e = el_bin(OPcall, TYvoid, el_var(rtlsym[RTLSYM_DINVARIANT_OBJC]), e);
+        }
+        else
+#endif
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&
             !((TypeClass *)t1)->sym->isInterfaceDeclaration())
@@ -3749,6 +3895,17 @@ elem *DelegateExp::toElem(IRState *irs)
     return e;
 }
 
+#if DMD_OBJC
+elem *ObjcSelectorExp::toElem(IRState *irs)
+{
+    if (func)
+        return func->objcSelector->toElem();
+    else if (selname)
+        return ObjcSelector::lookup(selname)->toElem();
+    assert(0);
+}
+#endif
+
 elem *DotTypeExp::toElem(IRState *irs)
 {
     // Just a pass-thru to e1
@@ -3776,6 +3933,16 @@ elem *CallExp::toElem(IRState *irs)
 
     directcall = 0;
     fd = NULL;
+
+#if DMD_OBJC
+    elem *esel = NULL;
+    if (t1->ty == Tobjcselector)
+    {   assert(argument0);
+        ec = argument0->toElem(irs);
+        esel = e1->toElem(irs);
+    }
+    else
+#endif
     if (e1->op == TOKdotvar && t1->ty != Tdelegate)
     {   DotVarExp *dve = (DotVarExp *)e1;
 
@@ -3869,7 +4036,11 @@ elem *CallExp::toElem(IRState *irs)
             }
         }
     }
+#if DMD_OBJC
+    ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments, esel);
+#else
     ec = callfunc(loc, irs, directcall, type, ec, ectype, fd, t1, ehidden, arguments);
+#endif
     el_setLoc(ec,loc);
     if (eeq)
         ec = el_combine(eeq, ec);
@@ -4162,6 +4333,31 @@ elem *CastExp::toElem(IRState *irs)
 
         ClassDeclaration *cdfrom = tfrom->isClassHandle();
         ClassDeclaration *cdto   = t->isClassHandle();
+#if DMD_OBJC
+        if (cdfrom->objc)
+        {
+            if (cdto->objc)
+            {   // casting from objc type to objc type, use objc function
+                if (cdto->isInterfaceDeclaration())
+                    rtl = RTLSYM_INTERFACE_CAST_OBJC;
+                else if (cdfrom->objc)
+                    rtl = RTLSYM_DYNAMIC_CAST_OBJC;
+            }
+            else
+            {   // casting from objc type to non-objc type, always null
+                goto Lzero;
+            }
+        }
+        else if (cdto->objc)
+        {   // casting from non-objc type to objc type, always null
+            goto Lzero;
+        }
+#endif
+#if DMD_OBJC
+        if (cdfrom->objc && cdto->objc && cdto->isInterfaceDeclaration())
+            rtl = RTLSYM_INTERFACE_CAST_OBJC;
+        else
+#endif
         if (cdfrom->isInterfaceDeclaration())
         {
             rtl = RTLSYM_INTERFACE_CAST;
@@ -4193,6 +4389,10 @@ elem *CastExp::toElem(IRState *irs)
              */
 
             //printf("offset = %d\n", offset);
+#if DMD_OBJC
+            if (cdfrom->objc)
+                assert(offset == 0); // no offset for Objective-C objects/interfaces
+#endif
             if (offset)
             {   /* Rewrite cast as (e ? e + offset : null)
                  */
@@ -4211,6 +4411,20 @@ elem *CastExp::toElem(IRState *irs)
             goto Lret;                  // no-op
         }
 
+#if DMD_OBJC
+        if (cdto->objc)
+        {
+            elem *esym;
+            if (cdto->isInterfaceDeclaration())
+                esym = el_ptr(ObjcSymbols::getProtocolSymbol(cdto));
+            else
+                esym = el_var(ObjcSymbols::getClassReference(cdto->ident));
+
+            elem *ep = el_param(esym, e);
+            e = el_bin(OPcall, TYnptr, el_var(rtlsym[rtl]), ep);
+            goto Lret;
+        }
+#endif
         /* The offset from cdfrom=>cdto can only be determined at runtime.
          */
         elem *ep = el_param(el_ptr(cdto->toSymbol()), e);

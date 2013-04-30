@@ -330,6 +330,20 @@ void AttribDeclaration::addLocalClass(ClassDeclarations *aclasses)
     }
 }
 
+#if DMD_OBJC
+void AttribDeclaration::addObjcSymbols(ClassDeclarations *classes, ClassDeclarations *categories)
+{
+    Dsymbols *d = include(NULL, NULL);
+
+    if (d)
+    {
+        for (unsigned i = 0; i < d->dim; i++)
+        {   Dsymbol *s = (Dsymbol *)d->data[i];
+            s->addObjcSymbols(classes, categories);
+        }
+    }
+}
+#endif
 
 void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
@@ -656,6 +670,7 @@ void LinkDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         case LINKcpp:           p = "C++";              break;
         case LINKwindows:       p = "Windows";          break;
         case LINKpascal:        p = "Pascal";           break;
+        case LINKobjc:          p = "Objective-C";      break;
         default:
             assert(0);
             break;
@@ -1036,6 +1051,133 @@ void PragmaDeclaration::semantic(Scope *sc)
                 error("function name expected for start address, not '%s'", e->toChars());
         }
         goto Lnodecl;
+    }
+#endif
+#if DMD_OBJC
+    else if (ident == Id::objc_takestringliteral)
+    {
+        // This should apply only to a very limited number of classes and
+        // interfaces: ObjcObject, NSObject, and NSString.
+
+        if (args && args->dim != 0)
+            error("takes no argument");
+
+        Dsymbols *currdecl = decl;
+    Lagain_takestringliteral:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            ClassDeclaration *cdecl = dsym->isClassDeclaration();
+            if (cdecl)
+                cdecl->objctakestringliteral = 1; // set specific name
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_takestringliteral;
+                }
+                else
+                    error("can only apply to class or interface declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else if (ident == Id::objc_selectortarget)
+    {
+        // This should apply only to a very limited number of struct types in
+        // the Objective-C runtime bindings: objc_object, objc_class.
+
+        if (args && args->dim != 0)
+            error("takes no argument");
+
+        Dsymbols *currdecl = decl;
+    Lagain_selectortarget:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            StructDeclaration *sdecl = dsym->isStructDeclaration();
+            if (sdecl)
+                sdecl->selectortarget = 1; // set valid selector target
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_selectortarget;
+                }
+                else
+                    error("can only apply to struct declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else if (ident == Id::objc_isselector)
+    {
+        // This should apply only to a very limited number of struct types in
+        // the Objective-C runtime bindings: objc_object, objc_class.
+
+        if (args && args->dim != 0)
+            error("takes no argument");
+
+        Dsymbols *currdecl = decl;
+    Lagain_isselector:
+        if (currdecl->dim > 1)
+            error("can only apply to one declaration, not %u", currdecl->dim);
+        else if (currdecl->dim == 1)
+        {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+            StructDeclaration *sdecl = dsym->isStructDeclaration();
+            if (sdecl)
+                sdecl->isselector = 1; // represents a selector
+            else
+            {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                if (adecl)
+                {   // encountered attrib declaration, search for a class inside
+                    currdecl = ((AttribDeclaration *)dsym)->decl;
+                    goto Lagain_isselector;
+                }
+                else
+                    error("can only apply to struct declarations, not %s", dsym->toChars());
+            }
+        }
+    }
+    else if (ident == Id::objc_nameoverride)
+    {
+        if (!args || args->dim != 1)
+            error("string expected for name override");
+
+        Expression *e = (Expression *)args->data[0];
+
+        e = e->semantic(sc);
+        e = e->optimize(WANTvalue | WANTinterpret);
+        if (e->op == TOKstring)
+        {
+            StringExp *se = (StringExp *)e;
+            const char *name = (const char *)se->string;
+
+            Dsymbols *currdecl = decl;
+        Lagain_nameoverride:
+            if (currdecl->dim > 1)
+                error("can only apply to one declaration, not %u", currdecl->dim);
+            else if (currdecl->dim == 1)
+            {   Dsymbol *dsym = (Dsymbol *)currdecl->data[0];
+                ClassDeclaration *cdecl = dsym->isClassDeclaration();
+                if (cdecl)
+                    cdecl->objcident = Lexer::idPool(name); // set specific name
+                else
+                {   AttribDeclaration *adecl = dsym->isAttribDeclaration();
+                    if (adecl)
+                    {   // encountered attrib declaration, search for a class inside
+                        currdecl = ((AttribDeclaration *)dsym)->decl;
+                        goto Lagain_nameoverride;
+                    }
+                    else
+                        error("can only apply to class or interface declarations, not %s", dsym->toChars());
+                }
+            }
+        }
+        else
+            error("string expected for name override, not '%s'", e->toChars());
     }
 #endif
     else if (global.params.ignoreUnsupportedPragmas)

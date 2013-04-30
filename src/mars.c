@@ -91,7 +91,12 @@ Global::Global()
 #endif
 
     copyright = "Copyright (c) 1999-2012 by Digital Mars";
-    written = "written by Walter Bright";
+    written = "written by Walter Bright"
+#if DMD_OBJC
+    "\nD/Objective-C (alpha 1 release) by Michel Fortin.";
+#else
+    ;
+#endif
     version = "v"
 #include "verstr.h"
     ;
@@ -1069,6 +1074,9 @@ int tryMain(size_t argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("assert");
     if (noboundscheck)
         VersionCondition::addPredefinedGlobalIdent("D_NoBoundsChecks");
+#endif
+#if DMD_OBJC
+	VersionCondition::addPredefinedGlobalIdent("D_ObjC");
 #endif
 
     VersionCondition::addPredefinedGlobalIdent("D_HardFloat");

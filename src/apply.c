@@ -46,21 +46,35 @@ int condApply(T* t, fp_t fp, void* param)
 int NewExp::apply(int (*fp)(Expression *, void *), void *param)
 {
     //printf("NewExp::apply(): %s\n", toChars());
-
-    return condApply(thisexp, fp, param) ||
-           condApply(newargs, fp, param) ||
-           condApply(arguments, fp, param) ||
+#if DMD_OBJC
+    return condApply(thisexp, fp, param) |
+           condApply(newargs, fp, param) |
+           condApply(arguments, fp, param) |
            (*fp)(this, param);
+#else
+       return condApply(thisexp, fp, param) ||
+              condApply(newargs, fp, param) ||
+              condApply(arguments, fp, param) ||
+              (*fp)(this, param);
+
+#endif
 }
 
 int NewAnonClassExp::apply(int (*fp)(Expression *, void *), void *param)
 {
     //printf("NewAnonClassExp::apply(): %s\n", toChars());
-
-    return condApply(thisexp, fp, param) ||
-           condApply(newargs, fp, param) ||
-           condApply(arguments, fp, param) ||
+#if DMD_OBJC
+    return condApply(thisexp, fp, param) |
+           condApply(newargs, fp, param) |
+           condApply(arguments, fp, param) |
            (*fp)(this, param);
+#else
+       return condApply(thisexp, fp, param) ||
+              condApply(newargs, fp, param) ||
+              condApply(arguments, fp, param) ||
+              (*fp)(this, param);
+
+#endif
 }
 
 int UnaExp::apply(fp_t fp, void *param)
@@ -71,9 +85,16 @@ int UnaExp::apply(fp_t fp, void *param)
 
 int BinExp::apply(fp_t fp, void *param)
 {
-    return e1->apply(fp, param) ||
-           e2->apply(fp, param) ||
+#if DMD_OBJC
+    return e1->apply(fp, param) |
+           e2->apply(fp, param) |
            (*fp)(this, param);
+#else
+       return e1->apply(fp, param) ||
+              e2->apply(fp, param) ||
+              (*fp)(this, param);
+
+#endif
 }
 
 int AssertExp::apply(fp_t fp, void *param)
@@ -105,10 +126,18 @@ int ArrayExp::apply(fp_t fp, void *param)
 
 int SliceExp::apply(fp_t fp, void *param)
 {
-    return e1->apply(fp, param) ||
-           condApply(lwr, fp, param) ||
-           condApply(upr, fp, param) ||
+#if DMD_OBJC
+    return e1->apply(fp, param) |
+           condApply(lwr, fp, param) |
+           condApply(upr, fp, param) |
            (*fp)(this, param);
+#else
+       return e1->apply(fp, param) ||
+              condApply(lwr, fp, param) ||
+              condApply(upr, fp, param) ||
+              (*fp)(this, param);
+
+#endif
 }
 
 
@@ -121,9 +150,16 @@ int ArrayLiteralExp::apply(fp_t fp, void *param)
 
 int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 {
-    return condApply(keys, fp, param) ||
-           condApply(values, fp, param) ||
+#if DMD_OBJC
+    return condApply(keys, fp, param) |
+           condApply(values, fp, param) |
            (*fp)(this, param);
+#else
+       return condApply(keys, fp, param) ||
+              condApply(values, fp, param) ||
+              (*fp)(this, param);
+
+#endif
 }
 
 
@@ -134,7 +170,7 @@ int StructLiteralExp::apply(fp_t fp, void *param)
     stageflags |= stageApply;
     int ret = condApply(elements, fp, param) ||
            (*fp)(this, param);
-    stageflags = old;      
+    stageflags = old;
     return ret;
 }
 
@@ -149,10 +185,17 @@ int TupleExp::apply(fp_t fp, void *param)
 
 int CondExp::apply(fp_t fp, void *param)
 {
-    return econd->apply(fp, param) ||
-           e1->apply(fp, param) ||
-           e2->apply(fp, param) ||
+#if DMD_OBJC
+    return econd->apply(fp, param) |
+           e1->apply(fp, param) |
+           e2->apply(fp, param) |
            (*fp)(this, param);
+#else
+       return econd->apply(fp, param) ||
+              e1->apply(fp, param) ||
+              e2->apply(fp, param) ||
+              (*fp)(this, param);
+#endif
 }
 
 

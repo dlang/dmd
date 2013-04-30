@@ -18,6 +18,9 @@
 #include "dsymbol.h"
 #include "lexer.h"
 #include "mtype.h"
+#if DMD_OBJC
+#include "objc.h"
+#endif
 
 struct Expression;
 struct Statement;
@@ -461,6 +464,15 @@ struct TypeInfoDelegateDeclaration : TypeInfoDeclaration
     void toDt(dt_t **pdt);
 };
 
+#if DMD_OBJC
+struct TypeInfoObjcSelectorDeclaration : TypeInfoDeclaration
+{
+    TypeInfoObjcSelectorDeclaration(Type *tinfo);
+
+    void toDt(dt_t **pdt);
+};
+#endif
+
 struct TypeInfoTupleDeclaration : TypeInfoDeclaration
 {
     TypeInfoTupleDeclaration(Type *tinfo);
@@ -572,6 +584,10 @@ struct FuncDeclaration : Declaration
     DsymbolTable *localsymtab;          // used to prevent symbols in different
                                         // scopes from having the same name
     VarDeclaration *vthis;              // 'this' parameter (member and nested)
+#if DMD_OBJC
+    ObjcSelector *objcSelector;         // Objective-C method selector (member function only)
+	VarDeclaration *vobjccmd;           // Objective-C implicit selector parameter
+#endif
     VarDeclaration *v_arguments;        // '_arguments' parameter
 #ifdef IN_GCC
     VarDeclaration *v_arguments_var;    // '_arguments' variable
@@ -643,7 +659,7 @@ struct FuncDeclaration : Declaration
     bool functionSemantic();
     bool functionSemantic3();
     // called from semantic3
-    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad);
+    VarDeclaration *declareThis(Scope *sc, AggregateDeclaration *ad, VarDeclaration** vobjccmd = NULL);
     int equals(Object *o);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -704,9 +720,13 @@ struct FuncDeclaration : Declaration
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *);
     Parameters *getParameters(int *pvarargs);
+#if DMD_OBJC
+    void createObjCSelector();
+#endif
 
-    static FuncDeclaration *genCfunc(Type *treturn, const char *name);
-    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Type *param);
+    static FuncDeclaration *genCfunc(Type *treturn, const char *name, Parameters *params = NULL);
+    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id, Parameters *params = NULL);
 
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
