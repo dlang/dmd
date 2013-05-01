@@ -318,9 +318,6 @@ void Module::genobjfile(bool multiobj)
     lastmname = srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, toPrettyChars());
-#if DMD_OBJC
-    ObjcSymbols::init();
-#endif
 
     eictor = NULL;
     ictorlocalgot = NULL;

@@ -39,6 +39,10 @@
 #include "hdrgen.h"
 #include "doc.h"
 
+#if DMD_OBJC
+#include "objc.h"
+#endif
+
 bool response_expand(size_t *pargc, const char ***pargv);
 
 
@@ -1218,6 +1222,9 @@ Language changes listed by -transition=id:\n\
     Module::init();
     Target::init();
     Expression::init();
+#if DMD_OBJC
+    ObjcSymbols::init();
+#endif
     initPrecedence();
     builtin_init();
     initTraitsStringTable();

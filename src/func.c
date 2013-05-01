@@ -1053,7 +1053,10 @@ void FuncDeclaration::semantic(Scope *sc)
 
                 cd->objcMethodList.push(this);
                 if (cd->objcMethods == NULL)
+                {
                     cd->objcMethods = new StringTable;
+                    cd->objcMethods->init();
+                }
                 StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
 
                 if (sv->ptrvalue)

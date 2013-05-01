@@ -27,7 +27,6 @@
 int Dsymbol_canThrow(Dsymbol *s, FuncDeclaration *func, bool mustNotThrow);
 int walkPostorder(Expression *e, StoppableVisitor *v);
 
-
 #if DMD_OBJC
 // Changed to return flags BEthrow and/or BEthrowobjc depending on which
 // throwing mechanism is used. Both flags can be present at the same time
