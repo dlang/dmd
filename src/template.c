@@ -2013,7 +2013,7 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
         Type *t = tvp ? tvp->valType : NULL;
 
         v = new VarDeclaration(loc, t, tp->ident, init);
-        v->storage_class = STCmanifest;
+        v->storage_class = STCmanifest | STCtemplateparameter;
         s = v;
     }
     else if (va)
@@ -5477,7 +5477,20 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             else
                 ea = ea->ctfeSemantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
-                ea = ea->optimize(WANTvalue);
+            {
+                VarDeclaration *v;
+                if (ea->op == TOKvar && (v = ((VarExp *)ea)->var->isVarDeclaration()) != NULL &&
+                    v->storage_class & STCmanifest && !(v->storage_class & STCtemplateparameter))
+                {
+                    if (v->sem < SemanticDone)
+                        v->semantic(sc);
+                    // skip optimization for manifest constant
+                }
+                else
+                {
+                    ea = ea->optimize(WANTvalue);
+                }
+            } 
             else if (ea->op == TOKvar)
             {   /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
