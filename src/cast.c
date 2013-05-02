@@ -3112,3 +3112,13 @@ IntRange NegExp::getIntRange()
     return IntRange(-ir.imax, -ir.imin).cast(type) DUMP;
 }
 
+IntRange VarExp::getIntRange()
+{
+    if (var->isVarDeclaration())
+    {
+        Expression* expinit = ((VarDeclaration*)var)->getConstInitializer();
+        if (expinit)
+            return expinit->getIntRange();
+    }
+    return SymbolExp::getIntRange();
+}

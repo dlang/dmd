@@ -673,6 +673,7 @@ struct VarExp : SymbolExp
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void dump(int indent);
+    IntRange getIntRange();
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
