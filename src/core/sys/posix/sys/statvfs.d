@@ -68,6 +68,21 @@ version(linux) {
             ST_NOSUID = 2
         }
     }
+
+    static if( __USE_FILE_OFFSET64 )
+    {
+        int statvfs64 (const char * file, statvfs_t* buf);
+        alias statvfs64 statvfs;
+
+        int fstatvfs64 (int fildes, statvfs_t *buf);
+        alias fstatvfs64 fstatvfs;
+    }
+    else
+    {
+        int statvfs (const char * file, statvfs_t* buf);
+        int fstatvfs (int fildes, statvfs_t *buf);
+    }
+
 }
 else
 {
@@ -91,18 +106,7 @@ else
         ST_RDONLY = 1,        /* Mount read-only.  */
         ST_NOSUID = 2
     }
-}
 
-static if( __USE_FILE_OFFSET64 )
-{
-	int statvfs64 (const char * file, statvfs_t* buf);
-	alias statvfs64 statvfs;
-
-	int fstatvfs64 (int fildes, statvfs_t *buf);
-	alias fstatvfs64 fstatvfs;
-}
-else
-{
-	int statvfs (const char * file, statvfs_t* buf);
-	int fstatvfs (int fildes, statvfs_t *buf);
+    int statvfs (const char * file, statvfs_t* buf);
+    int fstatvfs (int fildes, statvfs_t *buf);
 }
