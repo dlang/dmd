@@ -1650,7 +1650,7 @@ complex_t Expression::toComplex()
 #ifdef IN_GCC
     return complex_t(real_t(0)); // %% nicer
 #else
-    return 0.0;
+    return 0.0 + 0 * I;
 #endif
 }
 
@@ -2301,7 +2301,7 @@ real_t IntegerExp::toImaginary()
 
 complex_t IntegerExp::toComplex()
 {
-    return toReal();
+    return toReal() + 0 * I;
 }
 
 int IntegerExp::isBool(int result)
