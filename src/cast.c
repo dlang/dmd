@@ -3116,9 +3116,9 @@ IntRange VarExp::getIntRange()
 {
     if (var->isVarDeclaration() && (var->isImmutable() || var->isConst()))
     {
-        Expression* expinit = ((VarDeclaration*)var)->getConstInitializer();
-        if (expinit)
-            return expinit->getIntRange();
+        Expression *init = ((VarDeclaration*)var)->getInitializer();
+        if (init)
+            return init->getIntRange().cast(type);
     }
     return SymbolExp::getIntRange();
 }

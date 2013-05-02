@@ -2028,6 +2028,24 @@ ExpInitializer *VarDeclaration::getExpInitializer()
 }
 
 /*******************************************
+ * If variable has a expression initializer, get it.
+ * Otherwise, return NULL.
+ */
+
+Expression *VarDeclaration::getInitializer()
+{
+    ExpInitializer *ei = getExpInitializer();
+    if (ei)
+        return ei->exp;
+    else if (init)
+    {
+        return init->toExpression();
+    }
+
+    return NULL;
+}
+
+/*******************************************
  * If variable has a constant expression initializer, get it.
  * Otherwise, return NULL.
  */
@@ -2037,13 +2055,7 @@ Expression *VarDeclaration::getConstInitializer()
     if ((isConst() || isImmutable() || storage_class & STCmanifest) &&
         storage_class & STCinit)
     {
-        ExpInitializer *ei = getExpInitializer();
-        if (ei)
-            return ei->exp;
-        else if (init)
-        {
-            return init->toExpression();
-        }
+        return getInitializer();
     }
 
     return NULL;
