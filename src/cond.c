@@ -259,7 +259,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
-        Expression *e = exp->semantic(sc);
+        Expression *e = exp->ctfeSemantic(sc);
         e = resolveProperties(sc, e);
         sc->pop();
         if (!e->type->checkBoolean())
