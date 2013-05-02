@@ -24,11 +24,7 @@ struct StringEntry;
 // method because the only thing which should be creating these is StringTable.
 struct StringValue
 {
-    union
-    {
-        void *ptrvalue;
-        char *string;
-    };
+    void *ptrvalue;
 private:
     size_t length;
 
