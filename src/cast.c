@@ -3114,7 +3114,7 @@ IntRange NegExp::getIntRange()
 
 IntRange VarExp::getIntRange()
 {
-    if (var->isVarDeclaration())
+    if (var->isVarDeclaration() && (var->isImmutable() || var->isConst()))
     {
         Expression* expinit = ((VarDeclaration*)var)->getConstInitializer();
         if (expinit)
