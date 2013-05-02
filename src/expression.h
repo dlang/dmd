@@ -108,6 +108,7 @@ struct Expression : Object
     unsigned char parens;       // if this is a parenthesized expression
 
     Expression(Loc loc, enum TOK op, int size);
+    static void init();
     Expression *copy();
     virtual Expression *syntaxCopy();
     virtual int apply(apply_fp_t fp, void *param);
@@ -1758,11 +1759,11 @@ struct PrettyFuncInitExp : DefaultInitExp
 
 /* Special values used by the interpreter
  */
-#define EXP_CANT_INTERPRET      ((Expression *)1)
-#define EXP_CONTINUE_INTERPRET  ((Expression *)2)
-#define EXP_BREAK_INTERPRET     ((Expression *)3)
-#define EXP_GOTO_INTERPRET      ((Expression *)4)
-#define EXP_VOID_INTERPRET      ((Expression *)5)
+extern Expression *EXP_CANT_INTERPRET;
+extern Expression *EXP_CONTINUE_INTERPRET;
+extern Expression *EXP_BREAK_INTERPRET;
+extern Expression *EXP_GOTO_INTERPRET;
+extern Expression *EXP_VOID_INTERPRET;
 
 Expression *expType(Type *type, Expression *e);
 
