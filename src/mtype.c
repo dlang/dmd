@@ -3116,8 +3116,9 @@ int TypeBasic::isZeroInit(Loc loc)
         case Tcomplex64:
         case Tcomplex80:
             return 0;           // no
+        default:
+            return 1;           // yes
     }
-    return 1;                   // yes
 }
 
 int TypeBasic::isintegral()
@@ -3816,6 +3817,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         case Tnone:
             error(loc, "can't have array of %s", tbn->toChars());
             goto Lerror;
+        default:
+            break;
     }
     if (tbn->isscope())
     {   error(loc, "cannot have array of scope %s", tbn->toChars());
@@ -4101,6 +4104,8 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
             error(loc, "can't have array of %s", tbn->toChars());
         case Terror:
             return Type::terror;
+        default:
+            break;
     }
     if (tn->isscope())
     {   error(loc, "cannot have array of scope %s", tn->toChars());
@@ -4727,6 +4732,8 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
             error(loc, "can't have pointer to %s", n->toChars());
         case Terror:
             return Type::terror;
+        default:
+            break;
     }
     if (n != next)
     {
