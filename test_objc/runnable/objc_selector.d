@@ -23,6 +23,11 @@ void main() {
     NSObject objZ = allocWithZoneSel(NSObject.class, null);
     assert(objZ);
     
+    // Test with with auto
+    auto allocWithZoneSelAuto = &NSObject.allocWithZone;
+    NSObject objA = allocWithZoneSelAuto(NSObject.class, null);
+    assert(objA);
+    
     NSObject __selector() nullSel = null;
     assert(nullSel == null);
     
