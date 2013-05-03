@@ -185,7 +185,63 @@ const char *Module::kind()
     return "module";
 }
 
-Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
+const char *Module::searchDir(Loc loc, const char *dir, const char *filename, bool *packagemodule)
+{
+    const char *result = NULL;
+    *packagemodule = false;
+
+    const char *fdi = FileName::forceExt(filename, global.hdr_ext);
+    const char *fd  = FileName::forceExt(filename, global.mars_ext);
+
+    //printf("fdi: %s\n", fdi);
+    //printf("fd: %s\n", fd);
+
+    const char *pfdi = FileName::combine(dir, fdi);
+    if (FileName::exists(pfdi) == 1)
+        result = pfdi;
+    //printf("pfdi: %s\n", pfdi);
+
+    const char *pfd  = FileName::combine(dir, fd);
+    if (!result && FileName::exists(pfd) == 1)
+        result = pfd;
+    //printf("pfd: %s\n", pfd);
+
+    if (!result && !dir && FileName::exists(filename) == 1)
+        result = filename;
+
+    const char *pkgp = FileName::combine(dir, filename);
+    const char *pkg  = FileName::combine(pkgp, "package.d");
+    //printf("pkgp: %s\n", pkgp);
+    //printf("pkg: %s\n", pkg);
+    if (FileName::exists(pkg) == 1)
+    {
+        if (result)
+        {
+            ::error(loc, "cannot have both source file '%s' and package '%s'", result, pkgp);
+            result = NULL;
+        }
+        else
+        {
+            result = pkg;
+            *packagemodule = true;
+        }
+    }
+    if (result != fdi)
+        FileName::free(fdi);
+    if (dir && result != pfdi)
+        FileName::free(pfdi);
+    if (result != fd)
+        FileName::free(fd);
+    if (dir && result != pfd)
+        FileName::free(pfd);
+    if (dir && result != pkgp)
+        FileName::free(pkgp);
+    if (result != pkg)
+        FileName::free(pkg);
+    return result;
+}
+
+Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident, bool *packagemodule)
 {   Module *m;
     char *filename;
 
@@ -220,39 +276,17 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     /* Search along global.path for .di file, then .d file.
      */
-    const char *result = NULL;
-    const char *fdi = FileName::forceExt(filename, global.hdr_ext);
-    const char *fd  = FileName::forceExt(filename, global.mars_ext);
-    const char *sdi = fdi;
-    const char *sd  = fd;
-
-    if (FileName::exists(sdi))
-        result = sdi;
-    else if (FileName::exists(sd))
-        result = sd;
-    else if (FileName::absolute(filename))
-        ;
-    else if (!global.path)
-        ;
-    else
+    *packagemodule = false;
+    const char *result = searchDir(loc, NULL, filename, packagemodule);
+    if (!result && global.path)
     {
-        for (size_t i = 0; i < global.path->dim; i++)
+        for (size_t i = 0; i < global.path->dim && !result; i++)
         {
-            const char *p = (*global.path)[i];
-            const char *n = FileName::combine(p, sdi);
-            if (FileName::exists(n))
-            {   result = n;
-                break;
-            }
-            FileName::free(n);
-            n = FileName::combine(p, sd);
-            if (FileName::exists(n))
-            {   result = n;
-                break;
-            }
-            FileName::free(n);
+            result = searchDir(loc, (*global.path)[i], filename, packagemodule);
         }
     }
+    if (result && *packagemodule) // matched a package
+        return NULL;
     if (result)
         m->srcfile = new File(result);
 

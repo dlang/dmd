@@ -110,7 +110,8 @@ struct Module : Package
     Module(char *arg, Identifier *ident, int doDocComment, int doHdrGen);
     ~Module();
 
-    static Module *load(Loc loc, Identifiers *packages, Identifier *ident);
+    static const char *searchDir(Loc loc, const char *dir, const char *filename, bool *packagemodule);
+    static Module *load(Loc loc, Identifiers *packages, Identifier *ident, bool *packagemodule);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);

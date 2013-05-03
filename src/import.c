@@ -107,29 +107,34 @@ void Import::load(Scope *sc)
             mod = (Module *)s;
         else
         {
-            if (pkg)
-            {
-                ::error(loc, "can only import from a module, not from package %s.%s",
-                    pkg->toPrettyChars(), id->toChars());
-            }
-            else
-            {
-                ::error(loc, "can only import from a module, not from package %s",
-                    id->toChars());
-            }
+            assert(s->isPackage());
+            Package *p = (Package *)s;
+            s = p->symtab->lookup(Lexer::idPool("package"));
+            if (s && s->isModule())
+                mod = (Module *)s;
         }
     }
 
     if (!mod)
     {
         // Load module
-        mod = Module::load(loc, packages, id);
+        bool packagemodule = false;
+        mod = Module::load(loc, packages, id, &packagemodule);
         if (mod)
         {
             dst->insert(id, mod);           // id may be different from mod->ident,
                                             // if so then insert alias
             if (!mod->importedFrom)
                 mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
+        }
+        else if (packagemodule)
+        {
+            // Rewite a.b to a.b.package
+            if (!packages)
+                packages = new Identifiers();
+            packages->push(id);
+            id = Lexer::idPool("package");
+            return load(sc);
         }
     }
     if (!pkg)
