@@ -1670,6 +1670,8 @@ Expression *Expression::integralPromotions(Scope *sc)
         case Tdchar:
             e = e->castTo(sc, Type::tuns32);
             break;
+        default:
+            break;
     }
     return e;
 }

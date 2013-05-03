@@ -1444,8 +1444,9 @@ int TypeBasic::isZeroInit(Loc loc)
         case Tcomplex64:
         case Tcomplex80:
             return 0;           // no
+        default:
+            return 1;           // yes
     }
-    return 1;                   // yes
 }
 
 int TypeBasic::isbit()
@@ -1909,6 +1910,8 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         case Tnone:
             error(loc, "can't have array of %s", tbn->toChars());
             goto Lerror;
+        default:
+            break;
     }
     if (tbn->isscope())
     {   error(loc, "cannot have array of auto %s", tbn->toChars());
@@ -2101,7 +2104,9 @@ Type *TypeDArray::semantic(Loc loc, Scope *sc)
         case Tnone:
         case Ttuple:
             error(loc, "can't have array of %s", tbn->toChars());
-            tn = next = tint32;
+        case Terror:
+            return Type::terror;
+        default:
             break;
     }
     if (tn->isscope())
@@ -2499,7 +2504,9 @@ Type *TypePointer::semantic(Loc loc, Scope *sc)
     {
         case Ttuple:
             error(loc, "can't have pointer to %s", n->toChars());
-            n = tint32;
+       case Terror:
+            return Type::terror;
+        default:
             break;
     }
     if (n != next)
