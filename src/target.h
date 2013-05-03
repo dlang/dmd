@@ -23,8 +23,14 @@ struct Target
     static int realpad;         // 'padding' added to the CPU real size to bring it up to realsize
     static int realalignsize;   // alignment for reals
     
+    static bool bytesbigendian;   // bytes order in word
+    static bool wordsbigendian;   // words order in multi-word object
+    static bool floatbigendian;   // bytes order in floating point types
+    
     static void init();
     static unsigned alignsize(Type* type);
+    static void toTargetFloatBO (void *p, unsigned size);
+    static void toTargetWordBO (void *p, unsigned size);
 };
 
 #endif

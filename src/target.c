@@ -18,6 +18,30 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 
+bool Target::bytesbigendian;
+bool Target::wordsbigendian;
+bool Target::floatbigendian;
+
+bool hostBytesBigEndian()
+{
+    const int probe = 0xff;
+    return !((*(unsigned char*)&probe) == 0xff);
+}
+
+bool hostWordsBigEndian()
+{
+    const d_uns32 probe = 0xa1b2c3d4;
+    //e.g. PDP-11 order: 0xb2, 0xa1, 0xd4, 0xc3 (hostBytesBigEndian() == false; hostWordsBigEndian() == true)
+    return hostBytesBigEndian() ? ((*(unsigned char*)&probe) == 0xa1) : ((*(unsigned char*)&probe) == 0xb1);
+}
+
+bool hostFloatBigEndian()
+{
+    const float probe = 1;
+    return !!(*(unsigned char*)&probe);
+}
+
+
 
 void Target::init()
 {
@@ -57,6 +81,10 @@ void Target::init()
             realalignsize = 16;
         }
     }
+    
+    bytesbigendian = false;
+    wordsbigendian = false;
+    floatbigendian = false;
 }
 
 unsigned Target::alignsize (Type* type)
@@ -90,5 +118,33 @@ unsigned Target::alignsize (Type* type)
             break;
     }
     return type->size(0);
+}
+
+void Target::toTargetFloatBO (void *p, unsigned size)
+{
+    if(floatbigendian != hostFloatBigEndian())
+    {
+        char* c = (char*)p;
+        for(unsigned i=0; i<size/2; ++i)
+        {
+            char tmp = c[i];
+            c[i] = c[size - 1 - i];
+            c[size - 1 - i] = c[i];
+        }
+    }
+}
+
+void Target::toTargetWordBO (void *p, unsigned size)
+{
+    if(bytesbigendian != hostBytesBigEndian())
+    {
+        char* c = (char*)p;
+        for(unsigned i=0; i<size/2; ++i)
+        {
+            char tmp = c[i];
+            c[i] = c[size - 1 - i];
+            c[size - 1 - i] = c[i];
+        }
+    }
 }
 
