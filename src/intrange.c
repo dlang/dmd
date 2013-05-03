@@ -58,6 +58,11 @@ SignExtendedNumber SignExtendedNumber::max()
 
 SignExtendedNumber SignExtendedNumber::operator-() const
 {
+    // perform *saturated* negation
+    //  - +0 = +0
+    //  - INT65_MIN(-0) = INT65_MAX
+    //  - anything = -anything
+
     if (value == 0)
         return SignExtendedNumber(-negative);
     else
