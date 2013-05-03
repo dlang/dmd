@@ -490,6 +490,9 @@ Expression *Expression_optimize(Expression *e, int result, bool keepLvalue)
             {
                 Type *t1 = e->e1->type->toBasetype();
                 if (t1->ty == Tdelegate) t1 = t1->nextOf();
+#if DMD_OBJC
+                if (t1->ty == Tobjcselector) t1 = t1->nextOf();
+#endif
                 assert(t1->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)t1;
                 for (size_t i = 0; i < e->arguments->dim; i++)
