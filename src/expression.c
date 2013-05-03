@@ -902,6 +902,21 @@ Expression::Expression(Loc loc, enum TOK op, int size)
     type = NULL;
 }
 
+Expression *EXP_CANT_INTERPRET;
+Expression *EXP_CONTINUE_INTERPRET;
+Expression *EXP_BREAK_INTERPRET;
+Expression *EXP_GOTO_INTERPRET;
+Expression *EXP_VOID_INTERPRET;
+
+void Expression::init()
+{
+    EXP_CANT_INTERPRET = new ErrorExp();
+    EXP_CONTINUE_INTERPRET = new ErrorExp();
+    EXP_BREAK_INTERPRET = new ErrorExp();
+    EXP_GOTO_INTERPRET = new ErrorExp();
+    EXP_VOID_INTERPRET = new ErrorExp();
+}
+
 Expression *Expression::syntaxCopy()
 {
     //printf("Expression::syntaxCopy()\n");

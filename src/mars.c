@@ -1037,6 +1037,7 @@ int main(size_t argc, char *argv[])
     Id::initialize();
     Module::init();
     Target::init();
+    Expression::init();
     initPrecedence();
 
     if (global.params.verbose)
