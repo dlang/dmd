@@ -903,6 +903,8 @@ void Lexer::scan(Token *t)
                         }
                         continue;
                     }
+                    default:
+                        break;
                 }
                 t->value = TOKdiv;
                 return;
