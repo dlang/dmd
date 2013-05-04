@@ -19,9 +19,6 @@
 
 #include "utf.h"
 
-namespace
-{
-
 /* The following encodings are valid, except for the 5 and 6 byte
  * combinations:
  *      0xxxxxxx
@@ -51,11 +48,6 @@ const unsigned UTF8_STRIDE[256] =
     4,4,4,4,4,4,4,4,5,5,5,5,6,6,0xFF,0xFF,
 };
 
-}   // namespace
-
-namespace Unicode
-{
-
 // UTF-8 decoding errors
 char const UTF8_DECODE_OUTSIDE_CODE_SPACE[] = "Outside Unicode code space";
 char const UTF8_DECODE_TRUNCATED_SEQUENCE[] = "Truncated UTF-8 sequence";
@@ -68,10 +60,6 @@ char const UTF16_DECODE_TRUNCATED_SEQUENCE[]= "Truncated UTF-16 sequence";
 char const UTF16_DECODE_INVALID_SURROGATE[] = "Invalid low surrogate";
 char const UTF16_DECODE_UNPAIRED_SURROGATE[]= "Unpaired surrogate";
 char const UTF16_DECODE_INVALID_CODE_POINT[]= "Invalid code point decoded";
-
-}   // namespace Unicode
-
-using namespace Unicode;
 
 /// The Unicode code space is the range of code points [0x000000,0x10FFFF]
 /// except the UTF-16 surrogate pairs in the range [0xD800,0xDFFF]
