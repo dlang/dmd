@@ -3202,8 +3202,8 @@ MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *pa
 
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id1 = idents[i];
-            Identifier *id2 = tp->idents[i];
+            Object *id1 = idents[i];
+            Object *id2 = tp->idents[i];
 
             if (!id1->equals(id2))
                 return MATCHnomatch;
@@ -3510,8 +3510,8 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
         if (tpi->idents.dim)
-        {   Identifier *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals(id))
+        {   Object *id = tpi->idents[tpi->idents.dim - 1];
+            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
             {
                 Type *tparent = sym->parent->getType();
                 if (tparent)
@@ -3654,8 +3654,8 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
         if (tpi->idents.dim)
-        {   Identifier *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals(id))
+        {   Object *id = tpi->idents[tpi->idents.dim - 1];
+            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
             {
                 Type *tparent = sym->parent->getType();
                 if (tparent)
@@ -6480,7 +6480,7 @@ char *TemplateInstance::toChars()
 /* ======================== TemplateMixin ================================ */
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs)
-        : TemplateInstance(loc, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
+        : TemplateInstance(loc, tqual->idents.dim ? (Identifier *)tqual->idents[tqual->idents.dim - 1]
                                                   : ((TypeIdentifier *)tqual)->ident)
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");
