@@ -334,7 +334,6 @@ Symbol *ObjcSymbols::getClassName(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_CLASS_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-        classnamecount;
     }
     return sy;
 }
@@ -394,7 +393,6 @@ Symbol *ObjcSymbols::getMethVarName(const char *s, size_t len)
         sprintf(namestr, "L_OBJC_METH_VAR_NAME_%lu", classnamecount++);
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
-        ++classnamecount;
     }
     return sy;
 }
@@ -403,7 +401,6 @@ Symbol *ObjcSymbols::getMethVarName(Identifier *ident)
 {
     return getMethVarName(ident->string, ident->len);
 }
-
 
 Symbol *ObjcSymbols::getMethVarRef(const char *s, size_t len)
 {
@@ -456,7 +453,6 @@ Symbol *ObjcSymbols::getMethVarType(const char *s, size_t len)
         sy = getCString(s, len, namestr);
         sv->ptrvalue = sy;
         outdata(sy);
-        ++classnamecount;
     }
     return sy;
 }
