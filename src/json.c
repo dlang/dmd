@@ -544,7 +544,7 @@ void TypeQualified::toJson(JsonOut *json) // ident.ident.ident.etc
     json->arrayStart();
 
     for (size_t i = 0; i < idents.dim; i++)
-    {   Identifier *ident = idents[i];
+    {   Object *ident = idents[i];
         json->item(ident->toChars());
     }
 

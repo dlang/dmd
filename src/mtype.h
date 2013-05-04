@@ -716,12 +716,13 @@ struct TypeDelegate : TypeNext
 struct TypeQualified : Type
 {
     Loc loc;
-    Identifiers idents;     // array of Identifier and TypeInstance,
+    Objects idents;         // array of Identifier and TypeInstance,
                             // representing ident.ident!tiargs.ident. ... etc.
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
     void addIdent(Identifier *ident);
+    void addInst(TemplateInstance *inst);
     void toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     d_uns64 size(Loc loc);

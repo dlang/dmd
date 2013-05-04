@@ -2135,7 +2135,7 @@ Dsymbol *Parser::parseMixin()
             if (!tqual)
                 tqual = new TypeInstance(loc, tempinst);
             else
-                tqual->addIdent((Identifier *)tempinst);
+                tqual->addInst(tempinst);
             tiargs = NULL;
         }
         else
@@ -2507,7 +2507,7 @@ Type *Parser::parseBasicType()
                     else
                         // ident!template_argument
                         tempinst->tiargs = parseTemplateArgument();
-                    tid->addIdent((Identifier *)tempinst);
+                    tid->addInst(tempinst);
                 }
                 else
                     tid->addIdent(id);

@@ -6279,13 +6279,13 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
     idents.setDim(t->idents.dim);
     for (size_t i = 0; i < idents.dim; i++)
     {
-        Identifier *id = t->idents[i];
+        Object *id = t->idents[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
         {
             TemplateInstance *ti = (TemplateInstance *)id;
 
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
-            id = (Identifier *)ti;
+            id = ti;
         }
         idents[i] = id;
     }
@@ -6297,10 +6297,15 @@ void TypeQualified::addIdent(Identifier *ident)
     idents.push(ident);
 }
 
+void TypeQualified::addInst(TemplateInstance *inst)
+{
+    idents.push(inst);
+}
+
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < idents.dim; i++)
-    {   Identifier *id = idents[i];
+    {   Object *id = idents[i];
 
         buf->writeByte('.');
 
@@ -6348,7 +6353,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id = idents[i];
+            Object *id = idents[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("\tgetType = '%s'\n", s->getType()->toChars());
@@ -6371,7 +6376,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 {
                     sm = t->toDsymbol(sc);
                     if (sm)
-                    {   sm = sm->search(loc, id, 0);
+                    {   assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                        sm = sm->search(loc, (Identifier *)id, 0);
                         if (sm)
                             goto L2;
                     }
@@ -6380,11 +6386,11 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     e = e->semantic(sc);
                     for (; i < idents.dim; i++)
                     {
-                        id = idents[i];
+                        Object *id = idents[i];
                         //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
                         if (id->dyncast() == DYNCAST_IDENTIFIER)
                         {
-                            DotIdExp *die = new DotIdExp(e->loc, e, id);
+                            DotIdExp *die = new DotIdExp(e->loc, e, (Identifier *)id);
                             e = die->semanticY(sc, 0);
                         }
                         else
@@ -6409,7 +6415,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     }
                     else
                     {
-                        sm = s->search_correct(id);
+                        assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                        sm = s->search_correct((Identifier *)id);
                         if (sm)
                             error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
                                   id->toChars(), toChars(), sm->kind(), sm->toChars());
@@ -6621,7 +6628,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     {
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id = idents[i];
+            Object *id = idents[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
             {   //printf("\tdidn't find a symbol\n");
@@ -6693,10 +6700,10 @@ Expression *TypeIdentifier::toExpression()
     Expression *e = new IdentifierExp(loc, ident);
     for (size_t i = 0; i < idents.dim; i++)
     {
-        Identifier *id = idents[i];
+        Object *id = idents[i];
         if (id->dyncast() == DYNCAST_IDENTIFIER)
         {
-            e = new DotIdExp(loc, e, id);
+            e = new DotIdExp(loc, e, (Identifier *)id);
         }
         else
         {   assert(id->dyncast() == DYNCAST_DSYMBOL);
@@ -6974,11 +6981,11 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             Expression *e = new TypeExp(loc, t);
             for (size_t i = 0; i < idents.dim; i++)
             {
-                Identifier *id = idents[i];
+                Object *id = idents[i];
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
-                        e = new DotIdExp(loc, e, id);
+                        e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
                     case DYNCAST_DSYMBOL:
                     {
@@ -7102,11 +7109,11 @@ void TypeReturn::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             Expression *e = new TypeExp(loc, t);
             for (size_t i = 0; i < idents.dim; i++)
             {
-                Identifier *id = idents[i];
+                Object *id = idents[i];
                 switch (id->dyncast())
                 {
                     case DYNCAST_IDENTIFIER:
-                        e = new DotIdExp(loc, e, id);
+                        e = new DotIdExp(loc, e, (Identifier *)id);
                         break;
                     case DYNCAST_DSYMBOL:
                     {
