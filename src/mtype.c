@@ -6872,6 +6872,11 @@ Type *TypeInstance::reliesOnTident(TemplateParameters *tparams)
     }
 }
 
+Expression *TypeInstance::toExpression()
+{
+    return new ScopeExp(loc, tempinst);
+}
+
 
 /***************************** TypeTypeof *****************************/
 

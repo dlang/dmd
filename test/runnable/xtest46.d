@@ -6266,6 +6266,26 @@ struct S9912
 }
 
 /***************************************************/
+// 9883
+
+struct S9883
+{
+    @property size_t p9883(T)() { return 0; }
+}
+
+@property size_t p9883(T)() { return 0; }
+
+void test9883()
+{
+    S9883 s;
+    auto n1 = p9883!int; // OK
+    auto n2 = s.p9883!int; // OK
+    auto a1 = new int[p9883!int]; // Error: need size of rightmost array, not type p!(int)
+    auto a2 = new int[s.p9883!int]; // Error: no property 'p!(int)' for type 'S'
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -6530,6 +6550,7 @@ int main()
     test9538();
     test9700();
     test9834();
+    test9883();
 
     printf("Success\n");
     return 0;
