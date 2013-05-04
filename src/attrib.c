@@ -971,7 +971,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->semantic(sc);
+                e = e->ctfeSemantic(sc);
                 e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
@@ -999,7 +999,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1027,7 +1027,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1050,7 +1050,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 for (size_t i = 0; i < args->dim; i++)
                 {
                     Expression *e = (*args)[i];
-                    e = e->semantic(sc);
+                    e = e->ctfeSemantic(sc);
                     e = resolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
@@ -1428,7 +1428,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    exp = exp->semantic(sc);
+    exp = exp->ctfeSemantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();

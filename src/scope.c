@@ -74,6 +74,7 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->noaccesscheck = 0;
+    this->needctfe = 0;
     this->intypeof = 0;
     this->speculative = 0;
     this->parameterSpecialization = 0;
@@ -123,6 +124,7 @@ Scope::Scope(Scope *enclosing)
     this->nofree = 0;
     this->noctor = enclosing->noctor;
     this->noaccesscheck = enclosing->noaccesscheck;
+    this->needctfe = enclosing->needctfe;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
     this->parameterSpecialization = enclosing->parameterSpecialization;

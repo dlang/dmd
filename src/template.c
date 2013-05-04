@@ -845,9 +845,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = resolveProperties(sc, e);
-
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -1907,7 +1906,7 @@ Lmatch:
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        e = e->semantic(paramscope);
+        e = e->ctfeSemantic(paramscope);
         e = resolveProperties(sc, e);
 
         if (fd && fd->vthis)
@@ -4086,7 +4085,7 @@ Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
         }
         else if (ea)
         {
-            ea = ea->semantic(sc);
+            ea = ea->ctfeSemantic(sc);
             o = ea->ctfeInterpret();
         }
     }
@@ -4402,7 +4401,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     if (specValue)
     {   Expression *e = specValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64 || e->op == TOKfloat64 ||
@@ -4414,7 +4413,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     if (defaultValue)
     {   Expression *e = defaultValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64)
@@ -4517,13 +4516,13 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
         Expression *e = specValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = resolveProperties(sc, e);
         e = e->implicitCastTo(sc, vt);
         e = e->ctfeInterpret();
 
         ei = ei->syntaxCopy();
-        ei = ei->semantic(sc);
+        ei = ei->ctfeSemantic(sc);
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->ctfeInterpret();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
@@ -5473,7 +5472,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            ea = ea->semantic(sc);
+            if (flags & 1)
+                ea = ea->semantic(sc);
+            else
+                ea = ea->ctfeSemantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
             else if (ea->op == TOKvar)
