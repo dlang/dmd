@@ -32,7 +32,7 @@
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
-extern "C" char * __cdecl __locale_decpoint;
+extern "C" const char * __cdecl __locale_decpoint;
 #endif
 
 extern int HtmlNamedEntity(unsigned char *p, int length);
@@ -2468,7 +2468,7 @@ done:
     stringbuffer.writeByte(0);
 
 #if _WIN32 && __DMC__
-    char *save = __locale_decpoint;
+    const char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
 #ifdef IN_GCC
