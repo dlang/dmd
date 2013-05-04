@@ -1880,7 +1880,7 @@ Type *Parser::parseBasicType()
                     nextToken();
                     TemplateInstance *tempinst = new TemplateInstance(loc, id);
                     tempinst->tiargs = parseTemplateArgumentList();
-                    tid->addIdent((Identifier *)tempinst);
+                    tid->addInst(tempinst);
                 }
                 else
                     tid->addIdent(id);

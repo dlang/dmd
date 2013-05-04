@@ -3311,13 +3311,13 @@ void TypeQualified::syntaxCopyHelper(TypeQualified *t)
     idents.setDim(t->idents.dim);
     for (size_t i = 0; i < idents.dim; i++)
     {
-        Identifier *id = t->idents[i];
+        Object *id = t->idents[i];
         if (id->dyncast() == DYNCAST_DSYMBOL)
         {
             TemplateInstance *ti = (TemplateInstance *)id;
 
             ti = (TemplateInstance *)ti->syntaxCopy(NULL);
-            id = (Identifier *)ti;
+            id = ti;
         }
         idents[i] = id;
     }
@@ -3329,10 +3329,15 @@ void TypeQualified::addIdent(Identifier *ident)
     idents.push(ident);
 }
 
+void TypeQualified::addInst(TemplateInstance *inst)
+{
+    idents.push(inst);
+}
+
 void TypeQualified::toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs)
 {
     for (size_t i = 0; i < idents.dim; i++)
-    {   Identifier *id = idents[i];
+    {   Object *id = idents[i];
 
         buf->writeByte('.');
 
@@ -3386,7 +3391,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         //printf("\t2: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id = idents[i];
+            Object *id = idents[i];
             Dsymbol *sm = s->searchX(loc, sc, id);
             //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
             //printf("getType = '%s'\n", s->getType()->toChars());
@@ -3410,8 +3415,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     e = new DsymbolExp(loc, s);
                     do
                     {
-                        id = idents.tdata()[i];
-                        e = new DotIdExp(loc, e, id);
+                        id = idents[i];
+                        e = new DotIdExp(loc, e, (Identifier *)id);
                     } while (++i < idents.dim);
                     e = e->semantic(sc);
                     *pe = e;
@@ -3432,20 +3437,26 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 {
                     sm = t->toDsymbol(sc);
                     if (sm)
-                    {   sm = sm->search(loc, id, 0);
+                    {   assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                        sm = sm->search(loc, (Identifier *)id, 0);
                         if (sm)
                             goto L2;
                     }
                     //e = t->getProperty(loc, id);
                     e = new TypeExp(loc, t);
-                    e = t->dotExp(sc, e, id);
+                    e = t->dotExp(sc, e, (Identifier *)id);
                     i++;
                 L3:
                     for (; i < idents.dim; i++)
                     {
-                        id = idents.tdata()[i];
-                        //printf("e: '%s', id: '%s', type = %p\n", e->toChars(), id->toChars(), e->type);
-                        e = e->type->dotExp(sc, e, id);
+                        Object *id = idents[i];
+                        //printf("e: '%s', id: '%s', type = %s\n", e->toChars(), id->toChars(), e->type->toChars());
+                        if (id->dyncast() == DYNCAST_IDENTIFIER)
+                        {
+                            e = e->type->dotExp(sc, e, (Identifier *)id);
+                        }
+                        else
+                            assert(0);
                     }
                     if (e->op == TOKtype)
                         *pt = e->type;
@@ -3461,7 +3472,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                     }
                     else
                     {
-                        sm = s->search_correct(id);
+                        assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                        sm = s->search_correct((Identifier *)id);
                         if (sm)
                             error(loc, "identifier '%s' of '%s' is not defined, did you mean '%s %s'?",
                                   id->toChars(), toChars(), sm->kind(), sm->toChars());
@@ -3662,7 +3674,7 @@ Dsymbol *TypeIdentifier::toDsymbol(Scope *sc)
     {
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id = (Identifier *)idents.data[i];
+            Object *id = idents[i];
             s = s->searchX(loc, sc, id);
             if (!s)                 // failed to find a symbol
             {   //printf("\tdidn't find a symbol\n");
@@ -3720,8 +3732,13 @@ Expression *TypeIdentifier::toExpression()
     Expression *e = new IdentifierExp(loc, ident);
     for (size_t i = 0; i < idents.dim; i++)
     {
-        Identifier *id = (Identifier *)idents.data[i];
-        e = new DotIdExp(loc, e, id);
+        Object *id = idents[i];
+        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            e = new DotIdExp(loc, e, (Identifier *)id);
+        }
+        else
+            assert(0);
     }
 
     return e;

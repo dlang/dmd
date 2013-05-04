@@ -410,7 +410,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
  *      symbol found, NULL if not
  */
 
-Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
+Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Object *id)
 {
     //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     Dsymbol *s = toAlias();
@@ -419,7 +419,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
     switch (id->dyncast())
     {
         case DYNCAST_IDENTIFIER:
-            sm = s->search(loc, id, 0);
+            sm = s->search(loc, (Identifier *)id, 0);
             break;
 
         case DYNCAST_DSYMBOL:
@@ -427,7 +427,7 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Identifier *id)
             //printf("\ttemplate instance id\n");
             Dsymbol *st = (Dsymbol *)id;
             TemplateInstance *ti = st->isTemplateInstance();
-            id = ti->name;
+            Identifier *id = ti->name;
             sm = s->search(loc, id, 0);
             if (!sm)
             {

@@ -160,7 +160,7 @@ struct Dsymbol : Object
     virtual void inlineScan();
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *search_correct(Identifier *id);
-    Dsymbol *searchX(Loc loc, Scope *sc, Identifier *id);
+    Dsymbol *searchX(Loc loc, Scope *sc, Object *id);
     virtual int overloadInsert(Dsymbol *s);
     char *toHChars();
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
