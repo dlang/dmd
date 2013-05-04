@@ -851,6 +851,11 @@ void VarDeclaration::semantic(Scope *sc)
     if (!type)
     {   inuse++;
 
+        // Infering the type requires running semantic,
+        // so mark the scope as ctfe if required
+        if (storage_class & (STCmanifest | STCstatic))
+            sc->needctfe++;
+
         //printf("inferring type for %s with init %s\n", toChars(), init->toChars());
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai)
@@ -872,6 +877,8 @@ void VarDeclaration::semantic(Scope *sc)
         else
             type = init->inferType(sc);
 
+        if (storage_class & (STCmanifest | STCstatic))
+            sc->needctfe--;
 //      type = type->semantic(loc, sc);
 
         inuse--;
@@ -1585,7 +1592,10 @@ Lnomatch:
                 {
                     Expression *exp;
                     exp = ei->exp->syntaxCopy();
-                    exp = exp->semantic(sc);
+                    if (isDataseg() || (storage_class & STCmanifest))
+                        exp = exp->ctfeSemantic(sc);
+                    else
+                        exp = exp->semantic(sc);
                     exp = resolveProperties(sc, exp);
                     Type *tb = type->toBasetype();
                     Type *ti = exp->type->toBasetype();

@@ -558,7 +558,7 @@ Initializer *ArrayInitializer::semantic(Scope *sc, Type *t, NeedInterpret needIn
     {
         Expression *idx = index[i];
         if (idx)
-        {   idx = idx->semantic(sc);
+        {   idx = idx->ctfeSemantic(sc);
             idx = idx->ctfeInterpret();
             index[i] = idx;
             length = idx->toInteger();
@@ -942,7 +942,10 @@ bool arrayHasNonConstPointers(Expressions *elems)
 Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
-    exp = exp->semantic(sc);
+    if (needInterpret)
+        exp = exp->ctfeSemantic(sc);
+    else
+        exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (exp->op == TOKerror)
         return this;
