@@ -2538,7 +2538,7 @@ char *RealExp::toChars()
     if (type->isimaginary())
         strcat(buffer, "i");
 
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
     return mem.strdup(buffer);
 }
 
@@ -2638,7 +2638,7 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      */
     char buffer[32];
     ld_sprint(buffer, 'g', value);
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
 #if _WIN32 && __DMC__
     char *save = __locale_decpoint;
     __locale_decpoint = ".";
@@ -2700,7 +2700,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
     {
         char buffer[36];
         int n = ld_sprint(buffer, 'A', value);
-        assert(n > 0 && n < sizeof(buffer));
+        assert(n > 0 && n < sizeof(buffer) / sizeof(buffer[0]));
         for (int i = 0; i < n; i++)
         {   char c = buffer[i];
 
@@ -2757,7 +2757,7 @@ char *ComplexExp::toChars()
     ld_sprint(buf2, 'g', cimagl(value));
 #endif
     sprintf(buffer, "(%s+%si)", buf1, buf2);
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
     return mem.strdup(buffer);
 }
 

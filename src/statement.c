@@ -2150,7 +2150,7 @@ Lagain:
                 }
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%llu", r, 2, fntab[flag], (ulonglong)dim);
-                assert(j < sizeof(fdname));
+                assert(j < sizeof(fdname) / sizeof(fdname[0]));
                 FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
 
                 ec = new VarExp(0, fdapply);
