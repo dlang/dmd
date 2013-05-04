@@ -783,6 +783,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
   regm_t varregm;
   unsigned varreg;
   unsigned cflags;
+  unsigned jop;
 
   //printf("cdaddass(e=%p, *pretregs = %s)\n",e,regm_str(*pretregs));
   op = e->Eoper;
@@ -1075,6 +1076,43 @@ code *cdaddass(elem *e,regm_t *pretregs)
         reverse = 2;                            // remember we toggled it
         cl = gen(cl,&cs);
         c = cat(cr,cl);
+        retregs = 0;            /* to trigger a bug if we attempt to use it */
+  }
+  else if ((op == OPaddass || op == OPminass) &&
+        sz <= REGSIZE &&
+        !e2->Ecount &&
+            ((jop = jmpopcode(e2)) == JC || jop == JNC ||
+             (OTconv(e2->Eoper) && !e2->E1->Ecount && ((jop = jmpopcode(e2->E1)) == JC || jop == JNC)))
+        )
+  {
+        /* e1 += (x < y)    ADC EA,0
+         * e1 -= (x < y)    SBB EA,0
+         * e1 += (x >= y)   SBB EA,-1
+         * e1 -= (x >= y)   ADC EA,-1
+         */
+        cl = getlvalue(&cs,e1,0);               // get lvalue
+        cl = cat(cl,modEA(&cs));
+        regm_t keepmsk = idxregm(&cs);
+        retregs = mPSW;
+        if (OTconv(e2->Eoper))
+        {
+            cr = scodelem(e2->E1,&retregs,keepmsk,TRUE);
+            freenode(e2);
+        }
+        else
+            cr = scodelem(e2,&retregs,keepmsk,TRUE);
+        cs.Iop = 0x81 ^ byte;                   // ADC EA,imm16/32
+        unsigned reg = 2;                       // ADC
+        if ((op == OPaddass) ^ (jop == JC))
+            reg = 3;                            // SBB
+        code_newreg(&cs,reg);
+        cs.Iflags |= opsize;
+        if (forccs)
+            cs.Iflags |= CFpsw;
+        cs.IFL2 = FLconst;
+        cs.IEV2.Vsize_t = (jop == JC) ? 0 : ~(targ_size_t)0;
+        cr = gen(cr,&cs);
+        c = cat(cl,cr);
         retregs = 0;            /* to trigger a bug if we attempt to use it */
   }
   else // evaluate e2 into register
@@ -1732,12 +1770,11 @@ code *cdshass(elem *e,regm_t *pretregs)
 
 code *cdcmp(elem *e,regm_t *pretregs)
 { regm_t retregs,rretregs;
-  unsigned reg,rreg,op,jop,byte;
+  unsigned reg,rreg,op,byte;
   tym_t tym;
   code *cl,*cr,*c,cs,*ce,*cg;
   elem *e1,*e2;
   bool eqorne;
-  unsigned reverse;
   unsigned sz;
   int fl;
   int flag;
@@ -1756,9 +1793,10 @@ code *cdcmp(elem *e,regm_t *pretregs)
         return cat(cl,cr);
   }
 
-  jop = jmpopcode(e);                   // must be computed before
+  unsigned jop = jmpopcode(e);          // must be computed before
                                         // leaves are free'd
-  reverse = 0;
+  unsigned reverse = 0;
+
   cl = cr = CNIL;
   op = e->Eoper;
   assert(OTrel(op));
@@ -1827,7 +1865,9 @@ code *cdcmp(elem *e,regm_t *pretregs)
         (I16 && tym == TYlong  && tybasic(e2->Ety) == TYlong ||
          I32 && tym == TYllong && tybasic(e2->Ety) == TYllong)
      )
-  {     retregs = mDX | mAX;
+  {
+        assert(jop != JC && jop != JNC);
+        retregs = mDX | mAX;
         cl = codelem(e1,&retregs,FALSE);
         retregs = mCX | mBX;
         cr = scodelem(e2,&retregs,mDX | mAX,FALSE);
@@ -1868,11 +1908,23 @@ code *cdcmp(elem *e,regm_t *pretregs)
         goto L3;
   }
 
+  /* See if we should reverse the comparison, so a JA => JC, and JBE => JNC
+   * (This is already reflected in the jop)
+   */
+  if ((jop == JC || jop == JNC) &&
+      (op == OPgt || op == OPle) &&
+      (tyuns(tym) || tyuns(e2->Ety))
+     )
+  {     // jmpopcode() sez comparison should be reversed
+        assert(e2->Eoper != OPconst && e2->Eoper != OPrelconst);
+        reverse ^= 2;
+  }
+
   /* See if we should swap operands     */
   if (e1->Eoper == OPvar && e2->Eoper == OPvar && evalinregister(e2))
   {     e1 = e->E2;
         e2 = e->E1;
-        reverse = 2;
+        reverse ^= 2;
   }
 
   retregs = allregs;
@@ -2681,7 +2733,8 @@ L1:
 
 /***************************
  * Convert short to long.
- * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64
+ * For OPs16_32, OPu16_32, OPnp_fp, OPu32_64, OPs32_64,
+ * OPu64_128, OPs64_128
  */
 
 code *cdshtlng(elem *e,regm_t *pretregs)
@@ -2703,15 +2756,16 @@ code *cdshtlng(elem *e,regm_t *pretregs)
            (I32 && op == OPu32_64)
           )
   {
-        regm_t regm;
-        tym_t tym1;
+        /* Result goes into a register pair.
+         * Zero extend by putting a zero into most significant reg.
+         */
 
         retregs = *pretregs & mLSW;
         assert(retregs);
-        tym1 = tybasic(e->E1->Ety);
+        tym_t tym1 = tybasic(e->E1->Ety);
         c = codelem(e->E1,&retregs,FALSE);
 
-        regm = *pretregs & (mMSW & ALLREGS);
+        regm_t regm = *pretregs & (mMSW & ALLREGS);
         if (regm == 0)                  /* *pretregs could be mES       */
             regm = mMSW & ALLREGS;
         ce = allocreg(&regm,&reg,TYint);
@@ -2759,6 +2813,16 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         }
         c4 = fixresult(e,retregs,pretregs);
         c = cat4(c1,c2,c3,c4);
+  }
+  else if (I64 && op == OPs32_64 && OTrel(e->E1->Eoper) && !e->E1->Ecount)
+  {
+        /* Due to how e1 is calculated, the high 32 bits of the register
+         * are already 0.
+         */
+        retregs = *pretregs;
+        c1 = codelem(e->E1,&retregs,FALSE);
+        c2 = fixresult(e,retregs,pretregs);
+        c = cat(c1,c2);
   }
   else if (!I16 && (op == OPs16_32 || op == OPu16_32) ||
             I64 && op == OPs32_64)

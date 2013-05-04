@@ -2736,12 +2736,19 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
     /* If both functions have a 'this' pointer, and the mods are not
      * the same and g's is not const, then this is less specialized.
      */
-    if (needThis() && g->needThis())
+    if (needThis() && g->needThis() && tf->mod != tg->mod)
     {
-        if (tf->mod != tg->mod)
+        if (isCtorDeclaration())
+        {
+            if (MODimplicitConv(tg->mod, tf->mod))
+                match = MATCHconst;
+            else
+                return MATCHnomatch;
+        }
+        else
         {
             if (MODimplicitConv(tf->mod, tg->mod))
-                match = MATCHconst;
+                    match = MATCHconst;
             else
                 return MATCHnomatch;
         }

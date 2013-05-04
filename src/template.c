@@ -845,9 +845,8 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = resolveProperties(sc, e);
-
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -1907,7 +1906,7 @@ Lmatch:
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        e = e->semantic(paramscope);
+        e = e->ctfeSemantic(paramscope);
         e = resolveProperties(sc, e);
 
         if (fd && fd->vthis)
@@ -2422,9 +2421,9 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     // function body and contracts are not need
     //fd = fd->syntaxCopy(NULL)->isFuncDeclaration();
     if (fd->isCtorDeclaration())
-    	fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
+        fd = new CtorDeclaration(fd->loc, fd->endloc, fd->storage_class, fd->type->syntaxCopy());
     else
-    	fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
+        fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
     Scope *scope = this->scope;
@@ -2490,6 +2489,7 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
                 ((TypeFunction *)fd->type)->isref = 1;
             //printf("fd->type = %s\n", fd->type->toChars());
         }
+        fd->type = fd->type->addSTC(sc->stc);
         fd->type = fd->type->semantic(fd->loc, sc);
         sc = sc->pop();
     }
@@ -3201,8 +3201,8 @@ MATCH TypeIdentifier::deduceType(Scope *sc, Type *tparam, TemplateParameters *pa
 
         for (size_t i = 0; i < idents.dim; i++)
         {
-            Identifier *id1 = idents[i];
-            Identifier *id2 = tp->idents[i];
+            Object *id1 = idents[i];
+            Object *id2 = tp->idents[i];
 
             if (!id1->equals(id2))
                 return MATCHnomatch;
@@ -3509,8 +3509,8 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
         if (tpi->idents.dim)
-        {   Identifier *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals(id))
+        {   Object *id = tpi->idents[tpi->idents.dim - 1];
+            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
             {
                 Type *tparent = sym->parent->getType();
                 if (tparent)
@@ -3653,8 +3653,8 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
          */
         TypeInstance *tpi = (TypeInstance *)tparam;
         if (tpi->idents.dim)
-        {   Identifier *id = tpi->idents[tpi->idents.dim - 1];
-            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals(id))
+        {   Object *id = tpi->idents[tpi->idents.dim - 1];
+            if (id->dyncast() == DYNCAST_IDENTIFIER && sym->ident->equals((Identifier *)id))
             {
                 Type *tparent = sym->parent->getType();
                 if (tparent)
@@ -4085,7 +4085,7 @@ Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
         }
         else if (ea)
         {
-            ea = ea->semantic(sc);
+            ea = ea->ctfeSemantic(sc);
             o = ea->ctfeInterpret();
         }
     }
@@ -4401,7 +4401,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     if (specValue)
     {   Expression *e = specValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64 || e->op == TOKfloat64 ||
@@ -4413,7 +4413,7 @@ void TemplateValueParameter::semantic(Scope *sc)
     if (defaultValue)
     {   Expression *e = defaultValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64)
@@ -4516,13 +4516,13 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
 
         Expression *e = specValue;
 
-        e = e->semantic(sc);
+        e = e->ctfeSemantic(sc);
         e = resolveProperties(sc, e);
         e = e->implicitCastTo(sc, vt);
         e = e->ctfeInterpret();
 
         ei = ei->syntaxCopy();
-        ei = ei->semantic(sc);
+        ei = ei->ctfeSemantic(sc);
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->ctfeInterpret();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
@@ -5472,7 +5472,10 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            ea = ea->semantic(sc);
+            if (flags & 1)
+                ea = ea->semantic(sc);
+            else
+                ea = ea->ctfeSemantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
                 ea = ea->optimize(WANTvalue);
             else if (ea->op == TOKvar)
@@ -5577,6 +5580,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             {
                 td->semantic(sc);
             }
+            FuncDeclaration *fd = sa->isFuncDeclaration();
+            if (fd)
+                fd->functionSemantic();
         }
         else if (isParameter(o))
         {
@@ -6476,7 +6482,7 @@ char *TemplateInstance::toChars()
 /* ======================== TemplateMixin ================================ */
 
 TemplateMixin::TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs)
-        : TemplateInstance(loc, tqual->idents.dim ? tqual->idents[tqual->idents.dim - 1]
+        : TemplateInstance(loc, tqual->idents.dim ? (Identifier *)tqual->idents[tqual->idents.dim - 1]
                                                   : ((TypeIdentifier *)tqual)->ident)
 {
     //printf("TemplateMixin(ident = '%s')\n", ident ? ident->toChars() : "");

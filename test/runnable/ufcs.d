@@ -227,6 +227,14 @@ void test3382()
 }
 
 /*******************************************/
+// 6070
+
+enum test6070a = ["test"].foo6070();
+enum test6070b = foo6070(["test"]);
+
+string foo6070(string[] s) { return ""; }
+
+/*******************************************/
 // 7670
 
 struct A7670
@@ -382,6 +390,39 @@ void test9014()
 }
 
 /*******************************************/
+// 9590
+
+auto func9590(E)(lazy E expr) { }
+
+int f9590a()  { assert(0); }
+void f9590b() { assert(0); }
+
+void test9590()
+{
+    func9590(f9590a());  // ok, no exceptions (lazy)
+    f9590a().func9590;   // ok, no exceptions (lazy)
+
+    func9590(f9590b());  // ok, no exceptions (lazy)
+    f9590b().func9590;   // L12: NG
+}
+
+/*******************************************/
+// 9946
+
+size_t count9946(alias x)(int[] haystack)
+{
+    return 0;
+}
+void test9946()
+{
+    int[] data;
+    auto n1 = count9946!5(data);          // OK
+    auto n2 = data.count9946!5;           // OK
+    auto a1 = new int[count9946!5(data)]; // OK
+    auto a2 = new int[data.count9946!5];  // Error
+}
+
+/*******************************************/
 
 int main()
 {
@@ -401,6 +442,8 @@ int main()
     test8503();
     test4();
     test9014();
+    test9590();
+    test9946();
 
     printf("Success\n");
     return 0;

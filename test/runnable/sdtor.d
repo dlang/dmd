@@ -2630,6 +2630,69 @@ void test9907()
 }
 
 /**********************************/
+// 9985
+
+struct S9985
+{
+    ubyte* b;
+    ubyte buf[128];
+    this(this) { assert(0); }
+
+    static void* ptr;
+}
+auto ref makeS9985()
+{
+    S9985 s;
+    s.b = s.buf.ptr;
+    S9985.ptr = &s;
+    return s;
+}
+void test9985()
+{
+    S9985 s = makeS9985();
+    assert(S9985.ptr == &s);    // NRVO
+
+    static const int n = 1;
+    static auto ref retN()
+    {
+        return n;
+    }
+    auto p = &(retN());        // OK
+    assert(p == &n);
+    alias ref const(int) F1();
+    static assert(is(typeof(retN) == F1));
+
+    enum const(int) x = 1;
+    static auto ref retX()
+    {
+        return x;
+    }
+    static assert(!__traits(compiles, { auto q = &(retX()); }));
+    alias const(int) F2();
+    static assert(is(typeof(retX) == F2));
+}
+
+/**********************************/
+// 9994
+
+void test9994()
+{
+    static struct S
+    {
+        static int dtor;
+        ~this() { ++dtor; }
+    }
+
+    S s;
+    static assert( __traits(compiles, s.opAssign(s)));
+    static assert(!__traits(compiles, s.__postblit()));
+
+    assert(S.dtor == 0);
+    s = s;
+    assert(S.dtor == 1);
+}
+
+/**********************************/
 
 int main()
 {
@@ -2717,6 +2780,8 @@ int main()
     test9720();
     test9899();
     test9907();
+    test9985();
+    test9994();
 
     printf("Success\n");
     return 0;

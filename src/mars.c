@@ -52,6 +52,8 @@ void printCtfePerformanceStats();
 
 static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
+FILE *stdmsg;
+
 Global global;
 
 Global::Global()
@@ -414,6 +416,7 @@ int tryMain(size_t argc, char *argv[])
     printf("DMD %s DEBUG\n", global.version);
 #endif
 
+    stdmsg = stdout;
     unittests();
 
     // Check for malformed input
@@ -1078,6 +1081,7 @@ int tryMain(size_t argc, char *argv[])
     Id::initialize();
     Module::init();
     Target::init();
+    Expression::init();
     initPrecedence();
 
     if (global.params.verbose)

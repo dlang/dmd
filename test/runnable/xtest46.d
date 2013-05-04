@@ -2610,6 +2610,49 @@ void test129()
 
 /***************************************************/
 
+
+auto ctfefunc6169() { return ";"; }
+enum ctfefptr6169 = &ctfefunc6169;
+int ctfefunc6169a() { return 1; }
+template x6169(string c) { alias int x6169; }
+template TT6169(T...) { alias T TT6169; }
+
+void test6169() pure @safe
+{
+    enum a = ctfefunc6169();
+    static b = ctfefunc6169();
+    x6169!(ctfefunc6169()) tt;
+    mixin(ctfefunc6169());
+    static if(ctfefunc6169()) {}
+    pragma(msg, ctfefunc6169());
+    enum xx
+    {
+        k = 0,
+        j = ctfefunc6169a()
+    }
+    auto g = mixin('"' ~ ctfefunc6169() ~ '"');
+    //auto h = import("testx.d" ~ false ? ctfefunc() : "");
+    alias TT6169!(int, int)[ctfefunc6169a()..ctfefunc6169a()] i;
+    alias TT6169!(int, int)[ctfefunc6169a()] j;
+    int[ctfefunc6169a()+1] k;
+    alias int[ctfefunc6169a()] l;
+    switch(1)
+    {
+    //case ctfefunc6169a(): // Can't do this because of case variables
+    case ctfefunc6169a()+1:
+        ..
+    case ctfefunc6169a()+2:
+    default:
+        break;
+    }
+    static assert(ctfefunc6169a());
+    void fun(int i : ctfefunc6169a() = ctfefunc6169a(), alias j)() if (ctfefunc6169a()) {}
+    fun!(ctfefunc6169a(), ctfefunc6169())();
+    enum z = ctfefptr6169();
+}
+
+/***************************************************/
+
 const shared class C5107
 {
     int x;
@@ -6266,6 +6309,26 @@ struct S9912
 }
 
 /***************************************************/
+// 9883
+
+struct S9883
+{
+    @property size_t p9883(T)() { return 0; }
+}
+
+@property size_t p9883(T)() { return 0; }
+
+void test9883()
+{
+    S9883 s;
+    auto n1 = p9883!int; // OK
+    auto n2 = s.p9883!int; // OK
+    auto a1 = new int[p9883!int]; // Error: need size of rightmost array, not type p!(int)
+    auto a2 = new int[s.p9883!int]; // Error: no property 'p!(int)' for type 'S'
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -6530,6 +6593,7 @@ int main()
     test9538();
     test9700();
     test9834();
+    test9883();
 
     printf("Success\n");
     return 0;

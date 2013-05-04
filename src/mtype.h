@@ -716,11 +716,13 @@ struct TypeDelegate : TypeNext
 struct TypeQualified : Type
 {
     Loc loc;
-    Identifiers idents;       // array of Identifier's representing ident.ident.ident etc.
+    Objects idents;         // array of Identifier and TypeInstance,
+                            // representing ident.ident!tiargs.ident. ... etc.
 
     TypeQualified(TY ty, Loc loc);
     void syntaxCopyHelper(TypeQualified *t);
     void addIdent(Identifier *ident);
+    void addInst(TemplateInstance *inst);
     void toCBuffer2Helper(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     d_uns64 size(Loc loc);
@@ -766,6 +768,7 @@ struct TypeInstance : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    Expression *toExpression();
 };
 
 struct TypeTypeof : TypeQualified

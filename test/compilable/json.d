@@ -93,3 +93,6 @@ class C_9755
 {
     protected static class CI_9755(T) { }
 }
+
+/** Issue 10011 - init property is wrong for object initializer. */
+const Object c_10011 = new Object();

@@ -27,7 +27,7 @@
 #include "d-dmd-gcc.h"
 #endif
 
-ClassDeclaration *Module::moduleinfo;
+AggregateDeclaration *Module::moduleinfo;
 
 Module *Module::rootModule;
 DsymbolTable *Module::modules;

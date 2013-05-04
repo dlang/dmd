@@ -445,6 +445,17 @@
       ]
      }
     ]
+   },
+   {
+    "name" : "c_10011",
+    "kind" : "variable",
+    "line" : 98,
+    "storageClass" : [
+     "const"
+    ],
+    "deco" : "xC6Object",
+    "originalType" : "Object",
+    "init" : "Object()"
    }
   ]
  }

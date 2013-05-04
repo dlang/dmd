@@ -393,7 +393,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             Lstc:
                 if (storageClass & stc)
-                    error("redundant storage class %s", Token::toChars(token.value));
+                    error("redundant storage class '%s'", Token::toChars(token.value));
                 composeStorageClass(storageClass | stc);
                 nextToken();
             Lstc2:
@@ -1464,7 +1464,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         (storageClass & STCin && stc & (STCconst | STCscope)) ||
                         (stc & STCin && storageClass & (STCconst | STCscope))
                        )
-                        error("redundant storage class %s", Token::toChars(token.value));
+                        error("redundant storage class '%s'", Token::toChars(token.value));
                     storageClass |= stc;
                     composeStorageClass(storageClass);
                     continue;
@@ -2135,7 +2135,7 @@ Dsymbol *Parser::parseMixin()
             if (!tqual)
                 tqual = new TypeInstance(loc, tempinst);
             else
-                tqual->addIdent((Identifier *)tempinst);
+                tqual->addInst(tempinst);
             tiargs = NULL;
         }
         else
@@ -2507,7 +2507,7 @@ Type *Parser::parseBasicType()
                     else
                         // ident!template_argument
                         tempinst->tiargs = parseTemplateArgument();
-                    tid->addIdent((Identifier *)tempinst);
+                    tid->addInst(tempinst);
                 }
                 else
                     tid->addIdent(id);
@@ -4093,22 +4093,29 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                 Type *at;
 
                 StorageClass storageClass = 0;
+                StorageClass stc = 0;
             Lagain:
+                if (stc)
+                {
+                    if (storageClass & stc)
+                        error("redundant storage class '%s'", Token::toChars(token.value));
+                    storageClass |= stc;
+                    composeStorageClass(storageClass);
+                    nextToken();
+                }
                 switch (token.value)
                 {
                     case TOKref:
 #if D1INOUT
                     case TOKinout:
 #endif
-                        storageClass |= STCref;
-                        nextToken();
+                        stc = STCref;
                         goto Lagain;
 
                     case TOKconst:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCconst;
-                            nextToken();
+                            stc = STCconst;
                             goto Lagain;
                         }
                         break;
@@ -4116,26 +4123,23 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                     case TOKimmutable:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCimmutable;
+                            stc = STCimmutable;
                             if (token.value == TOKinvariant)
                                 deprecation("use of 'invariant' rather than 'immutable' is deprecated");
-                            nextToken();
                             goto Lagain;
                         }
                         break;
                     case TOKshared:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCshared;
-                            nextToken();
+                            stc = STCshared;
                             goto Lagain;
                         }
                         break;
                     case TOKwild:
                         if (peekNext() != TOKlparen)
                         {
-                            storageClass |= STCwild;
-                            nextToken();
+                            stc = STCwild;
                             goto Lagain;
                         }
                         break;
@@ -4195,49 +4199,86 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             nextToken();
             check(TOKlparen);
 
-            if (token.value == TOKauto)
+            StorageClass storageClass = 0;
+            StorageClass stc = 0;
+        LagainStc:
+            if (stc)
             {
+                if (storageClass & stc)
+                    error("redundant storage class '%s'", Token::toChars(token.value));
+                storageClass |= stc;
+                composeStorageClass(storageClass);
                 nextToken();
-                if (token.value == TOKidentifier)
-                {
-                    Token *t = peek(&token);
-                    if (t->value == TOKassign)
+            }
+            switch (token.value)
+            {
+                case TOKref:
+                    stc = STCref;
+                    goto LagainStc;
+                case TOKauto:
+                    stc = STCauto;
+                    goto LagainStc;
+                case TOKconst:
+                    if (peekNext() != TOKlparen)
                     {
-                        arg = new Parameter(0, NULL, token.ident, NULL);
-                        nextToken();
-                        nextToken();
+                        stc = STCconst;
+                        goto LagainStc;
                     }
-                    else
-                    {   error("= expected following auto identifier");
-                        goto Lerror;
+                    break;
+                case TOKinvariant:
+                case TOKimmutable:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = STCimmutable;
+                        if (token.value == TOKinvariant)
+                            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                        goto LagainStc;
                     }
-                }
-                else
-                {   error("identifier expected following auto");
-                    goto Lerror;
-                }
+                    break;
+                case TOKshared:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = STCshared;
+                        goto LagainStc;
+                    }
+                    break;
+                case TOKwild:
+                    if (peekNext() != TOKlparen)
+                    {
+                        stc = STCwild;
+                        goto LagainStc;
+                    }
+                    break;
+                default:
+                    break;
+            }
+
+            if (storageClass != 0 &&
+                token.value == TOKidentifier &&
+                peek(&token)->value == TOKassign)
+            {
+                Identifier *ai = token.ident;
+                Type *at = NULL;        // infer argument type
+                nextToken();
+                check(TOKassign);
+                arg = new Parameter(storageClass, at, ai, NULL);
+            }
+            // Check for " ident;"
+            else if (storageClass == 0 &&
+                     token.value == TOKidentifier &&
+                     peek(&token)->value == TOKsemicolon)
+            {
+                arg = new Parameter(0, NULL, token.ident, NULL);
+                nextToken();
+                nextToken();
+                error("if (v; e) is deprecated, use if (auto v = e)");
             }
             else if (isDeclaration(&token, 2, TOKassign, NULL))
             {
-                Type *at;
                 Identifier *ai;
-
-                at = parseType(&ai);
+                Type *at = parseType(&ai);
                 check(TOKassign);
-                arg = new Parameter(0, at, ai, NULL);
-            }
-
-            // Check for " ident;"
-            else if (token.value == TOKidentifier)
-            {
-                Token *t = peek(&token);
-                if (t->value == TOKsemicolon)
-                {
-                    arg = new Parameter(0, NULL, token.ident, NULL);
-                    nextToken();
-                    nextToken();
-                    error("if (v; e) is deprecated, use if (auto v = e)");
-                }
+                arg = new Parameter(storageClass, at, ai, NULL);
             }
 
             condition = parseExpression();
@@ -6383,6 +6424,8 @@ Expression *Parser::parseUnaryExp()
                         }
                         return e;
                     }
+                    default:
+                        break;
                 }
             }
 #endif

@@ -32,7 +32,7 @@
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
-extern "C" char * __cdecl __locale_decpoint;
+extern "C" const char * __cdecl __locale_decpoint;
 #endif
 
 extern int HtmlNamedEntity(unsigned char *p, size_t length);
@@ -903,6 +903,8 @@ void Lexer::scan(Token *t)
                         }
                         continue;
                     }
+                    default:
+                        break;
                 }
                 t->value = TOKdiv;
                 return;
@@ -2353,7 +2355,7 @@ done:
     stringbuffer.writeByte(0);
 
 #if _WIN32 && __DMC__
-    char *save = __locale_decpoint;
+    const char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
 #ifdef IN_GCC
@@ -2783,7 +2785,7 @@ Identifier *Lexer::uniqueId(const char *s, int num)
 {   char buffer[32];
     size_t slen = strlen(s);
 
-    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer));
+    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer) / sizeof(buffer[0]));
     sprintf(buffer, "%s%d", s, num);
     return idPool(buffer);
 }

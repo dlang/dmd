@@ -19,7 +19,7 @@
 #endif
 
 #if _WIN32 && __DMC__
-extern "C" char * __cdecl __locale_decpoint;
+extern "C" const char * __cdecl __locale_decpoint;
 #endif
 
 #include "rmem.h"
@@ -1474,6 +1474,21 @@ Expression::Expression(Loc loc, enum TOK op, int size)
     type = NULL;
 }
 
+Expression *EXP_CANT_INTERPRET;
+Expression *EXP_CONTINUE_INTERPRET;
+Expression *EXP_BREAK_INTERPRET;
+Expression *EXP_GOTO_INTERPRET;
+Expression *EXP_VOID_INTERPRET;
+
+void Expression::init()
+{
+    EXP_CANT_INTERPRET = new ErrorExp();
+    EXP_CONTINUE_INTERPRET = new ErrorExp();
+    EXP_BREAK_INTERPRET = new ErrorExp();
+    EXP_GOTO_INTERPRET = new ErrorExp();
+    EXP_VOID_INTERPRET = new ErrorExp();
+}
+
 Expression *Expression::syntaxCopy()
 {
     //printf("Expression::syntaxCopy()\n");
@@ -1535,6 +1550,29 @@ Expression *Expression::trySemantic(Scope *sc)
     }
     //printf("-trySemantic(%s)\n", toChars());
     return e;
+}
+
+/**********************************
+ * Shortcut to run semantic with purity and
+ * safety checking disabled for the immediate
+ * expressions
+ */
+
+Expression *Expression::ctfeSemantic(Scope *sc)
+{
+    if (sc)
+    {
+        assert(sc->needctfe >= 0);
+        sc->needctfe++;
+        Expression *e = semantic(sc);
+        sc->needctfe--;
+        assert(sc->needctfe >= 0);
+        return e;
+    }
+    else
+    {
+        return semantic(sc);
+    }
 }
 
 void Expression::print()
@@ -1876,7 +1914,8 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         // If the caller has a pure parent, then either the called func must be pure,
         // OR, they must have the same pure parent.
         if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
-            !f->isPure() && calledparent != outerfunc)
+            !f->isPure() && calledparent != outerfunc &&
+            !sc->needctfe)
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
@@ -1977,6 +2016,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (sc->func && !sc->intypeof &&
+        !(sc->needctfe) &&
         !f->isSafe() && !f->isTrusted())
     {
         if (sc->func->setUnsafe())
@@ -2523,7 +2563,7 @@ char *RealExp::toChars()
     if (type->isimaginary())
         strcat(buffer, "i");
 
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
     return mem.strdup(buffer);
 }
 
@@ -2623,9 +2663,9 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
      */
     char buffer[32];
     ld_sprint(buffer, 'g', value);
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
 #if _WIN32 && __DMC__
-    char *save = __locale_decpoint;
+    const char *save = __locale_decpoint;
     __locale_decpoint = ".";
     real_t r = strtold(buffer, NULL);
     __locale_decpoint = save;
@@ -2685,7 +2725,7 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
     {
         char buffer[36];
         int n = ld_sprint(buffer, 'A', value);
-        assert(n > 0 && n < sizeof(buffer));
+        assert(n > 0 && n < sizeof(buffer) / sizeof(buffer[0]));
         for (int i = 0; i < n; i++)
         {   char c = buffer[i];
 
@@ -2742,7 +2782,7 @@ char *ComplexExp::toChars()
     ld_sprint(buf2, 'g', cimagl(value));
 #endif
     sprintf(buffer, "(%s+%si)", buf1, buf2);
-    assert(strlen(buffer) < sizeof(buffer));
+    assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
     return mem.strdup(buffer);
 }
 
@@ -4968,7 +5008,10 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
 #endif
 
     Expression *d = new DeclarationExp(loc, cd);
+    int needctfe = sc->needctfe;
+    sc->needctfe = 0;
     d = d->semantic(sc);
+    sc->needctfe = needctfe;
 
     Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
@@ -5392,6 +5435,11 @@ Expression *FuncExp::semantic(Scope *sc)
     printf("FuncExp::semantic(%s)\n", toChars());
     if (fd->treq) printf("  treq = %s\n", fd->treq->toChars());
 #endif
+    Expression *e = this;
+
+    int needctfe = sc->needctfe;
+    sc->needctfe = 0;
+
     if (!type || type == Type::tvoid)
     {
         /* fd->treq might be incomplete type,
@@ -5421,10 +5469,9 @@ Expression *FuncExp::semantic(Scope *sc)
             td->semantic(sc);
             type = Type::tvoid; // temporary type
 
-            if (!fd->treq)  // defer type determination
-                return this;
-
-            return inferType(fd->treq);
+            if (fd->treq)  // defer type determination
+                e = inferType(fd->treq);
+            goto Ldone;
         }
 
         unsigned olderrors = global.errors;
@@ -5479,7 +5526,9 @@ Expression *FuncExp::semantic(Scope *sc)
         }
         fd->tookAddressOf++;
     }
-    return this;
+Ldone:
+    sc->needctfe = needctfe;
+    return e;
 }
 
 // used from CallExp::semantic()
@@ -6563,7 +6612,7 @@ Expression *CompileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("CompileExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
+    e1 = e1->ctfeSemantic(sc);
     e1 = resolveProperties(sc, e1);
     if (e1->op == TOKerror)
         return e1;
@@ -6616,7 +6665,7 @@ Expression *FileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("FileExp::semantic('%s')\n", toChars());
 #endif
-    UnaExp::semantic(sc);
+    e1 = e1->ctfeSemantic(sc);
     e1 = resolveProperties(sc, e1);
     e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
@@ -6957,6 +7006,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             if (f)
             {
                 //printf("it's a function\n");
+                if (!f->functionSemantic())
+                    return new ErrorExp();
                 if (f->needThis())
                 {
                     if (!eleft)
@@ -8369,12 +8420,12 @@ Lagain:
             return new ErrorExp();
         }
 
-        if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug))
+        if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug) && !sc->needctfe)
         {
             if (sc->func->setImpure())
                 error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
-        if (sc->func && tf->trust <= TRUSTsystem)
+        if (sc->func && tf->trust <= TRUSTsystem && !sc->needctfe)
         {
             if (sc->func->setUnsafe())
                 error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
@@ -9555,14 +9606,22 @@ Lagain:
     }
 
     if (lwr)
-    {   lwr = lwr->semantic(sc2);
+    {
+        if (t->ty == Ttuple)
+            lwr = lwr->ctfeSemantic(sc2);
+        else
+            lwr = lwr->semantic(sc2);
         lwr = resolveProperties(sc2, lwr);
         lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
         if (lwr->type == Type::terror)
             goto Lerr;
     }
     if (upr)
-    {   upr = upr->semantic(sc2);
+    {
+        if (t->ty == Ttuple)
+            upr = upr->ctfeSemantic(sc2);
+        else
+            upr = upr->semantic(sc2);
         upr = resolveProperties(sc2, upr);
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
         if (upr->type == Type::terror)
@@ -10036,7 +10095,10 @@ Expression *IndexExp::semantic(Scope *sc)
         sc = sc->push(sym);
     }
 
-    e2 = e2->semantic(sc);
+    if (t1->ty == Ttuple)
+        e2 = e2->ctfeSemantic(sc);
+    else
+        e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
     if (e2->type == Type::terror)
         goto Lerr;

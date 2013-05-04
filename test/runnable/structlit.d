@@ -525,6 +525,79 @@ void test15d()  // Bugzilla 9974
     shared const ssc = new shared const SSC(1);
 }
 
+struct Foo9984
+{
+    int[] p;
+    // Prefix storage class and tempalte constructor
+    inout this()(inout int[] a) { p = a; }
+    auto foo() inout { return inout(Foo9984)(p); }
+}
+
+void test9993a()
+{
+    static class A
+    {
+        int x;
+        this()           { x = 13; }
+        this() immutable { x = 42; }
+    }
+              A ma = new           A;   assert(ma.x == 13);
+    immutable A ia = new immutable A;   assert(ia.x == 42);
+    static assert(!__traits(compiles, { immutable A ia = new A; }));
+
+    static class B
+    {
+        int x;
+        this()       { x = 13; }
+        this() const { x = 42; }
+    }
+    const B mb = new       B;           assert(mb.x == 13);
+    const B cb = new const B;           assert(cb.x == 42);
+    static assert(!__traits(compiles, { immutable B ib = new B; }));
+
+    static class C
+    {
+        int x;
+        this() const     { x = 13; }
+        this() immutable { x = 42; }
+    }
+        const C cc = new     const C;   assert(cc.x == 13);
+    immutable C ic = new immutable C;   assert(ic.x == 42);
+    static assert(!__traits(compiles, { C mc = new C; }));
+}
+void test9993b()
+{
+    static class A
+    {
+        int x;
+        this()()           { x = 13; }
+        this()() immutable { x = 42; }
+    }
+              A ma = new           A;   assert(ma.x == 13);
+    immutable A ia = new immutable A;   assert(ia.x == 42);
+    static assert(!__traits(compiles, { immutable A ia = new A; }));
+
+    static class B
+    {
+        int x;
+        this()()       { x = 13; }
+        this()() const { x = 42; }
+    }
+    const B mb = new       B;           assert(mb.x == 13);
+    const B cb = new const B;           assert(cb.x == 42);
+    static assert(!__traits(compiles, { immutable B ib = new B; }));
+
+    static class C
+    {
+        int x;
+        this()() const     { x = 13; }
+        this()() immutable { x = 42; }
+    }
+        const C cc = new     const C;   assert(cc.x == 13);
+    immutable C ic = new immutable C;   assert(ic.x == 42);
+    static assert(!__traits(compiles, { C mc = new C; }));
+}
+
 /********************************************/
 
 struct Bug1914a
@@ -908,6 +981,8 @@ int main()
     test15b();
     test15c();
     test15d();
+    test9993a();
+    test9993b();
     test3198and1914();
     test5885();
     test5889();
