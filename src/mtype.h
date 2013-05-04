@@ -768,6 +768,7 @@ struct TypeInstance : TypeQualified
     Dsymbol *toDsymbol(Scope *sc);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    Expression *toExpression();
 };
 
 struct TypeTypeof : TypeQualified
