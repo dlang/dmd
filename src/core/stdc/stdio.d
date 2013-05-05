@@ -470,18 +470,61 @@ FILE* freopen(in char* filename, in char* mode, FILE* stream);
 void setbuf(FILE* stream, char* buf);
 int  setvbuf(FILE* stream, char* buf, int mode, size_t size);
 
-int fprintf(FILE* stream, in char* format, ...);
-int fscanf(FILE* stream, in char* format, ...);
-int sprintf(char* s, in char* format, ...);
-int sscanf(in char* s, in char* format, ...);
-int vfprintf(FILE* stream, in char* format, va_list arg);
-int vfscanf(FILE* stream, in char* format, va_list arg);
-int vsprintf(char* s, in char* format, va_list arg);
-int vsscanf(in char* s, in char* format, va_list arg);
-int vprintf(in char* format, va_list arg);
-int vscanf(in char* format, va_list arg);
-int printf(in char* format, ...);
-int scanf(in char* format, ...);
+version (MinGW)
+{
+    // Prefer the MinGW versions over the MSVC ones, as the latter don't handle
+    // reals at all.
+    int __mingw_fprintf(FILE* stream, in char* format, ...);
+    alias __mingw_fprintf fprintf;
+
+    int __mingw_fscanf(FILE* stream, in char* format, ...);
+    alias __mingw_fscanf fscanf;
+
+    int __mingw_sprintf(char* s, in char* format, ...);
+    alias __mingw_sprintf sprintf;
+
+    int __mingw_sscanf(in char* s, in char* format, ...);
+    alias __mingw_sscanf sscanf;
+
+    int __mingw_vfprintf(FILE* stream, in char* format, va_list arg);
+    alias __mingw_vfprintf vfprintf;
+
+    int __mingw_vfscanf(FILE* stream, in char* format, va_list arg);
+    alias __mingw_vfscanf vfscanf;
+
+    int __mingw_vsprintf(char* s, in char* format, va_list arg);
+    alias __mingw_vsprintf vsprintf;
+
+    int __mingw_vsscanf(in char* s, in char* format, va_list arg);
+    alias __mingw_vsscanf vsscanf;
+
+    int __mingw_vprintf(in char* format, va_list arg);
+    alias __mingw_vprintf vprintf;
+
+    int __mingw_vscanf(in char* format, va_list arg);
+    alias __mingw_vscanf vscanf;
+
+    int __mingw_printf(in char* format, ...);
+    alias __mingw_printf printf;
+
+    int __mingw_scanf(in char* format, ...);
+    alias __mingw_scanf scanf;
+}
+else
+{
+    int fprintf(FILE* stream, in char* format, ...);
+    int fscanf(FILE* stream, in char* format, ...);
+    int sprintf(char* s, in char* format, ...);
+    int sscanf(in char* s, in char* format, ...);
+    int vfprintf(FILE* stream, in char* format, va_list arg);
+    int vfscanf(FILE* stream, in char* format, va_list arg);
+    int vsprintf(char* s, in char* format, va_list arg);
+    int vsscanf(in char* s, in char* format, va_list arg);
+    int vprintf(in char* format, va_list arg);
+    int vscanf(in char* format, va_list arg);
+    int printf(in char* format, ...);
+    int scanf(in char* format, ...);
+}
 
 // No usafe pointer manipulation.
 @trusted
@@ -519,7 +562,25 @@ size_t fwrite(in void* ptr, size_t size, size_t nmemb, FILE* stream);
     c_long ftell(FILE* stream);
 }
 
-version( Win32 )
+version( MinGW )
+{
+  // No unsafe pointer manipulation.
+  extern (D) @trusted
+  {
+    void rewind(FILE* stream)   { fseek(stream,0L,SEEK_SET); stream._flag&=~_IOERR; }
+    pure void clearerr(FILE* stream) { stream._flag &= ~(_IOERR|_IOEOF);                 }
+    pure int  feof(FILE* stream)     { return stream._flag&_IOEOF;                       }
+    pure int  ferror(FILE* stream)   { return stream._flag&_IOERR;                       }
+  }
+    int   __mingw_snprintf(char* s, size_t n, in char* fmt, ...);
+    alias __mingw_snprintf _snprintf;
+    alias __mingw_snprintf snprintf;
+
+    int   __mingw_vsnprintf(char* s, size_t n, in char* format, va_list arg);
+    alias __mingw_vsnprintf _vsnprintf;
+    alias __mingw_vsnprintf vsnprintf;
+}
+else version( Win32 )
 {
   // No unsafe pointer manipulation.
   extern (D) @trusted

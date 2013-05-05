@@ -67,6 +67,11 @@ version (Win64)
         return strtod(nptr, endptr);
     }
 }
+else version (MinGW)
+{
+    real __mingw_strtold(in char* nptr, char** endptr);
+    alias __mingw_strtold strtold;
+}
 else
 {
     real strtold(in char* nptr, char** endptr);
