@@ -174,7 +174,7 @@ string genTempFilename()
 {
     auto a = appender!string();
     foreach (ref e; 0 .. 8)
-    {  
+    {
         formattedWrite(a, "%x", rndGen.front);
         rndGen.popFront();
     }
@@ -362,7 +362,7 @@ int main(string[] args)
             writeln("Test failed.  The logged output:");
             if (std.file.exists(output_file))
             {
-                writeln(std.file.read(output_file));
+                writeln(cast(string) std.file.read(output_file));
                 std.file.remove(output_file);
             }
             return 1;
