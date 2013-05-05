@@ -2378,13 +2378,15 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
 #if DMD_OBJC
             if (vobjccmd && objcSelector)
             {
-                v = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
-                v->storage_class |= STCparameter;
-                v->semantic(sc);
-                if (!sc->insert(v))
+                VarDeclaration* varObjc = new VarDeclaration(loc, Type::tvoidptr, Id::_cmd, NULL);
+                varObjc->storage_class |= STCparameter;
+                varObjc->semantic(sc);
+                if (!sc->insert(varObjc))
                     assert(0);
-                v->parent = this;
-                *vobjccmd = v;
+                varObjc->parent = this;
+                *vobjccmd = varObjc;
+
+                assert(*vobjccmd != v);
             }
 #endif
             return v;
