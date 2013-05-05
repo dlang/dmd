@@ -5190,6 +5190,7 @@ Statement *ImportStatement::semantic(Scope *sc)
 
             TypeIdentifier *tname = new TypeIdentifier(s->loc, name);
             AliasDeclaration *ad = new AliasDeclaration(s->loc, alias, tname);
+            ad->import = s;
 
             s->aliasdecls.push(ad);
         }

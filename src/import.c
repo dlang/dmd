@@ -245,7 +245,6 @@ void Import::semantic(Scope *sc)
             if (mod->search(loc, names[i], 0))
             {
                 ad->semantic(sc);
-                ad->import = NULL;  // forward reference resolved
             }
             else
             {
