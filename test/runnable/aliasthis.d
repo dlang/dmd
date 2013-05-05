@@ -1202,6 +1202,28 @@ void test9890()
 }
 
 /***************************************************/
+// 10004
+
+void test10004()
+{
+    static int count = 0;
+
+    static S make(S)()
+    {
+        ++count;    // necessary to make this function impure
+        S s;
+        return s;
+    }
+
+    struct SX(T...) {
+        T field; alias field this;
+    }
+    alias S = SX!(int, long);
+    assert(make!S.field == make!S.field);
+    assert(count == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1243,6 +1265,7 @@ int main()
     test9858();
     test9873();
     test9890();
+    test10004();
 
     printf("Success\n");
     return 0;
