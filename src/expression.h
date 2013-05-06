@@ -579,10 +579,13 @@ struct ScopeExp : Expression
 struct TemplateExp : Expression
 {
     TemplateDeclaration *td;
+    FuncDeclaration *fd;
 
-    TemplateExp(Loc loc, TemplateDeclaration *td);
+    TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
     int rvalue();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
 };
 
 struct NewExp : Expression
