@@ -952,10 +952,11 @@ interface I2525
     void foo();
 }
 
-class A2525 : I2525 {
+class A2525 : I2525
+{
 }
 
-class B2525 : A2525 {
+class B2525 : A2525
 {
     override void foo() { }
 }
