@@ -592,75 +592,78 @@ void FuncDeclaration::semantic(Scope *sc)
          * If this function is covariant with any members of those interface
          * functions, set the tintro.
          */
-        for (size_t i = 0; i < cd->interfaces_dim; i++)
+        for (ClassDeclaration* ccd = cd; ccd; ccd = ccd->baseClass)
         {
-            BaseClass *b = cd->interfaces[i];
-            vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
-            switch (vi)
+            for (size_t i = 0; i < ccd->interfaces_dim; i++)
             {
-                case -1:
-                    break;
+                BaseClass *b = ccd->interfaces[i];
+                vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
+                switch (vi)
+                {
+                    case -1:
+                        break;
 
-                case -2:
-                    cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
-                    Module::dprogress = dprogress_save;
-                    return;
+                    case -2:
+                        cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
+                        Module::dprogress = dprogress_save;
+                        return;
 
-                default:
-                {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl[vi];
-                    Type *ti = NULL;
+                    default:
+                    {   FuncDeclaration *fdv = (FuncDeclaration *)b->base->vtbl[vi];
+                        Type *ti = NULL;
 
-                    /* Remember which functions this overrides
-                     */
-                    foverrides.push(fdv);
-
-#if DMDV2
-                    /* Should we really require 'override' when implementing
-                     * an interface function?
-                     */
-                    //if (!isOverride())
-                        //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
-#endif
-
-                    if (fdv->tintro)
-                        ti = fdv->tintro;
-                    else if (!type->equals(fdv->type))
-                    {
-                        /* Only need to have a tintro if the vptr
-                         * offsets differ
+                        /* Remember which functions this overrides
                          */
-                        unsigned errors = global.errors;
-                        global.gag++;            // suppress printing of error messages
-                        int offset;
-                        int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
-                        global.gag--;            // suppress printing of error messages
-                        if (errors != global.errors)
+                        foverrides.push(fdv);
+
+    #if DMDV2
+                        /* Should we really require 'override' when implementing
+                         * an interface function?
+                         */
+                        //if (!isOverride())
+                            //warning(loc, "overrides base class function %s, but is not marked with 'override'", fdv->toPrettyChars());
+    #endif
+
+                        if (fdv->tintro)
+                            ti = fdv->tintro;
+                        else if (!type->equals(fdv->type))
                         {
-                            // any error in isBaseOf() is a forward reference error, so we bail out
-                            global.errors = errors;
-                            cd->sizeok = SIZEOKfwd;    // can't finish due to forward reference
-                            Module::dprogress = dprogress_save;
-                            return;
-                        }
-                        if (baseOf)
-                        {
-                            ti = fdv->type;
-                        }
-                    }
-                    if (ti)
-                    {
-                        if (tintro)
-                        {
-                            if (!tintro->nextOf()->equals(ti->nextOf()) &&
-                                !tintro->nextOf()->isBaseOf(ti->nextOf(), NULL) &&
-                                !ti->nextOf()->isBaseOf(tintro->nextOf(), NULL))
+                            /* Only need to have a tintro if the vptr
+                             * offsets differ
+                             */
+                            unsigned errors = global.errors;
+                            global.gag++;            // suppress printing of error messages
+                            int offset;
+                            int baseOf = fdv->type->nextOf()->isBaseOf(type->nextOf(), &offset);
+                            global.gag--;            // suppress printing of error messages
+                            if (errors != global.errors)
                             {
-                                error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                                // any error in isBaseOf() is a forward reference error, so we bail out
+                                global.errors = errors;
+                                cd->sizeok = SIZEOKfwd;    // can't finish due to forward reference
+                                Module::dprogress = dprogress_save;
+                                return;
+                            }
+                            if (baseOf)
+                            {
+                                ti = fdv->type;
                             }
                         }
-                        tintro = ti;
+                        if (ti)
+                        {
+                            if (tintro)
+                            {
+                                if (!tintro->nextOf()->equals(ti->nextOf()) &&
+                                    !tintro->nextOf()->isBaseOf(ti->nextOf(), NULL) &&
+                                    !ti->nextOf()->isBaseOf(tintro->nextOf(), NULL))
+                                {
+                                    error("incompatible covariant types %s and %s", tintro->toChars(), ti->toChars());
+                                }
+                            }
+                            tintro = ti;
+                        }
+                        goto L2;
                     }
-                    goto L2;
                 }
             }
         }
