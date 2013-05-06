@@ -591,7 +591,8 @@ void FuncDeclaration::semantic(Scope *sc)
          * If this function is covariant with any members of those interface
          * functions, set the tintro.
          */
-        for (ClassDeclaration* ccd = cd; ccd; ccd = ccd->baseClass) {
+        for (ClassDeclaration* ccd = cd; ccd; ccd = ccd->baseClass)
+        {
             for (size_t i = 0; i < ccd->interfaces_dim; i++)
             {
                 BaseClass *b = ccd->interfaces[i];
