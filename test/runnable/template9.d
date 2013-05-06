@@ -2280,6 +2280,30 @@ void test9885()
 }
 
 /******************************************/
+// 9971
+
+void goo9971()()
+{
+    auto g = &goo9971;
+}
+
+struct S9971
+{
+    void goo()()
+    {
+        auto g = &goo;
+        static assert(is(typeof(g) == delegate));
+    }
+}
+
+void test9971()
+{
+    goo9971!()();
+
+    S9971.init.goo!()();
+}
+
+/******************************************/
 // 9977
 
 void test9977()
@@ -2398,6 +2422,7 @@ int main()
     test9837();
     test9874();
     test9885();
+    test9971();
     test9977();
 
     printf("Success\n");

@@ -3112,7 +3112,7 @@ Expression *IdentifierExp::semantic(Scope *sc)
                 {
                     if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
                         tempdecl = tempdecl->overroot; // then get the start
-                    e = new TemplateExp(loc, tempdecl);
+                    e = new TemplateExp(loc, tempdecl, f);
                     e = e->semantic(sc);
                     return e;
                 }
@@ -4726,11 +4726,12 @@ void ScopeExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 // Mainly just a placeholder
 
-TemplateExp::TemplateExp(Loc loc, TemplateDeclaration *td)
+TemplateExp::TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd)
     : Expression(loc, TOKtemplate, sizeof(TemplateExp))
 {
     //printf("TemplateExp(): %s\n", td->toChars());
     this->td = td;
+    this->fd = fd;
 }
 
 void TemplateExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4742,6 +4743,20 @@ int TemplateExp::rvalue()
 {
     error("template %s has no value", toChars());
     return 0;
+}
+
+int TemplateExp::isLvalue()
+{
+    return fd != NULL;
+}
+
+Expression *TemplateExp::toLvalue(Scope *sc, Expression *e)
+{
+    if (!fd)
+        return Expression::toLvalue(sc, e);
+    Expression *ex = new DsymbolExp(loc, fd, 1);
+    ex = ex->semantic(sc);
+    return ex;
 }
 
 /********************** NewExp **************************************/
