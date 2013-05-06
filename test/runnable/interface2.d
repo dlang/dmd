@@ -952,7 +952,7 @@ interface I2525
     void foo();
 }
 
-class A2525 : I2525
+abstract class A2525 : I2525
 {
 }
 
