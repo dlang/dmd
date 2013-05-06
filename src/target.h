@@ -25,6 +25,7 @@ struct Target
     
     static void init();
     static unsigned alignsize(Type* type);
+    static unsigned fieldalign(Type* type);
 };
 
 #endif
