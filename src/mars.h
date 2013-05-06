@@ -238,6 +238,11 @@ struct Param
     char *mapfile;
 };
 
+struct Compiler
+{
+    const char *vendor;     // Compiler backend name
+};
+
 typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
@@ -264,6 +269,7 @@ struct Global
 
     const char *version;
 
+    Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
