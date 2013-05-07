@@ -164,7 +164,6 @@ struct StructDeclaration : AggregateDeclaration
     int needOpAssign();
     int needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
-    FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
 

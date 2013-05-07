@@ -564,7 +564,7 @@ void test13()
     assert(opeq == 4);
 
     // built-in opEquals == const bool opEquals(const S rhs);
-    assert(!s.opEquals(s));
+    assert(s != s);
     assert(opeq == 5);
 
     // xopEquals
@@ -606,6 +606,10 @@ void test15()
     {
         const bool opEquals(T)(const(T) rhs)
         if (!is(T == typeof(this)))
+        { return false; }
+
+        @disable const bool opEquals(T)(const(T) rhs)
+        if (is(T == typeof(this)))
         { return false; }
     }
 
@@ -663,6 +667,124 @@ void test17()
     static assert(!__traits(compiles, sa1 == csa));
     static assert(!__traits(compiles, csa == csa));
 }
+
+/**************************************/
+// 3789
+
+bool test3789()
+{
+    static struct Float
+    {
+        double x;
+    }
+    Float f;
+    assert(f.x != f.x); // NaN != NaN
+    assert(f != f);
+
+    static struct Array
+    {
+        int[] x;
+    }
+    Array a1 = Array([1,2,3].dup);
+    Array a2 = Array([1,2,3].dup);
+    if (!__ctfe)
+    {   // Currently doesn't work this in CTFE - may or may not a bug.
+        assert(a1.x !is a2.x);
+    }
+    assert(a1.x == a2.x);
+    assert(a1 == a2);
+
+    static struct AA
+    {
+        int[int] x;
+    }
+    AA aa1 = AA([1:1,2:2,3:3]);
+    AA aa2 = AA([1:1,2:2,3:3]);
+    if (!__ctfe)
+    {   // Currently doesn't work this in CTFE - may or may not a bug.
+        assert(aa1.x !is aa2.x);
+    }
+    if (!__ctfe)
+    {   // This is definitely a bug. Should work in CTFE.
+        assert(aa1.x == aa2.x);
+        assert(aa1 == aa2);
+    }
+
+    if (!__ctfe)
+    {   // Currently union operation is not supported in CTFE.
+        union U1
+        {
+            double x;
+        }
+        static struct UnionA
+        {
+            int[] a;
+            U1 u;
+        }
+        auto ua1 = UnionA([1,2,3]);
+        auto ua2 = UnionA([1,2,3]);
+        assert(ua1.u.x is ua2.u.x);
+        assert(ua1.u.x != ua2.u.x);
+        assert(ua1 == ua2);
+        ua1.u.x = 1.0;
+        ua2.u.x = 1.0;
+        assert(ua1.u.x is ua2.u.x);
+        assert(ua1.u.x == ua2.u.x);
+        assert(ua1 == ua2);
+        ua1.u.x = double.nan;
+        assert(ua1.u.x !is ua2.u.x);
+        assert(ua1.u.x !=  ua2.u.x);
+        assert(ua1 != ua2);
+
+        union U2
+        {
+            int[] a;
+        }
+        static struct UnionB
+        {
+            double x;
+            U2 u;
+        }
+        auto ub1 = UnionB(1.0);
+        auto ub2 = UnionB(1.0);
+        assert(ub1 == ub2);
+        ub1.u.a = [1,2,3].dup;
+        ub2.u.a = [1,2,3].dup;
+        assert(ub1.u.a !is ub2.u.a);
+        assert(ub1.u.a  == ub2.u.a);
+        assert(ub1 != ub2);
+        ub2.u.a = ub1.u.a;
+        assert(ub1.u.a is ub2.u.a);
+        assert(ub1.u.a == ub2.u.a);
+        assert(ub1 == ub2);
+    }
+
+    if (!__ctfe)
+    {   // This is definitely a bug. Should work in CTFE.
+        static struct Class
+        {
+            Object x;
+        }
+        static class X
+        {
+            override bool opEquals(Object o){ return true; }
+        }
+
+        Class c1a = Class(new Object());
+        Class c2a = Class(new Object());
+        assert(c1a.x !is c2a.x);
+        assert(c1a.x != c2a.x);
+        assert(c1a != c2a); // Pass, Object.opEquals works like bitwise compare
+
+        Class c1b = Class(new X());
+        Class c2b = Class(new X());
+        assert(c1b.x !is c2b.x);
+        assert(c1b.x == c2b.x);
+        assert(c1b == c2b); // Fails, should pass
+    }
+    return true;
+}
+static assert(test3789());
 
 /**************************************/
 // 7641
@@ -1044,6 +1166,7 @@ int main()
     test15();
     test16();
     test17();
+    test3789();
     test7641();
     test8434();
     test18();
