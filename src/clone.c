@@ -273,10 +273,8 @@ int StructDeclaration::needOpEquals()
     if (hasIdentityEquals)
         goto Lneed;
 
-#if 0
     if (isUnionDeclaration())
         goto Ldontneed;
-#endif
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -289,11 +287,11 @@ int StructDeclaration::needOpEquals()
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-#if 0
         if (tv->isfloating())
             goto Lneed;
         if (tv->ty == Tarray)
             goto Lneed;
+#if 0
         if (tv->ty == Tclass)
             goto Lneed;
 #endif
@@ -380,10 +378,19 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         assert(v && v->isField());
         if (v->storage_class & STCref)
             assert(0);                  // what should we do with this?
+        Type *tb = v->type->toBasetype();
         // this.v == s.v;
-        EqualExp *ec = new EqualExp(TOKequal, loc,
-            new DotVarExp(loc, new ThisExp(loc), v, 0),
-            new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
+        Expression *e1x = new DotVarExp(loc, new ThisExp(loc), v, 0);
+        Expression *e2x = new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0);
+        Expression *ec;
+        if (tb->ty == Tstruct && tb->toDsymbol(NULL)->isUnionDeclaration()
+#if 1   // workaround until bugzilla 9671 is fixed
+            || tb->ty == Tclass
+#endif
+           )
+            ec = new IdentityExp(TOKidentity, loc, e1x, e2x);
+        else
+            ec = new EqualExp(TOKequal, loc, e1x, e2x);
         if (e)
             e = new AndAndExp(loc, e, ec);
         else
@@ -393,6 +400,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         e = new IntegerExp(loc, 1, Type::tbool);
     fop->fbody = new ReturnStatement(loc, e);
 
+#if 0
     members->push(fop);
     fop->addMember(sc, this, 1);
 
@@ -403,6 +411,33 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
     fop->semantic(sc);
 
     sc->pop();
+#else
+    Dsymbol *s = fop;
+
+    members->push(s);
+    s->addMember(sc, this, 1);
+    this->hasIdentityEquals = 1;        // temporary mark identity comparable
+
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opEquals fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
+
+    s->semantic(sc2);
+    s->semantic2(sc2);
+    s->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {   // Disable generated opEquals, because some members forbid identity comparison.
+        fop->storage_class |= STCdisable;
+        fop->fbody = NULL;  // remove fbody which contains the error
+    }
+#endif
 
     //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
 
