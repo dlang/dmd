@@ -1004,7 +1004,8 @@ Expression *IdentityExp::optimize(int result, bool keepLvalue)
     Expression *e = this;
 
     if ((this->e1->isConst()     && this->e2->isConst()) ||
-        (this->e1->op == TOKnull && this->e2->op == TOKnull))
+        (this->e1->op == TOKnull && this->e2->op == TOKnull) ||
+        (result & WANTinterpret))
     {
         e = Identity(op, type, this->e1, this->e2);
         if (e == EXP_CANT_INTERPRET)

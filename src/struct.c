@@ -682,8 +682,7 @@ void StructDeclaration::semantic(Scope *sc)
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
 
-    hasIdentityAssign = (buildOpAssign(sc2) != NULL);
-    hasIdentityEquals = (buildOpEquals(sc2) != NULL);
+    buildOpAssign(sc2);
 
     xeq = buildXopEquals(sc2);
 #endif

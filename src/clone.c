@@ -28,8 +28,9 @@
  * Check given opAssign symbol is really identity opAssign or not.
  */
 
-FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *assign)
+FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
 {
+    Dsymbol *assign = search_function(this, Id::assign);
     if (assign)
     {
         /* check identity opAssign exists
@@ -135,14 +136,13 @@ Lneed:
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 {
-    Dsymbol *assign = search_function(this, Id::assign);
-    if (assign)
+    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
     {
-        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
-            return f;
-        // Even if non-identity opAssign is defined, built-in identity opAssign
-        // will be defined. (Is this an exception of operator overloading rule?)
+        hasIdentityAssign = 1;
+        return f;
     }
+    // Even if non-identity opAssign is defined, built-in identity opAssign
+    // will be defined.
 
     if (!needOpAssign())
         return NULL;
@@ -220,6 +220,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     fop->fbody = new CompoundStatement(0, s1, s2);
 
     Dsymbol *s = fop;
+#if 1   // workaround until fixing issue 1528
+    Dsymbol *assign = search_function(this, Id::assign);
     if (assign && assign->isTemplateDeclaration())
     {
         // Wrap a template around the function declaration
@@ -230,6 +232,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs, 0);
         s = tempdecl;
     }
+#endif
     members->push(s);
     s->addMember(sc, this, 1);
     this->hasIdentityAssign = 1;        // temporary mark identity assignable
@@ -273,10 +276,8 @@ int StructDeclaration::needOpEquals()
     if (hasIdentityEquals)
         goto Lneed;
 
-#if 0
     if (isUnionDeclaration())
         goto Ldontneed;
-#endif
 
     /* If any of the fields has an opEquals, then we
      * need it too.
@@ -289,14 +290,14 @@ int StructDeclaration::needOpEquals()
         if (v->storage_class & STCref)
             continue;
         Type *tv = v->type->toBasetype();
-#if 0
         if (tv->isfloating())
             goto Lneed;
         if (tv->ty == Tarray)
             goto Lneed;
+        if (tv->ty == Taarray)
+            goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-#endif
         while (tv->ty == Tsarray)
         {   TypeSArray *ta = (TypeSArray *)tv;
             tv = tv->nextOf()->toBasetype();
@@ -318,128 +319,80 @@ Lneed:
 #undef X
 }
 
-/******************************************
- * Build opEquals for struct.
- *      const bool opEquals(const S s) { ... }
- */
-
-FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
 {
     Dsymbol *eq = search_function(this, Id::eq);
     if (eq)
     {
         /* check identity opEquals exists
          */
-        Type *tthis = type->constOf();
-        Expression *er = new NullExp(loc, tthis);       // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = tthis;
-        Expressions ar;  ar.push(er);
-        Expressions al;  al.push(el);
-        FuncDeclaration *f = NULL;
+        for (size_t i = 0; ; i++)
+        {
+            Type *tthis;
+            if (i == 0) tthis = type;
+            if (i == 1) tthis = type->constOf();
+            if (i == 2) tthis = type->invariantOf();
+            if (i == 3) tthis = type->sharedOf();
+            if (i == 4) tthis = type->sharedConstOf();
+            if (i == 5) break;
+            Expression *er = new NullExp(loc, tthis);       // dummy rvalue
+            Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+            el->type = tthis;
+            Expressions ar;  ar.push(er);
+            Expressions al;  al.push(el);
+            FuncDeclaration *f = NULL;
 
-        unsigned errors = global.startGagging();    // Do not report errors, even if the
-        unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-        global.speculativeGag = global.gag;
-        sc = sc->push();
-        sc->speculative = true;
+            unsigned errors = global.startGagging();    // Do not report errors, even if the
+            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+            global.speculativeGag = global.gag;
+            sc = sc->push();
+            sc->speculative = true;
 
-                 f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
-        if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
+                     f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
+            if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
 
-        sc = sc->pop();
-        global.speculativeGag = oldspec;
-        global.endGagging(errors);
+            sc = sc->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(errors);
 
-        if (f)
-            return (f->storage_class & STCdisable) ? NULL : f;
-        return NULL;
+            if (f)
+                return f;
+        }
+    }
+    return NULL;
+}
+
+/******************************************
+ * Build __xopEquals for TypeInfo_Struct
+ *      bool __xopEquals(in ref S p, in ref S q) { ... }
+ */
+
+FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+{
+    if (FuncDeclaration *f = hasIdentityOpEquals(sc))
+    {
+        hasIdentityEquals = 1;
     }
 
     if (!needOpEquals())
         return NULL;
 
-    //printf("StructDeclaration::buildOpEquals() %s\n", toChars());
-
-    Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCin, type, Id::p, NULL));
-    TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    tf->mod = MODconst;
-    tf = (TypeFunction *)tf->semantic(loc, sc);
-
-    FuncDeclaration *fop = new FuncDeclaration(loc, 0, Id::eq, STCundefined, tf);
-
-    Expression *e = NULL;
-    /* Do memberwise compare
-     */
-    //printf("\tmemberwise compare\n");
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        Dsymbol *s = fields[i];
-        VarDeclaration *v = s->isVarDeclaration();
-        assert(v && v->isField());
-        if (v->storage_class & STCref)
-            assert(0);                  // what should we do with this?
-        // this.v == s.v;
-        EqualExp *ec = new EqualExp(TOKequal, loc,
-            new DotVarExp(loc, new ThisExp(loc), v, 0),
-            new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
-        if (e)
-            e = new AndAndExp(loc, e, ec);
-        else
-            e = ec;
-    }
-    if (!e)
-        e = new IntegerExp(loc, 1, Type::tbool);
-    fop->fbody = new ReturnStatement(loc, e);
-
-    members->push(fop);
-    fop->addMember(sc, this, 1);
-
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
-
-    fop->semantic(sc);
-
-    sc->pop();
-
-    //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
-
-    return fop;
-}
-
-/******************************************
- * Build __xopEquals for TypeInfo_Struct
- *      bool __xopEquals(in void* p, in void* q) { ... }
- */
-
-FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
-{
-    if (!search_function(this, Id::eq))
-        return NULL;
-
-    /* static bool__xopEquals(in void* p, in void* q) {
-     *     return ( *cast(const S*)(p) ).opEquals( *cast(const S*)(q) );
+    /* static bool__xopEquals(ref const S p, ref const S q) {
+     *     return p == q;
      * }
      */
-
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
-    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(0, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
     FuncDeclaration *fop = new FuncDeclaration(0, 0, id, STCstatic, tf);
 
-    Expression *e = new CallExp(0,
-        new DotIdExp(0,
-            new PtrExp(0, new CastExp(0,
-                new IdentifierExp(0, Id::p), type->pointerTo()->constOf())),
-            Id::eq),
-        new PtrExp(0, new CastExp(0,
-            new IdentifierExp(0, Id::q), type->pointerTo()->constOf())));
+    Expression *e1 = new IdentifierExp(0, Id::p);
+    Expression *e2 = new IdentifierExp(0, Id::q);
+    Expression *e = new EqualExp(TOKequal, 0, e1, e2);
 
     fop->fbody = new ReturnStatement(0, e);
 

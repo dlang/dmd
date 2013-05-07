@@ -767,13 +767,10 @@ void ClassDeclaration::semantic(Scope *sc)
     Module::dprogress++;
 
     dtor = buildDtor(sc);
-    if (Dsymbol *assign = search_function(this, Id::assign))
+    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
     {
-        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
-        {
-            if (!(f->storage_class & STCdisable))
-                error("identity assignment operator overload is illegal");
-        }
+        if (!(f->storage_class & STCdisable))
+            error("identity assignment operator overload is illegal");
     }
     sc->pop();
 
