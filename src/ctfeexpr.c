@@ -329,12 +329,12 @@ Expression *copyLiteral(Expression *e)
         else if (e->op == TOKindex)
             r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
-            r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
-                ((DotVarExp *)e)->var
 #if DMDV2
-                , ((DotVarExp *)e)->hasOverloads
+            r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
+                ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
+#else
+            r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var);
 #endif
-                );
         else
             assert(0);
         r->type = e->type;
@@ -1973,11 +1973,12 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
 
 bool isCtfeValueValid(Expression *newval)
 {
-    if (
 #if DMDV2
-        newval->type->ty == Tnull ||
+    bool isnull = newval->type->ty == Tnull;
+#else
+    bool isnull = false;
 #endif
-        isPointer(newval->type) )
+    if (isnull || isPointer(newval->type))
     {
         if (newval->op == TOKaddress || newval->op == TOKnull ||
             newval->op == TOKstring)
