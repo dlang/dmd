@@ -28,8 +28,9 @@
  * Check given opAssign symbol is really identity opAssign or not.
  */
 
-FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc, Dsymbol *assign)
+FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
 {
+    Dsymbol *assign = search_function(this, Id::assign);
     if (assign)
     {
         /* check identity opAssign exists
@@ -135,14 +136,13 @@ Lneed:
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 {
-    Dsymbol *assign = search_function(this, Id::assign);
-    if (assign)
+    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
     {
-        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
-            return f;
-        // Even if non-identity opAssign is defined, built-in identity opAssign
-        // will be defined. (Is this an exception of operator overloading rule?)
+        hasIdentityAssign = 1;
+        return f;
     }
+    // Even if non-identity opAssign is defined, built-in identity opAssign
+    // will be defined.
 
     if (!needOpAssign())
         return NULL;
@@ -220,6 +220,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
     fop->fbody = new CompoundStatement(0, s1, s2);
 
     Dsymbol *s = fop;
+#if 1   // workaround until fixing issue 1528
+    Dsymbol *assign = search_function(this, Id::assign);
     if (assign && assign->isTemplateDeclaration())
     {
         // Wrap a template around the function declaration
@@ -230,6 +232,7 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             new TemplateDeclaration(assign->loc, fop->ident, tpl, NULL, decldefs, 0);
         s = tempdecl;
     }
+#endif
     members->push(s);
     s->addMember(sc, this, 1);
     this->hasIdentityAssign = 1;        // temporary mark identity assignable
@@ -318,12 +321,7 @@ Lneed:
 #undef X
 }
 
-/******************************************
- * Build opEquals for struct.
- *      const bool opEquals(const S s) { ... }
- */
-
-FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
 {
     Dsymbol *eq = search_function(this, Id::eq);
     if (eq)
@@ -352,8 +350,22 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         global.endGagging(errors);
 
         if (f)
-            return (f->storage_class & STCdisable) ? NULL : f;
-        return NULL;
+            return f;
+    }
+    return NULL;
+}
+
+/******************************************
+ * Build opEquals for struct.
+ *      const bool opEquals(const S s) { ... }
+ */
+
+FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+{
+    if (FuncDeclaration *f = hasIdentityOpEquals(sc))
+    {
+        hasIdentityEquals = (f->storage_class & STCdisable) ? 0 : 1;
+        return (f->storage_class & STCdisable) ? NULL : f;
     }
 
     if (!needOpEquals())
@@ -423,7 +435,6 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
      *     return ( *cast(const S*)(p) ).opEquals( *cast(const S*)(q) );
      * }
      */
-
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
     parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
