@@ -7271,6 +7271,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
          * as:
          *   (*p).ident
          */
+        if (flag && t1b->nextOf()->ty == Tvoid)
+            return NULL;
         e = new PtrExp(loc, e1);
         e = e->semantic(sc);
         return e->type->dotExp(sc, e, ident, flag);
