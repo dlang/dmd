@@ -954,7 +954,7 @@ File::~File()
         if (ref == 0)
             mem.free(buffer);
 #if _WIN32
-        else if (ref == 2)
+        if (ref == 2)
             UnmapViewOfFile(buffer);
 #endif
     }

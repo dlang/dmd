@@ -1077,14 +1077,6 @@ Expression *Expression::castTo(Scope *sc, Type *t)
             else
                 e = new AddrExp(loc, e);
         }
-#if 0
-        else if (tb->ty == Tdelegate && type->ty != Tdelegate)
-        {
-            TypeDelegate *td = (TypeDelegate *)tb;
-            TypeFunction *tf = (TypeFunction *)td->nextOf();
-            return toDelegate(sc, tf->nextOf());
-        }
-#endif
         else
         {
             if (typeb->ty == Tstruct)

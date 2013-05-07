@@ -4294,7 +4294,6 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         return s->semantic(sc);
 #endif
     }
-#if 1
     else
     {   /* Generate our own critical section, then rewrite as:
          *  __gshared byte[CriticalSection.sizeof] critsec;
@@ -4331,7 +4330,6 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         s = new CompoundStatement(loc, cs);
         return s->semantic(sc);
     }
-#endif
 Lbody:
     if (body)
         body = body->semantic(sc);

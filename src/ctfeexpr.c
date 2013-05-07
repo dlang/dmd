@@ -331,12 +331,14 @@ Expression *copyLiteral(Expression *e)
         else if (e->op == TOKindex)
             r = new IndexExp(e->loc, ((IndexExp *)e)->e1, ((IndexExp *)e)->e2);
         else if (e->op == TOKdotvar)
+        {
 #if DMDV2
             r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1,
                 ((DotVarExp *)e)->var, ((DotVarExp *)e)->hasOverloads);
 #else
             r = new DotVarExp(e->loc, ((DotVarExp *)e)->e1, ((DotVarExp *)e)->var);
 #endif
+        }
         else
             assert(0);
         r->type = e->type;

@@ -797,12 +797,10 @@ void Dsymbol::addComment(const utf8_t *comment)
 
     if (!this->comment)
         this->comment = comment;
-#if 1
     else if (comment && strcmp((char *)comment, (char *)this->comment) != 0)
     {   // Concatenate the two
         this->comment = Lexer::combineComments(this->comment, comment);
     }
-#endif
 }
 
 /********************************* OverloadSet ****************************/
