@@ -2313,9 +2313,6 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
             type = type->addStorageClass(mismatchstc);
             bestvi = mismatchvi;
         }
-        else
-            error("of type %s overrides but is not covariant with %s of type %s",
-                type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
     }
     return bestvi;
 }
