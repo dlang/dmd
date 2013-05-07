@@ -328,29 +328,38 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
     {
         /* check identity opEquals exists
          */
-        Type *tthis = type->constOf();
-        Expression *er = new NullExp(loc, tthis);       // dummy rvalue
-        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-        el->type = tthis;
-        Expressions ar;  ar.push(er);
-        Expressions al;  al.push(el);
-        FuncDeclaration *f = NULL;
+        for (size_t i = 0; ; i++)
+        {
+            Type *tthis;
+            if (i == 0) tthis = type;
+            if (i == 1) tthis = type->constOf();
+            if (i == 2) tthis = type->invariantOf();
+            if (i == 3) tthis = type->sharedOf();
+            if (i == 4) tthis = type->sharedConstOf();
+            if (i == 5) break;
+            Expression *er = new NullExp(loc, tthis);       // dummy rvalue
+            Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+            el->type = tthis;
+            Expressions ar;  ar.push(er);
+            Expressions al;  al.push(el);
+            FuncDeclaration *f = NULL;
 
-        unsigned errors = global.startGagging();    // Do not report errors, even if the
-        unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-        global.speculativeGag = global.gag;
-        sc = sc->push();
-        sc->speculative = true;
+            unsigned errors = global.startGagging();    // Do not report errors, even if the
+            unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+            global.speculativeGag = global.gag;
+            sc = sc->push();
+            sc->speculative = true;
 
-                 f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
-        if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
+                     f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
+            if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
 
-        sc = sc->pop();
-        global.speculativeGag = oldspec;
-        global.endGagging(errors);
+            sc = sc->pop();
+            global.speculativeGag = oldspec;
+            global.endGagging(errors);
 
-        if (f)
-            return f;
+            if (f)
+                return f;
+        }
     }
     return NULL;
 }
@@ -405,16 +414,29 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
         e = new IntegerExp(loc, 1, Type::tbool);
     fop->fbody = new ReturnStatement(loc, e);
 
-    members->push(fop);
-    fop->addMember(sc, this, 1);
+    Dsymbol *s = fop;
+    members->push(s);
+    s->addMember(sc, this, 1);
 
-    sc = sc->push();
-    sc->stc = 0;
-    sc->linkage = LINKd;
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
 
-    fop->semantic(sc);
+    s->semantic(sc2);
+    s->semantic2(sc2);
+    s->semantic3(sc2);
 
-    sc->pop();
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {   // Disable generated opEquals, because some members forbid identity assignment.
+        fop->storage_class |= STCdisable;
+        fop->fbody = NULL;  // remove fbody which contains the error
+    }
 
     //printf("-StructDeclaration::buildOpEquals() %s\n", toChars());
 

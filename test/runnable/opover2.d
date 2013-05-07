@@ -1019,7 +1019,7 @@ struct T9694
 void test9694()
 {
     T9694 t;
-    assert(typeid(T9694).equals(&t, &t));
+    assert(thrown!Error(typeid(T9694).equals(&t, &t)));
 }
 
 /**************************************/
