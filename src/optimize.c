@@ -924,6 +924,21 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
         }
         e = this;
     }
+
+    if (e1->op == TOKint64 && e1->toInteger() > 0 &&
+        !((e1->toInteger() - 1) & e1->toInteger()) && // is power of two
+        e2->type->isintegral() && e2->type->isunsigned())
+    {
+        dinteger_t i = e1->toInteger();
+        dinteger_t mul = 1;
+        while ((i >>= 1) > 1)
+            mul++;
+        Expression *shift = new MulExp(loc, e2, new IntegerExp(loc, mul, e2->type));
+        shift->type = e2->type;
+        e = new ShlExp(loc, new IntegerExp(loc, 1, e1->type), shift);
+        e->type = type;
+    }
+
     return e;
 }
 

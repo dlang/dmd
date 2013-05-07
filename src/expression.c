@@ -12083,95 +12083,96 @@ Expression *PowExp::semantic(Scope *sc)
         }
     }
 
-    if ( (e1->type->isintegral() || e1->type->isfloating()) &&
-         (e2->type->isintegral() || e2->type->isfloating()))
+    if ( !(e1->type->isintegral() || e1->type->isfloating()) ||
+         !(e2->type->isintegral() || e2->type->isfloating()))
     {
-        // For built-in numeric types, there are several cases.
-        // TODO: backend support, especially for  e1 ^^ 2.
+        return incompatibleTypes();
+    }
 
-        bool wantSqrt = false;
+    // For built-in numeric types, there are several cases.
+    // TODO: backend support, especially for  e1 ^^ 2.
 
-        // First, attempt to fold the expression.
-        e = optimize(WANTvalue);
-        if (e->op != TOKpow)
-        {
-            e = e->semantic(sc);
-            return e;
-        }
+    bool wantSqrt = false;
 
-        // Determine if we're raising to an integer power.
-        sinteger_t intpow = 0;
-        if (e2->op == TOKint64 && ((sinteger_t)e2->toInteger() == 2 || (sinteger_t)e2->toInteger() == 3))
-            intpow = e2->toInteger();
-        else if (e2->op == TOKfloat64 && (e2->toReal() == (sinteger_t)(e2->toReal())))
-            intpow = (sinteger_t)(e2->toReal());
-
-        // Deal with x^^2, x^^3 immediately, since they are of practical importance.
-        if (intpow == 2 || intpow == 3)
-        {
-            // Replace x^^2 with (tmp = x, tmp*tmp)
-            // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
-            Identifier *idtmp = Lexer::uniqueId("__powtmp");
-            VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(Loc(), e1));
-            tmp->storage_class = STCctfe;
-            Expression *ve = new VarExp(loc, tmp);
-            Expression *ae = new DeclarationExp(loc, tmp);
-            /* Note that we're reusing ve. This should be ok.
-             */
-            Expression *me = new MulExp(loc, ve, ve);
-            if (intpow == 3)
-                me = new MulExp(loc, me, ve);
-            e = new CommaExp(loc, ae, me);
-            e = e->semantic(sc);
-            return e;
-        }
-
-        static int importMathChecked = 0;
-        static bool importMath = false;
-        if (!importMathChecked)
-        {
-            importMathChecked = 1;
-            for (size_t i = 0; i < Module::amodules.dim; i++)
-            {   Module *mi = Module::amodules[i];
-                //printf("\t[%d] %s\n", i, mi->toChars());
-                if (mi->ident == Id::math &&
-                    mi->parent->ident == Id::std &&
-                    !mi->parent->parent)
-                {
-                    importMath = true;
-                    goto L1;
-                }
-            }
-            error("must import std.math to use ^^ operator");
-            return new ErrorExp();
-
-         L1: ;
-        }
-        else
-        {
-            if (!importMath)
-            {
-                error("must import std.math to use ^^ operator");
-                return new ErrorExp();
-            }
-        }
-
-        e = new IdentifierExp(loc, Id::empty);
-        e = new DotIdExp(loc, e, Id::std);
-        e = new DotIdExp(loc, e, Id::math);
-        if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
-        {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
-            e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
-        }
-        else
-        {
-            // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
-            e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);
-        }
+    // First, attempt to fold the expression.
+    e = optimize(WANTvalue);
+    if (e->op != TOKpow)
+    {
         e = e->semantic(sc);
         return e;
     }
-    return incompatibleTypes();
+
+    // Determine if we're raising to an integer power.
+    sinteger_t intpow = 0;
+    if (e2->op == TOKint64 && ((sinteger_t)e2->toInteger() == 2 || (sinteger_t)e2->toInteger() == 3))
+        intpow = e2->toInteger();
+    else if (e2->op == TOKfloat64 && (e2->toReal() == (sinteger_t)(e2->toReal())))
+        intpow = (sinteger_t)(e2->toReal());
+
+    // Deal with x^^2, x^^3 immediately, since they are of practical importance.
+    if (intpow == 2 || intpow == 3)
+    {
+        // Replace x^^2 with (tmp = x, tmp*tmp)
+        // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
+        Identifier *idtmp = Lexer::uniqueId("__powtmp");
+        VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(Loc(), e1));
+        tmp->storage_class = STCctfe;
+        Expression *ve = new VarExp(loc, tmp);
+        Expression *ae = new DeclarationExp(loc, tmp);
+        /* Note that we're reusing ve. This should be ok.
+         */
+        Expression *me = new MulExp(loc, ve, ve);
+        if (intpow == 3)
+            me = new MulExp(loc, me, ve);
+        e = new CommaExp(loc, ae, me);
+        e = e->semantic(sc);
+        return e;
+    }
+
+    static int importMathChecked = 0;
+    static bool importMath = false;
+    if (!importMathChecked)
+    {
+        importMathChecked = 1;
+        for (size_t i = 0; i < Module::amodules.dim; i++)
+        {   Module *mi = Module::amodules[i];
+            //printf("\t[%d] %s\n", i, mi->toChars());
+            if (mi->ident == Id::math &&
+                mi->parent->ident == Id::std &&
+                !mi->parent->parent)
+            {
+                importMath = true;
+                goto L1;
+            }
+        }
+        error("must import std.math to use ^^ operator");
+        return new ErrorExp();
+
+     L1: ;
+    }
+    else
+    {
+        if (!importMath)
+        {
+            error("must import std.math to use ^^ operator");
+            return new ErrorExp();
+        }
+    }
+
+    e = new IdentifierExp(loc, Id::empty);
+    e = new DotIdExp(loc, e, Id::std);
+    e = new DotIdExp(loc, e, Id::math);
+    if (e2->op == TOKfloat64 && e2->toReal() == 0.5)
+    {   // Replace e1 ^^ 0.5 with .std.math.sqrt(x)
+        e = new CallExp(loc, new DotIdExp(loc, e, Id::_sqrt), e1);
+    }
+    else
+    {
+        // Replace e1 ^^ e2 with .std.math.pow(e1, e2)
+        e = new CallExp(loc, new DotIdExp(loc, e, Id::_pow), e1, e2);
+    }
+    e = e->semantic(sc);
+    return e;
 }
 
 /************************************************************/
