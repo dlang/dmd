@@ -1958,6 +1958,11 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
   };
   static symbol clibldiv2  = Y(mAX|mBX|mCX|mDX,"_LDIV2__");
   static symbol clibuldiv2 = Y(mAX|mBX|mCX|mDX,"_ULDIV2__");
+
+  static symbol clibldiv3  = Y(mAX|mBX|mCX|mDX,"_divdi3");
+  static symbol clibuldiv3 = Y(mAX|mBX|mCX|mDX,"_udivdi3");
+  static symbol cliblmod3  = Y(mAX|mBX|mCX|mDX,"_moddi3");
+  static symbol clibulmod3 = Y(mAX|mBX|mCX|mDX,"_umoddi3");
 #else
   static symbol lib[CLIBMAX] =
   {
@@ -2157,12 +2162,28 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         clibldiv2.Stype = tsclib;
         clibuldiv2.Stype = tsclib;
+        clibldiv3.Stype = tsclib;
+        clibuldiv3.Stype = tsclib;
+        cliblmod3.Stype = tsclib;
+        clibulmod3.Stype = tsclib;
 #if MARS
         clibldiv2.Sxtrnnum = 0;
         clibldiv2.Stypidx = 0;
 
         clibuldiv2.Sxtrnnum = 0;
         clibuldiv2.Stypidx = 0;
+
+        clibldiv3.Sxtrnnum = 0;
+        clibldiv3.Stypidx = 0;
+
+        clibuldiv3.Sxtrnnum = 0;
+        clibuldiv3.Stypidx = 0;
+
+        cliblmod3.Sxtrnnum = 0;
+        cliblmod3.Stypidx = 0;
+
+        clibulmod3.Sxtrnnum = 0;
+        clibulmod3.Stypidx = 0;
 #endif
 #endif
         if (!I16)
@@ -2261,9 +2282,38 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
         code *cgot = NULL;
         bool pushebx = false;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-        if (config.flags3 & CFG3pic && I32)
+        if (I32)
         {
-            cgot = load_localgot();     // EBX gets set to this value
+            /* Pass EBX on the stack instead, this is because EBX is used
+             * for shared library function calls
+             */
+            if (config.flags3 & CFG3pic)
+            {
+                cgot = load_localgot();     // EBX gets set to this value
+            }
+#if TARGET_LINUX
+            switch (clib)
+            {
+                case CLIBldiv:
+                    s = &clibldiv3;
+                    pushebx = true;
+                    break;
+                case CLIBlmod:
+                    s = &cliblmod3;
+                    pushebx = true;
+                    info[clib].retregs32 = mAX|mDX;
+                    break;
+                case CLIBuldiv:
+                    s = &clibuldiv3;
+                    pushebx = true;
+                    break;
+                case CLIBulmod:
+                    s = &clibulmod3;
+                    pushebx = true;
+                    info[clib].retregs32 = mAX|mDX;
+                    break;
+            }
+#else
             switch (clib)
             {   // EBX is a parameter to these, so push it on the stack before load_localgot()
                 case CLIBldiv:
@@ -2277,6 +2327,7 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
                     pushebx = true;
                     break;
             }
+#endif
         }
 #endif
         makeitextern(s);
@@ -2290,8 +2341,17 @@ code *callclib(elem *e,unsigned clib,regm_t *pretregs,regm_t keepmask)
             }
         }
         if (pushebx)
-        {   c = gen1(c, 0x50 + BX);                             // PUSH EBX
+        {
+#if TARGET_LINUX
+            c = gen1(c, 0x50 + CX);                             // PUSH ECX
+            c = gen1(c, 0x50 + BX);                             // PUSH EBX
+            c = gen1(c, 0x50 + DX);                             // PUSH EDX
+            c = gen1(c, 0x50 + AX);                             // PUSH EAX
+            nalign += 4 * REGSIZE;
+#else
+            c = gen1(c, 0x50 + BX);                             // PUSH EBX
             nalign += REGSIZE;
+#endif
         }
         c = cat(c, cgot);                                       // EBX = localgot
         c = gencs(c,(LARGECODE) ? 0x9A : 0xE8,0,FLfunc,s);      // CALL s
