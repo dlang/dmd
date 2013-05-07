@@ -4440,11 +4440,11 @@ StructDeclaration *TypeAArray::getImpl()
         TemplateInstance *ti = dti->ti;
 #endif
         // Instantiate on the root module of import dependency graph.
-        sc = sc->push(sc->module->importedFrom);
-        ti->semantic(sc);
-        ti->semantic2(sc);
-        ti->semantic3(sc);
-        sc = sc->pop();
+        Scope *scx = sc->push(sc->module->importedFrom);
+        ti->semantic(scx);
+        ti->semantic2(scx);
+        ti->semantic3(scx);
+        scx->pop();
         impl = ti->toAlias()->isStructDeclaration();
 #ifdef DEBUG
         if (!impl)

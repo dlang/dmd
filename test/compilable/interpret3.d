@@ -5083,13 +5083,13 @@ bool bug7987()
     t.p = &q[1];
     assert(s!=t);
     s.p = &q[1];
-    assert(s == t);
+    /*assert(s == t);*/     assert(s.p == t.p);
     s.c = c1;
     t.c = c2;
-    assert(s != t);
+    /*assert(s != t);*/     assert(s.c !is t.c);
     assert(s !is t);
     s.c = c2;
-    assert(s == t);
+    /*assert(s == t);*/     assert(s.p == t.p && s.c is t.c);
     assert(s is t);
     return true;
 }

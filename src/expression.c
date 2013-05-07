@@ -12612,6 +12612,26 @@ Expression *EqualExp::semantic(Scope *sc)
         return new ErrorExp();
     }
 
+    if (t1->ty == Tstruct && t2->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)t1)->sym;
+        if (sd == ((TypeStruct *)t2)->sym)
+        {
+            if (sd->needOpEquals())
+            {
+                this->e1 = new DotIdExp(loc, e1, Id::tupleof);
+                this->e2 = new DotIdExp(loc, e2, Id::tupleof);
+                e = this;
+            }
+            else
+            {
+                e = new IdentityExp(op == TOKequal ? TOKidentity : TOKnotidentity, loc, e1, e2);
+            }
+            e = e->semantic(sc);
+            return e;
+        }
+    }
+
     if (e1->op == TOKtuple && e2->op == TOKtuple)
     {
         TupleExp *tup1 = (TupleExp *)e1;
