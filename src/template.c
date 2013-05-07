@@ -4446,6 +4446,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, Object *oarg,
             ei = ei->semantic(sc);
             if (!f->needThis())
                 ei = resolveProperties(sc, ei);
+            /* If it was really a property, it will become a CallExp.
+             * If it stayed as a var, it cannot be interpreted.
+             */
+            if (ei->op == TOKvar)
+                goto Lnomatch;
             ei = ei->ctfeInterpret();
         }
         else
