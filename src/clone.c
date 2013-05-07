@@ -423,7 +423,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 
 /******************************************
  * Build __xopEquals for TypeInfo_Struct
- *      bool __xopEquals(in void* p, in void* q) { ... }
+ *      bool __xopEquals(in ref S p, in ref S q) { ... }
  */
 
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
@@ -431,26 +431,22 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     if (!search_function(this, Id::eq))
         return NULL;
 
-    /* static bool__xopEquals(in void* p, in void* q) {
-     *     return ( *cast(const S*)(p) ).opEquals( *cast(const S*)(q) );
+    /* static bool__xopEquals(ref const S p, ref const S q) {
+     *     return p == q;
      * }
      */
     Parameters *parameters = new Parameters;
-    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::p, NULL));
-    parameters->push(new Parameter(STCin, Type::tvoidptr, Id::q, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
     tf = (TypeFunction *)tf->semantic(0, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
     FuncDeclaration *fop = new FuncDeclaration(0, 0, id, STCstatic, tf);
 
-    Expression *e = new CallExp(0,
-        new DotIdExp(0,
-            new PtrExp(0, new CastExp(0,
-                new IdentifierExp(0, Id::p), type->pointerTo()->constOf())),
-            Id::eq),
-        new PtrExp(0, new CastExp(0,
-            new IdentifierExp(0, Id::q), type->pointerTo()->constOf())));
+    Expression *e1 = new IdentifierExp(0, Id::p);
+    Expression *e2 = new IdentifierExp(0, Id::q);
+    Expression *e = new EqualExp(TOKequal, 0, e1, e2);
 
     fop->fbody = new ReturnStatement(0, e);
 
