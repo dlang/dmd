@@ -98,6 +98,8 @@ Global::Global()
 #include "verstr.h"
     ;
 
+    compiler.vendor = "Digital Mars D";
+
     main_d = "__main.d";
 
     structalign = STRUCTALIGN_DEFAULT;
