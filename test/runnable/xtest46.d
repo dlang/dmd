@@ -2954,6 +2954,22 @@ void test136() {
 }
 
 /***************************************************/
+
+void test3068()
+{
+    enum Enum : ubyte
+    {
+        Test
+    }
+
+    void main()
+    {
+        ubyte[] array;
+        array = array ~ [Enum.Test];
+    }
+}
+
+/***************************************************/
 // 4097
 
 void foo4097() { }
@@ -6912,6 +6928,7 @@ int main()
     test157();
     test6473();
     test6630();
+    test3068();
     test6690();
     test2953();
     test2997();
