@@ -59,6 +59,10 @@ void Target::init()
     }
 }
 
+/******************************
+ * Return memory alignment size of type.
+ */
+
 unsigned Target::alignsize (Type* type)
 {
     assert (type->isTypeBasic());
@@ -92,3 +96,11 @@ unsigned Target::alignsize (Type* type)
     return type->size(0);
 }
 
+/******************************
+ * Return field alignment size of type.
+ */
+
+unsigned Target::fieldalign (Type* type)
+{
+    return type->alignsize();
+}

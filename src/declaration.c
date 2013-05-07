@@ -25,6 +25,7 @@
 #include "statement.h"
 #include "hdrgen.h"
 #include "ctfe.h"
+#include "target.h"
 
 AggregateDeclaration *isAggregate(Type *t); // from opover.c
 
@@ -1841,7 +1842,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
 
 
     unsigned memsize      = t->size(loc);            // size of member
-    unsigned memalignsize = t->alignsize();          // size of member for alignment purposes
+    unsigned memalignsize = Target::fieldalign(t);   // size of member for alignment purposes
 
     offset = AggregateDeclaration::placeField(poffset, memsize, memalignsize, alignment,
                 &ad->structsize, &ad->alignsize, isunion);
