@@ -693,6 +693,18 @@ void test10003()
 }
 
 /*******************************************/
+// 10041
+
+auto writeln10041(T...)(T args) { return typeof(args[0]).stringof; }
+
+void test10041()
+{
+    auto aa = [1: 2];
+    assert(aa.writeln10041 == "int[int]");
+    assert(writeln10041(aa) == "int[int]");
+}
+
+/*******************************************/
 
 int main()
 {
@@ -717,6 +729,7 @@ int main()
     test9590();
     test9946();
     test10003();
+    test10041();
 
     printf("Success\n");
     return 0;
