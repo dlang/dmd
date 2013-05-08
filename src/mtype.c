@@ -4499,6 +4499,7 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         ident != Id::offsetof)
     {
         Type *t = getImpl()->type;
+        e = e->copy();
         e->type = t;
         e = t->dotExp(sc, e, ident, flag);
     }
