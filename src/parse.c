@@ -1194,7 +1194,8 @@ DtorDeclaration *Parser::parseDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    f = new DtorDeclaration(loc, 0);
+    StorageClass stc = parsePostfix();
+    f = new DtorDeclaration(loc, 0, stc, Id::dtor);
     parseContracts(f);
     return f;
 }
