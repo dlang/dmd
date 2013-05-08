@@ -1140,8 +1140,9 @@ void test9136()
 }
 
 /********************************************************/
+// 9939
 
-struct Test25
+struct Test9939
 {
     int f;
     enum /*Anonymous enum*/
@@ -1156,7 +1157,18 @@ struct Test25
     }
 }
 
-static assert([__traits(allMembers, Test25)] == ["f", "A", "B", "NamedEnum"]);
+static assert([__traits(allMembers, Test9939)] == ["f", "A", "B", "NamedEnum"]);
+
+/********************************************************/
+// 10043
+
+void test10043()
+{
+    struct X {}
+    X d1;
+    static assert(!__traits(compiles, d1.structuralCast!Refleshable));
+}
+
 /********************************************************/
 
 int main()
