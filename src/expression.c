@@ -6376,8 +6376,8 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 #if DMDV2
     if (parameters)
-    {   // First parameter is already output, so start with second
-        for (size_t i = 1; i < parameters->dim; i++)
+    {
+        for (size_t i = 0; i < parameters->dim; i++)
         {
             buf->writeByte(',');
             TemplateParameter *tp = (*parameters)[i];

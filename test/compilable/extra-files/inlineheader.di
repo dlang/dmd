@@ -26,6 +26,14 @@ body
 
 template Foo(T, int V)
 {
+	void foo(...)
+	{
+		static if(is(Object _ : X!(TL),alias X,TL...))
+		{
+		}
+
+	}
+
 	int bar(double d, int x)
 	{
 		if (d)

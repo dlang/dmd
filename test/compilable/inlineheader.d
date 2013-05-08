@@ -36,6 +36,11 @@ body
 
 template Foo(T, int V)
 {
+    void foo(...)
+    {
+        static if (is(Object _ : X!TL, alias X, TL...)) {}  // Bugzilla 10044
+    }
+
     int bar(double d, int x)
     {
     if (d)
