@@ -815,7 +815,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         BaseClass *b = (*baseclasses)[i];
 
         if (i)
-            buf->writeByte(',');
+            buf->writestring(", ");
         //buf->writestring(b->base->ident->toChars());
         b->type->toCBuffer(buf, NULL, hgs);
     }

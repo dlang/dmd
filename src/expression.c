@@ -1607,7 +1607,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
         {   Expression *e = (*arguments)[i];
 
             if (i)
-                buf->writeByte(',');
+                buf->writestring(", ");
             argbuf.reset();
             e->type->toCBuffer2(&argbuf, hgs, 0);
             buf->write(&argbuf);
@@ -4251,7 +4251,7 @@ void AssocArrayLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         Expression *value = (*values)[i];
 
         if (i)
-            buf->writeByte(',');
+            buf->writestring(", ");
         expToCBuffer(buf, hgs, key, PREC_assign);
         buf->writeByte(':');
         expToCBuffer(buf, hgs, value, PREC_assign);
@@ -5994,7 +5994,7 @@ void TraitsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         for (size_t i = 0; i < args->dim; i++)
         {
-            buf->writeByte(',');
+            buf->writestring(", ");;
             Object *oarg = (*args)[i];
             ObjectToCBuffer(buf, hgs, oarg);
         }
@@ -6376,10 +6376,10 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     }
 #if DMDV2
     if (parameters)
-    {   // First parameter is already output, so start with second
-        for (size_t i = 1; i < parameters->dim; i++)
+    {
+        for (size_t i = 0; i < parameters->dim; i++)
         {
-            buf->writeByte(',');
+            buf->writestring(", ");
             TemplateParameter *tp = (*parameters)[i];
             tp->toCBuffer(buf, hgs);
         }
@@ -6943,7 +6943,7 @@ void AssertExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     expToCBuffer(buf, hgs, e1, PREC_assign);
     if (msg)
     {
-        buf->writeByte(',');
+        buf->writestring(", ");
         expToCBuffer(buf, hgs, msg, PREC_assign);
     }
     buf->writeByte(')');

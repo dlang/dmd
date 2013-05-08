@@ -817,7 +817,7 @@ void CompoundDeclarationStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
                  */
                 if (anywritten)
                 {
-                    buf->writeByte(',');
+                    buf->writestring(", ");
                     buf->writestring(v->ident->toChars());
                 }
                 else
