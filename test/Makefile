@@ -213,6 +213,6 @@ start_fail_compilation_tests: $(RESULTS_DIR)/.created $(RESULTS_DIR)/d_do_test
 $(RESULTS_DIR)/d_do_test: d_do_test.d $(RESULTS_DIR)/.created
 	@echo "Building d_do_test tool"
 	@echo "OS: $(OS)"
-	$(QUIET)$(DMD) -m$(MODEL) -unittest -run d_do_test.d -unittest
-	$(QUIET)$(DMD) -m$(MODEL) -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
+	$(QUIET)$(DMD) -m$(MODEL) -defaultlib=libphobos2.a -unittest -run d_do_test.d -unittest
+	$(QUIET)$(DMD) -m$(MODEL) -defaultlib=libphobos2.a -od$(RESULTS_DIR) -of$(RESULTS_DIR)$(DSEP)d_do_test d_do_test.d
 
