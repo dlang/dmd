@@ -465,7 +465,7 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
-            buf->writebyte(',');
+            buf->writestring(", ");
         Identifier *id = field[i];
         if (id)
         {
@@ -833,7 +833,7 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
-            buf->writebyte(',');
+            buf->writestring(", ");
         Expression *ex = index[i];
         if (ex)
         {

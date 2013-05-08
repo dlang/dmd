@@ -3,6 +3,7 @@ import core.vararg;
 import std.stdio;
 pragma (lib, "test");
 pragma (msg, "Hello World");
+static assert(true, "message");
 typedef double mydbl = 10;
 int main()
 in
@@ -24,14 +25,26 @@ body
 	return 0;
 }
 
+struct S
+{
+	int m;
+	int n;
+}
 template Foo(T, int V)
 {
 	void foo(...)
 	{
-		static if(is(Object _ : X!(TL),alias X,TL...))
+		static if(is(Object _ : X!(TL), alias X, TL...))
 		{
 		}
 
+		auto x = __traits(hasMember, Object, "noMember");
+		auto y = is(Object : X!(TL), alias X, TL...);
+		assert(!x && !y, "message");
+		S s = {1, 2};
+		auto a = [1, 2, 3];
+		auto aa = [1:1, 2:2, 3:3];
+		int n, m;
 	}
 
 	int bar(double d, int x)
@@ -165,6 +178,12 @@ interface iFoo
 {
 }
 class xFoo : iFoo
+{
+}
+interface iFoo2
+{
+}
+class xFoo2 : iFoo, iFoo2
 {
 }
 class Foo3
@@ -329,7 +348,7 @@ template templ(T)
 	}
 
 }
-static char[] charArray = ['"','\''];
+static char[] charArray = ['"', '\''];
 
 class Point
 {
@@ -365,9 +384,13 @@ template Foo4()
 	}
 
 }
+template Foo4x(T...)
+{
+}
 class Baz4
 {
 	mixin Foo4!() foo;
+	mixin Foo4x!(int, "str") foox;
 	alias foo.bar baz;
 }
 template test(T)
@@ -416,7 +439,7 @@ template V10(T)
 	void func()
 	{
 		{
-			for (int i,j = 4; i < 3; i++)
+			for (int i, j = 4; i < 3; i++)
 			{
 				{
 				}
