@@ -290,7 +290,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("static if(");
+    buf->writestring("static if (");
     exp->toCBuffer(buf, hgs);
     buf->writeByte(')');
 }

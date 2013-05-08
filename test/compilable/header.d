@@ -11,6 +11,8 @@ import std.stdio;
 pragma(lib, "test");
 pragma(msg, "Hello World");
 
+static assert(true, "message");
+
 typedef double mydbl = 10;
 
 int main()
@@ -33,9 +35,25 @@ body
     return 0;
 }
 
+struct S { int m, n; }
 
 template Foo(T, int V)
 {
+    void foo(...)
+    {
+        static if (is(Object _ : X!TL, alias X, TL...)) {}  // Bugzilla 10044
+
+        auto x = __traits(hasMember, Object, "noMember");
+        auto y = is(Object : X!TL, alias X, TL...);
+        assert(!x && !y, "message");
+
+        S s = { 1,2 };
+        auto a = [1, 2, 3];
+        auto aa = [1:1, 2:2, 3:3];
+
+        int n,m;
+    }
+
     int bar(double d, int x)
     {
     if (d)
@@ -148,6 +166,8 @@ static ~this()
 interface iFoo{}
 class xFoo: iFoo{}
 
+interface iFoo2{}
+class xFoo2: iFoo, iFoo2{}
 
 class Foo3
 {
@@ -253,9 +273,12 @@ template Foo4()
         }
 }
 
+template Foo4x( T... ) {}
+
 class Baz4
 {
         mixin Foo4 foo;
+        mixin Foo4x!(int, "str") foox;
 
         alias foo.bar baz;
 }

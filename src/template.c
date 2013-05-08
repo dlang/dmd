@@ -369,7 +369,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg)
         for (size_t i = 0; i < args->dim; i++)
         {
             if (i)
-                buf->writeByte(',');
+                buf->writestring(", ");
             Object *o = (*args)[i];
             ObjectToCBuffer(buf, hgs, o);
         }
@@ -2372,7 +2372,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         {   for (size_t i = 0; i < args->dim; i++)
             {
                 if (i)
-                    bufa.writeByte(',');
+                    bufa.writestring(", ");
                 Object *oarg = (*args)[i];
                 ObjectToCBuffer(&bufa, &hgs, oarg);
             }
@@ -6925,7 +6925,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         for (size_t i = 0; i < tiargs->dim; i++)
         {   if (i)
-                buf->writebyte(',');
+                buf->writestring(", ");
             Object *oarg = (*tiargs)[i];
             Type *t = isType(oarg);
             Expression *e = isExpression(oarg);
