@@ -328,10 +328,9 @@ struct VarDeclaration : Declaration
 
 struct SymbolDeclaration : Declaration
 {
-    Symbol *sym;
     StructDeclaration *dsym;
 
-    SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym);
+    SymbolDeclaration(Loc loc, StructDeclaration *dsym);
 
     Symbol *toSymbol();
 
