@@ -1624,15 +1624,15 @@ int main(int argc, char *argv[])
 #if WINDOWS_SEH
   __try
   {
-#endif
     status = tryMain(argc, argv);
-#if WINDOWS_SEH
   }
   __except (__ehfilter(GetExceptionInformation()))
   {
     printf("Stack overflow\n");
     fatal();
   }
+#else
+  status = tryMain(argc, argv);
 #endif
     return status;
 }
