@@ -6375,8 +6375,8 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 if (t)
                 {
                     sm = t->toDsymbol(sc);
-                    if (sm)
-                    {   assert(id->dyncast() == DYNCAST_IDENTIFIER);
+                    if (sm && id->dyncast() == DYNCAST_IDENTIFIER)
+                    {
                         sm = sm->search(loc, (Identifier *)id, 0);
                         if (sm)
                             goto L2;
