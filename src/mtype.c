@@ -5062,12 +5062,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
 
             if (!arg1->type->equals(arg2->type))
             {
-#if 0 // turn on this for contravariant argument types, see bugzilla 3075
-                // BUG: cannot convert ref to const to ref to immutable
-                // We can add const, but not subtract it
-                if (arg2->type->implicitConvTo(arg1->type) < MATCHconst)
-#endif
-                    goto Ldistinct;
+                goto Ldistinct;
             }
             const StorageClass sc = STCref | STCin | STCout | STClazy;
             if ((arg1->storageClass & sc) != (arg2->storageClass & sc))
@@ -5115,11 +5110,7 @@ int Type::covariant(Type *t, StorageClass *pstc)
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
 //        if (cd->scope)
 //            cd->semantic(NULL);
-#if 0
-        if (!cd->baseClass && cd->baseclasses->dim && !cd->isInterfaceDeclaration())
-#else
         if (!cd->isBaseInfoComplete())
-#endif
         {
             return 3;   // forward references
         }
