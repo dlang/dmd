@@ -705,6 +705,26 @@ void test10041()
 }
 
 /*******************************************/
+// 10047
+
+struct Typedef10047(T)
+{
+    template opDispatch(string name)
+    {
+        static assert(0);
+    }
+}
+
+struct A10047 {}
+int foo10047(Typedef10047!A10047 a) { return 10; }
+
+void test10047()
+{
+    Typedef10047!A10047 a;
+    assert(a.foo10047() == 10);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -730,6 +750,7 @@ int main()
     test9946();
     test10003();
     test10041();
+    test10047();
 
     printf("Success\n");
     return 0;
