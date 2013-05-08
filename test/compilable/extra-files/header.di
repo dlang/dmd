@@ -15,7 +15,7 @@ template Foo(T, int V)
 {
 	void foo(...)
 	{
-		static if(is(Object _ : X!(TL), alias X, TL...))
+		static if (is(Object _ : X!(TL), alias X, TL...))
 		{
 		}
 
@@ -223,7 +223,7 @@ template Foo2(bool bar)
 {
 	void test()
 	{
-		static if(bar)
+		static if (bar)
 		{
 			int i;
 		}
@@ -231,7 +231,7 @@ template Foo2(bool bar)
 		{
 		}
 
-		static if(!bar)
+		static if (!bar)
 		{
 		}
 		else
