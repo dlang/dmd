@@ -4491,70 +4491,6 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
 #if LOGDOTEXP
     printf("TypeAArray::dotExp(e = '%s', ident = '%s')\n", e->toChars(), ident->toChars());
 #endif
-#if 0
-    if (ident == Id::length)
-    {
-        Expression *ec;
-        FuncDeclaration *fd;
-        Expressions *arguments;
-
-        fd = FuncDeclaration::genCfunc(Type::tsize_t, Id::aaLen);
-        ec = new VarExp(0, fd);
-        arguments = new Expressions();
-        arguments->push(e);
-        e = new CallExp(e->loc, ec, arguments);
-        e->type = ((TypeFunction *)fd->type)->next;
-    }
-    else
-    if (ident == Id::keys)
-    {
-        Expression *ec;
-        FuncDeclaration *fd;
-        Expressions *arguments;
-        int size = index->size(e->loc);
-
-        assert(size);
-        fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaKeys);
-        ec = new VarExp(0, fd);
-        arguments = new Expressions();
-        arguments->push(e);
-        arguments->push(new IntegerExp(0, size, Type::tsize_t));
-        e = new CallExp(e->loc, ec, arguments);
-        e->type = index->arrayOf();
-    }
-    else if (ident == Id::values)
-    {
-        Expression *ec;
-        FuncDeclaration *fd;
-        Expressions *arguments;
-
-        fd = FuncDeclaration::genCfunc(Type::tindex, Id::aaValues);
-        ec = new VarExp(0, fd);
-        arguments = new Expressions();
-        arguments->push(e);
-        size_t keysize = index->size(e->loc);
-        keysize = (keysize + Target::ptrsize - 1) & ~(Target::ptrsize - 1);
-        arguments->push(new IntegerExp(0, keysize, Type::tsize_t));
-        arguments->push(new IntegerExp(0, next->size(e->loc), Type::tsize_t));
-        e = new CallExp(e->loc, ec, arguments);
-        e->type = next->arrayOf();
-    }
-    else if (ident == Id::rehash)
-    {
-        Expression *ec;
-        FuncDeclaration *fd;
-        Expressions *arguments;
-
-        fd = FuncDeclaration::genCfunc(Type::tint64, Id::aaRehash);
-        ec = new VarExp(0, fd);
-        arguments = new Expressions();
-        arguments->push(e->addressOf(sc));
-        arguments->push(index->getInternalTypeInfo(sc));
-        e = new CallExp(e->loc, ec, arguments);
-        e->type = this;
-    }
-    else
-#endif
     if (ident != Id::__sizeof &&
         ident != Id::__xalignof &&
         ident != Id::init &&
@@ -4562,12 +4498,9 @@ Expression *TypeAArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         ident != Id::stringof &&
         ident != Id::offsetof)
     {
-//printf("test1: %s, %s\n", e->toChars(), e->type->toChars());
         Type *t = getImpl()->type;
-//printf("test2: %s, %s\n", e->toChars(), e->type->toChars());
         e->type = t;
         e = t->dotExp(sc, e, ident, flag);
-//printf("test3: %s, %s\n", e->toChars(), e->type->toChars());
     }
     else
         e = Type::dotExp(sc, e, ident, flag);
