@@ -113,11 +113,16 @@ Dsymbols *Parser::parseModule()
                     a = new Identifiers();
                 a->push(id);
                 nextToken();
-                if (token.value != TOKidentifier)
+                if (token.value == TOKpackage)
+                {
+                    id = idPool("package");
+                }
+                else if (token.value != TOKidentifier)
                 {   error("Identifier expected following package");
                     goto Lerr;
                 }
-                id = token.ident;
+                else
+                    id = token.ident;
             }
 
             md = new ModuleDeclaration(a, id, safe);
