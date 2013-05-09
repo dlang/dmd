@@ -309,7 +309,7 @@ struct VarDeclaration : Declaration
 #endif
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
-    Expression *getConstInitializer();
+    Expression *getConstInitializer(bool needFullType = true);
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();

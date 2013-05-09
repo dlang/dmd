@@ -68,14 +68,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                         v->error("recursive initialization of constant");
                     goto L1;
                 }
-                if (v->scope)
-                {
-                    v->inuse++;
-                    v->init->semantic(v->scope, v->type, INITinterpret);
-                    v->scope = NULL;
-                    v->inuse--;
-                }
-                Expression *ei = v->init->toExpression(v->type);
+                Expression *ei = v->getConstInitializer();
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
                         v->error("enum cannot be initialized with %s", v->init->toChars());

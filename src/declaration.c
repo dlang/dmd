@@ -2041,21 +2041,20 @@ ExpInitializer *VarDeclaration::getExpInitializer()
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::getConstInitializer()
+Expression *VarDeclaration::getConstInitializer(bool needFullType)
 {
-    if ((isConst() || isImmutable() || storage_class & STCmanifest) &&
-        storage_class & STCinit)
-    {
-        ExpInitializer *ei = getExpInitializer();
-        if (ei)
-            return ei->exp;
-        else if (init)
-        {
-            return init->toExpression();
-        }
-    }
+    assert(type && init);
 
-    return NULL;
+    if (scope)
+    {
+        inuse++;
+        init->semantic(scope, type, INITinterpret);
+        scope = NULL;
+        inuse--;
+    }
+    Expression *e = init->toExpression(needFullType ? type : NULL);
+
+    return e;
 }
 
 /*************************************
