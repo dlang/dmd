@@ -291,7 +291,7 @@ void FuncDeclaration::semantic(Scope *sc)
         error("%s must be a function instead of %s", toChars(), type->toChars());
         return;
     }
-    f = (TypeFunction *)(type);
+    f = (TypeFunction *)type;
     size_t nparams = Parameter::dim(f->parameters);
 
     if (storage_class & STCscope)
@@ -902,7 +902,7 @@ void FuncDeclaration::semantic3(Scope *sc)
 
     if (!type || type->ty != Tfunction)
         return;
-    f = (TypeFunction *)(type);
+    f = (TypeFunction *)type;
     if (!inferRetType && f->next->ty == Terror)
         return;
 
@@ -1977,7 +1977,7 @@ void FuncDeclaration::buildResultVar()
 
     assert(type->nextOf());
     assert(type->nextOf()->toBasetype()->ty != Tvoid);
-    TypeFunction *tf = (TypeFunction *)(type);
+    TypeFunction *tf = (TypeFunction *)type;
 
     Loc loc = this->loc;
 
