@@ -2045,6 +2045,15 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
 {
     assert(type && init);
 
+    // Ungag errors when not speculative
+    unsigned oldgag = global.gag;
+    if (global.isSpeculativeGagging())
+    {
+        Dsymbol *sym = toParent()->isAggregateDeclaration();
+        if (sym && !sym->isSpeculative())
+            global.gag = 0;
+    }
+
     if (scope)
     {
         inuse++;
@@ -2054,6 +2063,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     }
     Expression *e = init->toExpression(needFullType ? type : NULL);
 
+    global.gag = oldgag;
     return e;
 }
 
