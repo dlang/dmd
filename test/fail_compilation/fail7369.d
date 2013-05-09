@@ -1,5 +1,5 @@
 struct S7369 {
     int a;
-    invariant() { a += 5; }
+    invariant() const { a += 5; }
 }
 
