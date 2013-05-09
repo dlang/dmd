@@ -112,17 +112,18 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 
+/* pick this order of numbers so switch statements work better
+ */
+#define MODconst     1  // type is const
+#define MODimmutable 4  // type is immutable
+#define MODshared    2  // type is shared
+#define MODwild      8  // type is wild
+#define MODmutable   0x10       // type is mutable (only used in wildcard matching)
+
 struct Type : Object
 {
     TY ty;
     unsigned char mod;  // modifiers MODxxxx
-        /* pick this order of numbers so switch statements work better
-         */
-        #define MODconst     1  // type is const
-        #define MODimmutable 4  // type is immutable
-        #define MODshared    2  // type is shared
-        #define MODwild      8  // type is wild
-        #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
