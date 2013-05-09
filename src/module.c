@@ -888,7 +888,7 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
 
 Dsymbol *Module::symtabInsert(Dsymbol *s)
 {
-    searchCacheIdent = 0;       // symbol is inserted, so invalidate cache
+    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
     return Package::symtabInsert(s);
 }
 

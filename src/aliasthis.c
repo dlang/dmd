@@ -88,7 +88,7 @@ void AliasThis::semantic(Scope *sc)
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
-        {   s = sc->search(loc, ident, 0);
+        {   s = sc->search(loc, ident, NULL);
             if (s)
                 ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else

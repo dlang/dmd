@@ -98,8 +98,8 @@ Expression *expandVar(int result, VarDeclaration *v)
                     }
                     else if (ei->implicitConvTo(v->type) >= MATCHconst)
                     {   // const var initialized with non-const expression
-                        ei = ei->implicitCastTo(0, v->type);
-                        ei = ei->semantic(0);
+                        ei = ei->implicitCastTo(NULL, v->type);
+                        ei = ei->semantic(NULL);
                     }
                     else
                         goto L1;
