@@ -99,6 +99,13 @@ enum CtfeGoal
     ctfeNeedNothing   // The return value is not required
 };
 
+#define WANTflags   1
+#define WANTvalue   2
+// A compile-time result is required. Give an error if not possible
+#define WANTinterpret 4
+// Same as WANTvalue, but also expand variables as far as possible
+#define WANTexpand  8
+
 struct Expression : Object
 {
     Loc loc;                    // file location
@@ -168,12 +175,6 @@ struct Expression : Object
     Expression *toDelegate(Scope *sc, Type *t);
 
     virtual Expression *optimize(int result, bool keepLvalue = false);
-    #define WANTflags   1
-    #define WANTvalue   2
-    // A compile-time result is required. Give an error if not possible
-    #define WANTinterpret 4
-    // Same as WANTvalue, but also expand variables as far as possible
-    #define WANTexpand  8
 
     // Entry point for CTFE.
     // A compile-time result is required. Give an error if not possible
@@ -493,6 +494,17 @@ struct AssocArrayLiteralExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 };
 
+// scrubReturnValue is running
+#define stageScrub          0x1
+// hasNonConstPointers is running
+#define stageSearchPointers 0x2
+// optimize is running
+#define stageOptimize       0x4
+// apply is running
+#define stageApply          0x8
+//inlineScan is running
+#define stageInlineScan     0x10
+
 struct StructLiteralExp : Expression
 {
     StructDeclaration *sd;      // which aggregate this is for
@@ -518,17 +530,6 @@ struct StructLiteralExp : Expression
                                   // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
                                   // (with infinite recursion) of this expression.
 
-    // scrubReturnValue is running
-    #define stageScrub          0x1 
-    // hasNonConstPointers is running
-    #define stageSearchPointers 0x2 
-    // optimize is running
-    #define stageOptimize       0x4
-    // apply is running
-    #define stageApply          0x8
-    //inlineScan is running
-    #define stageInlineScan     0x10
-                         
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
 
     Expression *syntaxCopy();
