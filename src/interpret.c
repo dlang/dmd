@@ -1754,16 +1754,12 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     }
     else if (s)
     {   // Struct static initializers, for example
-        if (s->dsym->toInitializer() == s->sym)
-        {   e = s->dsym->type->defaultInitLiteral(loc);
-            e = e->semantic(NULL);
-            if (e->op == TOKerror)
-                e = EXP_CANT_INTERPRET;
-            else // Convert NULL to VoidExp
-                e = e->interpret(istate, goal);
-        }
-        else
-            error(loc, "cannot interpret symbol %s at compile time", s->toChars());
+        e = s->dsym->type->defaultInitLiteral(loc);
+        e = e->semantic(NULL);
+        if (e->op == TOKerror)
+            e = EXP_CANT_INTERPRET;
+        else // Convert NULL to VoidExp
+            e = e->interpret(istate, goal);
     }
     else
         error(loc, "cannot interpret declaration %s at compile time", d->toChars());

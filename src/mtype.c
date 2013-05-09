@@ -7999,8 +7999,7 @@ Expression *TypeStruct::defaultInit(Loc loc)
 #if LOGDEFAULTINIT
     printf("TypeStruct::defaultInit() '%s'\n", toChars());
 #endif
-    Symbol *s = sym->toInitializer();
-    Declaration *d = new SymbolDeclaration(sym->loc, s, sym);
+    Declaration *d = new SymbolDeclaration(sym->loc, sym);
     assert(d);
     d->type = this;
     return new VarExp(sym->loc, d);
