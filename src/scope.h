@@ -38,6 +38,25 @@ enum LINK;
 enum PROT;
 #endif
 
+#define CSXthis_ctor    1       // called this()
+#define CSXsuper_ctor   2       // called super()
+#define CSXthis         4       // referenced this
+#define CSXsuper        8       // referenced super
+#define CSXlabel        0x10    // seen a label
+#define CSXreturn       0x20    // seen a return statement
+#define CSXany_ctor     0x40    // either this() or super() was called
+
+#define SCOPEctor       1       // constructor type
+#define SCOPEstaticif   2       // inside static if
+#define SCOPEfree       4       // is on free list
+#define SCOPEstaticassert 8     // inside static assert
+#define SCOPEdebug      0x10    // inside debug conditional
+
+#define SCOPEinvariant  0x20    // inside invariant code
+#define SCOPErequire    0x40    // inside in contract code
+#define SCOPEensure     0x60    // inside out contract code
+#define SCOPEcontract   0x60    // [mask] we're inside contract code
+
 struct Scope
 {
     Scope *enclosing;           // enclosing Scope
@@ -71,13 +90,6 @@ struct Scope
     int needctfe;               // inside a ctfe-only expression
 
     unsigned callSuper;         // primitive flow analysis for constructors
-#define CSXthis_ctor    1       // called this()
-#define CSXsuper_ctor   2       // called super()
-#define CSXthis         4       // referenced this
-#define CSXsuper        8       // referenced super
-#define CSXlabel        0x10    // seen a label
-#define CSXreturn       0x20    // seen a return statement
-#define CSXany_ctor     0x40    // either this() or super() was called
 
     structalign_t structalign;       // alignment for struct members
     enum LINK linkage;          // linkage for external functions
@@ -89,16 +101,6 @@ struct Scope
     char *depmsg;               // customized deprecation message
 
     unsigned flags;
-#define SCOPEctor       1       // constructor type
-#define SCOPEstaticif   2       // inside static if
-#define SCOPEfree       4       // is on free list
-#define SCOPEstaticassert 8     // inside static assert
-#define SCOPEdebug      0x10    // inside debug conditional
-
-#define SCOPEinvariant  0x20    // inside invariant code
-#define SCOPErequire    0x40    // inside in contract code
-#define SCOPEensure     0x60    // inside out contract code
-#define SCOPEcontract   0x60    // [mask] we're inside contract code
 
     Expressions *userAttributes;        // user defined attributes
 

@@ -2492,11 +2492,6 @@ void TypeNext::transitive()
 
 /* ============================= TypeBasic =========================== */
 
-TypeBasic::TypeBasic(TY ty)
-        : Type(ty)
-{   const char *d;
-    unsigned flags;
-
 #define TFLAGSintegral  1
 #define TFLAGSfloating  2
 #define TFLAGSunsigned  4
@@ -2504,6 +2499,11 @@ TypeBasic::TypeBasic(TY ty)
 #define TFLAGSimaginary 0x10
 #define TFLAGScomplex   0x20
 #define TFLAGSvector    0x40    // valid for a SIMD vector type
+
+TypeBasic::TypeBasic(TY ty)
+        : Type(ty)
+{   const char *d;
+    unsigned flags;
 
     flags = 0;
     switch (ty)
