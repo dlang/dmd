@@ -1474,7 +1474,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 
     if (type)
     {   assert(type->ty == Tfunction);
-        TypeFunction *tf = (TypeFunction *)(type);
+        TypeFunction *tf = (TypeFunction *)type;
         if (tf->varargs == 1)   // no variadic parameter lists
             goto Lno;
 
