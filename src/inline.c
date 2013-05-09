@@ -577,7 +577,7 @@ Expression *IfStatement::doInline(InlineDoState *ids)
 Expression *ReturnStatement::doInline(InlineDoState *ids)
 {
     //printf("ReturnStatement::doInline() '%s'\n", exp ? exp->toChars() : "");
-    return exp ? exp->doInline(ids) : 0;
+    return exp ? exp->doInline(ids) : NULL;
 }
 
 #if DMDV2

@@ -1060,7 +1060,7 @@ err1:
 
     name = this->name->toChars();
     h = CreateFileA(name,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,0);
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
         goto err1;
 
