@@ -1906,87 +1906,94 @@ shared static ~this()
 // Used for needLock below.
 private __gshared bool multiThreadedFlag = false;
 
+version (PPC64) version = ExternStackShell;
 
-// Calls the given delegate, passing the current thread's stack pointer to it.
-private void callWithStackShell(scope void delegate(void* sp) fn)
-in
+version (ExternStackShell)
 {
-    assert(fn);
+    extern(D) public void callWithStackShell(scope void delegate(void* sp) fn);
 }
-body
+else
 {
-    // The purpose of the 'shell' is to ensure all the registers get
-    // put on the stack so they'll be scanned. We only need to push
-    // the callee-save registers.
-    void *sp = void;
-
-    version (GNU)
+    // Calls the given delegate, passing the current thread's stack pointer to it.
+    private void callWithStackShell(scope void delegate(void* sp) fn)
+    in
     {
-        __builtin_unwind_init();
-        sp = &sp;
+        assert(fn);
     }
-    else version (AsmX86_Posix)
+    body
     {
-        size_t[3] regs = void;
-        asm
+        // The purpose of the 'shell' is to ensure all the registers get
+        // put on the stack so they'll be scanned. We only need to push
+        // the callee-save registers.
+        void *sp = void;
+
+        version (GNU)
         {
-            mov [regs + 0 * 4], EBX;
-            mov [regs + 1 * 4], ESI;
-            mov [regs + 2 * 4], EDI;
-
-            mov sp[EBP], ESP;
+            __builtin_unwind_init();
+            sp = &sp;
         }
-    }
-    else version (AsmX86_Windows)
-    {
-        size_t[3] regs = void;
-        asm
+        else version (AsmX86_Posix)
         {
-            mov [regs + 0 * 4], EBX;
-            mov [regs + 1 * 4], ESI;
-            mov [regs + 2 * 4], EDI;
+            size_t[3] regs = void;
+            asm
+            {
+                mov [regs + 0 * 4], EBX;
+                mov [regs + 1 * 4], ESI;
+                mov [regs + 2 * 4], EDI;
 
-            mov sp[EBP], ESP;
+                mov sp[EBP], ESP;
+            }
         }
-    }
-    else version (AsmX86_64_Posix)
-    {
-        size_t[5] regs = void;
-        asm
+        else version (AsmX86_Windows)
         {
-            mov [regs + 0 * 8], RBX;
-            mov [regs + 1 * 8], R12;
-            mov [regs + 2 * 8], R13;
-            mov [regs + 3 * 8], R14;
-            mov [regs + 4 * 8], R15;
+            size_t[3] regs = void;
+            asm
+            {
+                mov [regs + 0 * 4], EBX;
+                mov [regs + 1 * 4], ESI;
+                mov [regs + 2 * 4], EDI;
 
-            mov sp[RBP], RSP;
+                mov sp[EBP], ESP;
+            }
         }
-    }
-    else version (AsmX86_64_Windows)
-    {
-        size_t[7] regs = void;
-        asm
+        else version (AsmX86_64_Posix)
         {
-            mov [regs + 0 * 8], RBX;
-            mov [regs + 1 * 8], RSI;
-            mov [regs + 2 * 8], RDI;
-            mov [regs + 3 * 8], R12;
-            mov [regs + 4 * 8], R13;
-            mov [regs + 5 * 8], R14;
-            mov [regs + 6 * 8], R15;
+            size_t[5] regs = void;
+            asm
+            {
+                mov [regs + 0 * 8], RBX;
+                mov [regs + 1 * 8], R12;
+                mov [regs + 2 * 8], R13;
+                mov [regs + 3 * 8], R14;
+                mov [regs + 4 * 8], R15;
 
-            mov sp[RBP], RSP;
+                mov sp[RBP], RSP;
+            }
         }
-    }
-    else
-    {
-        static assert(false, "Architecture not supported.");
-    }
+        else version (AsmX86_64_Windows)
+        {
+            size_t[7] regs = void;
+            asm
+            {
+                mov [regs + 0 * 8], RBX;
+                mov [regs + 1 * 8], RSI;
+                mov [regs + 2 * 8], RDI;
+                mov [regs + 3 * 8], R12;
+                mov [regs + 4 * 8], R13;
+                mov [regs + 5 * 8], R14;
+                mov [regs + 6 * 8], R15;
 
-    fn(sp);
+                mov sp[RBP], RSP;
+            }
+        }
+        else
+        {
+            static assert(false, "Architecture not supported.");
+        }
+
+        fn(sp);
+    }
 }
-
 
 // Used for suspendAll/resumeAll below.
 private __gshared uint suspendDepth = 0;
