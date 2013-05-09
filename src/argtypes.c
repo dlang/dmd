@@ -26,9 +26,6 @@
 #include "aggregate.h"
 #include "hdrgen.h"
 
-#define tfloat2 tfloat64
-//#define tfloat2 tcomplex32
-
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
@@ -84,7 +81,7 @@ TypeTuple *TypeBasic::toArgTypes()
 
         case Tcomplex32:
             if (global.params.is64bit)
-                t1 = Type::tfloat2;
+                t1 = Type::tfloat64;
             else
             {
                 t1 = Type::tfloat64;
@@ -232,7 +229,7 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
 
     // [float,float] => [cfloat]
     if (t1->ty == Tfloat32 && t2->ty == Tfloat32 && offset2 == 4)
-        return Type::tfloat2;
+        return Type::tfloat64;
 
     // Merging floating and non-floating types produces the non-floating type
     if (t1->isfloating())
