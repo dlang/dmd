@@ -103,7 +103,7 @@ Library *LibMSCoff_factory()
 LibMSCoff::LibMSCoff()
 {
     libfile = NULL;
-    tab.init();
+    tab._init();
 }
 
 /***********************************
