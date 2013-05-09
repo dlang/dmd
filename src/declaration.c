@@ -2260,6 +2260,15 @@ void ObjectNotFound(Identifier *id)
     fatal();
 }
 
+/********************************* ClassInfoDeclaration ****************************/
+
+SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
+        : Declaration(dsym->ident)
+{
+    this->loc = loc;
+    this->dsym = dsym;
+    storage_class |= STCconst;
+}
 
 /********************************* ClassInfoDeclaration ****************************/
 
