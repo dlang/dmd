@@ -3,7 +3,7 @@
  *
  * Copyright: Copyright Mikola Lysenko 2005 - 2012.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Mikola Lysenko, Martin Nowak
+ * Authors:   Mikola Lysenko, Martin Nowak, Kai Nacke
  */
 
 /*
@@ -16,7 +16,125 @@
 /************************************************************************************
  * POWER PC ASM BITS
  ************************************************************************************/
-#if defined( __ppc__ ) || defined( __PPC__ ) || defined( __powerpc__ )
+#if defined( __PPC64__ )
+
+
+    .text
+    .globl  _D4core6thread18callWithStackShellFMDFPvZvZv
+    .align  2
+    .type _D4core6thread18callWithStackShellFMDFPvZvZv,@function
+    .section  .opd,"aw",@progbits
+_D4core6thread18callWithStackShellFMDFPvZvZv:
+    .align  3
+    .quad .L._D4core6thread18callWithStackShellFMDFPvZvZv
+    .quad .TOC.@tocbase
+    .quad 0
+    .text
+/*
+ * Called with:
+ * r3: pointer context
+ * r4: pointer to function
+ */
+.L._D4core6thread18callWithStackShellFMDFPvZvZv:
+    .cfi_startproc
+    mflr    0
+    std     0, 16(1)                    // save LR
+    stdu    1, -256(1)                  // stack size: 18*8 + 112 = 256
+    .cfi_def_cfa_offset 256
+    .cfi_offset lr, 16
+
+    /* Save r14-r31 in general register save area */
+    std     14, (112 + 0 * 8)(1)
+    std     15, (112 + 1 * 8)(1)
+    std     16, (112 + 2 * 8)(1)
+    std     17, (112 + 3 * 8)(1)
+    std     18, (112 + 4 * 8)(1)
+    std     19, (112 + 5 * 8)(1)
+    std     20, (112 + 6 * 8)(1)
+    std     21, (112 + 7 * 8)(1)
+    std     22, (112 + 8 * 8)(1)
+    std     23, (112 + 9 * 8)(1)
+    std     24, (112 + 10 * 8)(1)
+    std     25, (112 + 11 * 8)(1)
+    std     26, (112 + 12 * 8)(1)
+    std     27, (112 + 13 * 8)(1)
+    std     28, (112 + 14 * 8)(1)
+    std     29, (112 + 15 * 8)(1)
+    std     30, (112 + 16 * 8)(1)
+    std     31, (112 + 17 * 8)(1)
+
+    /* Save r3-r10 in parameter save area of caller */
+    std     3, (256 + 48 + 0 * 8)(1)
+    std     4, (256 + 48 + 1 * 8)(1)
+    std     5, (256 + 48 + 2 * 8)(1)
+    std     6, (256 + 48 + 3 * 8)(1)
+    std     7, (256 + 48 + 4 * 8)(1)
+    std     8, (256 + 48 + 5 * 8)(1)
+    std     9, (256 + 48 + 6 * 8)(1)
+    std     10, (256 + 48 + 7 * 8)(1)
+
+    /* Save r2 in TOC save area */
+    std     2, 40(1)
+
+    /* Do not save r11, r12 and r13. */
+
+    /* Call delegate:
+     * r3: pointer to context
+     * r4: pointer to stack
+     */
+    mr      5, 4
+    mr      4, 1
+    ld      6, 0(5)
+    ld      11, 16(5)
+    ld      2, 8(5)
+    mtctr   6
+    bctrl
+    nop
+
+    /* Restore r2 from TOC save area */
+    ld      2, 40(1)
+
+    /* Restore r3-r10 from local variable space */
+    ld      3, (256 + 48 + 0 * 8)(1)
+    ld      4, (256 + 48 + 1 * 8)(1)
+    ld      5, (256 + 48 + 2 * 8)(1)
+    ld      6, (256 + 48 + 3 * 8)(1)
+    ld      7, (256 + 48 + 4 * 8)(1)
+    ld      8, (256 + 48 + 5 * 8)(1)
+    ld      9, (256 + 48 + 6 * 8)(1)
+    ld      10, (256 + 48 + 7 * 8)(1)
+
+    /* Restore r14-r31 from general register save area */
+    ld      14, (112 + 0 * 8)(1)
+    ld      15, (112 + 1 * 8)(1)
+    ld      16, (112 + 2 * 8)(1)
+    ld      17, (112 + 3 * 8)(1)
+    ld      18, (112 + 4 * 8)(1)
+    ld      19, (112 + 5 * 8)(1)
+    ld      20, (112 + 6 * 8)(1)
+    ld      21, (112 + 7 * 8)(1)
+    ld      22, (112 + 8 * 8)(1)
+    ld      23, (112 + 9 * 8)(1)
+    ld      24, (112 + 10 * 8)(1)
+    ld      25, (112 + 11 * 8)(1)
+    ld      26, (112 + 12 * 8)(1)
+    ld      27, (112 + 13 * 8)(1)
+    ld      28, (112 + 14 * 8)(1)
+    ld      29, (112 + 15 * 8)(1)
+    ld      30, (112 + 16 * 8)(1)
+    ld      31, (112 + 17 * 8)(1)
+
+    addi    1, 1, 256
+    ld      0, 16(1)
+    mtlr    0
+    blr
+    .long 0
+    .quad 0
+.Lend:
+    .size _D4core6thread18callWithStackShellFMDFPvZvZv, .Lend-.L._D4core6thread18callWithStackShellFMDFPvZvZv
+    .cfi_endproc
+
+#elif defined( __ppc__ ) || defined( __PPC__ ) || defined( __powerpc__ )
 
 
 /**
