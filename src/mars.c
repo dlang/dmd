@@ -1376,7 +1376,7 @@ int tryMain(size_t argc, char *argv[])
        m = modules[i];
        if (global.params.verbose)
            printf("importall %s\n", m->toChars());
-       m->importAll(0);
+       m->importAll(NULL);
     }
     if (global.errors)
         fatal();
