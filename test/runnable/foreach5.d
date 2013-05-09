@@ -431,6 +431,28 @@ void test7814()
     }
 }
 
+/***************************************/
+// 10049
+
+struct ByLine10049
+{
+    bool empty() { return true; }
+    string front() { return null; }
+    void popFront() {}
+
+    ~this() {}  // necessary
+}
+
+void test10049()
+{
+    ByLine10049 r;
+    foreach (line; r)
+    {
+        doNext:
+            {}
+    }
+}
+
 /******************************************/
 // 6652
 

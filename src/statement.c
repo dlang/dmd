@@ -1204,131 +1204,98 @@ Statement *ForStatement::syntaxCopy()
  *      }
  *      finally { x.~this(); }
  */
-Statement *ForStatement::semanticInit(Scope *sc)
+Statement *ForStatement::semanticInit(Scope *sc, Statements *ainit, size_t i)
 {
-    assert(init);
-    ++nest;
-
-    Loc locinit = init->loc;
-    Statements *ainit = init->flatten(sc);
-    if (!ainit)
-        (ainit = new Statements())->push(init);
-    init = NULL;
-
     Statement *statement = this;
+    if (i < ainit->dim)
+    {
+        Statement *s = (*ainit)[i];
+        (*ainit)[i] = s = s->semantic(sc);
+        if (!s)
+            return semanticInit(sc, ainit, i + 1);
 
-    for (size_t i = 0; i < ainit->dim; i++)
-    {   Statement *s = (*ainit)[i];
-        s = s->semantic(sc);
-        (*ainit)[i] = s;
-        if (s)
-        {
-            Statement *sentry;
-            Statement *sexception;
-            Statement *sfinally;
+        Statement *sentry;
+        Statement *sexception;
+        Statement *sfinally;
+        (*ainit)[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
 
-            (*ainit)[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
-
+        /* Rewrite to:
+         *  ainit =
+         *      [ ..., sentry, ainit[i], ... ]
+         *  statement =
+         *      try {                   // sfinally   != NULL
+         *          try {               // sexception != NULL
+         *              statement;
+         *          } catch (__o) {     // sexception != NULL
+         *              sexception;     // sexception != NULL
+         *              throw __o;      // sexception != NULL (internalThrow = true)
+         *          }                   // sexception != NULL
+         *      } finally { sfinally; } // sfinally   != NULL
+         */
+        if (sentry)
+        {   sentry = sentry->semantic(sc);
             if (sentry)
-            {   sentry = sentry->semantic(sc);
-                if (sentry)
-                    ainit->insert(i++, sentry);
-            }
-            if (sexception)
-                sexception = sexception->semantic(sc);
-            if (sexception)
-            {   // Re-initialize this->init
-                if (i + 1 < ainit->dim)
-                {
-                    Statements *a = new Statements();
-                    for (size_t j = i + 1; j < ainit->dim; j++)
-                        a->push((*ainit)[j]);
-                    init = new CompoundStatement(0, a);
-                }
-
-                Identifier *id = Lexer::uniqueId("__o");
-                Statement *handler = sexception;
-                if (sexception->blockExit(FALSE) & BEfallthru)
-                {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
-                    ((ThrowStatement *)handler)->internalThrow = true;
-                    handler = new CompoundStatement(0, sexception, handler);
-                }
-                Catches *catches = new Catches();
-                Catch *ctch = new Catch(0, NULL, id, handler);
-                catches->push(ctch);
-                s = new TryCatchStatement(0, this, catches);
-
-                if (sfinally)
-                    s = new TryFinallyStatement(0, s, sfinally);
-                //printf("ex {{{\n");
-                s = s->semantic(sc);
-                //printf("}}}\n");
-                this->relatedLabeled = s;
-                statement = s;
-
-                if (init)
-                {   Statements *a = init->flatten(sc);
-                    if (!a)
-                        (a = new Statements())->push(init);
-                    for (size_t j = 0; j < i + 1; j++)
-                        a->insert(j, (*ainit)[j]);
-                    init = new CompoundStatement(locinit, a);
-                }
-                break;
-            }
-            else if (sfinally)
-            {   // Re-initialize this->init
-                if (i + 1 < ainit->dim)
-                {
-                    Statements *a = new Statements();
-                    for (size_t j = i + 1; j < ainit->dim; j++)
-                        a->push((*ainit)[j]);
-                    init = new CompoundStatement(0, a);
-                }
-
-                s = new TryFinallyStatement(0, this, sfinally);
-                //printf("fi {{{\n");
-                s = s->semantic(sc);
-                //printf("}}} fi\n");
-                this->relatedLabeled = s;
-                statement = s;
-
-                if (init)
-                {   Statements *a = init->flatten(sc);
-                    if (!a)
-                        (a = new Statements())->push(init);
-                    for (size_t j = 0; j < i + 1; j++)
-                        a->insert(j, (*ainit)[j]);
-                    init = new CompoundStatement(locinit, a);
-                }
-                break;
-            }
+                ainit->insert(i++, sentry);
         }
-    }
-    if (!init)
-    {   // whole init semantic is completely done.
-        init = new CompoundStatement(locinit, ainit);
+        if (sexception)
+            sexception = sexception->semantic(sc);
+
+        statement = semanticInit(sc, ainit, i + 1);
+
+        if (sexception)
+        {
+            Identifier *id = Lexer::uniqueId("__o");
+            Statement *handler;
+            if (sexception->blockExit(FALSE) & BEfallthru)
+            {   handler = new ThrowStatement(0, new IdentifierExp(0, id));
+                ((ThrowStatement *)handler)->internalThrow = true;
+                handler = new CompoundStatement(0, sexception, handler);
+            }
+            else
+                handler = sexception;
+            Catches *catches = new Catches();
+            Catch *ctch = new Catch(0, NULL, id, handler);
+            catches->push(ctch);
+            statement = new TryCatchStatement(0, statement, catches);
+        }
+        if (sfinally)
+            statement = new TryFinallyStatement(0, statement, sfinally);
     }
 
-    --nest;
+    //printf("-ForStatement::semanticInit %s\n", statement->toChars());
     return statement;
 }
 
 Statement *ForStatement::semantic(Scope *sc)
 {
+    //printf("ForStatement::semantic %s\n", toChars());
+
     if (!nest)
-    {   ScopeDsymbol *sym = new ScopeDsymbol();
+    {
+        ScopeDsymbol *sym = new ScopeDsymbol();
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
     }
-    else if (init)
-    {   // Process this->init recursively
-        return semanticInit(sc);
-    }
+    if (!nest && init)
+    {
+        Loc loc = init->loc;
+        Statements *ainit = init->flatten(sc);
+        if (!ainit)
+            (ainit = new Statements())->push(init);
+        init = NULL;
 
-    Statement *statement = this;
-    if (init)
-        statement = semanticInit(sc);
+        Statement *s = semanticInit(sc, ainit, 0);
+        ++nest;
+        s = s->semantic(sc);
+        --nest;
+
+        init = new CompoundStatement(loc, ainit);
+        relatedLabeled = s;
+
+        sc->pop();
+        return s;
+    }
+    assert(init == NULL);
 
     sc->noctor++;
     if (condition)
@@ -1351,8 +1318,8 @@ Statement *ForStatement::semantic(Scope *sc)
 
     if (!nest)
         sc->pop();
-    //if (!nest) statement->print();
-    return statement;
+
+    return this;
 }
 
 Statement *ForStatement::scopeCode(Scope *sc, Statement **sentry, Statement **sexception, Statement **sfinally)
