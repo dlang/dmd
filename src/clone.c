@@ -708,7 +708,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(declLoc, e);
         dtors.shift(dd);
         members->push(dd);
@@ -739,7 +739,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(declLoc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(declLoc, e);
             members->push(dd);
             dd->semantic(sc);
