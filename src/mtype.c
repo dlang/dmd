@@ -119,7 +119,7 @@ const char *Type::kind()
 Type *Type::syntaxCopy()
 {
     print();
-    fprintf(stdmsg, "ty = %d\n", ty);
+    fprintf(stderr, "ty = %d\n", ty);
     assert(0);
     return this;
 }
@@ -226,7 +226,7 @@ void Type::init()
 
     for (size_t i = 0; i < TMAX; i++)
     {   if (!mangleChar[i])
-            fprintf(stdmsg, "ty = %llu\n", (ulonglong)i);
+            fprintf(stderr, "ty = %llu\n", (ulonglong)i);
         assert(mangleChar[i]);
     }
 

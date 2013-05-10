@@ -90,7 +90,7 @@ void *Token::operator new(size_t size)
 #ifdef DEBUG
 void Token::print()
 {
-    fprintf(stdmsg, "%s\n", toChars());
+    fprintf(stderr, "%s\n", toChars());
 }
 #endif
 

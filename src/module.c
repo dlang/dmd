@@ -304,11 +304,11 @@ bool Module::read(Loc loc)
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
                     char *p = (*global.path)[i];
-                    fprintf(stdmsg, "import path[%llu] = %s\n", (ulonglong)i, p);
+                    fprintf(stderr, "import path[%llu] = %s\n", (ulonglong)i, p);
                 }
             }
             else
-                fprintf(stdmsg, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
+                fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
             fatal();
         }
         return false;
