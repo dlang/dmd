@@ -53,7 +53,7 @@ private:
     size_t tabledim;
 
 public:
-    void init(size_t size = 37);
+    void _init(size_t size = 37);
     ~StringTable();
 
     StringValue *lookup(const char *s, size_t len);

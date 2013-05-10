@@ -2952,7 +2952,7 @@ void Lexer::initKeywords()
 {
     size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
-    stringtable.init(6151);
+    stringtable._init(6151);
 
     if (global.params.Dversion == 1)
         nkeywords -= 2;
