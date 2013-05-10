@@ -638,6 +638,18 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
     Expression *e = NULL;
     StorageClass stc = 0;
+    DtorDeclaration* decldtor = NULL;
+
+    for (size_t i = 0; i < dtors.dim; i++)
+    {
+        if (dtors[i]->ident == Id::dtor)
+        {
+            decldtor = (DtorDeclaration*)dtors[i];
+            break;
+        }
+    }
+
+    Loc declLoc = decldtor ? decldtor->loc : loc;
 
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
@@ -668,24 +680,24 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 }
 
                 // this.v
-                Expression *ex = new ThisExp(0);
-                ex = new DotVarExp(0, ex, v, 0);
+                Expression *ex = new ThisExp(declLoc);
+                ex = new DotVarExp(declLoc, ex, v, 0);
 
                 if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.dtor()
-                    ex = new DotVarExp(0, ex, sd->dtor, 0);
-                    ex = new CallExp(0, ex);
+                    ex = new DotVarExp(declLoc, ex, sd->dtor, 0);
+                    ex = new CallExp(declLoc, ex);
                 }
                 else
                 {
                     // Typeinfo.destroy(cast(void*)&this.v);
                     Expression *ea = new AddrExp(0, ex);
-                    ea = new CastExp(0, ea, Type::tvoid->pointerTo());
+                    ea = new CastExp(declLoc, ea, Type::tvoid->pointerTo());
 
                     Expression *et = v->type->getTypeInfo(sc);
-                    et = new DotIdExp(0, et, Id::destroy);
+                    et = new DotIdExp(declLoc, et, Id::destroy);
 
-                    ex = new CallExp(0, et, ea);
+                    ex = new CallExp(declLoc, et, ea);
                 }
                 e = Expression::combine(ex, e); // combine in reverse order
             }
@@ -696,8 +708,8 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(loc, 0, stc, Lexer::idPool("__fieldDtor"));
-        dd->fbody = new ExpStatement(0, e);
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__fieldDtor"));
+        dd->fbody = new ExpStatement(declLoc, e);
         dtors.shift(dd);
         members->push(dd);
         dd->semantic(sc);
@@ -722,13 +734,13 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                     e = NULL;
                     break;
                 }
-                Expression *ex = new ThisExp(0);
-                ex = new DotVarExp(0, ex, fd, 0);
-                ex = new CallExp(0, ex);
+                Expression *ex = new ThisExp(declLoc);
+                ex = new DotVarExp(declLoc, ex, fd, 0);
+                ex = new CallExp(declLoc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(loc, 0, stc, Lexer::idPool("__aggrDtor"));
-            dd->fbody = new ExpStatement(0, e);
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__aggrDtor"));
+            dd->fbody = new ExpStatement(declLoc, e);
             members->push(dd);
             dd->semantic(sc);
             return dd;
