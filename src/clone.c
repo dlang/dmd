@@ -25,6 +25,36 @@
 
 
 /*******************************************
+ * Merge function attributes pure, nothrow, @safe, and @disable
+ */
+StorageClass mergeFuncAttrs(StorageClass s1, StorageClass s2)
+{
+    StorageClass stc = 0;
+    StorageClass sa = s1 & s2;
+    StorageClass so = s1 | s2;
+
+    if (so & STCsystem)
+        stc |= STCsystem;
+    else if (sa & STCtrusted)
+        stc |= STCtrusted;
+    else if ((so & (STCtrusted | STCsafe)) == (STCtrusted | STCsafe))
+        stc |= STCtrusted;
+    else if (sa & STCsafe)
+        stc |= STCsafe;
+
+    if (sa & STCpure)
+        stc |= STCpure;
+
+    if (sa & STCnothrow)
+        stc |= STCnothrow;
+
+    if (so & STCdisable)
+        stc |= STCdisable;
+
+    return stc;
+}
+
+/*******************************************
  * Check given opAssign symbol is really identity opAssign or not.
  */
 
@@ -464,9 +494,10 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
-    StorageClass stc = postblit->storage_class &
-                        (STCdisable | STCsafe | STCtrusted | STCsystem | STCpure | STCnothrow);
-    if (stc & (STCsafe | STCtrusted))
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
+
+    stc = mergeFuncAttrs(stc, postblit->storage_class);
+    if (stc & STCsafe)  // change to @trusted for unsafe casts
         stc = stc & ~STCsafe | STCtrusted;
 
     Parameters *fparams = new Parameters;
@@ -476,7 +507,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     FuncDeclaration *fcp = new FuncDeclaration(loc, 0, Id::cpctor, stc, ftype);
 
-    if (!(fcp->storage_class & STCdisable))
+    if (!(stc & STCdisable))
     {
         // Build *this = p;
         Expression *e = new ThisExp(loc);
@@ -523,7 +554,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
     Expression *e = NULL;
-    StorageClass stc = 0;
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
 
     for (size_t i = 0; i < fields.dim; i++)
     {
@@ -544,8 +575,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
             StructDeclaration *sd = ts->sym;
             if (sd->postblit && dim)
             {
-                stc |= sd->postblit->storage_class & STCdisable;
-
+                stc = mergeFuncAttrs(stc, sd->postblit->storage_class);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -598,9 +628,11 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 
         default:
             e = NULL;
+            stc = STCsafe | STCnothrow | STCpure;
             for (size_t i = 0; i < postblits.dim; i++)
-            {   FuncDeclaration *fd = postblits[i];
-                stc |= fd->storage_class & STCdisable;
+            {
+                FuncDeclaration *fd = postblits[i];
+                stc = mergeFuncAttrs(stc, fd->storage_class);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -633,17 +665,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
     Expression *e = NULL;
-    StorageClass stc = 0;
-    DtorDeclaration* decldtor = NULL;
-
-    for (size_t i = 0; i < dtors.dim; i++)
-    {
-        if (dtors[i]->ident == Id::dtor)
-        {
-            decldtor = (DtorDeclaration*)dtors[i];
-            break;
-        }
-    }
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
 
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
@@ -665,8 +687,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
             StructDeclaration *sd = ts->sym;
             if (sd->dtor && dim)
             {
-                stc |= sd->dtor->storage_class & (STCdisable | STC_FUNCATTR);
-
+                stc = mergeFuncAttrs(stc, sd->dtor->storage_class);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -702,7 +723,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(loc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(loc, 0, stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
         dtors.shift(dd);
         members->push(dd);
@@ -720,9 +741,11 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 
         default:
             e = NULL;
+            stc = STCsafe | STCnothrow | STCpure;
             for (size_t i = 0; i < dtors.dim; i++)
-            {   FuncDeclaration *fd = dtors[i];
-                stc |= fd->storage_class & STCdisable;
+            {
+                FuncDeclaration *fd = dtors[i];
+                stc = mergeFuncAttrs(stc, fd->storage_class);
                 if (stc & STCdisable)
                 {
                     e = NULL;
@@ -733,7 +756,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(loc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(loc, 0, stc, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);

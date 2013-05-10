@@ -2707,6 +2707,107 @@ struct S10053B
 }
 
 /**********************************/
+// 10055
+
+void test10055a()
+{
+    static struct SX { pure nothrow @safe ~this() {} }
+    static struct SY { pure nothrow @safe ~this() {} }
+    static struct SZ {           @disable ~this() {} }
+
+    // function to check merge result of the dtor attributes
+    static void check(S)() { S s; }
+
+    static struct S1 {                                             }
+    static struct S2 {                                  ~this() {} }
+    static struct SA { SX sx; SY sy;                               }
+    static struct SB { SX sx; SY sy; pure nothrow @safe ~this() {} }
+    static struct SC { SX sx; SY sy;      nothrow @safe ~this() {} }
+    static struct SD { SX sx; SY sy; pure         @safe ~this() {} }
+    static struct SE { SX sx; SY sy; pure nothrow       ~this() {} }
+    static struct SF { SX sx; SY sy;              @safe ~this() {} }
+    static struct SG { SX sx; SY sy;      nothrow       ~this() {} }
+    static struct SH { SX sx; SY sy; pure               ~this() {} }
+    static struct SI { SX sx; SY sy;                    ~this() {} }
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S2) == void function()                    ));
+    static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SC) == void function()      nothrow @safe ));
+    static assert(is( typeof(&check!SD) == void function() pure         @safe ));
+    static assert(is( typeof(&check!SE) == void function() pure nothrow       ));
+    static assert(is( typeof(&check!SF) == void function()              @safe ));
+    static assert(is( typeof(&check!SG) == void function()      nothrow       ));
+    static assert(is( typeof(&check!SH) == void function() pure               ));
+    static assert(is( typeof(&check!SI) == void function()                    ));
+
+    static struct S1x {                                             SZ sz; }
+    static struct S2x {                                  ~this() {} SZ sz; }
+    static struct SAx { SX sx; SY sy;                               SZ sz; }
+    static struct SBx { SX sx; SY sy; pure nothrow @safe ~this() {} SZ sz; }
+    static struct SCx { SX sx; SY sy;      nothrow @safe ~this() {} SZ sz; }
+    static struct SDx { SX sx; SY sy; pure         @safe ~this() {} SZ sz; }
+    static struct SEx { SX sx; SY sy; pure nothrow       ~this() {} SZ sz; }
+    static struct SFx { SX sx; SY sy;              @safe ~this() {} SZ sz; }
+    static struct SGx { SX sx; SY sy;      nothrow       ~this() {} SZ sz; }
+    static struct SHx { SX sx; SY sy; pure               ~this() {} SZ sz; }
+    static struct SIx { SX sx; SY sy;                    ~this() {} SZ sz; }
+    foreach (Sx; TypeTuple!(S1x, S2x, SAx, SBx, SCx, SDx, SEx, SFx, SGx, SHx, SIx))
+    {
+        static assert(!__traits(compiles, &check!Sx));
+    }
+}
+
+void test10055b()
+{
+    static struct SX { pure nothrow @safe this(this) {} }
+    static struct SY { pure nothrow @safe this(this) {} }
+    static struct SZ {           @disable this(this) {} }
+
+    // function to check merge result of the postblit attributes
+    static void check(S)() { S s; S s2 = s; }
+
+    static struct S1 {                                               }
+    static struct S2 {                                  this(this) {} }
+    static struct SA { SX sx; SY sy;                                  }
+    static struct SB { SX sx; SY sy; pure nothrow @safe this(this) {} }
+    static struct SC { SX sx; SY sy;      nothrow @safe this(this) {} }
+    static struct SD { SX sx; SY sy; pure         @safe this(this) {} }
+    static struct SE { SX sx; SY sy; pure nothrow       this(this) {} }
+    static struct SF { SX sx; SY sy;              @safe this(this) {} }
+    static struct SG { SX sx; SY sy;      nothrow       this(this) {} }
+    static struct SH { SX sx; SY sy; pure               this(this) {} }
+    static struct SI { SX sx; SY sy;                    this(this) {} }
+    static assert(is( typeof(&check!S1) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!S2) == void function()                    ));
+    static assert(is( typeof(&check!SA) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SB) == void function() pure nothrow @safe ));
+    static assert(is( typeof(&check!SC) == void function()      nothrow @safe ));
+    static assert(is( typeof(&check!SD) == void function() pure         @safe ));
+    static assert(is( typeof(&check!SE) == void function() pure nothrow       ));
+    static assert(is( typeof(&check!SF) == void function()              @safe ));
+    static assert(is( typeof(&check!SG) == void function()      nothrow       ));
+    static assert(is( typeof(&check!SH) == void function() pure               ));
+    static assert(is( typeof(&check!SI) == void function()                    ));
+
+    static struct S1x {                                                SZ sz; }
+    static struct S2x {                                  this(this) {} SZ sz; }
+    static struct SAx { SX sx; SY sy;                                  SZ sz; }
+    static struct SBx { SX sx; SY sy; pure nothrow @safe this(this) {} SZ sz; }
+    static struct SCx { SX sx; SY sy;      nothrow @safe this(this) {} SZ sz; }
+    static struct SDx { SX sx; SY sy; pure         @safe this(this) {} SZ sz; }
+    static struct SEx { SX sx; SY sy; pure nothrow       this(this) {} SZ sz; }
+    static struct SFx { SX sx; SY sy;              @safe this(this) {} SZ sz; }
+    static struct SGx { SX sx; SY sy;      nothrow       this(this) {} SZ sz; }
+    static struct SHx { SX sx; SY sy; pure               this(this) {} SZ sz; }
+    static struct SIx { SX sx; SY sy;                    this(this) {} SZ sz; }
+    foreach (Sx; TypeTuple!(S1x, S2x, SAx, SBx, SCx, SDx, SEx, SFx, SGx, SHx, SIx))
+    {
+        static assert(!__traits(compiles, &check!Sx));
+    }
+}
+
+/**********************************/
 
 int main()
 {
