@@ -2041,21 +2041,30 @@ ExpInitializer *VarDeclaration::getExpInitializer()
  * Otherwise, return NULL.
  */
 
-Expression *VarDeclaration::getConstInitializer()
+Expression *VarDeclaration::getConstInitializer(bool needFullType)
 {
-    if ((isConst() || isImmutable() || storage_class & STCmanifest) &&
-        storage_class & STCinit)
+    assert(type && init);
+
+    // Ungag errors when not speculative
+    unsigned oldgag = global.gag;
+    if (global.isSpeculativeGagging())
     {
-        ExpInitializer *ei = getExpInitializer();
-        if (ei)
-            return ei->exp;
-        else if (init)
-        {
-            return init->toExpression();
-        }
+        Dsymbol *sym = toParent()->isAggregateDeclaration();
+        if (sym && !sym->isSpeculative())
+            global.gag = 0;
     }
 
-    return NULL;
+    if (scope)
+    {
+        inuse++;
+        init->semantic(scope, type, INITinterpret);
+        scope = NULL;
+        inuse--;
+    }
+    Expression *e = init->toExpression(needFullType ? type : NULL);
+
+    global.gag = oldgag;
+    return e;
 }
 
 /*************************************

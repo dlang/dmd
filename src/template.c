@@ -182,14 +182,7 @@ Expression *getValue(Expression *e)
         VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
         if (v && v->storage_class & STCmanifest)
         {
-            if (v->scope)
-            {
-                v->inuse++;
-                v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
-                v->inuse--;
-            }
-            e = v->init->toExpression(v->type);
+            e = v->getConstInitializer();
         }
     }
     return e;
@@ -202,14 +195,7 @@ Expression *getValue(Dsymbol *&s)
         VarDeclaration *v = s->isVarDeclaration();
         if (v && v->storage_class & STCmanifest)
         {
-            if (v->scope)
-            {
-                v->inuse++;
-                v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
-                v->inuse--;
-            }
-            e = v->init->toExpression(v->type);
+            e = v->getConstInitializer();
         }
     }
     return e;
