@@ -298,6 +298,7 @@ struct VarDeclaration : Declaration
     Initializer *hinit;
     AggregateDeclaration *isThis();
     int needThis();
+    int isExport();
     int isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
