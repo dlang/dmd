@@ -1907,7 +1907,9 @@ TOK Lexer::number(Token *t)
     enum STATE state;
 
     enum FLAGS
-    {   FLAGS_decimal  = 1,             // decimal
+    {
+        FLAGS_none     = 0,
+        FLAGS_decimal  = 1,             // decimal
         FLAGS_unsigned = 2,             // u or U suffix
         FLAGS_long     = 4,             // l or L suffix
     };
@@ -2171,7 +2173,7 @@ done:
 
     switch (flags)
     {
-        case 0:
+        case FLAGS_none:
             /* Octal or Hexadecimal constant.
              * First that fits: int, uint, long, ulong
              */
