@@ -455,61 +455,55 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
 FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 {
-    //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
-    FuncDeclaration *fcp = NULL;
-
     /* Copy constructor is only necessary if there is a postblit function,
      * otherwise the code generator will just do a bit copy.
      */
-    if (postblit)
+    if (!postblit)
+        return NULL;
+
+    //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
+    StorageClass stc = postblit->storage_class &
+                        (STCdisable | STCsafe | STCtrusted | STCsystem | STCpure | STCnothrow);
+    if (stc & (STCsafe | STCtrusted))
+        stc = stc & ~STCsafe | STCtrusted;
+
+    Parameters *fparams = new Parameters;
+    fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
+    Type *ftype = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
+    ftype->mod = MODconst;
+
+    FuncDeclaration *fcp = new FuncDeclaration(loc, 0, Id::cpctor, stc, ftype);
+
+    if (!(fcp->storage_class & STCdisable))
     {
-        //printf("generating cpctor\n");
+        // Build *this = p;
+        Expression *e = new ThisExp(0);
+        AssignExp *ea = new AssignExp(0,
+            new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
+            new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
+        );
+        ea->op = TOKblit;
+        Statement *s = new ExpStatement(0, ea);
 
-        StorageClass stc = postblit->storage_class &
-                            (STCdisable | STCsafe | STCtrusted | STCsystem | STCpure | STCnothrow);
-        if (stc & (STCsafe | STCtrusted))
-            stc = stc & ~STCsafe | STCtrusted;
+        // Build postBlit();
+        e = new ThisExp(0);
+        e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
+        e = new DotVarExp(0, e, postblit, 0);
+        e = new CallExp(0, e);
 
-        Parameters *fparams = new Parameters;
-        fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
-        Type *ftype = new TypeFunction(fparams, Type::tvoid, FALSE, LINKd, stc);
-        ftype->mod = MODconst;
-
-        fcp = new FuncDeclaration(loc, 0, Id::cpctor, stc, ftype);
-
-        if (!(fcp->storage_class & STCdisable))
-        {
-            // Build *this = p;
-            Expression *e = new ThisExp(0);
-            AssignExp *ea = new AssignExp(0,
-                new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
-                new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
-            );
-            ea->op = TOKblit;
-            Statement *s = new ExpStatement(0, ea);
-
-            // Build postBlit();
-            e = new ThisExp(0);
-            e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
-            e = new DotVarExp(0, e, postblit, 0);
-            e = new CallExp(0, e);
-
-            s = new CompoundStatement(0, s, new ExpStatement(0, e));
-            fcp->fbody = s;
-        }
-        else
-            fcp->fbody = new ExpStatement(0, (Expression *)NULL);
-
-        members->push(fcp);
-
-        sc = sc->push();
-        sc->stc = 0;
-        sc->linkage = LINKd;
-
-        fcp->semantic(sc);
-
-        sc->pop();
+        s = new CompoundStatement(0, s, new ExpStatement(0, e));
+        fcp->fbody = s;
     }
+
+    members->push(fcp);
+
+    sc = sc->push();
+    sc->stc = 0;
+    sc->linkage = LINKd;
+
+    fcp->semantic(sc);
+
+    sc->pop();
 
     return fcp;
 }
