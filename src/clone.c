@@ -167,20 +167,20 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         AssignExp *ec = NULL;
         if (dtor)
         {
-            tmp = new VarDeclaration(0, type, idtmp, new VoidInitializer(0));
+            tmp = new VarDeclaration(loc, type, idtmp, new VoidInitializer(loc));
             tmp->noscope = 1;
             tmp->storage_class |= STCctfe;
-            e = new DeclarationExp(0, tmp);
-            ec = new AssignExp(0,
-                new VarExp(0, tmp),
-                new ThisExp(0)
+            e = new DeclarationExp(loc, tmp);
+            ec = new AssignExp(loc,
+                new VarExp(loc, tmp),
+                new ThisExp(loc)
                 );
             ec->op = TOKblit;
             e = Expression::combine(e, ec);
         }
-        ec = new AssignExp(0,
-                new ThisExp(0),
-                new IdentifierExp(0, Id::p));
+        ec = new AssignExp(loc,
+                new ThisExp(loc),
+                new IdentifierExp(loc, Id::p));
         ec->op = TOKblit;
         e = Expression::combine(e, ec);
         if (dtor)
@@ -188,8 +188,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             /* Instead of running the destructor on s, run it
              * on tmp. This avoids needing to copy tmp back in to s.
              */
-            Expression *ec2 = new DotVarExp(0, new VarExp(0, tmp), dtor, 0);
-            ec2 = new CallExp(0, ec2);
+            Expression *ec2 = new DotVarExp(loc, new VarExp(loc, tmp), dtor, 0);
+            ec2 = new CallExp(loc, ec2);
             e = Expression::combine(e, ec2);
         }
     }
@@ -203,21 +203,21 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             VarDeclaration *v = s->isVarDeclaration();
             assert(v && v->isField());
             // this.v = s.v;
-            AssignExp *ec = new AssignExp(0,
-                new DotVarExp(0, new ThisExp(0), v, 0),
-                new DotVarExp(0, new IdentifierExp(0, Id::p), v, 0));
+            AssignExp *ec = new AssignExp(loc,
+                new DotVarExp(loc, new ThisExp(loc), v, 0),
+                new DotVarExp(loc, new IdentifierExp(loc, Id::p), v, 0));
             e = Expression::combine(e, ec);
         }
     }
-    Statement *s1 = new ExpStatement(0, e);
+    Statement *s1 = new ExpStatement(loc, e);
 
     /* Add:
      *   return this;
      */
-    e = new ThisExp(0);
-    Statement *s2 = new ReturnStatement(0, e);
+    e = new ThisExp(loc);
+    Statement *s2 = new ReturnStatement(loc, e);
 
-    fop->fbody = new CompoundStatement(0, s1, s2);
+    fop->fbody = new CompoundStatement(loc, s1, s2);
 
     Dsymbol *s = fop;
 #if 1   // workaround until fixing issue 1528
@@ -381,20 +381,22 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
      *     return p == q;
      * }
      */
+    Loc loc = 0;    // errors are gagged, so loc is not need
+
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
     parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
     TypeFunction *tf = new TypeFunction(parameters, Type::tbool, 0, LINKd);
-    tf = (TypeFunction *)tf->semantic(0, sc);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
-    FuncDeclaration *fop = new FuncDeclaration(0, 0, id, STCstatic, tf);
+    FuncDeclaration *fop = new FuncDeclaration(loc, 0, id, STCstatic, tf);
 
-    Expression *e1 = new IdentifierExp(0, Id::p);
-    Expression *e2 = new IdentifierExp(0, Id::q);
+    Expression *e1 = new IdentifierExp(loc, Id::p);
+    Expression *e2 = new IdentifierExp(loc, Id::q);
     Expression *e = new EqualExp(TOKequal, 0, e1, e2);
 
-    fop->fbody = new ReturnStatement(0, e);
+    fop->fbody = new ReturnStatement(loc, e);
 
     size_t index = members->dim;
     members->push(fop);
@@ -419,9 +421,9 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
         if (!xerreq)
         {
-            Expression *e = new IdentifierExp(0, Id::empty);
-            e = new DotIdExp(0, e, Id::object);
-            e = new DotIdExp(0, e, Lexer::idPool("_xopEquals"));
+            Expression *e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::object);
+            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
             e = e->semantic(sc);
             Dsymbol *s = getDsymbol(e);
             FuncDeclaration *fd = s->isFuncDeclaration();
@@ -477,21 +479,21 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     if (!(fcp->storage_class & STCdisable))
     {
         // Build *this = p;
-        Expression *e = new ThisExp(0);
-        AssignExp *ea = new AssignExp(0,
-            new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo())),
-            new PtrExp(0, new CastExp(0, new AddrExp(0, new IdentifierExp(0, Id::p)), type->mutableOf()->pointerTo()))
+        Expression *e = new ThisExp(loc);
+        AssignExp *ea = new AssignExp(loc,
+            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), type->mutableOf()->pointerTo())),
+            new PtrExp(loc, new CastExp(loc, new AddrExp(loc, new IdentifierExp(loc, Id::p)), type->mutableOf()->pointerTo()))
         );
         ea->op = TOKblit;
-        Statement *s = new ExpStatement(0, ea);
+        Statement *s = new ExpStatement(loc, ea);
 
         // Build postBlit();
-        e = new ThisExp(0);
-        e = new PtrExp(0, new CastExp(0, new AddrExp(0, e), type->mutableOf()->pointerTo()));
-        e = new DotVarExp(0, e, postblit, 0);
-        e = new CallExp(0, e);
+        e = new ThisExp(loc);
+        e = new PtrExp(loc, new CastExp(loc, new AddrExp(loc, e), type->mutableOf()->pointerTo()));
+        e = new DotVarExp(loc, e, postblit, 0);
+        e = new CallExp(loc, e);
 
-        s = new CompoundStatement(0, s, new ExpStatement(0, e));
+        s = new CompoundStatement(loc, s, new ExpStatement(loc, e));
         fcp->fbody = s;
     }
 
@@ -551,24 +553,24 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 }
 
                 // this.v
-                Expression *ex = new ThisExp(0);
-                ex = new DotVarExp(0, ex, v, 0);
+                Expression *ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v, 0);
 
                 if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.postblit()
-                    ex = new DotVarExp(0, ex, sd->postblit, 0);
-                    ex = new CallExp(0, ex);
+                    ex = new DotVarExp(loc, ex, sd->postblit, 0);
+                    ex = new CallExp(loc, ex);
                 }
                 else
                 {
                     // Typeinfo.postblit(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(0, ex);
-                    ea = new CastExp(0, ea, Type::tvoid->pointerTo());
+                    Expression *ea = new AddrExp(loc, ex);
+                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
                     Expression *et = v->type->getTypeInfo(sc);
-                    et = new DotIdExp(0, et, Id::postblit);
+                    et = new DotIdExp(loc, et, Id::postblit);
 
-                    ex = new CallExp(0, et, ea);
+                    ex = new CallExp(loc, et, ea);
                 }
                 e = Expression::combine(e, ex); // combine in forward order
             }
@@ -580,7 +582,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldPostBlit()\n");
         PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, stc, Lexer::idPool("__fieldPostBlit"));
-        dd->fbody = new ExpStatement(0, e);
+        dd->fbody = new ExpStatement(loc, e);
         postblits.shift(dd);
         members->push(dd);
         dd->semantic(sc);
@@ -604,13 +606,13 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                     e = NULL;
                     break;
                 }
-                Expression *ex = new ThisExp(0);
-                ex = new DotVarExp(0, ex, fd, 0);
-                ex = new CallExp(0, ex);
+                Expression *ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
             PostBlitDeclaration *dd = new PostBlitDeclaration(loc, 0, stc, Lexer::idPool("__aggrPostBlit"));
-            dd->fbody = new ExpStatement(0, e);
+            dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
             return dd;
@@ -643,8 +645,6 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         }
     }
 
-    Loc declLoc = decldtor ? decldtor->loc : loc;
-
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
@@ -674,24 +674,24 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 }
 
                 // this.v
-                Expression *ex = new ThisExp(declLoc);
-                ex = new DotVarExp(declLoc, ex, v, 0);
+                Expression *ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, v, 0);
 
                 if (v->type->toBasetype()->ty == Tstruct)
                 {   // this.v.dtor()
-                    ex = new DotVarExp(declLoc, ex, sd->dtor, 0);
-                    ex = new CallExp(declLoc, ex);
+                    ex = new DotVarExp(loc, ex, sd->dtor, 0);
+                    ex = new CallExp(loc, ex);
                 }
                 else
                 {
                     // Typeinfo.destroy(cast(void*)&this.v);
-                    Expression *ea = new AddrExp(0, ex);
-                    ea = new CastExp(declLoc, ea, Type::tvoid->pointerTo());
+                    Expression *ea = new AddrExp(loc, ex);
+                    ea = new CastExp(loc, ea, Type::tvoid->pointerTo());
 
                     Expression *et = v->type->getTypeInfo(sc);
-                    et = new DotIdExp(declLoc, et, Id::destroy);
+                    et = new DotIdExp(loc, et, Id::destroy);
 
-                    ex = new CallExp(declLoc, et, ea);
+                    ex = new CallExp(loc, et, ea);
                 }
                 e = Expression::combine(ex, e); // combine in reverse order
             }
@@ -702,8 +702,8 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__fieldDtor"));
-        dd->fbody = new ExpStatement(declLoc, e);
+        DtorDeclaration *dd = new DtorDeclaration(loc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__fieldDtor"));
+        dd->fbody = new ExpStatement(loc, e);
         dtors.shift(dd);
         members->push(dd);
         dd->semantic(sc);
@@ -728,13 +728,13 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                     e = NULL;
                     break;
                 }
-                Expression *ex = new ThisExp(declLoc);
-                ex = new DotVarExp(declLoc, ex, fd, 0);
-                ex = new CallExp(declLoc, ex);
+                Expression *ex = new ThisExp(loc);
+                ex = new DotVarExp(loc, ex, fd, 0);
+                ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(declLoc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__aggrDtor"));
-            dd->fbody = new ExpStatement(declLoc, e);
+            DtorDeclaration *dd = new DtorDeclaration(loc, 0, decldtor ? decldtor->storage_class : stc, Lexer::idPool("__aggrDtor"));
+            dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
             return dd;
