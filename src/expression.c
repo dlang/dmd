@@ -1660,7 +1660,7 @@ Expression *Expression::copy()
     if (!size)
     {
 #ifdef DEBUG
-        fprintf(stdmsg, "No expression copy for: %s\n", toChars());
+        fprintf(stderr, "No expression copy for: %s\n", toChars());
         printf("op = %d\n", op);
         dump(0);
 #endif
@@ -1731,8 +1731,8 @@ Expression *Expression::ctfeSemantic(Scope *sc)
 
 void Expression::print()
 {
-    fprintf(stdmsg, "%s\n", toChars());
-    fflush(stdmsg);
+    fprintf(stderr, "%s\n", toChars());
+    fflush(stderr);
 }
 
 char *Expression::toChars()
