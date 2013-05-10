@@ -4297,6 +4297,28 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     //printf("StructLiteralExp::StructLiteralExp(%s)\n", toChars());
 }
 
+int StructLiteralExp::equals(Object *o)
+{
+    if (this == o)
+        return 1;
+    if (o && o->dyncast() == DYNCAST_EXPRESSION &&
+        ((Expression *)o)->op == TOKstructliteral)
+    {
+        StructLiteralExp *se = (StructLiteralExp *)o;
+        if (sd != se->sd)
+            return 0;
+        if (elements->dim != se->elements->dim)
+            return 0;
+        for (size_t i = 0; i < elements->dim; i++)
+        {
+            if (!(*elements)[i]->equals((*se->elements)[i]))
+                return 0;
+        }
+        return 1;
+    }
+    return 0;
+}
+
 Expression *StructLiteralExp::syntaxCopy()
 {
     StructLiteralExp *exp = new StructLiteralExp(loc, sd, arraySyntaxCopy(elements), stype);

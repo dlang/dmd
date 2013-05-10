@@ -2778,6 +2778,7 @@ elem *AssignExp::toElem(IRState *irs)
             }
 
             Type *tn = tsa->nextOf()->toBasetype();
+            bool postblit = needsPostblit(tn) != NULL;
             tym_t ty = tn->totym();
 
             symbol *stmp = symbol_genauto(TYnptr);
@@ -2790,7 +2791,12 @@ elem *AssignExp::toElem(IRState *irs)
             {
                 Expression *en = (*ae->elements)[i];
                 size_t j = i + 1;
-                while (j < dim && en->equals((*ae->elements)[j])) { j++; }
+                if (!postblit)
+                {
+                    // If the elements are same literal and elaborate copy
+                    // is not necessary, do memcpy.
+                    while (j < dim && en->equals((*ae->elements)[j])) { j++; }
+                }
 
                 elem *e1 = el_var(stmp);
                 if (i > 0)
