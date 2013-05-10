@@ -290,7 +290,7 @@ struct Global
      */
     bool endGagging(unsigned oldGagged);
 
-    Global();
+    void init();
 };
 
 extern Global global;

@@ -56,7 +56,7 @@ FILE *stdmsg;
 
 Global global;
 
-Global::Global()
+void Global::init()
 {
     mars_ext = "d";
     sym_ext  = "d";
@@ -413,6 +413,7 @@ int tryMain(size_t argc, char *argv[])
     char noboundscheck = 0;
         int setdefaultlib = 0;
     const char *inifilename = NULL;
+    global.init();
 
 #ifdef DEBUG
     printf("DMD %s DEBUG\n", global.version);
