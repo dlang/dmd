@@ -637,7 +637,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
     Expression *e = NULL;
-    StorageClass stc = 0;
+    StorageClass stc = STCnothrow | STCpure | STCsafe;
     DtorDeclaration* decldtor = NULL;
 
     for (size_t i = 0; i < dtors.dim; i++)
@@ -671,7 +671,13 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
             StructDeclaration *sd = ts->sym;
             if (sd->dtor && dim)
             {
-                stc |= sd->dtor->storage_class & (STCdisable | STC_FUNCATTR);
+                StorageClass dtorstc = sd->dtor->storage_class;
+                stc &= ~((dtorstc | STCsafe) ^ (STCnothrow | STCpure | STCsafe));
+                stc |= dtorstc & STCdisable;
+
+                if (stc & STCsafe && !(dtorstc & STCsafe) && !(dtorstc & STCtrusted)) {
+                    stc &= ~STCsafe;
+                }
 
                 if (stc & STCdisable)
                 {
