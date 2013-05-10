@@ -519,19 +519,19 @@ struct StructLiteralExp : Expression
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
 
-    StructLiteralExp *origin;   // pointer to the origin instance of the expression. 
-                                // once a new expression is created, origin is set to 'this'. 
-                                // anytime when an expression copy is created, 'origin' pointer is set to 
+    StructLiteralExp *origin;   // pointer to the origin instance of the expression.
+                                // once a new expression is created, origin is set to 'this'.
+                                // anytime when an expression copy is created, 'origin' pointer is set to
                                 // 'origin' pointer value of the original expression.
-                                
-    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer. 
+
+    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     int stageflags;               // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-                                  // current stage and unmarks before return from this function. 
-                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
+                                  // current stage and unmarks before return from this function.
+                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
                                   // (with infinite recursion) of this expression.
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
-
+    int equals(Object *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
