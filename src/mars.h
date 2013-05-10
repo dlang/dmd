@@ -453,8 +453,6 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-extern FILE *stdmsg;
-
 struct Dsymbol;
 class Library;
 struct File;
