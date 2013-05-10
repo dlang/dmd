@@ -12,160 +12,160 @@ template Floating(T)
 
     T[] A()
     {
-	printf("A\n");
-	abc ~= "A";
-	return a;
+        printf("A\n");
+        abc ~= "A";
+        return a;
     }
 
     T[] B()
     {
-	printf("B\n");
-	abc ~= "B";
-	return b;
+        printf("B\n");
+        abc ~= "B";
+        return b;
     }
 
     T[] C()
     {
-	printf("C\n");
-	abc ~= "C";
-	return c;
+        printf("C\n");
+        abc ~= "C";
+        return c;
     }
 
     T D()
     {
-	printf("D\n");
-	abc ~= "D";
-	return 4;
+        printf("D\n");
+        abc ~= "D";
+        return 4;
     }
 
 
     void testx()
     {
-	a = [11, 22, 33];
-	b = [1, 2, 3];
-	c = [4, 5, 6];
+        a = [11, 22, 33];
+        b = [1, 2, 3];
+        c = [4, 5, 6];
 
-	abc = null;
-	A()[] = B()[] + C()[];
-	assert(abc == "BCA");
-	assert(a[0] == 5);
-	assert(a[1] == 7);
-	assert(a[2] == 9);
+        abc = null;
+        A()[] = B()[] + C()[];
+        assert(abc == "BCA");
+        assert(a[0] == 5);
+        assert(a[1] == 7);
+        assert(a[2] == 9);
 
-	abc = null;
-	A()[] = B()[] + 4;
-	assert(abc == "BA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = B()[] + 4;
+        assert(abc == "BA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	abc = null;
-	A()[] = 4 + B()[];
-	assert(abc == "BA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = 4 + B()[];
+        assert(abc == "BA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	abc = null;
-	A()[] = D() + B()[];
-	assert(abc == "DBA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = D() + B()[];
+        assert(abc == "DBA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	a = [11, 22, 33];
-	abc = null;
-	A()[] += B()[];
-	assert(abc == "BA");
-	assert(a[0] == 12);
-	assert(a[1] == 24);
-	assert(a[2] == 36);
+        a = [11, 22, 33];
+        abc = null;
+        A()[] += B()[];
+        assert(abc == "BA");
+        assert(a[0] == 12);
+        assert(a[1] == 24);
+        assert(a[2] == 36);
 
-	a = [11, 22, 33];
-	A()[] += 4;
-	assert(a[0] == 15);
-	assert(a[1] == 26);
-	assert(a[2] == 37);
+        a = [11, 22, 33];
+        A()[] += 4;
+        assert(a[0] == 15);
+        assert(a[1] == 26);
+        assert(a[2] == 37);
 
-	a = [11, 22, 33];
-	A()[] -= 4;
-	assert(a[0] == 7);
-	assert(a[1] == 18);
-	assert(a[2] == 29);
+        a = [11, 22, 33];
+        A()[] -= 4;
+        assert(a[0] == 7);
+        assert(a[1] == 18);
+        assert(a[2] == 29);
 
-	a = [11, 22, 33];
-	A()[] *= 4;
-	assert(a[0] == 44);
-	assert(a[1] == 88);
-	assert(a[2] == 132);
+        a = [11, 22, 33];
+        A()[] *= 4;
+        assert(a[0] == 44);
+        assert(a[1] == 88);
+        assert(a[2] == 132);
 
-	a = [4, 8, 32];
-	A()[] /= 4;
-	assert(a[0] == 1);
-	assert(a[1] == 2);
-	assert(a[2] == 8);
+        a = [4, 8, 32];
+        A()[] /= 4;
+        assert(a[0] == 1);
+        assert(a[1] == 2);
+        assert(a[2] == 8);
 
-	a = [4, 8, 33];
-	A()[] %= 4;
-	assert(a[0] == 0);
-	assert(a[1] == 0);
-	assert(a[2] == 1);
+        a = [4, 8, 33];
+        A()[] %= 4;
+        assert(a[0] == 0);
+        assert(a[1] == 0);
+        assert(a[2] == 1);
 
-	a = [11, 22, 33];
-	abc = null;
-	A()[] += 4 + B()[];
-	assert(abc == "BA");
-	assert(a[0] == 16);
-	assert(a[1] == 28);
-	assert(a[2] == 40);
+        a = [11, 22, 33];
+        abc = null;
+        A()[] += 4 + B()[];
+        assert(abc == "BA");
+        assert(a[0] == 16);
+        assert(a[1] == 28);
+        assert(a[2] == 40);
 
-	abc = null;
-	A()[] = B()[] - C()[];
-	assert(abc == "BCA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == -3);
-	assert(a[1] == -3);
-	assert(a[2] == -3);
+        abc = null;
+        A()[] = B()[] - C()[];
+        assert(abc == "BCA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == -3);
+        assert(a[1] == -3);
+        assert(a[2] == -3);
 
-	abc = null;
-	A()[] = -B()[] - C()[];
-	assert(abc == "BCA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == -5);
-	assert(a[1] == -7);
-	assert(a[2] == -9);
+        abc = null;
+        A()[] = -B()[] - C()[];
+        assert(abc == "BCA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == -5);
+        assert(a[1] == -7);
+        assert(a[2] == -9);
 
-	abc = null;
-	A()[] = B()[] + C()[] * 4;
-	assert(abc == "BCA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == 17);
-	assert(a[1] == 22);
-	assert(a[2] == 27);
+        abc = null;
+        A()[] = B()[] + C()[] * 4;
+        assert(abc == "BCA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == 17);
+        assert(a[1] == 22);
+        assert(a[2] == 27);
 
-	abc = null;
-	A()[] = B()[] + C()[] * B()[];
-	assert(abc == "BCBA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == 5);
-	assert(a[1] == 12);
-	assert(a[2] == 21);
+        abc = null;
+        A()[] = B()[] + C()[] * B()[];
+        assert(abc == "BCBA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == 5);
+        assert(a[1] == 12);
+        assert(a[2] == 21);
 
-	abc = null;
-	A()[] = B()[] + C()[] / 2;
-	assert(abc == "BCA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == 3);
-	assert(a[1] == 4.5);
-	assert(a[2] == 6);
+        abc = null;
+        A()[] = B()[] + C()[] / 2;
+        assert(abc == "BCA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == 3);
+        assert(a[1] == 4.5);
+        assert(a[2] == 6);
 
-	abc = null;
-	A()[] = B()[] + C()[] % 2;
-	assert(abc == "BCA");
-	printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
-	assert(a[0] == 1);
-	assert(a[1] == 3);
-	assert(a[2] == 3);
+        abc = null;
+        A()[] = B()[] + C()[] % 2;
+        assert(abc == "BCA");
+        printf("%Lg, %Lg, %Lg\n", cast(real)a[0], cast(real)a[1], cast(real)a[2]);
+        assert(a[0] == 1);
+        assert(a[1] == 3);
+        assert(a[2] == 3);
     }
 }
 
@@ -190,206 +190,206 @@ template Integral(T)
 
     T[] A()
     {
-	printf("A\n");
-	abc ~= "A";
-	return a;
+        printf("A\n");
+        abc ~= "A";
+        return a;
     }
 
     T[] B()
     {
-	printf("B\n");
-	abc ~= "B";
-	return b;
+        printf("B\n");
+        abc ~= "B";
+        return b;
     }
 
     T[] C()
     {
-	printf("C\n");
-	abc ~= "C";
-	return c;
+        printf("C\n");
+        abc ~= "C";
+        return c;
     }
 
     T D()
     {
-	printf("D\n");
-	abc ~= "D";
-	return 4;
+        printf("D\n");
+        abc ~= "D";
+        return 4;
     }
 
 
     void testx()
     {
-	a = [11, 22, 33];
-	b = [1, 2, 3];
-	c = [4, 5, 6];
+        a = [11, 22, 33];
+        b = [1, 2, 3];
+        c = [4, 5, 6];
 
-	abc = null;
-	A()[] = B()[] + C()[];
-	assert(abc == "BCA");
-	assert(a[0] == 5);
-	assert(a[1] == 7);
-	assert(a[2] == 9);
+        abc = null;
+        A()[] = B()[] + C()[];
+        assert(abc == "BCA");
+        assert(a[0] == 5);
+        assert(a[1] == 7);
+        assert(a[2] == 9);
 
-	abc = null;
-	A()[] = B()[] + 4;
-	assert(abc == "BA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = B()[] + 4;
+        assert(abc == "BA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	abc = null;
-	A()[] = 4 + B()[];
-	assert(abc == "BA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = 4 + B()[];
+        assert(abc == "BA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	abc = null;
-	A()[] = D() + B()[];
-	assert(abc == "DBA");
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        abc = null;
+        A()[] = D() + B()[];
+        assert(abc == "DBA");
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	a = [11, 22, 33];
-	abc = null;
-	A()[] += B()[];
-	assert(abc == "BA");
-	assert(a[0] == 12);
-	assert(a[1] == 24);
-	assert(a[2] == 36);
+        a = [11, 22, 33];
+        abc = null;
+        A()[] += B()[];
+        assert(abc == "BA");
+        assert(a[0] == 12);
+        assert(a[1] == 24);
+        assert(a[2] == 36);
 
-	a = [11, 22, 33];
-	A()[] += 4;
-	assert(a[0] == 15);
-	assert(a[1] == 26);
-	assert(a[2] == 37);
+        a = [11, 22, 33];
+        A()[] += 4;
+        assert(a[0] == 15);
+        assert(a[1] == 26);
+        assert(a[2] == 37);
 
-	a = [11, 22, 33];
-	A()[] -= 4;
-	assert(a[0] == 7);
-	assert(a[1] == 18);
-	assert(a[2] == 29);
+        a = [11, 22, 33];
+        A()[] -= 4;
+        assert(a[0] == 7);
+        assert(a[1] == 18);
+        assert(a[2] == 29);
 
-	a = [11, 22, 27];
-	A()[] *= 4;
-	assert(a[0] == 44);
-	assert(a[1] == 88);
-	assert(a[2] == 108);
+        a = [11, 22, 27];
+        A()[] *= 4;
+        assert(a[0] == 44);
+        assert(a[1] == 88);
+        assert(a[2] == 108);
 
-	a = [11, 22, 33];
-	A()[] /= 4;
-	assert(a[0] == 2);
-	assert(a[1] == 5);
-	assert(a[2] == 8);
+        a = [11, 22, 33];
+        A()[] /= 4;
+        assert(a[0] == 2);
+        assert(a[1] == 5);
+        assert(a[2] == 8);
 
-	a = [11, 22, 33];
-	A()[] %= 4;
-	assert(a[0] == 3);
-	assert(a[1] == 2);
-	assert(a[2] == 1);
+        a = [11, 22, 33];
+        A()[] %= 4;
+        assert(a[0] == 3);
+        assert(a[1] == 2);
+        assert(a[2] == 1);
 
-	a = [1, 2, 7];
-	A()[] &= 4;
-	assert(a[0] == 0);
-	assert(a[1] == 0);
-	assert(a[2] == 4);
+        a = [1, 2, 7];
+        A()[] &= 4;
+        assert(a[0] == 0);
+        assert(a[1] == 0);
+        assert(a[2] == 4);
 
-	a = [1, 2, 7];
-	A()[] |= 4;
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 7);
+        a = [1, 2, 7];
+        A()[] |= 4;
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 7);
 
-	a = [1, 2, 7];
-	A()[] ^= 4;
-	assert(a[0] == 5);
-	assert(a[1] == 6);
-	assert(a[2] == 3);
+        a = [1, 2, 7];
+        A()[] ^= 4;
+        assert(a[0] == 5);
+        assert(a[1] == 6);
+        assert(a[2] == 3);
 
-	a = [11, 22, 33];
-	abc = null;
-	A()[] += 4 + B()[];
-	assert(abc == "BA");
-	assert(a[0] == 16);
-	assert(a[1] == 28);
-	assert(a[2] == 40);
+        a = [11, 22, 33];
+        abc = null;
+        A()[] += 4 + B()[];
+        assert(abc == "BA");
+        assert(a[0] == 16);
+        assert(a[1] == 28);
+        assert(a[2] == 40);
 
-	abc = null;
-	A()[] = B()[] - C()[];
-	assert(abc == "BCA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == -3);
-	assert(a[1] == -3);
-	assert(a[2] == -3);
+        abc = null;
+        A()[] = B()[] - C()[];
+        assert(abc == "BCA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == -3);
+        assert(a[1] == -3);
+        assert(a[2] == -3);
 
-	abc = null;
-	A()[] = -B()[] - C()[];
-	assert(abc == "BCA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == -5);
-	assert(a[1] == -7);
-	assert(a[2] == -9);
+        abc = null;
+        A()[] = -B()[] - C()[];
+        assert(abc == "BCA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == -5);
+        assert(a[1] == -7);
+        assert(a[2] == -9);
 
-	abc = null;
-	A()[] = B()[] + C()[] * 4;
-	assert(abc == "BCA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == 17);
-	assert(a[1] == 22);
-	assert(a[2] == 27);
+        abc = null;
+        A()[] = B()[] + C()[] * 4;
+        assert(abc == "BCA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == 17);
+        assert(a[1] == 22);
+        assert(a[2] == 27);
 
-	abc = null;
-	A()[] = B()[] + C()[] * B()[];
-	assert(abc == "BCBA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == 5);
-	assert(a[1] == 12);
-	assert(a[2] == 21);
+        abc = null;
+        A()[] = B()[] + C()[] * B()[];
+        assert(abc == "BCBA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == 5);
+        assert(a[1] == 12);
+        assert(a[2] == 21);
 
-	abc = null;
-	A()[] = B()[] + C()[] / 2;
-	assert(abc == "BCA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == 3);
-	assert(a[1] == 4);
-	assert(a[2] == 6);
+        abc = null;
+        A()[] = B()[] + C()[] / 2;
+        assert(abc == "BCA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == 3);
+        assert(a[1] == 4);
+        assert(a[2] == 6);
 
-	abc = null;
-	A()[] = B()[] + C()[] % 2;
-	assert(abc == "BCA");
-	printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
-	assert(a[0] == 1);
-	assert(a[1] == 3);
-	assert(a[2] == 3);
+        abc = null;
+        A()[] = B()[] + C()[] % 2;
+        assert(abc == "BCA");
+        printf("%lld, %lld, %lld\n", cast(long)a[0], cast(long)a[1], cast(long)a[2]);
+        assert(a[0] == 1);
+        assert(a[1] == 3);
+        assert(a[2] == 3);
 
-	abc = null;
-	A()[] = ~B()[];
-	assert(abc == "BA");
-	assert(a[0] == ~cast(T)1);
-	assert(a[1] == ~cast(T)2);
-	assert(a[2] == ~cast(T)3);
+        abc = null;
+        A()[] = ~B()[];
+        assert(abc == "BA");
+        assert(a[0] == ~cast(T)1);
+        assert(a[1] == ~cast(T)2);
+        assert(a[2] == ~cast(T)3);
 
-	abc = null;
-	A()[] = B()[] & 2;
-	assert(abc == "BA");
-	assert(a[0] == 0);
-	assert(a[1] == 2);
-	assert(a[2] == 2);
+        abc = null;
+        A()[] = B()[] & 2;
+        assert(abc == "BA");
+        assert(a[0] == 0);
+        assert(a[1] == 2);
+        assert(a[2] == 2);
 
-	abc = null;
-	A()[] = B()[] | 2;
-	assert(abc == "BA");
-	assert(a[0] == 3);
-	assert(a[1] == 2);
-	assert(a[2] == 3);
+        abc = null;
+        A()[] = B()[] | 2;
+        assert(abc == "BA");
+        assert(a[0] == 3);
+        assert(a[1] == 2);
+        assert(a[2] == 3);
 
-	abc = null;
-	A()[] = B()[] ^ 2;
-	assert(abc == "BA");
-	assert(a[0] == 3);
-	assert(a[1] == 0);
-	assert(a[2] == 1);
+        abc = null;
+        A()[] = B()[] ^ 2;
+        assert(abc == "BA");
+        assert(a[0] == 3);
+        assert(a[1] == 0);
+        assert(a[2] == 1);
     }
 }
 
@@ -549,6 +549,51 @@ void test8390() {
 }
 
 /************************************************************************/
+// 9656
+
+void test9656()
+{
+    static class C {}
+    static struct S
+    {
+        immutable int[] narr;
+        immutable C[] carr;
+        immutable C[] carr2;
+        this(int n) {
+            narr = new int[](3); // OK, expected
+            narr = [1,2,3].dup;  // NG -> OK
+            carr = [new C].dup;  // NG -> OK
+
+            C c = new C;
+            static assert(!__traits(compiles, carr2 = [c]));
+        }
+    }
+
+    {
+        int[] ma = [1,2,3];
+        immutable ia = ma.dup;
+    }
+
+
+    {
+        static struct V { int val; }
+        V[] ma = [V(1), V(2)];
+        immutable ia = ma.dup;
+    }
+
+    {
+        static struct R { int* ptr; }
+        R[] ma = [R(new int), R(null)];
+        static assert(!__traits(compiles, { immutable ia = rarr.dup; }));
+    }
+
+    {
+        C[] ma = [new C(), new C()];
+        static assert(!__traits(compiles, { immutable ia = carr.dup; }));
+    }
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -559,6 +604,7 @@ int main()
     test5();
     test6();
     test8390();
+    test9656();
 
     printf("Success\n");
     return 0;
@@ -570,7 +616,7 @@ version (none)
 extern (C) T[] _arraySliceSliceAddSliceAssignd(T[] a, T[] c, T[] b)
 {
     foreach (i; 0 .. a.length)
-	a[i] = b[i] + c[i];
+        a[i] = b[i] + c[i];
     return a;
 }
 }
