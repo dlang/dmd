@@ -81,6 +81,44 @@ ClassDeclaration *Type::typeinfowild;
 TemplateDeclaration *Type::associativearray;
 TemplateDeclaration *Type::rtinfo;
 
+Type *Type::tvoid;
+Type *Type::tint8;
+Type *Type::tuns8;
+Type *Type::tint16;
+Type *Type::tuns16;
+Type *Type::tint32;
+Type *Type::tuns32;
+Type *Type::tint64;
+Type *Type::tuns64;
+Type *Type::tint128;
+Type *Type::tuns128;
+Type *Type::tfloat32;
+Type *Type::tfloat64;
+Type *Type::tfloat80;
+
+Type *Type::timaginary32;
+Type *Type::timaginary64;
+Type *Type::timaginary80;
+
+Type *Type::tcomplex32;
+Type *Type::tcomplex64;
+Type *Type::tcomplex80;
+
+Type *Type::tbool;
+Type *Type::tchar;
+Type *Type::twchar;
+Type *Type::tdchar;
+
+Type *Type::tshiftcnt;
+Type *Type::tboolean;
+Type *Type::terror;
+Type *Type::tnull;
+
+Type *Type::tsize_t;
+Type *Type::tptrdiff_t;
+Type *Type::thash_t;
+Type *Type::tindex;
+
 Type *Type::tvoidptr;
 Type *Type::tstring;
 Type *Type::tvalist;
@@ -247,6 +285,38 @@ void Type::init()
     }
     basic[Terror] = new TypeError();
 
+    tvoid = basic[Tvoid];
+    tint8 = basic[Tint8];
+    tuns8 = basic[Tuns8];
+    tint16 = basic[Tint16];
+    tuns16 = basic[Tuns16];
+    tint32 = basic[Tint32];
+    tuns32 = basic[Tuns32];
+    tint64 = basic[Tint64];
+    tuns64 = basic[Tuns64];
+    tint128 = basic[Tint128];
+    tuns128 = basic[Tuns128];
+    tfloat32 = basic[Tfloat32];
+    tfloat64 = basic[Tfloat64];
+    tfloat80 = basic[Tfloat80];
+
+    timaginary32 = basic[Timaginary32];
+    timaginary64 = basic[Timaginary64];
+    timaginary80 = basic[Timaginary80];
+
+    tcomplex32 = basic[Tcomplex32];
+    tcomplex64 = basic[Tcomplex64];
+    tcomplex80 = basic[Tcomplex80];
+
+    tbool = basic[Tbool];
+    tchar = basic[Tchar];
+    twchar = basic[Twchar];
+    tdchar = basic[Tdchar];
+
+    tshiftcnt = tint32;
+    tboolean = tbool;
+    terror = basic[Terror];
+    tnull = basic[Tnull];
     tnull = new TypeNull();
     tnull->deco = tnull->merge()->deco;
 
@@ -264,6 +334,11 @@ void Type::init()
         Tsize_t = Tuns32;
         Tptrdiff_t = Tint32;
     }
+
+    tsize_t = basic[Tsize_t];
+    tptrdiff_t = basic[Tptrdiff_t];
+    thash_t = tsize_t;
+    tindex = tsize_t;
 }
 
 d_uns64 Type::size()
