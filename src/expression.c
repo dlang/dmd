@@ -4403,19 +4403,11 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         else
         {
             if (v->init)
-            {   if (v->init->isVoidInitializer())
+            {
+                if (v->init->isVoidInitializer())
                     e = NULL;
                 else
-                {
-                    if (v->scope)
-                    {
-                        v->inuse++;
-                        v->init->semantic(v->scope, v->type, INITinterpret);
-                        v->scope = NULL;
-                        v->inuse--;
-                    }
-                    e = v->init->toExpression(/*vd->type*/);
-                }
+                    e = v->getConstInitializer(false);
             }
             else if (v->type->needsNested() && ctorinit)
                 e = v->type->defaultInit(loc);

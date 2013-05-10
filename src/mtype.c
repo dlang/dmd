@@ -8101,18 +8101,11 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         if (vd->offset < offset)
             e = NULL;
         else if (vd->init)
-        {   if (vd->init->isVoidInitializer())
+        {
+            if (vd->init->isVoidInitializer())
                 e = NULL;
             else
-            {
-                if (vd->scope)
-                {
-                    vd->inuse++;
-                    vd->init->semantic(vd->scope, vd->type, INITinterpret);
-                    vd->inuse--;
-                }
-                e = vd->init->toExpression(/*vd->type*/);
-            }
+                e = vd->getConstInitializer(false);
         }
         else
             e = vd->type->defaultInitLiteral(loc);
