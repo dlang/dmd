@@ -57,15 +57,15 @@ HOST_CC=g++
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
-#OPT=-g -g3
-#OPT=-O2
-
 #COV=-fprofile-arcs -ftest-coverage
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+ifneq (,$(DEBUG))
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV)
+else
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
+endif
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
