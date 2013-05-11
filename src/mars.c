@@ -100,8 +100,6 @@ void Global::init()
 
     main_d = "__main.d";
 
-    structalign = STRUCTALIGN_DEFAULT;
-
     memset(&params, 0, sizeof(Param));
 }
 

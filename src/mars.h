@@ -265,8 +265,6 @@ struct Global
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
-    structalign_t structalign;       // default alignment for struct fields
-
     const char *version;
 
     Compiler compiler;
