@@ -105,7 +105,7 @@ L1:
     return id;
 }
 
-char *Declaration::mangle(bool isv)
+const char *Declaration::mangle(bool isv)
 #if __DMC__
     __out(result)
     {
@@ -164,7 +164,7 @@ char *Declaration::mangle(bool isv)
         return p;
     }
 
-char *FuncDeclaration::mangle(bool isv)
+const char *FuncDeclaration::mangle(bool isv)
 #if __DMC__
     __out(result)
     {
@@ -173,6 +173,9 @@ char *FuncDeclaration::mangle(bool isv)
     __body
 #endif
     {
+        if (mangleOverride)
+            return mangleOverride; 
+    
         if (isMain())
             return (char *)"_Dmain";
 
@@ -183,22 +186,36 @@ char *FuncDeclaration::mangle(bool isv)
         return Declaration::mangle(isv);
     }
 
+const char *VarDeclaration::mangle(bool isv)
+#if __DMC__
+    __out(result)
+    {
+        assert(strlen(result) > 0);
+    }
+    __body
+#endif
+    {
+        if (mangleOverride)
+            return mangleOverride;
 
-char *TypedefDeclaration::mangle(bool isv)
+        return Declaration::mangle();
+    }
+
+const char *TypedefDeclaration::mangle(bool isv)
 {
     //printf("TypedefDeclaration::mangle() '%s'\n", toChars());
     return Dsymbol::mangle(isv);
 }
 
 
-char *AggregateDeclaration::mangle(bool isv)
+const char *AggregateDeclaration::mangle(bool isv)
 {
 #if 1
     //printf("AggregateDeclaration::mangle() '%s'\n", toChars());
     if (Dsymbol *p = toParent2())
     {   if (FuncDeclaration *fd = p->isFuncDeclaration())
         {   // This might be the Voldemort Type
-            char *id = Dsymbol::mangle(fd->inferRetType || getFuncTemplateDecl(fd));
+            const char *id = Dsymbol::mangle(fd->inferRetType || getFuncTemplateDecl(fd));
             //printf("isv ad %s, %s\n", toChars(), id);
             return id;
         }
@@ -207,13 +224,13 @@ char *AggregateDeclaration::mangle(bool isv)
     return Dsymbol::mangle(isv);
 }
 
-char *StructDeclaration::mangle(bool isv)
+const char *StructDeclaration::mangle(bool isv)
 {
     //printf("StructDeclaration::mangle() '%s'\n", toChars());
     return AggregateDeclaration::mangle(isv);
 }
 
-char *ClassDeclaration::mangle(bool isv)
+const char *ClassDeclaration::mangle(bool isv)
 {
     Dsymbol *parentsave = parent;
 
@@ -239,13 +256,13 @@ char *ClassDeclaration::mangle(bool isv)
        )
         parent = NULL;
 
-    char *id = AggregateDeclaration::mangle(isv);
+    const char *id = AggregateDeclaration::mangle(isv);
     parent = parentsave;
     return id;
 }
 
 
-char *TemplateInstance::mangle(bool isv)
+const char *TemplateInstance::mangle(bool isv)
 {
     OutBuffer buf;
 
@@ -255,7 +272,7 @@ char *TemplateInstance::mangle(bool isv)
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
-    char *id = ident ? ident->toChars() : toChars();
+    const char *id = ident ? ident->toChars() : toChars();
     if (!tempdecl)
         error("is not defined");
     else
@@ -263,7 +280,7 @@ char *TemplateInstance::mangle(bool isv)
         Dsymbol *par = enclosing || isTemplateMixin() ? parent : tempdecl->parent;
         if (par)
         {
-            char *p = par->mangle();
+            const char *p = par->mangle();
             if (p[0] == '_' && p[1] == 'D')
                 p += 2;
             buf.writestring(p);
@@ -278,7 +295,7 @@ char *TemplateInstance::mangle(bool isv)
 
 
 
-char *Dsymbol::mangle(bool isv)
+const char *Dsymbol::mangle(bool isv)
 {
     OutBuffer buf;
     char *id;
@@ -292,7 +309,7 @@ char *Dsymbol::mangle(bool isv)
     id = ident ? ident->toChars() : toChars();
     if (parent)
     {
-        char *p = parent->mangle(isv);
+        const char *p = parent->mangle(isv);
         if (p[0] == '_' && p[1] == 'D')
             p += 2;
         buf.writestring(p);

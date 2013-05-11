@@ -110,7 +110,7 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *hasIdentityOpAssign(Scope *sc);
     FuncDeclaration *hasIdentityOpEquals(Scope *sc);
 
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
 
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
@@ -153,7 +153,7 @@ struct StructDeclaration : AggregateDeclaration
     void semantic(Scope *sc);
     Dsymbol *search(Loc, Identifier *ident, int flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     const char *kind();
     void finalizeSize(Scope *sc);
     bool isPOD();
@@ -281,7 +281,7 @@ struct ClassDeclaration : AggregateDeclaration
     int isAbstract();
     virtual int vtblOffset();
     const char *kind();
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember
