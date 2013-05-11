@@ -61,7 +61,7 @@ Scope::Scope()
     this->scontinue = NULL;
     this->fes = NULL;
     this->callsc = NULL;
-    this->structalign = global.structalign;
+    this->structalign = STRUCTALIGN_DEFAULT;
     this->func = NULL;
     this->slabel = NULL;
     this->linkage = LINKd;
