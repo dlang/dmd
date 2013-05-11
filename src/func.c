@@ -4461,18 +4461,16 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  * instances per module.
  */
 
-#if __DMC__ || _MSC_VER
-#define snprintf _snprintf
-#endif
 static Identifier *unitTestId(Loc loc)
 {
     char name[24];
+#if __DMC__ || _MSC_VER
+    _snprintf(name, 24, "__unittestL%u_", loc.linnum);
+#else
     snprintf(name, 24, "__unittestL%u_", loc.linnum);
+#endif
     return Lexer::uniqueId(name);
 }
-#if __DMC__ || _MSC_VER
-#undef snprintf
-#endif
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
     : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
