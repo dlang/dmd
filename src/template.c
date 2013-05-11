@@ -2341,7 +2341,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         }
     }
 
-    fd_best->functionSemantic();
+    if (!(flags & 1))
+        fd_best->functionSemantic();
 
     return fd_best;
 
