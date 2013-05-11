@@ -574,7 +574,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     check(TOKrparen);
                 }
                 else
-                    n = global.structalign;             // default
+                    n = STRUCTALIGN_DEFAULT;             // default
 
                 a = parseBlock(pLastDecl);
                 s = new AlignDeclaration(n, a);
@@ -3046,7 +3046,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                     check(TOKrparen);
                 }
                 else
-                    structalign = global.structalign;   // default
+                    structalign = STRUCTALIGN_DEFAULT;   // default
                 continue;
             }
             default:
