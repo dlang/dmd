@@ -3258,9 +3258,7 @@ Lagain:
             error("forward reference of %s %s", s->kind(), s->toChars());
             return new ErrorExp();
         }
-        e->loc = loc;
-        e = e->semantic(sc);
-        return e;
+        return em->getVarExp(loc, sc);
     }
     v = s->isVarDeclaration();
     if (v)
@@ -5399,13 +5397,17 @@ void VarExp::checkEscapeRef()
 
 int VarExp::isLvalue()
 {
-    if (var->storage_class & (STClazy | STCtemp))
+    if (var->storage_class & (STClazy | STCtemp | STCmanifest))
         return 0;
     return 1;
 }
 
 Expression *VarExp::toLvalue(Scope *sc, Expression *e)
 {
+    if (var->storage_class & STCmanifest)
+    {   error("manifest constant '%s' is not lvalue", var->toChars());
+        return new ErrorExp();
+    }
     if (var->storage_class & STClazy)
     {   error("lazy variables cannot be lvalues");
         return new ErrorExp();
@@ -5428,9 +5430,11 @@ int VarExp::checkModifiable(Scope *sc, int flag)
 Expression *VarExp::modifiableLvalue(Scope *sc, Expression *e)
 {
     //printf("VarExp::modifiableLvalue('%s')\n", var->toChars());
-    //if (type && type->toBasetype()->ty == Tsarray)
-        //error("cannot change reference to static array '%s'", var->toChars());
-
+    if (var->storage_class & STCmanifest)
+    {
+        error("Cannot modify '%s'", toChars());
+        return new ErrorExp();
+    }
     // See if this expression is a modifiable lvalue (i.e. not const)
     return Expression::modifiableLvalue(sc, e);
 }
@@ -7152,9 +7156,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             EnumMember *em = s->isEnumMember();
             if (em)
             {
-                e = em->value;
-                e = e->semantic(sc);
-                return e;
+                return em->getVarExp(loc, sc);
             }
 
             VarDeclaration *v = s->isVarDeclaration();
@@ -8891,7 +8893,7 @@ Expression *AddrExp::semantic(Scope *sc)
             ce->e2->type = NULL;
             ce->e2 = ce->e2->semantic(sc);
         }
-        
+
         return optimize(WANTvalue);
     }
     return this;

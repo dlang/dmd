@@ -22,7 +22,7 @@ struct Identifier;
 struct Type;
 struct Expression;
 struct HdrGenState;
-
+struct VarDeclaration;
 
 struct EnumDeclaration : ScopeDsymbol
 {   /* enum ident : memtype { ... }
@@ -80,12 +80,14 @@ struct EnumMember : Dsymbol
     EnumDeclaration *ed;
     Expression *value;
     Type *type;
+    VarDeclaration *vd;
 
     EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void semantic(Scope *sc);
+    Expression *getVarExp(Loc loc, Scope *sc);
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

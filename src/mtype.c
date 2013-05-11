@@ -6460,7 +6460,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
         if (EnumMember *em = s->isEnumMember())
         {
             // It's not a type, it's an expression
-            *pe = em->value->copy();
+            *pe = em->getVarExp(loc, sc);
             return;
         }
 
@@ -7301,9 +7301,7 @@ Expression *TypeEnum::dotExp(Scope *sc, Expression *e, Identifier *ident, int fl
         return sym->memtype->dotExp(sc, e, ident, flag);
     }
     EnumMember *m = s->isEnumMember();
-    Expression *em = m->value->copy();
-    em->loc = e->loc;
-    return em;
+    return m->getVarExp(e->loc, sc);
 }
 
 Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
@@ -7918,15 +7916,9 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        // Defer constant folding for the statically initialized
-        // const/immutable field until optimize-phase.
-        Expression *ei = v->init->toExpression(v->type);
-        if (ei)
-        {   ei = ei->copy();    // need to copy it if it's a StringExp
-            ei->loc = e->loc;   // for better error message
-            ei = ei->semantic(sc);
-            return ei;
-        }
+        Expression *ve = new VarExp(e->loc, v);
+        ve = ve->semantic(sc);
+        return ve;
     }
 
     if (s->getType())
@@ -7937,8 +7929,7 @@ L1:
     EnumMember *em = s->isEnumMember();
     if (em)
     {
-        assert(em->value);
-        return em->value->copy();
+        return em->getVarExp(e->loc, sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
@@ -8545,15 +8536,9 @@ L1:
     }
     if (v && !v->isDataseg() && (v->storage_class & STCmanifest))
     {
-        // Defer constant folding for the statically initialized
-        // const/immutable field until optimize-phase.
-        Expression *ei = v->init->toExpression(v->type);
-        if (ei)
-        {   ei = ei->copy();    // need to copy it if it's a StringExp
-            ei->loc = e->loc;   // for better error message
-            ei = ei->semantic(sc);
-            return ei;
-        }
+        Expression *ve = new VarExp(e->loc, v);
+        ve = ve->semantic(sc);
+        return ve;
     }
 
     if (s->getType())
@@ -8564,8 +8549,7 @@ L1:
     EnumMember *em = s->isEnumMember();
     if (em)
     {
-        assert(em->value);
-        return em->value->copy();
+        return em->getVarExp(e->loc, sc);
     }
 
     TemplateMixin *tm = s->isTemplateMixin();
