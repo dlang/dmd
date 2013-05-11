@@ -1,0 +1,640 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 46;
+	objects = {
+
+/* Begin PBXFileReference section */
+		7A8F5546173E7E14002091B3 /* access.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = access.c; path = src/access.c; sourceTree = "<group>"; };
+		7A8F5547173E7E14002091B3 /* aliasthis.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = aliasthis.c; path = src/aliasthis.c; sourceTree = "<group>"; };
+		7A8F5548173E7E14002091B3 /* apply.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = apply.c; path = src/apply.c; sourceTree = "<group>"; };
+		7A8F5549173E7E14002091B3 /* argtypes.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = argtypes.c; path = src/argtypes.c; sourceTree = "<group>"; };
+		7A8F554A173E7E14002091B3 /* arrayop.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = arrayop.c; path = src/arrayop.c; sourceTree = "<group>"; };
+		7A8F554B173E7E14002091B3 /* attrib.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = attrib.c; path = src/attrib.c; sourceTree = "<group>"; };
+		7A8F554C173E7E14002091B3 /* builtin.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = builtin.c; path = src/builtin.c; sourceTree = "<group>"; };
+		7A8F554D173E7E14002091B3 /* canthrow.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = canthrow.c; path = src/canthrow.c; sourceTree = "<group>"; };
+		7A8F554E173E7E14002091B3 /* cast.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = cast.c; path = src/cast.c; sourceTree = "<group>"; };
+		7A8F554F173E7E14002091B3 /* class.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = class.c; path = src/class.c; sourceTree = "<group>"; };
+		7A8F5550173E7E14002091B3 /* clone.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = clone.c; path = src/clone.c; sourceTree = "<group>"; };
+		7A8F5551173E7E14002091B3 /* cond.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = cond.c; path = src/cond.c; sourceTree = "<group>"; };
+		7A8F5552173E7E14002091B3 /* constfold.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = constfold.c; path = src/constfold.c; sourceTree = "<group>"; };
+		7A8F5553173E7E14002091B3 /* cppmangle.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = cppmangle.c; path = src/cppmangle.c; sourceTree = "<group>"; };
+		7A8F5554173E7E14002091B3 /* ctfeexpr.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = ctfeexpr.c; path = src/ctfeexpr.c; sourceTree = "<group>"; };
+		7A8F5555173E7E14002091B3 /* declaration.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = declaration.c; path = src/declaration.c; sourceTree = "<group>"; };
+		7A8F5556173E7E14002091B3 /* delegatize.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = delegatize.c; path = src/delegatize.c; sourceTree = "<group>"; };
+		7A8F5557173E7E14002091B3 /* doc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = doc.c; path = src/doc.c; sourceTree = "<group>"; };
+		7A8F5558173E7E14002091B3 /* dsymbol.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = dsymbol.c; path = src/dsymbol.c; sourceTree = "<group>"; };
+		7A8F5559173E7E14002091B3 /* dump.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = dump.c; path = src/dump.c; sourceTree = "<group>"; };
+		7A8F555A173E7E14002091B3 /* e2ir.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = e2ir.c; path = src/e2ir.c; sourceTree = "<group>"; };
+		7A8F555B173E7E14002091B3 /* eh.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = eh.c; path = src/eh.c; sourceTree = "<group>"; };
+		7A8F555C173E7E14002091B3 /* entity.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = entity.c; path = src/entity.c; sourceTree = "<group>"; };
+		7A8F555D173E7E14002091B3 /* enum.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = enum.c; path = src/enum.c; sourceTree = "<group>"; };
+		7A8F555E173E7E14002091B3 /* expression.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = expression.c; path = src/expression.c; sourceTree = "<group>"; };
+		7A8F5560173E7E14002091B3 /* func.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = func.c; path = src/func.c; sourceTree = "<group>"; };
+		7A8F5561173E7E14002091B3 /* glue.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = glue.c; path = src/glue.c; sourceTree = "<group>"; };
+		7A8F5562173E7E14002091B3 /* hdrgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = hdrgen.c; path = src/hdrgen.c; sourceTree = "<group>"; };
+		7A8F5563173E7E14002091B3 /* iasm.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = iasm.c; path = src/iasm.c; sourceTree = "<group>"; };
+		7A8F5564173E7E14002091B3 /* identifier.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = identifier.c; path = src/identifier.c; sourceTree = "<group>"; };
+		7A8F5565173E7E14002091B3 /* idgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = idgen.c; path = src/idgen.c; sourceTree = "<group>"; };
+		7A8F5566173E7E14002091B3 /* impcnvgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = impcnvgen.c; path = src/impcnvgen.c; sourceTree = "<group>"; };
+		7A8F5567173E7E14002091B3 /* imphint.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = imphint.c; path = src/imphint.c; sourceTree = "<group>"; };
+		7A8F5568173E7E14002091B3 /* import.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = import.c; path = src/import.c; sourceTree = "<group>"; };
+		7A8F5569173E7E14002091B3 /* inifile.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = inifile.c; path = src/inifile.c; sourceTree = "<group>"; };
+		7A8F556A173E7E14002091B3 /* init.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = init.c; path = src/init.c; sourceTree = "<group>"; };
+		7A8F556B173E7E14002091B3 /* inline.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = inline.c; path = src/inline.c; sourceTree = "<group>"; };
+		7A8F556C173E7E14002091B3 /* interpret.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = interpret.c; path = src/interpret.c; sourceTree = "<group>"; };
+		7A8F556D173E7E14002091B3 /* intrange.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = intrange.c; path = src/intrange.c; sourceTree = "<group>"; };
+		7A8F556E173E7E14002091B3 /* irstate.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = irstate.c; path = src/irstate.c; sourceTree = "<group>"; };
+		7A8F556F173E7E14002091B3 /* json.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = json.c; path = src/json.c; sourceTree = "<group>"; };
+		7A8F5570173E7E14002091B3 /* lexer.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = lexer.c; path = src/lexer.c; sourceTree = "<group>"; };
+		7A8F5571173E7E14002091B3 /* libelf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = libelf.c; path = src/libelf.c; sourceTree = "<group>"; };
+		7A8F5572173E7E14002091B3 /* libmach.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = libmach.c; path = src/libmach.c; sourceTree = "<group>"; };
+		7A8F5573173E7E14002091B3 /* libmscoff.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = libmscoff.c; path = src/libmscoff.c; sourceTree = "<group>"; };
+		7A8F5574173E7E14002091B3 /* libomf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = libomf.c; path = src/libomf.c; sourceTree = "<group>"; };
+		7A8F5575173E7E14002091B3 /* link.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = link.c; path = src/link.c; sourceTree = "<group>"; };
+		7A8F5576173E7E14002091B3 /* macro.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = macro.c; path = src/macro.c; sourceTree = "<group>"; };
+		7A8F5577173E7E14002091B3 /* mangle.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = mangle.c; path = src/mangle.c; sourceTree = "<group>"; };
+		7A8F5578173E7E14002091B3 /* mars.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = mars.c; path = src/mars.c; sourceTree = "<group>"; };
+		7A8F5579173E7E14002091B3 /* module.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = module.c; path = src/module.c; sourceTree = "<group>"; };
+		7A8F557A173E7E14002091B3 /* msc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = msc.c; path = src/msc.c; sourceTree = "<group>"; };
+		7A8F557B173E7E14002091B3 /* mtype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = mtype.c; path = src/mtype.c; sourceTree = "<group>"; };
+		7A8F557C173E7E14002091B3 /* opover.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = opover.c; path = src/opover.c; sourceTree = "<group>"; };
+		7A8F557D173E7E14002091B3 /* optimize.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = optimize.c; path = src/optimize.c; sourceTree = "<group>"; };
+		7A8F557E173E7E14002091B3 /* parse.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = parse.c; path = src/parse.c; sourceTree = "<group>"; };
+		7A8F557F173E7E14002091B3 /* s2ir.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = s2ir.c; path = src/s2ir.c; sourceTree = "<group>"; };
+		7A8F5580173E7E14002091B3 /* sapply.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = sapply.c; path = src/sapply.c; sourceTree = "<group>"; };
+		7A8F5581173E7E14002091B3 /* scanelf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = scanelf.c; path = src/scanelf.c; sourceTree = "<group>"; };
+		7A8F5582173E7E14002091B3 /* scanmach.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = scanmach.c; path = src/scanmach.c; sourceTree = "<group>"; };
+		7A8F5583173E7E14002091B3 /* scanmscoff.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = scanmscoff.c; path = src/scanmscoff.c; sourceTree = "<group>"; };
+		7A8F5584173E7E14002091B3 /* scanomf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = scanomf.c; path = src/scanomf.c; sourceTree = "<group>"; };
+		7A8F5585173E7E14002091B3 /* scope.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = scope.c; path = src/scope.c; sourceTree = "<group>"; };
+		7A8F5586173E7E14002091B3 /* sideeffect.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = sideeffect.c; path = src/sideeffect.c; sourceTree = "<group>"; };
+		7A8F5587173E7E14002091B3 /* statement.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = statement.c; path = src/statement.c; sourceTree = "<group>"; };
+		7A8F5588173E7E14002091B3 /* staticassert.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = staticassert.c; path = src/staticassert.c; sourceTree = "<group>"; };
+		7A8F5589173E7E14002091B3 /* struct.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = struct.c; path = src/struct.c; sourceTree = "<group>"; };
+		7A8F558A173E7E14002091B3 /* target.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = target.c; path = src/target.c; sourceTree = "<group>"; };
+		7A8F558B173E7E14002091B3 /* template.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = template.c; path = src/template.c; sourceTree = "<group>"; };
+		7A8F558C173E7E14002091B3 /* tk.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = tk.c; path = src/tk.c; sourceTree = "<group>"; };
+		7A8F558D173E7E14002091B3 /* tocsym.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = tocsym.c; path = src/tocsym.c; sourceTree = "<group>"; };
+		7A8F558E173E7E14002091B3 /* toctype.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = toctype.c; path = src/toctype.c; sourceTree = "<group>"; };
+		7A8F558F173E7E14002091B3 /* tocvdebug.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = tocvdebug.c; path = src/tocvdebug.c; sourceTree = "<group>"; };
+		7A8F5590173E7E14002091B3 /* todt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = todt.c; path = src/todt.c; sourceTree = "<group>"; };
+		7A8F5591173E7E14002091B3 /* toelfdebug.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = toelfdebug.c; path = src/toelfdebug.c; sourceTree = "<group>"; };
+		7A8F5592173E7E14002091B3 /* toir.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = toir.c; path = src/toir.c; sourceTree = "<group>"; };
+		7A8F5593173E7E14002091B3 /* toobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = toobj.c; path = src/toobj.c; sourceTree = "<group>"; };
+		7A8F5594173E7E14002091B3 /* traits.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = traits.c; path = src/traits.c; sourceTree = "<group>"; };
+		7A8F5595173E7E14002091B3 /* typinf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = typinf.c; path = src/typinf.c; sourceTree = "<group>"; };
+		7A8F5596173E7E14002091B3 /* unittests.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = unittests.c; path = src/unittests.c; sourceTree = "<group>"; };
+		7A8F5597173E7E14002091B3 /* utf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = utf.c; path = src/utf.c; sourceTree = "<group>"; };
+		7A8F5598173E7E14002091B3 /* version.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; name = version.c; path = src/version.c; sourceTree = "<group>"; };
+		7A8F5599173E7E22002091B3 /* aggregate.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = aggregate.h; path = src/aggregate.h; sourceTree = "<group>"; };
+		7A8F559A173E7E22002091B3 /* aliasthis.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = aliasthis.h; path = src/aliasthis.h; sourceTree = "<group>"; };
+		7A8F559B173E7E22002091B3 /* arraytypes.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = arraytypes.h; path = src/arraytypes.h; sourceTree = "<group>"; };
+		7A8F559C173E7E22002091B3 /* attrib.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = attrib.h; path = src/attrib.h; sourceTree = "<group>"; };
+		7A8F559D173E7E22002091B3 /* complex_t.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = complex_t.h; path = src/complex_t.h; sourceTree = "<group>"; };
+		7A8F559E173E7E22002091B3 /* cond.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = cond.h; path = src/cond.h; sourceTree = "<group>"; };
+		7A8F559F173E7E22002091B3 /* ctfe.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = ctfe.h; path = src/ctfe.h; sourceTree = "<group>"; };
+		7A8F55A0173E7E22002091B3 /* declaration.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = declaration.h; path = src/declaration.h; sourceTree = "<group>"; };
+		7A8F55A1173E7E22002091B3 /* doc.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = doc.h; path = src/doc.h; sourceTree = "<group>"; };
+		7A8F55A2173E7E22002091B3 /* dsymbol.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = dsymbol.h; path = src/dsymbol.h; sourceTree = "<group>"; };
+		7A8F55A3173E7E22002091B3 /* enum.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = enum.h; path = src/enum.h; sourceTree = "<group>"; };
+		7A8F55A4173E7E22002091B3 /* expression.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = expression.h; path = src/expression.h; sourceTree = "<group>"; };
+		7A8F55A5173E7E22002091B3 /* hdrgen.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = hdrgen.h; path = src/hdrgen.h; sourceTree = "<group>"; };
+		7A8F55A6173E7E22002091B3 /* identifier.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = identifier.h; path = src/identifier.h; sourceTree = "<group>"; };
+		7A8F55A7173E7E22002091B3 /* import.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = import.h; path = src/import.h; sourceTree = "<group>"; };
+		7A8F55A8173E7E22002091B3 /* init.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = init.h; path = src/init.h; sourceTree = "<group>"; };
+		7A8F55A9173E7E22002091B3 /* intrange.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = intrange.h; path = src/intrange.h; sourceTree = "<group>"; };
+		7A8F55AA173E7E22002091B3 /* irstate.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = irstate.h; path = src/irstate.h; sourceTree = "<group>"; };
+		7A8F55AB173E7E22002091B3 /* json.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = json.h; path = src/json.h; sourceTree = "<group>"; };
+		7A8F55AC173E7E22002091B3 /* lexer.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = lexer.h; path = src/lexer.h; sourceTree = "<group>"; };
+		7A8F55AD173E7E22002091B3 /* lib.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = lib.h; path = src/lib.h; sourceTree = "<group>"; };
+		7A8F55AE173E7E22002091B3 /* macro.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = macro.h; path = src/macro.h; sourceTree = "<group>"; };
+		7A8F55AF173E7E22002091B3 /* mars.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = mars.h; path = src/mars.h; sourceTree = "<group>"; };
+		7A8F55B0173E7E22002091B3 /* module.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = module.h; path = src/module.h; sourceTree = "<group>"; };
+		7A8F55B1173E7E22002091B3 /* mtype.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = mtype.h; path = src/mtype.h; sourceTree = "<group>"; };
+		7A8F55B2173E7E22002091B3 /* objfile.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = objfile.h; path = src/objfile.h; sourceTree = "<group>"; };
+		7A8F55B3173E7E22002091B3 /* parse.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = parse.h; path = src/parse.h; sourceTree = "<group>"; };
+		7A8F55B4173E7E22002091B3 /* scope.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = scope.h; path = src/scope.h; sourceTree = "<group>"; };
+		7A8F55B5173E7E22002091B3 /* statement.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = statement.h; path = src/statement.h; sourceTree = "<group>"; };
+		7A8F55B6173E7E22002091B3 /* staticassert.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = staticassert.h; path = src/staticassert.h; sourceTree = "<group>"; };
+		7A8F55B7173E7E22002091B3 /* target.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = target.h; path = src/target.h; sourceTree = "<group>"; };
+		7A8F55B8173E7E22002091B3 /* template.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = template.h; path = src/template.h; sourceTree = "<group>"; };
+		7A8F55B9173E7E22002091B3 /* toir.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = toir.h; path = src/toir.h; sourceTree = "<group>"; };
+		7A8F55BA173E7E22002091B3 /* total.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = total.h; path = src/total.h; sourceTree = "<group>"; };
+		7A8F55BB173E7E22002091B3 /* utf.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = utf.h; path = src/utf.h; sourceTree = "<group>"; };
+		7A8F55BC173E7E22002091B3 /* version.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; name = version.h; path = src/version.h; sourceTree = "<group>"; };
+		7A8F5619173E7E87002091B3 /* aa.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = aa.c; sourceTree = "<group>"; };
+		7A8F561A173E7E87002091B3 /* backconfig.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = backconfig.c; sourceTree = "<group>"; };
+		7A8F561B173E7E87002091B3 /* bcomplex.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = bcomplex.c; sourceTree = "<group>"; };
+		7A8F561C173E7E87002091B3 /* blockopt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = blockopt.c; sourceTree = "<group>"; };
+		7A8F561D173E7E87002091B3 /* cg.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cg.c; sourceTree = "<group>"; };
+		7A8F561E173E7E87002091B3 /* cg87.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cg87.c; sourceTree = "<group>"; };
+		7A8F561F173E7E87002091B3 /* cgcod.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgcod.c; sourceTree = "<group>"; };
+		7A8F5620173E7E87002091B3 /* cgcs.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgcs.c; sourceTree = "<group>"; };
+		7A8F5621173E7E87002091B3 /* cgcv.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgcv.c; sourceTree = "<group>"; };
+		7A8F5622173E7E87002091B3 /* cgelem.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgelem.c; sourceTree = "<group>"; };
+		7A8F5623173E7E87002091B3 /* cgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgen.c; sourceTree = "<group>"; };
+		7A8F5624173E7E87002091B3 /* cgobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgobj.c; sourceTree = "<group>"; };
+		7A8F5625173E7E87002091B3 /* cgreg.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgreg.c; sourceTree = "<group>"; };
+		7A8F5626173E7E87002091B3 /* cgsched.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgsched.c; sourceTree = "<group>"; };
+		7A8F5627173E7E87002091B3 /* cgxmm.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cgxmm.c; sourceTree = "<group>"; };
+		7A8F5628173E7E87002091B3 /* cod1.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cod1.c; sourceTree = "<group>"; };
+		7A8F5629173E7E87002091B3 /* cod2.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cod2.c; sourceTree = "<group>"; };
+		7A8F562A173E7E87002091B3 /* cod3.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cod3.c; sourceTree = "<group>"; };
+		7A8F562B173E7E87002091B3 /* cod4.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cod4.c; sourceTree = "<group>"; };
+		7A8F562C173E7E87002091B3 /* cod5.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cod5.c; sourceTree = "<group>"; };
+		7A8F562D173E7E87002091B3 /* code.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = code.c; sourceTree = "<group>"; };
+		7A8F562E173E7E87002091B3 /* cppman.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cppman.c; sourceTree = "<group>"; };
+		7A8F562F173E7E87002091B3 /* cv8.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = cv8.c; sourceTree = "<group>"; };
+		7A8F5630173E7E87002091B3 /* debug.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = debug.c; sourceTree = "<group>"; };
+		7A8F5631173E7E87002091B3 /* divcoeff.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = divcoeff.c; sourceTree = "<group>"; };
+		7A8F5632173E7E87002091B3 /* dt.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = dt.c; sourceTree = "<group>"; };
+		7A8F5633173E7E87002091B3 /* dwarf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = dwarf.c; sourceTree = "<group>"; };
+		7A8F5634173E7E87002091B3 /* ee.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = ee.c; sourceTree = "<group>"; };
+		7A8F5635173E7E87002091B3 /* el.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = el.c; sourceTree = "<group>"; };
+		7A8F5636173E7E87002091B3 /* elfobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = elfobj.c; sourceTree = "<group>"; };
+		7A8F5637173E7E87002091B3 /* evalu8.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = evalu8.c; sourceTree = "<group>"; };
+		7A8F5638173E7E87002091B3 /* gdag.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = gdag.c; sourceTree = "<group>"; };
+		7A8F5639173E7E87002091B3 /* gflow.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = gflow.c; sourceTree = "<group>"; };
+		7A8F563A173E7E87002091B3 /* glocal.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = glocal.c; sourceTree = "<group>"; };
+		7A8F563B173E7E87002091B3 /* gloop.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = gloop.c; sourceTree = "<group>"; };
+		7A8F563C173E7E87002091B3 /* go.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = go.c; sourceTree = "<group>"; };
+		7A8F563D173E7E87002091B3 /* gother.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = gother.c; sourceTree = "<group>"; };
+		7A8F563E173E7E87002091B3 /* machobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = machobj.c; sourceTree = "<group>"; };
+		7A8F563F173E7E87002091B3 /* md5.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = md5.c; sourceTree = "<group>"; };
+		7A8F5640173E7E87002091B3 /* mscoffobj.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = mscoffobj.c; sourceTree = "<group>"; };
+		7A8F5641173E7E87002091B3 /* newman.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = newman.c; sourceTree = "<group>"; };
+		7A8F5642173E7E87002091B3 /* nteh.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = nteh.c; sourceTree = "<group>"; };
+		7A8F5643173E7E87002091B3 /* optabgen.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = optabgen.c; sourceTree = "<group>"; };
+		7A8F5644173E7E87002091B3 /* os.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = os.c; sourceTree = "<group>"; };
+		7A8F5645173E7E87002091B3 /* out.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = out.c; sourceTree = "<group>"; };
+		7A8F5646173E7E87002091B3 /* outbuf.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = outbuf.c; sourceTree = "<group>"; };
+		7A8F5647173E7E87002091B3 /* pdata.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = pdata.c; sourceTree = "<group>"; };
+		7A8F5648173E7E87002091B3 /* ph2.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = ph2.c; sourceTree = "<group>"; };
+		7A8F5649173E7E87002091B3 /* platform_stub.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = platform_stub.c; sourceTree = "<group>"; };
+		7A8F564A173E7E87002091B3 /* ptrntab.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = ptrntab.c; sourceTree = "<group>"; };
+		7A8F564B173E7E87002091B3 /* rtlsym.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = rtlsym.c; sourceTree = "<group>"; };
+		7A8F564C173E7E87002091B3 /* strtold.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = strtold.c; sourceTree = "<group>"; };
+		7A8F564D173E7E87002091B3 /* symbol.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = symbol.c; sourceTree = "<group>"; };
+		7A8F564E173E7E87002091B3 /* ti_achar.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = ti_achar.c; sourceTree = "<group>"; };
+		7A8F564F173E7E87002091B3 /* ti_pvoid.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = ti_pvoid.c; sourceTree = "<group>"; };
+		7A8F5650173E7E87002091B3 /* type.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = type.c; sourceTree = "<group>"; };
+		7A8F5651173E7E87002091B3 /* util2.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = util2.c; sourceTree = "<group>"; };
+		7A8F5652173E7E87002091B3 /* var.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = var.c; sourceTree = "<group>"; };
+		7A8F5653173E7E90002091B3 /* aa.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = aa.h; sourceTree = "<group>"; };
+		7A8F5654173E7E90002091B3 /* bcomplex.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = bcomplex.h; sourceTree = "<group>"; };
+		7A8F5655173E7E90002091B3 /* cc.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = cc.h; sourceTree = "<group>"; };
+		7A8F5656173E7E90002091B3 /* cdef.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = cdef.h; sourceTree = "<group>"; };
+		7A8F5657173E7E90002091B3 /* cdeflnx.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = cdeflnx.h; sourceTree = "<group>"; };
+		7A8F5658173E7E90002091B3 /* cgcv.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = cgcv.h; sourceTree = "<group>"; };
+		7A8F5659173E7E90002091B3 /* code_stub.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = code_stub.h; sourceTree = "<group>"; };
+		7A8F565A173E7E90002091B3 /* code_x86.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = code_x86.h; sourceTree = "<group>"; };
+		7A8F565B173E7E90002091B3 /* code.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = code.h; sourceTree = "<group>"; };
+		7A8F565C173E7E90002091B3 /* cv4.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = cv4.h; sourceTree = "<group>"; };
+		7A8F565D173E7E90002091B3 /* dt.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = dt.h; sourceTree = "<group>"; };
+		7A8F565E173E7E90002091B3 /* dwarf.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = dwarf.h; sourceTree = "<group>"; };
+		7A8F565F173E7E90002091B3 /* dwarf2.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = dwarf2.h; sourceTree = "<group>"; };
+		7A8F5660173E7E90002091B3 /* el.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = el.h; sourceTree = "<group>"; };
+		7A8F5661173E7E90002091B3 /* exh.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = exh.h; sourceTree = "<group>"; };
+		7A8F5662173E7E90002091B3 /* global.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = global.h; sourceTree = "<group>"; };
+		7A8F5663173E7E90002091B3 /* go.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = go.h; sourceTree = "<group>"; };
+		7A8F5664173E7E90002091B3 /* iasm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = iasm.h; sourceTree = "<group>"; };
+		7A8F5665173E7E90002091B3 /* mach.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = mach.h; sourceTree = "<group>"; };
+		7A8F5666173E7E90002091B3 /* md5.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = md5.h; sourceTree = "<group>"; };
+		7A8F5667173E7E90002091B3 /* melf.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = melf.h; sourceTree = "<group>"; };
+		7A8F5668173E7E90002091B3 /* mscoff.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = mscoff.h; sourceTree = "<group>"; };
+		7A8F5669173E7E90002091B3 /* obj.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = obj.h; sourceTree = "<group>"; };
+		7A8F566A173E7E90002091B3 /* oper.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = oper.h; sourceTree = "<group>"; };
+		7A8F566B173E7E90002091B3 /* outbuf.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = outbuf.h; sourceTree = "<group>"; };
+		7A8F566C173E7E90002091B3 /* rtlsym.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = rtlsym.h; sourceTree = "<group>"; };
+		7A8F566D173E7E90002091B3 /* tassert.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = tassert.h; sourceTree = "<group>"; };
+		7A8F566E173E7E90002091B3 /* tinfo.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = tinfo.h; sourceTree = "<group>"; };
+		7A8F566F173E7E90002091B3 /* token.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = token.h; sourceTree = "<group>"; };
+		7A8F5670173E7E90002091B3 /* ty.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = ty.h; sourceTree = "<group>"; };
+		7A8F5671173E7E90002091B3 /* type.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = type.h; sourceTree = "<group>"; };
+		7A8F5672173E7E90002091B3 /* xmm.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = xmm.h; sourceTree = "<group>"; };
+		7A8F5689173E7F04002091B3 /* aav.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = aav.c; sourceTree = "<group>"; };
+		7A8F568A173E7F04002091B3 /* array.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = array.c; sourceTree = "<group>"; };
+		7A8F568B173E7F04002091B3 /* async.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = async.c; sourceTree = "<group>"; };
+		7A8F568C173E7F04002091B3 /* dmgcmem.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = dmgcmem.c; sourceTree = "<group>"; };
+		7A8F568D173E7F04002091B3 /* longdouble.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = longdouble.c; sourceTree = "<group>"; };
+		7A8F568E173E7F04002091B3 /* man.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = man.c; sourceTree = "<group>"; };
+		7A8F568F173E7F04002091B3 /* port.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = port.c; sourceTree = "<group>"; };
+		7A8F5690173E7F04002091B3 /* response.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = response.c; sourceTree = "<group>"; };
+		7A8F5691173E7F04002091B3 /* rmem.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = rmem.c; sourceTree = "<group>"; };
+		7A8F5692173E7F04002091B3 /* root.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = root.c; sourceTree = "<group>"; };
+		7A8F5693173E7F04002091B3 /* speller.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = speller.c; sourceTree = "<group>"; };
+		7A8F5694173E7F04002091B3 /* stringtable.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; path = stringtable.c; sourceTree = "<group>"; };
+		7A8F5695173E7F0A002091B3 /* aav.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = aav.h; sourceTree = "<group>"; };
+		7A8F5696173E7F0A002091B3 /* async.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = async.h; sourceTree = "<group>"; };
+		7A8F5697173E7F0A002091B3 /* longdouble.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = longdouble.h; sourceTree = "<group>"; };
+		7A8F5698173E7F0A002091B3 /* port.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = port.h; sourceTree = "<group>"; };
+		7A8F5699173E7F0A002091B3 /* rmem.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = rmem.h; sourceTree = "<group>"; };
+		7A8F569A173E7F0A002091B3 /* root.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = root.h; sourceTree = "<group>"; };
+		7A8F569B173E7F0A002091B3 /* speller.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = speller.h; sourceTree = "<group>"; };
+		7A8F569C173E7F0A002091B3 /* stringtable.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = stringtable.h; sourceTree = "<group>"; };
+		7A8F569D173E7F0A002091B3 /* thread.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; path = thread.h; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		7A8F54FD173E7CDD002091B3 = {
+			isa = PBXGroup;
+			children = (
+				7A8F55BD173E7E5E002091B3 /* backend */,
+				7A8F5673173E7EEB002091B3 /* root */,
+				7A8F5599173E7E22002091B3 /* aggregate.h */,
+				7A8F559A173E7E22002091B3 /* aliasthis.h */,
+				7A8F559B173E7E22002091B3 /* arraytypes.h */,
+				7A8F559C173E7E22002091B3 /* attrib.h */,
+				7A8F559D173E7E22002091B3 /* complex_t.h */,
+				7A8F559E173E7E22002091B3 /* cond.h */,
+				7A8F559F173E7E22002091B3 /* ctfe.h */,
+				7A8F55A0173E7E22002091B3 /* declaration.h */,
+				7A8F55A1173E7E22002091B3 /* doc.h */,
+				7A8F55A2173E7E22002091B3 /* dsymbol.h */,
+				7A8F55A3173E7E22002091B3 /* enum.h */,
+				7A8F55A4173E7E22002091B3 /* expression.h */,
+				7A8F55A5173E7E22002091B3 /* hdrgen.h */,
+				7A8F55A6173E7E22002091B3 /* identifier.h */,
+				7A8F55A7173E7E22002091B3 /* import.h */,
+				7A8F55A8173E7E22002091B3 /* init.h */,
+				7A8F55A9173E7E22002091B3 /* intrange.h */,
+				7A8F55AA173E7E22002091B3 /* irstate.h */,
+				7A8F55AB173E7E22002091B3 /* json.h */,
+				7A8F55AC173E7E22002091B3 /* lexer.h */,
+				7A8F55AD173E7E22002091B3 /* lib.h */,
+				7A8F55AE173E7E22002091B3 /* macro.h */,
+				7A8F55AF173E7E22002091B3 /* mars.h */,
+				7A8F55B0173E7E22002091B3 /* module.h */,
+				7A8F55B1173E7E22002091B3 /* mtype.h */,
+				7A8F55B2173E7E22002091B3 /* objfile.h */,
+				7A8F55B3173E7E22002091B3 /* parse.h */,
+				7A8F55B4173E7E22002091B3 /* scope.h */,
+				7A8F55B5173E7E22002091B3 /* statement.h */,
+				7A8F55B6173E7E22002091B3 /* staticassert.h */,
+				7A8F55B7173E7E22002091B3 /* target.h */,
+				7A8F55B8173E7E22002091B3 /* template.h */,
+				7A8F55B9173E7E22002091B3 /* toir.h */,
+				7A8F55BA173E7E22002091B3 /* total.h */,
+				7A8F55BB173E7E22002091B3 /* utf.h */,
+				7A8F55BC173E7E22002091B3 /* version.h */,
+				7A8F5546173E7E14002091B3 /* access.c */,
+				7A8F5547173E7E14002091B3 /* aliasthis.c */,
+				7A8F5548173E7E14002091B3 /* apply.c */,
+				7A8F5549173E7E14002091B3 /* argtypes.c */,
+				7A8F554A173E7E14002091B3 /* arrayop.c */,
+				7A8F554B173E7E14002091B3 /* attrib.c */,
+				7A8F554C173E7E14002091B3 /* builtin.c */,
+				7A8F554D173E7E14002091B3 /* canthrow.c */,
+				7A8F554E173E7E14002091B3 /* cast.c */,
+				7A8F554F173E7E14002091B3 /* class.c */,
+				7A8F5550173E7E14002091B3 /* clone.c */,
+				7A8F5551173E7E14002091B3 /* cond.c */,
+				7A8F5552173E7E14002091B3 /* constfold.c */,
+				7A8F5553173E7E14002091B3 /* cppmangle.c */,
+				7A8F5554173E7E14002091B3 /* ctfeexpr.c */,
+				7A8F5555173E7E14002091B3 /* declaration.c */,
+				7A8F5556173E7E14002091B3 /* delegatize.c */,
+				7A8F5557173E7E14002091B3 /* doc.c */,
+				7A8F5558173E7E14002091B3 /* dsymbol.c */,
+				7A8F5559173E7E14002091B3 /* dump.c */,
+				7A8F555A173E7E14002091B3 /* e2ir.c */,
+				7A8F555B173E7E14002091B3 /* eh.c */,
+				7A8F555C173E7E14002091B3 /* entity.c */,
+				7A8F555D173E7E14002091B3 /* enum.c */,
+				7A8F555E173E7E14002091B3 /* expression.c */,
+				7A8F5560173E7E14002091B3 /* func.c */,
+				7A8F5561173E7E14002091B3 /* glue.c */,
+				7A8F5562173E7E14002091B3 /* hdrgen.c */,
+				7A8F5563173E7E14002091B3 /* iasm.c */,
+				7A8F5564173E7E14002091B3 /* identifier.c */,
+				7A8F5565173E7E14002091B3 /* idgen.c */,
+				7A8F5566173E7E14002091B3 /* impcnvgen.c */,
+				7A8F5567173E7E14002091B3 /* imphint.c */,
+				7A8F5568173E7E14002091B3 /* import.c */,
+				7A8F5569173E7E14002091B3 /* inifile.c */,
+				7A8F556A173E7E14002091B3 /* init.c */,
+				7A8F556B173E7E14002091B3 /* inline.c */,
+				7A8F556C173E7E14002091B3 /* interpret.c */,
+				7A8F556D173E7E14002091B3 /* intrange.c */,
+				7A8F556E173E7E14002091B3 /* irstate.c */,
+				7A8F556F173E7E14002091B3 /* json.c */,
+				7A8F5570173E7E14002091B3 /* lexer.c */,
+				7A8F5571173E7E14002091B3 /* libelf.c */,
+				7A8F5572173E7E14002091B3 /* libmach.c */,
+				7A8F5573173E7E14002091B3 /* libmscoff.c */,
+				7A8F5574173E7E14002091B3 /* libomf.c */,
+				7A8F5575173E7E14002091B3 /* link.c */,
+				7A8F5576173E7E14002091B3 /* macro.c */,
+				7A8F5577173E7E14002091B3 /* mangle.c */,
+				7A8F5578173E7E14002091B3 /* mars.c */,
+				7A8F5579173E7E14002091B3 /* module.c */,
+				7A8F557A173E7E14002091B3 /* msc.c */,
+				7A8F557B173E7E14002091B3 /* mtype.c */,
+				7A8F557C173E7E14002091B3 /* opover.c */,
+				7A8F557D173E7E14002091B3 /* optimize.c */,
+				7A8F557E173E7E14002091B3 /* parse.c */,
+				7A8F557F173E7E14002091B3 /* s2ir.c */,
+				7A8F5580173E7E14002091B3 /* sapply.c */,
+				7A8F5581173E7E14002091B3 /* scanelf.c */,
+				7A8F5582173E7E14002091B3 /* scanmach.c */,
+				7A8F5583173E7E14002091B3 /* scanmscoff.c */,
+				7A8F5584173E7E14002091B3 /* scanomf.c */,
+				7A8F5585173E7E14002091B3 /* scope.c */,
+				7A8F5586173E7E14002091B3 /* sideeffect.c */,
+				7A8F5587173E7E14002091B3 /* statement.c */,
+				7A8F5588173E7E14002091B3 /* staticassert.c */,
+				7A8F5589173E7E14002091B3 /* struct.c */,
+				7A8F558A173E7E14002091B3 /* target.c */,
+				7A8F558B173E7E14002091B3 /* template.c */,
+				7A8F558C173E7E14002091B3 /* tk.c */,
+				7A8F558D173E7E14002091B3 /* tocsym.c */,
+				7A8F558E173E7E14002091B3 /* toctype.c */,
+				7A8F558F173E7E14002091B3 /* tocvdebug.c */,
+				7A8F5590173E7E14002091B3 /* todt.c */,
+				7A8F5591173E7E14002091B3 /* toelfdebug.c */,
+				7A8F5592173E7E14002091B3 /* toir.c */,
+				7A8F5593173E7E14002091B3 /* toobj.c */,
+				7A8F5594173E7E14002091B3 /* traits.c */,
+				7A8F5595173E7E14002091B3 /* typinf.c */,
+				7A8F5596173E7E14002091B3 /* unittests.c */,
+				7A8F5597173E7E14002091B3 /* utf.c */,
+				7A8F5598173E7E14002091B3 /* version.c */,
+			);
+			sourceTree = "<group>";
+		};
+		7A8F55BD173E7E5E002091B3 /* backend */ = {
+			isa = PBXGroup;
+			children = (
+				7A8F5653173E7E90002091B3 /* aa.h */,
+				7A8F5654173E7E90002091B3 /* bcomplex.h */,
+				7A8F5655173E7E90002091B3 /* cc.h */,
+				7A8F5656173E7E90002091B3 /* cdef.h */,
+				7A8F5657173E7E90002091B3 /* cdeflnx.h */,
+				7A8F5658173E7E90002091B3 /* cgcv.h */,
+				7A8F5659173E7E90002091B3 /* code_stub.h */,
+				7A8F565A173E7E90002091B3 /* code_x86.h */,
+				7A8F565B173E7E90002091B3 /* code.h */,
+				7A8F565C173E7E90002091B3 /* cv4.h */,
+				7A8F565D173E7E90002091B3 /* dt.h */,
+				7A8F565E173E7E90002091B3 /* dwarf.h */,
+				7A8F565F173E7E90002091B3 /* dwarf2.h */,
+				7A8F5660173E7E90002091B3 /* el.h */,
+				7A8F5661173E7E90002091B3 /* exh.h */,
+				7A8F5662173E7E90002091B3 /* global.h */,
+				7A8F5663173E7E90002091B3 /* go.h */,
+				7A8F5664173E7E90002091B3 /* iasm.h */,
+				7A8F5665173E7E90002091B3 /* mach.h */,
+				7A8F5666173E7E90002091B3 /* md5.h */,
+				7A8F5667173E7E90002091B3 /* melf.h */,
+				7A8F5668173E7E90002091B3 /* mscoff.h */,
+				7A8F5669173E7E90002091B3 /* obj.h */,
+				7A8F566A173E7E90002091B3 /* oper.h */,
+				7A8F566B173E7E90002091B3 /* outbuf.h */,
+				7A8F566C173E7E90002091B3 /* rtlsym.h */,
+				7A8F566D173E7E90002091B3 /* tassert.h */,
+				7A8F566E173E7E90002091B3 /* tinfo.h */,
+				7A8F566F173E7E90002091B3 /* token.h */,
+				7A8F5670173E7E90002091B3 /* ty.h */,
+				7A8F5671173E7E90002091B3 /* type.h */,
+				7A8F5672173E7E90002091B3 /* xmm.h */,
+				7A8F5619173E7E87002091B3 /* aa.c */,
+				7A8F561A173E7E87002091B3 /* backconfig.c */,
+				7A8F561B173E7E87002091B3 /* bcomplex.c */,
+				7A8F561C173E7E87002091B3 /* blockopt.c */,
+				7A8F561D173E7E87002091B3 /* cg.c */,
+				7A8F561E173E7E87002091B3 /* cg87.c */,
+				7A8F561F173E7E87002091B3 /* cgcod.c */,
+				7A8F5620173E7E87002091B3 /* cgcs.c */,
+				7A8F5621173E7E87002091B3 /* cgcv.c */,
+				7A8F5622173E7E87002091B3 /* cgelem.c */,
+				7A8F5623173E7E87002091B3 /* cgen.c */,
+				7A8F5624173E7E87002091B3 /* cgobj.c */,
+				7A8F5625173E7E87002091B3 /* cgreg.c */,
+				7A8F5626173E7E87002091B3 /* cgsched.c */,
+				7A8F5627173E7E87002091B3 /* cgxmm.c */,
+				7A8F5628173E7E87002091B3 /* cod1.c */,
+				7A8F5629173E7E87002091B3 /* cod2.c */,
+				7A8F562A173E7E87002091B3 /* cod3.c */,
+				7A8F562B173E7E87002091B3 /* cod4.c */,
+				7A8F562C173E7E87002091B3 /* cod5.c */,
+				7A8F562D173E7E87002091B3 /* code.c */,
+				7A8F562E173E7E87002091B3 /* cppman.c */,
+				7A8F562F173E7E87002091B3 /* cv8.c */,
+				7A8F5630173E7E87002091B3 /* debug.c */,
+				7A8F5631173E7E87002091B3 /* divcoeff.c */,
+				7A8F5632173E7E87002091B3 /* dt.c */,
+				7A8F5633173E7E87002091B3 /* dwarf.c */,
+				7A8F5634173E7E87002091B3 /* ee.c */,
+				7A8F5635173E7E87002091B3 /* el.c */,
+				7A8F5636173E7E87002091B3 /* elfobj.c */,
+				7A8F5637173E7E87002091B3 /* evalu8.c */,
+				7A8F5638173E7E87002091B3 /* gdag.c */,
+				7A8F5639173E7E87002091B3 /* gflow.c */,
+				7A8F563A173E7E87002091B3 /* glocal.c */,
+				7A8F563B173E7E87002091B3 /* gloop.c */,
+				7A8F563C173E7E87002091B3 /* go.c */,
+				7A8F563D173E7E87002091B3 /* gother.c */,
+				7A8F563E173E7E87002091B3 /* machobj.c */,
+				7A8F563F173E7E87002091B3 /* md5.c */,
+				7A8F5640173E7E87002091B3 /* mscoffobj.c */,
+				7A8F5641173E7E87002091B3 /* newman.c */,
+				7A8F5642173E7E87002091B3 /* nteh.c */,
+				7A8F5643173E7E87002091B3 /* optabgen.c */,
+				7A8F5644173E7E87002091B3 /* os.c */,
+				7A8F5645173E7E87002091B3 /* out.c */,
+				7A8F5646173E7E87002091B3 /* outbuf.c */,
+				7A8F5647173E7E87002091B3 /* pdata.c */,
+				7A8F5648173E7E87002091B3 /* ph2.c */,
+				7A8F5649173E7E87002091B3 /* platform_stub.c */,
+				7A8F564A173E7E87002091B3 /* ptrntab.c */,
+				7A8F564B173E7E87002091B3 /* rtlsym.c */,
+				7A8F564C173E7E87002091B3 /* strtold.c */,
+				7A8F564D173E7E87002091B3 /* symbol.c */,
+				7A8F564E173E7E87002091B3 /* ti_achar.c */,
+				7A8F564F173E7E87002091B3 /* ti_pvoid.c */,
+				7A8F5650173E7E87002091B3 /* type.c */,
+				7A8F5651173E7E87002091B3 /* util2.c */,
+				7A8F5652173E7E87002091B3 /* var.c */,
+			);
+			name = backend;
+			path = src/backend;
+			sourceTree = "<group>";
+		};
+		7A8F5673173E7EEB002091B3 /* root */ = {
+			isa = PBXGroup;
+			children = (
+				7A8F5695173E7F0A002091B3 /* aav.h */,
+				7A8F5696173E7F0A002091B3 /* async.h */,
+				7A8F5697173E7F0A002091B3 /* longdouble.h */,
+				7A8F5698173E7F0A002091B3 /* port.h */,
+				7A8F5699173E7F0A002091B3 /* rmem.h */,
+				7A8F569A173E7F0A002091B3 /* root.h */,
+				7A8F569B173E7F0A002091B3 /* speller.h */,
+				7A8F569C173E7F0A002091B3 /* stringtable.h */,
+				7A8F569D173E7F0A002091B3 /* thread.h */,
+				7A8F5689173E7F04002091B3 /* aav.c */,
+				7A8F568A173E7F04002091B3 /* array.c */,
+				7A8F568B173E7F04002091B3 /* async.c */,
+				7A8F568C173E7F04002091B3 /* dmgcmem.c */,
+				7A8F568D173E7F04002091B3 /* longdouble.c */,
+				7A8F568E173E7F04002091B3 /* man.c */,
+				7A8F568F173E7F04002091B3 /* port.c */,
+				7A8F5690173E7F04002091B3 /* response.c */,
+				7A8F5691173E7F04002091B3 /* rmem.c */,
+				7A8F5692173E7F04002091B3 /* root.c */,
+				7A8F5693173E7F04002091B3 /* speller.c */,
+				7A8F5694173E7F04002091B3 /* stringtable.c */,
+			);
+			name = root;
+			path = src/root;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXLegacyTarget section */
+		7A8F5502173E7CDD002091B3 /* dmd */ = {
+			isa = PBXLegacyTarget;
+			buildArgumentsString = "$(ACTION) -f posix.mak";
+			buildConfigurationList = 7A8F5505173E7CDD002091B3 /* Build configuration list for PBXLegacyTarget "dmd" */;
+			buildPhases = (
+			);
+			buildToolPath = /usr/bin/make;
+			buildWorkingDirectory = /Users/doob/development/d/dlang/dmd/src;
+			dependencies = (
+			);
+			name = dmd;
+			passBuildSettingsInEnvironment = 1;
+			productName = dmd;
+		};
+/* End PBXLegacyTarget section */
+
+/* Begin PBXProject section */
+		7A8F54FE173E7CDD002091B3 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				LastUpgradeCheck = 0460;
+				ORGANIZATIONNAME = org.dlang;
+			};
+			buildConfigurationList = 7A8F5501173E7CDD002091B3 /* Build configuration list for PBXProject "dmd" */;
+			compatibilityVersion = "Xcode 3.2";
+			developmentRegion = English;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+			);
+			mainGroup = 7A8F54FD173E7CDD002091B3;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				7A8F5502173E7CDD002091B3 /* dmd */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin XCBuildConfiguration section */
+		7A8F5503173E7CDD002091B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = NO;
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_DYNAMIC_NO_PIC = NO;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				GCC_PREPROCESSOR_DEFINITIONS = (
+					"DEBUG=1",
+					"$(inherited)",
+				);
+				GCC_SYMBOLS_PRIVATE_EXTERN = NO;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				ONLY_ACTIVE_ARCH = YES;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		7A8F5504173E7CDD002091B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = "$(ARCHS_STANDARD_64_BIT)";
+				CLANG_CXX_LANGUAGE_STANDARD = "gnu++0x";
+				CLANG_CXX_LIBRARY = "libc++";
+				CLANG_WARN_CONSTANT_CONVERSION = YES;
+				CLANG_WARN_EMPTY_BODY = YES;
+				CLANG_WARN_ENUM_CONVERSION = YES;
+				CLANG_WARN_INT_CONVERSION = YES;
+				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
+				COPY_PHASE_STRIP = YES;
+				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
+				GCC_C_LANGUAGE_STANDARD = gnu99;
+				GCC_ENABLE_OBJC_EXCEPTIONS = YES;
+				GCC_WARN_64_TO_32_BIT_CONVERSION = YES;
+				GCC_WARN_ABOUT_RETURN_TYPE = YES;
+				GCC_WARN_UNINITIALIZED_AUTOS = YES;
+				GCC_WARN_UNUSED_VARIABLE = YES;
+				MACOSX_DEPLOYMENT_TARGET = 10.8;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		7A8F5506173E7CDD002091B3 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				DEBUGGING_SYMBOLS = YES;
+				GCC_GENERATE_DEBUGGING_SYMBOLS = YES;
+				GCC_OPTIMIZATION_LEVEL = 0;
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Debug;
+		};
+		7A8F5507173E7CDD002091B3 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				OTHER_CFLAGS = "";
+				OTHER_LDFLAGS = "";
+				PRODUCT_NAME = "$(TARGET_NAME)";
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		7A8F5501173E7CDD002091B3 /* Build configuration list for PBXProject "dmd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A8F5503173E7CDD002091B3 /* Debug */,
+				7A8F5504173E7CDD002091B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		7A8F5505173E7CDD002091B3 /* Build configuration list for PBXLegacyTarget "dmd" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				7A8F5506173E7CDD002091B3 /* Debug */,
+				7A8F5507173E7CDD002091B3 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = 7A8F54FE173E7CDD002091B3 /* Project object */;
+}
