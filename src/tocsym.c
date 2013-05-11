@@ -184,7 +184,7 @@ Symbol *VarDeclaration::toSymbol()
         }
         else if (isParameter())
         {
-            if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
+            if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
             {
                 // should be TYref, but problems in back end
                 t = type_pointer(type->toCtype());

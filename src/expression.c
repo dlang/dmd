@@ -557,7 +557,7 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
             {   TypeAArray *taa = (TypeAArray *)t;
                 assert(taa->ty == Taarray);
                 StructDeclaration *sd = taa->getImpl();
-                Dsymbol *s = sd->search(0, ident, 2);
+                Dsymbol *s = sd->search(Loc(), ident, 2);
                 if (s)
                     return NULL;
             }
@@ -868,7 +868,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
      */
     //printf("arrayExpressionToCommonType()\n");
     IntegerExp integerexp(0);
-    CondExp condexp(0, &integerexp, NULL, NULL);
+    CondExp condexp(Loc(), &integerexp, NULL, NULL);
 
     Type *t0 = NULL;
     Expression *e0;
@@ -1090,7 +1090,7 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
              * directly onto the stack.
              */
             Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(0, e));
+            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(Loc(), e));
             tmp->storage_class |= STCctfe;
             tmp->noscope = noscope;
             Expression *ae = new DeclarationExp(loc, tmp);
@@ -1245,7 +1245,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         v->parent = sc->parent;
                         //sc->insert(v);
 
-                        Expression *c = new DeclarationExp(0, v);
+                        Expression *c = new DeclarationExp(Loc(), v);
                         c->type = v->type;
 
                         for (size_t u = i; u < nargs; u++)
@@ -2395,7 +2395,7 @@ IntegerExp::IntegerExp(Loc loc, dinteger_t value, Type *type)
 }
 
 IntegerExp::IntegerExp(dinteger_t value)
-        : Expression(0, TOKint64, sizeof(IntegerExp))
+        : Expression(Loc(), TOKint64, sizeof(IntegerExp))
 {
     this->type = Type::tint32;
     this->value = value;
@@ -2677,7 +2677,7 @@ void IntegerExp::toMangleBuffer(OutBuffer *buf)
  */
 
 ErrorExp::ErrorExp()
-    : IntegerExp(0, 0, Type::terror)
+    : IntegerExp(Loc(), 0, Type::terror)
 {
     op = TOKerror;
 }
@@ -4427,7 +4427,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     if (sd->dtor && sc->func)
     {
         Identifier *idtmp = Lexer::uniqueId("__sl");
-        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(0, this));
+        VarDeclaration *tmp = new VarDeclaration(loc, type, idtmp, new ExpInitializer(Loc(), this));
         tmp->storage_class |= STCctfe;
         Expression *ae = new DeclarationExp(loc, tmp);
         Expression *e = new CommaExp(loc, ae, new VarExp(loc, tmp));
@@ -8087,7 +8087,7 @@ Lagain:
             {
                 if (ad->scope)
                     ad->semantic(ad->scope);
-                else if (!ad->ctor && ad->search(0, Id::ctor, 0))
+                else if (!ad->ctor && ad->search(Loc(), Id::ctor, 0))
                 {
                     // The constructor hasn't been found yet, see bug 8741
                     // This can happen if we are inferring type from
@@ -9187,7 +9187,7 @@ Expression *DeleteExp::semantic(Scope *sc)
 
                 if (fd)
                 {   Expression *e = ea ? new VarExp(loc, v) : e1;
-                    e = new DotVarExp(0, e, fd, 0);
+                    e = new DotVarExp(Loc(), e, fd, 0);
                     eb = new CallExp(loc, e);
                     eb = eb->semantic(sc);
                 }
@@ -10847,7 +10847,7 @@ Ltupleassign:
                 Type * aaValueType = ((TypeAArray *)((IndexExp*)e1)->e1->type->toBasetype())->next;
                 Identifier *id = Lexer::uniqueId("__aatmp");
                 VarDeclaration *v = new VarDeclaration(loc, aaValueType,
-                    id, new VoidInitializer(0));
+                    id, new VoidInitializer(Loc()));
                 v->storage_class |= STCctfe;
                 v->semantic(sc);
                 v->parent = sc->parent;
@@ -11215,7 +11215,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         (e2->implicitConvTo(e1->type)
 #if DMDV2
          || (tb2->nextOf()->implicitConvTo(tb1next) &&
-             (tb2->nextOf()->size(0) == tb1next->size(0) ||
+             (tb2->nextOf()->size(Loc()) == tb1next->size(Loc()) ||
              tb1next->ty == Tchar || tb1next->ty == Twchar || tb1next->ty == Tdchar))
 #endif
         )
@@ -11512,7 +11512,7 @@ Expression *MinExp::semantic(Scope *sc)
             }
             else
             {
-                e = new DivExp(loc, this, new IntegerExp(0, stride, Type::tptrdiff_t));
+                e = new DivExp(loc, this, new IntegerExp(Loc(), stride, Type::tptrdiff_t));
                 e->type = Type::tptrdiff_t;
             }
             return e;
@@ -11955,7 +11955,7 @@ Expression *PowExp::semantic(Scope *sc)
             // Replace x^^2 with (tmp = x, tmp*tmp)
             // Replace x^^3 with (tmp = x, tmp*tmp*tmp)
             Identifier *idtmp = Lexer::uniqueId("__powtmp");
-            VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(0, e1));
+            VarDeclaration *tmp = new VarDeclaration(loc, e1->type->toBasetype(), idtmp, new ExpInitializer(Loc(), e1));
             tmp->storage_class = STCctfe;
             Expression *ve = new VarExp(loc, tmp);
             Expression *ae = new DeclarationExp(loc, tmp);
@@ -12992,7 +12992,7 @@ Expression *FuncInitExp::semantic(Scope *sc)
 {
     //printf("FuncInitExp::semantic()\n");
     type = Type::tstring;
-    if (sc->func) return this->resolveLoc(0, sc);
+    if (sc->func) return this->resolveLoc(Loc(), sc);
     return this;
 }
 
@@ -13022,7 +13022,7 @@ Expression *PrettyFuncInitExp::semantic(Scope *sc)
 {
     //printf("PrettyFuncInitExp::semantic()\n");
     type = Type::tstring;
-    if (sc->func) return this->resolveLoc(0, sc);
+    if (sc->func) return this->resolveLoc(Loc(), sc);
     return this;
 }
 
@@ -13082,7 +13082,7 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
         if (ae->lengthVar)
         {   // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
-            e = new CommaExp(0, de, e);
+            e = new CommaExp(Loc(), de, e);
             e = e->semantic(sc);
         }
         (*ae->arguments)[i] = e;
@@ -13122,7 +13122,7 @@ SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
     if (se->lengthVar)
     {   // If $ was used, declare it now
         Expression *de = new DeclarationExp(se->loc, se->lengthVar);
-        se->lwr = new CommaExp(0, de, se->lwr);
+        se->lwr = new CommaExp(Loc(), de, se->lwr);
         se->lwr = se->lwr->semantic(sc);
     }
     sc = sc->pop();

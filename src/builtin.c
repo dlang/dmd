@@ -163,27 +163,27 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
     {
         case BUILTINsin:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sinl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), sinl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINcos:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, cosl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), cosl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINtan:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, tanl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), tanl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINsqrt:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sqrtl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), sqrtl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINfabs:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, fabsl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), fabsl(arg0->toReal()), arg0->type);
             break;
         // These math intrinsics are not yet implemented
         case BUILTINatan2:

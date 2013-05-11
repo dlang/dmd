@@ -2625,7 +2625,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             // f() = e2, when f returns an array, is always a slice assignment.
             // Convert into arr[0..arr.length] = e2
             e1 = new SliceExp(loc, e1,
-                new IntegerExp(0, 0, Type::tsize_t),
+                new IntegerExp(Loc(), 0, Type::tsize_t),
                 ArrayLength(Type::tsize_t, e1));
             e1->type = type;
         }

@@ -77,7 +77,7 @@ char *Initializer::toChars()
 /********************************** ErrorInitializer ***************************/
 
 ErrorInitializer::ErrorInitializer()
-    : Initializer(0)
+    : Initializer(Loc())
 {
 }
 
@@ -276,7 +276,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
          */
         Parameters *arguments = new Parameters;
         Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
-        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
+        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, TOKdelegate, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
