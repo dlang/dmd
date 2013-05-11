@@ -141,20 +141,3 @@ void Mem::addroots(char* pStart, char* pEnd)
 
 
 /* =================================================== */
-
-void * operator new(size_t m_size)
-{
-    void *p = malloc(m_size);
-    if (p)
-        return p;
-    printf("Error: out of memory\n");
-    exit(EXIT_FAILURE);
-    return p;
-}
-
-void operator delete(void *p)
-{
-    free(p);
-}
-
-
