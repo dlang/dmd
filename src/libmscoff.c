@@ -295,6 +295,8 @@ void LibMSCoff::addSymbol(ObjModule *om, char *name, int pickAny)
  * Send those symbols to LibMSCoff::addSymbol().
  */
 
+extern void scanMSCoffObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+
 void LibMSCoff::scanObjModule(ObjModule *om)
 {
 #if LOG
@@ -320,7 +322,6 @@ void LibMSCoff::scanObjModule(ObjModule *om)
 
     Context ctx(this, om);
 
-    extern void scanMSCoffObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
     scanMSCoffObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 

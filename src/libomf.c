@@ -191,6 +191,8 @@ void LibOMF::addSymbol(ObjModule *om, char *name, int pickAny)
  * Send those symbols to LibOMF::addSymbol().
  */
 
+extern void scanOmfObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
+
 void LibOMF::scanObjModule(ObjModule *om)
 {
 #if LOG
@@ -215,8 +217,6 @@ void LibOMF::scanObjModule(ObjModule *om)
     };
 
     Context ctx(this, om);
-
-    extern void scanOmfObjModule(void*, void (*pAddSymbol)(void*, char*, int), void *, size_t, const char *, Loc loc);
     scanOmfObjModule(&ctx, &Context::addSymbol, om->base, om->length, om->name, loc);
 }
 
@@ -226,6 +226,8 @@ void LibOMF::scanObjModule(ObjModule *om)
  * If the buffer is NULL, use module_name as the file name
  * and load the file.
  */
+
+extern bool scanOmfLib(void*, void (*pAddObjModule)(void*, char*, void *, size_t), void *, size_t, unsigned);
 
 void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 {
@@ -345,7 +347,6 @@ void LibOMF::addObject(const char *module_name, void *buf, size_t buflen)
 
     Context ctx(this, pstart, g_page_size, islibrary, module_name);
 
-    extern bool scanOmfLib(void*, void (*pAddObjModule)(void*, char*, void *, size_t), void *, size_t, unsigned);
     if (scanOmfLib(&ctx, &Context::addObjModule, buf, buflen, g_page_size))
         goto Lcorrupt;
 }
