@@ -168,6 +168,8 @@ GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
 	libomf.obj scanomf.obj iasm.obj
 
+#GLUEOBJ=gluestub.obj
+
 # D back end
 BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 	newman.obj glocal.obj os.obj nteh.obj evalu8.obj cgcs.obj \
@@ -212,7 +214,7 @@ GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c
+	tk.c eh.c gluestub.c
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -554,6 +556,9 @@ gloop.obj : $C\gloop.c
 
 glue.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h glue.c
 	$(CC) -c $(MFLAGS) -I$(ROOT) glue
+
+gluestub.obj : $(CH) $(TOTALH) $C\rtlsym.h mars.h module.h gluestub.c
+	$(CC) -c $(MFLAGS) -I$(ROOT) gluestub
 
 imphint.obj : imphint.c
 	$(CC) -c $(CFLAGS) $*
