@@ -265,7 +265,7 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
+                error(Loc(), "error writing file %s", lnkfilename);
             if (strlen(lnkfilename) < plen)
                 sprintf(p, "@%s", lnkfilename);
         }
@@ -410,7 +410,7 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
+                error(Loc(), "error writing file %s", lnkfilename);
             if (strlen(lnkfilename) < plen)
                 sprintf(p, "@%s", lnkfilename);
         }
@@ -654,7 +654,7 @@ int runLINK()
             else
             {
                 printf("--- errorlevel %d\n", status);
-                if (nme == 1) error(0, "no main function specified");
+                if (nme == 1) error(Loc(), "no main function specified");
             }
         }
     }
@@ -724,7 +724,7 @@ int executecmd(char *cmd, char *args, int useenv)
         else
         {
         L1:
-            error(0, "command line length of %d is too long",len);
+            error(Loc(), "command line length of %d is too long",len);
             }
         }
     }

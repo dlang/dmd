@@ -93,7 +93,7 @@ unsigned Target::alignsize (Type* type)
         default:
             break;
     }
-    return type->size(0);
+    return type->size(Loc());
 }
 
 /******************************

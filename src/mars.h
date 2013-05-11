@@ -372,12 +372,6 @@ struct Loc
         filename = NULL;
     }
 
-    Loc(int x)
-    {
-        linnum = x;
-        filename = NULL;
-    }
-
     Loc(Module *mod, unsigned linnum);
 
     char *toChars();

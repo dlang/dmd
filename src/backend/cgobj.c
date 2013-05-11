@@ -2248,7 +2248,7 @@ size_t Obj::mangle(Symbol *s,char *dest)
 #if SCPP
             synerr(EM_identifier_too_long, name, len - IDMAX, IDMAX);
 #elif MARS
-//          error(0, "identifier %s is too long by %d characters", name, len - IDMAX);
+//          error(Loc(), "identifier %s is too long by %d characters", name, len - IDMAX);
 #else
             assert(0);
 #endif
