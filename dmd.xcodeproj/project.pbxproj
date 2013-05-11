@@ -697,7 +697,7 @@
 			buildPhases = (
 			);
 			buildToolPath = /usr/bin/make;
-			buildWorkingDirectory = /Users/doob/development/d/dlang/dmd/src;
+			buildWorkingDirectory = "$(SRCROOT)/src";
 			dependencies = (
 			);
 			name = dmd;
