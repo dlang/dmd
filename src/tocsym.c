@@ -272,9 +272,25 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKcpp:
+            {
                 m = mTYman_cpp;
-                break;
 
+                s->Sflags = SFLpublic;
+                Dsymbol *parent = toParent();
+                ClassDeclaration *cd = parent->isClassDeclaration();
+                if (cd)
+                {
+                    ::type *tc = cd->type->toCtype();
+                    s->Sscope = tc->Tnext->Ttag;
+                }
+                StructDeclaration *sd = parent->isStructDeclaration();
+                if (sd)
+                {
+                    ::type *ts = sd->type->toCtype();
+                    s->Sscope = ts->Ttag;
+                }
+                break;
+            }
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
@@ -412,6 +428,12 @@ Symbol *FuncDeclaration::toSymbol()
                     {
                         ::type *tc = cd->type->toCtype();
                         s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
                     }
                     break;
                 }
