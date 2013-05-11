@@ -1618,7 +1618,6 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
 /******************************** Expression **************************/
 
 Expression::Expression(Loc loc, enum TOK op, int size)
-    : loc(loc)
 {
     //printf("Expression::Expression(op = %d) this = %p\n", op, this);
     this->loc = loc;
