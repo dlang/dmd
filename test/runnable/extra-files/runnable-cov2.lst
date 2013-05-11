@@ -27,7 +27,7 @@
       1|    bool opEquals(ref const S2) const { return true; }
        |}
        |struct T2
-      6|{
+       |{
        |    S2 s;
        |
       2|    this(this) { int x = 1; }

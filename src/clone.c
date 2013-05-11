@@ -671,9 +671,11 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
-    Expression *e = NULL;
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = dtors.dim ? dtors[0]->loc : this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    Expression *e = NULL;
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
@@ -730,7 +732,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(loc, Loc(), stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
         dtors.shift(dd);
         members->push(dd);
@@ -763,7 +765,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(loc, Loc(), stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
