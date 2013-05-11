@@ -498,6 +498,8 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = postblit->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     stc = mergeFuncAttrs(stc, postblit->storage_class);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
@@ -508,7 +510,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     Type *ftype = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
     ftype->mod = MODconst;
 
-    FuncDeclaration *fcp = new FuncDeclaration(loc, Loc(), Id::cpctor, stc, ftype);
+    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, ftype);
 
     if (!(stc & STCdisable))
     {
