@@ -178,13 +178,16 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
+    StorageClass stc = STCundefined;
+    Loc declLoc = this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
     ((TypeFunction *)ftype)->isref = 1;
 
-    FuncDeclaration *fop = new FuncDeclaration(loc, Loc(), Id::assign, STCundefined, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, ftype);
 
     Expression *e = NULL;
     if (dtor || postblit)
