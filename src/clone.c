@@ -178,13 +178,16 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
+    StorageClass stc = STCundefined;
+    Loc declLoc = this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
     Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
     ((TypeFunction *)ftype)->isref = 1;
 
-    FuncDeclaration *fop = new FuncDeclaration(loc, Loc(), Id::assign, STCundefined, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, ftype);
 
     Expression *e = NULL;
     if (dtor || postblit)
@@ -495,6 +498,8 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     //printf("StructDeclaration::buildCpCtor() %s\n", toChars());
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = postblit->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
     stc = mergeFuncAttrs(stc, postblit->storage_class);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
@@ -505,7 +510,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
     Type *ftype = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
     ftype->mod = MODconst;
 
-    FuncDeclaration *fcp = new FuncDeclaration(loc, Loc(), Id::cpctor, stc, ftype);
+    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, ftype);
 
     if (!(stc & STCdisable))
     {
@@ -553,9 +558,11 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
-    Expression *e = NULL;
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = postblits.dim ? postblits[0]->loc : this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    Expression *e = NULL;
     for (size_t i = 0; i < fields.dim; i++)
     {
         Dsymbol *s = fields[i];
@@ -611,7 +618,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(loc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(loc, e);
         postblits.shift(dd);
         members->push(dd);
@@ -643,7 +650,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(loc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
             dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
@@ -664,9 +671,11 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
 {
     //printf("AggregateDeclaration::buildDtor() %s\n", toChars());
-    Expression *e = NULL;
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = dtors.dim ? dtors[0]->loc : this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    Expression *e = NULL;
 #if DMDV2
     for (size_t i = 0; i < fields.dim; i++)
     {
@@ -723,7 +732,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldDtor()\n");
-        DtorDeclaration *dd = new DtorDeclaration(loc, Loc(), stc, Lexer::idPool("__fieldDtor"));
+        DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldDtor"));
         dd->fbody = new ExpStatement(loc, e);
         dtors.shift(dd);
         members->push(dd);
@@ -756,7 +765,7 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(ex, e);
             }
-            DtorDeclaration *dd = new DtorDeclaration(loc, Loc(), stc, Lexer::idPool("__aggrDtor"));
+            DtorDeclaration *dd = new DtorDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrDtor"));
             dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
