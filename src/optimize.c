@@ -23,7 +23,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "init.h"
-
+#include "enum.h"
 
 #ifdef IN_GCC
 #include "d-gcc-real.h"
@@ -616,7 +616,7 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
 
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
         (type->ty == Tpointer || type->ty == Tarray) &&
-        e1->type->nextOf()->size() == type->nextOf()->size()
+        e1->type->toBasetype()->nextOf()->size() == type->nextOf()->size()
        )
     {
         Expression *e = e1->castTo(NULL, type);

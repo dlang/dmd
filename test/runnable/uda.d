@@ -139,7 +139,7 @@ void test7()
 
     if (!is(Test7 == typeof(tp[0])))
         assert(0);
-    
+
     assert(tp[0] == Test7(3, "foo"));
 }
 
@@ -260,6 +260,64 @@ void test9178()
     Foo foo = new Foo;
     static assert(__traits(getAttributes, foo.tupleof[0])[0] == 1);
 }
+
+/************************************************/
+// 9741
+
+struct Bug9741
+{
+    pragma(msg, __traits(getAttributes, enum_field));
+    alias Tuple!(__traits(getAttributes, enum_field)) Tenum_field;
+    private @(10) enum enum_field = 42;
+
+    static assert(Tenum_field[0] == 10);
+    static assert(__traits(getAttributes, enum_field)[0] == 10);
+    static assert(__traits(getProtection, enum_field) == "private");
+    static assert(__traits(isSame, __traits(parent, enum_field), Bug9741));
+    static assert(__traits(isSame, enum_field, enum_field));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member));
+    alias Tuple!(__traits(getAttributes, anon_enum_member)) Tanon_enum_member;
+    private @(20) enum {anon_enum_member}
+
+    static assert(Tanon_enum_member[0] == 20);
+    static assert(__traits(getAttributes, anon_enum_member)[0] == 20);
+    static assert(__traits(getProtection, anon_enum_member) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member), Bug9741));
+    static assert(__traits(isSame, anon_enum_member, anon_enum_member));
+
+    pragma(msg, __traits(getAttributes, Foo.enum_member));
+    alias Tuple!(__traits(getAttributes, Foo.enum_member)) Tfoo_enum_member;
+    private @(30) enum Foo {enum_member}
+    static assert(Tfoo_enum_member.length == 0); //Foo has attributes, not Foo.enum_member
+    static assert(__traits(getAttributes, Foo.enum_member).length == 0);
+    static assert(__traits(getProtection, Foo.enum_member) == "public");
+    static assert(__traits(isSame, __traits(parent, Foo.enum_member), Foo));
+    static assert(__traits(isSame, Foo.enum_member, Foo.enum_member));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member_2));
+    alias Tuple!(__traits(getAttributes, anon_enum_member_2)) Tanon_enum_member_2;
+    private @(40) enum {long anon_enum_member_2 = 2L}
+
+    static assert(Tanon_enum_member_2[0] == 40);
+    static assert(__traits(getAttributes, anon_enum_member_2)[0] == 40);
+    static assert(__traits(getProtection, anon_enum_member_2) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member_2), Bug9741));
+    static assert(__traits(isSame, anon_enum_member_2, anon_enum_member_2));
+
+    template Bug(alias X, bool is_exp)
+    {
+        static assert(is_exp == !__traits(compiles, __traits(parent, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getAttributes, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getProtection, X)));
+        enum Bug = 0;
+    }
+    enum en = 0;
+    enum dummy1 = Bug!(5, true);
+    enum dummy2 = Bug!(en, false);
+}
+
+
 
 /************************************************/
 
