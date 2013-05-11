@@ -1915,6 +1915,11 @@ int VarDeclaration::needThis()
     return isField();
 }
 
+int VarDeclaration::isExport()
+{
+    return protection == PROTexport;
+}
+
 int VarDeclaration::isImportedSymbol()
 {
     if (protection == PROTexport && !init &&
