@@ -68,8 +68,8 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         Expression *er = new NullExp(loc, type);        // dummy rvalue
         Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
         el->type = type;
-        Expressions ar;  ar.push(er);
-        Expressions al;  al.push(el);
+        Expressions *a = new Expressions();
+        a->setDim(1);
         FuncDeclaration *f = NULL;
 
         unsigned errors = global.startGagging();    // Do not report errors, even if the
@@ -78,8 +78,13 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpAssign(Scope *sc)
         sc = sc->push();
         sc->speculative = true;
 
-                 f = resolveFuncCall(loc, sc, assign, NULL, type, &ar, 1);
-        if (!f)  f = resolveFuncCall(loc, sc, assign, NULL, type, &al, 1);
+        for (size_t i = 0; i < 2; i++)
+        {
+            (*a)[0] = (i == 0 ? er : el);
+            f = resolveFuncCall(loc, sc, assign, NULL, type, a, 1);
+            if (f)
+                break;
+        }
 
         sc = sc->pop();
         global.speculativeGag = oldspec;
@@ -359,6 +364,10 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
     {
         /* check identity opEquals exists
          */
+        Expression *er = new NullExp(loc, NULL);        // dummy rvalue
+        Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
+        Expressions *a = new Expressions();
+        a->setDim(1);
         for (size_t i = 0; ; i++)
         {
             Type *tthis;
@@ -368,11 +377,6 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             if (i == 3) tthis = type->sharedOf();
             if (i == 4) tthis = type->sharedConstOf();
             if (i == 5) break;
-            Expression *er = new NullExp(loc, tthis);       // dummy rvalue
-            Expression *el = new IdentifierExp(loc, Id::p); // dummy lvalue
-            el->type = tthis;
-            Expressions ar;  ar.push(er);
-            Expressions al;  al.push(el);
             FuncDeclaration *f = NULL;
 
             unsigned errors = global.startGagging();    // Do not report errors, even if the
@@ -381,8 +385,14 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
             sc = sc->push();
             sc->speculative = true;
 
-                     f = resolveFuncCall(loc, sc, eq, NULL, tthis, &ar, 1);
-            if (!f)  f = resolveFuncCall(loc, sc, eq, NULL, tthis, &al, 1);
+            for (size_t j = 0; j < 2; j++)
+            {
+                (*a)[0] = (j == 0 ? er : el);
+                (*a)[0]->type = tthis;
+                f = resolveFuncCall(loc, sc, eq, NULL, tthis, a, 1);
+                if (f)
+                    break;
+            }
 
             sc = sc->pop();
             global.speculativeGag = oldspec;
