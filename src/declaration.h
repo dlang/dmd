@@ -298,6 +298,7 @@ struct VarDeclaration : Declaration
     Initializer *hinit;
     AggregateDeclaration *isThis();
     int needThis();
+    int isExport();
     int isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
@@ -309,7 +310,7 @@ struct VarDeclaration : Declaration
 #endif
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
-    Expression *getConstInitializer();
+    Expression *getConstInitializer(bool needFullType = true);
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
@@ -328,10 +329,9 @@ struct VarDeclaration : Declaration
 
 struct SymbolDeclaration : Declaration
 {
-    Symbol *sym;
     StructDeclaration *dsym;
 
-    SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym);
+    SymbolDeclaration(Loc loc, StructDeclaration *dsym);
 
     Symbol *toSymbol();
 

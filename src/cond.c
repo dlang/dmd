@@ -52,7 +52,7 @@ Condition::Condition(Loc loc)
 /* ============================================================ */
 
 DVCondition::DVCondition(Module *mod, unsigned level, Identifier *ident)
-        : Condition(0)
+        : Condition(Loc())
 {
     this->mod = mod;
     this->level = level;
@@ -127,20 +127,83 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
 {
     static const char* reserved[] =
     {
-        "DigitalMars", "X86", "X86_64",
-        "Windows", "Win32", "Win64",
+        "DigitalMars",
+        "GNU",
+        "LDC",
+        "SDC",
+        "Windows",
+        "Win32",
+        "Win64",
         "linux",
-#if DMDV2
-        /* Although Posix is predefined by D1, disallowing its
-         * redefinition breaks makefiles and older builds.
-         */
-        "Posix",
-        "D_NET",
-#endif
-        "OSX", "FreeBSD",
+        "OSX",
+        "FreeBSD",
         "OpenBSD",
+        "NetBSD",
+        "DragonFlyBSD",
+        "BSD",
         "Solaris",
-        "LittleEndian", "BigEndian",
+        "Posix",
+        "AIX",
+        "Haiku",
+        "SkyOS",
+        "SysV3",
+        "SysV4",
+        "Hurd",
+        "Android",
+        "Cygwin",
+        "MinGW",
+        "X86",
+        "X86_64",
+        "ARM",
+        "ARM_Thumb",
+        "ARM_SoftFloat",
+        "ARM_SoftFP",
+        "ARM_HardFloat",
+        "AArch64",
+        "PPC",
+        "PPC_SoftFloat",
+        "PPC_HardFloat",
+        "PPC64",
+        "IA64",
+        "MIPS32",
+        "MIPS64",
+        "MIPS_O32",
+        "MIPS_N32",
+        "MIPS_O64",
+        "MIPS_N64",
+        "MIPS_EABI",
+        "MIPS_SoftFloat",
+        "MIPS_HardFloat",
+        "SPARC",
+        "SPARC_V8Plus",
+        "SPARC_SoftFloat",
+        "SPARC_HardFloat",
+        "SPARC64",
+        "S390",
+        "S390X",
+        "HPPA",
+        "HPPA64",
+        "SH",
+        "SH64",
+        "Alpha",
+        "Alpha_SoftFloat",
+        "Alpha_HardFloat",
+        "LittleEndian",
+        "BigEndian",
+        "D_Coverage",
+        "D_Ddoc",
+        "D_InlineAsm_X86",
+        "D_InlineAsm_X86_64",
+        "D_LP64",
+        "D_X32",
+        "D_HardFloat",
+        "D_SoftFloat",
+        "D_PIC",
+        "D_SIMD",
+        "D_Version2",
+        "D_NoBoundsChecks",
+        "unittest",
+        "assert",
         "all",
         "none",
     };
@@ -162,7 +225,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
 
 void VersionCondition::addGlobalIdent(const char *ident)
 {
-    checkPredefined(0, ident);
+    checkPredefined(Loc(), ident);
     addPredefinedGlobalIdent(ident);
 }
 
@@ -290,7 +353,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
 
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    buf->writestring("static if(");
+    buf->writestring("static if (");
     exp->toCBuffer(buf, hgs);
     buf->writeByte(')');
 }

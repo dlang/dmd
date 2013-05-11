@@ -69,12 +69,12 @@ void main(string[] args) nothrow
             static assert(getTemplCallingModule() == "Fix5140");
             static assert(getCalleeModule() == "imports.Fix5140a");
 
-            static assert(getCallingFunc() == "Fix5140.main.S.func!(\"foo\", int, symbol, int[],float[]).func");
-            static assert(getTemplCallingFunc() == "Fix5140.main.S.func!(\"foo\", int, symbol, int[],float[]).func");
+            static assert(getCallingFunc() == "Fix5140.main.S.func!(\"foo\", int, symbol, int[], float[]).func");
+            static assert(getTemplCallingFunc() == "Fix5140.main.S.func!(\"foo\", int, symbol, int[], float[]).func");
             static assert(getCalleeFunc() == "imports.Fix5140a.getCalleeFunc");
 
-            static assert(getCallingPrettyFunc() == "void Fix5140.main.S.func!(\"foo\", int, symbol, int[],float[]).func(int x) const");
-            static assert(getTemplCallingPrettyFunc() == "void Fix5140.main.S.func!(\"foo\", int, symbol, int[],float[]).func(int x) const");
+            static assert(getCallingPrettyFunc() == "void Fix5140.main.S.func!(\"foo\", int, symbol, int[], float[]).func(int x) const");
+            static assert(getTemplCallingPrettyFunc() == "void Fix5140.main.S.func!(\"foo\", int, symbol, int[], float[]).func(int x) const");
             static assert(getCalleePrettyFunc(1, 1.0) == "string imports.Fix5140a.getCalleePrettyFunc(int x, float y)");
         }
     }

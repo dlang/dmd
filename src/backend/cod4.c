@@ -1480,7 +1480,7 @@ code *cdmulass(elem *e,regm_t *pretregs)
         cs.Irm |= modregrm(0,DX,0);
         gen(cl,&cs);                    /* MOV DX,EA+2                  */
         getlvalue_lsw(&cs);
-        retregs = 0;
+        retregs = mDX | mAX;
         if (config.target_cpu >= TARGET_PentiumPro && op == OPmulass)
         {
             /*  IMUL    ECX,EAX
@@ -1495,21 +1495,21 @@ code *cdmulass(elem *e,regm_t *pretregs)
              gen2(c,0x03,modregrm(3,CX,DX));
              gen2(c,0xF7,modregrm(3,4,BX));
              gen2(c,0x03,modregrm(3,DX,CX));
-             retregs = mDX | mAX;
         }
         else
+        {   if (op == OPmodass)
+                retregs = mBX | mCX;
             c = callclib(e,lib,&retregs,idxregm(&cs));
-        reg = (op == OPmodass) ? BX : AX;
-        retregs = mask[reg];
+        }
+        reg = findreglsw(retregs);
         cs.Iop = 0x89;
         NEWREG(cs.Irm,reg);
         gen(c,&cs);                     /* MOV EA,lsreg                 */
-        reg = (op == OPmodass) ? CX : DX;
-        retregs |= mask[reg];
+        reg = findregmsw(retregs);
         NEWREG(cs.Irm,reg);
         getlvalue_msw(&cs);
         gen(c,&cs);                     /* MOV EA+2,msreg               */
-        if (e1->Ecount)         /* if we gen a CSE              */
+        if (e1->Ecount)                 // if we gen a CSE
                 cssave(e1,retregs,EOP(e1));
         freenode(e1);
         cg = fixresult(e,retregs,pretregs);

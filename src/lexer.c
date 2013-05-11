@@ -90,7 +90,7 @@ void *Token::operator new(size_t size)
 #ifdef DEBUG
 void Token::print()
 {
-    fprintf(stdmsg, "%s\n", toChars());
+    fprintf(stderr, "%s\n", toChars());
 }
 #endif
 
@@ -672,7 +672,7 @@ void Lexer::scan(Token *t)
                     }
                     else if (id == Id::VENDOR)
                     {
-                        t->ustring = (unsigned char *)"Digital Mars D";
+                        t->ustring = (unsigned char *)global.compiler.vendor;
                         goto Lstr;
                     }
                     else if (id == Id::TIMESTAMP)
@@ -1907,7 +1907,9 @@ TOK Lexer::number(Token *t)
     enum STATE state;
 
     enum FLAGS
-    {   FLAGS_decimal  = 1,             // decimal
+    {
+        FLAGS_none     = 0,
+        FLAGS_decimal  = 1,             // decimal
         FLAGS_unsigned = 2,             // u or U suffix
         FLAGS_long     = 4,             // l or L suffix
     };
@@ -2171,7 +2173,7 @@ done:
 
     switch (flags)
     {
-        case 0:
+        case FLAGS_none:
             /* Octal or Hexadecimal constant.
              * First that fits: int, uint, long, ulong
              */
@@ -2952,7 +2954,7 @@ void Lexer::initKeywords()
 {
     size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
-    stringtable.init(6151);
+    stringtable._init(6151);
 
     if (global.params.Dversion == 1)
         nkeywords -= 2;

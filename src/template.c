@@ -182,14 +182,7 @@ Expression *getValue(Expression *e)
         VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
         if (v && v->storage_class & STCmanifest)
         {
-            if (v->scope)
-            {
-                v->inuse++;
-                v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
-                v->inuse--;
-            }
-            e = v->init->toExpression(v->type);
+            e = v->getConstInitializer();
         }
     }
     return e;
@@ -202,14 +195,7 @@ Expression *getValue(Dsymbol *&s)
         VarDeclaration *v = s->isVarDeclaration();
         if (v && v->storage_class & STCmanifest)
         {
-            if (v->scope)
-            {
-                v->inuse++;
-                v->init->semantic(v->scope, v->type, INITinterpret);
-                v->scope = NULL;
-                v->inuse--;
-            }
-            e = v->init->toExpression(v->type);
+            e = v->getConstInitializer();
         }
     }
     return e;
@@ -369,7 +355,7 @@ void ObjectToCBuffer(OutBuffer *buf, HdrGenState *hgs, Object *oarg)
         for (size_t i = 0; i < args->dim; i++)
         {
             if (i)
-                buf->writeByte(',');
+                buf->writestring(", ");
             Object *o = (*args)[i];
             ObjectToCBuffer(buf, hgs, o);
         }
@@ -926,7 +912,7 @@ MATCH TemplateDeclaration::leastAsSpecialized(TemplateDeclaration *td2, Expressi
      * as td2.
      */
 
-    TemplateInstance ti(0, ident);      // create dummy template instance
+    TemplateInstance ti(Loc(), ident);      // create dummy template instance
     Objects dedtypes;
 
 #define LOG_LEASTAS     0
@@ -1190,7 +1176,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(Loc loc, Scope *sc, Objec
             if (ttp)
             {   hasttp = true;
 
-                Type *t = new TypeIdentifier(0, ttp->ident);
+                Type *t = new TypeIdentifier(Loc(), ttp->ident);
                 MATCH m = tthis->deduceType(paramscope, t, parameters, &dedtypes);
                 if (!m)
                     goto Lnomatch;
@@ -1725,7 +1711,7 @@ Lretry:
                         }
                         else
                         {
-                            Type *vt = tvp->valType->semantic(0, sc);
+                            Type *vt = tvp->valType->semantic(Loc(), sc);
                             MATCH m = (MATCH)dim->implicitConvTo(vt);
                             if (!m)
                                 goto Lnomatch;
@@ -1989,12 +1975,12 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
     if (targ)
     {
         //printf("type %s\n", targ->toChars());
-        s = new AliasDeclaration(0, tp->ident, targ);
+        s = new AliasDeclaration(Loc(), tp->ident, targ);
     }
     else if (sa)
     {
         //printf("Alias %s %s;\n", sa->ident->toChars(), tp->ident->toChars());
-        s = new AliasDeclaration(0, tp->ident, sa);
+        s = new AliasDeclaration(Loc(), tp->ident, sa);
     }
     else if (ea && ea->op == TOKfunction)
     {
@@ -2002,7 +1988,7 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
             sa = ((FuncExp *)ea)->td;
         else
             sa = ((FuncExp *)ea)->fd;
-        s = new AliasDeclaration(0, tp->ident, sa);
+        s = new AliasDeclaration(Loc(), tp->ident, sa);
     }
     else if (ea)
     {
@@ -2013,7 +1999,7 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
         Type *t = tvp ? tvp->valType : NULL;
 
         v = new VarDeclaration(loc, t, tp->ident, init);
-        v->storage_class = STCmanifest;
+        v->storage_class = STCmanifest | STCtemplateparameter;
         s = v;
     }
     else if (va)
@@ -2372,7 +2358,7 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         {   for (size_t i = 0; i < args->dim; i++)
             {
                 if (i)
-                    bufa.writeByte(',');
+                    bufa.writestring(", ");
                 Object *oarg = (*args)[i];
                 ObjectToCBuffer(&bufa, &hgs, oarg);
             }
@@ -3053,7 +3039,7 @@ MATCH TypeSArray::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
             }
             else
             {
-                Type *vt = tvp->valType->semantic(0, sc);
+                Type *vt = tvp->valType->semantic(Loc(), sc);
                 MATCH m = (MATCH)dim->implicitConvTo(vt);
                 if (!m)
                     goto Lnomatch;
@@ -3240,11 +3226,11 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 {   /* Didn't find it as a parameter identifier. Try looking
                      * it up and seeing if is an alias. See Bugzilla 1454
                      */
-                    TypeIdentifier *tid = new TypeIdentifier(0, tp->tempinst->name);
+                    TypeIdentifier *tid = new TypeIdentifier(Loc(), tp->tempinst->name);
                     Type *t;
                     Expression *e;
                     Dsymbol *s;
-                    tid->resolve(0, sc, &e, &t, &s);
+                    tid->resolve(Loc(), sc, &e, &t, &s);
                     if (t)
                     {
                         s = t->toDsymbol(sc);
@@ -3422,7 +3408,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                             goto Lnomatch;
                     }
                     else
-                    {   Type *vt = tv->valType->semantic(0, sc);
+                    {   Type *vt = tv->valType->semantic(Loc(), sc);
                         MATCH m = (MATCH)e1->implicitConvTo(vt);
                         if (!m)
                             goto Lnomatch;
@@ -3500,7 +3486,7 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
     {
         if (ti && ti->toAlias() == sym)
         {
-            TypeInstance *t = new TypeInstance(0, ti);
+            TypeInstance *t = new TypeInstance(Loc(), ti);
             return t->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
         }
 
@@ -3599,7 +3585,7 @@ void deduceBaseClassParameters(BaseClass *b,
         tmpdedtypes->setDim(dedtypes->dim);
         memcpy(tmpdedtypes->tdata(), dedtypes->tdata(), dedtypes->dim * sizeof(void *));
 
-        TypeInstance *t = new TypeInstance(0, parti);
+        TypeInstance *t = new TypeInstance(Loc(), parti);
         MATCH m = t->deduceType(sc, tparam, parameters, tmpdedtypes);
         if (m != MATCHnomatch)
         {
@@ -3640,7 +3626,7 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
     {
         if (ti && ti->toAlias() == sym)
         {
-            TypeInstance *t = new TypeInstance(0, ti);
+            TypeInstance *t = new TypeInstance(Loc(), ti);
             MATCH m = t->deduceType(sc, tparam, parameters, dedtypes, wildmatch);
             // Even if the match fails, there is still a chance it could match
             // a base class.
@@ -4228,7 +4214,7 @@ MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
             Type *ta = isType(specAlias);
             if (!ti || !ta)
                 goto Lnomatch;
-            Type *t = new TypeInstance(0, ti);
+            Type *t = new TypeInstance(Loc(), ti);
             MATCH m = t->deduceType(sc, ta, parameters, dedtypes);
             if (m == MATCHnomatch)
                 goto Lnomatch;
@@ -4497,7 +4483,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc,
     }
 
     //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
-    vt = valType->semantic(0, sc);
+    vt = valType->semantic(Loc(), sc);
     //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
     //printf("vt = %s\n", vt->toChars());
 
@@ -5477,7 +5463,20 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             else
                 ea = ea->ctfeSemantic(sc);
             if (flags & 1) // only used by __traits, must not interpret the args
-                ea = ea->optimize(WANTvalue);
+            {
+                VarDeclaration *v;
+                if (ea->op == TOKvar && (v = ((VarExp *)ea)->var->isVarDeclaration()) != NULL &&
+                    v->storage_class & STCmanifest && !(v->storage_class & STCtemplateparameter))
+                {
+                    if (v->sem < SemanticDone)
+                        v->semantic(sc);
+                    // skip optimization for manifest constant
+                }
+                else
+                {
+                    ea = ea->optimize(WANTvalue);
+                }
+            } 
             else if (ea->op == TOKvar)
             {   /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't
@@ -6925,7 +6924,7 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         for (size_t i = 0; i < tiargs->dim; i++)
         {   if (i)
-                buf->writebyte(',');
+                buf->writestring(", ");
             Object *oarg = (*tiargs)[i];
             Type *t = isType(oarg);
             Expression *e = isExpression(oarg);

@@ -99,6 +99,13 @@ enum CtfeGoal
     ctfeNeedNothing   // The return value is not required
 };
 
+#define WANTflags   1
+#define WANTvalue   2
+// A compile-time result is required. Give an error if not possible
+#define WANTinterpret 4
+// Same as WANTvalue, but also expand variables as far as possible
+#define WANTexpand  8
+
 struct Expression : Object
 {
     Loc loc;                    // file location
@@ -168,12 +175,6 @@ struct Expression : Object
     Expression *toDelegate(Scope *sc, Type *t);
 
     virtual Expression *optimize(int result, bool keepLvalue = false);
-    #define WANTflags   1
-    #define WANTvalue   2
-    // A compile-time result is required. Give an error if not possible
-    #define WANTinterpret 4
-    // Same as WANTvalue, but also expand variables as far as possible
-    #define WANTexpand  8
 
     // Entry point for CTFE.
     // A compile-time result is required. Give an error if not possible
@@ -493,6 +494,17 @@ struct AssocArrayLiteralExp : Expression
     Expression *inlineScan(InlineScanState *iss);
 };
 
+// scrubReturnValue is running
+#define stageScrub          0x1
+// hasNonConstPointers is running
+#define stageSearchPointers 0x2
+// optimize is running
+#define stageOptimize       0x4
+// apply is running
+#define stageApply          0x8
+//inlineScan is running
+#define stageInlineScan     0x10
+
 struct StructLiteralExp : Expression
 {
     StructDeclaration *sd;      // which aggregate this is for
@@ -507,30 +519,19 @@ struct StructLiteralExp : Expression
     bool ownedByCtfe;           // true = created in CTFE
     int ctorinit;
 
-    StructLiteralExp *origin;   // pointer to the origin instance of the expression. 
-                                // once a new expression is created, origin is set to 'this'. 
-                                // anytime when an expression copy is created, 'origin' pointer is set to 
+    StructLiteralExp *origin;   // pointer to the origin instance of the expression.
+                                // once a new expression is created, origin is set to 'this'.
+                                // anytime when an expression copy is created, 'origin' pointer is set to
                                 // 'origin' pointer value of the original expression.
-                                
-    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer. 
+
+    StructLiteralExp *inlinecopy; // those fields need to prevent a infinite recursion when one field of struct initialized with 'this' pointer.
     int stageflags;               // anytime when recursive function is calling, 'stageflags' marks with bit flag of
-                                  // current stage and unmarks before return from this function. 
-                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline' 
+                                  // current stage and unmarks before return from this function.
+                                  // 'inlinecopy' uses similar 'stageflags' and from multiple evaluation 'doInline'
                                   // (with infinite recursion) of this expression.
 
-    // scrubReturnValue is running
-    #define stageScrub          0x1 
-    // hasNonConstPointers is running
-    #define stageSearchPointers 0x2 
-    // optimize is running
-    #define stageOptimize       0x4
-    // apply is running
-    #define stageApply          0x8
-    //inlineScan is running
-    #define stageInlineScan     0x10
-                         
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
-
+    int equals(Object *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -579,10 +580,13 @@ struct ScopeExp : Expression
 struct TemplateExp : Expression
 {
     TemplateDeclaration *td;
+    FuncDeclaration *fd;
 
-    TemplateExp(Loc loc, TemplateDeclaration *td);
+    TemplateExp(Loc loc, TemplateDeclaration *td, FuncDeclaration *fd = NULL);
     int rvalue();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    int isLvalue();
+    Expression *toLvalue(Scope *sc, Expression *e);
 };
 
 struct NewExp : Expression
@@ -1005,7 +1009,6 @@ struct CallExp : UnaExp
 
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
-    Expression *resolveUFCS(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

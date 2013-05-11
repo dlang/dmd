@@ -61,9 +61,9 @@ Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComm
     //printf("Parser::Parser()\n");
     md = NULL;
     linkage = LINKd;
-    endloc = 0;
+    endloc = Loc();
     inBrackets = 0;
-    lookingForElse = 0;
+    lookingForElse = Loc();
     //nextToken();              // start up the scanner
 }
 
@@ -865,7 +865,7 @@ Dsymbols *Parser::parseBlock(Dsymbol **pLastDecl)
         case TOKlcurly:
         {
             Loc lookingForElseSave = lookingForElse;
-            lookingForElse = 0;
+            lookingForElse = Loc();
 
             nextToken();
             a = parseDeclDefs(0, pLastDecl);
@@ -1132,7 +1132,7 @@ Dsymbol *Parser::parseCtor()
         nextToken();
         check(TOKrparen);
         StorageClass stc = parsePostfix();
-        PostBlitDeclaration *f = new PostBlitDeclaration(loc, 0, stc, Id::_postblit);
+        PostBlitDeclaration *f = new PostBlitDeclaration(loc, Loc(), stc, Id::_postblit);
         parseContracts(f);
         return f;
     }
@@ -1154,7 +1154,7 @@ Dsymbol *Parser::parseCtor()
         Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
         tf = tf->addSTC(stc);
 
-        CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
+        CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
         parseContracts(f);
 
         // Wrap a template around it
@@ -1173,7 +1173,7 @@ Dsymbol *Parser::parseCtor()
     Type *tf = new TypeFunction(parameters, NULL, varargs, linkage, stc);   // RetrunType -> auto
     tf = tf->addSTC(stc);
 
-    CtorDeclaration *f = new CtorDeclaration(loc, 0, stc, tf);
+    CtorDeclaration *f = new CtorDeclaration(loc, Loc(), stc, tf);
     parseContracts(f);
     return f;
 }
@@ -1194,7 +1194,8 @@ DtorDeclaration *Parser::parseDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    f = new DtorDeclaration(loc, 0);
+    StorageClass stc = parsePostfix();
+    f = new DtorDeclaration(loc, Loc(), stc, Id::dtor);
     parseContracts(f);
     return f;
 }
@@ -1213,7 +1214,7 @@ StaticCtorDeclaration *Parser::parseStaticCtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, 0);
+    StaticCtorDeclaration *f = new StaticCtorDeclaration(loc, Loc());
     parseContracts(f);
     return f;
 }
@@ -1234,7 +1235,7 @@ SharedStaticCtorDeclaration *Parser::parseSharedStaticCtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, 0);
+    SharedStaticCtorDeclaration *f = new SharedStaticCtorDeclaration(loc, Loc());
     parseContracts(f);
     return f;
 }
@@ -1254,7 +1255,7 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, 0);
+    StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc());
     parseContracts(f);
     return f;
 }
@@ -1276,7 +1277,7 @@ SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
     check(TOKlparen);
     check(TOKrparen);
 
-    SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, 0);
+    SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc());
     parseContracts(f);
     return f;
 }
@@ -1299,7 +1300,7 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, 0);
+    f = new InvariantDeclaration(loc, Loc());
     f->fbody = parseStatement(PScurly);
     return f;
 }
@@ -1363,7 +1364,7 @@ NewDeclaration *Parser::parseNew()
 
     nextToken();
     arguments = parseParameters(&varargs);
-    f = new NewDeclaration(loc, 0, arguments, varargs);
+    f = new NewDeclaration(loc, Loc(), arguments, varargs);
     parseContracts(f);
     return f;
 }
@@ -1385,7 +1386,7 @@ DeleteDeclaration *Parser::parseDelete()
     arguments = parseParameters(&varargs);
     if (varargs)
         error("... not allowed in delete function parameter list");
-    f = new DeleteDeclaration(loc, 0, arguments);
+    f = new DeleteDeclaration(loc, Loc(), arguments);
     parseContracts(f);
     return f;
 }
@@ -3230,7 +3231,7 @@ L2:
             //printf("%s funcdecl t = %s, storage_class = x%lx\n", loc.toChars(), t->toChars(), storage_class);
 
             FuncDeclaration *f =
-                new FuncDeclaration(loc, 0, ident, storage_class | (disable ? STCdisable : 0), t);
+                new FuncDeclaration(loc, Loc(), ident, storage_class | (disable ? STCdisable : 0), t);
             addComment(f, comment);
             if (tpl)
                 constraint = parseConstraint();
@@ -3966,7 +3967,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
         case TOKlcurly:
         {
             Loc lookingForElseSave = lookingForElse;
-            lookingForElse = 0;
+            lookingForElse = Loc();
 
             nextToken();
             //if (token.value == TOKsemicolon)
@@ -4017,7 +4018,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
 
             nextToken();
             Loc lookingForElseSave = lookingForElse;
-            lookingForElse = 0;
+            lookingForElse = Loc();
             body = parseStatement(PSscope);
             lookingForElse = lookingForElseSave;
             check(TOKwhile);
@@ -4048,7 +4049,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             else
             {
                 Loc lookingForElseSave = lookingForElse;
-                lookingForElse = 0;
+                lookingForElse = Loc();
                 init = parseStatement(0);
                 lookingForElse = lookingForElseSave;
             }
@@ -4611,7 +4612,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
 
             nextToken();
             Loc lookingForElseSave = lookingForElse;
-            lookingForElse = 0;
+            lookingForElse = Loc();
             body = parseStatement(PSscope);
             lookingForElse = lookingForElseSave;
             while (token.value == TOKcatch)
@@ -6028,7 +6029,7 @@ Expression *Parser::parsePrimaryExp()
             if (!parameters)
                 parameters = new Parameters();
             TypeFunction *tf = new TypeFunction(parameters, tret, varargs, linkage, stc);
-            FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, save, NULL);
+            FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, save, NULL);
 
             if (token.value == TOKgoesto)
             {

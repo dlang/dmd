@@ -4424,14 +4424,14 @@ STATIC OPND *asm_primary_exp()
                         if (asmstate.sc->func->labtab)
                             s = asmstate.sc->func->labtab->lookup(asmtok->ident);
                         if (!s)
-                            s = asmstate.sc->search(0, asmtok->ident, &scopesym);
+                            s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                         if (!s)
                         {   // Assume it is a label, and define that label
                             s = asmstate.sc->func->searchLabel(asmtok->ident);
                         }
                     }
                     else
-                        s = asmstate.sc->search(0, asmtok->ident, &scopesym);
+                        s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                     if (!s)
                         asmerr(EM_undefined, asmtok->toChars());
 

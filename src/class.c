@@ -686,7 +686,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = search(0, Id::ctor, 0);
+    ctor = search(Loc(), Id::ctor, 0);
 #if DMDV1
     if (ctor && (ctor->toParent() != this || !ctor->isCtorDeclaration()))
         ctor = NULL;
@@ -704,8 +704,8 @@ void ClassDeclaration::semantic(Scope *sc)
 //      inv = NULL;
 
     // Can be in base class
-    aggNew    = (NewDeclaration *)search(0, Id::classNew, 0);
-    aggDelete = (DeleteDeclaration *)search(0, Id::classDelete, 0);
+    aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete, 0);
 
     // If this class has no constructor, but base class has a default
     // ctor, create a constructor:
@@ -716,8 +716,8 @@ void ClassDeclaration::semantic(Scope *sc)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
             Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
-            CtorDeclaration *ctor = new CtorDeclaration(loc, 0, 0, tf);
-            ctor->fbody = new CompoundStatement(0, new Statements());
+            CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
+            ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
             ctor->addMember(sc, this, 1);
             *sc = scsave;   // why? What about sc->nofree?
@@ -767,13 +767,10 @@ void ClassDeclaration::semantic(Scope *sc)
     Module::dprogress++;
 
     dtor = buildDtor(sc);
-    if (Dsymbol *assign = search_function(this, Id::assign))
+    if (FuncDeclaration *f = hasIdentityOpAssign(sc))
     {
-        if (FuncDeclaration *f = hasIdentityOpAssign(sc, assign))
-        {
-            if (!(f->storage_class & STCdisable))
-                error("identity assignment operator overload is illegal");
-        }
+        if (!(f->storage_class & STCdisable))
+            error("identity assignment operator overload is illegal");
     }
     sc->pop();
 
@@ -818,7 +815,7 @@ void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         BaseClass *b = (*baseclasses)[i];
 
         if (i)
-            buf->writeByte(',');
+            buf->writestring(", ");
         //buf->writestring(b->base->ident->toChars());
         b->type->toCBuffer(buf, NULL, hgs);
     }
@@ -1005,7 +1002,7 @@ int isf(void *param, FuncDeclaration *fd)
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
 {
     //printf("ClassDeclaration::isFuncHidden(class = %s, fd = %s)\n", toChars(), fd->toChars());
-    Dsymbol *s = search(0, fd->ident, 4|2);
+    Dsymbol *s = search(Loc(), fd->ident, 4|2);
     if (!s)
     {   //printf("not found\n");
         /* Because, due to a hack, if there are multiple definitions

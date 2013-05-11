@@ -112,17 +112,18 @@ extern int Tsize_t;
 extern int Tptrdiff_t;
 
 
+/* pick this order of numbers so switch statements work better
+ */
+#define MODconst     1  // type is const
+#define MODimmutable 4  // type is immutable
+#define MODshared    2  // type is shared
+#define MODwild      8  // type is wild
+#define MODmutable   0x10       // type is mutable (only used in wildcard matching)
+
 struct Type : Object
 {
     TY ty;
     unsigned char mod;  // modifiers MODxxxx
-        /* pick this order of numbers so switch statements work better
-         */
-        #define MODconst     1  // type is const
-        #define MODimmutable 4  // type is immutable
-        #define MODshared    2  // type is shared
-        #define MODwild      8  // type is wild
-        #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
     char *deco;
 
     /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
@@ -146,49 +147,47 @@ struct Type : Object
 
     type *ctype;        // for back end
 
-    #define tvoid       basic[Tvoid]
-    #define tint8       basic[Tint8]
-    #define tuns8       basic[Tuns8]
-    #define tint16      basic[Tint16]
-    #define tuns16      basic[Tuns16]
-    #define tint32      basic[Tint32]
-    #define tuns32      basic[Tuns32]
-    #define tint64      basic[Tint64]
-    #define tuns64      basic[Tuns64]
-    #define tint128     basic[Tint128]
-    #define tuns128     basic[Tuns128]
-    #define tfloat32    basic[Tfloat32]
-    #define tfloat64    basic[Tfloat64]
-    #define tfloat80    basic[Tfloat80]
+    static Type *tvoid;
+    static Type *tint8;
+    static Type *tuns8;
+    static Type *tint16;
+    static Type *tuns16;
+    static Type *tint32;
+    static Type *tuns32;
+    static Type *tint64;
+    static Type *tuns64;
+    static Type *tint128;
+    static Type *tuns128;
+    static Type *tfloat32;
+    static Type *tfloat64;
+    static Type *tfloat80;
 
-    #define timaginary32 basic[Timaginary32]
-    #define timaginary64 basic[Timaginary64]
-    #define timaginary80 basic[Timaginary80]
+    static Type *timaginary32;
+    static Type *timaginary64;
+    static Type *timaginary80;
 
-    #define tcomplex32  basic[Tcomplex32]
-    #define tcomplex64  basic[Tcomplex64]
-    #define tcomplex80  basic[Tcomplex80]
+    static Type *tcomplex32;
+    static Type *tcomplex64;
+    static Type *tcomplex80;
 
-    #define tbool       basic[Tbool]
-    #define tchar       basic[Tchar]
-    #define twchar      basic[Twchar]
-    #define tdchar      basic[Tdchar]
+    static Type *tbool;
+    static Type *tchar;
+    static Type *twchar;
+    static Type *tdchar;
 
     // Some special types
-    #define tshiftcnt   tint32          // right side of shift expression
-//    #define tboolean  tint32          // result of boolean expression
-    #define tboolean    tbool           // result of boolean expression
-    #define tindex      tsize_t         // array/ptr index
+    static Type *tshiftcnt;
+    static Type *tboolean;
     static Type *tvoidptr;              // void*
     static Type *tstring;               // immutable(char)[]
     static Type *tvalist;               // va_list alias
-    #define terror      basic[Terror]   // for error recovery
+    static Type *terror;                // for error recovery
+    static Type *tnull;                 // for null type
 
-    #define tnull       basic[Tnull]    // for null type
-
-    #define tsize_t     basic[Tsize_t]          // matches size_t alias
-    #define tptrdiff_t  basic[Tptrdiff_t]       // matches ptrdiff_t alias
-    #define thash_t     tsize_t                 // matches hash_t alias
+    static Type *tsize_t;               // matches size_t alias
+    static Type *tptrdiff_t;            // matches ptrdiff_t alias
+    static Type *thash_t;               // matches hash_t alias
+    static Type *tindex;                // array/ptr index
 
     static ClassDeclaration *typeinfo;
     static ClassDeclaration *typeinfoclass;
@@ -314,10 +313,10 @@ struct Type : Object
     virtual Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     virtual structalign_t alignment();
     Expression *noMember(Scope *sc, Expression *e, Identifier *ident, int flag);
-    virtual Expression *defaultInit(Loc loc = 0);
+    virtual Expression *defaultInit(Loc loc = Loc());
     virtual Expression *defaultInitLiteral(Loc loc);
     virtual Expression *voidInitLiteral(VarDeclaration *var);
-    virtual int isZeroInit(Loc loc = 0);                // if initializer is 0
+    virtual int isZeroInit(Loc loc = Loc());                // if initializer is 0
     virtual dt_t **toDt(dt_t **pdt);
     Identifier *getTypeInfoIdent(int internal);
     virtual MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);

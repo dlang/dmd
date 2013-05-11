@@ -265,7 +265,7 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
+                error(Loc(), "error writing file %s", lnkfilename);
             if (strlen(lnkfilename) < plen)
                 sprintf(p, "@%s", lnkfilename);
         }
@@ -410,7 +410,7 @@ int runLINK()
             flnk.setbuffer(p, plen);
             flnk.ref = 1;
             if (flnk.write())
-                error(0, "error writing file %s", lnkfilename);
+                error(Loc(), "error writing file %s", lnkfilename);
             if (strlen(lnkfilename) < plen)
                 sprintf(p, "@%s", lnkfilename);
         }
@@ -573,9 +573,19 @@ int runLINK()
     size_t slen = strlen(libname);
     if (slen)
     {
-        char *buf = (char *)malloc(2 + slen + 1);
+        char *buf = (char *)malloc(3 + slen + 1);
         strcpy(buf, "-l");
-        strcpy(buf + 2, libname);
+        /* Use "-l:libname.a" if the library name is complete
+         */
+        if (slen > 3 + 2 &&
+            memcmp(libname, "lib", 3) == 0 &&
+            (memcmp(libname + slen - 2, ".a", 2) == 0 ||
+             memcmp(libname + slen - 3, ".so", 3) == 0)
+           )
+        {
+            strcat(buf, ":");
+        }
+        strcat(buf, libname);
         argv.push(buf);             // turns into /usr/lib/libphobos2.a
     }
 
@@ -644,7 +654,7 @@ int runLINK()
             else
             {
                 printf("--- errorlevel %d\n", status);
-                if (nme == 1) error(0, "no main function specified");
+                if (nme == 1) error(Loc(), "no main function specified");
             }
         }
     }
@@ -714,7 +724,7 @@ int executecmd(char *cmd, char *args, int useenv)
         else
         {
         L1:
-            error(0, "command line length of %d is too long",len);
+            error(Loc(), "command line length of %d is too long",len);
             }
         }
     }

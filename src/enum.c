@@ -18,6 +18,7 @@
 #include "expression.h"
 #include "module.h"
 #include "declaration.h"
+#include "init.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -298,7 +299,7 @@ void EnumDeclaration::semantic(Scope *sc)
             // Lazily evaluate enum.max
             if (!emax)
             {
-                emax = t->getProperty(0, Id::max, 0);
+                emax = t->getProperty(Loc(), Id::max, 0);
                 emax = emax->ctfeSemantic(sce);
                 emax = emax->ctfeInterpret();
             }
@@ -335,9 +336,13 @@ void EnumDeclaration::semantic(Scope *sc)
         if (isAnonymous() && !sc->func)
         {
             // already inserted to enclosing scope in addMember
+            assert(em->ed);
         }
         else
+        {
+            em->ed = this;
             em->addMember(sc, scopesym, 1);
+        }
 
         /* Compute .min, .max and .default values.
          * If enum doesn't have a name, we can never identify the enum type,
@@ -467,6 +472,7 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
     this->value = value;
     this->type = type;
     this->loc = loc;
+    this->vd = NULL;
 }
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
@@ -511,7 +517,24 @@ const char *EnumMember::kind()
 
 void EnumMember::semantic(Scope *sc)
 {
-    if (ed)
-        ed->semantic(NULL);
+    assert(ed);
+    if (this->vd) return;
+    ed->semantic(sc);
+    assert(value);
+    vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value->copy()));
+
+    vd->storage_class = STCmanifest;
+    vd->semantic(sc);
+
+    vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
+    vd->parent = ed->isAnonymous() ? ed->parent : ed;
+    vd->userAttributes = ed->isAnonymous() ? ed->userAttributes : NULL;
 }
 
+Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
+{
+    semantic(sc);
+    assert(vd);
+    Expression *e = new VarExp(loc, vd);
+    return e->semantic(sc);
+}

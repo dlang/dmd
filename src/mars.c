@@ -52,11 +52,9 @@ void printCtfePerformanceStats();
 
 static bool parse_arch(size_t argc, char** argv, bool is64bit);
 
-FILE *stdmsg;
-
 Global global;
 
-Global::Global()
+void Global::init()
 {
     mars_ext = "d";
     sym_ext  = "d";
@@ -97,6 +95,8 @@ Global::Global()
     version = "v"
 #include "verstr.h"
     ;
+
+    compiler.vendor = "Digital Mars D";
 
     main_d = "__main.d";
 
@@ -212,24 +212,24 @@ void verrorPrint(Loc loc, const char *header, const char *format, va_list ap,
     char *p = loc.toChars();
 
     if (*p)
-        fprintf(stdmsg, "%s: ", p);
+        fprintf(stderr, "%s: ", p);
     mem.free(p);
 
-    fputs(header, stdmsg);
+    fputs(header, stderr);
     if (p1)
-        fprintf(stdmsg, "%s ", p1);
+        fprintf(stderr, "%s ", p1);
     if (p2)
-        fprintf(stdmsg, "%s ", p2);
+        fprintf(stderr, "%s ", p2);
 #if _MSC_VER
     // MS doesn't recognize %zu format
     OutBuffer tmp;
     tmp.vprintf(format, ap);
-    fprintf(stdmsg, "%s", tmp.toChars());
+    fprintf(stderr, "%s", tmp.toChars());
 #else
-    vfprintf(stdmsg, format, ap);
+    vfprintf(stderr, format, ap);
 #endif
-    fprintf(stdmsg, "\n");
-    fflush(stdmsg);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
 
 // header is "Error: " by default (see mars.h)
@@ -411,19 +411,19 @@ int tryMain(size_t argc, char *argv[])
     char noboundscheck = 0;
         int setdefaultlib = 0;
     const char *inifilename = NULL;
+    global.init();
 
 #ifdef DEBUG
     printf("DMD %s DEBUG\n", global.version);
 #endif
 
-    stdmsg = stdout;
     unittests();
 
     // Check for malformed input
     if (argc < 1 || !argv)
     {
       Largs:
-        error(0, "missing or null command line arguments");
+        error(Loc(), "missing or null command line arguments");
         fatal();
     }
     for (size_t i = 0; i < argc; i++)
@@ -433,7 +433,7 @@ int tryMain(size_t argc, char *argv[])
     }
 
     if (response_expand(&argc,&argv))   // expand response files
-        error(0, "can't open response file");
+        error(Loc(), "can't open response file");
 
     files.reserve(argc - 1);
 
@@ -597,7 +597,7 @@ int tryMain(size_t argc, char *argv[])
             else if (strcmp(p + 1, "gx") == 0)
                 global.params.stackstomp = true;
             else if (strcmp(p + 1, "gt") == 0)
-            {   error(0, "use -profile instead of -gt");
+            {   error(Loc(), "use -profile instead of -gt");
                 global.params.trace = 1;
             }
             else if (strcmp(p + 1, "m32") == 0)
@@ -617,7 +617,7 @@ int tryMain(size_t argc, char *argv[])
 #if DMDV1
                 global.params.Dversion = 1;
 #else
-                error(0, "use DMD 1.0 series compilers for -v1 switch");
+                error(Loc(), "use DMD 1.0 series compilers for -v1 switch");
                 break;
 #endif
             }
@@ -654,7 +654,7 @@ int tryMain(size_t argc, char *argv[])
                         break;
 
                     case 0:
-                        error(0, "-o no longer supported, use -of or -od");
+                        error(Loc(), "-o no longer supported, use -of or -od");
                         break;
 
                     default:
@@ -897,7 +897,7 @@ int tryMain(size_t argc, char *argv[])
                     if (ext && FileName::equals(ext, "d") == 0
                             && FileName::equals(ext, "di") == 0)
                     {
-                        error(0, "-run must be followed by a source file, not '%s'", argv[i + 1]);
+                        error(Loc(), "-run must be followed by a source file, not '%s'", argv[i + 1]);
                         break;
                     }
 
@@ -914,11 +914,11 @@ int tryMain(size_t argc, char *argv[])
             else
             {
              Lerror:
-                error(0, "unrecognized switch '%s'", argv[i]);
+                error(Loc(), "unrecognized switch '%s'", argv[i]);
                 continue;
 
              Lnoarg:
-                error(0, "argument expected for switch '%s'", argv[i]);
+                error(Loc(), "argument expected for switch '%s'", argv[i]);
                 continue;
             }
         }
@@ -937,7 +937,7 @@ int tryMain(size_t argc, char *argv[])
     }
 
     if(global.params.is64bit != is64bit)
-        error(0, "the architecture must not be changed in the %s section of %s",
+        error(Loc(), "the architecture must not be changed in the %s section of %s",
               is64bit ? "Environment64" : "Environment32", inifilename);
 
     if (global.errors)
@@ -958,7 +958,7 @@ int tryMain(size_t argc, char *argv[])
 
 #if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     if (global.params.lib && global.params.dll)
-        error(0, "cannot mix -lib and -shared");
+        error(Loc(), "cannot mix -lib and -shared");
 #endif
 
     if (global.params.release)
@@ -1020,7 +1020,7 @@ int tryMain(size_t argc, char *argv[])
     }
     else if (global.params.run)
     {
-        error(0, "flags conflict with -run");
+        error(Loc(), "flags conflict with -run");
         fatal();
     }
     else
@@ -1226,12 +1226,12 @@ int tryMain(size_t argc, char *argv[])
                     strcmp(name, ".") == 0)
                 {
                 Linvalid:
-                    error(0, "invalid file name '%s'", files[i]);
+                    error(Loc(), "invalid file name '%s'", files[i]);
                     fatal();
                 }
             }
             else
-            {   error(0, "unrecognized file extension %s", ext);
+            {   error(Loc(), "unrecognized file extension %s", ext);
                 fatal();
             }
         }
@@ -1310,7 +1310,7 @@ int tryMain(size_t argc, char *argv[])
 #if ASYNCREAD
         if (aw->read(filei))
         {
-            error(0, "cannot read file %s", m->srcfile->name->toChars());
+            error(Loc(), "cannot read file %s", m->srcfile->name->toChars());
             fatal();
         }
 #endif
@@ -1345,7 +1345,7 @@ int tryMain(size_t argc, char *argv[])
     if (anydocfiles && modules.dim &&
         (global.params.oneobj || global.params.objname))
     {
-        error(0, "conflicting Ddoc and obj generation options");
+        error(Loc(), "conflicting Ddoc and obj generation options");
         fatal();
     }
     if (global.errors)
@@ -1374,7 +1374,7 @@ int tryMain(size_t argc, char *argv[])
        m = modules[i];
        if (global.params.verbose)
            printf("importall %s\n", m->toChars());
-       m->importAll(0);
+       m->importAll(NULL);
     }
     if (global.errors)
         fatal();
@@ -1586,7 +1586,7 @@ int tryMain(size_t argc, char *argv[])
     if (!global.params.objfiles->dim)
     {
         if (global.params.link)
-            error(0, "no object files to link");
+            error(Loc(), "no object files to link");
     }
     else
     {
@@ -1622,15 +1622,15 @@ int main(int argc, char *argv[])
 #if WINDOWS_SEH
   __try
   {
-#endif
     status = tryMain(argc, argv);
-#if WINDOWS_SEH
   }
   __except (__ehfilter(GetExceptionInformation()))
   {
     printf("Stack overflow\n");
     fatal();
   }
+#else
+  status = tryMain(argc, argv);
 #endif
     return status;
 }

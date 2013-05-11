@@ -46,18 +46,9 @@ Classsym *fake_classsym(Identifier *id);
 
 /********************************* SymbolDeclaration ****************************/
 
-SymbolDeclaration::SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym)
-    : Declaration(new Identifier(s->Sident, TOKidentifier))
-{
-    this->loc = loc;
-    sym = s;
-    this->dsym = dsym;
-    storage_class |= STCconst;
-}
-
 Symbol *SymbolDeclaration::toSymbol()
 {
-    return sym;
+    return dsym->toInitializer();
 }
 
 /*************************************
@@ -193,7 +184,7 @@ Symbol *VarDeclaration::toSymbol()
         }
         else if (isParameter())
         {
-            if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
+            if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
             {
                 // should be TYref, but problems in back end
                 t = type_pointer(type->toCtype());
@@ -223,7 +214,7 @@ Symbol *VarDeclaration::toSymbol()
                 if (global.params.vtls)
                 {
                     char *p = loc.toChars();
-                    fprintf(stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
+                    fprintf(stderr, "%s: %s is thread local\n", p ? p : "", toChars());
                     if (p)
                         mem.free(p);
                 }

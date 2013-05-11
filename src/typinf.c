@@ -91,7 +91,7 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
             {   tid = new TypeInfoDeclaration(t, 1);
                 internalTI[t->ty] = tid;
             }
-            e = new VarExp(0, tid);
+            e = new VarExp(Loc(), tid);
             e = e->addressOf(sc);
             e->type = tid->type;        // do this so we don't get redundant dereference
             return e;
@@ -113,7 +113,7 @@ Expression *Type::getTypeInfo(Scope *sc)
     //printf("Type::getTypeInfo() %p, %s\n", this, toChars());
     if (!Type::typeinfo)
     {
-        error(0, "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
+        error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
     }
 
@@ -153,7 +153,7 @@ Expression *Type::getTypeInfo(Scope *sc)
     }
     if (!vtinfo)
         vtinfo = t->vtinfo;     // Types aren't merged, but we can share the vtinfo's
-    Expression *e = new VarExp(0, t->vtinfo);
+    Expression *e = new VarExp(Loc(), t->vtinfo);
     e = e->addressOf(sc);
     e->type = t->vtinfo->type;          // do this so we don't get redundant dereference
     return e;
@@ -581,10 +581,10 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
          */
         tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
         tftohash->mod = MODconst;
-        tftohash = (TypeFunction *)tftohash->semantic(0, &sc);
+        tftohash = (TypeFunction *)tftohash->semantic(Loc(), &sc);
 
         tftostring = new TypeFunction(NULL, Type::tchar->invariantOf()->arrayOf(), 0, LINKd);
-        tftostring = (TypeFunction *)tftostring->semantic(0, &sc);
+        tftostring = (TypeFunction *)tftostring->semantic(Loc(), &sc);
     }
 
     TypeFunction *tfcmpptr;
@@ -601,7 +601,7 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
         arguments->push(arg);
         tfcmpptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
         tfcmpptr->mod = MODconst;
-        tfcmpptr = (TypeFunction *)tfcmpptr->semantic(0, &sc);
+        tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &sc);
     }
 
     s = search_function(sd, Id::tohash);
@@ -906,7 +906,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
         for (int i = 0; i < dim; i++)
         {   t = exps[i]->type;
             e = t->getTypeInfo(sc);
-            ai->addInit(new IntegerExp(i), new ExpInitializer(0, e));
+            ai->addInit(new IntegerExp(i), new ExpInitializer(Loc(), e));
         }
 
         t = Type::typeinfo->type->arrayOf();
@@ -922,7 +922,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
         v->parent = m;
         sc = sc->pop();
     }
-    e = new VarExp(0, v);
+    e = new VarExp(Loc(), v);
     e = e->semantic(sc);
     return e;
 #endif

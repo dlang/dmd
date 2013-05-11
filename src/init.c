@@ -77,7 +77,7 @@ char *Initializer::toChars()
 /********************************** ErrorInitializer ***************************/
 
 ErrorInitializer::ErrorInitializer()
-    : Initializer(0)
+    : Initializer(Loc())
 {
 }
 
@@ -276,7 +276,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
          */
         Parameters *arguments = new Parameters;
         Type *tf = new TypeFunction(arguments, NULL, 0, LINKd);
-        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, 0, tf, TOKdelegate, NULL);
+        FuncLiteralDeclaration *fd = new FuncLiteralDeclaration(loc, Loc(), tf, TOKdelegate, NULL);
         fd->fbody = new CompoundStatement(loc, new Statements());
         fd->endloc = loc;
         Expression *e = new FuncExp(loc, fd);
@@ -465,7 +465,7 @@ void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (size_t i = 0; i < field.dim; i++)
     {
         if (i > 0)
-            buf->writebyte(',');
+            buf->writestring(", ");
         Identifier *id = field[i];
         if (id)
         {
@@ -833,7 +833,7 @@ void ArrayInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     for (size_t i = 0; i < index.dim; i++)
     {
         if (i > 0)
-            buf->writebyte(',');
+            buf->writestring(", ");
         Expression *ex = index[i];
         if (ex)
         {
