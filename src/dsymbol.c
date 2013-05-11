@@ -45,7 +45,7 @@ Dsymbol::Dsymbol()
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
-    this->loc = 0;
+    this->loc = Loc();
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
@@ -61,7 +61,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->parent = NULL;
     this->csym = NULL;
     this->isym = NULL;
-    this->loc = 0;
+    this->loc = Loc();
     this->comment = NULL;
     this->scope = NULL;
     this->errors = false;
@@ -402,7 +402,7 @@ void *symbol_search_fp(void *arg, const char *seed)
 
     Dsymbol *s = (Dsymbol *)arg;
     Module::clearCache();
-    return s->search(0, id, 4|2);
+    return s->search(Loc(), id, 4|2);
 }
 
 Dsymbol *Dsymbol::search_correct(Identifier *ident)
@@ -594,7 +594,7 @@ int Dsymbol::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
             s2 = sd->symtab->lookup(ident);
             if (!s2->overloadInsert(this))
             {
-                sd->multiplyDefined(0, this, s2);
+                sd->multiplyDefined(Loc(), this, s2);
             }
         }
         if (sd->isAggregateDeclaration() || sd->isEnumDeclaration())
@@ -1063,7 +1063,7 @@ Dsymbol *ScopeDsymbol::nameCollision(Dsymbol *s)
             return sprev;
         }
     }
-    multiplyDefined(0, s, sprev);
+    multiplyDefined(Loc(), s, sprev);
     return sprev;
 }
 
@@ -1214,7 +1214,7 @@ FuncDeclaration *ScopeDsymbol::findGetMembers()
 
         Type *tret = NULL;
         tfgetmembers = new TypeFunction(arguments, tret, 0, LINKd);
-        tfgetmembers = (TypeFunction *)tfgetmembers->semantic(0, &sc);
+        tfgetmembers = (TypeFunction *)tfgetmembers->semantic(Loc(), &sc);
     }
     if (fdx)
         fdx = fdx->overloadExactMatch(tfgetmembers);
@@ -1284,8 +1284,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         {   /* $ gives the number of elements in the tuple
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
-            Expression *e = new IntegerExp(0, td->objects->dim, Type::tsize_t);
-            v->init = new ExpInitializer(0, e);
+            Expression *e = new IntegerExp(Loc(), td->objects->dim, Type::tsize_t);
+            v->init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCstatic | STCconst;
             v->semantic(sc);
             return v;
@@ -1295,8 +1295,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
         {   /* $ gives the number of type entries in the type tuple
              */
             VarDeclaration *v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, NULL);
-            Expression *e = new IntegerExp(0, type->arguments->dim, Type::tsize_t);
-            v->init = new ExpInitializer(0, e);
+            Expression *e = new IntegerExp(Loc(), type->arguments->dim, Type::tsize_t);
+            v->init = new ExpInitializer(Loc(), e);
             v->storage_class |= STCstatic | STCconst;
             v->semantic(sc);
             return v;
@@ -1360,8 +1360,8 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
             {   /* It is for an expression tuple, so the
                  * length will be a const.
                  */
-                Expression *e = new IntegerExp(0, ((TupleExp *)ce)->exps->dim, Type::tsize_t);
-                v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, new ExpInitializer(0, e));
+                Expression *e = new IntegerExp(Loc(), ((TupleExp *)ce)->exps->dim, Type::tsize_t);
+                v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, new ExpInitializer(Loc(), e));
                 v->storage_class |= STCstatic | STCconst;
             }
             else if (ce->type && (t = ce->type->toBasetype()) != NULL &&
@@ -1423,7 +1423,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     }
 
                     Objects *tdargs = new Objects();
-                    Expression *edim = new IntegerExp(0, dim, Type::tsize_t);
+                    Expression *edim = new IntegerExp(Loc(), dim, Type::tsize_t);
                     edim = edim->semantic(sc);
                     tdargs->push(edim);
 
@@ -1453,7 +1453,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                 t = e->type->toBasetype();
                 if (t && t->ty == Tfunction)
                     e = new CallExp(e->loc, e);
-                v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(0, e));
+                v = new VarDeclaration(loc, NULL, Id::dollar, new ExpInitializer(Loc(), e));
             }
             else
             {   /* For arrays, $ will either be a compile-time constant
@@ -1461,7 +1461,7 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                  * or a variable (in which case an expression is created in
                  * toir.c).
                  */
-                VoidInitializer *e = new VoidInitializer(0);
+                VoidInitializer *e = new VoidInitializer(Loc());
                 e->type = Type::tsize_t;
                 v = new VarDeclaration(loc, Type::tsize_t, Id::dollar, e);
                 v->storage_class |= STCctfe; // it's never a true static variable

@@ -59,7 +59,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
  */
 bool ISREF(Declaration *var, Type *tb)
 {
-    return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(0) > REGSIZE || var->storage_class & STClazy))
+    return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy))
             || var->isOut() || var->isRef();
 }
 
@@ -68,7 +68,7 @@ bool ISREF(Declaration *var, Type *tb)
 bool ISWIN64REF(Declaration *var)
 {
     return (config.exe == EX_WIN64 && var->isParameter() &&
-            (var->type->size(0) > REGSIZE || var->storage_class & STClazy)) &&
+            (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy)) &&
             !(var->isOut() || var->isRef());
 }
 

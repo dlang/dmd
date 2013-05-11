@@ -1031,8 +1031,8 @@ void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
             return; // we don't know the length yet
     }
 
-    Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
-    lengthVar->init = new ExpInitializer(0, dollar);
+    Expression *dollar = new IntegerExp(Loc(), len, Type::tsize_t);
+    lengthVar->init = new ExpInitializer(Loc(), dollar);
     lengthVar->storage_class |= STCstatic | STCconst;
 }
 

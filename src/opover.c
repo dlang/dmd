@@ -202,7 +202,7 @@ Objects *opToArg(Scope *sc, enum TOK op)
         case TOKcatass: op = TOKcat; break;
         case TOKpowass: op = TOKpow; break;
     }
-    Expression *e = new StringExp(0, (char *)Token::toChars(op));
+    Expression *e = new StringExp(Loc(), (char *)Token::toChars(op));
     e = e->semantic(sc);
     Objects *tiargs = new Objects();
     tiargs->push(e);
@@ -1259,7 +1259,7 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
     FuncDeclaration *fd;
     TemplateDeclaration *td;
 
-    s = ad->search(0, funcid, 0);
+    s = ad->search(Loc(), funcid, 0);
     if (s)
     {   Dsymbol *s2;
 
@@ -1341,7 +1341,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = ad->search(0, idfront, 0))
+                if (Dsymbol *shead = ad->search(Loc(), idfront, 0))
                 {   // range aggregate
                     break;
                 }
@@ -1502,7 +1502,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                     /* Look for a front() or back() overload
                      */
                     Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
-                    Dsymbol *s = ad->search(0, id, 0);
+                    Dsymbol *s = ad->search(Loc(), id, 0);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
                     if (fd)
                     {

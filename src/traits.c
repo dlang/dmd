@@ -64,9 +64,9 @@ static int fptraits(void *param, FuncDeclaration *f)
     FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
     alias->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(0, p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, alias);
     else
-        e = new DsymbolExp(0, alias);
+        e = new DsymbolExp(Loc(), alias);
     p->exps->push(e);
     return 0;
 }

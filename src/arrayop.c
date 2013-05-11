@@ -322,30 +322,30 @@ Expression *BinExp::arrayOp(Scope *sc)
             Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
 #if DMDV1
             // for (size_t i = 0; i < p.length; i++)
-            Initializer *init = new ExpInitializer(0, new IntegerExp(0, 0, Type::tsize_t));
+            Initializer *init = new ExpInitializer(Loc(), new IntegerExp(Loc(), 0, Type::tsize_t));
             Dsymbol *d = new VarDeclaration(0, Type::tsize_t, Id::p, init);
             Statement *s1 = new ForStatement(0,
-                new ExpStatement(0, d),
-                new CmpExp(TOKlt, 0, new IdentifierExp(0, Id::p), new ArrayLengthExp(0, new IdentifierExp(0, p->ident))),
-                new PostExp(TOKplusplus, 0, new IdentifierExp(0, Id::p)),
-                new ExpStatement(0, loopbody));
+                new ExpStatement(Loc(), d),
+                new CmpExp(TOKlt, 0, new IdentifierExp(Loc(), Id::p), new ArrayLengthExp(0, new IdentifierExp(Loc(), p->ident))),
+                new PostExp(TOKplusplus, 0, new IdentifierExp(Loc(), Id::p)),
+                new ExpStatement(Loc(), loopbody));
 #else
             // foreach (i; 0 .. p.length)
-            Statement *s1 = new ForeachRangeStatement(0, TOKforeach,
+            Statement *s1 = new ForeachRangeStatement(Loc(), TOKforeach,
                 new Parameter(0, NULL, Id::p, NULL),
-                new IntegerExp(0, 0, Type::tsize_t),
-                new ArrayLengthExp(0, new IdentifierExp(0, p->ident)),
-                new ExpStatement(0, loopbody));
+                new IntegerExp(Loc(), 0, Type::tsize_t),
+                new ArrayLengthExp(Loc(), new IdentifierExp(Loc(), p->ident)),
+                new ExpStatement(Loc(), loopbody));
 #endif
-            Statement *s2 = new ReturnStatement(0, new IdentifierExp(0, p->ident));
+            Statement *s2 = new ReturnStatement(Loc(), new IdentifierExp(Loc(), p->ident));
             //printf("s2: %s\n", s2->toChars());
-            Statement *fbody = new CompoundStatement(0, s1, s2);
+            Statement *fbody = new CompoundStatement(Loc(), s1, s2);
 
             /* Construct the function
              */
             TypeFunction *ftype = new TypeFunction(fparams, type, 0, LINKc);
             //printf("ftype: %s\n", ftype->toChars());
-            fd = new FuncDeclaration(loc, 0, ident, STCundefined, ftype);
+            fd = new FuncDeclaration(loc, Loc(), ident, STCundefined, ftype);
             fd->fbody = fbody;
             fd->protection = PROTpublic;
             fd->linkage = LINKc;
@@ -372,7 +372,7 @@ Expression *BinExp::arrayOp(Scope *sc)
 
     /* Call the function fd(arguments)
      */
-    Expression *ec = new VarExp(0, fd);
+    Expression *ec = new VarExp(Loc(), fd);
     Expression *e = new CallExp(loc, ec, arguments);
     e->type = type;
     return e;
@@ -503,7 +503,7 @@ Expression *Expression::buildArrayLoop(Parameters *fparams)
     Identifier *id = Identifier::generateId("c", fparams->dim);
     Parameter *param = new Parameter(0, type, id, NULL);
     fparams->shift(param);
-    Expression *e = new IdentifierExp(0, id);
+    Expression *e = new IdentifierExp(Loc(), id);
     return e;
 }
 
@@ -523,11 +523,11 @@ Expression *SliceExp::buildArrayLoop(Parameters *fparams)
     Identifier *id = Identifier::generateId("p", fparams->dim);
     Parameter *param = new Parameter(STCconst, type, id, NULL);
     fparams->shift(param);
-    Expression *e = new IdentifierExp(0, id);
+    Expression *e = new IdentifierExp(Loc(), id);
     Expressions *arguments = new Expressions();
-    Expression *index = new IdentifierExp(0, Id::p);
+    Expression *index = new IdentifierExp(Loc(), Id::p);
     arguments->push(index);
-    e = new ArrayExp(0, e, arguments);
+    e = new ArrayExp(Loc(), e, arguments);
     return e;
 }
 
@@ -542,12 +542,12 @@ Expression *AssignExp::buildArrayLoop(Parameters *fparams)
      * where b is a byte fails because (c + p[i]) is an int
      * which cannot be implicitly cast to byte.
      */
-    ex2 = new CastExp(0, ex2, e1->type->nextOf());
+    ex2 = new CastExp(Loc(), ex2, e1->type->nextOf());
 #endif
     Expression *ex1 = e1->buildArrayLoop(fparams);
     Parameter *param = (*fparams)[0];
     param->storageClass = 0;
-    Expression *e = new AssignExp(0, ex1, ex2);
+    Expression *e = new AssignExp(Loc(), ex1, ex2);
     return e;
 }
 
@@ -581,14 +581,14 @@ X(Pow)
 Expression *NegExp::buildArrayLoop(Parameters *fparams)
 {
     Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new NegExp(0, ex1);
+    Expression *e = new NegExp(Loc(), ex1);
     return e;
 }
 
 Expression *ComExp::buildArrayLoop(Parameters *fparams)
 {
     Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *e = new ComExp(0, ex1);
+    Expression *e = new ComExp(Loc(), ex1);
     return e;
 }
 
@@ -599,7 +599,7 @@ Expression *Str##Exp::buildArrayLoop(Parameters *fparams)       \
      */                                                         \
     Expression *ex1 = e1->buildArrayLoop(fparams);              \
     Expression *ex2 = e2->buildArrayLoop(fparams);              \
-    Expression *e = new Str##Exp(0, ex1, ex2);                  \
+    Expression *e = new Str##Exp(Loc(), ex1, ex2);                  \
     return e;                                                   \
 }
 

@@ -246,7 +246,7 @@ Type *TupleDeclaration::getType()
 
         tupletype = new TypeTuple(args);
         if (hasdeco)
-            return tupletype->semantic(0, NULL);
+            return tupletype->semantic(Loc(), NULL);
     }
 
     return tupletype;
@@ -564,7 +564,7 @@ void AliasDeclaration::semantic(Scope *sc)
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
-        ScopeDsymbol::multiplyDefined(0, overnext, this);
+        ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
     this->inSemantic = 0;
 
     if (global.gag && errors != global.errors)
@@ -590,7 +590,7 @@ void AliasDeclaration::semantic(Scope *sc)
             {
                 FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
                 if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(0, overnext, f);
+                    ScopeDsymbol::multiplyDefined(Loc(), overnext, f);
                 overnext = NULL;
                 s = fa;
                 s->parent = sc->parent;
@@ -608,7 +608,7 @@ void AliasDeclaration::semantic(Scope *sc)
             }
         }
         if (overnext)
-            ScopeDsymbol::multiplyDefined(0, overnext, this);
+            ScopeDsymbol::multiplyDefined(Loc(), overnext, this);
         if (s == this)
         {
             assert(global.errors);
@@ -1433,7 +1433,7 @@ Lnomatch:
                             if (t->ty != Tsarray)
                                 break;
                             dim *= ((TypeSArray *)t)->dim->toInteger();
-                            e1->type = new TypeSArray(t->nextOf(), new IntegerExp(0, dim, Type::tindex));
+                            e1->type = new TypeSArray(t->nextOf(), new IntegerExp(Loc(), dim, Type::tindex));
                         }
                     }
                     e1 = new SliceExp(loc, e1, NULL, NULL);
@@ -2270,7 +2270,7 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
 
 void ObjectNotFound(Identifier *id)
 {
-    Type::error(0, "%s not found. object.d may be incorrectly installed or corrupt.", id->toChars());
+    Type::error(Loc(), "%s not found. object.d may be incorrectly installed or corrupt.", id->toChars());
     fatal();
 }
 
@@ -2287,7 +2287,7 @@ SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
 /********************************* ClassInfoDeclaration ****************************/
 
 ClassInfoDeclaration::ClassInfoDeclaration(ClassDeclaration *cd)
-    : VarDeclaration(0, ClassDeclaration::classinfo->type, cd->ident, NULL)
+    : VarDeclaration(Loc(), ClassDeclaration::classinfo->type, cd->ident, NULL)
 {
     this->cd = cd;
     storage_class = STCstatic | STCgshared;
@@ -2306,7 +2306,7 @@ void ClassInfoDeclaration::semantic(Scope *sc)
 /********************************* ModuleInfoDeclaration ****************************/
 
 ModuleInfoDeclaration::ModuleInfoDeclaration(Module *mod)
-    : VarDeclaration(0, Module::moduleinfo->type, mod->ident, NULL)
+    : VarDeclaration(Loc(), Module::moduleinfo->type, mod->ident, NULL)
 {
     this->mod = mod;
     storage_class = STCstatic | STCgshared;
@@ -2325,7 +2325,7 @@ void ModuleInfoDeclaration::semantic(Scope *sc)
 /********************************* TypeInfoDeclaration ****************************/
 
 TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)
-    : VarDeclaration(0, Type::typeinfo->type, tinfo->getTypeInfoIdent(internal), NULL)
+    : VarDeclaration(Loc(), Type::typeinfo->type, tinfo->getTypeInfoIdent(internal), NULL)
 {
     this->tinfo = tinfo;
     storage_class = STCstatic | STCgshared;

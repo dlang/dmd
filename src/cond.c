@@ -52,7 +52,7 @@ Condition::Condition(Loc loc)
 /* ============================================================ */
 
 DVCondition::DVCondition(Module *mod, unsigned level, Identifier *ident)
-        : Condition(0)
+        : Condition(Loc())
 {
     this->mod = mod;
     this->level = level;
@@ -162,7 +162,7 @@ void VersionCondition::checkPredefined(Loc loc, const char *ident)
 
 void VersionCondition::addGlobalIdent(const char *ident)
 {
-    checkPredefined(0, ident);
+    checkPredefined(Loc(), ident);
     addPredefinedGlobalIdent(ident);
 }
 

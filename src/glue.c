@@ -926,29 +926,29 @@ void FuncDeclaration::toObjFile(int multiobj)
              *   finally
              *     _c_trace_epi();
              */
-            StringExp *se = new StringExp(0, s->Sident);
+            StringExp *se = new StringExp(Loc(), s->Sident);
             se->type = new TypeDArray(Type::tchar->invariantOf());
-            se->type = se->type->semantic(0, NULL);
+            se->type = se->type->semantic(Loc(), NULL);
             Expressions *exps = new Expressions();
             exps->push(se);
             FuncDeclaration *fdpro = FuncDeclaration::genCfunc(Type::tvoid, "trace_pro");
-            Expression *ec = new VarExp(0, fdpro);
-            Expression *e = new CallExp(0, ec, exps);
+            Expression *ec = new VarExp(Loc(), fdpro);
+            Expression *e = new CallExp(Loc(), ec, exps);
             e->type = Type::tvoid;
             Statement *sp = new ExpStatement(loc, e);
 
             FuncDeclaration *fdepi = FuncDeclaration::genCfunc(Type::tvoid, "_c_trace_epi");
-            ec = new VarExp(0, fdepi);
-            e = new CallExp(0, ec);
+            ec = new VarExp(Loc(), fdepi);
+            e = new CallExp(Loc(), ec);
             e->type = Type::tvoid;
             Statement *sf = new ExpStatement(loc, e);
 
             Statement *stf;
             if (sbody->blockExit(tf->isnothrow) == BEfallthru)
-                stf = new CompoundStatement(0, sbody, sf);
+                stf = new CompoundStatement(Loc(), sbody, sf);
             else
-                stf = new TryFinallyStatement(0, sbody, sf);
-            sbody = new CompoundStatement(0, sp, stf);
+                stf = new TryFinallyStatement(Loc(), sbody, sf);
+            sbody = new CompoundStatement(Loc(), sp, stf);
         }
 
 #if DMDV2
@@ -1163,7 +1163,7 @@ unsigned Type::totym()
 #ifdef DEBUG
             printf("ty = %d, '%s'\n", ty, toChars());
 #endif
-            error(0, "forward reference of %s", toChars());
+            error(Loc(), "forward reference of %s", toChars());
             t = TYint;
             break;
 
@@ -1196,11 +1196,11 @@ unsigned Type::totym()
                 if (global.params.is64bit || global.params.isOSX)
                     ;
                 else
-                {   error(0, "SIMD vector types not supported on this platform");
+                {   error(Loc(), "SIMD vector types not supported on this platform");
                     once = true;
                 }
-                if (tv->size(0) == 32)
-                {   error(0, "AVX vector types not supported");
+                if (tv->size(Loc()) == 32)
+                {   error(Loc(), "AVX vector types not supported");
                     once = true;
                 }
             }

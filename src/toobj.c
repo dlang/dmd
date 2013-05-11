@@ -1346,7 +1346,7 @@ void EnumDeclaration::toObjFile(int multiobj)
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
 #if DMDV1
-        dtnbytes(&sinit->Sdt, tc->size(0), (char *)&tc->sym->defaultval);
+        dtnbytes(&sinit->Sdt, tc->size(Loc()), (char *)&tc->sym->defaultval);
         //sinit->Sdt = tc->sym->init->toDt();
 #endif
 #if DMDV2

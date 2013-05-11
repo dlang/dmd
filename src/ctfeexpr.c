@@ -380,13 +380,13 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     else if (lit->op == TOKarrayliteral)
     {
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(0, 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
     }
     else if (lit->op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(0, 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
     }
     else if (lit->op == TOKassocarrayliteral)
     {
