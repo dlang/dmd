@@ -558,9 +558,11 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
 {
     //printf("StructDeclaration::buildPostBlit() %s\n", toChars());
-    Expression *e = NULL;
     StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = postblits.dim ? postblits[0]->loc : this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    Expression *e = NULL;
     for (size_t i = 0; i < fields.dim; i++)
     {
         Dsymbol *s = fields[i];
@@ -616,7 +618,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
      */
     if (e || (stc & STCdisable))
     {   //printf("Building __fieldPostBlit()\n");
-        PostBlitDeclaration *dd = new PostBlitDeclaration(loc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
+        PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__fieldPostBlit"));
         dd->fbody = new ExpStatement(loc, e);
         postblits.shift(dd);
         members->push(dd);
@@ -648,7 +650,7 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
                 ex = new CallExp(loc, ex);
                 e = Expression::combine(e, ex);
             }
-            PostBlitDeclaration *dd = new PostBlitDeclaration(loc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
+            PostBlitDeclaration *dd = new PostBlitDeclaration(declLoc, Loc(), stc, Lexer::idPool("__aggrPostBlit"));
             dd->fbody = new ExpStatement(loc, e);
             members->push(dd);
             dd->semantic(sc);
