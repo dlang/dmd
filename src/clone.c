@@ -405,6 +405,15 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
     return NULL;
 }
 
+FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
+{
+    if (FuncDeclaration *f = hasIdentityOpEquals(sc))
+    {
+        hasIdentityEquals = 1;
+    }
+    return NULL;
+}
+
 /******************************************
  * Build __xopEquals for TypeInfo_Struct
  *      bool __xopEquals(in ref S p, in ref S q) { ... }
@@ -412,11 +421,6 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
 
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 {
-    if (FuncDeclaration *f = hasIdentityOpEquals(sc))
-    {
-        hasIdentityEquals = 1;
-    }
-
     if (!needOpEquals())
         return NULL;
 

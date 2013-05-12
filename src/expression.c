@@ -12538,7 +12538,7 @@ int needDirectEq(Type *t1, Type *t2)
     if (t->ty != Tstruct)
         return FALSE;
 
-    return ((TypeStruct *)t)->sym->xeq == StructDeclaration::xerreq;
+    return ((TypeStruct *)t)->sym->hasIdentityEquals;
 }
 
 Expression *EqualExp::semantic(Scope *sc)

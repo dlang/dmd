@@ -168,7 +168,7 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *buildOpAssign(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
-
+    FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildXopEquals(Scope *sc);
 #endif
     void toDocBuffer(OutBuffer *buf, Scope *sc);
