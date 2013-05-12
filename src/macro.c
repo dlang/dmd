@@ -119,8 +119,8 @@ size_t extractArgN(unsigned char *p, size_t end, unsigned char **pmarg, size_t *
 
   Largstart:
 #if 1
-    // Skip first space, if any, to find the start of the macro argument
-    if (v < end && isspace(p[v]))
+    // Skip first blank, if any, to find the start of the macro argument
+    if (v < end && isblank(p[v]))
         v++;
 #else
     // Skip past spaces to find the start of the macro argument
