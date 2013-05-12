@@ -2342,6 +2342,20 @@ class C9990(alias init) {}
 alias SC9990 = C9990!(initS9990);
 
 /******************************************/
+// 10067
+
+struct assumeSize10067(alias F) {}
+
+template useItemAt10067(size_t idx, T)
+{
+    void impl(){ }
+
+    alias useItemAt10067 = assumeSize10067!(impl);
+}
+
+useItemAt10067!(0, char) mapS10067;
+
+/******************************************/
 
 int main()
 {
