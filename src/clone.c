@@ -161,12 +161,21 @@ Lneed:
  * Build opAssign for struct.
  *      ref S opAssign(S s) { ... }
  *
- * Note that s will be constructed onto the stack, probably copy-constructed.
- * Then, the body is:
- *      S tmp = this;   // bit copy
- *      this = s;       // bit copy
- *      tmp.dtor();
+ * Note that s will be constructed onto the stack, and probably
+ * copy-constructed in caller site.
+ *
+ * If S has copy copy construction and/or destructor, 
+ * the body will make bit-wise object swap:
+ *          S __tmp = this; // bit copy
+ *          this = s;       // bit copy
+ *          __tmp.dtor();
  * Instead of running the destructor on s, run it on tmp instead.
+ *
+ * Otherwise, the body will make member-wise assignments:
+ * Then, the body is:
+ *          this.field1 = s.field1;
+ *          this.field2 = s.field2;
+ *          ...;
  */
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
@@ -196,8 +205,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     Expression *e = NULL;
     if (dtor || postblit)
-    {   /* Swap:
-         *    tmp = *this; *this = s; tmp.dtor();
+    {
+        /* Do swap this and rhs
+         *    tmp = this; this = s; tmp.dtor();
          */
         //printf("\tswap copy\n");
         Identifier *idtmp = Lexer::uniqueId("__tmp");
@@ -232,7 +242,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         }
     }
     else
-    {   /* Do memberwise copy
+    {
+        /* Do memberwise copy
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
@@ -405,6 +416,16 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
     return NULL;
 }
 
+/******************************************
+ * Build opEquals for struct.
+ *      const bool opEquals(const S s) { ... }
+ *
+ * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
+ * Now, struct objects comparison s1 == s2 is translated to:
+ *      s1.tupleof == s2.tupleof
+ * to calculate structural equality. See EqualExp::semantic.
+ */
+
 FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpEquals(sc))
@@ -416,7 +437,13 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 
 /******************************************
  * Build __xopEquals for TypeInfo_Struct
- *      bool __xopEquals(in ref S p, in ref S q) { ... }
+ *      static bool __xopEquals(ref const S p, ref const S q)
+ *      {
+ *          return p == q;
+ *      }
+ *
+ * This is called by TypeInfo.equals(p1, p2). If the struct does not support
+ * const objects comparison, it will throw "not implemented" Error in runtime.
  */
 
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
@@ -424,10 +451,7 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     if (!needOpEquals())
         return NULL;
 
-    /* static bool__xopEquals(ref const S p, ref const S q) {
-     *     return p == q;
-     * }
-     */
+    //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
@@ -486,17 +510,17 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     return fop;
 }
 
-
 /*******************************************
  * Build copy constructor for struct.
+ *      void __cpctpr(ref const S s) const [pure nothrow @trusted]
+ *      {
+ *          (*cast(S*)&this) = *cast(S*)s;
+ *          (*cast(S*)&this).postBlit();
+ *      }
+ *
  * Copy constructors are compiler generated only, and are only
  * callable from the compiler. They are not user accessible.
- * A copy constructor is:
- *    void cpctpr(ref const S s) const
- *    {
- *      (*cast(S*)&this) = *cast(S*)s;
- *      (*cast(S*)&this).postBlit();
- *    }
+ *
  * This is done so:
  *      - postBlit() never sees uninitialized data
  *      - memcpy can be much more efficient than memberwise copy
