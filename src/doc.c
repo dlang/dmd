@@ -783,6 +783,16 @@ void TemplateDeclaration::emitComment(Scope *sc)
     buf->writestring(ddoc_decl_dd_e);
 }
 
+void TemplateMixin::emitComment(Scope *sc)
+{
+    ScopeDsymbol *ss = tempdecl;
+
+    if (tempdecl->onemember)
+      ss = tempdecl->onemember->isAggregateDeclaration();
+    if (ss)
+      ss->emitMemberComments(sc);
+}
+
 void EnumDeclaration::emitComment(Scope *sc)
 {
     if (prot() == PROTprivate)
