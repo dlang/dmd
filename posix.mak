@@ -50,7 +50,7 @@ endif
 
 DFLAGS=$(MODEL_FLAG) -O -release -inline -w -Isrc -Iimport -property $(PIC)
 UDFLAGS=$(MODEL_FLAG) -O -release -w -Isrc -Iimport -property $(PIC)
-DDOCFLAGS=$(MODEL_FLAG) -c -w -o- -Isrc -Iimport
+DDOCFLAGS=$(MODEL_FLAG) -c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
 
@@ -67,7 +67,7 @@ DRUNTIMESO=lib/lib$(DRUNTIME_BASE).so
 DRUNTIMESOOBJ=lib/lib$(DRUNTIME_BASE)so.o
 DRUNTIMESOLIB=lib/lib$(DRUNTIME_BASE)so.a
 
-DOCFMT=-version=CoreDdoc
+DOCFMT=
 
 include mak/COPY
 COPY:=$(subst \,/,$(COPY))
