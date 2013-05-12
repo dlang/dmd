@@ -428,7 +428,8 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
      *     return p == q;
      * }
      */
-    Loc loc = Loc();    // errors are gagged, so loc is not need
+    Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
@@ -437,11 +438,11 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
-    FuncDeclaration *fop = new FuncDeclaration(loc, Loc(), id, STCstatic, tf);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
-    Expression *e = new EqualExp(TOKequal, Loc(), e1, e2);
+    Expression *e = new EqualExp(TOKequal, loc, e1, e2);
 
     fop->fbody = new ReturnStatement(loc, e);
 
