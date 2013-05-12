@@ -588,6 +588,7 @@ struct FuncDeclaration : Declaration
     ILS inlineStatusExp;
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // !=0 if array operation
+    FuncDeclaration *dArrayOp;          // D version of array op for ctfe
     enum PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
