@@ -458,9 +458,10 @@ int main(size_t argc, char *argv[])
 #if TARGET_WINDOS
     global.params.is64bit = 0;
     global.params.defaultlibname = "phobos";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX
+    global.params.defaultlibname = "libphobos.a";
+#elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos";
-#elif TARGET_NET
 #else
 #error "fix this"
 #endif
