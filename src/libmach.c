@@ -87,7 +87,7 @@ Library *Library::factory()
 LibMach::LibMach()
 {
     libfile = NULL;
-    tab.init();
+    tab._init();
 }
 
 /***********************************

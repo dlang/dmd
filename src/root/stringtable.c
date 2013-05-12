@@ -62,7 +62,7 @@ void StringValue::ctor(const char *p, size_t length)
     memcpy(this->lstring, p, length * sizeof(char));
 }
 
-void StringTable::init(size_t size)
+void StringTable::_init(size_t size)
 {
     table = (void **)mem.calloc(size, sizeof(void *));
     tabledim = size;

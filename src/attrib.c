@@ -539,7 +539,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         const char *p = stcToChars(tmp, stc);
         if (!p)
             break;
-        assert(strlen(p) < sizeof(tmp));
+        assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
         buf->writestring(p);
         buf->writeByte(' ');
     }
@@ -971,7 +971,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->semantic(sc);
+                e = e->ctfeSemantic(sc);
                 e = resolveProperties(sc, e);
                 if (e->op != TOKerror && e->op != TOKtype)
                     e = e->ctfeInterpret();
@@ -982,12 +982,12 @@ void PragmaDeclaration::semantic(Scope *sc)
                 StringExp *se = e->toString();
                 if (se)
                 {
-                    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
+                    fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
-                    fprintf(stdmsg, "%s", e->toChars());
+                    fprintf(stderr, "%s", e->toChars());
             }
-            fprintf(stdmsg, "\n");
+            fprintf(stderr, "\n");
         }
         goto Lnodecl;
     }
@@ -999,7 +999,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1027,7 +1027,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1050,7 +1050,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 for (size_t i = 0; i < args->dim; i++)
                 {
                     Expression *e = (*args)[i];
-                    e = e->semantic(sc);
+                    e = e->ctfeSemantic(sc);
                     e = resolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
@@ -1428,7 +1428,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    exp = exp->semantic(sc);
+    exp = exp->ctfeSemantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
@@ -1536,8 +1536,8 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
          * (do not append to left operand, as this is a copy-on-write operation)
          */
         udas = new Expressions();
-        udas->push(new TupleExp(0, udas1));
-        udas->push(new TupleExp(0, udas2));
+        udas->push(new TupleExp(Loc(), udas1));
+        udas->push(new TupleExp(Loc(), udas2));
     }
     return udas;
 }
@@ -1562,8 +1562,8 @@ void UserAttributeDeclaration::setScope(Scope *sc)
             {
                 // Create a tuple that combines them
                 Expressions *exps = new Expressions();
-                exps->push(new TupleExp(0, newsc->userAttributes));
-                exps->push(new TupleExp(0, atts));
+                exps->push(new TupleExp(Loc(), newsc->userAttributes));
+                exps->push(new TupleExp(Loc(), atts));
                 newsc->userAttributes = exps;
             }
         }

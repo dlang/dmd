@@ -23,7 +23,7 @@
 #include "declaration.h"
 #include "aggregate.h"
 #include "init.h"
-
+#include "enum.h"
 
 #ifdef IN_GCC
 #include "d-gcc-real.h"
@@ -68,14 +68,7 @@ Expression *expandVar(int result, VarDeclaration *v)
                         v->error("recursive initialization of constant");
                     goto L1;
                 }
-                if (v->scope)
-                {
-                    v->inuse++;
-                    v->init->semantic(v->scope, v->type, INITinterpret);
-                    v->scope = NULL;
-                    v->inuse--;
-                }
-                Expression *ei = v->init->toExpression(v->type);
+                Expression *ei = v->getConstInitializer();
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
                         v->error("enum cannot be initialized with %s", v->init->toChars());
@@ -98,11 +91,18 @@ Expression *expandVar(int result, VarDeclaration *v)
                     }
                     else if (ei->implicitConvTo(v->type) >= MATCHconst)
                     {   // const var initialized with non-const expression
-                        ei = ei->implicitCastTo(0, v->type);
-                        ei = ei->semantic(0);
+                        ei = ei->implicitCastTo(NULL, v->type);
+                        ei = ei->semantic(NULL);
                     }
                     else
                         goto L1;
+                }
+                else if (!(result & WANTinterpret) &&
+                         !(v->storage_class & STCmanifest) &&
+                         ei->isConst() != 1 && ei->op != TOKstring &&
+                         ei->op != TOKaddress)
+                {
+                    goto L1;
                 }
                 if (!ei->type)
                 {
@@ -238,6 +238,9 @@ Expression *AssocArrayLiteralExp::optimize(int result, bool keepLvalue)
 
 Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
 {
+    if(stageflags & stageOptimize) return this;
+    int old = stageflags;
+    stageflags |= stageOptimize;
     if (elements)
     {
         for (size_t i = 0; i < elements->dim; i++)
@@ -248,6 +251,7 @@ Expression *StructLiteralExp::optimize(int result, bool keepLvalue)
             (*elements)[i] = e;
         }
     }
+    stageflags = old;
     return this;
 }
 
@@ -496,7 +500,13 @@ Expression *NewExp::optimize(int result, bool keepLvalue)
     }
     if (result & WANTinterpret)
     {
-        error("cannot evaluate %s at compile time", toChars());
+        Expression *eresult = interpret(NULL);
+        if (eresult == EXP_CANT_INTERPRET)
+            return this;
+        if (eresult && eresult != EXP_VOID_INTERPRET)
+            return eresult;
+        else
+            error("cannot evaluate %s at compile time", toChars());
     }
     return this;
 }
@@ -606,7 +616,7 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
 
     if ((e1->op == TOKstring || e1->op == TOKarrayliteral) &&
         (type->ty == Tpointer || type->ty == Tarray) &&
-        e1->type->nextOf()->size() == type->nextOf()->size()
+        e1->type->toBasetype()->nextOf()->size() == type->nextOf()->size()
        )
     {
         Expression *e = e1->castTo(NULL, type);
@@ -987,7 +997,8 @@ Expression *IdentityExp::optimize(int result, bool keepLvalue)
     Expression *e = this;
 
     if ((this->e1->isConst()     && this->e2->isConst()) ||
-        (this->e1->op == TOKnull && this->e2->op == TOKnull))
+        (this->e1->op == TOKnull && this->e2->op == TOKnull) ||
+        (result & WANTinterpret))
     {
         e = Identity(op, type, this->e1, this->e2);
         if (e == EXP_CANT_INTERPRET)
@@ -1020,8 +1031,8 @@ void setLengthVarIfKnown(VarDeclaration *lengthVar, Expression *arr)
             return; // we don't know the length yet
     }
 
-    Expression *dollar = new IntegerExp(0, len, Type::tsize_t);
-    lengthVar->init = new ExpInitializer(0, dollar);
+    Expression *dollar = new IntegerExp(Loc(), len, Type::tsize_t);
+    lengthVar->init = new ExpInitializer(Loc(), dollar);
     lengthVar->storage_class |= STCstatic | STCconst;
 }
 

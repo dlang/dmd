@@ -25,7 +25,7 @@
 #include "lexer.h"
 #include "dsymbol.h"
 #include "id.h"
-
+#include "ctfe.h"
 #include "rmem.h"
 
 // Back end
@@ -46,18 +46,9 @@ Classsym *fake_classsym(Identifier *id);
 
 /********************************* SymbolDeclaration ****************************/
 
-SymbolDeclaration::SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym)
-    : Declaration(new Identifier(s->Sident, TOKidentifier))
-{
-    this->loc = loc;
-    sym = s;
-    this->dsym = dsym;
-    storage_class |= STCconst;
-}
-
 Symbol *SymbolDeclaration::toSymbol()
 {
-    return sym;
+    return dsym->toInitializer();
 }
 
 /*************************************
@@ -193,7 +184,7 @@ Symbol *VarDeclaration::toSymbol()
         }
         else if (isParameter())
         {
-            if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
+            if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
             {
                 // should be TYref, but problems in back end
                 t = type_pointer(type->toCtype());
@@ -223,7 +214,7 @@ Symbol *VarDeclaration::toSymbol()
                 if (global.params.vtls)
                 {
                     char *p = loc.toChars();
-                    fprintf(stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
+                    fprintf(stderr, "%s: %s is thread local\n", p ? p : "", toChars());
                     if (p)
                         mem.free(p);
                 }
@@ -281,9 +272,25 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKcpp:
+            {
                 m = mTYman_cpp;
-                break;
 
+                s->Sflags = SFLpublic;
+                Dsymbol *parent = toParent();
+                ClassDeclaration *cd = parent->isClassDeclaration();
+                if (cd)
+                {
+                    ::type *tc = cd->type->toCtype();
+                    s->Sscope = tc->Tnext->Ttag;
+                }
+                StructDeclaration *sd = parent->isStructDeclaration();
+                if (sd)
+                {
+                    ::type *ts = sd->type->toCtype();
+                    s->Sscope = ts->Ttag;
+                }
+                break;
+            }
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
@@ -421,6 +428,12 @@ Symbol *FuncDeclaration::toSymbol()
                     {
                         ::type *tc = cd->type->toCtype();
                         s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
                     }
                     break;
                 }
@@ -752,3 +765,44 @@ Symbol *TypeAArray::aaGetSymbol(const char *func, int flags)
         return s;
     }
 
+/*****************************************************/
+/*                   CTFE stuff                      */
+/*****************************************************/
+
+Symbol* StructLiteralExp::toSymbol()
+{
+    if (sym) return sym;
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    sym = s;
+    dt_t *d = NULL;
+    toDt(&d);
+    s->Sdt = d;
+    slist_add(s);
+    outdata(s);
+    return sym;
+}
+
+Symbol* ClassReferenceExp::toSymbol()
+{
+    if (value->sym) return value->sym;
+    TYPE *t = type_alloc(TYint);
+    t->Tcount++;
+    Symbol *s = symbol_calloc("internal");
+    s->Sclass = SCstatic;
+    s->Sfl = FLextern;
+    s->Sflags |= SFLnodebug;
+    s->Stype = t;
+    value->sym = s;
+    dt_t *d = NULL;
+    toInstanceDt(&d);
+    s->Sdt = d;
+    slist_add(s);
+    outdata(s);
+    return value->sym;
+}

@@ -38,9 +38,20 @@ Expression *resolveAliasThis(Scope *sc, Expression *e)
         {
             bool isstatic = (e->op == TOKtype);
             e = new DotIdExp(e->loc, e, ad->aliasthis->ident);
-            if (isstatic && ad->aliasthis->needThis())
-                e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
             e = e->semantic(sc);
+            if (isstatic && ad->aliasthis->needThis())
+            {
+                /* non-@property function is not called inside typeof(),
+                 * so resolve it ahead.
+                 */
+                int save = sc->intypeof;
+                sc->intypeof = 1;   // bypass "need this" error check
+                e = resolveProperties(sc, e);
+                sc->intypeof = save;
+
+                e = new TypeExp(e->loc, new TypeTypeof(e->loc, e));
+                e = e->semantic(sc);
+            }
             e = resolveProperties(sc, e);
         }
     }
@@ -77,7 +88,7 @@ void AliasThis::semantic(Scope *sc)
         assert(ad->members);
         Dsymbol *s = ad->search(loc, ident, 0);
         if (!s)
-        {   s = sc->search(loc, ident, 0);
+        {   s = sc->search(loc, ident, NULL);
             if (s)
                 ::error(loc, "%s is not a member of %s", s->toChars(), ad->toChars());
             else

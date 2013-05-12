@@ -14,6 +14,7 @@
 #pragma once
 #endif /* __DMC__ */
 
+#include "arraytypes.h"
 
 /**
    Global status of the CTFE engine. Mostly used for performance diagnostics
@@ -44,7 +45,7 @@ struct ClassReferenceExp : Expression
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    char *toChars();
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ClassDeclaration *originalClass();
     VarDeclaration *getFieldAt(unsigned index);
 
@@ -53,6 +54,12 @@ struct ClassReferenceExp : Expression
     /// Return index of the field, or -1 if not found
     /// Same as getFieldIndex, but checks for a direct match with the VarDeclaration
     int findFieldIndexByName(VarDeclaration *v);
+    dt_t **toDt(dt_t **pdt);
+    dt_t **toDtI(dt_t **pdt, int offset);
+    Symbol* toSymbol();
+    dt_t **toInstanceDt(dt_t **pdt);
+    dt_t **toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts);
+    elem *toElem(IRState *irs);
 };
 
 /// Return index of the field, or -1 if not found
@@ -200,6 +207,9 @@ TypeAArray *toBuiltinAAType(Type *t);
  *  Return EXP_CANT_INTERPRET on error.
  */
 Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2);
+
+/// True if type is TypeInfo_Class
+bool isTypeInfo_Class(Type *type);
 
 /***********************************************
       In-place integer operations

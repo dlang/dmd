@@ -312,6 +312,9 @@
     <ClCompile Include="backend\debug.c">
       <Filter>src\backend</Filter>
     </ClCompile>
+    <ClCompile Include="backend\divcoeff.c">
+      <Filter>src\backend</Filter>
+    </ClCompile>
     <ClCompile Include="backend\dt.c">
       <Filter>src\backend</Filter>
     </ClCompile>

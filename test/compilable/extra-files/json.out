@@ -142,6 +142,7 @@
       "kind" : "constructor",
       "line" : 23,
       "deco" : "FZC4json4Bar2",
+      "originalType" : "()",
       "endline" : 23
      },
      {
@@ -205,6 +206,7 @@
       "kind" : "constructor",
       "line" : 33,
       "deco" : "FiZC4json4Bar3",
+      "originalType" : "(int i)",
       "parameters" : [
        {
         "name" : "i",
@@ -264,6 +266,30 @@
         "line" : 45,
         "deco" : "C6Object",
         "originalType" : "Object",
+       }
+      ]
+     },
+     {
+      "name" : "__xopEquals",
+      "kind" : "function",
+      "storageClass" : [
+       "static"
+      ],
+      "deco" : "FKxS4json4Foo2KxS4json4Foo2Zb",
+      "parameters" : [
+       {
+        "name" : "p",
+        "deco" : "xS4json4Foo2",
+        "storageClass" : [
+         "ref"
+        ]
+       },
+       {
+        "name" : "q",
+        "deco" : "xS4json4Foo2",
+        "storageClass" : [
+         "ref"
+        ]
        }
       ]
      }
@@ -443,6 +469,17 @@
       ]
      }
     ]
+   },
+   {
+    "name" : "c_10011",
+    "kind" : "variable",
+    "line" : 98,
+    "storageClass" : [
+     "const"
+    ],
+    "deco" : "xC6Object",
+    "originalType" : "Object",
+    "init" : "Object()"
    }
   ]
  }

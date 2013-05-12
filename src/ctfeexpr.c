@@ -40,9 +40,9 @@ Expression *ClassReferenceExp::interpret(InterState *istate, CtfeGoal goal)
     return this;
 }
 
-char *ClassReferenceExp::toChars()
+void ClassReferenceExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
-    return value->toChars();
+    buf->writestring(value->toChars());
 }
 
 ClassDeclaration *ClassReferenceExp::originalClass()
@@ -306,6 +306,7 @@ Expression *copyLiteral(Expression *e)
 #endif
         r->type = e->type;
         r->ownedByCtfe = true;
+        r->origin = ((StructLiteralExp*)e)->origin;
         return r;
     }
     else if (e->op == TOKfunction || e->op == TOKdelegate
@@ -379,13 +380,13 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
     else if (lit->op == TOKarrayliteral)
     {
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(0, 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
     }
     else if (lit->op == TOKstring)
     {
         // For strings, we need to introduce another level of indirection
         e = new SliceExp(lit->loc, lit,
-            new IntegerExp(0, 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
+            new IntegerExp(Loc(), 0, Type::tsize_t), ArrayLength(Type::tsize_t, lit));
     }
     else if (lit->op == TOKassocarrayliteral)
     {
@@ -530,6 +531,16 @@ TypeAArray *toBuiltinAAType(Type *t)
     assert(0);
     return NULL;
 #endif
+}
+
+/************** TypeInfo operations ************************************/
+
+// Return true if type is TypeInfo_Class
+bool isTypeInfo_Class(Type *type)
+{
+    return type->ty == Tclass &&
+        (( Type::typeinfo == ((TypeClass*)type)->sym)
+        || Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL));
 }
 
 /************** Pointer operations ************************************/
@@ -1622,6 +1633,10 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
         else
             return new NullExp(loc, to);
     }
+    // Allow TypeInfo type painting
+    if (isTypeInfo_Class(e->type) && e->type->implicitConvTo(to))
+        return paintTypeOntoLiteral(to, e);
+
     Expression *r = Cast(type, to, e);
     if (r == EXP_CANT_INTERPRET)
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());

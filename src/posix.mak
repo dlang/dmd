@@ -57,15 +57,15 @@ HOST_CC=g++
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
-#OPT=-g -g3
-#OPT=-O2
-
 #COV=-fprofile-arcs -ftest-coverage
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+ifneq (,$(DEBUG))
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV)
+else
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
+endif
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
@@ -93,7 +93,7 @@ DMD_OBJS = \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o \
-	pdata.o cv8.o backconfig.o \
+	pdata.o cv8.o backconfig.o divcoeff.o \
 	$(TARGET_OBJS)
 
 ifeq (OSX,$(OS))
@@ -140,7 +140,7 @@ SRC = win32.mak posix.mak \
 	$C/dwarf.c $C/dwarf.h $C/aa.h $C/aa.c $C/tinfo.h $C/ti_achar.c \
 	$C/ti_pvoid.c $C/platform_stub.c $C/code_x86.h $C/code_stub.h \
 	$C/machobj.c $C/mscoffobj.c \
-	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c \
+	$C/xmm.h $C/obj.h $C/pdata.c $C/cv8.c $C/backconfig.c $C/divcoeff.c \
 	$C/md5.c $C/md5.h \
 	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
@@ -351,6 +351,9 @@ declaration.o: declaration.c
 
 delegatize.o: delegatize.c
 	$(CC) -c $(CFLAGS) $<
+
+divcoeff.o: $C/divcoeff.c
+	$(CC) -c $(MFLAGS) $<
 
 doc.o: doc.c
 	$(CC) -c $(CFLAGS) $<

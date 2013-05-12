@@ -202,7 +202,7 @@ Objects *opToArg(Scope *sc, enum TOK op)
         case TOKcatass: op = TOKcat; break;
         case TOKpowass: op = TOKpow; break;
     }
-    Expression *e = new StringExp(0, (char *)Token::toChars(op));
+    Expression *e = new StringExp(Loc(), (char *)Token::toChars(op));
     e = e->semantic(sc);
     Objects *tiargs = new Objects();
     tiargs->push(e);
@@ -510,9 +510,21 @@ Expression *BinExp::op_overload(Scope *sc)
         /* Try the new D2 scheme, opBinary and opBinaryRight
          */
         if (ad1)
+        {
             s = search_function(ad1, Id::opBinary);
+            if (s && !s->isTemplateDeclaration())
+            {   e1->error("%s.opBinary isn't a template", e1->toChars());
+                return new ErrorExp();
+            }
+        }
         if (ad2)
+        {
             s_r = search_function(ad2, Id::opBinaryRight);
+            if (s_r && !s_r->isTemplateDeclaration())
+            {   e2->error("%s.opBinaryRight isn't a template", e2->toChars());
+                return new ErrorExp();
+            }
+        }
 
         // Set tiargs, the template argument list, which will be the operator string
         if (s || s_r)
@@ -1110,7 +1122,13 @@ Expression *BinAssignExp::op_overload(Scope *sc)
     {   /* Try the new D2 scheme, opOpAssign
          */
         if (ad1)
+        {
             s = search_function(ad1, Id::opOpAssign);
+            if (s && !s->isTemplateDeclaration())
+            {   error("%s.opOpAssign isn't a template", e1->toChars());
+                return new ErrorExp();
+            }
+        }
 
         // Set tiargs, the template argument list, which will be the operator string
         if (s)
@@ -1241,7 +1259,7 @@ Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid)
     FuncDeclaration *fd;
     TemplateDeclaration *td;
 
-    s = ad->search(0, funcid, 0);
+    s = ad->search(Loc(), funcid, 0);
     if (s)
     {   Dsymbol *s2;
 
@@ -1323,7 +1341,7 @@ int ForeachStatement::inferAggregate(Scope *sc, Dsymbol *&sapply)
                     }
                 }
 
-                if (Dsymbol *shead = ad->search(0, idfront, 0))
+                if (Dsymbol *shead = ad->search(Loc(), idfront, 0))
                 {   // range aggregate
                     break;
                 }
@@ -1484,7 +1502,7 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
                     /* Look for a front() or back() overload
                      */
                     Identifier *id = (op == TOKforeach) ? Id::Ffront : Id::Fback;
-                    Dsymbol *s = ad->search(0, id, 0);
+                    Dsymbol *s = ad->search(Loc(), id, 0);
                     FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
                     if (fd)
                     {
@@ -1668,7 +1686,7 @@ static void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *s
     FuncDeclaration *fd;
 
     assert(td);
-    fd = td->deduceFunctionTemplate(loc, sc, tiargs, ethis, arguments, 1);
+    fd = td->deduceFunctionTemplate(loc, sc, tiargs, ethis->type, arguments, 1);
     if (!fd)
         return;
     m->anyf = fd;

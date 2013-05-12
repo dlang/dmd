@@ -77,7 +77,7 @@ Library *Library::factory()
 LibElf::LibElf()
 {
     libfile = NULL;
-    tab.init();
+    tab._init();
 }
 
 /***********************************

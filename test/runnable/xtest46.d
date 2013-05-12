@@ -2610,6 +2610,49 @@ void test129()
 
 /***************************************************/
 
+
+auto ctfefunc6169() { return ";"; }
+enum ctfefptr6169 = &ctfefunc6169;
+int ctfefunc6169a() { return 1; }
+template x6169(string c) { alias int x6169; }
+template TT6169(T...) { alias T TT6169; }
+
+void test6169() pure @safe
+{
+    enum a = ctfefunc6169();
+    static b = ctfefunc6169();
+    x6169!(ctfefunc6169()) tt;
+    mixin(ctfefunc6169());
+    static if(ctfefunc6169()) {}
+    pragma(msg, ctfefunc6169());
+    enum xx
+    {
+        k = 0,
+        j = ctfefunc6169a()
+    }
+    auto g = mixin('"' ~ ctfefunc6169() ~ '"');
+    //auto h = import("testx.d" ~ false ? ctfefunc() : "");
+    alias TT6169!(int, int)[ctfefunc6169a()..ctfefunc6169a()] i;
+    alias TT6169!(int, int)[ctfefunc6169a()] j;
+    int[ctfefunc6169a()+1] k;
+    alias int[ctfefunc6169a()] l;
+    switch(1)
+    {
+    //case ctfefunc6169a(): // Can't do this because of case variables
+    case ctfefunc6169a()+1:
+        ..
+    case ctfefunc6169a()+2:
+    default:
+        break;
+    }
+    static assert(ctfefunc6169a());
+    void fun(int i : ctfefunc6169a() = ctfefunc6169a(), alias j)() if (ctfefunc6169a()) {}
+    fun!(ctfefunc6169a(), ctfefunc6169())();
+    enum z = ctfefptr6169();
+}
+
+/***************************************************/
+
 const shared class C5107
 {
     int x;
@@ -3029,7 +3072,7 @@ void test141()
 struct S142
 {
     int v;
-    this(int n) { v = n; }
+    this(int n) pure { v = n; }
     const bool opCast(T:bool)() { return true; }
 }
 
@@ -3276,6 +3319,52 @@ void cantthrow() nothrow
         assert(0);
     catch(Exception e)
         assert(0);
+}
+
+/***************************************************/
+// 2356
+
+void test2356()
+{
+    int[3] x = [1,2,3];
+    printf("x[] = [%d %d %d]\n", x[0], x[1], x[2]);
+    assert(x[0] == 1 && x[1] == 2 && x[2] == 3);
+
+    struct S
+    {
+        static int pblit;
+        int n;
+        this(this) { ++pblit; printf("postblit: %d\n", n); }
+    }
+    S s2 = S(2);
+    S[3] s = [S(1), s2, S(3)];
+    assert(s[0].n == 1 && s[1].n == 2 && s[2].n == 3);
+    printf("s[].n = [%d %d %d]\n", s[0].n, s[1].n, s[2].n);
+    assert(S.pblit == 1);
+
+    ubyte[1024] v;
+    v = typeof(v).init;
+    printf("v[] = [%d %d %d, ..., %d]\n", v[0], v[1], v[2], v[$-1]);
+    foreach (ref a; v) assert(a == 0);
+
+    int n = 5;
+    int[3] y = [n, n, n];
+    printf("y[] = [%d %d %d]\n", y[0], y[1], y[2]);
+    assert(y[0] == 5 && y[1] == 5 && y[2] == 5);
+
+    S[3] z = [s2, s2, s2];
+    assert(z[0].n == 2 && z[1].n == 2 && z[2].n == 2);
+    printf("z[].n = [%d %d %d]\n", z[0].n, z[1].n, z[2].n);
+    assert(S.pblit == 1 + 3);
+
+    int[0] nsa0 = [];
+    void[0] vsa0 = [];
+
+    void foo(T)(T){}
+    foo(vsa0);
+
+    ref int[0] bar() { static int[1] sa; return *cast(int[0]*)&sa; }
+    bar() = [];
 }
 
 /***************************************************/
@@ -4145,7 +4234,7 @@ void test6578()
 {
     static struct Foo
     {
-        this(int x) {}
+        this(int x) pure {}
     }
     auto f1 = new const(Foo)(1);
     auto f2 = new immutable(Foo)(1);
@@ -4162,7 +4251,7 @@ void test6578()
 
     static struct Bar
     {
-        this(int x) const {}
+        this(int x) const pure {}
     }
     auto g1 = new const(Bar)(1);
     auto g2 = new immutable(Bar)(1);
@@ -4172,21 +4261,21 @@ void test6578()
     auto g6 = shared(Bar)(1);
     static assert(is(typeof(g1) == const(Bar)*));
     static assert(is(typeof(g2) == immutable(Bar)*));
-    static assert(is(typeof(g3) == shared(const(Bar))*));
+    static assert(is(typeof(g3) == shared(Bar)*));
     static assert(is(typeof(g4) == const(Bar)));
     static assert(is(typeof(g5) == immutable(Bar)));
-    static assert(is(typeof(g6) == shared(const(Bar))));
+    static assert(is(typeof(g6) == shared(Bar)));
 
     static struct Baz
     {
-        this()(int x) const {}
+        this()(int x) const pure {}
     }
     auto h1 = new const(Baz)(1);
     auto h2 = new immutable(Baz)(1);
-    auto h3 = new shared(Baz)(1);
+    auto h3 = new shared(const(Baz))(1);
     auto h4 = const(Baz)(1);
     auto h5 = immutable(Baz)(1);
-    auto h6 = shared(Baz)(1);
+    auto h6 = shared(const(Baz))(1);
     static assert(is(typeof(h1) == const(Baz)*));
     static assert(is(typeof(h2) == immutable(Baz)*));
     static assert(is(typeof(h3) == shared(const(Baz))*));
@@ -6198,6 +6287,48 @@ void test9834()
 }
 
 /***************************************************/
+// 9912
+
+template TypeTuple9912(Stuff...)
+{
+    alias Stuff TypeTuple9912;
+}
+
+struct S9912
+{
+    int i;
+    alias TypeTuple9912!i t;
+
+    void testA() {
+        auto x = t;
+    }
+
+    void testB() {
+        auto x = t;
+    }
+}
+
+/***************************************************/
+// 9883
+
+struct S9883
+{
+    @property size_t p9883(T)() { return 0; }
+}
+
+@property size_t p9883(T)() { return 0; }
+
+void test9883()
+{
+    S9883 s;
+    auto n1 = p9883!int; // OK
+    auto n2 = s.p9883!int; // OK
+    auto a1 = new int[p9883!int]; // Error: need size of rightmost array, not type p!(int)
+    auto a2 = new int[s.p9883!int]; // Error: no property 'p!(int)' for type 'S'
+}
+
+
+/***************************************************/
 
 int main()
 {
@@ -6369,6 +6500,7 @@ int main()
     test6685();
     test148();
     test149();
+    test2356();
     test2540();
     test150();
     test151();
@@ -6461,6 +6593,7 @@ int main()
     test9538();
     test9700();
     test9834();
+    test9883();
 
     printf("Success\n");
     return 0;

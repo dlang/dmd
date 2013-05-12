@@ -444,9 +444,8 @@ L1:     e = *pe;
         if (OTunary(op))
         {
             if (op == OPind)
-            {   elem *e1;
-
-                e1 = e->E1;
+            {
+                elem *e1 = e->E1;
                 if (e1->Eoper == OPadd &&
                     e1->Ecount // == 1
                    )
@@ -508,6 +507,20 @@ L1:     e = *pe;
             // This CSE is too easy to regenerate
             else if (op == OPu16_32 && !I32 && e->Ecount)
                 e = delcse(pe);
+
+            // OPremquo is only worthwhile if its result is used more than once
+            else if (e->E1->Eoper == OPremquo &&
+                     (op == OP64_32 || op == OP128_64 || op == OPmsw) &&
+                     e->E1->Ecount == 0)
+            {   // Convert back to OPdiv or OPmod
+                elem *e1 = e->E1;
+                e->Eoper = (op == OPmsw) ? OPmod : OPdiv;
+                e->E1 = e1->E1;
+                e->E2 = e1->E2;
+                e1->E1 = NULL;
+                e1->E2 = NULL;
+                el_free(e1);
+            }
         }
         else if (OTbinary(op))
         {

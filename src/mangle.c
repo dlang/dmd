@@ -150,7 +150,7 @@ char *Declaration::mangle(bool isv)
                     return ident->toChars();
 
                 default:
-                    fprintf(stdmsg, "'%s', linkage = %d\n", toChars(), linkage);
+                    fprintf(stderr, "'%s', linkage = %d\n", toChars(), linkage);
                     assert(0);
             }
         }

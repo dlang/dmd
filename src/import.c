@@ -164,7 +164,7 @@ void Import::importAll(Scope *sc)
     {
         load(sc);
         if (mod)                // if successfully loaded module
-        {   mod->importAll(0);
+        {   mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
@@ -189,7 +189,7 @@ void Import::semantic(Scope *sc)
     if (!mod)
     {   load(sc);
         if (mod)
-            mod->importAll(0);
+            mod->importAll(NULL);
     }
 
     if (mod)
@@ -245,7 +245,6 @@ void Import::semantic(Scope *sc)
             if (mod->search(loc, names[i], 0))
             {
                 ad->semantic(sc);
-                ad->import = NULL;  // forward reference resolved
             }
             else
             {

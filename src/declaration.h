@@ -103,10 +103,12 @@ struct Match
 };
 
 void overloadResolveX(Match *m, FuncDeclaration *f,
-        Expression *ethis, Expressions *arguments);
+        Type *tthis, Expressions *arguments);
 int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
         void *param);
+
+void ObjectNotFound(Identifier *id);
 
 enum Semantic
 {
@@ -296,6 +298,7 @@ struct VarDeclaration : Declaration
     Initializer *hinit;
     AggregateDeclaration *isThis();
     int needThis();
+    int isExport();
     int isImportedSymbol();
     int isDataseg();
     int isThreadlocal();
@@ -307,7 +310,7 @@ struct VarDeclaration : Declaration
 #endif
     Expression *callScopeDtor(Scope *sc);
     ExpInitializer *getExpInitializer();
-    Expression *getConstInitializer();
+    Expression *getConstInitializer(bool needFullType = true);
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
@@ -326,10 +329,9 @@ struct VarDeclaration : Declaration
 
 struct SymbolDeclaration : Declaration
 {
-    Symbol *sym;
     StructDeclaration *dsym;
 
-    SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym);
+    SymbolDeclaration(Loc loc, StructDeclaration *dsym);
 
     Symbol *toSymbol();
 
@@ -651,7 +653,7 @@ struct FuncDeclaration : Declaration
     int findVtblIndex(Dsymbols *vtbl, int dim);
     int overloadInsert(Dsymbol *s);
     FuncDeclaration *overloadExactMatch(Type *t);
-    FuncDeclaration *overloadResolve(Loc loc, Expression *ethis, Expressions *arguments, int flags = 0);
+    FuncDeclaration *overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags = 0);
     MATCH leastAsSpecialized(FuncDeclaration *g);
     LabelDsymbol *searchLabel(Identifier *ident);
     AggregateDeclaration *isThis();
@@ -720,7 +722,7 @@ struct FuncDeclaration : Declaration
 #if DMDV2
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
-        Expression *ethis,
+        Type *tthis,
         Expressions *arguments,
         int flags = 0);
 #endif
@@ -791,7 +793,7 @@ struct PostBlitDeclaration : FuncDeclaration
 struct DtorDeclaration : FuncDeclaration
 {
     DtorDeclaration(Loc loc, Loc endloc);
-    DtorDeclaration(Loc loc, Loc endloc, Identifier *id);
+    DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

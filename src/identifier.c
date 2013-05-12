@@ -73,7 +73,7 @@ const char *Identifier::toHChars2()
 
 void Identifier::print()
 {
-    fprintf(stdmsg, "%s",string);
+    fprintf(stderr, "%s",string);
 }
 
 int Identifier::dyncast()

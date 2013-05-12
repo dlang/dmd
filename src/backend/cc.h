@@ -1633,4 +1633,44 @@ enum
     DT_ibytes, // 7
 };
 
+// An efficient way to clear aligned memory
+#define MEMCLEAR(p,sz)                  \
+    if ((sz) == 10 * sizeof(size_t))    \
+    {                                   \
+        ((size_t *)(p))[0] = 0;         \
+        ((size_t *)(p))[1] = 0;         \
+        ((size_t *)(p))[2] = 0;         \
+        ((size_t *)(p))[3] = 0;         \
+        ((size_t *)(p))[4] = 0;         \
+        ((size_t *)(p))[5] = 0;         \
+        ((size_t *)(p))[6] = 0;         \
+        ((size_t *)(p))[7] = 0;         \
+        ((size_t *)(p))[8] = 0;         \
+        ((size_t *)(p))[9] = 0;         \
+    }                                   \
+    else if ((sz) == 14 * sizeof(size_t))       \
+    {                                   \
+        ((size_t *)(p))[0] = 0;         \
+        ((size_t *)(p))[1] = 0;         \
+        ((size_t *)(p))[2] = 0;         \
+        ((size_t *)(p))[3] = 0;         \
+        ((size_t *)(p))[4] = 0;         \
+        ((size_t *)(p))[5] = 0;         \
+        ((size_t *)(p))[6] = 0;         \
+        ((size_t *)(p))[7] = 0;         \
+        ((size_t *)(p))[8] = 0;         \
+        ((size_t *)(p))[9] = 0;         \
+        ((size_t *)(p))[10] = 0;        \
+        ((size_t *)(p))[11] = 0;        \
+        ((size_t *)(p))[12] = 0;        \
+        ((size_t *)(p))[13] = 0;        \
+    }                                   \
+    else                                \
+    {                                   \
+        /*printf("%s(%d) sz = %d\n",__FILE__,__LINE__,(sz));fflush(stdout);*(char*)0=0;*/  \
+        for (size_t i = 0; i < sz / sizeof(size_t); ++i)        \
+            ((size_t *)(p))[i] = 0;                             \
+    }
+
+
 #endif

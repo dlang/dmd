@@ -107,7 +107,7 @@ void test7017a() pure
     static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
     static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
     static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
-    static assert(!__traits(compiles, map7017!bar7017()));  // should pass, but fails
+    static assert( __traits(compiles, map7017!bar7017()));
 }
 
 /***************************************************/
@@ -250,6 +250,35 @@ void test5933()
     // inside function
     static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
     static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+}
+
+/***************************************************/
+// 10002
+
+void impure10002() {}
+void remove10002(alias pred, bool impure = false, Range)(Range range)
+{
+    pred(range[0]);
+    static if (impure) impure10002();
+}
+class Node10002
+{
+    Node10002 parent;
+    Node10002[] children;
+
+    void foo() pure
+    {
+        parent.children.remove10002!(n => n is parent)();
+        remove10002!(n => n is parent)(parent.children);
+        static assert(!__traits(compiles, parent.children.remove10002x!(n => n is parent, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is parent, true)(parent.children)));
+
+        Node10002 p;
+        p.children.remove10002!(n => n is p)();
+        remove10002!(n => n is p)(p.children);
+        static assert(!__traits(compiles, p.children.remove10002x!(n => n is p, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is p, true)(p.children)));
+    }
 }
 
 /***************************************************/

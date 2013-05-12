@@ -26,9 +26,6 @@
 #include "aggregate.h"
 #include "hdrgen.h"
 
-#define tfloat2 tfloat64
-//#define tfloat2 tcomplex32
-
 /****************************************************
  * This breaks a type down into 'simpler' types that can be passed to a function
  * in registers, and returned in registers.
@@ -84,7 +81,7 @@ TypeTuple *TypeBasic::toArgTypes()
 
         case Tcomplex32:
             if (global.params.is64bit)
-                t1 = Type::tfloat2;
+                t1 = Type::tfloat64;
             else
             {
                 t1 = Type::tfloat64;
@@ -223,8 +220,8 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
     if (!t2)
         return t1;
 
-    unsigned sz1 = t1->size(0);
-    unsigned sz2 = t2->size(0);
+    unsigned sz1 = t1->size(Loc());
+    unsigned sz2 = t2->size(Loc());
 
     if (t1->ty != t2->ty &&
         (t1->ty == Tfloat80 || t2->ty == Tfloat80))
@@ -232,7 +229,7 @@ Type *argtypemerge(Type *t1, Type *t2, unsigned offset2)
 
     // [float,float] => [cfloat]
     if (t1->ty == Tfloat32 && t2->ty == Tfloat32 && offset2 == 4)
-        return Type::tfloat2;
+        return Type::tfloat64;
 
     // Merging floating and non-floating types produces the non-floating type
     if (t1->isfloating())
@@ -287,7 +284,7 @@ TypeTuple *TypeStruct::toArgTypes()
     }
     Type *t1 = NULL;
     Type *t2 = NULL;
-    d_uns64 sz = size(0);
+    d_uns64 sz = size(Loc());
     assert(sz < 0xFFFFFFFF);
     switch ((unsigned)sz)
     {
@@ -349,7 +346,7 @@ TypeTuple *TypeStruct::toArgTypes()
                     goto Lmemory;
 
                 // Fields that overlap the 8byte boundary goto Lmemory
-                unsigned fieldsz = f->type->size(0);
+                unsigned fieldsz = f->type->size(Loc());
                 if (f->offset < 8 && (f->offset + fieldsz) > 8)
                     goto Lmemory;
             }

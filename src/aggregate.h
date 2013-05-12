@@ -107,7 +107,8 @@ struct AggregateDeclaration : ScopeDsymbol
     void toJson(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
-    FuncDeclaration *hasIdentityOpAssign(Scope *sc, Dsymbol *assign);
+    FuncDeclaration *hasIdentityOpAssign(Scope *sc);
+    FuncDeclaration *hasIdentityOpEquals(Scope *sc);
 
     char *mangle(bool isv = false);
 
@@ -163,7 +164,6 @@ struct StructDeclaration : AggregateDeclaration
     int needOpAssign();
     int needOpEquals();
     FuncDeclaration *buildOpAssign(Scope *sc);
-    FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
 

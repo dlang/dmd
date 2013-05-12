@@ -36,12 +36,7 @@ int Expression::apply(fp_t fp, void *param)
 /******************************
  * Perform apply() on an t if not null
  */
-template<typename T>
-int condApply(T* t, fp_t fp, void* param)
-{
-    return t ? t->apply(fp, param) : 0;
-}
-
+#define condApply(t, fp, param) (t ? t->apply(fp, param) : 0)
 
 int NewExp::apply(int (*fp)(Expression *, void *), void *param)
 {
@@ -129,8 +124,13 @@ int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 
 int StructLiteralExp::apply(fp_t fp, void *param)
 {
-    return condApply(elements, fp, param) ||
+    if(stageflags & stageApply) return 0;
+    int old = stageflags;
+    stageflags |= stageApply;
+    int ret = condApply(elements, fp, param) ||
            (*fp)(this, param);
+    stageflags = old;      
+    return ret;
 }
 
 

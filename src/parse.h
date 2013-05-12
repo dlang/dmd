@@ -124,7 +124,7 @@ struct Parser : Lexer
     void checkParens(enum TOK value, Expression *e);
     int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
     int isBasicType(Token **pt);
-    int isDeclarator(Token **pt, int *haveId, enum TOK endtok);
+    int isDeclarator(Token **pt, int *haveId, int *haveTpl, enum TOK endtok);
     int isParameters(Token **pt);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);

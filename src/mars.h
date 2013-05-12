@@ -238,6 +238,11 @@ struct Param
     char *mapfile;
 };
 
+struct Compiler
+{
+    const char *vendor;     // Compiler backend name
+};
+
 typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
@@ -260,10 +265,9 @@ struct Global
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
-    structalign_t structalign;       // default alignment for struct fields
-
     const char *version;
 
+    Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
@@ -284,7 +288,7 @@ struct Global
      */
     bool endGagging(unsigned oldGagged);
 
-    Global();
+    void init();
 };
 
 extern Global global;
@@ -340,14 +344,6 @@ typedef d_uns32                 d_dchar;
 typedef longdouble real_t;
 #endif
 
-// Modify OutBuffer::writewchar to write the correct size of wchar
-#if _WIN32
-#define writewchar writeword
-#else
-// This needs a configuration test...
-#define writewchar write4
-#endif
-
 #ifdef IN_GCC
 #include "d-gcc-complex_t.h"
 #endif
@@ -363,12 +359,6 @@ struct Loc
     Loc()
     {
         linnum = 0;
-        filename = NULL;
-    }
-
-    Loc(int x)
-    {
-        linnum = x;
         filename = NULL;
     }
 
@@ -447,12 +437,6 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-#ifdef IN_GCC
-#define stdmsg stderr
-#else
-#define stdmsg stderr
-#endif
-
 struct Dsymbol;
 class Library;
 struct File;

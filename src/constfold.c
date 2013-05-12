@@ -1374,6 +1374,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
         {   ArrayLiteralExp *ale = (ArrayLiteralExp *)e1;
             e = (*ale->elements)[i];
             e->type = type;
+            e->loc = loc;
             if (e->hasSideEffect())
                 e = EXP_CANT_INTERPRET;
         }
@@ -1392,6 +1393,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             else
             {   e = (*ale->elements)[i];
                 e->type = type;
+                e->loc = loc;
                 if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
             }
@@ -1412,6 +1414,7 @@ Expression *Index(Type *type, Expression *e1, Expression *e2)
             if (ex->isBool(TRUE))
             {   e = (*ae->values)[i];
                 e->type = type;
+                e->loc = loc;
                 if (e->hasSideEffect())
                     e = EXP_CANT_INTERPRET;
                 break;

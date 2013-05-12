@@ -345,6 +345,261 @@ void test14()
 
 /********************************************/
 
+void check15(T, ubyte results, A...)(A args)
+{
+                         // m c i s sc
+    enum m  = (results & 0b_1_0_0_0_0) != 0;
+    enum c  = (results & 0b_0_1_0_0_0) != 0;
+    enum i  = (results & 0b_0_0_1_0_0) != 0;
+    enum s  = (results & 0b_0_0_0_1_0) != 0;
+    enum sc = (results & 0b_0_0_0_0_1) != 0;
+
+    // allocation on stack
+    static assert((is(typeof(                  T(args) ) U) && is(U ==              T  )) == m);
+    static assert((is(typeof(            const T(args) ) U) && is(U ==        const(T) )) == c);
+    static assert((is(typeof(        immutable T(args) ) U) && is(U ==    immutable(T) )) == i);
+    static assert((is(typeof(           shared T(args) ) U) && is(U ==       shared(T) )) == s);
+    static assert((is(typeof(     shared const T(args) ) U) && is(U == shared(const T) )) == sc);
+
+    // allocation on heap
+    static assert((is(typeof( new              T(args) ) U) && is(U ==              T *)) == m);
+    static assert((is(typeof( new        const T(args) ) U) && is(U ==        const(T)*)) == c);
+    static assert((is(typeof( new    immutable T(args) ) U) && is(U ==    immutable(T)*)) == i);
+    static assert((is(typeof( new       shared T(args) ) U) && is(U ==       shared(T)*)) == s);
+    static assert((is(typeof( new shared const T(args) ) U) && is(U == shared(const T)*)) == sc);
+}
+void test15a()
+{
+    static struct Foo1 { this(int v) {}                int value; }
+    static struct Boo1 { this(int v) const {}          int[] value; }
+    static struct Bar1 { this(int[] v) {}              int[] value; }
+    static struct Baz1 { this(const int[] v) pure {}   int[] value; }  // unique ctor
+    static struct Coo1 { this(int[] v) immutable {}    int[] value; }
+    static struct Car1 { this(int[] v) immutable {}    immutable(int)[] value; }
+    check15!(Foo1, 0b_1_1_0_0_0)(1);
+    check15!(Boo1, 0b_0_1_0_0_0)(1);
+    check15!(Bar1, 0b_1_1_0_0_0)(null);
+    check15!(Baz1, 0b_1_1_1_1_1)(null);
+    check15!(Coo1, 0b_0_1_1_0_1)(null);
+    check15!(Car1, 0b_0_1_1_0_1)(null);
+                   // m c i s sc
+
+    // Template constructor should work as same as non-template ones
+    static struct Foo2 { this()(int v) {}              int value; }
+    static struct Boo2 { this()(int v) const {}        int[] value; }
+    static struct Bar2 { this()(int[] v) {}            int[] value; }  // has mutable indieection
+    static struct Baz2 { this()(const int[] v) pure {} int[] value; }  // unique ctor
+    static struct Coo2 { this()(int[] v) immutable {}  int[] value; }
+    static struct Car2 { this()(int[] v) immutable {}  immutable(int)[] value; }
+    check15!(Foo2, 0b_1_1_0_0_0)(1);
+    check15!(Boo2, 0b_0_1_0_0_0)(1);
+    check15!(Bar2, 0b_1_1_0_0_0)(null);
+    check15!(Baz2, 0b_1_1_1_1_1)(null);
+    check15!(Coo2, 0b_0_1_1_0_1)(null);
+    check15!(Car2, 0b_0_1_1_0_1)(null);
+                   // m c i s sc
+
+    // Except Bar!().__ctor, their constructors are inferred to pure, then they become unique ctors.
+    static struct Foo3() { this(int v) {}              int value; }
+    static struct Boo3() { this(int v) const {}        int[] value; }
+    static struct Bar3() { this(int[] v) {}            int[] value; }  // has mutable indieection
+    static struct Baz3() { this(const int[] v) pure {} int[] value; }  // unique ctor
+    static struct Coo3() { this(int[] v) immutable {}  int[] value; }
+    static struct Car3() { this(int[] v) immutable {}  immutable(int)[] value; }
+    check15!(Foo3!(), 0b_1_1_1_1_1)(1);
+    check15!(Boo3!(), 0b_1_1_1_1_1)(1);
+    check15!(Bar3!(), 0b_1_1_0_0_0)(null);
+    check15!(Baz3!(), 0b_1_1_1_1_1)(null);
+    check15!(Coo3!(), 0b_1_1_1_1_1)(null);
+    check15!(Car3!(), 0b_1_1_1_1_1)(null);
+                      // m c i s sc
+}
+
+// inout constructor works as like unique constructor in many cases
+void test15b()
+{
+    static struct Nullable1
+    {
+        private int[] _value;
+        private bool _isNull = true;
+        this(inout int[] v) inout //pure
+        {
+            _value = v;
+            //static int g; auto x = g; // impure access
+            _isNull = false;
+        }
+    }
+    static assert( __traits(compiles,           Nullable1([1,2,3])));
+    static assert(!__traits(compiles,           Nullable1([1,2,3].idup)));
+    static assert(!__traits(compiles, immutable Nullable1([1,2,3])));
+    static assert( __traits(compiles, immutable Nullable1([1,2,3].idup)));
+    static assert(!__traits(compiles,    shared Nullable1([1,2,3])));
+    static assert(!__traits(compiles,    shared Nullable1([1,2,3].idup)));
+
+    static struct Nullable2(T)
+    {
+        private T _value;
+        private bool _isNull = true;
+        this(inout T v) inout //pure
+        {
+            _value = v;
+            //static int g; auto x = g; // impure access
+            _isNull = false;
+        }
+    }
+    static assert( __traits(compiles,           Nullable2!(int[])([1,2,3])));
+    static assert(!__traits(compiles,           Nullable2!(int[])([1,2,3].idup)));
+    static assert(!__traits(compiles, immutable Nullable2!(int[])([1,2,3])));
+    static assert( __traits(compiles, immutable Nullable2!(int[])([1,2,3].idup)));
+    static assert(!__traits(compiles,    shared Nullable2!(int[])([1,2,3])));
+    static assert(!__traits(compiles,    shared Nullable2!(int[])([1,2,3].idup)));
+
+    // ctor is inout pure, but cannot create unique object.
+    struct S
+    {
+        int[] marr;
+        const int[] carr;
+        immutable int[] iarr;
+        this(int[] m, const int[] c, immutable int[] i) inout pure
+        {
+            static assert(!__traits(compiles, marr = m));
+            carr = c;
+            iarr = i;
+        }
+    }
+    static assert(!__traits(compiles, { int[] ma; immutable int[] ia; auto m =           S(ma, ma, ia); }));
+    static assert( __traits(compiles, { int[] ma; immutable int[] ia; auto c =     const S(ma, ma, ia); }));
+    static assert(!__traits(compiles, { int[] ma; immutable int[] ia; auto i = immutable S(ma, ma, ia); }));
+}
+
+// TemplateThisParameter with constructor should work
+void test15c()
+{
+    static class C
+    {
+        this(this This)()
+        {
+            static assert(is(This == immutable C));
+        }
+
+        this(T = void, this This)(int)
+        {
+            static assert(is(This == immutable C));
+        }
+    }
+    auto c1 = new immutable C;
+    auto c2 = new immutable C(1);
+}
+
+void test15d()  // Bugzilla 9974
+{
+    class CM { this() {} }
+    auto cm = new CM();
+
+    const class CC { this() {} }
+    const cc = new const CC();
+
+    immutable class CI { this() {} }
+    immutable ci = new immutable CI();
+
+    shared class CS { this() {} }
+    shared cs = new shared CS();
+
+    shared const class CSC { this() {} }
+    shared const csc = new shared const CSC();
+
+
+    struct SM { this(int) {} }
+    auto sm = new SM(1);
+
+    const struct SC { this(int) {} }
+    const sc = new const SC(1);
+
+    immutable struct SI { this(int) {} }
+    immutable si = new immutable SI(1);
+
+    shared struct SS { this(int) {} }
+    shared ss = new shared SS(1);
+
+    shared const struct SSC { this(int) {} }
+    shared const ssc = new shared const SSC(1);
+}
+
+struct Foo9984
+{
+    int[] p;
+    // Prefix storage class and tempalte constructor
+    inout this()(inout int[] a) { p = a; }
+    auto foo() inout { return inout(Foo9984)(p); }
+}
+
+void test9993a()
+{
+    static class A
+    {
+        int x;
+        this()           { x = 13; }
+        this() immutable { x = 42; }
+    }
+              A ma = new           A;   assert(ma.x == 13);
+    immutable A ia = new immutable A;   assert(ia.x == 42);
+    static assert(!__traits(compiles, { immutable A ia = new A; }));
+
+    static class B
+    {
+        int x;
+        this()       { x = 13; }
+        this() const { x = 42; }
+    }
+    const B mb = new       B;           assert(mb.x == 13);
+    const B cb = new const B;           assert(cb.x == 42);
+    static assert(!__traits(compiles, { immutable B ib = new B; }));
+
+    static class C
+    {
+        int x;
+        this() const     { x = 13; }
+        this() immutable { x = 42; }
+    }
+        const C cc = new     const C;   assert(cc.x == 13);
+    immutable C ic = new immutable C;   assert(ic.x == 42);
+    static assert(!__traits(compiles, { C mc = new C; }));
+}
+void test9993b()
+{
+    static class A
+    {
+        int x;
+        this()()           { x = 13; }
+        this()() immutable { x = 42; }
+    }
+              A ma = new           A;   assert(ma.x == 13);
+    immutable A ia = new immutable A;   assert(ia.x == 42);
+    static assert(!__traits(compiles, { immutable A ia = new A; }));
+
+    static class B
+    {
+        int x;
+        this()()       { x = 13; }
+        this()() const { x = 42; }
+    }
+    const B mb = new       B;           assert(mb.x == 13);
+    const B cb = new const B;           assert(cb.x == 42);
+    static assert(!__traits(compiles, { immutable B ib = new B; }));
+
+    static class C
+    {
+        int x;
+        this()() const     { x = 13; }
+        this()() immutable { x = 42; }
+    }
+        const C cc = new     const C;   assert(cc.x == 13);
+    immutable C ic = new immutable C;   assert(ic.x == 42);
+    static assert(!__traits(compiles, { C mc = new C; }));
+}
+
+/********************************************/
+
 struct Bug1914a
 {
     const char[10] i = [1,0,0,0,0,0,0,0,0,0];
@@ -477,6 +732,23 @@ void test5889()
     assert(too(S5889b(0)) == 2);
     assert(too(makeRvalue!S5889a()) == 2);
     assert(too(makeRvalue!S5889b()) == 2);
+}
+
+/********************************************/
+// 4147
+
+struct S4247
+{
+    int n = 1024;
+    this(int x) { n = x; }
+}
+void test4247()
+{
+    auto p1 = S4247();
+    assert(p1.n == 1024);
+
+    auto p2 = S4247(1);
+    assert(p2.n == 1);
 }
 
 /********************************************/
@@ -705,9 +977,16 @@ int main()
     test12();
     test13();
     test14();
+    test15a();
+    test15b();
+    test15c();
+    test15d();
+    test9993a();
+    test9993b();
     test3198and1914();
     test5885();
     test5889();
+    test4247();
     test6937();
     test7929();
     test7021();
