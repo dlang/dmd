@@ -683,9 +683,9 @@ void StructDeclaration::semantic(Scope *sc)
     cpctor = buildCpCtor(sc2);
 
     buildOpAssign(sc2);
-
     xeq = buildXopEquals(sc2);
 #endif
+    inv = buildInv(sc2);
 
     sc2->pop();
 
@@ -694,7 +694,6 @@ void StructDeclaration::semantic(Scope *sc)
 #if DMDV2
     ctor = search(Loc(), Id::ctor, 0);
 #endif
-    inv =    (InvariantDeclaration *)search(Loc(), Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete,    0);
 
