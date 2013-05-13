@@ -809,6 +809,7 @@ FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
 
         default:
             Expression *e = NULL;
+            StorageClass stcx = 0;
             for (size_t i = 0; i < invs.dim; i++)
             {
                 stc = mergeFuncAttrs(stc, invs[i]->storage_class);
@@ -816,11 +817,21 @@ FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
                 {
                     // What should do?
                 }
-
+                StorageClass stcy = invs[i]->storage_class & (STCshared | STCsynchronized);
+                if (i == 0)
+                    stcx = stcy;
+                else if (stcx ^ stcy)
+                {
+            #if 1   // currently rejects
+                    error(invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
+                    e = NULL;
+                    break;
+            #endif
+                }
                 e = Expression::combine(e, new CallExp(loc, new VarExp(loc, invs[i])));
             }
             InvariantDeclaration *inv;
-            inv = new InvariantDeclaration(declLoc, Loc(), stc, Id::classInvariant);
+            inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id::classInvariant);
             inv->fbody = new ExpStatement(loc, e);
             members->push(inv);
             inv->semantic(sc);
