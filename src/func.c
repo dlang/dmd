@@ -3255,6 +3255,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (ta->invariantOf()->equals(tb->invariantOf()))
             return 0;
+        else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
+            return 1;
     }
     else    // check tb appears in ta
     {
@@ -3263,6 +3265,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (tb->invariantOf()->equals(ta->invariantOf()))
             return 0;
+        else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
+            return 1;
     }
 
     // context date to detect circular look up
