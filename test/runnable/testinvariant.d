@@ -85,6 +85,25 @@ void test6453()
             static assert(!__traits(compiles, y));
         }
     }
+
+    static struct S6453a
+    {
+        pure    invariant() {}
+        nothrow invariant() {}
+        @safe   invariant() {}
+    }
+    static struct S6453b
+    {
+        pure    shared invariant() {}
+        nothrow shared invariant() {}
+        @safe   shared invariant() {}
+    }
+    static class C6453c
+    {
+        pure    synchronized invariant() {}
+        nothrow synchronized invariant() {}
+        @safe   synchronized invariant() {}
+    }
 }
 
 /***************************************************/
