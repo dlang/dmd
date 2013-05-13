@@ -3344,19 +3344,29 @@ MATCH TypeInstance::deduceType(Scope *sc,
             {
             Le:
                 e1 = e1->ctfeInterpret();
+
+                /* If it is one of the template parameters for this template,
+                 * we should not attempt to interpret it. It already has a value.
+                 */
+                if (e2->op == TOKvar &&
+                    (((VarExp *)e2)->var->storage_class & STCtemplateparameter))
+                {
+                    /*
+                     * (T:Number!(e2), int e2)
+                     */
+                    j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
+                    if (j != IDX_NOTFOUND)
+                        goto L1;
+                    // The template parameter was not from this template
+                    // (it may be from a parent template, for example)
+                }
+
                 e2 = e2->ctfeInterpret();
 
                 //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
                 //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
                 if (!e1->equals(e2))
-                {   if (e2->op == TOKvar)
-                    {
-                        /*
-                         * (T:Number!(e2), int e2)
-                         */
-                        j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
-                        goto L1;
-                    }
+                {
                     if (!e2->implicitConvTo(e1->type))
                         goto Lnomatch;
 
