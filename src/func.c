@@ -484,9 +484,12 @@ void FuncDeclaration::semantic(Scope *sc)
                     if (s)
                     {
                         FuncDeclaration *f = s->isFuncDeclaration();
-                        f = f->overloadExactMatch(type);
-                        if (f && f->isFinal() && f->prot() != PROTprivate)
-                            error("cannot override final function %s", f->toPrettyChars());
+                        if (f)
+                        {
+                            f = f->overloadExactMatch(type);
+                            if (f && f->isFinal() && f->prot() != PROTprivate)
+                                error("cannot override final function %s", f->toPrettyChars());
+                        }
                     }
                 }
 
