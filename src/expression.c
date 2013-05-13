@@ -7014,8 +7014,8 @@ Expression *DotIdExp::semanticX(Scope *sc)
             case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
             default: break;
         L1:
-                char* s = ds->mangle();
-                e = new StringExp(loc, s, strlen(s), 'c');
+                const char* s = ds->mangle();
+                e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
         }
