@@ -751,6 +751,40 @@ void test9415()
 }
 
 /***************************************************/
+// 9628
+
+template TypeTuple9628(TL...) { alias TypeTuple9628 = TL; }
+void map9628(alias func)() { func(0); }
+
+void test9628()
+{
+    auto items = [[10, 20], [30]];
+    size_t[] res;
+
+    res = null;
+    foreach (_; 0 .. 2)
+    {
+        foreach (sub; items)
+        {
+            map9628!((       i){ res ~= sub.length; });
+            map9628!((size_t i){ res ~= sub.length; });
+        }
+    }
+    assert(res == [2,2,1,1, 2,2,1,1]);
+
+    res = null;
+    foreach (_; TypeTuple9628!(0, 1))
+    {
+        foreach (sub; items)
+        {
+            map9628!((       i){ res ~= sub.length; });
+            map9628!((size_t i){ res ~= sub.length; });
+        }
+    }
+    assert(res == [2,2,1,1, 2,2,1,1]);
+}
+
+/***************************************************/
 // 9928
 
 void test9928()
@@ -802,6 +836,7 @@ int main()
     test9153();
     test9393();
     test9415();
+    test9628();
     test9928();
 
     printf("Success\n");
