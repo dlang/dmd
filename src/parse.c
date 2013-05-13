@@ -1300,7 +1300,7 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, Loc());
+    f = new InvariantDeclaration(loc, Loc(), STCundefined);
     f->fbody = parseStatement(PScurly);
     return f;
 }

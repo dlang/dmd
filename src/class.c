@@ -699,9 +699,7 @@ void ClassDeclaration::semantic(Scope *sc)
 //    if (dtor && dtor->toParent() != this)
 //      dtor = NULL;
 
-//    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
-//    if (inv && inv->toParent() != this)
-//      inv = NULL;
+    inv = buildInv(sc);
 
     // Can be in base class
     aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);

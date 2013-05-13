@@ -67,7 +67,8 @@ struct AggregateDeclaration : ScopeDsymbol
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
-    InvariantDeclaration *inv;          // invariant
+    FuncDeclarations invs;              // Array of invariants
+    FuncDeclaration *inv;               // invariant
     NewDeclaration *aggNew;             // allocator
     DeleteDeclaration *aggDelete;       // deallocator
 
@@ -99,6 +100,7 @@ struct AggregateDeclaration : ScopeDsymbol
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
+    FuncDeclaration *buildInv(Scope *sc);
     bool isNested();
     void makeNested();
     int isExport();

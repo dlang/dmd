@@ -783,4 +783,48 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     }
 }
 
+/******************************************
+ * Create inclusive invariant for struct/class by aggregating
+ * all the invariants in invs[].
+ *      void __invariant() const [pure nothrow @trusted]
+ *      {
+ *          invs[0](), invs[1](), ...;
+ *      }
+ */
+
+FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
+{
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
+
+    switch (invs.dim)
+    {
+        case 0:
+            return NULL;
+
+        case 1:
+            // Don't return invs[0] so it has uniquely generated name.
+            /* fall through */
+
+        default:
+            Expression *e = NULL;
+            for (size_t i = 0; i < invs.dim; i++)
+            {
+                stc = mergeFuncAttrs(stc, invs[i]->storage_class);
+                if (stc & STCdisable)
+                {
+                    // What should do?
+                }
+
+                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, invs[i])));
+            }
+            InvariantDeclaration *inv;
+            inv = new InvariantDeclaration(declLoc, Loc(), stc, Id::classInvariant);
+            inv->fbody = new ExpStatement(loc, e);
+            members->push(inv);
+            inv->semantic(sc);
+            return inv;
+    }
+}
 
