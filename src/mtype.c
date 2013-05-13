@@ -2119,7 +2119,12 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             tiargs->push(se);
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
-            return dti->semanticY(sc, flag);
+
+            unsigned errors = flag ? global.startGagging() : 0;
+            Expression *e = dti->semanticY(sc, 0);
+            if (flag && global.endGagging(errors))
+                e = NULL;
+            return e;
         }
 
         /* See if we should forward to the alias this.
