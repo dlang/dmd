@@ -584,6 +584,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKpragma:
             {   Identifier *ident;
                 Expressions *args = NULL;
+                Loc loc = this->loc;
 
                 nextToken();
                 check(TOKlparen);
