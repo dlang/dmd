@@ -701,8 +701,8 @@ public:
     int isCodeseg();
     int isOverloadable();
     int hasOverloads();
-    enum PURE isPure();
-    enum PURE isPureBypassingInference();
+    PURE isPure();
+    PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
     bool isSafeBypassingInference();

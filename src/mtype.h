@@ -660,7 +660,7 @@ public:
     bool isref;         // true: returns a reference
     enum LINK linkage;  // calling convention
     enum TRUST trust;   // level of trust
-    enum PURE purity;   // PURExxxx
+    PURE purity;   // PURExxxx
     bool iswild;        // is inout function
     Expressions *fargs; // function arguments
 
