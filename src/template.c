@@ -5474,6 +5474,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
             }
             else if (ea->op != TOKtuple &&
                      ea->op != TOKimport && ea->op != TOKtype &&
+                     ea->op != TOKtemplate &&
                      ea->op != TOKfunction && ea->op != TOKerror &&
                      ea->op != TOKthis && ea->op != TOKsuper)
             {
