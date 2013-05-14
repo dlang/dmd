@@ -64,7 +64,7 @@ class Parser : public Lexer
 {
 public:
     ModuleDeclaration *md;
-    enum LINK linkage;
+    LINK linkage;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
@@ -89,7 +89,7 @@ public:
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    enum LINK parseLinkage();
+    LINK parseLinkage();
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();

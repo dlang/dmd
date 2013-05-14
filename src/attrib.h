@@ -37,10 +37,10 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, PROT protection, int explictProtection,
+        StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
         structalign_t structalign);
     void semanticNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, PROT protection, int explictProtection,
+        StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
         structalign_t structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -92,9 +92,9 @@ public:
 class LinkDeclaration : public AttribDeclaration
 {
 public:
-    enum LINK linkage;
+    LINK linkage;
 
-    LinkDeclaration(enum LINK p, Dsymbols *decl);
+    LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);

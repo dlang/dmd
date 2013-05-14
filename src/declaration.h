@@ -126,7 +126,7 @@ public:
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
     PROT protection;
-    enum LINK linkage;
+    LINK linkage;
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...") 
     Semantic sem;

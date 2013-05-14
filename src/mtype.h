@@ -658,7 +658,7 @@ public:
     bool isnothrow;     // true: nothrow
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
-    enum LINK linkage;  // calling convention
+    LINK linkage;  // calling convention
     TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
     bool iswild;        // is inout function
@@ -666,7 +666,7 @@ public:
 
     int inuse;
 
-    TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
+    TypeFunction(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     TypeFunction *copy();
     Type *syntaxCopy();

@@ -78,7 +78,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, PROT protection, int explicitProtection,
+        StorageClass stc, LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -113,7 +113,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, PROT protection, int explicitProtection,
+        StorageClass stc, LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -596,7 +596,7 @@ void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* LinkDeclaration ****************************/
 
-LinkDeclaration::LinkDeclaration(enum LINK p, Dsymbols *decl)
+LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
@@ -634,7 +634,7 @@ void LinkDeclaration::semantic3(Scope *sc)
 {
     //printf("LinkDeclaration::semantic3(linkage = %d, decl = %p)\n", linkage, decl);
     if (decl)
-    {   enum LINK linkage_save = sc->linkage;
+    {   LINK linkage_save = sc->linkage;
 
         sc->linkage = linkage;
         for (size_t i = 0; i < decl->dim; i++)

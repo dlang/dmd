@@ -522,7 +522,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     goto Lstc;
                 }
             {
-                enum LINK linksave = linkage;
+                LINK linksave = linkage;
                 linkage = parseLinkage();
                 a = parseBlock(pLastDecl);
                 s = new LinkDeclaration(linkage, a);
@@ -966,9 +966,9 @@ Type *Parser::parseVector()
  * The parser is on the 'extern' token.
  */
 
-enum LINK Parser::parseLinkage()
+LINK Parser::parseLinkage()
 {
-    enum LINK link = LINKdefault;
+    LINK link = LINKdefault;
     nextToken();
     assert(token.value == TOKlparen);
     nextToken();
@@ -2859,7 +2859,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     Identifier *ident;
     Dsymbols *a;
     TOK tok = TOKreserved;
-    enum LINK link = linkage;
+    LINK link = linkage;
     unsigned structalign = 0;
     Loc loc = this->loc;
     Expressions *udas = NULL;
@@ -3364,7 +3364,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char
 
 void Parser::parseContracts(FuncDeclaration *f)
 {
-    enum LINK linksave = linkage;
+    LINK linksave = linkage;
 
     // The following is irrelevant, as it is overridden by sc->linkage in
     // TypeFunction::semantic
