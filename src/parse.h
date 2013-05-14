@@ -19,32 +19,32 @@
 #include "lexer.h"
 #include "enum.h"
 
-struct Type;
-struct TypeQualified;
-struct Expression;
-struct Declaration;
-struct Statement;
-struct Import;
-struct Initializer;
-struct FuncDeclaration;
-struct CtorDeclaration;
-struct PostBlitDeclaration;
-struct DtorDeclaration;
-struct StaticCtorDeclaration;
-struct StaticDtorDeclaration;
-struct SharedStaticCtorDeclaration;
-struct SharedStaticDtorDeclaration;
-struct ConditionalDeclaration;
-struct InvariantDeclaration;
-struct UnitTestDeclaration;
-struct NewDeclaration;
-struct DeleteDeclaration;
-struct Condition;
-struct Module;
+class Type;
+class TypeQualified;
+class Expression;
+class Declaration;
+class Statement;
+class Import;
+class Initializer;
+class FuncDeclaration;
+class CtorDeclaration;
+class PostBlitDeclaration;
+class DtorDeclaration;
+class StaticCtorDeclaration;
+class StaticDtorDeclaration;
+class SharedStaticCtorDeclaration;
+class SharedStaticDtorDeclaration;
+class ConditionalDeclaration;
+class InvariantDeclaration;
+class UnitTestDeclaration;
+class NewDeclaration;
+class DeleteDeclaration;
+class Condition;
+class Module;
 struct ModuleDeclaration;
-struct TemplateDeclaration;
-struct TemplateInstance;
-struct StaticAssert;
+class TemplateDeclaration;
+class TemplateInstance;
+class StaticAssert;
 
 /************************************
  * These control how parseStatement() works.
@@ -60,8 +60,9 @@ enum ParseStatementFlags
 };
 
 
-struct Parser : Lexer
+class Parser : public Lexer
 {
+public:
     ModuleDeclaration *md;
     enum LINK linkage;
     Loc endloc;                 // set to location of last right curly

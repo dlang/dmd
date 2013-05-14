@@ -17,8 +17,9 @@
 
 #include "root.h"
 
-struct Identifier : Object
+class Identifier : public Object
 {
+public:
     int value;
     const char *string;
     size_t len;

@@ -19,8 +19,8 @@
 #include "mars.h"
 
 struct StringTable;
-struct Identifier;
-struct Module;
+class Identifier;
+class Module;
 
 /* Tokens:
         (       )
@@ -267,8 +267,9 @@ struct Token
     static const char *toChars(enum TOK);
 };
 
-struct Lexer
+class Lexer
 {
+public:
     static StringTable stringtable;
     static OutBuffer stringbuffer;
     static Token *freelist;

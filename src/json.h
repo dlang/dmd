@@ -18,7 +18,7 @@
 
 #include "arraytypes.h"
 
-struct OutBuffer;
+class OutBuffer;
 
 void json_generate(OutBuffer *, Modules *);
 

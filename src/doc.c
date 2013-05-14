@@ -44,8 +44,9 @@ struct Escape
     const char *escapeChar(unsigned c);
 };
 
-struct Section
+class Section
 {
+public:
     unsigned char *name;
     size_t namelen;
 
@@ -57,13 +58,15 @@ struct Section
     virtual void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-struct ParamSection : Section
+class ParamSection : public Section
 {
+public:
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-struct MacroSection : Section
+class MacroSection : public Section
 {
+public:
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
