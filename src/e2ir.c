@@ -2045,7 +2045,7 @@ elem *AssertExp::toElem(IRState *irs)
         symbol *ts = NULL;
         elem *einv = NULL;
 
-        InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
+        FuncDeclaration *inv;
 
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&

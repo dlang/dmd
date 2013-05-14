@@ -100,8 +100,6 @@ void Global::init()
 
     main_d = "__main.d";
 
-    structalign = STRUCTALIGN_DEFAULT;
-
     memset(&params, 0, sizeof(Param));
 }
 
@@ -463,7 +461,9 @@ int tryMain(size_t argc, char *argv[])
 #if TARGET_WINDOS
     global.params.is64bit = 0;
     global.params.defaultlibname = "phobos";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX
+    global.params.defaultlibname = "libphobos2.a";
+#elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
 #else
 #error "fix this"

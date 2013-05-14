@@ -67,7 +67,8 @@ struct AggregateDeclaration : ScopeDsymbol
     VarDeclaration *vthis;      // 'this' parameter if this aggregate is nested
 #endif
     // Special member functions
-    InvariantDeclaration *inv;          // invariant
+    FuncDeclarations invs;              // Array of invariants
+    FuncDeclaration *inv;               // invariant
     NewDeclaration *aggNew;             // allocator
     DeleteDeclaration *aggDelete;       // deallocator
 
@@ -99,6 +100,7 @@ struct AggregateDeclaration : ScopeDsymbol
     int numFieldsInUnion(int firstIndex); // #fields in union starting at index
     bool isDeprecated();         // is aggregate deprecated?
     FuncDeclaration *buildDtor(Scope *sc);
+    FuncDeclaration *buildInv(Scope *sc);
     bool isNested();
     void makeNested();
     int isExport();
@@ -110,7 +112,7 @@ struct AggregateDeclaration : ScopeDsymbol
     FuncDeclaration *hasIdentityOpAssign(Scope *sc);
     FuncDeclaration *hasIdentityOpEquals(Scope *sc);
 
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
 
     // For access checking
     virtual PROT getAccess(Dsymbol *smember);   // determine access to smember
@@ -153,7 +155,7 @@ struct StructDeclaration : AggregateDeclaration
     void semantic(Scope *sc);
     Dsymbol *search(Loc, Identifier *ident, int flags);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     const char *kind();
     void finalizeSize(Scope *sc);
     bool isPOD();
@@ -166,7 +168,7 @@ struct StructDeclaration : AggregateDeclaration
     FuncDeclaration *buildOpAssign(Scope *sc);
     FuncDeclaration *buildPostBlit(Scope *sc);
     FuncDeclaration *buildCpCtor(Scope *sc);
-
+    FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildXopEquals(Scope *sc);
 #endif
     void toDocBuffer(OutBuffer *buf, Scope *sc);
@@ -281,7 +283,7 @@ struct ClassDeclaration : AggregateDeclaration
     int isAbstract();
     virtual int vtblOffset();
     const char *kind();
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
     PROT getAccess(Dsymbol *smember);   // determine access to smember

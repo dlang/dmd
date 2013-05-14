@@ -574,7 +574,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     check(TOKrparen);
                 }
                 else
-                    n = global.structalign;             // default
+                    n = STRUCTALIGN_DEFAULT;             // default
 
                 a = parseBlock(pLastDecl);
                 s = new AlignDeclaration(n, a);
@@ -1300,7 +1300,7 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, Loc());
+    f = new InvariantDeclaration(loc, Loc(), STCundefined);
     f->fbody = parseStatement(PScurly);
     return f;
 }
@@ -3046,7 +3046,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                     check(TOKrparen);
                 }
                 else
-                    structalign = global.structalign;   // default
+                    structalign = STRUCTALIGN_DEFAULT;   // default
                 continue;
             }
             default:

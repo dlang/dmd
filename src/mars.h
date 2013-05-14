@@ -265,8 +265,6 @@ struct Global
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
-    structalign_t structalign;       // default alignment for struct fields
-
     const char *version;
 
     Compiler compiler;
@@ -344,14 +342,6 @@ typedef d_uns32                 d_dchar;
 #include "d-gcc-real.h"
 #else
 typedef longdouble real_t;
-#endif
-
-// Modify OutBuffer::writewchar to write the correct size of wchar
-#if _WIN32
-#define writewchar writeword
-#else
-// This needs a configuration test...
-#define writewchar write4
 #endif
 
 #ifdef IN_GCC

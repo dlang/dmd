@@ -128,7 +128,7 @@ struct Declaration : Dsymbol
     enum PROT protection;
     enum LINK linkage;
     int inuse;                  // used to detect cycles
-
+    const char *mangleOverride;      // overridden symbol with pragma(mangle, "...") 
     enum Semantic sem;
 
     Declaration(Identifier *id);
@@ -144,7 +144,7 @@ struct Declaration : Dsymbol
     virtual void jsonProperties(JsonOut *json);
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     bool isStatic() { return (storage_class & STCstatic) != 0; }
     virtual int isDelete();
     virtual int isDataseg();
@@ -203,7 +203,7 @@ struct TypedefDeclaration : Declaration
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     const char *kind();
     Type *getType();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -314,11 +314,10 @@ struct VarDeclaration : Declaration
     void checkCtorConstInit();
     void checkNestedReference(Scope *sc, Loc loc);
     Dsymbol *toAlias();
-
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
-
+    const char *mangle(bool isv = false);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
@@ -588,6 +587,7 @@ struct FuncDeclaration : Declaration
     ILS inlineStatusExp;
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // !=0 if array operation
+    FuncDeclaration *dArrayOp;          // D version of array op for ctfe
     enum PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
@@ -661,7 +661,7 @@ struct FuncDeclaration : Declaration
     int getLevel(Loc loc, Scope *sc, FuncDeclaration *fd); // lexical nesting level difference
     void appendExp(Expression *e);
     void appendState(Statement *s);
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     int isMain();
@@ -737,7 +737,7 @@ struct FuncAliasDeclaration : FuncDeclaration
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
     Symbol *toSymbol();
-    char *mangle(bool isv = false) { return toAliasFunc()->mangle(isv); }
+    const char *mangle(bool isv = false) { return toAliasFunc()->mangle(isv); }
 
     FuncDeclaration *toAliasFunc();
 };
@@ -867,7 +867,7 @@ struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 
 struct InvariantDeclaration : FuncDeclaration
 {
-    InvariantDeclaration(Loc loc, Loc endloc);
+    InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     int isVirtual();

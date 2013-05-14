@@ -1638,6 +1638,15 @@ void OutBuffer::prependbyte(unsigned b)
     offset++;
 }
 
+void OutBuffer::writewchar(unsigned w)
+{
+#if _WIN32
+    writeword(w);
+#else
+    write4(w);
+#endif
+}
+
 void OutBuffer::writeword(unsigned w)
 {
     if (doindent && linehead

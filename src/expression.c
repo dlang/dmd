@@ -7014,8 +7014,8 @@ Expression *DotIdExp::semanticX(Scope *sc)
             case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
             default: break;
         L1:
-                char* s = ds->mangle();
-                e = new StringExp(loc, s, strlen(s), 'c');
+                const char* s = ds->mangle();
+                e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
         }
@@ -12538,7 +12538,7 @@ int needDirectEq(Type *t1, Type *t2)
     if (t->ty != Tstruct)
         return FALSE;
 
-    return ((TypeStruct *)t)->sym->xeq == StructDeclaration::xerreq;
+    return ((TypeStruct *)t)->sym->hasIdentityEquals;
 }
 
 Expression *EqualExp::semantic(Scope *sc)

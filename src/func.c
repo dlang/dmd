@@ -69,6 +69,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
     isArrayOp = 0;
+    dArrayOp = NULL;
     semanticRun = PASSinit;
     semantic3Errors = 0;
 #if DMDV1
@@ -355,8 +356,8 @@ void FuncDeclaration::semantic(Scope *sc)
             error("special member functions not allowed for %ss", sd->kind());
         }
 
-        if (!sd->inv)
-            sd->inv = isInvariantDeclaration();
+        if (isInvariantDeclaration())
+            sd->invs.push(this);
 
         if (!sd->aggNew)
             sd->aggNew = isNewDeclaration();
@@ -397,7 +398,6 @@ void FuncDeclaration::semantic(Scope *sc)
     {   size_t vi;
         CtorDeclaration *ctor;
         DtorDeclaration *dtor;
-        InvariantDeclaration *inv;
 
         if (isCtorDeclaration())
         {
@@ -416,10 +416,9 @@ void FuncDeclaration::semantic(Scope *sc)
             cd->dtor = dtor;
         }
 
-        inv = isInvariantDeclaration();
-        if (inv)
+        if (isInvariantDeclaration())
         {
-            cd->inv = inv;
+            cd->invs.push(this);
         }
 
         if (isNewDeclaration())
@@ -485,9 +484,12 @@ void FuncDeclaration::semantic(Scope *sc)
                     if (s)
                     {
                         FuncDeclaration *f = s->isFuncDeclaration();
-                        f = f->overloadExactMatch(type);
-                        if (f && f->isFinal() && f->prot() != PROTprivate)
-                            error("cannot override final function %s", f->toPrettyChars());
+                        if (f)
+                        {
+                            f = f->overloadExactMatch(type);
+                            if (f && f->isFinal() && f->prot() != PROTprivate)
+                                error("cannot override final function %s", f->toPrettyChars());
+                        }
                     }
                 }
 
@@ -1142,7 +1144,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isDtorDeclaration())
             {
                 // Call invariant directly only if it exists
-                InvariantDeclaration *inv = ad->inv;
+                FuncDeclaration *inv = ad->inv;
                 ClassDeclaration *cd = ad->isClassDeclaration();
 
                 while (!inv && cd)
@@ -1182,7 +1184,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isCtorDeclaration())
             {
                 // Call invariant directly only if it exists
-                InvariantDeclaration *inv = ad->inv;
+                FuncDeclaration *inv = ad->inv;
                 ClassDeclaration *cd = ad->isClassDeclaration();
 
                 while (!inv && cd)
@@ -1788,10 +1790,11 @@ bool FuncDeclaration::functionSemantic()
     }
 
     // if inferring return type, sematic3 needs to be run
+    TemplateInstance *ti;
     AggregateDeclaration *ad;
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
-         getFuncTemplateDecl(this) ||
+         (ti = parent->isTemplateInstance()) != NULL && !ti->isTemplateMixin() ||
          (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         return functionSemantic3();
@@ -3252,6 +3255,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (ta->invariantOf()->equals(tb->invariantOf()))
             return 0;
+        else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
+            return 1;
     }
     else    // check tb appears in ta
     {
@@ -3260,6 +3265,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (tb->invariantOf()->equals(ta->invariantOf()))
             return 0;
+        else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
+            return 1;
     }
 
     // context date to detect circular look up
@@ -4381,8 +4388,10 @@ void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* InvariantDeclaration ****************************/
 
-InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::classInvariant, STCundefined, NULL)
+InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
+    : FuncDeclaration(loc, endloc,
+                      id ? id : Identifier::generateId("__invariant"),
+                      stc, NULL)
 {
 }
 
@@ -4391,7 +4400,7 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
     InvariantDeclaration *id;
 
     assert(!s);
-    id = new InvariantDeclaration(loc, endloc);
+    id = new InvariantDeclaration(loc, endloc, storage_class);
     FuncDeclaration::syntaxCopy(id);
     return id;
 }
@@ -4411,13 +4420,12 @@ void InvariantDeclaration::semantic(Scope *sc)
         error("invariants are only for struct/union/class definitions");
         return;
     }
-    else if (ad->inv && ad->inv != this && semanticRun < PASSsemantic)
+    if (ident != Id::classInvariant && semanticRun < PASSsemantic)
     {
-        error("more than one invariant for %s", ad->toChars());
+        ad->invs.push(this);
     }
-    ad->inv = this;
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
@@ -4461,18 +4469,16 @@ void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
  * instances per module.
  */
 
-#if __DMC__ || _MSC_VER
-#define snprintf _snprintf
-#endif
 static Identifier *unitTestId(Loc loc)
 {
     char name[24];
+#if __DMC__ || _MSC_VER
+    _snprintf(name, 24, "__unittestL%u_", loc.linnum);
+#else
     snprintf(name, 24, "__unittestL%u_", loc.linnum);
+#endif
     return Lexer::uniqueId(name);
 }
-#if __DMC__ || _MSC_VER
-#undef snprintf
-#endif
 
 UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
     : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
