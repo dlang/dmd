@@ -68,7 +68,7 @@ struct JsonOut
     void property(const char *name, Type* type);
     void property(const char *name, const char *deconame, Type* type);
     void property(const char *name, Parameters* parameters);
-    void property(const char *name, enum TRUST trust);
+    void property(const char *name, TRUST trust);
     void property(const char *name, PURE purity);
     void property(const char *name, enum LINK linkage);
 };
@@ -307,7 +307,7 @@ void JsonOut::propertyBool(const char *name, bool b)
 }
 
 
-void JsonOut::property(const char *name, enum TRUST trust)
+void JsonOut::property(const char *name, TRUST trust)
 {
     switch (trust)
     {

@@ -659,7 +659,7 @@ public:
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
     enum LINK linkage;  // calling convention
-    enum TRUST trust;   // level of trust
+    TRUST trust;   // level of trust
     PURE purity;   // PURExxxx
     bool iswild;        // is inout function
     Expressions *fargs; // function arguments
