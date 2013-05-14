@@ -114,7 +114,7 @@ class TypeInfo_Ab : TypeInfo_Ah
 
 // char[]
 
-class TypeInfo_Aa : TypeInfo_Ag
+class TypeInfo_Aa : TypeInfo_Ah
 {
     override string toString() const { return "char[]"; }
 
