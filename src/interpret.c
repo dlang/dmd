@@ -5571,7 +5571,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        enum BUILTIN b = fd->isBuiltin();
+        BUILTIN b = fd->isBuiltin();
         if (b)
         {   Expressions args;
             args.setDim(nargs);

@@ -572,7 +572,7 @@ enum BUILTIN
 #endif
 };
 
-Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments);
+Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments);
 
 #else
 enum BUILTIN { };
@@ -640,7 +640,7 @@ public:
     ReturnStatements *returns;
 
 #if DMDV2
-    enum BUILTIN builtin;               // set if this is a known, builtin
+    BUILTIN builtin;               // set if this is a known, builtin
                                         // function we can evaluate at compile
                                         // time
 
@@ -694,7 +694,7 @@ public:
     int isMain();
     int isWinMain();
     int isDllMain();
-    enum BUILTIN isBuiltin();
+    BUILTIN isBuiltin();
     int isExport();
     int isImportedSymbol();
     int isAbstract();

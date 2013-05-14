@@ -555,7 +555,7 @@ Expression *CallExp::optimize(int result, bool keepLvalue)
         FuncDeclaration *fd = ((VarExp *)e1)->var->isFuncDeclaration();
         if (fd)
         {
-            enum BUILTIN b = fd->isBuiltin();
+            BUILTIN b = fd->isBuiltin();
             if (b)
             {
                 e = eval_builtin(b, arguments);
