@@ -62,7 +62,7 @@ public:
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
 
-    enum PASS semanticRun;              // 1 semantic() run
+    PASS semanticRun;              // 1 semantic() run
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
@@ -304,7 +304,7 @@ public:
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    enum PASS semanticRun;    // has semantic() been done?
+    PASS semanticRun;    // has semantic() been done?
     int semantictiargsdone;     // has semanticTiargs() been done?
     int nest;           // for recursion detection
     int havetempdecl;   // 1 if used second constructor
