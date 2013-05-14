@@ -462,6 +462,7 @@ unittest
     assert(a == "hello");
     assert(a <= "hello");
     assert(a >= "hello");
+    assert(a <  "я");
 }
 
 /***************************************
