@@ -104,6 +104,14 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
+
+        if (StructDeclaration *sd = isStructDeclaration())
+        {
+            //if (sd->xeq != NULL) printf("sd = %s xeq @ [%s]\n", sd->toChars(), sd->loc.toChars());
+            //assert(sd->xeq == NULL);
+            if (sd->xeq == NULL)
+                sd->xeq = sd->buildXopEquals(sc);
+        }
         sc = sc->pop();
 
         if (!getRTInfo && Type::rtinfo &&
@@ -683,7 +691,7 @@ void StructDeclaration::semantic(Scope *sc)
     cpctor = buildCpCtor(sc2);
 
     buildOpAssign(sc2);
-    xeq = buildXopEquals(sc2);
+    buildOpEquals(sc2);
 #endif
     inv = buildInv(sc2);
 
