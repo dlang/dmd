@@ -1551,7 +1551,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
  * in ( ) if its precedence is less than pr.
  */
 
-void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
+void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
 {
 #ifdef DEBUG
     if (precedence[e->op] == PREC_zero)
@@ -6613,7 +6613,7 @@ void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(' ');
     buf->writestring(Token::toChars(op));
     buf->writeByte(' ');
-    expToCBuffer(buf, hgs, e2, (enum PREC)(precedence[op] + 1));
+    expToCBuffer(buf, hgs, e2, (PREC)(precedence[op] + 1));
 }
 
 int BinExp::isunsigned()

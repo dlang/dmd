@@ -6992,7 +6992,7 @@ void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
  * Set operator precedence for each operator.
  */
 
-enum PREC precedence[TOKMAX];
+PREC precedence[TOKMAX];
 
 void initPrecedence()
 {
