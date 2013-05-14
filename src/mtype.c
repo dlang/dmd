@@ -1274,7 +1274,7 @@ Type *Type::aliasthisOf()
 int Type::checkAliasThisRec()
 {
     Type *tb = toBasetype();
-    enum AliasThisRec* pflag;
+    AliasThisRec* pflag;
     if (tb->ty == Tstruct)
         pflag = &((TypeStruct *)tb)->att;
     else if (tb->ty == Tclass)
@@ -1282,7 +1282,7 @@ int Type::checkAliasThisRec()
     else
         return 0;
 
-    enum AliasThisRec flag = (enum AliasThisRec)(*pflag & ~RECtracing);
+    AliasThisRec flag = (AliasThisRec)(*pflag & ~RECtracing);
     if (flag == RECfwdref)
     {
         Type *att = aliasthisOf();

@@ -830,7 +830,7 @@ class TypeStruct : public Type
 {
 public:
     StructDeclaration *sym;
-    enum AliasThisRec att;
+    AliasThisRec att;
 
     TypeStruct(StructDeclaration *sym);
     const char *kind();
@@ -969,7 +969,7 @@ class TypeClass : public Type
 {
 public:
     ClassDeclaration *sym;
-    enum AliasThisRec att;
+    AliasThisRec att;
 
     TypeClass(ClassDeclaration *sym);
     const char *kind();
