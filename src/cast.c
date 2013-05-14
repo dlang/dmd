@@ -457,7 +457,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
             if (!e)
                 continue;
             Type *te = e->type;
-            te = te->castMod(t->mod);
+            te = sd->fields[i]->type->addMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
             //printf("\t%s => %s, match = %d\n", e->toChars(), te->toChars(), m2);
             if (m2 < m)

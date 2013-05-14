@@ -525,6 +525,49 @@ void test15d()  // Bugzilla 9974
     shared const ssc = new shared const SSC(1);
 }
 
+void test15e()  // Bugzilla 10005
+{
+    // struct literal
+    static struct S
+    {
+        int[] a;
+    }
+    int[] marr = [1,2,3];
+    static assert( __traits(compiles, {           S m =           S(marr); }));
+    static assert( __traits(compiles, {     const S c =           S(marr); }));
+    static assert(!__traits(compiles, { immutable S i =           S(marr); }));
+    immutable int[] iarr = [1,2,3];
+    static assert(!__traits(compiles, {           S m = immutable S(iarr); }));
+    static assert( __traits(compiles, {     const S c = immutable S(iarr); }));
+    static assert( __traits(compiles, { immutable S i = immutable S(iarr); }));
+
+    // mutable constructor
+    static struct MS
+    {
+        int[] a;
+        this(int n) { a = new int[](n); }
+    }
+    static assert( __traits(compiles, {           MS m =           MS(3); }));
+    static assert( __traits(compiles, {     const MS c =           MS(3); }));
+    static assert(!__traits(compiles, { immutable MS i =           MS(3); }));
+    static assert(!__traits(compiles, {           MS m = immutable MS(3); }));
+    static assert(!__traits(compiles, {     const MS c = immutable MS(3); }));
+    static assert(!__traits(compiles, { immutable MS i = immutable MS(3); }));
+
+    // immutable constructor
+    static struct IS
+    {
+        int[] a;
+        this(int n) immutable { a = new int[](n); }
+    }
+    static assert(!__traits(compiles, {           IS m =           IS(3); }));
+    static assert(!__traits(compiles, {     const IS c =           IS(3); }));
+    static assert(!__traits(compiles, { immutable IS i =           IS(3); }));
+    static assert(!__traits(compiles, {           IS m = immutable IS(3); }));
+    static assert( __traits(compiles, {     const IS c = immutable IS(3); }));
+    static assert( __traits(compiles, { immutable IS i = immutable IS(3); }));
+}
+
 struct Foo9984
 {
     int[] p;
@@ -981,6 +1024,7 @@ int main()
     test15b();
     test15c();
     test15d();
+    test15e();
     test9993a();
     test9993b();
     test3198and1914();
