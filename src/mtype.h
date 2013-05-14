@@ -690,7 +690,7 @@ public:
 
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
-    enum RET retStyle();
+    RET retStyle();
 
     unsigned totym();
 
