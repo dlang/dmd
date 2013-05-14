@@ -3783,7 +3783,7 @@ FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
 /****************************** FuncLiteralDeclaration ************************/
 
 FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
-        enum TOK tok, ForeachStatement *fes)
+        TOK tok, ForeachStatement *fes)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
     const char *id;

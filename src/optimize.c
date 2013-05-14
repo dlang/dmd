@@ -597,7 +597,7 @@ Expression *CastExp::optimize(int result, bool keepLvalue)
     //printf("e1->type %s\n", e1->type->toChars());
     //printf("type = %p\n", type);
     assert(type);
-    enum TOK op1 = e1->op;
+    TOK op1 = e1->op;
 #define X 0
 
     Expression *e1old = e1;

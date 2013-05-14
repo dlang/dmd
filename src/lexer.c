@@ -224,7 +224,7 @@ const char *Token::toChars()
     return p;
 }
 
-const char *Token::toChars(enum TOK value)
+const char *Token::toChars(TOK value)
 {   const char *p;
     static char buffer[3 + 3 * sizeof(value) + 1];
 
@@ -627,7 +627,7 @@ void Lexer::scan(Token *t)
                     sv->ptrvalue = id;
                 }
                 t->ident = id;
-                t->value = (enum TOK) id->value;
+                t->value = (TOK) id->value;
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {
@@ -2803,7 +2803,7 @@ Identifier *Lexer::uniqueId(const char *s)
 
 struct Keyword
 {   const char *name;
-    enum TOK value;
+    TOK value;
 };
 
 static Keyword keywords[] =
@@ -2965,7 +2965,7 @@ void Lexer::initKeywords()
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
         const char *s = keywords[u].name;
-        enum TOK v = keywords[u].value;
+        TOK v = keywords[u].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (void *) new Identifier(sv->toDchars(),v);
 

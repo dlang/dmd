@@ -2370,7 +2370,7 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-typedef int (*fp2_t)(Loc loc, enum TOK, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
 {

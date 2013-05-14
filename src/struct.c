@@ -59,7 +59,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     getRTInfo = NULL;
 }
 
-enum PROT AggregateDeclaration::prot()
+PROT AggregateDeclaration::prot()
 {
     return protection;
 }

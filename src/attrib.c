@@ -78,7 +78,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -113,7 +113,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, enum LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -473,7 +473,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
     struct SCstring
     {
         StorageClass stc;
-        enum TOK tok;
+        TOK tok;
         Identifier *id;
     };
 
@@ -520,7 +520,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
             if (tbl == STCtls)  // TOKtls was removed
                 return "__thread";
 
-            enum TOK tok = table[i].tok;
+            TOK tok = table[i].tok;
 #if DMDV2
             if (tok == TOKat)
             {
@@ -678,7 +678,7 @@ char *LinkDeclaration::toChars()
 
 /********************************* ProtDeclaration ****************************/
 
-ProtDeclaration::ProtDeclaration(enum PROT p, Dsymbols *decl)
+ProtDeclaration::ProtDeclaration(PROT p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     protection = p;
@@ -733,7 +733,7 @@ void ProtDeclaration::semantic(Scope *sc)
     }
 }
 
-void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
+void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
 {
     const char *p;
 

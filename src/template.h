@@ -68,7 +68,7 @@ public:
 
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
-    enum PROT protection;
+    PROT protection;
 
     struct Previous
     {   Previous *prev;
@@ -90,7 +90,7 @@ public:
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
-    enum PROT prot();
+    PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
