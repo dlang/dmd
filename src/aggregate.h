@@ -258,7 +258,7 @@ public:
     int isscope;                        // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
     int inuse;                          // to prevent recursive attempts
-    enum Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
+    Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
 

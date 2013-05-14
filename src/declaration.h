@@ -129,7 +129,7 @@ public:
     enum LINK linkage;
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...") 
-    enum Semantic sem;
+    Semantic sem;
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
