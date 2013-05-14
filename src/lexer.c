@@ -1904,7 +1904,7 @@ TOK Lexer::number(Token *t)
     enum STATE { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
         STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
         STATE_hexh, STATE_error };
-    enum STATE state;
+    STATE state;
 
     enum FLAGS
     {
