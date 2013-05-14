@@ -1913,7 +1913,7 @@ TOK Lexer::number(Token *t)
         FLAGS_unsigned = 2,             // u or U suffix
         FLAGS_long     = 4,             // l or L suffix
     };
-    enum FLAGS flags = FLAGS_decimal;
+    FLAGS flags = FLAGS_decimal;
 
     unsigned c;
     unsigned char *start;
