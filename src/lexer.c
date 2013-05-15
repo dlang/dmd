@@ -1055,12 +1055,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKnotidentity;      // !==
-                    }
-                    else
-                        t->value = TOKnotequal;         // !=
+                    t->value = TOKnotequal;         // !=
                 }
                 else if (*p == '<')
                 {   p++;
@@ -1097,12 +1092,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKidentity;         // ===
-                    }
-                    else
-                        t->value = TOKequal;            // ==
+                    t->value = TOKequal;            // ==
                 }
 #if DMDV2
                 else if (*p == '>')
@@ -2955,9 +2945,6 @@ void Lexer::initKeywords()
     size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
     stringtable._init(6151);
-
-    if (global.params.Dversion == 1)
-        nkeywords -= 2;
 
     cmtable_init();
 

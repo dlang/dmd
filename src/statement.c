@@ -2267,8 +2267,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (i)
             buf->writestring(", ");
         if (a->storageClass & STCref)
-            buf->writestring((global.params.Dversion == 1)
-                ? (char*)"inout " : (char*)"ref ");
+            buf->writestring((char*)"ref ");
         if (a->type)
             a->type->toCBuffer(buf, a->ident, hgs);
         else

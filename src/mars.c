@@ -446,7 +446,6 @@ int tryMain(size_t argc, char *argv[])
     global.params.useSwitchError = 1;
     global.params.useInline = 0;
     global.params.obj = 1;
-    global.params.Dversion = 2;
     global.params.quiet = 1;
     global.params.useDeprecated = 2;
 
@@ -612,15 +611,6 @@ int tryMain(size_t argc, char *argv[])
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
 #endif
-            else if (strcmp(p + 1, "v1") == 0)
-            {
-#if DMDV1
-                global.params.Dversion = 1;
-#else
-                error(Loc(), "use DMD 1.0 series compilers for -v1 switch");
-                break;
-#endif
-            }
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
