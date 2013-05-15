@@ -192,19 +192,49 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         return NULL;
 
     //printf("StructDeclaration::buildOpAssign() %s\n", toChars());
-    StorageClass stc = STCundefined;
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
     Loc declLoc = this->loc;
     Loc loc = Loc();    // internal code should have no loc to prevent coverage
 
+    if (dtor || postblit)
+    {
+        if (dtor)
+            stc = mergeFuncAttrs(stc, dtor->storage_class);
+    }
+    else
+    {
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            Dsymbol *s = fields[i];
+            VarDeclaration *v = s->isVarDeclaration();
+            assert(v && v->isField());
+            if (v->storage_class & STCref)
+                continue;
+            Type *tv = v->type->toBasetype();
+            while (tv->ty == Tsarray)
+            {   TypeSArray *ta = (TypeSArray *)tv;
+                tv = tv->nextOf()->toBasetype();
+            }
+            if (tv->ty == Tstruct)
+            {   TypeStruct *ts = (TypeStruct *)tv;
+                StructDeclaration *sd = ts->sym;
+                if (FuncDeclaration *f = sd->hasIdentityOpAssign(sc))
+                    stc = mergeFuncAttrs(stc, f->storage_class);
+            }
+        }
+    }
+
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCnodtor, type, Id::p, NULL));
-    Type *ftype = new TypeFunction(fparams, handle, FALSE, LINKd);
-    ((TypeFunction *)ftype)->isref = 1;
+    Type *tf = new TypeFunction(fparams, handle, 0, LINKd, stc | STCref);
 
-    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, ftype);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), Id::assign, stc, tf);
 
     Expression *e = NULL;
-    if (dtor || postblit)
+    if (stc & STCdisable)
+    {
+    }
+    else if (dtor || postblit)
     {
         /* Do swap this and rhs
          *    tmp = this; this = s; tmp.dtor();
@@ -258,15 +288,18 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             e = Expression::combine(e, ec);
         }
     }
-    Statement *s1 = new ExpStatement(loc, e);
+    if (e)
+    {
+        Statement *s1 = new ExpStatement(loc, e);
 
-    /* Add:
-     *   return this;
-     */
-    e = new ThisExp(loc);
-    Statement *s2 = new ReturnStatement(loc, e);
+        /* Add:
+         *   return this;
+         */
+        e = new ThisExp(loc);
+        Statement *s2 = new ReturnStatement(loc, e);
 
-    fop->fbody = new CompoundStatement(loc, s1, s2);
+        fop->fbody = new CompoundStatement(loc, s1, s2);
+    }
 
     Dsymbol *s = fop;
 #if 1   // workaround until fixing issue 1528
@@ -546,10 +579,10 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));
-    Type *ftype = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
-    ftype->mod = MODconst;
+    Type *tf = new TypeFunction(fparams, Type::tvoid, 0, LINKd, stc);
+    tf->mod = MODconst;
 
-    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, ftype);
+    FuncDeclaration *fcp = new FuncDeclaration(declLoc, Loc(), Id::cpctor, stc, tf);
 
     if (!(stc & STCdisable))
     {

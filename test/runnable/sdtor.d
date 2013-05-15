@@ -2844,6 +2844,53 @@ void test10094()
 }
 
 /**********************************/
+// 10079
+
+// dtor || postblit
+struct S10079a
+{
+    this(this) pure nothrow @safe {}
+}
+struct S10079b
+{
+    ~this() pure nothrow @safe {}
+}
+struct S10079c
+{
+    this(this) pure nothrow @safe {}
+    ~this() pure nothrow @safe {}
+}
+struct S10079d
+{
+    this(this) {}
+}
+struct S10079e
+{
+    this(this) {}
+    ~this() pure nothrow @safe {}
+}
+
+// memberwise
+struct S10079f
+{
+    S10079a a;
+    S10079b b;
+    S10079c c;
+    S10079d d;
+    S10079e e;
+}
+
+void check10079(S)(ref S s) pure nothrow @safe { s = S(); }
+
+// Assignment is pure, nothrow, and @safe in all cases.
+static assert(__traits(compiles, &check10079!S10079a));
+static assert(__traits(compiles, &check10079!S10079b));
+static assert(__traits(compiles, &check10079!S10079c));
+static assert(__traits(compiles, &check10079!S10079d));
+static assert(__traits(compiles, &check10079!S10079e));
+static assert(__traits(compiles, &check10079!S10079f));
+
+/**********************************/
 
 int main()
 {
