@@ -37,10 +37,10 @@ public:
     int apply(Dsymbol_apply_ft_t fp, void *param);
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     void setScopeNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+        StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
         structalign_t structalign);
     void semanticNewSc(Scope *sc,
-        StorageClass newstc, enum LINK linkage, enum PROT protection, int explictProtection,
+        StorageClass newstc, LINK linkage, PROT protection, int explictProtection,
         structalign_t structalign);
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
@@ -92,9 +92,9 @@ public:
 class LinkDeclaration : public AttribDeclaration
 {
 public:
-    enum LINK linkage;
+    LINK linkage;
 
-    LinkDeclaration(enum LINK p, Dsymbols *decl);
+    LinkDeclaration(LINK p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
@@ -106,16 +106,16 @@ public:
 class ProtDeclaration : public AttribDeclaration
 {
 public:
-    enum PROT protection;
+    PROT protection;
 
-    ProtDeclaration(enum PROT p, Dsymbols *decl);
+    ProtDeclaration(PROT p, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
-    static void protectionToCBuffer(OutBuffer *buf, enum PROT protection);
+    static void protectionToCBuffer(OutBuffer *buf, PROT protection);
 };
 
 class AlignDeclaration : public AttribDeclaration

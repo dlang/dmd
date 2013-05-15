@@ -363,7 +363,7 @@ public:
 class ForeachStatement : public Statement
 {
 public:
-    enum TOK op;                // TOKforeach or TOKforeach_reverse
+    TOK op;                // TOKforeach or TOKforeach_reverse
     Parameters *arguments;      // array of Parameter*'s
     Expression *aggr;
     Statement *body;
@@ -376,7 +376,7 @@ public:
     Statements *cases;          // put breaks, continues, gotos and returns here
     CompoundStatements *gotos;  // forward referenced goto's go here
 
-    ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
@@ -398,7 +398,7 @@ public:
 class ForeachRangeStatement : public Statement
 {
 public:
-    enum TOK op;                // TOKforeach or TOKforeach_reverse
+    TOK op;                // TOKforeach or TOKforeach_reverse
     Parameter *arg;             // loop index variable
     Expression *lwr;
     Expression *upr;
@@ -406,7 +406,7 @@ public:
 
     VarDeclaration *key;
 
-    ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
+    ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
         Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);

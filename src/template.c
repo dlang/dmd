@@ -2585,7 +2585,7 @@ char *TemplateDeclaration::toChars()
     return (char *)buf.extractData();
 }
 
-enum PROT TemplateDeclaration::prot()
+PROT TemplateDeclaration::prot()
 {
     return protection;
 }

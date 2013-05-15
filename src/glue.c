@@ -738,7 +738,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     irs.deferToObj = &deferToObj;
 
     TypeFunction *tf;
-    enum RET retmethod;
+    RET retmethod;
     symbol *shidden = NULL;
     Symbol *sthis = NULL;
     tym_t tyf;

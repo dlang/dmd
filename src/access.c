@@ -38,14 +38,14 @@ int hasPackageAccess(Scope *sc, Dsymbol *s);
  * Return PROT access for Dsymbol smember in this declaration.
  */
 
-enum PROT AggregateDeclaration::getAccess(Dsymbol *smember)
+PROT AggregateDeclaration::getAccess(Dsymbol *smember)
 {
     return PROTpublic;
 }
 
-enum PROT StructDeclaration::getAccess(Dsymbol *smember)
+PROT StructDeclaration::getAccess(Dsymbol *smember)
 {
-    enum PROT access_ret = PROTnone;
+    PROT access_ret = PROTnone;
 
 #if LOG
     printf("+StructDeclaration::getAccess(this = '%s', smember = '%s')\n",
@@ -62,9 +62,9 @@ enum PROT StructDeclaration::getAccess(Dsymbol *smember)
     return access_ret;
 }
 
-enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
+PROT ClassDeclaration::getAccess(Dsymbol *smember)
 {
-    enum PROT access_ret = PROTnone;
+    PROT access_ret = PROTnone;
 
 #if LOG
     printf("+ClassDeclaration::getAccess(this = '%s', smember = '%s')\n",
@@ -84,7 +84,7 @@ enum PROT ClassDeclaration::getAccess(Dsymbol *smember)
         for (size_t i = 0; i < baseclasses->dim; i++)
         {   BaseClass *b = (*baseclasses)[i];
 
-            enum PROT access = b->base->getAccess(smember);
+            PROT access = b->base->getAccess(smember);
             switch (access)
             {
                 case PROTnone:
@@ -152,7 +152,7 @@ static int accessCheckX(
             {
                 for (size_t i = 0; i < cdthis->baseclasses->dim; i++)
                 {   BaseClass *b = (*cdthis->baseclasses)[i];
-                    enum PROT access = b->base->getAccess(smember);
+                    PROT access = b->base->getAccess(smember);
                     if (access >= PROTprotected ||
                         accessCheckX(smember, sfunc, b->base, cdscope)
                        )
@@ -192,7 +192,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
 
     FuncDeclaration *f = sc->func;
     AggregateDeclaration *cdscope = sc->getStructClassScope();
-    enum PROT access;
+    PROT access;
 
 #if LOG
     printf("AggregateDeclaration::accessCheck() for %s.%s in function %s() in scope %s\n",
@@ -214,7 +214,7 @@ void AggregateDeclaration::accessCheck(Loc loc, Scope *sc, Dsymbol *smember)
     //assert(smember->parent->isBaseOf(this, NULL));
 
     if (smemberparent == this)
-    {   enum PROT access2 = smember->prot();
+    {   PROT access2 = smember->prot();
 
         result = access2 >= PROTpublic ||
                 hasPrivateAccess(f) ||

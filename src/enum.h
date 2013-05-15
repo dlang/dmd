@@ -31,7 +31,7 @@ public:
      */
     Type *type;                 // the TypeEnum
     Type *memtype;              // type of the members
-    enum PROT protection;
+    PROT protection;
 
 #if DMDV1
     dinteger_t maxval;

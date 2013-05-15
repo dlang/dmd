@@ -122,7 +122,7 @@ int Declaration::isCodeseg()
     return FALSE;
 }
 
-enum PROT Declaration::prot()
+PROT Declaration::prot()
 {
     return protection;
 }
@@ -1289,7 +1289,7 @@ Lnomatch:
     else if (storage_class & STCmanifest)
         error("manifest constants must have initializers");
 
-    enum TOK op = TOKconstruct;
+    TOK op = TOKconstruct;
     if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&

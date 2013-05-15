@@ -182,7 +182,7 @@ AggregateDeclaration *isAggregate(Type *t)
 /*******************************************
  * Helper function to turn operator into template argument list
  */
-Objects *opToArg(Scope *sc, enum TOK op)
+Objects *opToArg(Scope *sc, TOK op)
 {
     /* Remove the = from op=
      */

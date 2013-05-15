@@ -93,9 +93,9 @@ public:
     unsigned callSuper;         // primitive flow analysis for constructors
 
     structalign_t structalign;       // alignment for struct members
-    enum LINK linkage;          // linkage for external functions
+    LINK linkage;          // linkage for external functions
 
-    enum PROT protection;       // protection for class members
+    PROT protection;       // protection for class members
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class
