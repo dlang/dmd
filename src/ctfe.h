@@ -40,8 +40,9 @@ struct CtfeStatus
   A reference to a class, or an interface. We need this when we
   point to a base class (we must record what the type is).
  */
-struct ClassReferenceExp : Expression
+class ClassReferenceExp : public Expression
 {
+public:
     StructLiteralExp *value;
     ClassReferenceExp(Loc loc, StructLiteralExp *lit, Type *type);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -69,8 +70,9 @@ int findFieldIndexByName(StructDeclaration *sd, VarDeclaration *v);
 
 /** An uninitialized value
  */
-struct VoidInitExp : Expression
+class VoidInitExp : public Expression
 {
+public:
     VarDeclaration *var;
 
     VoidInitExp(VarDeclaration *var, Type *type);
@@ -82,8 +84,9 @@ struct VoidInitExp : Expression
 /** Fake class which holds the thrown exception.
     Used for implementing exception handling.
 */
-struct ThrownExceptionExp : Expression
+class ThrownExceptionExp : public Expression
 {
+public:
     ClassReferenceExp *thrown; // the thing being tossed
     ThrownExceptionExp(Loc loc, ClassReferenceExp *victim);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);

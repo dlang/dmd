@@ -19,17 +19,16 @@
 #include "lexer.h"
 #include "mtype.h"
 
-struct Expression;
-struct Statement;
-struct LabelDsymbol;
-struct Initializer;
-struct Module;
+class Expression;
+class Statement;
+class LabelDsymbol;
+class Initializer;
+class Module;
 struct InlineScanState;
-struct ForeachStatement;
-struct FuncDeclaration;
-struct ExpInitializer;
-struct StructDeclaration;
-struct TupleType;
+class ForeachStatement;
+class FuncDeclaration;
+class ExpInitializer;
+class StructDeclaration;
 struct InterState;
 struct IRState;
 
@@ -120,8 +119,9 @@ enum Semantic
 
 /**************************************************************/
 
-struct Declaration : Dsymbol
+class Declaration : public Dsymbol
 {
+public:
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
@@ -176,8 +176,9 @@ struct Declaration : Dsymbol
 
 /**************************************************************/
 
-struct TupleDeclaration : Declaration
+class TupleDeclaration : public Declaration
 {
+public:
     Objects *objects;
     int isexp;                  // 1: expression tuple
 
@@ -194,8 +195,9 @@ struct TupleDeclaration : Declaration
 
 /**************************************************************/
 
-struct TypedefDeclaration : Declaration
+class TypedefDeclaration : public Declaration
 {
+public:
     Type *basetype;
     Initializer *init;
 
@@ -225,8 +227,9 @@ struct TypedefDeclaration : Declaration
 
 /**************************************************************/
 
-struct AliasDeclaration : Declaration
+class AliasDeclaration : public Declaration
 {
+public:
     Dsymbol *aliassym;
     Dsymbol *overnext;          // next in overload list
     Dsymbol *import;            // !=NULL if unresolved internal alias for selective import
@@ -251,8 +254,9 @@ struct AliasDeclaration : Declaration
 
 /**************************************************************/
 
-struct VarDeclaration : Declaration
+class VarDeclaration : public Declaration
 {
+public:
     Initializer *init;
     unsigned offset;
     bool noscope;                // no auto semantics
@@ -326,8 +330,9 @@ struct VarDeclaration : Declaration
 
 // This is a shell around a back end symbol
 
-struct SymbolDeclaration : Declaration
+class SymbolDeclaration : public Declaration
 {
+public:
     StructDeclaration *dsym;
 
     SymbolDeclaration(Loc loc, StructDeclaration *dsym);
@@ -338,8 +343,9 @@ struct SymbolDeclaration : Declaration
     SymbolDeclaration *isSymbolDeclaration() { return (SymbolDeclaration *)this; }
 };
 
-struct ClassInfoDeclaration : VarDeclaration
+class ClassInfoDeclaration : public VarDeclaration
 {
+public:
     ClassDeclaration *cd;
 
     ClassInfoDeclaration(ClassDeclaration *cd);
@@ -352,8 +358,9 @@ struct ClassInfoDeclaration : VarDeclaration
     Symbol *toSymbol();
 };
 
-struct ModuleInfoDeclaration : VarDeclaration
+class ModuleInfoDeclaration : public VarDeclaration
 {
+public:
     Module *mod;
 
     ModuleInfoDeclaration(Module *mod);
@@ -366,8 +373,9 @@ struct ModuleInfoDeclaration : VarDeclaration
     Symbol *toSymbol();
 };
 
-struct TypeInfoDeclaration : VarDeclaration
+class TypeInfoDeclaration : public VarDeclaration
 {
+public:
     Type *tinfo;
 
     TypeInfoDeclaration(Type *tinfo, int internal);
@@ -382,122 +390,139 @@ struct TypeInfoDeclaration : VarDeclaration
     virtual void toDt(dt_t **pdt);
 };
 
-struct TypeInfoStructDeclaration : TypeInfoDeclaration
+class TypeInfoStructDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoStructDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoClassDeclaration : TypeInfoDeclaration
+class TypeInfoClassDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoClassDeclaration(Type *tinfo);
     Symbol *toSymbol();
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoInterfaceDeclaration : TypeInfoDeclaration
+class TypeInfoInterfaceDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoInterfaceDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoTypedefDeclaration : TypeInfoDeclaration
+class TypeInfoTypedefDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoTypedefDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoPointerDeclaration : TypeInfoDeclaration
+class TypeInfoPointerDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoPointerDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoArrayDeclaration : TypeInfoDeclaration
+class TypeInfoArrayDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoStaticArrayDeclaration : TypeInfoDeclaration
+class TypeInfoStaticArrayDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoStaticArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoAssociativeArrayDeclaration : TypeInfoDeclaration
+class TypeInfoAssociativeArrayDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoAssociativeArrayDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoEnumDeclaration : TypeInfoDeclaration
+class TypeInfoEnumDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoEnumDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoFunctionDeclaration : TypeInfoDeclaration
+class TypeInfoFunctionDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoFunctionDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoDelegateDeclaration : TypeInfoDeclaration
+class TypeInfoDelegateDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoDelegateDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoTupleDeclaration : TypeInfoDeclaration
+class TypeInfoTupleDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoTupleDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
 #if DMDV2
-struct TypeInfoConstDeclaration : TypeInfoDeclaration
+class TypeInfoConstDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoConstDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoInvariantDeclaration : TypeInfoDeclaration
+class TypeInfoInvariantDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoInvariantDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoSharedDeclaration : TypeInfoDeclaration
+class TypeInfoSharedDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoSharedDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoWildDeclaration : TypeInfoDeclaration
+class TypeInfoWildDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoWildDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
 };
 
-struct TypeInfoVectorDeclaration : TypeInfoDeclaration
+class TypeInfoVectorDeclaration : public TypeInfoDeclaration
 {
+public:
     TypeInfoVectorDeclaration(Type *tinfo);
 
     void toDt(dt_t **pdt);
@@ -506,8 +531,9 @@ struct TypeInfoVectorDeclaration : TypeInfoDeclaration
 
 /**************************************************************/
 
-struct ThisDeclaration : VarDeclaration
+class ThisDeclaration : public VarDeclaration
 {
+public:
     ThisDeclaration(Loc loc, Type *t);
     Dsymbol *syntaxCopy(Dsymbol *);
     ThisDeclaration *isThisDeclaration() { return this; }
@@ -552,8 +578,9 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments);
 enum BUILTIN { };
 #endif
 
-struct FuncDeclaration : Declaration
+class FuncDeclaration : public Declaration
 {
+public:
     Types *fthrows;                     // Array of Type's of exceptions (not used)
     Statement *frequire;
     Statement *fensure;
@@ -727,8 +754,9 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         int flags = 0);
 #endif
 
-struct FuncAliasDeclaration : FuncDeclaration
+class FuncAliasDeclaration : public FuncDeclaration
 {
+public:
     FuncDeclaration *funcalias;
     int hasOverloads;
 
@@ -742,8 +770,9 @@ struct FuncAliasDeclaration : FuncDeclaration
     FuncDeclaration *toAliasFunc();
 };
 
-struct FuncLiteralDeclaration : FuncDeclaration
+class FuncLiteralDeclaration : public FuncDeclaration
 {
+public:
     enum TOK tok;                       // TOKfunction or TOKdelegate
     Type *treq;                         // target of return type inference
 
@@ -758,8 +787,9 @@ struct FuncLiteralDeclaration : FuncDeclaration
     const char *kind();
 };
 
-struct CtorDeclaration : FuncDeclaration
+class CtorDeclaration : public FuncDeclaration
 {
+public:
     CtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -773,8 +803,9 @@ struct CtorDeclaration : FuncDeclaration
 };
 
 #if DMDV2
-struct PostBlitDeclaration : FuncDeclaration
+class PostBlitDeclaration : public FuncDeclaration
 {
+public:
     PostBlitDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -790,8 +821,9 @@ struct PostBlitDeclaration : FuncDeclaration
 };
 #endif
 
-struct DtorDeclaration : FuncDeclaration
+class DtorDeclaration : public FuncDeclaration
 {
+public:
     DtorDeclaration(Loc loc, Loc endloc);
     DtorDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -808,8 +840,9 @@ struct DtorDeclaration : FuncDeclaration
     DtorDeclaration *isDtorDeclaration() { return this; }
 };
 
-struct StaticCtorDeclaration : FuncDeclaration
+class StaticCtorDeclaration : public FuncDeclaration
 {
+public:
     StaticCtorDeclaration(Loc loc, Loc endloc);
     StaticCtorDeclaration(Loc loc, Loc endloc, const char *name);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -826,8 +859,9 @@ struct StaticCtorDeclaration : FuncDeclaration
 };
 
 #if DMDV2
-struct SharedStaticCtorDeclaration : StaticCtorDeclaration
+class SharedStaticCtorDeclaration : public StaticCtorDeclaration
 {
+public:
     SharedStaticCtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -836,8 +870,10 @@ struct SharedStaticCtorDeclaration : StaticCtorDeclaration
 };
 #endif
 
-struct StaticDtorDeclaration : FuncDeclaration
-{   VarDeclaration *vgate;      // 'gate' variable
+class StaticDtorDeclaration : public FuncDeclaration
+{
+public:
+    VarDeclaration *vgate;      // 'gate' variable
 
     StaticDtorDeclaration(Loc loc, Loc endloc);
     StaticDtorDeclaration(Loc loc, Loc endloc, const char *name);
@@ -855,8 +891,9 @@ struct StaticDtorDeclaration : FuncDeclaration
 };
 
 #if DMDV2
-struct SharedStaticDtorDeclaration : StaticDtorDeclaration
+class SharedStaticDtorDeclaration : public StaticDtorDeclaration
 {
+public:
     SharedStaticDtorDeclaration(Loc loc, Loc endloc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -865,8 +902,9 @@ struct SharedStaticDtorDeclaration : StaticDtorDeclaration
 };
 #endif
 
-struct InvariantDeclaration : FuncDeclaration
+class InvariantDeclaration : public FuncDeclaration
 {
+public:
     InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id = NULL);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
@@ -879,8 +917,9 @@ struct InvariantDeclaration : FuncDeclaration
     InvariantDeclaration *isInvariantDeclaration() { return this; }
 };
 
-struct UnitTestDeclaration : FuncDeclaration
+class UnitTestDeclaration : public FuncDeclaration
 {
+public:
     char *codedoc; /** For documented unittest. */
     UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
@@ -895,8 +934,10 @@ struct UnitTestDeclaration : FuncDeclaration
     UnitTestDeclaration *isUnitTestDeclaration() { return this; }
 };
 
-struct NewDeclaration : FuncDeclaration
-{   Parameters *arguments;
+class NewDeclaration : public FuncDeclaration
+{
+public:
+    Parameters *arguments;
     int varargs;
 
     NewDeclaration(Loc loc, Loc endloc, Parameters *arguments, int varargs);
@@ -912,8 +953,10 @@ struct NewDeclaration : FuncDeclaration
 };
 
 
-struct DeleteDeclaration : FuncDeclaration
-{   Parameters *arguments;
+class DeleteDeclaration : public FuncDeclaration
+{
+public:
+    Parameters *arguments;
 
     DeleteDeclaration(Loc loc, Loc endloc, Parameters *arguments);
     Dsymbol *syntaxCopy(Dsymbol *);

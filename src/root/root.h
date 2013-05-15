@@ -27,16 +27,17 @@ typedef size_t hash_t;
  * Root of our class library.
  */
 
-struct OutBuffer;
+class OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct ArrayBase;
-typedef ArrayBase<struct File> Files;
+typedef ArrayBase<class File> Files;
 typedef ArrayBase<char> Strings;
 
 
-struct Object
+class Object
 {
+public:
     Object() { }
     virtual ~Object() { }
 
@@ -74,8 +75,9 @@ struct Object
         void mark();
 };
 
-struct String : Object
+class String : public Object
 {
+public:
     const char *str;                  // the string itself
 
     String(const char *str);
@@ -92,8 +94,9 @@ struct String : Object
     void mark();
 };
 
-struct FileName : String
+class FileName : public String
 {
+public:
     FileName(const char *str);
     hash_t hashCode();
     int equals(Object *obj);
@@ -128,8 +131,9 @@ struct FileName : String
     static void free(const char *str);
 };
 
-struct File : Object
+class File : public Object
 {
+public:
     int ref;                    // != 0 if this is a reference to someone else's buffer
     unsigned char *buffer;      // data for our file
     size_t len;                 // amount of data in buffer[]
@@ -233,8 +237,9 @@ struct File : Object
     void remove();              // delete file
 };
 
-struct OutBuffer : Object
+class OutBuffer : public Object
 {
+public:
     unsigned char *data;
     size_t offset;
     size_t size;
@@ -368,8 +373,9 @@ struct ArrayBase : Array
 };
 
 // TODO: Remove (only used by disabled GC)
-struct Bits : Object
+class Bits : public Object
 {
+public:
     unsigned bitdim;
     unsigned allocdim;
     unsigned *data;
