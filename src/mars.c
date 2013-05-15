@@ -610,6 +610,8 @@ int tryMain(size_t argc, char *argv[])
 #if DMDV2
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
+            else if (strcmp(p + 1, "vfield") == 0)
+                global.params.vfield = 1;
 #endif
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
