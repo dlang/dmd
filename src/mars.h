@@ -175,7 +175,6 @@ struct Param
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
-    char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
