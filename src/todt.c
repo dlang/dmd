@@ -947,8 +947,8 @@ dt_t **TypeTypedef::toDt(dt_t **pdt)
 
 dt_t **ClassReferenceExp::toDt(dt_t **pdt)
 {
-    InterfaceDeclaration* to = ((TypeClass*)type)->sym->isInterfaceDeclaration();
-    
+    InterfaceDeclaration* to = ((TypeClass *)type)->sym->isInterfaceDeclaration();
+
     if (to) //Static typeof this literal is an interface. We must add offset to symbol
     {
         ClassDeclaration *from = originalClass();
@@ -956,7 +956,7 @@ dt_t **ClassReferenceExp::toDt(dt_t **pdt)
         int isbase = to->isBaseOf(from, &off);
         assert(isbase);
         return toDtI(pdt, off);
-    }      
+    }
     return toDtI(pdt, 0);
 }
 
@@ -977,7 +977,7 @@ dt_t **ClassReferenceExp::toInstanceDt(dt_t **pdt)
 #endif
     dt_t *d = NULL;
     dt_t **pdtend = &d;
- 
+
     Dts dts;
     dts.setDim(value->elements->dim);
     dts.zero();
@@ -1027,7 +1027,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
         int idx = findFieldIndexByName(v);
         assert(idx != -1);
         dt_t *d = (*dts)[idx];
-                
+
         if (!d)
         {
             dt_t *dt = NULL;
@@ -1069,12 +1069,12 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
               unsigned sz = dt_size(d);
               unsigned vsz = v->type->size();
               unsigned voffset = v->offset;
-              
+
               if (sz > vsz)
               {   assert(v->type->ty == Tsarray && vsz == 0);
                   error("zero length array %s has non-zero length initializer", v->toChars());
               }
-              
+
               size_t dim = 1;
               Type *vt;
               for (vt = v->type->toBasetype();
@@ -1085,7 +1085,7 @@ dt_t **ClassReferenceExp::toDt2(dt_t **pdt, ClassDeclaration *cd, Dts *dts)
               }
               //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
               assert(sz == vsz || sz * dim <= vsz);
-              
+
               for (size_t i = 0; i < dim; i++)
               {
                   if (offset < voffset)

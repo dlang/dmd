@@ -22,7 +22,7 @@ struct Target
     static int realsize;        // size a real consumes in memory
     static int realpad;         // 'padding' added to the CPU real size to bring it up to realsize
     static int realalignsize;   // alignment for reals
-    
+
     static void init();
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);

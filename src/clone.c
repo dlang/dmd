@@ -164,7 +164,7 @@ Lneed:
  * Note that s will be constructed onto the stack, and probably
  * copy-constructed in caller site.
  *
- * If S has copy copy construction and/or destructor, 
+ * If S has copy copy construction and/or destructor,
  * the body will make bit-wise object swap:
  *          S __tmp = this; // bit copy
  *          this = s;       // bit copy
