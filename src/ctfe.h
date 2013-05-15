@@ -185,11 +185,11 @@ Expression *pointerDifference(Loc loc, Type *type, Expression *e1, Expression *e
 
 /// Return 1 if true, 0 if false
 /// -1 if comparison is illegal because they point to non-comparable memory blocks
-int comparePointers(Loc loc, enum TOK op, Type *type, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
+int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t ofs1, Expression *agg2, dinteger_t ofs2);
 
 // Return eptr op e2, where eptr is a pointer, e2 is an integer,
 // and op is TOKadd or TOKmin
-Expression *pointerArithmetic(Loc loc, enum TOK op, Type *type,
+Expression *pointerArithmetic(Loc loc, TOK op, Type *type,
     Expression *eptr, Expression *e2);
 
 // True if conversion from type 'from' to 'to' involves a reinterpret_cast
@@ -234,13 +234,13 @@ void intBinary(TOK op, IntegerExp *dest, Type *type, IntegerExp *e1, IntegerExp 
 bool isCtfeComparable(Expression *e);
 
 /// Evaluate ==, !=.  Resolves slices before comparing. Returns 0 or 1
-int ctfeEqual(Loc loc, enum TOK op, Expression *e1, Expression *e2);
+int ctfeEqual(Loc loc, TOK op, Expression *e1, Expression *e2);
 
 /// Evaluate is, !is.  Resolves slices before comparing. Returns 0 or 1
-int ctfeIdentity(Loc loc, enum TOK op, Expression *e1, Expression *e2);
+int ctfeIdentity(Loc loc, TOK op, Expression *e1, Expression *e2);
 
 /// Evaluate >,<=, etc. Resolves slices before comparing. Returns 0 or 1
-int ctfeCmp(Loc loc, enum TOK op, Expression *e1, Expression *e2);
+int ctfeCmp(Loc loc, TOK op, Expression *e1, Expression *e2);
 
 /// Returns e1 ~ e2. Resolves slices before concatenation.
 Expression *ctfeCat(Type *type, Expression *e1, Expression *e2);

@@ -125,11 +125,11 @@ public:
     Type *type;
     Type *originalType;         // before semantic analysis
     StorageClass storage_class;
-    enum PROT protection;
-    enum LINK linkage;
+    PROT protection;
+    LINK linkage;
     int inuse;                  // used to detect cycles
     const char *mangleOverride;      // overridden symbol with pragma(mangle, "...") 
-    enum Semantic sem;
+    Semantic sem;
 
     Declaration(Identifier *id);
     void semantic(Scope *sc);
@@ -169,7 +169,7 @@ public:
     bool isOut()   { return (storage_class & STCout) != 0; }
     bool isRef()   { return (storage_class & STCref) != 0; }
 
-    enum PROT prot();
+    PROT prot();
 
     Declaration *isDeclaration() { return this; }
 };
@@ -572,7 +572,7 @@ enum BUILTIN
 #endif
 };
 
-Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments);
+Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments);
 
 #else
 enum BUILTIN { };
@@ -615,7 +615,7 @@ public:
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // !=0 if array operation
     FuncDeclaration *dArrayOp;          // D version of array op for ctfe
-    enum PASS semanticRun;
+    PASS semanticRun;
     int semantic3Errors;                // !=0 if errors in semantic3
                                         // this function's frame ptr
     ForeachStatement *fes;              // if foreach body, this is the foreach
@@ -640,7 +640,7 @@ public:
     ReturnStatements *returns;
 
 #if DMDV2
-    enum BUILTIN builtin;               // set if this is a known, builtin
+    BUILTIN builtin;               // set if this is a known, builtin
                                         // function we can evaluate at compile
                                         // time
 
@@ -694,15 +694,15 @@ public:
     int isMain();
     int isWinMain();
     int isDllMain();
-    enum BUILTIN isBuiltin();
+    BUILTIN isBuiltin();
     int isExport();
     int isImportedSymbol();
     int isAbstract();
     int isCodeseg();
     int isOverloadable();
     int hasOverloads();
-    enum PURE isPure();
-    enum PURE isPureBypassingInference();
+    PURE isPure();
+    PURE isPureBypassingInference();
     bool setImpure();
     int isSafe();
     bool isSafeBypassingInference();
@@ -773,10 +773,10 @@ public:
 class FuncLiteralDeclaration : public FuncDeclaration
 {
 public:
-    enum TOK tok;                       // TOKfunction or TOKdelegate
+    TOK tok;                       // TOKfunction or TOKdelegate
     Type *treq;                         // target of return type inference
 
-    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, enum TOK tok,
+    FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
         ForeachStatement *fes);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);

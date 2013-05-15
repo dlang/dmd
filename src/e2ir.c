@@ -109,7 +109,7 @@ elem *callfunc(Loc loc,
     elem *eside = NULL;
     tym_t ty;
     tym_t tyret;
-    enum RET retmethod;
+    RET retmethod;
     int reverse;
     TypeFunction *tf;
     int op;

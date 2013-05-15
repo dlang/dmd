@@ -47,13 +47,13 @@ class AggregateDeclaration : public ScopeDsymbol
 public:
     Type *type;
     StorageClass storage_class;
-    enum PROT protection;
+    PROT protection;
     Type *handle;               // 'this' type
     unsigned structsize;        // size of struct
     unsigned alignsize;         // size of struct for alignment purposes
     int hasUnions;              // set if aggregate has overlapping fields
     VarDeclarations fields;     // VarDeclaration fields
-    enum Sizeok sizeok;         // set when structsize contains valid data
+    Sizeok sizeok;         // set when structsize contains valid data
     Dsymbol *deferred;          // any deferred semantic2() or semantic3() symbol
     bool isdeprecated;          // !=0 if deprecated
 
@@ -121,7 +121,7 @@ public:
     int hasPrivateAccess(Dsymbol *smember);     // does smember have private access to members of this class?
     void accessCheck(Loc loc, Scope *sc, Dsymbol *smember);
 
-    enum PROT prot();
+    PROT prot();
 
     // Back end
     Symbol *stag;               // tag symbol for debug data
@@ -197,7 +197,7 @@ public:
 struct BaseClass
 {
     Type *type;                         // (before semantic processing)
-    enum PROT protection;               // protection for the base interface
+    PROT protection;               // protection for the base interface
 
     ClassDeclaration *base;
     int offset;                         // 'this' pointer offset
@@ -209,7 +209,7 @@ struct BaseClass
                                         // are a copy of the InterfaceDeclaration::interfaces
 
     BaseClass();
-    BaseClass(Type *type, enum PROT protection);
+    BaseClass(Type *type, PROT protection);
 
     int fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance);
     void copyBaseInterfaces(BaseClasses *);
@@ -258,7 +258,7 @@ public:
     int isscope;                        // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
     int inuse;                          // to prevent recursive attempts
-    enum Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
+    Semantic doAncestorsSemantic;  // Before searching symbol, whole ancestors should finish
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
 

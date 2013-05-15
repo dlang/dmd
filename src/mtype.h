@@ -658,15 +658,15 @@ public:
     bool isnothrow;     // true: nothrow
     bool isproperty;    // can be called without parentheses
     bool isref;         // true: returns a reference
-    enum LINK linkage;  // calling convention
-    enum TRUST trust;   // level of trust
-    enum PURE purity;   // PURExxxx
+    LINK linkage;  // calling convention
+    TRUST trust;   // level of trust
+    PURE purity;   // PURExxxx
     bool iswild;        // is inout function
     Expressions *fargs; // function arguments
 
     int inuse;
 
-    TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc = 0);
+    TypeFunction(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc = 0);
     const char *kind();
     TypeFunction *copy();
     Type *syntaxCopy();
@@ -690,7 +690,7 @@ public:
 
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
-    enum RET retStyle();
+    RET retStyle();
 
     unsigned totym();
 
@@ -830,7 +830,7 @@ class TypeStruct : public Type
 {
 public:
     StructDeclaration *sym;
-    enum AliasThisRec att;
+    AliasThisRec att;
 
     TypeStruct(StructDeclaration *sym);
     const char *kind();
@@ -969,7 +969,7 @@ class TypeClass : public Type
 {
 public:
     ClassDeclaration *sym;
-    enum AliasThisRec att;
+    AliasThisRec att;
 
     TypeClass(ClassDeclaration *sym);
     const char *kind();

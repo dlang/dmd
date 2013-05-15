@@ -112,12 +112,12 @@ class Expression : public Object
 {
 public:
     Loc loc;                    // file location
-    enum TOK op;                // handy to minimize use of dynamic_cast
+    TOK op;                // handy to minimize use of dynamic_cast
     Type *type;                 // !=NULL means that semantic() has been run
     unsigned char size;         // # of bytes in Expression so we can copy() it
     unsigned char parens;       // if this is a parenthesized expression
 
-    Expression(Loc loc, enum TOK op, int size);
+    Expression(Loc loc, TOK op, int size);
     static void init();
     Expression *copy();
     virtual Expression *syntaxCopy();
@@ -665,7 +665,7 @@ public:
     Declaration *var;
     int hasOverloads;
 
-    SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOverloads);
+    SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloads);
 
     elem *toElem(IRState *irs);
 };
@@ -740,7 +740,7 @@ class FuncExp : public Expression
 public:
     FuncLiteralDeclaration *fd;
     TemplateDeclaration *td;
-    enum TOK tok;
+    TOK tok;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
     Expression *syntaxCopy();
@@ -823,13 +823,13 @@ public:
      */
     Type *targ;
     Identifier *id;     // can be NULL
-    enum TOK tok;       // ':' or '=='
+    TOK tok;       // ':' or '=='
     Type *tspec;        // can be NULL
-    enum TOK tok2;      // 'struct', 'union', 'typedef', etc.
+    TOK tok2;      // 'struct', 'union', 'typedef', etc.
     TemplateParameters *parameters;
 
-    IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok, Type *tspec,
-        enum TOK tok2, TemplateParameters *parameters);
+    IsExp(Loc loc, Type *targ, Identifier *id, TOK tok, Type *tspec,
+        TOK tok2, TemplateParameters *parameters);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -843,7 +843,7 @@ public:
     Expression *e1;
     Type *att1; // Save alias this type to detect recursion
 
-    UnaExp(Loc loc, enum TOK op, int size, Expression *e1);
+    UnaExp(Loc loc, TOK op, int size, Expression *e1);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -868,7 +868,7 @@ public:
     Type *att1; // Save alias this type to detect recursion
     Type *att2; // Save alias this type to detect recursion
 
-    BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2);
+    BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -905,7 +905,7 @@ public:
 class BinAssignExp : public BinExp
 {
 public:
-    BinAssignExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
+    BinAssignExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
         : BinExp(loc, op, size, e1, e2)
     {
     }
@@ -1346,7 +1346,7 @@ public:
 class PostExp : public BinExp
 {
 public:
-    PostExp(enum TOK op, Loc loc, Expression *e);
+    PostExp(TOK op, Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -1359,7 +1359,7 @@ public:
 class PreExp : public UnaExp
 {
 public:
-    PreExp(enum TOK op, Loc loc, Expression *e);
+    PreExp(TOK op, Loc loc, Expression *e);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
@@ -1683,7 +1683,7 @@ public:
 class CmpExp : public BinExp
 {
 public:
-    CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
+    CmpExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     int isBit();
@@ -1725,7 +1725,7 @@ public:
 class EqualExp : public BinExp
 {
 public:
-    EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
+    EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     int isBit();
@@ -1743,7 +1743,7 @@ public:
 class IdentityExp : public BinExp
 {
 public:
-    IdentityExp(enum TOK op, Loc loc, Expression *e1, Expression *e2);
+    IdentityExp(TOK op, Loc loc, Expression *e1, Expression *e2);
     Expression *semantic(Scope *sc);
     int isBit();
     Expression *optimize(int result, bool keepLvalue = false);
@@ -1787,9 +1787,9 @@ public:
 class DefaultInitExp : public Expression
 {
 public:
-    enum TOK subop;             // which of the derived classes this is
+    TOK subop;             // which of the derived classes this is
 
-    DefaultInitExp(Loc loc, enum TOK subop, int size);
+    DefaultInitExp(Loc loc, TOK subop, int size);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
@@ -1870,9 +1870,9 @@ Expression *Xor(Type *type, Expression *e1, Expression *e2);
 Expression *Index(Type *type, Expression *e1, Expression *e2);
 Expression *Cat(Type *type, Expression *e1, Expression *e2);
 
-Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2);
-Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2);
-Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2);
+Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2);
+Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2);
+Expression *Identity(TOK op, Type *type, Expression *e1, Expression *e2);
 
 Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr);
 

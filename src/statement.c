@@ -1403,7 +1403,7 @@ void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Parameters *arguments,
+ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *arguments,
         Expression *aggr, Statement *body)
     : Statement(loc)
 {
@@ -2292,7 +2292,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 #if DMDV2
 
-ForeachRangeStatement::ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
+ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
         Expression *lwr, Expression *upr, Statement *body)
     : Statement(loc)
 {
