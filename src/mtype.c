@@ -8764,13 +8764,6 @@ MATCH TypeClass::implicitConvTo(Type *to)
         }
     }
 
-    if (global.params.Dversion == 1)
-    {
-        // Allow conversion to (void *)
-        if (to->ty == Tpointer && ((TypePointer *)to)->next->ty == Tvoid)
-            return MATCHconvert;
-    }
-
     m = MATCHnomatch;
     if (sym->aliasthis && !(att & RECtracing))
     {
@@ -9324,8 +9317,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->storageClass & STCout)
                 buf->writestring("out ");
             else if (arg->storageClass & STCref)
-                buf->writestring((global.params.Dversion == 1)
-                        ? "inout " : "ref ");
+                buf->writestring("ref ");
             else if (arg->storageClass & STCin)
                 buf->writestring("in ");
             else if (arg->storageClass & STClazy)
