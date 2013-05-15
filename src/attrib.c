@@ -28,6 +28,7 @@
 #include "parse.h"
 #include "template.h"
 #include "hdrgen.h"
+#include "utf.h"
 
 
 /********************************* AttribDeclaration ****************************/
@@ -1095,6 +1096,40 @@ void PragmaDeclaration::semantic(Scope *sc)
 
             if (se->sz != 1)
                 error("mangled name characters can only be of type char");
+
+            for (size_t i = 0; i < se->len; )
+            {
+                unsigned char *p = (unsigned char *)se->string;
+                dchar_t c = p[i];
+                if (c < 0x80)
+                {
+                    if (c >= 'A' && c <= 'Z' ||
+                        c >= 'a' && c <= 'z' ||
+                        c >= '0' && c <= '9' ||
+                        c != 0 && strchr("$%().:?@[]_", c))
+                    {
+                        ++i;
+                        continue;
+                    }
+                    else
+                    {
+                        error("char 0x%02x not allowed in mangled name", c);
+                        break;
+                    }
+                }
+
+                if (const char* msg = utf_decodeChar((unsigned char *)se->string, se->len, &i, &c))
+                {
+                    error("%s", msg);
+                    break;
+                }
+
+                if (!isUniAlpha(c))
+                {
+                    error("char 0x%04x not allowed in mangled name", c);
+                    break;
+                }
+            }
         }
     }
     else if (global.params.ignoreUnsupportedPragmas)
