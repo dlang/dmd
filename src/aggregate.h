@@ -20,19 +20,19 @@
 #include "dsymbol.h"
 #include "declaration.h"
 
-struct Identifier;
-struct Type;
-struct TypeFunction;
-struct Expression;
-struct FuncDeclaration;
-struct CtorDeclaration;
-struct DtorDeclaration;
-struct InvariantDeclaration;
-struct NewDeclaration;
-struct DeleteDeclaration;
-struct InterfaceDeclaration;
-struct TypeInfoClassDeclaration;
-struct VarDeclaration;
+class Identifier;
+class Type;
+class TypeFunction;
+class Expression;
+class FuncDeclaration;
+class CtorDeclaration;
+class DtorDeclaration;
+class InvariantDeclaration;
+class NewDeclaration;
+class DeleteDeclaration;
+class InterfaceDeclaration;
+class TypeInfoClassDeclaration;
+class VarDeclaration;
 struct dt_t;
 
 enum Sizeok
@@ -42,8 +42,9 @@ enum Sizeok
     SIZEOKfwd,          // error in computing size of aggregate
 };
 
-struct AggregateDeclaration : ScopeDsymbol
+class AggregateDeclaration : public ScopeDsymbol
 {
+public:
     Type *type;
     StorageClass storage_class;
     enum PROT protection;
@@ -130,8 +131,9 @@ struct AggregateDeclaration : ScopeDsymbol
     AggregateDeclaration *isAggregateDeclaration() { return this; }
 };
 
-struct StructDeclaration : AggregateDeclaration
+class StructDeclaration : public AggregateDeclaration
 {
+public:
     int zeroInit;               // !=0 if initialize with 0 fill
 #if DMDV2
     int hasIdentityAssign;      // !=0 if has identity opAssign
@@ -182,8 +184,9 @@ struct StructDeclaration : AggregateDeclaration
     StructDeclaration *isStructDeclaration() { return this; }
 };
 
-struct UnionDeclaration : StructDeclaration
+class UnionDeclaration : public StructDeclaration
 {
+public:
     UnionDeclaration(Loc loc, Identifier *id);
     Dsymbol *syntaxCopy(Dsymbol *s);
     const char *kind();
@@ -220,8 +223,9 @@ struct BaseClass
 #define CLASSINFO_SIZE_64  (0x98)       // value of ClassInfo.size
 #endif
 
-struct ClassDeclaration : AggregateDeclaration
+class ClassDeclaration : public AggregateDeclaration
 {
+public:
     static ClassDeclaration *object;
     static ClassDeclaration *classinfo;
     static ClassDeclaration *throwable;
@@ -304,8 +308,9 @@ struct ClassDeclaration : AggregateDeclaration
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
 };
 
-struct InterfaceDeclaration : ClassDeclaration
+class InterfaceDeclaration : public ClassDeclaration
 {
+public:
 #if DMDV2
     int cpp;                            // !=0 if this is a C++ interface
 #endif

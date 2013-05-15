@@ -18,16 +18,17 @@
 #include "dsymbol.h"
 
 
-struct Identifier;
-struct Scope;
-struct OutBuffer;
-struct Module;
-struct Package;
-struct AliasDeclaration;
+class Identifier;
+class Scope;
+class OutBuffer;
+class Module;
+class Package;
+class AliasDeclaration;
 struct HdrGenState;
 
-struct Import : Dsymbol
+class Import : public Dsymbol
 {
+public:
     Identifiers *packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
