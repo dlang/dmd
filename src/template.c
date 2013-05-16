@@ -2144,8 +2144,8 @@ bool TemplateDeclaration::isOverloadable()
 FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         Objects *tiargs, Type *tthis, Expressions *fargs, int flags)
 {
-    MATCH m_best = MATCHnomatch;
-    MATCH m_best2 = MATCHnomatch;
+    MATCH mta_best = MATCHnomatch;
+    MATCH mfa_best = MATCHnomatch;
     TemplateDeclaration *td_ambig = NULL;
     TemplateDeclaration *td_best = NULL;
     Objects *tdargs = new Objects();
@@ -2187,9 +2187,9 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             Objects dedtypes;
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun);
-            MATCH m2 = td->matchWithInstance(ti, &dedtypes, fargs, 0);
+            MATCH mta = td->matchWithInstance(ti, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", m2);
-            if (!m2 || m2 < m_best2)        // no match or less match
+            if (!mta || mta < mta_best)     // no match or less match
                 continue;
 
             ti->semantic(sc, fargs);
@@ -2209,31 +2209,29 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
                 continue;
 
             TypeFunction *tf = (TypeFunction *)fd->type;
-            MATCH m = (MATCH) tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
-            if (m < m_best)
+            MATCH mfa = tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
+            if (mfa < mfa_best)
                 continue;
 
             // td is the new best match
             td_ambig = NULL;
             assert(td->scope);
             td_best = td;
+            mta_best = mta;
+            mfa_best = mfa;
             fd_best = fd;
-            m_best = m;
-            m_best2 = m2;
             tdargs->setDim(dedtypes.dim);
             memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             continue;
         }
 
-        MATCH m, m2;
         Objects dedargs;
         FuncDeclaration *fd = NULL;
-
-        m = td->deduceFunctionTemplateMatch(loc, sc, tiargs, tthis, fargs, &dedargs);
-        m2 = (MATCH)(m >> 4);
-        m = (MATCH)(m & 0xF);
-        //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", m, m2);
-        if (!m)                 // if no match
+        int x = td->deduceFunctionTemplateMatch(loc, sc, tiargs, tthis, fargs, &dedargs);
+        MATCH mta = (MATCH)(x >> 4);
+        MATCH mfa = (MATCH)(x & 0xF);
+        //printf("deduceFunctionTemplateMatch = %d, m2 = %d\n", mfa, mta);
+        if (!mfa)               // if no match
             continue;
 
         Type *tthis_fd = NULL;
@@ -2261,68 +2259,52 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             }
         }
 
-        if (m2 < m_best2)
-            goto Ltd_best;
-        if (m2 > m_best2)
-            goto Ltd;
+        if (mta < mta_best) goto Ltd_best;
+        if (mta > mta_best) goto Ltd;
 
-        if (m < m_best)
-            goto Ltd_best;
-        if (m > m_best)
-            goto Ltd;
+        if (mfa < mfa_best) goto Ltd_best;
+        if (mfa > mfa_best) goto Ltd;
 
         {
-        // Disambiguate by picking the most specialized TemplateDeclaration
-        MATCH c1 = td->leastAsSpecialized(td_best, fargs);
-        MATCH c2 = td_best->leastAsSpecialized(td, fargs);
-        //printf("1: c1 = %d, c2 = %d\n", c1, c2);
-
-        if (c1 > c2)
-            goto Ltd;
-        else if (c1 < c2)
-            goto Ltd_best;
+            // Disambiguate by picking the most specialized TemplateDeclaration
+            MATCH c1 = td->leastAsSpecialized(td_best, fargs);
+            MATCH c2 = td_best->leastAsSpecialized(td, fargs);
+            //printf("1: c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2) goto Ltd;
+            if (c1 < c2) goto Ltd_best;
         }
 
         if (!fd_best)
         {
             fd_best = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
-            if (!fd_best)
-                goto Lerror;
+            if (!fd_best) goto Lerror;
             tthis_best = fd_best->needThis() ? tthis : NULL;
         }
         if (!fd)
         {
             fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
-            if (!fd)
-                goto Lerror;
+            if (!fd) goto Lerror;
             tthis_fd = fd->needThis() ? tthis : NULL;
         }
         assert(fd && fd_best);
 
         {
-        // Disambiguate by tf->callMatch
-        TypeFunction *tf1 = (TypeFunction *)fd->type;
-        TypeFunction *tf2 = (TypeFunction *)fd_best->type;
-        MATCH c1 = tf1->callMatch(tthis_fd, fargs);
-        MATCH c2 = tf2->callMatch(tthis_best, fargs);
-        //printf("2: c1 = %d, c2 = %d\n", c1, c2);
-
-        if (c1 > c2)
-            goto Ltd;
-        if (c1 < c2)
-            goto Ltd_best;
+            // Disambiguate by tf->callMatch
+            TypeFunction *tf1 = (TypeFunction *)fd->type;
+            TypeFunction *tf2 = (TypeFunction *)fd_best->type;
+            MATCH c1 = tf1->callMatch(tthis_fd,   fargs);
+            MATCH c2 = tf2->callMatch(tthis_best, fargs);
+            //printf("2: c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2) goto Ltd;
+            if (c1 < c2) goto Ltd_best;
         }
-
         {
-        // Disambiguate by picking the most specialized FunctionDeclaration
-        MATCH c1 = fd->leastAsSpecialized(fd_best);
-        MATCH c2 = fd_best->leastAsSpecialized(fd);
-        //printf("3: c1 = %d, c2 = %d\n", c1, c2);
-
-        if (c1 > c2)
-            goto Ltd;
-        if (c1 < c2)
-            goto Ltd_best;
+            // Disambiguate by picking the most specialized FunctionDeclaration
+            MATCH c1 = fd->leastAsSpecialized(fd_best);
+            MATCH c2 = fd_best->leastAsSpecialized(fd);
+            //printf("3: c1 = %d, c2 = %d\n", c1, c2);
+            if (c1 > c2) goto Ltd;
+            if (c1 < c2) goto Ltd_best;
         }
 
       Lambig:           // td_best and td are ambiguous
@@ -2337,10 +2319,10 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
         td_ambig = NULL;
         assert(td->scope);
         td_best = td;
+        mta_best = mta;
+        mfa_best = mfa;
         fd_best = fd;
         tthis_best = tthis_fd;
-        m_best = m;
-        m_best2 = m2;
         tdargs->setDim(dedargs.dim);
         memcpy(tdargs->tdata(), dedargs.tdata(), tdargs->dim * sizeof(void *));
         continue;
