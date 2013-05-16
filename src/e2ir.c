@@ -2826,6 +2826,35 @@ elem *AssignExp::toElem(IRState *irs)
         }
     Lx:
 
+        if (op == TOKconstruct && !ismemset)
+        {
+            Expression *e1x = are->e1;
+            Expression *e2x = e2;
+            if (e2x->op == TOKcast)
+            {
+                Expression *e2y = ((CastExp *)e2x)->e1;
+                Type *t1 = e1x->type->toBasetype()->nextOf()->arrayOf()->immutableOf();
+                Type *t2 = e2y->type->toBasetype()->nextOf()->arrayOf()->immutableOf();
+                if (t1->equals(t2))
+                    e2x = e2y;
+            }
+            if (e2x->op == TOKcall)
+            {
+                CallExp *ce = (CallExp *)e2x;
+
+                TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
+                if (tf->ty == Tfunction && tf->retStyle() == RETstack)
+                {
+                    elem *ehidden = e1x->toElem(irs);
+                    ehidden = el_una(OPaddr, TYnptr, ehidden);
+                    assert(!irs->ehidden);
+                    irs->ehidden = ehidden;
+                    e = ce->toElem(irs);
+                    goto Lret;
+                }
+            }
+        }
+
         // which we do if the 'next' types match
         if (ismemset)
         {   // Do a memset for array[]=v
