@@ -317,10 +317,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
         tthis  = NULL;
     L1:
         assert(td);
-        unsigned errors = global.startGagging();
         FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, tiargs, tthis, NULL, 1);
-        if (global.endGagging(errors))
-            fd = NULL;  // eat "is not a function template" error
         if (fd && fd->type)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
