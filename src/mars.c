@@ -368,9 +368,11 @@ Usage:\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
-  -run srcfile args...   run resulting program, passing args\n"
-"  -shared        generate shared library (DLL)\n"
-"  -unittest      compile in unit tests\n\
+  -run srcfile args...   run resulting program, passing args\n\
+  -shared        generate shared library (DLL)\n\
+  -transition=id show additional info about language change identified by 'id'\n\
+  -transition=?  list all language changes\n\
+  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
@@ -610,8 +612,50 @@ int tryMain(size_t argc, char *argv[])
 #if DMDV2
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
-            else if (strcmp(p + 1, "vfield") == 0)
-                global.params.vfield = 1;
+            else if (memcmp(p + 1, "transition", 10) == 0)
+            {
+                // Parse:
+                //      -transition=number
+                if (p[11] == '=')
+                {
+                    if (strcmp(p + 12, "?") == 0)
+                    {
+                        printf("\
+Language changes listed by -transition=id:\n\
+  =field,3449    do list all non-mutable fields occupies object instance\n\
+  =tls           do list all variables going into thread local storage\n\
+");
+                        return EXIT_FAILURE;
+                    }
+                    if (isdigit((unsigned char)p[12]))
+                    {   long num;
+
+                        errno = 0;
+                        num = strtol(p + 12, &p, 10);
+                        if (*p || errno || num > INT_MAX)
+                            goto Lerror;
+                        switch (num)    // Bugzilla issue number
+                        {
+                            case 3449:
+                                global.params.vfield = 1;
+                                break;
+                            default:
+                                goto Lerror;
+                        }
+                    }
+                    else if (Lexer::isValidIdentifier(p + 12))
+                    {
+                        if (strcmp(p + 12, "tls") == 0)
+                            global.params.vtls = 1;
+                        else if (strcmp(p + 12, "field") == 0)
+                            global.params.vfield = 1;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
+            }
 #endif
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
