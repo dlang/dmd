@@ -13,8 +13,9 @@ module rt.sections_linux;
 version (linux):
 
 // debug = PRINTF;
-debug(PRINTF) import core.stdc.stdio;
+import core.stdc.stdio;
 import core.stdc.stdlib : calloc, malloc, free;
+import core.stdc.string : strlen;
 import core.sys.linux.elf;
 import core.sys.linux.link;
 import rt.minfo;
@@ -162,6 +163,8 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         scanSegments(info, pdso);
 
+        checkModuleCollisions(info, pdso._moduleGroup.modules);
+
         _static_dsos.insertBack(pdso);
     }
     // has backlink => unregister
@@ -238,6 +241,60 @@ bool findSegmentForAddr(in ref dl_phdr_info info, in void* addr, ElfW!"Phdr"* re
         }
     }
     return false;
+}
+
+nothrow
+const(char)[] dsoName(const char* dlpi_name)
+{
+    import core.sys.linux.errno;
+    // the main executable doesn't have a name in it's dlpi_name field
+    const char* p = dlpi_name[0] != 0 ? dlpi_name : program_invocation_name;
+    return p[0 .. strlen(p)];
+}
+
+nothrow
+void checkModuleCollisions(in ref dl_phdr_info info, in ModuleInfo*[] modules)
+in { assert(modules.length); }
+body
+{
+    const(ModuleInfo)* conflicting;
+
+    // find the segment that contains the ModuleInfos
+    ElfW!"Phdr" phdr=void;
+    if (!findSegmentForAddr(info, modules[0], &phdr))
+    {
+        // the first ModuleInfo* points into another DSO
+        conflicting = modules[0];
+    }
+    else
+    {
+        // all other ModuleInfos must be in the same segment
+        auto beg = cast(void*)(info.dlpi_addr + phdr.p_vaddr);
+        foreach (m; modules[1 .. $])
+        {
+            auto addr = cast(const(void*))m;
+            if (cast(size_t)(addr - beg) >= phdr.p_memsz)
+            {
+                conflicting = m;
+                break;
+            }
+        }
+    }
+
+    if (conflicting !is null)
+    {
+        dl_phdr_info other=void;
+        findDSOInfoForAddr(conflicting, &other) || assert(0);
+
+        auto modname = (cast(ModuleInfo*)conflicting).name;
+        auto loading = dsoName(info.dlpi_name);
+        auto existing = dsoName(other.dlpi_name);
+        fprintf(stderr, "Fatal Error while loading '%.*s':\n\tThe module '%.*s' is already defined in '%.*s'.\n",
+                cast(int)loading.length, loading.ptr,
+                cast(int)modname.length, modname.ptr,
+                cast(int)existing.length, existing.ptr);
+        assert(0);
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
