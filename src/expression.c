@@ -7265,6 +7265,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             e = e->semantic(sc);
             return e;
         }
+        if (ie->sds->isPackage() ||
+            ie->sds->isImport() ||
+            ie->sds->isModule())
+        {
+            flag = 0;
+        }
         if (flag)
             return NULL;
         s = ie->sds->search_correct(ident);
@@ -7292,6 +7298,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
     }
     else
     {
+        if (e1->op == TOKtemplate)
+            flag = 0;
         e = e1->type->dotExp(sc, e1, ident, flag);
         if (!flag || e)
             e = e->semantic(sc);
