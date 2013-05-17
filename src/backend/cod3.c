@@ -776,12 +776,6 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs((I32 | I64) ? allregs : (ALLREGS | mES)));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
             goto case_goto;
 #endif
 #if SCPP
@@ -789,12 +783,6 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             // Mark all registers as destroyed. This will prevent
             // register assignments to variables used in catch blocks.
             c = cat(c,getregs(allregs | mES));
-#if 0 && TARGET_LINUX
-            if (config.flags3 & CFG3pic && !(allregs & mBX))
-            {
-                c = cat(c, cod3_load_got());
-            }
-#endif
             goto case_goto;
 
         case BCtry:
@@ -2527,7 +2515,10 @@ L1:
                 if (flags & 64)
                     c = genc2(c,0xC7,(REX_W << 16) | modregrmx(3,0,reg),value); // MOV reg,value64
                 else
-                    c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                {   c = genc2(c,0xC7,modregrmx(3,0,reg),value); // MOV reg,value
+                    if (I64)
+                        value &= 0xFFFFFFFF;
+                }
             }
         }
     done:
@@ -3655,33 +3646,6 @@ targ_size_t cod3_spoff()
 {
     //printf("spoff = x%x, localsize = x%x\n", (int)spoff, (int)localsize);
     return spoff + localsize;
-}
-
-/**********************************
- * Load value of _GLOBAL_OFFSET_TABLE_ into EBX
- */
-
-code *cod3_load_got()
-{
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-    code *c;
-    code *cgot;
-
-    c = genc2(NULL,CALL,0,0);   //     CALL L1
-    gen1(c, 0x58 + BX);         // L1: POP EBX
-
-                                //     ADD EBX,_GLOBAL_OFFSET_TABLE_+3
-    symbol *gotsym = Obj::getGOTsym();
-    cgot = gencs(CNIL,0x81,0xC3,FLextern,gotsym);
-    cgot->Iflags = CFoff;
-    cgot->IEVoffset2 = 3;
-
-    makeitextern(gotsym);
-    return cat(c,cgot);
-#else
-    assert(0);
-    return NULL;
-#endif
 }
 
 code* gen_spill_reg(Symbol* s, bool toreg)

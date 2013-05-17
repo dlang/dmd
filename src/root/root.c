@@ -981,6 +981,8 @@ void File::mark()
 
 int File::read()
 {
+    if (len)
+        return 0;               // already read the file
 #if POSIX
     off_t size;
     ssize_t numread;
@@ -1058,7 +1060,7 @@ err1:
 
     name = this->name->toChars();
     h = CreateFileA(name,GENERIC_READ,FILE_SHARE_READ,NULL,OPEN_EXISTING,
-        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,0);
+        FILE_ATTRIBUTE_NORMAL | FILE_FLAG_SEQUENTIAL_SCAN,NULL);
     if (h == INVALID_HANDLE_VALUE)
         goto err1;
 
@@ -1636,6 +1638,15 @@ void OutBuffer::prependbyte(unsigned b)
     offset++;
 }
 
+void OutBuffer::writewchar(unsigned w)
+{
+#if _WIN32
+    writeword(w);
+#else
+    write4(w);
+#endif
+}
+
 void OutBuffer::writeword(unsigned w)
 {
     if (doindent && linehead
@@ -1734,44 +1745,12 @@ void OutBuffer::align(size_t size)
     fill0(nbytes);
 }
 
-
-////////////////////////////////////////////////////////////////
-// The compiler shipped with Visual Studio 2005 (and possible
-// other versions) does not support C99 printf format specfiers
-// such as %z and %j
-#if 0 && _MSC_VER
-using std::string;
-using std::wstring;
-
-template<typename S>
-inline void
-search_and_replace(S& str, const S& what, const S& replacement)
-{
-    assert(!what.empty());
-    size_t pos = str.find(what);
-    while (pos != S::npos)
-    {
-        str.replace(pos, what.size(), replacement);
-        pos = str.find(what, pos + replacement.size());
-    }
-}
-#define WORKAROUND_C99_SPECIFIERS_BUG(S,tmp,f) \
-    S tmp = f;                                 \
-    search_and_replace(fmt, S("%z"), S("%l")); \
-    search_and_replace(fmt, S("%j"), S("%l")); \
-    f = tmp.c_str();
-#else
-#define WORKAROUND_C99_SPECIFIERS_BUG(S,tmp,f)
-#endif
-
 void OutBuffer::vprintf(const char *format, va_list args)
 {
     char buffer[128];
     char *p;
     unsigned psize;
     int count;
-
-    WORKAROUND_C99_SPECIFIERS_BUG(string, fmt, format);
 
     p = buffer;
     psize = sizeof(buffer);

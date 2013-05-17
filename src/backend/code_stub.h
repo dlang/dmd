@@ -4,6 +4,7 @@
 #define ESCAPE 2
     // 8 is to leave room for opcodes to be in the range 0 .. 255
     // probably better off moving them to the high byte rather than second byte
+    #define ESCAPEmask   0xff
     #define ESClinnum   (0 << 8)
     #define ESCadjesp   (1 << 8)
     #define ESCadjfpu   (2 << 8)
@@ -84,5 +85,6 @@ struct code
 
     bool isJumpOP() { return false; }
 
+    void print() {}
 };
 

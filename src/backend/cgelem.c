@@ -2245,10 +2245,18 @@ STATIC elem * eloror(elem *e, goal_t goal)
     {
         if (boolres(e1))                /* (x,1) || e2  =>  (x,1),1     */
         {
-        L2:
-            e->Eoper = OPcomma;
-            el_free(e->E2);
-            e->E2 = el_int(t,1);
+            if (tybasic(e->E2->Ety) == TYvoid)
+            {   assert(!goal);
+                el_free(e);
+                return NULL;
+            }
+            else
+            {
+            L2:
+                e->Eoper = OPcomma;
+                el_free(e->E2);
+                e->E2 = el_int(t,1);
+            }
         }
         else                            /* (x,0) || e2  =>  (x,0),(bool e2) */
         {   e->Eoper = OPcomma;
@@ -2401,12 +2409,21 @@ STATIC elem * elandand(elem *e, goal_t goal)
         e->Eoper = OPcomma;
         if (boolres(e1))                /* (x,1) && e2  =>  (x,1),bool e2 */
         {
-            e->E2 = el_una(OPbool,e->Ety,e->E2);
+            if (tybasic(e->E2->Ety) != TYvoid)
+                e->E2 = el_una(OPbool,e->Ety,e->E2);
         }
         else                            /* (x,0) && e2  =>  (x,0),0     */
         {
-            el_free(e->E2);
-            e->E2 = el_int(e->Ety,0);
+            if (tybasic(e->E2->Ety) == TYvoid)
+            {   assert(!goal);
+                el_free(e);
+                return NULL;
+            }
+            else
+            {
+                el_free(e->E2);
+                e->E2 = el_int(e->Ety,0);
+            }
         }
     }
     else

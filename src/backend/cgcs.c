@@ -500,8 +500,7 @@ STATIC void addhcstab(elem *e,int hash)
  */
 
 STATIC void touchlvalue(elem *e)
-{ register int i;
-
+{
   if (e->Eoper == OPind)                /* if indirect store            */
   {
         /* NOTE: Some types of array assignments do not need
@@ -513,12 +512,16 @@ STATIC void touchlvalue(elem *e)
         return;
   }
 
-  for (i = hcstop; --i >= 0;)
-  {     if (hcstab[i].Helem &&
+    for (int i = hcstop; --i >= 0;)
+    {   if (hcstab[i].Helem &&
             hcstab[i].Helem->EV.sp.Vsym == e->EV.sp.Vsym)
                 hcstab[i].Helem = NULL;
-  }
+    }
 
+#ifdef DEBUG
+    if (!(e->Eoper == OPvar || e->Eoper == OPrelconst))
+        elem_print(e);
+#endif
     assert(e->Eoper == OPvar || e->Eoper == OPrelconst);
     switch (e->EV.sp.Vsym->Sclass)
     {
