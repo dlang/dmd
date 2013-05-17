@@ -1181,6 +1181,13 @@ Lnomatch:
         {
 #if DMDV2
             assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
+            if (storage_class & (STCconst | STCimmutable) && init &&
+                global.params.vfield)
+            {
+                const char *p = loc.toChars();
+                const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
+                fprintf(stderr, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
+            }
 #endif
             {
                 storage_class |= STCfield;
