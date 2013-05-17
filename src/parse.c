@@ -148,7 +148,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
     Dsymbols *decldefs;
     Dsymbols *a;
     Dsymbols *aelse;
-    enum PROT prot;
+    PROT prot;
     StorageClass stc;
     StorageClass storageClass;
     Condition *condition;
@@ -522,7 +522,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                     goto Lstc;
                 }
             {
-                enum LINK linksave = linkage;
+                LINK linksave = linkage;
                 linkage = parseLinkage();
                 a = parseBlock(pLastDecl);
                 s = new LinkDeclaration(linkage, a);
@@ -584,6 +584,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
             case TOKpragma:
             {   Identifier *ident;
                 Expressions *args = NULL;
+                Loc loc = this->loc;
 
                 nextToken();
                 check(TOKlparen);
@@ -966,9 +967,9 @@ Type *Parser::parseVector()
  * The parser is on the 'extern' token.
  */
 
-enum LINK Parser::parseLinkage()
+LINK Parser::parseLinkage()
 {
-    enum LINK link = LINKdefault;
+    LINK link = LINKdefault;
     nextToken();
     assert(token.value == TOKlparen);
     nextToken();
@@ -1688,7 +1689,7 @@ EnumDeclaration *Parser::parseEnum()
 Dsymbol *Parser::parseAggregate()
 {   AggregateDeclaration *a = NULL;
     int anon = 0;
-    enum TOK tok;
+    TOK tok;
     Identifier *id;
     TemplateParameters *tpl = NULL;
     Expression *constraint = NULL;
@@ -1817,7 +1818,7 @@ BaseClasses *Parser::parseBaseClasses()
     for (; 1; nextToken())
     {
         bool prot = false;
-        enum PROT protection = PROTpublic;
+        PROT protection = PROTpublic;
         switch (token.value)
         {
             case TOKprivate:
@@ -2197,7 +2198,7 @@ Objects *Parser::parseTemplateArgumentList2()
 {
     //printf("Parser::parseTemplateArgumentList2()\n");
     Objects *tiargs = new Objects();
-    enum TOK endtok = TOKrparen;
+    TOK endtok = TOKrparen;
     nextToken();
 
     // Get TemplateArgumentList
@@ -2284,7 +2285,7 @@ Objects *Parser::parseTemplateArgument()
     }
     if (token.value == TOKnot)
     {
-        enum TOK tok = peekNext();
+        TOK tok = peekNext();
         if (tok != TOKis && tok != TOKin)
             error("multiple ! arguments are not allowed");
     }
@@ -2659,7 +2660,7 @@ Type *Parser::parseBasicType2(Type *t)
                 //      t function(parameter list) nothrow pure
                 Parameters *arguments;
                 int varargs;
-                enum TOK save = token.value;
+                TOK save = token.value;
 
                 nextToken();
                 arguments = parseParameters(&varargs);
@@ -2858,8 +2859,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     Type *tfirst;
     Identifier *ident;
     Dsymbols *a;
-    enum TOK tok = TOKreserved;
-    enum LINK link = linkage;
+    TOK tok = TOKreserved;
+    LINK link = linkage;
     unsigned structalign = 0;
     Loc loc = this->loc;
     Expressions *udas = NULL;
@@ -3364,7 +3365,7 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char
 
 void Parser::parseContracts(FuncDeclaration *f)
 {
-    enum LINK linksave = linkage;
+    LINK linksave = linkage;
 
     // The following is irrelevant, as it is overridden by sc->linkage in
     // TypeFunction::semantic
@@ -4081,7 +4082,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
         case TOKforeach:
         case TOKforeach_reverse:
         {
-            enum TOK op = token.value;
+            TOK op = token.value;
 
             nextToken();
             check(TOKlparen);
@@ -4806,19 +4807,19 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
     return s;
 }
 
-void Parser::check(enum TOK value)
+void Parser::check(TOK value)
 {
     check(loc, value);
 }
 
-void Parser::check(Loc loc, enum TOK value)
+void Parser::check(Loc loc, TOK value)
 {
     if (token.value != value)
         error(loc, "found '%s' when expecting '%s'", token.toChars(), Token::toChars(value));
     nextToken();
 }
 
-void Parser::check(enum TOK value, const char *string)
+void Parser::check(TOK value, const char *string)
 {
     if (token.value != value)
         error("found '%s' when expecting '%s' following %s",
@@ -4826,7 +4827,7 @@ void Parser::check(enum TOK value, const char *string)
     nextToken();
 }
 
-void Parser::checkParens(enum TOK value, Expression *e)
+void Parser::checkParens(TOK value, Expression *e)
 {
     if (precedence[e->op] == PREC_rel && !e->parens)
         error(loc, "%s must be parenthesized when next to operator %s", e->toChars(), Token::toChars(value));
@@ -4842,7 +4843,7 @@ void Parser::checkParens(enum TOK value, Expression *e)
  *      if *pt is not NULL, it is set to the ending token, which would be endtok
  */
 
-int Parser::isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt)
+int Parser::isDeclaration(Token *t, int needId, TOK endtok, Token **pt)
 {
     //printf("isDeclaration(needId = %d)\n", needId);
     int haveId = 0;
@@ -5017,7 +5018,7 @@ Lfalse:
     return FALSE;
 }
 
-int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, enum TOK endtok)
+int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
 {   // This code parallels parseDeclarator()
     Token *t = *pt;
     int parens;
@@ -5530,7 +5531,7 @@ Expression *Parser::parsePrimaryExp()
 {   Expression *e;
     Type *t;
     Identifier *id;
-    enum TOK save;
+    TOK save;
     Loc loc = this->loc;
 
     //printf("parsePrimaryExp(): loc = %d\n", loc.linnum);
@@ -5797,8 +5798,8 @@ Expression *Parser::parsePrimaryExp()
         {   Type *targ;
             Identifier *ident = NULL;
             Type *tspec = NULL;
-            enum TOK tok = TOKreserved;
-            enum TOK tok2 = TOKreserved;
+            TOK tok = TOKreserved;
+            TOK tok2 = TOKreserved;
             TemplateParameters *tpl = NULL;
             Loc loc = this->loc;
 
@@ -5901,7 +5902,7 @@ Expression *Parser::parsePrimaryExp()
         {   Token *tk = peekPastParen(&token);
             if (skipAttributes(tk, &tk))
             {
-                enum TOK past = tk->value;
+                TOK past = tk->value;
                 if (past == TOKgoesto)
                 {   // (arguments) => expression
                     goto case_delegate;
@@ -5967,7 +5968,7 @@ Expression *Parser::parsePrimaryExp()
             int varargs = 0;
             Type *tret = NULL;
             StorageClass stc = 0;
-            enum TOK save = TOKreserved;
+            TOK save = TOKreserved;
             Loc loc = this->loc;
 
             switch (token.value)
@@ -6522,7 +6523,7 @@ Expression *Parser::parseShiftExp()
 Expression *Parser::parseRelExp()
 {   Expression *e;
     Expression *e2;
-    enum TOK op;
+    TOK op;
     Loc loc = this->loc;
 
     e = parseShiftExp();
@@ -6584,7 +6585,7 @@ Expression *Parser::parseEqualExp()
 
     e = parseRelExp();
     while (1)
-    {   enum TOK value = token.value;
+    {   TOK value = token.value;
 
         switch (value)
         {
@@ -6638,7 +6639,7 @@ Expression *Parser::parseCmpExp()
     Loc loc = this->loc;
 
     e = parseShiftExp();
-    enum TOK op = token.value;
+    TOK op = token.value;
 
     switch (op)
     {
@@ -6868,7 +6869,7 @@ Expressions *Parser::parseArguments()
 {   // function call
     Expressions *arguments;
     Expression *arg;
-    enum TOK endtok;
+    TOK endtok;
 
     arguments = new Expressions();
     if (token.value == TOKlbracket)
@@ -6992,7 +6993,7 @@ void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
  * Set operator precedence for each operator.
  */
 
-enum PREC precedence[TOKMAX];
+PREC precedence[TOKMAX];
 
 void initPrecedence()
 {

@@ -317,10 +317,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
         tthis  = NULL;
     L1:
         assert(td);
-        unsigned errors = global.startGagging();
         FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, tiargs, tthis, NULL, 1);
-        if (global.endGagging(errors))
-            fd = NULL;  // eat "is not a function template" error
         if (fd && fd->type)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
@@ -1551,7 +1548,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
  * in ( ) if its precedence is less than pr.
  */
 
-void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, enum PREC pr)
+void expToCBuffer(OutBuffer *buf, HdrGenState *hgs, Expression *e, PREC pr)
 {
 #ifdef DEBUG
     if (precedence[e->op] == PREC_zero)
@@ -1617,7 +1614,7 @@ void argExpTypesToCBuffer(OutBuffer *buf, Expressions *arguments, HdrGenState *h
 
 /******************************** Expression **************************/
 
-Expression::Expression(Loc loc, enum TOK op, int size)
+Expression::Expression(Loc loc, TOK op, int size)
 {
     //printf("Expression::Expression(op = %d) this = %p\n", op, this);
     this->loc = loc;
@@ -5231,7 +5228,7 @@ void NewAnonClassExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 /********************** SymbolExp **************************************/
 
 #if DMDV2
-SymbolExp::SymbolExp(Loc loc, enum TOK op, int size, Declaration *var, int hasOverloads)
+SymbolExp::SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloads)
     : Expression(loc, op, size)
 {
     assert(var);
@@ -6045,8 +6042,8 @@ void HaltExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-IsExp::IsExp(Loc loc, Type *targ, Identifier *id, enum TOK tok,
-        Type *tspec, enum TOK tok2, TemplateParameters *parameters)
+IsExp::IsExp(Loc loc, Type *targ, Identifier *id, TOK tok,
+        Type *tspec, TOK tok2, TemplateParameters *parameters)
         : Expression(loc, TOKis, sizeof(IsExp))
 {
     this->targ = targ;
@@ -6409,7 +6406,7 @@ void IsExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-UnaExp::UnaExp(Loc loc, enum TOK op, int size, Expression *e1)
+UnaExp::UnaExp(Loc loc, TOK op, int size, Expression *e1)
         : Expression(loc, op, size)
 {
     this->e1 = e1;
@@ -6449,7 +6446,7 @@ void UnaExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-BinExp::BinExp(Loc loc, enum TOK op, int size, Expression *e1, Expression *e2)
+BinExp::BinExp(Loc loc, TOK op, int size, Expression *e1, Expression *e2)
         : Expression(loc, op, size)
 {
     this->e1 = e1;
@@ -6613,7 +6610,7 @@ void BinExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writeByte(' ');
     buf->writestring(Token::toChars(op));
     buf->writeByte(' ');
-    expToCBuffer(buf, hgs, e2, (enum PREC)(precedence[op] + 1));
+    expToCBuffer(buf, hgs, e2, (PREC)(precedence[op] + 1));
 }
 
 int BinExp::isunsigned()
@@ -7268,6 +7265,12 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             e = e->semantic(sc);
             return e;
         }
+        if (ie->sds->isPackage() ||
+            ie->sds->isImport() ||
+            ie->sds->isModule())
+        {
+            flag = 0;
+        }
         if (flag)
             return NULL;
         s = ie->sds->search_correct(ident);
@@ -7295,6 +7298,8 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
     }
     else
     {
+        if (e1->op == TOKtemplate)
+            flag = 0;
         e = e1->type->dotExp(sc, e1, ident, flag);
         if (!flag || e)
             e = e->semantic(sc);
@@ -9861,7 +9866,7 @@ Expression *ArrayLengthExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *opAssignToOp(Loc loc, enum TOK op, Expression *e1, Expression *e2)
+Expression *opAssignToOp(Loc loc, TOK op, Expression *e1, Expression *e2)
 {   Expression *e;
 
     switch (op)
@@ -10321,7 +10326,7 @@ void IndexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************* PostExp ***********************************/
 
-PostExp::PostExp(enum TOK op, Loc loc, Expression *e)
+PostExp::PostExp(TOK op, Loc loc, Expression *e)
         : BinExp(loc, op, sizeof(PostExp), e,
           new IntegerExp(loc, 1, Type::tint32))
 {
@@ -10415,7 +10420,7 @@ void PostExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************* PreExp ***********************************/
 
-PreExp::PreExp(enum TOK op, Loc loc, Expression *e)
+PreExp::PreExp(TOK op, Loc loc, Expression *e)
         : UnaExp(loc, op, sizeof(PreExp), e)
 {
 }
@@ -12403,7 +12408,7 @@ void RemoveExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /************************************************************/
 
-CmpExp::CmpExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
+CmpExp::CmpExp(TOK op, Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, op, sizeof(CmpExp), e1, e2)
 {
 }
@@ -12508,7 +12513,7 @@ int CmpExp::isBit()
 
 /************************************************************/
 
-EqualExp::EqualExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
+EqualExp::EqualExp(TOK op, Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, op, sizeof(EqualExp), e1, e2)
 {
     assert(op == TOKequal || op == TOKnotequal);
@@ -12715,7 +12720,7 @@ int EqualExp::isBit()
 
 /************************************************************/
 
-IdentityExp::IdentityExp(enum TOK op, Loc loc, Expression *e1, Expression *e2)
+IdentityExp::IdentityExp(TOK op, Loc loc, Expression *e1, Expression *e2)
         : BinExp(loc, op, sizeof(IdentityExp), e1, e2)
 {
 }
@@ -12900,7 +12905,7 @@ void CondExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /****************************************************************/
 
-DefaultInitExp::DefaultInitExp(Loc loc, enum TOK subop, int size)
+DefaultInitExp::DefaultInitExp(Loc loc, TOK subop, int size)
     : Expression(loc, TOKdefault, size)
 {
     this->subop = subop;

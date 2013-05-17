@@ -14,20 +14,20 @@
 #pragma once
 #endif
 
-struct Dsymbol;
-struct ScopeDsymbol;
-struct Identifier;
-struct Module;
-struct Statement;
-struct SwitchStatement;
-struct TryFinallyStatement;
-struct LabelStatement;
-struct ForeachStatement;
-struct ClassDeclaration;
-struct AggregateDeclaration;
-struct FuncDeclaration;
+class Dsymbol;
+class ScopeDsymbol;
+class Identifier;
+class Module;
+class Statement;
+class SwitchStatement;
+class TryFinallyStatement;
+class LabelStatement;
+class ForeachStatement;
+class ClassDeclaration;
+class AggregateDeclaration;
+class FuncDeclaration;
 struct DocComment;
-struct TemplateInstance;
+class TemplateInstance;
 
 #if __GNUC__
 // Requires a full definition for PROT and LINK
@@ -57,8 +57,9 @@ enum PROT;
 #define SCOPEensure     0x60    // inside out contract code
 #define SCOPEcontract   0x60    // [mask] we're inside contract code
 
-struct Scope
+class Scope
 {
+public:
     Scope *enclosing;           // enclosing Scope
 
     Module *module;             // Root module
@@ -92,9 +93,9 @@ struct Scope
     unsigned callSuper;         // primitive flow analysis for constructors
 
     structalign_t structalign;       // alignment for struct members
-    enum LINK linkage;          // linkage for external functions
+    LINK linkage;          // linkage for external functions
 
-    enum PROT protection;       // protection for class members
+    PROT protection;       // protection for class members
     int explicitProtection;     // set if in an explicit protection attribute
 
     StorageClass stc;           // storage class

@@ -19,32 +19,32 @@
 #include "lexer.h"
 #include "enum.h"
 
-struct Type;
-struct TypeQualified;
-struct Expression;
-struct Declaration;
-struct Statement;
-struct Import;
-struct Initializer;
-struct FuncDeclaration;
-struct CtorDeclaration;
-struct PostBlitDeclaration;
-struct DtorDeclaration;
-struct StaticCtorDeclaration;
-struct StaticDtorDeclaration;
-struct SharedStaticCtorDeclaration;
-struct SharedStaticDtorDeclaration;
-struct ConditionalDeclaration;
-struct InvariantDeclaration;
-struct UnitTestDeclaration;
-struct NewDeclaration;
-struct DeleteDeclaration;
-struct Condition;
-struct Module;
+class Type;
+class TypeQualified;
+class Expression;
+class Declaration;
+class Statement;
+class Import;
+class Initializer;
+class FuncDeclaration;
+class CtorDeclaration;
+class PostBlitDeclaration;
+class DtorDeclaration;
+class StaticCtorDeclaration;
+class StaticDtorDeclaration;
+class SharedStaticCtorDeclaration;
+class SharedStaticDtorDeclaration;
+class ConditionalDeclaration;
+class InvariantDeclaration;
+class UnitTestDeclaration;
+class NewDeclaration;
+class DeleteDeclaration;
+class Condition;
+class Module;
 struct ModuleDeclaration;
-struct TemplateDeclaration;
-struct TemplateInstance;
-struct StaticAssert;
+class TemplateDeclaration;
+class TemplateInstance;
+class StaticAssert;
 
 /************************************
  * These control how parseStatement() works.
@@ -60,10 +60,11 @@ enum ParseStatementFlags
 };
 
 
-struct Parser : Lexer
+class Parser : public Lexer
 {
+public:
     ModuleDeclaration *md;
-    enum LINK linkage;
+    LINK linkage;
     Loc endloc;                 // set to location of last right curly
     int inBrackets;             // inside [] of array index or slice
     Loc lookingForElse;         // location of lonely if looking for an else
@@ -88,7 +89,7 @@ struct Parser : Lexer
     StaticAssert *parseStaticAssert();
     TypeQualified *parseTypeof();
     Type *parseVector();
-    enum LINK parseLinkage();
+    LINK parseLinkage();
     Condition *parseDebugCondition();
     Condition *parseVersionCondition();
     Condition *parseStaticIfCondition();
@@ -118,13 +119,13 @@ struct Parser : Lexer
     Statement *parseStatement(int flags, unsigned char** endPtr = NULL);
     Initializer *parseInitializer();
     Expression *parseDefaultInitExp();
-    void check(Loc loc, enum TOK value);
-    void check(enum TOK value);
-    void check(enum TOK value, const char *string);
-    void checkParens(enum TOK value, Expression *e);
-    int isDeclaration(Token *t, int needId, enum TOK endtok, Token **pt);
+    void check(Loc loc, TOK value);
+    void check(TOK value);
+    void check(TOK value, const char *string);
+    void checkParens(TOK value, Expression *e);
+    int isDeclaration(Token *t, int needId, TOK endtok, Token **pt);
     int isBasicType(Token **pt);
-    int isDeclarator(Token **pt, int *haveId, int *haveTpl, enum TOK endtok);
+    int isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok);
     int isParameters(Token **pt);
     int isExpression(Token **pt);
     int skipParens(Token *t, Token **pt);
@@ -180,7 +181,7 @@ enum PREC
     PREC_primary,
 };
 
-extern enum PREC precedence[TOKMAX];
+extern PREC precedence[TOKMAX];
 
 void initPrecedence();
 

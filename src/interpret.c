@@ -2370,7 +2370,7 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-typedef int (*fp2_t)(Loc loc, enum TOK, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
 {
@@ -5571,7 +5571,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        enum BUILTIN b = fd->isBuiltin();
+        BUILTIN b = fd->isBuiltin();
         if (b)
         {   Expressions args;
             args.setDim(nargs);

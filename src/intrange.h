@@ -13,8 +13,8 @@
 #define DMD_SXNUM_H
 
 #include "mars.h"   // for uinteger_t
-struct Type;
-struct Expression;
+class Type;
+class Expression;
 
 /**
 This class represents a "sign-extended number", i.e. a 65-bit number, which can

@@ -1509,7 +1509,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
     assert(0);
 }
 
-enum RET TypeFunction::retStyle()
+RET TypeFunction::retStyle()
 {
     return RETregs;
 }

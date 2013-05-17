@@ -17,11 +17,12 @@
 
 #include "dsymbol.h"
 
-struct OutBuffer;
+class OutBuffer;
 struct HdrGenState;
 
-struct DebugSymbol : Dsymbol
+class DebugSymbol : public Dsymbol
 {
+public:
     unsigned level;
 
     DebugSymbol(Loc loc, Identifier *ident);
@@ -34,8 +35,9 @@ struct DebugSymbol : Dsymbol
     const char *kind();
 };
 
-struct VersionSymbol : Dsymbol
+class VersionSymbol : public Dsymbol
 {
+public:
     unsigned level;
 
     VersionSymbol(Loc loc, Identifier *ident);

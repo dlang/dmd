@@ -30,7 +30,7 @@
  * Determine if function is a builtin one that we can
  * evaluate at compile time.
  */
-enum BUILTIN FuncDeclaration::isBuiltin()
+BUILTIN FuncDeclaration::isBuiltin()
 {
     static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
     static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
@@ -154,7 +154,7 @@ uinteger_t eval_bswap(Expression *arg0)
  * Return result; NULL if cannot evaluate it.
  */
 
-Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
+Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments)
 {
     assert(arguments && arguments->dim);
     Expression *arg0 = (*arguments)[0];

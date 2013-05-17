@@ -2123,7 +2123,8 @@ FuncDeclaration *TemplateDeclaration::deduceFunctionTemplate(Loc loc, Scope *sc,
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (!fd)
             {
-                td->error("is not a function template");
+                if (!(flags & 1))
+                    td->error("is not a function template");
                 goto Lerror;
             }
             fd = resolveFuncCall(loc, sc, fd, NULL, tthis, fargs, flags);
@@ -2585,7 +2586,7 @@ char *TemplateDeclaration::toChars()
     return (char *)buf.extractData();
 }
 
-enum PROT TemplateDeclaration::prot()
+PROT TemplateDeclaration::prot()
 {
     return protection;
 }

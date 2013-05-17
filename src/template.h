@@ -20,37 +20,39 @@
 #include "dsymbol.h"
 
 
-struct OutBuffer;
-struct Identifier;
-struct TemplateInstance;
-struct TemplateParameter;
-struct TemplateTypeParameter;
-struct TemplateThisParameter;
-struct TemplateValueParameter;
-struct TemplateAliasParameter;
-struct TemplateTupleParameter;
-struct Type;
-struct TypeQualified;
-struct TypeTypeof;
-struct Scope;
-struct Expression;
-struct AliasDeclaration;
-struct FuncDeclaration;
+class OutBuffer;
+class Identifier;
+class TemplateInstance;
+class TemplateParameter;
+class TemplateTypeParameter;
+class TemplateThisParameter;
+class TemplateValueParameter;
+class TemplateAliasParameter;
+class TemplateTupleParameter;
+class Type;
+class TypeQualified;
+class TypeTypeof;
+class Scope;
+class Expression;
+class AliasDeclaration;
+class FuncDeclaration;
 struct HdrGenState;
-struct Parameter;
+class Parameter;
 enum MATCH;
 enum PASS;
 
-struct Tuple : Object
+class Tuple : public Object
 {
+public:
     Objects objects;
 
     int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
 };
 
 
-struct TemplateDeclaration : ScopeDsymbol
+class TemplateDeclaration : public ScopeDsymbol
 {
+public:
     TemplateParameters *parameters;     // array of TemplateParameter's
 
     TemplateParameters *origParameters; // originals for Ddoc
@@ -60,13 +62,13 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
 
-    enum PASS semanticRun;              // 1 semantic() run
+    PASS semanticRun;              // 1 semantic() run
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
-    enum PROT protection;
+    PROT protection;
 
     struct Previous
     {   Previous *prev;
@@ -88,7 +90,7 @@ struct TemplateDeclaration : ScopeDsymbol
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
-    enum PROT prot();
+    PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
@@ -107,8 +109,9 @@ struct TemplateDeclaration : ScopeDsymbol
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
 
-struct TemplateParameter
+class TemplateParameter
 {
+public:
     /* For type-parameter:
      *  template Foo(ident)             // specType is set to NULL
      *  template Foo(ident : specType)
@@ -157,8 +160,9 @@ struct TemplateParameter
     virtual void *dummyArg() = 0;
 };
 
-struct TemplateTypeParameter : TemplateParameter
+class TemplateTypeParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  ident : specType = defaultType
      */
@@ -183,8 +187,9 @@ struct TemplateTypeParameter : TemplateParameter
 };
 
 #if DMDV2
-struct TemplateThisParameter : TemplateTypeParameter
+class TemplateThisParameter : public TemplateTypeParameter
 {
+public:
     /* Syntax:
      *  this ident : specType = defaultType
      */
@@ -197,8 +202,9 @@ struct TemplateThisParameter : TemplateTypeParameter
 };
 #endif
 
-struct TemplateValueParameter : TemplateParameter
+class TemplateValueParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  valType ident : specValue = defaultValue
      */
@@ -224,8 +230,9 @@ struct TemplateValueParameter : TemplateParameter
     void *dummyArg();
 };
 
-struct TemplateAliasParameter : TemplateParameter
+class TemplateAliasParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  specType ident : specAlias = defaultAlias
      */
@@ -251,8 +258,9 @@ struct TemplateAliasParameter : TemplateParameter
     void *dummyArg();
 };
 
-struct TemplateTupleParameter : TemplateParameter
+class TemplateTupleParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  ident ...
      */
@@ -272,8 +280,9 @@ struct TemplateTupleParameter : TemplateParameter
     void *dummyArg();
 };
 
-struct TemplateInstance : ScopeDsymbol
+class TemplateInstance : public ScopeDsymbol
 {
+public:
     /* Given:
      *  foo!(args) =>
      *      name = foo
@@ -295,7 +304,7 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    enum PASS semanticRun;    // has semantic() been done?
+    PASS semanticRun;    // has semantic() been done?
     int semantictiargsdone;     // has semanticTiargs() been done?
     int nest;           // for recursion detection
     int havetempdecl;   // 1 if used second constructor
@@ -344,8 +353,9 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *isAliasDeclaration();
 };
 
-struct TemplateMixin : TemplateInstance
+class TemplateMixin : public TemplateInstance
 {
+public:
     TypeQualified *tqual;
 
     TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);

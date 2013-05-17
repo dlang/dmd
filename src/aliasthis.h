@@ -22,8 +22,9 @@
 
 #if DMDV2
 
-struct AliasThis : Dsymbol
+class AliasThis : public Dsymbol
 {
+public:
    // alias Identifier this;
     Identifier *ident;
 

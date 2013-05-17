@@ -836,7 +836,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
  * through a hidden pointer to the caller's stack.
  */
 
-enum RET TypeFunction::retStyle()
+RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
 #if DMDV2

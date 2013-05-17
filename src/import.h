@@ -18,21 +18,22 @@
 #include "dsymbol.h"
 
 
-struct Identifier;
-struct Scope;
-struct OutBuffer;
-struct Module;
-struct Package;
-struct AliasDeclaration;
+class Identifier;
+class Scope;
+class OutBuffer;
+class Module;
+class Package;
+class AliasDeclaration;
 struct HdrGenState;
 
-struct Import : Dsymbol
+class Import : public Dsymbol
 {
+public:
     Identifiers *packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
     int isstatic;               // !=0 if static import
-    enum PROT protection;
+    PROT protection;
 
     // Pairs of alias=name to bind into current namespace
     Identifiers names;
@@ -48,7 +49,7 @@ struct Import : Dsymbol
     void addAlias(Identifier *name, Identifier *alias);
 
     const char *kind();
-    enum PROT prot();
+    PROT prot();
     Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
     void load(Scope *sc);
     void importAll(Scope *sc);
