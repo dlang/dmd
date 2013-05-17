@@ -559,13 +559,6 @@ public:
     }
 }
 
-unittest
-{
-    auto a = [ 1:"one", 2:"two", 3:"three" ];
-    auto b = a.dup;
-    assert(b == [ 1:"one", 2:"two", 3:"three" ]);
-}
-
 // Scheduled for deprecation in December 2012.
 // Please use destroy instead of clear.
 alias destroy clear;
