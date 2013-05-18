@@ -48,8 +48,30 @@ void test9()
     assert(test9_1_e == 42);
 }
 
+
+struct Loc
+{
+}
+
+alias va_list = void*;
+
+pragma(mangle, "?test10a@@YAXULoc@@PBDPAD111@Z")
+extern(C++) int test10a(void* arg)
+{
+    return 1;
+}
+
+pragma(mangle, "?test10a@@YAXULoc@@PBDPAD111@Z")
+extern(C++) int test10b(char* arg); //should be linked with test10a
+
+void test10()
+{
+    assert(test10b(null) == test10a(null));
+}
+
 void main()
 {
     test8();
     test9();
+    test10();
 }

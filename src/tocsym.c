@@ -253,47 +253,52 @@ Symbol *VarDeclaration::toSymbol()
             type_setcv(&t, t->Tty | mTYvolatile);
 
         mangle_t m = 0;
-        switch (linkage)
+        if (mangleOverride)
+            m = mTYman_custom;
+        else
         {
-            case LINKwindows:
-                m = mTYman_std;
-                break;
-
-            case LINKpascal:
-                m = mTYman_pas;
-                break;
-
-            case LINKc:
-                m = mTYman_c;
-                break;
-
-            case LINKd:
-                m = mTYman_d;
-                break;
-
-            case LINKcpp:
+            switch (linkage)
             {
-                m = mTYman_cpp;
+                case LINKwindows:
+                    m = mTYman_std;
+                    break;
 
-                s->Sflags = SFLpublic;
-                Dsymbol *parent = toParent();
-                ClassDeclaration *cd = parent->isClassDeclaration();
-                if (cd)
+                case LINKpascal:
+                    m = mTYman_pas;
+                    break;
+
+                case LINKc:
+                    m = mTYman_c;
+                    break;
+
+                case LINKd:
+                    m = mTYman_d;
+                    break;
+
+                case LINKcpp:
                 {
-                    ::type *tc = cd->type->toCtype();
-                    s->Sscope = tc->Tnext->Ttag;
+                    m = mTYman_cpp;
+
+                    s->Sflags = SFLpublic;
+                    Dsymbol *parent = toParent();
+                    ClassDeclaration *cd = parent->isClassDeclaration();
+                    if (cd)
+                    {
+                        ::type *tc = cd->type->toCtype();
+                        s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
+                    }
+                    break;
                 }
-                StructDeclaration *sd = parent->isStructDeclaration();
-                if (sd)
-                {
-                    ::type *ts = sd->type->toCtype();
-                    s->Sscope = ts->Ttag;
-                }
-                break;
+                default:
+                    printf("linkage = %d\n", linkage);
+                    assert(0);
             }
-            default:
-                printf("linkage = %d\n", linkage);
-                assert(0);
         }
         type_setmangle(&t, m);
         s->Stype = t;
@@ -444,6 +449,8 @@ Symbol *FuncDeclaration::toSymbol()
         }
         if (msave)
             assert(msave == t->Tmangle);
+        if (mangleOverride)
+            t->Tmangle = mTYman_custom;
         //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);
         t->Tcount++;
         s->Stype = t;
