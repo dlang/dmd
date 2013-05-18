@@ -267,7 +267,7 @@ Expression *checkRightThis(Scope *sc, Expression *e)
  * Pull out any properties.
  */
 
-Expression *resolvePropertiesX(Scope *sc, Expression *e1)
+Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
 {
     Loc loc = e1->loc;
 
@@ -294,11 +294,20 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1)
     Los:
         assert(os);
         FuncDeclaration *fd = NULL;
+        if (e2)
         {
+            e2 = e2->semantic(sc);
+            if (e2->op == TOKerror)
+                return new ErrorExp();
+            e2 = resolveProperties(sc, e2);
+
+            Expressions a;
+            a.push(e2);
+
             for (size_t i = 0; i < os->a.dim; i++)
             {
                 Dsymbol *s = os->a[i];
-                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
                 if (f)
                 {
                     fd = f;
@@ -310,10 +319,36 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1)
             }
             if (fd)
             {
-                Expression *e = new CallExp(loc, e1);
+                Expression *e = new CallExp(loc, e1, e2);
                 return e->semantic(sc);
             }
         }
+        {
+            for (size_t i = 0; i < os->a.dim; i++)
+            {
+                Dsymbol *s = os->a[i];
+                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+                if (f)
+                {
+                    fd = f;
+                    assert(fd->type->ty == Tfunction);
+                    TypeFunction *tf = (TypeFunction *)fd->type;
+                    if (!tf->isref && e2)
+                        goto Leprop;
+                    if (!tf->isproperty && global.params.enforcePropertySyntax)
+                        goto Leprop;
+                }
+            }
+            if (fd)
+            {
+                Expression *e = new CallExp(loc, e1);
+                if (e2)
+                    e = new AssignExp(loc, e, e2);
+                return e->semantic(sc);
+            }
+        }
+        if (e2)
+            goto Leprop;
     }
     else if (e1->op == TOKdotti)
     {
@@ -357,38 +392,79 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1)
         s      = ((TemplateExp *)e1)->td;
         tiargs = NULL;
         tthis  = NULL;
+        goto Lfd;
+    }
+    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        DotVarExp *dve = (DotVarExp *)e1;
+        s      = dve->var->isFuncDeclaration();
+        tiargs = NULL;
+        tthis  = dve->e1->type;
+        goto Lfd;
+    }
+    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    {
+        s      = ((VarExp *)e1)->var->isFuncDeclaration();
+        tiargs = NULL;
+        tthis  = NULL;
     Lfd:
         assert(s);
         FuncDeclaration *fd;
+        if (e2)
         {
-            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+            e2 = e2->semantic(sc);
+            if (e2->op == TOKerror)
+                return new ErrorExp();
+            e2 = resolveProperties(sc, e2);
+
+            Expressions a;
+            a.push(e2);
+
+            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
             if (fd && fd->type)
             {
                 assert(fd->type->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)fd->type;
                 if (!tf->isproperty && global.params.enforcePropertySyntax)
                     goto Leprop;
-                Expression *e = new CallExp(loc, e1);
+                Expression *e = new CallExp(loc, e1, e2);
                 return e->semantic(sc);
             }
         }
-        goto return_expr;
+        {
+            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
+            if (fd && fd->type)
+            {
+                assert(fd->type->ty == Tfunction);
+                TypeFunction *tf = (TypeFunction *)fd->type;
+                if (!tf->isref && e2)
+                    goto Leprop;
+                if (!tf->isproperty && global.params.enforcePropertySyntax)
+                    goto Leprop;
+                Expression *e = new CallExp(loc, e1);
+                if (e2)
+                    e = new AssignExp(loc, e, e2);
+                return e->semantic(sc);
+            }
+        }
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+        {   // Keep better diagnostic message for invalid property usage of functions
+            assert(fd->type->ty == Tfunction);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            if (!tf->isproperty && global.params.enforcePropertySyntax)
+                error(loc, "not a property %s", e1->toChars());
+            Expression *e = new CallExp(loc, e1, e2);
+            return e->semantic(sc);
+        }
+        if (e2)
+            goto Leprop;
     }
+    if (e2)
+        return NULL;
 
     if (e1->type &&
         e1->op != TOKtype)      // function type is not a property
     {
-        Type *t = e1->type->toBasetype();
-
-        if (t->ty == Tfunction)
-        {
-            TypeFunction *tf = (TypeFunction *)t;
-            if (!tf->isproperty && global.params.enforcePropertySyntax)
-                goto Leprop;
-            Expression *e = new CallExp(e1->loc, e1);
-            return e->semantic(sc);
-        }
-
         /* Look for e1 being a lazy parameter; rewrite as delegate call
          */
         if (e1->op == TOKvar)
@@ -10672,164 +10748,8 @@ Expression *AssignExp::semantic(Scope *sc)
      * or:
      *      f() = value
      */
-    OverloadSet *os;
-    Dsymbol *s;
-    Objects *tiargs;
-    FuncDeclaration *fd;
-    Type *tthis;
-    if (e1->op == TOKdotexp)
-    {
-        DotExp *de = (DotExp *)e1;
-        if (de->e2->op == TOKoverloadset)
-        {
-            tiargs = NULL;
-            tthis  = de->e1->type;
-            os = ((OverExp *)de->e2)->vars;
-            goto Los;
-        }
-    }
-    else if (e1->op == TOKoverloadset)
-    {
-        tiargs = NULL;
-        tthis  = NULL;
-        os = ((OverExp *)e1)->vars;
-    Los:
-        assert(os);
-        FuncDeclaration *fd = NULL;
-        {
-            e2 = e2->semantic(sc);
-            if (e2->op == TOKerror)
-                return new ErrorExp();
-            e2 = resolveProperties(sc, e2);
-
-            Expressions a;
-            a.push(e2);
-
-            for (size_t i = 0; i < os->a.dim; i++)
-            {
-                Dsymbol *s = os->a[i];
-                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
-                if (f)
-                {
-                    fd = f;
-                    assert(fd->type->ty == Tfunction);
-                    TypeFunction *tf = (TypeFunction *)fd->type;
-                    if (!tf->isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
-                }
-            }
-            if (fd)
-            {
-                Expression *e = new CallExp(loc, e1, e2);
-                return e->semantic(sc);
-            }
-        }
-        {
-            for (size_t i = 0; i < os->a.dim; i++)
-            {
-                Dsymbol *s = os->a[i];
-                FuncDeclaration *f = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
-                if (f)
-                {
-                    fd = f;
-                    assert(fd->type->ty == Tfunction);
-                    TypeFunction *tf = (TypeFunction *)fd->type;
-                    if (!tf->isref)
-                        goto Leprop;
-                    if (!tf->isproperty && global.params.enforcePropertySyntax)
-                        goto Leprop;
-                }
-            }
-            if (fd)
-            {
-                Expression *e = new CallExp(loc, e1);
-                e = new AssignExp(loc, e, e2);
-                return e->semantic(sc);
-            }
-        }
-        goto Leprop;
-    }
-    else if (e1->op == TOKdotti)
-    {
-        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
-        s      = dti->getTempdecl(sc);
-                 dti->ti->semanticTiargs(sc);
-        tiargs = dti->ti->tiargs;
-        tthis  = dti->e1->type;
-        goto Lfd;
-    }
-    else if (e1->op == TOKdottd)
-    {
-        DotTemplateExp *dte = (DotTemplateExp *)e1;
-        s      = dte->td;
-        tiargs = NULL;
-        tthis  = dte->e1->type;
-        goto Lfd;
-    }
-    else if (e1->op == TOKtemplate)
-    {
-        s      = ((TemplateExp *)e1)->td;
-        tiargs = NULL;
-        tthis  = NULL;
-        goto Lfd;
-    }
-    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
-    {
-        DotVarExp *dve = (DotVarExp *)e1;
-        s      = dve->var->isFuncDeclaration();
-        tiargs = NULL;
-        tthis  = dve->e1->type;
-        goto Lfd;
-    }
-    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
-    {
-        s      = ((VarExp *)e1)->var->isFuncDeclaration();
-        tiargs = NULL;
-        tthis  = NULL;
-    Lfd:
-        assert(s);
-        FuncDeclaration *fd;
-        {
-            e2 = e2->semantic(sc);
-            if (e2->op == TOKerror)
-                return new ErrorExp();
-            e2 = resolveProperties(sc, e2);
-
-            Expressions a;
-            a.push(e2);
-
-            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, &a, 1);
-            if (fd && fd->type)
-            {
-                assert(fd->type->ty == Tfunction);
-                TypeFunction *tf = (TypeFunction *)fd->type;
-                if (!tf->isproperty && global.params.enforcePropertySyntax)
-                    goto Leprop;
-                Expression *e = new CallExp(loc, e1, e2);
-                return e->semantic(sc);
-            }
-        }
-        {
-            fd = resolveFuncCall(loc, sc, s, tiargs, tthis, NULL, 1);
-            if (fd && fd->type)
-            {
-                assert(fd->type->ty == Tfunction);
-                TypeFunction *tf = (TypeFunction *)fd->type;
-                if (!tf->isref)
-                    goto Leprop;
-                if (!tf->isproperty && global.params.enforcePropertySyntax)
-                    goto Leprop;
-                Expression *e = new CallExp(loc, e1);
-                e = new AssignExp(loc, e, e2);
-                return e->semantic(sc);
-            }
-        }
-        goto Leprop;
-
-    Leprop:
-        ::error(e1->loc, "not a property %s", e1->toChars());
-        return new ErrorExp();
-    }
+    if (Expression *e = resolvePropertiesX(sc, e1, e2))
+        return e;
 
     e1 = checkRightThis(sc, e1);
 
