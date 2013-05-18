@@ -49,29 +49,27 @@ void test9()
 }
 
 
-struct Loc
+version(Win32) version(DigitalMars)
 {
-}
+    struct Loc
+    {
+    }
 
-alias va_list = void*;
+    pragma(mangle, "?verror@@YAXULoc@@PBDPAD@Z")
+    extern(C++) void verror_imp(Loc loc, const(char)* format, void *ap)
+    {
+    }
 
-pragma(mangle, "?test10a@@YAXULoc@@PBDPAD111@Z")
-extern(C++) int test10a(void* arg)
-{
-    return 1;
-}
+    extern(C++) void verror(Loc loc, const(char)* format, char *ap);
 
-pragma(mangle, "?test10a@@YAXULoc@@PBDPAD111@Z")
-extern(C++) int test10b(char* arg); //should be linked with test10a
-
-void test10()
-{
-    assert(test10b(null) == test10a(null));
+    void test10()
+    {
+        verror(Loc(), null, null);
+    }
 }
 
 void main()
 {
     test8();
     test9();
-    test10();
 }
