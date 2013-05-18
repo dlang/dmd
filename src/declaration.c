@@ -954,6 +954,9 @@ void VarDeclaration::semantic(Scope *sc)
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
+    Type *tbn = tb;
+    while (tbn->ty == Tsarray)
+        tbn = tbn->nextOf()->toBasetype();
     if (tb->ty == Tvoid && !(storage_class & STClazy))
     {
         if (inferred)
@@ -1192,8 +1195,8 @@ Lnomatch:
             {
                 storage_class |= STCfield;
 #if DMDV2
-                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->noDefaultCtor ||
-                    tb->ty == Tclass  && ((TypeClass  *)tb)->sym->noDefaultCtor)
+                if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
+                    tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
                     aad->noDefaultCtor = TRUE;
 #endif
             }
@@ -1256,8 +1259,8 @@ Lnomatch:
         }
     }
 
-    if (!(storage_class & (STCctfe | STCref)) && tb->ty == Tstruct &&
-        ((TypeStruct *)tb)->sym->noDefaultCtor)
+    if (!(storage_class & (STCctfe | STCref)) && tbn->ty == Tstruct &&
+        ((TypeStruct *)tbn)->sym->noDefaultCtor)
     {
         if (!init)
         {   if (isField())

@@ -4406,10 +4406,18 @@ Expression *StructLiteralExp::semantic(Scope *sc)
                 else
                     e = v->getConstInitializer(false);
             }
-            else if (v->type->needsNested() && ctorinit)
-                e = v->type->defaultInit(loc);
             else
-                e = v->type->defaultInitLiteral(loc);
+            {
+                if (v->storage_class & STCnodefaultctor)
+                {
+                    error("field %s.%s must be initialized because it has no default constructor",
+                            sd->type->toChars(), v->toChars());
+                }
+                if (v->type->needsNested() && ctorinit)
+                    e = v->type->defaultInit(loc);
+                else
+                    e = v->type->defaultInitLiteral(loc);
+            }
             offset = v->offset + v->type->size();
         }
         elements->push(e);
@@ -4874,7 +4882,7 @@ Lagain:
         }
 
         if (cd->noDefaultCtor && !nargs)
-        {   error("default construction is disabled for type %s", cd->toChars());
+        {   error("default construction is disabled for type %s", cd->type->toChars());
             goto Lerr;
         }
         checkDeprecated(sc, cd);
@@ -5009,7 +5017,7 @@ Lagain:
         if (sd->scope)
             sd->semantic(NULL);
         if (sd->noDefaultCtor && !nargs)
-        {   error("default construction is disabled for type %s", sd->toChars());
+        {   error("default construction is disabled for type %s", sd->type->toChars());
             goto Lerr;
         }
 
@@ -5092,6 +5100,15 @@ Lagain:
     }
     else if (tb->ty == Tarray && nargs)
     {
+        Type *tn = tb->nextOf()->toBasetype();
+        while (tn->ty == Tsarray)
+            tn = tn->nextOf()->toBasetype();
+        Dsymbol *s = tn->toDsymbol(sc);
+        AggregateDeclaration *ad = s ? s->isAggregateDeclaration() : NULL;
+        if (ad && ad->noDefaultCtor)
+        {   error("default construction is disabled for type %s", tb->nextOf()->toChars());
+            goto Lerr;
+        }
         for (size_t i = 0; i < nargs; i++)
         {
             if (tb->ty != Tarray)

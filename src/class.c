@@ -693,6 +693,16 @@ void ClassDeclaration::semantic(Scope *sc)
 #else
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
+    if (!ctor && noDefaultCtor)
+    {
+        // A class object is always created by constructor, so this check is legitimate.
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            VarDeclaration *v = fields[i]->isVarDeclaration();
+            if (v->storage_class & STCnodefaultctor)
+                ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
+        }
+    }
 #endif
 
 //    dtor = (DtorDeclaration *)search(Id::dtor, 0);
