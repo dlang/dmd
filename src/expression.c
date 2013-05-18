@@ -267,31 +267,31 @@ Expression *checkRightThis(Scope *sc, Expression *e)
  * Pull out any properties.
  */
 
-Expression *resolvePropertiesX(Scope *sc, Expression *e)
+Expression *resolvePropertiesX(Scope *sc, Expression *e1)
 {
     TemplateDeclaration *td;
     Objects *tiargs;
     Type *tthis;
-    if (e->op == TOKdotti)
+    if (e1->op == TOKdotti)
     {
-        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e;
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
         td     = dti->getTempdecl(sc);
                  dti->ti->semanticTiargs(sc);
         tiargs = dti->ti->tiargs;
         tthis  = dti->e1->type;
         goto L1;
     }
-    else if (e->op == TOKdottd)
+    else if (e1->op == TOKdottd)
     {
-        DotTemplateExp *dte = (DotTemplateExp *)e;
+        DotTemplateExp *dte = (DotTemplateExp *)e1;
         td     = dte->td;
         tiargs = NULL;
         tthis  = dte->e1->type;
         goto L1;
     }
-    else if (e->op == TOKimport)
+    else if (e1->op == TOKimport)
     {
-        Dsymbol *s = ((ScopeExp *)e)->sds;
+        Dsymbol *s = ((ScopeExp *)e1)->sds;
         td = s->isTemplateDeclaration();
         if (td)
         {
@@ -310,72 +310,72 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e)
             goto L1;
         }
     }
-    else if (e->op == TOKtemplate)
+    else if (e1->op == TOKtemplate)
     {
-        td     = ((TemplateExp *)e)->td;
+        td     = ((TemplateExp *)e1)->td;
         tiargs = NULL;
         tthis  = NULL;
     L1:
         assert(td);
-        FuncDeclaration *fd = resolveFuncCall(e->loc, sc, td, tiargs, tthis, NULL, 1);
+        FuncDeclaration *fd = resolveFuncCall(e1->loc, sc, td, tiargs, tthis, NULL, 1);
         if (fd && fd->type)
         {   assert(fd->type->ty == Tfunction);
             TypeFunction *tf = (TypeFunction *)fd->type;
             if (!tf->isproperty && global.params.enforcePropertySyntax)
-            {   error(e->loc, "not a property %s", e->toChars());
+            {   error(e1->loc, "not a property %s", e1->toChars());
                 return new ErrorExp();
             }
-            e = new CallExp(e->loc, e);
-            e = e->semantic(sc);
+            e1 = new CallExp(e1->loc, e1);
+            e1 = e1->semantic(sc);
         }
         goto return_expr;
     }
 
-    if (e->type &&
-        e->op != TOKtype)       // function type is not a property
+    if (e1->type &&
+        e1->op != TOKtype)      // function type is not a property
     {
-        Type *t = e->type->toBasetype();
+        Type *t = e1->type->toBasetype();
 
-        if (t->ty == Tfunction || e->op == TOKoverloadset)
+        if (t->ty == Tfunction || e1->op == TOKoverloadset)
         {
             if (t->ty == Tfunction && !((TypeFunction *)t)->isproperty &&
                 global.params.enforcePropertySyntax)
             {
-                error(e->loc, "not a property %s", e->toChars());
+                error(e1->loc, "not a property %s", e1->toChars());
                 return new ErrorExp();
             }
-            e = new CallExp(e->loc, e);
-            e = e->semantic(sc);
+            e1 = new CallExp(e1->loc, e1);
+            e1 = e1->semantic(sc);
         }
 
-        /* Look for e being a lazy parameter; rewrite as delegate call
+        /* Look for e1 being a lazy parameter; rewrite as delegate call
          */
-        else if (e->op == TOKvar)
+        else if (e1->op == TOKvar)
         {
-            VarExp *ve = (VarExp *)e;
+            VarExp *ve = (VarExp *)e1;
 
             if (ve->var->storage_class & STClazy)
             {
-                e = new CallExp(e->loc, e);
-                e = e->semantic(sc);
+                e1 = new CallExp(e1->loc, e1);
+                e1 = e1->semantic(sc);
             }
         }
 
-        else if (e->op == TOKdotexp)
+        else if (e1->op == TOKdotexp)
         {
-            e->error("expression has no value");
+            e1->error("expression has no value");
             return new ErrorExp();
         }
 
     }
 
 return_expr:
-    if (!e->type)
+    if (!e1->type)
     {
-        error(e->loc, "cannot resolve type for %s", e->toChars());
-        e->type = new TypeError();
+        error(e1->loc, "cannot resolve type for %s", e1->toChars());
+        e1->type = new TypeError();
     }
-    return e;
+    return e1;
 }
 
 Expression *resolveProperties(Scope *sc, Expression *e)
