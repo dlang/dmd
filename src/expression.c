@@ -1033,23 +1033,47 @@ void valueNoDtor(Expression *e)
 }
 
 /********************************************
- * Determine if t is an array of structs that need a postblit.
+ * Determine if t is an array of structs that need a default construction.
  */
 #if DMDV2
-int checkPostblit(Loc loc, Type *t)
+bool checkDefCtor(Loc loc, Type *t)
 {
     t = t->toBasetype();
     while (t->ty == Tsarray)
         t = t->nextOf()->toBasetype();
     if (t->ty == Tstruct)
-    {   FuncDeclaration *fd = ((TypeStruct *)t)->sym->postblit;
-        if (fd)
-        {   if (fd->storage_class & STCdisable)
-                fd->toParent()->error(loc, "is not copyable because it is annotated with @disable");
-            return 1;
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->noDefaultCtor)
+        {
+            sd->error(loc, "default construction is disabled");
+            return true;
         }
     }
-    return 0;
+    return false;
+}
+#endif
+
+/********************************************
+ * Determine if t is an array of structs that need a postblit.
+ */
+#if DMDV2
+bool checkPostblit(Loc loc, Type *t)
+{
+    t = t->toBasetype();
+    while (t->ty == Tsarray)
+        t = t->nextOf()->toBasetype();
+    if (t->ty == Tstruct)
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
+        if (sd->postblit)
+        {
+            if (sd->postblit->storage_class & STCdisable)
+                sd->error(loc, "is not copyable because it is annotated with @disable");
+            return true;
+        }
+    }
+    return false;
 }
 #endif
 
@@ -1362,6 +1386,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 Type *t = arg->type;
                 if (!t->isMutable() || !t->isAssignable())  // check blit assignable
                     arg->error("cannot modify struct %s with immutable members", arg->toChars());
+                else
+                    checkDefCtor(arg->loc, t);
                 arg = arg->toLvalue(sc, arg);
             }
             else if (p->storageClass & STClazy)
@@ -11005,6 +11031,7 @@ Ltupleassign:
         ArrayLengthExp *ale = (ArrayLengthExp *)e1;
 
         ale->e1 = ale->e1->modifiableLvalue(sc, e1);
+        checkDefCtor(ale->loc, ale->e1->type->toBasetype()->nextOf());
     }
     else if (e1->op == TOKslice)
     {
