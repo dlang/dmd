@@ -265,6 +265,9 @@ $(IMPDIR)\core\sys\linux\elf.d : src\core\sys\linux\elf.d
 $(IMPDIR)\core\sys\linux\epoll.d : src\core\sys\linux\epoll.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\errno.d : src\core\sys\linux\errno.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
 	copy $** $@
 
