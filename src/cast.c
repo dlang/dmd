@@ -1060,6 +1060,15 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 #endif
     if (type == t)
         return this;
+    if (op == TOKvar)
+    {
+        VarDeclaration *v = ((VarExp *)this)->var->isVarDeclaration();
+        if (v && v->storage_class & STCmanifest)
+        {
+            Expression *e = optimize(WANTvalue | WANTinterpret);
+            return e->castTo(sc, t);
+        }
+    }
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
