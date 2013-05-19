@@ -8,7 +8,7 @@
  */
 module core.sys.linux.epoll;
 
-version (Linux):
+version (linux):
 
 extern (C):
 @system:
