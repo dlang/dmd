@@ -74,7 +74,7 @@ CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
 
 DMD_OBJS = \
-	access.o array.o attrib.o bcomplex.o blockopt.o \
+	access.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o class.o cod5.o \
 	constfold.o irstate.o cond.o debug.o \
@@ -145,7 +145,7 @@ SRC = win32.mak posix.mak \
 	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
+	$(ROOT)/root.h $(ROOT)/root.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
@@ -234,9 +234,6 @@ apply.o: apply.c
 
 argtypes.o: argtypes.c
 	$(CC) -c $(CFLAGS) $<
-
-array.o: $(ROOT)/array.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
 
 arrayop.o: arrayop.c
 	$(CC) -c $(CFLAGS) $<

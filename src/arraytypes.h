@@ -18,63 +18,63 @@
 
 #include "root.h"
 
-typedef ArrayBase<class TemplateParameter> TemplateParameters;
+typedef Array<class TemplateParameter> TemplateParameters;
 
-typedef ArrayBase<class Expression> Expressions;
+typedef Array<class Expression> Expressions;
 
-typedef ArrayBase<class Statement> Statements;
+typedef Array<class Statement> Statements;
 
-typedef ArrayBase<class BaseClass> BaseClasses;
+typedef Array<class BaseClass> BaseClasses;
 
-typedef ArrayBase<class ClassDeclaration> ClassDeclarations;
+typedef Array<class ClassDeclaration> ClassDeclarations;
 
-typedef ArrayBase<class Dsymbol> Dsymbols;
+typedef Array<class Dsymbol> Dsymbols;
 
-typedef ArrayBase<class Object> Objects;
+typedef Array<class Object> Objects;
 
-typedef ArrayBase<class FuncDeclaration> FuncDeclarations;
+typedef Array<class FuncDeclaration> FuncDeclarations;
 
-typedef ArrayBase<class Parameter> Parameters;
+typedef Array<class Parameter> Parameters;
 
-typedef ArrayBase<class Identifier> Identifiers;
+typedef Array<class Identifier> Identifiers;
 
-typedef ArrayBase<class Initializer> Initializers;
+typedef Array<class Initializer> Initializers;
 
-typedef ArrayBase<class VarDeclaration> VarDeclarations;
+typedef Array<class VarDeclaration> VarDeclarations;
 
-typedef ArrayBase<class Type> Types;
+typedef Array<class Type> Types;
 
-typedef ArrayBase<class ScopeDsymbol> ScopeDsymbols;
+typedef Array<class ScopeDsymbol> ScopeDsymbols;
 
-typedef ArrayBase<class Catch> Catches;
+typedef Array<class Catch> Catches;
 
-typedef ArrayBase<class StaticDtorDeclaration> StaticDtorDeclarations;
+typedef Array<class StaticDtorDeclaration> StaticDtorDeclarations;
 
-typedef ArrayBase<class SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
+typedef Array<class SharedStaticDtorDeclaration> SharedStaticDtorDeclarations;
 
-typedef ArrayBase<class AliasDeclaration> AliasDeclarations;
+typedef Array<class AliasDeclaration> AliasDeclarations;
 
-typedef ArrayBase<class Module> Modules;
+typedef Array<class Module> Modules;
 
-typedef ArrayBase<class File> Files;
+typedef Array<class File> Files;
 
-typedef ArrayBase<class CaseStatement> CaseStatements;
+typedef Array<class CaseStatement> CaseStatements;
 
-typedef ArrayBase<class CompoundStatement> CompoundStatements;
+typedef Array<class CompoundStatement> CompoundStatements;
 
-typedef ArrayBase<class GotoCaseStatement> GotoCaseStatements;
+typedef Array<class GotoCaseStatement> GotoCaseStatements;
 
-typedef ArrayBase<class ReturnStatement> ReturnStatements;
+typedef Array<class ReturnStatement> ReturnStatements;
 
-typedef ArrayBase<class TemplateInstance> TemplateInstances;
+typedef Array<class TemplateInstance> TemplateInstances;
 
-//typedef ArrayBase<char> Strings;
+//typedef Array<char> Strings;
 
-typedef ArrayBase<void> Voids;
+typedef Array<void> Voids;
 
-typedef ArrayBase<struct block> Blocks;
+typedef Array<struct block> Blocks;
 
-typedef ArrayBase<struct Symbol> Symbols;
+typedef Array<struct Symbol> Symbols;
 
-typedef ArrayBase<struct dt_t> Dts;
+typedef Array<struct dt_t> Dts;
 #endif
