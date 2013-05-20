@@ -45,7 +45,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-typedef ArrayBase<elem> Elems;
+typedef Array<elem> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
