@@ -35,8 +35,8 @@ struct ObjSymbol
 
 #include "arraytypes.h"
 
-typedef ArrayBase<ObjModule> ObjModules;
-typedef ArrayBase<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule> ObjModules;
+typedef Array<ObjSymbol> ObjSymbols;
 
 class LibElf : public Library
 {

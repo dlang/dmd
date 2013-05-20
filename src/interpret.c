@@ -53,13 +53,13 @@ private:
        the stack might not be empty when CTFE begins.
 
        Ctfe Stack addresses are just 0-based integers, but we save
-       them as 'void *' because ArrayBase can only do pointers.
+       them as 'void *' because Array can only do pointers.
     */
     Expressions values;   // values on the stack
     VarDeclarations vars; // corresponding variables
-    ArrayBase<void> savedId; // id of the previous state of that var
+    Array<void> savedId; // id of the previous state of that var
 
-    ArrayBase<void> frames;  // all previous frame pointers
+    Array<void> frames;  // all previous frame pointers
     Expressions savedThis;   // all previous values of localThis
 
     /* Global constants get saved here after evaluation, so we never

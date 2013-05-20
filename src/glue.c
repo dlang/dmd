@@ -44,7 +44,7 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 
 #define STATICCTOR      0
 
-typedef ArrayBase<symbol> symbols;
+typedef Array<symbol> symbols;
 
 elem *eictor;
 symbol *ictorlocalgot;

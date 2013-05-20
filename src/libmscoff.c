@@ -54,8 +54,8 @@ int ObjSymbol_cmp(const void *p, const void *q)
 
 #include "arraytypes.h"
 
-typedef ArrayBase<ObjModule> ObjModules;
-typedef ArrayBase<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule> ObjModules;
+typedef Array<ObjSymbol> ObjSymbols;
 
 class LibMSCoff : public Library
 {
