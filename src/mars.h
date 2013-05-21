@@ -433,7 +433,6 @@ void deleteExeFile();
 int runProgram();
 const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
-void util_progress();
 
 /*** Where to send error messages ***/
 class Dsymbol;
