@@ -544,6 +544,9 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (type && type->ty == Tfunction && ((TypeFunction *)type)->next->ty == Terror)
         return;
 
+    if (global.errors)
+        return;
+
     if (!func->fbody)
     {
         return;
