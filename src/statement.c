@@ -31,9 +31,6 @@
 #include "attrib.h"
 #include "import.h"
 
-extern int os_critsecsize32();
-extern int os_critsecsize64();
-
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
     unsigned flags = (sc->flags & SCOPEcontract);
@@ -4225,7 +4222,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
          */
         Identifier *id = Lexer::uniqueId("__critsec");
-        Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + (global.params.is64bit ? os_critsecsize64() : os_critsecsize32())));
+        Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + Target::critsecsize()));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
         tmp->storage_class |= STCgshared | STCstatic;
 
