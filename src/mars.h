@@ -206,8 +206,6 @@ struct Param
     unsigned versionlevel;      // version level
     Strings *versionids;   // version identifiers
 
-    bool dump_source;
-
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
 
