@@ -976,6 +976,9 @@ Language changes listed by -transition=id:\n\
         error(Loc(), "the architecture must not be changed in the %s section of %s",
               is64bit ? "Environment64" : "Environment32", inifilename);
 
+    // Target uses 64bit pointers.
+    global.params.isLP64 = global.params.is64bit;
+
     if (global.errors)
     {
         fatal();
@@ -1072,7 +1075,6 @@ Language changes listed by -transition=id:\n\
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
-        VersionCondition::addPredefinedGlobalIdent("D_LP64");
         VersionCondition::addPredefinedGlobalIdent("D_SIMD");
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win64");
@@ -1095,6 +1097,8 @@ Language changes listed by -transition=id:\n\
         VersionCondition::addPredefinedGlobalIdent("Win32");
 #endif
     }
+    if (global.params.isLP64)
+        VersionCondition::addPredefinedGlobalIdent("D_LP64");
     if (global.params.doDocComments)
         VersionCondition::addPredefinedGlobalIdent("D_Ddoc");
     if (global.params.cov)

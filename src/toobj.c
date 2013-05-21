@@ -483,7 +483,7 @@ void ClassDeclaration::toObjFile(int multiobj)
        }
      */
     dt_t *dt = NULL;
-    unsigned classinfo_size = global.params.is64bit ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+    unsigned classinfo_size = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
     offset = classinfo_size;
     if (classinfo)
     {
@@ -845,7 +845,7 @@ unsigned ClassDeclaration::baseVtblOffset(BaseClass *bc)
     unsigned csymoffset;
 
     //printf("ClassDeclaration::baseVtblOffset('%s', bc = %p)\n", toChars(), bc);
-    csymoffset = global.params.is64bit ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+    csymoffset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
     csymoffset += vtblInterfaces->dim * (4 * Target::ptrsize);
 
     for (size_t i = 0; i < vtblInterfaces->dim; i++)
@@ -999,7 +999,7 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, vtblInterfaces->dim);
     if (vtblInterfaces->dim)
     {
-        offset = global.params.is64bit ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
+        offset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
         if (classinfo)
         {
             if (classinfo->structsize != offset)
