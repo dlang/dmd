@@ -49,7 +49,6 @@ void Target::init()
 
     if (global.params.is64bit)
     {
-        ptrsize = 8;
         if (global.params.isLinux || global.params.isFreeBSD || global.params.isSolaris)
         {
             realsize = 16;
@@ -57,6 +56,9 @@ void Target::init()
             realalignsize = 16;
         }
     }
+
+    if (global.params.isLP64)
+        ptrsize = 8;
 }
 
 /******************************

@@ -324,7 +324,7 @@ void Type::init()
     tstring = tchar->invariantOf()->arrayOf();
     tvalist = tvoid->pointerTo();
 
-    if (global.params.is64bit)
+    if (global.params.isLP64)
     {
         Tsize_t = Tuns64;
         Tptrdiff_t = Tint64;
