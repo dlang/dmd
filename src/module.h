@@ -165,7 +165,6 @@ public:
     Symbol *toModuleArray();    // get module array bounds function
 
 
-    static Symbol *gencritsec();
     elem *toEfilename();
 
     Symbol *toSymbol();
