@@ -63,7 +63,7 @@ void Target::init()
  * Return memory alignment size of type.
  */
 
-unsigned Target::alignsize (Type* type)
+unsigned Target::alignsize(Type* type)
 {
     assert (type->isTypeBasic());
 
@@ -100,7 +100,50 @@ unsigned Target::alignsize (Type* type)
  * Return field alignment size of type.
  */
 
-unsigned Target::fieldalign (Type* type)
+unsigned Target::fieldalign(Type* type)
 {
     return type->alignsize();
 }
+
+/***********************************
+ * Return size of OS critical section.
+ * NOTE: can't use the sizeof() calls directly since cross compiling is
+ * supported and would end up using the host sizes rather than the target
+ * sizes.
+ */
+unsigned Target::critsecsize()
+{
+    if (global.params.isWindows)
+    {
+        // sizeof(CRITICAL_SECTION) for Windows.
+        return global.params.isLP64 ? 40 : 24;
+    }
+    else if (global.params.isLinux)
+    {
+        // sizeof(pthread_mutex_t) for Linux.
+        return global.params.isLP64 ? 40 : 24;
+    }
+    else if (global.params.isFreeBSD)
+    {
+        // sizeof(pthread_mutex_t) for FreeBSD.
+        return global.params.isLP64 ? 8 : 4;
+    }
+    else if (global.params.isOpenBSD)
+    {
+        // sizeof(pthread_mutex_t) for OpenBSD.
+        return global.params.isLP64 ? 8 : 4;
+    }
+    else if (global.params.isOSX)
+    {
+        // sizeof(pthread_mutex_t) for OSX.
+        return global.params.isLP64 ? 64 : 44;
+    }
+    else if (global.params.isSolaris)
+    {
+        // sizeof(pthread_mutex_t) for Solaris.
+        return 24;
+    }
+    else
+        assert(0);
+}
+
