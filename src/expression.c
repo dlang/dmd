@@ -2052,7 +2052,9 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
         if (type->isMutable())
         {
             if (!type->isAssignable())
-                error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
+            {   error("cannot modify struct %s %s with immutable members", toChars(), type->toChars());
+                goto Lerror;
+            }
         }
         else
         {
@@ -2071,9 +2073,13 @@ Expression *Expression::modifiableLvalue(Scope *sc, Expression *e)
             {
                 error("cannot modify %s expression %s", MODtoChars(type->mod), toChars());
             }
+            goto Lerror;
         }
     }
     return toLvalue(sc, e);
+
+Lerror:
+    return new ErrorExp();
 }
 
 
