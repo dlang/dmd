@@ -1104,12 +1104,6 @@ Symbol *TypeClass::toSymbol()
     return NULL;
 }
 
-Symbol *Module::gencritsec()
-{
-    assert(0);
-    return NULL;
-}
-
 elem *Module::toEfilename()
 {
     assert(0);
