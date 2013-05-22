@@ -2314,25 +2314,6 @@ void ClassInfoDeclaration::semantic(Scope *sc)
 {
 }
 
-/********************************* ModuleInfoDeclaration ****************************/
-
-ModuleInfoDeclaration::ModuleInfoDeclaration(Module *mod)
-    : VarDeclaration(Loc(), Module::moduleinfo->type, mod->ident, NULL)
-{
-    this->mod = mod;
-    storage_class = STCstatic | STCgshared;
-}
-
-Dsymbol *ModuleInfoDeclaration::syntaxCopy(Dsymbol *s)
-{
-    assert(0);          // should never be produced by syntax
-    return NULL;
-}
-
-void ModuleInfoDeclaration::semantic(Scope *sc)
-{
-}
-
 /********************************* TypeInfoDeclaration ****************************/
 
 TypeInfoDeclaration::TypeInfoDeclaration(Type *tinfo, int internal)

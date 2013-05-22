@@ -314,14 +314,6 @@ Symbol *ClassInfoDeclaration::toSymbol()
 /*************************************
  */
 
-Symbol *ModuleInfoDeclaration::toSymbol()
-{
-    return mod->toSymbol();
-}
-
-/*************************************
- */
-
 Symbol *TypeInfoDeclaration::toSymbol()
 {
     //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
