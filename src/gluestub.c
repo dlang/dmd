@@ -1528,16 +1528,6 @@ Statement *AsmStatement::semantic(Scope *)
     return NULL;
 }
 
-int os_critsecsize32()
-{
-    return 32;
-}
-
-int os_critsecsize64()
-{
-    return 32;
-}
-
 int binary(const char *, const char **, int)
 {
     assert(0);
