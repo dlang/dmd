@@ -13,19 +13,7 @@
 #ifndef __LONG_DOUBLE_H__
 #define __LONG_DOUBLE_H__
 
-#if IN_GCC
-#include "d-gcc-real.h"
-typedef real_t longdouble;
-
-template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
-inline size_t ld_sprint(char* str, int fmt, longdouble x)
-{
-    if(fmt == 'a' || fmt == 'A')
-        return x.formatHex(buffer, 46); // don't know the size here, but 46 is the max
-    return x.format(buffer, 46);
-}
-
-#elif !_MSC_VER // has native 10 byte doubles
+#if !_MSC_VER // has native 10 byte doubles
 #include <stdio.h>
 typedef long double longdouble;
 typedef volatile long double volatile_longdouble;
@@ -134,7 +122,6 @@ inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
     return d;
 }
 template<typename T> inline longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
-//template<typename T> inline longdouble ldouble(volatile T x) { longdouble d; d.set(x); return d; }
 
 longdouble operator+(longdouble ld1, longdouble ld2);
 longdouble operator-(longdouble ld1, longdouble ld2);
@@ -225,38 +212,6 @@ extern longdouble ld_ln2;
 extern longdouble ld_inf;
 extern longdouble ld_qnan;
 extern longdouble ld_snan;
-
-///////////////////////////////////////////////////////////////////////
-// CLASS numeric_limits<longdouble>
-template<> class _CRTIMP2_PURE std::numeric_limits<longdouble>
-: public _Num_float_base
-{       // limits for type long double
-public:
-    typedef longdouble _Ty;
-
-    static _Ty (__CRTDECL min)() _THROW0()         { return LDBL_MIN; }
-    static _Ty (__CRTDECL max)() _THROW0()         { return LDBL_MAX; }
-    static _Ty __CRTDECL epsilon() _THROW0()       { return LDBL_EPSILON; }
-    static _Ty __CRTDECL round_error() _THROW0()   { return ldouble(0.5); }
-    static _Ty __CRTDECL denorm_min() _THROW0()    { return ldouble(0x0000000000000001ULL, 1); }
-    static _Ty __CRTDECL infinity() _THROW0()      { return ld_inf; }
-    static _Ty __CRTDECL quiet_NaN() _THROW0()     { return ld_qnan; }
-    static _Ty __CRTDECL signaling_NaN() _THROW0() { return ld_snan; }
-
-    _STCONS(int, digits, LDBL_MANT_DIG);
-    _STCONS(int, digits10, LDBL_DIG);
-    _STCONS(int, max_exponent, (int)LDBL_MAX_EXP);
-    _STCONS(int, max_exponent10, (int)LDBL_MAX_10_EXP);
-    _STCONS(int, min_exponent, (int)LDBL_MIN_EXP);
-    _STCONS(int, min_exponent10, (int)LDBL_MIN_10_EXP);
-};
-
-//_STCONSDEF(numeric_limits<longdouble>, int, digits)
-//_STCONSDEF(numeric_limits<longdouble>, int, digits10)
-//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent)
-//_STCONSDEF(numeric_limits<longdouble>, int, max_exponent10)
-//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent)
-//_STCONSDEF(numeric_limits<longdouble>, int, min_exponent10)
 
 size_t ld_sprint(char* str, int fmt, longdouble x);
 
