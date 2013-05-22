@@ -43,7 +43,7 @@ public:
 
     Package *isPackage() { return this; }
 
-    virtual void semantic(Scope *sc) { }
+    virtual void semantic(Scope *) { }
 };
 
 class Module : public Package
