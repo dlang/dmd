@@ -47,68 +47,14 @@ int Port::isSignallingNan(longdouble r)
     return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
 }
 
-int Port::isFinite(double r)
-{
-    return ::isfinite(r);
-}
-
 int Port::isInfinity(double r)
 {
     return (::fpclassify(r) == FP_INFINITE);
 }
 
-int Port::Signbit(double r)
-{
-    return ::signbit(r);
-}
-
-double Port::floor(double d)
-{
-    return ::floor(d);
-}
-
-double Port::pow(double x, double y)
-{
-    return ::pow(x, y);
-}
-
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
-}
-
-unsigned long long Port::strtoull(const char *p, char **pend, int base)
-{
-    return ::strtoull(p, pend, base);
-}
-
-char *Port::ull_to_string(char *buffer, ulonglong ull)
-{
-    sprintf(buffer, "%llu", ull);
-    return buffer;
-}
-
-wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
-{
-    swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
-    return buffer;
-}
-
-double Port::ull_to_double(ulonglong ull)
-{
-    return (double) ull;
-}
-
-const char *Port::list_separator()
-{
-    // LOCALE_SLIST for Windows
-    return ",";
-}
-
-const wchar_t *Port::wlist_separator()
-{
-    // LOCALE_SLIST for Windows
-    return L",";
 }
 
 char *Port::strupr(char *s)
@@ -134,7 +80,7 @@ int Port::stricmp(const char *s1, const char *s2)
 #pragma warning (disable : 4514)
 
 #include <math.h>
-#include <float.h>
+#include <float.h>  // for _isnan
 #include <time.h>
 #include <errno.h>
 #include <string.h>
@@ -192,145 +138,14 @@ int Port::isSignallingNan(longdouble r)
     return isSignallingNan((double) r);
 }
 
-int Port::isFinite(double r)
-{
-    return ::_finite(r);
-}
-
 int Port::isInfinity(double r)
 {
     return (::_fpclass(r) & (_FPCLASS_NINF | _FPCLASS_PINF));
 }
 
-int Port::Signbit(double r)
-{
-    return (long)(((long *)&(r))[1] & 0x80000000);
-}
-
-double Port::floor(double d)
-{
-    return ::floor(d);
-}
-
-double Port::pow(double x, double y)
-{
-    if (y == 0)
-        return 1;               // even if x is NAN
-    return ::pow(x, y);
-}
-
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
-}
-
-unsigned _int64 Port::strtoull(const char *p, char **pend, int base)
-{
-    unsigned _int64 number = 0;
-    int c;
-    int error;
-#ifndef ULLONG_MAX
-    #define ULLONG_MAX ((unsigned _int64)~0I64)
-#endif
-
-    while (isspace((unsigned char)*p))         /* skip leading white space     */
-        p++;
-    if (*p == '+')
-        p++;
-    switch (base)
-    {   case 0:
-            base = 10;          /* assume decimal base          */
-            if (*p == '0')
-            {   base = 8;       /* could be octal               */
-                    p++;
-                    switch (*p)
-                    {   case 'x':
-                        case 'X':
-                            base = 16;  /* hex                  */
-                            p++;
-                            break;
-#if BINARY
-                        case 'b':
-                        case 'B':
-                            base = 2;   /* binary               */
-                            p++;
-                            break;
-#endif
-                    }
-            }
-            break;
-        case 16:                        /* skip over '0x' and '0X'      */
-            if (*p == '0' && (p[1] == 'x' || p[1] == 'X'))
-                    p += 2;
-            break;
-#if BINARY
-        case 2:                 /* skip over '0b' and '0B'      */
-            if (*p == '0' && (p[1] == 'b' || p[1] == 'B'))
-                    p += 2;
-            break;
-#endif
-    }
-    error = 0;
-    for (;;)
-    {   c = *p;
-        if (isdigit(c))
-                c -= '0';
-        else if (isalpha(c))
-                c = (c & ~0x20) - ('A' - 10);
-        else                    /* unrecognized character       */
-                break;
-        if (c >= base)          /* not in number base           */
-                break;
-        if ((ULLONG_MAX - c) / base < number)
-                error = 1;
-        number = number * base + c;
-        p++;
-    }
-    if (pend)
-        *pend = (char *)p;
-    if (error)
-    {   number = ULLONG_MAX;
-        errno = ERANGE;
-    }
-    return number;
-}
-
-char *Port::ull_to_string(char *buffer, ulonglong ull)
-{
-    _ui64toa(ull, buffer, 10);
-    return buffer;
-}
-
-wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
-{
-    _ui64tow(ull, buffer, 10);
-    return buffer;
-}
-
-double Port::ull_to_double(ulonglong ull)
-{   double d;
-
-    if ((__int64) ull < 0)
-    {
-        // MSVC doesn't implement the conversion
-        d = (double) (__int64)(ull -  0x8000000000000000i64);
-        d += (double)(signed __int64)(0x7FFFFFFFFFFFFFFFi64) + 1.0;
-    }
-    else
-        d = (double)(__int64)ull;
-    return d;
-}
-
-const char *Port::list_separator()
-{
-    // LOCALE_SLIST for Windows
-    return ",";
-}
-
-const wchar_t *Port::wlist_separator()
-{
-    // LOCALE_SLIST for Windows
-    return L",";
 }
 
 char *Port::strupr(char *s)
@@ -446,12 +261,6 @@ int Port::isSignallingNan(longdouble r)
     return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
 }
 
-#undef isfinite
-int Port::isFinite(double r)
-{
-    return ::finite(r);
-}
-
 int Port::isInfinity(double r)
 {
 #if __APPLE__
@@ -464,24 +273,6 @@ int Port::isInfinity(double r)
 #endif
 }
 
-#undef signbit
-int Port::Signbit(double r)
-{
-    union { double d; long long ll; } u;
-    u.d =  r;
-    return u.ll < 0;
-}
-
-double Port::floor(double d)
-{
-    return ::floor(d);
-}
-
-double Port::pow(double x, double y)
-{
-    return ::pow(x, y);
-}
-
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
 #if __FreeBSD__ || __OpenBSD__
@@ -489,42 +280,6 @@ longdouble Port::fmodl(longdouble x, longdouble y)
 #else
     return ::fmodl(x, y);
 #endif
-}
-
-unsigned long long Port::strtoull(const char *p, char **pend, int base)
-{
-    return ::strtoull(p, pend, base);
-}
-
-char *Port::ull_to_string(char *buffer, ulonglong ull)
-{
-    sprintf(buffer, "%llu", ull);
-    return buffer;
-}
-
-wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
-{
-#if __OpenBSD__
-    assert(0);
-#else
-    swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
-#endif
-    return buffer;
-}
-
-double Port::ull_to_double(ulonglong ull)
-{
-    return (double) ull;
-}
-
-const char *Port::list_separator()
-{
-    return ",";
-}
-
-const wchar_t *Port::wlist_separator()
-{
-    return L",";
 }
 
 char *Port::strupr(char *s)
@@ -650,68 +405,14 @@ int Port::isSignallingNan(longdouble r)
     return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
 }
 
-#undef isfinite
-int Port::isFinite(double r)
-{
-    return finite(r);
-}
-
 int Port::isInfinity(double r)
 {
     return isinf(r);
 }
 
-#undef signbit
-int Port::Signbit(double r)
-{
-    return (long)(((long *)&r)[1] & 0x80000000);
-}
-
-double Port::floor(double d)
-{
-    return ::floor(d);
-}
-
-double Port::pow(double x, double y)
-{
-    return ::pow(x, y);
-}
-
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
-}
-
-unsigned long long Port::strtoull(const char *p, char **pend, int base)
-{
-    return ::strtoull(p, pend, base);
-}
-
-char *Port::ull_to_string(char *buffer, ulonglong ull)
-{
-    sprintf(buffer, "%llu", ull);
-    return buffer;
-}
-
-wchar_t *Port::ull_to_string(wchar_t *buffer, ulonglong ull)
-{
-    swprintf(buffer, sizeof(ulonglong) * 3 + 1, L"%llu", ull);
-    return buffer;
-}
-
-double Port::ull_to_double(ulonglong ull)
-{
-    return (double) ull;
-}
-
-const char *Port::list_separator()
-{
-    return ",";
-}
-
-const wchar_t *Port::wlist_separator()
-{
-    return L",";
 }
 
 char *Port::strupr(char *s)
