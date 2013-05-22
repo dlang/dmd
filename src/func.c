@@ -1794,7 +1794,7 @@ bool FuncDeclaration::functionSemantic()
     AggregateDeclaration *ad;
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
-         (ti = parent->isTemplateInstance()) != NULL && !ti->isTemplateMixin() ||
+         (ti = parent->isTemplateInstance()) != NULL && !ti->isTemplateMixin() && ti->name == ident ||
          (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         return functionSemantic3();
