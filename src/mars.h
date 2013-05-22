@@ -368,7 +368,9 @@ struct Loc
 };
 
 #ifndef GCC_SAFE_DMD
+#undef TRUE
 #define TRUE    1
+#undef FALSE
 #define FALSE   0
 #endif
 
