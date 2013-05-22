@@ -54,12 +54,6 @@ Symbol *ClassInfoDeclaration::toSymbol()
     return NULL;
 }
 
-Symbol *ModuleInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *TypeInfoDeclaration::toSymbol()
 {
     assert(0);

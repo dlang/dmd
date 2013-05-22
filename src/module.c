@@ -63,7 +63,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     semanticstarted = 0;
     semanticRun = 0;
     decldefs = NULL;
-    vmoduleinfo = NULL;
     massert = NULL;
     munittest = NULL;
     marray = NULL;

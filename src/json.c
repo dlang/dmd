@@ -806,7 +806,6 @@ void ConditionalDeclaration::toJson(JsonOut *json)
 
 
 void ClassInfoDeclaration::toJson(JsonOut *json)  { }
-void ModuleInfoDeclaration::toJson(JsonOut *json) { }
 void TypeInfoDeclaration::toJson(JsonOut *json)   { }
 #if DMDV2
 void PostBlitDeclaration::toJson(JsonOut *json)   { }
