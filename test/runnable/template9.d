@@ -2356,6 +2356,53 @@ template useItemAt10067(size_t idx, T)
 useItemAt10067!(0, char) mapS10067;
 
 /******************************************/
+// 10134
+
+template ReturnType10134(alias func)
+{
+    static if (is(typeof(func) R == return))
+        alias R ReturnType10134;
+    else
+        static assert(0);
+}
+
+struct Result10134(T) {}
+
+template getResultType10134(alias func)
+{
+    static if(is(ReturnType10134!(func.exec) _ == Result10134!(T), T))
+    {
+        alias getResultType10134 = T;
+    }
+}
+
+template f10134(alias func)
+{
+    Result10134!(getResultType10134!(func)) exec(int i)
+    {
+        return typeof(return)();
+    }
+}
+
+template a10134()
+{
+    Result10134!(double) exec(int i)
+    {
+        return b10134!().exec(i);
+    }
+}
+
+template b10134()
+{
+    Result10134!(double) exec(int i)
+    {
+        return f10134!(a10134!()).exec(i);
+    }
+}
+
+pragma(msg, getResultType10134!(a10134!()));
+
+/******************************************/
 
 int main()
 {
