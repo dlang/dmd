@@ -2142,6 +2142,14 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
          */
         if (v->ident == Id::ctfe)
             return new IntegerExp(loc, 1, Type::tbool);
+
+        if (!v->originalType && v->scope)   // semantic() not yet run
+        {
+            v->semantic (v->scope);
+            if (v->type->ty == Terror)
+                return EXP_CANT_INTERPRET;
+        }
+
         if ((v->isConst() || v->isImmutable() || v->storage_class & STCmanifest)
             && v->init && !v->hasValue() && !v->isCTFE())
 #else
