@@ -3213,18 +3213,16 @@ int bug2931()
 int bug2931_2()
 {
   Outer2931 v;
+  Bug2931 w = Bug2931(68);
   assert(v.move==3);
   for (int i = 0; i < 4; i++)
-  { for (int j = 0; j < 3; j++)
+  {
+    for (int j = 0; j < 3; j++)
     {
-	printf("[%d][%d] = %d\n", j, i, v.p.val[j][i]);
-	if (i == 0 && j == 0)
-	    assert(v.p.val[j][i] == 67);
-	else
-	    assert(v.p.val[j][i] == 0);
+        assert(w.val[j][i] == 68);
+	assert(v.p.val[j][i] == 67);
     }
   }
-  printf("v.zoom = %d\n", v.zoom);
   assert(v.scale == 4);
   return v.zoom;
 }

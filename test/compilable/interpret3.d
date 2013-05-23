@@ -4002,6 +4002,24 @@ int bug6886()
 
 static assert(bug6886());
 
+/**************************************************
+    10198 Multidimensional struct block initializer
+**************************************************/
+
+struct Block10198 {
+    int val[3][4];
+}
+
+int bug10198()
+{
+   Block10198 pp = Block10198(67);
+   assert(pp.val[2][3] == 67);
+   assert(pp.val[1][3] == 67);
+  return 1;
+}
+static assert(bug10198());
+
+
 /****************************************************
  * Exception chaining tests from xtest46.d
  ****************************************************/

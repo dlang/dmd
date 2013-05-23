@@ -591,9 +591,13 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                         pdt = dtnzeros(pdt, voffset - offset);
                     if (!d)
                     {
-                        if (v->init)
+                        // If this literal has an initializer, use it
+                        if ((*elements)[j])
+                            (*elements)[j]->toDt(&d);
+                        // else if the declaration has an initializer, use that
+                        else if (v->init)
                             d = v->init->toDt();
-                        else
+                        else    // else use the default initializer
                             vt->toDt(&d);
                     }
                     pdt = dtcat(pdt, d);
