@@ -1157,7 +1157,10 @@ Lnomatch:
     else if (type->isWild())
         storage_class |= STCwild;
 
-    if (isSynchronized())
+    if (storage_class & (STCmanifest | STCstatic))
+    {
+    }
+    else if (isSynchronized())
     {
         error("variable %s cannot be synchronized", toChars());
     }
