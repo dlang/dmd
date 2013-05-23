@@ -223,6 +223,28 @@ void test3825()
 }
 
 /************************************************/
+// 10106
+
+struct GcPolicy10106 {}
+
+struct Uint24Array10106(SP = GcPolicy10106)
+{
+    this(this) {}
+}
+
+struct InversionList10106(SP = GcPolicy10106)
+{
+    Uint24Array10106!SP data;
+}
+
+alias InversionList10106!GcPolicy10106 CodepointSet10106;
+
+struct PropertyTable10106
+{
+    CodepointSet10106[string] table;
+}
+
+/************************************************/
 
 int main()
 {
