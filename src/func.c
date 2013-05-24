@@ -177,6 +177,9 @@ void FuncDeclaration::semantic(Scope *sc)
         if (StructDeclaration *sd = ad->isStructDeclaration())
             sd->makeNested();
     }
+    // Remove prefix storage classes silently.
+    if ((storage_class & STC_TYPECTOR) && !(ad || isNested()))
+        storage_class &= ~STC_TYPECTOR;
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
@@ -226,6 +229,14 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
         sc->linkage = linkage;
+
+        if (!tf->isNaked() && !(isThis() || isNested()))
+        {
+            OutBuffer buf;
+            MODtoBuffer(&buf, tf->mod);
+            error("without 'this' cannot be %s", buf.toChars());
+            tf->mod = 0;    // remove qualifiers
+        }
 
         /* Apply const, immutable, wild and shared storage class
          * to the function type. Do this before type semantic.
@@ -312,13 +323,6 @@ void FuncDeclaration::semantic(Scope *sc)
 
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
-
-    if (!f->isNaked() && !(isThis() || isNested()))
-    {
-        OutBuffer buf;
-        MODtoBuffer(&buf, f->mod);
-        error("without 'this' cannot be %s", buf.toChars());
-    }
 
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
