@@ -1547,12 +1547,6 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     if ( var->isDataseg() && (
          (offset == 0 && isSafePointerCast(var->type, pointee)) ||
          (fromType && isSafePointerCast(fromType, pointee))
-        ) && !(vd && vd->init &&
-#if DMDV2
-        (var->isConst() || var->isImmutable())
-#else
-        var>isConst()
-#endif
         ))
     {
         return this;
