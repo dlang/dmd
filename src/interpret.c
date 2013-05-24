@@ -273,6 +273,57 @@ Expression *Expression::ctfeInterpret()
     return optimize(WANTvalue | WANTinterpret);
 }
 
+/* Run CTFE on the expression, but allow the expression to be a TypeExp
+ *  or a tuple containing a TypeExp. (This is required by pragma(msg)).
+ */
+Expression *ctfeInterpretForPragmaMsg(Expression *e)
+{
+    if (e->op == TOKerror || e->op == TOKtype)
+        return e;
+
+    // It's also OK for it to be a function declaration (happens only with
+    // __traits(getOverloads))
+    if (e->op == TOKvar && ((VarExp *)e)->var->isFuncDeclaration())
+    {
+        return e;
+    }
+
+    if (e->op != TOKtuple)
+        return e->ctfeInterpret();
+
+    // Tuples need to be treated seperately, since they are
+    // allowed to contain a TypeExp in this case.
+
+    TupleExp *tup = (TupleExp *)e;
+    Expressions *expsx = NULL;
+    for (size_t i = 0; i < tup->exps->dim; ++i)
+    {
+        Expression *g = (*tup->exps)[i];
+        Expression *h = g;
+        h = ctfeInterpretForPragmaMsg(g);
+        if (h != g)
+        {
+            if (!expsx)
+            {
+                expsx = new Expressions();
+                expsx->setDim(tup->exps->dim);
+                for (size_t j = 0; j < tup->exps->dim; j++)
+                    (*expsx)[j] = (*tup->exps)[j];
+            }
+            (*expsx)[i] = h;
+        }
+    }
+    if (expsx)
+    {
+        TupleExp *te = new TupleExp(e->loc, expsx);
+        expandTuples(te->exps);
+        te->type = new TypeTuple(te->exps);
+        return te;
+    }
+    return e;
+}
+
+
 /*************************************
  * Attempt to interpret a function given the arguments.
  * Input:
