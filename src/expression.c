@@ -11057,7 +11057,7 @@ Ltupleassign:
         if (e1->op != TOKvar)
             e1 = e1->optimize(WANTvalue);
 
-        if (op != TOKconstruct)
+        if (op == TOKassign)
             e1 = e1->modifiableLvalue(sc, e1old);
     }
 
