@@ -271,7 +271,18 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
     }
     else if (s1)
     {
-        if (!s2 || !s1->equals(s2) || s1->parent != s2->parent)
+        if (s2)
+        {
+            FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
+            if (fa1)
+                s1 = fa1->toAliasFunc();
+            FuncAliasDeclaration *fa2 = s2->isFuncAliasDeclaration();
+            if (fa2)
+                s2 = fa2->toAliasFunc();
+            if (!s1->equals(s2) || s1->parent != s2->parent)
+                goto Lnomatch;
+        }
+        else
             goto Lnomatch;
     }
     else if (u1)
@@ -5478,7 +5489,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 {
                     ea = ea->optimize(WANTvalue);
                 }
-            } 
+            }
             else if (ea->op == TOKvar)
             {   /* This test is to skip substituting a const var with
                  * its initializer. The problem is the initializer won't

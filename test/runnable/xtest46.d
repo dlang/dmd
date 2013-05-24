@@ -6362,6 +6362,32 @@ void test10091()
 }
 
 /***************************************************/
+// 9130
+
+class S9130 { void bar() { } }
+
+import core.stdc.stdio : printf;
+
+struct Function
+{
+    int[] ai = [1,2,3];
+}
+
+@property void meta(alias m)()
+{
+    static Function md;
+    printf("length = %d\n", md.ai.length);
+    printf("ptr = %p\n", md.ai.ptr);
+    md.ai[0] = 0;
+}
+
+void test9130()
+{
+    meta!(__traits(getOverloads, S9130, "bar")[0]);
+    meta!(S9130.bar);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6629,6 +6655,7 @@ int main()
     test9834();
     test9883();
     test10091();
+    test9130();
 
     printf("Success\n");
     return 0;
