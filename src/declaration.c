@@ -1157,7 +1157,7 @@ Lnomatch:
     else if (type->isWild())
         storage_class |= STCwild;
 
-    if (storage_class & (STCmanifest | STCstatic))
+    if (storage_class & (STCmanifest | STCstatic | STCgshared))
     {
     }
     else if (isSynchronized())

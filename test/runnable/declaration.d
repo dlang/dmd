@@ -219,6 +219,10 @@ class C10144
     override     { static s2 = [Act.don]; }
     abstract     { static s3 = [Act.don]; }
     final        { static s4 = [Act.don]; }
+    synchronized { __gshared gs1 = [Act.don]; }
+    override     { __gshared gs2 = [Act.don]; }
+    abstract     { __gshared gs3 = [Act.don]; }
+    final        { __gshared gs4 = [Act.don]; }
 }
 
 /***************************************************/
