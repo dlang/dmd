@@ -227,6 +227,40 @@ class C10144
 
 /***************************************************/
 
+// 10142
+
+class File10142
+{
+    enum Access : ubyte { Read = 0x01 }
+    enum Open : ubyte { Exists = 0 }
+    enum Share : ubyte { None = 0 }
+    enum Cache : ubyte { None = 0x00 }
+
+    struct Style
+    {
+        Access  access;
+        Open    open;
+        Share   share;
+        Cache   cache;
+    }
+    enum Style ReadExisting = { Access.Read, Open.Exists };
+
+    this (const(char[]) path, Style style = ReadExisting)
+    {
+        assert(style.access == Access.Read);
+        assert(style.open   == Open  .Exists);
+        assert(style.share  == Share .None);
+        assert(style.cache  == Cache .None);
+    }
+}
+
+void test10142()
+{
+    auto f = new File10142("dummy");
+}
+
+/***************************************************/
+
 int main()
 {
     test6475();
@@ -237,6 +271,7 @@ int main()
     test8147();
     test8410();
     test8942();
+    test10142();
 
     printf("Success\n");
     return 0;
