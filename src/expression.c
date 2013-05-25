@@ -578,6 +578,17 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     if (!s)
         return ue->e1->type->Type::getProperty(loc, ident, 0);
 
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (f)
+    {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
+        if (tempdecl)
+        {
+            if (tempdecl->overroot)
+                tempdecl = tempdecl->overroot;
+            s = tempdecl;
+        }
+    }
+
     if (ue->op == TOKdotti)
     {
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
@@ -592,16 +603,6 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     }
     else
     {
-        FuncDeclaration *f = s->isFuncDeclaration();
-        if (f)
-        {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
-            if (tempdecl)
-            {
-                if (tempdecl->overroot)
-                    tempdecl = tempdecl->overroot;
-                s = tempdecl;
-            }
-        }
         return new DsymbolExp(loc, s, 1);
     }
 }
