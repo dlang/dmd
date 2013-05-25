@@ -1674,8 +1674,6 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t && hasOverloads == 0)
-        return this;
     Expression *e;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
@@ -1684,8 +1682,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
         // Look for pointers to functions where the functions are overloaded.
         FuncDeclaration *f;
 
-        if (hasOverloads &&
-            typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
+        if (typeb->ty == Tpointer && typeb->nextOf()->ty == Tfunction &&
             (tb->ty == Tpointer || tb->ty == Tdelegate) && tb->nextOf()->ty == Tfunction)
         {
             f = var->isFuncDeclaration();
@@ -1720,6 +1717,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
                         e = new SymOffExp(loc, f, 0);
                         e->type = t;
                     }
+                    checkDeprecated(sc, f);
 #if DMDV2
                     f->tookAddressOf++;
 #endif
@@ -1730,7 +1728,10 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
         e = Expression::castTo(sc, t);
     }
     else
-    {   e = copy();
+    {   FuncDeclaration *f = var->isFuncDeclaration();
+        if (f)
+            checkDeprecated(sc, f);
+        e = copy();
         e->type = t;
         ((SymOffExp *)e)->hasOverloads = 0;
     }
@@ -1763,6 +1764,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
                 {   int offset;
                     if (f->tintro && f->tintro->nextOf()->isBaseOf(f->type->nextOf(), &offset) && offset)
                         error("%s", msg);
+                    checkDeprecated(sc, f);
                     f->tookAddressOf++;
                     e = new DelegateExp(loc, e1, f);
                     e->type = t;
@@ -1776,7 +1778,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     }
     else
     {   int offset;
-
+        checkDeprecated(sc, func);
         func->tookAddressOf++;
         if (func->tintro && func->tintro->nextOf()->isBaseOf(func->type->nextOf(), &offset) && offset)
             error("%s", msg);

@@ -1495,6 +1495,18 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         arg = arg->implicitCastTo(sc, p->type);
                     arg = arg->optimize(WANTvalue, p->storageClass & STCref);
                 }
+                else if (arg->op == TOKsymoff)
+                {
+                    SymOffExp *se = (SymOffExp *)arg;
+                    FuncDeclaration *f = se->var->isFuncDeclaration();
+                    if (f)
+                        f->checkDeprecated(loc, sc);
+                }
+                else if (arg->op == TOKdelegate)
+                {
+                    DelegateExp *de = (DelegateExp *)arg;
+                    de->func->checkDeprecated(loc, sc);
+                }
             }
             if (p->storageClass & STCref)
             {
