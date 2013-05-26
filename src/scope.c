@@ -77,7 +77,6 @@ Scope::Scope()
     this->needctfe = 0;
     this->intypeof = 0;
     this->speculative = 0;
-    this->parameterSpecialization = 0;
     this->callSuper = 0;
     this->flags = 0;
     this->lastdc = NULL;
@@ -127,7 +126,6 @@ Scope::Scope(Scope *enclosing)
     this->needctfe = enclosing->needctfe;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
-    this->parameterSpecialization = enclosing->parameterSpecialization;
     this->callSuper = enclosing->callSuper;
     this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug));
     this->lastdc = NULL;
