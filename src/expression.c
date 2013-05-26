@@ -5519,6 +5519,7 @@ Expression *VarExp::semantic(Scope *sc)
     VarDeclaration *v = var->isVarDeclaration();
     if (v)
     {
+        hasOverloads = 0;
         v->checkNestedReference(sc, loc);
 #if DMDV2
         checkPurity(sc, v, NULL);
