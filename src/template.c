@@ -535,7 +535,6 @@ void TemplateDeclaration::semantic(Scope *sc)
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = sc->parent;
     Scope *paramscope = sc->push(paramsym);
-    paramscope->parameterSpecialization = 1;
     paramscope->stc = 0;
 
     if (!parent)
@@ -565,7 +564,7 @@ void TemplateDeclaration::semantic(Scope *sc)
     {
         TemplateParameter *tp = (*parameters)[i];
 
-        tp->semantic(paramscope);
+        tp->semantic(paramscope, parameters);
         if (i + 1 != parameters->dim && tp->isTemplateTupleParameter())
         {   error("template tuple parameter must be last one");
             errors = true;
@@ -3796,10 +3795,10 @@ void TemplateTypeParameter::declareParameter(Scope *sc)
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
-void TemplateTypeParameter::semantic(Scope *sc)
+void TemplateTypeParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     //printf("TemplateTypeParameter::semantic('%s')\n", ident->toChars());
-    if (specType)
+    if (specType && !specType->reliesOnTident(parameters))
     {
         specType = specType->semantic(loc, sc);
     }
@@ -4071,13 +4070,13 @@ void TemplateAliasParameter::declareParameter(Scope *sc)
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
-Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
+Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o, TemplateParameters *parameters)
 {
     if (o)
     {
         Expression *ea = isExpression(o);
         Type *ta = isType(o);
-        if (ta)
+        if (ta && (!parameters || !ta->reliesOnTident(parameters)))
         {   Dsymbol *s = ta->toDsymbol(sc);
             if (s)
                 o = s;
@@ -4093,13 +4092,13 @@ Object *aliasParameterSemantic(Loc loc, Scope *sc, Object *o)
     return o;
 }
 
-void TemplateAliasParameter::semantic(Scope *sc)
+void TemplateAliasParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
-    if (specType)
+    if (specType && !specType->reliesOnTident(parameters))
     {
         specType = specType->semantic(loc, sc);
     }
-    specAlias = aliasParameterSemantic(loc, sc, specAlias);
+    specAlias = aliasParameterSemantic(loc, sc, specAlias, parameters);
 #if 0 // Don't do semantic() until instantiation
     if (defaultAlias)
         defaultAlias = defaultAlias->semantic(loc, sc);
@@ -4336,7 +4335,7 @@ Object *TemplateAliasParameter::defaultArg(Loc loc, Scope *sc)
        }
     }
 
-    Object *o = aliasParameterSemantic(loc, sc, da);
+    Object *o = aliasParameterSemantic(loc, sc, da, NULL);
     return o;
 }
 
@@ -4382,7 +4381,7 @@ void TemplateValueParameter::declareParameter(Scope *sc)
     sparam = v;
 }
 
-void TemplateValueParameter::semantic(Scope *sc)
+void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
     bool wasSame = (sparam->type == valType);
     sparam->semantic(sc);
@@ -4661,7 +4660,7 @@ void TemplateTupleParameter::declareParameter(Scope *sc)
         error(loc, "parameter '%s' multiply defined", ident->toChars());
 }
 
-void TemplateTupleParameter::semantic(Scope *sc)
+void TemplateTupleParameter::semantic(Scope *sc, TemplateParameters *parameters)
 {
 }
 
@@ -5003,8 +5002,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             !semanticTiargs(sc) ||
             !findBestMatch(sc, fargs))
         {
-            if (!sc->parameterSpecialization)
-                inst = this;
+            inst = this;
             //printf("error return %p, %d\n", tempdecl, global.errors);
             if (inst)
                 inst->errors = true;
@@ -5136,7 +5134,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     Dsymbols *target_symbol_list = NULL;
     size_t target_symbol_list_idx;
 
-    if (!sc->parameterSpecialization)
     {   Dsymbols *a;
 
         Scope *scx = sc;

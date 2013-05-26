@@ -441,6 +441,7 @@ public:
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    Type *reliesOnTident(TemplateParameters *tparams);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
