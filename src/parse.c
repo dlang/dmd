@@ -6411,8 +6411,9 @@ Expression *Parser::parseUnaryExp()
                         // or .identifier!( ... )
                         if (token.value == TOKdot)
                         {
-                            if (peekNext() != TOKidentifier)
-                            {   error("Identifier expected following (type).");
+                            if (peekNext() != TOKidentifier &&  peekNext() != TOKnew)
+                            {
+                                error("identifier or new keyword expected following (...).");
                                 return NULL;
                             }
                             e = new TypeExp(loc, t);
