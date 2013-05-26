@@ -190,7 +190,13 @@ Expression *Expression::optimize(int result, bool keepLvalue)
 
 Expression *VarExp::optimize(int result, bool keepLvalue)
 {
-    return keepLvalue ? this : fromConstInitializer(result, this);
+    if (keepLvalue)
+    {
+        VarDeclaration *v = var->isVarDeclaration();
+        if (v && !(v->storage_class & STCmanifest))
+            return this;
+    }
+    return fromConstInitializer(result, this);
 }
 
 Expression *TupleExp::optimize(int result, bool keepLvalue)
@@ -343,13 +349,8 @@ Expression *AddrExp::optimize(int result, bool keepLvalue)
         return e->optimize(result);
     }
 
-    if (e1->op == TOKvar)
-    {   VarExp *ve = (VarExp *)e1;
-        if (ve->var->storage_class & STCmanifest)
-            e1 = e1->optimize(result);
-    }
-    else
-        e1 = e1->optimize(result);
+    // Keep lvalue-ness
+    e1 = e1->optimize(result, true);
 
     // Convert &*ex to ex
     if (e1->op == TOKstar)
@@ -1041,25 +1042,16 @@ Expression *IndexExp::optimize(int result, bool keepLvalue)
 {   Expression *e;
 
     //printf("IndexExp::optimize(result = %d) %s\n", result, toChars());
-    Expression *e1 = this->e1->optimize(
-        WANTvalue | (result & (WANTinterpret| WANTexpand)));
-    e1 = fromConstInitializer(result, e1);
-    if (this->e1->op == TOKvar)
-    {   VarExp *ve = (VarExp *)this->e1;
-        if (ve->var->storage_class & STCmanifest)
-        {   /* We generally don't want to have more than one copy of an
-             * array literal, but if it's an enum we have to because the
-             * enum isn't stored elsewhere. See Bugzilla 2559
-             */
-            this->e1 = e1;
-        }
-    }
+    e1 = e1->optimize(WANTvalue | (result & (WANTinterpret| WANTexpand)));
+
+    Expression *ex = fromConstInitializer(result, e1);
+
     // We might know $ now
-    setLengthVarIfKnown(lengthVar, e1);
+    setLengthVarIfKnown(lengthVar, ex);
     e2 = e2->optimize(WANTvalue | (result & WANTinterpret));
     if (keepLvalue)
         return this;
-    e = Index(type, e1, e2);
+    e = Index(type, ex, e2);
     if (e == EXP_CANT_INTERPRET)
         e = this;
     return e;
