@@ -31,9 +31,6 @@
 #include "attrib.h"
 #include "import.h"
 
-extern int os_critsecsize32();
-extern int os_critsecsize64();
-
 Identifier *fixupLabelName(Scope *sc, Identifier *ident)
 {
     unsigned flags = (sc->flags & SCOPEcontract);
@@ -1403,7 +1400,7 @@ void ForStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /******************************** ForeachStatement ***************************/
 
-ForeachStatement::ForeachStatement(Loc loc, enum TOK op, Parameters *arguments,
+ForeachStatement::ForeachStatement(Loc loc, TOK op, Parameters *arguments,
         Expression *aggr, Statement *body)
     : Statement(loc)
 {
@@ -2267,8 +2264,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
         if (i)
             buf->writestring(", ");
         if (a->storageClass & STCref)
-            buf->writestring((global.params.Dversion == 1)
-                ? (char*)"inout " : (char*)"ref ");
+            buf->writestring((char*)"ref ");
         if (a->type)
             a->type->toCBuffer(buf, a->ident, hgs);
         else
@@ -2292,7 +2288,7 @@ void ForeachStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 #if DMDV2
 
-ForeachRangeStatement::ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
+ForeachRangeStatement::ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
         Expression *lwr, Expression *upr, Statement *body)
     : Statement(loc)
 {
@@ -4226,7 +4222,7 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
          *  try { body } finally { _d_criticalexit(critsec.ptr); }
          */
         Identifier *id = Lexer::uniqueId("__critsec");
-        Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + (global.params.is64bit ? os_critsecsize64() : os_critsecsize32())));
+        Type *t = new TypeSArray(Type::tint8, new IntegerExp(Target::ptrsize + Target::critsecsize()));
         VarDeclaration *tmp = new VarDeclaration(loc, t, id, NULL);
         tmp->storage_class |= STCgshared | STCstatic;
 

@@ -266,6 +266,7 @@ Msgtable msgtable[] =
     { "lib" },
     { "msg" },
     { "startaddress" },
+    { "mangle" }, 
 
     // For special functions
     { "tohash", "toHash" },
@@ -360,7 +361,7 @@ int main()
 #endif
         fprintf(fp, "#ifndef DMD_ID_H\n");
         fprintf(fp, "#define DMD_ID_H 1\n");
-        fprintf(fp, "struct Identifier;\n");
+        fprintf(fp, "class Identifier;\n");
         fprintf(fp, "struct Id\n");
         fprintf(fp, "{\n");
 

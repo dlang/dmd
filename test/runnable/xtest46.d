@@ -3565,6 +3565,26 @@ void test154() {
 }
 
 /***************************************************/
+
+void test6545()
+{
+    static int[] func()
+    {
+        auto a = [1, 2, 3];
+        auto b = [2, 3, 4];
+        auto c = [3, 4, 5];
+
+        a[] = b[] + c[];
+
+        return a;
+    }
+
+    auto a = func();
+    enum b = func();
+    assert(a == b);
+}
+
+/***************************************************/
 // 3147
 
 
@@ -6329,6 +6349,45 @@ void test9883()
 
 
 /***************************************************/
+// 10091
+
+struct S10091
+{
+    enum e = "a";
+}
+
+void test10091()
+{
+    auto arr = cast(ubyte[1]) S10091.e;
+}
+
+/***************************************************/
+// 9130
+
+class S9130 { void bar() { } }
+
+import core.stdc.stdio : printf;
+
+struct Function
+{
+    int[] ai = [1,2,3];
+}
+
+@property void meta(alias m)()
+{
+    static Function md;
+    printf("length = %d\n", md.ai.length);
+    printf("ptr = %p\n", md.ai.ptr);
+    md.ai[0] = 0;
+}
+
+void test9130()
+{
+    meta!(__traits(getOverloads, S9130, "bar")[0]);
+    meta!(S9130.bar);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6460,6 +6519,7 @@ int main()
     test116();
     test117();
     test3822();
+    test6545();
     test118();
     test5081();
 
@@ -6594,6 +6654,8 @@ int main()
     test9700();
     test9834();
     test9883();
+    test10091();
+    test9130();
 
     printf("Success\n");
     return 0;

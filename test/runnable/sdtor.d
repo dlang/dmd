@@ -2808,6 +2808,20 @@ void test10055b()
 }
 
 /**********************************/
+// 10160
+
+struct S10160 { this(this) {} }
+
+struct X10160a { S10160 s; const int x;     }
+struct X10160b { S10160 s; const int x = 1; }
+
+void test10160()
+{
+    X10160a xa;
+    X10160b xb;
+}
+
+/**********************************/
 
 int main()
 {

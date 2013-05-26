@@ -53,13 +53,13 @@ private:
        the stack might not be empty when CTFE begins.
 
        Ctfe Stack addresses are just 0-based integers, but we save
-       them as 'void *' because ArrayBase can only do pointers.
+       them as 'void *' because Array can only do pointers.
     */
     Expressions values;   // values on the stack
     VarDeclarations vars; // corresponding variables
-    ArrayBase<void> savedId; // id of the previous state of that var
+    Array<void> savedId; // id of the previous state of that var
 
-    ArrayBase<void> frames;  // all previous frame pointers
+    Array<void> frames;  // all previous frame pointers
     Expressions savedThis;   // all previous values of localThis
 
     /* Global constants get saved here after evaluation, so we never
@@ -2370,7 +2370,7 @@ Lcant:
     return EXP_CANT_INTERPRET;
 }
 
-typedef int (*fp2_t)(Loc loc, enum TOK, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
 {
@@ -4099,6 +4099,8 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
         }
         return e;
     }
+    if (fd->dArrayOp)
+        return fd->dArrayOp->interpret(istate, arguments, pthis);
     if (!fd->fbody)
     {
         error("%s cannot be interpreted at compile time,"
@@ -5569,7 +5571,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
     }
     if (!pthis)
     {
-        enum BUILTIN b = fd->isBuiltin();
+        BUILTIN b = fd->isBuiltin();
         if (b)
         {   Expressions args;
             args.setDim(nargs);

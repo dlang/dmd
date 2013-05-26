@@ -119,12 +119,12 @@ void unittests();
 #endif
 
 
-struct OutBuffer;
+class OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-template <typename TYPE> struct ArrayBase;
-typedef ArrayBase<struct Identifier> Identifiers;
-typedef ArrayBase<char> Strings;
+template <typename TYPE> struct Array;
+typedef Array<class Identifier> Identifiers;
+typedef Array<char> Strings;
 
 // Put command line switches in here
 struct Param
@@ -139,11 +139,13 @@ struct Param
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
+    char vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
     char map;           // generate linker .map file
     char is64bit;       // generate 64 bit code
+    char isLP64;        // generate code for LP64
     char isLinux;       // generate code for linux
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
@@ -175,7 +177,6 @@ struct Param
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
-    char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
@@ -205,8 +206,6 @@ struct Param
 
     unsigned versionlevel;      // version level
     Strings *versionids;   // version identifiers
-
-    bool dump_source;
 
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
@@ -348,7 +347,7 @@ typedef longdouble real_t;
 #include "d-gcc-complex_t.h"
 #endif
 
-struct Module;
+class Module;
 
 //typedef unsigned Loc;         // file location
 struct Loc
@@ -369,7 +368,9 @@ struct Loc
 };
 
 #ifndef GCC_SAFE_DMD
+#undef TRUE
 #define TRUE    1
+#undef FALSE
 #define FALSE   0
 #endif
 
@@ -437,9 +438,9 @@ void halt();
 void util_progress();
 
 /*** Where to send error messages ***/
-struct Dsymbol;
+class Dsymbol;
 class Library;
-struct File;
+class File;
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);

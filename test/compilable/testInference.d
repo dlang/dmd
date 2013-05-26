@@ -282,6 +282,42 @@ class Node10002
 }
 
 /***************************************************/
+// 10148
+
+void fa10148() {}  // fa is @system
+
+auto fb10148(T)()
+{
+    struct A(S)
+    {
+        // [4] Parent function fb is already inferred to @safe, then
+        // fc is forcely marked @safe on default until 2.052.
+        // But fc should keep attribute inference ability
+        // by overriding the inherited @safe-ty from its parent.
+        void fc(T2)()
+        {
+            // [5] During semantic3 process, fc is not @safe on default.
+            static assert(is(typeof(&fc) == void delegate()));
+            fa10148();
+        }
+        // [1] this is now inferred to @safe by implementing issue 7511
+        this(S a) {}
+    }
+
+    // [2] A!int(0) is now calling @safe function, then fb!T also be inferred to @safe
+    return A!int(0);
+}
+
+void test10148()
+{
+    fb10148!int.fc!int;  // [0] instantiate fb
+                         // [3] instantiate fc
+
+    // [6] Afer semantic3 done, fc!int is deduced to @system.
+    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 

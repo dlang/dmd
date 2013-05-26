@@ -224,7 +224,7 @@ const char *Token::toChars()
     return p;
 }
 
-const char *Token::toChars(enum TOK value)
+const char *Token::toChars(TOK value)
 {   const char *p;
     static char buffer[3 + 3 * sizeof(value) + 1];
 
@@ -627,7 +627,7 @@ void Lexer::scan(Token *t)
                     sv->ptrvalue = id;
                 }
                 t->ident = id;
-                t->value = (enum TOK) id->value;
+                t->value = (TOK) id->value;
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {
@@ -1055,12 +1055,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKnotidentity;      // !==
-                    }
-                    else
-                        t->value = TOKnotequal;         // !=
+                    t->value = TOKnotequal;         // !=
                 }
                 else if (*p == '<')
                 {   p++;
@@ -1097,12 +1092,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKidentity;         // ===
-                    }
-                    else
-                        t->value = TOKequal;            // ==
+                    t->value = TOKequal;            // ==
                 }
 #if DMDV2
                 else if (*p == '>')
@@ -1904,7 +1894,7 @@ TOK Lexer::number(Token *t)
     enum STATE { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
         STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
         STATE_hexh, STATE_error };
-    enum STATE state;
+    STATE state;
 
     enum FLAGS
     {
@@ -1913,7 +1903,7 @@ TOK Lexer::number(Token *t)
         FLAGS_unsigned = 2,             // u or U suffix
         FLAGS_long     = 4,             // l or L suffix
     };
-    enum FLAGS flags = FLAGS_decimal;
+    FLAGS flags = FLAGS_decimal;
 
     unsigned c;
     unsigned char *start;
@@ -2803,7 +2793,7 @@ Identifier *Lexer::uniqueId(const char *s)
 
 struct Keyword
 {   const char *name;
-    enum TOK value;
+    TOK value;
 };
 
 static Keyword keywords[] =
@@ -2956,16 +2946,13 @@ void Lexer::initKeywords()
 
     stringtable._init(6151);
 
-    if (global.params.Dversion == 1)
-        nkeywords -= 2;
-
     cmtable_init();
 
     for (size_t u = 0; u < nkeywords; u++)
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
         const char *s = keywords[u].name;
-        enum TOK v = keywords[u].value;
+        TOK v = keywords[u].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (void *) new Identifier(sv->toDchars(),v);
 

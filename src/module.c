@@ -63,7 +63,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     semanticstarted = 0;
     semanticRun = 0;
     decldefs = NULL;
-    vmoduleinfo = NULL;
     massert = NULL;
     munittest = NULL;
     marray = NULL;
@@ -512,14 +511,6 @@ void Module::parse()
             }
         }
     }
-
-#ifdef IN_GCC
-    // dump utf-8 encoded source
-    if (global.params.dump_source)
-    {   // %% srcname could contain a path ...
-        d_gcc_dump_source(srcname, "utf-8", buf, buflen);
-    }
-#endif
 
     /* If it starts with the string "Ddoc", then it's a documentation
      * source file.

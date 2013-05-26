@@ -54,12 +54,6 @@ Symbol *ClassInfoDeclaration::toSymbol()
     return NULL;
 }
 
-Symbol *ModuleInfoDeclaration::toSymbol()
-{
-    assert(0);
-    return NULL;
-}
-
 Symbol *TypeInfoDeclaration::toSymbol()
 {
     assert(0);
@@ -1104,12 +1098,6 @@ Symbol *TypeClass::toSymbol()
     return NULL;
 }
 
-Symbol *Module::gencritsec()
-{
-    assert(0);
-    return NULL;
-}
-
 elem *Module::toEfilename()
 {
     assert(0);
@@ -1509,7 +1497,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
     assert(0);
 }
 
-enum RET TypeFunction::retStyle()
+RET TypeFunction::retStyle()
 {
     return RETregs;
 }
@@ -1532,16 +1520,6 @@ Statement *AsmStatement::semantic(Scope *)
 {
     assert(0);
     return NULL;
-}
-
-int os_critsecsize32()
-{
-    return 32;
-}
-
-int os_critsecsize64()
-{
-    return 32;
 }
 
 int binary(const char *, const char **, int)

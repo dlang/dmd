@@ -45,7 +45,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-typedef ArrayBase<elem> Elems;
+typedef Array<elem> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
@@ -109,7 +109,7 @@ elem *callfunc(Loc loc,
     elem *eside = NULL;
     tym_t ty;
     tym_t tyret;
-    enum RET retmethod;
+    RET retmethod;
     int reverse;
     TypeFunction *tf;
     int op;
@@ -2045,7 +2045,7 @@ elem *AssertExp::toElem(IRState *irs)
         symbol *ts = NULL;
         elem *einv = NULL;
 
-        InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
+        FuncDeclaration *inv;
 
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&

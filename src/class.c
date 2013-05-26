@@ -324,7 +324,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
         if (tb->ty == Ttuple)
         {   TypeTuple *tup = (TypeTuple *)tb;
-            enum PROT protection = b->protection;
+            PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
@@ -693,15 +693,23 @@ void ClassDeclaration::semantic(Scope *sc)
 #else
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
+    if (!ctor && noDefaultCtor)
+    {
+        // A class object is always created by constructor, so this check is legitimate.
+        for (size_t i = 0; i < fields.dim; i++)
+        {
+            VarDeclaration *v = fields[i]->isVarDeclaration();
+            if (v->storage_class & STCnodefaultctor)
+                ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
+        }
+    }
 #endif
 
 //    dtor = (DtorDeclaration *)search(Id::dtor, 0);
 //    if (dtor && dtor->toParent() != this)
 //      dtor = NULL;
 
-//    inv = (InvariantDeclaration *)search(Id::classInvariant, 0);
-//    if (inv && inv->toParent() != this)
-//      inv = NULL;
+    inv = buildInv(sc);
 
     // Can be in base class
     aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);
@@ -1288,7 +1296,7 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
         if (tb->ty == Ttuple)
         {   TypeTuple *tup = (TypeTuple *)tb;
-            enum PROT protection = b->protection;
+            PROT protection = b->protection;
             baseclasses->remove(i);
             size_t dim = Parameter::dim(tup->arguments);
             for (size_t j = 0; j < dim; j++)
@@ -1601,7 +1609,7 @@ BaseClass::BaseClass()
     memset(this, 0, sizeof(BaseClass));
 }
 
-BaseClass::BaseClass(Type *type, enum PROT protection)
+BaseClass::BaseClass(Type *type, PROT protection)
 {
     //printf("BaseClass(this = %p, '%s')\n", this, type->toChars());
     this->type = type;

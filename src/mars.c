@@ -368,9 +368,11 @@ Usage:\n\
   -property      enforce property syntax\n\
   -quiet         suppress unnecessary messages\n\
   -release       compile release version\n\
-  -run srcfile args...   run resulting program, passing args\n"
-"  -shared        generate shared library (DLL)\n"
-"  -unittest      compile in unit tests\n\
+  -run srcfile args...   run resulting program, passing args\n\
+  -shared        generate shared library (DLL)\n\
+  -transition=id show additional info about language change identified by 'id'\n\
+  -transition=?  list all language changes\n\
+  -unittest      compile in unit tests\n\
   -v             verbose\n\
   -version=level compile in version code >= level\n\
   -version=ident compile in version code identified by ident\n\
@@ -446,7 +448,6 @@ int tryMain(size_t argc, char *argv[])
     global.params.useSwitchError = 1;
     global.params.useInline = 0;
     global.params.obj = 1;
-    global.params.Dversion = 2;
     global.params.quiet = 1;
     global.params.useDeprecated = 2;
 
@@ -461,7 +462,9 @@ int tryMain(size_t argc, char *argv[])
 #if TARGET_WINDOS
     global.params.is64bit = 0;
     global.params.defaultlibname = "phobos";
-#elif TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+#elif TARGET_LINUX
+    global.params.defaultlibname = "libphobos2.a";
+#elif TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
     global.params.defaultlibname = "phobos2";
 #else
 #error "fix this"
@@ -609,16 +612,51 @@ int tryMain(size_t argc, char *argv[])
 #if DMDV2
             else if (strcmp(p + 1, "vtls") == 0)
                 global.params.vtls = 1;
-#endif
-            else if (strcmp(p + 1, "v1") == 0)
+            else if (memcmp(p + 1, "transition", 10) == 0)
             {
-#if DMDV1
-                global.params.Dversion = 1;
-#else
-                error(Loc(), "use DMD 1.0 series compilers for -v1 switch");
-                break;
-#endif
+                // Parse:
+                //      -transition=number
+                if (p[11] == '=')
+                {
+                    if (strcmp(p + 12, "?") == 0)
+                    {
+                        printf("\
+Language changes listed by -transition=id:\n\
+  =field,3449    do list all non-mutable fields occupies object instance\n\
+  =tls           do list all variables going into thread local storage\n\
+");
+                        return EXIT_FAILURE;
+                    }
+                    if (isdigit((unsigned char)p[12]))
+                    {   long num;
+
+                        errno = 0;
+                        num = strtol(p + 12, &p, 10);
+                        if (*p || errno || num > INT_MAX)
+                            goto Lerror;
+                        switch (num)    // Bugzilla issue number
+                        {
+                            case 3449:
+                                global.params.vfield = 1;
+                                break;
+                            default:
+                                goto Lerror;
+                        }
+                    }
+                    else if (Lexer::isValidIdentifier(p + 12))
+                    {
+                        if (strcmp(p + 12, "tls") == 0)
+                            global.params.vtls = 1;
+                        else if (strcmp(p + 12, "field") == 0)
+                            global.params.vfield = 1;
+                    }
+                    else
+                        goto Lerror;
+                }
+                else
+                    goto Lerror;
             }
+#endif
             else if (strcmp(p + 1, "w") == 0)
                 global.params.warnings = 1;
             else if (strcmp(p + 1, "wi") == 0)
@@ -938,6 +976,9 @@ int tryMain(size_t argc, char *argv[])
         error(Loc(), "the architecture must not be changed in the %s section of %s",
               is64bit ? "Environment64" : "Environment32", inifilename);
 
+    // Target uses 64bit pointers.
+    global.params.isLP64 = global.params.is64bit;
+
     if (global.errors)
     {
         fatal();
@@ -1034,7 +1075,6 @@ int tryMain(size_t argc, char *argv[])
     {
         VersionCondition::addPredefinedGlobalIdent("D_InlineAsm_X86_64");
         VersionCondition::addPredefinedGlobalIdent("X86_64");
-        VersionCondition::addPredefinedGlobalIdent("D_LP64");
         VersionCondition::addPredefinedGlobalIdent("D_SIMD");
 #if TARGET_WINDOS
         VersionCondition::addPredefinedGlobalIdent("Win64");
@@ -1057,6 +1097,8 @@ int tryMain(size_t argc, char *argv[])
         VersionCondition::addPredefinedGlobalIdent("Win32");
 #endif
     }
+    if (global.params.isLP64)
+        VersionCondition::addPredefinedGlobalIdent("D_LP64");
     if (global.params.doDocComments)
         VersionCondition::addPredefinedGlobalIdent("D_Ddoc");
     if (global.params.cov)

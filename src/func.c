@@ -69,6 +69,7 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     inlineStatusStmt = ILSuninitialized;
     inlineNest = 0;
     isArrayOp = 0;
+    dArrayOp = NULL;
     semanticRun = PASSinit;
     semantic3Errors = 0;
 #if DMDV1
@@ -176,6 +177,9 @@ void FuncDeclaration::semantic(Scope *sc)
         if (StructDeclaration *sd = ad->isStructDeclaration())
             sd->makeNested();
     }
+    // Remove prefix storage classes silently.
+    if ((storage_class & STC_TYPECTOR) && !(ad || isNested()))
+        storage_class &= ~STC_TYPECTOR;
 
     //printf("function storage_class = x%llx, sc->stc = x%llx, %x\n", storage_class, sc->stc, Declaration::isFinal());
 
@@ -194,6 +198,28 @@ void FuncDeclaration::semantic(Scope *sc)
         sc = sc->push();
         sc->stc |= storage_class & STCdisable;  // forward to function type
         TypeFunction *tf = (TypeFunction *)type;
+#if 1
+        /* If the parent is @safe, then this function defaults to safe
+         * too.
+         * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
+         * to be inferred first.
+         */
+        if (tf->trust == TRUSTdefault &&
+            !(//isFuncLiteralDeclaration() ||
+              parent->isTemplateInstance() ||
+              ad && ad->parent && ad->parent->isTemplateInstance()))
+        {
+            for (Dsymbol *p = sc->func; p; p = p->toParent2())
+            {   FuncDeclaration *fd = p->isFuncDeclaration();
+                if (fd)
+                {
+                    if (fd->isSafeBypassingInference())
+                        tf->trust = TRUSTsafe;              // default to @safe
+                    break;
+                }
+            }
+        }
+#endif
         if (tf->isref)      sc->stc |= STCref;
         if (tf->isnothrow)  sc->stc |= STCnothrow;
         if (tf->isproperty) sc->stc |= STCproperty;
@@ -225,6 +251,14 @@ void FuncDeclaration::semantic(Scope *sc)
         }
 
         sc->linkage = linkage;
+
+        if (!tf->isNaked() && !(isThis() || isNested()))
+        {
+            OutBuffer buf;
+            MODtoBuffer(&buf, tf->mod);
+            error("without 'this' cannot be %s", buf.toChars());
+            tf->mod = 0;    // remove qualifiers
+        }
 
         /* Apply const, immutable, wild and shared storage class
          * to the function type. Do this before type semantic.
@@ -312,13 +346,6 @@ void FuncDeclaration::semantic(Scope *sc)
     if (isOverride() && !isVirtual())
         error("cannot override a non-virtual function");
 
-    if (!f->isNaked() && !(isThis() || isNested()))
-    {
-        OutBuffer buf;
-        MODtoBuffer(&buf, f->mod);
-        error("without 'this' cannot be %s", buf.toChars());
-    }
-
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
 #if 0
@@ -355,8 +382,8 @@ void FuncDeclaration::semantic(Scope *sc)
             error("special member functions not allowed for %ss", sd->kind());
         }
 
-        if (!sd->inv)
-            sd->inv = isInvariantDeclaration();
+        if (isInvariantDeclaration())
+            sd->invs.push(this);
 
         if (!sd->aggNew)
             sd->aggNew = isNewDeclaration();
@@ -397,7 +424,6 @@ void FuncDeclaration::semantic(Scope *sc)
     {   size_t vi;
         CtorDeclaration *ctor;
         DtorDeclaration *dtor;
-        InvariantDeclaration *inv;
 
         if (isCtorDeclaration())
         {
@@ -416,10 +442,9 @@ void FuncDeclaration::semantic(Scope *sc)
             cd->dtor = dtor;
         }
 
-        inv = isInvariantDeclaration();
-        if (inv)
+        if (isInvariantDeclaration())
         {
-            cd->inv = inv;
+            cd->invs.push(this);
         }
 
         if (isNewDeclaration())
@@ -485,9 +510,12 @@ void FuncDeclaration::semantic(Scope *sc)
                     if (s)
                     {
                         FuncDeclaration *f = s->isFuncDeclaration();
-                        f = f->overloadExactMatch(type);
-                        if (f && f->isFinal() && f->prot() != PROTprivate)
-                            error("cannot override final function %s", f->toPrettyChars());
+                        if (f)
+                        {
+                            f = f->overloadExactMatch(type);
+                            if (f && f->isFinal() && f->prot() != PROTprivate)
+                                error("cannot override final function %s", f->toPrettyChars());
+                        }
                     }
                 }
 
@@ -1142,7 +1170,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isDtorDeclaration())
             {
                 // Call invariant directly only if it exists
-                InvariantDeclaration *inv = ad->inv;
+                FuncDeclaration *inv = ad->inv;
                 ClassDeclaration *cd = ad->isClassDeclaration();
 
                 while (!inv && cd)
@@ -1182,7 +1210,7 @@ void FuncDeclaration::semantic3(Scope *sc)
             if (isCtorDeclaration())
             {
                 // Call invariant directly only if it exists
-                InvariantDeclaration *inv = ad->inv;
+                FuncDeclaration *inv = ad->inv;
                 ClassDeclaration *cd = ad->isClassDeclaration();
 
                 while (!inv && cd)
@@ -1788,10 +1816,11 @@ bool FuncDeclaration::functionSemantic()
     }
 
     // if inferring return type, sematic3 needs to be run
+    TemplateInstance *ti;
     AggregateDeclaration *ad;
     if (scope &&
         (inferRetType && type && !type->nextOf() ||
-         getFuncTemplateDecl(this) ||
+         (ti = parent->isTemplateInstance()) != NULL && !ti->isTemplateMixin() && ti->name == ident ||
          (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         return functionSemantic3();
@@ -3124,7 +3153,7 @@ int FuncDeclaration::hasOverloads()
     return overnext != NULL;
 }
 
-enum PURE FuncDeclaration::isPure()
+PURE FuncDeclaration::isPure()
 {
     //printf("FuncDeclaration::isPure() '%s'\n", toChars());
     assert(type->ty == Tfunction);
@@ -3133,7 +3162,7 @@ enum PURE FuncDeclaration::isPure()
         setImpure();
     if (tf->purity == PUREfwdref)
         tf->purityLevel();
-    enum PURE purity = tf->purity;
+    PURE purity = tf->purity;
     if (purity > PUREweak && isNested())
         purity = PUREweak;
     if (purity > PUREweak && needThis())
@@ -3151,7 +3180,7 @@ enum PURE FuncDeclaration::isPure()
     return purity;
 }
 
-enum PURE FuncDeclaration::isPureBypassingInference()
+PURE FuncDeclaration::isPureBypassingInference()
 {
     if (flags & FUNCFLAGpurityInprocess)
         return PUREfwdref;
@@ -3252,6 +3281,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (ta->invariantOf()->equals(tb->invariantOf()))
             return 0;
+        else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
+            return 1;
     }
     else    // check tb appears in ta
     {
@@ -3260,6 +3291,8 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
             return 1;
         else if (tb->invariantOf()->equals(ta->invariantOf()))
             return 0;
+        else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
+            return 1;
     }
 
     // context date to detect circular look up
@@ -3776,7 +3809,7 @@ FuncDeclaration *FuncAliasDeclaration::toAliasFunc()
 /****************************** FuncLiteralDeclaration ************************/
 
 FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
-        enum TOK tok, ForeachStatement *fes)
+        TOK tok, ForeachStatement *fes)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
     const char *id;
@@ -4381,8 +4414,10 @@ void SharedStaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* InvariantDeclaration ****************************/
 
-InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc)
-    : FuncDeclaration(loc, endloc, Id::classInvariant, STCundefined, NULL)
+InvariantDeclaration::InvariantDeclaration(Loc loc, Loc endloc, StorageClass stc, Identifier *id)
+    : FuncDeclaration(loc, endloc,
+                      id ? id : Identifier::generateId("__invariant"),
+                      stc, NULL)
 {
 }
 
@@ -4391,7 +4426,7 @@ Dsymbol *InvariantDeclaration::syntaxCopy(Dsymbol *s)
     InvariantDeclaration *id;
 
     assert(!s);
-    id = new InvariantDeclaration(loc, endloc);
+    id = new InvariantDeclaration(loc, endloc, storage_class);
     FuncDeclaration::syntaxCopy(id);
     return id;
 }
@@ -4411,13 +4446,12 @@ void InvariantDeclaration::semantic(Scope *sc)
         error("invariants are only for struct/union/class definitions");
         return;
     }
-    else if (ad->inv && ad->inv != this && semanticRun < PASSsemantic)
+    if (ident != Id::classInvariant && semanticRun < PASSsemantic)
     {
-        error("more than one invariant for %s", ad->toChars());
+        ad->invs.push(this);
     }
-    ad->inv = this;
     if (!type)
-        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+        type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
 
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant

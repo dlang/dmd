@@ -161,12 +161,21 @@ Lneed:
  * Build opAssign for struct.
  *      ref S opAssign(S s) { ... }
  *
- * Note that s will be constructed onto the stack, probably copy-constructed.
- * Then, the body is:
- *      S tmp = this;   // bit copy
- *      this = s;       // bit copy
- *      tmp.dtor();
+ * Note that s will be constructed onto the stack, and probably
+ * copy-constructed in caller site.
+ *
+ * If S has copy copy construction and/or destructor, 
+ * the body will make bit-wise object swap:
+ *          S __tmp = this; // bit copy
+ *          this = s;       // bit copy
+ *          __tmp.dtor();
  * Instead of running the destructor on s, run it on tmp instead.
+ *
+ * Otherwise, the body will make member-wise assignments:
+ * Then, the body is:
+ *          this.field1 = s.field1;
+ *          this.field2 = s.field2;
+ *          ...;
  */
 
 FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
@@ -196,8 +205,9 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
 
     Expression *e = NULL;
     if (dtor || postblit)
-    {   /* Swap:
-         *    tmp = *this; *this = s; tmp.dtor();
+    {
+        /* Do swap this and rhs
+         *    tmp = this; this = s; tmp.dtor();
          */
         //printf("\tswap copy\n");
         Identifier *idtmp = Lexer::uniqueId("__tmp");
@@ -232,7 +242,8 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
         }
     }
     else
-    {   /* Do memberwise copy
+    {
+        /* Do memberwise copy
          */
         //printf("\tmemberwise copy\n");
         for (size_t i = 0; i < fields.dim; i++)
@@ -406,25 +417,43 @@ FuncDeclaration *AggregateDeclaration::hasIdentityOpEquals(Scope *sc)
 }
 
 /******************************************
- * Build __xopEquals for TypeInfo_Struct
- *      bool __xopEquals(in ref S p, in ref S q) { ... }
+ * Build opEquals for struct.
+ *      const bool opEquals(const S s) { ... }
+ *
+ * By fixing bugzilla 3789, opEquals is changed to be never implicitly generated.
+ * Now, struct objects comparison s1 == s2 is translated to:
+ *      s1.tupleof == s2.tupleof
+ * to calculate structural equality. See EqualExp::semantic.
  */
 
-FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 {
     if (FuncDeclaration *f = hasIdentityOpEquals(sc))
     {
         hasIdentityEquals = 1;
     }
+    return NULL;
+}
 
+/******************************************
+ * Build __xopEquals for TypeInfo_Struct
+ *      static bool __xopEquals(ref const S p, ref const S q)
+ *      {
+ *          return p == q;
+ *      }
+ *
+ * This is called by TypeInfo.equals(p1, p2). If the struct does not support
+ * const objects comparison, it will throw "not implemented" Error in runtime.
+ */
+
+FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
+{
     if (!needOpEquals())
         return NULL;
 
-    /* static bool__xopEquals(ref const S p, ref const S q) {
-     *     return p == q;
-     * }
-     */
-    Loc loc = Loc();    // errors are gagged, so loc is not need
+    //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
+    Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
     Parameters *parameters = new Parameters;
     parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
@@ -433,11 +462,11 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     tf = (TypeFunction *)tf->semantic(loc, sc);
 
     Identifier *id = Lexer::idPool("__xopEquals");
-    FuncDeclaration *fop = new FuncDeclaration(loc, Loc(), id, STCstatic, tf);
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
 
     Expression *e1 = new IdentifierExp(loc, Id::p);
     Expression *e2 = new IdentifierExp(loc, Id::q);
-    Expression *e = new EqualExp(TOKequal, Loc(), e1, e2);
+    Expression *e = new EqualExp(TOKequal, loc, e1, e2);
 
     fop->fbody = new ReturnStatement(loc, e);
 
@@ -481,17 +510,17 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
     return fop;
 }
 
-
 /*******************************************
  * Build copy constructor for struct.
+ *      void __cpctpr(ref const S s) const [pure nothrow @trusted]
+ *      {
+ *          (*cast(S*)&this) = *cast(S*)s;
+ *          (*cast(S*)&this).postBlit();
+ *      }
+ *
  * Copy constructors are compiler generated only, and are only
  * callable from the compiler. They are not user accessible.
- * A copy constructor is:
- *    void cpctpr(ref const S s) const
- *    {
- *      (*cast(S*)&this) = *cast(S*)s;
- *      (*cast(S*)&this).postBlit();
- *    }
+ *
  * This is done so:
  *      - postBlit() never sees uninitialized data
  *      - memcpy can be much more efficient than memberwise copy
@@ -783,4 +812,59 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
     }
 }
 
+/******************************************
+ * Create inclusive invariant for struct/class by aggregating
+ * all the invariants in invs[].
+ *      void __invariant() const [pure nothrow @trusted]
+ *      {
+ *          invs[0](), invs[1](), ...;
+ *      }
+ */
+
+FuncDeclaration *AggregateDeclaration::buildInv(Scope *sc)
+{
+    StorageClass stc = STCsafe | STCnothrow | STCpure;
+    Loc declLoc = this->loc;
+    Loc loc = Loc();    // internal code should have no loc to prevent coverage
+
+    switch (invs.dim)
+    {
+        case 0:
+            return NULL;
+
+        case 1:
+            // Don't return invs[0] so it has uniquely generated name.
+            /* fall through */
+
+        default:
+            Expression *e = NULL;
+            StorageClass stcx = 0;
+            for (size_t i = 0; i < invs.dim; i++)
+            {
+                stc = mergeFuncAttrs(stc, invs[i]->storage_class);
+                if (stc & STCdisable)
+                {
+                    // What should do?
+                }
+                StorageClass stcy = invs[i]->storage_class & (STCshared | STCsynchronized);
+                if (i == 0)
+                    stcx = stcy;
+                else if (stcx ^ stcy)
+                {
+            #if 1   // currently rejects
+                    error(invs[i]->loc, "mixing invariants with shared/synchronized differene is not supported");
+                    e = NULL;
+                    break;
+            #endif
+                }
+                e = Expression::combine(e, new CallExp(loc, new VarExp(loc, invs[i])));
+            }
+            InvariantDeclaration *inv;
+            inv = new InvariantDeclaration(declLoc, Loc(), stc | stcx, Id::classInvariant);
+            inv->fbody = new ExpStatement(loc, e);
+            members->push(inv);
+            inv->semantic(sc);
+            return inv;
+    }
+}
 

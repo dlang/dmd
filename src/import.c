@@ -68,7 +68,7 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
-enum PROT Import::prot()
+PROT Import::prot()
 {
     return protection;
 }

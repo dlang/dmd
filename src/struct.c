@@ -59,7 +59,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     getRTInfo = NULL;
 }
 
-enum PROT AggregateDeclaration::prot()
+PROT AggregateDeclaration::prot()
 {
     return protection;
 }
@@ -103,6 +103,14 @@ void AggregateDeclaration::semantic3(Scope *sc)
         {
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
+        }
+
+        if (StructDeclaration *sd = isStructDeclaration())
+        {
+            //if (sd->xeq != NULL) printf("sd = %s xeq @ [%s]\n", sd->toChars(), sd->loc.toChars());
+            //assert(sd->xeq == NULL);
+            if (sd->xeq == NULL)
+                sd->xeq = sd->buildXopEquals(sc);
         }
         sc = sc->pop();
 
@@ -683,9 +691,9 @@ void StructDeclaration::semantic(Scope *sc)
     cpctor = buildCpCtor(sc2);
 
     buildOpAssign(sc2);
-
-    xeq = buildXopEquals(sc2);
+    buildOpEquals(sc2);
 #endif
+    inv = buildInv(sc2);
 
     sc2->pop();
 
@@ -694,7 +702,6 @@ void StructDeclaration::semantic(Scope *sc)
 #if DMDV2
     ctor = search(Loc(), Id::ctor, 0);
 #endif
-    inv =    (InvariantDeclaration *)search(Loc(), Id::classInvariant, 0);
     aggNew =       (NewDeclaration *)search(Loc(), Id::classNew,       0);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete,    0);
 

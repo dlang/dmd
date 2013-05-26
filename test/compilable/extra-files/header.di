@@ -357,3 +357,11 @@ template foo6591()
 	}
 
 }
+version (unittest)
+{
+	nothrow pure {}
+	nothrow pure {}
+	public {}
+	extern (C) {}
+	align{}
+}

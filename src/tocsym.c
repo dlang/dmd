@@ -314,14 +314,6 @@ Symbol *ClassInfoDeclaration::toSymbol()
 /*************************************
  */
 
-Symbol *ModuleInfoDeclaration::toSymbol()
-{
-    return mod->toSymbol();
-}
-
-/*************************************
- */
-
 Symbol *TypeInfoDeclaration::toSymbol()
 {
     //printf("TypeInfoDeclaration::toSymbol(%s), linkage = %d\n", toChars(), linkage);
@@ -373,9 +365,9 @@ Symbol *FuncDeclaration::toSymbol()
             s->Sclass = SCglobal;
             symbol_func(s);
             func_t *f = s->Sfunc;
-            if (isVirtual())
+            if (isVirtual() && vtblIndex != -1)
                 f->Fflags |= Fvirtual;
-            else if (isMember2())
+            else if (isMember2() && isStatic())
                 f->Fflags |= Fstatic;
             f->Fstartline.Slinnum = loc.linnum;
             f->Fstartline.Sfilename = (char *)loc.filename;

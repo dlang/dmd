@@ -84,6 +84,7 @@ Declaration::Declaration(Identifier *id)
     linkage = LINKdefault;
     inuse = 0;
     sem = SemanticStart;
+    mangleOverride = NULL; 
 }
 
 void Declaration::semantic(Scope *sc)
@@ -121,7 +122,7 @@ int Declaration::isCodeseg()
     return FALSE;
 }
 
-enum PROT Declaration::prot()
+PROT Declaration::prot()
 {
     return protection;
 }
@@ -953,6 +954,9 @@ void VarDeclaration::semantic(Scope *sc)
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
+    Type *tbn = tb;
+    while (tbn->ty == Tsarray)
+        tbn = tbn->nextOf()->toBasetype();
     if (tb->ty == Tvoid && !(storage_class & STClazy))
     {
         if (inferred)
@@ -1153,7 +1157,10 @@ Lnomatch:
     else if (type->isWild())
         storage_class |= STCwild;
 
-    if (isSynchronized())
+    if (storage_class & (STCmanifest | STCstatic | STCgshared))
+    {
+    }
+    else if (isSynchronized())
     {
         error("variable %s cannot be synchronized", toChars());
     }
@@ -1180,12 +1187,19 @@ Lnomatch:
         {
 #if DMDV2
             assert(!(storage_class & (STCextern | STCstatic | STCtls | STCgshared)));
+            if (storage_class & (STCconst | STCimmutable) && init &&
+                global.params.vfield)
+            {
+                const char *p = loc.toChars();
+                const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
+                fprintf(stderr, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
+            }
 #endif
             {
                 storage_class |= STCfield;
 #if DMDV2
-                if (tb->ty == Tstruct && ((TypeStruct *)tb)->sym->noDefaultCtor ||
-                    tb->ty == Tclass  && ((TypeClass  *)tb)->sym->noDefaultCtor)
+                if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
+                    tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
                     aad->noDefaultCtor = TRUE;
 #endif
             }
@@ -1248,8 +1262,8 @@ Lnomatch:
         }
     }
 
-    if (!(storage_class & (STCctfe | STCref)) && tb->ty == Tstruct &&
-        ((TypeStruct *)tb)->sym->noDefaultCtor)
+    if (!(storage_class & (STCctfe | STCref)) && tbn->ty == Tstruct &&
+        ((TypeStruct *)tbn)->sym->noDefaultCtor)
     {
         if (!init)
         {   if (isField())
@@ -1288,7 +1302,7 @@ Lnomatch:
     else if (storage_class & STCmanifest)
         error("manifest constants must have initializers");
 
-    enum TOK op = TOKconstruct;
+    TOK op = TOKconstruct;
     if (!init && !sc->inunion && !(storage_class & (STCstatic | STCgshared | STCextern)) && fd &&
         (!(storage_class & (STCfield | STCin | STCforeach | STCparameter | STCresult))
          || (storage_class & STCout)) &&
@@ -1460,7 +1474,7 @@ Lnomatch:
                         /* Look for form of constructor call which is:
                          *    *__ctmp.ctor(arguments...)
                          */
-                        if (1)
+                        if ((*pinit)->type->implicitConvTo(t))
                         {   CallExp *ce = (CallExp *)(*pinit);
                             if (ce->e1->op == TOKdotvar)
                             {   DotVarExp *dve = (DotVarExp *)ce->e1;
@@ -2300,25 +2314,6 @@ Dsymbol *ClassInfoDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 void ClassInfoDeclaration::semantic(Scope *sc)
-{
-}
-
-/********************************* ModuleInfoDeclaration ****************************/
-
-ModuleInfoDeclaration::ModuleInfoDeclaration(Module *mod)
-    : VarDeclaration(Loc(), Module::moduleinfo->type, mod->ident, NULL)
-{
-    this->mod = mod;
-    storage_class = STCstatic | STCgshared;
-}
-
-Dsymbol *ModuleInfoDeclaration::syntaxCopy(Dsymbol *s)
-{
-    assert(0);          // should never be produced by syntax
-    return NULL;
-}
-
-void ModuleInfoDeclaration::semantic(Scope *sc)
 {
 }
 

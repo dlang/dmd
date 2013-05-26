@@ -199,6 +199,67 @@ void test8942()
 }
 
 /***************************************************/
+// 10144
+
+final class TNFA10144(char_t)
+{
+    enum Act { don }
+    const Act[] action_lookup1 = [ Act.don, ];
+}
+alias X10144 = TNFA10144!char;
+
+class C10144
+{
+    enum Act { don }
+    synchronized { enum x1 = [Act.don]; }
+    override     { enum x2 = [Act.don]; }
+    abstract     { enum x3 = [Act.don]; }
+    final        { enum x4 = [Act.don]; }
+    synchronized { static s1 = [Act.don]; }
+    override     { static s2 = [Act.don]; }
+    abstract     { static s3 = [Act.don]; }
+    final        { static s4 = [Act.don]; }
+    synchronized { __gshared gs1 = [Act.don]; }
+    override     { __gshared gs2 = [Act.don]; }
+    abstract     { __gshared gs3 = [Act.don]; }
+    final        { __gshared gs4 = [Act.don]; }
+}
+
+/***************************************************/
+
+// 10142
+
+class File10142
+{
+    enum Access : ubyte { Read = 0x01 }
+    enum Open : ubyte { Exists = 0 }
+    enum Share : ubyte { None = 0 }
+    enum Cache : ubyte { None = 0x00 }
+
+    struct Style
+    {
+        Access  access;
+        Open    open;
+        Share   share;
+        Cache   cache;
+    }
+    enum Style ReadExisting = { Access.Read, Open.Exists };
+
+    this (const(char[]) path, Style style = ReadExisting)
+    {
+        assert(style.access == Access.Read);
+        assert(style.open   == Open  .Exists);
+        assert(style.share  == Share .None);
+        assert(style.cache  == Cache .None);
+    }
+}
+
+void test10142()
+{
+    auto f = new File10142("dummy");
+}
+
+/***************************************************/
 
 int main()
 {
@@ -210,6 +271,7 @@ int main()
     test8147();
     test8410();
     test8942();
+    test10142();
 
     printf("Success\n");
     return 0;

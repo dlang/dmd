@@ -14,8 +14,8 @@ extern "C" {
 #endif
 
 #if MARS
-struct LabelDsymbol;
-struct Declaration;
+class LabelDsymbol;
+class Declaration;
 #endif
 
 typedef int segidx_t;           // index into SegData[]

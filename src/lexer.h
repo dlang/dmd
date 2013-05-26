@@ -19,8 +19,8 @@
 #include "mars.h"
 
 struct StringTable;
-struct Identifier;
-struct Module;
+class Identifier;
+class Module;
 
 /* Tokens:
         (       )
@@ -225,7 +225,7 @@ struct Token
 {
     Token *next;
     unsigned char *ptr;         // pointer to first character of this token within buffer
-    enum TOK value;
+    TOK value;
     unsigned char *blockComment; // doc comment string prior to this token
     unsigned char *lineComment;  // doc comment for previous token
     union
@@ -264,11 +264,12 @@ struct Token
     void print();
 #endif
     const char *toChars();
-    static const char *toChars(enum TOK);
+    static const char *toChars(TOK);
 };
 
-struct Lexer
+class Lexer
 {
+public:
     static StringTable stringtable;
     static OutBuffer stringbuffer;
     static Token *freelist;

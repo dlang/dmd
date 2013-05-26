@@ -324,7 +324,7 @@ void Type::init()
     tstring = tchar->invariantOf()->arrayOf();
     tvalist = tvoid->pointerTo();
 
-    if (global.params.is64bit)
+    if (global.params.isLP64)
     {
         Tsize_t = Tuns64;
         Tptrdiff_t = Tint64;
@@ -1274,7 +1274,7 @@ Type *Type::aliasthisOf()
 int Type::checkAliasThisRec()
 {
     Type *tb = toBasetype();
-    enum AliasThisRec* pflag;
+    AliasThisRec* pflag;
     if (tb->ty == Tstruct)
         pflag = &((TypeStruct *)tb)->att;
     else if (tb->ty == Tclass)
@@ -1282,7 +1282,7 @@ int Type::checkAliasThisRec()
     else
         return 0;
 
-    enum AliasThisRec flag = (enum AliasThisRec)(*pflag & ~RECtracing);
+    AliasThisRec flag = (AliasThisRec)(*pflag & ~RECtracing);
     if (flag == RECfwdref)
     {
         Type *att = aliasthisOf();
@@ -2119,7 +2119,12 @@ Expression *Type::noMember(Scope *sc, Expression *e, Identifier *ident, int flag
             tiargs->push(se);
             DotTemplateInstanceExp *dti = new DotTemplateInstanceExp(e->loc, e, Id::opDispatch, tiargs);
             dti->ti->tempdecl = td;
-            return dti->semanticY(sc, flag);
+
+            unsigned errors = flag ? global.startGagging() : 0;
+            Expression *e = dti->semanticY(sc, 0);
+            if (flag && global.endGagging(errors))
+                e = NULL;
+            return e;
         }
 
         /* See if we should forward to the alias this.
@@ -4957,7 +4962,7 @@ int TypeReference::isZeroInit(Loc loc)
 
 /***************************** TypeFunction *****************************/
 
-TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, enum LINK linkage, StorageClass stc)
+TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, LINK linkage, StorageClass stc)
     : TypeNext(Tfunction, treturn)
 {
 //if (!treturn) *(char*)0=0;
@@ -5474,7 +5479,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         tf->isproperty = TRUE;
 
     tf->linkage = sc->linkage;
-
+#if 0
     /* If the parent is @safe, then this function defaults to safe
      * too.
      * If the parent's @safe-ty is inferred, then this function's @safe-ty needs
@@ -5490,7 +5495,7 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 break;
             }
         }
-
+#endif
     bool wildreturn = FALSE;
     if (tf->next)
     {
@@ -6481,6 +6486,7 @@ L1:
         }
         if (t->ty == Tinstance && t != this && !t->deco)
         {   error(loc, "forward reference to '%s'", t->toChars());
+            *pt = Type::terror;
             return;
         }
 
@@ -6500,6 +6506,7 @@ L1:
                     {
                         if (!scx)
                         {   error(loc, "forward reference to '%s'", t->toChars());
+                            *pt = Type::terror;
                             return;
                         }
                         if (scx->scopesym == scopesym)
@@ -8757,13 +8764,6 @@ MATCH TypeClass::implicitConvTo(Type *to)
         }
     }
 
-    if (global.params.Dversion == 1)
-    {
-        // Allow conversion to (void *)
-        if (to->ty == Tpointer && ((TypePointer *)to)->next->ty == Tvoid)
-            return MATCHconvert;
-    }
-
     m = MATCHnomatch;
     if (sym->aliasthis && !(att & RECtracing))
     {
@@ -9317,8 +9317,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             if (arg->storageClass & STCout)
                 buf->writestring("out ");
             else if (arg->storageClass & STCref)
-                buf->writestring((global.params.Dversion == 1)
-                        ? "inout " : "ref ");
+                buf->writestring("ref ");
             else if (arg->storageClass & STCin)
                 buf->writestring("in ");
             else if (arg->storageClass & STClazy)

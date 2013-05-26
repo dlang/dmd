@@ -72,11 +72,11 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
     {
         if (p == components[i])
         {
-            /* Sequence is S_, S0_, .., S9_, SA_, ..., SZ_, S10_, ...
+            /* Sequence is S_, S1_, .., S9_, SA_, ..., SZ_, S10_, ...
              */
             buf->writeByte('S');
             if (i)
-                writeBase36(buf, i - 1);
+                writeBase36(buf, i);
             buf->writeByte('_');
             return 1;
         }
@@ -337,7 +337,7 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
         TypeFunctions for non-static member functions, and non-static
         member functions of different classes.
      */
-    if (!cms->substitute(buf, this))
+    if (!cms->exist(this))
     {
         buf->writeByte('F');
         if (linkage == LINKc)
@@ -346,6 +346,8 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
         Parameter::argsCppMangle(buf, cms, parameters, varargs);
         buf->writeByte('E');
     }
+    else
+        cms->substitute(buf, this);
 }
 
 

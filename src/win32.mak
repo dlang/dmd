@@ -187,7 +187,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 GCOBJS=rmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
-ROOTOBJS= array.obj man.obj root.obj port.obj \
+ROOTOBJS= man.obj root.obj port.obj \
 	stringtable.obj response.obj async.obj speller.obj aav.obj \
 	$(GCOBJS)
 
@@ -244,7 +244,7 @@ TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\root.c $(ROOT)\array.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
+ROOTSRCC=$(ROOT)\root.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c
 ROOTSRC= $(ROOT)\root.h \
@@ -660,9 +660,6 @@ tk.obj : tk.c
 # Root
 aav.obj : $(ROOT)\aav.h $(ROOT)\aav.c
 	$(CC) -c $(CFLAGS) $(ROOT)\aav.c
-
-array.obj : $(ROOT)\array.c
-	$(CC) -c $(CFLAGS) $(ROOT)\array.c
 
 async.obj : $(ROOT)\async.h $(ROOT)\async.c
 	$(CC) -c $(CFLAGS) $(ROOT)\async.c

@@ -439,8 +439,8 @@ int main(string[] args)
 
             if (testArgs.compileOutput !is null)
             {
-                compile_output = std.regex.replace(compile_output, regex(`DMD v2\.[0-9]+ DEBUG\n`, ""), "");
-                compile_output = std.regex.replace(compile_output, regex(`\nDMD v2\.[0-9]+ DEBUG`, ""), "");
+                compile_output = std.regex.replace(compile_output, regex(`DMD v2\.[0-9]+.* DEBUG\n`, ""), "");
+                compile_output = std.regex.replace(compile_output, regex(`\nDMD v2\.[0-9]+.* DEBUG`, ""), "");
                 enforce(compile_output == testArgs.compileOutput,
                         "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
             }

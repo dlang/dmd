@@ -743,7 +743,7 @@ Module *Dsymbol::getAccessModule()
 /*************************************
  */
 
-enum PROT Dsymbol::prot()
+PROT Dsymbol::prot()
 {
     return PROTpublic;
 }
@@ -981,7 +981,7 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     return s;
 }
 
-void ScopeDsymbol::importScope(Dsymbol *s, enum PROT protection)
+void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
 {
     //printf("%s->ScopeDsymbol::importScope(%s, %d)\n", toChars(), s->toChars(), protection);
 
