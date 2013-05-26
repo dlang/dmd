@@ -86,7 +86,6 @@ public:
     int noctor;                 // set if constructor calls aren't allowed
     int intypeof;               // in typeof(exp)
     bool speculative;            // in __traits(compiles) or typeof(exp)
-    int parameterSpecialization; // if in template parameter specialization
     int noaccesscheck;          // don't do access checks
     int needctfe;               // inside a ctfe-only expression
 
