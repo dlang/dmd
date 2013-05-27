@@ -12713,17 +12713,21 @@ Expression *EqualExp::semantic(Scope *sc)
         TupleExp *tup1 = (TupleExp *)e1;
         TupleExp *tup2 = (TupleExp *)e2;
         size_t dim = tup1->exps->dim;
+        Expression *e = NULL;
         if (dim != tup2->exps->dim)
         {
             error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
-            return new ErrorExp();
+            e = new ErrorExp();
+        }
+        else if (dim == 0)
+        {
+            // zero-length tuple comparison should always return true or false.
+            e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);
         }
         else
         {
             Expressions *exps = new Expressions;
             exps->setDim(dim);
-
-            Expression *e = NULL;
             for (size_t i = 0; i < dim; i++)
             {
                 Expression *ex1 = (*tup1->exps)[i];
@@ -12736,11 +12740,12 @@ Expression *EqualExp::semantic(Scope *sc)
                 else
                     e = new OrOrExp(loc, e, eeq);
             }
+            assert(e);
             e = combine(combine(tup1->e0, tup2->e0), e);
-            e = e->semantic(sc);
             //printf("e = %s\n", e->toChars());
-            return e;
         }
+        e = e->semantic(sc);
+        return e;
     }
 
     e = typeCombine(sc);
