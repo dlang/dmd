@@ -2353,6 +2353,7 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
     case TOKtilde:  e = Com(type, e1); break;
     case TOKnot:    e = Not(type, e1); break;
     case TOKtobool: e = Bool(type, e1); break;
+    case TOKvector: e = this; break; // do nothing
     default: assert(0);
     }
     return e;
