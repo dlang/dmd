@@ -1180,10 +1180,19 @@ void test9873()
 
 void test10178()
 {
-    struct S {}
+    struct S { static int count; }
     S s;
     assert((s.tupleof == s.tupleof) == true);
     assert((s.tupleof != s.tupleof) == false);
+
+    S getS()
+    {
+        S s;
+        ++S.count;
+        return s;
+    }
+    assert(getS().tupleof == getS().tupleof);
+    assert(S.count == 2);
 }
 
 /***************************************************/
@@ -1275,6 +1284,7 @@ int main()
     test9174();
     test9858();
     test9873();
+    test10178();
     test9890();
     test10004();
 
