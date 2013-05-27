@@ -1176,6 +1176,17 @@ void test9873()
 }
 
 /***************************************************/
+// 10178
+
+void test10178()
+{
+    struct S {}
+    S s;
+    assert((s.tupleof == s.tupleof) == true);
+    assert((s.tupleof != s.tupleof) == false);
+}
+
+/***************************************************/
 // 9890
 
 void test9890()
