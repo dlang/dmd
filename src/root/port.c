@@ -165,6 +165,131 @@ int Port::stricmp(const char *s1, const char *s2)
 
 #endif
 
+#if __MINGW32__
+
+#include <math.h>
+#include <time.h>
+#include <sys/time.h>
+#include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <ctype.h>
+#include <wchar.h>
+#include <float.h>
+#include <assert.h>
+
+static double zero = 0;
+double Port::nan = copysign(NAN, 1.0);
+double Port::infinity = 1 / zero;
+double Port::dbl_max = 1.7976931348623157e308;
+double Port::dbl_min = 5e-324;
+longdouble Port::ldbl_max = LDBL_MAX;
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    assert(!signbit(Port::nan));
+}
+
+int Port::isNan(double r)
+{
+    return isnan(r);
+}
+
+int Port::isNan(longdouble r)
+{
+    return isnan(r);
+}
+
+int Port::isSignallingNan(double r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 51 of 0..63 for 64 bit doubles.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[6]) & 8);
+}
+
+int Port::isSignallingNan(longdouble r)
+{
+    /* A signalling NaN is a NaN with 0 as the most significant bit of
+     * its significand, which is bit 62 of 0..79 for 80 bit reals.
+     */
+    return isNan(r) && !((((unsigned char*)&r)[7]) & 0x40);
+}
+
+int Port::isInfinity(double r)
+{
+    return isinf(r);
+}
+
+longdouble Port::fmodl(longdouble x, longdouble y)
+{
+    return ::fmodl(x, y);
+}
+
+char *Port::strupr(char *s)
+{
+    char *t = s;
+
+    while (*s)
+    {
+        *s = toupper(*s);
+        s++;
+    }
+
+    return t;
+}
+
+int Port::memicmp(const char *s1, const char *s2, int n)
+{
+    int result = 0;
+
+    for (int i = 0; i < n; i++)
+    {   char c1 = s1[i];
+        char c2 = s2[i];
+
+        result = c1 - c2;
+        if (result)
+        {
+            result = toupper(c1) - toupper(c2);
+            if (result)
+                break;
+        }
+    }
+    return result;
+}
+
+int Port::stricmp(const char *s1, const char *s2)
+{
+    int result = 0;
+
+    for (;;)
+    {   char c1 = *s1;
+        char c2 = *s2;
+
+        result = c1 - c2;
+        if (result)
+        {
+            result = toupper(c1) - toupper(c2);
+            if (result)
+                break;
+        }
+        if (!c1)
+            break;
+        s1++;
+        s2++;
+    }
+    return result;
+}
+
+#endif
+
 #if linux || __APPLE__ || __FreeBSD__ || __OpenBSD__
 
 #include <math.h>
