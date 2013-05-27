@@ -1196,6 +1196,26 @@ void test10178()
 }
 
 /***************************************************/
+// 10179
+
+void test10179()
+{
+    struct S { static int count; }
+    S s;
+    static assert(s.tupleof.length == 0);
+    s.tupleof = s.tupleof;   // error -> OK
+
+    S getS()
+    {
+        S s;
+        ++S.count;
+        return s;
+    }
+    getS().tupleof = getS().tupleof;
+    assert(S.count == 2);
+}
+
+/***************************************************/
 // 9890
 
 void test9890()
@@ -1285,6 +1305,7 @@ int main()
     test9858();
     test9873();
     test10178();
+    test10179();
     test9890();
     test10004();
 
