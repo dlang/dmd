@@ -21,7 +21,7 @@
 #include "arraytypes.h"
 #include "expression.h"
 
-struct Scope;
+class Scope;
 class Identifier;
 class Expression;
 class StructDeclaration;
@@ -32,9 +32,10 @@ class TypedefDeclaration;
 class TypeInfoDeclaration;
 class Dsymbol;
 class TemplateInstance;
-struct CppMangleState;
 class TemplateDeclaration;
 struct JsonOut;
+class TypeVisitor;
+
 enum LINK;
 
 class TypeBasic;
@@ -251,9 +252,9 @@ public:
     void modToBuffer(OutBuffer *buf);
     char *modToChars();
     virtual void toJson(JsonOut *json);
-#if CPP_MANGLE
-    virtual void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    //Need be overrided in all mangling types, because mangleType uses static type of this for dispatching
+    virtual void acceptVisitor(TypeVisitor *m);
     virtual int isintegral();
     virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
@@ -363,6 +364,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeTuple *toArgTypes();
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeNext : public Type
@@ -386,6 +388,7 @@ public:
     MATCH constConv(Type *to);
     unsigned wildConvTo(Type *tprm);
     void transitive();
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeBasic : public Type
@@ -403,9 +406,8 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
     int isintegral();
     int isfloating();
     int isreal();
@@ -442,9 +444,8 @@ public:
     void toJson(JsonOut *json);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Type *reliesOnTident(TemplateParameters *tparams);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
     int isintegral();
     int isfloating();
     int isscalar();
@@ -466,6 +467,7 @@ class TypeArray : public TypeNext
 public:
     TypeArray(TY ty, Type *next);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 // Static array, one with a fixed dimension
@@ -502,12 +504,10 @@ public:
     int needsDestruction();
     bool needsNested();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
 
     static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
-
+    void acceptVisitor(TypeVisitor *m);
+    
     type *toCtype();
     type *toCParamtype();
 };
@@ -537,9 +537,8 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
 };
@@ -575,9 +574,8 @@ public:
     TypeTuple *toArgTypes();
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
@@ -603,9 +601,8 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
 };
@@ -623,9 +620,8 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 };
 
 enum RET
@@ -685,9 +681,9 @@ public:
     TypeInfoDeclaration *getTypeInfoDeclaration();
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
+
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
@@ -721,9 +717,8 @@ public:
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
     int hasPointers();
     TypeTuple *toArgTypes();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
 };
@@ -744,6 +739,7 @@ public:
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeIdentifier : public TypeQualified
@@ -765,6 +761,7 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
+    void acceptVisitor(TypeVisitor *m);
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -787,6 +784,7 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Expression *toExpression();
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeTypeof : public TypeQualified
@@ -804,6 +802,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeReturn : public TypeQualified
@@ -817,6 +816,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 // Whether alias this dependency is recursive or not.
@@ -865,9 +865,8 @@ public:
     MATCH constConv(Type *to);
     unsigned wildConvTo(Type *tprm);
     Type *toHeadMutable();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
 };
@@ -912,10 +911,7 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     Type *nextOf();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
-
+    void acceptVisitor(TypeVisitor *m);
     type *toCtype();
 };
 
@@ -962,9 +958,8 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     int hasWild();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
     type *toCParamtype();
@@ -1002,9 +997,8 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     int builtinTypeInfo();
-#if CPP_MANGLE
-    void toCppMangle(OutBuffer *buf, CppMangleState *cms);
-#endif
+
+    void acceptVisitor(TypeVisitor *m);
 
     type *toCtype();
 
@@ -1032,6 +1026,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeSlice : public TypeNext
@@ -1047,6 +1042,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 class TypeNull : public Type
@@ -1065,6 +1061,7 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
+    void acceptVisitor(TypeVisitor *m);
 };
 
 /**************************************************************/
@@ -1087,9 +1084,6 @@ public:
     int dyncast() { return DYNCAST_PARAMETER; } // kludge for template.isType()
     static Parameters *arraySyntaxCopy(Parameters *args);
     static char *argsTypesToChars(Parameters *args, int varargs);
-#if CPP_MANGLE
-    static void argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs);
-#endif
     static void argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *arguments, int varargs);
     static void argsToDecoBuffer(OutBuffer *buf, Parameters *arguments);
     static int isTPL(Parameters *arguments);

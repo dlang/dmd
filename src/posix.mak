@@ -337,7 +337,7 @@ csymbol.o: $C/symbol.c
 cond.o: cond.c
 	$(CC) -c $(CFLAGS) $<
 
-cppmangle.o: cppmangle.c
+cppmangle.o: cppmangle.c mangle.h
 	$(CC) -c $(CFLAGS) $<
 
 cv8.o: $C/cv8.c
@@ -589,7 +589,7 @@ strtold.o: $C/strtold.c
 struct.o: struct.c
 	$(CC) -c $(CFLAGS) $<
 
-target.o: target.c target.h
+target.o: target.c target.h mangle.h
 	$(CC) -c $(CFLAGS) $<
 
 template.o: template.c

@@ -101,41 +101,28 @@ Symbol *Dsymbol::toSymbol()
  * Generate import symbol from symbol.
  */
 
-Symbol *Dsymbol::toImport()
-{
-    if (!isym)
-    {
-        if (!csym)
-            csym = toSymbol();
-        isym = toImport(csym);
-    }
-    return isym;
-}
-
-/*************************************
- */
-
-Symbol *Dsymbol::toImport(Symbol *sym)
+static Symbol *toImport(Symbol *sym, mangle_t m)
 {
     char *id;
     char *n;
     Symbol *s;
     type *t;
-
     //printf("Dsymbol::toImport('%s')\n", sym->Sident);
     n = sym->Sident;
     id = (char *) alloca(6 + strlen(n) + 1 + sizeof(type_paramsize(sym->Stype))*3 + 1);
-    if (sym->Stype->Tmangle == mTYman_std && tyfunc(sym->Stype->Tty))
+
+    if (m == mTYman_std && tyfunc(sym->Stype->Tty))
     {
         if (config.exe == EX_WIN64)
             sprintf(id,"__imp_%s",n);
         else
-        sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
+            sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
     }
-    else if (sym->Stype->Tmangle == mTYman_d)
+    else if (m == mTYman_d)
         sprintf(id,"_imp_%s",n);
     else
         sprintf(id,"_imp__%s",n);
+
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
@@ -147,6 +134,51 @@ Symbol *Dsymbol::toImport(Symbol *sym)
     s->Sfl = FLextern;
     slist_add(s);
     return s;
+}
+
+/*************************************
+ */
+
+Symbol *Dsymbol::toImport()
+{
+    if (!isym)
+    {
+        if (!csym)
+            csym = toSymbol();
+        mangle_t m = csym->Stype->Tmangle;
+        Declaration *d = isDeclaration();
+        if (d)
+        {
+            switch (d->linkage)
+            {
+                case LINKwindows:
+                    m = mTYman_std;
+                    break;
+            
+                case LINKpascal:
+                    m = mTYman_pas;
+                    break;
+            
+                case LINKc:
+                    m = mTYman_c;
+                    break;
+            
+                case LINKd:
+                    m = mTYman_d;
+                    break;
+            
+                case LINKcpp:
+                    m = mTYman_cpp;
+                    break;
+            
+                default:
+                    printf("linkage = %d\n", d->linkage);
+                    assert(0);
+            }
+        }
+        isym = ::toImport(csym, m);
+    }
+    return isym;
 }
 
 /*************************************
@@ -253,47 +285,52 @@ Symbol *VarDeclaration::toSymbol()
             type_setcv(&t, t->Tty | mTYvolatile);
 
         mangle_t m = 0;
-        switch (linkage)
+        if (mangleOverride)
+            m = mTYman_d;
+        else
         {
-            case LINKwindows:
-                m = mTYman_std;
-                break;
-
-            case LINKpascal:
-                m = mTYman_pas;
-                break;
-
-            case LINKc:
-                m = mTYman_c;
-                break;
-
-            case LINKd:
-                m = mTYman_d;
-                break;
-
-            case LINKcpp:
+            switch (linkage)
             {
-                m = mTYman_cpp;
+                case LINKwindows:
+                    m = mTYman_std;
+                    break;
 
-                s->Sflags = SFLpublic;
-                Dsymbol *parent = toParent();
-                ClassDeclaration *cd = parent->isClassDeclaration();
-                if (cd)
+                case LINKpascal:
+                    m = mTYman_pas;
+                    break;
+
+                case LINKc:
+                    m = mTYman_c;
+                    break;
+
+                case LINKcpp:
                 {
-                    ::type *tc = cd->type->toCtype();
-                    s->Sscope = tc->Tnext->Ttag;
+                    m = mTYman_cpp;
+
+                    s->Sflags = SFLpublic;
+                    Dsymbol *parent = toParent();
+                    ClassDeclaration *cd = parent->isClassDeclaration();
+                    if (cd)
+                    {
+                        ::type *tc = cd->type->toCtype();
+                        s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
+                    }
+                    break;
                 }
-                StructDeclaration *sd = parent->isStructDeclaration();
-                if (sd)
-                {
-                    ::type *ts = sd->type->toCtype();
-                    s->Sscope = ts->Ttag;
-                }
-                break;
+                case LINKd:
+                    m = mTYman_d;
+                    break;
+
+                default:
+                    printf("linkage = %d\n", linkage);
+                    assert(0);
             }
-            default:
-                printf("linkage = %d\n", linkage);
-                assert(0);
         }
         type_setmangle(&t, m);
         s->Stype = t;
@@ -388,6 +425,14 @@ Symbol *FuncDeclaration::toSymbol()
             t->Tty = TYnfunc;
             t->Tmangle = mTYman_c;
         }
+        else if(ident == Id::__alloca)
+        {
+            t->Tmangle = mTYman_c;
+        }
+        else if((isWinMain() || isDllMain())&&(linkage == LINKwindows))
+        {
+            t->Tmangle = mTYman_std;
+        }
         else
         {
             switch (linkage)
@@ -405,12 +450,8 @@ Symbol *FuncDeclaration::toSymbol()
                     t->Tmangle = mTYman_c;
                     break;
 
-                case LINKd:
-                    t->Tmangle = mTYman_d;
-                    break;
-
                 case LINKcpp:
-                {   t->Tmangle = mTYman_cpp;
+                {
                     if (isThis() && !global.params.is64bit && global.params.isWindows)
                     {
                         if (((TypeFunction *)type)->varargs == 1)
@@ -418,7 +459,10 @@ Symbol *FuncDeclaration::toSymbol()
                         else
                             t->Tty = TYmfunc;
                     }
-                    s->Sflags |= SFLpublic;
+
+                    t->Tmangle = mTYman_cpp;
+
+                    s->Sflags = SFLpublic;
                     Dsymbol *parent = toParent();
                     ClassDeclaration *cd = parent->isClassDeclaration();
                     if (cd)
@@ -438,11 +482,19 @@ Symbol *FuncDeclaration::toSymbol()
                         s->Sfunc->Fflags |= Fdtor;
                     break;
                 }
+                case LINKd:
+                    t->Tmangle = mTYman_d;
+                    break;
+
                 default:
                     printf("linkage = %d\n", linkage);
                     assert(0);
             }
         }
+        
+        if (linkage == LINKcpp && isThis() && !global.params.is64bit && global.params.isWindows)
+            t->Tty = TYmfunc;
+
         if (msave)
             assert(msave == t->Tmangle);
         //printf("Tty = %x, mangle = x%x\n", t->Tty, t->Tmangle);

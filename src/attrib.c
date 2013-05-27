@@ -28,8 +28,7 @@
 #include "parse.h"
 #include "template.h"
 #include "hdrgen.h"
-#include "utf.h"
-
+#include "target.h"
 
 /********************************* AttribDeclaration ****************************/
 
@@ -1113,52 +1112,10 @@ void PragmaDeclaration::semantic(Scope *sc)
                 return;
             }
 
-            if (!se->len)
-                error("zero-length string not allowed for mangled name");
-
             if (se->sz != 1)
                 error("mangled name characters can only be of type char");
 
-#if 1
-            /* Note: D language specification should not have any assumption about backend
-             * implementation. Ideally pragma(mangle) can accept a string of any content.
-             *
-             * Therefore, this validation is compiler implementation specific.
-             */
-            for (size_t i = 0; i < se->len; )
-            {
-                unsigned char *p = (unsigned char *)se->string;
-                dchar_t c = p[i];
-                if (c < 0x80)
-                {
-                    if (c >= 'A' && c <= 'Z' ||
-                        c >= 'a' && c <= 'z' ||
-                        c >= '0' && c <= '9' ||
-                        c != 0 && strchr("$%().:?@[]_", c))
-                    {
-                        ++i;
-                        continue;
-                    }
-                    else
-                    {
-                        error("char 0x%02x not allowed in mangled name", c);
-                        break;
-                    }
-                }
-
-                if (const char* msg = utf_decodeChar((unsigned char *)se->string, se->len, &i, &c))
-                {
-                    error("%s", msg);
-                    break;
-                }
-
-                if (!isUniAlpha(c))
-                {
-                    error("char 0x%04x not allowed in mangled name", c);
-                    break;
-                }
-            }
-#endif
+            Target::validateMangle(loc, se->string, se->len);
         }
     }
     else if (global.params.ignoreUnsupportedPragmas)

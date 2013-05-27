@@ -12,12 +12,16 @@
 #include "target.h"
 #include "mars.h"
 #include "mtype.h"
+#include "mangle.h"
+#include "dsymbol.h"
+#include "utf.h"
 
 int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 
+static Mangler* manglers[LINKmax];
 
 void Target::init()
 {
@@ -59,6 +63,11 @@ void Target::init()
 
     if (global.params.isLP64)
         ptrsize = 8;
+
+    if (global.params.isWindows)
+        manglers[LINKcpp] = NULL;
+    else
+        manglers[LINKcpp] = new ItaniumCPPMangler;
 }
 
 /******************************
@@ -152,3 +161,54 @@ unsigned Target::critsecsize()
     return 0;
 }
 
+
+const char *Target::mangleSymbol(Dsymbol* sym, size_t link)
+{
+    if(!manglers[link])
+    {
+        fprintf(stderr, "'%s', linkage = %d\n", sym->toChars(), link);
+        assert(0);
+    }
+    return sym->mangleX(manglers[link]);
+}
+
+bool Target::validateMangle(Loc loc, const void *mangle, size_t len)
+{
+    if (!len)
+        error(loc, "zero-length string not allowed for mangled name");
+
+    unsigned char *p = (unsigned char *)mangle;
+    for (size_t i = 0; i < len; )
+    {
+        dchar_t c = p[i];
+        if (c < 0x80)
+        {
+            if (c >= 'A' && c <= 'Z' ||
+                c >= 'a' && c <= 'z' ||
+                c >= '0' && c <= '9' ||
+                c != 0 && strchr("$%().:?@[]_", c))
+            {
+                ++i;
+                continue;
+            }
+            else
+            {
+                error(loc, "char 0x%02x not allowed in mangled name", c);
+                return false;
+            }
+        }
+    
+        if (const char* msg = utf_decodeChar((unsigned char *)mangle, len, &i, &c))
+        {
+            error(loc, "%s", msg);
+            return false;
+        }
+    
+        if (!isUniAlpha(c))
+        {
+            error(loc, "char 0x%04x not allowed in mangled name", c);
+            return false;
+        }
+    }
+    return true;
+}

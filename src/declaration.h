@@ -324,7 +324,7 @@ public:
     Symbol *toSymbol();
     void toObjFile(int multiobj);                       // compile to .obj file
     int cvMember(unsigned char *p);
-    const char *mangle(bool isv = false);
+    const char *mangleX(Mangler *m);
     // Eliminate need for dynamic_cast
     VarDeclaration *isVarDeclaration() { return (VarDeclaration *)this; }
 };
@@ -681,6 +681,7 @@ public:
     void appendState(Statement *s);
     const char *mangle(bool isv = false);
     const char *mangleExact(bool isv = false);
+    const char *mangleX(Mangler *m);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();

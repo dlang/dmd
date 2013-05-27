@@ -14,7 +14,13 @@
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
 
+#include <stdlib.h> //for size_t
+
 class Type;
+class Mangler;
+class Dsymbol;
+struct Loc;
+//enum LINK;
 
 struct Target
 {
@@ -27,6 +33,16 @@ struct Target
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
+    
+    /*
+     * mangle stuff
+     */
+    //mangle specified symbol with spesified linkage
+    static const char *mangleSymbol(Dsymbol* sym, size_t link);
+    
+    //Mangle validation is compiler implementation specific.
+    static bool validateMangle(Loc, const void *mangle, size_t len);
+    
 };
 
 #endif

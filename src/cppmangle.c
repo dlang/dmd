@@ -25,8 +25,8 @@
 #include "enum.h"
 #include "import.h"
 #include "aggregate.h"
+#include "mangle.h"
 
-#if CPP_MANGLE
 
 /* Do mangling for C++ linkage.
  * Follows Itanium C++ ABI 1.86
@@ -39,19 +39,72 @@
  * so nothing would be compatible anyway.
  */
 
-struct CppMangleState
+const char *ItaniumCPPMangler::mangleDsymbol(Dsymbol *d)
 {
-    static Voids components;
+    reset();
+    OutBuffer buf;
+    buf.writestring("__Z" + !global.params.isOSX);      // "__Z" for OSX, "_Z" for other
+    prefixName(&buf, d);
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
 
-    int substitute(OutBuffer *buf, void *p);
-    int exist(void *p);
-    void store(void *p);
-};
+const char *ItaniumCPPMangler::mangleDsymbol(VarDeclaration *d)
+{
+    reset();
+    if (!(d->storage_class & (STCextern | STCgshared)))
+    {
+        d->error("C++ static non- __gshared non-extern variables not supported");
+        return "";
+    }
+    OutBuffer buf;
 
-Voids CppMangleState::components;
+    Dsymbol *p = d->toParent();
+    if (p && !p->isModule()) //for example: char Namespace1::beta[6] should be mangled as "_ZN10Namespace14betaE"
+    {
+        buf.writestring("__ZN" + !global.params.isOSX);      // "__Z" for OSX, "_Z" for other
+        prefixName(&buf, p);
+        sourceName(&buf, d);
+        buf.writeByte('E');
+    }
+    else //char beta[6] should mangle as "beta"
+    {
+        return d->ident->toChars();
+    }
 
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
 
-void writeBase36(OutBuffer *buf, unsigned i)
+const char *ItaniumCPPMangler::mangleDsymbol(FuncDeclaration *d)
+{
+    reset();
+    OutBuffer buf;
+    buf.writestring("__Z" + !global.params.isOSX);      // "_Z" for OSX
+    Dsymbol *p = d->toParent();
+    if (p && !p->isModule())
+    {
+        buf.writeByte('N');
+        if (d->type->isConst())
+            buf.writeByte('K');
+        prefixName(&buf, p);
+        sourceName(&buf, d);
+        buf.writeByte('E');
+    }
+    else
+    {
+        sourceName(&buf, d);
+    }
+
+    TypeFunction *tf = (TypeFunction *)d->type;
+    assert(tf->ty == Tfunction);
+    argsCppMangle(&buf, tf->parameters, tf->varargs);
+
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
+
+static void writeBase36(OutBuffer *buf, unsigned i)
 {
     if (i >= 36)
     {
@@ -66,7 +119,7 @@ void writeBase36(OutBuffer *buf, unsigned i)
         assert(0);
 }
 
-int CppMangleState::substitute(OutBuffer *buf, void *p)
+int ItaniumCPPMangler::substitute(OutBuffer *buf, void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -85,7 +138,7 @@ int CppMangleState::substitute(OutBuffer *buf, void *p)
     return 0;
 }
 
-int CppMangleState::exist(void *p)
+int ItaniumCPPMangler::exist(void *p)
 {
     for (size_t i = 0; i < components.dim; i++)
     {
@@ -97,108 +150,55 @@ int CppMangleState::exist(void *p)
     return 0;
 }
 
-void CppMangleState::store(void *p)
+void ItaniumCPPMangler::store(void *p)
 {
     components.push(p);
 }
 
-void source_name(OutBuffer *buf, Dsymbol *s)
+void ItaniumCPPMangler::sourceName(OutBuffer *buf, Dsymbol *s)
 {
     char *name = s->ident->toChars();
     buf->printf("%d%s", strlen(name), name);
 }
 
-void prefix_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
+void ItaniumCPPMangler::prefixName(OutBuffer *buf, Dsymbol *s)
 {
-    if (!cms->substitute(buf, s))
+    if (!substitute(buf, s))
     {
         Dsymbol *p = s->toParent();
         if (p && !p->isModule())
         {
-            prefix_name(buf, cms, p);
+            prefixName(buf, p);
         }
-        source_name(buf, s);
+        sourceName(buf, s);
     }
 }
 
-void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
+void ItaniumCPPMangler::mangleName(OutBuffer *buf, Dsymbol *s)
 {
     Dsymbol *p = s->toParent();
     if (p && !p->isModule())
     {
         buf->writeByte('N');
-
-        FuncDeclaration *fd = s->isFuncDeclaration();
-        VarDeclaration *vd = s->isVarDeclaration();
-        if (fd && fd->type->isConst())
-        {
-            buf->writeByte('K');
-        }
-        if (vd && !(vd->storage_class & (STCextern | STCgshared)))
-        {
-            s->error("C++ static non- __gshared non-extern variables not supported");
-        }
-        if (vd || fd)
-        {
-            prefix_name(buf, cms, p);
-            source_name(buf, s);
-        }
-        else
-        {
-            assert(0);
-        }
+        prefixName(buf, p);
+        sourceName(buf, s);
         buf->writeByte('E');
     }
     else
-        source_name(buf, s);
-}
-
-
-char *cpp_mangle(Dsymbol *s)
-{
-    /*
-     * <mangled-name> ::= _Z <encoding>
-     * <encoding> ::= <function name> <bare-function-type>
-     *         ::= <data name>
-     *         ::= <special-name>
-     */
-
-    CppMangleState cms;
-    memset(&cms, 0, sizeof(cms));
-    cms.components.setDim(0);
-
-    OutBuffer buf;
-    buf.writestring("__Z" + !global.params.isOSX);      // "_Z" for OSX
-
-    cpp_mangle_name(&buf, &cms, s);
-
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (fd)
-    {   // add <bare-function-type>
-        TypeFunction *tf = (TypeFunction *)fd->type;
-        assert(tf->ty == Tfunction);
-        Parameter::argsCppMangle(&buf, &cms, tf->parameters, tf->varargs);
-    }
-    buf.writeByte(0);
-    return (char *)buf.extractData();
+        sourceName(buf, s);
 }
 
 /* ============= Type Encodings ============================================= */
 
-void Type::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(Type *type, OutBuffer *buf)
 {
-    /* Make this the 'vendor extended type' when there is no
-     * C++ analog.
-     * u <source-name>
-     */
-    if (!cms->substitute(buf, this))
-    {   assert(deco);
-        buf->printf("u%d%s", strlen(deco), deco);
-    }
+    type->error(Loc(), "Unsupported type %s\n", type->toChars());
+    assert(0); //Assert, because this error should be handled in frontend
 }
 
-void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
-{   char c;
+void ItaniumCPPMangler::mangleType(TypeBasic *type, OutBuffer *buf)
+{
+    char c;
     char p = 0;
 
     /* ABI spec says:
@@ -226,7 +226,7 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
      * u <source-name>  # vendor extended type
      */
 
-    switch (ty)
+    switch (type->ty)
     {
         case Tvoid:     c = 'v';        break;
         case Tint8:     c = 'a';        break;
@@ -252,15 +252,17 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
         case Tcomplex64:   p = 'C'; c = 'd';    break;
         case Tcomplex80:   p = 'C'; c = 'e';    break;
 
-        default:        assert(0);
+        default:        mangleType((Type *)type, buf);  return;
     }
-    if (p || isConst())
+    if (p || type->isConst() || type->isShared())
     {
-        if (cms->substitute(buf, this))
+        if (substitute(buf, type))
             return;
     }
+    if (type->isShared())
+        buf->writeByte('V'); //shared -> volatile
 
-    if (isConst())
+    if (type->isConst())
         buf->writeByte('K');
 
     if (p)
@@ -269,61 +271,76 @@ void TypeBasic::toCppMangle(OutBuffer *buf, CppMangleState *cms)
     buf->writeByte(c);
 }
 
-
-void TypeVector::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeVector *type, OutBuffer *buf)
 {
-    if (!cms->substitute(buf, this))
-    {   buf->writestring("U8__vector");
-        basetype->toCppMangle(buf, cms);
+    if (!substitute(buf, type))
+    {
+        if (type->isShared())
+            buf->writeByte('V');
+        if (type->isConst())
+            buf->writeByte('K');
+        assert(type->basetype && type->basetype->ty == Tsarray);
+        assert(((TypeSArray *)type->basetype)->dim);
+        buf->printf("Dv%llu_", ((TypeSArray *)type->basetype)->dim->toInteger());// -- Gnu ABI v.4
+        //buf->writestring("U8__vector"); -- Gnu ABI v.3
+        type->basetype->nextOf()->mangleX(this, buf);
     }
 }
 
-void TypeSArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeSArray *type, OutBuffer *buf)
 {
-    if (!cms->substitute(buf, this))
-    {   buf->printf("A%llu_", dim ? dim->toInteger() : 0);
-        next->toCppMangle(buf, cms);
+    if (!substitute(buf, type))
+    {
+        if (type->isShared())
+            buf->writeByte('V');
+        if (type->isConst())
+            buf->writeByte('K');
+        buf->printf("A%llu_", type->dim ? type->dim->toInteger() : 0);
+        type->next->mangleX(this, buf);
     }
 }
 
-void TypeDArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeDArray *type, OutBuffer *buf)
 {
-    Type::toCppMangle(buf, cms);
+    mangleType((Type *)type, buf);
 }
 
-
-void TypeAArray::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeAArray *type, OutBuffer *buf)
 {
-    Type::toCppMangle(buf, cms);
+    mangleType((Type *)type, buf);
 }
 
-
-void TypePointer::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypePointer *type, OutBuffer *buf)
 {
-    if (!cms->exist(this))
-    {   buf->writeByte('P');
-        next->toCppMangle(buf, cms);
-        cms->store(this);
+    if (!exist(type))
+    {
+        if (type->isShared())
+            buf->writeByte('V');
+        if (type->isConst())
+            buf->writeByte('K');
+        buf->writeByte('P');
+        type->next->mangleX(this, buf);
+        store(type);
     }
     else
-        cms->substitute(buf, this);
+        substitute(buf, type);
 }
 
-
-void TypeReference::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeReference *type, OutBuffer *buf)
 {
-    if (!cms->exist(this))
-    {   buf->writeByte('R');
-        next->toCppMangle(buf, cms);
-        cms->store(this);
+    if (!exist(type))
+    {
+        buf->writeByte('R');
+        type->next->mangleX(this, buf);
+        store(type);
     }
     else
-        cms->substitute(buf, this);
+        substitute(buf, type);
 }
 
-
-void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
-{   /*
+void ItaniumCPPMangler::mangleType(TypeFunction *type, OutBuffer *buf)
+{
+   /*
      *  <function-type> ::= F [Y] <bare-function-type> E
      *  <bare-function-type> ::= <signature type>+
      *  # types are possible return type, then parameter types
@@ -345,82 +362,93 @@ void TypeFunction::toCppMangle(OutBuffer *buf, CppMangleState *cms)
         TypeFunctions for non-static member functions, and non-static
         member functions of different classes.
      */
-    if (!cms->exist(this))
+    if (!exist(type))
     {
         buf->writeByte('F');
-        if (linkage == LINKc)
+        if (type->linkage == LINKc)
             buf->writeByte('Y');
-        next->toCppMangle(buf, cms);
-        Parameter::argsCppMangle(buf, cms, parameters, varargs);
+        Type *t = type->next;
+        if (type->isref)
+            t  = t->referenceTo();
+        t->mangleX(this, buf);
+        argsCppMangle(buf, type->parameters, type->varargs);
         buf->writeByte('E');
         cms->store(this);
     }
     else
-        cms->substitute(buf, this);
+        substitute(buf, type);
 }
 
-
-void TypeDelegate::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeDelegate *type, OutBuffer *buf)
 {
-    Type::toCppMangle(buf, cms);
+    mangleType((Type *)type, buf);
 }
 
-
-void TypeStruct::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeStruct *type, OutBuffer *buf)
 {
-    if (!cms->exist(this))
+    if (!exist(type))
     {
-        if (isConst())
+        if (type->isShared())
+            buf->writeByte('V');
+        if (type->isConst())
             buf->writeByte('K');
 
-        if (!cms->substitute(buf, sym))
-            cpp_mangle_name(buf, cms, sym);
+        if (!substitute(buf, type->sym))
+            mangleName(buf, type->sym);
 
-        if (isConst())
-            cms->store(this);
+        if (type->isShared() || type->isConst())
+            store(type);
     }
     else
-        cms->substitute(buf, this);
+        substitute(buf, type);
 }
 
-
-void TypeEnum::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeEnum *type, OutBuffer *buf)
 {
-    if (!cms->exist(this))
+    if (!exist(type))
     {
-        if (isConst())
+        if (type->isShared())
+            buf->writeByte('V');
+        if (type->isConst())
             buf->writeByte('K');
 
-        if (!cms->substitute(buf, sym))
-            cpp_mangle_name(buf, cms, sym);
+        if (!substitute(buf, type->sym))
+            mangleName(buf, type->sym);
 
-        if (isConst())
-            cms->store(this);
+        if (type->isShared() || type->isConst())
+            store(type);
     }
     else
-        cms->substitute(buf, this);
+        substitute(buf, type);
+}
+
+void ItaniumCPPMangler::mangleType(TypeTypedef *type, OutBuffer *buf)
+{
+    mangleType((Type *)type, buf);
 }
 
 
-void TypeTypedef::toCppMangle(OutBuffer *buf, CppMangleState *cms)
+void ItaniumCPPMangler::mangleType(TypeClass *type, OutBuffer *buf)
 {
-    Type::toCppMangle(buf, cms);
-}
-
-
-void TypeClass::toCppMangle(OutBuffer *buf, CppMangleState *cms)
-{
-    if (!cms->substitute(buf, this))
-    {   buf->writeByte('P');
-        if (!cms->substitute(buf, sym))
-            cpp_mangle_name(buf, cms, sym);
+    if (!substitute(buf, type))
+    {
+        buf->writeByte('P');
+        if (!substitute(buf, type->sym))
+        {
+            if (type->isShared())
+                buf->writeByte('V');
+            if (type->isConst())
+                buf->writeByte('K');
+            mangleName(buf, type->sym);
+        }
     }
 }
+
 
 struct ArgsCppMangleCtx
 {
     OutBuffer *buf;
-    CppMangleState *cms;
+    ItaniumCPPMangler *mangler;
     size_t cnt;
 };
 
@@ -445,22 +473,22 @@ static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
     /* If it is a basic, enum or struct type,
      * then don't mark it const
      */
-    if ((t->ty == Tenum || t->ty == Tstruct || t->isTypeBasic()) && t->isConst())
-        t->mutableOf()->toCppMangle(p->buf, p->cms);
+    if ((t->ty == Tenum || t->ty == Tstruct || t->ty == Tpointer || t->isTypeBasic()) && t->isConst())
+        t->mutableOf()->mangleX(p->mangler, p->buf);
     else
-        t->toCppMangle(p->buf, p->cms);
+        t->mangleX(p->mangler, p->buf);
 
     p->cnt++;
     return 0;
 }
 
-void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *arguments, int varargs)
+void ItaniumCPPMangler::argsCppMangle(OutBuffer *buf, Parameters *arguments, int varargs)
 {
     size_t n = 0;
     if (arguments)
     {
-        ArgsCppMangleCtx ctx = { buf, cms, 0 };
-        foreach(arguments, &argsCppMangleDg, &ctx);
+        ArgsCppMangleCtx ctx = { buf, this, 0 };
+        Parameter::foreach(arguments, &argsCppMangleDg, &ctx);
         n = ctx.cnt;
     }
     if (varargs)
@@ -469,6 +497,7 @@ void Parameter::argsCppMangle(OutBuffer *buf, CppMangleState *cms, Parameters *a
         buf->writeByte('v');            // encode ( ) arguments
 }
 
-
-#endif
-
+void ItaniumCPPMangler::reset()
+{
+    components.setDim(0);
+}

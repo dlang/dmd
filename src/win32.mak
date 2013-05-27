@@ -155,7 +155,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj
+	libomf.obj scanomf.obj iasm.obj cppmangle.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -196,7 +196,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h cppmangle.c mangle.h
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -718,7 +718,8 @@ sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
-target.obj : $(TOTALH) target.c target.h
+target.obj : $(TOTALH) target.c target.h mangle.h
+cppmangle.obj : $(TOTALH) cppmangle.c mangle.h
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c
