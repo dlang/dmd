@@ -10829,29 +10829,36 @@ Expression *AssignExp::semantic(Scope *sc)
      */
 Ltupleassign:
     if (e1->op == TOKtuple && e2->op == TOKtuple)
-    {   TupleExp *tup1 = (TupleExp *)e1;
+    {
+        TupleExp *tup1 = (TupleExp *)e1;
         TupleExp *tup2 = (TupleExp *)e2;
         size_t dim = tup1->exps->dim;
+        Expression *e = NULL;
         if (dim != tup2->exps->dim)
         {
             error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
             return new ErrorExp();
         }
+        if (dim == 0)
+        {
+            e = new IntegerExp(loc, 0, Type::tint32);
+            e = new CastExp(loc, e, Type::tvoid);   // avoid "has no effect" error
+            e = combine(combine(tup1->e0, tup2->e0), e);
+        }
         else
         {
             Expressions *exps = new Expressions;
             exps->setDim(dim);
-
-            Expression *e0 = combine(tup1->e0, tup2->e0);
             for (size_t i = 0; i < dim; i++)
-            {   Expression *ex1 = (*tup1->exps)[i];
+            {
+                Expression *ex1 = (*tup1->exps)[i];
                 Expression *ex2 = (*tup2->exps)[i];
-                (*exps)[i] =  new AssignExp(loc, ex1, ex2);
+                (*exps)[i] = new AssignExp(loc, ex1, ex2);
             }
-            Expression *e = new TupleExp(loc, e0, exps);
-            e = e->semantic(sc);
-            return e;
+            e = new TupleExp(loc, combine(tup1->e0, tup2->e0), exps);
         }
+        assert(e);
+        return e->semantic(sc);
     }
 
     if (e1->op == TOKtuple)
