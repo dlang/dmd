@@ -1264,6 +1264,45 @@ void test10004()
 }
 
 /***************************************************/
+// 10180
+
+template TypeTuple10180(TL...) { alias TypeTuple10180 = TL; }
+
+template Identity10180(alias T) { alias Identity10180 = T; }
+
+struct Tuple10180(Specs...)
+{
+    static if (is(Specs))
+    {
+        alias Types = Specs;
+        Types expand;
+        alias expand this;
+    }
+    else
+    {
+        alias Types = TypeTuple10180!(Specs[0]);
+        Types expand;
+        mixin("alias Identity10180!(expand[0]) "~Specs[1]~";");
+
+        @property
+        ref Tuple10180!(Specs[0]) _Tuple_super()
+        {
+            return *cast(typeof(return)*) (&expand[0]);
+        }
+        alias _Tuple_super this;
+    }
+}
+
+void test10180()
+{
+    Tuple10180!(int, "a") x;
+    auto o1 = x.a.offsetof;     // OK
+    auto o2 = x[0].offsetof;    // NG: no property 'offsetof' for type 'int'
+    auto o3 = x._Tuple_super[0].offsetof;   // same as above
+    assert(o2 == o3);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -1308,6 +1347,7 @@ int main()
     test10179();
     test9890();
     test10004();
+    test10180();
 
     printf("Success\n");
     return 0;
