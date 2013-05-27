@@ -7418,7 +7418,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             Expressions *exps = new Expressions;
             Expression *e0 = NULL;
             Expression *ev = e1;
-            if (sc->func && tup->objects->dim > 1 && e1->hasSideEffect())
+            if (sc->func && e1->hasSideEffect())
             {
                 Identifier *id = Lexer::uniqueId("__tup");
                 ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
@@ -12717,17 +12717,15 @@ Expression *EqualExp::semantic(Scope *sc)
         if (dim != tup2->exps->dim)
         {
             error("mismatched tuple lengths, %d and %d", (int)dim, (int)tup2->exps->dim);
-            e = new ErrorExp();
+            return new ErrorExp();
         }
-        else if (dim == 0)
+        if (dim == 0)
         {
             // zero-length tuple comparison should always return true or false.
             e = new IntegerExp(loc, (op == TOKequal), Type::tboolean);
         }
         else
         {
-            Expressions *exps = new Expressions;
-            exps->setDim(dim);
             for (size_t i = 0; i < dim; i++)
             {
                 Expression *ex1 = (*tup1->exps)[i];
@@ -12740,12 +12738,10 @@ Expression *EqualExp::semantic(Scope *sc)
                 else
                     e = new OrOrExp(loc, e, eeq);
             }
-            assert(e);
-            e = combine(combine(tup1->e0, tup2->e0), e);
-            //printf("e = %s\n", e->toChars());
         }
-        e = e->semantic(sc);
-        return e;
+        assert(e);
+        e = combine(combine(tup1->e0, tup2->e0), e);
+        return e->semantic(sc);
     }
 
     e = typeCombine(sc);
