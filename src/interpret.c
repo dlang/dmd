@@ -2293,6 +2293,11 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
 #if LOG
     printf("%s UnaExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
+    if (op == TOKdottype)
+    {
+        error("Internal Compiler Error: CTFE DotType: %s", toChars());
+        return EXP_CANT_INTERPRET;
+    }
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
