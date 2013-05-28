@@ -599,17 +599,17 @@ const char *TemplateDeclaration::kind()
 
 /**********************************
  * Overload existing TemplateDeclaration 'this' with the new one 's'.
- * Return !=0 if successful; i.e. no conflict.
+ * Return true if successful; i.e. no conflict.
  */
 
-int TemplateDeclaration::overloadInsert(Dsymbol *s)
+bool TemplateDeclaration::overloadInsert(Dsymbol *s)
 {
 #if LOG
     printf("TemplateDeclaration::overloadInsert('%s')\n", s->toChars());
 #endif
     TemplateDeclaration *td = s->isTemplateDeclaration();
     if (!td)
-        return FALSE;
+        return false;
 
     TemplateDeclaration *pthis = this;
     TemplateDeclaration **ptd;
@@ -635,7 +635,7 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 #if LOG
         printf("\tfalse: conflict\n");
 #endif
-        return FALSE;
+        return false;
 
      Lcontinue:
         ;
@@ -647,7 +647,7 @@ int TemplateDeclaration::overloadInsert(Dsymbol *s)
 #if LOG
     printf("\ttrue: no conflict\n");
 #endif
-    return TRUE;
+    return true;
 }
 
 /****************************
@@ -2056,9 +2056,9 @@ TemplateTupleParameter *TemplateDeclaration::isVariadic()
  * We can overload templates.
  */
 
-int TemplateDeclaration::isOverloadable()
+bool TemplateDeclaration::isOverloadable()
 {
-    return 1;
+    return true;
 }
 
 /*************************************************
@@ -6448,10 +6448,10 @@ const char *TemplateInstance::kind()
     return "template instance";
 }
 
-int TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
+bool TemplateInstance::oneMember(Dsymbol **ps, Identifier *ident)
 {
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 char *TemplateInstance::toChars()
@@ -6837,7 +6837,7 @@ const char *TemplateMixin::kind()
     return "mixin";
 }
 
-int TemplateMixin::oneMember(Dsymbol **ps, Identifier *ident)
+bool TemplateMixin::oneMember(Dsymbol **ps, Identifier *ident)
 {
     return Dsymbol::oneMember(ps, ident);
 }
@@ -6858,21 +6858,23 @@ int TemplateMixin::apply(Dsymbol_apply_ft_t fp, void *param)
     return 0;
 }
 
-int TemplateMixin::hasPointers()
+bool TemplateMixin::hasPointers()
 {
     //printf("TemplateMixin::hasPointers() %s\n", toChars());
 
     if (members)
+    {
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
             //printf(" s = %s %s\n", s->kind(), s->toChars());
             if (s->hasPointers())
             {
-                return 1;
+                return true;
             }
         }
-    return 0;
+    }
+    return false;
 }
 
 void TemplateMixin::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion)

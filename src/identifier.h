@@ -25,7 +25,7 @@ public:
     size_t len;
 
     Identifier(const char *string, int value);
-    int equals(Object *o);
+    bool equals(Object *o);
     hash_t hashCode();
     int compare(Object *o);
     void print();

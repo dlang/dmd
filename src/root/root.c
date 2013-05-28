@@ -92,7 +92,7 @@ void warning(const char *format, ...)
 
 /****************************** Object ********************************/
 
-int Object::equals(Object *o)
+bool Object::equals(Object *o)
 {
     return o == this;
 }
@@ -200,7 +200,7 @@ size_t String::len()
     return strlen(str);
 }
 
-int String::equals(Object *obj)
+bool String::equals(Object *obj)
 {
     return strcmp(str,((String *)obj)->str) == 0;
 }
@@ -392,7 +392,7 @@ int FileName::compare(const char *name1, const char *name2)
 #endif
 }
 
-int FileName::equals(Object *obj)
+bool FileName::equals(Object *obj)
 {
     return compare(obj) == 0;
 }

@@ -30,7 +30,7 @@ hash_t Identifier::hashCode()
     return String::calcHash(string);
 }
 
-int Identifier::equals(Object *o)
+bool Identifier::equals(Object *o)
 {
     return this == o || memcmp(string,o->toChars(),len+1) == 0;
 }
