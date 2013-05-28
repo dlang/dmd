@@ -431,7 +431,7 @@ MATCH NullExp::implicitConvTo(Type *t)
      * and mutable to immutable. It works because, after all, a null
      * doesn't actually point to anything.
      */
-    if (t->invariantOf()->equals(type->invariantOf()))
+    if (t->immutableOf()->equals(type->immutableOf()))
         return MATCHconst;
 
     return Expression::implicitConvTo(t);
@@ -655,7 +655,7 @@ MATCH CallExp::implicitConvTo(Type *t)
      * convert to immutable
      */
     if (f && f->isolateReturn())
-        return type->invariantOf()->implicitConvTo(t);
+        return type->immutableOf()->implicitConvTo(t);
 
     /* The result of arr.dup and arr.idup can be unique essentially.
      * So deal with this case specially.
@@ -680,7 +680,7 @@ MATCH CallExp::implicitConvTo(Type *t)
                     return MATCHnomatch;
             }
         }
-        m = type->invariantOf()->implicitConvTo(t);
+        m = type->immutableOf()->implicitConvTo(t);
         return m;
     }
 

@@ -157,7 +157,7 @@ char *ThrownExceptionExp::toChars()
 void ThrownExceptionExp::generateUncaughtError()
 {
     thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
-        thrown->value->elements->tdata()[0]->toChars());
+        (*thrown->value->elements)[0]->toChars());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
@@ -225,7 +225,7 @@ Expressions *copyLiteralArray(Expressions *oldelems)
     Expressions *newelems = new Expressions();
     newelems->setDim(oldelems->dim);
     for (size_t i = 0; i < oldelems->dim; i++)
-        newelems->tdata()[i] = copyLiteral(oldelems->tdata()[i]);
+        (*newelems)[i] = copyLiteral((*oldelems)[i]);
     return newelems;
 }
 
@@ -277,7 +277,7 @@ Expression *copyLiteral(Expression *e)
         newelems->setDim(oldelems->dim);
         for (size_t i = 0; i < newelems->dim; i++)
         {
-            Expression *m = oldelems->tdata()[i];
+            Expression *m = (*oldelems)[i];
             // We need the struct definition to detect block assignment
             AggregateDeclaration *sd = se->sd;
             Dsymbol *s = sd->fields[i];
@@ -297,7 +297,7 @@ Expression *copyLiteral(Expression *e)
             }
             else if (v->type->ty != Tarray && v->type->ty!=Taarray) // NOTE: do not copy array references
                 m = copyLiteral(m);
-            newelems->tdata()[i] = m;
+            (*newelems)[i] = m;
         }
 #if DMDV2
         StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems, se->stype);
@@ -526,7 +526,7 @@ TypeAArray *toBuiltinAAType(Type *t)
     assert(sym->ident == Id::AssociativeArray);
     TemplateInstance *tinst = sym->parent->isTemplateInstance();
     assert(tinst);
-    return new TypeAArray((Type *)(tinst->tiargs->tdata()[1]), (Type *)(tinst->tiargs->tdata()[0]));
+    return new TypeAArray((Type *)(*tinst->tiargs)[1], (Type *)(*tinst->tiargs)[0]);
 #else
     assert(0);
     return NULL;
@@ -599,7 +599,7 @@ Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
             i = ((ClassReferenceExp *)ex)->getFieldIndex(e->type, v->offset);
         else
             i = se->getFieldIndex(e->type, v->offset);
-        e = se->elements->tdata()[i];
+        e = (*se->elements)[i];
     }
     if (e->op == TOKindex)
     {
@@ -1522,7 +1522,8 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         void *s = mem.malloc((len + 1) * sz);
         memcpy((char *)s + sz * es2->elements->dim, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
-        {   Expression *es2e = es2->elements->tdata()[i];
+        {
+            Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
@@ -1552,7 +1553,8 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         void *s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         for (size_t i = 0; i < es2->elements->dim; i++)
-        {   Expression *es2e = es2->elements->tdata()[i];
+        {
+            Expression *es2e = (*es2->elements)[i];
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
@@ -1582,11 +1584,11 @@ Expression *findKeyInAA(Loc loc, AssocArrayLiteralExp *ae, Expression *e2)
     for (size_t i = ae->keys->dim; i;)
     {
         i--;
-        Expression *ekey = ae->keys->tdata()[i];
+        Expression *ekey = (*ae->keys)[i];
         int eq = ctfeEqual(loc, TOKequal, ekey, e2);
         if (eq)
         {
-            return ae->values->tdata()[i];
+            return (*ae->values)[i];
         }
     }
     return NULL;
@@ -1616,7 +1618,7 @@ Expression *ctfeIndex(Loc loc, Type *type, Expression *e1, uinteger_t indx)
         error(loc, "array index %llu is out of bounds %s[0 .. %llu]", indx, e1->toChars(), (ulonglong)ale->elements->dim);
         return EXP_CANT_INTERPRET;
     }
-    Expression *e = ale->elements->tdata()[indx];
+    Expression *e = (*ale->elements)[indx];
     return paintTypeOntoLiteral(type, e);
 }
 
@@ -1693,8 +1695,8 @@ void assignInPlace(Expression *dest, Expression *src)
 
     for (size_t i= 0; i < oldelems->dim; ++i)
     {
-        Expression *e = newelems->tdata()[i];
-        Expression *o = oldelems->tdata()[i];
+        Expression *e = (*newelems)[i];
+        Expression *o = (*oldelems)[i];
         if (e->op == TOKstructliteral)
         {
             assert(o->op == e->op);
@@ -1706,7 +1708,7 @@ void assignInPlace(Expression *dest, Expression *src)
         }
         else
         {
-            oldelems->tdata()[i] = newelems->tdata()[i];
+            (*oldelems)[i] = (*newelems)[i];
         }
     }
 }
@@ -1727,16 +1729,16 @@ void recursiveBlockAssign(ArrayLiteralExp *ae, Expression *val, bool wantRef)
 
     for (size_t k = 0; k < ae->elements->dim; k++)
     {
-        if (!directblk && ae->elements->tdata()[k]->op == TOKarrayliteral)
+        if (!directblk && (*ae->elements)[k]->op == TOKarrayliteral)
         {
-            recursiveBlockAssign((ArrayLiteralExp *)ae->elements->tdata()[k], val, wantRef);
+            recursiveBlockAssign((ArrayLiteralExp *)(*ae->elements)[k], val, wantRef);
         }
         else
         {
             if (wantRef || cow)
-                ae->elements->tdata()[k] = val;
+                (*ae->elements)[k] = val;
             else
-                assignInPlace(ae->elements->tdata()[k], val);
+                assignInPlace((*ae->elements)[k], val);
         }
     }
 }
@@ -1752,7 +1754,7 @@ Expressions *changeOneElement(Expressions *oldelems, size_t indexToChange, Expre
         if (j == indexToChange)
             (*expsx)[j] = newelem;
         else
-            (*expsx)[j] = oldelems->tdata()[j];
+            (*expsx)[j] = (*oldelems)[j];
     }
     return expsx;
 }
@@ -1783,10 +1785,11 @@ Expression *assignAssocArrayElement(Loc loc, AssocArrayLiteralExp *aae,
     int updated = 0;
     for (size_t j = valuesx->dim; j; )
     {   j--;
-        Expression *ekey = aae->keys->tdata()[j];
+        Expression *ekey = (*aae->keys)[j];
         int eq = ctfeEqual(loc, TOKequal, ekey, index);
         if (eq)
-        {   valuesx->tdata()[j] = newval;
+        {
+            (*valuesx)[j] = newval;
             updated = 1;
         }
     }

@@ -127,7 +127,7 @@ public:
     unsigned char mod;  // modifiers MODxxxx
     char *deco;
 
-    /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
+    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
      * They can be NULL if not lazily evaluated yet.
      * Note that there is no "shared immutable", because that is just immutable
@@ -276,7 +276,7 @@ public:
     int isNaked()       { return mod == 0; }
     Type *nullAttributes();
     Type *constOf();
-    Type *invariantOf();
+    Type *immutableOf();
     Type *mutableOf();
     Type *sharedOf();
     Type *sharedConstOf();

@@ -930,7 +930,7 @@ void FuncDeclaration::toObjFile(int multiobj)
              *     _c_trace_epi();
              */
             StringExp *se = new StringExp(Loc(), s->Sident);
-            se->type = new TypeDArray(Type::tchar->invariantOf());
+            se->type = new TypeDArray(Type::tchar->immutableOf());
             se->type = se->type->semantic(Loc(), NULL);
             Expressions *exps = new Expressions();
             exps->push(se);
