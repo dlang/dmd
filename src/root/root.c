@@ -690,7 +690,7 @@ const char *FileName::searchPath(Strings *path, const char *name, int cwd)
 
         for (size_t i = 0; i < path->dim; i++)
         {
-            const char *p = path->tdata()[i];
+            const char *p = (*path)[i];
             const char *n = combine(p, name);
 
             if (exists(n))
@@ -750,7 +750,7 @@ const char *FileName::safeSearchPath(Strings *path, const char *name)
         for (size_t i = 0; i < path->dim; i++)
         {
             const char *cname = NULL;
-            const char *cpath = canonicalName(path->tdata()[i]);
+            const char *cpath = canonicalName((*path)[i]);
             //printf("FileName::safeSearchPath(): name=%s; path=%s; cpath=%s\n",
             //      name, (char *)path->data[i], cpath);
             if (cpath == NULL)

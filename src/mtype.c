@@ -321,7 +321,7 @@ void Type::init()
     tnull->deco = tnull->merge()->deco;
 
     tvoidptr = tvoid->pointerTo();
-    tstring = tchar->invariantOf()->arrayOf();
+    tstring = tchar->immutableOf()->arrayOf();
     tvalist = tvoid->pointerTo();
 
     if (global.params.isLP64)
@@ -433,9 +433,9 @@ Type *Type::constOf()
  * Convert to 'immutable'.
  */
 
-Type *Type::invariantOf()
+Type *Type::immutableOf()
 {
-    //printf("Type::invariantOf() %p %s\n", this, toChars());
+    //printf("Type::immutableOf() %p %s\n", this, toChars());
     if (isImmutable())
     {
         return this;
@@ -1058,7 +1058,7 @@ Type *Type::castMod(unsigned mod)
             break;
 
         case MODimmutable:
-            t = invariantOf();
+            t = immutableOf();
             break;
 
         case MODshared:
@@ -1110,7 +1110,7 @@ Type *Type::addMod(unsigned mod)
                 break;
 
             case MODimmutable:
-                t = invariantOf();
+                t = immutableOf();
                 break;
 
             case MODshared:
@@ -1887,7 +1887,7 @@ Type *Type::substWildTo(unsigned mod)
         if (mod & MODconst)
             t = isShared() ? t->sharedConstOf() : t->constOf();
         else if (mod & MODimmutable)
-            t = t->invariantOf();
+            t = t->immutableOf();
         else if (mod & MODwild)
             t = isShared() ? t->sharedWildOf() : t->wildOf();
         else
@@ -2398,7 +2398,7 @@ Type *TypeNext::makeInvariant()
     if (ty != Tfunction && next->ty != Tfunction &&
         //(next->deco || next->ty == Tfunction) &&
         !next->isImmutable())
-    {   t->next = next->invariantOf();
+    {   t->next = next->immutableOf();
     }
     if (ty == Taarray)
     {
@@ -3566,7 +3566,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             arguments->push(new IntegerExp(Loc(), size, Type::tsize_t));
         e = new CallExp(e->loc, ec, arguments);
         if (ident == Id::idup)
-        {   Type *einv = next->invariantOf();
+        {   Type *einv = next->immutableOf();
             if (next->implicitConvTo(einv) < MATCHconst)
             {   error(e->loc, "cannot implicitly convert element type %s to immutable in %s.idup",
                     next->toChars(), olde->toChars());
@@ -8468,7 +8468,7 @@ L1:
         {   /* The pointer to the vtbl[]
              * *cast(invariant(void*)**)e
              */
-            e = e->castTo(sc, tvoidptr->invariantOf()->pointerTo()->pointerTo());
+            e = e->castTo(sc, tvoidptr->immutableOf()->pointerTo()->pointerTo());
             e = new PtrExp(e->loc, e);
             e = e->semantic(sc);
             return e;

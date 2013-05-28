@@ -1208,8 +1208,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
         ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
         for (size_t i = 0; i < ae->elements->dim; i++)
         {
-            ae->elements->tdata()[i] =
-                callCpCtor(loc, sc, ae->elements->tdata()[i], noscope);
+            (*ae->elements)[i] =
+                callCpCtor(loc, sc, (*ae->elements)[i], noscope);
         }
         e = ae->semantic(sc);
         return e;
@@ -2249,7 +2249,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
         v->ident != Id::ctfe &&      // magic variable never violates pure and safe
         !v->isImmutable() &&         // always safe and pure to access immutables...
         !(v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
-          v->type->implicitConvTo(v->type->invariantOf())) &&
+          v->type->implicitConvTo(v->type->immutableOf())) &&
             // or const global/parameter values which have no mutable indirections
         !(v->storage_class & STCmanifest) // ...or manifest constants
        )
@@ -3912,7 +3912,7 @@ Expression *StringExp::semantic(Scope *sc)
                 len = newlen;
                 sz = 4;
                 //type = new TypeSArray(Type::tdchar, new IntegerExp(loc, len, Type::tindex));
-                type = new TypeDArray(Type::tdchar->invariantOf());
+                type = new TypeDArray(Type::tdchar->immutableOf());
                 committed = 1;
                 break;
 
@@ -3936,7 +3936,7 @@ Expression *StringExp::semantic(Scope *sc)
                 len = newlen;
                 sz = 2;
                 //type = new TypeSArray(Type::twchar, new IntegerExp(loc, len, Type::tindex));
-                type = new TypeDArray(Type::twchar->invariantOf());
+                type = new TypeDArray(Type::twchar->immutableOf());
                 committed = 1;
                 break;
 
@@ -3944,11 +3944,11 @@ Expression *StringExp::semantic(Scope *sc)
                 committed = 1;
             default:
                 //type = new TypeSArray(Type::tchar, new IntegerExp(loc, len, Type::tindex));
-                type = new TypeDArray(Type::tchar->invariantOf());
+                type = new TypeDArray(Type::tchar->immutableOf());
                 break;
         }
         type = type->semantic(loc, sc);
-        //type = type->invariantOf();
+        //type = type->immutableOf();
         //printf("type = %s\n", type->toChars());
     }
     return this;

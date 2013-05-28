@@ -1288,7 +1288,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     for (size_t i = 0; i < returns->dim; i++)
                     {   Expression *exp = (*returns)[i]->exp;
-                        if (!f->next->invariantOf()->equals(exp->type->invariantOf()))
+                        if (!f->next->immutableOf()->equals(exp->type->immutableOf()))
                         {   exp = exp->castTo(sc2, f->next);
                             exp = exp->optimize(WANTvalue);
                             (*returns)[i]->exp = exp;
@@ -3279,7 +3279,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         //printf("\ttraverse(1) %s appears in %s\n", ta->toChars(), tb->toChars());
         if (ta->constConv(tb))
             return 1;
-        else if (ta->invariantOf()->equals(tb->invariantOf()))
+        else if (ta->immutableOf()->equals(tb->immutableOf()))
             return 0;
         else if (tb->ty == Tvoid && MODimplicitConv(ta->mod, tb->mod))
             return 1;
@@ -3289,7 +3289,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
         //printf("\ttraverse(2) %s appears in %s\n", tb->toChars(), ta->toChars());
         if (tb->constConv(ta))
             return 1;
-        else if (tb->invariantOf()->equals(ta->invariantOf()))
+        else if (tb->immutableOf()->equals(ta->immutableOf()))
             return 0;
         else if (ta->ty == Tvoid && MODimplicitConv(tb->mod, ta->mod))
             return 1;
