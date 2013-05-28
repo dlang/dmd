@@ -497,7 +497,7 @@ void FuncDeclaration::semantic(Scope *sc)
         doesoverride = FALSE;
         switch (vi)
         {
-            case -1:
+            case (size_t)-1:
         Lintro:
                 /* Didn't find one, so
                  * This is an 'introducing' function which gets a new
@@ -537,7 +537,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
                 break;
 
-            case -2:    // can't determine because of fwd refs
+            case (size_t)-2:    // can't determine because of fwd refs
                 cd->sizeok = SIZEOKfwd; // can't finish due to forward reference
                 Module::dprogress = dprogress_save;
                 return;
@@ -626,10 +626,10 @@ void FuncDeclaration::semantic(Scope *sc)
             vi = findVtblIndex((Dsymbols *)&b->base->vtbl, b->base->vtbl.dim);
             switch (vi)
             {
-                case -1:
+                case (size_t)-1:
                     break;
 
-                case -2:
+                case (size_t)-2:
                     cd->sizeok = SIZEOKfwd;     // can't finish due to forward reference
                     Module::dprogress = dprogress_save;
                     return;
