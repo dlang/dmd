@@ -229,7 +229,7 @@ public:
     Type(TY ty);
     virtual const char *kind();
     virtual Type *syntaxCopy();
-    int equals(Object *o);
+    bool equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
@@ -1020,7 +1020,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    int equals(Object *o);
+    bool equals(Object *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);

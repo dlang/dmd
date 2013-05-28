@@ -214,7 +214,7 @@ bool AggregateDeclaration::isDeprecated()
     return isdeprecated;
 }
 
-int AggregateDeclaration::isExport()
+bool AggregateDeclaration::isExport()
 {
     return protection == PROTexport;
 }

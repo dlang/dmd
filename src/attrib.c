@@ -259,7 +259,7 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
     }
 }
 
-int AttribDeclaration::hasPointers()
+bool AttribDeclaration::hasPointers()
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -269,10 +269,10 @@ int AttribDeclaration::hasPointers()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasPointers())
-                return 1;
+                return true;
         }
     }
-    return 0;
+    return false;
 }
 
 bool AttribDeclaration::hasStaticCtorOrDtor()
@@ -296,7 +296,7 @@ const char *AttribDeclaration::kind()
     return "attribute";
 }
 
-int AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -382,10 +382,10 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
     return scd;
 }
 
-int StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
 
-    int t = Dsymbol::oneMembers(decl, ps, ident);
+    bool t = Dsymbol::oneMembers(decl, ps, ident);
     if (t && *ps)
     {
         /* This is to deal with the following case:
@@ -1204,10 +1204,10 @@ Lnodecl:
     }
 }
 
-int PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 const char *PragmaDeclaration::kind()
@@ -1250,7 +1250,7 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
     if (condition->inc)
@@ -1259,7 +1259,7 @@ int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
         return Dsymbol::oneMembers(d, ps, ident);
     }
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void ConditionalDeclaration::emitComment(Scope *sc)

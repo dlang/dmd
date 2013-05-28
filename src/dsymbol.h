@@ -131,8 +131,8 @@ public:
     char *toChars();
     Loc& getLoc();
     char *locToChars();
-    int equals(Object *o);
-    int isAnonymous();
+    bool equals(Object *o);
+    bool isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
     void deprecation(Loc loc, const char *format, ...);
@@ -165,37 +165,37 @@ public:
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *search_correct(Identifier *id);
     Dsymbol *searchX(Loc loc, Scope *sc, Object *id);
-    virtual int overloadInsert(Dsymbol *s);
+    virtual bool overloadInsert(Dsymbol *s);
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toDocBuffer(OutBuffer *buf, Scope *sc);
     virtual void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
     virtual unsigned size(Loc loc);
-    virtual int isforwardRef();
+    virtual bool isforwardRef();
     virtual void defineRef(Dsymbol *s);
     virtual AggregateDeclaration *isThis();     // is a 'this' required to access the member
     AggregateDeclaration *isAggregateMember();  // are we a member of an aggregate?
     AggregateDeclaration *isAggregateMember2(); // are we a member of an aggregate?
     ClassDeclaration *isClassMember();          // are we a member of a class?
-    virtual int isExport();                     // is Dsymbol exported?
-    virtual int isImportedSymbol();             // is Dsymbol imported?
+    virtual bool isExport();                    // is Dsymbol exported?
+    virtual bool isImportedSymbol();            // is Dsymbol imported?
     virtual bool isDeprecated();                // is Dsymbol deprecated?
 #if DMDV2
-    virtual int isOverloadable();
-    virtual int hasOverloads();
+    virtual bool isOverloadable();
+    virtual bool hasOverloads();
 #endif
     virtual LabelDsymbol *isLabel();            // is this a LabelDsymbol?
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual const char *mangle(bool isv = false);
-    virtual int needThis();                     // need a 'this' pointer?
+    virtual bool needThis();                    // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees
-    virtual int oneMember(Dsymbol **ps, Identifier *ident);
-    static int oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
+    virtual bool oneMember(Dsymbol **ps, Identifier *ident);
+    static bool oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident = NULL);
     virtual void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
-    virtual int hasPointers();
+    virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
     virtual void checkCtorConstInit() { }
@@ -273,7 +273,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
     void importScope(Dsymbol *s, PROT protection);
-    int isforwardRef();
+    bool isforwardRef();
     void defineRef(Dsymbol *s);
     static void multiplyDefined(Loc loc, Dsymbol *s1, Dsymbol *s2);
     Dsymbol *nameCollision(Dsymbol *s);

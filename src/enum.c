@@ -388,7 +388,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //members->print();
 }
 
-int EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     if (isAnonymous())
         return Dsymbol::oneMembers(members, ps, ident);

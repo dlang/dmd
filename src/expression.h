@@ -222,7 +222,7 @@ public:
 
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -259,7 +259,7 @@ public:
     real_t value;
 
     RealExp(Loc loc, real_t value, Type *type);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -283,7 +283,7 @@ public:
     complex_t value;
 
     ComplexExp(Loc loc, complex_t value, Type *type);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -326,9 +326,9 @@ class DsymbolExp : public Expression
 {
 public:
     Dsymbol *s;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DsymbolExp(Loc loc, Dsymbol *s, int hasOverloads = 0);
+    DsymbolExp(Loc loc, Dsymbol *s, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     char *toChars();
     void dump(int indent);
@@ -375,7 +375,7 @@ public:
     unsigned char committed;    // !=0 if type is committed
 
     NullExp(Loc loc, Type *t = NULL);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
@@ -403,7 +403,7 @@ public:
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     //Expression *syntaxCopy();
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
@@ -444,7 +444,7 @@ public:
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
@@ -549,7 +549,7 @@ public:
                                   // (with infinite recursion) of this expression.
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
-    int equals(Object *o);
+    bool equals(Object *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -663,9 +663,9 @@ class SymbolExp : public Expression
 {
 public:
     Declaration *var;
-    int hasOverloads;
+    bool hasOverloads;
 
-    SymbolExp(Loc loc, TOK op, int size, Declaration *var, int hasOverloads);
+    SymbolExp(Loc loc, TOK op, int size, Declaration *var, bool hasOverloads);
 
     elem *toElem(IRState *irs);
 };
@@ -678,7 +678,7 @@ class SymOffExp : public SymbolExp
 public:
     unsigned offset;
 
-    SymOffExp(Loc loc, Declaration *var, unsigned offset, int hasOverloads = 0);
+    SymOffExp(Loc loc, Declaration *var, unsigned offset, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -698,8 +698,8 @@ public:
 class VarExp : public SymbolExp
 {
 public:
-    VarExp(Loc loc, Declaration *var, int hasOverloads = 0);
-    int equals(Object *o);
+    VarExp(Loc loc, Declaration *var, bool hasOverloads = false);
+    bool equals(Object *o);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -984,9 +984,9 @@ class DotVarExp : public UnaExp
 {
 public:
     Declaration *var;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DotVarExp(Loc loc, Expression *e, Declaration *var, int hasOverloads = 0);
+    DotVarExp(Loc loc, Expression *e, Declaration *var, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     int checkModifiable(Scope *sc, int flag);
     int isLvalue();
@@ -1017,9 +1017,9 @@ class DelegateExp : public UnaExp
 {
 public:
     FuncDeclaration *func;
-    int hasOverloads;
+    bool hasOverloads;
 
-    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, int hasOverloads = 0);
+    DelegateExp(Loc loc, Expression *e, FuncDeclaration *func, bool hasOverloads = false);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     MATCH implicitConvTo(Type *t);

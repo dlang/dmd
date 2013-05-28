@@ -104,7 +104,7 @@ public:
     FuncDeclaration *buildInv(Scope *sc);
     bool isNested();
     void makeNested();
-    int isExport();
+    bool isExport();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
@@ -284,7 +284,7 @@ public:
 #if DMDV2
     virtual int isCPPinterface();
 #endif
-    int isAbstract();
+    bool isAbstract();
     virtual int vtblOffset();
     const char *kind();
     const char *mangle(bool isv = false);

@@ -58,7 +58,7 @@ public:
     Dsymbol *toAlias();
     int addMember(Scope *sc, ScopeDsymbol *s, int memnum);
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
 

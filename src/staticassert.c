@@ -101,11 +101,11 @@ void StaticAssert::semantic2(Scope *sc)
     }
 }
 
-int StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
+bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void StaticAssert::inlineScan()

@@ -1153,7 +1153,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     assert(arg->ident);
                     TupleDeclaration *v = new TupleDeclaration(loc, arg->ident, exps);
                     //printf("declaring tuple %s\n", v->toChars());
-                    v->isexp = 1;
+                    v->isexp = true;
                     if (!sc2->insert(v))
                         error("parameter %s.%s is already defined", toChars(), v->toChars());
                     localsymtab->insert(v);
@@ -1920,10 +1920,10 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
     return NULL;
 }
 
-int FuncDeclaration::equals(Object *o)
+bool FuncDeclaration::equals(Object *o)
 {
     if (this == o)
-        return TRUE;
+        return true;
 
     Dsymbol *s = isDsymbol(o);
     if (s)
@@ -1937,7 +1937,7 @@ int FuncDeclaration::equals(Object *o)
                 fd1->ident->equals(fd2->ident) && fd1->type->equals(fd2->type);
         }
     }
-    return FALSE;
+    return false;
 }
 
 void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2293,10 +2293,10 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
 
 /****************************************************
  * Overload this FuncDeclaration with the new one f.
- * Return !=0 if successful; i.e. no conflict.
+ * Return true if successful; i.e. no conflict.
  */
 
-int FuncDeclaration::overloadInsert(Dsymbol *s)
+bool FuncDeclaration::overloadInsert(Dsymbol *s)
 {
     //printf("FuncDeclaration::overloadInsert(s = %s) this = %s\n", s->toChars(), toChars());
     AliasDeclaration *ad = s->isAliasDeclaration();
@@ -2307,15 +2307,15 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
         if (!ad->aliassym && ad->type->ty != Tident && ad->type->ty != Tinstance)
         {
             //printf("\tad = '%s'\n", ad->type->toChars());
-            return FALSE;
+            return false;
         }
         overnext = ad;
         //printf("\ttrue: no conflict\n");
-        return TRUE;
+        return true;
     }
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
-        return FALSE;
+        return false;
 
 #if 0
     /* Disable this check because:
@@ -2341,7 +2341,7 @@ int FuncDeclaration::overloadInsert(Dsymbol *s)
         return overnext->overloadInsert(fd);
     overnext = fd;
     //printf("\ttrue: no conflict\n");
-    return TRUE;
+    return true;
 }
 
 /********************************************
@@ -3028,17 +3028,17 @@ const char *FuncDeclaration::toFullSignature()
     return buf.extractData();
 }
 
-int FuncDeclaration::isMain()
+bool FuncDeclaration::isMain()
 {
     return ident == Id::main &&
         linkage != LINKc && !isMember() && !isNested();
 }
 
-int FuncDeclaration::isWinMain()
+bool FuncDeclaration::isWinMain()
 {
     //printf("FuncDeclaration::isWinMain() %s\n", toChars());
 #if 0
-    int x = ident == Id::WinMain &&
+    bool x = ident == Id::WinMain &&
         linkage != LINKc && !isMember();
     printf("%s\n", x ? "yes" : "no");
     return x;
@@ -3048,18 +3048,18 @@ int FuncDeclaration::isWinMain()
 #endif
 }
 
-int FuncDeclaration::isDllMain()
+bool FuncDeclaration::isDllMain()
 {
     return ident == Id::DllMain &&
         linkage != LINKc && !isMember();
 }
 
-int FuncDeclaration::isExport()
+bool FuncDeclaration::isExport()
 {
     return protection == PROTexport;
 }
 
-int FuncDeclaration::isImportedSymbol()
+bool FuncDeclaration::isImportedSymbol()
 {
     //printf("isImportedSymbol()\n");
     //printf("protection = %d\n", protection);
@@ -3068,7 +3068,7 @@ int FuncDeclaration::isImportedSymbol()
 
 // Determine if function goes into virtual function pointer table
 
-int FuncDeclaration::isVirtual()
+bool FuncDeclaration::isVirtual()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isVirtual();
@@ -3091,23 +3091,23 @@ int FuncDeclaration::isVirtual()
 
 // Determine if a function is pedantically virtual
 
-int FuncDeclaration::isVirtualMethod()
+bool FuncDeclaration::isVirtualMethod()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isVirtualMethod();
 
     //printf("FuncDeclaration::isVirtualMethod() %s\n", toChars());
     if (!isVirtual())
-        return 0;
+        return false;
     // If it's a final method, and does not override anything, then it is not virtual
     if (isFinal() && foverrides.dim == 0)
     {
-        return 0;
+        return false;
     }
-    return 1;
+    return true;
 }
 
-int FuncDeclaration::isFinal()
+bool FuncDeclaration::isFinal()
 {
     if (toAliasFunc() != this)
         return toAliasFunc()->isFinal();
@@ -3133,22 +3133,22 @@ int FuncDeclaration::isFinal()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
-int FuncDeclaration::isAbstract()
+bool FuncDeclaration::isAbstract()
 {
-    return storage_class & STCabstract;
+    return (storage_class & STCabstract) != 0;
 }
 
-int FuncDeclaration::isCodeseg()
+bool FuncDeclaration::isCodeseg()
 {
-    return TRUE;                // functions are always in the code segment
+    return true;                // functions are always in the code segment
 }
 
-int FuncDeclaration::isOverloadable()
+bool FuncDeclaration::isOverloadable()
 {
-    return 1;                   // functions can be overloaded
+    return true;                // functions can be overloaded
 }
 
-int FuncDeclaration::hasOverloads()
+bool FuncDeclaration::hasOverloads()
 {
     return overnext != NULL;
 }
@@ -3204,7 +3204,7 @@ bool FuncDeclaration::setImpure()
     return FALSE;
 }
 
-int FuncDeclaration::isSafe()
+bool FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
@@ -3220,7 +3220,7 @@ bool FuncDeclaration::isSafeBypassingInference()
         return isSafe();
 }
 
-int FuncDeclaration::isTrusted()
+bool FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
@@ -3414,7 +3414,7 @@ bool FuncDeclaration::parametersIntersect(Type *t)
 // Determine if function needs
 // a static frame pointer to its lexically enclosing function
 
-int FuncDeclaration::isNested()
+bool FuncDeclaration::isNested()
 {
     FuncDeclaration *f = toAliasFunc();
     //printf("\ttoParent2() = '%s'\n", f->toParent2()->toChars());
@@ -3423,13 +3423,13 @@ int FuncDeclaration::isNested()
            (f->toParent2()->isFuncDeclaration() != NULL);
 }
 
-int FuncDeclaration::needThis()
+bool FuncDeclaration::needThis()
 {
     //printf("FuncDeclaration::needThis() '%s'\n", toChars());
     return toAliasFunc()->isThis() != NULL;
 }
 
-int FuncDeclaration::addPreInvariant()
+bool FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
@@ -3440,7 +3440,7 @@ int FuncDeclaration::addPreInvariant()
             ident != Id::cpctor);
 }
 
-int FuncDeclaration::addPostInvariant()
+bool FuncDeclaration::addPostInvariant()
 {
     AggregateDeclaration *ad = isThis();
     return (ad &&
@@ -3615,7 +3615,7 @@ bool checkEscapingSiblings(FuncDeclaration *f, FuncDeclaration *outerFunc)
  */
 
 #if DMDV2
-int FuncDeclaration::needsClosure()
+bool FuncDeclaration::needsClosure()
 {
     /* Need a closure for all the closureVars[] if any of the
      * closureVars[] are accessed by a
@@ -3703,11 +3703,11 @@ int FuncDeclaration::needsClosure()
         }
     }
 
-    return 0;
+    return false;
 
 Lyes:
     //printf("\tneeds closure\n");
-    return 1;
+    return true;
 }
 #endif
 
@@ -3716,14 +3716,14 @@ Lyes:
  * nested within it.
  */
 
-int FuncDeclaration::hasNestedFrameRefs()
+bool FuncDeclaration::hasNestedFrameRefs()
 {
 #if DMDV2
     if (closureVars.dim)
 #else
     if (nestedFrameRef)
 #endif
-        return 1;
+        return true;
 
     /* If a virtual method has contracts, assume its variables are referenced
      * by those contracts, even if they aren't. Because they might be referenced
@@ -3733,7 +3733,7 @@ int FuncDeclaration::hasNestedFrameRefs()
      * context had better match, or Bugzilla 7337 will bite.
      */
     if ((fdrequire || fdensure) && isVirtualMethod())
-        return 1;
+        return true;
 
     if (foverrides.dim && isVirtualMethod())
     {
@@ -3741,11 +3741,11 @@ int FuncDeclaration::hasNestedFrameRefs()
         {
             FuncDeclaration *fdv = foverrides[i];
             if (fdv->hasNestedFrameRefs())
-                return 1;
+                return true;
         }
     }
 
-    return 0;
+    return false;
 }
 
 /*********************************************
@@ -3774,7 +3774,7 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
 
 // Used as a way to import a set of functions from another scope into this one.
 
-FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOverloads)
+FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, bool hasOverloads)
     : FuncDeclaration(funcalias->loc, funcalias->endloc, funcalias->ident,
         funcalias->storage_class, funcalias->type)
 {
@@ -3790,7 +3790,7 @@ FuncAliasDeclaration::FuncAliasDeclaration(FuncDeclaration *funcalias, int hasOv
     else
     {   // for internal use
         assert(!funcalias->isFuncAliasDeclaration());
-        this->hasOverloads = 0;
+        this->hasOverloads = false;
     }
     userAttributes = funcalias->userAttributes;
 }
@@ -3845,15 +3845,15 @@ Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
     return f;
 }
 
-int FuncLiteralDeclaration::isNested()
+bool FuncLiteralDeclaration::isNested()
 {
     //printf("FuncLiteralDeclaration::isNested() '%s'\n", toChars());
     return (tok != TOKfunction);
 }
 
-int FuncLiteralDeclaration::isVirtual()
+bool FuncLiteralDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 const char *FuncLiteralDeclaration::kind()
@@ -3969,17 +3969,17 @@ char *CtorDeclaration::toChars()
     return (char *)"this";
 }
 
-int CtorDeclaration::isVirtual()
+bool CtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
-int CtorDeclaration::addPreInvariant()
+bool CtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int CtorDeclaration::addPostInvariant()
+bool CtorDeclaration::addPostInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
@@ -4032,24 +4032,24 @@ void PostBlitDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int PostBlitDeclaration::overloadInsert(Dsymbol *s)
+bool PostBlitDeclaration::overloadInsert(Dsymbol *s)
 {
-    return FALSE;       // cannot overload postblits
+    return false;       // cannot overload postblits
 }
 
-int PostBlitDeclaration::addPreInvariant()
+bool PostBlitDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int PostBlitDeclaration::addPostInvariant()
+bool PostBlitDeclaration::addPostInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
 
-int PostBlitDeclaration::isVirtual()
+bool PostBlitDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 void PostBlitDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4109,19 +4109,19 @@ void DtorDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int DtorDeclaration::overloadInsert(Dsymbol *s)
+bool DtorDeclaration::overloadInsert(Dsymbol *s)
 {
-    return FALSE;       // cannot overload destructors
+    return false;       // cannot overload destructors
 }
 
-int DtorDeclaration::addPreInvariant()
+bool DtorDeclaration::addPreInvariant()
 {
     return (isThis() && vthis && global.params.useInvariants);
 }
 
-int DtorDeclaration::addPostInvariant()
+bool DtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 const char *DtorDeclaration::kind()
@@ -4134,10 +4134,10 @@ char *DtorDeclaration::toChars()
     return (char *)"~this";
 }
 
-int DtorDeclaration::isVirtual()
+bool DtorDeclaration::isVirtual()
 {
-    // FALSE so that dtor's don't get put into the vtbl[]
-    return FALSE;
+    // false so that dtor's don't get put into the vtbl[]
+    return false;
 }
 
 void DtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4225,9 +4225,9 @@ AggregateDeclaration *StaticCtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticCtorDeclaration::isVirtual()
+bool StaticCtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 bool StaticCtorDeclaration::hasStaticCtorOrDtor()
@@ -4235,14 +4235,14 @@ bool StaticCtorDeclaration::hasStaticCtorOrDtor()
     return TRUE;
 }
 
-int StaticCtorDeclaration::addPreInvariant()
+bool StaticCtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int StaticCtorDeclaration::addPostInvariant()
+bool StaticCtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void StaticCtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4360,9 +4360,9 @@ AggregateDeclaration *StaticDtorDeclaration::isThis()
     return NULL;
 }
 
-int StaticDtorDeclaration::isVirtual()
+bool StaticDtorDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
 bool StaticDtorDeclaration::hasStaticCtorOrDtor()
@@ -4370,14 +4370,14 @@ bool StaticDtorDeclaration::hasStaticCtorOrDtor()
     return TRUE;
 }
 
-int StaticDtorDeclaration::addPreInvariant()
+bool StaticDtorDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int StaticDtorDeclaration::addPostInvariant()
+bool StaticDtorDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void StaticDtorDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4464,19 +4464,19 @@ void InvariantDeclaration::semantic(Scope *sc)
     sc->pop();
 }
 
-int InvariantDeclaration::isVirtual()
+bool InvariantDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
-int InvariantDeclaration::addPreInvariant()
+bool InvariantDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int InvariantDeclaration::addPostInvariant()
+bool InvariantDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void InvariantDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4564,19 +4564,19 @@ AggregateDeclaration *UnitTestDeclaration::isThis()
     return NULL;
 }
 
-int UnitTestDeclaration::isVirtual()
+bool UnitTestDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
-int UnitTestDeclaration::addPreInvariant()
+bool UnitTestDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int UnitTestDeclaration::addPostInvariant()
+bool UnitTestDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void UnitTestDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4654,19 +4654,19 @@ const char *NewDeclaration::kind()
     return "allocator";
 }
 
-int NewDeclaration::isVirtual()
+bool NewDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
-int NewDeclaration::addPreInvariant()
+bool NewDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int NewDeclaration::addPostInvariant()
+bool NewDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void NewDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -4742,24 +4742,24 @@ const char *DeleteDeclaration::kind()
     return "deallocator";
 }
 
-int DeleteDeclaration::isDelete()
+bool DeleteDeclaration::isDelete()
 {
-    return TRUE;
+    return true;
 }
 
-int DeleteDeclaration::isVirtual()
+bool DeleteDeclaration::isVirtual()
 {
-    return FALSE;
+    return false;
 }
 
-int DeleteDeclaration::addPreInvariant()
+bool DeleteDeclaration::addPreInvariant()
 {
-    return FALSE;
+    return false;
 }
 
-int DeleteDeclaration::addPostInvariant()
+bool DeleteDeclaration::addPostInvariant()
 {
-    return FALSE;
+    return false;
 }
 
 void DeleteDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
