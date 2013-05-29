@@ -368,8 +368,6 @@ struct Foo9234(alias F) {}
 struct Foo9234(string thunk) {}
 
 /*****************************************/
-<<<<<<< HEAD
-=======
 // 10103
 
 mixin template Getter10103()
@@ -443,7 +441,6 @@ void test10197()
 }
 
 /*****************************************/
->>>>>>> 1f9e673... Merge pull request #2093 from 9rnsr/fix10197
 
 int main()
 {
@@ -455,11 +452,7 @@ int main()
     test7274();
     test7275();
     test8251();
-<<<<<<< HEAD
-=======
-    test10103();
     test10197();
->>>>>>> 1f9e673... Merge pull request #2093 from 9rnsr/fix10197
 
     printf("Success\n");
     return 0;
