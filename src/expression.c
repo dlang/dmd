@@ -9486,10 +9486,10 @@ Expression *CastExp::semantic(Scope *sc)
     if (type)
         return this;
     UnaExp::semantic(sc);
+    e1 = resolveProperties(sc, e1);
+
     if (e1->type)               // if not a tuple
     {
-        e1 = resolveProperties(sc, e1);
-
         if (!to)
         {
             /* Handle cast(const) and cast(immutable), etc.
