@@ -452,6 +452,7 @@ int main()
     test7274();
     test7275();
     test8251();
+    test10103();
     test10197();
 
     printf("Success\n");
