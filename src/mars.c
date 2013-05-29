@@ -510,6 +510,19 @@ int main(size_t argc, char *argv[])
 #endif
     VersionCondition::addPredefinedGlobalIdent("all");
 
+// If we are in D1, try to find sc1.ini/dmd1.conf, if we don't find it, use the
+// regular sc.ini/dmd.conf
+#if !DMDV2
+#  if _WIN32
+    inifilename = inifile(argv[0], "sc1.ini", "Environment");
+#  elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
+    inifilename = inifile(argv[0], "dmd1.conf", "Environment");
+#  else
+#    error "fix this"
+#  endif
+    if (inifilename == NULL)
+#endif
+    {
 #if _WIN32
     inifilename = inifile(argv[0], "sc.ini", "Environment");
 #elif linux || __APPLE__ || __FreeBSD__ || __OpenBSD__ || __sun
@@ -517,6 +530,7 @@ int main(size_t argc, char *argv[])
 #else
 #error "fix this"
 #endif
+    }
 
     size_t dflags_argc = 0;
     char** dflags_argv = NULL;
