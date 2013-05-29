@@ -36,7 +36,7 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 
 private import gc.gcbits;
 private import gc.gcstats;
-private import gc.gcalloc;
+private import gc.os;
 
 private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 private import core.stdc.string;

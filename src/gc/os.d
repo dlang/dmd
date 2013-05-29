@@ -1,17 +1,17 @@
 /**
- * Contains OS-level allocation routines.
+ * Contains OS-level routines needed by the garbage collector.
  *
- * Copyright: Copyright Digital Mars 2005 - 2009.
+ * Copyright: Copyright Digital Mars 2005 - 2013.
  * License:   <a href="http://www.boost.org/LICENSE_1_0.txt">Boost License 1.0</a>.
- * Authors:   Walter Bright, David Friedman, Sean Kelly
+ * Authors:   Walter Bright, David Friedman, Sean Kelly, Leandro Lucarella
  */
 
-/*          Copyright Digital Mars 2005 - 2009.
+/*          Copyright Digital Mars 2005 - 2013.
  * Distributed under the Boost Software License, Version 1.0.
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.gcalloc;
+module gc.os;
 
 
 version (Windows)
