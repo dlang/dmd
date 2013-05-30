@@ -9,6 +9,10 @@
 #include <time.h>
 #include <assert.h>
 
+#if __sun || _MSC_VER
+#include <alloca.h>
+#endif
+
 #include "mars.h"
 #include "module.h"
 #include "mtype.h"

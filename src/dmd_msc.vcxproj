@@ -217,7 +217,6 @@
       <ExcludedFromBuild>true</ExcludedFromBuild>
     </ClCompile>
     <ClCompile Include="root\aav.c" />
-    <ClCompile Include="root\array.c" />
     <ClCompile Include="root\async.c" />
     <ClCompile Include="root\dmgcmem.c">
       <ExcludedFromBuild>true</ExcludedFromBuild>
