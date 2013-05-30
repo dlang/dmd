@@ -134,8 +134,6 @@ const char *Declaration::mangle(bool isv)
             // If it's not a D declaration, no mangling
             if (linkage == LINKcpp)
             {
-                if(global.params.isWindows) //for fix later
-                    return ident->toChars();
                 return Target::mangleSymbol(this, LINKcpp);
             }
             else if (linkage == LINKdefault)

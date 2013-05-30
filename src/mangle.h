@@ -68,4 +68,53 @@ private:
     Voids components;
 };
 
+//Windows DMC an Microsoft Visual C++ mangling
+class VisualCPPMangler: public Mangler
+{
+public:
+
+    const char *mangleDsymbol(Dsymbol *d);
+    const char *mangleDsymbol(FuncDeclaration *d);
+    const char *mangleDsymbol(VarDeclaration *d);
+
+    void mangleType(Type *type, OutBuffer *buf);
+    void mangleType(TypeBasic *type, OutBuffer *buf);
+    void mangleType(TypeVector *type, OutBuffer *buf);
+    void mangleType(TypeSArray *type, OutBuffer *buf);
+    void mangleType(TypeDArray *type, OutBuffer *buf);
+    void mangleType(TypeAArray *type, OutBuffer *buf);
+    void mangleType(TypePointer *type, OutBuffer *buf);
+    void mangleType(TypeReference *type, OutBuffer *buf);
+    void mangleType(TypeFunction *type, OutBuffer *buf);
+    void mangleType(TypeDelegate *type, OutBuffer *buf);
+    void mangleType(TypeStruct *type, OutBuffer *buf);
+    void mangleType(TypeEnum *type, OutBuffer *buf);
+    void mangleType(TypeTypedef *type, OutBuffer *buf);
+    void mangleType(TypeClass *type, OutBuffer *buf);
+    
+private:
+    void mangleName(const char *name, OutBuffer *buf);
+    void mangleIdent(Dsymbol *sym, OutBuffer *buf);
+    void mangleNumber(uint64_t, OutBuffer *buf);
+    bool checkTypeSaved(Type *type, OutBuffer *buf);
+    void mangleModifier(Type *type, OutBuffer *buf);
+    void mangleArray(TypeSArray*, OutBuffer *buf);
+    const char *mangleFunction(TypeFunction*, bool needthis = false);
+    void mangleParamenter(Parameter *type, OutBuffer *buf);
+	
+    //Should be called after symbol writing. This function clear saved_idents and saved_types tables
+    void reset();
+    
+    const char *saved_idents[10];
+    Type *saved_types[10];
+    //when we mangling one argument, we can call mangleType several times (for base types of arg type) 
+    //but we must save only arg type:
+    //For example: if we have an int** argument, we should save "int**" but mangleType will be called for "int**", "int*", "int"
+    //This flag is set up by the mangleType(NextType, ) function  and should be reset when the arg type output is finished.
+    bool is_not_top_type; 
+    
+    //in some cases we should ignore CV-modifiers, like array:
+    bool ignore_const;
+};
+
 #endif

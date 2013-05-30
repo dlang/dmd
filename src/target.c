@@ -65,7 +65,7 @@ void Target::init()
         ptrsize = 8;
 
     if (global.params.isWindows)
-        manglers[LINKcpp] = NULL;
+        manglers[LINKcpp] = new VisualCPPMangler;
     else
         manglers[LINKcpp] = new ItaniumCPPMangler;
 }

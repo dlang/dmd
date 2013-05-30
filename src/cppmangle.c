@@ -501,3 +501,639 @@ void ItaniumCPPMangler::reset()
 {
     components.setDim(0);
 }
+
+
+const char *VisualCPPMangler::mangleDsymbol(Dsymbol *d)
+{
+    reset();
+    OutBuffer buf;
+    buf.writeByte('?');
+    mangleIdent(d, &buf);
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
+
+const char *VisualCPPMangler::mangleDsymbol(FuncDeclaration *d)
+{
+    reset();
+    assert(d);
+    OutBuffer buf;
+    buf.writeByte('?');
+    mangleIdent(d, &buf);
+
+    if (d->needThis())
+    {
+        if (d->isVirtual() && d->vtblIndex != -1)
+        {
+            switch(d->protection)
+            {
+                case PROTprivate:
+                    buf.writeByte('E');
+                    break;
+                case PROTprotected:
+                    buf.writeByte('M');
+                    break;
+                default:
+                    buf.writeByte('U');
+                    break;
+            }
+        }
+        else
+        {
+            switch(d->protection)
+            {
+                case PROTprivate:
+                    buf.writeByte('A');
+                    break;
+                case PROTprotected:
+                    buf.writeByte('I');
+                    break;
+                default:
+                    buf.writeByte('Q');
+                    break;
+            }
+        }
+
+        if (d->isConst())
+        {
+            buf.writeByte('B');
+        }
+        else
+        {
+            buf.writeByte('A');
+        }
+    }
+    else if (d->isMember2()) //static function
+    {
+        switch(d->protection)
+        {
+            case PROTprivate:
+                buf.writeByte('C');
+                break;
+            case PROTprotected:
+                buf.writeByte('K');
+                break;
+            default:
+                buf.writeByte('S');
+                break;
+        }
+    }
+    else //top-level function
+    {
+        buf.writeByte('Y');
+    }
+
+    const char *args = mangleFunction((TypeFunction *)d->type, (bool)d->needThis());
+    buf.writestring(args);
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+
+}
+const char *VisualCPPMangler::mangleDsymbol(VarDeclaration *d)
+{
+    reset();
+    assert(d);
+    if (!(d->storage_class & (STCextern | STCgshared)))
+    {
+        d->error("C++ static non- __gshared non-extern variables not supported");
+        return "";
+    }
+    OutBuffer buf;
+    buf.writeByte('?');
+    mangleIdent(d, &buf);
+
+    assert(!d->needThis());
+
+    if (d->parent && d->parent->isModule()) //static member
+    {
+        buf.writeByte('3');
+    }
+    else
+    {
+        switch(d->protection)
+        {
+            case PROTprivate:
+                buf.writeByte('0');
+                break;
+            case PROTprotected:
+                buf.writeByte('1');
+                break;
+            default:
+                buf.writeByte('2');
+                break;
+        }
+    }
+
+    char cv_mod = 0;
+    Type *t = d->type;
+
+    if (t->isSharedConst())
+    {
+        cv_mod = 'D'; //const volatile
+    }
+    else if (t->isShared())
+    {
+        cv_mod = 'C'; //volatile
+    }
+    else if (t->isConst())
+    {
+        cv_mod = 'B'; //const
+    }
+    else
+    {
+        cv_mod = 'A'; //mutable
+    }
+
+    if (t->ty != Tpointer)
+        t = t->mutableOf();
+
+    t->mangleX(this, &buf);
+
+    buf.writeByte(cv_mod);
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
+
+void VisualCPPMangler::mangleType(Type *type, OutBuffer *buf)
+{
+    type->error(Loc(), "Unsupported type %s\n", type->toChars());
+    assert(0); //Assert, because this error should be handled in frontend
+}
+
+void VisualCPPMangler::mangleType(TypeBasic *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeBasic); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (type->isConst() || type->isShared())
+    {
+        if (checkTypeSaved(type, buf)) return;
+    }
+
+    if ((type->ty == Tbool)&&checkTypeSaved(type, buf))//try to replace long name with number
+    {
+        return;
+    }
+    mangleModifier(type, buf);
+    switch (type->ty)
+    {
+        case Tvoid:     buf->writeByte('X');        break;
+        case Tint8:     buf->writeByte('C');        break;
+        case Tuns8:     buf->writeByte('E');        break;
+        case Tint16:    buf->writeByte('F');        break;
+        case Tuns16:    buf->writeByte('G');        break;
+        case Tint32:    buf->writeByte('H');        break;
+        case Tuns32:    buf->writeByte('I');        break;
+        case Tfloat32:  buf->writeByte('M');        break;
+        case Tint64:    buf->writestring("_J");     break;
+        case Tuns64:    buf->writestring("_K");     break;
+        case Tfloat64:  buf->writeByte('N');        break;
+        case Tbool:     buf->writestring("_N");     break;
+        case Tchar:     buf->writeByte('D');        break;
+        case Twchar:    buf->writeByte('G');        break; //unsigned short
+
+        case Tfloat80:
+            if(global.params.is64bit)
+                buf->writestring("_T"); //Intel long double
+            else
+                buf->writestring("_Z"); //DigitalMars long double
+            break;
+
+        case Tdchar:
+            if(global.params.is64bit)
+                buf->writestring("_W"); //Visual C++ wchar_t
+            else
+                buf->writestring("_Y"); //DigitalMars wchar_t
+            break;
+
+        default:        mangleType((Type*)type, buf); return;
+    }
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleType(TypeVector *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeVector); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+    buf->writestring("T__m128@@"); //may be better as __m128i or __m128d?
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleType(TypeSArray *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeSArray); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+    //first dimension always mangled as const pointer
+    buf->writeByte('Q');
+    if (global.params.is64bit)
+        buf->writeByte('E');
+    is_not_top_type = true;
+    assert(type->nextOf());
+    if (type->nextOf()->ty == Tsarray)
+    {
+        mangleArray((TypeSArray*)type->nextOf(), buf);
+    }
+    else
+    {
+        type->nextOf()->mangleX(this, buf);
+    }
+}
+
+void VisualCPPMangler::mangleType(TypeDArray *type, OutBuffer *buf)
+{
+    mangleType((Type*)type, buf);
+}
+
+void VisualCPPMangler::mangleType(TypeAArray *type, OutBuffer *buf)
+{
+    mangleType((Type*)type, buf);
+}
+
+void VisualCPPMangler::mangleType(TypePointer *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypePointer); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+    mangleModifier(type, buf);
+    if (type->isSharedConst())
+    {
+        buf->writeByte('S'); //const volatile
+    }
+    else if (type->isShared())
+    {
+        buf->writeByte('R'); //volatile
+    }
+    else if (type->isConst())
+    {
+        buf->writeByte('Q'); //const
+    }
+    else
+    {
+        buf->writeByte('P'); //mutable
+    }
+
+    if (global.params.is64bit)
+        buf->writeByte('E');
+    is_not_top_type = true;
+    assert(type->nextOf());
+    if (type->nextOf()->ty == Tsarray)
+    {
+        mangleArray((TypeSArray*)type->nextOf(), buf);
+    }
+    else
+    {
+        type->nextOf()->mangleX(this, buf);
+    }
+}
+
+void VisualCPPMangler::mangleType(TypeReference *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeReference); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+
+    if (type->isShared())
+    {
+        buf->writeByte('B'); //volatile
+    }
+    else
+    {
+        buf->writeByte('A'); //mutable
+    }
+
+    is_not_top_type = true;
+    assert(type->nextOf());
+    if (type->nextOf()->ty == Tsarray)
+    {
+        mangleArray((TypeSArray*)type->nextOf(), buf);
+    }
+    else
+    {
+        type->nextOf()->mangleX(this, buf);
+    }
+}
+
+void VisualCPPMangler::mangleType(TypeFunction *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeFunction); is_not_top_type = %d\n", (int)is_not_top_type);
+    const char *arg = mangleFunction(type); //compute args before checking to save; args should be saved before function type
+    if (checkTypeSaved(type, buf)) return;
+    buf->writeByte('6'); //pointer to function
+    buf->writestring(arg);
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleType(TypeDelegate *type, OutBuffer *buf)
+{
+    mangleType((Type*)type, buf);
+}
+
+void VisualCPPMangler::mangleType(TypeStruct *type, OutBuffer *buf)
+{
+    if (checkTypeSaved(type, buf)) return;
+    //printf("VisualCPPMangler::mangleType(TypeStruct); is_not_top_type = %d\n", (int)is_not_top_type);
+    mangleModifier(type, buf);
+    if (type->sym->isUnionDeclaration())
+        buf->writeByte('T');
+    else
+        buf->writeByte('U');
+    mangleIdent(type->sym, buf);
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleType(TypeEnum *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeEnum); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+    mangleModifier(type, buf);
+    buf->writeByte('W');
+
+    switch(type->sym->memtype->ty)
+    {
+        case Tchar:
+        case Tint8:
+            buf->writeByte('0');
+            break;
+        case Tuns8:
+            buf->writeByte('1');
+            break;
+        case Tint16:
+            buf->writeByte('2');
+            break;
+        case Tuns16:
+            buf->writeByte('3');
+            break;
+        case Tint32:
+            buf->writeByte('4');
+            break;
+        case Tuns32:
+            buf->writeByte('5');
+            break;
+        case Tint64:
+            buf->writeByte('6');
+            break;
+        case Tuns64:
+            buf->writeByte('7');
+            break;
+        default:
+            mangleType((Type*)type, buf);
+            break;
+    }
+
+    mangleIdent(type->sym, buf);
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleType(TypeTypedef *type, OutBuffer *buf)
+{
+    mangleType((Type*)type, buf);
+}
+
+//D class mangled as pointer to C++ class
+//const(Object) mangled as Object const* const
+void VisualCPPMangler::mangleType(TypeClass *type, OutBuffer *buf)
+{
+    //printf("VisualCPPMangler::mangleType(TypeClass); is_not_top_type = %d\n", (int)is_not_top_type);
+    if (checkTypeSaved(type, buf)) return;
+
+    if (type->isSharedConst())
+    {
+        buf->writeByte('S'); //const volatile
+    }
+    else if (type->isShared())
+    {
+        buf->writeByte('R'); //volatile
+    }
+    else if (type->isConst())
+    {
+        buf->writeByte('Q'); //const
+    }
+    else
+    {
+        buf->writeByte('P'); //mutable
+    }
+
+    if (global.params.is64bit)
+        buf->writeByte('E');
+
+    mangleModifier(type, buf);
+
+    buf->writeByte('V');
+
+    mangleIdent(type->sym, buf);
+    is_not_top_type = false;
+    ignore_const = false;
+}
+
+void VisualCPPMangler::mangleName(const char *name, OutBuffer *buf)
+{
+    for (size_t i=0; i<10; i++)
+    {
+        if (!saved_idents[i]) //no saved same name
+        {
+           saved_idents[i] = name;
+           break;
+        }
+        if (!strcmp(saved_idents[i], name)) //ok, we've found same name. use index instead of name
+        {
+            buf->writeByte(i + '0');
+            return;
+        }
+    }
+    buf->writestring(name);
+    buf->writeByte('@');
+}
+
+void VisualCPPMangler::mangleIdent(Dsymbol *sym, OutBuffer *buf)
+{
+    Dsymbol *p = sym;
+    while (p && !p->isModule())
+    {
+        mangleName(p->ident->toChars(), buf);
+        p = p->toParent();
+    }
+    buf->writeByte('@');
+}
+
+void VisualCPPMangler::mangleNumber(uint64_t num, OutBuffer *buf)
+{
+    if (!num) //0 encoded as "A@"
+    {
+        buf->writeByte('A');
+        buf->writeByte('@');
+    }
+    if (num <= 10) //5 encoded as "4"
+    {
+        buf->writeByte(num-1 + '0');
+        return;
+    }
+
+    char buff[17];
+    buff[16] = 0;
+    size_t i=16;
+    while (num)
+    {
+        --i;
+        buff[i] = num%16 + 'A';
+        num /=16;
+    }
+    buf->writestring(&buff[i]);
+    buf->writeByte('@');
+}
+
+bool VisualCPPMangler::checkTypeSaved(Type *type, OutBuffer *buf)
+{
+    if (is_not_top_type) return false;
+    for (size_t i=0; i<10; i++)
+    {
+        if (!saved_types[i]) //no saved same type
+        {
+           saved_types[i] = type;
+           return false;
+        }
+        if (saved_types[i]->equals(type)) //ok, we've found same type. use index instead of type
+        {
+            buf->writeByte(i + '0');
+            is_not_top_type = false;
+            ignore_const = false;
+            return true;
+        }
+    }
+    return false;
+}
+
+void VisualCPPMangler::mangleModifier(Type *type, OutBuffer *buf)
+{
+    if (ignore_const) return;
+    if (type->isSharedConst())
+    {
+        if (is_not_top_type)
+            buf->writeByte('D'); //const volatile
+        else if (type->ty != Tpointer)
+            buf->writestring("_Q"); //may be dmc specific
+    }
+    else if (type->isShared())
+    {
+        if (is_not_top_type)
+            buf->writeByte('C'); //volatile
+        else if (type->ty != Tpointer)
+            buf->writestring("_P"); //may be dmc specific
+    }
+    else if (type->isConst())
+    {
+        if (is_not_top_type)
+            buf->writeByte('B'); //const
+        else if (type->ty != Tpointer)
+            buf->writestring("_O");
+    }
+    else if (is_not_top_type)
+        buf->writeByte('A'); //mutable
+}
+
+void VisualCPPMangler::mangleArray(TypeSArray *type, OutBuffer *buf)
+{
+    mangleModifier(type, buf);
+    size_t i=0;
+    Type *cur = type;
+    while (cur && cur->ty == Tsarray) //
+    {
+        i++;
+        cur = cur->nextOf();
+    }
+    buf->writeByte('Y');
+    mangleNumber(i, buf); //count of dimensions
+    cur = type;
+    while (cur && cur->ty == Tsarray) //sizes of dimensions
+    {
+        TypeSArray *sa = (TypeSArray*)cur;
+        mangleNumber(sa->dim ? sa->dim->toInteger() : 0, buf);
+        cur = cur->nextOf();
+    }
+    ignore_const = true;
+    cur->mangleX(this, buf);
+}
+
+const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis)
+{
+    OutBuffer buf;
+    //Calling convention
+    switch(type->linkage)
+    {
+        case LINKc:
+            buf.writeByte('A');
+            break;
+        case LINKcpp:
+            if (needthis)
+                buf.writeByte('E'); //thiscall
+            else
+                buf.writeByte('A'); //cdecl
+            break;
+        case LINKwindows:
+            buf.writeByte('G');//stdcall
+            break;
+        case LINKpascal:
+            buf.writeByte('C');
+            break;
+        default:
+            mangleType((Type*)type, &buf);
+            break;
+    }
+    Type *rettype = type->next;
+    if (type->isref)
+        rettype = rettype->referenceTo();
+    is_not_top_type = false;
+    ignore_const = false;
+    rettype->mangleX(this, &buf);
+
+    if (!type->parameters || !type->parameters->dim)
+    {
+        if (type->varargs == 1)
+            buf.writeByte('Z');
+        else
+            buf.writeByte('X');
+    }
+    else
+    {
+        for (size_t i=0; i<type->parameters->dim; ++i)
+        {
+            mangleParamenter((*type->parameters)[i], &buf);
+        }
+        if (type->varargs == 1)
+        {
+            buf.writeByte('Z');
+        }
+        else
+        {
+            buf.writeByte('@');
+        }
+    }
+
+    buf.writeByte('Z');
+    buf.writeByte(0);
+    return (const char *)buf.extractData();
+}
+
+void VisualCPPMangler::mangleParamenter(Parameter *p, OutBuffer *buf)
+{
+    Type *t = p->type;
+    if (p->storageClass & (STCout | STCref))
+        t = t->referenceTo();
+    else if (p->storageClass & STClazy)
+    {   // Mangle as delegate
+        Type *td = new TypeFunction(NULL, t, 0, LINKd);
+        td = new TypeDelegate(td);
+        t = t->merge();
+    }
+    is_not_top_type = false;
+    ignore_const = false;
+    t->mangleX(this, buf);
+}
+
+void VisualCPPMangler::reset()
+{
+    memset(&saved_idents, 0, sizeof(saved_idents));
+    memset(&saved_types, 0, sizeof(saved_types));
+    is_not_top_type = false;
+    ignore_const = false;
+}

@@ -304,25 +304,6 @@ Symbol *VarDeclaration::toSymbol()
                     break;
 
                 case LINKcpp:
-                {
-                    m = mTYman_cpp;
-
-                    s->Sflags = SFLpublic;
-                    Dsymbol *parent = toParent();
-                    ClassDeclaration *cd = parent->isClassDeclaration();
-                    if (cd)
-                    {
-                        ::type *tc = cd->type->toCtype();
-                        s->Sscope = tc->Tnext->Ttag;
-                    }
-                    StructDeclaration *sd = parent->isStructDeclaration();
-                    if (sd)
-                    {
-                        ::type *ts = sd->type->toCtype();
-                        s->Sscope = ts->Ttag;
-                    }
-                    break;
-                }
                 case LINKd:
                     m = mTYman_d;
                     break;
@@ -451,37 +432,6 @@ Symbol *FuncDeclaration::toSymbol()
                     break;
 
                 case LINKcpp:
-                {
-                    if (isThis() && !global.params.is64bit && global.params.isWindows)
-                    {
-                        if (((TypeFunction *)type)->varargs == 1)
-                            t->Tty = TYnfunc;
-                        else
-                            t->Tty = TYmfunc;
-                    }
-
-                    t->Tmangle = mTYman_cpp;
-
-                    s->Sflags = SFLpublic;
-                    Dsymbol *parent = toParent();
-                    ClassDeclaration *cd = parent->isClassDeclaration();
-                    if (cd)
-                    {
-                        ::type *tc = cd->type->toCtype();
-                        s->Sscope = tc->Tnext->Ttag;
-                    }
-                    StructDeclaration *sd = parent->isStructDeclaration();
-                    if (sd)
-                    {
-                        ::type *ts = sd->type->toCtype();
-                        s->Sscope = ts->Ttag;
-                    }
-                    if (isCtorDeclaration())
-                        s->Sfunc->Fflags |= Fctor;
-                    if (isDtorDeclaration())
-                        s->Sfunc->Fflags |= Fdtor;
-                    break;
-                }
                 case LINKd:
                     t->Tmangle = mTYman_d;
                     break;
