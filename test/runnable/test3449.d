@@ -1,3 +1,5 @@
+version (PULL93)
+{
 template TypeTuple(T...) { alias TypeTuple = T; }
 
 // If module variable has no explicit initializer,
@@ -82,4 +84,9 @@ void main()
         assert(s2.field1 == 10);
         assert(s2.field2 == 10);
     }
+}
+}
+else
+{
+    void main() { }
 }
