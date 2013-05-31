@@ -2223,6 +2223,7 @@ extern (C) void thread_suspendAll()
         Thread.criticalRegionLock.lock();
         for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
         {
+            Duration waittime = dur!"usecs"(10);
         Lagain:
             if (!t.isRunning)
             {
@@ -2231,7 +2232,8 @@ extern (C) void thread_suspendAll()
             else if (t.m_isInCriticalRegion)
             {
                 Thread.criticalRegionLock.unlock();
-                Thread.sleep(dur!"usecs"(10));
+                Thread.sleep(waittime);
+                if (waittime < dur!"msecs"(10)) waittime *= 2;
                 Thread.criticalRegionLock.lock();
                 goto Lagain;
             }
@@ -2531,6 +2533,31 @@ unittest
     semb.notify();
 
     thr.join();
+}
+
+unittest
+{
+    import core.sync.semaphore;
+
+    shared bool inCriticalRegion;
+    auto sem = new Semaphore();
+
+    auto thr = new Thread(
+    {
+        thread_enterCriticalRegion();
+        inCriticalRegion = true;
+        sem.notify();
+        Thread.sleep(dur!"msecs"(1));
+        inCriticalRegion = false;
+        thread_exitCriticalRegion();
+    });
+    thr.start();
+
+    sem.wait();
+    assert(inCriticalRegion);
+    thread_suspendAll();
+    assert(!inCriticalRegion);
+    thread_resumeAll();
 }
 
 /**
