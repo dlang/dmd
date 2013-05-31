@@ -11016,7 +11016,7 @@ Ltupleassign:
                 // Disallow sa = e  (Converted to sa[] = e)
                 const char* e1str = e1->toChars();
                 const char* e2str = e2->toChars();
-                if (e2->op == TOKslice || t2->implicitConvTo(t1->nextOf()))
+                if (e2->op == TOKslice || e2->implicitConvTo(t1->nextOf()))
                     warning("explicit element-wise assignment (%s)[] = %s is better than %s = %s",
                         e1str, e2str, e1str, e2str);
                 else
