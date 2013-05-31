@@ -2520,53 +2520,37 @@ unittest
     //       to cause a deadlock.
     // NOTE: DO NOT USE LOCKS IN CRITICAL REGIONS IN NORMAL CODE.
 
-    import core.sync.condition;
+    import core.sync.semaphore;
 
-    bool critical;
-    auto cond1 = new Condition(new Mutex());
+    auto sema = new Semaphore(),
+         semb = new Semaphore();
 
-    bool stop;
-    auto cond2 = new Condition(new Mutex());
-
-    auto thr = new Thread(delegate void()
+    auto thr = new Thread(
     {
         thread_enterCriticalRegion();
-
         assert(thread_inCriticalRegion());
-        assert(atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
+        sema.notify();
 
-        synchronized (cond1.mutex)
-        {
-            critical = true;
-            cond1.notify();
-        }
-
-        synchronized (cond2.mutex)
-            while (!stop)
-                cond2.wait();
-
+        semb.wait();
         assert(thread_inCriticalRegion());
-        assert(atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
 
         thread_exitCriticalRegion();
-
         assert(!thread_inCriticalRegion());
-        assert(!atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion));
+        sema.notify();
+
+        semb.wait();
+        assert(!thread_inCriticalRegion());
     });
 
     thr.start();
 
-    synchronized (cond1.mutex)
-        while (!critical)
-            cond1.wait();
-
+    sema.wait();
     assert(atomicLoad(*cast(shared)&thr.m_isInCriticalRegion));
+    semb.notify();
 
-    synchronized (cond2.mutex)
-    {
-        stop = true;
-        cond2.notify();
-    }
+    sema.wait();
+    assert(!atomicLoad(*cast(shared)&thr.m_isInCriticalRegion));
+    semb.notify();
 
     thr.join();
 }
