@@ -11,7 +11,7 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module gc.gcbits;
+module gc.bits;
 
 
 import core.bitop;
