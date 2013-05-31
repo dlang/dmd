@@ -2173,17 +2173,12 @@ private void suspend( Thread t )
                 }
                 throw new ThreadException( "Unable to suspend thread" );
             }
-            // NOTE: It's really not ideal to wait for each thread to
-            //       signal individually -- rather, it would be better to
-            //       suspend them all and wait once at the end.  However,
-            //       semaphores don't really work this way, and the obvious
-            //       alternative (looping on an atomic suspend count)
-            //       requires either the atomic module (which only works on
-            //       x86) or other specialized functionality.  It would
-            //       also be possible to simply loop on sem_wait at the
-            //       end, but I'm not convinced that this would be much
-            //       faster than the current approach.
-            sem_wait( &suspendCount );
+            while (sem_wait(&suspendCount) != 0)
+            {
+                if (errno != EINTR)
+                    throw new ThreadException( "Unable to wait for semaphore" );
+                errno = 0;
+            }
         }
         else if( !t.m_lock )
         {
@@ -2258,12 +2253,6 @@ extern (C) void thread_suspendAll()
             }
         }
         Thread.criticalRegionLock.unlock();
-
-        version( Posix )
-        {
-            // wait on semaphore -- see note in suspend for
-            // why this is currently not implemented
-        }
     }
 }
 
