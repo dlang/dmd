@@ -144,4 +144,6 @@ SRCS=\
 	src\rt\typeinfo\ti_ulong.d \
 	src\rt\typeinfo\ti_ushort.d \
 	src\rt\typeinfo\ti_void.d \
-	src\rt\typeinfo\ti_wchar.d
+	src\rt\typeinfo\ti_wchar.d \
+	\
+	src/etc/linux/memoryerror.d
