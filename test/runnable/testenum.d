@@ -103,6 +103,33 @@ void test6()
 }
 
 /**********************************************/
+// 3096
+
+void test3096()
+{
+    enum Elong { first = 2147772029 }
+    enum Edouble { first = 55.56 }
+    enum Efloat { first = 55.3f }
+    enum EEfloat { first = Efloat.first }
+    struct S { }
+    enum ES { first = S() }
+
+    template check(E, T)
+    {
+        static if(is(E U == enum))
+            static assert(is(U == T));
+        else
+            static assert(false);
+    }
+
+    mixin check!(Elong, long);
+    mixin check!(Edouble, double);
+    mixin check!(Efloat, float);
+    mixin check!(EEfloat, Efloat);
+    mixin check!(ES, S);
+}
+
+/**********************************************/
 // 7719
 
 enum foo7719 = bar7719;
