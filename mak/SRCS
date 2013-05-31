@@ -58,7 +58,7 @@ SRCS=\
 	src\core\sys\windows\windows.d \
 	\
 	src\gc\gc.d \
-	src\gc\gcalloc.d \
+	src\gc\os.d \
 	src\gc\gcbits.d \
 	src\gc\gcstats.d \
 	src\gc\gcx.d \
