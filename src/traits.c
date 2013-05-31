@@ -670,7 +670,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     return NULL;
 
 Ldimerror:
-    error("wrong number of arguments %d", dim);
+    error("wrong number of arguments %d", (int)dim);
     goto Lfalse;
 
 
