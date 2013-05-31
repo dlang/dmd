@@ -2266,7 +2266,8 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
                 FuncDeclaration *ff = s->isFuncDeclaration();
                 if (!ff)
                     break;
-                if (ff->setImpure() && !msg)
+                // Accessing implicit generated __gate is pure.
+                if (ff->setImpure() && !msg && strcmp(v->ident->toChars(), "__gate"))
                 {   error("pure function '%s' cannot access mutable static data '%s'",
                         sc->func->toPrettyChars(), v->toChars());
                     msg = TRUE;                     // only need the innermost message
