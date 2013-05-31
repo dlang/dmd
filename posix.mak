@@ -30,6 +30,7 @@ ifeq (,$(OS))
 endif
 
 DMD?=dmd
+INSTALL_DIR=../install
 
 DOCDIR=doc
 IMPDIR=import
@@ -220,8 +221,14 @@ druntime.zip: $(MANIFEST) $(DOCS) $(IMPORTS)
 	rm -rf $@
 	zip $@ $^
 
-install: druntime.zip
-	unzip -o druntime.zip -d /dmd2/src/druntime
+install: target
+	mkdir -p $(INSTALL_DIR)/html
+	cp -r doc/* $(INSTALL_DIR)/html/
+	mkdir -p $(INSTALL_DIR)/import
+	cp -r import/* $(INSTALL_DIR)/import/
+	mkdir -p $(INSTALL_DIR)/lib
+	cp -r lib/* $(INSTALL_DIR)/lib/
+	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
 
 clean:
 	rm -rf obj lib $(IMPDIR) $(DOCDIR) druntime.zip
