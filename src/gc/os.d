@@ -16,7 +16,7 @@ module gc.os;
 
 version (Windows)
 {
-    private import core.sys.windows.windows;
+    import core.sys.windows.windows;
 
     alias int pthread_t;
 
@@ -29,14 +29,14 @@ version (Windows)
 }
 else version (Posix)
 {
-    private import core.sys.posix.sys.mman;
-    private import core.stdc.stdlib;
+    import core.sys.posix.sys.mman;
+    import core.stdc.stdlib;
 
     //version = GC_Use_Alloc_MMap;
 }
 else
 {
-    private import core.stdc.stdlib;
+    import core.stdc.stdlib;
 
     //version = GC_Use_Alloc_Malloc;
 }
@@ -113,7 +113,7 @@ else static if (is(typeof(malloc))) // else version (GC_Use_Alloc_Malloc)
     //       after PAGESIZE bytes used by the GC.
 
 
-    private import gc.gcx;
+    import gc.gc;
 
 
     const size_t PAGE_MASK = PAGESIZE - 1;

@@ -59,9 +59,9 @@ SRCS=\
 	\
 	src\gc\gc.d \
 	src\gc\os.d \
-	src\gc\gcbits.d \
-	src\gc\gcstats.d \
-	src\gc\gcx.d \
+	src\gc\bits.d \
+	src\gc\stats.d \
+	src\gc\proxy.d \
 	\
 	src\rt\aApply.d \
 	src\rt\aApplyR.d \
