@@ -28,6 +28,14 @@ class Bar
         static ~this() {printf("Bar static dtor\n");}
 }
 
+// 7533
+struct Foo7533(int n)
+{
+    pure static this() { }
+}
+
+alias Foo7533!5 Bar;
+
 void main()
 {
 }
