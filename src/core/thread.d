@@ -1356,6 +1356,29 @@ private:
         return m;
     }
 
+    @property static Mutex criticalRegionLock()
+    {
+        __gshared Mutex m;
+        __gshared byte[__traits(classInstanceSize, Mutex)] ms;
+
+        if (auto res = atomicLoad!(MemoryOrder.acq)(*cast(shared)&m))
+            return res;
+
+        synchronized (slock)
+        {
+            if (m is null)
+            {
+                ms[] = Mutex.classinfo.init[];
+                (cast(Mutex)ms.ptr).__ctor();
+                atomicStore!(MemoryOrder.rel)(*cast(shared)&m, cast(shared Mutex)ms.ptr);
+
+                extern(C) void destroy() { m.__dtor(); }
+                atexit(&destroy);
+            }
+            return m;
+        }
+    }
+
     __gshared Context*  sm_cbeg;
     __gshared size_t    sm_clen;
 
@@ -2213,55 +2236,28 @@ extern (C) void thread_suspendAll()
         //       the same thread to be suspended twice, which would likely
         //       cause the second suspend to fail, the garbage collection to
         //       abort, and Bad Things to occur.
-        for( Thread t = Thread.sm_tbeg; t; t = t.next )
-        {
-            if( t.isRunning )
-                suspend( t );
-            else
-                Thread.remove( t );
-        }
 
-        // The world is stopped. We now make sure that all threads are outside
-        // critical regions by continually suspending and resuming them until all
-        // of them are safe. This is extremely error-prone; if some thread enters
-        // a critical region and never exits it (e.g. it waits for a mutex forever),
-        // then we'll pretty much 'deadlock' here. Not much we can do about that,
-        // and it indicates incorrect use of the critical region API anyway.
-        for (;;)
+        Thread.criticalRegionLock.lock();
+        for (Thread t = Thread.sm_tbeg; t !is null; t = t.next)
         {
-            uint unsafeCount;
-
-            for (auto t = Thread.sm_tbeg; t; t = t.next)
+        Lagain:
+            if (!t.isRunning)
             {
-                // NOTE: We don't need to check whether the thread has died here,
-                //       since it's checked in the loops above and below.
-                if (atomicLoad(*cast(shared)&t.m_isInCriticalRegion))
-                {
-                    unsafeCount += 10;
-                    resume(t);
-                }
+                Thread.remove(t);
             }
-
-            // If all threads are safe (i.e. unsafeCount == 0), no threads were in
-            // critical regions in the first place, and we can just break. Otherwise,
-            // we sleep for a bit to give the threads a chance to get to safe points.
-            if (unsafeCount)
-                Thread.sleep(dur!"usecs"(unsafeCount)); // This heuristic could probably use some tuning.
-            else
-                break;
-
-            // Some thread was not in a safe region, so we suspend the world again to
-            // re-do this loop to check whether we're safe now.
-            for (auto t = Thread.sm_tbeg; t; t = t.next)
+            else if (t.m_isInCriticalRegion)
             {
-                // The thread could have died in the meantime. Also see the note in
-                // the topmost loop that initially suspends the world.
-                if (t.isRunning)
-                    suspend(t);
-                else
-                    Thread.remove(t);
+                Thread.criticalRegionLock.unlock();
+                Thread.sleep(dur!"usecs"(10));
+                Thread.criticalRegionLock.lock();
+                goto Lagain;
+            }
+            else
+            {
+                suspend(t);
             }
         }
+        Thread.criticalRegionLock.unlock();
 
         version( Posix )
         {
@@ -2472,7 +2468,8 @@ in
 }
 body
 {
-    atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, true);
+    synchronized (Thread.criticalRegionLock)
+        Thread.getThis().m_isInCriticalRegion = true;
 }
 
 extern (C) void thread_exitCriticalRegion()
@@ -2482,7 +2479,8 @@ in
 }
 body
 {
-    atomicStore(*cast(shared)&Thread.getThis().m_isInCriticalRegion, false);
+    synchronized (Thread.criticalRegionLock)
+        Thread.getThis().m_isInCriticalRegion = false;
 }
 
 extern (C) bool thread_inCriticalRegion()
@@ -2492,7 +2490,8 @@ in
 }
 body
 {
-    return atomicLoad(*cast(shared)&Thread.getThis().m_isInCriticalRegion);
+    synchronized (Thread.criticalRegionLock)
+        return Thread.getThis().m_isInCriticalRegion;
 }
 
 unittest
@@ -2545,11 +2544,13 @@ unittest
     thr.start();
 
     sema.wait();
-    assert(atomicLoad(*cast(shared)&thr.m_isInCriticalRegion));
+    synchronized (Thread.criticalRegionLock)
+        assert(thr.m_isInCriticalRegion);
     semb.notify();
 
     sema.wait();
-    assert(!atomicLoad(*cast(shared)&thr.m_isInCriticalRegion));
+    synchronized (Thread.criticalRegionLock)
+        assert(!thr.m_isInCriticalRegion);
     semb.notify();
 
     thr.join();
