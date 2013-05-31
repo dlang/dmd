@@ -13,12 +13,12 @@
  */
 module gc.gc;
 
+import gc.gcx;
+import gc.gcstats;
+import core.stdc.stdlib;
+
 private
 {
-    import gc.gcx;
-    import gc.gcstats;
-    import core.stdc.stdlib;
-
     version = GCCLASS;
 
     version( GCCLASS )

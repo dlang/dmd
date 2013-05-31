@@ -34,14 +34,14 @@ version = STACKGROWSDOWN;       // growing the stack means subtracting from the 
 
 /***************************************************/
 
-private import gc.gcbits;
-private import gc.gcstats;
-private import gc.os;
+import gc.gcbits;
+import gc.gcstats;
+import gc.os;
 
-private import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
-private import core.stdc.string;
-private import core.bitop;
-private import core.sync.mutex;
+import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
+import core.stdc.string;
+import core.bitop;
+import core.sync.mutex;
 
 version (GNU) import gcc.builtins;
 

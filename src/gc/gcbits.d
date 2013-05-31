@@ -14,13 +14,12 @@
 module gc.gcbits;
 
 
-private
-{
-    import core.bitop;
-    import core.stdc.string;
-    import core.stdc.stdlib;
-    extern (C) void onOutOfMemoryError();
-}
+import core.bitop;
+import core.stdc.string;
+import core.stdc.stdlib;
+
+
+private extern (C) void onOutOfMemoryError();
 
 
 version (DigitalMars)
