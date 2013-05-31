@@ -55,3 +55,16 @@ void test7444()
         da[] = da[];   // b
     }
 }
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/warn7444.d(69): Warning: explicit element-wise assignment (arr)[] = 0 is better than arr = 0
+---
+*/
+
+void test10214()
+{
+    bool[1] arr;
+    arr = 0;
+}
