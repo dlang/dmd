@@ -1339,44 +1339,30 @@ private:
     //
     @property static Mutex slock()
     {
-        __gshared Mutex m;
-        __gshared byte[__traits(classInstanceSize, Mutex)] ms;
-
-        if (m is null)
-        {
-            // Initialization doesn't need to be synchronized because
-            // creating a thread will lock this mutex.
-            ms[] = Mutex.classinfo.init[];
-            m = cast(Mutex)ms.ptr;
-            m.__ctor();
-
-            extern(C) void destroy() { m.__dtor(); }
-            atexit(&destroy);
-        }
-        return m;
+        return cast(Mutex)_locks[0].ptr;
     }
 
     @property static Mutex criticalRegionLock()
     {
-        __gshared Mutex m;
-        __gshared byte[__traits(classInstanceSize, Mutex)] ms;
+        return cast(Mutex)_locks[1].ptr;
+    }
 
-        if (auto res = atomicLoad!(MemoryOrder.acq)(*cast(shared)&m))
-            return res;
+    __gshared byte[__traits(classInstanceSize, Mutex)][2] _locks;
 
-        synchronized (slock)
+    static void initLocks()
+    {
+        foreach (ref lock; _locks)
         {
-            if (m is null)
-            {
-                ms[] = Mutex.classinfo.init[];
-                (cast(Mutex)ms.ptr).__ctor();
-                atomicStore!(MemoryOrder.rel)(*cast(shared)&m, cast(shared Mutex)ms.ptr);
-
-                extern(C) void destroy() { m.__dtor(); }
-                atexit(&destroy);
-            }
-            return m;
+            lock[] = Mutex.classinfo.init[];
+            (cast(Mutex)lock.ptr).__ctor();
         }
+
+        extern(C) void destroy()
+        {
+            foreach (ref lock; _locks)
+                (cast(Mutex)lock.ptr).__dtor();
+        }
+        atexit(&destroy);
     }
 
     __gshared Context*  sm_cbeg;
@@ -1650,6 +1636,8 @@ extern (C) void thread_init()
     //       thread_init is being processed.  However, since no memory should
     //       exist to be scanned at this point, it is sufficient for these
     //       functions to detect the condition and return immediately.
+
+    Thread.initLocks();
 
     version( OSX )
     {
