@@ -34,7 +34,7 @@ struct Foo7533(int n)
     pure static this() { }
 }
 
-alias Foo7533!5 Bar;
+alias Foo7533!5 Bar7533;
 
 void main()
 {
