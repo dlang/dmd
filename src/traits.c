@@ -440,6 +440,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
+        #if 0
+            Expression *e = isExpression(o);
+            Type *t = isType(o);
+            if (e) printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (t) printf("t = %d %s\n", t->ty, t->toChars());
+        #endif
             error("first argument is not a symbol");
             goto Lfalse;
         }
