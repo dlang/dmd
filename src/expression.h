@@ -91,6 +91,11 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae);
 SliceExp *resolveOpDollar(Scope *sc, SliceExp *se);
 Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
+/* Run CTFE on the expression, but allow the expression to be a TypeExp
+ * or a tuple containing a TypeExp. (This is required by pragma(msg)).
+ */
+Expression *ctfeInterpretForPragmaMsg(Expression *e);
+
 /* Interpreter: what form of return value expression is required?
  */
 enum CtfeGoal
