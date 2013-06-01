@@ -1793,15 +1793,15 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
     if (e)
     {
         if (e != this)
-            e = e->castTo(sc, t);
-        else if (!e->type->equals(t))
+            return e->castTo(sc, t);
+        if (!e->type->equals(t) && e->type->implicitConvTo(t))
         {
             assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
                    e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
+            return e;
         }
-        return e;
     }
     return Expression::castTo(sc, t);
 }
