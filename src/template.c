@@ -3344,19 +3344,29 @@ MATCH TypeInstance::deduceType(Scope *sc,
             {
             Le:
                 e1 = e1->ctfeInterpret();
+
+                /* If it is one of the template parameters for this template,
+                 * we should not attempt to interpret it. It already has a value.
+                 */
+                if (e2->op == TOKvar &&
+                    (((VarExp *)e2)->var->storage_class & STCtemplateparameter))
+                {
+                    /*
+                     * (T:Number!(e2), int e2)
+                     */
+                    j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
+                    if (j != IDX_NOTFOUND)
+                        goto L1;
+                    // The template parameter was not from this template
+                    // (it may be from a parent template, for example)
+                }
+
                 e2 = e2->ctfeInterpret();
 
                 //printf("e1 = %s, type = %s %d\n", e1->toChars(), e1->type->toChars(), e1->type->ty);
                 //printf("e2 = %s, type = %s %d\n", e2->toChars(), e2->type->toChars(), e2->type->ty);
                 if (!e1->equals(e2))
-                {   if (e2->op == TOKvar)
-                    {
-                        /*
-                         * (T:Number!(e2), int e2)
-                         */
-                        j = templateIdentifierLookup(((VarExp *)e2)->var->ident, parameters);
-                        goto L1;
-                    }
+                {
                     if (!e2->implicitConvTo(e1->type))
                         goto Lnomatch;
 
@@ -4446,6 +4456,11 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, Object *oarg,
             ei = ei->semantic(sc);
             if (!f->needThis())
                 ei = resolveProperties(sc, ei);
+            /* If it was really a property, it will become a CallExp.
+             * If it stayed as a var, it cannot be interpreted.
+             */
+            if (ei->op == TOKvar)
+                goto Lnomatch;
             ei = ei->ctfeInterpret();
         }
         else
@@ -5389,6 +5404,62 @@ bool TemplateInstance::semanticTiargs(Scope *sc)
 }
 
 /**********************************
+ * Return true if e could be valid only as a template value parameter.
+ * Return false if it might be an alias or tuple.
+ * (Note that even in this case, it could still turn out to be a value).
+ */
+bool definitelyValueParameter(Expression *e)
+{
+    // None of these can be value parameters
+    if (e->op == TOKtuple || e->op == TOKimport  ||
+        e->op == TOKtype || e->op == TOKdottype ||
+        e->op == TOKtemplate ||  e->op == TOKdottd ||
+        e->op == TOKfunction || e->op == TOKerror ||
+        e->op == TOKthis || e->op == TOKsuper)
+        return false;
+
+    if (e->op != TOKdotvar)
+        return true;
+
+ /* Template instantiations involving a DotVar expression are difficult.
+  * In most cases, they should be treated as a value parameter, and interpreted.
+  * But they might also just be a fully qualified name, which should be treated
+  * as an alias.
+  */
+
+    // x.y.f cannot be a value
+    FuncDeclaration *f = ((DotVarExp *)e)->var->isFuncDeclaration();
+    if (f)
+        return false;
+
+    while (e->op == TOKdotvar)
+    {
+        e = ((DotVarExp *)e)->e1;
+    }
+    // this.x.y and super.x.y couldn't possibly be valid values.
+    if (e->op == TOKthis || e->op == TOKsuper)
+        return false;
+
+    // e.type.x could be an alias
+    if (e->op == TOKdottype)
+        return false;
+
+    // var.x.y is the only other possible form of alias
+    if (e->op != TOKvar)
+        return true;
+
+    VarDeclaration *v = ((VarExp *)e)->var->isVarDeclaration();
+
+    // func.x.y is not an alias
+    if (!v)
+        return true;
+
+    // TODO: Should we force CTFE if it is a global constant?
+
+    return false;
+}
+
+/**********************************
  * Input:
  *      flags   1: replace const variables with their initializers
  *              2: don't devolve Parameter to Type
@@ -5472,10 +5543,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                  * const substitution in TemplateValueParameter::matchArg().
                  */
             }
-            else if (ea->op != TOKtuple &&
-                     ea->op != TOKimport && ea->op != TOKtype &&
-                     ea->op != TOKfunction && ea->op != TOKerror &&
-                     ea->op != TOKthis && ea->op != TOKsuper)
+            else if (definitelyValueParameter(ea))
             {
                 int olderrs = global.errors;
                 ea = ea->ctfeInterpret();
