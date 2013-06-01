@@ -1208,9 +1208,8 @@ Lnomatch:
             {
                 storage_class |= STCfield;
 #if DMDV2
-                if (!aad->defaultCtor &&
-                        (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
-                        tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor))
+                if ((tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor) ||
+                    (tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor))
                     aad->noDefaultCtor = TRUE;
 #endif
             }
