@@ -571,12 +571,10 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 
 
-/*
+/**
  * Signals that the code following this call is a critical region. Any code in
  * this region must finish running before the calling thread can be suspended
- * by a call to thread_suspendAll. If the world is stopped while the calling
- * thread is in a critical region, it will be continually suspended and resumed
- * until it is outside a critical region.
+ * by a call to thread_suspendAll.
  *
  * This function is, in particular, meant to help maintain garbage collector
  * invariants when a lock is not used.
@@ -584,10 +582,9 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
  * A critical region is exited with thread_exitCriticalRegion.
  *
  * $(RED Warning):
- * Using critical regions is extremely error-prone. For instance, using a lock
- * inside a critical region will most likely result in an application deadlocking
- * because the stop-the-world routine will attempt to suspend and resume the thread
- * forever, to no avail.
+ * Using critical regions is extremely error-prone. For instance, using locks
+ * inside a critical region can easily result in a deadlock when another thread
+ * holding the lock already got suspended.
  *
  * The term and concept of a 'critical region' comes from
  * $(LINK2 https://github.com/mono/mono/blob/521f4a198e442573c400835ef19bbb36b60b0ebb/mono/metadata/sgen-gc.h#L925 Mono's SGen garbage collector).
@@ -598,7 +595,7 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 extern (C) void thread_enterCriticalRegion();
 
 
-/*
+/**
  * Signals that the calling thread is no longer in a critical region. Following
  * a call to this function, the thread can once again be suspended.
  *
@@ -608,7 +605,7 @@ extern (C) void thread_enterCriticalRegion();
 extern (C) void thread_exitCriticalRegion();
 
 
-/*
+/**
  * Returns true if the current thread is in a critical region; otherwise, false.
  *
  * In:
