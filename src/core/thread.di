@@ -571,7 +571,7 @@ extern (C) void thread_scanAllType( scope ScanAllThreadsTypeFn scan );
 extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 
 
-/*
+/**
  * Signals that the code following this call is a critical region. Any code in
  * this region must finish running before the calling thread can be suspended
  * by a call to thread_suspendAll.
@@ -595,7 +595,7 @@ extern (C) void thread_scanAll( scope ScanAllThreadsFn scan );
 extern (C) void thread_enterCriticalRegion();
 
 
-/*
+/**
  * Signals that the calling thread is no longer in a critical region. Following
  * a call to this function, the thread can once again be suspended.
  *
@@ -605,7 +605,7 @@ extern (C) void thread_enterCriticalRegion();
 extern (C) void thread_exitCriticalRegion();
 
 
-/*
+/**
  * Returns true if the current thread is in a critical region; otherwise, false.
  *
  * In:
