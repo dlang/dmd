@@ -1733,7 +1733,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
             if (e && e != EXP_CANT_INTERPRET && e->op != TOKthrownexception)
             {
                 e = copyLiteral(e);
-                ctfeStack.saveGlobalConstant(v, e);
+                if (v->isDataseg() || (v->storage_class & STCmanifest ))
+                    ctfeStack.saveGlobalConstant(v, e);
             }
         }
         else if (v->isCTFE() && !v->hasValue())
@@ -2344,6 +2345,11 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
 #if LOG
     printf("%s UnaExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
+    if (op == TOKdottype)
+    {
+        error("Internal Compiler Error: CTFE DotType: %s", toChars());
+        return EXP_CANT_INTERPRET;
+    }
     e1 = this->e1->interpret(istate);
     if (exceptionOrCantInterpret(e1))
         return e1;
@@ -5115,7 +5121,10 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             ex = ((AddrExp *)ex)->e1;
         VarDeclaration *v = var->isVarDeclaration();
         if (!v)
+        {
             error("CTFE internal error: %s", toChars());
+            return EXP_CANT_INTERPRET;
+        }
         if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
         {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
             return EXP_CANT_INTERPRET;
@@ -5160,7 +5169,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (!e)
             {
                 error("couldn't find field %s in %s", v->toChars(), type->toChars());
-                e = EXP_CANT_INTERPRET;
+                return EXP_CANT_INTERPRET;
             }
             // If it is an rvalue literal, return it...
             if (e->op == TOKstructliteral || e->op == TOKarrayliteral ||
