@@ -1510,12 +1510,6 @@ Library *Library::factory()
     return NULL;
 }
 
-// ???
-
-void util_progress()
-{
-}
-
 Statement *AsmStatement::semantic(Scope *)
 {
     assert(0);
