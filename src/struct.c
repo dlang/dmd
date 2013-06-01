@@ -232,11 +232,11 @@ void AggregateDeclaration::alignmember(
     //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
     switch (alignment)
     {
-        case 1:
+        case (structalign_t) 1:
             // No alignment
             break;
 
-        case STRUCTALIGN_DEFAULT:
+        case (structalign_t) STRUCTALIGN_DEFAULT:
         {   /* Must match what the corresponding C compiler's default
              * alignment behavior is.
              */
