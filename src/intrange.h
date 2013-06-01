@@ -12,7 +12,7 @@
 #ifndef DMD_SXNUM_H
 #define DMD_SXNUM_H
 
-#include "mars.h"   // for uinteger_t
+#include "port.h"   // for uinteger_t
 class Type;
 class Expression;
 
