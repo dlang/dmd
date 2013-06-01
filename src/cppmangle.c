@@ -129,16 +129,24 @@ void cpp_mangle_name(OutBuffer *buf, CppMangleState *cms, Dsymbol *s)
         buf->writeByte('N');
 
         FuncDeclaration *fd = s->isFuncDeclaration();
-        if (!fd)
+        VarDeclaration *vd = s->isVarDeclaration();
+        if (fd && fd->type->isConst())
         {
-            s->error("C++ static variables not supported");
-        }
-        else if (fd->type->isConst())
             buf->writeByte('K');
-
-        prefix_name(buf, cms, p);
-        source_name(buf, s);
-
+        }
+        if (vd && !(vd->storage_class & (STCextern | STCgshared)))
+        {
+            s->error("C++ static non- __gshared non-extern variables not supported");
+        }
+        if (vd || fd)
+        {
+            prefix_name(buf, cms, p);
+            source_name(buf, s);
+        }
+        else
+        {
+            assert(0);
+        }
         buf->writeByte('E');
     }
     else
