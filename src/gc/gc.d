@@ -665,32 +665,24 @@ class GC
                     else if (pagenum + newsz <= pool.npages)
                     {
                         // Attempt to expand in place
-                        {
-                            gcLock.lock();
-                            scope(exit) gcLock.unlock();
-                            for (size_t i = pagenum + psz; 1;)
-                            {
-                                if (i == pagenum + newsz)
-                                {
-                                    debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
-                                    debug(PRINTF) printFreeInfo(pool);
-                                    memset(&pool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
-                                    pool.updateOffsets(pagenum);
-                                    if(alloc_size)
-                                        *alloc_size = newsz * PAGESIZE;
-                                    pool.freepages -= (newsz - psz);
-                                    debug(PRINTF) printFreeInfo(pool);
-                                    return p;
-                                }
-                                if (i == pool.npages)
-                                {
-                                    break;
-                                }
-                                if (pool.pagetable[i] != B_FREE)
-                                    break;
-                                i++;
-                            }
-                        }
+                        gcLock.lock();
+                        scope(exit) gcLock.unlock();
+
+                        foreach (binsz; pool.pagetable[pagenum + psz .. pagenum + newsz])
+                            if (binsz != B_FREE) goto Lno;
+
+                        debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
+                        debug(PRINTF) printFreeInfo(pool);
+                        memset(&pool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
+                        pool.updateOffsets(pagenum);
+                        if(alloc_size)
+                            *alloc_size = newsz * PAGESIZE;
+                        pool.freepages -= (newsz - psz);
+                        debug(PRINTF) printFreeInfo(pool);
+                        return p;
+
+                    Lno:
+                        {}
                     }
                 }
                 if (psize < size ||             // if new size is bigger
