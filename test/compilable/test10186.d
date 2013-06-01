@@ -13,6 +13,15 @@ class C {
     S s;
 }
 
+class CR
+{
+    S s;
+
+    this() {
+        s = S(1);
+    }
+}
+
 void main() {
     auto c = new C;
 }

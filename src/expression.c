@@ -5049,7 +5049,7 @@ Lagain:
             goto Lerr;
         }
 
-        if (cd->noDefaultCtor && !nargs)
+        if (cd->noDefaultCtor && !nargs && !cd->defaultCtor)
         {   error("default construction is disabled for type %s", cd->type->toChars());
             goto Lerr;
         }
