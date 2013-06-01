@@ -12,9 +12,13 @@
 
 #include "longdouble.h"
 
+#include <stdlib.h> // for alloca
+
 #if _MSC_VER
+#include <alloca.h>
 typedef __int64 longlong;
 typedef unsigned __int64 ulonglong;
+#define strtof strtod
 #else
 typedef long long longlong;
 typedef unsigned long long ulonglong;

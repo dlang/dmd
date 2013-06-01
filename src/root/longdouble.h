@@ -178,7 +178,6 @@ longdouble tanl (longdouble ld);
 longdouble fmodl(longdouble x, longdouble y);
 longdouble ldexpl(longdouble ldval, int exp); // see strtold
 longdouble strtold(const char *p,char **endp);
-#define strtof strtod
 
 inline longdouble fabs (longdouble ld) { return fabsl(ld); }
 inline longdouble sqrt (longdouble ld) { return sqrtl(ld); }
