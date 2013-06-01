@@ -3419,6 +3419,23 @@ static assert(!is(typeof(compiles!(badpointer(7)))));
 static assert(!is(typeof(compiles!(badpointer(8)))));
 
 /**************************************************
+    10211 Allow casts S**->D**, when S*->D* is OK
+**************************************************/
+
+int bug10211()
+{
+    int m = 7;
+    int *x = &m;
+    int **y = &x;
+    assert(**y == 7);
+    uint *p = cast(uint *)x;
+    uint **q = cast(uint **)y;
+    return 1;
+}
+
+static assert(bug10211());
+
+/**************************************************
     9170 Allow reinterpret casts float<->int
 **************************************************/
 int f9170(float x) {

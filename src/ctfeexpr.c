@@ -564,7 +564,14 @@ int isTrueBool(Expression *e)
  * destPointee may be void.
  */
 bool isSafePointerCast(Type *srcPointee, Type *destPointee)
-{   // It's OK if both are the same (modulo const)
+{
+    // It's safe to cast S** to D** if it's OK to cast S* to D*
+    while (srcPointee->ty == Tpointer && destPointee->ty == Tpointer)
+    {
+        srcPointee = srcPointee->nextOf();
+        destPointee = destPointee->nextOf();
+    }
+   // It's OK if both are the same (modulo const)
 #if DMDV2
     if (srcPointee->castMod(0) == destPointee->castMod(0))
         return true;
