@@ -2403,6 +2403,42 @@ template b10134()
 pragma(msg, getResultType10134!(a10134!()));
 
 /******************************************/
+// 10249
+
+template Seq10249(T...) { alias Seq10249 = T; }
+
+mixin template Func10249(T)
+{
+    void func10249(T) {}
+}
+mixin Func10249!long;
+mixin Func10249!string;
+
+void f10249(long) {}
+
+class C10249
+{
+    mixin Func10249!long;
+    mixin Func10249!string;
+    static assert(Seq10249!(.func10249)[0].mangleof == "7breaker9func10249");           // <- 9func10249
+    static assert(Seq10249!( func10249)[0].mangleof == "7breaker6C102499func10249");    // <- 9func10249
+
+static: // necessary to make overloaded symbols accessible via __traits(getOverloads, C10249)
+    void foo(long) {}
+    void foo(string) {}
+    static assert(Seq10249!(foo)[0].mangleof                                   == "7breaker6C102493foo");           // <- _D7breaker6C102493fooFlZv
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[0].mangleof == "_D7breaker6C102493fooFlZv");     // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "foo"))[1].mangleof == "_D7breaker6C102493fooFAyaZv");   // <-
+
+    void g(string) {}
+    alias bar = .f10249;
+    alias bar =  g;
+    static assert(Seq10249!(bar)[0].mangleof                                   == "7breaker6C102496f10249");        // <- _D7breaker1fFlZv (todo!)
+    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[0].mangleof == "_D7breaker6f10249FlZv");         // <-
+    static assert(Seq10249!(__traits(getOverloads, C10249, "bar"))[1].mangleof == "_D7breaker6C102491gFAyaZv");     // <-
+}
+
+/******************************************/
 
 int main()
 {

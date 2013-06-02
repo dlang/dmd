@@ -164,7 +164,49 @@ const char *Declaration::mangle(bool isv)
         return p;
     }
 
+/******************************************************************************
+ * Normally FuncDeclaration and FuncAliasDeclaration have overloads.
+ * If and only if there is no overloads, mangle() could return
+ * exact mangled name.
+ *
+ *      module test;
+ *      void foo(long) {}           // _D4test3fooFlZv
+ *      void foo(string) {}         // _D4test3fooFAyaZv
+ *
+ *      // from FuncDeclaration::mangle().
+ *      pragma(msg, foo.mangleof);  // prints unexact mangled name "4test3foo"
+ *                                  // by calling Dsymbol::mangle()
+ *
+ *      // from FuncAliasDeclaration::mangle()
+ *      pragma(msg, __traits(getOverloads, test, "foo")[0].mangleof);  // "_D4test3fooFlZv"
+ *      pragma(msg, __traits(getOverloads, test, "foo")[1].mangleof);  // "_D4test3fooFAyaZv"
+ *
+ * If a function has no overloads, .mangleof property still returns exact mangled name.
+ *
+ *      void bar() {}
+ *      pragma(msg, bar.mangleof);  // still prints "_D4test3barFZv"
+ *                                  // by calling FuncDeclaration::mangleExact().
+ */
 const char *FuncDeclaration::mangle(bool isv)
+{
+    return isUnique() ? mangleExact(isv) : Dsymbol::mangle(isv);
+}
+// ditto
+const char *FuncAliasDeclaration::mangle(bool isv)
+{
+    FuncDeclaration *f = toAliasFunc();
+    FuncAliasDeclaration *fa = f->isFuncAliasDeclaration();
+    if (!hasOverloads && !fa)
+        return f->mangleExact(isv);
+    if (fa)
+        return fa->mangle(isv);
+    return Dsymbol::mangle(isv);
+}
+
+/******************************************************************************
+ * Returns exact mangled name of function.
+ */
+const char *FuncDeclaration::mangleExact(bool isv)
 #if __DMC__
     __out(result)
     {
@@ -173,6 +215,8 @@ const char *FuncDeclaration::mangle(bool isv)
     __body
 #endif
     {
+        assert(!isFuncAliasDeclaration());
+
         if (mangleOverride)
             return mangleOverride; 
     

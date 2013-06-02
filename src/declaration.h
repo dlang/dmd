@@ -677,6 +677,7 @@ public:
     void appendExp(Expression *e);
     void appendState(Statement *s);
     const char *mangle(bool isv = false);
+    const char *mangleExact(bool isv = false);
     const char *toPrettyChars();
     const char *toFullSignature();  // for diagnostics, e.g. 'int foo(int x, int y) pure'
     bool isMain();
@@ -754,7 +755,7 @@ public:
     FuncAliasDeclaration *isFuncAliasDeclaration() { return this; }
     const char *kind();
     Symbol *toSymbol();
-    const char *mangle(bool isv = false) { return toAliasFunc()->mangle(isv); }
+    const char *mangle(bool isv = false);
 
     FuncDeclaration *toAliasFunc();
 };

@@ -7216,15 +7216,26 @@ Expression *DotIdExp::semanticX(Scope *sc)
         Dsymbol *ds;
         switch (e1->op)
         {
-            case TOKimport: ds = ((ScopeExp *)e1)->sds;     goto L1;
-            case TOKvar:    ds = ((VarExp *)e1)->var;       goto L1;
-            case TOKdotvar: ds = ((DotVarExp *)e1)->var;    goto L1;
-            default: break;
-        L1:
+            case TOKimport:
+                ds = ((ScopeExp *)e1)->sds;
+                goto L1;
+            case TOKvar:
+                ds = ((VarExp *)e1)->var;
+                goto L1;
+            case TOKdotvar:
+                ds = ((DotVarExp *)e1)->var;
+                goto L1;
+            case TOKoverloadset:
+                ds = ((OverExp *)e1)->vars;
+            L1:
+            {
                 const char* s = ds->mangle();
                 e = new StringExp(loc, (void*)s, strlen(s), 'c');
                 e = e->semantic(sc);
                 return e;
+            }
+            default:
+                break;
         }
     }
 
