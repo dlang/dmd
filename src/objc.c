@@ -867,17 +867,6 @@ ObjcClassDeclaration::ObjcClassDeclaration(ClassDeclaration *cdecl, int ismeta)
 
 void ObjcClassDeclaration::toObjFile(int multiobj)
 {
-    if (!ismeta)
-    {
-        dt_t *dt2 = NULL;
-        dtdword(&dt2, 0); // version (for serialization)
-        char* sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, ".objc_class_name_", 17);
-        Symbol* symbol = symbol_name(sname, SCglobal, type_fake(TYnptr));
-        symbol->Sdt = dt2;
-        symbol->Sseg = MachObj::getsegment("__text", "__TEXT", 2, S_ATTR_NO_DEAD_STRIP);
-        outdata(symbol);
-    }
-
     if (cdecl->objcextern)
         return; // only a declaration for an externally-defined class
 
@@ -893,6 +882,17 @@ void ObjcClassDeclaration::toObjFile(int multiobj)
     symbol->Sdt = dt;
     symbol->Sseg = objc_getsegment((!ismeta ? SEGclass : SEGmeta_class));
     outdata(symbol);
+
+    if (!ismeta)
+    {
+        dt_t *dt2 = NULL;
+        dtdword(&dt2, 0); // version (for serialization)
+        char* sname = prefixSymbolName(cdecl->objcident->string, cdecl->objcident->len, ".objc_class_name_", 17);
+        Symbol* symbol = symbol_name(sname, SCglobal, type_fake(TYnptr));
+        symbol->Sdt = dt2;
+        symbol->Sseg = MachObj::getsegment("__text", "__TEXT", 2, S_ATTR_NO_DEAD_STRIP);
+        outdata(symbol);
+    }
 }
 
 void ObjcClassDeclaration::toDt(dt_t **pdt)
