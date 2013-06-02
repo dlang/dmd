@@ -278,27 +278,26 @@ version( linux )
             enum NFPREG = 33;
             enum NVRREG = 34;
 
-            alias ulong          greg_t;
+            alias c_ulong        greg_t;
             alias greg_t[NGREG]  gregset_t;
             alias double[NFPREG] fpregset_t;
 
-            struct _libc_vscr
+            struct vscr_t
             {
                 uint[3] __pad;
                 uint    vscr_word;
             }
-            alias _libc_vscr vscr_t;
 
-            struct _libc_vrstate
+            struct vrregset_t
             {
                 uint[32][4] vrregs;
                 vscr_t      vscr;
                 uint        vrsave;
                 uint[3]     __pad;
             }
-            alias _libc_vrstate vrregset_t;
 
-            struct pt_regs {
+            struct pt_regs
+            {
                 c_ulong[32] gpr;
                 c_ulong     nip;
                 c_ulong     msr;
@@ -326,7 +325,7 @@ version( linux )
             gregset_t gp_regs;
             fpregset_t fp_regs;
             vrregset_t *v_regs;
-            long[NVRREG+NVRREG+1] vmx_reserve;
+            c_long[NVRREG+NVRREG+1] vmx_reserve;
         }
 
         struct ucontext_t
