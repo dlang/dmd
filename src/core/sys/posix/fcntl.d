@@ -151,7 +151,7 @@ version( linux )
         enum O_NONBLOCK     = 0x800;    // octal    04000
         enum O_SYNC         = 0x101000; // octal 04010000
         enum O_DSYNC        = 0x1000;   // octal   010000
-        enum O_RSYNC        = O_DSYNC;
+        enum O_RSYNC        = O_SYNC;
     }
     else
         static assert(0, "unimplemented");
