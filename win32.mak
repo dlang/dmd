@@ -280,6 +280,9 @@ $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
 	copy $** $@
 
