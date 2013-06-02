@@ -2116,12 +2116,12 @@ extern (C++) Expression castTo(Expression e, Scope* sc, Type t)
             }
 
             // Look for pointers to functions where the functions are overloaded.
-            if (e.hasOverloads &&
-                typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
+            if (typeb.ty == Tpointer && typeb.nextOf().ty == Tfunction &&
                 (tb.ty == Tpointer || tb.ty == Tdelegate) && tb.nextOf().ty == Tfunction)
             {
-                FuncDeclaration f = e.var.isFuncDeclaration();
-                f = f ? f.overloadExactMatch(tb.nextOf()) : null;
+                auto f = e.var.isFuncDeclaration();
+                if (f && e.hasOverloads)
+                    f = f.overloadExactMatch(tb.nextOf());
                 if (f)
                 {
                     if (tb.ty == Tdelegate)

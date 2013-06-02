@@ -835,14 +835,17 @@ extern (C++) const(char)* mangle(Dsymbol s)
  */
 extern (C++) const(char)* mangleExact(FuncDeclaration fd)
 {
-    if (!fd.mangleString)
+    const(char)* s = fd.mangleString;
+    if (!s)
     {
         OutBuffer buf;
         scope Mangler v = new Mangler(&buf);
         v.mangleExact(fd);
-        fd.mangleString = buf.extractString();
+        s = buf.extractString();
+        if (!fd.flags)
+            fd.mangleString = s;
     }
-    return fd.mangleString;
+    return s;
 }
 
 extern (C++) void mangleToBuffer(Type t, OutBuffer* buf)

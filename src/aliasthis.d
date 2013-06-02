@@ -130,17 +130,18 @@ extern (C++) Expression resolveAliasThis(Scope* sc, Expression e, bool gag = fal
         {
             if (e.op == TOKvar)
             {
-                if (auto fd = (cast(VarExp)e).var.isFuncDeclaration())
+                auto ve = cast(VarExp)e;
+                if (auto fd = ve.var.isFuncDeclaration())
                 {
                     // Bugzilla 13009: Support better match for the overloaded alias this.
-                    bool hasOverloads;
-                    if (auto f = fd.overloadModMatch(loc, tthis, hasOverloads))
+                    auto f = fd.overloadModMatch(loc, tthis, ve.hasOverloads);
+                    if (!f && !ve.hasOverloads)     // no match
+                        e = new ErrorExp();
+                    else
                     {
-                        if (!hasOverloads)
-                            fd = f;     // use exact match
-                        e = new VarExp(loc, fd, hasOverloads);
-                        e.type = f.type;
-                        e = new CallExp(loc, e);
+                        ve.var = !ve.hasOverloads ? f : fd;
+                        ve.type = f ? f.type : Type.tambig;
+                        e = new CallExp(loc, ve);
                         goto L1;
                     }
                 }

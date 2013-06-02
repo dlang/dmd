@@ -2148,18 +2148,19 @@ void test5473()
     class C
     {
         int b;
-        void f(){}
+        void f() const {}
         static int x;
         static void g(){};
     }
     struct S
     {
         int b;
-        void f(){}
+        void f() const {}
         static int x;
         static void g(){};
     }
 
+    alias void VoidConstFunc() const;
     void dummy(){}
     alias typeof(dummy) VoidFunc;
 
@@ -2171,12 +2172,12 @@ void test5473()
         alias typeof(a) A;
 
         static assert(is(typeof(a.b) == const int));    // const(int)
-        static assert(is(typeof(a.f) == VoidFunc));
+        static assert(is(typeof(a.f) == VoidConstFunc));
         static assert(is(typeof(a.x) == int));
         static assert(is(typeof(a.g) == VoidFunc));
 
         static assert(is(typeof((const A).b) == const int));    // int, should be const(int)
-        static assert(is(typeof((const A).f) == VoidFunc));
+        static assert(is(typeof((const A).f) == VoidConstFunc));
         static assert(is(typeof((const A).x) == int));
         static assert(is(typeof((const A).g) == VoidFunc));
     }

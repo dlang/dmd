@@ -638,6 +638,13 @@ public:
                         error("cannot alias an expression %s", e.toChars());
                     t = Type.terror;
                 }
+                else if (e.op == TOKvar)
+                {
+                    auto ve = cast(VarExp)e;
+                    auto f = s.isFuncDeclaration();
+                    if (!ve.hasOverloads && f && !f.isFuncAliasDeclaration())
+                        s = new FuncAliasDeclaration(ident, f, false);
+                }
             }
             type = t;
         }

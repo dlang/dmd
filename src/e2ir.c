@@ -3423,6 +3423,14 @@ elem *toElem(Expression *e, IRState *irs)
             int directcall = 0;
             //printf("DelegateExp::toElem() '%s'\n", de->toChars());
 
+            if (de->hasOverloads)
+            {
+                assert(de->type->ty == Tdelegate);
+                de->func = de->func->overloadExactMatch(de->type->nextOf());
+            }
+            else
+                de->func = de->func->toAliasFunc();
+
             if (de->func->semanticRun == PASSsemantic3done)
             {
                 // Bug 7745 - only include the function if it belongs to this module
