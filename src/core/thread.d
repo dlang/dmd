@@ -4097,7 +4097,12 @@ version (D_LP64)
     else version (OSX)
         static assert(__traits(classInstanceSize, Fiber) == 88);
     else version (Posix)
-        static assert(__traits(classInstanceSize, Fiber) == 88 + ucontext_t.sizeof + 8);
+    {
+        static if( __traits( compiles, ucontext_t ) )
+            static assert(__traits(classInstanceSize, Fiber) == 88 + ucontext_t.sizeof + 8);
+        else
+            static assert(__traits(classInstanceSize, Fiber) == 88);
+    }
     else
         static assert(0, "Platform not supported.");
 }
@@ -4110,7 +4115,12 @@ else
     else version (OSX)
         static assert(__traits(classInstanceSize, Fiber) == 44);
     else version (Posix)
-        static assert(__traits(classInstanceSize, Fiber) == 44 + ucontext_t.sizeof + 4);
+    {
+        static if( __traits( compiles, ucontext_t ) )
+            static assert(__traits(classInstanceSize, Fiber) == 44 + ucontext_t.sizeof + 4);
+        else
+            static assert(__traits(classInstanceSize, Fiber) == 44);
+    }
     else
         static assert(0, "Platform not supported.");
 }
