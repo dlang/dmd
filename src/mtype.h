@@ -197,6 +197,7 @@ public:
     static Type *twstring;              // immutable(wchar)[]
     static Type *tdstring;              // immutable(dchar)[]
     static Type *tvalist;               // va_list alias
+    static Type *tambig;
     static Type *terror;                // for error recovery
     static Type *tnull;                 // for null type
 
@@ -267,6 +268,7 @@ public:
     virtual bool isscope();
     virtual bool isString();
     virtual bool isAssignable();
+    virtual bool isAmbiguous();
     virtual bool isBoolean();
     virtual void checkDeprecated(Loc loc, Scope *sc);
     bool isConst() const       { return (mod & MODconst) != 0; }
@@ -369,6 +371,7 @@ public:
     Type *next;
 
     TypeNext(TY ty, Type *next);
+    bool isAmbiguous();
     void checkDeprecated(Loc loc, Scope *sc);
     int hasWild() const;
     Type *nextOf();
@@ -619,6 +622,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
+    bool isAmbiguous();
     void purityLevel();
     bool hasLazyParameters();
     bool parameterEscapes(Parameter *p);

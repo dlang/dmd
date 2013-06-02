@@ -787,6 +787,12 @@ public:
 
     override void visit(TypeFunction t)
     {
+        if (t.isAmbiguous())
+        {
+            buf.writestring("_ambiguous_");
+            return;
+        }
+
         //printf("TypeFunction::toCBuffer2() t = %p, ref = %d\n", t, t->isref);
         visitFuncIdentWithPostfix(t, null);
     }
@@ -908,6 +914,12 @@ public:
 
     override void visit(TypeDelegate t)
     {
+        if (t.isAmbiguous())
+        {
+            buf.writestring("_ambiguous_");
+            return;
+        }
+
         visitFuncIdentWithPostfix(cast(TypeFunction)t.next, "delegate");
     }
 
@@ -3171,6 +3183,12 @@ extern (C++) const(char)* protectionToChars(PROTKIND kind)
 // Print the full function signature with correct ident, attributes and template args
 extern (C++) void functionToBufferFull(TypeFunction tf, OutBuffer* buf, Identifier ident, HdrGenState* hgs, TemplateDeclaration td)
 {
+    if (tf.isAmbiguous())
+    {
+        buf.writestring("_ambiguous_");
+        return;
+    }
+
     //printf("TypeFunction::toCBuffer() this = %p\n", this);
     scope PrettyPrintVisitor v = new PrettyPrintVisitor(buf, hgs);
     v.visitFuncIdentWithPrefix(tf, ident, td, true);

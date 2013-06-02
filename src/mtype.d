@@ -530,6 +530,7 @@ public:
     extern (C++) static __gshared Type twstring;    // immutable(wchar)[]
     extern (C++) static __gshared Type tdstring;    // immutable(dchar)[]
     extern (C++) static __gshared Type tvalist;     // va_list alias
+    extern (C++) static __gshared Type tambig;
     extern (C++) static __gshared Type terror;      // for error recovery
     extern (C++) static __gshared Type tnull;       // for null type
 
@@ -897,6 +898,9 @@ public:
         twstring = twchar.immutableOf().arrayOf();
         tdstring = tdchar.immutableOf().arrayOf();
         tvalist = Target.va_listType();
+        tambig = new TypeFunction(null, null, 0, LINKd);
+        tambig.deco = cast(char*)"@".ptr;
+
         if (global.params.isLP64)
         {
             Tsize_t = Tuns64;
@@ -947,7 +951,8 @@ public:
         Type t = semantic(loc, sc);
         if (global.endGagging(errors) || t.ty == Terror) // if any errors happened
         {
-            t = null;
+            if (!t.isAmbiguous())
+                t = null;
         }
         //printf("-trySemantic(%s) %d\n", toChars(), global.errors);
         return t;
@@ -1119,6 +1124,11 @@ public:
     bool isAssignable()
     {
         return true;
+    }
+
+    bool isAmbiguous()
+    {
+        return false;
     }
 
     /**************************
@@ -2216,9 +2226,13 @@ public:
      */
     MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("Type::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to->toChars());
+
         if (this.equals(to))
             return MATCHexact;
         return MATCHnomatch;
@@ -2992,6 +3006,11 @@ public:
     {
         super(ty);
         this.next = next;
+    }
+
+    override bool isAmbiguous()
+    {
+        return next && next.isAmbiguous();
     }
 
     override final void checkDeprecated(Loc loc, Scope* sc)
@@ -4745,7 +4764,11 @@ public:
 
     override MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("TypeSArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
+
         if (to.ty == Tarray)
         {
             TypeDArray ta = cast(TypeDArray)to;
@@ -5021,6 +5044,9 @@ public:
 
     override MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("TypeDArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
@@ -5386,6 +5412,9 @@ public:
 
     override MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("TypeAArray::implicitConvTo(to = %s) this = %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
@@ -5501,6 +5530,9 @@ public:
 
     override MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("TypePointer::implicitConvTo(to = %s) %s\n", to->toChars(), toChars());
         if (equals(to))
             return MATCHexact;
@@ -5803,6 +5835,11 @@ public:
         t.trust = trust;
         t.fargs = fargs;
         return t;
+    }
+
+    override bool isAmbiguous()
+    {
+        return this == tambig || TypeNext.isAmbiguous();
     }
 
     override Type semantic(Loc loc, Scope* sc)
@@ -6722,6 +6759,9 @@ public:
 
     override MATCH implicitConvTo(Type to)
     {
+        if (isAmbiguous())
+            return MATCHnomatch;
+
         //printf("TypeDelegate::implicitConvTo(this=%p, to=%p)\n", this, to);
         //printf("from: %s\n", toChars());
         //printf("to  : %s\n", to->toChars());
@@ -7569,6 +7609,14 @@ public:
         {
             error(loc, "expression (%s) has no type", exp.toChars());
             goto Lerr;
+        }
+        if (t.isAmbiguous())
+        {
+            //printf("typeof exp = %s -> t = %s\n", exp.toChars(), t.toChars());
+            error(loc, "expression (%s) has ambiguous type", exp.toChars());
+            *pt = Type.tambig;
+            inuse--;
+            return;
         }
         if (t.ty == Ttypeof)
         {

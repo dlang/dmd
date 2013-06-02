@@ -197,6 +197,12 @@ public:
 
     override void visit(TypeFunction t)
     {
+        if (t.isAmbiguous())
+        {
+            buf.writestring("_ambiguous_");
+            return;
+        }
+
         //printf("TypeFunction.toDecoBuffer() t = %p %s\n", t, t.toChars());
         //static int nest; if (++nest == 50) *(char*)0=0;
         mangleFuncType(t, t, t.mod, t.next);

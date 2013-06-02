@@ -7399,6 +7399,17 @@ public:
             goto Lno;
         // errors, so condition is false
         targ = t;
+        if (targ.isAmbiguous())
+        {
+            // Even if is(typeof(func)) is OK, is(typeof(func) Sym) could be NG
+            if (id)
+                error("cannot take ambiguous type");
+            if (id || tspec || (tok2 != TOKreserved && tok2 != TOKfunction))
+            {
+                tded = Type.terror;
+                goto Lno;
+            }
+        }
         if (tok2 != TOKreserved)
         {
             switch (tok2)
@@ -10101,6 +10112,12 @@ public:
             }
             else if (t1.ty == Tdelegate)
             {
+                if (t1.isAmbiguous() && e1.op == TOKdelegate)
+                {
+                    auto de = cast(DelegateExp)e1;
+                    e1 = new DotVarExp(de.e1.loc, de.e1, de.func, de.hasOverloads);
+                    goto Lagain;
+                }
                 TypeDelegate td = cast(TypeDelegate)t1;
                 assert(td.next.ty == Tfunction);
                 tf = cast(TypeFunction)td.next;
@@ -10108,6 +10125,12 @@ public:
             }
             else if (t1.ty == Tpointer && (cast(TypePointer)t1).next.ty == Tfunction)
             {
+                if (t1.isAmbiguous() && e1.op == TOKsymoff)
+                {
+                    auto se = cast(SymOffExp)e1;
+                    e1 = new VarExp(se.loc, se.var, se.hasOverloads);
+                    goto Lagain;
+                }
                 tf = cast(TypeFunction)(cast(TypePointer)t1).next;
                 p = "function pointer";
             }
@@ -11123,6 +11146,12 @@ public:
 
         Type t1b = e1.type.toBasetype();
         Type tob = to.toBasetype();
+
+        if (t1b.isAmbiguous() && e1.implicitConvTo(to) <= MATCHnomatch)
+        {
+            error("cannot cast ambiguous expression %s to %s", e1.toChars(), to.toChars());
+            return new ErrorExp();
+        }
 
         if (tob.ty == Tstruct && !tob.equals(t1b))
         {
