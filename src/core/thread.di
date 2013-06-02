@@ -768,6 +768,50 @@ private:
 // Fiber Platform Detection and Memory Allocation
 ///////////////////////////////////////////////////////////////////////////////
 
+private
+{
+    // These must be kept in sync with core/thread.d
+    version( D_InlineAsm_X86 )
+    {
+        version( Windows )
+            version = NoUcontext;
+        else version( Posix )
+            version = NoUcontext;
+    }
+    else version( D_InlineAsm_X86_64 )
+    {
+        version( Windows )
+            version = NoUcontext;
+        else version( Posix )
+            version = NoUcontext;
+    }
+    else version( PPC )
+    {
+        version( Posix )
+            version = NoUcontext;
+    }
+    else version( PPC64 )
+    {
+        version( Posix )
+        {
+            // uses ucontext_t.
+        }
+    }
+    else version( MIPS_O32 )
+    {
+        version( Posix )
+            version = NoUcontext;
+    }
+
+    version( Posix )
+    {
+        version( NoUcontext )       {} else
+        {
+            import core.sys.posix.ucontext;
+        }
+    }
+}
+
 private extern __gshared const size_t PAGESIZE;
 
 shared static this();
@@ -776,7 +820,6 @@ shared static this();
 ///////////////////////////////////////////////////////////////////////////////
 // Fiber
 ///////////////////////////////////////////////////////////////////////////////
-
 
 /**
  * This class provides a cooperative concurrency mechanism integrated with the
@@ -999,7 +1042,6 @@ class Fiber
     }
 
 private:
-
     // These must be kept in sync with core/thread.d
     version (D_LP64)
     {
@@ -1007,8 +1049,10 @@ private:
         else version (OSX)     enum FiberSize = 88;
         else version (Posix)
         {
-            import core.sys.posix.ucontext;
-            enum FiberSize = 88 + ucontext_t.sizeof + 8;
+            static if( __traits( compiles, ucontext_t ) )
+                enum FiberSize = 88 + ucontext_t.sizeof + 8;
+            else
+                enum FiberSize = 88;
         }
         else static assert(0, "Platform not supported.");
     }
@@ -1020,8 +1064,10 @@ private:
         else version (OSX)     enum FiberSize = 44;
         else version (Posix)
         {
-            import core.sys.posix.ucontext;
-            enum FiberSize = 44 + ucontext_t.sizeof + 4;
+            static if( __traits( compiles, ucontext_t ) )
+                enum FiberSize = 44 + ucontext_t.sizeof + 4;
+            else
+                enum FiberSize = 44;
         }
         else static assert(0, "Platform not supported.");
     }
