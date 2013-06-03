@@ -39,6 +39,8 @@ else
     endif
 endif
 
+INSTALL_DIR=../../install
+
 C=backend
 TK=tk
 ROOT=root
@@ -642,6 +644,15 @@ var.o: $C/var.c optab.c
 
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
+
+######################################################
+
+install: all
+	mkdir -p $(INSTALL_DIR)/bin
+	cp dmd $(INSTALL_DIR)/bin/dmd
+	cp dmd.conf.default $(INSTALL_DIR)/bin/dmd.conf
+	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
+	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
 
 ######################################################
 
