@@ -24,11 +24,9 @@ private
     // bucket array.
     Entry*[] newBuckets(size_t len)
     {
-        auto ptr = cast(Entry**) GC.malloc(
+        auto ptr = cast(Entry**) GC.calloc(
             len * (Entry*).sizeof, GC.BlkAttr.NO_INTERIOR);
-        auto ret = ptr[0..len];
-        ret[] = null;
-        return ret;
+        return ptr[0..len];
     }
 }
 
