@@ -127,7 +127,7 @@ public:
     unsigned char mod;  // modifiers MODxxxx
     char *deco;
 
-    /* These are cached values that are lazily evaluated by constOf(), invariantOf(), etc.
+    /* These are cached values that are lazily evaluated by constOf(), immutableOf(), etc.
      * They should not be referenced by anybody but mtype.c.
      * They can be NULL if not lazily evaluated yet.
      * Note that there is no "shared immutable", because that is just immutable
@@ -229,7 +229,7 @@ public:
     Type(TY ty);
     virtual const char *kind();
     virtual Type *syntaxCopy();
-    int equals(Object *o);
+    bool equals(Object *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
@@ -276,7 +276,7 @@ public:
     int isNaked()       { return mod == 0; }
     Type *nullAttributes();
     Type *constOf();
-    Type *invariantOf();
+    Type *immutableOf();
     Type *mutableOf();
     Type *sharedOf();
     Type *sharedConstOf();
@@ -441,6 +441,7 @@ public:
     void toDecoBuffer(OutBuffer *buf, int flag);
     void toJson(JsonOut *json);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
+    Type *reliesOnTident(TemplateParameters *tparams);
 #if CPP_MANGLE
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
@@ -1019,7 +1020,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    int equals(Object *o);
+    bool equals(Object *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);

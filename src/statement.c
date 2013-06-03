@@ -1655,7 +1655,7 @@ Lagain:
                     key = var;
                     if (arg->storageClass & STCref)
                     {
-                        if (!var->type->invariantOf()->equals(arg->type->invariantOf()) ||
+                        if (!var->type->immutableOf()->equals(arg->type->immutableOf()) ||
                             !MODimplicitConv(var->type->mod, arg->type->mod))
                         {
                             error("key type mismatch, %s to ref %s",
@@ -1682,7 +1682,7 @@ Lagain:
                             var->storage_class |= STCconst;
 
                         Type *t = tab->nextOf();
-                        if (!t->invariantOf()->equals(arg->type->invariantOf()) ||
+                        if (!t->immutableOf()->equals(arg->type->immutableOf()) ||
                             !MODimplicitConv(t->mod, arg->type->mod))
                         {
                             error("argument type mismatch, %s to ref %s",
@@ -2434,7 +2434,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
     }
     if (arg->storageClass & STCref)
     {
-        if (!key->type->invariantOf()->equals(arg->type->invariantOf()) ||
+        if (!key->type->immutableOf()->equals(arg->type->immutableOf()) ||
             !MODimplicitConv(key->type->mod, arg->type->mod))
         {
             error("argument type mismatch, %s to ref %s",
@@ -2816,8 +2816,8 @@ Statement *PragmaStatement::semantic(Scope *sc)
 
                 e = e->ctfeSemantic(sc);
                 e = resolveProperties(sc, e);
-                if (e->op != TOKerror && e->op != TOKtype)
-                    e = e->ctfeInterpret();
+                // pragma(msg) is allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
                 {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     goto Lerror;
@@ -3748,8 +3748,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
             if (!exp->type->implicitConvTo(tret) &&
                 fd->parametersIntersect(exp->type))
             {
-                if (exp->type->invariantOf()->implicitConvTo(tret))
-                    exp = exp->castTo(sc, exp->type->invariantOf());
+                if (exp->type->immutableOf()->implicitConvTo(tret))
+                    exp = exp->castTo(sc, exp->type->immutableOf());
                 else if (exp->type->wildOf()->implicitConvTo(tret))
                     exp = exp->castTo(sc, exp->type->wildOf());
             }

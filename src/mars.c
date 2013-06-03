@@ -1,6 +1,5 @@
-
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -90,7 +89,7 @@ void Global::init()
 #error "fix this"
 #endif
 
-    copyright = "Copyright (c) 1999-2012 by Digital Mars";
+    copyright = "Copyright (c) 1999-2013 by Digital Mars";
     written = "written by Walter Bright";
     version = "v"
 #include "verstr.h"
@@ -620,11 +619,18 @@ int tryMain(size_t argc, char *argv[])
                 {
                     if (strcmp(p + 12, "?") == 0)
                     {
+#if PULL93
                         printf("\
 Language changes listed by -transition=id:\n\
   =field,3449    do list all non-mutable fields occupies object instance\n\
   =tls           do list all variables going into thread local storage\n\
 ");
+#else
+                        printf("\
+Language changes listed by -transition=id:\n\
+  =tls           do list all variables going into thread local storage\n\
+");
+#endif
                         return EXIT_FAILURE;
                     }
                     if (isdigit((unsigned char)p[12]))
@@ -647,8 +653,10 @@ Language changes listed by -transition=id:\n\
                     {
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
+#if PULL93
                         else if (strcmp(p + 12, "field") == 0)
                             global.params.vfield = 1;
+#endif
                     }
                     else
                         goto Lerror;

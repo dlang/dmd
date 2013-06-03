@@ -5168,9 +5168,11 @@ void test7150()
 /***************************************************/
 // 7159
 
+alias void delegate()  Void7159;
+
 class HomeController7159 {
-    void* foo() {
-        return cast(void*)&HomeController7159.displayDefault;
+    Void7159 foo() {
+        return cast(Void7159)&HomeController7159.displayDefault;
     }
     auto displayDefault() {
         return 1;

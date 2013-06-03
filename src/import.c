@@ -403,7 +403,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     return pkg->search(loc, ident, flags);
 }
 
-int Import::overloadInsert(Dsymbol *s)
+bool Import::overloadInsert(Dsymbol *s)
 {
     /* Allow multiple imports with the same package base, but disallow
      * alias collisions (Bugzilla 5412).
@@ -411,9 +411,9 @@ int Import::overloadInsert(Dsymbol *s)
     assert(ident && ident == s->ident);
     Import *imp;
     if (!aliasId && (imp = s->isImport()) != NULL && !imp->aliasId)
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

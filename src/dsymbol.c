@@ -70,16 +70,15 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->unittest = NULL;
 }
 
-int Dsymbol::equals(Object *o)
-{   Dsymbol *s;
-
+bool Dsymbol::equals(Object *o)
+{
     if (this == o)
-        return TRUE;
-    s = (Dsymbol *)(o);
+        return true;
+    Dsymbol *s = (Dsymbol *)(o);
     // Overload sets don't have an ident
     if (s && ident && s->ident && ident->equals(s->ident))
-        return TRUE;
-    return FALSE;
+        return true;
+    return false;
 }
 
 /**************************************
@@ -99,23 +98,23 @@ Dsymbol *Dsymbol::syntaxCopy(Dsymbol *s)
 /**************************************
  * Determine if this symbol is only one.
  * Returns:
- *      FALSE, *ps = NULL: There are 2 or more symbols
- *      TRUE,  *ps = NULL: There are zero symbols
- *      TRUE,  *ps = symbol: The one and only one symbol
+ *      false, *ps = NULL: There are 2 or more symbols
+ *      true,  *ps = NULL: There are zero symbols
+ *      true,  *ps = symbol: The one and only one symbol
  */
 
-int Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
+bool Dsymbol::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMember()\n");
     *ps = this;
-    return TRUE;
+    return true;
 }
 
 /*****************************************
  * Same as Dsymbol::oneMember(), but look at an array of Dsymbols.
  */
 
-int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
+bool Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
 {
     //printf("Dsymbol::oneMembers() %d\n", members ? members->dim : 0);
     Dsymbol *s = NULL;
@@ -125,13 +124,13 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
         for (size_t i = 0; i < members->dim; i++)
         {   Dsymbol *sx = (*members)[i];
 
-            int x = sx->oneMember(ps, ident);
+            bool x = sx->oneMember(ps, ident);
             //printf("\t[%d] kind %s = %d, s = %p\n", i, sx->kind(), x, *ps);
             if (!x)
             {
                 //printf("\tfalse 1\n");
                 assert(*ps == NULL);
-                return FALSE;
+                return false;
             }
             if (*ps)
             {
@@ -147,24 +146,24 @@ int Dsymbol::oneMembers(Dsymbols *members, Dsymbol **ps, Identifier *ident)
                 else                    // more than one symbol
                 {   *ps = NULL;
                     //printf("\tfalse 2\n");
-                    return FALSE;
+                    return false;
                 }
             }
         }
     }
     *ps = s;            // s is the one symbol, NULL if none
     //printf("\ttrue\n");
-    return TRUE;
+    return true;
 }
 
 /*****************************************
  * Is Dsymbol a variable that contains pointers?
  */
 
-int Dsymbol::hasPointers()
+bool Dsymbol::hasPointers()
 {
     //printf("Dsymbol::hasPointers() %s\n", toChars());
-    return 0;
+    return false;
 }
 
 bool Dsymbol::hasStaticCtorOrDtor()
@@ -302,9 +301,9 @@ TemplateInstance *Dsymbol::isSpeculative()
     return NULL;
 }
 
-int Dsymbol::isAnonymous()
+bool Dsymbol::isAnonymous()
 {
-    return ident ? 0 : 1;
+    return ident == NULL;
 }
 
 /*************************************
@@ -470,10 +469,10 @@ Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Object *id)
     return sm;
 }
 
-int Dsymbol::overloadInsert(Dsymbol *s)
+bool Dsymbol::overloadInsert(Dsymbol *s)
 {
     //printf("Dsymbol::overloadInsert('%s')\n", s->toChars());
-    return FALSE;
+    return false;
 }
 
 void Dsymbol::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -487,9 +486,9 @@ unsigned Dsymbol::size(Loc loc)
     return 0;
 }
 
-int Dsymbol::isforwardRef()
+bool Dsymbol::isforwardRef()
 {
-    return FALSE;
+    return false;
 }
 
 AggregateDeclaration *Dsymbol::isThis()
@@ -524,14 +523,14 @@ void Dsymbol::defineRef(Dsymbol *s)
     assert(0);
 }
 
-int Dsymbol::isExport()
+bool Dsymbol::isExport()
 {
-    return FALSE;
+    return false;
 }
 
-int Dsymbol::isImportedSymbol()
+bool Dsymbol::isImportedSymbol()
 {
-    return FALSE;
+    return false;
 }
 
 bool Dsymbol::isDeprecated()
@@ -540,14 +539,14 @@ bool Dsymbol::isDeprecated()
 }
 
 #if DMDV2
-int Dsymbol::isOverloadable()
+bool Dsymbol::isOverloadable()
 {
-    return 0;
+    return false;
 }
 
-int Dsymbol::hasOverloads()
+bool Dsymbol::hasOverloads()
 {
-    return 0;
+    return false;
 }
 #endif
 
@@ -569,9 +568,9 @@ Type *Dsymbol::getType()
     return NULL;
 }
 
-int Dsymbol::needThis()
+bool Dsymbol::needThis()
 {
-    return FALSE;
+    return false;
 }
 
 int Dsymbol::apply(Dsymbol_apply_ft_t fp, void *param)
@@ -1008,7 +1007,7 @@ void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
     }
 }
 
-int ScopeDsymbol::isforwardRef()
+bool ScopeDsymbol::isforwardRef()
 {
     return (members == NULL);
 }

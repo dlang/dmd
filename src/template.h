@@ -81,7 +81,7 @@ public:
         Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
@@ -104,7 +104,7 @@ public:
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
-    int isOverloadable();
+    bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
@@ -141,7 +141,7 @@ public:
 
     virtual TemplateParameter *syntaxCopy() = 0;
     virtual void declareParameter(Scope *sc) = 0;
-    virtual void semantic(Scope *) = 0;
+    virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual Object *specialization() = 0;
@@ -154,6 +154,7 @@ public:
     /* Match actual argument against parameter.
      */
     virtual MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
+    virtual MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
      */
@@ -176,13 +177,14 @@ public:
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -220,13 +222,14 @@ public:
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -248,13 +251,14 @@ public:
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -270,13 +274,14 @@ public:
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
@@ -329,7 +334,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
     const char *mangle(bool isv = false);
@@ -365,9 +370,9 @@ public:
     void semantic3(Scope *sc);
     void inlineScan();
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    int hasPointers();
+    bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

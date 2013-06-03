@@ -1175,10 +1175,10 @@ int ClassDeclaration::isCPPinterface()
 /****************************************
  */
 
-int ClassDeclaration::isAbstract()
+bool ClassDeclaration::isAbstract()
 {
     if (isabstract)
-        return TRUE;
+        return true;
     for (size_t i = 1; i < vtbl.dim; i++)
     {
         FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
@@ -1187,10 +1187,10 @@ int ClassDeclaration::isAbstract()
         if (!fd || fd->isAbstract())
         {
             isabstract |= 1;
-            return TRUE;
+            return true;
         }
     }
-    return FALSE;
+    return false;
 }
 
 

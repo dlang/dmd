@@ -407,6 +407,40 @@ void test10103()
 }
 
 /*****************************************/
+// 10197
+
+template OriginalType10197(T)
+{
+    static if (is(T U == enum))
+        alias OriginalType10197 = U;
+    else
+        static assert(0);
+}
+
+void test10197()
+{
+    enum E : int { F = -20 }
+    struct S
+    {
+        int val;
+        @trusted @property T as(T)()
+        if (is(T == int) && !is(T == enum))
+        {
+            return cast(T)(val);
+        }
+        @trusted @property T as(T)()
+        if (is(T == enum))
+        {
+            return cast(T)as!(OriginalType10197!T);
+        }
+    }
+
+    S val = S(-20);
+    assert(val.as!int == -20);
+    assert(val.as!E == E.F);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -419,6 +453,7 @@ int main()
     test7275();
     test8251();
     test10103();
+    test10197();
 
     printf("Success\n");
     return 0;

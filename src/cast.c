@@ -431,7 +431,7 @@ MATCH NullExp::implicitConvTo(Type *t)
      * and mutable to immutable. It works because, after all, a null
      * doesn't actually point to anything.
      */
-    if (t->invariantOf()->equals(type->invariantOf()))
+    if (t->immutableOf()->equals(type->immutableOf()))
         return MATCHconst;
 
     return Expression::implicitConvTo(t);
@@ -655,7 +655,7 @@ MATCH CallExp::implicitConvTo(Type *t)
      * convert to immutable
      */
     if (f && f->isolateReturn())
-        return type->invariantOf()->implicitConvTo(t);
+        return type->immutableOf()->implicitConvTo(t);
 
     /* The result of arr.dup and arr.idup can be unique essentially.
      * So deal with this case specially.
@@ -680,7 +680,7 @@ MATCH CallExp::implicitConvTo(Type *t)
                     return MATCHnomatch;
             }
         }
-        m = type->invariantOf()->implicitConvTo(t);
+        m = type->immutableOf()->implicitConvTo(t);
         return m;
     }
 
@@ -1674,7 +1674,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t && hasOverloads == 0)
+    if (type == t && !hasOverloads)
         return this;
     Expression *e;
     Type *tb = t->toBasetype();
@@ -1732,7 +1732,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     else
     {   e = copy();
         e->type = t;
-        ((SymOffExp *)e)->hasOverloads = 0;
+        ((SymOffExp *)e)->hasOverloads = false;
     }
     return e;
 }
@@ -1793,15 +1793,15 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
     if (e)
     {
         if (e != this)
-            e = e->castTo(sc, t);
-        else if (!e->type->equals(t))
+            return e->castTo(sc, t);
+        if (!e->type->equals(t) && e->type->implicitConvTo(t))
         {
             assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
                    e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
+            return e;
         }
-        return e;
     }
     return Expression::castTo(sc, t);
 }
