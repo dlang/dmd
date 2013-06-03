@@ -1024,3 +1024,83 @@ unittest
     assert(b != c);     // comparison with null AA
     assert(c != b);
 }
+
+
+/**
+ * _aaRange implements a ForwardRange
+ */
+struct Range
+{
+    Impl* impl;
+    Entry* current;
+}
+
+
+Range _aaRange(AA aa)
+{
+    typeof(return) res;
+    if (aa.impl is null)
+        return res;
+
+    res.impl = aa.impl;
+    foreach (entry; aa.impl.buckets)
+    {
+        if (entry !is null)
+        {
+            res.current = entry;
+            break;
+        }
+    }
+    return res;
+}
+
+
+bool _aaRangeEmpty(Range r)
+{
+    return r.current is null;
+}
+
+
+void* _aaRangeFrontKey(Range r)
+in
+{
+    assert(r.current !is null);
+}
+body
+{
+    return cast(void*)r.current + Entry.sizeof;
+}
+
+
+void* _aaRangeFrontValue(Range r)
+in
+{
+    assert(r.current !is null);
+    assert(r.impl.keyti !is null); // set on first insert
+}
+body
+{
+    return cast(void*)r.current + Entry.sizeof + aligntsize(r.impl.keyti.tsize);
+}
+
+
+void _aaRangePopFront(ref Range r)
+{
+    if (r.current.next !is null)
+    {
+        r.current = r.current.next;
+    }
+    else
+    {
+        immutable idx = r.current.hash % r.impl.buckets.length;
+        r.current = null;
+        foreach (entry; r.impl.buckets[idx + 1 .. $])
+        {
+            if (entry !is null)
+            {
+                r.current = entry;
+                break;
+            }
+        }
+    }
+}
