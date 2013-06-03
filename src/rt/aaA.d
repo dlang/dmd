@@ -80,7 +80,7 @@ struct aaA
     /* value */
 }
 
-struct BB
+struct Impl
 {
     aaA*[] b;
     size_t nodes;       // total number of aaA nodes
@@ -94,7 +94,7 @@ struct BB
 
 struct AA
 {
-    BB* a;
+    Impl* impl;
 }
 
 /**********************************
@@ -198,9 +198,9 @@ out (result)
 {
     size_t len = 0;
 
-    if (aa.a)
+    if (aa.impl)
     {
-        foreach (e; aa.a.b)
+        foreach (e; aa.impl.b)
         {
             while (e)
             {   len++;
@@ -214,7 +214,7 @@ out (result)
 }
 body
 {
-    return aa.a ? aa.a.nodes : 0;
+    return aa.impl ? aa.impl.nodes : 0;
 }
 
 
@@ -237,8 +237,8 @@ in
 out (result)
 {
     assert(result);
-    assert(aa.a);
-    assert(aa.a.b.length);
+    assert(aa.impl !is null);
+    assert(aa.impl.b.length);
     //assert(_aaInAh(*aa.a, key));
 }
 body
@@ -249,18 +249,18 @@ body
     //printf("aa = %p\n", aa);
     immutable keytitsize = keyti.tsize;
 
-    if (!aa.a)
-    {   aa.a = new BB();
-        aa.a.b = aa.a.binit[];
+    if (aa.impl is null)
+    {   aa.impl = new Impl();
+        aa.impl.b = aa.impl.binit[];
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
-    aa.a.keyti = keyti;
+    aa.impl.keyti = keyti;
 
     auto key_hash = keyti.getHash(pkey);
     //printf("hash = %d\n", key_hash);
-    i = key_hash % aa.a.b.length;
-    auto pe = &aa.a.b[i];
+    i = key_hash % aa.impl.b.length;
+    auto pe = &aa.impl.b[i];
     while ((e = *pe) !is null)
     {
         if (key_hash == e.hash)
@@ -283,9 +283,9 @@ body
     memset(ptail + aligntsize(keytitsize), 0, valuesize); // zero value
     *pe = e;
 
-    auto nodes = ++aa.a.nodes;
+    auto nodes = ++aa.impl.nodes;
     //printf("length = %d, nodes = %d\n", aa.a.b.length, nodes);
-    if (nodes > aa.a.b.length * 4)
+    if (nodes > aa.impl.b.length * 4)
     {
         //printf("rehash\n");
         _aaRehash(aa,keyti);
@@ -309,18 +309,18 @@ void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
 void* _aaGetRvalueX(AA aa, TypeInfo keyti, size_t valuesize, void* pkey)
 {
     //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
-    if (!aa.a)
+    if (aa.impl is null)
         return null;
 
     auto keysize = aligntsize(keyti.tsize);
-    auto len = aa.a.b.length;
+    auto len = aa.impl.b.length;
 
     if (len)
     {
         auto key_hash = keyti.getHash(pkey);
         //printf("hash = %d\n", key_hash);
         size_t i = key_hash % len;
-        auto e = aa.a.b[i];
+        auto e = aa.impl.b[i];
         while (e !is null)
         {
             if (key_hash == e.hash)
@@ -358,17 +358,17 @@ out (result)
 }
 body
 {
-    if (aa.a)
+    if (aa.impl)
     {
         //printf("_aaIn(), .length = %d, .ptr = %x\n", aa.a.length, cast(uint)aa.a.ptr);
-        auto len = aa.a.b.length;
+        auto len = aa.impl.b.length;
 
         if (len)
         {
             auto key_hash = keyti.getHash(pkey);
             //printf("hash = %d\n", key_hash);
             const i = key_hash % len;
-            auto e = aa.a.b[i];
+            auto e = aa.impl.b[i];
             while (e !is null)
             {
                 if (key_hash == e.hash)
@@ -400,12 +400,12 @@ bool _aaDelX(AA aa, TypeInfo keyti, void* pkey)
 {
     aaA *e;
 
-    if (aa.a && aa.a.b.length)
+    if (aa.impl && aa.impl.b.length)
     {
         auto key_hash = keyti.getHash(pkey);
         //printf("hash = %d\n", key_hash);
-        size_t i = key_hash % aa.a.b.length;
-        auto pe = &aa.a.b[i];
+        size_t i = key_hash % aa.impl.b.length;
+        auto pe = &aa.impl.b[i];
         while ((e = *pe) !is null) // null means not found
         {
             if (key_hash == e.hash)
@@ -414,7 +414,7 @@ bool _aaDelX(AA aa, TypeInfo keyti, void* pkey)
                 if (c == 0)
                 {
                     *pe = e.next;
-                    aa.a.nodes--;
+                    aa.impl.nodes--;
                     gc_free(e);
                     return true;
                 }
@@ -437,13 +437,13 @@ ArrayRet_t _aaValues(AA aa, size_t keysize, size_t valuesize)
 
     auto alignsize = aligntsize(keysize);
 
-    if (aa.a)
+    if (aa.impl !is null)
     {
         a.length = _aaLen(aa);
         a.ptr = cast(byte*) gc_malloc(a.length * valuesize,
                                       valuesize < (void*).sizeof ? BlkAttr.NO_SCAN : 0);
         resi = 0;
-        foreach (e; aa.a.b)
+        foreach (e; aa.impl.b)
         {
             while (e)
             {
@@ -476,10 +476,10 @@ out (result)
 body
 {
     //printf("Rehash\n");
-    if (paa.a)
+    if (paa.impl !is null)
     {
-        BB newb;
-        auto aa = paa.a;
+        Impl newImpl;
+        Impl* oldImpl = paa.impl;
         auto len = _aaLen(*paa);
         if (len)
         {   size_t i;
@@ -490,30 +490,30 @@ body
                     break;
             }
             len = prime_list[i];
-            newb.b = newaaA(len);
+            newImpl.b = newaaA(len);
 
-            foreach (e; aa.b)
+            foreach (e; oldImpl.b)
             {
                 while (e)
                 {   auto enext = e.next;
                     const j = e.hash % len;
-                    e.next = newb.b[j];
-                    newb.b[j] = e;
+                    e.next = newImpl.b[j];
+                    newImpl.b[j] = e;
                     e = enext;
                 }
             }
-            if (aa.b.ptr == aa.binit.ptr)
-                aa.binit[] = null;
+            if (oldImpl.b.ptr == oldImpl.binit.ptr)
+                oldImpl.binit[] = null;
             else
-                GC.free(aa.b.ptr);
+                GC.free(oldImpl.b.ptr);
 
-            newb.nodes = aa.nodes;
-            newb.keyti = aa.keyti;
+            newImpl.nodes = oldImpl.nodes;
+            newImpl.keyti = oldImpl.keyti;
         }
 
-        *paa.a = newb;
+        *paa.impl = newImpl;
     }
-    return (*paa).a;
+    return (*paa).impl;
 }
 
 /********************************************
@@ -526,9 +526,9 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
     if (!len)
         return null;
     auto res = (cast(byte*) gc_malloc(len * keysize,
-                                 !(aa.a.keyti.flags & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
+                                 !(aa.impl.keyti.flags & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
     size_t resi = 0;
-    foreach (e; aa.a.b)
+    foreach (e; aa.impl.b)
     {
         while (e)
         {
@@ -599,15 +599,15 @@ extern (D) alias int delegate(void *) dg_t;
 
 int _aaApply(AA aa, size_t keysize, dg_t dg)
 {
-    if (!aa.a)
+    if (aa.impl is null)
     {
         return 0;
     }
 
     immutable alignsize = aligntsize(keysize);
-    //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
+    //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.impl, keysize, dg);
 
-    foreach (e; aa.a.b)
+    foreach (e; aa.impl.b)
     {
         while (e)
         {
@@ -625,16 +625,16 @@ extern (D) alias int delegate(void *, void *) dg2_t;
 
 int _aaApply2(AA aa, size_t keysize, dg2_t dg)
 {
-    if (!aa.a)
+    if (aa.impl is null)
     {
         return 0;
     }
 
-    //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.a, keysize, dg);
+    //printf("_aaApply(aa = x%llx, keysize = %d, dg = x%llx)\n", aa.impl, keysize, dg);
 
     immutable alignsize = aligntsize(keysize);
 
-    foreach (e; aa.a.b)
+    foreach (e; aa.impl.b)
     {
         while (e)
         {
@@ -655,12 +655,12 @@ int _aaApply2(AA aa, size_t keysize, dg2_t dg)
  */
 
 extern (C)
-BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
+Impl* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
 {
     auto valuesize = ti.next.tsize;             // value size
     auto keyti = ti.key;
     auto keysize = keyti.tsize;                 // key size
-    BB* result;
+    Impl* result;
 
     //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
     //printf("tivalue = %.*s\n", ti.next.classinfo.name);
@@ -677,7 +677,7 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
         else
             va_start(q, length);
 
-        result = new BB();
+        result = new Impl();
         result.keyti = keyti;
         size_t i;
 
@@ -736,13 +736,13 @@ BB* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...)
 }
 
 extern (C)
-BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
+Impl* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
 {
     auto valuesize = ti.next.tsize;             // value size
     auto keyti = ti.key;
     auto keysize = keyti.tsize;                 // key size
     auto length = keys.length;
-    BB* result;
+    Impl* result;
 
     //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
     //printf("tivalue = %.*s\n", ti.next.classinfo.name);
@@ -752,7 +752,7 @@ BB* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] val
     }
     else
     {
-        result = new BB();
+        result = new Impl();
         result.keyti = keyti;
 
         size_t i;
@@ -844,7 +844,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
     //printf("keyti = %.*s\n", ti.key.classinfo.name);
     //printf("valueti = %.*s\n", ti.next.classinfo.name);
 
-    if (e1.a is e2.a)
+    if (e1.impl is e2.impl)
         return 1;
 
     size_t len = _aaLen(e1);
@@ -864,7 +864,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
     auto keyti = ti.key;
     auto valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
-    const len2 = e2.a.b.length;
+    const len2 = e2.impl.b.length;
 
     int _aaKeys_x(aaA* e)
     {
@@ -879,7 +879,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
             auto key_hash = keyti.getHash(pkey);
             //printf("hash = %d\n", key_hash);
             const i = key_hash % len2;
-            auto f = e2.a.b[i];
+            auto f = e2.impl.b[i];
             while (1)
             {
                 //printf("f is %p\n", f);
@@ -911,7 +911,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
         return 1;                       // this subtree matches
     }
 
-    foreach (e; e1.a.b)
+    foreach (e; e1.impl.b)
     {
         if (e)
         {   if (_aaKeys_x(e) == 0)
@@ -933,7 +933,7 @@ hash_t _aaGetHash(AA* aa, const(TypeInfo) tiRaw) nothrow
 {
     import rt.util.hash;
 
-    if (!aa.a)
+    if (aa.impl is null)
     	return 0;
 
     hash_t h = 0;
@@ -942,7 +942,7 @@ hash_t _aaGetHash(AA* aa, const(TypeInfo) tiRaw) nothrow
     auto valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
 
-    foreach (e; aa.a.b)
+    foreach (e; aa.impl.b)
     {
 	while (e)
 	{
