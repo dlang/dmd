@@ -10,7 +10,7 @@ class NSObject {
 
 class TestObject : NSObject {
     static TestObject alloc() { return cast(TestObject)cast(void*)super.alloc(); }
-	TestObject init() { return super.init(); }
+	override TestObject init() { return cast(TestObject)super.init(); }
 }
 
 void main() {
