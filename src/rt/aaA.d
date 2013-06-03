@@ -20,25 +20,12 @@ private
     import core.stdc.stdio;
     import core.memory;
 
-    enum BlkAttr : uint
-    {
-        FINALIZE    = 0b0000_0001,
-        NO_SCAN     = 0b0000_0010,
-        NO_MOVE     = 0b0000_0100,
-        APPENDABLE  = 0b0000_1000,
-        NO_INTERIOR = 0b0001_0000,
-        ALL_BITS    = 0b1111_1111
-    }
-
-    extern (C) void* gc_malloc( size_t sz, uint ba = 0 );
-    extern (C) void  gc_free( void* p );
-
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // bucket array.
     Entry*[] newBuckets(size_t len)
     {
-        auto ptr = cast(Entry**) gc_malloc(
-            len * (Entry*).sizeof, BlkAttr.NO_INTERIOR);
+        auto ptr = cast(Entry**) GC.malloc(
+            len * (Entry*).sizeof, GC.BlkAttr.NO_INTERIOR);
         auto ret = ptr[0..len];
         ret[] = null;
         return ret;
@@ -275,7 +262,7 @@ body
     // Not found, create new elem
     //printf("create new one\n");
     size_t size = Entry.sizeof + aligntsize(keytitsize) + valuesize;
-    e = cast(Entry *) gc_malloc(size);
+    e = cast(Entry *) GC.malloc(size);
     e.next = null;
     e.hash = key_hash;
     ubyte* ptail = cast(ubyte*)(e + 1);
@@ -415,7 +402,7 @@ bool _aaDelX(AA aa, TypeInfo keyti, void* pkey)
                 {
                     *pe = e.next;
                     aa.impl.nodes--;
-                    gc_free(e);
+                    GC.free(e);
                     return true;
                 }
             }
@@ -440,8 +427,8 @@ ArrayRet_t _aaValues(AA aa, size_t keysize, size_t valuesize)
     if (aa.impl !is null)
     {
         a.length = _aaLen(aa);
-        a.ptr = cast(byte*) gc_malloc(a.length * valuesize,
-                                      valuesize < (void*).sizeof ? BlkAttr.NO_SCAN : 0);
+        a.ptr = cast(byte*) GC.malloc(a.length * valuesize,
+                                      valuesize < (void*).sizeof ? GC.BlkAttr.NO_SCAN : 0);
         resi = 0;
         foreach (e; aa.impl.buckets)
         {
@@ -525,8 +512,10 @@ ArrayRet_t _aaKeys(AA aa, size_t keysize)
     auto len = _aaLen(aa);
     if (!len)
         return null;
-    auto res = (cast(byte*) gc_malloc(len * keysize,
-                                 !(aa.impl.keyti.flags & 1) ? BlkAttr.NO_SCAN : 0))[0 .. len * keysize];
+
+    immutable blkAttr = !(aa.impl.keyti.flags & 1) ? GC.BlkAttr.NO_SCAN : 0;
+    auto res = (cast(byte*) GC.malloc(len * keysize, blkAttr))[0 .. len * keysize];
+
     size_t resi = 0;
     foreach (e; aa.impl.buckets)
     {
