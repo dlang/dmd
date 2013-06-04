@@ -54,9 +54,7 @@ C=backend
 TK=tk
 ROOT=root
 
-MODEL=32
 ifneq (x,x$(MODEL))
-	MODEL:=
     MODEL_FLAG=-m$(MODEL)
 endif
 
