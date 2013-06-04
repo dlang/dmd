@@ -887,7 +887,7 @@ Language changes listed by -transition=id:\n\
             {
                 if(global.params.moduleDeps)
                 {
-                    error(0, "-deps[=file] can only be provided once!");
+                    error(Loc(), "-deps[=file] can only be provided once!");
                     break;
                 }
                 if(p[5]=='=')
