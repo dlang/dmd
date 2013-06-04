@@ -33,7 +33,7 @@ struct Macro
     int inuse;                  // macro is in use (don't expand)
 
     Macro(unsigned char *name, size_t namelen, unsigned char *text, size_t textlen);
-    Macro *search(unsigned char *name, size_t namelen);
+    Macro *search(const unsigned char *name, size_t namelen);
 
   public:
     static Macro *define(Macro **ptable, unsigned char *name, size_t namelen, unsigned char *text, size_t textlen);
