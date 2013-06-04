@@ -133,8 +133,18 @@ inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
     d.sign = sign;
     return d;
 }
-template<typename T> inline longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
-//template<typename T> inline longdouble ldouble(volatile T x) { longdouble d; d.set(x); return d; }
+
+// codegen bug in VS2010/VS2012, if the set() function not inlined 
+//  (this passed on stack, but expected in ECX; RVO?)
+#if _MSC_VER >= 1600 && defined(_DEBUG)
+#define LDOUBLE_INLINE __declspec(noinline)
+#else
+#define LDOUBLE_INLINE inline
+#endif
+
+template<typename T> LDOUBLE_INLINE longdouble ldouble(T x) { longdouble d; d.set(x); return d; }
+
+#undef LDOUBLE_INLINE
 
 longdouble operator+(longdouble ld1, longdouble ld2);
 longdouble operator-(longdouble ld1, longdouble ld2);
