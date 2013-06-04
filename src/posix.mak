@@ -1,3 +1,14 @@
+# posix.mak
+#
+# Copyright (c) 1999-2013 by Digital Mars
+# All Rights Reserved
+# written by Walter Bright
+# http://www.digitalmars.com
+# License for redistribution is by either the Artistic License
+# in artistic.txt, or the GNU General Public License in gnu.txt.
+# See the included readme.txt for details.
+#
+
 OS:=
 uname_S:=$(shell uname -s)
 ifeq (Darwin,$(uname_S))
@@ -45,6 +56,7 @@ ROOT=root
 
 MODEL=32
 ifneq (x,x$(MODEL))
+	MODEL:=
     MODEL_FLAG=-m$(MODEL)
 endif
 
@@ -183,8 +195,8 @@ clean:
 ######## optabgen generates some source
 
 optabgen: $C/optabgen.c $C/cc.h $C/oper.h
-	$(ENVP) $(CC) $(MFLAGS) $< -o optabgen
-	./optabgen
+	$(ENVP) $(CC) $(MFLAGS) $< -o $@
+	./$@
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 $(optabgen_output) : optabgen
@@ -271,7 +283,7 @@ cg.o: $C/cg.c fltables.c
 cg87.o: $C/cg87.c
 	$(CC) -c $(MFLAGS) $<
 
-cgcod.o: $C/cgcod.c
+cgcod.o: $C/cgcod.c cdxxx.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 cgcs.o: $C/cgcs.c
@@ -280,7 +292,7 @@ cgcs.o: $C/cgcs.c
 cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $<
 
-cgelem.o: $C/cgelem.c $C/rtlsym.h
+cgelem.o: $C/cgelem.c $C/rtlsym.h elxxx.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 cgen.o: $C/cgen.c $C/rtlsym.h
@@ -343,7 +355,7 @@ cppmangle.o: cppmangle.c
 cv8.o: $C/cv8.c
 	$(CC) -c $(MFLAGS) $<
 
-debug.o: $C/debug.c
+debug.o: $C/debug.c debtab.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 declaration.o: declaration.c
@@ -628,7 +640,7 @@ utf.o: utf.c utf.h
 unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
-var.o: $C/var.c optab.c
+var.o: $C/var.c optab.c tytab.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 version.o: version.c
