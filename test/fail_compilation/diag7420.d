@@ -2,15 +2,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag7420.d(3): Error: variable x cannot be read at compile time
+fail_compilation/diag7420.d(3): Error: static variable x cannot be read at compile time
 fail_compilation/diag7420.d(3):        while evaluating: static assert(x < 4)
-fail_compilation/diag7420.d(4): Error: variable y cannot be read at compile time
+fail_compilation/diag7420.d(4): Error: static variable y cannot be read at compile time
 fail_compilation/diag7420.d(4):        while evaluating: static assert(y == "abc")
-fail_compilation/diag7420.d(5): Error: variable y cannot be read at compile time
+fail_compilation/diag7420.d(5): Error: static variable y cannot be read at compile time
 fail_compilation/diag7420.d(5):        while evaluating: static assert(cast(ubyte[])y != null)
-fail_compilation/diag7420.d(6): Error: variable y cannot be read at compile time
+fail_compilation/diag7420.d(6): Error: static variable y cannot be read at compile time
 fail_compilation/diag7420.d(6):        while evaluating: static assert(cast(int)y[0u] == 1)
-fail_compilation/diag7420.d(7): Error: variable y cannot be read at compile time
+fail_compilation/diag7420.d(7): Error: static variable y cannot be read at compile time
 fail_compilation/diag7420.d(7):        while evaluating: static assert(y[0u..1u].length == 1u)
 ---
 */
