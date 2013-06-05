@@ -5107,6 +5107,10 @@ Lagain:
         if (f)
         {
             checkDeprecated(sc, f);
+#if DMDV2
+            checkPurity(sc, f);
+            checkSafety(sc, f);
+#endif
             member = f->isCtorDeclaration();
             assert(member);
 
@@ -5202,6 +5206,10 @@ Lagain:
         if (f)
         {
             checkDeprecated(sc, f);
+#if DMDV2
+            checkPurity(sc, f);
+            checkSafety(sc, f);
+#endif
             member = f->isCtorDeclaration();
             assert(member);
 
