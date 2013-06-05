@@ -30,6 +30,18 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     : Dsymbol(NULL)
 {
     assert(id);
+#if 0
+    printf("Import::Import(");
+    if (packages && packages->dim)
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            Identifier *id = (*packages)[i];
+            printf("%s.", id->toChars());
+        }
+    }
+    printf("%s)\n", id->toChars());
+#endif
     this->loc = loc;
     this->packages = packages;
     this->id = id;
@@ -89,10 +101,11 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 
 void Import::load(Scope *sc)
 {
-    //printf("Import::load('%s')\n", toChars());
+    //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
+#if 0
     if (pkg && pkg->isModule())
     {
         ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
@@ -100,6 +113,7 @@ void Import::load(Scope *sc)
         mod = pkg->isModule(); // Error recovery - treat as import of that module
         return;
     }
+#endif
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -107,7 +121,11 @@ void Import::load(Scope *sc)
             mod = (Module *)s;
         else
         {
-            if (pkg)
+            if (s->isAliasDeclaration())
+            {
+                ::error(loc, "%s %s conflicts with %s", s->kind(), s->toPrettyChars(), id->toChars());
+            }
+            else if (pkg)
             {
                 ::error(loc, "can only import from a module, not from package %s.%s",
                     pkg->toPrettyChars(), id->toChars());
@@ -178,7 +196,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    //printf("Import::semantic('%s')\n", toChars());
+    //printf("Import::semantic('%s')\n", toPrettyChars());
 
     if (scope)
     {   sc = scope;
