@@ -31,6 +31,7 @@ class ExpInitializer;
 class StructDeclaration;
 struct InterState;
 struct IRState;
+struct CompiledCtfeFunction;
 
 enum PROT;
 enum LINK;
@@ -597,6 +598,8 @@ public:
     bool naked;                         // true if naked
     ILS inlineStatusStmt;
     ILS inlineStatusExp;
+
+    CompiledCtfeFunction *ctfeCode;     // Compiled code for interpreter
     int inlineNest;                     // !=0 if nested inline
     bool isArrayOp;                     // true if array operation
     FuncDeclaration *dArrayOp;          // D version of array op for ctfe
@@ -703,6 +706,7 @@ public:
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);
+    void ctfeCompile();
     void inlineScan();
     int canInline(int hasthis, int hdrscan, int statementsToo);
     Expression *expandInline(InlineScanState *iss, Expression *ethis, Expressions *arguments, Statement **ps);
