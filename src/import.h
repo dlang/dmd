@@ -65,5 +65,4 @@ public:
     Import *isImport() { return this; }
 };
 
-
 #endif /* DMD_IMPORT_H */

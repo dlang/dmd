@@ -256,7 +256,7 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
-        if(!global.params.moduleDepsFile)
+        if (!global.params.moduleDepsFile)
             ob->writestring("depsImport ");
         ob->writestring(sc->module->toPrettyChars());
         ob->writestring(" (");

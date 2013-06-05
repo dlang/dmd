@@ -890,13 +890,13 @@ Language changes listed by -transition=id:\n\
                     error(Loc(), "-deps[=file] can only be provided once!");
                     break;
                 }
-                if(p[5]=='=')
+                if (p[5] == '=')
                 {
                     global.params.moduleDepsFile = p + 1 + 5;
                     if (!global.params.moduleDepsFile[0])
                         goto Lnoarg;
                 } // Else output to stdout.
-                else if(p[5]!='\0')
+                else if (p[5]!='\0')
                 {
                     goto Lerror;
                 }
@@ -1502,19 +1502,17 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-    if (global.params.moduleDeps != NULL)
+    if (global.params.moduleDeps)
     {
         OutBuffer* ob = global.params.moduleDeps;
-        if(global.params.moduleDepsFile != NULL) 
+        if (global.params.moduleDepsFile) 
         {
             File deps(global.params.moduleDepsFile);
             deps.setbuffer((void*)ob->data, ob->offset);
             deps.writev();
         }
         else
-        {
             printf("%.*s", ob->offset, ob->data);
-        }
     }
 
     // Scan for functions to inline

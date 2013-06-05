@@ -1044,10 +1044,8 @@ void PragmaDeclaration::semantic(Scope *sc)
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
                 if (global.params.verbose)
-                {
                     printf("library   %s\n", name);
-                }
-                if(global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL)
+                if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer *ob = global.params.moduleDeps;
                     ob->writestring("depsLib ");

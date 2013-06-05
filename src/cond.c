@@ -87,18 +87,18 @@ DebugCondition::DebugCondition(Module *mod, unsigned level, Identifier *ident)
 // Helper for printing dependency information
 void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType) 
 {
-    if(global.params.moduleDeps == NULL || global.params.moduleDepsFile != NULL)
+    if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;
     OutBuffer *ob = global.params.moduleDeps;
     Module* md = sc && sc->module ? sc->module : condition->mod;
-    if(!md)
+    if (!md)
         return;
     ob->writestring(depType);
     ob->writestring(md->toPrettyChars());
     ob->writestring(" (");
     escapePath(ob, md->srcfile->toChars());
     ob->writestring(") : ");
-    if(condition->ident)
+    if (condition->ident)
         ob->printf("%s\n", condition->ident->toChars());
     else
         ob->printf("%d\n", condition->level);
@@ -129,7 +129,7 @@ int DebugCondition::include(Scope *sc, ScopeDsymbol *s)
         }
         else if (level <= global.params.debuglevel || level <= mod->debuglevel)
             inc = 1;
-        if(!definedInModule)
+        if (!definedInModule)
             printDepsConditional(sc, this, "depsDebug ");
     }
     return (inc == 1);
@@ -291,7 +291,7 @@ int VersionCondition::include(Scope *sc, ScopeDsymbol *s)
         }
         else if (level <= global.params.versionlevel || level <= mod->versionlevel)
             inc = 1;
-        if(!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
+        if (!definedInModule && (!ident || (!isPredefined(ident->toChars()) && ident != Lexer::idPool(Token::toChars(TOKunittest)) && ident != Lexer::idPool(Token::toChars(TOKassert)))))
             printDepsConditional(sc, this, "depsVersion ");
     }
     return (inc == 1);
