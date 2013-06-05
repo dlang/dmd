@@ -2227,6 +2227,8 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
     else if (s)
     {   // Struct static initializers, for example
         e = s->dsym->type->defaultInitLiteral(loc);
+        if (e->op == TOKerror)
+            error(loc, "CTFE failed because of previous errors in %s.init", s->toChars());
         e = e->semantic(NULL);
         if (e->op == TOKerror)
             e = EXP_CANT_INTERPRET;
