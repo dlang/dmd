@@ -2410,6 +2410,19 @@ bool test9745b()
 }
 static assert(test9745b());
 
+/**************************************************
+    10251 Pointers to const globals
+**************************************************/
+
+static const int glob10251 = 7;
+
+const (int) * bug10251()
+{
+   return &glob10251;
+}
+
+static a10251 = &glob10251; //  OK
+static b10251 = bug10251();
 
 /**************************************************
     4065 [CTFE] AA "in" operator doesn't work
