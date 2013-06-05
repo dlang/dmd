@@ -71,7 +71,7 @@ private struct Demangle
 
     static class ParseException : Exception
     {
-        this( string msg )
+        @safe pure nothrow this( string msg )
         {
             super( msg );
         }
@@ -80,7 +80,7 @@ private struct Demangle
 
     static class OverflowException : Exception
     {
-        this( string msg )
+        @safe pure nothrow this( string msg )
         {
             super( msg );
         }
