@@ -2415,6 +2415,15 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     if (e2->isConst() != 1)
         goto Lcant;
 
+    if (op == TOKshr || op == TOKshl || op == TOKushr)
+    {
+        sinteger_t i2 = e2->toInteger();
+        d_uns64 sz = e1->type->size() * 8;
+        if (i2 < 0 || i2 >= sz)
+        {   error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
+            return EXP_CANT_INTERPRET;
+        }
+    }
     e = (*fp)(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
