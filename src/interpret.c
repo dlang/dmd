@@ -2043,6 +2043,13 @@ Expression *AddrExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s AddrExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
+    if (e1->op == TOKvar && ((VarExp *)e1)->var->isDataseg())
+    {   // Normally this is already done by optimize()
+        // Do it here in case optimize(0) wasn't run before CTFE
+        SymOffExp *se = new SymOffExp(loc, ((VarExp *)e1)->var, 0);
+        se->type = type;
+        return se;
+    }
     // For reference types, we need to return an lvalue ref.
     TY tb = e1->type->toBasetype()->ty;
     bool needRef = (tb == Tarray || tb == Taarray || tb == Tclass);
@@ -5226,7 +5233,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
         }
         if (e1->op == TOKaddress)
         {
-            Type *origType = ((AddrExp *)e1)->type;
+            Type *origType = ((AddrExp *)e1)->e1->type;
             if (isSafePointerCast(origType, pointee))
             {
                 e = new AddrExp(loc, ((AddrExp *)e1)->e1);
