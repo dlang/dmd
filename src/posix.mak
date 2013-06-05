@@ -160,11 +160,12 @@ SRC = win32.mak posix.mak \
 
 all: $(GENERATED_DIR)/dmd
 
-$(GENERATED_DIR)/dmd: $(DMD_OBJS) $(GENERATED_DIR)/
+$(GENERATED_DIR)/dmd: $(DMD_OBJS) $(GENERATED_DIR)/.directory
 	$(HOST_CC) -o $(GENERATED_DIR)/dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
-$(GENERATED_DIR)/ :
-	mkdir -p $@
+$(GENERATED_DIR)/.directory :
+	mkdir -p $(GENERATED_DIR)
+	touch $@
 
 clean:
 	rm -rf $(GENERATED_DIR)/
@@ -174,19 +175,19 @@ clean:
 
 ######## optabgen generates some source
 
-$(GENERATED_DIR)/optabgen: $C/optabgen.c $C/cc.h $C/oper.h $(GENERATED_DIR)/
+$(GENERATED_DIR)/optabgen: $C/optabgen.c $C/cc.h $C/oper.h $(GENERATED_DIR)/.directory
 	$(CC) $(MFLAGS) $< -o $@
 	$@
 
 optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
 $(optabgen_output) : $(GENERATED_DIR)/optabgen
 
-######## idgen generates some source
+######## q generates some source
 
 idgen_output = id.h id.c
-$(idgen_output) : $(GENERATED_DIR)/idgen
+$(idgen_output) : $(GENERATED_DIR)/idgen $(GENERATED_DIR)/.directory
 
-$(GENERATED_DIR)/idgen : idgen.c $(GENERATED_DIR)/
+$(GENERATED_DIR)/idgen : idgen.c
 	$(CC) idgen.c -o $@
 	$@
 
@@ -195,7 +196,7 @@ $(GENERATED_DIR)/idgen : idgen.c $(GENERATED_DIR)/
 impcnvtab_output = impcnvtab.c
 $(impcnvtab_output) : $(GENERATED_DIR)/impcnvgen
 
-$(GENERATED_DIR)/impcnvgen : mtype.h impcnvgen.c $(GENERATED_DIR)/
+$(GENERATED_DIR)/impcnvgen : mtype.h impcnvgen.c $(GENERATED_DIR)/.directory
 	$(CC) $(CFLAGS) impcnvgen.c -o $@
 	$@
 
