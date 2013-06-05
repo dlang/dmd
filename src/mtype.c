@@ -8073,6 +8073,8 @@ Expression *TypeStruct::defaultInitLiteral(Loc loc)
         }
         else
             e = vd->type->defaultInitLiteral(loc);
+        if (e && e->op == TOKerror)
+            return e;
         offset = vd->offset + vd->type->size();
         (*structelems)[j] = e;
     }
