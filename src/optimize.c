@@ -172,7 +172,10 @@ Expression *fromConstInitializer(int result, Expression *e1)
             if (v && (result & WANTinterpret) &&
                 !(v->storage_class & STCtemplateparameter))
             {
-                e1->error("variable %s cannot be read at compile time", v->toChars());
+                if (!v->isCTFE() && v->isDataseg())
+                    e1->error("static variable %s cannot be read at compile time", v->toChars());
+                else
+                    e1->error("variable %s cannot be read at compile time", v->toChars());
                 e = e->copy();
                 e->type = Type::terror;
             }
