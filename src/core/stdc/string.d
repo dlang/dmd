@@ -22,9 +22,9 @@ nothrow:
 
 pure void* memchr(in void* s, int c, size_t n);
 pure int   memcmp(in void* s1, in void* s2, size_t n);
-void* memcpy(void* s1, in void* s2, size_t n);
-void* memmove(void* s1, in void* s2, size_t n);
-void* memset(void* s, int c, size_t n);
+pure void* memcpy(void* s1, in void* s2, size_t n);
+pure void* memmove(void* s1, in void* s2, size_t n);
+pure void* memset(void* s, int c, size_t n);
 
 char*  strcpy(char* s1, in char* s2);
 char*  strncpy(char* s1, in char* s2, size_t n);
