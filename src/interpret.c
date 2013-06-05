@@ -2161,12 +2161,6 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s StructLiteralExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
-    /* We don't know how to deal with overlapping fields
-     */
-    if (sd->hasUnions)
-    {   error("Unions with overlapping fields are not yet supported in CTFE");
-        return EXP_CANT_INTERPRET;
-    }
     if (ownedByCtfe)
         return copyLiteral(this);
 
@@ -2353,6 +2347,7 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
     case TOKtilde:  e = Com(type, e1); break;
     case TOKnot:    e = Not(type, e1); break;
     case TOKtobool: e = Bool(type, e1); break;
+    case TOKvector: e = this; break; // do nothing
     default: assert(0);
     }
     return e;
@@ -5135,6 +5130,12 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)
         {
             StructLiteralExp *se = ex->op == TOKclassreference ? ((ClassReferenceExp *)ex)->value : (StructLiteralExp *)ex;
+            /* We don't know how to deal with overlapping fields
+             */
+            if (se->sd->hasUnions)
+            {   error("Unions with overlapping fields are not yet supported in CTFE");
+                return EXP_CANT_INTERPRET;
+            }
             // We can't use getField, because it makes a copy
             int i = -1;
             if (ex->op == TOKclassreference)
