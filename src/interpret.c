@@ -2136,6 +2136,12 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
         if (v->isConst() && v->init && !v->isCTFE())
 #endif
         {   e = v->init->toExpression(v->type);
+            if (v->inuse)
+            {
+                error(loc, "circular initialization of %s", v->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+
             if (e && (e->op == TOKconstruct || e->op == TOKblit))
             {   AssignExp *ae = (AssignExp *)e;
                 e = ae->e2;
@@ -2153,7 +2159,11 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
                 if (e && !e->type)
                     e->type = v->type;
                 if (e)
+                {
+                    v->inuse++;
                     e = e->interpret(istate, ctfeNeedAnyValue);
+                    v->inuse--;
+                }
                 if (e == EXP_CANT_INTERPRET && !global.gag && !CtfeStatus::stackTraceCallsToSuppress)
                     errorSupplemental(loc, "while evaluating %s.init", v->toChars());
             }
