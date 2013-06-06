@@ -1343,10 +1343,6 @@
 					>
 				</File>
 				<File
-					RelativePath=".\root\array.c"
-					>
-				</File>
-				<File
 					RelativePath=".\root\async.c"
 					>
 				</File>
