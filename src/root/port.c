@@ -72,6 +72,36 @@ int Port::stricmp(const char *s1, const char *s2)
     return ::stricmp(s1, s2);
 }
 
+
+extern "C" const char * __cdecl __locale_decpoint;
+
+float Port::strtof(const char *buffer, char **endp)
+{
+    const char *save = __locale_decpoint;
+    __locale_decpoint = ".";
+    float result = ::strtof(buffer, endp);
+    __locale_decpoint = save;
+    return result;
+}
+
+double Port::strtod(const char *buffer, char **endp)
+{
+    const char *save = __locale_decpoint;
+    __locale_decpoint = ".";
+    double result = ::strtod(buffer, endp);
+    __locale_decpoint = save;
+    return result;
+}
+
+longdouble Port::strtold(const char *buffer, char **endp)
+{
+    const char *save = __locale_decpoint;
+    __locale_decpoint = ".";
+    longdouble result = ::strtold(buffer, endp);
+    __locale_decpoint = save;
+    return result;
+}
+
 #endif
 
 #if _MSC_VER
@@ -161,6 +191,22 @@ int Port::memicmp(const char *s1, const char *s2, int n)
 int Port::stricmp(const char *s1, const char *s2)
 {
     return ::stricmp(s1, s2);
+}
+
+float Port::strtof(const char *p, char **endp)
+{
+    return static_cast<float>(::strtod(p, endp));
+}
+
+double Port::strtod(const char *p, char **endp)
+{
+    return ::strtod(p, endp);
+}
+
+// See backend/strtold.c.
+longdouble Port::strtold(const char *p, char **endp)
+{
+    return ::strtold(p, endp);
 }
 
 #endif
@@ -286,6 +332,21 @@ int Port::stricmp(const char *s1, const char *s2)
         s2++;
     }
     return result;
+}
+
+float Port::strtof(const char *p, char **endp)
+{
+    return ::strtof(p, endp);
+}
+
+double Port::strtod(const char *p, char **endp)
+{
+    return ::strtod(p, endp);
+}
+
+longdouble Port::strtold(const char *p, char **endp)
+{
+    return ::__mingw_strtold(p, endp);
 }
 
 #endif
@@ -462,6 +523,21 @@ int Port::stricmp(const char *s1, const char *s2)
     return result;
 }
 
+float Port::strtof(const char *p, char **endp)
+{
+    return ::strtof(p, endp);
+}
+
+double Port::strtod(const char *p, char **endp)
+{
+    return ::strtod(p, endp);
+}
+
+longdouble Port::strtold(const char *p, char **endp)
+{
+    return ::strtold(p, endp);
+}
+
 #endif
 
 #if __sun
@@ -551,6 +627,21 @@ char *Port::strupr(char *s)
     }
 
     return t;
+}
+
+float Port::strtof(const char *p, char **endp)
+{
+    return ::strtof(p, endp);
+}
+
+double Port::strtod(const char *p, char **endp)
+{
+    return ::strtod(p, endp);
+}
+
+longdouble Port::strtold(const char *p, char **endp)
+{
+    return ::strtold(p, endp);
 }
 
 #endif

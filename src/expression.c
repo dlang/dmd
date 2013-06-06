@@ -18,10 +18,6 @@
 #include <complex.h>
 #endif
 
-#if _WIN32 && __DMC__
-extern "C" const char * __cdecl __locale_decpoint;
-#endif
-
 #include "rmem.h"
 #include "port.h"
 #include "root.h"
@@ -2976,14 +2972,8 @@ void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
     char buffer[32];
     ld_sprint(buffer, 'g', value);
     assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
-#if _WIN32 && __DMC__
-    const char *save = __locale_decpoint;
-    __locale_decpoint = ".";
-    real_t r = strtold(buffer, NULL);
-    __locale_decpoint = save;
-#else
-    real_t r = strtold(buffer, NULL);
-#endif
+
+    real_t r = Port::strtold(buffer, NULL);
     if (r != value)                     // if exact duplication
         ld_sprint(buffer, 'a', value);
     buf->writestring(buffer);
