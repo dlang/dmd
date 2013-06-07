@@ -4516,6 +4516,10 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         e = resolveProperties(sc, e);
         if (i >= nfields)
         {
+            if (i == sd->fields.dim - 1 && sd->isNested() && e->op == TOKnull)
+            {   // CTFE sometimes creates null as hidden pointer; we'll allow this.
+                continue;
+            }
 #if 0
             for (size_t i = 0; i < sd->fields.dim; i++)
                 printf("[%d] = %s\n", i, sd->fields[i]->toChars());
