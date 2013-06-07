@@ -1637,6 +1637,13 @@ extern (C++) class VarDeclaration : Declaration
             }
             else if (auto e = type.defaultInit(loc))
             {
+                /* For smaller types, prefer the literal as that has better code gen,
+                 * using immediate instructions.
+                 * Still call the previous defaultInit, as that does checking for void[n]
+                 * initializations.
+                 */
+                if (type.size() <= 16)
+                    e = type.defaultInitLiteral(loc);
                 _init = new ExpInitializer(loc, e);
             }
 
