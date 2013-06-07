@@ -8,12 +8,12 @@ extern(C) int printf(const char*, ...);
 
 class Foo
 {
-	int foo(int x) { return x + 3; }
+    int foo(int x) { return x + 3; }
 }
 
 class Bar : Foo
 {
-	override int foo(int y) { return y + 4; }
+    override int foo(int y) { return y + 4; }
 }
 
 void test1()
@@ -31,7 +31,7 @@ class Foo2
 {
     int foo(int x)
     {
-	return x + 3;
+        return x + 3;
     }
 }
 
@@ -39,8 +39,8 @@ class Bar2 : Foo2
 {
     override int foo(int y)
     {
-	assert(Foo2.foo(2) == 5);
-	return y + 4;
+        assert(Foo2.foo(2) == 5);
+        return y + 4;
     }
 }
 
@@ -66,13 +66,14 @@ void test3()
     debug(10) assert(0);
 
     debug(1)
-    {	int d1 = 3;
+    {
+        int d1 = 3;
 
-	printf("debug(1) { }\n");
+        printf("debug(1) { }\n");
     }
     debug(2)
     {
-	printf("debug(2): d1 = %d\n", d1);
+        printf("debug(2): d1 = %d\n", d1);
     }
 }
 
@@ -120,8 +121,8 @@ void test5()
 
 int[] test6_1(int[] a)
 {
-	a.length = 6;
-	return a;
+    a.length = 6;
+    return a;
 }
 
 void test6()
@@ -148,7 +149,7 @@ class OutBuffer7
 
     void write(const(char) *p, uint nbytes)
     {
-	data[offset .. offset + nbytes] = (cast(char *)p)[0 .. nbytes];
+        data[offset .. offset + nbytes] = (cast(char *)p)[0 .. nbytes];
     }
 }
 
@@ -163,22 +164,23 @@ void test7()
     printf("ob.data.length = %d\n", ob.data.length);
     assert(ob.data.length == 10);
     for (i = 0; i < 10; i++)
-	assert(ob.data[i] == char.init);
+        assert(ob.data[i] == char.init);
 
 printf("test7.1()\n");
     ob.data[] = '-';
 printf("test7.2()\n");
     printf("ob.data[] = '%.*s'\n", ob.data.length, ob.data.ptr);
     for (i = 0; i < 10; i++)
-	assert(ob.data[i] == '-');
+        assert(ob.data[i] == '-');
 
     ob.offset = 3;
     ob.write("foo", 3);
     printf("ob.data.length = %d\n", ob.data.length);
     printf("ob.data[] = '%.*s'\n", ob.data.length, ob.data.ptr);
     for (i = 0; i < 10; i++)
-    {	if (i < 3 || i >= 6)
-	    assert(ob.data[i] == '-');
+    {
+        if (i < 3 || i >= 6)
+            assert(ob.data[i] == '-');
     }
     assert(ob.data[3] == 'f');
     assert(ob.data[4] == 'o');
@@ -268,9 +270,9 @@ char[] tolower13(ref char[] s)
 
     for (i = 0; i < s.length; i++)
     {
-	char c = s[i];
-	if ('A' <= c && c <= 'Z')
-	    s[i] = cast(char)(c + (cast(char)'a' - 'A'));
+        char c = s[i];
+        if ('A' <= c && c <= 'Z')
+            s[i] = cast(char)(c + (cast(char)'a' - 'A'));
     }
     return s;
 }
@@ -307,7 +309,7 @@ class bools15
     bool a = true, b = true, c = true;
     void dump()
     {
-	printf("%d %d %d\n", a, b, c);
+        printf("%d %d %d\n", a, b, c);
     }
 }
 
@@ -389,15 +391,26 @@ bool tested20;
 
 struct S20
 {
-	unittest{
-		assert(!tested20);
-		tested20 = true;
-	}
+    unittest
+    {
+        assert(!tested20);
+        tested20 = true;
+    }
 }
 
 void test20()
 {
-	assert(tested20);
+    assert(tested20);
+}
+
+/* ================================ */
+// 7848
+
+@safe pure nothrow void func7848() {}
+
+@safe pure nothrow unittest
+{
+    func7848();
 }
 
 /* ================================ */

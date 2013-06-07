@@ -4537,8 +4537,6 @@ void UnitTestDeclaration::semantic(Scope *sc)
         if (!type)
             type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
         Scope *sc2 = sc->push();
-        // It makes no sense for unit tests to be pure or nothrow.
-        sc2->stc &= ~(STCnothrow | STCpure);
         sc2->linkage = LINKd;
         FuncDeclaration::semantic(sc2);
         sc2->pop();
