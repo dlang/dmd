@@ -4588,6 +4588,8 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             }
             offset = v->offset + v->type->size();
         }
+        if (e && e->op == TOKerror)
+            return e;
         elements->push(e);
     }
 

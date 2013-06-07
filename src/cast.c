@@ -1065,7 +1065,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
         VarDeclaration *v = ((VarExp *)this)->var->isVarDeclaration();
         if (v && v->storage_class & STCmanifest)
         {
-            Expression *e = optimize(WANTvalue | WANTinterpret);
+            Expression *e = ctfeInterpret();
             return e->castTo(sc, t);
         }
     }
