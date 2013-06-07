@@ -437,7 +437,6 @@ int runProgram();
 const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
 
-/*** Where to send error messages ***/
 class Dsymbol;
 class Library;
 class File;
