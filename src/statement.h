@@ -80,6 +80,7 @@ enum BE
     BEhalt =     0x10,
     BEbreak =    0x20,
     BEcontinue = 0x40,
+    BEerrthrow = 0x80,
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt),
 };
 

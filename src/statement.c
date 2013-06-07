@@ -4493,7 +4493,11 @@ int TryCatchStatement::blockExit(bool mustNotThrow)
         /* If we're catching Object, then there is no throwing
          */
         Identifier *id = c->type->toBasetype()->isClassHandle()->ident;
-        if (id == Id::Object || id == Id::Throwable || id == Id::Exception)
+        if (id == Id::Object || id == Id::Throwable)
+        {
+            result &= ~(BEthrow | BEerrthrow);
+        }
+        if (id == Id::Exception)
         {
             result &= ~BEthrow;
         }
@@ -4831,16 +4835,19 @@ Statement *ThrowStatement::semantic(Scope *sc)
 int ThrowStatement::blockExit(bool mustNotThrow)
 {
     Type *t = exp->type->toBasetype();
-    if (mustNotThrow && t->ty != Terror)
+    if (t->ty != Terror)
     {
         ClassDeclaration *cd = t->isClassHandle();
         assert(cd);
 
+        if (cd == ClassDeclaration::errorException ||
+            ClassDeclaration::errorException->isBaseOf(cd, NULL))
+        {
+            return BEerrthrow;
+        }
         // Bugzilla 8675
         // Throwing Errors is allowed even if mustNotThrow
-        if (!internalThrow &&
-            cd != ClassDeclaration::errorException &&
-            !ClassDeclaration::errorException->isBaseOf(cd, NULL))
+        if (!internalThrow && mustNotThrow)
             error("%s is thrown but not caught", exp->type->toChars());
     }
     return BEthrow;
