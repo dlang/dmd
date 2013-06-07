@@ -3007,6 +3007,11 @@ Statement *SwitchStatement::semantic(Scope *sc)
     // preserve enum type for final switches
     if (condition->type->ty == Tenum)
         te = (TypeEnum *)condition->type;
+
+    bool isEnumString = (condition->type->ty == Tenum) && condition->type->toBasetype()->isString();
+    if (isEnumString)
+        condition->type = condition->type->toBasetype();
+
     if (condition->type->isString())
     {
         // If it's not an array, cast it to one
@@ -3088,8 +3093,17 @@ Statement *SwitchStatement::semantic(Scope *sc)
                 {
                     for (size_t j = 0; j < cases->dim; j++)
                     {   CaseStatement *cs = (*cases)[j];
-                        if (cs->exp->equals(em->value) || cs->exp->toInteger() == em->value->toInteger())
-                            goto L1;
+                        if (isEnumString)
+                        {
+                            if (cs->exp->equals(em->value) || (cs->exp->toString() == em->value->toString()))
+                                goto L1;
+                        }
+                        else
+                        {
+                            if (cs->exp->equals(em->value) || (cs->exp->toInteger() == em->value->toInteger()))
+                                goto L1;
+                        }
+
                     }
                     error("enum member %s not represented in final switch", em->toChars());
                 }
