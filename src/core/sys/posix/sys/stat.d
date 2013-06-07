@@ -86,43 +86,25 @@ version( linux )
         struct stat_t
         {
             dev_t       st_dev;
-            static if(__WORDSIZE==32)
+            ushort      __pad1;
+            static if (!__USE_FILE_OFFSET64)
             {
-                ushort      __pad1;
-            }
-            static if( !__USE_FILE_OFFSET64 || __WORDSIZE==64 )
-            {
-                uint        st_ino;
+                ino_t       st_ino;
             }
             else
             {
                 uint        __st_ino;
             }
-            static if (__WORDSIZE==32)
-            {
-                mode_t      st_mode;
-                nlink_t     st_nlink;
-            }
-            else
-            {
-                nlink_t     st_nlink;
-                mode_t      st_mode;
-            }
+            mode_t      st_mode;
+            nlink_t     st_nlink;
             uid_t       st_uid;
             gid_t       st_gid;
-            static if(__WORDSIZE==64)
-            {
-                uint        pad0;
-            }
             dev_t       st_rdev;
-            static if(__WORDSIZE==32)
-            {
-                ushort      __pad2;
-            }
+            ushort      __pad2;
             off_t       st_size;
             blksize_t   st_blksize;
             blkcnt_t    st_blocks;
-            static if( __USE_MISC || __USE_XOPEN2K8 )
+            static if (__USE_MISC || __USE_XOPEN2K8)
             {
                 timespec    st_atim;
                 timespec    st_mtim;
@@ -137,27 +119,20 @@ version( linux )
             else
             {
                 time_t      st_atime;
-                c_ulong     st_atimensec;
+                ulong_t     st_atimensec;
                 time_t      st_mtime;
-                c_ulong     st_mtimensec;
+                ulong_t     st_mtimensec;
                 time_t      st_ctime;
-                c_ulong     st_ctimensec;
+                ulong_t     st_ctimensec;
             }
-            static if(__WORDSIZE==64)
+            static if (__USE_FILE_OFFSET64)
             {
-                c_long      __unused[3];
+                ino_t       st_ino;
             }
             else
             {
-                static if( __USE_FILE_OFFSET64 )
-                {
-                    ino_t       st_ino;
-                }
-                else
-                {
-                    c_ulong     __unused4;
-                    c_ulong     __unused5;
-                }
+                c_ulong     __unused4;
+                c_ulong     __unused5;
             }
         }
     }
@@ -166,43 +141,17 @@ version( linux )
         struct stat_t
         {
             dev_t       st_dev;
-            static if(__WORDSIZE==32)
-            {
-                ushort      __pad1;
-            }
-            static if( !__USE_FILE_OFFSET64 || __WORDSIZE==64 )
-            {
-                uint        st_ino;
-            }
-            else
-            {
-                uint        __st_ino;
-            }
-            static if (__WORDSIZE==32)
-            {
-                mode_t      st_mode;
-                nlink_t     st_nlink;
-            }
-            else
-            {
-                nlink_t     st_nlink;
-                mode_t      st_mode;
-            }
+            ino_t       st_ino;
+            nlink_t     st_nlink;
+            mode_t      st_mode;
             uid_t       st_uid;
             gid_t       st_gid;
-            static if(__WORDSIZE==64)
-            {
-                uint        pad0;
-            }
+            uint        __pad0;
             dev_t       st_rdev;
-            static if(__WORDSIZE==32)
-            {
-                ushort      __pad2;
-            }
             off_t       st_size;
             blksize_t   st_blksize;
             blkcnt_t    st_blocks;
-            static if( __USE_MISC || __USE_XOPEN2K8 )
+            static if (__USE_MISC || __USE_XOPEN2K8)
             {
                 timespec    st_atim;
                 timespec    st_mtim;
@@ -217,28 +166,13 @@ version( linux )
             else
             {
                 time_t      st_atime;
-                c_ulong     st_atimensec;
+                ulong_t     st_atimensec;
                 time_t      st_mtime;
-                c_ulong     st_mtimensec;
+                ulong_t     st_mtimensec;
                 time_t      st_ctime;
-                c_ulong     st_ctimensec;
+                ulong_t     st_ctimensec;
             }
-            static if(__WORDSIZE==64)
-            {
-                c_long      __unused[3];
-            }
-            else
-            {
-                static if( __USE_FILE_OFFSET64 )
-                {
-                    ino_t       st_ino;
-                }
-                else
-                {
-                    c_ulong     __unused4;
-                    c_ulong     __unused5;
-                }
-            }
+            slong_t     __unused[3];
         }
     }
     else version (MIPS_O32)

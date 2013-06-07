@@ -55,8 +55,15 @@ else
     }
 }
 
-alias c_long time_t;
-alias c_long clock_t;
+version ( Posix )
+{
+    public import core.sys.posix.sys.types : time_t, clock_t;
+}
+else
+{
+    alias c_long time_t;
+    alias c_long clock_t;
+}
 
 version( Windows )
 {
