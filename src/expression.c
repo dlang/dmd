@@ -9552,9 +9552,7 @@ Expression *CastExp::semantic(Scope *sc)
         if (tob->ty == Tstruct || t1b->ty == Tstruct ||
             (tob->ty == Tsarray && t1b->ty == Tsarray))
         {
-            size_t fromsize = t1b->size(loc);
-            size_t tosize = tob->size(loc);
-            if (fromsize != tosize)
+            if (t1b->ty == Tnull || tob->ty == Tnull || t1b->size(loc) != tob->size(loc))
             {
                 error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
                 return new ErrorExp();
