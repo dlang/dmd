@@ -2302,7 +2302,7 @@ void ObjectNotFound(Identifier *id)
     fatal();
 }
 
-/********************************* ClassInfoDeclaration ****************************/
+/******************************** SymbolDeclaration ********************************/
 
 SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
         : Declaration(dsym->ident)
