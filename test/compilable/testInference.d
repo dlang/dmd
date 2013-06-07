@@ -318,6 +318,47 @@ void test10148()
 }
 
 /***************************************************/
+// 10289
+
+void test10289()
+{
+    void foo(E)()
+    {
+        throw new E("");
+    }
+    void bar(E1, E2)()
+    {
+        throw new E1("");
+        throw new E2("");
+    }
+    void baz(E1, E2)(bool cond)
+    {
+        if (cond)
+            throw new E1("");
+        else
+            throw new E2("");
+    }
+
+    import core.exception;
+    static class MyException : Exception
+    {
+        this(string) @safe pure nothrow { super(""); }
+    }
+
+    static assert( __traits(compiles, () nothrow { foo!Error(); }));
+    static assert( __traits(compiles, () nothrow { foo!AssertError(); }));
+
+    static assert(!__traits(compiles, () nothrow { foo!Exception(); }));
+    static assert(!__traits(compiles, () nothrow { foo!MyException(); }));
+
+    static assert( __traits(compiles, () nothrow { bar!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { bar!(Exception, Error)(); }));
+
+    static assert(!__traits(compiles, () nothrow { baz!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { baz!(Exception, Error)(); }));
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
