@@ -793,6 +793,36 @@ void test9928()
 }
 
 /***************************************************/
+// 10288
+
+T foo10288(T)(T x)
+{
+    void lambda() @trusted nothrow { x += 10; }
+    lambda();
+    return x;
+}
+
+T bar10288(T)(T x)
+{
+    () @trusted { x += 10; } ();
+    return x;
+}
+
+T baz10288(T)(T arg)
+{
+    static int g = 10;
+    () @trusted { x += g; } ();
+    return x;
+}
+
+void test10288() @safe pure nothrow
+{
+    assert(foo10288(10) == 20); // OK
+    assert(bar10288(10) == 20); // OK <- NG
+    static assert(!__traits(compiles, baz10288(10)));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -838,6 +868,7 @@ int main()
     test9415();
     test9628();
     test9928();
+    test10288();
 
     printf("Success\n");
     return 0;
