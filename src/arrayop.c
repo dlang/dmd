@@ -267,9 +267,12 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
     //printf("s2: %s\n", s2->toChars());
     Statement *fbody = new CompoundStatement(Loc(), s1, s2);
 
+    // Built-in array ops should be @trusted, pure and nothrow
+    StorageClass stc = STCtrusted | STCpure | STCnothrow;
+
     /* Construct the function
      */
-    TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc);
+    TypeFunction *ftype = new TypeFunction(fparams, exp->type, 0, LINKc, stc);
     //printf("ftype: %s\n", ftype->toChars());
     FuncDeclaration *fd = new FuncDeclaration(Loc(), Loc(), ident, STCundefined, ftype);
     fd->fbody = fbody;
