@@ -36,6 +36,8 @@ Modules Module::amodules;
 Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
 unsigned Module::dprogress;
 
+const char *lookForSourceFile(const char *filename);
+
 void Module::init()
 {
     modules = new DsymbolTable();
@@ -217,41 +219,9 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
     m = new Module(filename, ident, 0, 0);
     m->loc = loc;
 
-    /* Search along global.path for .di file, then .d file.
+    /* Look for the source file
      */
-    const char *result = NULL;
-    const char *fdi = FileName::forceExt(filename, global.hdr_ext);
-    const char *fd  = FileName::forceExt(filename, global.mars_ext);
-    const char *sdi = fdi;
-    const char *sd  = fd;
-
-    if (FileName::exists(sdi))
-        result = sdi;
-    else if (FileName::exists(sd))
-        result = sd;
-    else if (FileName::absolute(filename))
-        ;
-    else if (!global.path)
-        ;
-    else
-    {
-        for (size_t i = 0; i < global.path->dim; i++)
-        {
-            const char *p = (*global.path)[i];
-            const char *n = FileName::combine(p, sdi);
-            if (FileName::exists(n))
-            {   result = n;
-                break;
-            }
-            FileName::free(n);
-            n = FileName::combine(p, sd);
-            if (FileName::exists(n))
-            {   result = n;
-                break;
-            }
-            FileName::free(n);
-        }
-    }
+    const char *result = lookForSourceFile(filename);
     if (result)
         m->srcfile = new File(result);
 
@@ -535,23 +505,33 @@ void Module::parse()
     md = p.md;
     numlines = p.loc.linnum;
 
+    /* The symbol table into which the module is to be inserted.
+     */
     DsymbolTable *dst;
 
     if (md)
-    {   this->ident = md->id;
+    {   /* A ModuleDeclaration, md, was provided.
+         * The ModuleDeclaration sets the packages this module appears in, and
+         * the name of this module.
+         */
+        this->ident = md->id;
         this->safe = md->safe;
         Package *ppack = NULL;
         dst = Package::resolve(md->packages, &this->parent, &ppack);
+#if 0
         if (ppack && ppack->isModule())
         {
             error(loc, "package name '%s' in file %s conflicts with usage as a module name in file %s",
                 ppack->toChars(), srcname, ppack->isModule()->srcfile->toChars());
             dst = modules;
         }
+#endif
     }
     else
-    {
-        dst = modules;
+    {   /* The name of the module is set to the source file name.
+         * There are no packages.
+         */
+        dst = modules;          // and so this module goes into global module symbol table
 
         /* Check to see if module name is a valid identifier
          */
@@ -559,9 +539,12 @@ void Module::parse()
             error("has non-identifier characters in filename, use module declaration instead");
     }
 
-    // Update global list of modules
+    // Insert module into the symbol table
     if (!dst->insert(this))
     {
+        /* It conflicts with a name that is already in the symbol table.
+         * Figure out what went wrong, and issue error message.
+         */
         Dsymbol *prev = dst->lookup(ident);
         assert(prev);
         Module *mprev = prev->isModule();
@@ -584,6 +567,7 @@ void Module::parse()
     }
     else
     {
+        // Add to global array of all modules
         amodules.push(this);
     }
 }
@@ -1062,6 +1046,15 @@ const char *Package::kind()
     return "package";
 }
 
+/****************************************************
+ * Input:
+ *      packages[]      the pkg1.pkg2 of pkg1.pkg2.mod
+ * Returns:
+ *      the symbol table that mod should be inserted into
+ * Output:
+ *      *pparent        the rightmost package, i.e. pkg2, or NULL if no packages
+ *      *ppkg           the leftmost package, i.e. pkg1, or NULL if no packages
+ */
 
 DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package **ppkg)
 {
@@ -1076,39 +1069,108 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     {
         for (size_t i = 0; i < packages->dim; i++)
         {   Identifier *pid = (*packages)[i];
-            Dsymbol *p;
 
-            p = dst->lookup(pid);
+            Package *pkg;
+            Dsymbol *p = dst->lookup(pid);
             if (!p)
             {
-                p = new Package(pid);
-                dst->insert(p);
-                p->parent = parent;
-                ((ScopeDsymbol *)p)->symtab = new DsymbolTable();
+                pkg = new Package(pid);
+                dst->insert(pkg);
+                pkg->parent = parent;
+                pkg->symtab = new DsymbolTable();
             }
             else
             {
-                assert(p->isPackage());
+                pkg = p->isPackage();
+                assert(pkg);
                 // It might already be a module, not a package, but that needs
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
                 // dot net needs modules and packages with same name
             }
-            parent = p;
-            dst = ((Package *)p)->symtab;
+            parent = pkg;
+            dst = pkg->symtab;
             if (ppkg && !*ppkg)
-                *ppkg = (Package *)p;
-            if (p->isModule())
+                *ppkg = pkg;
+#if 0
+            if (pkg->isModule())
             {   // Return the module so that a nice error message can be generated
                 if (ppkg)
                     *ppkg = (Package *)p;
                 break;
             }
-        }
-        if (pparent)
-        {
-            *pparent = parent;
+#endif
         }
     }
+    if (pparent)
+        *pparent = parent;
     return dst;
 }
+
+
+/* ===========================  ===================== */
+
+/********************************************
+ * Look for the source file if it's different from filename.
+ * Look for .di, .d, directory, and along global.path.
+ * Does not open the file.
+ * Input:
+ *      filename        as supplied by the user
+ *      global.path
+ * Returns:
+ *      NULL if it's not different from filename.
+ */
+
+const char *lookForSourceFile(const char *filename)
+{
+
+    /* Search along global.path for .di file, then .d file.
+     */
+
+    const char *sdi = FileName::forceExt(filename, global.hdr_ext);
+    if (FileName::exists(sdi) == 1)
+        return sdi;
+
+    const char *sd  = FileName::forceExt(filename, global.mars_ext);
+    if (FileName::exists(sd) == 1)
+        return sd;
+
+    if (FileName::exists(filename) == 2)
+    {
+        /* The filename exists and it's a directory.
+         * Therefore, the result should be: filename/package.d
+         */
+        return FileName::combine(filename, "package.d");
+    }
+
+    if (FileName::absolute(filename))
+        return NULL;
+
+    if (!global.path)
+        return NULL;
+
+    for (size_t i = 0; i < global.path->dim; i++)
+    {
+        const char *p = (*global.path)[i];
+
+        const char *n = FileName::combine(p, sdi);
+        if (FileName::exists(n) == 1)
+            return n;
+        FileName::free(n);
+
+        n = FileName::combine(p, sd);
+        if (FileName::exists(n) == 1)
+            return n;
+        FileName::free(n);
+
+        const char *b = FileName::removeExt(filename);
+        n = FileName::combine(p, b);
+        FileName::free(b);
+        if (FileName::exists(n) == 2)
+            return FileName::combine(n, "package.d");
+        FileName::free(n);
+    }
+    return NULL;
+}
+
+

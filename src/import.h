@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2007 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -29,6 +29,9 @@ struct HdrGenState;
 class Import : public Dsymbol
 {
 public:
+    /* static import aliasId = pkg1.pkg2.id : alias1 = name1, alias2 = name2;
+     */
+
     Identifiers *packages;      // array of Identifier's representing packages
     Identifier *id;             // module Identifier
     Identifier *aliasId;
@@ -39,14 +42,14 @@ public:
     Identifiers names;
     Identifiers aliases;
 
-    AliasDeclarations aliasdecls; // AliasDeclarations for names/aliases
-
-    Module *mod;
-    Package *pkg;               // leftmost package/module
-
     Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *aliasId,
         int isstatic);
     void addAlias(Identifier *name, Identifier *alias);
+
+    AliasDeclarations aliasdecls; // corresponding AliasDeclarations for alias=name pairs
+
+    Module *mod;
+    Package *pkg;               // leftmost package/module
 
     const char *kind();
     PROT prot();
