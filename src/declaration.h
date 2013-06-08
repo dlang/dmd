@@ -766,9 +766,10 @@ public:
     Type *treq;                         // target of return type inference
 
     FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type, TOK tok,
-        ForeachStatement *fes);
+        ForeachStatement *fes, Identifier *id = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
+    Dsymbol *syntaxCopy(Dsymbol *s, bool keepId);
     bool isNested();
     bool isVirtual();
 
