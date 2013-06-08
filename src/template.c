@@ -399,6 +399,13 @@ Object *objectSyntaxCopy(Object *o)
 }
 #endif
 
+FuncLiteralDeclaration *getFuncLit(Dsymbols *members)
+{
+    assert(members->dim == 1);
+    assert((*members)[0]->isFuncLiteralDeclaration());
+    return (FuncLiteralDeclaration *)(*members)[0];
+}
+
 
 /* ======================== TemplateDeclaration ============================= */
 
@@ -468,7 +475,8 @@ Dsymbol *TemplateDeclaration::syntaxCopy(Dsymbol *)
     if (constraint)
         e = constraint->syntaxCopy();
     Dsymbols *d = Dsymbol::arraySyntaxCopy(members);
-    td = new TemplateDeclaration(loc, ident, p, e, d, ismixin);
+    Identifier *id = literal ? getFuncLit(d)->ident : ident;
+    td = new TemplateDeclaration(loc, id, p, e, d, ismixin);
     td->literal = literal;
     return td;
 }
@@ -5172,6 +5180,12 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // Copy the syntax trees from the TemplateDeclaration
     if (members && speculative)
     {}  // Don't copy again so they were previously created.
+    else if (tempdecl->literal)
+    {
+        FuncLiteralDeclaration *fld = getFuncLit(tempdecl->members);
+        members = new Dsymbols();
+        members->push(fld->syntaxCopy(NULL, true));
+    }
     else
         members = Dsymbol::arraySyntaxCopy(tempdecl->members);
 
