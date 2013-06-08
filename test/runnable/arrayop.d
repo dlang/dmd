@@ -549,6 +549,61 @@ void test8390() {
 }
 
 /************************************************************************/
+// 8651
+
+void test8651()
+{
+    void test(T)() @safe pure nothrow
+    {
+        T[3] a = [11, 22, 33];
+        T[3] b = [1, 2, 3];
+        T[3] c = [4, 5, 6];
+        T    d = 4;
+
+        // Arithmetic array ops
+        {
+            a[] = b[] + c[];
+            a[] = b[] + 4;
+            a[] = 4 + b[];
+            a[] = d + b[];
+            a[] += b[];
+            a[] += 4;
+            a[] -= 4;
+            a[] *= 4;
+            a[] /= 4;
+            a[] %= 4;
+            a[] += 4 + b[];
+            a[] = b[] - c[];
+            a[] = -b[] - c[];
+            a[] = b[] + c[] * 4;
+            a[] = b[] + c[] * b[];
+            a[] = b[] + c[] / 2;
+            a[] = b[] + c[] % 2;
+        }
+        // Bitwise array ops
+        static if (is(typeof(T.init & T.init)))
+        {
+            a[] &= 4;
+            a[] |= 4;
+            a[] ^= 4;
+            a[] = ~b[];
+            a[] = b[] & 2;
+            a[] = b[] | 2;
+            a[] = b[] ^ 2;
+        }
+    }
+
+    test!float();
+    test!double();
+    test!real();
+
+    test!byte();
+    test!short();
+    test!int();
+    test!long();
+}
+
+/************************************************************************/
 // 9656
 
 void test9656()
@@ -604,6 +659,7 @@ int main()
     test5();
     test6();
     test8390();
+    test8651();
     test9656();
 
     printf("Success\n");
