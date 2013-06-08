@@ -8740,9 +8740,15 @@ Lagain:
         else if (sc->func && !sc->needctfe)
         {
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
+            {
                 error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                return new ErrorExp();
+            }
             if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
+            {
                 error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                return new ErrorExp();
+            }
         }
 
         if (t1->ty == Tpointer)
