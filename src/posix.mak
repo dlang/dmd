@@ -39,7 +39,8 @@ else
     endif
 endif
 
-GENERATED_DIR=../generated/$(OS)$(MODEL)
+GENERATED_ROOT=../generated
+GENERATED_DIR=$(GENERATED_ROOT)/$(OS)$(MODEL)
 INSTALL_DIR=../../install
 
 C=backend
@@ -47,9 +48,19 @@ TK=tk
 ROOT=root
 
 # Use make MODEL=32 or MODEL=64 to force the architecture
-ifneq (x,x$(MODEL))
-    MODEL_FLAG=-m$(MODEL)
+ifeq ($(MODEL),)
+	uname_M:=$(shell uname -m)
+	ifeq ($(uname_M),x86_64)
+	MODEL=64
+	else
+		ifeq ($(uname_M),i686)
+			MODEL:=32
+		else
+            $(error Unrecognized model $(uname_M), please define MODEL=32 or MODEL=64)
+		endif
+	endif
 endif
+MODEL_FLAG:=-m$(MODEL)
 
 ifeq (OSX,$(OS))
     export MACOSX_DEPLOYMENT_TARGET=10.3
@@ -70,8 +81,8 @@ else
 	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
 endif
 
-CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
-MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+CFLAGS = $(GFLAGS) -I$(ROOT) -I$(GENERATED_ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
+MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -I$(GENERATED_ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 
 CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
@@ -163,42 +174,40 @@ all: $(GENERATED_DIR)/dmd
 $(GENERATED_DIR)/dmd: $(DMD_OBJS) $(GENERATED_DIR)/.directory
 	$(HOST_CC) -o $(GENERATED_DIR)/dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
 
-$(GENERATED_DIR)/.directory :
-	mkdir -p $(GENERATED_DIR)
+%/.directory :
+	mkdir -p $*
 	touch $@
 
 clean:
-	rm -rf $(GENERATED_DIR)/
-	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
-	impcnvtab.c optabgen debtab.c optab.c cdxxx.c elxxx.c fltables.c \
-	tytab.c verstr.h core *.cov *.gcda *.gcno
+	rm -rf $(GENERATED_ROOT)
+	rm -f verstr.h core *.cov *.gcda *.gcno
 
 ######## optabgen generates some source
 
 $(GENERATED_DIR)/optabgen: $C/optabgen.c $C/cc.h $C/oper.h $(GENERATED_DIR)/.directory
 	$(CC) $(MFLAGS) $< -o $@
-	$@
+	cd $(GENERATED_ROOT) && $@
 
-optabgen_output = debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c
-$(optabgen_output) : $(GENERATED_DIR)/optabgen
+optabgen_output = $(addprefix $(GENERATED_ROOT)/,debtab.c optab.c cdxxx.c elxxx.c fltables.c tytab.c)
+$(optabgen_output) : $(GENERATED_DIR)/optabgen $(GENERATED_DIR)/.directory
 
 ######## q generates some source
 
-idgen_output = id.h id.c
+idgen_output = $(addprefix $(GENERATED_ROOT)/,id.h id.c)
 $(idgen_output) : $(GENERATED_DIR)/idgen $(GENERATED_DIR)/.directory
 
-$(GENERATED_DIR)/idgen : idgen.c
+$(GENERATED_DIR)/idgen : idgen.c $(GENERATED_DIR)/.directory
 	$(CC) idgen.c -o $@
-	$@
+	cd $(GENERATED_ROOT) && $@
 
 ######### impcnvgen generates some source
 
-impcnvtab_output = impcnvtab.c
+impcnvtab_output =  $(GENERATED_ROOT)/impcnvtab.c
 $(impcnvtab_output) : $(GENERATED_DIR)/impcnvgen
 
 $(GENERATED_DIR)/impcnvgen : mtype.h impcnvgen.c $(GENERATED_DIR)/.directory
 	$(CC) $(CFLAGS) impcnvgen.c -o $@
-	$@
+	cd $(GENERATED_ROOT) && $@
 
 #########
 
@@ -229,7 +238,7 @@ $(GENERATED_DIR)/aa.o: $C/aa.c $C/aa.h $C/tinfo.h
 $(GENERATED_DIR)/aav.o: $(ROOT)/aav.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/access.o: access.c
+$(GENERATED_DIR)/access.o: access.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/aliasthis.o: aliasthis.c
@@ -247,7 +256,7 @@ $(GENERATED_DIR)/arrayop.o: arrayop.c
 $(GENERATED_DIR)/async.o: $(ROOT)/async.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/attrib.o: attrib.c
+$(GENERATED_DIR)/attrib.o: attrib.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/backconfig.o: $C/backconfig.c
@@ -265,16 +274,16 @@ $(GENERATED_DIR)/builtin.o: builtin.c
 $(GENERATED_DIR)/canthrow.o: canthrow.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/cast.o: cast.c
+$(GENERATED_DIR)/cast.o: cast.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/cg.o: $C/cg.c fltables.c
+$(GENERATED_DIR)/cg.o: $C/cg.c $(GENERATED_ROOT)/fltables.c
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
 $(GENERATED_DIR)/cg87.o: $C/cg87.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/cgcod.o: $C/cgcod.c cdxxx.c
+$(GENERATED_DIR)/cgcod.o: $C/cgcod.c $(GENERATED_ROOT)/cdxxx.c
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
 $(GENERATED_DIR)/cgcs.o: $C/cgcs.c
@@ -283,7 +292,7 @@ $(GENERATED_DIR)/cgcs.o: $C/cgcs.c
 $(GENERATED_DIR)/cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/cgelem.o: $C/cgelem.c $C/rtlsym.h elxxx.c
+$(GENERATED_DIR)/cgelem.o: $C/cgelem.c $C/rtlsym.h $(GENERATED_ROOT)/elxxx.c
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
 $(GENERATED_DIR)/cgen.o: $C/cgen.c $C/rtlsym.h
@@ -301,7 +310,7 @@ $(GENERATED_DIR)/cgsched.o: $C/cgsched.c $C/rtlsym.h
 $(GENERATED_DIR)/cgxmm.o: $C/cgxmm.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/class.o: class.c
+$(GENERATED_DIR)/class.o: class.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/clone.o: clone.c
@@ -337,19 +346,19 @@ $(GENERATED_DIR)/irstate.o: irstate.c irstate.h
 $(GENERATED_DIR)/csymbol.o: $C/symbol.c
 	$(CC) -c $(MFLAGS) $< -o $@
 
-$(GENERATED_DIR)/cond.o: cond.c
+$(GENERATED_DIR)/cond.o: cond.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/cppmangle.o: cppmangle.c
+$(GENERATED_DIR)/cppmangle.o: cppmangle.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/cv8.o: $C/cv8.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/debug.o: $C/debug.c debtab.c
+$(GENERATED_DIR)/debug.o: $C/debug.c $(GENERATED_ROOT)/debtab.c
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
-$(GENERATED_DIR)/declaration.o: declaration.c
+$(GENERATED_DIR)/declaration.o: declaration.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/delegatize.o: delegatize.c
@@ -361,7 +370,7 @@ $(GENERATED_DIR)/divcoeff.o: $C/divcoeff.c
 $(GENERATED_DIR)/doc.o: doc.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/dsymbol.o: dsymbol.c
+$(GENERATED_DIR)/dsymbol.o: dsymbol.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/dt.o: $C/dt.c $C/dt.h
@@ -373,7 +382,7 @@ $(GENERATED_DIR)/dump.o: dump.c
 $(GENERATED_DIR)/dwarf.o: $C/dwarf.c $C/dwarf.h
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
-$(GENERATED_DIR)/e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h
+$(GENERATED_DIR)/e2ir.o: e2ir.c $C/rtlsym.h expression.h toir.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $< -o$@
 
 $(GENERATED_DIR)/ee.o: $C/ee.c
@@ -391,16 +400,16 @@ $(GENERATED_DIR)/elfobj.o: $C/elfobj.c
 $(GENERATED_DIR)/entity.o: entity.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/enum.o: enum.c
+$(GENERATED_DIR)/enum.o: enum.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/evalu8.o: $C/evalu8.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/expression.o: expression.c expression.h
+$(GENERATED_DIR)/expression.o: expression.c expression.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/func.o: func.c
+$(GENERATED_DIR)/func.o: func.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/gdag.o: $C/gdag.c
@@ -418,7 +427,7 @@ $(GENERATED_DIR)/glocal.o: $C/glocal.c $C/rtlsym.h
 $(GENERATED_DIR)/gloop.o: $C/gloop.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h
+$(GENERATED_DIR)/glue.o: glue.c $(CH) $C/rtlsym.h mars.h module.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $< -o$@
 
 $(GENERATED_DIR)/go.o: $C/go.c
@@ -427,37 +436,37 @@ $(GENERATED_DIR)/go.o: $C/go.c
 $(GENERATED_DIR)/gother.o: $C/gother.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/hdrgen.o: hdrgen.c
+$(GENERATED_DIR)/hdrgen.o: hdrgen.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/iasm.o: iasm.c $(CH) $C/iasm.h
+$(GENERATED_DIR)/iasm.o: iasm.c $(CH) $C/iasm.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) -fexceptions $< -o$@
 
-$(GENERATED_DIR)/id.o: id.c id.h
+$(GENERATED_DIR)/id.o: $(GENERATED_ROOT)/id.c $(GENERATED_ROOT)/id.h identifier.h lexer.h
+	$(CC) -c $(CFLAGS) -I. $< -o$@
+
+$(GENERATED_DIR)/identifier.o: identifier.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/identifier.o: identifier.c
-	$(CC) -c $(CFLAGS) $< -o$@
-
-$(GENERATED_DIR)/impcnvtab.o: impcnvtab.c mtype.h
-	$(CC) -c $(CFLAGS) -I$(ROOT) $< -o$@
+$(GENERATED_DIR)/impcnvtab.o:  $(GENERATED_ROOT)/impcnvtab.c mtype.h
+	$(CC) -c $(CFLAGS) -I$(ROOT) -I. $< -o$@
 
 $(GENERATED_DIR)/imphint.o: imphint.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/import.o: import.c
+$(GENERATED_DIR)/import.o: import.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/inifile.o: inifile.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/init.o: init.c
+$(GENERATED_DIR)/init.o: init.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/inline.o: inline.c
-	$(CC) -c $(CFLAGS) $< -o$@
+$(GENERATED_DIR)/inline.o: inline.c $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I $(GENERATED_ROOT) $< -o$@
 
-$(GENERATED_DIR)/interpret.o: interpret.c ctfe.h
+$(GENERATED_DIR)/interpret.o: interpret.c ctfe.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/intrange.o: intrange.h intrange.c
@@ -466,8 +475,8 @@ $(GENERATED_DIR)/intrange.o: intrange.h intrange.c
 $(GENERATED_DIR)/json.o: json.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/lexer.o: lexer.c
-	$(CC) -c $(CFLAGS) $< -o$@
+$(GENERATED_DIR)/lexer.o: lexer.c  $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I $(GENERATED_ROOT) $< -o$@
 
 $(GENERATED_DIR)/libelf.o: libelf.c $C/melf.h
 	$(CC) -c $(CFLAGS) -I$C $< -o$@
@@ -490,17 +499,17 @@ $(GENERATED_DIR)/macro.o: macro.c
 $(GENERATED_DIR)/man.o: $(ROOT)/man.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/mangle.o: mangle.c
-	$(CC) -c $(CFLAGS) $< -o$@
+$(GENERATED_DIR)/mangle.o: mangle.c $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I $(GENERATED_ROOT) $< -o$@
 
-$(GENERATED_DIR)/mars.o: mars.c verstr.h
-	$(CC) -c $(CFLAGS) $< -o$@
+$(GENERATED_DIR)/mars.o: mars.c verstr.h $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I $(GENERATED_ROOT) $< -o$@
 
 $(GENERATED_DIR)/rmem.o: $(ROOT)/rmem.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/module.o: module.c
-	$(CC) -c $(CFLAGS) -I$C $< -o$@
+$(GENERATED_DIR)/module.o: module.c $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I$C -I $(GENERATED_ROOT) $< -o$@
 
 $(GENERATED_DIR)/mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
 	$(CC) -c $(MFLAGS) $< -o$@
@@ -508,13 +517,13 @@ $(GENERATED_DIR)/mscoffobj.o: $C/mscoffobj.c $C/mscoff.h
 $(GENERATED_DIR)/msc.o: msc.c $(CH) mars.h
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/mtype.o: mtype.c
-	$(CC) -c $(CFLAGS) $< -o$@
+$(GENERATED_DIR)/mtype.o: mtype.c $(GENERATED_ROOT)/id.h
+	$(CC) -c $(CFLAGS) -I $(GENERATED_ROOT) $< -o$@
 
 $(GENERATED_DIR)/nteh.o: $C/nteh.c $C/rtlsym.h
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/opover.o: opover.c
+$(GENERATED_DIR)/opover.o: opover.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/optimize.o: optimize.c
@@ -529,7 +538,7 @@ $(GENERATED_DIR)/out.o: $C/out.c
 $(GENERATED_DIR)/outbuf.o: $C/outbuf.c $C/outbuf.h
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/parse.o: parse.c
+$(GENERATED_DIR)/parse.o: parse.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/pdata.o: $C/pdata.c
@@ -559,7 +568,7 @@ $(GENERATED_DIR)/rtlsym.o: $C/rtlsym.c $C/rtlsym.h
 $(GENERATED_DIR)/sapply.o: sapply.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/s2ir.o: s2ir.c $C/rtlsym.h statement.h
+$(GENERATED_DIR)/s2ir.o: s2ir.c $C/rtlsym.h statement.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $< -o$@
 
 $(GENERATED_DIR)/scanelf.o: scanelf.c $C/melf.h
@@ -568,7 +577,7 @@ $(GENERATED_DIR)/scanelf.o: scanelf.c $C/melf.h
 $(GENERATED_DIR)/scanmach.o: scanmach.c $C/mach.h
 	$(CC) -c $(CFLAGS) -I$C $< -o$@
 
-$(GENERATED_DIR)/scope.o: scope.c
+$(GENERATED_DIR)/scope.o: scope.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/sideeffect.o: sideeffect.c
@@ -577,10 +586,10 @@ $(GENERATED_DIR)/sideeffect.o: sideeffect.c
 $(GENERATED_DIR)/speller.o: $(ROOT)/speller.c
 	$(CC) -c $(GFLAGS) -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/statement.o: statement.c
+$(GENERATED_DIR)/statement.o: statement.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/staticassert.o: staticassert.c staticassert.h
+$(GENERATED_DIR)/staticassert.o: staticassert.c staticassert.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/stringtable.o: $(ROOT)/stringtable.c
@@ -589,7 +598,7 @@ $(GENERATED_DIR)/stringtable.o: $(ROOT)/stringtable.c
 $(GENERATED_DIR)/strtold.o: $C/strtold.c
 	$(CC) -c -I$(ROOT) $< -o$@
 
-$(GENERATED_DIR)/struct.o: struct.c
+$(GENERATED_DIR)/struct.o: struct.c $(GENERATED_ROOT)/id.h
 	$(CC) -c $(CFLAGS) $< -o$@
 
 $(GENERATED_DIR)/target.o: target.c target.h
@@ -631,7 +640,7 @@ $(GENERATED_DIR)/traits.o: traits.c
 $(GENERATED_DIR)/type.o: $C/type.c
 	$(CC) -c $(MFLAGS) $< -o$@
 
-$(GENERATED_DIR)/typinf.o: typinf.c $(CH) mars.h module.h mtype.h
+$(GENERATED_DIR)/typinf.o: typinf.c $(CH) mars.h module.h mtype.h $(GENERATED_ROOT)/id.h
 	$(CC) -c $(MFLAGS) -I$(ROOT) $< -o$@
 
 $(GENERATED_DIR)/util2.o: $C/util2.c
@@ -643,7 +652,7 @@ $(GENERATED_DIR)/utf.o: utf.c utf.h
 $(GENERATED_DIR)/unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $< -o$@
 
-$(GENERATED_DIR)/var.o: $C/var.c optab.c tytab.c
+$(GENERATED_DIR)/var.o: $C/var.c $(GENERATED_ROOT)/optab.c $(GENERATED_ROOT)/tytab.c
 	$(CC) -c $(MFLAGS) -I. $< -o$@
 
 $(GENERATED_DIR)/version.o: version.c
