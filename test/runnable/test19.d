@@ -435,6 +435,22 @@ void test8128()
 
 /* ================================ */
 
+class C8635{
+	int x;
+	this(int x)
+	{
+		this.x = x;
+	}
+}
+void test8635()
+{
+	assert(new C8635(2).x==2);
+	assert(new C8635(3).x==3);
+}
+
+/* ================================ */
+
+
 int main()
 {
     test1();
@@ -458,7 +474,7 @@ int main()
     test19();
     test20();
     test8128();
-
+    test8635();
     printf("Success\n");
     return 0;
 }
