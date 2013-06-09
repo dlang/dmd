@@ -7460,7 +7460,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
             ScopeDsymbol *sds = s->isScopeDsymbol();
             if (sds)
             {
-                //printf("it's a ScopeDsymbol\n");
+                //printf("it's a ScopeDsymbol %s\n", ident->toChars());
                 e = new ScopeExp(loc, sds);
                 e = e->semantic(sc);
                 if (eleft)

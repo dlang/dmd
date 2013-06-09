@@ -540,7 +540,34 @@ void Module::parse()
     }
 
     // Insert module into the symbol table
-    if (!dst->insert(this))
+    Dsymbol *s = this;
+    bool isPackageMod = strcmp(srcfile->name->name(), "package.d") == 0;
+    if (isPackageMod)
+    {
+        /* If the source tree is as follows:
+         *     pkg/
+         *     +- package.d
+         *     +- common.d
+         * the 'pkg' will be incorporated to the internal package tree in two ways:
+         *     import pkg;
+         * and:
+         *     import pkg.common;
+         *
+         * If both are used in one compilation, 'pkg' as a module (== pkg/package.d)
+         * and a package name 'pkg' will conflict each other.
+         *
+         * To avoid the confliction,
+         * 1. If preceding package name insertion had occurred by Package::resolve,
+         *    later package.d loading will change Package::isPkgMod to PKGmodule and set Package::mod.
+         * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
+         */
+        Package *p = new Package(ident);
+        p->isPkgMod = PKGmodule;
+        p->mod = this;
+        p->symtab = new DsymbolTable();
+        s = p;
+    }
+    if (!dst->insert(s))
     {
         /* It conflicts with a name that is already in the symbol table.
          * Figure out what went wrong, and issue error message.
@@ -561,8 +588,17 @@ void Module::parse()
         {
             Package *pkg = prev->isPackage();
             assert(pkg);
-            error(pkg->loc, "from file %s conflicts with package name %s",
-                srcname, pkg->toChars());
+            if (pkg->isPkgMod == PKGunknown && isPackageMod)
+            {
+                /* If the previous inserted Package is not yet determined as package.d,
+                 * link it to the actual module.
+                 */
+                pkg->isPkgMod = PKGmodule;
+                pkg->mod = this;
+            }
+            else
+                error(pkg->loc, "from file %s conflicts with package name %s",
+                    srcname, pkg->toChars());
         }
     }
     else
@@ -1038,6 +1074,8 @@ char *ModuleDeclaration::toChars()
 Package::Package(Identifier *ident)
         : ScopeDsymbol(ident)
 {
+    this->isPkgMod = PKGunknown;
+    this->mod = NULL;
 }
 
 
