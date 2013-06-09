@@ -7837,9 +7837,9 @@ Expression *DotVarExp::toLvalue(Scope *sc, Expression *e)
 
 /***********************************************
  * Mark variable v as modified if it is inside a constructor that var
- * is a field in.
+ * is a field/scope member in.
  */
-int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
+int modifyVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
 {
     //printf("modifyFieldVar(var = %s)\n", var->toChars());
     Dsymbol *s = sc->func;

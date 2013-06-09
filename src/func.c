@@ -1284,14 +1284,6 @@ void FuncDeclaration::semantic3(Scope *sc)
                 {
                     error("static constructor can only be member of struct/class/module, not %s %s", p->kind(), p->toChars());
                 }
-                else
-                {
-                    for (size_t i = 0; i < pd->members->dim; i++)
-                    {   Dsymbol *s = (*pd->members)[i];
-
-                        s->checkCtorConstInit();
-                    }
-                }
             }
 
             if (fbody->isErrorStatement())

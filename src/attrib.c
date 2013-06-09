@@ -303,7 +303,7 @@ bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
     return Dsymbol::oneMembers(d, ps, ident);
 }
 
-void AttribDeclaration::checkCtorConstInit()
+void AttribDeclaration::checkCtorInit()
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -311,7 +311,7 @@ void AttribDeclaration::checkCtorConstInit()
     {
         for (size_t i = 0; i < d->dim; i++)
         {   Dsymbol *s = (*d)[i];
-            s->checkCtorConstInit();
+            s->checkCtorInit();
         }
     }
 }

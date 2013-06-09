@@ -198,7 +198,7 @@ public:
     virtual bool hasPointers();
     virtual bool hasStaticCtorOrDtor();
     virtual void addLocalClass(ClassDeclarations *) { }
-    virtual void checkCtorConstInit() { }
+    virtual void checkCtorInit() { }
 
     virtual void addComment(utf8_t *comment);
     virtual void emitComment(Scope *sc);

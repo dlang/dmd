@@ -813,6 +813,8 @@ void Module::semantic3()
         //printf("Module %s: %s.semantic3()\n", toChars(), s->toChars());
         s->semantic3(sc);
     }
+    for (size_t i = 0; i < members->dim; ++i)
+        (*members)[i]->checkCtorInit();
 
     sc = sc->pop();
     sc->pop();

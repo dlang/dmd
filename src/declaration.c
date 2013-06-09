@@ -153,11 +153,12 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
         }
     }
 
-    if (v && (isCtorinit() || isField()))
+    if (v)
     {   // It's only modifiable if inside the right constructor
-        if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref))
+        if ((storage_class & (STCforeach | STCref)) == (STCforeach | STCref) &&
+                (isCtorinit() || isField()))
             return 2;
-        return modifyFieldVar(loc, sc, v, e1) ? 2 : 1;
+        return modifyVar(loc, sc, v, e1) ? 2 : 1;
     }
     return 1;
 }
@@ -1296,20 +1297,23 @@ Lnomatch:
     }
 
     if (!(storage_class & (STCctfe | STCref)) && tbn->ty == Tstruct &&
-        ((TypeStruct *)tbn)->sym->noDefaultCtor)
+            ((TypeStruct *)tbn)->sym->noDefaultCtor && !init)
     {
-        if (!init)
-        {   if (isField())
-                /* For fields, we'll check the constructor later to make sure it is initialized
-                 */
-                storage_class |= STCnodefaultctor;
-            else if (storage_class & STCparameter)
-                ;
-            else
-                error("initializer required for type %s", type->toChars());
-        }
+        if (fd && !(storage_class & STCparameter))
+            error("initializer required for type %s", type->toChars());
+        storage_class |= STCnodefaultctor;
     }
 #endif
+
+    if (!init && tb->ty == Tsarray && tbn->ty == Tvoid)
+    {
+        if (!parent->isModule() && !parent->isAggregateDeclaration() && !fd &&
+                !(storage_class & STCparameter) && ((TypeSArray *)type)->dim->toInteger() > 0)
+            error("static array element type void does not have a default initializer");
+        if (ad)
+            ad->noDefaultCtor = true;
+        storage_class |= STCnodefaultctor;
+    }
 
     if (type->isscope() && !noscope)
     {
@@ -1982,12 +1986,10 @@ bool VarDeclaration::isImportedSymbol()
     return false;
 }
 
-void VarDeclaration::checkCtorConstInit()
+void VarDeclaration::checkCtorInit()
 {
-#if 0 /* doesn't work if more than one static ctor */
-    if (ctorinit == 0 && isCtorinit() && !isField())
-        error("missing initializer in static constructor for const variable");
-#endif
+    if (ctorinit == 0 && (storage_class & STCnodefaultctor) && !isField())
+        error("missing initializer in static constructor");
 }
 
 /************************************

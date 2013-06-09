@@ -121,6 +121,10 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
+
+        for (size_t i = 0; i < members->dim; ++i)
+            (*members)[i]->checkCtorInit();
+
         sc = sc->pop();
 
         if (!getRTInfo && Type::rtinfo &&

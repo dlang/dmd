@@ -900,7 +900,13 @@ dt_t **TypeSArray::toDtElem(dt_t **pdt, Expression *e)
             tbn = tnext->toBasetype();
         }
         if (!e)                         // if not already supplied
-            e = tnext->defaultInit();   // use default initializer
+        {
+            // A static array of voids is initialized explicitly anyway.
+            if (tnext->ty == Tvoid)
+                e = new IntegerExp(0);
+            else
+                e = tnext->defaultInit();   // use default initializer
+        }
         e->toDt(pdt);
         dt_optimize(*pdt);
         if (e->op == TOKstring)

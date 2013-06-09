@@ -53,7 +53,7 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     bool hasPointers();
     bool hasStaticCtorOrDtor();
-    void checkCtorConstInit();
+    void checkCtorInit();
     void addLocalClass(ClassDeclarations *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
