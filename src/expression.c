@@ -8663,6 +8663,7 @@ Lagain:
     {
         TypeFunction *tf;
         const char *p;
+        f = NULL;
         if (e1->op == TOKfunction)
         {
             // function literal that direct called is always inferred.
@@ -8670,11 +8671,10 @@ Lagain:
             f = ((FuncExp *)e1)->fd;
             tf = (TypeFunction *)f->type;
             p = "function literal";
-
-            f->checkNestedReference(sc, loc);
         }
         else if (t1->ty == Tdelegate)
-        {   TypeDelegate *td = (TypeDelegate *)t1;
+        {
+            TypeDelegate *td = (TypeDelegate *)t1;
             assert(td->next->ty == Tfunction);
             tf = (TypeFunction *)(td->next);
             p = "delegate";
@@ -8714,19 +8714,9 @@ Lagain:
             goto Lagain;
         }
         else
-        {   error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
+        {
+            error("function expected before (), not %s of type %s", e1->toChars(), e1->type->toChars());
             return new ErrorExp();
-        }
-
-        if (sc->func && !tf->purity && !(sc->flags & SCOPEdebug) && !sc->needctfe)
-        {
-            if (sc->func->setImpure())
-                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
-        }
-        if (sc->func && tf->trust <= TRUSTsystem && !sc->needctfe)
-        {
-            if (sc->func->setUnsafe())
-                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
         }
 
         if (!tf->callMatch(NULL, arguments))
@@ -8752,6 +8742,29 @@ Lagain:
                 buf.toChars());
 
             return new ErrorExp();
+        }
+
+        // Purity and safety check should run after testing arguments matching
+        if (f)
+        {
+#if DMDV2
+            checkPurity(sc, f);
+            checkSafety(sc, f);
+#endif
+            f->checkNestedReference(sc, loc);
+        }
+        else if (sc->func && !sc->needctfe)
+        {
+            if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
+            {
+                error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                return new ErrorExp();
+            }
+            if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
+            {
+                error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
+                return new ErrorExp();
+            }
         }
 
         if (t1->ty == Tpointer)
