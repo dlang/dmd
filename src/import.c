@@ -156,26 +156,6 @@ void Import::load(Scope *sc)
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
 
-void escapePath(OutBuffer *buf, const char *fname)
-{
-    while (1)
-    {
-        switch (*fname)
-        {
-            case 0:
-                return;
-            case '(':
-            case ')':
-            case '\\':
-                buf->writebyte('\\');
-            default:
-                buf->writebyte(*fname);
-                break;
-        }
-        fname++;
-    }
-}
-
 void Import::importAll(Scope *sc)
 {
     if (!mod)
@@ -294,7 +274,8 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
-
+        if (!global.params.moduleDepsFile)
+            ob->writestring("depsImport ");
         ob->writestring(sc->module->toPrettyChars());
         ob->writestring(" (");
         escapePath(ob, sc->module->srcfile->toChars());
