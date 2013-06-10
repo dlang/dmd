@@ -913,7 +913,7 @@ void Type::check()
     }
 
     Type *tn = nextOf();
-    if (tn && ty != Tfunction && tn->ty != Tfunction)
+    if (tn && ty != Tfunction && tn->ty != Tfunction && ty != Tenum)
     {   // Verify transitivity
         switch (mod)
         {
@@ -1604,7 +1604,7 @@ Type *Type::merge()
     if (ty == Tinstance) return this;
     if (ty == Taarray && !((TypeAArray *)this)->index->merge()->deco)
         return this;
-    if (nextOf() && !nextOf()->deco)
+    if (ty != Tenum && nextOf() && !nextOf()->deco)
         return this;
 
     //printf("merge(%s)\n", toChars());
@@ -7352,6 +7352,11 @@ int TypeEnum::isscalar()
     return sym->memtype->isscalar();
 }
 
+int TypeEnum::isString()
+{
+    return sym->memtype->isString();
+}
+
 int TypeEnum::isAssignable()
 {
     return sym->memtype->isAssignable();
@@ -7431,6 +7436,12 @@ int TypeEnum::isZeroInit(Loc loc)
 int TypeEnum::hasPointers()
 {
     return toBasetype()->hasPointers();
+}
+
+Type *TypeEnum::nextOf()
+{
+    assert(sym->memtype);
+    return sym->memtype->nextOf();
 }
 
 /***************************** TypeTypedef *****************************/

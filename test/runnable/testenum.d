@@ -126,6 +126,30 @@ enum { B9846 = 1 }
 enum E10105 : char[1] { a = "a" }
 
 /**********************************************/
+// 10113
+
+enum E10113 : string
+{
+    a = "a",
+    b = "b",
+    abc = "abc"
+}
+
+void test10113()
+{
+    E10113 v = E10113.b;
+    bool check = false;
+
+    final switch (v) {
+    case E10113.a: assert(false);
+    case E10113.b: check = true; break;
+    case E10113.abc: assert(false);
+    }
+
+    assert(check);
+}
+
+/**********************************************/
 
 int main()
 {
@@ -135,6 +159,7 @@ int main()
     test4();
     test5();
     test6();
+    test10113();
 
     printf("Success\n");
     return 0;
