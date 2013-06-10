@@ -1320,6 +1320,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
     Loc loc = this->loc;
 
     nextToken();
+    StorageClass stc = parsePostfix();
     unsigned char *begPtr = token.ptr + 1;  // skip '{'
     unsigned char *endPtr = NULL;
     body = parseStatement(PScurly, &endPtr);
@@ -1346,7 +1347,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
         }
     }
 
-    f = new UnitTestDeclaration(loc, this->loc, docline);
+    f = new UnitTestDeclaration(loc, this->loc, stc, docline);
     f->fbody = body;
     return f;
 }

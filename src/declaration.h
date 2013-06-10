@@ -911,7 +911,7 @@ class UnitTestDeclaration : public FuncDeclaration
 {
 public:
     char *codedoc; /** For documented unittest. */
-    UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc);
+    UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
