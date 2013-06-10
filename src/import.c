@@ -125,6 +125,26 @@ void Import::load(Scope *sc)
             {
                 ::error(loc, "%s %s conflicts with %s", s->kind(), s->toPrettyChars(), id->toChars());
             }
+            else if (Package *p = s->isPackage())
+            {
+                if (p->isPkgMod == PKGunknown)
+                {
+                    mod = Module::load(loc, packages, id);
+                    if (!mod)
+                        p->isPkgMod = PKGpackage;
+                    else
+                        assert(p->isPkgMod == PKGmodule);
+                }
+                else if (p->isPkgMod == PKGmodule)
+                {
+                    mod = p->mod;
+                }
+                if (p->isPkgMod != PKGmodule)
+                {
+                    ::error(loc, "can only import from a module, not from package %s.%s",
+                        p->toPrettyChars(), id->toChars());
+                }
+            }
             else if (pkg)
             {
                 ::error(loc, "can only import from a module, not from package %s.%s",
