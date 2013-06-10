@@ -3017,7 +3017,8 @@ Statement *SwitchStatement::semantic(Scope *sc)
         condition->type = condition->type->constOf();
     }
     else
-    {   condition = condition->integralPromotions(sc);
+    {
+        condition = condition->integralPromotions(sc);
         if (!condition->type->isintegral())
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
@@ -3087,8 +3088,11 @@ Statement *SwitchStatement::semantic(Scope *sc)
                 if (em)
                 {
                     for (size_t j = 0; j < cases->dim; j++)
-                    {   CaseStatement *cs = (*cases)[j];
-                        if (cs->exp->equals(em->value) || cs->exp->toInteger() == em->value->toInteger())
+                    {
+                        CaseStatement *cs = (*cases)[j];
+                        if (cs->exp->equals(em->value) ||
+                                (!cs->exp->type->isString() && !em->value->type->isString() &&
+                                cs->exp->toInteger() == em->value->toInteger()))
                             goto L1;
                     }
                     error("enum member %s not represented in final switch", em->toChars());
