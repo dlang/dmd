@@ -2180,7 +2180,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
             // always itself.
             if (!f->isPure() && outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
-                    outerfunc->toChars(), f->toChars());
+                    outerfunc->toPrettyChars(), f->toPrettyChars());
             return;
         }
         FuncDeclaration *calledparent = f;

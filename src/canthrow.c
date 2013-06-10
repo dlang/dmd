@@ -79,7 +79,7 @@ int lambdaCanThrow(Expression *e, void *param)
             else
             {
                 if (pct->mustnot)
-                    e->error("%s is not nothrow", ce->e1->toChars());
+                    e->error("'%s' is not nothrow", ce->f ? ce->f->toPrettyChars() : ce->e1->toChars());
                 pct->can = TRUE;
             }
             break;
