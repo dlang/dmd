@@ -1207,6 +1207,7 @@ Expression *Expression::inlineScan(InlineScanState *iss)
 
 void scanVar(Dsymbol *s, InlineScanState *iss)
 {
+    //printf("scanVar(%s %s)\n", s->kind(), s->toPrettyChars());
     VarDeclaration *vd = s->isVarDeclaration();
     if (vd)
     {
@@ -1257,6 +1258,10 @@ void scanVar(Dsymbol *s, InlineScanState *iss)
                 }
             }
         }
+    }
+    else
+    {
+        s->inlineScan();
     }
 }
 
@@ -1415,7 +1420,7 @@ void FuncDeclaration::inlineScan()
     InlineScanState iss;
 
 #if LOG
-    printf("FuncDeclaration::inlineScan('%s')\n", toChars());
+    printf("FuncDeclaration::inlineScan('%s')\n", toPrettyChars());
 #endif
     memset(&iss, 0, sizeof(iss));
     iss.fd = this;
@@ -1435,7 +1440,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
 #define CANINLINE_LOG 0
 
 #if CANINLINE_LOG
-    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, toChars());
+    printf("FuncDeclaration::canInline(hasthis = %d, statementsToo = %d, '%s')\n", hasthis, statementsToo, toPrettyChars());
 #endif
 
     if (needThis() && !hasthis)
