@@ -359,6 +359,22 @@ void test10289()
 }
 
 /***************************************************/
+// 10296
+
+void foo10296()()
+{
+    int[3] a;
+
+    void bar()() { a[1] = 2; }
+    bar();
+    pragma(msg, typeof(bar!()));    // nothrow @safe void()
+}
+pure void test10296()
+{
+    foo10296();
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 
