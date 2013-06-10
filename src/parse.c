@@ -1301,7 +1301,8 @@ InvariantDeclaration *Parser::parseInvariant()
         check(TOKrparen);
     }
 
-    f = new InvariantDeclaration(loc, Loc(), STCundefined);
+    StorageClass stc = parsePostfix();
+    f = new InvariantDeclaration(loc, Loc(), stc);
     f->fbody = parseStatement(PScurly);
     return f;
 }
