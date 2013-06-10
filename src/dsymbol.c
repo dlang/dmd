@@ -849,6 +849,19 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
+    if (Package *pkg = isPackage())
+    {
+        if (!pkg->isModule() && pkg->mod)
+        {
+            // Prefer full package name.
+            Dsymbol *s = pkg->symtab ? pkg->symtab->lookup(ident) : NULL;
+            if (s)
+                return s;
+            //printf("[%s] through pkdmod: %s\n", loc.toChars(), pkg->toChars());
+            return pkg->mod->search(loc, ident, flags);
+        }
+    }
+
     // Look in symbols declared in this module
     Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
     //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
