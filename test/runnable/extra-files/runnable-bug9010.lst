@@ -1,6 +1,7 @@
        |// PERMUTE_ARGS: 
        |// POST_SCRIPT: runnable/extra-files/bug9010-postscript.sh 
        |// REQUIRED_ARGS: -cov 
+       |// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
        | 
        |struct A
        |{
@@ -13,9 +14,9 @@
        |
        |extern(C) void dmd_coverDestPath(string pathname); 
        |
-       |void main()
+       |void main(string[] args)
        |{
-      1|    dmd_coverDestPath("test_results/runnable"); 
+      1|    dmd_coverDestPath(args[1]);
        |
       1|    auto a = A();
       1|    auto b = A();
