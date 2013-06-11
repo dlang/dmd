@@ -504,6 +504,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
          * We don't want the template parameter list and constraints. */
         buf->writestring(s->Dsymbol::toChars());
     }
+
     return true;
 }
 
@@ -920,6 +921,16 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
         }
         else
             buf->writestring(decl->ident->toChars());
+
+        // emit constraints if declaration is a templated declaration
+        if (td && td->constraint)
+        {
+            HdrGenState hgs;
+            hgs.ddoc = 1;
+            buf->writestring(" if (");
+            td->constraint->toCBuffer(buf, &hgs);
+            buf->writeByte(')');
+        }
 
         if (decl->isDeprecated())
             buf->writestring(")");
