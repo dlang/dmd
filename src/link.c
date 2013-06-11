@@ -104,7 +104,7 @@ int findNoMainError(int fd)
     if (stream == NULL) return -1;
 
     const size_t len = 64 * 1024 - 1;
-    char buffer[len + 1]; // + '\0'
+    char buffer[len + 1] = {0}; // + '\0'
     size_t beg = 0, end = len;
 
     bool nmeFound = false;
