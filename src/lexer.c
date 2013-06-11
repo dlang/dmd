@@ -713,6 +713,7 @@ void Lexer::scan(Token *t)
                     else if (id == Id::VERSIONX)
                     {   unsigned major = 0;
                         unsigned minor = 0;
+                        bool point = false;
 
                         for (const char *p = global.version + 1; 1; p++)
                         {
@@ -720,7 +721,11 @@ void Lexer::scan(Token *t)
                             if (isdigit((unsigned char)c))
                                 minor = minor * 10 + c - '0';
                             else if (c == '.')
-                            {   major = minor;
+                            {
+                                if (point)
+                                    break;      // ignore everything after second '.'
+                                point = true;
+                                major = minor;
                                 minor = 0;
                             }
                             else
