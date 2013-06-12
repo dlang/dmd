@@ -4554,6 +4554,29 @@ int bug7940() {
 static assert(bug7940());
 
 /**************************************************
+    10298 wrong code for struct array literal init
+**************************************************/
+
+struct Bug10298 {
+    int m;
+}
+
+int bug10298()
+{
+    Bug10298[1] y = [Bug10298(78)];
+    y[0].m = 6;
+    assert(y[0].m == 6);
+
+    // Root cause
+    Bug10298[1] x;
+    x[] = [cast(const Bug10298)(Bug10298(78))];
+    assert(x[0].m == 78);
+    return 1;
+}
+
+static assert(bug10298());
+
+/**************************************************
     7266 dotvar ref parameters
 **************************************************/
 

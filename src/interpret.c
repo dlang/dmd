@@ -3957,9 +3957,10 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             Expressions *oldelems = existingAE->elements;
             Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+            Type *elemtype = existingAE->type->nextOf();
             for (size_t j = 0; j < newelems->dim; j++)
             {
-                (*oldelems)[j + firstIndex] = (*newelems)[j];
+                (*oldelems)[j + firstIndex] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
             }
             return newval;
         }
