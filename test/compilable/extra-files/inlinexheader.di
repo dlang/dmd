@@ -1,3 +1,4 @@
+module inlinexheader;
 class C
 {
 }

@@ -70,13 +70,13 @@ Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComm
 Dsymbols *Parser::parseModule()
 {
     Dsymbols *decldefs;
+    bool safe = FALSE;
 
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
     {
         Loc loc = this->loc;
         unsigned char *comment = token.blockComment;
-        bool safe = FALSE;
 
         nextToken();
 #if 0 && DMDV2
@@ -129,6 +129,9 @@ Dsymbols *Parser::parseModule()
             addComment(mod, comment);
         }
     }
+
+    if (md == NULL)  // create an implicit module declaration
+        md = new ModuleDeclaration(Loc(), NULL, mod->ident, safe);
 
     decldefs = parseDeclDefs(0);
     if (token.value != TOKeof)
@@ -5650,7 +5653,8 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKmodulestring:
-        {   const char *s = md->toChars();
+        {
+            const char *s = md->toChars();
             e = new StringExp(loc, (char *)s, strlen(s), 0);
             nextToken();
             break;
