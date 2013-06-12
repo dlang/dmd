@@ -2723,11 +2723,10 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 {
     bool external = TRUE;
     Outbuffer *buf;
-    elf_u32_f32 relinfo,refseg;
+    elf_u32_f32 relinfo=R_X86_64_NONE,refseg;
     int segtyp = MAP_SEG2TYP(seg);
     //assert(val == 0);
     int retsize = (flags & CFoffset64) ? 8 : 4;
-    targ_size_t v = 0;
 
 #if 0
     printf("\nObj::reftoident('%s' seg %d, offset x%llx, val x%llx, flags x%x)\n",
@@ -2766,17 +2765,6 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                 {   relinfo = config.flags3 & CFG3pic ? R_X86_64_PC32 : R_X86_64_32;
                     if (flags & CFpc32)
                         relinfo = R_X86_64_PC32;
-                    if (relinfo == R_X86_64_PC32)
-                    {
-                        assert(retsize == 4);
-                        if (val > 0xFFFFFFFF)
-                        {   /* The value to be added is bigger than 32 bits, so we
-                             * transfer it to the 64 bit addend of the fixup record
-                             */
-                            v = val;
-                            val = 0;
-                        }
-                    }
                 }
             }
             else
@@ -2789,13 +2777,16 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
             if (flags & CFoffset64 && relinfo == R_X86_64_32)
             {
                 relinfo = R_X86_64_64;
-                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
                 retsize = 8;
+            }
+            if (I64)
+            {
+                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,val + s->Soffset);
                 val = 0;
             }
             else
             {
-                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,v);
+                ElfObj::addrel(seg,offset,relinfo,STI_RODAT,0);
                 val = val + s->Soffset;
             }
             goto outaddrval;
@@ -2928,35 +2919,28 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
                             }
                         }
                     }
-                    targ_size_t v = 0;
                     if (flags & CFoffset64 && relinfo == R_X86_64_32)
                     {
-                        // The value to be added must only reside in the 64 bit addend.
                         relinfo = R_X86_64_64;
-                        v = val;
-                        val = 0;
                     }
                     //printf("\t\t************* adding relocation\n");
-                    if (I64 && retsize == 4)
+                    if (I64)
                     {
-                        assert(retsize == 4);
-                        if (val > 0xFFFFFFFF)
-                        {   /* The value to be added is bigger than 32 bits, so we
-                             * transfer it to the 64 bit addend of the fixup record
-                             */
-                            v = val;
-                            val = 0;
-                        }
+                        ElfObj::addrel(seg,offset,relinfo,refseg,val);
+                        val = 0;
                     }
-#if 0
-                    targ_size_t v = (relinfo == R_X86_64_PC32) ? -4 : 0;
-                    if (relinfo == R_X86_64_PC32 && flags & CFaddend8)
-                        v = -8;
-#endif
-                    assert(!(I64 && relinfo == R_X86_64_64) || val == 0);
-                    ElfObj::addrel(seg,offset,relinfo,refseg,v);
+                    else
+                    {
+                        ElfObj::addrel(seg,offset,relinfo,refseg,0);
+                    }
                 }
 outaddrval:
+                if (I64)
+                {
+                    // Elf64 uses only relocations with explicit addends
+                    assert(relinfo == R_X86_64_NONE || val == 0);
+                }
+
                 if (retsize == 8)
                     buf->write64(val);
                 else if (retsize == 4)
