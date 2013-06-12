@@ -6474,23 +6474,54 @@ void TemplateInstance::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     Identifier *id = name;
     buf->writestring(id->toChars());
-    buf->writestring("!(");
+    toCBufferTiargs(buf, hgs);
+}
+
+void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writeByte('!');
     if (nest)
-        buf->writestring("...");
+        buf->writestring("(...)");
     else
     {
+        if (tiargs->dim == 1)
+        {
+            Object *oarg = (*tiargs)[0];
+            if (Type *t = isType(oarg))
+            {
+                if (t->isTypeBasic() ||
+                    t->equals(Type::tstring) ||
+                    t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0)
+                {
+                    buf->writestring(t->toChars());
+                    return;
+                }
+            }
+            else if (Expression *e = isExpression(oarg))
+            {
+                if (e->op == TOKint64 ||    // IntegerExp(10, true, false, 'c')
+                    e->op == TOKfloat64 ||  // RealExp(3.14, 1.4i)
+                    e->op == TOKnull ||     // NullExp
+                    e->op == TOKstring ||   // StringExp
+                    e->op == TOKthis)
+                {
+                    buf->writestring(e->toChars());
+                    return;
+                }
+            }
+        }
+        buf->writeByte('(');
         nest++;
-        Objects *args = tiargs;
-        for (size_t i = 0; i < args->dim; i++)
+        for (size_t i = 0; i < tiargs->dim; i++)
         {
             if (i)
                 buf->writestring(", ");
-            Object *oarg = (*args)[i];
+            Object *oarg = (*tiargs)[i];
             ObjectToCBuffer(buf, hgs, oarg);
         }
         nest--;
+        buf->writeByte(')');
     }
-    buf->writeByte(')');
 }
 
 
@@ -6999,36 +7030,8 @@ void TemplateMixin::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     buf->writestring("mixin ");
 
     tqual->toCBuffer(buf, NULL, hgs);
-    buf->writestring("!(");
-    if (tiargs)
-    {
-        for (size_t i = 0; i < tiargs->dim; i++)
-        {   if (i)
-                buf->writestring(", ");
-            Object *oarg = (*tiargs)[i];
-            Type *t = isType(oarg);
-            Expression *e = isExpression(oarg);
-            Dsymbol *s = isDsymbol(oarg);
-            if (t)
-                t->toCBuffer(buf, NULL, hgs);
-            else if (e)
-                e->toCBuffer(buf, hgs);
-            else if (s)
-            {
-                char *p = s->ident ? s->ident->toChars() : s->toChars();
-                buf->writestring(p);
-            }
-            else if (!oarg)
-            {
-                buf->writestring("NULL");
-            }
-            else
-            {
-                assert(0);
-            }
-        }
-    }
-    buf->writebyte(')');
+    toCBufferTiargs(buf, hgs);
+
     if (ident)
     {
         buf->writebyte(' ');
