@@ -8422,8 +8422,8 @@ L1:
 
         if (ident == Id::classinfo)
         {
-            assert(ClassDeclaration::classinfo);
-            Type *t = ClassDeclaration::classinfo->type;
+            assert(Type::typeinfoclass);
+            Type *t = Type::typeinfoclass->type;
             if (e->op == TOKtype || e->op == TOKdottype)
             {
                 /* For type.classinfo, we know the classinfo

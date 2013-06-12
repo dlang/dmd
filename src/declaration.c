@@ -2315,7 +2315,7 @@ SymbolDeclaration::SymbolDeclaration(Loc loc, StructDeclaration *dsym)
 /********************************* ClassInfoDeclaration ****************************/
 
 ClassInfoDeclaration::ClassInfoDeclaration(ClassDeclaration *cd)
-    : VarDeclaration(Loc(), ClassDeclaration::classinfo->type, cd->ident, NULL)
+    : VarDeclaration(Loc(), Type::typeinfoclass->type, cd->ident, NULL)
 {
     this->cd = cd;
     storage_class = STCstatic | STCgshared;
