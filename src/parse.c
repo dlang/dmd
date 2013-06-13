@@ -4072,6 +4072,8 @@ Statement *Parser::parseStatement(int flags, const utf8_t** endPtr)
             // bug 7773: int.max is always a part of expression
             if (peekNext() == TOKdot)
                 goto Lexp;
+            if (peekNext() == TOKlparen)
+                goto Lexp;
         case TOKtypedef:
         case TOKalias:
         case TOKconst:

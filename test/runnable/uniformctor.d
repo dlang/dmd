@@ -139,6 +139,10 @@ void test9112b()    // new T(v)
 
     static assert(!__traits(compiles, new int(1.42)));  // in curre,t this is disallowed
     static assert(!__traits(compiles, new double(3.14i)));
+
+    // int(1) in directly on statement scope should be parsed as an expression, but
+    // would fail to compile because of "has no effect" error.
+    static assert(!__traits(compiles, { int(1); }));
 }
 
 /********************************************/
