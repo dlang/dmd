@@ -4512,8 +4512,8 @@ static Identifier *unitTestId(Loc loc)
     return Lexer::uniqueId(name);
 }
 
-UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, char *codedoc)
-    : FuncDeclaration(loc, endloc, unitTestId(loc), STCundefined, NULL)
+UnitTestDeclaration::UnitTestDeclaration(Loc loc, Loc endloc, StorageClass stc, char *codedoc)
+    : FuncDeclaration(loc, endloc, unitTestId(loc), stc, NULL)
 {
     this->codedoc = codedoc;
 }
@@ -4523,7 +4523,7 @@ Dsymbol *UnitTestDeclaration::syntaxCopy(Dsymbol *s)
     UnitTestDeclaration *utd;
 
     assert(!s);
-    utd = new UnitTestDeclaration(loc, endloc, codedoc);
+    utd = new UnitTestDeclaration(loc, endloc, storage_class, codedoc);
     return FuncDeclaration::syntaxCopy(utd);
 }
 
@@ -4540,7 +4540,7 @@ void UnitTestDeclaration::semantic(Scope *sc)
     if (global.params.useUnitTests)
     {
         if (!type)
-            type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
+            type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd, storage_class);
         Scope *sc2 = sc->push();
         sc2->linkage = LINKd;
         FuncDeclaration::semantic(sc2);
