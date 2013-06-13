@@ -3321,12 +3321,6 @@ Statement *CaseRangeStatement::syntaxCopy()
 Statement *CaseRangeStatement::semantic(Scope *sc)
 {   SwitchStatement *sw = sc->sw;
 
-    if (sw == NULL)
-    {
-        error("case range not in switch statement");
-        return NULL;
-    }
-
     //printf("CaseRangeStatement::semantic() %s\n", toChars());
     if (sw->isFinal)
         error("case ranges not allowed in final switch");
