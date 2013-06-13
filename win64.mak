@@ -466,6 +466,7 @@ $(DRUNTIME): $(OBJS) $(SRCS) win$(MODEL).mak
 
 unittest : $(SRCS) $(DRUNTIME) src\unittest.d
 	$(DMD) $(UDFLAGS) -version=druntime_unittest -unittest src\unittest.d $(SRCS) $(DRUNTIME) -debuglib=$(DRUNTIME) -defaultlib=$(DRUNTIME) user32.lib
+	unittest
 
 zip: druntime.zip
 
