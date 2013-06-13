@@ -48,18 +48,21 @@ struct SectionGroup
 
     @property inout(void[])[] gcRanges() inout
     {
-        auto pbeg = cast(void*)&__dso_handle;
-        auto pend = cast(void*)&_end;
-        return pbeg[0 .. pend - pbeg];
+        return (&_gcRange)[0 .. 1];
     }
 
 private:
     ModuleGroup _moduleGroup;
+    void[] _gcRange;
 }
 
 void initSections()
 {
     _sections.moduleGroup = ModuleGroup(getModuleInfos());
+
+    auto pbeg = cast(void*)&__dso_handle;
+    auto pend = cast(void*)&_end;
+    _sections._gcRange = pbeg[0 .. pend - pbeg];
 }
 
 void finiSections()
