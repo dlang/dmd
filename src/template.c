@@ -4481,7 +4481,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, Object *oarg,
     }
 
     //printf("\tvalType: %s, ty = %d\n", valType->toChars(), valType->ty);
-    vt = valType->semantic(Loc(), sc);
+    vt = valType->semantic(loc, sc);
     //printf("ei: %s, ei->type: %s\n", ei->toChars(), ei->type->toChars());
     //printf("vt = %s\n", vt->toChars());
 
