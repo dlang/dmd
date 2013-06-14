@@ -242,6 +242,13 @@ void Import::semantic(Scope *sc)
 
         mod->semantic();
 
+        if (sc && sc->scopesym && mod->ident == Id::math
+            && mod->parent->ident == Id::std && !mod->parent->parent)
+        {
+            sc->scopesym->hasStdMathImport = true;
+            sc->module->hasStdMathImport = true;
+        }
+
         if (mod->needmoduleinfo)
         {   //printf("module4 %s because of %s\n", sc->module->toChars(), mod->toChars());
             sc->module->needmoduleinfo = 1;
