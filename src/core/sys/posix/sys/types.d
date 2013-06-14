@@ -278,11 +278,23 @@ pthread_rwlockattr_t
 pthread_t
 */
 
-version( linux )
+version (linux)
 {
-    version ( X86_64 )
+    version (X86)
     {
-        version ( D_LP64 )
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (X86_64)
+    {
+        static if (__WORDSIZE == 64)
         {
             enum __SIZEOF_PTHREAD_ATTR_T = 56;
             enum __SIZEOF_PTHREAD_MUTEX_T = 40;
@@ -294,7 +306,7 @@ version( linux )
             enum __SIZEOF_PTHREAD_BARRIER_T = 32;
             enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
         }
-        else version ( D_X32 )
+        else
         {
             enum __SIZEOF_PTHREAD_ATTR_T = 32;
             enum __SIZEOF_PTHREAD_MUTEX_T = 32;
@@ -306,12 +318,20 @@ version( linux )
             enum __SIZEOF_PTHREAD_BARRIER_T = 20;
             enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
         }
-        else
-        {
-            static assert(false, "Unsupported platform");
-        }
     }
-    else
+    else version (AArch64)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 64;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 48;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 8;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 8;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 8;
+    }
+    else version (ARM)
     {
         enum __SIZEOF_PTHREAD_ATTR_T = 36;
         enum __SIZEOF_PTHREAD_MUTEX_T = 24;
@@ -322,6 +342,94 @@ version( linux )
         enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
         enum __SIZEOF_PTHREAD_BARRIER_T = 20;
         enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (IA64)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (MIPS32)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (MIPS64)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (PPC)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (PPC64)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (S390)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 36;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 24;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 32;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 20;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else version (S390X)
+    {
+        enum __SIZEOF_PTHREAD_ATTR_T = 56;
+        enum __SIZEOF_PTHREAD_MUTEX_T = 40;
+        enum __SIZEOF_PTHREAD_MUTEXATTR_T = 4;
+        enum __SIZEOF_PTHREAD_COND_T = 48;
+        enum __SIZEOF_PTHREAD_CONDATTR_T = 4;
+        enum __SIZEOF_PTHREAD_RWLOCK_T = 56;
+        enum __SIZEOF_PTHREAD_RWLOCKATTR_T = 8;
+        enum __SIZEOF_PTHREAD_BARRIER_T = 32;
+        enum __SIZEOF_PTHREAD_BARRIERATTR_T = 4;
+    }
+    else
+    {
+        static assert (false, "Unsupported platform");
     }
 
     union pthread_attr_t
