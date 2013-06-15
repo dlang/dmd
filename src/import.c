@@ -166,10 +166,10 @@ void Import::load(Scope *sc)
         {
             dst->insert(id, mod);           // id may be different from mod->ident,
                                             // if so then insert alias
-            if (!mod->importedFrom)
-                mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
         }
     }
+    if (mod && !mod->importedFrom)
+        mod->importedFrom = sc ? sc->module->importedFrom : Module::rootModule;
     if (!pkg)
         pkg = mod;
 
