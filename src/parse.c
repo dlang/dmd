@@ -264,7 +264,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                 }
                 else
                 {
-                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                    error("use 'immutable' instead of 'invariant'");
                     stc = STCimmutable;
                     goto Lstc;
                 }
@@ -423,7 +423,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                         else
                         {
                             if (token.value == TOKinvariant)
-                                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                                error("use 'immutable' instead of 'invariant'");
                             stc = STCimmutable;
                         }
                         goto Lstc;
@@ -797,7 +797,7 @@ StorageClass Parser::parsePostfix()
         {
             case TOKconst:              stc |= STCconst;                break;
             case TOKinvariant:
-                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                error("use 'immutable' instead of 'invariant'");
             case TOKimmutable:          stc |= STCimmutable;            break;
             case TOKshared:             stc |= STCshared;               break;
             case TOKwild:               stc |= STCwild;                 break;
@@ -831,7 +831,7 @@ StorageClass Parser::parseTypeCtor()
         {
             case TOKconst:              stc |= STCconst;                break;
             case TOKinvariant:
-                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                error("use 'immutable' instead of 'invariant'");
             case TOKimmutable:          stc |= STCimmutable;            break;
             case TOKshared:             stc |= STCshared;               break;
             case TOKwild:               stc |= STCwild;                 break;
@@ -1435,7 +1435,7 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     if (peek(&token)->value == TOKlparen)
                         goto Ldefault;
                     if (token.value == TOKinvariant)
-                        deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                        error("use 'immutable' instead of 'invariant'");
                     stc = STCimmutable;
                     goto L2;
 
@@ -2546,7 +2546,7 @@ Type *Parser::parseBasicType()
             break;
 
         case TOKinvariant:
-            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+            error("use 'immutable' instead of 'invariant'");
         case TOKimmutable:
             // invariant(type)
             nextToken();
@@ -2976,7 +2976,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 if (peek(&token)->value == TOKlparen)
                     break;
                 if (token.value == TOKinvariant)
-                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                    error("use 'immutable' instead of 'invariant'");
                 stc = STCimmutable;
                 goto L1;
 
@@ -4127,7 +4127,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                         {
                             stc = STCimmutable;
                             if (token.value == TOKinvariant)
-                                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                                error("use 'immutable' instead of 'invariant'");
                             goto Lagain;
                         }
                         break;
@@ -4233,7 +4233,7 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
                     {
                         stc = STCimmutable;
                         if (token.value == TOKinvariant)
-                            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                            error("use 'immutable' instead of 'invariant'");
                         goto LagainStc;
                     }
                     break;
@@ -5833,9 +5833,12 @@ Expression *Parser::parsePrimaryExp()
                          token.value == TOKdelegate ||
                          token.value == TOKreturn))
                     {
-                        if (token.value == TOKinvariant)
-                            deprecation("use of 'invariant' rather than 'immutable' is deprecated");
                         tok2 = token.value;
+                        if (token.value == TOKinvariant)
+                        {
+                            error("use 'immutable' instead of 'invariant'");
+                            tok2 = TOKimmutable;
+                        }
                         nextToken();
                     }
                     else
@@ -6265,7 +6268,7 @@ Expression *Parser::parseUnaryExp()
             else if ((token.value == TOKimmutable || token.value == TOKinvariant) && peekNext() == TOKrparen)
             {
                 if (token.value == TOKinvariant)
-                    deprecation("use of 'invariant' rather than 'immutable' is deprecated");
+                    error("use 'immutable' instead of 'invariant'");
                 m = MODimmutable;
                 goto Lmod2;
             }
