@@ -18,7 +18,6 @@
 #include <alloca.h>
 typedef __int64 longlong;
 typedef unsigned __int64 ulonglong;
-#define strtof strtod
 #else
 typedef long long longlong;
 typedef unsigned long long ulonglong;
@@ -46,6 +45,10 @@ struct Port
 
     static int memicmp(const char *s1, const char *s2, int n);
     static int stricmp(const char *s1, const char *s2);
+
+    static float strtof(const char *p, char **endp);
+    static double strtod(const char *p, char **endp);
+    static longdouble strtold(const char *p, char **endp);
 };
 
 #endif
