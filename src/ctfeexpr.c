@@ -170,6 +170,8 @@ void ThrownExceptionExp::generateUncaughtError()
 // True if 'e' is EXP_CANT_INTERPRET, or an exception
 bool exceptionOrCantInterpret(Expression *e)
 {
+    assert(EXP_CANT_INTERPRET && "EXP_CANT_INTERPRET must be distinct from "
+        "null, Expression::init not called?");
     if (e == EXP_CANT_INTERPRET) return true;
     if (!e || e == EXP_GOTO_INTERPRET || e == EXP_VOID_INTERPRET
         || e == EXP_BREAK_INTERPRET || e == EXP_CONTINUE_INTERPRET)
