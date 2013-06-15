@@ -6353,8 +6353,6 @@ Expression *IsExp::semantic(Scope *sc)
                 tded = targ;
                 break;
 
-            case TOKinvariant:
-                deprecation("use of 'invariant' rather than 'immutable' is deprecated");
             case TOKimmutable:
                 if (!targ->isImmutable())
                     goto Lno;
