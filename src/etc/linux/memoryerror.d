@@ -14,7 +14,15 @@
 
 module etc.linux.memoryerror;
 
-version (linux):
+version (linux)
+{
+    version (X86)
+        version = MemoryErrorSupported;
+    version (X86_64)
+        version = MemoryErrorSupported;
+}
+
+version (MemoryErrorSupported):
 @system:
 
 import core.sys.posix.signal;
