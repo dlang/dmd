@@ -427,6 +427,10 @@ Symbol *FuncDeclaration::toSymbol()
                         ::type *ts = sd->type->toCtype();
                         s->Sscope = ts->Ttag;
                     }
+                    if (isCtorDeclaration())
+                        s->Sfunc->Fflags |= Fctor;
+                    if (isDtorDeclaration())
+                        s->Sfunc->Fflags |= Fdtor;
                     break;
                 }
                 default:
