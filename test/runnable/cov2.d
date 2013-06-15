@@ -1,6 +1,7 @@
 // PERMUTE_ARGS:
 // POST_SCRIPT: runnable/extra-files/cov2-postscript.sh
 // REQUIRED_ARGS: -cov
+// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
 
 extern(C) void dmd_coverDestPath(string pathname);
 
@@ -8,8 +9,6 @@ extern(C) void dmd_coverDestPath(string pathname);
 
 void test1()
 {
-    dmd_coverDestPath("test_results/runnable");
-
     int counter = 20;
     do {
         --counter;
@@ -43,8 +42,9 @@ void test2()
 
 /***************************************************/
 
-int main()
+int main(string[] args)
 {
+    dmd_coverDestPath(args[1]);
     test1();
     test2();
     return 0;

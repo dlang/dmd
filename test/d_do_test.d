@@ -143,6 +143,13 @@ bool findOutputParameter(string file, string token, out string result, string se
     return found;
 }
 
+void replaceResultsDir(ref string arguments, const ref EnvData envData)
+{
+    // Bash would expand this automatically on Posix, but we need to manually
+    // perform the replacement for Windows compatibility.
+    arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
+}
+
 void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
     string file = cast(string)std.file.read(input_file);
@@ -150,6 +157,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
+    replaceResultsDir(testArgs.requiredArgs, envData);
 
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
@@ -160,6 +168,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
         if(!findTestParameter(file, "unittest", unittestJunk))
             testArgs.permuteArgs = replace(testArgs.permuteArgs, "-unittest", "");
     }
+    replaceResultsDir(testArgs.permuteArgs, envData);
 
     // win(32|64) doesn't support pic, nor does freebsd/64 currently
     if (envData.os == "win32" || envData.os == "win64" || envData.os == "freebsd")
@@ -173,6 +182,7 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     testArgs.permuteArgs = strip(replace(testArgs.permuteArgs, "  ", " "));
 
     findTestParameter(file, "EXECUTE_ARGS", testArgs.executeArgs);
+    replaceResultsDir(testArgs.executeArgs, envData);
 
     string extraSourcesStr;
     findTestParameter(file, "EXTRA_SOURCES", extraSourcesStr);
