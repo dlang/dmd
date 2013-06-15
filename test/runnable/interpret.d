@@ -3044,6 +3044,7 @@ const t109c = new Test109C();
 
 struct Test109S { this(int){ this.s = &this; } Test109S* s; }
 const t109s = new Test109S(0);
+pragma(msg, t109s); // Make sure there is no infinite recursion.
 
 void test109()
 {
