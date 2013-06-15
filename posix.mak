@@ -51,7 +51,7 @@ endif
 
 DFLAGS=$(MODEL_FLAG) -O -release -inline -w -Isrc -Iimport -property $(PIC)
 UDFLAGS=$(MODEL_FLAG) -O -release -w -Isrc -Iimport -property $(PIC)
-DDOCFLAGS=$(MODEL_FLAG) -c -w -o- -Isrc -Iimport -version=CoreDdoc
+DDOCFLAGS=-c -w -o- -Isrc -Iimport -version=CoreDdoc
 
 CFLAGS=$(MODEL_FLAG) -O $(PIC)
 
@@ -122,7 +122,7 @@ import: $(IMPORTS)
 
 $(IMPDIR)/core/sync/%.di : src/core/sync/%.d
 	@mkdir -p `dirname $@`
-	$(DMD) $(MODEL_FLAG) -c -o- -Isrc -Iimport -Hf$@ $<
+	$(DMD) -c -o- -Isrc -Iimport -Hf$@ $<
 
 ######################## Header .di file copy ##############################
 
