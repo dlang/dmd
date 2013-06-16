@@ -8,8 +8,9 @@ class NSObject {
 	this() [init];
 }
 
+int invariant1;
+
 class Test1Object : NSObject {
-	int invariant1;
     int preinit = 1; // test that preinit doesn't call invariant
     
     void test() { test2(); }
@@ -23,11 +24,12 @@ class Test1Object : NSObject {
     }
 }
 
+int invariant2;
+
 class Test2Object : Test1Object {
-	int invariant2;
     int callsToTest2;
     
-    void test() { super.test(); }
+    override void test() { super.test(); }
     
     invariant() {
         printf("invariant2\n");
@@ -38,14 +40,14 @@ class Test2Object : Test1Object {
 import std.c.stdio;
 void main() {
 	Test2Object obj = new Test2Object;
-    assert(obj.invariant2 == 1);
-    assert(obj.invariant1 == 1);
+    assert(invariant2 == 1);
+    assert(invariant1 == 1);
     
     obj.test();
-    assert(obj.invariant2 == 5);
-    assert(obj.invariant1 == 5);
+    assert(invariant2 == 5);
+    assert(invariant1 == 5);
     
     assert(obj);
-    assert(obj.invariant2 == 6);
-    assert(obj.invariant1 == 6);
+    assert(invariant2 == 6);
+    assert(invariant1 == 6);
 }

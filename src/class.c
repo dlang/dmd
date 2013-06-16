@@ -916,6 +916,8 @@ Lancestorsdone:
 
             // create dynamic dispatch handler for invariant
 			FuncDeclaration *newinvfd = new FuncDeclaration(iloc, iloc, Id::_dobjc_invariant, STCundefined, invtf);
+            if (baseClass && baseClass->inv)
+                newinvfd->storage_class |= STCoverride;
 
             Expression *e;
             e = new DsymbolExp(iloc, inv);
