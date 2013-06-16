@@ -577,6 +577,17 @@ unittest
     }
 }
 
+unittest // Test for Issue 10381
+{
+    alias II = int[int];
+    II aa1 = [0: 1];
+    II aa2 = [0: 1];
+    II aa3 = [0: 2];
+    assert(aa1 == aa2); // Passes
+    assert( typeid(II).equals(&aa1, &aa2));
+    assert(!typeid(II).equals(&aa1, &aa3));
+}
+
 
 /**********************************************
  * 'apply' for associative arrays - to support foreach

@@ -619,6 +619,11 @@ class TypeInfo_AssociativeArray : TypeInfo
                     this.value == c.value;
     }
 
+    override bool equals(in void* p1, in void* p2) @trusted const
+    {
+        return !!_aaEqual(this, *cast(const void**) p1, *cast(const void**) p2);
+    }
+
     override hash_t getHash(in void* p) nothrow @trusted const
     {
         return _aaGetHash(cast(void*)p, this);
@@ -2067,6 +2072,7 @@ extern (C)
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...);
+    int _aaEqual(in TypeInfo tiRaw, in void* e1, in void* e2);
     hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
 }
 
