@@ -22,6 +22,12 @@ typedef volatile long double volatile_longdouble;
 // template<typename T> longdouble ldouble(T x) { return (longdouble) x; }
 #define ldouble(x) ((longdouble)(x))
 
+#if __MINGW32__
+// MinGW supports 80 bit reals, but the formatting functions map to versions
+// from the MSVC runtime by default which don't.
+#define sprintf __mingw_sprintf
+#endif
+
 inline size_t ld_sprint(char* str, int fmt, longdouble x)
 {
     if (((longdouble)(unsigned long long)x) == x)
@@ -39,6 +45,10 @@ inline size_t ld_sprint(char* str, int fmt, longdouble x)
         return sprintf(str, sfmt, x);
     }
 }
+
+#if __MINGW32__
+#undef sprintf
+#endif
 
 #else
 
