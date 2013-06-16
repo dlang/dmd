@@ -21,5 +21,5 @@ void main() {
     bool __selector() getterSel = &TestObject.prop;
     void __selector(bool) setterSel = &TestObject.prop;
     assert(cast(SEL)getterSel == sel_registerName("prop"));
-    assert(cast(SEL)setterSel == sel_registerName("setProp"));
+    assert(cast(SEL)setterSel == sel_registerName("setProp:"));
 }
