@@ -176,6 +176,11 @@ void Dsymbol::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool i
 {
 }
 
+Identifier *Dsymbol::getIdent()
+{
+    return ident;
+}
+
 char *Dsymbol::toChars()
 {
     return ident ? ident->toChars() : (char *)"__anonymous";
