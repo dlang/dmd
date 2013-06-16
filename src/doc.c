@@ -188,6 +188,7 @@ DDOC_CLASS_MEMBERS  = $(DDOC_MEMBERS $0)\n\
 DDOC_STRUCT_MEMBERS = $(DDOC_MEMBERS $0)\n\
 DDOC_ENUM_MEMBERS   = $(DDOC_MEMBERS $0)\n\
 DDOC_TEMPLATE_MEMBERS = $(DDOC_MEMBERS $0)\n\
+DDOC_ENUM_BASETYPE = $0\n\
 DDOC_PARAMS    = $(B Params:)$(BR)\n$(TABLE $0)$(BR)\n\
 DDOC_PARAM_ROW = $(TR $0)\n\
 DDOC_PARAM_ID  = $(TD $0)\n\
@@ -1175,6 +1176,13 @@ void EnumDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
     if (ident)
     {
         buf->printf("%s %s", kind(), toChars());
+        if (memtype)
+        {
+            buf->writestring(": $(DDOC_ENUM_BASETYPE ");
+            HdrGenState *hgs = NULL;
+            memtype->toCBuffer(buf, NULL, hgs);
+            buf->writestring(")");
+        }
         buf->writestring(";\n");
     }
 }
