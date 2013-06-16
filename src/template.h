@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -100,6 +100,9 @@ public:
     FuncDeclaration *deduceFunctionTemplate(Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, int flags = 0);
     Object *declareParameter(Scope *sc, TemplateParameter *tp, Object *o);
     FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Type *tthis, Expressions *fargs);
+    TemplateInstance *findExistingInstance(TemplateInstance *tithis, Scope *sc, Expressions *fargs);
+    size_t addInstance(TemplateInstance *ti);
+    void removeInstance(size_t handle);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 

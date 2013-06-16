@@ -44,6 +44,7 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #define IDX_NOTFOUND (0x12345678)               // index is not found
 
 size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
+int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, Scope *sc);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -289,15 +290,8 @@ int match(Object *o1, Object *o2, TemplateDeclaration *tempdecl, Scope *sc)
     {
         if (!u2)
             goto Lnomatch;
-        if (u1->objects.dim != u2->objects.dim)
+        if (!arrayObjectMatch(&u1->objects, &u2->objects, tempdecl, sc))
             goto Lnomatch;
-        for (size_t i = 0; i < u1->objects.dim; i++)
-        {
-            if (!match(u1->objects[i],
-                       u2->objects[i],
-                       tempdecl, sc))
-                goto Lnomatch;
-        }
     }
     //printf("match\n");
     return 1;   // match
@@ -2607,6 +2601,90 @@ char *TemplateDeclaration::toChars()
 PROT TemplateDeclaration::prot()
 {
     return protection;
+}
+
+/****************************************************
+ * Given a new instance tithis of this TemplateDeclaration,
+ * see if there already exists an instance.
+ * If so, return that existing instance.
+ */
+
+TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Scope *sc, Expressions *fargs)
+{
+    for (size_t i = 0; i < instances.dim; i++)
+    {
+        TemplateInstance *ti = instances[i];
+#if LOG
+        printf("\t%s: checking for match with instance %d (%p): '%s'\n", tithis->toChars(), i, ti, ti->toChars());
+#endif
+        assert(tithis->tdtypes.dim == ti->tdtypes.dim);
+
+        // Nesting must match
+        if (tithis->enclosing != ti->enclosing)
+        {
+            //printf("test2 enclosing %s ti->enclosing %s\n", tithis->enclosing ? tithis->enclosing->toChars() : "", ti->enclosing ? ti->enclosing->toChars() : "");
+            continue;
+        }
+        //printf("parent = %s, ti->parent = %s\n", parent->toPrettyChars(), ti->parent->toPrettyChars());
+
+        if (!arrayObjectMatch(&tithis->tdtypes, &ti->tdtypes, this, sc))
+            continue;
+
+        /* Template functions may have different instantiations based on
+         * "auto ref" parameters.
+         */
+        if (fargs)
+        {
+            FuncDeclaration *fd = ti->toAlias()->isFuncDeclaration();
+            if (fd)
+            {
+                Parameters *fparameters = fd->getParameters(NULL);
+                size_t nfparams = Parameter::dim(fparameters); // Num function parameters
+                for (size_t j = 0; j < nfparams && j < fargs->dim; j++)
+                {   Parameter *fparam = Parameter::getNth(fparameters, j);
+                    Expression *farg = (*fargs)[j];
+                    if (fparam->storageClass & STCauto)         // if "auto ref"
+                    {
+                        if (farg->isLvalue())
+                        {   if (!(fparam->storageClass & STCref))
+                                goto L1;                        // auto ref's don't match
+                        }
+                        else
+                        {   if (fparam->storageClass & STCref)
+                                goto L1;                        // auto ref's don't match
+                        }
+                    }
+                }
+            }
+        }
+        return ti;
+
+    L1: ;
+    }
+    return NULL;        // didn't find a match
+}
+
+/********************************************
+ * Add instance ti to TemplateDeclaration's table of instances.
+ * Return a handle we can use to later remove it.
+ */
+
+size_t TemplateDeclaration::addInstance(TemplateInstance *ti)
+{
+    size_t i = instances.dim;
+    instances.push(ti);
+    return i;
+}
+
+/*******************************************
+ * Remove TemplateInstance from table of instances.
+ * Input:
+ *      handle returned by addInstance()
+ */
+
+void TemplateDeclaration::removeInstance(size_t handle)
+{
+    instances.remove(handle);
 }
 
 /* ======================== Type ============================================ */
@@ -5011,85 +5089,40 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
-
-    for (size_t i = 0; i < tempdecl->instances.dim; i++)
     {
-        TemplateInstance *ti = tempdecl->instances[i];
-#if LOG
-        printf("\t%s: checking for match with instance %d (%p): '%s'\n", toChars(), i, ti, ti->toChars());
-#endif
-        assert(tdtypes.dim == ti->tdtypes.dim);
-
-        // Nesting must match
-        if (enclosing != ti->enclosing)
+        TemplateInstance *ti = tempdecl->findExistingInstance(this, sc, fargs);
+        if (ti)
         {
-            //printf("test2 enclosing %s ti->enclosing %s\n", enclosing ? enclosing->toChars() : "", ti->enclosing ? ti->enclosing->toChars() : "");
-            continue;
-        }
-        //printf("parent = %s, ti->parent = %s\n", tempdecl->parent->toPrettyChars(), ti->parent->toPrettyChars());
+            // It's a match
+            inst = ti;
+            parent = ti->parent;
 
-        if (!arrayObjectMatch(&tdtypes, &ti->tdtypes, tempdecl, sc))
-            goto L1;
-
-        /* Template functions may have different instantiations based on
-         * "auto ref" parameters.
-         */
-        if (fargs)
-        {
-            FuncDeclaration *fd = ti->toAlias()->isFuncDeclaration();
-            if (fd)
+            // If both this and the previous instantiation were speculative,
+            // use the number of errors that happened last time.
+            if (inst->speculative && global.gag)
             {
-                Parameters *fparameters = fd->getParameters(NULL);
-                size_t nfparams = Parameter::dim(fparameters); // Num function parameters
-                for (size_t j = 0; j < nfparams && j < fargs->dim; j++)
-                {   Parameter *fparam = Parameter::getNth(fparameters, j);
-                    Expression *farg = (*fargs)[j];
-                    if (fparam->storageClass & STCauto)         // if "auto ref"
-                    {
-                        if (farg->isLvalue())
-                        {   if (!(fparam->storageClass & STCref))
-                                goto L1;                        // auto ref's don't match
-                        }
-                        else
-                        {   if (fparam->storageClass & STCref)
-                                goto L1;                        // auto ref's don't match
-                        }
-                    }
-                }
+                global.errors += inst->errors;
+                global.gaggedErrors += inst->errors;
             }
-        }
 
-        // It's a match
-        inst = ti;
-        parent = ti->parent;
-
-        // If both this and the previous instantiation were speculative,
-        // use the number of errors that happened last time.
-        if (inst->speculative && global.gag)
-        {
-            global.errors += inst->errors;
-            global.gaggedErrors += inst->errors;
-        }
-
-        // If the first instantiation was speculative, but this is not:
-        if (inst->speculative && !global.gag)
-        {
-            // If the first instantiation had failed, re-run semantic,
-            // so that error messages are shown.
-            if (inst->errors)
-                goto L1;
-            // It had succeeded, mark it is a non-speculative instantiation,
-            // and reuse it.
-            inst->speculative = 0;
-        }
+            // If the first instantiation was speculative, but this is not:
+            if (inst->speculative && !global.gag)
+            {
+                // If the first instantiation had failed, re-run semantic,
+                // so that error messages are shown.
+                if (inst->errors)
+                    goto L1;
+                // It had succeeded, mark it is a non-speculative instantiation,
+                // and reuse it.
+                inst->speculative = 0;
+            }
 
 #if LOG
-        printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
+            printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
-        return;
-
-     L1:
-        ;
+            return;
+        }
+    L1: ;
     }
 
     /* So, we need to implement 'this' instance.
@@ -5104,8 +5137,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     if (global.gag && sc->speculative)
         speculative = 1;
 
-    size_t tempdecl_instance_idx = tempdecl->instances.dim;
-    tempdecl->instances.push(this);
+    size_t tempdecl_instance_idx = tempdecl->addInstance(this);
+
     parent = tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
 
@@ -5388,7 +5421,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             // instance/symbol lists we added it to and reset our state to
             // finish clean and so we can try to instantiate it again later
             // (see bugzilla 4302 and 6602).
-            tempdecl->instances.remove(tempdecl_instance_idx);
+            tempdecl->removeInstance(tempdecl_instance_idx);
             if (target_symbol_list)
             {
                 // Because we added 'this' in the last position above, we
