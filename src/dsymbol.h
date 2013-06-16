@@ -150,6 +150,7 @@ public:
 
     static Dsymbols *arraySyntaxCopy(Dsymbols *a);
 
+    virtual Identifier *getIdent();
     virtual const char *toPrettyChars();
     virtual const char *kind();
     virtual Dsymbol *toAlias();                 // resolve real symbol
