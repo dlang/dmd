@@ -339,6 +339,7 @@ public:
     char *toChars();
     const char *mangle(bool isv = false);
     void printInstantiationTrace();
+    Identifier *getIdent();
 
     void toObjFile(int multiobj);                       // compile to .obj file
 
