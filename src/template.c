@@ -5109,7 +5109,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     parent = tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
 
-    ident = genIdent(tiargs);         // need an identifier for name mangling purposes.
+    //getIdent();
 
 #if 1
     if (enclosing)
@@ -6202,6 +6202,17 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     return Lexer::idPool(id);
 }
 
+/*************************************
+ * Lazily generate identifier for template instance.
+ * This is because 75% of the ident's are never needed.
+ */
+
+Identifier *TemplateInstance::getIdent()
+{
+    if (!ident && inst)
+        ident = genIdent(tiargs);         // need an identifier for name mangling purposes.
+    return ident;
+}
 
 /****************************************************
  * Declare parameters of template instance, initialize them with the

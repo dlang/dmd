@@ -46,7 +46,7 @@ char *mangle(Declaration *sthis, bool isv)
     do
     {
         //printf("mangle: s = %p, '%s', parent = %p\n", s, s->toChars(), s->parent);
-        if (s->ident)
+        if (s->getIdent())
         {
             FuncDeclaration *fd = s->isFuncDeclaration();
             if (s != sthis && fd)
@@ -174,8 +174,8 @@ const char *FuncDeclaration::mangle(bool isv)
 #endif
     {
         if (mangleOverride)
-            return mangleOverride; 
-    
+            return mangleOverride;
+
         if (isMain())
             return (char *)"_Dmain";
 
@@ -272,6 +272,7 @@ const char *TemplateInstance::mangle(bool isv)
         printf("  parent = %s %s", parent->kind(), parent->toChars());
     printf("\n");
 #endif
+    getIdent();
     const char *id = ident ? ident->toChars() : toChars();
     if (!tempdecl)
         error("is not defined");
