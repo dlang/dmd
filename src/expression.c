@@ -9383,6 +9383,15 @@ Expression *AddrExp::semantic(Scope *sc)
                 e = e->semantic(sc);
                 return e;
             }
+#if DMD_OBJC
+            if (f->needThis() && f->objcSelector)
+            {
+                Expression *e = new ObjcSelectorExp(loc, f, ve->hasOverloads);
+                e = e->semantic(sc);
+                return e;
+            }
+            else
+#endif
             if (f->needThis() && hasThis(sc))
             {
                 /* Should probably supply 'this' after overload resolution,
