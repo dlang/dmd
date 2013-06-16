@@ -227,7 +227,6 @@ class ClassDeclaration : public AggregateDeclaration
 {
 public:
     static ClassDeclaration *object;
-    static ClassDeclaration *classinfo;
     static ClassDeclaration *throwable;
     static ClassDeclaration *exception;
     static ClassDeclaration *errorException;
@@ -262,7 +261,7 @@ public:
                                         // calling semantic() at least once, due to fill symtab
                                         // and do addMember(). [== Semantic(Start,In,Done)]
 
-    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
+    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

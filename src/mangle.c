@@ -250,7 +250,7 @@ const char *ClassDeclaration::mangle(bool isv)
         ident == Id::TypeInfo_Typedef  ||
         ident == Id::TypeInfo_Tuple ||
         this == object     ||
-        this == classinfo  ||
+        this == Type::typeinfoclass  ||
         this == Module::moduleinfo ||
         memcmp(ident->toChars(), "TypeInfo_", 9) == 0
        )

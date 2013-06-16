@@ -485,20 +485,20 @@ void ClassDeclaration::toObjFile(int multiobj)
     dt_t *dt = NULL;
     unsigned classinfo_size = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
     offset = classinfo_size;
-    if (classinfo)
+    if (Type::typeinfoclass)
     {
-        if (classinfo->structsize != classinfo_size)
+        if (Type::typeinfoclass->structsize != classinfo_size)
         {
 #ifdef DEBUG
-            printf("CLASSINFO_SIZE = x%x, classinfo->structsize = x%x\n", offset, classinfo->structsize);
+            printf("CLASSINFO_SIZE = x%x, Type::typeinfoclass->structsize = x%x\n", offset, Type::typeinfoclass->structsize);
 #endif
             error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
             fatal();
         }
     }
 
-    if (classinfo)
-        dtxoff(&dt, classinfo->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
+    if (Type::typeinfoclass)
+        dtxoff(&dt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
     else
         dtsize_t(&dt, 0);                // BUG: should be an assert()
     dtsize_t(&dt, 0);                    // monitor
@@ -974,8 +974,8 @@ void InterfaceDeclaration::toObjFile(int multiobj)
      */
     dt_t *dt = NULL;
 
-    if (classinfo)
-        dtxoff(&dt, classinfo->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
+    if (Type::typeinfoclass)
+        dtxoff(&dt, Type::typeinfoclass->toVtblSymbol(), 0, TYnptr); // vtbl for ClassInfo
     else
         dtsize_t(&dt, 0);                // BUG: should be an assert()
     dtsize_t(&dt, 0);                    // monitor
@@ -1000,9 +1000,9 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     if (vtblInterfaces->dim)
     {
         offset = global.params.isLP64 ? CLASSINFO_SIZE_64 : CLASSINFO_SIZE;    // must be ClassInfo.size
-        if (classinfo)
+        if (Type::typeinfoclass)
         {
-            if (classinfo->structsize != offset)
+            if (Type::typeinfoclass->structsize != offset)
             {
                 error("mismatch between dmd and object.d or object.di found. Check installation and import paths with -v compiler switch.");
                 fatal();
