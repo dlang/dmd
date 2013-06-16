@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -H -Hdtest_results/compilable -inline
+// REQUIRED_ARGS: -H -Hd${RESULTS_DIR}/compilable -inline
 // POST_SCRIPT: compilable/extra-files/inlinexheader-postscript.sh
 
 // for D 2.0 only

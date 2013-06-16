@@ -1,6 +1,7 @@
 // PERMUTE_ARGS:
 // REQUIRED_ARGS: -cov
 // POST_SCRIPT: runnable/extra-files/sieve-postscript.sh
+// EXECUTE_ARGS: ${RESULTS_DIR}/runnable
 
 /* Eratosthenes Sieve prime number calculation. */
 
@@ -38,10 +39,10 @@ int sieve()
 
 extern(C) void dmd_coverDestPath(string path);
 
-int main()
+int main(string[] args)
 {
 
-    dmd_coverDestPath("test_results/runnable/");
+    dmd_coverDestPath(args[1]);
 
     sieve();
 

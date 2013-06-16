@@ -1,5 +1,5 @@
 // PERMUTE_ARGS:
-// REQUIRED_ARGS: -o- -X -Xftest_results/compilable/json.out
+// REQUIRED_ARGS: -o- -X -Xf${RESULTS_DIR}/compilable/json.out
 // POST_SCRIPT: compilable/extra-files/json-postscript.sh
 
 module json;
