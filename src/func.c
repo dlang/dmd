@@ -3134,11 +3134,6 @@ bool FuncDeclaration::isFinal()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
-bool FuncDeclaration::isAbstract()
-{
-    return (storage_class & STCabstract) != 0;
-}
-
 bool FuncDeclaration::isCodeseg()
 {
     return true;                // functions are always in the code segment

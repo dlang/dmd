@@ -685,7 +685,6 @@ public:
     BUILTIN isBuiltin();
     bool isExport();
     bool isImportedSymbol();
-    bool isAbstract();
     bool isCodeseg();
     bool isOverloadable();
     bool hasOverloads();
