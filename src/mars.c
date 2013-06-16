@@ -350,8 +350,8 @@ Usage:\n\
   -debuglib=name    set symbolic debug library to name\n\
   -defaultlib=name  set default library to name\n\
   -deps write module import dependencies to stdout. (All dependencies including file/version/debug/lib)\n\
-  -deps=filename write module dependencies to filename (only imports - deprecated)\n%s"
-"  -g             add symbolic debug info\n\
+  -deps=filename write module dependencies to filename (only imports - deprecated)\n%s\
+  -g             add symbolic debug info\n\
   -gc            add symbolic debug info, pretend to be C\n\
   -gs            always emit stack frame\n\
   -gx            add stack stomp code\n\
@@ -364,12 +364,10 @@ Usage:\n\
   -inline        do function inlining\n\
   -Jpath         where to look for string imports\n\
   -Llinkerflag   pass linkerflag to link\n\
-  -lib           generate library rather than object files\n"
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-"  -m32           generate 32 bit code\n\
-  -m64           generate 64 bit code\n"
-#endif
-"  -main          add default main() (e.g. for unittesting)\n\
+  -lib           generate library rather than object files\n\
+  -m32           generate 32 bit code\n\
+  -m64           generate 64 bit code\n\
+  -main          add default main() (e.g. for unittesting)\n\
   -man           open web browser on manual page\n\
   -map           generate linker .map file\n\
   -noboundscheck turns off array bounds checking for all functions\n\
