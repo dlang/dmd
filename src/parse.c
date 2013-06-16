@@ -1745,7 +1745,10 @@ Dsymbol *Parser::parseAggregate()
             }
 
             if (tok == TOKclass)
-                a = new ClassDeclaration(loc, id, baseclasses);
+            {
+                bool inObject = md && !md->packages && md->id == Id::object;
+                a = new ClassDeclaration(loc, id, baseclasses, inObject);
+            }
             else
                 a = new InterfaceDeclaration(loc, id, baseclasses);
             break;
