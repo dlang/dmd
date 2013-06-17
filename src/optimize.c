@@ -25,13 +25,6 @@
 #include "init.h"
 #include "enum.h"
 
-#ifdef IN_GCC
-#include "d-gcc-real.h"
-#endif
-
-static real_t zero;     // work around DMC bug for now
-
-
 /*************************************
  * If variable has a const initializer,
  * return that initializer.

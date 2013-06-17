@@ -60,8 +60,8 @@ typedef bool (*sapply_fp_t)(Statement *, void *);
 struct IRState;
 struct Blockx;
 #ifdef IN_GCC
-union tree_node; typedef union tree_node block;
-union tree_node; typedef union tree_node elem;
+typedef union tree_node block;
+typedef union tree_node elem;
 #else
 struct block;
 struct elem;
