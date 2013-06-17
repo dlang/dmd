@@ -27,7 +27,7 @@ class Library;
 
 // Back end
 #ifdef IN_GCC
-union tree_node; typedef union tree_node elem;
+typedef union tree_node elem;
 #else
 struct elem;
 #endif

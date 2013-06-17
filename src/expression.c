@@ -2860,11 +2860,8 @@ char *RealExp::toChars()
     Plus one for rounding. */
     char buffer[sizeof(value) * 3 + 8 + 1 + 1];
 
-#ifdef IN_GCC
-    value.format(buffer, sizeof(buffer));
-#else
     ld_sprint(buffer, 'g', value);
-#endif
+
     if (type->isimaginary())
         strcat(buffer, "i");
 
@@ -3076,13 +3073,9 @@ char *ComplexExp::toChars()
 
     char buf1[sizeof(value) * 3 + 8 + 1];
     char buf2[sizeof(value) * 3 + 8 + 1];
-#ifdef IN_GCC
-    creall(value).format(buf1, sizeof(buf1));
-    cimagl(value).format(buf2, sizeof(buf2));
-#else
+
     ld_sprint(buf1, 'g', creall(value));
     ld_sprint(buf2, 'g', cimagl(value));
-#endif
     sprintf(buffer, "(%s+%si)", buf1, buf2);
     assert(strlen(buffer) < sizeof(buffer) / sizeof(buffer[0]));
     return mem.strdup(buffer);

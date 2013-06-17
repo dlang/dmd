@@ -58,7 +58,7 @@ struct IRState;
 struct dt_t;
 
 #ifdef IN_GCC
-union tree_node; typedef union tree_node elem;
+typedef union tree_node elem;
 #else
 struct elem;
 #endif

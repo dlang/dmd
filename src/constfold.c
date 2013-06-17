@@ -486,8 +486,6 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
 
 #ifdef __DMC__
             c = Port::fmodl(e1->toReal(), r2) + Port::fmodl(e1->toImaginary(), r2) * I;
-#elif defined(IN_GCC)
-            c = complex_t(e1->toReal() % r2, e1->toImaginary() % r2);
 #else
             c = complex_t(Port::fmodl(e1->toReal(), r2), Port::fmodl(e1->toImaginary(), r2));
 #endif
@@ -497,8 +495,6 @@ Expression *Mod(Type *type, Expression *e1, Expression *e2)
 
 #ifdef __DMC__
             c = Port::fmodl(e1->toReal(), i2) + Port::fmodl(e1->toImaginary(), i2) * I;
-#elif defined(IN_GCC)
-            c = complex_t(e1->toReal() % i2, e1->toImaginary() % i2);
 #else
             c = complex_t(Port::fmodl(e1->toReal(), i2), Port::fmodl(e1->toImaginary(), i2));
 #endif
