@@ -3001,6 +3001,10 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     SliceExp *sexp, Expression *newval, bool wantRef, bool isBlockAssignment,
     BinExp *originalExpression);
 
+bool interpretAssignToIndex(InterState *istate, Loc loc,
+    IndexExp *ie, Expression *newval, bool wantRef,
+    BinExp *originalExp);
+
 Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post)
 {
 #if LOG
@@ -3583,11 +3587,40 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
     else if (e1->op == TOKindex)
     {
+        if ( !interpretAssignToIndex(istate, loc, (IndexExp *)e1, newval,
+            wantRef, this))
+            return EXP_CANT_INTERPRET;
+        return returnValue;
+    }
+    else if (e1->op == TOKslice)
+    {
+        // Note that slice assignments don't support things like ++, so
+        // we don't need to remember 'returnValue'.
+        return interpretAssignToSlice(istate, goal, loc, (SliceExp *)e1,
+            newval, wantRef, isBlockAssignment, this);
+    }
+    else
+    {
+        error("%s cannot be evaluated at compile time", toChars());
+    }
+    return returnValue;
+}
+
+/*************
+ *  Deal with assignments of the form
+ *  aggregate[ie] = newval
+ *  where aggregate and newval have already been interpreted
+ *
+ *  Return true if OK, false if error occured
+ */
+bool interpretAssignToIndex(InterState *istate, Loc loc,
+    IndexExp *ie, Expression *newval, bool wantRef,
+    BinExp *originalExp)
+{
         /* Assignment to array element of the form:
          *   aggregate[i] = newval
          *   aggregate is not AA (AAs were dealt with already).
          */
-        IndexExp *ie = (IndexExp *)e1;
         assert(ie->e1->type->toBasetype()->ty != Taarray);
         uinteger_t destarraylen = 0;
 
@@ -3597,15 +3630,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             Expression *oldval = ie->e1->interpret(istate);
             if (oldval->op == TOKnull)
             {
-                error("cannot index null array %s", ie->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                originalExp->error("cannot index null array %s", ie->e1->toChars());
+                return false;
             }
             if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
                 && oldval->op != TOKslice)
             {
-                error("cannot determine length of %s at compile time",
+                originalExp->error("cannot determine length of %s at compile time",
                     ie->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                return false;
             }
             destarraylen = resolveArrayLength(oldval);
             if (ie->lengthVar)
@@ -3619,7 +3652,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (ie->lengthVar)
             ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
         if (exceptionOrCantInterpret(index))
-            return index;
+            return false;
 
         assert (index->op != TOKslice);  // only happens with AA assignment
 
@@ -3638,14 +3671,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 return aggregate;
             if (aggregate->op == TOKnull)
             {
-                error("cannot index through null pointer %s", ie->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
+                return false;
             }
             if (aggregate->op == TOKint64)
             {
-                error("cannot index through invalid pointer %s of value %s",
+                originalExp->error("cannot index through invalid pointer %s of value %s",
                     ie->e1->toChars(), aggregate->toChars());
-                return EXP_CANT_INTERPRET;
+                return false;
             }
             aggregate = getAggregateFromPointer(aggregate, &ofs);
             indexToModify += ofs;
@@ -3654,28 +3687,28 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             {
                 if (aggregate->op == TOKsymoff)
                 {
-                    error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
-                    return EXP_CANT_INTERPRET;
+                    originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
+                    return false;
                 }
                 if (indexToModify != 0)
                 {
-                    error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
-                    return EXP_CANT_INTERPRET;
+                    originalExp->error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
+                    return false;
                 }
                 // It is equivalent to *aggregate = newval.
                 // Aggregate could be varexp, a dotvar, ...
                 // TODO: we could support this
-                error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
-                    ie->e1->toChars(), e2->toChars());
-                return EXP_CANT_INTERPRET;
+                originalExp->error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
+                    ie->e1->toChars(), originalExp->e2->toChars());
+                return false;
             }
             destarraylen = resolveArrayLength(aggregate);
         }
         if (indexToModify >= destarraylen)
         {
-            error("array index %lld is out of bounds [0..%lld]", indexToModify,
+            originalExp->error("array index %lld is out of bounds [0..%lld]", indexToModify,
                 destarraylen);
-            return EXP_CANT_INTERPRET;
+            return false;
         }
 
         /* The only possible indexable LValue aggregates are array literals, and
@@ -3697,12 +3730,12 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
-                    error("key %s not found in associative array %s",
+                    originalExp->error("key %s not found in associative array %s",
                         ix->e2->toChars(), ix->e1->toChars());
-                    return EXP_CANT_INTERPRET;
+                    return false;
                 }
                 if (exceptionOrCantInterpret(aggregate))
-                    return aggregate;
+                    return false;
             }
         }
         if (aggregate->op == TOKvar)
@@ -3713,8 +3746,8 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             if (aggregate->op == TOKnull)
             {
                 // This would be a runtime segfault
-                error("cannot index null array %s", v->toChars());
-                return EXP_CANT_INTERPRET;
+                originalExp->error("cannot index null array %s", v->toChars());
+                return false;
             }
         }
         if (aggregate->op == TOKslice)
@@ -3730,15 +3763,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             existingSE = (StringExp *)aggregate;
         else
         {
-            error("CTFE internal compiler error %s", aggregate->toChars());
-            return EXP_CANT_INTERPRET;
+            originalExp->error("CTFE internal compiler error %s", aggregate->toChars());
+            return false;
         }
         if (!wantRef && newval->op == TOKslice)
         {
             newval = resolveSlice(newval);
             if (newval == EXP_CANT_INTERPRET)
             {
-                error("Compiler error: CTFE index assign %s", toChars());
+                originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
                 assert(0);
             }
         }
@@ -3754,15 +3787,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 assignInPlace((*existingAE->elements)[indexToModify], newval);
             else
                 (*existingAE->elements)[indexToModify] = newval;
-            return returnValue;
+            return true;
         }
         if (existingSE)
         {
             unsigned char *s = (unsigned char *)existingSE->string;
             if (!existingSE->ownedByCtfe)
             {
-                error("cannot modify read-only string literal %s", ie->e1->toChars());
-                return EXP_CANT_INTERPRET;
+                originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
+                return false;
             }
             unsigned value = newval->toInteger();
             switch (existingSE->sz)
@@ -3774,25 +3807,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                     assert(0);
                     break;
             }
-            return returnValue;
+            return true;
         }
         else
         {
-            error("Index assignment %s is not yet supported in CTFE ", toChars());
-            return EXP_CANT_INTERPRET;
+            originalExp->error("Index assignment %s is not yet supported in CTFE ", originalExp->toChars());
+            return false;
         }
-        return returnValue;
-    }
-    else if (e1->op == TOKslice)
-    {
-        return interpretAssignToSlice(istate, goal, loc, (SliceExp *)e1,
-            newval, wantRef, isBlockAssignment, this);
-    }
-    else
-    {
-        error("%s cannot be evaluated at compile time", toChars());
-    }
-    return returnValue;
+        return true;
 }
 
 /*************
