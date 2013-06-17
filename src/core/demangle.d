@@ -113,7 +113,8 @@ private struct Demangle
     static bool isAlpha( char val )
     {
         return ('a' <= val && 'z' >= val) ||
-               ('A' <= val && 'Z' >= val);
+               ('A' <= val && 'Z' >= val) ||
+               (0x80 & val); // treat all unicode as alphabetic
     }
 
 
