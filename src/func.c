@@ -1801,7 +1801,10 @@ void FuncDeclaration::semantic3(Scope *sc)
 
 bool FuncDeclaration::functionSemantic()
 {
-    if (scope && !originalType)     // semantic not yet run
+    if (!scope)
+        return true;
+
+    if (!originalType)      // semantic not yet run
     {
         TemplateInstance *spec = isSpeculative();
         unsigned olderrs = global.errors;
@@ -1817,14 +1820,26 @@ bool FuncDeclaration::functionSemantic()
     }
 
     // if inferring return type, sematic3 needs to be run
-    TemplateInstance *ti;
-    AggregateDeclaration *ad;
-    if (scope &&
-        (inferRetType && type && !type->nextOf() ||
-         (ti = parent->isTemplateInstance()) != NULL && !ti->isTemplateMixin() && ti->name == ident ||
-         (ad = isThis()) != NULL && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
-    {
+    if (inferRetType && type && !type->nextOf())
         return functionSemantic3();
+
+    TemplateInstance *ti = parent->isTemplateInstance();
+    if (ti && !ti->isTemplateMixin() && ti->name == ident)
+        return functionSemantic3();
+
+    AggregateDeclaration *ad = isThis();
+    if (ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod())
+    {
+        if (ad->sizeok != SIZEOKdone)
+        {
+            /* Currently dmd cannot resolve forward references per methods,
+             * then setting SIZOKfwd is too conservative and would break existing code.
+             * So, just stop method attributes inference until ad->semantic() done.
+             */
+            //ad->sizeok = SIZEOKfwd;
+        }
+        else
+            return functionSemantic3();
     }
 
     return true;
