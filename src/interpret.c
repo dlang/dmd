@@ -3617,204 +3617,204 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
     IndexExp *ie, Expression *newval, bool wantRef,
     BinExp *originalExp)
 {
-        /* Assignment to array element of the form:
-         *   aggregate[i] = newval
-         *   aggregate is not AA (AAs were dealt with already).
-         */
-        assert(ie->e1->type->toBasetype()->ty != Taarray);
-        uinteger_t destarraylen = 0;
+    /* Assignment to array element of the form:
+     *   aggregate[i] = newval
+     *   aggregate is not AA (AAs were dealt with already).
+     */
+    assert(ie->e1->type->toBasetype()->ty != Taarray);
+    uinteger_t destarraylen = 0;
 
-        // Set the $ variable, and find the array literal to modify
-        if (ie->e1->type->toBasetype()->ty != Tpointer)
+    // Set the $ variable, and find the array literal to modify
+    if (ie->e1->type->toBasetype()->ty != Tpointer)
+    {
+        Expression *oldval = ie->e1->interpret(istate);
+        if (oldval->op == TOKnull)
         {
-            Expression *oldval = ie->e1->interpret(istate);
-            if (oldval->op == TOKnull)
-            {
-                originalExp->error("cannot index null array %s", ie->e1->toChars());
-                return false;
-            }
-            if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
-                && oldval->op != TOKslice)
-            {
-                originalExp->error("cannot determine length of %s at compile time",
-                    ie->e1->toChars());
-                return false;
-            }
-            destarraylen = resolveArrayLength(oldval);
-            if (ie->lengthVar)
-            {
-                IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
-                ctfeStack.push(ie->lengthVar);
-                ie->lengthVar->setValue(dollarExp);
-            }
+            originalExp->error("cannot index null array %s", ie->e1->toChars());
+            return false;
         }
-        Expression *index = ie->e2->interpret(istate);
+        if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
+            && oldval->op != TOKslice)
+        {
+            originalExp->error("cannot determine length of %s at compile time",
+                ie->e1->toChars());
+            return false;
+        }
+        destarraylen = resolveArrayLength(oldval);
         if (ie->lengthVar)
-            ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
-        if (exceptionOrCantInterpret(index))
-            return false;
-
-        assert (index->op != TOKslice);  // only happens with AA assignment
-
-        ArrayLiteralExp *existingAE = NULL;
-        StringExp *existingSE = NULL;
-
-        Expression *aggregate = resolveReferences(ie->e1);
-
-        // Set the index to modify, and check that it is in range
-        dinteger_t indexToModify = index->toInteger();
-        if (ie->e1->type->toBasetype()->ty == Tpointer)
         {
-            dinteger_t ofs;
-            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-                return aggregate;
-            if (aggregate->op == TOKnull)
-            {
-                originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
-                return false;
-            }
-            if (aggregate->op == TOKint64)
-            {
-                originalExp->error("cannot index through invalid pointer %s of value %s",
-                    ie->e1->toChars(), aggregate->toChars());
-                return false;
-            }
-            aggregate = getAggregateFromPointer(aggregate, &ofs);
-            indexToModify += ofs;
-            if (aggregate->op != TOKslice && aggregate->op != TOKstring &&
-                aggregate->op != TOKarrayliteral && aggregate->op != TOKassocarrayliteral)
-            {
-                if (aggregate->op == TOKsymoff)
-                {
-                    originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
-                    return false;
-                }
-                if (indexToModify != 0)
-                {
-                    originalExp->error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
-                    return false;
-                }
-                // It is equivalent to *aggregate = newval.
-                // Aggregate could be varexp, a dotvar, ...
-                // TODO: we could support this
-                originalExp->error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
-                    ie->e1->toChars(), originalExp->e2->toChars());
-                return false;
-            }
-            destarraylen = resolveArrayLength(aggregate);
+            IntegerExp *dollarExp = new IntegerExp(loc, destarraylen, Type::tsize_t);
+            ctfeStack.push(ie->lengthVar);
+            ie->lengthVar->setValue(dollarExp);
         }
-        if (indexToModify >= destarraylen)
+    }
+    Expression *index = ie->e2->interpret(istate);
+    if (ie->lengthVar)
+        ctfeStack.pop(ie->lengthVar); // $ is defined only inside []
+    if (exceptionOrCantInterpret(index))
+        return false;
+
+    assert (index->op != TOKslice);  // only happens with AA assignment
+
+    ArrayLiteralExp *existingAE = NULL;
+    StringExp *existingSE = NULL;
+
+    Expression *aggregate = resolveReferences(ie->e1);
+
+    // Set the index to modify, and check that it is in range
+    dinteger_t indexToModify = index->toInteger();
+    if (ie->e1->type->toBasetype()->ty == Tpointer)
+    {
+        dinteger_t ofs;
+        aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(aggregate))
+            return aggregate;
+        if (aggregate->op == TOKnull)
         {
-            originalExp->error("array index %lld is out of bounds [0..%lld]", indexToModify,
-                destarraylen);
+            originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
             return false;
         }
-
-        /* The only possible indexable LValue aggregates are array literals, and
-         * slices of array literals.
-         */
-        if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice || aggregate->op == TOKcall ||
-            aggregate->op == TOKstar)
+        if (aggregate->op == TOKint64)
         {
-            Expression *origagg = aggregate;
-            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-                return aggregate;
-            // The array could be an index of an AA. Resolve it if so.
-            if (aggregate->op == TOKindex &&
-                ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
-            {
-                IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
-                if (!aggregate)
-                {
-                    originalExp->error("key %s not found in associative array %s",
-                        ix->e2->toChars(), ix->e1->toChars());
-                    return false;
-                }
-                if (exceptionOrCantInterpret(aggregate))
-                    return false;
-            }
+            originalExp->error("cannot index through invalid pointer %s of value %s",
+                ie->e1->toChars(), aggregate->toChars());
+            return false;
         }
-        if (aggregate->op == TOKvar)
+        aggregate = getAggregateFromPointer(aggregate, &ofs);
+        indexToModify += ofs;
+        if (aggregate->op != TOKslice && aggregate->op != TOKstring &&
+            aggregate->op != TOKarrayliteral && aggregate->op != TOKassocarrayliteral)
         {
-            VarExp *ve = (VarExp *)aggregate;
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            aggregate = v->getValue();
-            if (aggregate->op == TOKnull)
+            if (aggregate->op == TOKsymoff)
             {
-                // This would be a runtime segfault
-                originalExp->error("cannot index null array %s", v->toChars());
+                originalExp->error("mutable variable %s cannot be modified at compile time, even through a pointer", ((SymOffExp *)aggregate)->var->toChars());
                 return false;
             }
+            if (indexToModify != 0)
+            {
+                originalExp->error("pointer index [%lld] lies outside memory block [0..1]", indexToModify);
+                return false;
+            }
+            // It is equivalent to *aggregate = newval.
+            // Aggregate could be varexp, a dotvar, ...
+            // TODO: we could support this
+            originalExp->error("indexed assignment of non-array pointers is not yet supported at compile time; use *%s = %s instead",
+                ie->e1->toChars(), originalExp->e2->toChars());
+            return false;
         }
-        if (aggregate->op == TOKslice)
+        destarraylen = resolveArrayLength(aggregate);
+    }
+    if (indexToModify >= destarraylen)
+    {
+        originalExp->error("array index %lld is out of bounds [0..%lld]", indexToModify,
+            destarraylen);
+        return false;
+    }
+
+    /* The only possible indexable LValue aggregates are array literals, and
+     * slices of array literals.
+     */
+    if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
+        aggregate->op == TOKslice || aggregate->op == TOKcall ||
+        aggregate->op == TOKstar)
+    {
+        Expression *origagg = aggregate;
+        aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(aggregate))
+            return aggregate;
+        // The array could be an index of an AA. Resolve it if so.
+        if (aggregate->op == TOKindex &&
+            ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
         {
-            SliceExp *sexp = (SliceExp *)aggregate;
-            aggregate = sexp->e1;
-            Expression *lwr = sexp->lwr->interpret(istate);
-            indexToModify += lwr->toInteger();
+            IndexExp *ix = (IndexExp *)aggregate;
+            aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
+            if (!aggregate)
+            {
+                originalExp->error("key %s not found in associative array %s",
+                    ix->e2->toChars(), ix->e1->toChars());
+                return false;
+            }
+            if (exceptionOrCantInterpret(aggregate))
+                return false;
         }
-        if (aggregate->op == TOKarrayliteral)
-            existingAE = (ArrayLiteralExp *)aggregate;
-        else if (aggregate->op == TOKstring)
-            existingSE = (StringExp *)aggregate;
+    }
+    if (aggregate->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)aggregate;
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        aggregate = v->getValue();
+        if (aggregate->op == TOKnull)
+        {
+            // This would be a runtime segfault
+            originalExp->error("cannot index null array %s", v->toChars());
+            return false;
+        }
+    }
+    if (aggregate->op == TOKslice)
+    {
+        SliceExp *sexp = (SliceExp *)aggregate;
+        aggregate = sexp->e1;
+        Expression *lwr = sexp->lwr->interpret(istate);
+        indexToModify += lwr->toInteger();
+    }
+    if (aggregate->op == TOKarrayliteral)
+        existingAE = (ArrayLiteralExp *)aggregate;
+    else if (aggregate->op == TOKstring)
+        existingSE = (StringExp *)aggregate;
+    else
+    {
+        originalExp->error("CTFE internal compiler error %s", aggregate->toChars());
+        return false;
+    }
+    if (!wantRef && newval->op == TOKslice)
+    {
+        newval = resolveSlice(newval);
+        if (newval == EXP_CANT_INTERPRET)
+        {
+            originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
+            assert(0);
+        }
+    }
+    if (wantRef && newval->op == TOKindex
+        && ((IndexExp *)newval)->e1 == aggregate)
+    {   // It's a circular reference, resolve it now
+            newval = newval->interpret(istate);
+    }
+
+    if (existingAE)
+    {
+        if (newval->op == TOKstructliteral)
+            assignInPlace((*existingAE->elements)[indexToModify], newval);
         else
+            (*existingAE->elements)[indexToModify] = newval;
+        return true;
+    }
+    if (existingSE)
+    {
+        unsigned char *s = (unsigned char *)existingSE->string;
+        if (!existingSE->ownedByCtfe)
         {
-            originalExp->error("CTFE internal compiler error %s", aggregate->toChars());
+            originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
             return false;
         }
-        if (!wantRef && newval->op == TOKslice)
+        unsigned value = newval->toInteger();
+        switch (existingSE->sz)
         {
-            newval = resolveSlice(newval);
-            if (newval == EXP_CANT_INTERPRET)
-            {
-                originalExp->error("Compiler error: CTFE index assign %s", originalExp->toChars());
+            case 1: s[indexToModify] = value; break;
+            case 2: ((unsigned short *)s)[indexToModify] = value; break;
+            case 4: ((unsigned *)s)[indexToModify] = value; break;
+            default:
                 assert(0);
-            }
-        }
-        if (wantRef && newval->op == TOKindex
-            && ((IndexExp *)newval)->e1 == aggregate)
-        {   // It's a circular reference, resolve it now
-                newval = newval->interpret(istate);
-        }
-
-        if (existingAE)
-        {
-            if (newval->op == TOKstructliteral)
-                assignInPlace((*existingAE->elements)[indexToModify], newval);
-            else
-                (*existingAE->elements)[indexToModify] = newval;
-            return true;
-        }
-        if (existingSE)
-        {
-            unsigned char *s = (unsigned char *)existingSE->string;
-            if (!existingSE->ownedByCtfe)
-            {
-                originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
-                return false;
-            }
-            unsigned value = newval->toInteger();
-            switch (existingSE->sz)
-            {
-                case 1: s[indexToModify] = value; break;
-                case 2: ((unsigned short *)s)[indexToModify] = value; break;
-                case 4: ((unsigned *)s)[indexToModify] = value; break;
-                default:
-                    assert(0);
-                    break;
-            }
-            return true;
-        }
-        else
-        {
-            originalExp->error("Index assignment %s is not yet supported in CTFE ", originalExp->toChars());
-            return false;
+                break;
         }
         return true;
+    }
+    else
+    {
+        originalExp->error("Index assignment %s is not yet supported in CTFE ", originalExp->toChars());
+        return false;
+    }
+    return true;
 }
 
 /*************
@@ -3836,288 +3836,290 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     BinExp *originalExp)
 {
     Expression *e2 = originalExp->e2;
-        // ------------------------------
-        //   aggregate[] = newval
-        //   aggregate[low..upp] = newval
-        // ------------------------------
-        // Set the $ variable
-        Expression *oldval = sexp->e1;
-        bool assignmentToSlicedPointer = false;
-        if (isPointer(oldval->type))
-        {   // Slicing a pointer
-            oldval = oldval->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(oldval))
-                return oldval;
-            dinteger_t ofs;
-            oldval = getAggregateFromPointer(oldval, &ofs);
-            assignmentToSlicedPointer = true;
-        } else
-            oldval = oldval->interpret(istate);
 
-        if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
-            && oldval->op != TOKslice && oldval->op != TOKnull)
+    // ------------------------------
+    //   aggregate[] = newval
+    //   aggregate[low..upp] = newval
+    // ------------------------------
+    // Set the $ variable
+    Expression *oldval = sexp->e1;
+    bool assignmentToSlicedPointer = false;
+    if (isPointer(oldval->type))
+    {   // Slicing a pointer
+        oldval = oldval->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(oldval))
+            return oldval;
+        dinteger_t ofs;
+        oldval = getAggregateFromPointer(oldval, &ofs);
+        assignmentToSlicedPointer = true;
+    }
+    else
+        oldval = oldval->interpret(istate);
+
+    if (oldval->op != TOKarrayliteral && oldval->op != TOKstring
+        && oldval->op != TOKslice && oldval->op != TOKnull)
+    {
+        if (oldval->op == TOKsymoff)
         {
-            if (oldval->op == TOKsymoff)
-            {
-                originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            if (assignmentToSlicedPointer)
-            {
-                originalExp->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
-                    sexp->e1->toChars());
-            }
-            else
-                originalExp->error("CTFE ICE: cannot resolve array length");
+            originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        uinteger_t dollar = resolveArrayLength(oldval);
-        if (sexp->lengthVar)
+        if (assignmentToSlicedPointer)
         {
-            Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
-            ctfeStack.push(sexp->lengthVar);
-            sexp->lengthVar->setValue(arraylen);
-        }
-
-        Expression *upper = NULL;
-        Expression *lower = NULL;
-        if (sexp->upr)
-            upper = sexp->upr->interpret(istate);
-        if (exceptionOrCantInterpret(upper))
-        {
-            if (sexp->lengthVar)
-                ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
-            return upper;
-        }
-        if (sexp->lwr)
-            lower = sexp->lwr->interpret(istate);
-        if (sexp->lengthVar)
-            ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
-        if (exceptionOrCantInterpret(lower))
-            return lower;
-
-        size_t dim = dollar;
-        size_t upperbound = upper ? upper->toInteger() : dim;
-        int lowerbound = lower ? lower->toInteger() : 0;
-
-        if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
-        {
-            originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
-                dim, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
-        }
-        if (upperbound == lowerbound)
-            return newval;
-
-        Expression *aggregate = resolveReferences(sexp->e1);
-        dinteger_t firstIndex = lowerbound;
-
-        ArrayLiteralExp *existingAE = NULL;
-        StringExp *existingSE = NULL;
-
-        /* The only possible slicable LValue aggregates are array literals,
-         * and slices of array literals.
-         */
-
-        if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
-            aggregate->op == TOKslice ||
-            aggregate->op == TOKstar  || aggregate->op == TOKcall)
-        {
-            aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
-            if (exceptionOrCantInterpret(aggregate))
-                return aggregate;
-            // The array could be an index of an AA. Resolve it if so.
-            if (aggregate->op == TOKindex &&
-                ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
-            {
-                IndexExp *ix = (IndexExp *)aggregate;
-                aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
-                if (!aggregate)
-                {
-                    originalExp->error("key %s not found in associative array %s",
-                        ix->e2->toChars(), ix->e1->toChars());
-                    return EXP_CANT_INTERPRET;
-                }
-                if (exceptionOrCantInterpret(aggregate))
-                    return aggregate;
-            }
-        }
-        if (aggregate->op == TOKvar)
-        {
-            VarExp *ve = (VarExp *)(aggregate);
-            VarDeclaration *v = ve->var->isVarDeclaration();
-            aggregate = v->getValue();
-        }
-        if (aggregate->op == TOKslice)
-        {   // Slice of a slice --> change the bounds
-            SliceExp *sexpold = (SliceExp *)aggregate;
-            sinteger_t hi = upperbound + sexpold->lwr->toInteger();
-            firstIndex = lowerbound + sexpold->lwr->toInteger();
-            if (hi > sexpold->upr->toInteger())
-            {
-                originalExp->error("slice [%d..%d] exceeds array bounds [0..%lld]",
-                    lowerbound, upperbound,
-                    sexpold->upr->toInteger() - sexpold->lwr->toInteger());
-                return EXP_CANT_INTERPRET;
-            }
-            aggregate = sexpold->e1;
-        }
-        if ( isPointer(aggregate->type) )
-        {   // Slicing a pointer --> change the bounds
-            aggregate = sexp->e1->interpret(istate, ctfeNeedLvalue);
-            dinteger_t ofs;
-            aggregate = getAggregateFromPointer(aggregate, &ofs);
-            if (aggregate->op == TOKnull)
-            {
-                originalExp->error("cannot slice null pointer %s", sexp->e1->toChars());
-                return EXP_CANT_INTERPRET;
-            }
-            sinteger_t hi = upperbound + ofs;
-            firstIndex = lowerbound + ofs;
-            if (firstIndex < 0 || hi > dim)
-            {
-               originalExp->error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
-                    firstIndex, hi,  dim);
-                return EXP_CANT_INTERPRET;
-            }
-        }
-        if (aggregate->op == TOKarrayliteral)
-            existingAE = (ArrayLiteralExp *)aggregate;
-        else if (aggregate->op == TOKstring)
-            existingSE = (StringExp *)aggregate;
-        if (existingSE && !existingSE->ownedByCtfe)
-        {   originalExp->error("cannot modify read-only string literal %s", sexp->e1->toChars());
-            return EXP_CANT_INTERPRET;
-        }
-
-        if (!wantRef && newval->op == TOKslice)
-        {
-            Expression *orignewval = newval;
-            newval = resolveSlice(newval);
-            if (newval == EXP_CANT_INTERPRET)
-            {
-                originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
-                assert(0);
-            }
-        }
-        if (wantRef && newval->op == TOKindex
-            && ((IndexExp *)newval)->e1 == aggregate)
-        {   // It's a circular reference, resolve it now
-                newval = newval->interpret(istate);
-        }
-
-        // For slice assignment, we check that the lengths match.
-        size_t srclen = 0;
-        if (newval->op == TOKarrayliteral)
-            srclen = ((ArrayLiteralExp *)newval)->elements->dim;
-        else if (newval->op == TOKstring)
-            srclen = ((StringExp *)newval)->len;
-        if (!isBlockAssignment && srclen != (upperbound - lowerbound))
-        {
-            originalExp->error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
-            return EXP_CANT_INTERPRET;
-        }
-
-        if (!isBlockAssignment && newval->op == TOKarrayliteral && existingAE)
-        {
-            Expressions *oldelems = existingAE->elements;
-            Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
-            Type *elemtype = existingAE->type->nextOf();
-            for (size_t j = 0; j < newelems->dim; j++)
-            {
-                (*oldelems)[j + firstIndex] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
-            }
-            return newval;
-        }
-        else if (newval->op == TOKstring && existingSE)
-        {
-            sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
-            return newval;
-        }
-        else if (newval->op == TOKstring && existingAE
-                && existingAE->type->isString())
-        {   /* Mixed slice: it was initialized as an array literal of chars.
-             * Now a slice of it is being set with a string.
-             */
-            sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, firstIndex);
-            return newval;
-        }
-        else if (newval->op == TOKarrayliteral && existingSE)
-        {   /* Mixed slice: it was initialized as a string literal.
-             * Now a slice of it is being set with an array literal.
-             */
-            sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, firstIndex);
-            return newval;
-        }
-        else if (existingSE)
-        {   // String literal block slice assign
-            unsigned value = newval->toInteger();
-            unsigned char *s = (unsigned char *)existingSE->string;
-            for (size_t j = 0; j < upperbound-lowerbound; j++)
-            {
-                switch (existingSE->sz)
-                {
-                    case 1: s[j+firstIndex] = value; break;
-                    case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
-                    case 4: ((unsigned *)s)[j+firstIndex] = value; break;
-                    default:
-                        assert(0);
-                        break;
-                }
-            }
-            if (goal == ctfeNeedNothing)
-                return NULL; // avoid creating an unused literal
-            SliceExp *retslice = new SliceExp(loc, existingSE,
-                new IntegerExp(loc, firstIndex, Type::tsize_t),
-                new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
-            retslice->type = originalExp->type;
-            return retslice->interpret(istate);
-        }
-        else if (existingAE)
-        {
-            /* Block assignment, initialization of static arrays
-             *   x[] = e
-             *  x may be a multidimensional static array. (Note that this
-             *  only happens with array literals, never with strings).
-             */
-            Expressions * w = existingAE->elements;
-            assert( existingAE->type->ty == Tsarray ||
-                    existingAE->type->ty == Tarray);
-#if DMDV2
-            Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
-            bool directblk = (e2->type->toBasetype()->castMod(0)) == desttype;
-#else
-            Type *desttype = ((TypeArray *)existingAE->type)->next;
-            bool directblk = (e2->type->toBasetype()) == desttype;
-#endif
-            bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
-                || newval->op == TOKstring);
-            for (size_t j = 0; j < upperbound-lowerbound; j++)
-            {
-                if (!directblk)
-                    // Multidimensional array block assign
-                    recursiveBlockAssign((ArrayLiteralExp *)(*w)[j+firstIndex], newval, wantRef);
-                else
-                {
-                    if (wantRef || cow)
-                        (*existingAE->elements)[j+firstIndex] = newval;
-                    else
-                        assignInPlace((*existingAE->elements)[j+firstIndex], newval);
-                }
-            }
-            if (goal == ctfeNeedNothing)
-                return NULL; // avoid creating an unused literal
-            SliceExp *retslice = new SliceExp(loc, existingAE,
-                new IntegerExp(loc, firstIndex, Type::tsize_t),
-                new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
-            retslice->type = originalExp->type;
-            return retslice->interpret(istate);
+            originalExp->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+                sexp->e1->toChars());
         }
         else
+            originalExp->error("CTFE ICE: cannot resolve array length");
+        return EXP_CANT_INTERPRET;
+    }
+    uinteger_t dollar = resolveArrayLength(oldval);
+    if (sexp->lengthVar)
+    {
+        Expression *arraylen = new IntegerExp(loc, dollar, Type::tsize_t);
+        ctfeStack.push(sexp->lengthVar);
+        sexp->lengthVar->setValue(arraylen);
+    }
+
+    Expression *upper = NULL;
+    Expression *lower = NULL;
+    if (sexp->upr)
+        upper = sexp->upr->interpret(istate);
+    if (exceptionOrCantInterpret(upper))
+    {
+        if (sexp->lengthVar)
+            ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+        return upper;
+    }
+    if (sexp->lwr)
+        lower = sexp->lwr->interpret(istate);
+    if (sexp->lengthVar)
+        ctfeStack.pop(sexp->lengthVar); // $ is defined only in [L..U]
+    if (exceptionOrCantInterpret(lower))
+        return lower;
+
+    size_t dim = dollar;
+    size_t upperbound = upper ? upper->toInteger() : dim;
+    int lowerbound = lower ? lower->toInteger() : 0;
+
+    if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
+    {
+        originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+            dim, lowerbound, upperbound);
+        return EXP_CANT_INTERPRET;
+    }
+    if (upperbound == lowerbound)
+        return newval;
+
+    Expression *aggregate = resolveReferences(sexp->e1);
+    dinteger_t firstIndex = lowerbound;
+
+    ArrayLiteralExp *existingAE = NULL;
+    StringExp *existingSE = NULL;
+
+    /* The only possible slicable LValue aggregates are array literals,
+     * and slices of array literals.
+     */
+
+    if (aggregate->op == TOKindex || aggregate->op == TOKdotvar ||
+        aggregate->op == TOKslice ||
+        aggregate->op == TOKstar  || aggregate->op == TOKcall)
+    {
+        aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
+        if (exceptionOrCantInterpret(aggregate))
+            return aggregate;
+        // The array could be an index of an AA. Resolve it if so.
+        if (aggregate->op == TOKindex &&
+            ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
         {
-            originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
+            IndexExp *ix = (IndexExp *)aggregate;
+            aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
+            if (!aggregate)
+            {
+                originalExp->error("key %s not found in associative array %s",
+                    ix->e2->toChars(), ix->e1->toChars());
+                return EXP_CANT_INTERPRET;
+            }
+            if (exceptionOrCantInterpret(aggregate))
+                return aggregate;
+        }
+    }
+    if (aggregate->op == TOKvar)
+    {
+        VarExp *ve = (VarExp *)(aggregate);
+        VarDeclaration *v = ve->var->isVarDeclaration();
+        aggregate = v->getValue();
+    }
+    if (aggregate->op == TOKslice)
+    {   // Slice of a slice --> change the bounds
+        SliceExp *sexpold = (SliceExp *)aggregate;
+        sinteger_t hi = upperbound + sexpold->lwr->toInteger();
+        firstIndex = lowerbound + sexpold->lwr->toInteger();
+        if (hi > sexpold->upr->toInteger())
+        {
+            originalExp->error("slice [%d..%d] exceeds array bounds [0..%lld]",
+                lowerbound, upperbound,
+                sexpold->upr->toInteger() - sexpold->lwr->toInteger());
             return EXP_CANT_INTERPRET;
         }
+        aggregate = sexpold->e1;
+    }
+    if ( isPointer(aggregate->type) )
+    {   // Slicing a pointer --> change the bounds
+        aggregate = sexp->e1->interpret(istate, ctfeNeedLvalue);
+        dinteger_t ofs;
+        aggregate = getAggregateFromPointer(aggregate, &ofs);
+        if (aggregate->op == TOKnull)
+        {
+            originalExp->error("cannot slice null pointer %s", sexp->e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        sinteger_t hi = upperbound + ofs;
+        firstIndex = lowerbound + ofs;
+        if (firstIndex < 0 || hi > dim)
+        {
+           originalExp->error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
+                firstIndex, hi,  dim);
+            return EXP_CANT_INTERPRET;
+        }
+    }
+    if (aggregate->op == TOKarrayliteral)
+        existingAE = (ArrayLiteralExp *)aggregate;
+    else if (aggregate->op == TOKstring)
+        existingSE = (StringExp *)aggregate;
+    if (existingSE && !existingSE->ownedByCtfe)
+    {   originalExp->error("cannot modify read-only string literal %s", sexp->e1->toChars());
+        return EXP_CANT_INTERPRET;
+    }
+
+    if (!wantRef && newval->op == TOKslice)
+    {
+        Expression *orignewval = newval;
+        newval = resolveSlice(newval);
+        if (newval == EXP_CANT_INTERPRET)
+        {
+            originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
+            assert(0);
+        }
+    }
+    if (wantRef && newval->op == TOKindex
+        && ((IndexExp *)newval)->e1 == aggregate)
+    {   // It's a circular reference, resolve it now
+            newval = newval->interpret(istate);
+    }
+
+    // For slice assignment, we check that the lengths match.
+    size_t srclen = 0;
+    if (newval->op == TOKarrayliteral)
+        srclen = ((ArrayLiteralExp *)newval)->elements->dim;
+    else if (newval->op == TOKstring)
+        srclen = ((StringExp *)newval)->len;
+    if (!isBlockAssignment && srclen != (upperbound - lowerbound))
+    {
+        originalExp->error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+        return EXP_CANT_INTERPRET;
+    }
+
+    if (!isBlockAssignment && newval->op == TOKarrayliteral && existingAE)
+    {
+        Expressions *oldelems = existingAE->elements;
+        Expressions *newelems = ((ArrayLiteralExp *)newval)->elements;
+        Type *elemtype = existingAE->type->nextOf();
+        for (size_t j = 0; j < newelems->dim; j++)
+        {
+            (*oldelems)[j + firstIndex] = paintTypeOntoLiteral(elemtype, (*newelems)[j]);
+        }
+        return newval;
+    }
+    else if (newval->op == TOKstring && existingSE)
+    {
+        sliceAssignStringFromString((StringExp *)existingSE, (StringExp *)newval, firstIndex);
+        return newval;
+    }
+    else if (newval->op == TOKstring && existingAE
+            && existingAE->type->isString())
+    {   /* Mixed slice: it was initialized as an array literal of chars.
+         * Now a slice of it is being set with a string.
+         */
+        sliceAssignArrayLiteralFromString(existingAE, (StringExp *)newval, firstIndex);
+        return newval;
+    }
+    else if (newval->op == TOKarrayliteral && existingSE)
+    {   /* Mixed slice: it was initialized as a string literal.
+         * Now a slice of it is being set with an array literal.
+         */
+        sliceAssignStringFromArrayLiteral(existingSE, (ArrayLiteralExp *)newval, firstIndex);
+        return newval;
+    }
+    else if (existingSE)
+    {   // String literal block slice assign
+        unsigned value = newval->toInteger();
+        unsigned char *s = (unsigned char *)existingSE->string;
+        for (size_t j = 0; j < upperbound-lowerbound; j++)
+        {
+            switch (existingSE->sz)
+            {
+                case 1: s[j+firstIndex] = value; break;
+                case 2: ((unsigned short *)s)[j+firstIndex] = value; break;
+                case 4: ((unsigned *)s)[j+firstIndex] = value; break;
+                default:
+                    assert(0);
+                    break;
+            }
+        }
+        if (goal == ctfeNeedNothing)
+            return NULL; // avoid creating an unused literal
+        SliceExp *retslice = new SliceExp(loc, existingSE,
+            new IntegerExp(loc, firstIndex, Type::tsize_t),
+            new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
+        retslice->type = originalExp->type;
+        return retslice->interpret(istate);
+    }
+    else if (existingAE)
+    {
+        /* Block assignment, initialization of static arrays
+         *   x[] = e
+         *  x may be a multidimensional static array. (Note that this
+         *  only happens with array literals, never with strings).
+         */
+        Expressions * w = existingAE->elements;
+        assert( existingAE->type->ty == Tsarray ||
+                existingAE->type->ty == Tarray);
+#if DMDV2
+        Type *desttype = ((TypeArray *)existingAE->type)->next->castMod(0);
+        bool directblk = (e2->type->toBasetype()->castMod(0)) == desttype;
+#else
+        Type *desttype = ((TypeArray *)existingAE->type)->next;
+        bool directblk = (e2->type->toBasetype()) == desttype;
+#endif
+        bool cow = !(newval->op == TOKstructliteral || newval->op == TOKarrayliteral
+            || newval->op == TOKstring);
+        for (size_t j = 0; j < upperbound-lowerbound; j++)
+        {
+            if (!directblk)
+                // Multidimensional array block assign
+                recursiveBlockAssign((ArrayLiteralExp *)(*w)[j+firstIndex], newval, wantRef);
+            else
+            {
+                if (wantRef || cow)
+                    (*existingAE->elements)[j+firstIndex] = newval;
+                else
+                    assignInPlace((*existingAE->elements)[j+firstIndex], newval);
+            }
+        }
+        if (goal == ctfeNeedNothing)
+            return NULL; // avoid creating an unused literal
+        SliceExp *retslice = new SliceExp(loc, existingAE,
+            new IntegerExp(loc, firstIndex, Type::tsize_t),
+            new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
+        retslice->type = originalExp->type;
+        return retslice->interpret(istate);
+    }
+    else
+    {
+        originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
+        return EXP_CANT_INTERPRET;
+    }
 }
 
 Expression *AssignExp::interpret(InterState *istate, CtfeGoal goal)
