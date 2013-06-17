@@ -4548,9 +4548,6 @@ Catch *Catch::syntaxCopy()
 
 void Catch::semantic(Scope *sc)
 {
-    if (type && type->deco)
-        return;
-
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
 #ifndef IN_GCC
