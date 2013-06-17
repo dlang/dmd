@@ -412,7 +412,12 @@ Symbol *FuncDeclaration::toSymbol()
                 case LINKcpp:
                 {   t->Tmangle = mTYman_cpp;
                     if (isThis() && !global.params.is64bit && global.params.isWindows)
-                        t->Tty = TYmfunc;
+                    {
+                        if (((TypeFunction *)type)->varargs == 1)
+                            t->Tty = TYnfunc;
+                        else
+                            t->Tty = TYmfunc;
+                    }
                     s->Sflags |= SFLpublic;
                     Dsymbol *parent = toParent();
                     ClassDeclaration *cd = parent->isClassDeclaration();
