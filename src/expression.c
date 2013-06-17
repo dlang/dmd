@@ -4466,7 +4466,10 @@ bool StructLiteralExp::equals(Object *o)
             return false;
         for (size_t i = 0; i < elements->dim; i++)
         {
-            if (!(*elements)[i]->equals((*se->elements)[i]))
+            Expression *e1 = (*elements)[i];
+            Expression *e2 = (*se->elements)[i];
+            if (e1 != e2 &&
+                (!e1 || !e2 || !e1->equals(e2)))
                 return false;
         }
         return true;
@@ -7076,7 +7079,7 @@ Expression *FileExp::semantic(Scope *sc)
 
     if (global.params.verbose)
         printf("file      %s\t(%s)\n", (char *)se->string, name);
-    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL) 
+    if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL)
     {
         OutBuffer *ob = global.params.moduleDeps;
         ob->writestring("depsFile ");
