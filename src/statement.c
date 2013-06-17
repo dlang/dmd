@@ -2072,9 +2072,9 @@ Lagain:
                  */
                 FuncDeclaration *fdapply;
                 if (dim == 2)
-                    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply2");
+                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply2");
                 else
-                    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
+                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply");
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
@@ -2115,7 +2115,7 @@ Lagain:
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%llu", r, 2, fntab[flag], (ulonglong)dim);
                 assert(j < sizeof(fdname) / sizeof(fdname[0]));
-                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
+                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tint32, fdname);
 
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
