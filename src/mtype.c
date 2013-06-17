@@ -6226,11 +6226,23 @@ Expression *TypeDelegate::dotExp(Scope *sc, Expression *e, Identifier *ident, in
 #endif
     if (ident == Id::ptr)
     {
-        e->type = tvoidptr;
+        /* If e.ptr => *((void *) &e + 0)
+         */
+        if (!e->isLvalue())
+            e = e->castTo(sc, tvoidptr);
+        else
+        {
+            e = e->addressOf(sc);
+            e->type = tvoidptr;
+            e = new PtrExp(e->loc, e);
+            e->type = tvoidptr;
+        }
         return e;
     }
     else if (ident == Id::funcptr)
     {
+        /* If e.funcptr => *((void *) &e + ptrsize)
+         */
         if (!e->isLvalue())
         {
             Identifier *idtmp = Lexer::uniqueId("__dgtmp");
