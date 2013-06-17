@@ -2174,8 +2174,8 @@ struct Foo110(T, alias V = Boo!T)
 alias Foo110!double B110;
 alias Foo110!int A110;
 
-static assert(B110.s == "Boo!(double)");
-static assert(A110.s == "Boo!(int)");
+static assert(B110.s == "Boo!double");
+static assert(A110.s == "Boo!int");
 
 /***************************************************/
 

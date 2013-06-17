@@ -335,6 +335,7 @@ public:
     void semantic3(Scope *sc);
     void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
