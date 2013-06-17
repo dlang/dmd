@@ -3518,7 +3518,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         static const char *name[2] = { "_adReverseChar", "_adReverseWchar" };
 
         const char *nm = name[n->ty == Twchar];
-        FuncDeclaration *fd = FuncDeclaration::genCfunc(Type::tindex, nm);
+        FuncDeclaration *fd = FuncDeclaration::genCfunc(n->arrayOf(), nm);
         Expression *ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         Expressions *arguments = new Expressions();
@@ -3529,7 +3529,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     else if (ident == Id::sort && (n->ty == Tchar || n->ty == Twchar))
     {
         const char *nm = n->ty == Twchar ? "_adSortWchar" : "_adSortChar";
-        FuncDeclaration *fd = FuncDeclaration::genCfunc(Type::tindex, nm);
+        FuncDeclaration *fd = FuncDeclaration::genCfunc(n->arrayOf(), nm);
         Expression *ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         Expressions *arguments = new Expressions();
@@ -3548,7 +3548,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         Expression *olde = e;
         assert(size);
         dup = (ident == Id::dup || ident == Id::idup);
-        fd = FuncDeclaration::genCfunc(Type::tindex, dup ? Id::adDup : Id::adReverse);
+        fd = FuncDeclaration::genCfunc(tvoid->arrayOf(), dup ? Id::adDup : Id::adReverse);
         ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
@@ -3586,7 +3586,7 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         FuncDeclaration *fd;
         Expressions *arguments;
 
-        fd = FuncDeclaration::genCfunc(tint32->arrayOf(), "_adSort");
+        fd = FuncDeclaration::genCfunc(tvoid->arrayOf(), "_adSort");
         ec = new VarExp(Loc(), fd);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         arguments = new Expressions();
