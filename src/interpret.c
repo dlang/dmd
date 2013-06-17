@@ -2997,6 +2997,10 @@ VarDeclaration * findParentVar(Expression *e)
     return v;
 }
 
+Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
+    SliceExp *sexp, Expression *newval, bool wantRef, bool isBlockAssignment,
+    BinExp *originalExpression);
+
 Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post)
 {
 #if LOG
@@ -3781,11 +3785,39 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
     else if (e1->op == TOKslice)
     {
+        return interpretAssignToSlice(istate, goal, loc, (SliceExp *)e1,
+            newval, wantRef, isBlockAssignment, this);
+    }
+    else
+    {
+        error("%s cannot be evaluated at compile time", toChars());
+    }
+    return returnValue;
+}
+
+/*************
+ *  Deal with assignments of the form
+ *  dest[] = newval
+ *  dest[low..upp] = newval
+ *  where newval has already been interpreted
+ *
+ * This could be a slice assignment or a block assignment, and
+ * dest could be either an array literal, or a string.
+ *
+ * Returns EXP_CANT_INTERPRET on failure. If there are no errors,
+ * it returns aggregate[low..upp], except that as an optimisation,
+ * if goal == ctfeNeedNothing, it will return NULL
+ */
+
+Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
+    SliceExp *sexp, Expression *newval, bool wantRef, bool isBlockAssignment,
+    BinExp *originalExp)
+{
+    Expression *e2 = originalExp->e2;
         // ------------------------------
         //   aggregate[] = newval
         //   aggregate[low..upp] = newval
         // ------------------------------
-        SliceExp * sexp = (SliceExp *)e1;
         // Set the $ variable
         Expression *oldval = sexp->e1;
         bool assignmentToSlicedPointer = false;
@@ -3805,16 +3837,16 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         {
             if (oldval->op == TOKsymoff)
             {
-                error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
+                originalExp->error("pointer %s cannot be sliced at compile time (it points to a static variable)", sexp->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if (assignmentToSlicedPointer)
             {
-                error("pointer %s cannot be sliced at compile time (it does not point to an array)",
+                originalExp->error("pointer %s cannot be sliced at compile time (it does not point to an array)",
                     sexp->e1->toChars());
             }
             else
-                error("CTFE ICE: cannot resolve array length");
+                originalExp->error("CTFE ICE: cannot resolve array length");
             return EXP_CANT_INTERPRET;
         }
         uinteger_t dollar = resolveArrayLength(oldval);
@@ -3848,14 +3880,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
 
         if (!assignmentToSlicedPointer && (((int)lowerbound < 0) || (upperbound > dim)))
         {
-            error("Array bounds [0..%d] exceeded in slice [%d..%d]",
+            originalExp->error("Array bounds [0..%d] exceeded in slice [%d..%d]",
                 dim, lowerbound, upperbound);
             return EXP_CANT_INTERPRET;
         }
         if (upperbound == lowerbound)
             return newval;
 
-        Expression *aggregate = resolveReferences(((SliceExp *)e1)->e1);
+        Expression *aggregate = resolveReferences(sexp->e1);
         dinteger_t firstIndex = lowerbound;
 
         ArrayLiteralExp *existingAE = NULL;
@@ -3880,7 +3912,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 aggregate = findKeyInAA(loc, (AssocArrayLiteralExp *)ix->e1, ix->e2);
                 if (!aggregate)
                 {
-                    error("key %s not found in associative array %s",
+                    originalExp->error("key %s not found in associative array %s",
                         ix->e2->toChars(), ix->e1->toChars());
                     return EXP_CANT_INTERPRET;
                 }
@@ -3901,7 +3933,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             firstIndex = lowerbound + sexpold->lwr->toInteger();
             if (hi > sexpold->upr->toInteger())
             {
-                error("slice [%d..%d] exceeds array bounds [0..%lld]",
+                originalExp->error("slice [%d..%d] exceeds array bounds [0..%lld]",
                     lowerbound, upperbound,
                     sexpold->upr->toInteger() - sexpold->lwr->toInteger());
                 return EXP_CANT_INTERPRET;
@@ -3915,14 +3947,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             aggregate = getAggregateFromPointer(aggregate, &ofs);
             if (aggregate->op == TOKnull)
             {
-                error("cannot slice null pointer %s", sexp->e1->toChars());
+                originalExp->error("cannot slice null pointer %s", sexp->e1->toChars());
                 return EXP_CANT_INTERPRET;
             }
             sinteger_t hi = upperbound + ofs;
             firstIndex = lowerbound + ofs;
             if (firstIndex < 0 || hi > dim)
             {
-                error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
+               originalExp->error("slice [lld..%lld] exceeds memory block bounds [0..%lld]",
                     firstIndex, hi,  dim);
                 return EXP_CANT_INTERPRET;
             }
@@ -3932,16 +3964,17 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         else if (aggregate->op == TOKstring)
             existingSE = (StringExp *)aggregate;
         if (existingSE && !existingSE->ownedByCtfe)
-        {   error("cannot modify read-only string literal %s", sexp->e1->toChars());
+        {   originalExp->error("cannot modify read-only string literal %s", sexp->e1->toChars());
             return EXP_CANT_INTERPRET;
         }
 
         if (!wantRef && newval->op == TOKslice)
         {
+            Expression *orignewval = newval;
             newval = resolveSlice(newval);
             if (newval == EXP_CANT_INTERPRET)
             {
-                error("Compiler error: CTFE slice %s", toChars());
+                originalExp->error("Compiler error: CTFE slice %s", orignewval->toChars());
                 assert(0);
             }
         }
@@ -3959,7 +3992,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             srclen = ((StringExp *)newval)->len;
         if (!isBlockAssignment && srclen != (upperbound - lowerbound))
         {
-            error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
+            originalExp->error("Array length mismatch assigning [0..%d] to [%d..%d]", srclen, lowerbound, upperbound);
             return EXP_CANT_INTERPRET;
         }
 
@@ -4015,7 +4048,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             SliceExp *retslice = new SliceExp(loc, existingSE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
-            retslice->type = this->type;
+            retslice->type = originalExp->type;
             return retslice->interpret(istate);
         }
         else if (existingAE)
@@ -4055,17 +4088,14 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             SliceExp *retslice = new SliceExp(loc, existingAE,
                 new IntegerExp(loc, firstIndex, Type::tsize_t),
                 new IntegerExp(loc, firstIndex + upperbound-lowerbound, Type::tsize_t));
-            retslice->type = this->type;
+            retslice->type = originalExp->type;
             return retslice->interpret(istate);
         }
         else
-            error("Slice operation %s cannot be evaluated at compile time", toChars());
-    }
-    else
-    {
-        error("%s cannot be evaluated at compile time", toChars());
-    }
-    return returnValue;
+        {
+            originalExp->error("Slice operation %s = %s cannot be evaluated at compile time", sexp->toChars(), newval->toChars());
+            return EXP_CANT_INTERPRET;
+        }
 }
 
 Expression *AssignExp::interpret(InterState *istate, CtfeGoal goal)
