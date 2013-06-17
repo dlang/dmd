@@ -4691,7 +4691,21 @@ void StructLiteralExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     buf->writestring(sd->toChars());
     buf->writeByte('(');
-    argsToCBuffer(buf, elements, hgs);
+
+    // CTFE can generate struct literals that contain an AddrExp pointing
+    // to themselves, need to avoid infinite recursion:
+    // struct S { this(int){ this.s = &this; } S* s; }
+    // const foo = new S(0);
+    if (stageflags & stageToCBuffer)
+        buf->writestring("<recursion>");
+    else
+    {
+        int old = stageflags;
+        stageflags |= stageToCBuffer;
+        argsToCBuffer(buf, elements, hgs);
+        stageflags = old;
+    }
+
     buf->writeByte(')');
 }
 

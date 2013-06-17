@@ -526,6 +526,8 @@ public:
 #define stageApply          0x8
 //inlineScan is running
 #define stageInlineScan     0x10
+// toCBuffer is running
+#define stageToCBuffer      0x20
 
 class StructLiteralExp : public Expression
 {
