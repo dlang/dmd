@@ -16,7 +16,11 @@
 #include <wchar.h>
 
 double Port::nan = NAN;
+longdouble Port::ldbl_nan = NAN;
+
 double Port::infinity = INFINITY;
+longdouble Port::ldbl_infinity = INFINITY;
+
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 longdouble Port::ldbl_max = LDBL_MAX;
@@ -119,13 +123,11 @@ longdouble Port::strtold(const char *buffer, char **endp)
 #include <stdlib.h>
 #include <limits> // for std::numeric_limits
 
-static unsigned long nanarray[2]= { 0xFFFFFFFF, 0x7FFFFFFF };
-//static unsigned long nanarray[2] = {0,0x7FF80000 };
-double Port::nan = (*(double *)nanarray);
+double Port::nan;
+longdouble Port::ldbl_nan;
 
-//static unsigned long infinityarray[2] = {0,0x7FF00000 };
-static double zero = 0;
-double Port::infinity = 1 / zero;
+double Port::infinity;
+longdouble Port::ldbl_infinity;
 
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
@@ -140,7 +142,15 @@ static PortInitializer portinitializer;
 
 PortInitializer::PortInitializer()
 {
+    union {
+        unsigned long ul[2];
+        double d;
+    } nan = {{ 0xFFFFFFFF, 0x7FFFFFFF }};
+
+    Port::nan = nan.d;
+    Port::ldbl_nan = ld_qnan;
     Port::infinity = std::numeric_limits<double>::infinity();
+    Port::ldbl_infinity = ld_inf;
 }
 
 int Port::isNan(double r)
@@ -224,9 +234,13 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <float.h>
 #include <assert.h>
 
+double Port::nan;
+longdouble Port::ldbl_nan;
+
 static double zero = 0;
-double Port::nan = copysign(NAN, 1.0);
 double Port::infinity = 1 / zero;
+longdouble Port::ldbl_infinity = 1 / zero;
+
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
@@ -240,7 +254,21 @@ static PortInitializer portinitializer;
 
 PortInitializer::PortInitializer()
 {
+    union
+    {   unsigned int ui[2];
+        double d;
+    } nan = {{ 0, 0x7FF80000 }};
+
+    Port::nan = nan.d;
     assert(!signbit(Port::nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble ld;
+    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+
+    Port::ldbl_nan = ldbl_nan.ld;
+    assert(!signbit(Port::ldbl_nan));
 }
 
 int Port::isNan(double r)
@@ -371,9 +399,13 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <float.h>
 #include <assert.h>
 
+double Port::nan;
+longdouble Port::ldbl_nan;
+
 static double zero = 0;
-double Port::nan = copysign(NAN, 1.0);
 double Port::infinity = 1 / zero;
+longdouble Port::ldbl_infinity = 1 / zero;
+
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
@@ -387,7 +419,21 @@ static PortInitializer portinitializer;
 
 PortInitializer::PortInitializer()
 {
+    union
+    {   unsigned int ui[2];
+        double d;
+    } nan = {{ 0, 0x7FF80000 }};
+
+    Port::nan = nan.d;
     assert(!signbit(Port::nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble ld;
+    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+
+    Port::ldbl_nan = ldbl_nan.ld;
+    assert(!signbit(Port::ldbl_nan));
 
 #if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
@@ -554,9 +600,13 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <float.h>
 #include <ieeefp.h>
 
+double Port::nan;
+longdouble Port::ldbl_nan;
+
 static double zero = 0;
-double Port::nan = NAN;
 double Port::infinity = 1 / zero;
+longdouble Port::ldbl_infinity = 1 / zero;
+
 double Port::dbl_max = 1.7976931348623157e308;
 double Port::dbl_min = 5e-324;
 longdouble Port::ldbl_max = LDBL_MAX;
@@ -570,14 +620,21 @@ static PortInitializer portinitializer;
 
 PortInitializer::PortInitializer()
 {
-    // gcc nan's have the sign bit set by default, so turn it off
-    // Need the volatile to prevent gcc from doing incorrect
-    // constant folding.
-    volatile longdouble foo;
-    foo = NAN;
-    if (signbit(foo))   // signbit sometimes, not always, set
-        foo = -foo;     // turn off sign bit
-    Port::nan = foo;
+    union
+    {   unsigned int ui[2];
+        double d;
+    } nan = {{ 0, 0x7FF80000 }};
+
+    Port::nan = nan.d;
+    assert(!signbit(Port::nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble ld;
+    } ldbl_nan = {{ 0, 0xC0000000, 0x7FFF, 0}};
+
+    Port::ldbl_nan = ldbl_nan.ld;
+    assert(!signbit(Port::ldbl_nan));
 }
 
 int Port::isNan(double r)
