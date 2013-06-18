@@ -4,7 +4,7 @@ name=`basename $0 .sh`
 dir=${RESULTS_DIR}/compilable
 src=compilable/extra-files/test6461
 
-if [ "${OS}" == "win32" -o "${OS}" == "Windows_NT" ]; then
+if [ "${OS}" == "win32" -o "${OS}" == "win64" ]; then
     LIBEXT=.lib
 else
     LIBEXT=.a
