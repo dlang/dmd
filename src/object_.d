@@ -2051,14 +2051,14 @@ extern (C)
 {
     // from druntime/src/compiler/dmd/aaA.d
 
-    size_t _aaLen(void* p);
-    void* _aaGet(void** pp, TypeInfo keyti, size_t valuesize, ...);
-    void* _aaGetRvalue(void* p, TypeInfo keyti, size_t valuesize, ...);
-    void* _aaIn(void* p, TypeInfo keyti);
-    void _aaDel(void* p, TypeInfo keyti, ...);
-    void[] _aaValues(void* p, size_t keysize, size_t valuesize);
-    void[] _aaKeys(void* p, size_t keysize);
-    void* _aaRehash(void** pp, TypeInfo keyti);
+    size_t _aaLen(in void* p) pure nothrow;
+    void* _aaGet(void** pp, TypeInfo keyti, in size_t valuesize, ...);
+    inout(void)* _aaGetRvalue(inout void* p, in TypeInfo keyti, in size_t valuesize, ...);
+    inout(void)* _aaIn(inout void* p, in TypeInfo keyti);
+    void _aaDel(void* p, in TypeInfo keyti, ...);
+    inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
+    inout(void)[] _aaKeys(inout void* p, in size_t keysize) pure nothrow;
+    void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
 
     extern (D) alias scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
@@ -2066,8 +2066,8 @@ extern (C)
     extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
-    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
-    hash_t _aaGetHash(void* aa, const(TypeInfo) tiRaw) nothrow;
+    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...);
+    hash_t _aaGetHash(in void* aa, in TypeInfo tiRaw) nothrow;
 }
 
 private template _Unqual(T)
@@ -2156,7 +2156,7 @@ private:
 
 public:
 
-    @property size_t length() { return _aaLen(p); }
+    @property size_t length() const { return _aaLen(p); }
 
     Value[Key] rehash() @property
     {
