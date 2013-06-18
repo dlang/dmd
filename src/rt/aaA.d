@@ -214,6 +214,7 @@ void* _aaGet(AA* aa, TypeInfo keyti, size_t valuesize, ...)
     return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
 }
 
+// NOTE: TypeInfo can't be `in` here as it is stored in `aa.impl.keyti`.
 void* _aaGetX(AA* aa, TypeInfo keyti, size_t valuesize, void* pkey)
 in
 {
@@ -286,12 +287,12 @@ Lret:
  * Returns null if it is not already there.
  */
 
-void* _aaGetRvalue(AA aa, TypeInfo keyti, size_t valuesize, ...)
+void* _aaGetRvalue(AA aa, in TypeInfo keyti, size_t valuesize, ...)
 {
     return _aaGetRvalueX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
 }
 
-void* _aaGetRvalueX(AA aa, TypeInfo keyti, size_t valuesize, void* pkey)
+void* _aaGetRvalueX(AA aa, in TypeInfo keyti, size_t valuesize, void* pkey)
 {
     //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
     if (aa.impl is null)
@@ -328,12 +329,12 @@ void* _aaGetRvalueX(AA aa, TypeInfo keyti, size_t valuesize, void* pkey)
  *      !=null  in aa, return pointer to value
  */
 
-void* _aaIn(AA aa, TypeInfo keyti, ...)
+void* _aaIn(AA aa, in TypeInfo keyti, ...)
 {
     return _aaInX(aa, keyti, cast(void*)(&keyti + 1));
 }
 
-void* _aaInX(AA aa, TypeInfo keyti, void* pkey)
+void* _aaInX(AA aa, in TypeInfo keyti, void* pkey)
 in
 {
 }
@@ -376,12 +377,12 @@ body
  * If key is not in aa[], do nothing.
  */
 
-bool _aaDel(AA aa, TypeInfo keyti, ...)
+bool _aaDel(AA aa, in TypeInfo keyti, ...)
 {
     return _aaDelX(aa, keyti, cast(void*)(&keyti + 1));
 }
 
-bool _aaDelX(AA aa, TypeInfo keyti, void* pkey)
+bool _aaDelX(AA aa, in TypeInfo keyti, void* pkey)
 {
     Entry *e;
 
@@ -449,7 +450,7 @@ ArrayRet_t _aaValues(AA aa, size_t keysize, size_t valuesize)
  * Rehash an array.
  */
 
-void* _aaRehash(AA* paa, TypeInfo keyti)
+void* _aaRehash(AA* paa, in TypeInfo keyti)
 in
 {
     //_aaInvAh(paa);
@@ -825,7 +826,7 @@ static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) nothro
  *      1       equal
  *      0       not equal
  */
-int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
+int _aaEqual(in TypeInfo tiRaw, AA e1, AA e2)
 {
     //printf("_aaEqual()\n");
     //printf("keyti = %.*s\n", ti.key.classinfo.name);
@@ -916,7 +917,7 @@ int _aaEqual(TypeInfo tiRaw, AA e1, AA e2)
  *      Hash value
  */
 extern (C)
-hash_t _aaGetHash(AA* aa, const(TypeInfo) tiRaw) nothrow
+hash_t _aaGetHash(AA* aa, in TypeInfo tiRaw) nothrow
 {
     import rt.util.hash;
 
