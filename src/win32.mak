@@ -310,7 +310,6 @@ clean:
 	$(DEL) impcnvtab.c
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
-	$(MAKE) clean
 
 install: detab install-copy
 
