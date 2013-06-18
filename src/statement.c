@@ -3909,9 +3909,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
         /* Replace:
          *      return exp;
          * with:
-         *      exp; return;
+         *      cast(void)exp; return;
          */
-        Statement *s = new ExpStatement(loc, exp);
+        Expression *ce = new CastExp(loc, exp, Type::tvoid);
+        Statement *s = new ExpStatement(loc, ce);
         s = s->semantic(sc);
 
         if (exp->type->ty != Tvoid)
