@@ -54,8 +54,8 @@ TEST_OUTPUT:
 ---
 fail_compilation/ice6538.d(63): Error: cannot take a not yet instantiated symbol 'this' inside template constraint
 fail_compilation/ice6538.d(69): Error: template ice6538.S.foo does not match any function template declaration. Candidates are:
-fail_compilation/ice6538.d(63):        ice6538.S.foo()() if (Sym!(this))
-fail_compilation/ice6538.d(69): Error: template ice6538.S.foo()() if (Sym!(this)) cannot deduce template function from argument types !()()
+fail_compilation/ice6538.d(63):        ice6538.S.foo()() if (Sym!this)
+fail_compilation/ice6538.d(69): Error: template ice6538.S.foo()() if (Sym!this) cannot deduce template function from argument types !()()
 ---
 */
 struct S
