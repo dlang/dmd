@@ -770,7 +770,7 @@ else version( OSX )
     int pthread_attr_setscope(pthread_attr_t*, int);
     int pthread_getschedparam(pthread_t, int*, sched_param*);
     int pthread_setschedparam(pthread_t, int, in sched_param*);
-    int pthread_setschedprio(pthread_t, int);
+    // int pthread_setschedprio(pthread_t, int); // not implemented
 }
 else version( FreeBSD )
 {
@@ -788,7 +788,7 @@ else version( FreeBSD )
     int pthread_attr_setscope(in pthread_attr_t*, int);
     int pthread_getschedparam(pthread_t, int*, sched_param*);
     int pthread_setschedparam(pthread_t, int, sched_param*);
-    int pthread_setschedprio(pthread_t, int);
+    // int pthread_setschedprio(pthread_t, int); // not implemented
 }
 else version (Solaris)
 {
