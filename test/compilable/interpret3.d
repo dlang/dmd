@@ -1123,6 +1123,33 @@ int wconcat(wstring replace)
 static assert(wconcat("X"w));
 
 /*******************************************
+    9634 struct concat
+*******************************************/
+
+struct Bug9634
+{
+    int raw;
+}
+
+bool bug9634()
+{
+    Bug9634[] jr = [Bug9634(42)];
+
+    Bug9634[] ir = null ~ jr;
+    Bug9634[] kr = jr ~ null;
+    Bug9634[] mr = jr ~ jr;
+
+    jr[0].raw = 6;
+    assert(ir[0].raw == 42);
+    assert(kr[0].raw == 42);
+    assert(jr[0].raw == 6);
+    assert(&mr[0] != &mr[1]);
+    return true;
+}
+
+static assert(bug9634());
+
+/*******************************************
     Bug 4001: A Space Oddity
 *******************************************/
 
