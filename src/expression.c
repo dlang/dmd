@@ -633,7 +633,6 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
              * It is necessary in: e.init()
              */
         }
-#if 1
         else if (t->ty == Taarray)
         {
             if (ident == Id::remove)
@@ -675,7 +674,6 @@ Expression *resolveUFCS(Scope *sc, CallExp *ce)
                     return NULL;
             }
         }
-#endif
         else
         {
             if (Expression *ey = die->semanticY(sc, 1))
