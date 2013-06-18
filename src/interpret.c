@@ -322,7 +322,7 @@ int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
                 return 0;
             for(size_t i= 0; i < td->objects->dim; ++i)
             {
-                Object * o = td->objects->tdata()[i];
+                RootObject *o = td->objects->tdata()[i];
                 Expression *ex = isExpression(o);
                 DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
                 assert(s);
@@ -2306,7 +2306,7 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
                 return NULL;
             for(size_t i= 0; i < td->objects->dim; ++i)
             {
-                Object * o = (*td->objects)[i];
+                RootObject * o = (*td->objects)[i];
                 Expression *ex = isExpression(o);
                 DsymbolExp *s = (ex && ex->op == TOKdsymbol) ? (DsymbolExp *)ex : NULL;
                 VarDeclaration *v2 = s ? s->s->isVarDeclaration() : NULL;
