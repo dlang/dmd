@@ -22,3 +22,6 @@ else
     rm -f ${dir}/main.o
     rm -f ${dir}/main
 fi
+
+echo Success >${dir}/test6461.sh.out
+
