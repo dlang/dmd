@@ -891,6 +891,19 @@ class Thread
     }
 
 
+    unittest
+    {
+        auto thr = Thread.getThis();
+        immutable prio = thr.priority();
+        scope (exit) thr.priority = prio;
+
+        assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
+        thr.priority = PRIORITY_MIN;
+        assert(thr.priority == PRIORITY_MIN);
+        thr.priority = PRIORITY_MAX;
+        assert(thr.priority == PRIORITY_MAX);
+    }
+
     ///////////////////////////////////////////////////////////////////////////
     // Actions on Calling Thread
     ///////////////////////////////////////////////////////////////////////////
