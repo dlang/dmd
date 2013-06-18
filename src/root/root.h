@@ -35,13 +35,13 @@ typedef Array<class File> Files;
 typedef Array<char> Strings;
 
 
-class Object
+class RootObject
 {
 public:
-    Object() { }
-    virtual ~Object() { }
+    RootObject() { }
+    virtual ~RootObject() { }
 
-    virtual bool equals(Object *o);
+    virtual bool equals(RootObject *o);
 
     /**
      * Returns a hash code, useful for things like building hash tables of Objects.
@@ -52,7 +52,7 @@ public:
      * Return <0, ==0, or >0 if this is less than, equal to, or greater than obj.
      * Useful for sorting Objects.
      */
-    virtual int compare(Object *obj);
+    virtual int compare(RootObject *obj);
 
     /**
      * Pretty-print an Object. Useful for debugging the old-fashioned way.
@@ -75,7 +75,7 @@ public:
         void mark();
 };
 
-class String : public Object
+class String : public RootObject
 {
 public:
     const char *str;                  // the string itself
@@ -87,8 +87,8 @@ public:
     static hash_t calcHash(const char *str);
     hash_t hashCode();
     size_t len();
-    bool equals(Object *obj);
-    int compare(Object *obj);
+    bool equals(RootObject *obj);
+    int compare(RootObject *obj);
     char *toChars();
     void print();
     void mark();
@@ -99,9 +99,9 @@ class FileName : public String
 public:
     FileName(const char *str);
     hash_t hashCode();
-    bool equals(Object *obj);
+    bool equals(RootObject *obj);
     static int equals(const char *name1, const char *name2);
-    int compare(Object *obj);
+    int compare(RootObject *obj);
     static int compare(const char *name1, const char *name2);
     static int absolute(const char *name);
     static const char *ext(const char *);
@@ -131,7 +131,7 @@ public:
     static void free(const char *str);
 };
 
-class File : public Object
+class File : public RootObject
 {
 public:
     int ref;                    // != 0 if this is a reference to someone else's buffer
@@ -237,7 +237,7 @@ public:
     void remove();              // delete file
 };
 
-class OutBuffer : public Object
+class OutBuffer : public RootObject
 {
 public:
     unsigned char *data;
@@ -268,7 +268,7 @@ public:
     void writeUTF16(unsigned w);
     void write4(unsigned w);
     void write(OutBuffer *buf);
-    void write(Object *obj);
+    void write(RootObject *obj);
     void fill0(size_t nbytes);
     void align(size_t size);
     void vprintf(const char *format, va_list args);
@@ -321,7 +321,7 @@ struct Array
         size_t len = 2;
         for (size_t u = 0; u < dim; u++)
         {
-            buf[u] = ((Object *)data[u])->toChars();
+            buf[u] = ((RootObject *)data[u])->toChars();
             len += strlen(buf[u]) + 1;
         }
         char *str = (char *)mem.malloc(len);
@@ -438,8 +438,8 @@ struct Array
     #endif
             Array_sort_compare(const void *x, const void *y)
             {
-                Object *ox = *(Object **)x;
-                Object *oy = *(Object **)y;
+                RootObject *ox = *(RootObject **)x;
+                RootObject *oy = *(RootObject **)y;
 
                 return ox->compare(oy);
             }
@@ -447,7 +447,7 @@ struct Array
 
         if (dim)
         {
-            qsort(data, dim, sizeof(Object *), &ArraySort::Array_sort_compare);
+            qsort(data, dim, sizeof(RootObject *), &ArraySort::Array_sort_compare);
         }
     }
 
@@ -522,7 +522,7 @@ struct Array
 };
 
 // TODO: Remove (only used by disabled GC)
-class Bits : public Object
+class Bits : public RootObject
 {
 public:
     unsigned bitdim;

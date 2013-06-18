@@ -31,7 +31,7 @@ struct HdrGenState;
 
 enum NeedInterpret { INITnointerpret, INITinterpret };
 
-class Initializer : public Object
+class Initializer : public RootObject
 {
 public:
     Loc loc;

@@ -110,7 +110,7 @@ enum PASS
 
 typedef int (*Dsymbol_apply_ft_t)(Dsymbol *, void *);
 
-class Dsymbol : public Object
+class Dsymbol : public RootObject
 {
 public:
     Identifier *ident;
@@ -130,7 +130,7 @@ public:
     char *toChars();
     Loc& getLoc();
     char *locToChars();
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     bool isAnonymous();
     void error(Loc loc, const char *format, ...);
     void error(const char *format, ...);
@@ -164,7 +164,7 @@ public:
     virtual void inlineScan();
     virtual Dsymbol *search(Loc loc, Identifier *ident, int flags);
     Dsymbol *search_correct(Identifier *id);
-    Dsymbol *searchX(Loc loc, Scope *sc, Object *id);
+    Dsymbol *searchX(Loc loc, Scope *sc, RootObject *id);
     virtual bool overloadInsert(Dsymbol *s);
     virtual void toHBuffer(OutBuffer *buf, HdrGenState *hgs);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -341,7 +341,7 @@ public:
 
 // Table of Dsymbol's
 
-class DsymbolTable : public Object
+class DsymbolTable : public RootObject
 {
 public:
     AA *tab;
