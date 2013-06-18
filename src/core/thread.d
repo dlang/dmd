@@ -875,6 +875,12 @@ class Thread
      *  val = The new scheduling priority of this thread.
      */
     final @property void priority( int val )
+    in
+    {
+        assert(val >= PRIORITY_MIN);
+        assert(val <= PRIORITY_MAX);
+    }
+    body
     {
         version( Windows )
         {
