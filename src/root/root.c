@@ -92,42 +92,42 @@ void warning(const char *format, ...)
 
 /****************************** Object ********************************/
 
-bool Object::equals(Object *o)
+bool RootObject::equals(RootObject *o)
 {
     return o == this;
 }
 
-hash_t Object::hashCode()
+hash_t RootObject::hashCode()
 {
     return (hash_t) this;
 }
 
-int Object::compare(Object *obj)
+int RootObject::compare(RootObject *obj)
 {
     return this - obj;
 }
 
-void Object::print()
+void RootObject::print()
 {
     printf("%s %p\n", toChars(), this);
 }
 
-char *Object::toChars()
+char *RootObject::toChars()
 {
     return (char *)"Object";
 }
 
-int Object::dyncast()
+int RootObject::dyncast()
 {
     return 0;
 }
 
-void Object::toBuffer(OutBuffer *b)
+void RootObject::toBuffer(OutBuffer *b)
 {
     b->writestring("Object");
 }
 
-void Object::mark()
+void RootObject::mark()
 {
 }
 
@@ -200,12 +200,12 @@ size_t String::len()
     return strlen(str);
 }
 
-bool String::equals(Object *obj)
+bool String::equals(RootObject *obj)
 {
     return strcmp(str,((String *)obj)->str) == 0;
 }
 
-int String::compare(Object *obj)
+int String::compare(RootObject *obj)
 {
     return strcmp(str,((String *)obj)->str);
 }
@@ -378,7 +378,7 @@ hash_t FileName::hashCode()
 #endif
 }
 
-int FileName::compare(Object *obj)
+int FileName::compare(RootObject *obj)
 {
     return compare(str, ((FileName *)obj)->str);
 }
@@ -392,7 +392,7 @@ int FileName::compare(const char *name1, const char *name2)
 #endif
 }
 
-bool FileName::equals(Object *obj)
+bool FileName::equals(RootObject *obj)
 {
     return compare(obj) == 0;
 }
@@ -1724,7 +1724,7 @@ void OutBuffer::write(OutBuffer *buf)
     }
 }
 
-void OutBuffer::write(Object *obj)
+void OutBuffer::write(RootObject *obj)
 {
     if (obj)
     {

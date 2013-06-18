@@ -667,7 +667,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         {
             assert(j < b->vtbl.dim);
 #if 0
-            Object *o = b->vtbl[j];
+            RootObject *o = b->vtbl[j];
             if (o)
             {
                 printf("o = %p\n", o);

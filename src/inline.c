@@ -280,7 +280,7 @@ int DeclarationExp::inlineCost3(InlineCostState *ics)
             return COST_MAX;    // finish DeclarationExp::doInline
 #else
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   Object *o = (*td->objects)[i];
+            {   RootObject *o = (*td->objects)[i];
                 if (o->dyncast() != DYNCAST_EXPRESSION)
                     return COST_MAX;
                 Expression *eo = (Expression *)o;

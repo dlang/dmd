@@ -30,7 +30,7 @@ typedef Array<class ClassDeclaration> ClassDeclarations;
 
 typedef Array<class Dsymbol> Dsymbols;
 
-typedef Array<class Object> Objects;
+typedef Array<class RootObject> Objects;
 
 typedef Array<class FuncDeclaration> FuncDeclarations;
 

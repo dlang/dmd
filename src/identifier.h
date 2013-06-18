@@ -17,7 +17,7 @@
 
 #include "root.h"
 
-class Identifier : public Object
+class Identifier : public RootObject
 {
 public:
     int value;
@@ -25,9 +25,9 @@ public:
     size_t len;
 
     Identifier(const char *string, int value);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     hash_t hashCode();
-    int compare(Object *o);
+    int compare(RootObject *o);
     void print();
     char *toChars();
     const char *toHChars2();

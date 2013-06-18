@@ -70,7 +70,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->unittest = NULL;
 }
 
-bool Dsymbol::equals(Object *o)
+bool Dsymbol::equals(RootObject *o)
 {
     if (this == o)
         return true;
@@ -424,7 +424,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
  *      symbol found, NULL if not
  */
 
-Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, Object *id)
+Dsymbol *Dsymbol::searchX(Loc loc, Scope *sc, RootObject *id)
 {
     //printf("Dsymbol::searchX(this=%p,%s, ident='%s')\n", this, toChars(), ident->toChars());
     Dsymbol *s = toAlias();
