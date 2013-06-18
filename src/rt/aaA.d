@@ -22,7 +22,7 @@ private
 
     // Convenience function to make sure the NO_INTERIOR gets set on the
     // bucket array.
-    Entry*[] newBuckets(in size_t len)
+    Entry*[] newBuckets(in size_t len) @trusted pure nothrow
     {
         auto ptr = cast(Entry**) GC.calloc(
             len * (Entry*).sizeof, GC.BlkAttr.NO_INTERIOR);
@@ -88,7 +88,7 @@ struct AA
  * in value.
  */
 
-size_t aligntsize(in size_t tsize) nothrow
+size_t aligntsize(in size_t tsize) @safe pure nothrow
 {
     version (D_LP64) {
         // align to 16 bytes on 64-bit
@@ -173,7 +173,7 @@ private void _aaInvAh_x(Entry *e)
  * Determine number of entries in associative array.
  */
 
-size_t _aaLen(in AA aa)
+size_t _aaLen(in AA aa) pure nothrow
 in
 {
     //printf("_aaLen()+\n");
@@ -416,7 +416,7 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
  * Produce array of values from aa.
  */
 
-inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
+inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize) pure nothrow
 {
     size_t resi;
     Array a;
@@ -450,7 +450,7 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
  * Rehash an array.
  */
 
-void* _aaRehash(AA* paa, in TypeInfo keyti)
+void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow
 in
 {
     //_aaInvAh(paa);
@@ -506,7 +506,7 @@ body
  * Produce array of N byte keys from aa.
  */
 
-inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize)
+inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
 {
     auto len = _aaLen(aa);
     if (!len)
@@ -792,7 +792,7 @@ Impl* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] v
 }
 
 
-static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) nothrow
+static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
 {
     const(TypeInfo)* p = &tiRaw;
     TypeInfo_AssociativeArray ti;
