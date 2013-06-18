@@ -5456,7 +5456,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
                 error("dereference of invalid pointer '%s'", e->toChars());
             return EXP_CANT_INTERPRET;
         }
-        if (goal != ctfeNeedLvalue)
+        if (goal != ctfeNeedLvalue && goal != ctfeNeedLvalueRef)
         {
             if (e->op == TOKindex && e->type->ty == Tpointer)
             {
