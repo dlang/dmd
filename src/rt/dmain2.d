@@ -21,6 +21,7 @@ private
     import core.stdc.stdlib;
     import core.stdc.string;
     import core.stdc.stdio;   // for printf()
+    import core.stdc.errno : errno;
 }
 
 version (Windows)
@@ -365,7 +366,17 @@ alias extern(C) int function(char[][] args) MainFunc;
  */
 extern (C) int main(int argc, char **argv)
 {
-    return _d_run_main(argc, argv, &_Dmain);
+    auto result = _d_run_main(argc, argv, &_Dmain);
+    // Issue 10344: flush stdout and return nonzero on failure
+    if (.fflush(.stdout) != 0)
+    {
+        .fprintf(.stderr, "Failed to flush stdout: %s\n", .strerror(.errno));
+        if (result == 0)
+        {
+            result = EXIT_FAILURE;
+        }
+    }
+    return result;
 }
 
 version (Solaris) extern (C) int _main(int argc, char** argv)
