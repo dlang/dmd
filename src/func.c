@@ -3755,8 +3755,8 @@ bool FuncDeclaration::hasNestedFrameRefs()
  */
 
 Parameters *FuncDeclaration::getParameters(int *pvarargs)
-{   Parameters *fparameters;
-    int fvarargs;
+{   Parameters *fparameters = NULL;
+    int fvarargs = 0;
 
     if (type)
     {
