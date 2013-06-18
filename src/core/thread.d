@@ -829,10 +829,19 @@ class Thread
     /**
      * The maximum scheduling priority that may be set for a thread.  On
      * systems where multiple scheduling policies are defined, this value
-     * represents the minimum valid priority for the scheduling policy of
+     * represents the maximum valid priority for the scheduling policy of
      * the process.
      */
     __gshared const int PRIORITY_MAX;
+
+
+    /**
+     * The default scheduling priority that is set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the default priority for the scheduling policy of
+     * the process.
+     */
+    __gshared const int PRIORITY_DEFAULT;
 
 
     /**
@@ -902,6 +911,7 @@ class Thread
         immutable prio = thr.priority();
         scope (exit) thr.priority = prio;
 
+        assert(prio == PRIORITY_DEFAULT);
         assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
         thr.priority = PRIORITY_MIN;
         assert(thr.priority == PRIORITY_MIN);
@@ -1084,8 +1094,9 @@ class Thread
     {
         version( Windows )
         {
-            PRIORITY_MIN = -15;
-            PRIORITY_MAX =  15;
+            PRIORITY_MIN = THREAD_PRIORITY_IDLE;
+            PRIORITY_DEFAULT = THREAD_PRIORITY_NORMAL;
+            PRIORITY_MAX = THREAD_PRIORITY_TIME_CRITICAL;
         }
         else version( Posix )
         {
@@ -1098,6 +1109,8 @@ class Thread
 
             PRIORITY_MIN = sched_get_priority_min( policy );
             assert( PRIORITY_MIN != -1 );
+
+            PRIORITY_DEFAULT = param.sched_priority;
 
             PRIORITY_MAX = sched_get_priority_max( policy );
             assert( PRIORITY_MAX != -1 );
