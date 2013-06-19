@@ -1253,16 +1253,16 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     {   lo1 = ((SliceExp *)x)->lwr->toInteger();
         x = ((SliceExp*)x)->e1;
     }
-    StringExp *se1 = (x->op == TOKstring) ? (StringExp *)x : 0;
-    ArrayLiteralExp *ae1 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : 0;
+    StringExp *se1 = (x->op == TOKstring) ? (StringExp *)x : NULL;
+    ArrayLiteralExp *ae1 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
 
     x = e2;
     if (x->op == TOKslice)
     {   lo2 = ((SliceExp *)x)->lwr->toInteger();
         x = ((SliceExp*)x)->e1;
     }
-    StringExp *se2 = (x->op == TOKstring) ? (StringExp *)x : 0;
-    ArrayLiteralExp *ae2 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : 0;
+    StringExp *se2 = (x->op == TOKstring) ? (StringExp *)x : NULL;
+    ArrayLiteralExp *ae2 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
 
     // Now both must be either TOKarrayliteral or TOKstring
     if (se1 && se2)
