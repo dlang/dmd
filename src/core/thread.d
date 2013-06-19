@@ -570,10 +570,11 @@ class Thread
      * Throws:
      *  ThreadException if the thread fails to start.
      */
-    final void start()
+    final void start( int priority = PRIORITY_DEFAULT )
     in
     {
         assert( !next && !prev );
+        assert( priority >= PRIORITY_MIN && priority <= PRIORITY_MAX );
     }
     body
     {
@@ -596,6 +597,13 @@ class Thread
                 throw new ThreadException( "Error initializing thread stack size" );
             if( pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_JOINABLE ) )
                 throw new ThreadException( "Error setting thread joinable" );
+            if( priority != PRIORITY_DEFAULT )
+            {
+                sched_param param;
+                param.sched_priority = priority;
+                if( pthread_attr_setschedparam(&attr, &param) )
+                   throw new ThreadException( "Error setting thread priority" );
+            }
         }
 
         version( Windows )
@@ -613,6 +621,11 @@ class Thread
             m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
             if( cast(size_t) m_hndl == 0 )
                 throw new ThreadException( "Error creating thread" );
+            if( priority != PRIORITY_DEFAULT )
+            {
+                if( !SetThreadPriority( m_hndl, priority ) )
+                   throw new ThreadException( "Error setting thread priority" );
+            }
         }
 
         // NOTE: The starting thread must be added to the global thread list
