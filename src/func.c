@@ -1055,7 +1055,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 if (cd->objcMethods == NULL)
                 {
                     cd->objcMethods = new StringTable;
-                    cd->objcMethods->init();
+                    cd->objcMethods->_init();
                 }
                 StringValue *sv = cd->objcMethods->update(objcSelector->stringvalue, objcSelector->stringlen);
 

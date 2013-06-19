@@ -142,7 +142,7 @@ static StringTable *initStringTable(StringTable *stringtable)
 {
     delete stringtable;
     stringtable = new StringTable();
-    stringtable->init();
+    stringtable->_init();
 
     return stringtable;
 }
@@ -639,7 +639,7 @@ int ObjcSelector::incnum = 0;
 
 void ObjcSelector::init ()
 {
-    stringtable.init();
+    stringtable._init();
 }
 
 ObjcSelector::ObjcSelector(const char *sv, size_t len, size_t pcount)
