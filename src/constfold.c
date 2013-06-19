@@ -1567,8 +1567,6 @@ int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, si
     unsigned char *s = (unsigned char *)se1->string;
     size_t sz = se1->sz;
 
-    int c = 0;
-
     for (size_t j = 0; j < len; j++)
     {
         unsigned value = (unsigned)((*ae2->elements)[j + lo2]->toInteger());
