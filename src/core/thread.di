@@ -263,10 +263,19 @@ class Thread
     /**
      * The maximum scheduling priority that may be set for a thread.  On
      * systems where multiple scheduling policies are defined, this value
-     * represents the minimum valid priority for the scheduling policy of
+     * represents the maximum valid priority for the scheduling policy of
      * the process.
      */
     __gshared const int PRIORITY_MAX;
+
+
+    /**
+     * The default scheduling priority that is set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the default priority for the scheduling policy of
+     * the process.
+     */
+    __gshared const int PRIORITY_DEFAULT;
 
 
     /**

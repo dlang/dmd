@@ -829,10 +829,19 @@ class Thread
     /**
      * The maximum scheduling priority that may be set for a thread.  On
      * systems where multiple scheduling policies are defined, this value
-     * represents the minimum valid priority for the scheduling policy of
+     * represents the maximum valid priority for the scheduling policy of
      * the process.
      */
     __gshared const int PRIORITY_MAX;
+
+
+    /**
+     * The default scheduling priority that is set for a thread.  On
+     * systems where multiple scheduling policies are defined, this value
+     * represents the default priority for the scheduling policy of
+     * the process.
+     */
+    __gshared const int PRIORITY_DEFAULT;
 
 
     /**
@@ -866,6 +875,12 @@ class Thread
      *  val = The new scheduling priority of this thread.
      */
     final @property void priority( int val )
+    in
+    {
+        assert(val >= PRIORITY_MIN);
+        assert(val <= PRIORITY_MAX);
+    }
+    body
     {
         version( Windows )
         {
@@ -874,22 +889,41 @@ class Thread
         }
         else version( Posix )
         {
-            // NOTE: pthread_setschedprio is not implemented on linux, so use
-            //       the more complicated get/set sequence below.
-            //if( pthread_setschedprio( m_addr, val ) )
-            //    throw new ThreadException( "Unable to set thread priority" );
+            static if( __traits( compiles, pthread_setschedprio ) )
+            {
+                if( pthread_setschedprio( m_addr, val ) )
+                    throw new ThreadException( "Unable to set thread priority" );
+            }
+            else
+            {
+                // NOTE: pthread_setschedprio is not implemented on OSX or FreeBSD, so use
+                //       the more complicated get/set sequence below.
+                int         policy;
+                sched_param param;
 
-            int         policy;
-            sched_param param;
-
-            if( pthread_getschedparam( m_addr, &policy, &param ) )
-                throw new ThreadException( "Unable to set thread priority" );
-            param.sched_priority = val;
-            if( pthread_setschedparam( m_addr, policy, &param ) )
-                throw new ThreadException( "Unable to set thread priority" );
+                if( pthread_getschedparam( m_addr, &policy, &param ) )
+                    throw new ThreadException( "Unable to set thread priority" );
+                param.sched_priority = val;
+                if( pthread_setschedparam( m_addr, policy, &param ) )
+                    throw new ThreadException( "Unable to set thread priority" );
+            }
         }
     }
 
+
+    unittest
+    {
+        auto thr = Thread.getThis();
+        immutable prio = thr.priority();
+        scope (exit) thr.priority = prio;
+
+        assert(prio == PRIORITY_DEFAULT);
+        assert(prio >= PRIORITY_MIN && prio <= PRIORITY_MAX);
+        thr.priority = PRIORITY_MIN;
+        assert(thr.priority == PRIORITY_MIN);
+        thr.priority = PRIORITY_MAX;
+        assert(thr.priority == PRIORITY_MAX);
+    }
 
     ///////////////////////////////////////////////////////////////////////////
     // Actions on Calling Thread
@@ -1066,8 +1100,9 @@ class Thread
     {
         version( Windows )
         {
-            PRIORITY_MIN = -15;
-            PRIORITY_MAX =  15;
+            PRIORITY_MIN = THREAD_PRIORITY_IDLE;
+            PRIORITY_DEFAULT = THREAD_PRIORITY_NORMAL;
+            PRIORITY_MAX = THREAD_PRIORITY_TIME_CRITICAL;
         }
         else version( Posix )
         {
@@ -1080,6 +1115,8 @@ class Thread
 
             PRIORITY_MIN = sched_get_priority_min( policy );
             assert( PRIORITY_MIN != -1 );
+
+            PRIORITY_DEFAULT = param.sched_priority;
 
             PRIORITY_MAX = sched_get_priority_max( policy );
             assert( PRIORITY_MAX != -1 );
