@@ -6146,7 +6146,7 @@ Expression *evaluateIfBuiltin(InterState *istate, Loc loc,
             assert(arguments->dim <= se->elements->dim);
             for (int i = 0; i < arguments->dim; ++i)
             {
-                Expression *e = (*arguments)[i]->interpret(istate);
+                e = (*arguments)[i]->interpret(istate);
                 if (exceptionOrCantInterpret(e))
                     return e;
                 (*se->elements)[i] = e;

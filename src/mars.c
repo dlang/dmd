@@ -1685,8 +1685,7 @@ Language changes listed by -transition=id:\n\
                  */
                 for (size_t i = 0; i < modules.dim; i++)
                 {
-                    Module *m = modules[i];
-                    m->deleteObjFile();
+                    modules[i]->deleteObjFile();
                     if (global.params.oneobj)
                         break;
                 }
