@@ -1369,7 +1369,7 @@ Language changes listed by -transition=id:\n\
     for (size_t i = 0; i < modules.dim; i++)
     {
         m = modules[i];
-        m->read(0);
+        m->read(Loc());
     }
 #endif
 
