@@ -3906,6 +3906,11 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp && tbret->ty == Tvoid && !implicit0)
     {
+        if (exp->type->ty != Tvoid)
+        {
+            error("cannot return non-void from void function");
+        }
+
         /* Replace:
          *      return exp;
          * with:
@@ -3914,11 +3919,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
         Expression *ce = new CastExp(loc, exp, Type::tvoid);
         Statement *s = new ExpStatement(loc, ce);
         s = s->semantic(sc);
-
-        if (exp->type->ty != Tvoid)
-        {
-            error("cannot return non-void from void function");
-        }
 
         exp = NULL;
         return new CompoundStatement(loc, s, this);
