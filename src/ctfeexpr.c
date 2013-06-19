@@ -853,7 +853,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         if (to->isintegral())
         {
             u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, ldouble(u.x), to);
+            return new IntegerExp(fromVal->loc, (dinteger_t)ldouble(u.x), to);
         }
         else
         {
