@@ -757,7 +757,7 @@ Expression *Xor(Type *type, Expression *e1, Expression *e2)
 
 /* Also returns EXP_CANT_INTERPRET if cannot be computed.
  */
-Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
+Expression *Equal(TOK op, Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
     int cmp;
@@ -955,7 +955,7 @@ Expression *Equal(enum TOK op, Type *type, Expression *e1, Expression *e2)
     return e;
 }
 
-Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
+Expression *Identity(TOK op, Type *type, Expression *e1, Expression *e2)
 {
     Loc loc = e1->loc;
     int cmp;
@@ -1002,7 +1002,7 @@ Expression *Identity(enum TOK op, Type *type, Expression *e1, Expression *e2)
 }
 
 
-Expression *Cmp(enum TOK op, Type *type, Expression *e1, Expression *e2)
+Expression *Cmp(TOK op, Type *type, Expression *e1, Expression *e2)
 {   Expression *e;
     Loc loc = e1->loc;
     dinteger_t n;

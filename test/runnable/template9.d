@@ -2280,6 +2280,30 @@ void test9885()
 }
 
 /******************************************/
+// 9971
+
+void goo9971()()
+{
+    auto g = &goo9971;
+}
+
+struct S9971
+{
+    void goo()()
+    {
+        auto g = &goo;
+        static assert(is(typeof(g) == delegate));
+    }
+}
+
+void test9971()
+{
+    goo9971!()();
+
+    S9971.init.goo!()();
+}
+
+/******************************************/
 // 9977
 
 void test9977()
@@ -2316,6 +2340,67 @@ auto initS9990() { return "hi"; }
 class C9990(alias init) {}
 
 alias SC9990 = C9990!(initS9990);
+
+/******************************************/
+// 10067
+
+struct assumeSize10067(alias F) {}
+
+template useItemAt10067(size_t idx, T)
+{
+    void impl(){ }
+
+    alias useItemAt10067 = assumeSize10067!(impl);
+}
+
+useItemAt10067!(0, char) mapS10067;
+
+/******************************************/
+// 10134
+
+template ReturnType10134(alias func)
+{
+    static if (is(typeof(func) R == return))
+        alias R ReturnType10134;
+    else
+        static assert(0);
+}
+
+struct Result10134(T) {}
+
+template getResultType10134(alias func)
+{
+    static if(is(ReturnType10134!(func.exec) _ == Result10134!(T), T))
+    {
+        alias getResultType10134 = T;
+    }
+}
+
+template f10134(alias func)
+{
+    Result10134!(getResultType10134!(func)) exec(int i)
+    {
+        return typeof(return)();
+    }
+}
+
+template a10134()
+{
+    Result10134!(double) exec(int i)
+    {
+        return b10134!().exec(i);
+    }
+}
+
+template b10134()
+{
+    Result10134!(double) exec(int i)
+    {
+        return f10134!(a10134!()).exec(i);
+    }
+}
+
+pragma(msg, getResultType10134!(a10134!()));
 
 /******************************************/
 
@@ -2398,6 +2483,7 @@ int main()
     test9837();
     test9874();
     test9885();
+    test9971();
     test9977();
 
     printf("Success\n");

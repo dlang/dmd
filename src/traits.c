@@ -64,9 +64,9 @@ static int fptraits(void *param, FuncDeclaration *f)
     FuncAliasDeclaration* alias = new FuncAliasDeclaration(f, 0);
     alias->protection = f->protection;
     if (p->e1)
-        e = new DotVarExp(0, p->e1, alias);
+        e = new DotVarExp(Loc(), p->e1, alias);
     else
-        e = new DsymbolExp(0, alias);
+        e = new DsymbolExp(Loc(), alias);
     p->exps->push(e);
     return 0;
 }
@@ -440,6 +440,12 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
+        #if 0
+            Expression *e = isExpression(o);
+            Type *t = isType(o);
+            if (e) printf("e = %s %s\n", Token::toChars(e->op), e->toChars());
+            if (t) printf("t = %d %s\n", t->ty, t->toChars());
+        #endif
             error("first argument is not a symbol");
             goto Lfalse;
         }
@@ -482,6 +488,14 @@ Expression *TraitsExp::semantic(Scope *sc)
                 //printf("\t[%i] %s %s\n", i, sm->kind(), sm->toChars());
                 if (sm->ident)
                 {
+                    if (sm->ident != Id::ctor &&        // backword compatibility
+                        sm->ident != Id::dtor &&        // backword compatibility
+                        sm->ident != Id::_postblit &&   // backword compatibility
+                        memcmp(sm->ident->string, "__", 2) == 0)
+                    {
+                        return 0;
+                    }
+
                     //printf("\t%s\n", sm->ident->toChars());
                     Identifiers *idents = (Identifiers *)ctx;
 
@@ -662,7 +676,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     return NULL;
 
 Ldimerror:
-    error("wrong number of arguments %d", dim);
+    error("wrong number of arguments %d", (int)dim);
     goto Lfalse;
 
 

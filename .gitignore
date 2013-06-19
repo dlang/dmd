@@ -37,3 +37,12 @@ src/vcbuild/x64
 *.opensdf
 *.user
 ipch
+
+# Xcode files
+DerivedData/
+xcuserdata/
+dmd.xcodeproj/project.xcworkspace/xcuserdata
+
+# Output files
+src/*.bak
+src/*.lib

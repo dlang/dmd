@@ -759,7 +759,7 @@ void ReturnStatement::toIR(IRState *irs)
         assert(func->type->ty == Tfunction);
         TypeFunction *tf = (TypeFunction *)(func->type);
 
-        enum RET retmethod = tf->retStyle();
+        RET retmethod = tf->retStyle();
         if (retmethod == RETstack)
         {
             elem *es;

@@ -37,8 +37,8 @@ struct ObjSymbol
 
 #include "arraytypes.h"
 
-typedef ArrayBase<ObjModule> ObjModules;
-typedef ArrayBase<ObjSymbol> ObjSymbols;
+typedef Array<ObjModule> ObjModules;
+typedef Array<ObjSymbol> ObjSymbols;
 
 class LibOMF : public Library
 {
@@ -87,7 +87,7 @@ Library *Library::factory()
 LibOMF::LibOMF()
 {
     libfile = NULL;
-    tab.init();
+    tab._init();
 }
 
 /***********************************

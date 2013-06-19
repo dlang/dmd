@@ -1140,8 +1140,9 @@ void test9136()
 }
 
 /********************************************************/
+// 9939
 
-struct Test25
+struct Test9939
 {
     int f;
     enum /*Anonymous enum*/
@@ -1156,7 +1157,66 @@ struct Test25
     }
 }
 
-static assert([__traits(allMembers, Test25)] == ["f", "A", "B", "NamedEnum"]);
+static assert([__traits(allMembers, Test9939)] == ["f", "A", "B", "NamedEnum"]);
+
+/********************************************************/
+// 10043
+
+void test10043()
+{
+    struct X {}
+    X d1;
+    static assert(!__traits(compiles, d1.structuralCast!Refleshable));
+}
+
+/********************************************************/
+// 10096
+
+struct S10096X
+{
+    string str;
+
+    invariant() {}
+    invariant() {}
+    unittest {}
+
+    this(int) {}
+    this(this) {}
+    ~this() {}
+}
+static assert(
+    [__traits(allMembers, S10096X)] ==
+    ["str", "__ctor", "__postblit", "__dtor", "opAssign"]);
+
+// --------
+
+string foo10096(alias var, T = typeof(var))()
+{
+    foreach (idx, member; __traits(allMembers, T))
+    {
+        auto x = var.tupleof[idx];
+    }
+
+    return "";
+}
+
+string foo10096(T)(T var)
+{
+    return "";
+}
+
+struct S10096
+{
+    int i;
+    string s;
+}
+
+void test10096()
+{
+    S10096 s = S10096(1, "");
+    auto x = foo10096!s;
+}
+
 /********************************************************/
 
 int main()
@@ -1193,6 +1253,7 @@ int main()
     test7408();
     test9552();
     test9136();
+    test10096();
 
     writeln("Success");
     return 0;

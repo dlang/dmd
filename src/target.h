@@ -14,7 +14,7 @@
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
 
-struct Type;
+class Type;
 
 struct Target
 {
@@ -25,6 +25,8 @@ struct Target
     
     static void init();
     static unsigned alignsize(Type* type);
+    static unsigned fieldalign(Type* type);
+    static unsigned critsecsize();
 };
 
 #endif

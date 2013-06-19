@@ -30,7 +30,7 @@ hash_t Identifier::hashCode()
     return String::calcHash(string);
 }
 
-int Identifier::equals(Object *o)
+bool Identifier::equals(Object *o)
 {
     return this == o || memcmp(string,o->toChars(),len+1) == 0;
 }
@@ -51,7 +51,6 @@ const char *Identifier::toHChars2()
 
     if (this == Id::ctor) p = "this";
     else if (this == Id::dtor) p = "~this";
-    else if (this == Id::classInvariant) p = "invariant";
     else if (this == Id::unitTest) p = "unittest";
     else if (this == Id::dollar) p = "$";
     else if (this == Id::withSym) p = "with";
@@ -65,6 +64,8 @@ const char *Identifier::toHChars2()
                 p = "static this";
             else if (memcmp(p, "_staticDtor", 11) == 0)
                 p = "static ~this";
+            else if (memcmp(p, "__invariant", 11) == 0)
+                p = "invariant";
         }
     }
 
@@ -73,7 +74,7 @@ const char *Identifier::toHChars2()
 
 void Identifier::print()
 {
-    fprintf(stdmsg, "%s",string);
+    fprintf(stderr, "%s",string);
 }
 
 int Identifier::dyncast()

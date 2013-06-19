@@ -431,7 +431,7 @@ MATCH NullExp::implicitConvTo(Type *t)
      * and mutable to immutable. It works because, after all, a null
      * doesn't actually point to anything.
      */
-    if (t->invariantOf()->equals(type->invariantOf()))
+    if (t->immutableOf()->equals(type->immutableOf()))
         return MATCHconst;
 
     return Expression::implicitConvTo(t);
@@ -457,7 +457,7 @@ MATCH StructLiteralExp::implicitConvTo(Type *t)
             if (!e)
                 continue;
             Type *te = e->type;
-            te = te->castMod(t->mod);
+            te = sd->fields[i]->type->addMod(t->mod);
             MATCH m2 = e->implicitConvTo(te);
             //printf("\t%s => %s, match = %d\n", e->toChars(), te->toChars(), m2);
             if (m2 < m)
@@ -664,7 +664,34 @@ MATCH CallExp::implicitConvTo(Type *t)
      * convert to immutable
      */
     if (f && f->isolateReturn())
-        return type->invariantOf()->implicitConvTo(t);
+        return type->immutableOf()->implicitConvTo(t);
+
+    /* The result of arr.dup and arr.idup can be unique essentially.
+     * So deal with this case specially.
+     */
+    if (!f && e1->op == TOKvar && ((VarExp *)e1)->var->ident == Id::adDup &&
+        t->toBasetype()->ty == Tarray)
+    {
+        assert(type->toBasetype()->ty == Tarray);
+        assert(arguments->dim == 2);
+        Expression *eorg = (*arguments)[1];
+        Type *tn = t->nextOf();
+        if (type->nextOf()->implicitConvTo(tn) < MATCHconst)
+        {
+            /* If the operand is an unique array literal, then allow conversion.
+             */
+            if (eorg->op != TOKarrayliteral)
+                return MATCHnomatch;
+            Expressions *elements = ((ArrayLiteralExp *)eorg)->elements;
+            for (size_t i = 0; i < elements->dim; i++)
+            {
+                if (!(*elements)[i]->implicitConvTo(tn))
+                    return MATCHnomatch;
+            }
+        }
+        m = type->immutableOf()->implicitConvTo(t);
+        return m;
+    }
 
     return MATCHnomatch;
 }
@@ -1050,7 +1077,7 @@ Type *SliceExp::toStaticArrayType()
         {
             size_t len = upr->toUInteger() - lwr->toUInteger();
             return new TypeSArray(type->toBasetype()->nextOf(),
-                        new IntegerExp(0, len, Type::tindex));
+                        new IntegerExp(Loc(), len, Type::tindex));
         }
     }
     return NULL;
@@ -1088,6 +1115,15 @@ Expression *Expression::castTo(Scope *sc, Type *t)
 #endif
     if (type == t)
         return this;
+    if (op == TOKvar)
+    {
+        VarDeclaration *v = ((VarExp *)this)->var->isVarDeclaration();
+        if (v && v->storage_class & STCmanifest)
+        {
+            Expression *e = ctfeInterpret();
+            return e->castTo(sc, t);
+        }
+    }
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
@@ -1738,7 +1774,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     printf("SymOffExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t && hasOverloads == 0)
+    if (type == t && !hasOverloads)
         return this;
     Expression *e;
     Type *tb = t->toBasetype();
@@ -1818,7 +1854,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     else
     {   e = copy();
         e->type = t;
-        ((SymOffExp *)e)->hasOverloads = 0;
+        ((SymOffExp *)e)->hasOverloads = false;
     }
     return e;
 }
@@ -1900,15 +1936,15 @@ Expression *FuncExp::castTo(Scope *sc, Type *t)
     if (e)
     {
         if (e != this)
-            e = e->castTo(sc, t);
-        else if (!e->type->equals(t))
+            return e->castTo(sc, t);
+        if (!e->type->equals(t) && e->type->implicitConvTo(t))
         {
             assert(t->ty == Tpointer && t->nextOf()->ty == Tvoid || // Bugzilla 9928
                    e->type->nextOf()->covariant(t->nextOf()) == 1);
             e = e->copy();
             e->type = t;
+            return e;
         }
-        return e;
     }
     return Expression::castTo(sc, t);
 }
@@ -2229,7 +2265,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
         if (!t->equals(t2b))
             e2 = e2->castTo(sc, t);
         eoff = e2;
-        e2 = new MulExp(loc, e2, new IntegerExp(0, stride, t));
+        e2 = new MulExp(loc, e2, new IntegerExp(Loc(), stride, t));
         e2->type = t;
         type = e1->type;
     }
@@ -2245,7 +2281,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
         else
             e = e1;
         eoff = e;
-        e = new MulExp(loc, e, new IntegerExp(0, stride, t));
+        e = new MulExp(loc, e, new IntegerExp(Loc(), stride, t));
         e->type = t;
         type = e2->type;
         e1 = e2;
@@ -2387,6 +2423,9 @@ Lagain:
 
     if (t1 == t2)
     {
+        // merging can not result in new enum type
+        if (t->ty == Tenum)
+            t = t1b;
     }
     else if ((t1->ty == Tpointer && t2->ty == Tpointer) ||
              (t1->ty == Tdelegate && t2->ty == Tdelegate))
@@ -2936,6 +2975,8 @@ Expression *Expression::integralPromotions(Scope *sc)
 
         case Tdchar:
             e = e->castTo(sc, Type::tuns32);
+            break;
+        default:
             break;
     }
     return e;

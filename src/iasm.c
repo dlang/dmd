@@ -184,7 +184,7 @@ struct ASM_STATE
 ASM_STATE asmstate;
 
 static Token *asmtok;
-static enum TOK tok_value;
+static TOK tok_value;
 //char debuga = 1;
 
 // From ptrntab.c
@@ -534,7 +534,7 @@ STATIC OPND *asm_shift_exp();
 STATIC OPND *asm_una_exp();
 STATIC OPND *asm_xor_exp();
 STATIC void *link_alloc(size_t, void *);
-STATIC void asm_chktok(enum TOK toknum, unsigned errnum);
+STATIC void asm_chktok(TOK toknum, unsigned errnum);
 STATIC code *asm_db_parse(OP *pop);
 STATIC code *asm_da_parse(OP *pop);
 
@@ -566,7 +566,7 @@ STATIC void opnd_free(OPND *o)
 /*******************************
  */
 
-STATIC void asm_chktok(enum TOK toknum,unsigned errnum)
+STATIC void asm_chktok(TOK toknum,unsigned errnum)
 {
     if (tok_value == toknum)
         asm_token();                    // scan past token
@@ -3454,7 +3454,7 @@ STATIC void asm_token_trans(Token *tok)
             {
                 ASMTK asmtk = (ASMTK) binary(id, apszAsmtk, ASMTKmax);
                 if ((int)asmtk >= 0)
-                    tok_value = (enum TOK) (asmtk + TOKMAX + 1);
+                    tok_value = (TOK) (asmtk + TOKMAX + 1);
             }
         }
     }
@@ -3671,7 +3671,7 @@ STATIC code *asm_db_parse(OP *pop)
 
             case TOKidentifier:
             {   Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
-                e = e->semantic(asmstate.sc);
+                e = e->ctfeSemantic(asmstate.sc);
                 e = e->ctfeInterpret();
                 if (e->op == TOKint64)
                 {   dt.ul = e->toInteger();
@@ -3747,7 +3747,7 @@ int asm_getnum()
             Expression *e;
 
             e = new IdentifierExp(asmstate.loc, asmtok->ident);
-            e = e->semantic(asmstate.sc);
+            e = e->ctfeSemantic(asmstate.sc);
             e = e->ctfeInterpret();
             i = e->toInteger();
             v = (int) i;
@@ -3947,7 +3947,7 @@ STATIC OPND *asm_equal_exp()
 STATIC OPND *asm_rel_exp()
 {
     OPND *o1,*o2;
-    enum TOK tok_save;
+    TOK tok_save;
 
     o1 = asm_shift_exp();
     while (1)
@@ -3997,7 +3997,7 @@ STATIC OPND *asm_rel_exp()
 STATIC OPND *asm_shift_exp()
 {
     OPND *o1,*o2;
-    enum TOK tk;
+    TOK tk;
 
     o1 = asm_add_exp();
     while (tok_value == TOKshl || tok_value == TOKshr || tok_value == TOKushr)
@@ -4296,7 +4296,7 @@ STATIC OPND *asm_una_exp()
                     ajt = ASM_JUMPTYPE_FAR;
 JUMP_REF:
                     asm_token();
-                    asm_chktok((enum TOK) ASMTKptr, EM_ptr_exp);
+                    asm_chktok((TOK) ASMTKptr, EM_ptr_exp);
 JUMP_REF2:
                     o1 = asm_cond_exp();
                     if (!o1)
@@ -4326,7 +4326,7 @@ JUMP_REF2:
 TYPE_REF:
                     bPtr = 1;
                     asm_token();
-                    asm_chktok((enum TOK) ASMTKptr, EM_ptr_exp);
+                    asm_chktok((TOK) ASMTKptr, EM_ptr_exp);
                     o1 = asm_cond_exp();
                     if (!o1)
                         o1 = opnd_calloc();
@@ -4424,14 +4424,14 @@ STATIC OPND *asm_primary_exp()
                         if (asmstate.sc->func->labtab)
                             s = asmstate.sc->func->labtab->lookup(asmtok->ident);
                         if (!s)
-                            s = asmstate.sc->search(0, asmtok->ident, &scopesym);
+                            s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                         if (!s)
                         {   // Assume it is a label, and define that label
                             s = asmstate.sc->func->searchLabel(asmtok->ident);
                         }
                     }
                     else
-                        s = asmstate.sc->search(0, asmtok->ident, &scopesym);
+                        s = asmstate.sc->search(Loc(), asmtok->ident, &scopesym);
                     if (!s)
                         asmerr(EM_undefined, asmtok->toChars());
 
@@ -4458,7 +4458,7 @@ STATIC OPND *asm_primary_exp()
                                 break;
                             }
                         }
-                        e = e->semantic(asmstate.sc);
+                        e = e->ctfeSemantic(asmstate.sc);
                         e = e->ctfeInterpret();
                         if (e->isConst())
                         {

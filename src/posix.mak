@@ -39,6 +39,8 @@ else
     endif
 endif
 
+INSTALL_DIR=../../install
+
 C=backend
 TK=tk
 ROOT=root
@@ -57,15 +59,15 @@ HOST_CC=g++
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
-#OPT=-g -g3
-#OPT=-O2
-
 #COV=-fprofile-arcs -ftest-coverage
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
-#GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -g -DDEBUG=1 -DUNITTEST $(COV)
-GFLAGS = $(WARNINGS) -D__pascal= -fno-exceptions -O2
+ifneq (,$(DEBUG))
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV)
+else
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
+endif
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
 MFLAGS = $(GFLAGS) -I$C -I$(TK) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
@@ -74,7 +76,7 @@ CH= $C/cc.h $C/global.h $C/oper.h $C/code.h $C/type.h \
 	$C/dt.h $C/cgcv.h $C/el.h $C/obj.h $(TARGET_CH)
 
 DMD_OBJS = \
-	access.o array.o attrib.o bcomplex.o blockopt.o \
+	access.o attrib.o bcomplex.o blockopt.o \
 	cast.o code.o cg.o cgcod.o cgcs.o cgelem.o cgen.o \
 	cgreg.o class.o cod5.o \
 	constfold.o irstate.o cond.o debug.o \
@@ -145,7 +147,7 @@ SRC = win32.mak posix.mak \
 	$C/ph2.c $C/util2.c \
 	$(TK)/filespec.h $(TK)/mem.h $(TK)/list.h $(TK)/vec.h \
 	$(TK)/filespec.c $(TK)/mem.c $(TK)/vec.c $(TK)/list.c \
-	$(ROOT)/root.h $(ROOT)/root.c $(ROOT)/array.c \
+	$(ROOT)/root.h $(ROOT)/root.c \
 	$(ROOT)/rmem.h $(ROOT)/rmem.c $(ROOT)/port.h $(ROOT)/port.c \
 	$(ROOT)/man.c \
 	$(ROOT)/stringtable.h $(ROOT)/stringtable.c \
@@ -248,9 +250,6 @@ apply.o: apply.c
 argtypes.o: argtypes.c
 	$(CC) -c $(CFLAGS) $<
 
-array.o: $(ROOT)/array.c
-	$(CC) -c $(GFLAGS) -I$(ROOT) $<
-
 arrayop.o: arrayop.c
 	$(CC) -c $(CFLAGS) $<
 
@@ -284,7 +283,7 @@ cg.o: $C/cg.c fltables.c
 cg87.o: $C/cg87.c
 	$(CC) -c $(MFLAGS) $<
 
-cgcod.o: $C/cgcod.c
+cgcod.o: $C/cgcod.c cdxxx.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 cgcs.o: $C/cgcs.c
@@ -293,7 +292,7 @@ cgcs.o: $C/cgcs.c
 cgcv.o: $C/cgcv.c
 	$(CC) -c $(MFLAGS) $<
 
-cgelem.o: $C/cgelem.c $C/rtlsym.h
+cgelem.o: $C/cgelem.c $C/rtlsym.h elxxx.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 cgen.o: $C/cgen.c $C/rtlsym.h
@@ -356,7 +355,7 @@ cppmangle.o: cppmangle.c
 cv8.o: $C/cv8.c
 	$(CC) -c $(MFLAGS) $<
 
-debug.o: $C/debug.c
+debug.o: $C/debug.c debtab.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 declaration.o: declaration.c
@@ -656,11 +655,20 @@ utf.o: utf.c utf.h
 unittests.o: unittests.c
 	$(CC) -c $(CFLAGS) $<
 
-var.o: $C/var.c optab.c
+var.o: $C/var.c optab.c tytab.c
 	$(CC) -c $(MFLAGS) -I. $<
 
 version.o: version.c
 	$(CC) -c $(CFLAGS) $<
+
+######################################################
+
+install: all
+	mkdir -p $(INSTALL_DIR)/bin
+	cp dmd $(INSTALL_DIR)/bin/dmd
+	cp dmd.conf.default $(INSTALL_DIR)/bin/dmd.conf
+	cp backendlicense.txt $(INSTALL_DIR)/dmd-backendlicense.txt
+	cp artistic.txt $(INSTALL_DIR)/dmd-artistic.txt
 
 ######################################################
 

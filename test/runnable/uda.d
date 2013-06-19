@@ -139,7 +139,7 @@ void test7()
 
     if (!is(Test7 == typeof(tp[0])))
         assert(0);
-    
+
     assert(tp[0] == Test7(3, "foo"));
 }
 
@@ -260,6 +260,94 @@ void test9178()
     Foo foo = new Foo;
     static assert(__traits(getAttributes, foo.tupleof[0])[0] == 1);
 }
+
+/************************************************/
+// 9741
+
+struct Bug9741
+{
+    pragma(msg, __traits(getAttributes, enum_field));
+    alias Tuple!(__traits(getAttributes, enum_field)) Tenum_field;
+    private @(10) enum enum_field = 42;
+
+    static assert(Tenum_field[0] == 10);
+    static assert(__traits(getAttributes, enum_field)[0] == 10);
+    static assert(__traits(getProtection, enum_field) == "private");
+    static assert(__traits(isSame, __traits(parent, enum_field), Bug9741));
+    static assert(__traits(isSame, enum_field, enum_field));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member));
+    alias Tuple!(__traits(getAttributes, anon_enum_member)) Tanon_enum_member;
+    private @(20) enum {anon_enum_member}
+
+    static assert(Tanon_enum_member[0] == 20);
+    static assert(__traits(getAttributes, anon_enum_member)[0] == 20);
+    static assert(__traits(getProtection, anon_enum_member) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member), Bug9741));
+    static assert(__traits(isSame, anon_enum_member, anon_enum_member));
+
+    pragma(msg, __traits(getAttributes, Foo.enum_member));
+    alias Tuple!(__traits(getAttributes, Foo.enum_member)) Tfoo_enum_member;
+    private @(30) enum Foo {enum_member}
+    static assert(Tfoo_enum_member.length == 0); //Foo has attributes, not Foo.enum_member
+    static assert(__traits(getAttributes, Foo.enum_member).length == 0);
+    static assert(__traits(getProtection, Foo.enum_member) == "public");
+    static assert(__traits(isSame, __traits(parent, Foo.enum_member), Foo));
+    static assert(__traits(isSame, Foo.enum_member, Foo.enum_member));
+
+    pragma(msg, __traits(getAttributes, anon_enum_member_2));
+    alias Tuple!(__traits(getAttributes, anon_enum_member_2)) Tanon_enum_member_2;
+    private @(40) enum {long anon_enum_member_2 = 2L}
+
+    static assert(Tanon_enum_member_2[0] == 40);
+    static assert(__traits(getAttributes, anon_enum_member_2)[0] == 40);
+    static assert(__traits(getProtection, anon_enum_member_2) == "private");
+    static assert(__traits(isSame, __traits(parent, anon_enum_member_2), Bug9741));
+    static assert(__traits(isSame, anon_enum_member_2, anon_enum_member_2));
+
+    template Bug(alias X, bool is_exp)
+    {
+        static assert(is_exp == !__traits(compiles, __traits(parent, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getAttributes, X)));
+        static assert(is_exp == !__traits(compiles, __traits(getProtection, X)));
+        enum Bug = 0;
+    }
+    enum en = 0;
+    enum dummy1 = Bug!(5, true);
+    enum dummy2 = Bug!(en, false);
+}
+
+/************************************************/
+// 10208
+
+@( 10)                enum int x10208_01 =  100;
+@( 20)                     int x10208_02;
+@( 30)               const int x10208_03;
+@( 40)           immutable int x10208_04;
+@( 50)                     int x10208_05 =  500;
+@( 60)               const int x10208_06 =  600;
+@( 70)           immutable int x10208_07 =  700;
+@( 80) __gshared      enum int x10208_08 =  800;
+@( 90) __gshared           int x10208_09;
+@(100) __gshared     const int x10208_10;
+@(110) __gshared immutable int x10208_11;
+@(120) __gshared           int x10208_12 = 1200;
+@(130) __gshared     const int x10208_13 = 1300;
+@(140) __gshared immutable int x10208_14 = 1400;
+static assert(__traits(getAttributes, x10208_01)[0] ==  10); // OK
+static assert(__traits(getAttributes, x10208_02)[0] ==  20); // OK
+static assert(__traits(getAttributes, x10208_03)[0] ==  30); // OK
+static assert(__traits(getAttributes, x10208_04)[0] ==  40); // OK
+static assert(__traits(getAttributes, x10208_05)[0] ==  50); // OK
+static assert(__traits(getAttributes, x10208_06)[0] ==  60); // Error -> OK
+static assert(__traits(getAttributes, x10208_07)[0] ==  70); // Error -> OK
+static assert(__traits(getAttributes, x10208_08)[0] ==  80); // OK
+static assert(__traits(getAttributes, x10208_09)[0] ==  90); // OK
+static assert(__traits(getAttributes, x10208_10)[0] == 100); // OK
+static assert(__traits(getAttributes, x10208_11)[0] == 110); // OK
+static assert(__traits(getAttributes, x10208_12)[0] == 120); // OK
+static assert(__traits(getAttributes, x10208_13)[0] == 130); // Error -> OK
+static assert(__traits(getAttributes, x10208_14)[0] == 140); // Error -> OK
 
 /************************************************/
 

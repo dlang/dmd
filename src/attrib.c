@@ -27,6 +27,8 @@
 #include "module.h"
 #include "parse.h"
 #include "template.h"
+#include "hdrgen.h"
+#include "utf.h"
 
 
 /********************************* AttribDeclaration ****************************/
@@ -77,7 +79,7 @@ int AttribDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 }
 
 void AttribDeclaration::setScopeNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -112,7 +114,7 @@ void AttribDeclaration::setScopeNewSc(Scope *sc,
 }
 
 void AttribDeclaration::semanticNewSc(Scope *sc,
-        StorageClass stc, enum LINK linkage, enum PROT protection, int explicitProtection,
+        StorageClass stc, LINK linkage, PROT protection, int explicitProtection,
         structalign_t structalign)
 {
     if (decl)
@@ -257,7 +259,7 @@ void AttribDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffs
     }
 }
 
-int AttribDeclaration::hasPointers()
+bool AttribDeclaration::hasPointers()
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -267,10 +269,10 @@ int AttribDeclaration::hasPointers()
         {
             Dsymbol *s = (*d)[i];
             if (s->hasPointers())
-                return 1;
+                return true;
         }
     }
-    return 0;
+    return false;
 }
 
 bool AttribDeclaration::hasStaticCtorOrDtor()
@@ -294,7 +296,7 @@ const char *AttribDeclaration::kind()
     return "attribute";
 }
 
-int AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool AttribDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     Dsymbols *d = include(NULL, NULL);
 
@@ -351,6 +353,10 @@ void AttribDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     {
         if (decl->dim == 0)
             buf->writestring("{}");
+        else if (hgs->hdrgen && decl->dim == 1 && (*decl)[0]->isUnitTestDeclaration())
+        {   // hack for bugzilla 8081
+            buf->writestring("{}");
+        }
         else if (decl->dim == 1)
             ((*decl)[0])->toCBuffer(buf, hgs);
         else
@@ -390,10 +396,10 @@ Dsymbol *StorageClassDeclaration::syntaxCopy(Dsymbol *s)
     return scd;
 }
 
-int StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool StorageClassDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
 
-    int t = Dsymbol::oneMembers(decl, ps, ident);
+    bool t = Dsymbol::oneMembers(decl, ps, ident);
     if (t && *ps)
     {
         /* This is to deal with the following case:
@@ -482,7 +488,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
     struct SCstring
     {
         StorageClass stc;
-        enum TOK tok;
+        TOK tok;
         Identifier *id;
     };
 
@@ -529,7 +535,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
             if (tbl == STCtls)  // TOKtls was removed
                 return "__thread";
 
-            enum TOK tok = table[i].tok;
+            TOK tok = table[i].tok;
 #if DMDV2
             if (tok == TOKat)
             {
@@ -553,7 +559,7 @@ void StorageClassDeclaration::stcToCBuffer(OutBuffer *buf, StorageClass stc)
         const char *p = stcToChars(tmp, stc);
         if (!p)
             break;
-        assert(strlen(p) < sizeof(tmp));
+        assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
         buf->writestring(p);
         buf->writeByte(' ');
     }
@@ -605,7 +611,7 @@ void DeprecatedDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* LinkDeclaration ****************************/
 
-LinkDeclaration::LinkDeclaration(enum LINK p, Dsymbols *decl)
+LinkDeclaration::LinkDeclaration(LINK p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     //printf("LinkDeclaration(linkage = %d, decl = %p)\n", p, decl);
@@ -643,7 +649,7 @@ void LinkDeclaration::semantic3(Scope *sc)
 {
     //printf("LinkDeclaration::semantic3(linkage = %d, decl = %p)\n", linkage, decl);
     if (decl)
-    {   enum LINK linkage_save = sc->linkage;
+    {   LINK linkage_save = sc->linkage;
 
         sc->linkage = linkage;
         for (size_t i = 0; i < decl->dim; i++)
@@ -688,7 +694,7 @@ char *LinkDeclaration::toChars()
 
 /********************************* ProtDeclaration ****************************/
 
-ProtDeclaration::ProtDeclaration(enum PROT p, Dsymbols *decl)
+ProtDeclaration::ProtDeclaration(PROT p, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     protection = p;
@@ -743,7 +749,7 @@ void ProtDeclaration::semantic(Scope *sc)
     }
 }
 
-void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, enum PROT protection)
+void ProtDeclaration::protectionToCBuffer(OutBuffer *buf, PROT protection)
 {
     const char *p;
 
@@ -974,6 +980,30 @@ void PragmaDeclaration::setScope(Scope *sc)
 {
 }
 
+static unsigned setMangleOverride(Dsymbol *s, char *sym)
+{
+    AttribDeclaration *ad = s->isAttribDeclaration();
+
+    if (ad)
+    {
+        Dsymbols *decls = ad->include(NULL, NULL);
+        unsigned nestedCount = 0;
+
+        if (decls && decls->dim)
+            for (size_t i = 0; i < decls->dim; ++i)
+                nestedCount += setMangleOverride((*decls)[i], sym);
+
+        return nestedCount;
+    }
+    else if (s->isFuncDeclaration() || s->isVarDeclaration())
+    {
+        s->isDeclaration()->mangleOverride = sym;
+        return 1;
+    }
+    else
+        return 0;
+}
+
 void PragmaDeclaration::semantic(Scope *sc)
 {   // Should be merged with PragmaStatement
 
@@ -986,10 +1016,10 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->semantic(sc);
+                e = e->ctfeSemantic(sc);
                 e = resolveProperties(sc, e);
-                if (e->op != TOKerror && e->op != TOKtype)
-                    e = e->ctfeInterpret();
+                // pragma(msg) is allowed to contain types as well as expressions
+                e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
                 {   errorSupplemental(loc, "while evaluating pragma(msg, %s)", (*args)[i]->toChars());
                     return;
@@ -997,12 +1027,12 @@ void PragmaDeclaration::semantic(Scope *sc)
                 StringExp *se = e->toString();
                 if (se)
                 {
-                    fprintf(stdmsg, "%.*s", (int)se->len, (char *)se->string);
+                    fprintf(stderr, "%.*s", (int)se->len, (char *)se->string);
                 }
                 else
-                    fprintf(stdmsg, "%s", e->toChars());
+                    fprintf(stderr, "%s", e->toChars());
             }
-            fprintf(stdmsg, "\n");
+            fprintf(stderr, "\n");
         }
         goto Lnodecl;
     }
@@ -1014,7 +1044,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1023,12 +1053,24 @@ void PragmaDeclaration::semantic(Scope *sc)
             StringExp *se = e->toString();
             if (!se)
                 error("string expected for library name, not '%s'", e->toChars());
-            else if (global.params.verbose)
+            else 
             {
                 char *name = (char *)mem.malloc(se->len + 1);
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
-                printf("library   %s\n", name);
+                if (global.params.verbose)
+                    printf("library   %s\n", name);
+                if (global.params.moduleDeps && !global.params.moduleDepsFile)
+                {
+                    OutBuffer *ob = global.params.moduleDeps;
+                    ob->writestring("depsLib ");
+                    ob->writestring(sc->module->toPrettyChars());
+                    ob->writestring(" (");
+                    escapePath(ob, sc->module->srcfile->toChars());
+                    ob->writestring(") : ");
+                    ob->writestring((char *) name);
+                    ob->writenl();
+                }
                 mem.free(name);
             }
         }
@@ -1042,7 +1084,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->semantic(sc);
+            e = e->ctfeSemantic(sc);
             e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1180,6 +1222,77 @@ void PragmaDeclaration::semantic(Scope *sc)
             error("string expected for name override, not '%s'", e->toChars());
     }
 #endif
+    else if (ident == Id::mangle)
+    {
+        if (!args || args->dim != 1)
+            error("string expected for mangled name");
+        else
+        {
+            Expression *e = (*args)[0];
+
+            e = e->semantic(sc);
+            e = e->ctfeInterpret();
+            (*args)[0] = e;
+
+            if (e->op == TOKerror)
+                goto Lnodecl;
+
+            StringExp *se = e->toString();
+
+            if (!se)
+            {
+                error("string expected for mangled name, not '%s'", e->toChars());
+                return;
+            }
+
+            if (!se->len)
+                error("zero-length string not allowed for mangled name");
+
+            if (se->sz != 1)
+                error("mangled name characters can only be of type char");
+
+#if 1
+            /* Note: D language specification should not have any assumption about backend
+             * implementation. Ideally pragma(mangle) can accept a string of any content.
+             *
+             * Therefore, this validation is compiler implementation specific.
+             */
+            for (size_t i = 0; i < se->len; )
+            {
+                unsigned char *p = (unsigned char *)se->string;
+                dchar_t c = p[i];
+                if (c < 0x80)
+                {
+                    if (c >= 'A' && c <= 'Z' ||
+                        c >= 'a' && c <= 'z' ||
+                        c >= '0' && c <= '9' ||
+                        c != 0 && strchr("$%().:?@[]_", c))
+                    {
+                        ++i;
+                        continue;
+                    }
+                    else
+                    {
+                        error("char 0x%02x not allowed in mangled name", c);
+                        break;
+                    }
+                }
+
+                if (const char* msg = utf_decodeChar((unsigned char *)se->string, se->len, &i, &c))
+                {
+                    error("%s", msg);
+                    break;
+                }
+
+                if (!isUniAlpha(c))
+                {
+                    error("char 0x%04x not allowed in mangled name", c);
+                    break;
+                }
+            }
+#endif
+        }
+    }
     else if (global.params.ignoreUnsupportedPragmas)
     {
         if (global.params.verbose)
@@ -1192,7 +1305,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 for (size_t i = 0; i < args->dim; i++)
                 {
                     Expression *e = (*args)[i];
-                    e = e->semantic(sc);
+                    e = e->ctfeSemantic(sc);
                     e = resolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
@@ -1219,6 +1332,20 @@ Ldecl:
             Dsymbol *s = (*decl)[i];
 
             s->semantic(sc);
+
+            if (ident == Id::mangle)
+            {
+                StringExp *e = (*args)[0]->toString();
+
+                char *name = (char *)mem.malloc(e->len + 1);
+                memcpy(name, e->string, e->len);
+                name[e->len] = 0;
+
+                unsigned cnt = setMangleOverride(s, name);
+
+                if (cnt > 1)
+                    error("can only apply to a single declaration");
+            }
         }
     }
     return;
@@ -1231,10 +1358,10 @@ Lnodecl:
     }
 }
 
-int PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool PragmaDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 const char *PragmaDeclaration::kind()
@@ -1277,7 +1404,7 @@ Dsymbol *ConditionalDeclaration::syntaxCopy(Dsymbol *s)
 }
 
 
-int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("ConditionalDeclaration::oneMember(), inc = %d\n", condition->inc);
     if (condition->inc)
@@ -1286,7 +1413,7 @@ int ConditionalDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
         return Dsymbol::oneMembers(d, ps, ident);
     }
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void ConditionalDeclaration::emitComment(Scope *sc)
@@ -1447,7 +1574,13 @@ Dsymbols *StaticIfDeclaration::include(Scope *sc, ScopeDsymbol *sd)
 
     if (condition->inc == 0)
     {
+        /* Bugzilla 10101: Condition evaluation may cause self-recursive
+         * condition evaluation. To resolve it, temporarily save sc into scope.
+         */
+        bool x = !scope && sc;
+        if (x) scope = sc;
         Dsymbols *d = ConditionalDeclaration::include(sc, sd);
+        if (x) scope = NULL;
 
         // Set the scopes lazily.
         if (scope && d)
@@ -1570,7 +1703,7 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    exp = exp->semantic(sc);
+    exp = exp->ctfeSemantic(sc);
     exp = resolveProperties(sc, exp);
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
@@ -1678,8 +1811,8 @@ Expressions *UserAttributeDeclaration::concat(Expressions *udas1, Expressions *u
          * (do not append to left operand, as this is a copy-on-write operation)
          */
         udas = new Expressions();
-        udas->push(new TupleExp(0, udas1));
-        udas->push(new TupleExp(0, udas2));
+        udas->push(new TupleExp(Loc(), udas1));
+        udas->push(new TupleExp(Loc(), udas2));
     }
     return udas;
 }
@@ -1704,8 +1837,8 @@ void UserAttributeDeclaration::setScope(Scope *sc)
             {
                 // Create a tuple that combines them
                 Expressions *exps = new Expressions();
-                exps->push(new TupleExp(0, newsc->userAttributes));
-                exps->push(new TupleExp(0, atts));
+                exps->push(new TupleExp(Loc(), newsc->userAttributes));
+                exps->push(new TupleExp(Loc(), atts));
                 newsc->userAttributes = exps;
             }
         }

@@ -55,8 +55,10 @@ void StaticAssert::semantic2(Scope *sc)
     ScopeDsymbol *sd = new ScopeDsymbol();
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
-    Expression *e = exp->semantic(sc);
+    Expression *e = exp->ctfeSemantic(sc);
     e = resolveProperties(sc, e);
+    // Simplify expression, to make error messages nicer if CTFE fails
+    e = e->optimize(0);
     sc = sc->pop();
     if (!e->type->checkBoolean())
     {
@@ -76,7 +78,7 @@ void StaticAssert::semantic2(Scope *sc)
         {   HdrGenState hgs;
             OutBuffer buf;
 
-            msg = msg->semantic(sc);
+            msg = msg->ctfeSemantic(sc);
             msg = resolveProperties(sc, msg);
             msg = msg->ctfeInterpret();
             hgs.console = 1;
@@ -101,11 +103,11 @@ void StaticAssert::semantic2(Scope *sc)
     }
 }
 
-int StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
+bool StaticAssert::oneMember(Dsymbol **ps, Identifier *ident)
 {
     //printf("StaticAssert::oneMember())\n");
     *ps = NULL;
-    return TRUE;
+    return true;
 }
 
 void StaticAssert::inlineScan()
@@ -128,7 +130,7 @@ void StaticAssert::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     exp->toCBuffer(buf, hgs);
     if (msg)
     {
-        buf->writeByte(',');
+        buf->writestring(", ");
         msg->toCBuffer(buf, hgs);
     }
     buf->writestring(");");

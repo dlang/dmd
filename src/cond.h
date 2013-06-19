@@ -11,27 +11,29 @@
 #ifndef DMD_DEBCOND_H
 #define DMD_DEBCOND_H
 
-struct Expression;
-struct Identifier;
-struct OutBuffer;
-struct Module;
-struct Scope;
-struct ScopeDsymbol;
-struct DebugCondition;
+class Expression;
+class Identifier;
+class OutBuffer;
+class Module;
+class Scope;
+class ScopeDsymbol;
+class DebugCondition;
 #include "lexer.h" // dmdhg
 enum TOK;
 struct HdrGenState;
 
 int findCondition(Strings *ids, Identifier *ident);
 
-struct Condition
+class Condition
 {
+public:
     Loc loc;
     int inc;            // 0: not computed yet
                         // 1: include
                         // 2: do not include
 
     Condition(Loc loc);
+    virtual ~Condition() {}
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
@@ -39,8 +41,9 @@ struct Condition
     virtual DebugCondition *isDebugCondition() { return NULL; }
 };
 
-struct DVCondition : Condition
+class DVCondition : public Condition
 {
+public:
     unsigned level;
     Identifier *ident;
     Module *mod;
@@ -50,8 +53,9 @@ struct DVCondition : Condition
     Condition *syntaxCopy();
 };
 
-struct DebugCondition : DVCondition
+class DebugCondition : public DVCondition
 {
+public:
     static void setGlobalLevel(unsigned level);
     static void addGlobalIdent(const char *ident);
 
@@ -62,10 +66,16 @@ struct DebugCondition : DVCondition
     DebugCondition *isDebugCondition() { return this; }
 };
 
-struct VersionCondition : DVCondition
+class VersionCondition : public DVCondition
 {
+public:
     static void setGlobalLevel(unsigned level);
-    static void checkPredefined(Loc loc, const char *ident);
+    static bool isPredefined(const char *ident);
+    static void checkPredefined(Loc loc, const char *ident)
+    {
+        if (isPredefined(ident))
+            error(loc, "version identifier '%s' is reserved and cannot be set", ident);
+    }
     static void addGlobalIdent(const char *ident);
     static void addPredefinedGlobalIdent(const char *ident);
 
@@ -75,8 +85,9 @@ struct VersionCondition : DVCondition
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct StaticIfCondition : Condition
+class StaticIfCondition : public Condition
 {
+public:
     Expression *exp;
     int nest;         // limit circular dependencies
 

@@ -117,3 +117,19 @@ immutable(S2)     foo2c(immutable int*[] prm) pure {                S2 s; return
 immutable(int*[]) bar2a(              S2 prm) pure {           int *[] a; return a; }   // OK
 immutable(int*[]) bar2b(              S2 prm) pure {     const(int)*[] a; return a; }   // NG
 immutable(int*[]) bar2c(              S2 prm) pure { immutable(int)*[] a; return a; }   // OK
+
+
+/*
+TEST_OUTPUT:
+---
+fail_compilation/testInference.d(134): Error: cannot implicitly convert expression (f10063(cast(inout(void*))p)) of type inout(void)* to immutable(void)*
+---
+*/
+inout(void)* f10063(inout void* p) pure
+{
+    return p;
+}
+immutable(void)* g10063(inout int* p) pure
+{
+    return f10063(p);
+}

@@ -24,11 +24,7 @@ struct StringEntry;
 // method because the only thing which should be creating these is StringTable.
 struct StringValue
 {
-    union
-    {
-        void *ptrvalue;
-        char *string;
-    };
+    void *ptrvalue;
 private:
     size_t length;
 
@@ -57,7 +53,7 @@ private:
     size_t tabledim;
 
 public:
-    void init(size_t size = 37);
+    void _init(size_t size = 37);
     ~StringTable();
 
     StringValue *lookup(const char *s, size_t len);

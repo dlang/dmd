@@ -46,18 +46,9 @@ Classsym *fake_classsym(Identifier *id);
 
 /********************************* SymbolDeclaration ****************************/
 
-SymbolDeclaration::SymbolDeclaration(Loc loc, Symbol *s, StructDeclaration *dsym)
-    : Declaration(new Identifier(s->Sident, TOKidentifier))
-{
-    this->loc = loc;
-    sym = s;
-    this->dsym = dsym;
-    storage_class |= STCconst;
-}
-
 Symbol *SymbolDeclaration::toSymbol()
 {
-    return sym;
+    return dsym->toInitializer();
 }
 
 /*************************************
@@ -193,7 +184,7 @@ Symbol *VarDeclaration::toSymbol()
         }
         else if (isParameter())
         {
-            if (config.exe == EX_WIN64 && type->size(0) > REGSIZE)
+            if (config.exe == EX_WIN64 && type->size(Loc()) > REGSIZE)
             {
                 // should be TYref, but problems in back end
                 t = type_pointer(type->toCtype());
@@ -223,7 +214,7 @@ Symbol *VarDeclaration::toSymbol()
                 if (global.params.vtls)
                 {
                     char *p = loc.toChars();
-                    fprintf(stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
+                    fprintf(stderr, "%s: %s is thread local\n", p ? p : "", toChars());
                     if (p)
                         mem.free(p);
                 }
@@ -282,9 +273,25 @@ Symbol *VarDeclaration::toSymbol()
                 break;
 
             case LINKcpp:
+            {
                 m = mTYman_cpp;
-                break;
 
+                s->Sflags = SFLpublic;
+                Dsymbol *parent = toParent();
+                ClassDeclaration *cd = parent->isClassDeclaration();
+                if (cd)
+                {
+                    ::type *tc = cd->type->toCtype();
+                    s->Sscope = tc->Tnext->Ttag;
+                }
+                StructDeclaration *sd = parent->isStructDeclaration();
+                if (sd)
+                {
+                    ::type *ts = sd->type->toCtype();
+                    s->Sscope = ts->Ttag;
+                }
+                break;
+            }
             default:
                 printf("linkage = %d\n", linkage);
                 assert(0);
@@ -303,14 +310,6 @@ Symbol *VarDeclaration::toSymbol()
 Symbol *ClassInfoDeclaration::toSymbol()
 {
     return cd->toSymbol();
-}
-
-/*************************************
- */
-
-Symbol *ModuleInfoDeclaration::toSymbol()
-{
-    return mod->toSymbol();
 }
 
 /*************************************
@@ -367,9 +366,9 @@ Symbol *FuncDeclaration::toSymbol()
             s->Sclass = SCglobal;
             symbol_func(s);
             func_t *f = s->Sfunc;
-            if (isVirtual())
+            if (isVirtual() && vtblIndex != -1)
                 f->Fflags |= Fvirtual;
-            else if (isMember2())
+            else if (isMember2() && isStatic())
                 f->Fflags |= Fstatic;
             f->Fstartline.Slinnum = loc.linnum;
             f->Fstartline.Sfilename = (char *)loc.filename;
@@ -427,6 +426,12 @@ Symbol *FuncDeclaration::toSymbol()
                     {
                         ::type *tc = cd->type->toCtype();
                         s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
                     }
                     break;
                 }

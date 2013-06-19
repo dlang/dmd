@@ -444,7 +444,8 @@ dt_t **StringExp::toDt(dt_t **pdt)
             break;
 
         case Tsarray:
-        {   TypeSArray *tsa = (TypeSArray *)type;
+        {
+            TypeSArray *tsa = (TypeSArray *)t;
 
             pdt = dtnbytes(pdt, len * sz, (const char *)string);
             if (tsa->dim)

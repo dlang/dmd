@@ -44,8 +44,9 @@ struct Escape
     const char *escapeChar(unsigned c);
 };
 
-struct Section
+class Section
 {
+public:
     unsigned char *name;
     size_t namelen;
 
@@ -57,17 +58,19 @@ struct Section
     virtual void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-struct ParamSection : Section
+class ParamSection : public Section
 {
+public:
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-struct MacroSection : Section
+class MacroSection : public Section
 {
+public:
     void write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf);
 };
 
-typedef ArrayBase<Section> Sections;
+typedef Array<Section> Sections;
 
 struct DocComment
 {
@@ -501,6 +504,7 @@ static bool emitAnchorName(OutBuffer *buf, Dsymbol *s)
          * We don't want the template parameter list and constraints. */
         buf->writestring(s->Dsymbol::toChars());
     }
+
     return true;
 }
 
@@ -658,7 +662,6 @@ void DtorDeclaration::emitComment(Scope *sc)       { }
 void StaticCtorDeclaration::emitComment(Scope *sc) { }
 void StaticDtorDeclaration::emitComment(Scope *sc) { }
 void ClassInfoDeclaration::emitComment(Scope *sc)  { }
-void ModuleInfoDeclaration::emitComment(Scope *sc) { }
 void TypeInfoDeclaration::emitComment(Scope *sc)   { }
 
 
@@ -918,6 +921,16 @@ void declarationToDocBuffer(Declaration *decl, OutBuffer *buf, TemplateDeclarati
         }
         else
             buf->writestring(decl->ident->toChars());
+
+        // emit constraints if declaration is a templated declaration
+        if (td && td->constraint)
+        {
+            HdrGenState hgs;
+            hgs.ddoc = 1;
+            buf->writestring(" if (");
+            td->constraint->toCBuffer(buf, &hgs);
+            buf->writeByte(')');
+        }
 
         if (decl->isDeprecated())
             buf->writestring(")");

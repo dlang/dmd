@@ -88,6 +88,7 @@ void unittests();
 #define DMDV2   1       // Version 2.0 features
 #define SNAN_DEFAULT_INIT DMDV2 // if floats are default initialized to signalling NaN
 #define MODULEINFO_IS_STRUCT DMDV2   // if ModuleInfo is a struct rather than a class
+#define PULL93  0       // controversial pull #93 for bugzilla 3449
 
 // Set if C++ mangling is done by the front end
 #define CPP_MANGLE (DMDV2 && (TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS))
@@ -122,12 +123,12 @@ void unittests();
 #endif
 
 
-struct OutBuffer;
+class OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
-template <typename TYPE> struct ArrayBase;
-typedef ArrayBase<struct Identifier> Identifiers;
-typedef ArrayBase<char> Strings;
+template <typename TYPE> struct Array;
+typedef Array<class Identifier> Identifiers;
+typedef Array<char> Strings;
 
 // Put command line switches in here
 struct Param
@@ -142,11 +143,13 @@ struct Param
     char quiet;         // suppress non-error messages
     char verbose;       // verbose compile
     char vtls;          // identify thread local variables
+    char vfield;        // identify non-mutable field variables
     char symdebug;      // insert debug symbolic information
     bool alwaysframe;   // always emit standard stack frame
     bool optimize;      // run optimizer
     char map;           // generate linker .map file
     char is64bit;       // generate 64 bit code
+    char isLP64;        // generate code for LP64
     char isLinux;       // generate code for linux
     char isOSX;         // generate code for Mac OSX
     char isWindows;     // generate code for Windows
@@ -178,7 +181,6 @@ struct Param
     bool cov;           // generate code coverage data
     unsigned char covPercent;   // 0..100 code coverage percentage required
     bool nofloat;       // code should not pull in floating point support
-    char Dversion;      // D version number
     char ignoreUnsupportedPragmas;      // rather than error on them
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
@@ -208,8 +210,6 @@ struct Param
 
     unsigned versionlevel;      // version level
     Strings *versionids;   // version identifiers
-
-    bool dump_source;
 
     const char *defaultlibname; // default library for non-debug builds
     const char *debuglibname;   // default library for debug builds
@@ -241,6 +241,11 @@ struct Param
     char *mapfile;
 };
 
+struct Compiler
+{
+    const char *vendor;     // Compiler backend name
+};
+
 typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
@@ -263,10 +268,9 @@ struct Global
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
-    structalign_t structalign;       // default alignment for struct fields
-
     const char *version;
 
+    Compiler compiler;
     Param params;
     unsigned errors;       // number of errors reported so far
     unsigned warnings;     // number of warnings reported so far
@@ -287,7 +291,7 @@ struct Global
      */
     bool endGagging(unsigned oldGagged);
 
-    Global();
+    void init();
 };
 
 extern Global global;
@@ -343,19 +347,11 @@ typedef d_uns32                 d_dchar;
 typedef longdouble real_t;
 #endif
 
-// Modify OutBuffer::writewchar to write the correct size of wchar
-#if _WIN32
-#define writewchar writeword
-#else
-// This needs a configuration test...
-#define writewchar write4
-#endif
-
 #ifdef IN_GCC
 #include "d-gcc-complex_t.h"
 #endif
 
-struct Module;
+class Module;
 
 //typedef unsigned Loc;         // file location
 struct Loc
@@ -369,12 +365,6 @@ struct Loc
         filename = NULL;
     }
 
-    Loc(int x)
-    {
-        linnum = x;
-        filename = NULL;
-    }
-
     Loc(Module *mod, unsigned linnum);
 
     char *toChars();
@@ -382,7 +372,9 @@ struct Loc
 };
 
 #ifndef GCC_SAFE_DMD
+#undef TRUE
 #define TRUE    1
+#undef FALSE
 #define FALSE   0
 #endif
 
@@ -448,23 +440,17 @@ void deleteExeFile();
 int runProgram();
 const char *inifile(const char *argv0, const char *inifile, const char* envsectionname);
 void halt();
-void util_progress();
 
-/*** Where to send error messages ***/
-#ifdef IN_GCC
-#define stdmsg stderr
-#else
-#define stdmsg stderr
-#endif
-
-struct Dsymbol;
+class Dsymbol;
 class Library;
-struct File;
+class File;
 void obj_start(char *srcfile);
 void obj_end(Library *library, File *objfile);
 void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
 const char *importHint(const char *s);
+/// Little helper function for writting out deps. 
+void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_MARS_H */

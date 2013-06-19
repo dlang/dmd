@@ -107,7 +107,7 @@ void test7017a() pure
     static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
     static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
     static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
-    static assert(!__traits(compiles, map7017!bar7017()));  // should pass, but fails
+    static assert( __traits(compiles, map7017!bar7017()));
 }
 
 /***************************************************/
@@ -250,6 +250,128 @@ void test5933()
     // inside function
     static assert(typeof(foo5933!()).stringof == "pure nothrow @safe int(int a)");
     static assert(typeof(S5933.init.foo!()).stringof == "pure nothrow @safe double(double a)");
+}
+
+/***************************************************/
+// 10002
+
+void impure10002() {}
+void remove10002(alias pred, bool impure = false, Range)(Range range)
+{
+    pred(range[0]);
+    static if (impure) impure10002();
+}
+class Node10002
+{
+    Node10002 parent;
+    Node10002[] children;
+
+    void foo() pure
+    {
+        parent.children.remove10002!(n => n is parent)();
+        remove10002!(n => n is parent)(parent.children);
+        static assert(!__traits(compiles, parent.children.remove10002x!(n => n is parent, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is parent, true)(parent.children)));
+
+        Node10002 p;
+        p.children.remove10002!(n => n is p)();
+        remove10002!(n => n is p)(p.children);
+        static assert(!__traits(compiles, p.children.remove10002x!(n => n is p, true)()));
+        static assert(!__traits(compiles, remove10002x!(n => n is p, true)(p.children)));
+    }
+}
+
+/***************************************************/
+// 10148
+
+void fa10148() {}  // fa is @system
+
+auto fb10148(T)()
+{
+    struct A(S)
+    {
+        // [4] Parent function fb is already inferred to @safe, then
+        // fc is forcely marked @safe on default until 2.052.
+        // But fc should keep attribute inference ability
+        // by overriding the inherited @safe-ty from its parent.
+        void fc(T2)()
+        {
+            // [5] During semantic3 process, fc is not @safe on default.
+            static assert(is(typeof(&fc) == void delegate()));
+            fa10148();
+        }
+        // [1] this is now inferred to @safe by implementing issue 7511
+        this(S a) {}
+    }
+
+    // [2] A!int(0) is now calling @safe function, then fb!T also be inferred to @safe
+    return A!int(0);
+}
+
+void test10148()
+{
+    fb10148!int.fc!int;  // [0] instantiate fb
+                         // [3] instantiate fc
+
+    // [6] Afer semantic3 done, fc!int is deduced to @system.
+    static assert(is(typeof(&fb10148!int.fc!int) == void delegate() @system));
+}
+
+/***************************************************/
+// 10289
+
+void test10289()
+{
+    void foo(E)()
+    {
+        throw new E("");
+    }
+    void bar(E1, E2)()
+    {
+        throw new E1("");
+        throw new E2("");
+    }
+    void baz(E1, E2)(bool cond)
+    {
+        if (cond)
+            throw new E1("");
+        else
+            throw new E2("");
+    }
+
+    import core.exception;
+    static class MyException : Exception
+    {
+        this(string) @safe pure nothrow { super(""); }
+    }
+
+    static assert( __traits(compiles, () nothrow { foo!Error(); }));
+    static assert( __traits(compiles, () nothrow { foo!AssertError(); }));
+
+    static assert(!__traits(compiles, () nothrow { foo!Exception(); }));
+    static assert(!__traits(compiles, () nothrow { foo!MyException(); }));
+
+    static assert( __traits(compiles, () nothrow { bar!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { bar!(Exception, Error)(); }));
+
+    static assert(!__traits(compiles, () nothrow { baz!(Error, Exception)(); }));
+    static assert(!__traits(compiles, () nothrow { baz!(Exception, Error)(); }));
+}
+
+/***************************************************/
+// 10296
+
+void foo10296()()
+{
+    int[3] a;
+
+    void bar()() { a[1] = 2; }
+    bar();
+    pragma(msg, typeof(bar!()));    // nothrow @safe void()
+}
+pure void test10296()
+{
+    foo10296();
 }
 
 /***************************************************/

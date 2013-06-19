@@ -414,9 +414,6 @@
     <ClCompile Include="root\aav.c">
       <Filter>src\root</Filter>
     </ClCompile>
-    <ClCompile Include="root\array.c">
-      <Filter>src\root</Filter>
-    </ClCompile>
     <ClCompile Include="root\async.c">
       <Filter>src\root</Filter>
     </ClCompile>

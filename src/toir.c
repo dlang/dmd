@@ -726,7 +726,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
                  */
                 memsize = Target::ptrsize * 2;
                 memalignsize = memsize;
-                xalign = global.structalign;
+                xalign = STRUCTALIGN_DEFAULT;
             }
             else if (ISWIN64REF(v))
             {
@@ -738,7 +738,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
             {    // reference parameters are just pointers
                 memsize = Target::ptrsize;
                 memalignsize = memsize;
-                xalign = global.structalign;
+                xalign = STRUCTALIGN_DEFAULT;
             }
             else
 #endif
@@ -836,7 +836,7 @@ void FuncDeclaration::buildClosure(IRState *irs)
  * through a hidden pointer to the caller's stack.
  */
 
-enum RET TypeFunction::retStyle()
+RET TypeFunction::retStyle()
 {
     //printf("TypeFunction::retStyle() %s\n", toChars());
 #if DMDV2

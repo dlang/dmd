@@ -17,11 +17,12 @@
 
 #include "dsymbol.h"
 
-struct Expression;
+class Expression;
 struct HdrGenState;
 
-struct StaticAssert : Dsymbol
+class StaticAssert : public Dsymbol
 {
+public:
     Expression *exp;
     Expression *msg;
 
@@ -32,7 +33,7 @@ struct StaticAssert : Dsymbol
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void inlineScan();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     void toObjFile(int multiobj);
     const char *kind();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

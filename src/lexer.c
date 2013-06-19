@@ -32,7 +32,7 @@
 
 #if _WIN32 && __DMC__
 // from \dm\src\include\setlocal.h
-extern "C" char * __cdecl __locale_decpoint;
+extern "C" const char * __cdecl __locale_decpoint;
 #endif
 
 extern int HtmlNamedEntity(unsigned char *p, size_t length);
@@ -90,7 +90,7 @@ void *Token::operator new(size_t size)
 #ifdef DEBUG
 void Token::print()
 {
-    fprintf(stdmsg, "%s\n", toChars());
+    fprintf(stderr, "%s\n", toChars());
 }
 #endif
 
@@ -224,7 +224,7 @@ const char *Token::toChars()
     return p;
 }
 
-const char *Token::toChars(enum TOK value)
+const char *Token::toChars(TOK value)
 {   const char *p;
     static char buffer[3 + 3 * sizeof(value) + 1];
 
@@ -627,7 +627,7 @@ void Lexer::scan(Token *t)
                     sv->ptrvalue = id;
                 }
                 t->ident = id;
-                t->value = (enum TOK) id->value;
+                t->value = (TOK) id->value;
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {
@@ -672,7 +672,7 @@ void Lexer::scan(Token *t)
                     }
                     else if (id == Id::VENDOR)
                     {
-                        t->ustring = (unsigned char *)"Digital Mars D";
+                        t->ustring = (unsigned char *)global.compiler.vendor;
                         goto Lstr;
                     }
                     else if (id == Id::TIMESTAMP)
@@ -686,6 +686,7 @@ void Lexer::scan(Token *t)
                     else if (id == Id::VERSIONX)
                     {   unsigned major = 0;
                         unsigned minor = 0;
+                        bool point = false;
 
                         for (const char *p = global.version + 1; 1; p++)
                         {
@@ -693,7 +694,11 @@ void Lexer::scan(Token *t)
                             if (isdigit((unsigned char)c))
                                 minor = minor * 10 + c - '0';
                             else if (c == '.')
-                            {   major = minor;
+                            {
+                                if (point)
+                                    break;      // ignore everything after second '.'
+                                point = true;
+                                major = minor;
                                 minor = 0;
                             }
                             else
@@ -903,6 +908,8 @@ void Lexer::scan(Token *t)
                         }
                         continue;
                     }
+                    default:
+                        break;
                 }
                 t->value = TOKdiv;
                 return;
@@ -1053,12 +1060,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKnotidentity;      // !==
-                    }
-                    else
-                        t->value = TOKnotequal;         // !=
+                    t->value = TOKnotequal;         // !=
                 }
                 else if (*p == '<')
                 {   p++;
@@ -1095,12 +1097,7 @@ void Lexer::scan(Token *t)
                 p++;
                 if (*p == '=')
                 {   p++;
-                    if (*p == '=' && global.params.Dversion == 1)
-                    {   p++;
-                        t->value = TOKidentity;         // ===
-                    }
-                    else
-                        t->value = TOKequal;            // ==
+                    t->value = TOKequal;            // ==
                 }
 #if DMDV2
                 else if (*p == '>')
@@ -1902,14 +1899,16 @@ TOK Lexer::number(Token *t)
     enum STATE { STATE_initial, STATE_0, STATE_decimal, STATE_octal, STATE_octale,
         STATE_hex, STATE_binary, STATE_hex0, STATE_binary0,
         STATE_hexh, STATE_error };
-    enum STATE state;
+    STATE state;
 
     enum FLAGS
-    {   FLAGS_decimal  = 1,             // decimal
+    {
+        FLAGS_none     = 0,
+        FLAGS_decimal  = 1,             // decimal
         FLAGS_unsigned = 2,             // u or U suffix
         FLAGS_long     = 4,             // l or L suffix
     };
-    enum FLAGS flags = FLAGS_decimal;
+    FLAGS flags = FLAGS_decimal;
 
     unsigned c;
     unsigned char *start;
@@ -2169,7 +2168,7 @@ done:
 
     switch (flags)
     {
-        case 0:
+        case FLAGS_none:
             /* Octal or Hexadecimal constant.
              * First that fits: int, uint, long, ulong
              */
@@ -2353,7 +2352,7 @@ done:
     stringbuffer.writeByte(0);
 
 #if _WIN32 && __DMC__
-    char *save = __locale_decpoint;
+    const char *save = __locale_decpoint;
     __locale_decpoint = ".";
 #endif
 #ifdef IN_GCC
@@ -2783,7 +2782,7 @@ Identifier *Lexer::uniqueId(const char *s, int num)
 {   char buffer[32];
     size_t slen = strlen(s);
 
-    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer));
+    assert(slen + sizeof(num) * 3 + 1 <= sizeof(buffer) / sizeof(buffer[0]));
     sprintf(buffer, "%s%d", s, num);
     return idPool(buffer);
 }
@@ -2799,7 +2798,7 @@ Identifier *Lexer::uniqueId(const char *s)
 
 struct Keyword
 {   const char *name;
-    enum TOK value;
+    TOK value;
 };
 
 static Keyword keywords[] =
@@ -2953,10 +2952,7 @@ void Lexer::initKeywords()
 {
     size_t nkeywords = sizeof(keywords) / sizeof(keywords[0]);
 
-    stringtable.init(6151);
-
-    if (global.params.Dversion == 1)
-        nkeywords -= 2;
+    stringtable._init(6151);
 
     cmtable_init();
 
@@ -2964,7 +2960,7 @@ void Lexer::initKeywords()
     {
         //printf("keyword[%d] = '%s'\n",u, keywords[u].name);
         const char *s = keywords[u].name;
-        enum TOK v = keywords[u].value;
+        TOK v = keywords[u].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
         sv->ptrvalue = (void *) new Identifier(sv->toDchars(),v);
 

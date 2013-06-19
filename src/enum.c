@@ -18,6 +18,7 @@
 #include "expression.h"
 #include "module.h"
 #include "declaration.h"
+#include "init.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -252,7 +253,7 @@ void EnumDeclaration::semantic(Scope *sc)
         if (e)
         {
             assert(e->dyncast() == DYNCAST_EXPRESSION);
-            e = e->semantic(sce);
+            e = e->ctfeSemantic(sce);
             e = e->ctfeInterpret();
             if (memtype)
             {
@@ -298,8 +299,8 @@ void EnumDeclaration::semantic(Scope *sc)
             // Lazily evaluate enum.max
             if (!emax)
             {
-                emax = t->getProperty(0, Id::max, 0);
-                emax = emax->semantic(sce);
+                emax = t->getProperty(Loc(), Id::max, 0);
+                emax = emax->ctfeSemantic(sce);
                 emax = emax->ctfeInterpret();
             }
 
@@ -307,14 +308,14 @@ void EnumDeclaration::semantic(Scope *sc)
             // But first check that (elast != t.max)
             assert(elast);
             e = new EqualExp(TOKequal, em->loc, elast, emax);
-            e = e->semantic(sce);
+            e = e->ctfeSemantic(sce);
             e = e->ctfeInterpret();
             if (e->toInteger())
                 error("overflow of enum value %s", elast->toChars());
 
             // Now set e to (elast + 1)
             e = new AddExp(em->loc, elast, new IntegerExp(em->loc, 1, Type::tint32));
-            e = e->semantic(sce);
+            e = e->ctfeSemantic(sce);
             e = e->castTo(sce, elast->type);
             e = e->ctfeInterpret();
 
@@ -322,7 +323,7 @@ void EnumDeclaration::semantic(Scope *sc)
             {
                 // Check that e != elast (not always true for floats)
                 Expression *etest = new EqualExp(TOKequal, em->loc, e, elast);
-                etest = etest->semantic(sce);
+                etest = etest->ctfeSemantic(sce);
                 etest = etest->ctfeInterpret();
                 if (etest->toInteger())
                     error("enum member %s has inexact value, due to loss of precision", em->toChars());
@@ -335,9 +336,13 @@ void EnumDeclaration::semantic(Scope *sc)
         if (isAnonymous() && !sc->func)
         {
             // already inserted to enclosing scope in addMember
+            assert(em->ed);
         }
         else
+        {
+            em->ed = this;
             em->addMember(sc, scopesym, 1);
+        }
 
         /* Compute .min, .max and .default values.
          * If enum doesn't have a name, we can never identify the enum type,
@@ -361,13 +366,13 @@ void EnumDeclaration::semantic(Scope *sc)
 
                 // Compute if(e < minval)
                 ec = new CmpExp(TOKlt, em->loc, e, minval);
-                ec = ec->semantic(sce);
+                ec = ec->ctfeSemantic(sce);
                 ec = ec->ctfeInterpret();
                 if (ec->toInteger())
                     minval = e;
 
                 ec = new CmpExp(TOKgt, em->loc, e, maxval);
-                ec = ec->semantic(sce);
+                ec = ec->ctfeSemantic(sce);
                 ec = ec->ctfeInterpret();
                 if (ec->toInteger())
                     maxval = e;
@@ -383,7 +388,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //members->print();
 }
 
-int EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
+bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
 {
     if (isAnonymous())
         return Dsymbol::oneMembers(members, ps, ident);
@@ -467,6 +472,7 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
     this->value = value;
     this->type = type;
     this->loc = loc;
+    this->vd = NULL;
 }
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
@@ -511,7 +517,24 @@ const char *EnumMember::kind()
 
 void EnumMember::semantic(Scope *sc)
 {
-    if (ed)
-        ed->semantic(NULL);
+    assert(ed);
+    if (this->vd) return;
+    ed->semantic(sc);
+    assert(value);
+    vd = new VarDeclaration(loc, type, ident, new ExpInitializer(loc, value->copy()));
+
+    vd->storage_class = STCmanifest;
+    vd->semantic(sc);
+
+    vd->protection = ed->isAnonymous() ? ed->protection : PROTpublic;
+    vd->parent = ed->isAnonymous() ? ed->parent : ed;
+    vd->userAttributes = ed->isAnonymous() ? ed->userAttributes : NULL;
 }
 
+Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
+{
+    semantic(sc);
+    assert(vd);
+    Expression *e = new VarExp(loc, vd);
+    return e->semantic(sc);
+}

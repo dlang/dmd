@@ -20,37 +20,39 @@
 #include "dsymbol.h"
 
 
-struct OutBuffer;
-struct Identifier;
-struct TemplateInstance;
-struct TemplateParameter;
-struct TemplateTypeParameter;
-struct TemplateThisParameter;
-struct TemplateValueParameter;
-struct TemplateAliasParameter;
-struct TemplateTupleParameter;
-struct Type;
-struct TypeQualified;
-struct TypeTypeof;
-struct Scope;
-struct Expression;
-struct AliasDeclaration;
-struct FuncDeclaration;
+class OutBuffer;
+class Identifier;
+class TemplateInstance;
+class TemplateParameter;
+class TemplateTypeParameter;
+class TemplateThisParameter;
+class TemplateValueParameter;
+class TemplateAliasParameter;
+class TemplateTupleParameter;
+class Type;
+class TypeQualified;
+class TypeTypeof;
+class Scope;
+class Expression;
+class AliasDeclaration;
+class FuncDeclaration;
 struct HdrGenState;
-struct Parameter;
+class Parameter;
 enum MATCH;
 enum PASS;
 
-struct Tuple : Object
+class Tuple : public Object
 {
+public:
     Objects objects;
 
     int dyncast() { return DYNCAST_TUPLE; } // kludge for template.isType()
 };
 
 
-struct TemplateDeclaration : ScopeDsymbol
+class TemplateDeclaration : public ScopeDsymbol
 {
+public:
     TemplateParameters *parameters;     // array of TemplateParameter's
 
     TemplateParameters *origParameters; // originals for Ddoc
@@ -60,13 +62,13 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
 
-    enum PASS semanticRun;              // 1 semantic() run
+    PASS semanticRun;              // 1 semantic() run
 
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
     int literal;                // this template declaration is a literal
     int ismixin;                // template declaration is only to be used as a mixin
-    enum PROT protection;
+    PROT protection;
 
     struct Previous
     {   Previous *prev;
@@ -79,7 +81,7 @@ struct TemplateDeclaration : ScopeDsymbol
         Expression *constraint, Dsymbols *decldefs, int ismixin);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
-    int overloadInsert(Dsymbol *s);
+    bool overloadInsert(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     bool hasStaticCtorOrDtor();
     const char *kind();
@@ -88,7 +90,7 @@ struct TemplateDeclaration : ScopeDsymbol
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
     virtual void jsonProperties(JsonOut *json);
-    enum PROT prot();
+    PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
     MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
@@ -102,13 +104,14 @@ struct TemplateDeclaration : ScopeDsymbol
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
     TemplateTupleParameter *isVariadic();
-    int isOverloadable();
+    bool isOverloadable();
 
     void makeParamNamesVisibleInConstraint(Scope *paramscope, Expressions *fargs);
 };
 
-struct TemplateParameter
+class TemplateParameter
 {
+public:
     /* For type-parameter:
      *  template Foo(ident)             // specType is set to NULL
      *  template Foo(ident : specType)
@@ -138,7 +141,7 @@ struct TemplateParameter
 
     virtual TemplateParameter *syntaxCopy() = 0;
     virtual void declareParameter(Scope *sc) = 0;
-    virtual void semantic(Scope *) = 0;
+    virtual void semantic(Scope *sc, TemplateParameters *parameters) = 0;
     virtual void print(Object *oarg, Object *oded) = 0;
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs) = 0;
     virtual Object *specialization() = 0;
@@ -151,14 +154,16 @@ struct TemplateParameter
     /* Match actual argument against parameter.
      */
     virtual MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
+    virtual MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam) = 0;
 
     /* Create dummy argument based on parameter.
      */
     virtual void *dummyArg() = 0;
 };
 
-struct TemplateTypeParameter : TemplateParameter
+class TemplateTypeParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  ident : specType = defaultType
      */
@@ -172,19 +177,21 @@ struct TemplateTypeParameter : TemplateParameter
     TemplateTypeParameter *isTemplateTypeParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
 #if DMDV2
-struct TemplateThisParameter : TemplateTypeParameter
+class TemplateThisParameter : public TemplateTypeParameter
 {
+public:
     /* Syntax:
      *  this ident : specType = defaultType
      */
@@ -197,8 +204,9 @@ struct TemplateThisParameter : TemplateTypeParameter
 };
 #endif
 
-struct TemplateValueParameter : TemplateParameter
+class TemplateValueParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  valType ident : specValue = defaultValue
      */
@@ -214,18 +222,20 @@ struct TemplateValueParameter : TemplateParameter
     TemplateValueParameter *isTemplateValueParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
-struct TemplateAliasParameter : TemplateParameter
+class TemplateAliasParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  specType ident : specAlias = defaultAlias
      */
@@ -241,18 +251,20 @@ struct TemplateAliasParameter : TemplateParameter
     TemplateAliasParameter *isTemplateAliasParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
-struct TemplateTupleParameter : TemplateParameter
+class TemplateTupleParameter : public TemplateParameter
 {
+public:
     /* Syntax:
      *  ident ...
      */
@@ -262,18 +274,20 @@ struct TemplateTupleParameter : TemplateParameter
     TemplateTupleParameter *isTemplateTupleParameter();
     TemplateParameter *syntaxCopy();
     void declareParameter(Scope *sc);
-    void semantic(Scope *);
+    void semantic(Scope *sc, TemplateParameters *parameters);
     void print(Object *oarg, Object *oded);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Object *specialization();
     Object *defaultArg(Loc loc, Scope *sc);
     int overloadMatch(TemplateParameter *);
     MATCH matchArg(Scope *sc, Objects *tiargs, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
+    MATCH matchArg(Scope *sc, Object *oarg, size_t i, TemplateParameters *parameters, Objects *dedtypes, Declaration **psparam);
     void *dummyArg();
 };
 
-struct TemplateInstance : ScopeDsymbol
+class TemplateInstance : public ScopeDsymbol
 {
+public:
     /* Given:
      *  foo!(args) =>
      *      name = foo
@@ -295,7 +309,7 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    enum PASS semanticRun;    // has semantic() been done?
+    PASS semanticRun;    // has semantic() been done?
     int semantictiargsdone;     // has semanticTiargs() been done?
     int nest;           // for recursion detection
     int havetempdecl;   // 1 if used second constructor
@@ -320,10 +334,10 @@ struct TemplateInstance : ScopeDsymbol
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int needsTypeInference(Scope *sc);
     char *toChars();
-    char *mangle(bool isv = false);
+    const char *mangle(bool isv = false);
     void printInstantiationTrace();
 
     void toObjFile(int multiobj);                       // compile to .obj file
@@ -344,8 +358,9 @@ struct TemplateInstance : ScopeDsymbol
     AliasDeclaration *isAliasDeclaration();
 };
 
-struct TemplateMixin : TemplateInstance
+class TemplateMixin : public TemplateInstance
 {
+public:
     TypeQualified *tqual;
 
     TemplateMixin(Loc loc, Identifier *ident, TypeQualified *tqual, Objects *tiargs);
@@ -355,9 +370,9 @@ struct TemplateMixin : TemplateInstance
     void semantic3(Scope *sc);
     void inlineScan();
     const char *kind();
-    int oneMember(Dsymbol **ps, Identifier *ident);
+    bool oneMember(Dsymbol **ps, Identifier *ident);
     int apply(Dsymbol_apply_ft_t fp, void *param);
-    int hasPointers();
+    bool hasPointers();
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     char *toChars();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

@@ -68,9 +68,9 @@ struct JsonOut
     void property(const char *name, Type* type);
     void property(const char *name, const char *deconame, Type* type);
     void property(const char *name, Parameters* parameters);
-    void property(const char *name, enum TRUST trust);
-    void property(const char *name, enum PURE purity);
-    void property(const char *name, enum LINK linkage);
+    void property(const char *name, TRUST trust);
+    void property(const char *name, PURE purity);
+    void property(const char *name, LINK linkage);
 };
 
 
@@ -307,7 +307,7 @@ void JsonOut::propertyBool(const char *name, bool b)
 }
 
 
-void JsonOut::property(const char *name, enum TRUST trust)
+void JsonOut::property(const char *name, TRUST trust)
 {
     switch (trust)
     {
@@ -329,7 +329,7 @@ void JsonOut::property(const char *name, enum TRUST trust)
     }
 }
 
-void JsonOut::property(const char *name, enum PURE purity)
+void JsonOut::property(const char *name, PURE purity)
 {
     switch (purity)
     {
@@ -354,7 +354,7 @@ void JsonOut::property(const char *name, enum PURE purity)
     }
 }
 
-void JsonOut::property(const char *name, enum LINK linkage)
+void JsonOut::property(const char *name, LINK linkage)
 {
     switch (linkage)
     {
@@ -544,7 +544,7 @@ void TypeQualified::toJson(JsonOut *json) // ident.ident.ident.etc
     json->arrayStart();
 
     for (size_t i = 0; i < idents.dim; i++)
-    {   Identifier *ident = idents[i];
+    {   Object *ident = idents[i];
         json->item(ident->toChars());
     }
 
@@ -806,7 +806,6 @@ void ConditionalDeclaration::toJson(JsonOut *json)
 
 
 void ClassInfoDeclaration::toJson(JsonOut *json)  { }
-void ModuleInfoDeclaration::toJson(JsonOut *json) { }
 void TypeInfoDeclaration::toJson(JsonOut *json)   { }
 #if DMDV2
 void PostBlitDeclaration::toJson(JsonOut *json)   { }

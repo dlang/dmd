@@ -30,6 +30,18 @@ Import::Import(Loc loc, Identifiers *packages, Identifier *id, Identifier *alias
     : Dsymbol(NULL)
 {
     assert(id);
+#if 0
+    printf("Import::Import(");
+    if (packages && packages->dim)
+    {
+        for (size_t i = 0; i < packages->dim; i++)
+        {
+            Identifier *id = (*packages)[i];
+            printf("%s.", id->toChars());
+        }
+    }
+    printf("%s)\n", id->toChars());
+#endif
     this->loc = loc;
     this->packages = packages;
     this->id = id;
@@ -68,7 +80,7 @@ const char *Import::kind()
     return isstatic ? (char *)"static import" : (char *)"import";
 }
 
-enum PROT Import::prot()
+PROT Import::prot()
 {
     return protection;
 }
@@ -89,10 +101,11 @@ Dsymbol *Import::syntaxCopy(Dsymbol *s)
 
 void Import::load(Scope *sc)
 {
-    //printf("Import::load('%s')\n", toChars());
+    //printf("Import::load('%s') %p\n", toPrettyChars(), this);
 
     // See if existing module
     DsymbolTable *dst = Package::resolve(packages, NULL, &pkg);
+#if 0
     if (pkg && pkg->isModule())
     {
         ::error(loc, "can only import from a module, not from a member of module %s. Did you mean `import %s : %s`?",
@@ -100,6 +113,7 @@ void Import::load(Scope *sc)
         mod = pkg->isModule(); // Error recovery - treat as import of that module
         return;
     }
+#endif
     Dsymbol *s = dst->lookup(id);
     if (s)
     {
@@ -107,7 +121,31 @@ void Import::load(Scope *sc)
             mod = (Module *)s;
         else
         {
-            if (pkg)
+            if (s->isAliasDeclaration())
+            {
+                ::error(loc, "%s %s conflicts with %s", s->kind(), s->toPrettyChars(), id->toChars());
+            }
+            else if (Package *p = s->isPackage())
+            {
+                if (p->isPkgMod == PKGunknown)
+                {
+                    mod = Module::load(loc, packages, id);
+                    if (!mod)
+                        p->isPkgMod = PKGpackage;
+                    else
+                        assert(p->isPkgMod == PKGmodule);
+                }
+                else if (p->isPkgMod == PKGmodule)
+                {
+                    mod = p->mod;
+                }
+                if (p->isPkgMod != PKGmodule)
+                {
+                    ::error(loc, "can only import from a module, not from package %s.%s",
+                        p->toPrettyChars(), id->toChars());
+                }
+            }
+            else if (pkg)
             {
                 ::error(loc, "can only import from a module, not from package %s.%s",
                     pkg->toPrettyChars(), id->toChars());
@@ -138,33 +176,13 @@ void Import::load(Scope *sc)
     //printf("-Import::load('%s'), pkg = %p\n", toChars(), pkg);
 }
 
-void escapePath(OutBuffer *buf, const char *fname)
-{
-    while (1)
-    {
-        switch (*fname)
-        {
-            case 0:
-                return;
-            case '(':
-            case ')':
-            case '\\':
-                buf->writebyte('\\');
-            default:
-                buf->writebyte(*fname);
-                break;
-        }
-        fname++;
-    }
-}
-
 void Import::importAll(Scope *sc)
 {
     if (!mod)
     {
         load(sc);
         if (mod)                // if successfully loaded module
-        {   mod->importAll(0);
+        {   mod->importAll(NULL);
 
             if (!isstatic && !aliasId && !names.dim)
             {
@@ -178,7 +196,7 @@ void Import::importAll(Scope *sc)
 
 void Import::semantic(Scope *sc)
 {
-    //printf("Import::semantic('%s')\n", toChars());
+    //printf("Import::semantic('%s')\n", toPrettyChars());
 
     if (scope)
     {   sc = scope;
@@ -189,7 +207,7 @@ void Import::semantic(Scope *sc)
     if (!mod)
     {   load(sc);
         if (mod)
-            mod->importAll(0);
+            mod->importAll(NULL);
     }
 
     if (mod)
@@ -245,7 +263,6 @@ void Import::semantic(Scope *sc)
             if (mod->search(loc, names[i], 0))
             {
                 ad->semantic(sc);
-                ad->import = NULL;  // forward reference resolved
             }
             else
             {
@@ -277,7 +294,8 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
-
+        if (!global.params.moduleDepsFile)
+            ob->writestring("depsImport ");
         ob->writestring(sc->module->toPrettyChars());
         ob->writestring(" (");
         escapePath(ob, sc->module->srcfile->toChars());
@@ -404,7 +422,7 @@ Dsymbol *Import::search(Loc loc, Identifier *ident, int flags)
     return pkg->search(loc, ident, flags);
 }
 
-int Import::overloadInsert(Dsymbol *s)
+bool Import::overloadInsert(Dsymbol *s)
 {
     /* Allow multiple imports with the same package base, but disallow
      * alias collisions (Bugzilla 5412).
@@ -412,9 +430,9 @@ int Import::overloadInsert(Dsymbol *s)
     assert(ident && ident == s->ident);
     Import *imp;
     if (!aliasId && (imp = s->isImport()) != NULL && !imp->aliasId)
-        return TRUE;
+        return true;
     else
-        return FALSE;
+        return false;
 }
 
 void Import::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

@@ -96,7 +96,7 @@ int lambdaCanThrow(Expression *e, void *param)
 #if DMD_OBJC
                     if (pct->can)
 #endif
-                    e->error("%s is not nothrow", ce->e1->toChars());
+                    e->error("'%s' is not nothrow", ce->f ? ce->f->toPrettyChars() : ce->e1->toChars());
 #if !DMD_OBJC
                 pct->can = TRUE;
 #endif

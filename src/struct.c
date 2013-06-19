@@ -59,7 +59,7 @@ AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
     getRTInfo = NULL;
 }
 
-enum PROT AggregateDeclaration::prot()
+PROT AggregateDeclaration::prot()
 {
     return protection;
 }
@@ -104,6 +104,14 @@ void AggregateDeclaration::semantic3(Scope *sc)
             Dsymbol *s = (*members)[i];
             s->semantic3(sc);
         }
+
+        if (StructDeclaration *sd = isStructDeclaration())
+        {
+            //if (sd->xeq != NULL) printf("sd = %s xeq @ [%s]\n", sd->toChars(), sd->loc.toChars());
+            //assert(sd->xeq == NULL);
+            if (sd->xeq == NULL)
+                sd->xeq = sd->buildXopEquals(sc);
+        }
         sc = sc->pop();
 
         if (!getRTInfo && Type::rtinfo &&
@@ -117,8 +125,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
             ti->semantic2(sc);
             ti->semantic3(sc);
             Dsymbol *s = ti->toAlias();
-            Expression *e = new DsymbolExp(0, s, 0);
-            e = e->semantic(ti->tempdecl->scope);
+            Expression *e = new DsymbolExp(Loc(), s, 0);
+            e = e->ctfeSemantic(ti->tempdecl->scope);
             e = e->ctfeInterpret();
             getRTInfo = e;
         }
@@ -206,7 +214,7 @@ bool AggregateDeclaration::isDeprecated()
     return isdeprecated;
 }
 
-int AggregateDeclaration::isExport()
+bool AggregateDeclaration::isExport()
 {
     return protection == PROTexport;
 }
@@ -224,11 +232,11 @@ void AggregateDeclaration::alignmember(
     //printf("alignment = %d, size = %d, offset = %d\n",alignment,size,offset);
     switch (alignment)
     {
-        case 1:
+        case (structalign_t) 1:
             // No alignment
             break;
 
-        case STRUCTALIGN_DEFAULT:
+        case (structalign_t) STRUCTALIGN_DEFAULT:
         {   /* Must match what the corresponding C compiler's default
              * alignment behavior is.
              */
@@ -637,7 +645,7 @@ void StructDeclaration::semantic(Scope *sc)
 
         arguments->push(arg);
         tfeqptr = new TypeFunction(arguments, Type::tint32, 0, LINKd);
-        tfeqptr = (TypeFunction *)tfeqptr->semantic(0, sc);
+        tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), sc);
     }
 
     TypeFunction *tfeq;
@@ -647,7 +655,7 @@ void StructDeclaration::semantic(Scope *sc)
 
         arguments->push(arg);
         tfeq = new TypeFunction(arguments, Type::tint32, 0, LINKd);
-        tfeq = (TypeFunction *)tfeq->semantic(0, sc);
+        tfeq = (TypeFunction *)tfeq->semantic(Loc(), sc);
     }
 
     Identifier *id = Id::eq;
@@ -686,22 +694,20 @@ void StructDeclaration::semantic(Scope *sc)
     postblit = buildPostBlit(sc2);
     cpctor = buildCpCtor(sc2);
 
-    hasIdentityAssign = (buildOpAssign(sc2) != NULL);
-    hasIdentityEquals = (buildOpEquals(sc2) != NULL);
-
-    xeq = buildXopEquals(sc2);
+    buildOpAssign(sc2);
+    buildOpEquals(sc2);
 #endif
+    inv = buildInv(sc2);
 
     sc2->pop();
 
     /* Look for special member functions.
      */
 #if DMDV2
-    ctor = search(0, Id::ctor, 0);
+    ctor = search(Loc(), Id::ctor, 0);
 #endif
-    inv =    (InvariantDeclaration *)search(0, Id::classInvariant, 0);
-    aggNew =       (NewDeclaration *)search(0, Id::classNew,       0);
-    aggDelete = (DeleteDeclaration *)search(0, Id::classDelete,    0);
+    aggNew =       (NewDeclaration *)search(Loc(), Id::classNew,       0);
+    aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete,    0);
 
     TypeTuple *tup = type->toArgTypes();
     size_t dim = tup->arguments->dim;

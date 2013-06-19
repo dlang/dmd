@@ -381,44 +381,64 @@ int main()
     fprintf(fp,"unsigned char Type::impcnvResult[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
+        if (i)
+            fprintf(fp, ",");
+        fprintf(fp, "{");
         for (j = 0; j < TMAX; j++)
         {
-            fprintf(fp, "%d,",impcnvResult[i][j]);
+            if (j)
+                fprintf(fp, ",");
+            fprintf(fp, "%d",impcnvResult[i][j]);
         }
-        fprintf(fp, "\n");
+        fprintf(fp, "}\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvType1[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
+        if (i)
+            fprintf(fp, ",");
+        fprintf(fp, "{");
         for (j = 0; j < TMAX; j++)
         {
-            fprintf(fp, "%d,",impcnvType1[i][j]);
+            if (j)
+                fprintf(fp, ",");
+            fprintf(fp, "%d",impcnvType1[i][j]);
         }
-        fprintf(fp, "\n");
+        fprintf(fp, "}\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvType2[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
+        if (i)
+            fprintf(fp, ",");
+        fprintf(fp, "{");
         for (j = 0; j < TMAX; j++)
         {
-            fprintf(fp, "%d,",impcnvType2[i][j]);
+            if (j)
+                fprintf(fp, ",");
+            fprintf(fp, "%d",impcnvType2[i][j]);
         }
-        fprintf(fp, "\n");
+        fprintf(fp, "}\n");
     }
     fprintf(fp,"};\n");
 
     fprintf(fp,"unsigned char Type::impcnvWarn[TMAX][TMAX] =\n{\n");
     for (i = 0; i < TMAX; i++)
     {
+        if (i)
+            fprintf(fp, ",");
+        fprintf(fp, "{");
         for (j = 0; j < TMAX; j++)
         {
-            fprintf(fp, "%d,",impcnvWarn[i][j]);
+            if (j)
+                fprintf(fp, ",");
+            fprintf(fp, "%d",impcnvWarn[i][j]);
         }
-        fprintf(fp, "\n");
+        fprintf(fp, "}\n");
     }
     fprintf(fp,"};\n");
 

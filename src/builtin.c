@@ -30,7 +30,7 @@
  * Determine if function is a builtin one that we can
  * evaluate at compile time.
  */
-enum BUILTIN FuncDeclaration::isBuiltin()
+BUILTIN FuncDeclaration::isBuiltin()
 {
     static const char FeZe [] = "FNaNbNfeZe";      // @safe pure nothrow real function(real)
     static const char FeZe2[] = "FNaNbNeeZe";      // @trusted pure nothrow real function(real)
@@ -154,7 +154,7 @@ uinteger_t eval_bswap(Expression *arg0)
  * Return result; NULL if cannot evaluate it.
  */
 
-Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
+Expression *eval_builtin(Loc loc, BUILTIN builtin, Expressions *arguments)
 {
     assert(arguments && arguments->dim);
     Expression *arg0 = (*arguments)[0];
@@ -163,27 +163,27 @@ Expression *eval_builtin(Loc loc, enum BUILTIN builtin, Expressions *arguments)
     {
         case BUILTINsin:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sinl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), sinl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINcos:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, cosl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), cosl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINtan:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, tanl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), tanl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINsqrt:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, sqrtl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), sqrtl(arg0->toReal()), arg0->type);
             break;
 
         case BUILTINfabs:
             if (arg0->op == TOKfloat64)
-                e = new RealExp(0, fabsl(arg0->toReal()), arg0->type);
+                e = new RealExp(Loc(), fabsl(arg0->toReal()), arg0->type);
             break;
         // These math intrinsics are not yet implemented
         case BUILTINatan2:

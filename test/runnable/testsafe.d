@@ -170,18 +170,6 @@ void safeunions()
  
  
  
-void systemfunc() @system {} 
-void function() @system sysfuncptr; 
-void delegate() @system sysdelegate; 
- 
-@safe 
-void callingsystem() 
-{ 
-    static assert(!__traits(compiles, systemfunc())); 
-    static assert(!__traits(compiles, sysfuncptr())); 
-    static assert(!__traits(compiles, sysdelegate())); 
-} 
- 
 @safe 
 void safeexception() 
 { 

@@ -17,14 +17,15 @@
 
 #include "root.h"
 
-struct Identifier : Object
+class Identifier : public Object
 {
+public:
     int value;
     const char *string;
     size_t len;
 
     Identifier(const char *string, int value);
-    int equals(Object *o);
+    bool equals(Object *o);
     hash_t hashCode();
     int compare(Object *o);
     void print();

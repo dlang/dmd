@@ -45,7 +45,7 @@
 static char __file__[] = __FILE__;      /* for tassert.h                */
 #include        "tassert.h"
 
-typedef ArrayBase<elem> Elems;
+typedef Array<elem> Elems;
 
 elem *addressElem(elem *e, Type *t, bool alwaysCopy = false);
 elem *eval_Darray(IRState *irs, Expression *e, bool alwaysCopy = false);
@@ -59,7 +59,7 @@ elem *appendDtors(IRState *irs, elem *er, size_t starti, size_t endi);
  */
 bool ISREF(Declaration *var, Type *tb)
 {
-    return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(0) > REGSIZE || var->storage_class & STClazy))
+    return (var->isParameter() && config.exe == EX_WIN64 && (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy))
             || var->isOut() || var->isRef();
 }
 
@@ -68,7 +68,7 @@ bool ISREF(Declaration *var, Type *tb)
 bool ISWIN64REF(Declaration *var)
 {
     return (config.exe == EX_WIN64 && var->isParameter() &&
-            (var->type->size(0) > REGSIZE || var->storage_class & STClazy)) &&
+            (var->type->size(Loc()) > REGSIZE || var->storage_class & STClazy)) &&
             !(var->isOut() || var->isRef());
 }
 
@@ -114,7 +114,7 @@ elem *callfunc(Loc loc,
     elem *eside = NULL;
     tym_t ty;
     tym_t tyret;
-    enum RET retmethod;
+    RET retmethod;
     int reverse;
     TypeFunction *tf;
     int op;
@@ -2182,7 +2182,7 @@ elem *AssertExp::toElem(IRState *irs)
         symbol *ts = NULL;
         elem *einv = NULL;
 
-        InvariantDeclaration *inv = (InvariantDeclaration *)(void *)1;
+        FuncDeclaration *inv;
 
 #if DMD_OBJC
         if (global.params.useInvariants && t1->ty == Tclass &&
@@ -2924,6 +2924,7 @@ elem *AssignExp::toElem(IRState *irs)
             }
 
             Type *tn = tsa->nextOf()->toBasetype();
+            bool postblit = needsPostblit(tn) != NULL;
             tym_t ty = tn->totym();
 
             symbol *stmp = symbol_genauto(TYnptr);
@@ -2936,7 +2937,12 @@ elem *AssignExp::toElem(IRState *irs)
             {
                 Expression *en = (*ae->elements)[i];
                 size_t j = i + 1;
-                while (j < dim && en->equals((*ae->elements)[j])) { j++; }
+                if (!postblit)
+                {
+                    // If the elements are same literal and elaborate copy
+                    // is not necessary, do memcpy.
+                    while (j < dim && en->equals((*ae->elements)[j])) { j++; }
+                }
 
                 elem *e1 = el_var(stmp);
                 if (i > 0)

@@ -21,35 +21,36 @@
 #include "dsymbol.h"
 #include "lexer.h"
 
-struct OutBuffer;
-struct Scope;
-struct Expression;
-struct LabelDsymbol;
-struct Identifier;
-struct IfStatement;
-struct ExpStatement;
-struct DefaultStatement;
-struct VarDeclaration;
-struct Condition;
-struct Module;
+class OutBuffer;
+class Scope;
+class Expression;
+class LabelDsymbol;
+class Identifier;
+class IfStatement;
+class ExpStatement;
+class DefaultStatement;
+class VarDeclaration;
+class Condition;
+class Module;
 struct Token;
 struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
-struct ReturnStatement;
-struct CompoundStatement;
-struct Parameter;
-struct StaticAssert;
-struct AsmStatement;
-struct GotoStatement;
-struct ScopeStatement;
-struct TryCatchStatement;
-struct TryFinallyStatement;
-struct CaseStatement;
-struct DefaultStatement;
-struct LabelStatement;
+class ReturnStatement;
+class CompoundStatement;
+class Parameter;
+class StaticAssert;
+class AsmStatement;
+class GotoStatement;
+class ScopeStatement;
+class TryCatchStatement;
+class TryFinallyStatement;
+class CaseStatement;
+class DefaultStatement;
+class LabelStatement;
 struct HdrGenState;
 struct InterState;
+struct CompiledCtfeFunction;
 
 enum TOK;
 
@@ -79,8 +80,9 @@ enum BE
     BEhalt =     0x10,
     BEbreak =    0x20,
     BEcontinue = 0x40,
+	BEerrthrow = 0x80,
 #if DMD_OBJC
-    BEthrowobjc = 0x80,
+    BEthrowobjc = 0x100,
     BEthrowany = (BEthrow | BEthrowobjc),
     BEany = (BEfallthru | BEthrow | BEreturn | BEgoto | BEhalt | BEthrowobjc),
 #else
@@ -88,8 +90,9 @@ enum BE
 #endif
 };
 
-struct Statement : Object
+class Statement : public Object
 {
+public:
     Loc loc;
 
     Statement(Loc loc);
@@ -120,6 +123,7 @@ struct Statement : Object
     virtual Statements *flatten(Scope *sc);
     virtual Expression *interpret(InterState *istate);
     virtual bool apply(sapply_fp_t fp, void *param);
+    virtual void ctfeCompile(CompiledCtfeFunction *ccf);
     virtual Statement *last();
 
     virtual int inlineCost(InlineCostState *ics);
@@ -140,8 +144,9 @@ struct Statement : Object
     virtual LabelStatement *isLabelStatement() { return NULL; }
 };
 
-struct PeelStatement : Statement
+class PeelStatement : public Statement
 {
+public:
     Statement *s;
 
     PeelStatement(Statement *s);
@@ -149,8 +154,9 @@ struct PeelStatement : Statement
     bool apply(sapply_fp_t fp, void *param);
 };
 
-struct ExpStatement : Statement
+class ExpStatement : public Statement
 {
+public:
     Expression *exp;
 
     ExpStatement(Loc loc, Expression *exp);
@@ -159,6 +165,7 @@ struct ExpStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     int blockExit(bool mustNotThrow);
     bool hasCodeImpl();
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
@@ -173,8 +180,9 @@ struct ExpStatement : Statement
     ExpStatement *isExpStatement() { return this; }
 };
 
-struct DtorExpStatement : ExpStatement
+class DtorExpStatement : public ExpStatement
 {
+public:
     /* Wraps an expression that is the destruction of 'var'
      */
 
@@ -185,8 +193,9 @@ struct DtorExpStatement : ExpStatement
     void toIR(IRState *irs);
 };
 
-struct CompileStatement : Statement
+class CompileStatement : public Statement
 {
+public:
     Expression *exp;
 
     CompileStatement(Loc loc, Expression *exp);
@@ -197,8 +206,9 @@ struct CompileStatement : Statement
     int blockExit(bool mustNotThrow);
 };
 
-struct CompoundStatement : Statement
+class CompoundStatement : public Statement
 {
+public:
     Statements *statements;
 
     CompoundStatement(Loc loc, Statements *s);
@@ -213,6 +223,7 @@ struct CompoundStatement : Statement
     ReturnStatement *isReturnStatement();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     Statement *last();
 
     int inlineCost(InlineCostState *ics);
@@ -225,8 +236,9 @@ struct CompoundStatement : Statement
     CompoundStatement *isCompoundStatement() { return this; }
 };
 
-struct CompoundDeclarationStatement : CompoundStatement
+class CompoundDeclarationStatement : public CompoundStatement
 {
+public:
     CompoundDeclarationStatement(Loc loc, Statements *s);
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
@@ -235,8 +247,9 @@ struct CompoundDeclarationStatement : CompoundStatement
 /* The purpose of this is so that continue will go to the next
  * of the statements, and break will go to the end of the statements.
  */
-struct UnrolledLoopStatement : Statement
+class UnrolledLoopStatement : public Statement
 {
+public:
     Statements *statements;
 
     UnrolledLoopStatement(Loc loc, Statements *statements);
@@ -247,6 +260,7 @@ struct UnrolledLoopStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     int inlineCost(InlineCostState *ics);
@@ -257,8 +271,9 @@ struct UnrolledLoopStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct ScopeStatement : Statement
+class ScopeStatement : public Statement
 {
+public:
     Statement *statement;
 
     ScopeStatement(Loc loc, Statement *s);
@@ -272,6 +287,7 @@ struct ScopeStatement : Statement
     bool hasCodeImpl();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -281,8 +297,9 @@ struct ScopeStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct WhileStatement : Statement
+class WhileStatement : public Statement
 {
+public:
     Expression *condition;
     Statement *body;
 
@@ -294,6 +311,7 @@ struct WhileStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -301,8 +319,9 @@ struct WhileStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct DoStatement : Statement
+class DoStatement : public Statement
 {
+public:
     Statement *body;
     Expression *condition;
 
@@ -314,6 +333,7 @@ struct DoStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -321,8 +341,9 @@ struct DoStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct ForStatement : Statement
+class ForStatement : public Statement
 {
+public:
     Statement *init;
     Expression *condition;
     Expression *increment;
@@ -336,7 +357,7 @@ struct ForStatement : Statement
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
-    Statement *semanticInit(Scope *sc);
+    Statement *semanticInit(Scope *sc, Statements *ainit, size_t i);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
@@ -345,6 +366,7 @@ struct ForStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     int inlineCost(InlineCostState *ics);
@@ -354,9 +376,10 @@ struct ForStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct ForeachStatement : Statement
+class ForeachStatement : public Statement
 {
-    enum TOK op;                // TOKforeach or TOKforeach_reverse
+public:
+    TOK op;                // TOKforeach or TOKforeach_reverse
     Parameters *arguments;      // array of Parameter*'s
     Expression *aggr;
     Statement *body;
@@ -369,7 +392,7 @@ struct ForeachStatement : Statement
     Statements *cases;          // put breaks, continues, gotos and returns here
     CompoundStatements *gotos;  // forward referenced goto's go here
 
-    ForeachStatement(Loc loc, enum TOK op, Parameters *arguments, Expression *aggr, Statement *body);
+    ForeachStatement(Loc loc, TOK op, Parameters *arguments, Expression *aggr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     bool checkForArgTypes();
@@ -380,6 +403,7 @@ struct ForeachStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -388,9 +412,10 @@ struct ForeachStatement : Statement
 };
 
 #if DMDV2
-struct ForeachRangeStatement : Statement
+class ForeachRangeStatement : public Statement
 {
-    enum TOK op;                // TOKforeach or TOKforeach_reverse
+public:
+    TOK op;                // TOKforeach or TOKforeach_reverse
     Parameter *arg;             // loop index variable
     Expression *lwr;
     Expression *upr;
@@ -398,7 +423,7 @@ struct ForeachRangeStatement : Statement
 
     VarDeclaration *key;
 
-    ForeachRangeStatement(Loc loc, enum TOK op, Parameter *arg,
+    ForeachRangeStatement(Loc loc, TOK op, Parameter *arg,
         Expression *lwr, Expression *upr, Statement *body);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
@@ -407,6 +432,7 @@ struct ForeachRangeStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -415,8 +441,9 @@ struct ForeachRangeStatement : Statement
 };
 #endif
 
-struct IfStatement : Statement
+class IfStatement : public Statement
 {
+public:
     Parameter *arg;
     Expression *condition;
     Statement *ifbody;
@@ -429,6 +456,7 @@ struct IfStatement : Statement
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int blockExit(bool mustNotThrow);
     IfStatement *isIfStatement() { return this; }
@@ -441,8 +469,9 @@ struct IfStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct ConditionalStatement : Statement
+class ConditionalStatement : public Statement
 {
+public:
     Condition *condition;
     Statement *ifbody;
     Statement *elsebody;
@@ -457,8 +486,9 @@ struct ConditionalStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct PragmaStatement : Statement
+class PragmaStatement : public Statement
 {
+public:
     Identifier *ident;
     Expressions *args;          // array of Expression's
     Statement *body;
@@ -474,8 +504,9 @@ struct PragmaStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct StaticAssertStatement : Statement
+class StaticAssertStatement : public Statement
 {
+public:
     StaticAssert *sa;
 
     StaticAssertStatement(StaticAssert *sa);
@@ -486,8 +517,9 @@ struct StaticAssertStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct SwitchStatement : Statement
+class SwitchStatement : public Statement
 {
+public:
     Expression *condition;
     Statement *body;
     bool isFinal;
@@ -506,6 +538,7 @@ struct SwitchStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -513,8 +546,9 @@ struct SwitchStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct CaseStatement : Statement
+class CaseStatement : public Statement
 {
+public:
     Expression *exp;
     Statement *statement;
 
@@ -529,6 +563,7 @@ struct CaseStatement : Statement
     bool comeFromImpl();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     CaseStatement *isCaseStatement() { return this; }
 
@@ -539,8 +574,9 @@ struct CaseStatement : Statement
 
 #if DMDV2
 
-struct CaseRangeStatement : Statement
+class CaseRangeStatement : public Statement
 {
+public:
     Expression *first;
     Expression *last;
     Statement *statement;
@@ -554,8 +590,9 @@ struct CaseRangeStatement : Statement
 
 #endif
 
-struct DefaultStatement : Statement
+class DefaultStatement : public Statement
 {
+public:
     Statement *statement;
 #ifdef IN_GCC
     block *cblock;      // back end: label for the block
@@ -568,6 +605,7 @@ struct DefaultStatement : Statement
     bool comeFromImpl();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     DefaultStatement *isDefaultStatement() { return this; }
 
@@ -576,22 +614,25 @@ struct DefaultStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct GotoDefaultStatement : Statement
+class GotoDefaultStatement : public Statement
 {
+public:
     SwitchStatement *sw;
 
     GotoDefaultStatement(Loc loc);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toIR(IRState *irs);
 };
 
-struct GotoCaseStatement : Statement
+class GotoCaseStatement : public Statement
 {
+public:
     Expression *exp;            // NULL, or which case to goto
     CaseStatement *cs;          // case statement it resolves to
 
@@ -599,23 +640,27 @@ struct GotoCaseStatement : Statement
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toIR(IRState *irs);
 };
 
-struct SwitchErrorStatement : Statement
+class SwitchErrorStatement : public Statement
 {
+public:
     SwitchErrorStatement(Loc loc);
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     void toIR(IRState *irs);
 };
 
-struct ReturnStatement : Statement
+class ReturnStatement : public Statement
 {
+public:
     Expression *exp;
     bool implicit0;             // this is an implicit "return 0;"
 
@@ -625,6 +670,7 @@ struct ReturnStatement : Statement
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     int inlineCost(InlineCostState *ics);
     Expression *doInline(InlineDoState *ids);
@@ -636,36 +682,41 @@ struct ReturnStatement : Statement
     ReturnStatement *isReturnStatement() { return this; }
 };
 
-struct BreakStatement : Statement
+class BreakStatement : public Statement
 {
+public:
     Identifier *ident;
 
     BreakStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toIR(IRState *irs);
 };
 
-struct ContinueStatement : Statement
+class ContinueStatement : public Statement
 {
+public:
     Identifier *ident;
 
     ContinueStatement(Loc loc, Identifier *ident);
     Statement *syntaxCopy();
     Statement *semantic(Scope *sc);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     int blockExit(bool mustNotThrow);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     void toIR(IRState *irs);
 };
 
-struct SynchronizedStatement : Statement
+class SynchronizedStatement : public Statement
 {
+public:
     Expression *exp;
     Statement *body;
 
@@ -687,8 +738,9 @@ struct SynchronizedStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct WithStatement : Statement
+class WithStatement : public Statement
 {
+public:
     Expression *exp;
     Statement *body;
     VarDeclaration *wthis;
@@ -700,14 +752,16 @@ struct WithStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
 };
 
-struct TryCatchStatement : Statement
+class TryCatchStatement : public Statement
 {
+public:
     Statement *body;
     Catches *catches;
 
@@ -719,6 +773,7 @@ struct TryCatchStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     Statement *inlineScan(InlineScanState *iss);
 
@@ -726,8 +781,9 @@ struct TryCatchStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct Catch : Object
+class Catch : public Object
 {
+public:
     Loc loc;
     Type *type;
     Identifier *ident;
@@ -743,8 +799,9 @@ struct Catch : Object
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct TryFinallyStatement : Statement
+class TryFinallyStatement : public Statement
 {
+public:
     Statement *body;
     Statement *finalbody;
 #if DMD_OBJC
@@ -761,14 +818,16 @@ struct TryFinallyStatement : Statement
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
 };
 
-struct OnScopeStatement : Statement
+class OnScopeStatement : public Statement
 {
+public:
     TOK tok;
     Statement *statement;
 
@@ -781,12 +840,14 @@ struct OnScopeStatement : Statement
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     void toIR(IRState *irs);
 };
 
-struct ThrowStatement : Statement
+class ThrowStatement : public Statement
 {
+public:
     Expression *exp;
     bool internalThrow;         // was generated by the compiler,
                                 // wasn't present in source code
@@ -797,14 +858,16 @@ struct ThrowStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     Statement *inlineScan(InlineScanState *iss);
 
     void toIR(IRState *irs);
 };
 
-struct DebugStatement : Statement
+class DebugStatement : public Statement
 {
+public:
     Statement *statement;
 
     DebugStatement(Loc loc, Statement *statement);
@@ -815,8 +878,9 @@ struct DebugStatement : Statement
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct GotoStatement : Statement
+class GotoStatement : public Statement
 {
+public:
     Identifier *ident;
     LabelDsymbol *label;
     TryFinallyStatement *tf;
@@ -826,13 +890,15 @@ struct GotoStatement : Statement
     Statement *semantic(Scope *sc);
     int blockExit(bool mustNotThrow);
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     void toIR(IRState *irs);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 
-struct LabelStatement : Statement
+class LabelStatement : public Statement
 {
+public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
@@ -848,6 +914,7 @@ struct LabelStatement : Statement
     bool comeFromImpl();
     Expression *interpret(InterState *istate);
     bool apply(sapply_fp_t fp, void *param);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     Statement *inlineScan(InlineScanState *iss);
@@ -856,16 +923,18 @@ struct LabelStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct LabelDsymbol : Dsymbol
+class LabelDsymbol : public Dsymbol
 {
+public:
     LabelStatement *statement;
 
     LabelDsymbol(Identifier *ident);
     LabelDsymbol *isLabel();
 };
 
-struct AsmStatement : Statement
+class AsmStatement : public Statement
 {
+public:
     Token *tokens;
     code *asmcode;
     unsigned asmalign;          // alignment of this statement
@@ -879,6 +948,7 @@ struct AsmStatement : Statement
     int blockExit(bool mustNotThrow);
     bool comeFromImpl();
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
@@ -889,8 +959,9 @@ struct AsmStatement : Statement
     void toIR(IRState *irs);
 };
 
-struct ImportStatement : Statement
+class ImportStatement : public Statement
 {
+public:
     Dsymbols *imports;          // Array of Import's
 
     ImportStatement(Loc loc, Dsymbols *imports);
@@ -899,6 +970,7 @@ struct ImportStatement : Statement
     int blockExit(bool mustNotThrow);
     bool hasCodeImpl();
     Expression *interpret(InterState *istate);
+    void ctfeCompile(CompiledCtfeFunction *ccf);
 
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 

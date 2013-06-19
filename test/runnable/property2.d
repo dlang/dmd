@@ -368,6 +368,79 @@ struct Foo9234(alias F) {}
 struct Foo9234(string thunk) {}
 
 /*****************************************/
+// 10103
+
+mixin template Getter10103()
+{
+    @property auto foo() { return v; }
+    @property auto bar()() { return v; }
+
+    static @property auto goo() { return 1; }
+}
+
+mixin template Setter10103()
+{
+    @property void foo(int x) { v = x; }
+    @property void bar()(int x) { v = x; }
+
+    static @property void goo(int x) {}
+}
+
+struct Foo10103
+{
+    int v;
+    mixin Getter10103!();
+    mixin Setter10103!();
+}
+
+void test10103()
+{
+    auto f = Foo10103(4);
+
+    f.foo;
+    f.foo = 3;
+
+    f.bar;
+    f.bar = 3;
+
+    Foo10103.goo = 3;
+}
+
+/*****************************************/
+// 10197
+
+template OriginalType10197(T)
+{
+    static if (is(T U == enum))
+        alias OriginalType10197 = U;
+    else
+        static assert(0);
+}
+
+void test10197()
+{
+    enum E : int { F = -20 }
+    struct S
+    {
+        int val;
+        @trusted @property T as(T)()
+        if (is(T == int) && !is(T == enum))
+        {
+            return cast(T)(val);
+        }
+        @trusted @property T as(T)()
+        if (is(T == enum))
+        {
+            return cast(T)as!(OriginalType10197!T);
+        }
+    }
+
+    S val = S(-20);
+    assert(val.as!int == -20);
+    assert(val.as!E == E.F);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -379,6 +452,8 @@ int main()
     test7274();
     test7275();
     test8251();
+    test10103();
+    test10197();
 
     printf("Success\n");
     return 0;

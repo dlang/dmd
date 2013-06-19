@@ -751,11 +751,75 @@ void test9415()
 }
 
 /***************************************************/
+// 9628
+
+template TypeTuple9628(TL...) { alias TypeTuple9628 = TL; }
+void map9628(alias func)() { func(0); }
+
+void test9628()
+{
+    auto items = [[10, 20], [30]];
+    size_t[] res;
+
+    res = null;
+    foreach (_; 0 .. 2)
+    {
+        foreach (sub; items)
+        {
+            map9628!((       i){ res ~= sub.length; });
+            map9628!((size_t i){ res ~= sub.length; });
+        }
+    }
+    assert(res == [2,2,1,1, 2,2,1,1]);
+
+    res = null;
+    foreach (_; TypeTuple9628!(0, 1))
+    {
+        foreach (sub; items)
+        {
+            map9628!((       i){ res ~= sub.length; });
+            map9628!((size_t i){ res ~= sub.length; });
+        }
+    }
+    assert(res == [2,2,1,1, 2,2,1,1]);
+}
+
+/***************************************************/
 // 9928
 
 void test9928()
 {
     void* smth = (int x) { return x; };
+}
+
+/***************************************************/
+// 10288
+
+T foo10288(T)(T x)
+{
+    void lambda() @trusted nothrow { x += 10; }
+    lambda();
+    return x;
+}
+
+T bar10288(T)(T x)
+{
+    () @trusted { x += 10; } ();
+    return x;
+}
+
+T baz10288(T)(T arg)
+{
+    static int g = 10;
+    () @trusted { x += g; } ();
+    return x;
+}
+
+void test10288() @safe pure nothrow
+{
+    assert(foo10288(10) == 20); // OK
+    assert(bar10288(10) == 20); // OK <- NG
+    static assert(!__traits(compiles, baz10288(10)));
 }
 
 /***************************************************/
@@ -802,7 +866,9 @@ int main()
     test9153();
     test9393();
     test9415();
+    test9628();
     test9928();
+    test10288();
 
     printf("Success\n");
     return 0;
