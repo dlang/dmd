@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		7A588DE9177238E500C6E503 /* objc.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A588DE8177238E500C6E503 /* objc.c */; };
 		7A8F58EE173E8680002091B3 /* access.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589B173E8680002091B3 /* access.c */; };
 		7A8F58EF173E8680002091B3 /* aliasthis.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589C173E8680002091B3 /* aliasthis.c */; };
 		7A8F58F0173E8680002091B3 /* apply.c in Sources */ = {isa = PBXBuildFile; fileRef = 7A8F589D173E8680002091B3 /* apply.c */; };
@@ -168,6 +169,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		7A588DE7177238B300C6E503 /* objc.h */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.h; fileEncoding = 4; name = objc.h; path = src/objc.h; sourceTree = "<group>"; };
+		7A588DE8177238E500C6E503 /* objc.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = objc.c; path = src/objc.c; sourceTree = "<group>"; };
 		7A8F5891173E8613002091B3 /* dummy */ = {isa = PBXFileReference; explicitFileType = "compiled.mach-o.executable"; includeInIndex = 0; path = dummy; sourceTree = BUILT_PRODUCTS_DIR; };
 		7A8F589B173E8680002091B3 /* access.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = access.c; path = src/access.c; sourceTree = "<group>"; };
 		7A8F589C173E8680002091B3 /* aliasthis.c */ = {isa = PBXFileReference; explicitFileType = sourcecode.cpp.cpp; fileEncoding = 4; name = aliasthis.c; path = src/aliasthis.c; sourceTree = "<group>"; };
@@ -478,6 +481,7 @@
 				7A8F5957173E8692002091B3 /* mars.h */,
 				7A8F5958173E8692002091B3 /* module.h */,
 				7A8F5959173E8692002091B3 /* mtype.h */,
+				7A588DE7177238B300C6E503 /* objc.h */,
 				7A8F595B173E8692002091B3 /* parse.h */,
 				7A8F595C173E8692002091B3 /* scope.h */,
 				7A8F595D173E8692002091B3 /* statement.h */,
@@ -539,6 +543,7 @@
 				7A8F58CE173E8680002091B3 /* module.c */,
 				7A8F58CF173E8680002091B3 /* msc.c */,
 				7A8F58D0173E8680002091B3 /* mtype.c */,
+				7A588DE8177238E500C6E503 /* objc.c */,
 				7A8F58D1173E8680002091B3 /* opover.c */,
 				7A8F58D2173E8680002091B3 /* optimize.c */,
 				7A8F58D3173E8680002091B3 /* parse.c */,
@@ -936,6 +941,7 @@
 				7A8F5AAF173E8704002091B3 /* type.c in Sources */,
 				7A8F5AB0173E8704002091B3 /* util2.c in Sources */,
 				7A8F5AB1173E8704002091B3 /* var.c in Sources */,
+				7A588DE9177238E500C6E503 /* objc.c in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
