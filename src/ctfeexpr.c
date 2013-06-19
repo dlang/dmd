@@ -1580,6 +1580,32 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         e = es;
         return e;
     }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
+        ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+
+        es1 = new ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
+        e = es1;
+        e->type = type;
+        return e;
+    }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  [ e1 ] ~ null ----> [ e1 ].dup
+        return paintTypeOntoLiteral(type, copyLiteral(e1));
+    }
+    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  null ~ [ e2 ] ----> [ e2 ].dup
+        return paintTypeOntoLiteral(type, copyLiteral(e2));
+    }
+
     return Cat(type, e1, e2);
 }
 
