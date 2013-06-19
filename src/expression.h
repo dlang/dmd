@@ -737,6 +737,7 @@ public:
     OverExp(Loc loc, OverloadSet *s);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 #endif
 
