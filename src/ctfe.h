@@ -30,12 +30,6 @@ struct CtfeStatus
     static int numAssignments; // total number of assignments executed
 };
 
-
-/** Expression subclasses which only exist in CTFE */
-
-#define TOKclassreference ((TOK)(TOKMAX+1))
-#define TOKthrownexception ((TOK)(TOKMAX+2))
-
 /**
   A reference to a class, or an interface. We need this when we
   point to a base class (we must record what the type is).
