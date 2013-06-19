@@ -44,7 +44,8 @@ long __cdecl __ehfilter(LPEXCEPTION_POINTERS ep);
 #define IDX_NOTFOUND (0x12345678)               // index is not found
 
 size_t templateParameterLookup(Type *tparam, TemplateParameters *parameters);
-int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, Scope *sc);
+int arrayObjectMatch(Objects *oa1, Objects *oa2);
+int arrayCheckRecursiveExpansion(Objects *oa1, TemplateDeclaration *tempdecl, Scope *sc);
 
 /********************************************
  * These functions substitute for dynamic_cast. dynamic_cast does not work
@@ -207,7 +208,7 @@ Expression *getValue(Dsymbol *&s)
  * Else, return 0.
  */
 
-int match(RootObject *o1, RootObject *o2, TemplateDeclaration *tempdecl, Scope *sc)
+int match(RootObject *o1, RootObject *o2)
 {
     Type *t1 = isType(o1);
     Type *t2 = isType(o2);
@@ -231,25 +232,6 @@ int match(RootObject *o1, RootObject *o2, TemplateDeclaration *tempdecl, Scope *
 
     if (t1)
     {
-        /* if t1 is an instance of ti, then give error
-         * about recursive expansions.
-         */
-        Dsymbol *s = t1->toDsymbol(sc);
-        if (s && s->parent)
-        {   TemplateInstance *ti1 = s->parent->isTemplateInstance();
-            if (ti1 && ti1->tempdecl == tempdecl)
-            {
-                for (Scope *sc1 = sc; sc1; sc1 = sc1->enclosing)
-                {
-                    if (sc1->scopesym == ti1)
-                    {
-                        tempdecl->error("recursive template expansion for template argument %s", t1->toChars());
-                        return 1;       // fake a match
-                    }
-                }
-            }
-        }
-
         //printf("t1 = %s\n", t1->toChars());
         //printf("t2 = %s\n", t2->toChars());
         if (!t2 || !t1->equals(t2))
@@ -290,7 +272,7 @@ int match(RootObject *o1, RootObject *o2, TemplateDeclaration *tempdecl, Scope *
     {
         if (!u2)
             goto Lnomatch;
-        if (!arrayObjectMatch(&u1->objects, &u2->objects, tempdecl, sc))
+        if (!arrayObjectMatch(&u1->objects, &u2->objects))
             goto Lnomatch;
     }
     //printf("match\n");
@@ -305,7 +287,7 @@ Lnomatch:
 /************************************
  * Match an array of them.
  */
-int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, Scope *sc)
+int arrayObjectMatch(Objects *oa1, Objects *oa2)
 {
     if (oa1 == oa2)
         return 1;
@@ -314,13 +296,67 @@ int arrayObjectMatch(Objects *oa1, Objects *oa2, TemplateDeclaration *tempdecl, 
     for (size_t j = 0; j < oa1->dim; j++)
     {   RootObject *o1 = (*oa1)[j];
         RootObject *o2 = (*oa2)[j];
-        if (!match(o1, o2, tempdecl, sc))
+        if (!match(o1, o2))
         {
             return 0;
         }
     }
     return 1;
 }
+
+
+/******************************
+ * Check template argument o1 to see if it is a recursive expansion of tempdecl in scope sc.
+ * If so, issue error and return 1.
+ */
+
+int checkRecursiveExpansion(RootObject *o1, TemplateDeclaration *tempdecl, Scope *sc)
+{
+    if (Type *t1 = isType(o1))
+    {
+        /* if t1 is an instance of ti, then give error
+         * about recursive expansions.
+         */
+        Dsymbol *s = t1->toDsymbol(sc);
+        if (s && s->parent)
+        {
+            TemplateInstance *ti1 = s->parent->isTemplateInstance();
+            if (ti1 && ti1->tempdecl == tempdecl)
+            {
+                for (Scope *sc1 = sc; sc1; sc1 = sc1->enclosing)
+                {
+                    if (sc1->scopesym == ti1)
+                    {
+                        tempdecl->error("recursive template expansion for template argument %s", t1->toChars());
+                        return 1;
+                    }
+                }
+            }
+        }
+    }
+    else if (Tuple *u1 = isTuple(o1))
+    {
+        return arrayCheckRecursiveExpansion(&u1->objects, tempdecl, sc);
+    }
+    return 0;   // no error
+}
+
+
+/************************************
+ * Match an array of them.
+ */
+int arrayCheckRecursiveExpansion(Objects *oa1, TemplateDeclaration *tempdecl, Scope *sc)
+{
+    for (size_t j = 0; j < oa1->dim; j++)
+    {
+        RootObject *o1 = (*oa1)[j];
+        if (checkRecursiveExpansion(o1, tempdecl, sc))
+            return 1;
+    }
+    return 0;
+}
+
+
 
 /****************************************
  * This makes a 'pretty' version of the template arguments.
@@ -1867,7 +1903,10 @@ Lmatch:
         int nmatches = 0;
         for (Previous *p = previous; p; p = p->prev)
         {
-            if (arrayObjectMatch(p->dedargs, dedargs, this, sc))
+            if (arrayCheckRecursiveExpansion(p->dedargs, this, sc))
+                goto Lnomatch;
+
+            if (arrayObjectMatch(p->dedargs, dedargs))
             {
                 //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
                 /* It must be a subscope of p->sc, other scope chains are not recursive
@@ -1971,7 +2010,8 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
         if (va && td)
         {   Tuple tup;
             tup.objects = *td->objects;
-            if (match(va, &tup, this, sc))
+            checkRecursiveExpansion(va, this, sc);
+            if (match(va, &tup))
             {
                 return o;
             }
@@ -2609,7 +2649,7 @@ PROT TemplateDeclaration::prot()
  * If so, return that existing instance.
  */
 
-TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Scope *sc, Expressions *fargs)
+TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *tithis, Expressions *fargs)
 {
     for (size_t i = 0; i < instances.dim; i++)
     {
@@ -2627,7 +2667,7 @@ TemplateInstance *TemplateDeclaration::findExistingInstance(TemplateInstance *ti
         }
         //printf("parent = %s, ti->parent = %s\n", parent->toPrettyChars(), ti->parent->toPrettyChars());
 
-        if (!arrayObjectMatch(&tithis->tdtypes, &ti->tdtypes, this, sc))
+        if (!arrayObjectMatch(&tithis->tdtypes, &ti->tdtypes))
             continue;
 
         /* Template functions may have different instantiations based on
@@ -3393,7 +3433,9 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 Tuple *v = (Tuple *)(*dedtypes)[j];
                 if (v)
                 {
-                    if (!match(v, vt, tempinst->tempdecl, sc))
+                    if (checkRecursiveExpansion(v, tempinst->tempdecl, sc))
+                        goto Lnomatch;
+                    if (!match(v, vt))
                         goto Lnomatch;
                 }
                 else
@@ -5086,11 +5128,13 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     hasNestedArgs(tiargs);
 
+    arrayCheckRecursiveExpansion(&tdtypes, tempdecl, sc);
+
     /* See if there is an existing TemplateInstantiation that already
      * implements the typeargs. If so, just refer to that one instead.
      */
     {
-        TemplateInstance *ti = tempdecl->findExistingInstance(this, sc, fargs);
+        TemplateInstance *ti = tempdecl->findExistingInstance(this, fargs);
         if (ti)
         {
             // It's a match
