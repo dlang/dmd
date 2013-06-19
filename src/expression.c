@@ -9848,6 +9848,8 @@ Lagain:
         {   error("need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
+        if (sc->func && !sc->intypeof && sc->func->setUnsafe())
+            error("pointer slicing not allowed in safe functions");
     }
     else if (t->ty == Tarray)
     {
