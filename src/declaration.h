@@ -87,11 +87,11 @@ enum PURE;
 #define STCtemp         0x10000000000LL  // temporary variable introduced by inlining
                                          // and used only in backend process, so it's rvalue
 
-#define STCStorageClass (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal | \
-        STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias | \
-        STCout | STCin | \
-        STCmanifest | STCimmutable | STCshared | STCnothrow | STCpure | STCref | STCtls | \
-        STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable)
+const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
+    STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
+    STCout | STCin |
+    STCmanifest | STCimmutable | STCshared | STCnothrow | STCpure | STCref | STCtls |
+    STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
 {
