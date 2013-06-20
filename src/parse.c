@@ -7021,6 +7021,7 @@ void initPrecedence()
     precedence[TOKstring] = PREC_primary;
     precedence[TOKarrayliteral] = PREC_primary;
     precedence[TOKassocarrayliteral] = PREC_primary;
+    precedence[TOKclassreference] = PREC_primary;
 #if DMDV2
     precedence[TOKfile] = PREC_primary;
     precedence[TOKline] = PREC_primary;
