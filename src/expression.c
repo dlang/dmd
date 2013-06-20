@@ -11148,6 +11148,9 @@ Ltupleassign:
         ArrayLengthExp *ale = (ArrayLengthExp *)e1;
 
         ale->e1 = ale->e1->modifiableLvalue(sc, e1);
+        if (ale->e1->op == TOKerror)
+            return ale->e1;
+
         checkDefCtor(ale->loc, ale->e1->type->toBasetype()->nextOf());
     }
     else if (e1->op == TOKslice)
