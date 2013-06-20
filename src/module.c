@@ -562,6 +562,7 @@ void Module::parse()
          * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
          */
         Package *p = new Package(ident);
+        p->parent = this->parent;
         p->isPkgMod = PKGmodule;
         p->mod = this;
         p->symtab = new DsymbolTable();

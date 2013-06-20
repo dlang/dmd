@@ -136,6 +136,7 @@ DISABLED_TESTS += testxmm
 
 DISABLED_SH_TESTS += test39
 DISABLED_SH_TESTS += test9377
+DISABLED_SH_TESTS += test10386
 endif
 
 runnable_tests=$(wildcard runnable/*.d) $(wildcard runnable/*.sh)
