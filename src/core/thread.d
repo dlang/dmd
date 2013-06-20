@@ -567,13 +567,18 @@ class Thread
      * In:
      *  This routine may only be called once per thread instance.
      *
+     * Params:
+     *  priority = Priority of this thread. The value must be in range
+     *             PRIORITY_MIN - PRIORITY_MAX. Default value is PRIORITY_DEFAULT.
+     *
      * Throws:
      *  ThreadException if the thread fails to start.
      */
-    final void start()
+    final void start( int priority = PRIORITY_DEFAULT )
     in
     {
         assert( !next && !prev );
+        assert( priority >= PRIORITY_MIN && priority <= PRIORITY_MAX );
     }
     body
     {
@@ -596,6 +601,13 @@ class Thread
                 throw new ThreadException( "Error initializing thread stack size" );
             if( pthread_attr_setdetachstate( &attr, PTHREAD_CREATE_JOINABLE ) )
                 throw new ThreadException( "Error setting thread joinable" );
+            if( priority != PRIORITY_DEFAULT )
+            {
+                sched_param param;
+                param.sched_priority = priority;
+                if( pthread_attr_setschedparam(&attr, &param) )
+                    throw new ThreadException( "Error setting thread priority" );
+            }
         }
 
         version( Windows )
@@ -613,6 +625,11 @@ class Thread
             m_hndl = cast(HANDLE) _beginthreadex( null, cast(uint) m_sz, &thread_entryPoint, cast(void*) this, CREATE_SUSPENDED, &m_addr );
             if( cast(size_t) m_hndl == 0 )
                 throw new ThreadException( "Error creating thread" );
+            if( priority != PRIORITY_DEFAULT )
+            {
+                if( !SetThreadPriority( m_hndl, priority ) )
+                    throw new ThreadException( "Error setting thread priority" );
+            }
         }
 
         // NOTE: The starting thread must be added to the global thread list
@@ -660,6 +677,24 @@ class Thread
         }
     }
 
+
+    unittest
+    {
+        int prio = Thread.PRIORITY_DEFAULT;
+
+        void test()
+        {
+            auto thr = new Thread({assert(Thread.getThis().priority == prio);});
+            thr.start(prio);
+            assert(thr.priority == prio);
+            thr.join();
+        }
+        test();
+        prio = Thread.PRIORITY_MIN;
+        test();
+        prio = Thread.PRIORITY_MAX;
+        test();
+    }
 
     /**
      * Waits for this thread to complete.  If the thread terminated as the
