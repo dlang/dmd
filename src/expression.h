@@ -253,6 +253,7 @@ public:
     ErrorExp();
 
     Expression *implicitCastTo(Scope *sc, Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Scope *sc, Expression *e);

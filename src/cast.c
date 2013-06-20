@@ -418,6 +418,11 @@ Lno:
     return MATCHnomatch;
 }
 
+MATCH ErrorExp::implicitConvTo(Type *t)
+{
+    return MATCHnomatch;
+}
+
 MATCH NullExp::implicitConvTo(Type *t)
 {
 #if 0
