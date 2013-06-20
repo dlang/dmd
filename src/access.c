@@ -290,24 +290,59 @@ int hasPackageAccess(Scope *sc, Dsymbol *s)
     printf("hasPackageAccess(s = '%s', sc = '%p')\n", s->toChars(), sc);
 #endif
 
+    Package *pkg = NULL;
     for (; s; s = s->parent)
     {
-        if (s->isPackage() && !s->isModule())
+        if (Module *m = s->isModule())
+        {
+            DsymbolTable *dst = Package::resolve(m->md ? m->md->packages : NULL, NULL, NULL);
+            assert(dst);
+            Dsymbol *s2 = dst->lookup(m->ident);
+            assert(s2);
+            Package *p = s2->isPackage();
+            if (p && p->isPkgMod == PKGmodule)
+            {
+                assert(p->mod == m);
+                pkg = p;
+                break;
+            }
+        }
+        else if ((pkg = s->isPackage()) != NULL)
             break;
     }
 #if LOG
-    if (s)
-        printf("\tthis is in package '%s'\n", s->toChars());
+    if (pkg)
+        printf("\tthis is in package '%s'\n", pkg->toChars());
 #endif
 
-    if (s && s == sc->module->parent)
+    if (pkg)
     {
+        if (pkg == sc->module->parent)
+        {
 #if LOG
-        printf("\ts is in same package as sc\n");
+            printf("\ts is in same package as sc\n");
 #endif
-        return 1;
+            return 1;
+        }
+        if (pkg->isPkgMod == PKGmodule && pkg->mod == sc->module)
+        {
+#if LOG
+            printf("\ts is in same package.d module as sc\n");
+#endif
+            return 1;
+        }
+        s = sc->module->parent;
+        for (; s; s = s->parent)
+        {
+            if (s == pkg)
+            {
+#if LOG
+                printf("\ts is in ancestor package of sc\n");
+#endif
+                return 1;
+            }
+        }
     }
-
 
 #if LOG
     printf("\tno package access\n");
