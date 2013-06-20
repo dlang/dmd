@@ -3668,7 +3668,7 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
         dinteger_t ofs;
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(aggregate))
-            return aggregate;
+            return false;
         if (aggregate->op == TOKnull)
         {
             originalExp->error("cannot index through null pointer %s", ie->e1->toChars());
@@ -3721,7 +3721,7 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
         Expression *origagg = aggregate;
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(aggregate))
-            return aggregate;
+            return false;
         // The array could be an index of an AA. Resolve it if so.
         if (aggregate->op == TOKindex &&
             ((IndexExp *)aggregate)->e1->op == TOKassocarrayliteral)
