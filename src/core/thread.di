@@ -163,14 +163,10 @@ class Thread
      * In:
      *  This routine may only be called once per thread instance.
      *
-     * Params:
-     *  priority = Priority of this thread. The value must be in range
-     *             PRIORITY_MIN - PRIORITY_MAX. Default value is PRIORITY_DEFAULT.
-     *
      * Throws:
      *  ThreadException if the thread fails to start.
      */
-    final void start( int priority = PRIORITY_DEFAULT );
+    final void start();
 
 
     /**
