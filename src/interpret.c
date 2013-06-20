@@ -81,8 +81,8 @@ public:
 
     // Largest number of stack positions we've used
     size_t maxStackUsage();
-    // Start a new stack frame, using the provided 'this'.
-    void startFrame(Expression *thisexp);
+    // Start a new stack frame for numVars, using the provided 'this'.
+    void startFrame(int numVars, Expression *thisexp);
     void endFrame();
     bool isInCurrentFrame(VarDeclaration *v);
     Expression *getValue(VarDeclaration *v);
@@ -131,7 +131,7 @@ size_t CtfeStack::maxStackUsage()
     return maxStackPointer;
 }
 
-void CtfeStack::startFrame(Expression *thisexp)
+void CtfeStack::startFrame(int numVars, Expression *thisexp)
 {
     size_t oldframe = framepointer;
     frames.push((void *)(size_t)(framepointer));
@@ -692,7 +692,7 @@ Expression *Expression::ctfeInterpret()
     CompiledCtfeFunction ctfeCodeGlobal(NULL);
     ctfeCodeGlobal.callingloc = loc;
     ctfeCodeGlobal.onExpression(this);
-    ctfeStack.startFrame(NULL);
+    ctfeStack.startFrame(ctfeCodeGlobal.numVars, NULL);
 
     Expression *e = interpret(NULL);
     if (e != EXP_CANT_INTERPRET)
@@ -891,7 +891,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = this;
-    ctfeStack.startFrame(thisarg);
+    ctfeStack.startFrame(ctfeCode->numVars, thisarg);
 
     if (arguments)
     {
