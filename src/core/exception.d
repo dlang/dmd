@@ -17,17 +17,6 @@ module core.exception;
 
 import core.stdc.stdio;
 
-private
-{
-    alias void function( string file, size_t line, string msg ) nothrow errorHandlerType;
-
-    // NOTE: One assert handler is used for all threads.  Thread-local
-    //       behavior should occur within the handler itself.  This delegate
-    //       is __gshared for now based on the assumption that it will only
-    //       set by the main thread during program initialization.
-    __gshared errorHandlerType assertHandler = null;
-}
-
 
 /**
  * Thrown on a range error.
@@ -373,13 +362,39 @@ unittest
 ///////////////////////////////////////////////////////////////////////////////
 
 
+// NOTE: One assert handler is used for all threads.  Thread-local
+//       behavior should occur within the handler itself.  This delegate
+//       is __gshared for now based on the assumption that it will only
+//       set by the main thread during program initialization.
+private __gshared AssertHandler _assertHandler = null;
+
+
+/**
+Gets/sets assert hander. null means the default handler is used.
+*/
+alias AssertHandler = void function(string file, size_t line, string msg) nothrow;
+
+/// ditto
+@property AssertHandler assertHandler() @trusted nothrow
+{
+    return _assertHandler;
+}
+
+/// ditto
+@property void assertHandler(AssertHandler handler) @trusted nothrow
+{
+    _assertHandler = handler;
+}
+
 /**
  * Overrides the default assert hander with a user-supplied version.
+ * $(RED Deprecated.
+ *   Please use $(LREF assertHandler) instead.)
  *
  * Params:
  *  h = The new assert handler.  Set to null to use the default handler.
  */
-void setAssertHandler( errorHandlerType h ) @trusted nothrow
+deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow
 {
     assertHandler = h;
 }
@@ -400,9 +415,9 @@ void setAssertHandler( errorHandlerType h ) @trusted nothrow
  */
 extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ ) nothrow
 {
-    if( assertHandler is null )
+    if( _assertHandler is null )
         throw new AssertError( file, line );
-    assertHandler( file, line, null);
+    _assertHandler( file, line, null);
 }
 
 
@@ -417,9 +432,9 @@ extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ ) 
  */
 extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow
 {
-    if( assertHandler is null )
+    if( _assertHandler is null )
         throw new AssertError( msg, file, line );
-    assertHandler( file, line, msg );
+    _assertHandler( file, line, msg );
 }
 
 
