@@ -692,10 +692,12 @@ Expression *Expression::ctfeInterpret()
     CompiledCtfeFunction ctfeCodeGlobal(NULL);
     ctfeCodeGlobal.callingloc = loc;
     ctfeCodeGlobal.onExpression(this);
+    ctfeStack.startFrame(NULL);
 
     Expression *e = interpret(NULL);
     if (e != EXP_CANT_INTERPRET)
         e = scrubReturnValue(loc, e);
+    ctfeStack.endFrame();
     if (e == EXP_CANT_INTERPRET)
         e = new ErrorExp();
     return e;
@@ -4812,7 +4814,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     InterState istateComma;
     if (!istate &&  firstComma->e1->op == TOKdeclaration)
     {
-        ctfeStack.startFrame(NULL);
         istate = &istateComma;
     }
 
@@ -4839,8 +4840,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             newval = newval->interpret(istate);
             if (exceptionOrCantInterpret(newval))
             {
-                if (istate == &istateComma)
-                    ctfeStack.endFrame();
                 return newval;
             }
             if (newval != EXP_VOID_INTERPRET)
@@ -4860,9 +4859,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         if (!exceptionOrCantInterpret(e))
             e = e2->interpret(istate, goal);
     }
-    // If we created a temporary stack frame, end it now.
-    if (istate == &istateComma)
-        ctfeStack.endFrame();
     return e;
 }
 
