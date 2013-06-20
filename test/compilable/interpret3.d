@@ -1123,6 +1123,13 @@ int wconcat(wstring replace)
 static assert(wconcat("X"w));
 
 /*******************************************
+    10397 string concat
+*******************************************/
+
+static assert(!is(typeof(compiles!("abc" ~ undefined))));
+static assert(!is(typeof(compiles!(otherundefined ~ "abc"))));
+
+/*******************************************
     9634 struct concat
 *******************************************/
 
