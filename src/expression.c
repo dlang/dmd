@@ -330,7 +330,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                     assert(fd->type->ty == Tfunction);
                     TypeFunction *tf = (TypeFunction *)fd->type;
                     if (!tf->isref && e2)
-                        goto Leprop;
+                        goto Leproplvalue;
                     if (!tf->isproperty && global.params.enforcePropertySyntax)
                         goto Leprop;
                 }
@@ -434,7 +434,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
                 assert(fd->type->ty == Tfunction);
                 TypeFunction *tf = (TypeFunction *)fd->type;
                 if (!tf->isref && e2)
-                    goto Leprop;
+                    goto Leproplvalue;
                 if (!tf->isproperty && global.params.enforcePropertySyntax)
                     goto Leprop;
                 Expression *e = new CallExp(loc, e1);
@@ -490,6 +490,10 @@ return_expr:
 
 Leprop:
     error(loc, "not a property %s", e1->toChars());
+    return new ErrorExp();
+
+Leproplvalue:
+    error(loc, "%s is not an lvalue", e1->toChars());
     return new ErrorExp();
 }
 
@@ -5650,6 +5654,12 @@ Expression *OverExp::toLvalue(Scope *sc, Expression *e)
 {
     return this;
 }
+
+void OverExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
+{
+    buf->writestring(vars->ident->toChars());
+}
+
 #endif
 
 
