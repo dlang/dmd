@@ -69,6 +69,8 @@ enum TOK
         TOKnewanonclass, TOKcomment,
         TOKarrayliteral, TOKassocarrayliteral,
         TOKstructliteral,
+        TOKclassreference,
+        TOKthrownexception,
 
         // Operators
         TOKlt,          TOKgt,
