@@ -736,7 +736,6 @@ Impl* _d_assocarrayliteralT(const TypeInfo_AssociativeArray ti, in size_t length
     return result;
 }
 
-extern (C)
 Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, void[] values)
 {
     const valuesize = ti.next.tsize;             // value size
@@ -805,7 +804,7 @@ Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, vo
 }
 
 
-static const(TypeInfo_AssociativeArray) _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
+const(TypeInfo_AssociativeArray) _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
 {
     const(TypeInfo)* p = &tiRaw;
     TypeInfo_AssociativeArray ti;
@@ -929,7 +928,6 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
  * Returns:
  *      Hash value
  */
-extern (C)
 hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
 {
     import rt.util.hash;
