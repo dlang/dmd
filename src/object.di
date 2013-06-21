@@ -484,17 +484,33 @@ public:
         return *cast(Value[Key]*)(&p);
     }
 
-    Value[] values() @property
+    // Note: can't make `values` and `keys` inout as it is used
+    // e.g. in Phobos like `ReturnType!(aa.keys)` instead of `typeof(aa.keys)`
+    // which will result in `inout` propagation.
+
+    inout(Value)[] inout_values() inout @property
     {
         auto a = _aaValues(p, Key.sizeof, Value.sizeof);
-        return *cast(Value[]*) &a;
+        return *cast(inout Value[]*) &a;
     }
 
-    Key[] keys() @property
+    inout(Key)[] inout_keys() inout @property
     {
         auto a = _aaKeys(p, Key.sizeof);
-        return *cast(Key[]*) &a;
+        return *cast(inout Key[]*) &a;
     }
+
+    Value[] values() @property
+    { return inout_values; }
+
+    Key[] keys() @property
+    { return inout_keys; }
+
+    const(Value)[] values() const @property
+    { return inout_values; }
+
+    const(Key)[] keys() const @property
+    { return inout_keys; }
 
     int opApply(scope int delegate(ref Key, ref Value) dg)
     {
