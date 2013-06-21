@@ -17,17 +17,6 @@ module core.exception;
 
 import core.stdc.stdio;
 
-private
-{
-    alias void function( string file, size_t line, string msg ) errorHandlerType;
-
-    // NOTE: One assert handler is used for all threads.  Thread-local
-    //       behavior should occur within the handler itself.  This delegate
-    //       is __gshared for now based on the assumption that it will only
-    //       set by the main thread during program initialization.
-    __gshared errorHandlerType assertHandler = null;
-}
-
 
 /**
  * Thrown on a range error.
@@ -339,7 +328,7 @@ class UnicodeException : Exception
 {
     size_t idx;
 
-    this( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__, Throwable next = null )
+    this( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__, Throwable next = null ) @safe pure nothrow
     {
         super( msg, file, line, next );
         this.idx = idx;
@@ -373,13 +362,39 @@ unittest
 ///////////////////////////////////////////////////////////////////////////////
 
 
+// NOTE: One assert handler is used for all threads.  Thread-local
+//       behavior should occur within the handler itself.  This delegate
+//       is __gshared for now based on the assumption that it will only
+//       set by the main thread during program initialization.
+private __gshared AssertHandler _assertHandler = null;
+
+
+/**
+Gets/sets assert hander. null means the default handler is used.
+*/
+alias AssertHandler = void function(string file, size_t line, string msg) nothrow;
+
+/// ditto
+@property AssertHandler assertHandler() @trusted nothrow
+{
+    return _assertHandler;
+}
+
+/// ditto
+@property void assertHandler(AssertHandler handler) @trusted nothrow
+{
+    _assertHandler = handler;
+}
+
 /**
  * Overrides the default assert hander with a user-supplied version.
+ * $(RED Deprecated.
+ *   Please use $(LREF assertHandler) instead.)
  *
  * Params:
  *  h = The new assert handler.  Set to null to use the default handler.
  */
-void setAssertHandler( errorHandlerType h )
+deprecated void setAssertHandler( AssertHandler h ) @trusted nothrow
 {
     assertHandler = h;
 }
@@ -398,11 +413,11 @@ void setAssertHandler( errorHandlerType h )
  *  file = The name of the file that signaled this error.
  *  line = The line number on which this error occurred.
  */
-extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ )
+extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ ) nothrow
 {
-    if( assertHandler is null )
+    if( _assertHandler is null )
         throw new AssertError( file, line );
-    assertHandler( file, line, null);
+    _assertHandler( file, line, null);
 }
 
 
@@ -415,11 +430,11 @@ extern (C) void onAssertError( string file = __FILE__, size_t line = __LINE__ )
  *  line = The line number on which this error occurred.
  *  msg  = An error message supplied by the user.
  */
-extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
+extern (C) void onAssertErrorMsg( string file, size_t line, string msg ) nothrow
 {
-    if( assertHandler is null )
+    if( _assertHandler is null )
         throw new AssertError( msg, file, line );
-    assertHandler( file, line, msg );
+    _assertHandler( file, line, msg );
 }
 
 
@@ -433,7 +448,7 @@ extern (C) void onAssertErrorMsg( string file, size_t line, string msg )
  *  line = The line number on which this error occurred.
  *  msg  = An error message supplied by the user.
  */
-extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
+extern (C) void onUnittestErrorMsg( string file, size_t line, string msg ) nothrow
 {
     onAssertErrorMsg( file, line, msg );
 }
@@ -454,7 +469,7 @@ extern (C) void onUnittestErrorMsg( string file, size_t line, string msg )
  * Throws:
  *  RangeError.
  */
-extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ )
+extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new RangeError( file, line, null );
 }
@@ -469,7 +484,7 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ )
  * Throws:
  *  FinalizeError.
  */
-extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FILE__, size_t line = __LINE__ )
+extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new FinalizeError( info, file, line, e );
 }
@@ -482,7 +497,7 @@ extern (C) void onFinalizeError( ClassInfo info, Exception e, string file = __FI
  * Throws:
  *  HiddenFuncError.
  */
-extern (C) void onHiddenFuncError( Object o )
+extern (C) void onHiddenFuncError( Object o ) @safe pure nothrow
 {
     throw new HiddenFuncError( o.classinfo );
 }
@@ -495,7 +510,7 @@ extern (C) void onHiddenFuncError( Object o )
  * Throws:
  *  OutOfMemoryError.
  */
-extern (C) void onOutOfMemoryError()
+extern (C) void onOutOfMemoryError() @trusted pure nothrow
 {
     // NOTE: Since an out of memory condition exists, no allocation must occur
     //       while generating this object.
@@ -510,7 +525,7 @@ extern (C) void onOutOfMemoryError()
  * Throws:
  *  InvalidMemoryOperationError.
  */
-extern (C) void onInvalidMemoryOperationError()
+extern (C) void onInvalidMemoryOperationError() @trusted pure nothrow
 {
     // The same restriction applies as for onOutOfMemoryError. The GC is in an
     // undefined state, thus no allocation must occur while generating this object.
@@ -529,7 +544,7 @@ extern (C) void onInvalidMemoryOperationError()
  * Throws:
  *  SwitchError.
  */
-extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ )
+extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) @safe pure nothrow
 {
     throw new SwitchError( file, line, null );
 }
@@ -545,7 +560,7 @@ extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ )
  * Throws:
  *  UnicodeException.
  */
-extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ )
+extern (C) void onUnicodeError( string msg, size_t idx, string file = __FILE__, size_t line = __LINE__ ) @safe pure
 {
     throw new UnicodeException( msg, idx, file, line );
 }
