@@ -69,8 +69,11 @@ struct Impl
 {
     Entry*[] buckets;
     size_t nodes;       // total number of entries
-    TypeInfo keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
+    TypeInfo _keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
     Entry*[4] binit;    // initial value of buckets[]
+
+    @property const(TypeInfo) keyti() const @safe pure nothrow
+    { return _keyti; }
 }
 
 /* This is the type actually seen by the programmer, although
@@ -209,13 +212,12 @@ body
  */
 
 // retained for backwards compatibility
-void* _aaGet(AA* aa, TypeInfo keyti, in size_t valuesize, ...)
+void* _aaGet(AA* aa, const TypeInfo keyti, in size_t valuesize, ...)
 {
     return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
 }
 
-// NOTE: TypeInfo can't be `in` here as it is stored in `aa.impl.keyti`.
-void* _aaGetX(AA* aa, TypeInfo keyti, in size_t valuesize, void* pkey)
+void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, void* pkey)
 in
 {
     assert(aa);
@@ -241,7 +243,7 @@ body
     }
     //printf("aa = %p\n", aa);
     //printf("aa.a = %p\n", aa.a);
-    aa.impl.keyti = keyti;
+    aa.impl._keyti = cast() keyti;
 
     auto key_hash = keyti.getHash(pkey);
     //printf("hash = %d\n", key_hash);
@@ -494,7 +496,7 @@ body
                 GC.free(oldImpl.buckets.ptr);
 
             newImpl.nodes = oldImpl.nodes;
-            newImpl.keyti = oldImpl.keyti;
+            newImpl._keyti = oldImpl._keyti;
         }
 
         *paa.impl = newImpl;
@@ -654,11 +656,11 @@ int _aaApply2(AA aa, in size_t keysize, dg2_t dg)
  */
 
 extern (C)
-Impl* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...)
+Impl* _d_assocarrayliteralT(const TypeInfo_AssociativeArray ti, in size_t length, ...)
 {
-    auto valuesize = ti.next.tsize;             // value size
-    auto keyti = ti.key;
-    auto keysize = keyti.tsize;                 // key size
+    const valuesize = ti.next.tsize;             // value size
+    const keyti = ti.key;
+    const keysize = keyti.tsize;                 // key size
     Impl* result;
 
     //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
@@ -677,7 +679,7 @@ Impl* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...)
             va_start(q, length);
 
         result = new Impl();
-        result.keyti = keyti;
+        result._keyti = cast() keyti;
         size_t i;
 
         for (i = 0; i < prime_list.length - 1; i++)
@@ -735,12 +737,12 @@ Impl* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...)
 }
 
 extern (C)
-Impl* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] values)
+Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, void[] values)
 {
-    auto valuesize = ti.next.tsize;             // value size
-    auto keyti = ti.key;
-    auto keysize = keyti.tsize;                 // key size
-    auto length = keys.length;
+    const valuesize = ti.next.tsize;             // value size
+    const keyti = ti.key;
+    const keysize = keyti.tsize;                 // key size
+    const length = keys.length;
     Impl* result;
 
     //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
@@ -752,7 +754,7 @@ Impl* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] v
     else
     {
         result = new Impl();
-        result.keyti = keyti;
+        result._keyti = cast() keyti;
 
         size_t i;
         for (i = 0; i < prime_list.length - 1; i++)
@@ -803,7 +805,7 @@ Impl* _d_assocarrayliteralTX(TypeInfo_AssociativeArray ti, void[] keys, void[] v
 }
 
 
-static TypeInfo_AssociativeArray _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
+static const(TypeInfo_AssociativeArray) _aaUnwrapTypeInfo(const(TypeInfo) tiRaw) pure nothrow
 {
     const(TypeInfo)* p = &tiRaw;
     TypeInfo_AssociativeArray ti;
@@ -852,7 +854,7 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
 
     // Check for Bug 5925. ti_raw could be a TypeInfo_Const, we need to unwrap
     //   it until reaching a real TypeInfo_AssociativeArray.
-    TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
+    const TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
 
     /* Algorithm: Visit each key/value pair in e1. If that key doesn't exist
      * in e2, or if the value in e1 doesn't match the one in e2, the arrays
@@ -860,8 +862,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
      * After all pairs are checked, the arrays must be equal.
      */
 
-    auto keyti = ti.key;
-    auto valueti = ti.next;
+    const keyti = ti.key;
+    const valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
     const len2 = e2.impl.buckets.length;
 
@@ -936,9 +938,9 @@ hash_t _aaGetHash(in AA* aa, in TypeInfo tiRaw) nothrow
     	return 0;
 
     hash_t h = 0;
-    TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
-    auto keyti = ti.key;
-    auto valueti = ti.next;
+    const TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
+    const keyti = ti.key;
+    const valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
 
     foreach (const(Entry)* e; aa.impl.buckets)

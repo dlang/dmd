@@ -2057,7 +2057,7 @@ extern (C)
     // from druntime/src/compiler/dmd/aaA.d
 
     size_t _aaLen(in void* p) pure nothrow;
-    void* _aaGet(void** pp, TypeInfo keyti, in size_t valuesize, ...);
+    void* _aaGet(void** pp, const TypeInfo keyti, in size_t valuesize, ...);
     inout(void)* _aaGetRvalue(inout void* p, in TypeInfo keyti, in size_t valuesize, ...);
     inout(void)* _aaIn(inout void* p, in TypeInfo keyti);
     void _aaDel(void* p, in TypeInfo keyti, ...);
