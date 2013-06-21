@@ -36,7 +36,7 @@ struct Console
         {
             DWORD count = void;
             assert(val.length <= uint.max, "val length cannot exceed uint.max");
-            WriteFile( GetStdHandle( 0xfffffff5 ), val.ptr, cast(uint)val.length, &count, null );
+            WriteFile( GetStdHandle( 0xfffffff4 ), val.ptr, cast(uint)val.length, &count, null );
         }
         else version( Posix )
         {
