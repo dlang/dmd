@@ -1493,6 +1493,7 @@ void OutBuffer::reserve(size_t nbytes)
     if (size - offset < nbytes)
     {
         size = (offset + nbytes) * 2;
+        size = (size + 15) & ~15;
         data = (unsigned char *)mem.realloc(data, size);
     }
 }
