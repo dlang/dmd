@@ -2879,7 +2879,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
             case Tfloat64:
             case Tfloat80:
             {
-                fvalue = Port::nan;
+                fvalue = Port::ldbl_nan;
                 goto Lfvalue;
             }
         }
@@ -2897,7 +2897,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
             case Tfloat32:
             case Tfloat64:
             case Tfloat80:
-                fvalue = Port::infinity;
+                fvalue = Port::ldbl_infinity;
                 goto Lfvalue;
         }
     }
