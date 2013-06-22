@@ -217,8 +217,8 @@ OutBuffer Lexer::stringbuffer;
 Lexer::Lexer(Module *mod,
         utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken)
-    : loc(mod, 1)
 {
+    loc = Loc(mod, 1);
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
     //printf("lexer.mod = %p, %p\n", mod, this->loc.mod);
     memset(&token,0,sizeof(token));
