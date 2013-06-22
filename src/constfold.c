@@ -603,7 +603,7 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         // x ^^ y for x < 0 and y not an integer is not defined
         if (e1->toReal() < 0.0)
         {
-            e = new RealExp(loc, ldouble(Port::nan), type);
+            e = new RealExp(loc, Port::ldbl_nan, type);
         }
         else if (e2->toReal() == 0.5)
         {
