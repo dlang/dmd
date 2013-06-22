@@ -74,12 +74,13 @@ void Statement::print()
 }
 
 char *Statement::toChars()
-{   OutBuffer *buf;
+{
     HdrGenState hgs;
 
-    buf = new OutBuffer();
-    toCBuffer(buf, &hgs);
-    return buf->toChars();
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writebyte(0);
+    return buf.extractData();
 }
 
 void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
