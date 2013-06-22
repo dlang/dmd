@@ -1146,6 +1146,20 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
     return dst;
 }
 
+Dsymbol *Package::search(Loc loc, Identifier *ident, int flags)
+{
+    if (!isModule() && mod)
+    {
+        // Prefer full package name.
+        Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
+        if (s)
+            return s;
+        //printf("[%s] through pkdmod: %s\n", loc.toChars(), toChars());
+        return mod->search(loc, ident, flags);
+    }
+
+    return ScopeDsymbol::search(loc, ident, flags);
+}
 
 /* ===========================  ===================== */
 

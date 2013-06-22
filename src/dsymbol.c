@@ -849,48 +849,44 @@ Dsymbol *ScopeDsymbol::syntaxCopy(Dsymbol *s)
     return sd;
 }
 
+/*****************************************
+ * This function is #1 on the list of functions that eat cpu time.
+ * Be very, very careful about slowing it down.
+ */
+
 Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s->ScopeDsymbol::search(ident='%s', flags=x%x)\n", toChars(), ident->toChars(), flags);
     //if (strcmp(ident->toChars(),"c") == 0) *(char*)0=0;
 
-    if (Package *pkg = isPackage())
-    {
-        if (!pkg->isModule() && pkg->mod)
-        {
-            // Prefer full package name.
-            Dsymbol *s = pkg->symtab ? pkg->symtab->lookup(ident) : NULL;
-            if (s)
-                return s;
-            //printf("[%s] through pkdmod: %s\n", loc.toChars(), pkg->toChars());
-            return pkg->mod->search(loc, ident, flags);
-        }
-    }
-
     // Look in symbols declared in this module
-    Dsymbol *s = symtab ? symtab->lookup(ident) : NULL;
-    //printf("\ts = %p, imports = %p, %d\n", s, imports, imports ? imports->dim : 0);
-    if (s)
+    Dsymbol *s1 = symtab ? symtab->lookup(ident) : NULL;
+    //printf("\ts1 = %p, imports = %p, %d\n", s1, imports, imports ? imports->dim : 0);
+    if (s1)
     {
-        //printf("\ts = '%s.%s'\n",toChars(),s->toChars());
+        //printf("\ts = '%s.%s'\n",toChars(),s1->toChars());
+        return s1;
     }
-    else if (imports)
+    else if (!imports)
+        return NULL;
+    else
     {
+        Dsymbol *s = NULL;
         OverloadSet *a = NULL;
 
         // Look in imported modules
         for (size_t i = 0; i < imports->dim; i++)
-        {   Dsymbol *ss = (*imports)[i];
-            Dsymbol *s2;
-
+        {
             // If private import, don't search it
             if (flags & 1 && prots[i] == PROTprivate)
                 continue;
 
+            Dsymbol *ss = (*imports)[i];
+
             //printf("\tscanning import '%s', prots = %d, isModule = %p, isImport = %p\n", ss->toChars(), prots[i], ss->isModule(), ss->isImport());
             /* Don't find private members if ss is a module
              */
-            s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
+            Dsymbol *s2 = ss->search(loc, ident, ss->isModule() ? 1 : 0);
             if (!s)
                 s = s2;
             else if (s2 && s != s2)
@@ -972,30 +968,14 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
 
         if (s)
         {
-            if (!(flags & 2))
-            {   Declaration *d = s->isDeclaration();
-                if (d && d->protection == PROTprivate &&
-                    !d->parent->isTemplateMixin())
-                    error(loc, "%s is private", d->toPrettyChars());
-
-                AggregateDeclaration *ad = s->isAggregateDeclaration();
-                if (ad && ad->protection == PROTprivate &&
-                    !ad->parent->isTemplateMixin())
-                    error(loc, "%s is private", ad->toPrettyChars());
-
-                EnumDeclaration *ed = s->isEnumDeclaration();
-                if (ed && ed->protection == PROTprivate &&
-                    !ed->parent->isTemplateMixin())
-                    error(loc, "%s is private", ed->toPrettyChars());
-
-                TemplateDeclaration *td = s->isTemplateDeclaration();
-                if (td && td->protection == PROTprivate &&
-                    !td->parent->isTemplateMixin())
-                    error(loc, "%s is private", td->toPrettyChars());
+            if (!(flags & 2) && s->prot() == PROTprivate && !s->parent->isTemplateMixin())
+            {
+                if (!s->isImport())
+                    error(loc, "%s %s is private", s->kind(), s->toPrettyChars());
             }
         }
+        return s;
     }
-    return s;
 }
 
 void ScopeDsymbol::importScope(Dsymbol *s, PROT protection)
