@@ -68,10 +68,10 @@ char *Initializer::toChars()
 {
     HdrGenState hgs;
 
-    memset(&hgs, 0, sizeof(hgs));
-    OutBuffer *buf = new OutBuffer();
-    toCBuffer(buf, &hgs);
-    return buf->toChars();
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writebyte(0);
+    return buf.extractData();
 }
 
 /********************************** ErrorInitializer ***************************/
@@ -904,7 +904,7 @@ bool hasNonConstPointers(Expression *e)
                 int old = se->stageflags;
                 se->stageflags |= stageSearchPointers;
                 bool ret = arrayHasNonConstPointers(se->elements);
-                se->stageflags = old; 
+                se->stageflags = old;
                 return ret;
             }
             else
