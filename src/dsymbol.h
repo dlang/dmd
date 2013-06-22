@@ -347,7 +347,6 @@ public:
     AA *tab;
 
     DsymbolTable();
-    ~DsymbolTable();
 
     // Look up Identifier. Return Dsymbol if found, NULL if not.
     Dsymbol *lookup(Identifier *ident);
