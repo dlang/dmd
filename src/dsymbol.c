@@ -1496,90 +1496,42 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 
 DsymbolTable::DsymbolTable()
 {
-#if STRINGTABLE
-    tab = new StringTable;
-    tab->init();
-#else
     tab = NULL;
-#endif
-}
-
-DsymbolTable::~DsymbolTable()
-{
-#if STRINGTABLE
-    delete tab;
-#endif
 }
 
 Dsymbol *DsymbolTable::lookup(Identifier *ident)
 {
-#if STRINGTABLE
-#ifdef DEBUG
-    assert(ident);
-    assert(tab);
-#endif
-    //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
-    StringValue *sv = tab->lookup((char*)ident->string, ident->len);
-    return (Dsymbol *)(sv ? sv->ptrvalue : NULL);
-#else
     //printf("DsymbolTable::lookup(%s)\n", (char*)ident->string);
     return (Dsymbol *)_aaGetRvalue(tab, ident);
-#endif
 }
 
 Dsymbol *DsymbolTable::insert(Dsymbol *s)
 {
     //printf("DsymbolTable::insert(this = %p, '%s')\n", this, s->ident->toChars());
     Identifier *ident = s->ident;
-#if STRINGTABLE
-#ifdef DEBUG
-    assert(ident);
-    assert(tab);
-#endif
-    StringValue *sv = tab->insert(ident->toChars(), ident->len);
-    if (!sv)
-        return NULL;            // already in table
-    sv->ptrvalue = s;
-    return s;
-#else
     Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
     if (*ps)
         return NULL;            // already in table
     *ps = s;
     return s;
-#endif
 }
 
 Dsymbol *DsymbolTable::insert(Identifier *ident, Dsymbol *s)
 {
     //printf("DsymbolTable::insert()\n");
-#if STRINGTABLE
-    StringValue *sv = tab->insert(ident->toChars(), ident->len);
-    if (!sv)
-        return NULL;            // already in table
-    sv->ptrvalue = s;
-    return s;
-#else
     Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
     if (*ps)
         return NULL;            // already in table
     *ps = s;
     return s;
-#endif
 }
 
 Dsymbol *DsymbolTable::update(Dsymbol *s)
 {
     Identifier *ident = s->ident;
-#if STRINGTABLE
-    StringValue *sv = tab->update(ident->toChars(), ident->len);
-    sv->ptrvalue = s;
-    return s;
-#else
     Dsymbol **ps = (Dsymbol **)_aaGet(&tab, ident);
     *ps = s;
     return s;
-#endif
 }
 
 
