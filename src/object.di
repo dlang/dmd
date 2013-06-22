@@ -372,14 +372,14 @@ extern (C)
 {
     // from druntime/src/compiler/dmd/aaA.d
 
-    size_t _aaLen(void* p);
-    void*  _aaGet(void** pp, TypeInfo keyti, size_t valuesize, ...);
-    void*  _aaGetRvalue(void* p, TypeInfo keyti, size_t valuesize, ...);
-    void*  _aaIn(void* p, TypeInfo keyti);
-    void   _aaDel(void* p, TypeInfo keyti, ...);
-    void[] _aaValues(void* p, size_t keysize, size_t valuesize);
-    void[] _aaKeys(void* p, size_t keysize);
-    void*  _aaRehash(void** pp, TypeInfo keyti);
+    size_t _aaLen(in void* p) pure nothrow;
+    void* _aaGet(void** pp, const TypeInfo keyti, in size_t valuesize, ...);
+    inout(void)* _aaGetRvalue(inout void* p, in TypeInfo keyti, in size_t valuesize, ...);
+    inout(void)* _aaIn(inout void* p, in TypeInfo keyti);
+    void _aaDel(void* p, in TypeInfo keyti, ...);
+    inout(void)[] _aaValues(inout void* p, in size_t keysize, in size_t valuesize) pure nothrow;
+    inout(void)[] _aaKeys(inout void* p, in size_t keysize) pure nothrow;
+    void* _aaRehash(void** pp, in TypeInfo keyti) pure nothrow;
 
     extern (D) alias scope int delegate(void *) _dg_t;
     int _aaApply(void* aa, size_t keysize, _dg_t dg);
@@ -387,7 +387,7 @@ extern (C)
     extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
-    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, size_t length, ...);
+    void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...);
 }
 
 private template _Unqual(T)
@@ -476,7 +476,7 @@ private:
 
 public:
 
-    @property size_t length() { return _aaLen(p); }
+    @property size_t length() const { return _aaLen(p); }
 
     Value[Key] rehash() @property
     {
@@ -484,17 +484,33 @@ public:
         return *cast(Value[Key]*)(&p);
     }
 
-    Value[] values() @property
+    // Note: can't make `values` and `keys` inout as it is used
+    // e.g. in Phobos like `ReturnType!(aa.keys)` instead of `typeof(aa.keys)`
+    // which will result in `inout` propagation.
+
+    inout(Value)[] inout_values() inout @property
     {
         auto a = _aaValues(p, Key.sizeof, Value.sizeof);
-        return *cast(Value[]*) &a;
+        return *cast(inout Value[]*) &a;
     }
 
-    Key[] keys() @property
+    inout(Key)[] inout_keys() inout @property
     {
         auto a = _aaKeys(p, Key.sizeof);
-        return *cast(Key[]*) &a;
+        return *cast(inout Key[]*) &a;
     }
+
+    Value[] values() @property
+    { return inout_values; }
+
+    Key[] keys() @property
+    { return inout_keys; }
+
+    const(Value)[] values() const @property
+    { return inout_values; }
+
+    const(Key)[] keys() const @property
+    { return inout_keys; }
 
     int opApply(scope int delegate(ref Key, ref Value) dg)
     {
