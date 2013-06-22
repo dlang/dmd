@@ -1160,6 +1160,26 @@ void test9910()
 }
 
 /*****************************************/
+// 10312
+
+const __vector(float[4]) c10312 = [1.0, 2.0, 3.0, 4.0];
+
+struct Foo10312
+{
+    __vector(double[2]) ab = [1.0, 2.0];
+}
+
+Foo10312 f10312 = Foo10312();
+
+void test10312()
+{
+    enum __vector(float[4]) e = [1.0, 2.0, 3.0, 4.0];
+    enum __vector(float[4]) ec = e;
+    auto v = c10312;
+    assert(f10312.ab.array == [1.0, 2.0]);
+}
+
+/*****************************************/
 
 int main()
 {
@@ -1188,6 +1208,7 @@ int main()
 //    test9200();
     test9304();
     test9910();
+    test10312();
 
     return 0;
 }

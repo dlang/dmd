@@ -485,6 +485,7 @@ dt_t **ArrayLiteralExp::toDt(dt_t **pdt)
 
     switch (t->ty)
     {
+        case Tvector:
         case Tsarray:
             pdt = dtcat(pdt, d);
             break;

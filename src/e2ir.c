@@ -5057,8 +5057,10 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
         Symbol *stmp = symbol_genauto(Type::tvoid->pointerTo()->toCtype());
         e = el_bin(OPeq,TYnptr,el_var(stmp),e);
 
-        targ_size_t sz = tb->nextOf()->size();      // element size
-        ::type *te = tb->nextOf()->toCtype();       // element type
+        Type *tbn = tb->ty == Tvector ? ((TypeVector *)tb)->basetype->nextOf() :
+                                        tb->nextOf();
+        targ_size_t sz = tbn->size();
+        ::type *te = tbn->toCtype();
         for (size_t i = 0; i < dim; i++)
         {   Expression *el = (*elements)[i];
 
