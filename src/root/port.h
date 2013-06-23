@@ -28,6 +28,7 @@ struct Port
 {
     static double nan;
     static longdouble ldbl_nan;
+    static longdouble snan;
 
     static double infinity;
     static longdouble ldbl_infinity;
