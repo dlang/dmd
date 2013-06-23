@@ -586,17 +586,25 @@ int tryMain(size_t argc, char *argv[])
                 else if (p[4])
                     goto Lerror;
             }
-            else if (strcmp(p + 1, "shared") == 0
-#if TARGET_OSX
-                // backwards compatibility with old switch
-                || strcmp(p + 1, "dylib") == 0
-#endif
-                )
+            else if (strcmp(p + 1, "shared") == 0)
                 global.params.dll = 1;
-#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
-            else if (strcmp(p + 1, "fPIC") == 0)
-                global.params.pic = 1;
+            else if (strcmp(p + 1, "dylib") == 0)
+            {
+#if TARGET_OSX
+                warning(Loc(), "use -shared instead of -dylib");
+                global.params.dll = 1;
+#else
+                goto Lerror;
 #endif
+            }
+            else if (strcmp(p + 1, "fPIC") == 0)
+            {
+#if TARGET_LINUX || TARGET_OSX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+                global.params.pic = 1;
+#else
+                goto Lerror;
+#endif
+            }
             else if (strcmp(p + 1, "map") == 0)
                 global.params.map = 1;
             else if (strcmp(p + 1, "multiobj") == 0)
