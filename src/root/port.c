@@ -17,6 +17,7 @@
 
 double Port::nan = NAN;
 longdouble Port::ldbl_nan = NAN;
+longdouble Port::snan;
 
 double Port::infinity = INFINITY;
 longdouble Port::ldbl_infinity = INFINITY;
@@ -24,6 +25,23 @@ longdouble Port::ldbl_infinity = INFINITY;
 double Port::dbl_max = DBL_MAX;
 double Port::dbl_min = DBL_MIN;
 longdouble Port::ldbl_max = LDBL_MAX;
+
+struct PortInitializer
+{
+    PortInitializer();
+};
+
+static PortInitializer portinitializer;
+
+PortInitializer::PortInitializer()
+{
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
+}
 
 int Port::isNan(double r)
 {
@@ -125,6 +143,7 @@ longdouble Port::strtold(const char *buffer, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 double Port::infinity;
 longdouble Port::ldbl_infinity;
@@ -149,6 +168,7 @@ PortInitializer::PortInitializer()
 
     Port::nan = nan.d;
     Port::ldbl_nan = ld_qnan;
+    Port::snan = ld_snan;
     Port::infinity = std::numeric_limits<double>::infinity();
     Port::ldbl_infinity = ld_inf;
 }
@@ -236,6 +256,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -269,6 +290,13 @@ PortInitializer::PortInitializer()
 
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
 }
 
 int Port::isNan(double r)
@@ -401,6 +429,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -434,6 +463,13 @@ PortInitializer::PortInitializer()
 
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
 
 #if __FreeBSD__ && __i386__
     // LDBL_MAX comes out as infinity. Fix.
@@ -602,6 +638,7 @@ longdouble Port::strtold(const char *p, char **endp)
 
 double Port::nan;
 longdouble Port::ldbl_nan;
+longdouble Port::snan;
 
 static double zero = 0;
 double Port::infinity = 1 / zero;
@@ -635,6 +672,13 @@ PortInitializer::PortInitializer()
 
     Port::ldbl_nan = ldbl_nan.ld;
     assert(!signbit(Port::ldbl_nan));
+
+    union
+    {   unsigned int ui[4];
+        longdouble     ld;
+    } snan = {{ 0, 0xA0000000, 0x7FFF, 0 }};
+
+    Port::snan = snan.ld;
 }
 
 int Port::isNan(double r)
