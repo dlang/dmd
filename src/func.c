@@ -2033,7 +2033,7 @@ VarDeclaration *FuncDeclaration::declareThis(Scope *sc, AggregateDeclaration *ad
     return NULL;
 }
 
-bool FuncDeclaration::equals(Object *o)
+bool FuncDeclaration::equals(RootObject *o)
 {
     if (this == o)
         return true;
@@ -3268,11 +3268,6 @@ bool FuncDeclaration::isFinal()
          ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
 }
 
-bool FuncDeclaration::isAbstract()
-{
-    return (storage_class & STCabstract) != 0;
-}
-
 bool FuncDeclaration::isCodeseg()
 {
     return true;                // functions are always in the code segment
@@ -3904,8 +3899,8 @@ bool FuncDeclaration::hasNestedFrameRefs()
  */
 
 Parameters *FuncDeclaration::getParameters(int *pvarargs)
-{   Parameters *fparameters;
-    int fvarargs;
+{   Parameters *fparameters = NULL;
+    int fvarargs = 0;
 
     if (type)
     {

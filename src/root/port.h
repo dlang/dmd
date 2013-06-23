@@ -10,15 +10,15 @@
 // Portable wrapper around compiler/system specific things.
 // The idea is to minimize #ifdef's in the app code.
 
-#include "longdouble.h"
-
 #include <stdlib.h> // for alloca
+#include <stdint.h>
+
+#include "longdouble.h"
 
 #if _MSC_VER
 #include <alloca.h>
 typedef __int64 longlong;
 typedef unsigned __int64 ulonglong;
-#define strtof strtod
 #else
 typedef long long longlong;
 typedef unsigned long long ulonglong;
@@ -27,7 +27,11 @@ typedef unsigned long long ulonglong;
 struct Port
 {
     static double nan;
+    static longdouble ldbl_nan;
+
     static double infinity;
+    static longdouble ldbl_infinity;
+
     static double dbl_max;
     static double dbl_min;
     static longdouble ldbl_max;
@@ -46,6 +50,10 @@ struct Port
 
     static int memicmp(const char *s1, const char *s2, int n);
     static int stricmp(const char *s1, const char *s2);
+
+    static float strtof(const char *p, char **endp);
+    static double strtod(const char *p, char **endp);
+    static longdouble strtold(const char *p, char **endp);
 };
 
 #endif

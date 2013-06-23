@@ -231,7 +231,6 @@ class ClassDeclaration : public AggregateDeclaration
 {
 public:
     static ClassDeclaration *object;
-    static ClassDeclaration *classinfo;
     static ClassDeclaration *throwable;
 #if DMD_OBJC
     static ClassDeclaration *objcthrowable;
@@ -281,7 +280,7 @@ public:
     int objchaspreinit;                 // !=0 if this class has _dobjc_preinit
 #endif
 
-    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
+    ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject = false);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

@@ -19,9 +19,6 @@
 # $(CC) - requires Digital Mars C++ Compiler ($DM_HOME\dm\bin\dmc.exe)
 #   http://www.digitalmars.com/ctg/sc.html
 #
-# cppunit target - requires STLport 4.5.3 ($DM_HOME\dm\stlport\stlport)
-#   http://www.digitalmars.com/download/freecompiler.html
-#
 # detab, tolf, install targets - require the D Language Tools (detab.exe, tolf.exe)
 #   https://github.com/D-Programming-Language/tools.
 #
@@ -51,7 +48,6 @@
 # defaulttarget - debug dmd
 # release       - release dmd (with clean)
 # trace         - release dmd with tracing options enabled
-# dmdtest       - compiler unit tests
 # clean         - delete all generated files except target binary
 # install       - copy build targets to install directory
 # install-clean - delete all files in the install directory
@@ -63,7 +59,6 @@
 # reldmd        - release dmd
 # detab         - replace hard tabs with spaces
 # tolf          - convert to Unix line endings
-# cppunit       - cppunit library
 
 ############################### Configuration ################################
 
@@ -77,8 +72,6 @@ STLPORT=$(DMCROOT)\stlport\stlport
 C=backend
 TK=tk
 ROOT=root
-# CPPUnit directory
-CPPUNIT=cppunit-1.12.1
 # Include directories
 INCLUDE=$(ROOT);$(DMCROOT)\include
 # Install directory
@@ -122,8 +115,6 @@ TARGETEXE=$(TARGET).exe
 CFLAGS=
 # Custom compile flags for all modules
 OPT=
-# Custom compile flags for compiler unit tests
-TFLAGS=
 # Debug flags
 DEBUG=-gl -D -DUNITTEST
 # Precompiled Header support
@@ -140,8 +131,6 @@ BFLAGS=
 CFLAGS=-I$(INCLUDE) $(OPT) $(CFLAGS) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
 # Compile flags for modules with backend/toolkit dependencies
 MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
-# Compile flags for compiler unit tests
-TFLAGS=-I$(STLPORT);$(CPPUNIT)\include;$(INCLUDE) $(TFLAGS) -DDISABLE_MAIN=1 -cpp -Aa -Ab -Ae -Ar
 # Recursive make
 DMDMAKE=$(MAKE) -fwin32.mak C=$C TK=$(TK) ROOT=$(ROOT)
 
@@ -311,24 +300,6 @@ LIBS= frontend.lib glue.lib backend.lib root.lib
 $(TARGETEXE): mars.obj $(LIBS) win32.mak
 	$(CC) -o$(TARGETEXE) mars.obj $(LIBS) -cpp -mn -Ar $(LFLAGS)
 
-################################ Unit Tests ##################################
-
-cppunit: $(CPPUNIT)\lib\cppunit.lib
-
-$(CPPUNIT)\lib\cppunit.lib:
-	cd $(CPPUNIT)\src\cppunit
-	$(MAKE) CC=$(CC) LIB=$(LIB) "TFLAGS=$(TFLAGS)" "BFLAGS=$(BFLAGS)"
-	cd ..\..\..
-
-dmdtest: cppunit $(TESTS)
-
-UTFTest.exe: test\UTFTest.cpp utf.obj
-	$(CC) -o $@ $(TFLAGS) test\UTFTest.cpp utf.obj $(CPPUNIT)\lib\cppunit.lib
-
-# TODO: Work in progress!
-#LexerTest.exe: test\LexerTest.cpp $(OBJS)
-#	$(CC) -o $@ $(TFLAGS) test\LexerTest.cpp $(OBJS) $(CPPUNIT)\lib\cppunit.lib
-
 ############################ Maintenance Targets #############################
 
 clean:
@@ -339,8 +310,6 @@ clean:
 	$(DEL) impcnvtab.c
 	$(DEL) id.h id.c
 	$(DEL) verstr.h
-	cd $(CPPUNIT)\src\cppunit
-	$(MAKE) clean
 
 install: detab install-copy
 

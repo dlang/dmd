@@ -40,7 +40,7 @@ if [ $? -ne 0 ]; then
     exit 1
 fi
 
-./${dir}/test39 >> ${output_file}
+${dir}/test39 >> ${output_file}
 if [ $? -ne 0 ]; then
     cat ${output_file}
     rm -f ${output_file}

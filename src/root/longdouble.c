@@ -481,9 +481,9 @@ FM1:    // We don't use fprem1 because for some inexplicable
 
 //////////////////////////////////////////////////////////////
 
-longdouble ld_qnan = { 0x8000000000000000ULL, 0x7fff, 0 };
-longdouble ld_snan = { 0x0000000000000001ULL, 0x7fff, 0 };
-longdouble ld_inf  = { 0x0000000000000000ULL, 0x7fff, 0 };
+longdouble ld_qnan = { 0xC000000000000000ULL, 0x7fff, 0 };
+longdouble ld_snan = { 0xC000000000000001ULL, 0x7fff, 0 };
+longdouble ld_inf  = { 0x8000000000000000ULL, 0x7fff, 0 };
 
 longdouble ld_zero  = { 0, 0, 0 };
 longdouble ld_one   = { 0x8000000000000000ULL, 0x3fff, 0 };

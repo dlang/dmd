@@ -74,12 +74,13 @@ void Statement::print()
 }
 
 char *Statement::toChars()
-{   OutBuffer *buf;
+{
     HdrGenState hgs;
 
-    buf = new OutBuffer();
-    toCBuffer(buf, &hgs);
-    return buf->toChars();
+    OutBuffer buf;
+    toCBuffer(&buf, &hgs);
+    buf.writebyte(0);
+    return buf.extractData();
 }
 
 void Statement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -2090,9 +2091,9 @@ Lagain:
                  */
                 FuncDeclaration *fdapply;
                 if (dim == 2)
-                    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply2");
+                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply2");
                 else
-                    fdapply = FuncDeclaration::genCfunc(Type::tindex, "_aaApply");
+                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply");
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
@@ -2133,7 +2134,7 @@ Lagain:
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%llu", r, 2, fntab[flag], (ulonglong)dim);
                 assert(j < sizeof(fdname) / sizeof(fdname[0]));
-                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tindex, fdname);
+                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tint32, fdname);
 
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
@@ -3309,7 +3310,7 @@ Statement *CaseStatement::semantic(Scope *sc)
     return this;
 }
 
-int CaseStatement::compare(Object *obj)
+int CaseStatement::compare(RootObject *obj)
 {
     // Sort cases so we can do an efficient lookup
     CaseStatement *cs2 = (CaseStatement *)(obj);
@@ -3940,18 +3941,19 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
     if (exp && tbret->ty == Tvoid && !implicit0)
     {
-        /* Replace:
-         *      return exp;
-         * with:
-         *      exp; return;
-         */
-        Statement *s = new ExpStatement(loc, exp);
-        s = s->semantic(sc);
-
         if (exp->type->ty != Tvoid)
         {
             error("cannot return non-void from void function");
         }
+
+        /* Replace:
+         *      return exp;
+         * with:
+         *      cast(void)exp; return;
+         */
+        Expression *ce = new CastExp(loc, exp, Type::tvoid);
+        Statement *s = new ExpStatement(loc, ce);
+        s = s->semantic(sc);
 
         exp = NULL;
         return new CompoundStatement(loc, s, this);
@@ -4663,9 +4665,6 @@ Catch *Catch::syntaxCopy()
 
 void Catch::semantic(Scope *sc)
 {
-    if (type && type->deco)
-        return;
-
     //printf("Catch::semantic(%s)\n", ident->toChars());
 
 #ifndef IN_GCC

@@ -43,7 +43,7 @@ class Parameter;
 
 // Back end
 #ifdef IN_GCC
-union tree_node; typedef union tree_node TYPE;
+typedef union tree_node TYPE;
 typedef TYPE type;
 #else
 typedef struct TYPE type;
@@ -123,7 +123,7 @@ extern int Tptrdiff_t;
 #define MODwild      8  // type is wild
 #define MODmutable   0x10       // type is mutable (only used in wildcard matching)
 
-class Type : public Object
+class Type : public RootObject
 {
 public:
     TY ty;
@@ -232,7 +232,7 @@ public:
     Type(TY ty);
     virtual const char *kind();
     virtual Type *syntaxCopy();
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     int dyncast() { return DYNCAST_TYPE; } // kludge for template.isType()
     int covariant(Type *t, StorageClass *pstc = NULL);
     char *toChars();
@@ -1025,7 +1025,7 @@ public:
     const char *kind();
     Type *syntaxCopy();
     Type *semantic(Loc loc, Scope *sc);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toDecoBuffer(OutBuffer *buf, int flag);
@@ -1072,7 +1072,7 @@ public:
 
 //enum InOut { None, In, Out, InOut, Lazy };
 
-class Parameter : public Object
+class Parameter : public RootObject
 {
 public:
     //enum InOut inout;

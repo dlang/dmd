@@ -1123,6 +1123,40 @@ int wconcat(wstring replace)
 static assert(wconcat("X"w));
 
 /*******************************************
+    10397 string concat
+*******************************************/
+
+static assert(!is(typeof(compiles!("abc" ~ undefined))));
+static assert(!is(typeof(compiles!(otherundefined ~ "abc"))));
+
+/*******************************************
+    9634 struct concat
+*******************************************/
+
+struct Bug9634
+{
+    int raw;
+}
+
+bool bug9634()
+{
+    Bug9634[] jr = [Bug9634(42)];
+
+    Bug9634[] ir = null ~ jr;
+    Bug9634[] kr = jr ~ null;
+    Bug9634[] mr = jr ~ jr;
+
+    jr[0].raw = 6;
+    assert(ir[0].raw == 42);
+    assert(kr[0].raw == 42);
+    assert(jr[0].raw == 6);
+    assert(&mr[0] != &mr[1]);
+    return true;
+}
+
+static assert(bug9634());
+
+/*******************************************
     Bug 4001: A Space Oddity
 *******************************************/
 
@@ -1504,6 +1538,23 @@ bool bug6001h() {
     return true;
 }
 static assert(bug6001h());
+
+/**************************************************
+   10243 wrong code *&arr as ref parameter
+**************************************************/
+
+void bug10243(ref int n)
+{ n = 3; }
+
+bool test10243()
+{
+    int[1] arr;
+    bug10243(*arr.ptr);
+    assert(arr[0] == 3);
+    return true;
+}
+
+static assert(test10243());
 
 /**************************************************
    Bug 4910
@@ -4552,6 +4603,29 @@ int bug7940() {
 }
 
 static assert(bug7940());
+
+/**************************************************
+    10298 wrong code for struct array literal init
+**************************************************/
+
+struct Bug10298 {
+    int m;
+}
+
+int bug10298()
+{
+    Bug10298[1] y = [Bug10298(78)];
+    y[0].m = 6;
+    assert(y[0].m == 6);
+
+    // Root cause
+    Bug10298[1] x;
+    x[] = [cast(const Bug10298)(Bug10298(78))];
+    assert(x[0].m == 78);
+    return 1;
+}
+
+static assert(bug10298());
 
 /**************************************************
     7266 dotvar ref parameters

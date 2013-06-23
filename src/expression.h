@@ -58,7 +58,7 @@ struct IRState;
 struct dt_t;
 
 #ifdef IN_GCC
-union tree_node; typedef union tree_node elem;
+typedef union tree_node elem;
 #else
 struct elem;
 #endif
@@ -113,7 +113,7 @@ enum CtfeGoal
 // Same as WANTvalue, but also expand variables as far as possible
 #define WANTexpand  8
 
-class Expression : public Object
+class Expression : public RootObject
 {
 public:
     Loc loc;                    // file location
@@ -227,7 +227,7 @@ public:
 
     IntegerExp(Loc loc, dinteger_t value, Type *type);
     IntegerExp(dinteger_t value);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -253,6 +253,7 @@ public:
     ErrorExp();
 
     Expression *implicitCastTo(Scope *sc, Type *t);
+    MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -264,7 +265,7 @@ public:
     real_t value;
 
     RealExp(Loc loc, real_t value, Type *type);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -288,7 +289,7 @@ public:
     complex_t value;
 
     ComplexExp(Loc loc, complex_t value, Type *type);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     char *toChars();
@@ -380,7 +381,7 @@ public:
     unsigned char committed;    // !=0 if type is committed
 
     NullExp(Loc loc, Type *t = NULL);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     int isBool(int result);
     int isConst();
@@ -408,7 +409,7 @@ public:
     StringExp(Loc loc, void *s, size_t len);
     StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
     //Expression *syntaxCopy();
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
     size_t length();
@@ -417,7 +418,7 @@ public:
     Expression *implicitCastTo(Scope *sc, Type *t);
     MATCH implicitConvTo(Type *t);
     Expression *castTo(Scope *sc, Type *t);
-    int compare(Object *obj);
+    int compare(RootObject *obj);
     int isBool(int result);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
@@ -449,7 +450,7 @@ public:
     TupleExp(Loc loc, TupleDeclaration *tup);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void checkEscape();
@@ -526,6 +527,8 @@ public:
 #define stageApply          0x8
 //inlineScan is running
 #define stageInlineScan     0x10
+// toCBuffer is running
+#define stageToCBuffer      0x20
 
 class StructLiteralExp : public Expression
 {
@@ -554,7 +557,7 @@ public:
                                   // (with infinite recursion) of this expression.
 
     StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *elements, Type *stype = NULL);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
@@ -707,7 +710,7 @@ class VarExp : public SymbolExp
 {
 public:
     VarExp(Loc loc, Declaration *var, bool hasOverloads = false);
-    bool equals(Object *o);
+    bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
@@ -738,6 +741,7 @@ public:
     OverExp(Loc loc, OverloadSet *s);
     int isLvalue();
     Expression *toLvalue(Scope *sc, Expression *e);
+    void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 };
 #endif
 
@@ -791,9 +795,9 @@ public:
 class TypeidExp : public Expression
 {
 public:
-    Object *obj;
+    RootObject *obj;
 
-    TypeidExp(Loc loc, Object *obj);
+    TypeidExp(Loc loc, RootObject *obj);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

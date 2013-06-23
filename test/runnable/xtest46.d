@@ -2174,8 +2174,8 @@ struct Foo110(T, alias V = Boo!T)
 alias Foo110!double B110;
 alias Foo110!int A110;
 
-static assert(B110.s == "Boo!(double)");
-static assert(A110.s == "Boo!(int)");
+static assert(B110.s == "Boo!double");
+static assert(A110.s == "Boo!int");
 
 /***************************************************/
 
@@ -6388,6 +6388,13 @@ void test9130()
     meta!(__traits(getOverloads, S9130, "bar")[0]);
     meta!(S9130.bar);
 }
+
+/***************************************************/
+// 10390
+
+class C10390 { this() { this.c = this; } C10390 c; }
+const c10390 = new C10390();
+pragma(msg, c10390);
 
 /***************************************************/
 

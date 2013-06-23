@@ -170,6 +170,8 @@ void ThrownExceptionExp::generateUncaughtError()
 // True if 'e' is EXP_CANT_INTERPRET, or an exception
 bool exceptionOrCantInterpret(Expression *e)
 {
+    assert(EXP_CANT_INTERPRET && "EXP_CANT_INTERPRET must be distinct from "
+        "null, Expression::init not called?");
     if (e == EXP_CANT_INTERPRET) return true;
     if (!e || e == EXP_GOTO_INTERPRET || e == EXP_VOID_INTERPRET
         || e == EXP_BREAK_INTERPRET || e == EXP_CONTINUE_INTERPRET)
@@ -851,7 +853,7 @@ Expression *paintFloatInt(Expression *fromVal, Type *to)
         if (to->isintegral())
         {
             u.f = fromVal->toReal();
-            return new IntegerExp(fromVal->loc, ldouble(u.x), to);
+            return new IntegerExp(fromVal->loc, (dinteger_t)ldouble(u.x), to);
         }
         else
         {
@@ -1251,16 +1253,16 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     {   lo1 = ((SliceExp *)x)->lwr->toInteger();
         x = ((SliceExp*)x)->e1;
     }
-    StringExp *se1 = (x->op == TOKstring) ? (StringExp *)x : 0;
-    ArrayLiteralExp *ae1 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : 0;
+    StringExp *se1 = (x->op == TOKstring) ? (StringExp *)x : NULL;
+    ArrayLiteralExp *ae1 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
 
     x = e2;
     if (x->op == TOKslice)
     {   lo2 = ((SliceExp *)x)->lwr->toInteger();
         x = ((SliceExp*)x)->e1;
     }
-    StringExp *se2 = (x->op == TOKstring) ? (StringExp *)x : 0;
-    ArrayLiteralExp *ae2 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : 0;
+    StringExp *se2 = (x->op == TOKstring) ? (StringExp *)x : NULL;
+    ArrayLiteralExp *ae2 = (x->op == TOKarrayliteral) ? (ArrayLiteralExp *)x : NULL;
 
     // Now both must be either TOKarrayliteral or TOKstring
     if (se1 && se2)
@@ -1578,6 +1580,32 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
         e = es;
         return e;
     }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKarrayliteral &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  [ e1 ] ~ [ e2 ] ---> [ e1, e2 ]
+        ArrayLiteralExp *es1 = (ArrayLiteralExp *)e1;
+        ArrayLiteralExp *es2 = (ArrayLiteralExp *)e2;
+
+        es1 = new ArrayLiteralExp(es1->loc, copyLiteralArray(es1->elements));
+        es1->elements->insert(es1->elements->dim, copyLiteralArray(es2->elements));
+        e = es1;
+        e->type = type;
+        return e;
+    }
+    else if (e1->op == TOKarrayliteral && e2->op == TOKnull &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  [ e1 ] ~ null ----> [ e1 ].dup
+        return paintTypeOntoLiteral(type, copyLiteral(e1));
+    }
+    else if (e1->op == TOKnull && e2->op == TOKarrayliteral &&
+        t1->nextOf()->equals(t2->nextOf()))
+    {
+        //  null ~ [ e2 ] ----> [ e2 ].dup
+        return paintTypeOntoLiteral(type, copyLiteral(e2));
+    }
+
     return Cat(type, e1, e2);
 }
 

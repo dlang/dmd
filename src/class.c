@@ -32,7 +32,6 @@
 
 /********************************* ClassDeclaration ****************************/
 
-ClassDeclaration *ClassDeclaration::classinfo;
 ClassDeclaration *ClassDeclaration::object;
 ClassDeclaration *ClassDeclaration::throwable;
 #if DMD_OBJC
@@ -41,7 +40,7 @@ ClassDeclaration *ClassDeclaration::objcthrowable;
 ClassDeclaration *ClassDeclaration::exception;
 ClassDeclaration *ClassDeclaration::errorException;
 
-ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
+ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
     : AggregateDeclaration(loc, id)
 {
     static char msg[] = "only object.d can define this reserved class name";
@@ -92,125 +91,125 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
         if (id->toChars()[0] == 'T')
         {
             if (id == Id::TypeInfo)
-            {   if (Type::typeinfo)
-                    Type::typeinfo->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfo = this;
             }
 
             if (id == Id::TypeInfo_Class)
-            {   if (Type::typeinfoclass)
-                    Type::typeinfoclass->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoclass = this;
             }
 
             if (id == Id::TypeInfo_Interface)
-            {   if (Type::typeinfointerface)
-                    Type::typeinfointerface->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfointerface = this;
             }
 
             if (id == Id::TypeInfo_Struct)
-            {   if (Type::typeinfostruct)
-                    Type::typeinfostruct->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfostruct = this;
             }
 
             if (id == Id::TypeInfo_Typedef)
-            {   if (Type::typeinfotypedef)
-                    Type::typeinfotypedef->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfotypedef = this;
             }
 
             if (id == Id::TypeInfo_Pointer)
-            {   if (Type::typeinfopointer)
-                    Type::typeinfopointer->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfopointer = this;
             }
 
             if (id == Id::TypeInfo_Array)
-            {   if (Type::typeinfoarray)
-                    Type::typeinfoarray->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoarray = this;
             }
 
             if (id == Id::TypeInfo_StaticArray)
-            {   //if (Type::typeinfostaticarray)
+            {   //if (!inObject)
                     //Type::typeinfostaticarray->error("%s", msg);
                 Type::typeinfostaticarray = this;
             }
 
             if (id == Id::TypeInfo_AssociativeArray)
-            {   if (Type::typeinfoassociativearray)
-                    Type::typeinfoassociativearray->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoassociativearray = this;
             }
 
             if (id == Id::TypeInfo_Enum)
-            {   if (Type::typeinfoenum)
-                    Type::typeinfoenum->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoenum = this;
             }
 
             if (id == Id::TypeInfo_Function)
-            {   if (Type::typeinfofunction)
-                    Type::typeinfofunction->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfofunction = this;
             }
 
             if (id == Id::TypeInfo_Delegate)
-            {   if (Type::typeinfodelegate)
-                    Type::typeinfodelegate->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfodelegate = this;
             }
 
             if (id == Id::TypeInfo_Tuple)
-            {   if (Type::typeinfotypelist)
-                    Type::typeinfotypelist->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfotypelist = this;
             }
 
 #if DMDV2
             if (id == Id::TypeInfo_Const)
-            {   if (Type::typeinfoconst)
-                    Type::typeinfoconst->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoconst = this;
             }
 
             if (id == Id::TypeInfo_Invariant)
-            {   if (Type::typeinfoinvariant)
-                    Type::typeinfoinvariant->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoinvariant = this;
             }
 
             if (id == Id::TypeInfo_Shared)
-            {   if (Type::typeinfoshared)
-                    Type::typeinfoshared->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfoshared = this;
             }
 
             if (id == Id::TypeInfo_Wild)
-            {   if (Type::typeinfowild)
-                    Type::typeinfowild->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfowild = this;
             }
 
             if (id == Id::TypeInfo_Vector)
-            {   if (Type::typeinfovector)
-                    Type::typeinfovector->error("%s", msg);
+            {   if (!inObject)
+                    error("%s", msg);
                 Type::typeinfovector = this;
             }
 #endif
         }
 
         if (id == Id::Object)
-        {   if (object)
-                object->error("%s", msg);
+        {   if (!inObject)
+                error("%s", msg);
             object = this;
         }
 
         if (id == Id::Throwable)
-        {   if (throwable)
-                throwable->error("%s", msg);
+        {   if (!inObject)
+                error("%s", msg);
             throwable = this;
         }
 
@@ -223,22 +222,15 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
 #endif
 
         if (id == Id::Exception)
-        {   if (exception)
-                exception->error("%s", msg);
+        {   if (!inObject)
+                error("%s", msg);
             exception = this;
         }
 
         if (id == Id::Error)
-        {   if (errorException)
-                errorException->error("%s", msg);
+        {   if (!inObject)
+                error("%s", msg);
             errorException = this;
-        }
-
-        //if (id == Id::ClassInfo)
-        if (id == Id::TypeInfo_Class)
-        {   if (classinfo)
-                classinfo->error("%s", msg);
-            classinfo = this;
         }
 
 #if !MODULEINFO_IS_STRUCT
@@ -248,7 +240,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
   #else
         if (id == Id::ModuleInfo)
         {   if (Module::moduleinfo)
-                Module::moduleinfo->error("%s", msg);
+                error("%s", msg);
             Module::moduleinfo = this;
         }
   #endif
@@ -1196,7 +1188,7 @@ ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
 int isf(void *param, FuncDeclaration *fd)
 {
     //printf("param = %p, fd = %p %s\n", param, fd, fd->toChars());
-    return param == fd;
+    return (RootObject *)param == fd;
 }
 
 int ClassDeclaration::isFuncHidden(FuncDeclaration *fd)
