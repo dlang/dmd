@@ -145,7 +145,7 @@ PortInitializer::PortInitializer()
     union {
         unsigned long ul[2];
         double d;
-    } nan = {{ 0xFFFFFFFF, 0x7FFFFFFF }};
+    } nan = {{ 0, 0x7FF80000 }};
 
     Port::nan = nan.d;
     Port::ldbl_nan = ld_qnan;
