@@ -2612,7 +2612,10 @@ Type *Parser::parseBasicType2(Type *t)
         switch (token.value)
         {
             case TOKmul:
-                t = new TypePointer(t);
+                if (t->deco)
+                    t = t->pointerTo();
+                else
+                    t = new TypePointer(t);
                 nextToken();
                 continue;
 
@@ -2623,7 +2626,10 @@ Type *Parser::parseBasicType2(Type *t)
                 nextToken();
                 if (token.value == TOKrbracket)
                 {
-                    t = new TypeDArray(t);                      // []
+                    if (t->deco)
+                        t = t->arrayOf();
+                    else
+                        t = new TypeDArray(t);                  // []
                     nextToken();
                 }
                 else if (isDeclaration(&token, 0, TOKrbracket, NULL))
