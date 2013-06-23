@@ -60,13 +60,14 @@ CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
 #COV=-fprofile-arcs -ftest-coverage
+#PROFILE=-pg
 
 WARNINGS=-Wno-deprecated -Wstrict-aliasing
 
 ifneq (,$(DEBUG))
-	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV)
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -g -g3 -DDEBUG=1 -DUNITTEST $(COV) $(PROFILE)
 else
-	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2
+	GFLAGS:=$(WARNINGS) -D__pascal= -fno-exceptions -O2 $(PROFILE)
 endif
 
 CFLAGS = $(GFLAGS) -I$(ROOT) -DMARS=1 -DTARGET_$(OS)=1 -DDM_TARGET_CPU_$(TARGET_CPU)=1
@@ -161,7 +162,7 @@ SRC = win32.mak posix.mak \
 all: dmd
 
 dmd: $(DMD_OBJS)
-	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(DMD_OBJS) $(LDFLAGS)
+	$(HOST_CC) -o dmd $(MODEL_FLAG) $(COV) $(PROFILE) $(DMD_OBJS) $(LDFLAGS)
 
 clean:
 	rm -f $(DMD_OBJS) dmd optab.o id.o impcnvgen idgen id.c id.h \
