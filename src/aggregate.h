@@ -200,7 +200,7 @@ struct BaseClass
     PROT protection;               // protection for the base interface
 
     ClassDeclaration *base;
-    int offset;                         // 'this' pointer offset
+    unsigned offset;                    // 'this' pointer offset
     FuncDeclarations vtbl;              // for interfaces: Array of FuncDeclaration's
                                         // making up the vtbl[]
 
