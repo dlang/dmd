@@ -257,14 +257,14 @@ int match(RootObject *o1, RootObject *o2)
     {
         if (s2)
         {
-            FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
-            if (fa1)
-                s1 = fa1->toAliasFunc();
-            FuncAliasDeclaration *fa2 = s2->isFuncAliasDeclaration();
-            if (fa2)
-                s2 = fa2->toAliasFunc();
-            if (!s1->equals(s2) || s1->parent != s2->parent)
+            if (!s1->equals(s2))
                 goto Lnomatch;
+            if (s1->parent != s2->parent &&
+                !s1->isFuncDeclaration() &&
+                !s2->isFuncDeclaration())
+            {
+                goto Lnomatch;
+            }
         }
         else
             goto Lnomatch;
@@ -5770,6 +5770,16 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 j--;
                 continue;
             }
+            if (FuncAliasDeclaration *fa = sa->isFuncAliasDeclaration())
+            {
+                FuncDeclaration *f = fa->toAliasFunc();
+                if (!fa->hasOverloads && f->isUnique())
+                {
+                    // Strip FuncAlias only when the aliased function
+                    // does not have any overloads.
+                    sa = f;
+                }
+            }
             (*tiargs)[j] = sa;
 
             TemplateDeclaration *td = sa->isTemplateDeclaration();
@@ -6284,11 +6294,6 @@ Identifier *TemplateInstance::genIdent(Objects *args)
           Lsa2:
             if (d && (!d->type || !d->type->deco))
             {
-                FuncAliasDeclaration *fad = d->isFuncAliasDeclaration();
-                if (fad)
-                {   d = fad->toAliasFunc();
-                    goto Lsa2;
-                }
                 error("forward reference of %s %s", d->kind(), d->toChars());
                 continue;
             }
