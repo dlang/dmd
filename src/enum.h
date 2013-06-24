@@ -60,6 +60,7 @@ public:
     Dsymbol *search(Loc, Identifier *ident, int flags);
 #endif
     bool isDeprecated();                // is Dsymbol deprecated?
+    PROT prot();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

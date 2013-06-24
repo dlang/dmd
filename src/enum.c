@@ -446,6 +446,11 @@ bool EnumDeclaration::isDeprecated()
     return isdeprecated;
 }
 
+PROT EnumDeclaration::prot()
+{
+    return protection;
+}
+
 Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 {
     //printf("%s.EnumDeclaration::search('%s')\n", toChars(), ident->toChars());
