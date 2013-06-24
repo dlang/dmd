@@ -402,9 +402,39 @@ Symbol *FuncDeclaration::toSymbol()
                     break;
 
                 case LINKcpp:
+                {
+#if 0
                     t->Tmangle = mTYman_cpp;
+#else
+                    t->Tmangle = mTYman_cpp;
+                    if (isThis() && !global.params.is64bit && global.params.isWindows)
+                    {
+                        if (((TypeFunction *)type)->varargs == 1)
+                            t->Tty = TYnfunc;
+                        else
+                            t->Tty = TYmfunc;
+                    }
+                    s->Sflags |= SFLpublic;
+                    Dsymbol *parent = toParent();
+                    ClassDeclaration *cd = parent->isClassDeclaration();
+                    if (cd)
+                    {
+                        ::type *tc = cd->type->toCtype();
+                        s->Sscope = tc->Tnext->Ttag;
+                    }
+                    StructDeclaration *sd = parent->isStructDeclaration();
+                    if (sd)
+                    {
+                        ::type *ts = sd->type->toCtype();
+                        s->Sscope = ts->Ttag;
+                    }
+                    if (isCtorDeclaration())
+                        s->Sfunc->Fflags |= Fctor;
+                    if (isDtorDeclaration())
+                        s->Sfunc->Fflags |= Fdtor;
+#endif
                     break;
-
+                }
                 default:
                     printf("linkage = %d\n", linkage);
                     assert(0);
