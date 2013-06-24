@@ -2822,6 +2822,28 @@ void test10160()
 }
 
 /**********************************/
+// 10094
+
+void test10094()
+{
+    static void* p;
+    const string[4] i2s = ()
+    {
+        string[4] tmp;
+        p = &tmp[0];
+        for (int i = 0; i < 4; ++i)
+        {
+            char[1] buf = [cast(char)('0' + i)];
+            string str = buf.idup;
+            tmp[i] = str;
+        }
+        return tmp; // NRVO should work
+    }();
+    assert(p == cast(void*)&i2s[0]);
+    assert(i2s == ["0", "1", "2", "3"]);
+}
+
+/**********************************/
 
 int main()
 {
@@ -2911,6 +2933,7 @@ int main()
     test9907();
     test9985();
     test9994();
+    test10094();
 
     printf("Success\n");
     return 0;
