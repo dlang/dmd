@@ -1485,13 +1485,16 @@ segidx_t MsCoffObj::getsegment(const char *sectname, unsigned long flags)
 {
     //printf("getsegment(%s)\n", sectname);
     assert(strlen(sectname) <= 8);      // so it won't go into string_table
-    for (segidx_t seg = 1; seg <= seg_count; seg++)
-    {   seg_data *pseg = SegData[seg];
-        if (!(flags & IMAGE_SCN_LNK_COMDAT) &&
-            strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
-        {
-            //printf("\t%s\n", sectname);
-            return seg;         // return existing segment
+    if (!(flags & IMAGE_SCN_LNK_COMDAT))
+    {
+        for (segidx_t seg = 1; seg <= seg_count; seg++)
+        {   seg_data *pseg = SegData[seg];
+            if (!(ScnhdrTab[pseg->SDshtidx].s_flags & IMAGE_SCN_LNK_COMDAT) &&
+                strncmp(ScnhdrTab[pseg->SDshtidx].s_name, sectname, 8) == 0)
+            {
+                //printf("\t%s\n", sectname);
+                return seg;         // return existing segment
+            }
         }
     }
 
