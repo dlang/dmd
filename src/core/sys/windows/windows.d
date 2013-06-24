@@ -3678,3 +3678,16 @@ HINSTANCE ShellExecuteW(HWND hwnd, LPCWSTR lpOperation, LPCWSTR lpFile, LPCWSTR 
 
 UINT_PTR SetTimer(HWND hwnd, UINT_PTR nIDEvent, UINT uElapse, TIMERPROC lpTimerFunc);
 BOOL KillTimer(HWND hwnd, UINT_PTR nIDEvent);
+
+BOOL GetHandleInformation(HANDLE hObject, LPDWORD lpdwFlags);
+BOOL SetHandleInformation(HANDLE hObject, DWORD dwMask, DWORD dwFlags);
+BOOL TerminateProcess(HANDLE hProcess, UINT uExitCode);
+LPWSTR* CommandLineToArgvW(LPCWSTR lpCmdLine, int* pNumArgs);
+
+enum
+{
+    HANDLE_FLAG_INHERIT = 0x1,
+    HANDLE_FLAG_PROTECT_FROM_CLOSE = 0x2,
+}
+
+enum CREATE_UNICODE_ENVIRONMENT = 0x400;
