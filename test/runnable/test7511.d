@@ -214,6 +214,86 @@ void test9952()
 }
 
 /**********************************/
+// 10373
+
+template isMutable10373(T)
+{
+    enum isMutable10373 = !is(T == const) && !is(T == immutable) && !is(T == inout);
+}
+
+struct Test10373a(T, int N = 0)
+{
+    static if (N == 0) T[ ] mBuffer;
+    else               T[N] mBuffer;
+
+    static if (is(T == class))
+    {}
+    else
+    {
+        T* at_(size_t n) { return &mBuffer[n]; }
+
+        static if (is(typeof(*at_(0) = T.init)))
+        {
+            T opIndexAssign(T v, size_t i)
+            {
+                return (*at_(i) = v);
+            }
+        }
+    }
+}
+struct Test10373b(T, int N = 0)
+{
+    static if (is(T == class))
+    {}
+    else
+    {
+        T* at_(size_t n) { return &mBuffer[n]; }
+
+        static if (is(typeof(*at_(0) = T.init)))
+        {
+            T opIndexAssign(T v, size_t i)
+            {
+                return (*at_(i) = v);
+            }
+        }
+    }
+
+    static if (N == 0) T[ ] mBuffer;
+    else               T[N] mBuffer;
+}
+struct Test10373c(T, int N = 0)
+{
+    static if (is(T == class))
+    {}
+    else
+    {
+        T* at_(size_t n) { return &mBuffer[n]; }
+
+        static if (isMutable10373!T)
+        {
+            T opIndexAssign(T v, size_t i)
+            {
+                return (*at_(i) = v);
+            }
+        }
+    }
+
+    static if (N == 0) T[ ] mBuffer;
+    else               T[N] mBuffer;
+}
+
+void test10373()
+{
+    static assert(is(Test10373a!(int, 2)));
+    static assert(is(Test10373b!(int, 2)));
+    static assert(is(Test10373c!(int, 2)));
+
+    Test10373a!(int, 2) testa;  // dmd2.062:OK  dmd2.063:OK
+    Test10373b!(int, 2) testb;  // dmd2.062:OK  dmd2.063:NG
+    Test10373c!(int, 2) testc;  // dmd2.062:OK  dmd2.063:OK
+}
+
+/**********************************/
 
 int main()
 {
@@ -222,6 +302,7 @@ int main()
     test7511c();
     test7511d();
     test9952();
+    test10373();
 
     printf("Success\n");
     return 0;
