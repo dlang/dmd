@@ -414,7 +414,7 @@ MsCoffObj *MsCoffObj::init(Outbuffer *objbuf, const char *filename, const char *
      */
 
     int alignText = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
-    int alignData = I64 ? IMAGE_SCN_ALIGN_8BYTES  : IMAGE_SCN_ALIGN_4BYTES;
+    int alignData = IMAGE_SCN_ALIGN_16BYTES;
     addScnhdr(".drectve", IMAGE_SCN_LNK_INFO |
                           IMAGE_SCN_ALIGN_1BYTES |
                           IMAGE_SCN_LNK_REMOVE);        // linker commands
@@ -1608,9 +1608,8 @@ seg_data *MsCoffObj::tlsseg()
 
     if (seg_tlsseg == UNKNOWN)
     {
-        int align = I64 ? IMAGE_SCN_ALIGN_16BYTES : IMAGE_SCN_ALIGN_8BYTES;
         seg_tlsseg = MsCoffObj::getsegment(".tls$AAB", IMAGE_SCN_CNT_INITIALIZED_DATA |
-                                              align |
+                                              IMAGE_SCN_ALIGN_16BYTES |
                                               IMAGE_SCN_MEM_READ |
                                               IMAGE_SCN_MEM_WRITE);
     }
