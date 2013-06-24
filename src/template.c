@@ -1950,21 +1950,6 @@ Object *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *tp, 
     Dsymbol *s;
     VarDeclaration *v = NULL;
 
-    // See if tp->ident already exists with a matching definition
-    Dsymbol *scopesym;
-    s = sc->search(loc, tp->ident, &scopesym);
-    if (s && scopesym == sc->scopesym)
-    {
-        TupleDeclaration *td = s->isTupleDeclaration();
-        if (va && td)
-        {   Tuple tup;
-            tup.objects = *td->objects;
-            if (match(va, &tup, this, sc))
-            {
-                return o;
-            }
-        }
-    }
     if (ea && ea->op == TOKtype)
         targ = ea->type;
     else if (ea && ea->op == TOKimport)
