@@ -931,7 +931,10 @@ Dsymbol *ScopeDsymbol::search(Loc loc, Identifier *ident, int flags)
                          */
                         if (s2->isOverloadable() && (a || s->isOverloadable()))
                         {   if (!a)
+                            {
                                 a = new OverloadSet(s->ident);
+                                a->parent = this;
+                            }
                             /* Don't add to a[] if s2 is alias of previous sym
                              */
                             for (size_t j = 0; j < a->a.dim; j++)
