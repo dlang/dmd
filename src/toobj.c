@@ -626,7 +626,7 @@ void ClassDeclaration::toObjFile(int multiobj)
          *  {
          *      ClassInfo *interface;
          *      void *[] vtbl;
-         *      ptrdiff_t offset;
+         *      size_t offset;
          *  }
          */
 
