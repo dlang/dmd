@@ -2042,22 +2042,6 @@ RootObject *TemplateDeclaration::declareParameter(Scope *sc, TemplateParameter *
     Dsymbol *s;
     VarDeclaration *v = NULL;
 
-    // See if tp->ident already exists with a matching definition
-    Dsymbol *scopesym;
-    s = sc->search(loc, tp->ident, &scopesym);
-    if (s && scopesym == sc->scopesym)
-    {
-        TupleDeclaration *td = s->isTupleDeclaration();
-        if (va && td)
-        {   Tuple tup;
-            tup.objects = *td->objects;
-            checkRecursiveExpansion(va, this, sc);
-            if (match(va, &tup))
-            {
-                return o;
-            }
-        }
-    }
     if (ea && ea->op == TOKtype)
         targ = ea->type;
     else if (ea && ea->op == TOKimport)
