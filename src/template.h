@@ -57,7 +57,10 @@ public:
 
     TemplateParameters *origParameters; // originals for Ddoc
     Expression *constraint;
-    TemplateInstances instances;        // array of TemplateInstance's
+
+    // Hash table to look up TemplateInstance's of this TemplateDeclaration
+    Array<TemplateInstances> buckets;
+    size_t numinstances;                // number of instances in the hash table
 
     TemplateDeclaration *overnext;      // next overloaded TemplateDeclaration
     TemplateDeclaration *overroot;      // first in overnext list
@@ -101,8 +104,8 @@ public:
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
     FuncDeclaration *doHeaderInstantiation(Scope *sc, Objects *tdargs, Type *tthis, Expressions *fargs);
     TemplateInstance *findExistingInstance(TemplateInstance *tithis, Expressions *fargs);
-    size_t addInstance(TemplateInstance *ti);
-    void removeInstance(size_t handle);
+    TemplateInstance *addInstance(TemplateInstance *ti);
+    void removeInstance(TemplateInstance *handle);
 
     TemplateDeclaration *isTemplateDeclaration() { return this; }
 
@@ -312,12 +315,14 @@ public:
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    PASS semanticRun;    // has semantic() been done?
-    int semantictiargsdone;     // has semanticTiargs() been done?
-    int nest;           // for recursion detection
-    int havetempdecl;   // 1 if used second constructor
-    Dsymbol *enclosing;  // if referencing local symbols, this is the context
-    int speculative;    // 1 if only instantiated with errors gagged
+    PASS semanticRun;                   // has semantic() been done?
+    int nest;                           // for recursion detection
+    bool semantictiargsdone;            // has semanticTiargs() been done?
+    bool havetempdecl;                  // if used second constructor
+    bool speculative;                   // if only instantiated with errors gagged
+    Dsymbol *enclosing;                 // if referencing local symbols, this is the context
+    hash_t hash;                        // cached result of hashCode()
+    Expressions *fargs;                 // for function template, these are the function arguments
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
@@ -344,6 +349,8 @@ public:
     const char *mangle(bool isv = false);
     void printInstantiationTrace();
     Identifier *getIdent();
+    int compare(RootObject *o);
+    hash_t hashCode();
 
     void toObjFile(int multiobj);                       // compile to .obj file
 
