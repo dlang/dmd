@@ -129,7 +129,7 @@ public:
     PROT protection;
     LINK linkage;
     int inuse;                  // used to detect cycles
-    const char *mangleOverride;      // overridden symbol with pragma(mangle, "...") 
+    const char *mangleOverride;      // overridden symbol with pragma(mangle, "...")
     Semantic sem;
 
     Declaration(Identifier *id);
