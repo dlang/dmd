@@ -2867,7 +2867,6 @@ int main()
     test8833();
     test8976();
     test8940();
-    test9022();
     test9026();
     test9038();
     test9076();

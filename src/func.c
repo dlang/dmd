@@ -827,13 +827,22 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
 Ldone:
+    bool isTemplate = false;
+    for (Dsymbol *p = parent; p; p = p->parent)
+    {
+        if (p->isTemplateInstance())
+        {
+            isTemplate = true;
+            break;
+        }
+    }
+
     /* Purity and safety can be inferred for some functions by examining
      * the function body.
      */
     if (fbody &&
         (isFuncLiteralDeclaration() ||
-         parent->isTemplateInstance() ||
-         ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
+         (isTemplate && !isVirtualMethod())))
     {
         /* isVirtualMethod() needs setting correct foverrides
          */

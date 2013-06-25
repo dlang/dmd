@@ -1,3 +1,4 @@
+module testInference;
 
 /***************************************************/
 // 6265.
@@ -48,7 +49,7 @@ void fECPa() {
         }
         h();
     }
-    static assert( is(typeof(&g!()) == void delegate() pure));
+    static assert( is(typeof(&g!()) == void delegate() nothrow pure @safe));
     static assert(!is(typeof(&g!()) == void delegate()));
 }
 
@@ -104,10 +105,10 @@ void test7017a() pure
 {
     int bar7017(immutable int x) pure nothrow { return 1; }
 
-    static assert(!__traits(compiles, map7017!((){})()));   // should pass, but fails
-    static assert(!__traits(compiles, map7017!q{ 1 }()));   // pass, OK
-    static assert(!__traits(compiles, map7017!foo7017()));  // pass, OK
-    static assert( __traits(compiles, map7017!bar7017()));
+    static assert(__traits(compiles, map7017!((){})()));
+    static assert(__traits(compiles, map7017!q{ 1 }()));
+    static assert(__traits(compiles, map7017!foo7017()));
+    static assert(__traits(compiles, map7017!bar7017()));
 }
 
 /***************************************************/
