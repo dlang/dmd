@@ -6397,6 +6397,13 @@ const c10390 = new C10390();
 pragma(msg, c10390);
 
 /***************************************************/
+// 10471
+
+alias a10471 = extern(C) int;
+alias b10471 = extern(D) double function();
+alias c10471 = extern(C++) short[], d10471 = extern(C) byte[] delegate();
+
+/***************************************************/
 
 int main()
 {

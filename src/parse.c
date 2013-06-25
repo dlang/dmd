@@ -2920,6 +2920,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                     ident = token.ident;
                     nextToken();
                     check(TOKassign);
+                    if (token.value == TOKextern)
+                        link = parseLinkage();
                     t = parseType();
                     Declaration *v = new AliasDeclaration(loc, ident, t);
                     a->push(v);
