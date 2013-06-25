@@ -129,7 +129,7 @@ int StructLiteralExp::apply(fp_t fp, void *param)
     stageflags |= stageApply;
     int ret = condApply(elements, fp, param) ||
            (*fp)(this, param);
-    stageflags = old;      
+    stageflags = old;
     return ret;
 }
 
