@@ -5337,7 +5337,7 @@ Expression *CastExp::interpret(InterState *istate, CtfeGoal goal)
             if (e1->op == TOKvar)
                 e = new VarExp(loc, ((VarExp *)e1)->var);
             else
-                e = new SymOffExp(loc, ((SymOffExp *)e1)->var, 0);
+                e = new SymOffExp(loc, ((SymOffExp *)e1)->var, ((SymOffExp *)e1)->offset);
             e->type = to;
             return e;
         }
