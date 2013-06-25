@@ -266,6 +266,22 @@ void test5893()
 }
 
 /**********************************/
+// 5988
+
+template Templ5988(alias T)
+{
+    alias T!int Templ5988;
+}
+
+class C5988a(T) { Templ5988!C5988a foo; }
+//Templ5988!C5988a foo5988a;    // Commented version
+void test5988a() { C5988a!int a; }  // Was error, now works
+
+class C5988b(T) { Templ5988!C5988b foo; }
+Templ5988!C5988b foo5988b;      // Uncomment version
+void test5988b() { C5988b!int a; }  // Works
+
+/**********************************/
 // 6404
 
 // receive only rvalue

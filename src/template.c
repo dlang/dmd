@@ -5915,8 +5915,8 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
             //assert(s->parent);
             TemplateInstance *ti = s->parent ? s->parent->isTemplateInstance() : NULL;
             if (ti &&
-                (ti->name == id ||
-                 ti->toAlias()->ident == id)
+                (ti->name == s->ident ||
+                 ti->toAlias()->ident == s->ident)
                 &&
                 ti->tempdecl)
             {
