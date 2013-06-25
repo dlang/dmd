@@ -2609,40 +2609,56 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
     if (ownedByCtfe)
         return copyLiteral(this);
 
-    if (elements)
-    {
-        for (size_t i = 0; i < elements->dim; i++)
-        {   Expression *e = (*elements)[i];
+    size_t elemdim = elements ? elements->dim : 0;
+
+    for (size_t i = 0; i < sd->fields.dim; i++)
+    {   Expression *e = NULL;
+        Expression *ex = NULL;
+        if (i >= elemdim)
+        {
+            /* If a nested struct has no initialized hidden pointer,
+             * set it to null to match the runtime behaviour.
+             */
+            if (i == sd->fields.dim - 1 && sd->isNested())
+            {   // Context field has not been filled
+                ex = new NullExp(loc);
+                ex->type = sd->fields[i]->type;
+            }
+        }
+        else
+        {
+            e = (*elements)[i];
             if (!e)
                 continue;
 
-            Expression *ex = e->interpret(istate);
+            ex = e->interpret(istate);
             if (exceptionOrCantInterpret(ex))
             {   delete expsx;
                 return ex;
             }
+        }
 
-            /* If any changes, do Copy On Write
-             */
-            if (ex != e)
-            {
-                if (!expsx)
-                {   expsx = new Expressions();
-                    ++CtfeStatus::numArrayAllocs;
-                    expsx->setDim(elements->dim);
-                    for (size_t j = 0; j < elements->dim; j++)
-                    {
-                        (*expsx)[j] = (*elements)[j];
-                    }
+        /* If any changes, do Copy On Write
+         */
+        if (ex != e)
+        {
+            if (!expsx)
+            {   expsx = new Expressions();
+                ++CtfeStatus::numArrayAllocs;
+                expsx->setDim(sd->fields.dim);
+                for (size_t j = 0; j < elements->dim; j++)
+                {
+                    (*expsx)[j] = (*elements)[j];
                 }
-                (*expsx)[i] = ex;
             }
+            (*expsx)[i] = ex;
         }
     }
+
     if (elements && expsx)
     {
         expandTuples(expsx);
-        if (expsx->dim != elements->dim)
+        if (expsx->dim != sd->fields.dim)
         {   delete expsx;
             return EXP_CANT_INTERPRET;
         }
