@@ -2784,11 +2784,7 @@ Expression *TypeBasic::getProperty(Loc loc, Identifier *ident, int flag)
 {
     Expression *e;
     d_int64 ivalue;
-#ifdef IN_GCC
-    real_t    fvalue;
-#else
     d_float80 fvalue;
-#endif
 
     //printf("TypeBasic::getProperty('%s')\n", ident->toChars());
     if (ident == Id::max)
