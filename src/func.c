@@ -2190,12 +2190,11 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
 
                 Type *t1 = fdv->type->nextOf()->toBasetype();
                 Type *t2 = this->type->nextOf()->toBasetype();
-                int offset;
-                if (t1->isBaseOf(t2, &offset) && offset != 0)
+                if (t1->isBaseOf(t2, NULL))
                 {
                     /* Making temporary reference variable is necessary
-                     * to match offset difference in covariant return.
-                     * See bugzilla 5204.
+                     * in covariant return.
+                     * See bugzilla 5204 and 10479.
                      */
                     ExpInitializer *ei = new ExpInitializer(Loc(), eresult);
                     VarDeclaration *v = new VarDeclaration(Loc(), t1, Lexer::uniqueId("__covres"), ei);
