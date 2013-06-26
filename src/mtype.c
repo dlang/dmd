@@ -2054,6 +2054,12 @@ Expression *Type::dotExp(Scope *sc, Expression *e, Identifier *ident, int flag)
         char *s = e->toChars();
         e = new StringExp(e->loc, s, strlen(s), 'c');
     }
+    else if (ident == Id::init && ex->op != TOKtype &&
+        ex->op != TOKthis && ex->op != TOKsuper)
+    {
+        error(e->loc, ".init can only be applied to variables, fields, and types. Did you mean typeof(%s).init ?", e->toChars());
+        e = new ErrorExp();
+    }
     else
         e = getProperty(e->loc, ident, flag);
 
