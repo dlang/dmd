@@ -1332,14 +1332,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arguments->push(arg);
                 nargs++;
             }
-            else
-            {
-                Type *pt = p->type;
-                if (tf->varargs == 2 && i + 1 == nparams && pt->nextOf())
-                    pt = pt->nextOf();
-                arg = arg->inferType(pt);
-                (*arguments)[i] = arg;
-            }
 
             if (tf->varargs == 2 && i + 1 == nparams)
             {
@@ -1388,10 +1380,14 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         c->type = v->type;
 
                         for (size_t u = i; u < nargs; u++)
-                        {   Expression *a = (*arguments)[u];
+                        {
+                            Expression *a = (*arguments)[u];
                             TypeArray *ta = (TypeArray *)tb;
+                            a = a->inferType(ta->next);
+                            (*arguments)[u] = a;
                             if (tret && !ta->next->equals(a->type))
-                            {   if (tret->toBasetype()->ty == Tvoid ||
+                            {
+                                if (tret->toBasetype()->ty == Tvoid ||
                                     a->implicitConvTo(tret))
                                 {
                                     a = a->toDelegate(sc, tret);
