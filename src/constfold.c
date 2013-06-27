@@ -326,11 +326,7 @@ Expression *Mul(Type *type, Expression *e1, Expression *e2)
 
     if (type->isfloating())
     {   complex_t c;
-#ifdef IN_GCC
-        real_t r;
-#else
         d_float80 r;
-#endif
 
         if (e1->type->isreal())
         {
@@ -397,11 +393,7 @@ Expression *Div(Type *type, Expression *e1, Expression *e2)
 
     if (type->isfloating())
     {   complex_t c;
-#ifdef IN_GCC
-        real_t r;
-#else
         d_float80 r;
-#endif
 
         //e1->type->print();
         //e2->type->print();

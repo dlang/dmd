@@ -239,11 +239,7 @@ struct Token
         d_uns64 uns64value;
 
         // Floats
-#ifdef IN_GCC
-        // real_t float80value; // can't use this in a union!
-#else
         d_float80 float80value;
-#endif
 
         struct
         {   unsigned char *ustring;     // UTF8 string
@@ -253,9 +249,6 @@ struct Token
 
         Identifier *ident;
     };
-#ifdef IN_GCC
-    real_t float80value; // can't use this in a union!
-#endif
 
     static const char *tochars[TOKMAX];
     static void *operator new(size_t sz);
