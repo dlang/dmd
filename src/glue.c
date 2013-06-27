@@ -105,24 +105,33 @@ void obj_write_deferred(Library *library)
         OutBuffer idbuf;
         idbuf.printf("%s.%d", m ? m->ident->toChars() : mname, count);
         char *idstr = idbuf.toChars();
-        idbuf.data = NULL;
-        Identifier *id = new Identifier(idstr, TOKidentifier);
 
-        Module *md = new Module(mname, id, 0, 0);
-        md->members = new Dsymbols();
-        md->members->push(s);   // its only 'member' is s
-        if (m)
+        if(!m)
         {
+            // it doesn't make sense to make up a module if we don't know where to put the symbol
+            //  so output it into it's own object file without ModuleInfo
+            objmod->initfile(idstr, NULL, mname);
+            s->toObjFile(0);
+            objmod->termfile();
+        }
+        else
+        {
+            idbuf.data = NULL;
+            Identifier *id = new Identifier(idstr, TOKidentifier);
+
+            Module *md = new Module(mname, id, 0, 0);
+            md->members = new Dsymbols();
+            md->members->push(s);   // its only 'member' is s
             md->doppelganger = 1;       // identify this module as doppelganger
             md->md = m->md;
             md->aimports.push(m);       // it only 'imports' m
             md->massert = m->massert;
             md->munittest = m->munittest;
             md->marray = m->marray;
+
+            md->genobjfile(0);
         }
-
-        md->genobjfile(0);
-
+     
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
