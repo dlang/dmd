@@ -1,7 +1,6 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/diag9004.d(4): Error: undefined identifier FooT.T
 fail_compilation/diag9004.d(8): Error: template diag9004.bar does not match any function template declaration. Candidates are:
 fail_compilation/diag9004.d(4):        diag9004.bar(FooT)(FooT foo, FooT.T x)
 fail_compilation/diag9004.d(8): Error: template diag9004.bar(FooT)(FooT foo, FooT.T x) cannot deduce template function from argument types !()(Foo!int, int)

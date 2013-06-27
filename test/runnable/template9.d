@@ -1788,6 +1788,51 @@ static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert pass
 static assert(!__traits(compiles, Inst9018!(Template9018, int))); // Assert fails
 
 /**********************************/
+// 9022
+
+class C9022
+{
+    struct X {}
+
+    alias B = X;
+}
+class D9022
+{
+    struct X {}
+}
+
+void test9022()
+{
+    auto c = new C9022();
+    auto d = new D9022();
+    auto cx = C9022.X();
+    auto dx = D9022.X();
+
+    void foo1(T)(T, T.X) { static assert(is(T == C9022)); }
+    void foo2(T)(T.X, T) { static assert(is(T == C9022)); }
+    foo1(c, cx);
+    foo2(cx, c);
+
+    void hoo1(T)(T, T.B) { static assert(is(T == C9022)); }
+    void hoo2(T)(T.B, T) { static assert(is(T == C9022)); }
+    hoo1(c, cx);
+    hoo1(c, cx);
+
+    void bar1(alias A)(A.C9022, A.D9022) { static assert(A.stringof == "module breaker"); }
+    void bar2(alias A)(A.D9022, A.C9022) { static assert(A.stringof == "module breaker"); }
+    bar1(c, d);
+    bar2(d, c);
+
+    void var1(alias A)(A.C9022, A.D9022.X) { static assert(A.stringof == "module breaker"); }
+    void var2(alias A)(A.D9022.X, A.C9022) { static assert(A.stringof == "module breaker"); }
+    var1(c, dx);
+    var2(dx, c);
+
+    void baz(T)(T.X t, T.X u) { }
+    static assert(!__traits(compiles, baz(cx, dx)));
+}
+
+/**********************************/
 // 9026
 
 mixin template node9026()
@@ -2617,6 +2662,7 @@ int main()
     test8833();
     test8976();
     test8940();
+    test9022();
     test9026();
     test9038();
     test9076();
