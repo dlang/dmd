@@ -2372,6 +2372,100 @@ template useItemAt10067(size_t idx, T)
 useItemAt10067!(0, char) mapS10067;
 
 /******************************************/
+// 10083
+
+// [a-c] IFTI can find syntactic eponymous member
+template foo10083a(T)
+{
+    int foo10083a(double) { return 1; }
+    int foo10083a(T) { return 2; }
+}
+template foo10083b(T)
+{
+    int foo10083b(T) { return 1; }
+    int foo10083b(T, T) { return 2; }
+}
+template foo10083c1(T)
+{
+    int foo10083c1(T) { return 1; }
+    static if (true) { int x; }
+}
+template foo10083c2(T)
+{
+    int foo10083c2(T) { return 1; }
+    static if (true) { int x; } else { int y; }
+}
+
+// [d-f] IFTI cannot find syntactic eponymous member
+template foo10083d1(T)
+{
+    static if (true)
+    {
+        int foo10083d1(T) { return 1; }
+    }
+    else
+    {
+    }
+}
+template foo10083d2(T)
+{
+    static if (true)
+    {
+    }
+    else
+    {
+        int foo10083d2(T) { return 1; }
+    }
+}
+template foo10083e(T)
+{
+    static if (true)
+    {
+        int foo10083e(double arg) { return 1; }
+    }
+    int foo10083e(T arg) { return 2; }
+}
+template foo10083f(T)
+{
+    static if (true)
+    {
+        int foo10083f(T) { return 1; }
+    }
+    else
+    {
+        int foo10083f(T) { return 2; }
+    }
+}
+
+void test10083()
+{
+    assert(foo10083a(1) == 2);
+    assert(foo10083a!int(1) == 2);
+    assert(foo10083a!int(1.0) == 1);
+    version (Win64) {}  // workaround
+    else
+    {
+    static assert(!__traits(compiles, foo10083a!double(1)));
+    static assert(!__traits(compiles, foo10083a!double(1.0)));
+    }
+    static assert(!__traits(compiles, foo10083a!real(1)));
+    assert(foo10083a!real(1.0) == 1);
+    assert(foo10083a!real(1.0L) == 2);
+
+    assert(foo10083b(2) == 1);
+    assert(foo10083b(3, 4) == 2);
+    static assert(!__traits(compiles, foo10083b(2, "")));
+
+    assert(foo10083c1(1) == 1);
+    assert(foo10083c2(1) == 1);
+
+    static assert(!__traits(compiles, foo10083d1(2)));
+    static assert(!__traits(compiles, foo10083d2(2)));
+    static assert(!__traits(compiles, foo10083e(3)));
+    static assert(!__traits(compiles, foo10083f(3)));
+}
+
+/******************************************/
 // 10134
 
 template ReturnType10134(alias func)
@@ -2537,6 +2631,7 @@ int main()
     test9885();
     test9971();
     test9977();
+    test10083();
 
     printf("Success\n");
     return 0;
