@@ -67,7 +67,7 @@ void Module::genmoduleinfo()
 
     //////////////////////////////////////////////
 
-    csym->Sclass = SCglobal;
+    csym->Sclass = SCcomdat;
     csym->Sfl = FLdata;
 
 #if 1
