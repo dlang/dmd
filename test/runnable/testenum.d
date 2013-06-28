@@ -103,6 +103,35 @@ void test6()
 }
 
 /**********************************************/
+// 3096
+
+void test3096()
+{
+    template Tuple(T...) { alias Tuple = T; }
+
+    template Base(E)
+    {
+        static if(is(E B == enum))
+            alias Base = B;
+    }
+
+    template GetEnum(T)
+    {
+        enum GetEnum { v = T.init }
+    }
+
+    struct S { }
+    class C { }
+
+    foreach (Type; Tuple!(char, wchar, dchar, byte, ubyte,
+                          short, ushort, int, uint, long,
+                          ulong, float, double, real, S, C))
+    {
+        static assert(is(Base!(GetEnum!Type) == Type));
+    }
+}
+
+/**********************************************/
 // 7719
 
 enum foo7719 = bar7719;
