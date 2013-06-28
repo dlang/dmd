@@ -348,7 +348,7 @@ void test2246(){
 /**********************************/
 // 2296
 
-void foo2296(uint D)(int[D] i...){}
+void foo2296(size_t D)(int[D] i...){}
 void test2296()
 {
     foo2296(1, 2, 3);
@@ -1382,6 +1382,7 @@ struct Bar7755
 
 /**********************************/
 
+             U[]   id11a(U)(              U[]   );
        inout(U)[]  id11a(U)(        inout(U)[]  );
        inout(U[])  id11a(U)(        inout(U[])  );
 inout(shared(U[])) id11a(U)( inout(shared(U[])) );
@@ -2172,6 +2173,38 @@ void test9536()
     assert(s.bar() == 84);
 }
 
+/**********************************/
+// 9596
+
+int foo9596a(K, V)(inout(       V  [K])) { return 1; }
+int foo9596a(K, V)(inout(shared(V) [K])) { return 2; }
+
+int foo9596b(K, V)(inout(       V  [K])) { return 1; }
+int foo9596b(K, V)(inout( const(V) [K])) { return 3; }
+
+int foo9596c(K, V)(inout(shared(V) [K])) { return 2; }
+int foo9596c(K, V)(inout( const(V) [K])) { return 3; }
+
+int foo9596d(K, V)(inout(       V  [K])) { return 1; }
+int foo9596d(K, V)(inout(shared(V) [K])) { return 2; }
+int foo9596d(K, V)(inout( const(V) [K])) { return 3; }
+
+int foo9596e(K, V)(inout(shared(V) [K])) { return 2; }
+int foo9596e(K, V)(inout(       V  [K])) { return 1; }
+int foo9596e(K, V)(inout( const(V) [K])) { return 3; }
+
+void test9596()
+{
+    shared(int)[int] aa;
+    static assert(!__traits(compiles, foo9596a(aa)));
+
+    assert(foo9596b(aa) == 1);
+    assert(foo9596c(aa) == 2);
+
+    static assert(!__traits(compiles, foo9596d(aa)));
+    static assert(!__traits(compiles, foo9596e(aa)));
+}
+
 /******************************************/
 // 9806
 
@@ -2672,6 +2705,7 @@ int main()
     test9143();
     test9266();
     test9536();
+    test9596();
     test9837();
     test9874();
     test9885();

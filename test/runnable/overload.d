@@ -1,9 +1,311 @@
+// EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
 
 extern(C) int printf(const char* fmt, ...);
 
 template TypeTuple(T...){ alias T TypeTuple; }
 template Id(      T){ alias T Id; }
 template Id(alias A){ alias A Id; }
+
+/***************************************************/
+// 1528
+
+int foo1528(long){ return 1; }
+int foo1528(int[]){ return 2; }
+int foo1528(T)(T) if ( is(T:real)) { return 3; }
+int foo1528(T)(T) if (!is(T:real)) { return 4; }
+int bar1528(T)(T) if (!is(T:real)) { return 4; }
+int bar1528(T)(T) if ( is(T:real)) { return 3; }
+int bar1528(int[]){ return 2; }
+int bar1528(long){ return 1; }
+
+@property auto getfoo1528   () { return 1; }
+@property auto getfoo1528(T)() { return 2; }
+@property auto getbar1528(T)() { return 2; }
+@property auto getbar1528   () { return 1; }
+
+@property auto setfoo1528   (int) { return 1; }
+@property auto setfoo1528(T)(int) { return 2; }
+@property auto setbar1528(T)(int) { return 2; }
+@property auto setbar1528   (int) { return 1; }
+
+struct S1528
+{
+    int foo(long){ return 1; }
+    int foo(int[]){ return 2; }
+    int foo(T)(T) if ( is(T:real)) { return 3; }
+    int foo(T)(T) if (!is(T:real)) { return 4; }
+    int bar(T)(T) if (!is(T:real)) { return 4; }
+    int bar(T)(T) if ( is(T:real)) { return 3; }
+    int bar(int[]){ return 2; }
+    int bar(long){ return 1; }
+
+    @property auto getfoo   () { return 1; }
+    @property auto getfoo(T)() { return 2; }
+    @property auto getbar(T)() { return 2; }
+    @property auto getbar   () { return 1; }
+
+    @property auto setfoo   (int) { return 1; }
+    @property auto setfoo(T)(int) { return 2; }
+    @property auto setbar(T)(int) { return 2; }
+    @property auto setbar   (int) { return 1; }
+
+    @property auto propboo   ()    { return 1; }
+    @property auto propboo(T)(T)   { return 2; }
+    @property auto propbaz(T)(T)   { return 2; }
+    @property auto propbaz   ()    { return 1; }
+}
+
+auto ufoo1528   (S1528) { return 1; }
+auto ufoo1528(T)(S1528) { return 2; }
+auto ubar1528(T)(S1528) { return 2; }
+auto ubar1528   (S1528) { return 1; }
+
+@property auto ugetfoo1528   (S1528) { return 1; }
+@property auto ugetfoo1528(T)(S1528) { return 2; }
+@property auto ugetbar1528(T)(S1528) { return 2; }
+@property auto ugetbar1528   (S1528) { return 1; }
+
+@property auto usetfoo1528   (S1528, int) { return 1; }
+@property auto usetfoo1528(T)(S1528, int) { return 2; }
+@property auto usetbar1528(T)(S1528, int) { return 2; }
+@property auto usetbar1528   (S1528, int) { return 1; }
+
+@property auto upropboo1528   (S1528)      { return 1; }
+@property auto upropboo1528(T)(S1528, T)   { return 2; }
+@property auto upropbaz1528(T)(S1528, T)   { return 2; }
+@property auto upropbaz1528   (S1528)      { return 1; }
+
+void test1528a()
+{
+    // global
+    assert(foo1528(100) == 1);
+    assert(foo1528(10L) == 1);
+    assert(foo1528([1]) == 2);
+    assert(foo1528(1.0) == 3);
+    assert(foo1528("a") == 4);
+    assert(bar1528(100) == 1);
+    assert(bar1528(10L) == 1);
+    assert(bar1528([1]) == 2);
+    assert(bar1528(1.0) == 3);
+    assert(bar1528("a") == 4);
+
+    assert(getfoo1528        == 1);
+    assert(getfoo1528!string == 2);
+    assert(getbar1528        == 1);
+    assert(getbar1528!string == 2);
+
+    assert((setfoo1528        = 1) == 1);
+    assert((setfoo1528!string = 1) == 2);
+    assert((setbar1528        = 1) == 1);
+    assert((setbar1528!string = 1) == 2);
+
+    S1528 s;
+
+    // member
+    assert(s.foo(100) == 1);
+    assert(s.foo(10L) == 1);
+    assert(s.foo([1]) == 2);
+    assert(s.foo(1.0) == 3);
+    assert(s.foo("a") == 4);
+    assert(s.bar(100) == 1);
+    assert(s.bar(10L) == 1);
+    assert(s.bar([1]) == 2);
+    assert(s.bar(1.0) == 3);
+    assert(s.bar("a") == 4);
+
+    assert(s.getfoo        == 1);
+    assert(s.getfoo!string == 2);
+    assert(s.getbar        == 1);
+    assert(s.getbar!string == 2);
+
+    assert((s.setfoo        = 1) == 1);
+    assert((s.setfoo!string = 1) == 2);
+    assert((s.setbar        = 1) == 1);
+    assert((s.setbar!string = 1) == 2);
+
+    assert((s.propboo = 1) == 2);
+    assert( s.propboo      == 1);
+    assert((s.propbaz = 1) == 2);
+    assert( s.propbaz      == 1);
+
+    // UFCS
+    assert(s.ufoo1528       () == 1);
+    assert(s.ufoo1528!string() == 2);
+    assert(s.ubar1528       () == 1);
+    assert(s.ubar1528!string() == 2);
+
+    assert(s.ugetfoo1528        == 1);
+    assert(s.ugetfoo1528!string == 2);
+    assert(s.ugetbar1528        == 1);
+    assert(s.ugetbar1528!string == 2);
+
+    assert((s.usetfoo1528        = 1) == 1);
+    assert((s.usetfoo1528!string = 1) == 2);
+    assert((s.usetbar1528        = 1) == 1);
+    assert((s.usetbar1528!string = 1) == 2);
+
+    assert((s.upropboo1528 = 1) == 2);
+    assert( s.upropboo1528      == 1);
+    assert((s.upropbaz1528 = 1) == 2);
+    assert( s.upropbaz1528      == 1);
+
+    // overload set
+    import imports.ovs1528a, imports.ovs1528b;
+    assert(func1528()    == 1);
+    assert(func1528(1.0) == 2);
+    assert(func1528("a") == 3);
+    assert(func1528([1.0]) == 4);
+    assert(bunc1528()    == 1);
+    assert(bunc1528(1.0) == 2);
+    assert(bunc1528("a") == 3);
+    assert(bunc1528([1.0]) == 4);
+
+    assert(vunc1528(100) == 1);
+    assert(vunc1528("a") == 2);
+    assert(wunc1528(100) == 1);
+    assert(wunc1528("a") == 2);
+
+    //assert(opUnary1528!"+"(10) == 1);
+    //assert(opUnary1528!"-"(10) == 2);
+}
+
+// ----
+
+int doo1528a(int a, double=10) { return 1; }
+int doo1528a(int a, string="") { return 2; }
+
+int doo1528b(int a) { return 1; }
+int doo1528b(T:int)(T b) { return 2; }
+
+int doo1528c(T:int)(T b, double=10) { return 2; }
+int doo1528c(T:int)(T b, string="") { return 2; }
+
+int doo1528d(int a) { return 1; }
+int doo1528d(T)(T b) { return 2; }
+
+void test1528b()
+{
+    // MatchLevel by tiargs     / by fargs
+    static assert(!__traits(compiles, doo1528a(1)));
+            // 1: MATCHexact    / MATCHexact
+            // 2: MATCHexact    / MATCHexact
+    static assert(!__traits(compiles, doo1528a(1L)));
+            // 1: MATCHexact    / MATCHconvert
+            // 2: MATCHexact    / MATCHconvert
+
+    static assert(!__traits(compiles, doo1528b(1)));
+            // 1: MATCHexact    / MATCHexact
+            // 2: MATCHexact    / MATCHexact
+    assert(doo1528b(1L) == 1);
+            // 1: MATCHexact    / MATCHconvert
+            // 2: MATCHnomatch  / -
+
+    static assert(!__traits(compiles, doo1528c(1)));
+            // 1: MATCHexact    / MATCHexact
+            // 2: MATCHexact    / MATCHexact
+    static assert(!__traits(compiles, doo1528c(1L)));
+            // 1: MATCHnomatch  / -
+            // 2: MATCHnomatch  / -
+
+    assert(doo1528d(1) == 1);
+            // 1: MATCHexact    / MATCHexact
+            // 2: MATCHconvert  / MATCHexact
+    assert(doo1528d(1L) == 1);
+            // 1: MATCHexact    / MATCHconvert
+            // 2: MATCHconvert  / MATCHexact
+            // -> not sure, may be ambiguous...?
+}
+
+// ----
+
+char[num*2] toHexString1528(int order, size_t num)(in ubyte[num] digest) { return typeof(return).init; }
+     string toHexString1528(int order)(in ubyte[] digest) { assert(0); }
+
+char[8] test1528c()
+{
+    ubyte[4] foo() { return typeof(return).init; }
+    return toHexString1528!10(foo);
+}
+
+// ----
+
+int f1528d1(int a, double=10) { return 1; }
+int f1528d1(int a, string="") { return 2; }
+
+int f1528d2(T:int)(T b, double=10) { return 1; }
+int f1528d2(T:int)(T b, string="") { return 2; }
+
+// vs deduced parameter
+int f1528d3(int a) { return 1; }
+int f1528d3(T)(T b) { return 2; }
+
+// vs specialized parameter
+int f1528d4(int a) { return 1; }
+int f1528d4(T:int)(T b) { return 2; }
+
+// vs deduced parameter + template constraint (1)
+int f1528d5(int a) { return 1; }
+int f1528d5(T)(T b) if (is(T == int)) { return 2; }
+
+// vs deduced parameter + template constraint (2)
+int f1528d6(int a) { return 1; }
+int f1528d6(T)(T b) if (is(T : int)) { return 2; }
+
+// vs nallowing conversion
+int f1528d7(ubyte a) { return 1; }
+int f1528d7(T)(T b) if (is(T : int)) { return 2; }
+
+int f1528d10(int, int) { return 1; }
+int f1528d10(T)(T, int) { return 2; }
+
+void test1528d()
+{
+    static assert(!__traits(compiles, f1528d1(1)));  // ambiguous
+    static assert(!__traits(compiles, f1528d1(1L))); // ambiguous
+
+    static assert(!__traits(compiles, f1528d2(1)));  // ambiguous
+    static assert(!__traits(compiles, f1528d2(1L))); // no match
+
+    assert(f1528d3(1) == 1);
+    assert(f1528d3(1L) == 1);    // '1L' matches int
+    short short_val = 42;
+    assert(f1528d3(cast(short) 42) == 1);
+    assert(f1528d3(short_val) == 1);
+
+    static assert(!__traits(compiles, f1528d4(1)));
+    assert(f1528d4(1L) == 1);
+
+    assert(f1528d5(1) == 1);
+    assert(f1528d5(1L) == 1);
+
+    assert(f1528d6(1) == 1);
+    assert(f1528d6(1L) == 1);
+    static assert(!__traits(compiles, f1528d6(ulong.max))); // no match
+                                          // needs to fix bug 9617
+    ulong ulval = 1;
+    static assert(!__traits(compiles, f1528d6(ulval)));     // no match
+
+    assert(f1528d7(200u) == 1);  // '200u' matches ubyte
+    assert(f1528d7(400u) == 2);
+    uint uival = 400;       // TDPL-like range knowledge lost here.
+    assert(f1528d7(uival) == 2);
+    uival = 200;            // Ditto.
+    assert(f1528d7(uival) == 2);
+
+
+    assert(f1528d10(        1, 9) == 1);
+    assert(f1528d10(       1U, 9) == 1);
+    assert(f1528d10(       1L, 9) == 1);
+    assert(f1528d10(      1LU, 9) == 1);
+    assert(f1528d10( long.max, 9) == 2);
+    assert(f1528d10(ulong.max, 9) == 2);
+    assert(f1528d10(        1, 9L) == 1);
+    assert(f1528d10(       1U, 9L) == 1);
+    assert(f1528d10(       1L, 9L) == 1);
+    assert(f1528d10(      1LU, 9L) == 1);
+    assert(f1528d10( long.max, 9L) == 2);
+    assert(f1528d10(ulong.max, 9L) == 2);
+}
 
 /***************************************************/
 // 1680
@@ -180,6 +482,10 @@ void test10171()
 
 int main()
 {
+    test1528a();
+    test1528b();
+    test1528c();
+    test1528d();
     test1680();
     test7418();
     test7552();
