@@ -8367,14 +8367,20 @@ Lagain:
                 av = new CommaExp(loc, av, new VarExp(loc, tmp));
 
                 Expression *e;
-                CtorDeclaration *cf = ad->ctor->isCtorDeclaration();
-                if (cf)
+                if (CtorDeclaration *cf = ad->ctor->isCtorDeclaration())
+                {
                     e = new DotVarExp(loc, av, cf, 1);
-                else
-                {   TemplateDeclaration *td = ad->ctor->isTemplateDeclaration();
-                    assert(td);
+                }
+                else if (TemplateDeclaration *td = ad->ctor->isTemplateDeclaration())
+                {
                     e = new DotTemplateExp(loc, av, td);
                 }
+                else if (OverloadSet *os = ad->ctor->isOverloadSet())
+                {
+                    e = new DotExp(loc, av, new OverExp(loc, os));
+                }
+                else
+                    assert(0);
                 e = new CallExp(loc, e, arguments);
                 e = e->semantic(sc);
                 return e;
