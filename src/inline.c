@@ -1385,6 +1385,8 @@ Expression *CallExp::inlineScan(InlineScanState *iss)
         }
     }
 
+    if (e && type->ty != Tvoid)
+        e->type = type;
     return e;
 }
 
