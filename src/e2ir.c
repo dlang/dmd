@@ -2833,10 +2833,15 @@ elem *AssignExp::toElem(IRState *irs)
             if (e2x->op == TOKcast)
             {
                 Expression *e2y = ((CastExp *)e2x)->e1;
-                Type *t1 = e1x->type->toBasetype()->nextOf()->arrayOf()->immutableOf();
-                Type *t2 = e2y->type->toBasetype()->nextOf()->arrayOf()->immutableOf();
-                if (t1->equals(t2))
-                    e2x = e2y;
+                if (Type *t2n = e2y->type->toBasetype()->nextOf())
+                {
+                    Type *t1n = e1x->type->toBasetype()->nextOf();
+                    assert(t1n);
+                    Type *t1 = t1n->arrayOf()->immutableOf();
+                    Type *t2 = t2n->arrayOf()->immutableOf();
+                    if (t1->equals(t2))
+                        e2x = e2y;
+                }
             }
             if (e2x->op == TOKcall)
             {
