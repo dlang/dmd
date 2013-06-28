@@ -907,6 +907,15 @@ L1:
         goto ret;
   }
 
+    // Replace (~e1 + 1) with (-e1)
+    if (e1->Eoper == OPcom && e2->Eoper == OPconst && el_tolong(e2) == 1)
+    {
+        e = el_selecte1(e);
+        e->Eoper = OPneg;
+        e = optelem(e, goal);
+        goto ret;
+    }
+
     // Replace ((e11 - e12) + e2) with ((e11 + e2) - e12)
     // (this should increase the number of LEA possibilities)
     sz = tysize(e->Ety);
@@ -1041,11 +1050,9 @@ L1:
 
   if (OPTIMIZER)
   {
-  elem *e1;
-  tym_t tym;
 
-  tym = e->Ety;
-  e1 = e->E1;
+  tym_t tym = e->Ety;
+  elem *e1 = e->E1;
   if (e2->Eoper == OPrelconst)
   {     if (e1->Eoper == OPrelconst && e1->EV.sp.Vsym == e2->EV.sp.Vsym)
         {       e->Eoper = OPconst;
@@ -1094,16 +1101,25 @@ L1:
        || tybasic(tym) == TYsptr
 #endif
       ))
-  {     elem *tmp;
-
+  {
         e->Eoper = OPadd;
         e1->Eoper = OPmin;
         e2->Eoper = OPmin;
-        tmp = e1->E2;
+        elem *tmp = e1->E2;
         e1->E2 = e2->E1;
         e2->E1 = tmp;
         return optelem(e,GOALvalue);
   }
+
+    // Replace (-e1 - 1) with (~e1)
+    if (e1->Eoper == OPneg && e2->Eoper == OPconst && tyintegral(tym) && el_tolong(e2) == 1)
+    {
+        e = el_selecte1(e);
+        e->Eoper = OPcom;
+        e = optelem(e, goal);
+        return e;
+    }
+
   }
 
 #if TX86 && !(MARS)
@@ -2655,11 +2671,24 @@ STATIC elem * eladdr(elem *e, goal_t goal)
   return e;
 }
 
+/*******************************************
+ */
+
 STATIC elem * elneg(elem *e, goal_t goal)
 {
     if (e->E1->Eoper == OPneg)
     {   e = el_selecte1(e);
         e = el_selecte1(e);
+    }
+    /* Convert -(e1 + c) to (-e1 - c)
+     */
+    else if (e->E1->Eoper == OPadd && e->E1->E2->Eoper == OPconst)
+    {
+        e->Eoper = OPmin;
+        e->E2 = e->E1->E2;
+        e->E1->Eoper = OPneg;
+        e->E1->E2 = NULL;
+        e = optelem(e,goal);
     }
     else
         e = evalu8(e, goal);
