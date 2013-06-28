@@ -2891,6 +2891,34 @@ static assert(__traits(compiles, &check10079!S10079e));
 static assert(__traits(compiles, &check10079!S10079f));
 
 /**********************************/
+// 10244
+
+void test10244()
+{
+    static struct Foo
+    {
+        string _str;
+        long _num;
+
+        template DeclareConstructor(string fieldName)
+        {
+            enum code =
+                `this(typeof(_` ~ fieldName ~ `) value)` ~
+                `{ this._` ~ fieldName ~ ` = value; }`;
+            mixin(code);
+        }
+
+        mixin DeclareConstructor!"str";
+        mixin DeclareConstructor!"num";
+    }
+
+    Foo value1 = Foo("D");
+    Foo value2 = Foo(128);
+    assert(value1._str == "D");
+    assert(value2._num == 128);
+}
+
+/**********************************/
 
 int main()
 {
@@ -2981,6 +3009,7 @@ int main()
     test9985();
     test9994();
     test10094();
+    test10244();
 
     printf("Success\n");
     return 0;
