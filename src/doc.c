@@ -2315,7 +2315,7 @@ void highlightCode3(Scope *sc, OutBuffer *buf, unsigned char *p, unsigned char *
 
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 {
-    char *sid = s->ident->toChars();
+    const char *sid = s->ident->toChars();
     FuncDeclaration *f = s->isFuncDeclaration();
     unsigned errorsave = global.errors;
     Lexer lex(NULL, buf->data, 0, buf->offset - 1, 0, 1);

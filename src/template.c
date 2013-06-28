@@ -2863,9 +2863,9 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
         {
             //printf("matching %s to %s\n", tparam->toChars(), toChars());
             Dsymbol *s = this->toDsymbol(sc);
-            for (size_t i = tident->idents.dim; i-- > 0; )
+            for (size_t j = tident->idents.dim; j-- > 0; )
             {
-                RootObject *id = tident->idents[i];
+                RootObject *id = tident->idents[j];
                 if (id->dyncast() == DYNCAST_IDENTIFIER)
                 {
                     if (!s || !s->parent)
@@ -2874,7 +2874,7 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
                     if (!s2)
                         goto Lnomatch;
                     s2 = s2->toAlias();
-                    //printf("[%d] s = %s %s, s2 = %s %s\n", i, s->kind(), s->toChars(), s2->kind(), s2->toChars());
+                    //printf("[%d] s = %s %s, s2 = %s %s\n", j, s->kind(), s->toChars(), s2->kind(), s2->toChars());
                     if (s != s2)
                     {
                         if (Type *t = s2->getType())
