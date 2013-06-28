@@ -103,6 +103,7 @@ void Module::genmoduleinfo()
     #define MIunitTest        0x200
     #define MIimportedModules 0x400
     #define MIlocalClasses    0x800
+    #define MIrmInfo          0x1000
     #define MInew             0x80000000   // it's the "new" layout
 
     unsigned flags = MInew;
@@ -124,6 +125,8 @@ void Module::genmoduleinfo()
         flags |= MIimportedModules;
     if (aclasses.dim)
         flags |= MIlocalClasses;
+    if (rmInfo)
+        flags |= MIrmInfo;
 
     if (!needmoduleinfo)
         flags |= MIstandalone;
@@ -172,6 +175,10 @@ void Module::genmoduleinfo()
             dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
         }
     }
+    if (flags & MIrmInfo)
+    {
+        rmInfo->toDt(&dt);
+    }
 
     // Put out module name as a 0-terminated string, to save bytes
     nameoffset = dt_size(dt);
@@ -196,6 +203,7 @@ void Module::genmoduleinfo()
             void *sharedctor;
             void *shareddtor;
             uint index;
+            void *rmInfo;
             void*[1] reserved;
        }
      */
@@ -292,6 +300,11 @@ void Module::genmoduleinfo()
         dtdword(&dt, 0);
 
     dtdword(&dt, 0);                            // index
+
+    if (rmInfo)
+        rmInfo->toDt(&dt);
+    else
+        dtdword(&dt, 0);
 
     // void*[1] reserved;
     dtdword(&dt, 0);
