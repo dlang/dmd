@@ -728,6 +728,36 @@ void testdocond()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+uint neg(uint i)
+{
+    return ~i + 1;
+}
+
+uint com(uint i)
+{
+    return -i - 1;
+}
+
+float com(float i)
+{
+    return -i - 1;
+}
+
+uint com2(uint i)
+{
+    return -(i + 1);
+}
+
+void testnegcom()
+{
+    assert(neg(3) == -3);
+    assert(com(3) == -4);
+    assert(com(3.0f) == -4.0f);
+    assert(com2(3) == -4);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -744,6 +774,7 @@ int main()
     testfastudiv();
     testfastdiv();
     testdocond();
+    testnegcom();
     printf("Success\n");
     return 0;
 }
