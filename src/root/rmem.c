@@ -138,6 +138,57 @@ void Mem::addroots(char* pStart, char* pEnd)
 
 /* =================================================== */
 
+#if 1
+
+/* Allocate, but never release
+ */
+
+#define CHUNK_SIZE (4096 * 16)
+
+static size_t heapleft = 0;
+static void *heapp;
+
+void * operator new(size_t m_size)
+{
+    // 16 byte alignment is better (and sometimes needed) for doubles
+    m_size = (m_size + 15) & ~15;
+
+    // The layout of the code is selected so the most common case is straight through
+    if (m_size <= heapleft)
+    {
+     L1:
+        heapleft -= m_size;
+        void *p = heapp;
+        heapp = (void *)((char *)heapp + m_size);
+        return p;
+    }
+
+    if (m_size > CHUNK_SIZE)
+    {
+        void *p = malloc(m_size);
+        if (p)
+            return p;
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+        return p;
+    }
+
+    heapleft = CHUNK_SIZE;
+    heapp = malloc(CHUNK_SIZE);
+    if (!heapp)
+    {
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    goto L1;
+}
+
+void operator delete(void *p)
+{
+}
+
+#else
+
 void * operator new(size_t m_size)
 {
     void *p = malloc(m_size);
@@ -153,4 +204,4 @@ void operator delete(void *p)
     free(p);
 }
 
-
+#endif
