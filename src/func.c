@@ -2343,6 +2343,14 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
         //printf("\ttrue: no conflict\n");
         return true;
     }
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td)
+    {
+        if (overnext)
+            return overnext->overloadInsert(td);
+        overnext = td;
+        return TRUE;
+    }
     FuncDeclaration *fd = s->isFuncDeclaration();
     if (!fd)
         return false;
@@ -2368,7 +2376,13 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
 #endif
 
     if (overnext)
-        return overnext->overloadInsert(fd);
+    {
+        td = overnext->isTemplateDeclaration();
+        if (td)
+            fd->overloadInsert(td);
+        else
+            return overnext->overloadInsert(fd);
+    }
     overnext = fd;
     //printf("\ttrue: no conflict\n");
     return true;
@@ -2389,7 +2403,7 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
 
 int overloadApply(FuncDeclaration *fstart,
         int (*fp)(void *, FuncDeclaration *),
-        void *param)
+        void *param, Dsymbol **plast)
 {
     FuncDeclaration *f;
     Declaration *d;
@@ -2402,7 +2416,7 @@ int overloadApply(FuncDeclaration *fstart,
         {
             if (fa->hasOverloads)
             {
-                if (overloadApply(fa->funcalias, fp, param))
+                if (overloadApply(fa->funcalias, fp, param, plast))
                     return 1;
             }
             else
@@ -2415,7 +2429,8 @@ int overloadApply(FuncDeclaration *fstart,
                 if ((*fp)(param, f))
                     return 1;
             }
-            next = fa->overnext;
+            next = fa->overnext ? fa->overnext->isDeclaration() : NULL;
+            if (plast) *plast = fa->overnext;
         }
         else
         {
@@ -2440,7 +2455,8 @@ int overloadApply(FuncDeclaration *fstart,
                 if ((*fp)(param, f))
                     return 1;
 
-                next = f->overnext;
+                next = f->overnext ? f->overnext->isDeclaration() : NULL;
+                if (plast) *plast = f->overnext;
             }
         }
     }
@@ -2466,8 +2482,8 @@ static int fpunique(void *param, FuncDeclaration *f)
 }
 
 FuncDeclaration *FuncDeclaration::isUnique()
-{   FuncDeclaration *result = NULL;
-
+{
+    FuncDeclaration *result = NULL;
     overloadApply(this, &fpunique, &result);
     return result;
 }
@@ -2541,7 +2557,6 @@ int fp2(void *param, FuncDeclaration *f)
 {
     Param2 *p = (Param2 *)param;
     Match *m = p->m;
-    Expressions *arguments = p->arguments;
 
     if (f != m->lastf)          // skip duplicates
     {
@@ -2573,22 +2588,17 @@ int fp2(void *param, FuncDeclaration *f)
             else
                 return 0;   // MATCHnomatch
         }
-        MATCH match = tf->callMatch(tthis, arguments);
+        MATCH match = tf->callMatch(tthis, p->arguments);
         //printf("test1: match = %d\n", match);
         if (match != MATCHnomatch)
         {
-            if (match > m->last)
-                goto LfIsBetter;
-
-            if (match < m->last)
-                goto LlastIsBetter;
+            if (match > m->last) goto LfIsBetter;
+            if (match < m->last) goto LlastIsBetter;
 
             /* See if one of the matches overrides the other.
              */
-            if (m->lastf->overrides(f))
-                goto LlastIsBetter;
-            else if (f->overrides(m->lastf))
-                goto LfIsBetter;
+            if (m->lastf->overrides(f)) goto LlastIsBetter;
+            if (f->overrides(m->lastf)) goto LfIsBetter;
 
 #if DMDV2
             /* Try to disambiguate using template-style partial ordering rules.
@@ -2597,13 +2607,11 @@ int fp2(void *param, FuncDeclaration *f)
              * This is because f() is "more specialized."
              */
             {
-            MATCH c1 = f->leastAsSpecialized(m->lastf);
-            MATCH c2 = m->lastf->leastAsSpecialized(f);
-            //printf("c1 = %d, c2 = %d\n", c1, c2);
-            if (c1 > c2)
-                goto LfIsBetter;
-            if (c1 < c2)
-                goto LlastIsBetter;
+                MATCH c1 = f->leastAsSpecialized(m->lastf);
+                MATCH c2 = m->lastf->leastAsSpecialized(f);
+                //printf("c1 = %d, c2 = %d\n", c1, c2);
+                if (c1 > c2) goto LfIsBetter;
+                if (c1 < c2) goto LlastIsBetter;
             }
 
             /* If the two functions are the same function, like:
@@ -2617,10 +2625,8 @@ int fp2(void *param, FuncDeclaration *f)
                 f->protection == m->lastf->protection &&
                 f->linkage == m->lastf->linkage)
             {
-                if (f->fbody && !m->lastf->fbody)
-                    goto LfIsBetter;
-                else if (!f->fbody && m->lastf->fbody)
-                    goto LlastIsBetter;
+                if ( f->fbody && !m->lastf->fbody) goto LfIsBetter;
+                if (!f->fbody &&  m->lastf->fbody) goto LlastIsBetter;
             }
 #endif
         Lambiguous:
@@ -2641,16 +2647,16 @@ int fp2(void *param, FuncDeclaration *f)
     return 0;
 }
 
-
-void overloadResolveX(Match *m, FuncDeclaration *fstart,
-        Type *tthis, Expressions *arguments)
+void functionResolve(Match *m, FuncDeclaration *fstart,
+        Type *tthis, Expressions *arguments, Dsymbol **plast)
 {
     Param2 p;
     p.m = m;
     p.tthis = tthis;
     p.property = 0;
     p.arguments = arguments;
-    overloadApply(fstart, &fp2, &p);
+    if (plast) *plast = NULL;
+    overloadApply(fstart, &fp2, &p, plast);
 }
 
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
@@ -2676,89 +2682,20 @@ static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char
         buf->writestring("mutable ");
 }
 
-FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Type *tthis, Expressions *arguments, int flags)
+/********************************************
+ * find function template root in overload list
+ */
+
+TemplateDeclaration *FuncDeclaration::findTemplateDeclRoot()
 {
-#if 0
-    printf("FuncDeclaration::overloadResolve('%s')\n", toChars());
-    if (arguments)
+    FuncDeclaration *f = this;
+    while (f && f->overnext)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
-        {
-            Expression *arg = (*arguments)[i];
-            assert(arg->type);
-            printf("\t%s: ", arg->toChars());
-            arg->type->print();
-        }
-    }
-#endif
-
-    Match m;
-    memset(&m, 0, sizeof(m));
-    m.last = MATCHnomatch;
-    overloadResolveX(&m, this, tthis, arguments);
-
-    if (m.count == 1)           // exactly one match
-    {
-        if (!(flags & 1))
-            m.lastf->functionSemantic();
-        return m.lastf;
-    }
-
-    if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
-    {
-        return m.lastf;
-    }
-
-    /* Failed to find a best match.
-     * Do nothing or print error.
-     */
-    if (m.last == MATCHnomatch && (flags & 1))
-    {                   // if do not print error messages
-    }
-    else
-    {
-        OutBuffer buf;
-
-        buf.writeByte('(');
-        if (arguments && arguments->dim)
-        {
-            HdrGenState hgs;
-            argExpTypesToCBuffer(&buf, arguments, &hgs);
-        }
-        buf.writeByte(')');
-        if (tthis)
-            tthis->modToBuffer(&buf);
-
-        if (m.last == MATCHnomatch)
-        {
-            TypeFunction *tf = (TypeFunction *)type;
-            if (tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
-            {
-                OutBuffer thisBuf, funcBuf;
-                MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
-                MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
-                ::error(loc, "%smethod %s is not callable using a %sobject",
-                    funcBuf.toChars(), this->toPrettyChars(), thisBuf.toChars());
-            }
-            else
-            {
-                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
-                error(loc, "%s%s is not callable using argument types %s",
-                    Parameter::argsTypesToChars(tf->parameters, tf->varargs),
-                    tf->modToChars(),
-                    buf.toChars());
-            }
-        }
-        else
-        {
-            TypeFunction *t1 = (TypeFunction *)m.lastf->type;
-            TypeFunction *t2 = (TypeFunction *)m.nextf->type;
-
-            error(loc, "called with argument types:\n\t(%s)\nmatches both:\n\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
-                    buf.toChars(),
-                    m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
-                    m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
-        }
+        //printf("f->overnext = %p %s\n", f->overnext, f->overnext->toChars());
+        TemplateDeclaration *td = f->overnext->isTemplateDeclaration();
+        if (td)
+            return td;
+        f = f->overnext->isFuncDeclaration();
     }
     return NULL;
 }
@@ -2771,7 +2708,6 @@ FuncDeclaration *FuncDeclaration::overloadResolve(Loc loc, Type *tthis, Expressi
  *      0       g is more specialized than 'this'
  */
 
-#if DMDV2
 MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 {
 #define LOG_LEASTAS     0
@@ -2872,23 +2808,179 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 {
     if (!s)
         return NULL;                    // no match
+
+#if 0
+    printf("resolveFuncCall('%s')\n", toChars());
+    if (arguments)
+    {
+        for (size_t i = 0; i < arguments->dim; i++)
+        {
+            Expression *arg = (*arguments)[i];
+            assert(arg->type);
+            printf("\t%s: ", arg->toChars());
+            arg->type->print();
+        }
+    }
+#endif
+
     if (tiargs    && arrayObjectIsError(tiargs) ||
         arguments && arrayObjectIsError((Objects *)arguments))
     {
         return NULL;
     }
-    FuncDeclaration *f = s->isFuncDeclaration();
-    if (f)
-        f = f->overloadResolve(loc, tthis, arguments, flags);
-    else
-    {   TemplateDeclaration *td = s->isTemplateDeclaration();
-        assert(td);
-        if (!sc) sc = td->scope;
-        f = td->deduceFunctionTemplate(loc, sc, tiargs, tthis, arguments, flags);
+
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td) fd = td->funcroot;
+    assert(fd || td); //?
+
+    Match m;
+    memset(&m, 0, sizeof(m));
+    m.last = MATCHnomatch;
+
+    if (fd && tiargs && tiargs->dim > 0)
+    {
+        td = fd->findTemplateDeclRoot();
     }
-    return f;
+    else if (fd)
+    {
+        Dsymbol *lastnext;
+        functionResolve(&m, fd, tthis, arguments, &lastnext);
+        if (lastnext) td = lastnext->isTemplateDeclaration();
+    }
+    if (td)
+    {
+        if (!sc) sc = td->scope;
+        templateResolve(&m, td, loc, sc, tiargs, tthis, arguments);
+    }
+
+    if (m.count == 1)   // exactly one match
+    {   assert(m.lastf);
+        if (!(flags & 1))
+            m.lastf->functionSemantic();
+        return m.lastf;
+    }
+
+    if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
+    {
+        return m.lastf;
+    }
+
+Lerror:
+    /* Failed to find a best match.
+     * Do nothing or print error.
+     */
+    if (m.last == MATCHnomatch && (flags & 1))
+    {   // if do not print error messages
+        return NULL;    // no match
+    }
+
+    HdrGenState hgs;
+
+    OutBuffer tiargsBuf;
+    if (td)
+    {
+        size_t dim = tiargs ? tiargs->dim : 0;
+        for (size_t i = 0; i < dim; i++)
+        {
+            if (i)
+                tiargsBuf.writestring(", ");
+            RootObject *oarg = (*tiargs)[i];
+            ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
+        }
+    }
+
+    OutBuffer fargsBuf;
+    fargsBuf.writeByte('(');
+    argExpTypesToCBuffer(&fargsBuf, arguments, &hgs);
+    fargsBuf.writeByte(')');
+    if (tthis)
+        tthis->modToBuffer(&fargsBuf);
+
+    assert(!m.lastf || m.nextf);
+    if (!m.lastf && !(flags & 1))   // no match
+    {
+        if (td)
+        {
+            if (!fd)    // all of overloads are template
+            {
+                ::error(loc, "%s %s.%s does not match any function template declaration. Candidates are:",
+                        td->kind(), td->parent->toPrettyChars(), td->ident->toChars());
+
+                // Display candidate template functions
+                int numToDisplay = 5; // sensible number to display
+                for (TemplateDeclaration *tdx = td; tdx; tdx = tdx->overnext)
+                {
+                    ::errorSupplemental(tdx->loc, "%s", tdx->toPrettyChars());
+                    if (!global.params.verbose && --numToDisplay == 0)
+                    {
+                        // Too many overloads to sensibly display.
+                        // Just show count of remaining overloads.
+                        int remaining = 0;
+                        for (; tdx; tdx = tdx->overnext)
+                            ++remaining;
+                        if (remaining > 0)
+                            ::errorSupplemental(loc, "... (%d more, -v to show) ...", remaining);
+                        break;
+                    }
+                }
+            }
+            td->error(loc, "cannot deduce template function from argument types !(%s)%s",
+                  tiargsBuf.toChars(), fargsBuf.toChars());
+        }
+        else
+        {
+            assert(fd);
+            TypeFunction *tf = (TypeFunction *)fd->type;
+            if (tthis && !MODimplicitConv(tthis->mod, tf->mod)) // modifier mismatch
+            {
+                OutBuffer thisBuf, funcBuf;
+                MODMatchToBuffer(&thisBuf, tthis->mod, tf->mod);
+                MODMatchToBuffer(&funcBuf, tf->mod, tthis->mod);
+                ::error(loc, "%smethod %s is not callable using a %sobject",
+                    funcBuf.toChars(), fd->toPrettyChars(), thisBuf.toChars());
+            }
+            else
+            {
+                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+                fd->error(loc, "%s%s is not callable using argument types %s",
+                    Parameter::argsTypesToChars(tf->parameters, tf->varargs),
+                    tf->modToChars(),
+                    fargsBuf.toChars());
+            }
+        }
+    }
+    else if (m.nextf)
+    {
+        /* CAUTION: m.lastf and m.nextf might be incompletely instantiated functions
+         * (created by doHeaderInstantiation), so call toPrettyChars will segfault.
+         */
+        assert(m.lastf);
+        if (td)
+        {
+            TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
+            TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
+            Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
+            Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
+            ::error(loc, "%s %s.%s matches more than one template declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
+                    td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
+                    lasts->loc.filename, lasts->loc.linnum, lasts->toChars(),
+                    nexts->loc.filename, nexts->loc.linnum, nexts->toChars());
+        }
+        else
+        {
+            assert(fd);
+            TypeFunction *t1 = (TypeFunction *)m.lastf->type;
+            TypeFunction *t2 = (TypeFunction *)m.nextf->type;
+            error(loc, "called with argument types:\n\t%s\nmatches both:\n"
+                       "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
+                    fargsBuf.toChars(),
+                    m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
+                    m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
+        }
+    }
+    return NULL;
 }
-#endif
 
 /********************************
  * Labels are in a separate scope, one per function.
