@@ -1402,11 +1402,11 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
     while (1)
     {
         Identifier *ai = NULL;
-        Type *at;
-        Parameter *a;
+        Type *at = NULL;
+        Parameter *a = NULL;
         StorageClass storageClass = 0;
-        StorageClass stc;
-        Expression *ae;
+        StorageClass stc = 0;
+        Expression *ae = NULL;
 
         for (;1; nextToken())
         {
@@ -1528,19 +1528,36 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         nextToken();
                     }
                     else
-                        at = parseType(&ai);
+                    {
+                        if (token.value == TOKidentifier &&
+                            (t = peek(&token), (t->value == TOKassign)))
+                        {
+                            ai = token.ident;
+                            nextToken();
+                            nextToken();
+                            ae = parseDefaultInitExp();
+                            at = NULL;
+                            hasdefault = 1;
+                        }
+                        else
+                        {
+                            at = parseType(&ai);
+                            ae = NULL;
+                            if (token.value == TOKassign)       // = defaultArg
+                            {
+                                nextToken();
+                                ae = parseDefaultInitExp();
+                                hasdefault = 1;
+                            }
+                            else
+                            {
+                                if (hasdefault)
+                                    error("default argument expected for %s",
+                                            ai ? ai->toChars() : at->toChars());
+                            }
+                        }
+                    }
 
-                    ae = NULL;
-                    if (token.value == TOKassign)       // = defaultArg
-                    {   nextToken();
-                        ae = parseDefaultInitExp();
-                        hasdefault = 1;
-                    }
-                    else
-                    {   if (hasdefault)
-                            error("default argument expected for %s",
-                                    ai ? ai->toChars() : at->toChars());
-                    }
                     if (token.value == TOKdotdotdot)
                     {   /* This is:
                          *      at ai ...

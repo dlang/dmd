@@ -5488,7 +5488,17 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
         size_t dim = Parameter::dim(tf->parameters);
         for (size_t i = 0; i < dim; i++)
-        {   Parameter *fparam = Parameter::getNth(tf->parameters, i);
+        {
+            Parameter *fparam = Parameter::getNth(tf->parameters, i);
+            Initializer *init = NULL;
+
+            if (!fparam->type)
+            {
+                assert(fparam->defaultArg);
+                init = new ExpInitializer(fparam->defaultArg->loc,
+                                          fparam->defaultArg);
+                fparam->type = init->inferType(sc);
+            }
 
             tf->inuse++;
             fparam->type = fparam->type->semantic(loc, argsc);
@@ -5523,12 +5533,15 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
 
             if (fparam->defaultArg)
-            {   Expression *e = fparam->defaultArg;
-                Initializer *init = new ExpInitializer(e->loc, e);
+            {
+                Expression *e = fparam->defaultArg;
+                if (!init)
+                    init = new ExpInitializer(e->loc, e);
                 init = init->semantic(argsc, fparam->type, INITnointerpret);
                 e = init->toExpression();
                 if (e->op == TOKfunction)               // see Bugzilla 4820
-                {   FuncExp *fe = (FuncExp *)e;
+                {
+                    FuncExp *fe = (FuncExp *)e;
                     // Replace function literal with a function symbol,
                     // since default arg expression must be copied when used
                     // and copying the literal itself is wrong.
@@ -9281,6 +9294,12 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
             {   if (arg->ident)
                     argbuf.writestring(arg->ident->toChars());
             }
+            else if (!arg->type)
+            {
+                argbuf.writestring("auto");
+                argbuf.writebyte(' ');
+                argbuf.writestring(arg->ident->toChars());
+            }
             else if (arg->type->ty == Tident &&
                      ((TypeIdentifier *)arg->type)->ident->len > 3 &&
                      strncmp(((TypeIdentifier *)arg->type)->ident->string, "__T", 3) == 0)
@@ -9467,10 +9486,11 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
     size_t n = pn ? *pn : 0; // take over index
     int result = 0;
     for (size_t i = 0; i < args->dim; i++)
-    {   Parameter *arg = (*args)[i];
-        Type *t = arg->type->toBasetype();
+    {
+        Parameter *arg = (*args)[i];
+        Type *t = arg->type ? arg->type->toBasetype() : NULL;
 
-        if (t->ty == Ttuple)
+        if (t && t->ty == Ttuple)
         {   TypeTuple *tu = (TypeTuple *)t;
             result = foreach(tu->arguments, dg, ctx, &n);
         }
