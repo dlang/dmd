@@ -2826,43 +2826,6 @@ elem *AssignExp::toElem(IRState *irs)
         }
     Lx:
 
-<<<<<<< HEAD
-=======
-        if (op == TOKconstruct && !ismemset)
-        {
-            Expression *e1x = are->e1;
-            Expression *e2x = e2;
-            if (e2x->op == TOKcast)
-            {
-                Expression *e2y = ((CastExp *)e2x)->e1;
-                if (Type *t2n = e2y->type->toBasetype()->nextOf())
-                {
-                    Type *t1n = e1x->type->toBasetype()->nextOf();
-                    assert(t1n);
-                    Type *t1 = t1n->arrayOf()->immutableOf();
-                    Type *t2 = t2n->arrayOf()->immutableOf();
-                    if (t1->equals(t2))
-                        e2x = e2y;
-                }
-            }
-            if (e2x->op == TOKcall)
-            {
-                CallExp *ce = (CallExp *)e2x;
-
-                TypeFunction *tf = (TypeFunction *)ce->e1->type->toBasetype();
-                if (tf->ty == Tfunction && tf->retStyle() == RETstack)
-                {
-                    elem *ehidden = e1x->toElem(irs);
-                    ehidden = el_una(OPaddr, TYnptr, ehidden);
-                    assert(!irs->ehidden);
-                    irs->ehidden = ehidden;
-                    e = ce->toElem(irs);
-                    goto Lret;
-                }
-            }
-        }
-
->>>>>>> ce270e4... Merge pull request #2263 from 9rnsr/fix10486
         // which we do if the 'next' types match
         if (ismemset)
         {   // Do a memset for array[]=v
