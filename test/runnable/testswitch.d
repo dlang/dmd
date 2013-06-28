@@ -353,7 +353,7 @@ int foo15(int i)
     return y;
 }
 
-static this()
+shared static this()
 {
     X15 = 4;
     Y15 = 4;
