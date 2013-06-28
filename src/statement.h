@@ -342,7 +342,6 @@ public:
     Expression *condition;
     Expression *increment;
     Statement *body;
-    int nest;
 
     // When wrapped in try/finally clauses, this points to the outermost one,
     // which may have an associated label. Internal break/continue statements
@@ -351,7 +350,6 @@ public:
 
     ForStatement(Loc loc, Statement *init, Expression *condition, Expression *increment, Statement *body);
     Statement *syntaxCopy();
-    Statement *semanticInit(Scope *sc, Statements *ainit, size_t i);
     Statement *semantic(Scope *sc);
     Statement *scopeCode(Scope *sc, Statement **sentry, Statement **sexit, Statement **sfinally);
     Statement *getRelatedLabeled() { return relatedLabeled ? relatedLabeled : this; }
@@ -893,6 +891,7 @@ public:
     Identifier *ident;
     Statement *statement;
     TryFinallyStatement *tf;
+    Statement *gotoTarget;      // interpret
     block *lblock;              // back end
 
     Blocks *fwdrefs;            // forward references to this LabelStatement
