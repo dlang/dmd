@@ -1068,7 +1068,8 @@ code *cdmul(elem *e,regm_t *pretregs)
                 gen2(cg,0x03,grex | modregrmx(3,DX,reg));           // ADD EDX,R1
             genmovreg(cg, AX, reg);                                 // MOV EAX,R1
             genc2(cg,0xC1,grex | modregrm(3,7,AX),sz * 8 - 1);      // SAR EAX,31
-            genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);          // SAR EDX,shpost
+            if (shpost)
+                genc2(cg,0xC1,grex | modregrm(3,7,DX),shpost);      // SAR EDX,shpost
             if (neg && oper == OPdiv)
             {   gen2(cg,0x2B,grex | modregrm(3,AX,DX));             // SUB EAX,EDX
                 r3 = AX;
