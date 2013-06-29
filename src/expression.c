@@ -3023,6 +3023,8 @@ void realToMangleBuffer(OutBuffer *buf, real_t value)
 
     if (Port::isNan(value))
         buf->writestring("NAN");        // no -NAN bugs
+    else if (Port::isInfinity(value))
+        buf->writestring(value < 0 ? "NINF" : "INF");
     else
     {
         char buffer[36];
