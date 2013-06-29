@@ -97,22 +97,14 @@ const char *Token::toChars()
     switch (value)
     {
         case TOKint32v:
-#ifdef IN_GCC
-            sprintf(buffer,"%d",(d_int32)int64value);
-#else
             sprintf(buffer,"%d",int32value);
-#endif
             break;
 
         case TOKuns32v:
         case TOKcharv:
         case TOKwcharv:
         case TOKdcharv:
-#ifdef IN_GCC
-            sprintf(buffer,"%uU",(d_uns32)uns64value);
-#else
             sprintf(buffer,"%uU",uns32value);
-#endif
             break;
 
         case TOKint64v:
@@ -123,20 +115,6 @@ const char *Token::toChars()
             sprintf(buffer,"%lluUL",(ulonglong)uns64value);
             break;
 
-#ifdef IN_GCC
-        case TOKfloat32v:
-        case TOKfloat64v:
-        case TOKfloat80v:
-            float80value.format(buffer, sizeof(buffer));
-            break;
-        case TOKimaginary32v:
-        case TOKimaginary64v:
-        case TOKimaginary80v:
-            float80value.format(buffer, sizeof(buffer));
-            // %% buffer
-            strcat(buffer, "i");
-            break;
-#else
         case TOKfloat32v:
             ld_sprint(buffer, 'g', float80value);
             strcat(buffer, "f");
@@ -165,7 +143,6 @@ const char *Token::toChars()
             ld_sprint(buffer, 'g', float80value);
             strcat(buffer, "Li");
             break;
-#endif
 
         case TOKstring:
         {   OutBuffer buf;
