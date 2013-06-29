@@ -2877,6 +2877,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
     switch (token.value)
     {
         case TOKalias:
+        {
             /* Look for:
              *   alias identifier this;
              */
@@ -2912,32 +2913,51 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
 #endif
             /* Look for:
              *  alias identifier = type;
+             *  alias identifier(...) = type;
              */
-            if (token.value == TOKidentifier && peekNext() == TOKassign)
+            Token *tk = &token;
+            if (tk->value == TOKidentifier &&
+                ((tk = peek(tk))->value == TOKlparen
+                 ? skipParens(tk, &tk) && (tk = peek(tk), 1) : 1) &&
+                tk->value == TOKassign)
             {
                 a = new Dsymbols();
                 while (1)
                 {
                     ident = token.ident;
                     nextToken();
+                    TemplateParameters *tpl = NULL;
+                    if (token.value == TOKlparen)
+                        tpl = parseTemplateParameterList();
                     check(TOKassign);
                     t = parseType();
-                    Declaration *v = new AliasDeclaration(loc, ident, t);
-                    a->push(v);
+                    Dsymbol *s = new AliasDeclaration(loc, ident, t);
+                    if (tpl)
+                    {
+                        Dsymbols *a2 = new Dsymbols();
+                        a2->push(s);
+                        TemplateDeclaration *tempdecl =
+                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                        s = tempdecl;
+                    }
+                    a->push(s);
                     switch (token.value)
-                    {   case TOKsemicolon:
+                    {
+                        case TOKsemicolon:
                             nextToken();
-                            addComment(v, comment);
+                            addComment(s, comment);
                             break;
                         case TOKcomma:
                             nextToken();
-                            addComment(v, comment);
+                            addComment(s, comment);
                             if (token.value != TOKidentifier)
-                            {   error("Identifier expected following comma, not %s", token.toChars());
+                            {
+                                error("Identifier expected following comma, not %s", token.toChars());
                                 break;
                             }
-                            else if (peek(&token)->value != TOKassign)
-                            {   error("= expected following identifier");
+                            if (peekNext() != TOKassign && peekNext() != TOKlparen)
+                            {
+                                error("= expected following identifier");
                                 nextToken();
                                 break;
                             }
@@ -2950,8 +2970,72 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *c
                 }
                 return a;
             }
-
             break;
+        }
+        case TOKenum:
+        {
+            /* Look for:
+             *  enum identifier(...) = type;
+             */
+            Token *tk = peek(&token);
+            if (tk->value == TOKidentifier &&
+                (tk = peek(tk))->value == TOKlparen && skipParens(tk, &tk) &&
+                (tk = peek(tk))->value == TOKassign)
+            {
+                nextToken();
+                a = new Dsymbols();
+                while (1)
+                {
+                    ident = token.ident;
+                    nextToken();
+                    TemplateParameters *tpl = NULL;
+                    if (token.value == TOKlparen)
+                        tpl = parseTemplateParameterList();
+                    check(TOKassign);
+                    Initializer *init = parseInitializer();
+                    VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
+                    v->storage_class = STCmanifest;
+                    Dsymbol *s = v;
+                    if (tpl)
+                    {
+                        Dsymbols *a2 = new Dsymbols();
+                        a2->push(s);
+                        TemplateDeclaration *tempdecl =
+                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                        s = tempdecl;
+                    }
+                    a->push(s);
+                    switch (token.value)
+                    {
+                        case TOKsemicolon:
+                            nextToken();
+                            addComment(s, comment);
+                            break;
+                        case TOKcomma:
+                            nextToken();
+                            addComment(s, comment);
+                            if (token.value != TOKidentifier)
+                            {
+                                error("Identifier expected following comma, not %s", token.toChars());
+                                break;
+                            }
+                            if (peekNext() != TOKassign && peekNext() != TOKlparen)
+                            {
+                                error("= expected following identifier");
+                                nextToken();
+                                break;
+                            }
+                            continue;
+                        default:
+                            error("semicolon expected to close %s declaration", Token::toChars(tok));
+                            break;
+                    }
+                    break;
+                }
+                return a;
+            }
+            break;
+        }
         case TOKtypedef:
             deprecation("use of typedef is deprecated; use alias instead");
             tok = token.value;
