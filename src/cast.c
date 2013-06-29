@@ -351,8 +351,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = (float)(long long)value;
-                if (f != (long long)value)
+                f = (float)(sinteger_t)value;
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
@@ -369,8 +369,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = (double)(long long)value;
-                if (f != (long long)value)
+                f = (double)(sinteger_t)value;
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
@@ -387,8 +387,8 @@ MATCH IntegerExp::implicitConvTo(Type *t)
             }
             else
             {
-                f = ldouble((long long)value);
-                if (f != (long long)value)
+                f = ldouble((sinteger_t)value);
+                if (f != (sinteger_t)value)
                     goto Lno;
             }
             goto Lyes;
