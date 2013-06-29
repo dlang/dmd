@@ -1980,11 +1980,7 @@ real_t Expression::toImaginary()
 complex_t Expression::toComplex()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-#ifdef IN_GCC
-    return complex_t(real_t(0)); // %% nicer
-#else
     return 0.0;
-#endif
 }
 
 StringExp *Expression::toString()
@@ -2874,20 +2870,12 @@ char *RealExp::toChars()
 
 dinteger_t RealExp::toInteger()
 {
-#ifdef IN_GCC
-    return (sinteger_t) toReal().toInt();
-#else
     return (sinteger_t) toReal();
-#endif
 }
 
 uinteger_t RealExp::toUInteger()
 {
-#ifdef IN_GCC
-    return (uinteger_t) toReal().toInt();
-#else
     return (uinteger_t) toReal();
-#endif
 }
 
 real_t RealExp::toReal()
@@ -2951,12 +2939,8 @@ Expression *RealExp::semantic(Scope *sc)
 
 int RealExp::isBool(int result)
 {
-#ifdef IN_GCC
-    return result ? (! value.isZero()) : (value.isZero());
-#else
     return result ? (value != 0)
                   : (value == 0);
-#endif
 }
 
 void floatToBuffer(OutBuffer *buf, Type *type, real_t value)
@@ -3086,20 +3070,12 @@ char *ComplexExp::toChars()
 
 dinteger_t ComplexExp::toInteger()
 {
-#ifdef IN_GCC
-    return (sinteger_t) toReal().toInt();
-#else
     return (sinteger_t) toReal();
-#endif
 }
 
 uinteger_t ComplexExp::toUInteger()
 {
-#ifdef IN_GCC
-    return (uinteger_t) toReal().toInt();
-#else
     return (uinteger_t) toReal();
-#endif
 }
 
 real_t ComplexExp::toReal()
@@ -3156,19 +3132,11 @@ void ComplexExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
     /* Print as:
      *  (re+imi)
      */
-#ifdef IN_GCC
-    char buf1[sizeof(value) * 3 + 8 + 1];
-    char buf2[sizeof(value) * 3 + 8 + 1];
-    creall(value).format(buf1, sizeof(buf1));
-    cimagl(value).format(buf2, sizeof(buf2));
-    buf->printf("(%s+%si)", buf1, buf2);
-#else
     buf->writeByte('(');
     floatToBuffer(buf, type, creall(value));
     buf->writeByte('+');
     floatToBuffer(buf, type, cimagl(value));
     buf->writestring("i)");
-#endif
 }
 
 void ComplexExp::toMangleBuffer(OutBuffer *buf)

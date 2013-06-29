@@ -43,8 +43,7 @@ class Parameter;
 
 // Back end
 #ifdef IN_GCC
-typedef union tree_node TYPE;
-typedef TYPE type;
+typedef union tree_node type;
 #else
 typedef struct TYPE type;
 #endif
