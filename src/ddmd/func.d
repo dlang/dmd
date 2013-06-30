@@ -594,12 +594,6 @@ extern (C++) class FuncDeclaration : Declaration
             if (isPostBlitDeclaration() || isDtorDeclaration() || isInvariantDeclaration())
                 error("destructors, postblits and invariants are not allowed in union %s", ud.toChars());
         }
-
-        /* Contracts can only appear without a body when they are virtual interface functions
-         */
-        if (!fbody && (fensure || frequire) && !(id && isVirtual()))
-            error("in and out contracts require function body");
-
         if (StructDeclaration sd = parent.isStructDeclaration())
         {
             if (isCtorDeclaration())
@@ -947,6 +941,16 @@ extern (C++) class FuncDeclaration : Declaration
 
         // Reflect this.type to f because it could be changed by findVtblIndex
         f = type.toTypeFunction();
+        /* Contracts can only appear without a body when they are virtual interface functions or abstract
+         */
+        if (!fbody && !isAbstract() &&
+            (fensure || frequire) &&
+            !(id && isVirtual()))
+        {
+            auto cd = parent.isClassDeclaration();
+            if (!(cd && cd.isAbstract()))
+                error("in and out contracts on non-virtual/non-abstract functions require function body");
+        }
 
         /* Do not allow template instances to add virtual functions
          * to a class.
