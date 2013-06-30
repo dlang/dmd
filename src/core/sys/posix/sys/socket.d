@@ -310,6 +310,40 @@ version( linux )
             SO_TYPE         = 0x1008,
         }
     }
+    else version (PPC64)
+    {
+        enum
+        {
+            SOCK_DGRAM      = 2,
+            SOCK_SEQPACKET  = 5,
+            SOCK_STREAM     = 1
+        }
+
+        enum
+        {
+            SOL_SOCKET      = 1
+        }
+
+        enum
+        {
+            SO_ACCEPTCONN   = 30,
+            SO_BROADCAST    = 6,
+            SO_DEBUG        = 1,
+            SO_DONTROUTE    = 5,
+            SO_ERROR        = 4,
+            SO_KEEPALIVE    = 9,
+            SO_LINGER       = 13,
+            SO_OOBINLINE    = 10,
+            SO_RCVBUF       = 8,
+            SO_RCVLOWAT     = 16,
+            SO_RCVTIMEO     = 18,
+            SO_REUSEADDR    = 2,
+            SO_SNDBUF       = 7,
+            SO_SNDLOWAT     = 17,
+            SO_SNDTIMEO     = 19,
+            SO_TYPE         = 3
+        }
+    }
     else
         static assert(0, "unimplemented");
 
