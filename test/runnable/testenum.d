@@ -193,6 +193,24 @@ enum
 }
 
 /**********************************************/
+// 10505
+
+enum
+{
+    a10505 = true,
+    b10505 = 10.0f,
+    c10505 = false,
+    d10505 = 10,
+    e10505 = null
+}
+
+static assert(is(typeof(a10505) == bool));
+static assert(is(typeof(b10505) == float));
+static assert(is(typeof(c10505) == bool));
+static assert(is(typeof(d10505) == int));
+static assert(is(typeof(e10505) == typeof(null)));
+
+/**********************************************/
 
 int main()
 {

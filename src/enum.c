@@ -251,11 +251,12 @@ void EnumDeclaration::semantic(Scope *sc)
             e = e->ctfeSemantic(sce);
             e = e->ctfeInterpret();
             e = resolveProperties(sc, e);
-            if (first && !memtype)
+            if (first && !memtype && !isAnonymous())
                 memtype = e->type;
             if (memtype && !em->type)
             {
-                e = e->implicitCastTo(sce, memtype);
+                if (!isAnonymous())
+                    e = e->implicitCastTo(sce, memtype);
                 e = e->ctfeInterpret();
                 if (!isAnonymous())
                     e = e->castTo(sce, type);
@@ -283,7 +284,8 @@ void EnumDeclaration::semantic(Scope *sc)
             else
             {
                 t = Type::tint32;
-                memtype = t;
+                if (!isAnonymous())
+                    memtype = t;
             }
             e = new IntegerExp(em->loc, 0, Type::tint32);
             e = e->implicitCastTo(sce, t);
@@ -390,7 +392,6 @@ void EnumDeclaration::semantic(Scope *sc)
     if (sc != sce)
         sce->pop();
     //members->print();
-    assert(memtype);
 }
 
 bool EnumDeclaration::oneMember(Dsymbol **ps, Identifier *ident)
