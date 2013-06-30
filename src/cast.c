@@ -614,6 +614,8 @@ MATCH ArrayLiteralExp::implicitConvTo(Type *t)
         }
         return result;
     }
+    else if (!elements->dim && tb->ty == Taarray)
+        return MATCHexact;
     else
         return Expression::implicitConvTo(t);
 }
@@ -1588,6 +1590,11 @@ Expression *ArrayLiteralExp::castTo(Scope *sc, Type *t)
     ArrayLiteralExp *e = this;
     Type *typeb = type->toBasetype();
     Type *tb = t->toBasetype();
+
+    // This is an empty associative array literal.
+    if (!elements->dim && tb->ty == Taarray)
+        return (new NullExp(Loc()))->semantic(sc);
+
     if ((tb->ty == Tarray || tb->ty == Tsarray) &&
         (typeb->ty == Tarray || typeb->ty == Tsarray) &&
         // Not trying to convert non-void[] to void[]
