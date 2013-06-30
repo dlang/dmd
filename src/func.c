@@ -412,15 +412,11 @@ void FuncDeclaration::semantic(Scope *sc)
             error("function body only allowed in final functions in interface %s", id->toChars());
     }
 
-    /* Contracts can only appear without a body when they are virtual interface functions
-     */
-    if (!fbody && (fensure || frequire) && !(id && isVirtual()))
-        error("in and out contracts require function body");
-
     cd = parent->isClassDeclaration();
     if (cd)
     {
         size_t vi;
+
         if (isCtorDeclaration())
         {
 //          ctor = (CtorDeclaration *)this;
@@ -708,6 +704,11 @@ void FuncDeclaration::semantic(Scope *sc)
     }
     else if (isOverride() && !parent->isTemplateInstance())
         error("override only applies to class member functions");
+
+    /* Contracts can only appear without a body when they are virtual interface functions or abstract
+     */
+    if (!fbody && !isAbstract() && !(cd && cd->isAbstract()) && (fensure || frequire) && !(id && isVirtual()))
+        error("in and out contracts on non-virtual/non-abstract functions require function body");
 
     /* Do not allow template instances to add virtual functions
      * to a class.
