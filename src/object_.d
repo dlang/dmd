@@ -175,7 +175,7 @@ struct Interface
 {
     TypeInfo_Class   classinfo;  /// .classinfo for this interface (not for containing class)
     void*[]     vtbl;
-    ptrdiff_t   offset;     /// offset to Interface 'this' from Object 'this'
+    size_t      offset;     /// offset to Interface 'this' from Object 'this'
 }
 
 /**

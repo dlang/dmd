@@ -54,7 +54,7 @@ struct Interface
 {
     TypeInfo_Class   classinfo;
     void*[]     vtbl;
-    ptrdiff_t   offset;   // offset to Interface 'this' from Object 'this'
+    size_t      offset;   // offset to Interface 'this' from Object 'this'
 }
 
 struct OffsetTypeInfo
