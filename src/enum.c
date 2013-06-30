@@ -250,6 +250,7 @@ void EnumDeclaration::semantic(Scope *sc)
             assert(e->dyncast() == DYNCAST_EXPRESSION);
             e = e->ctfeSemantic(sce);
             e = e->ctfeInterpret();
+            e = resolveProperties(sc, e);
             if (first && !memtype)
                 memtype = e->type;
             if (memtype && !em->type)
