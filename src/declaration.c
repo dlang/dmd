@@ -688,7 +688,13 @@ Dsymbol *AliasDeclaration::toAlias()
     assert(this != aliassym);
     //static int count; if (++count == 10) *(char*)0=0;
     if (inSemantic)
-    {   error("recursive alias declaration");
+    {
+        error("recursive alias declaration");
+
+        // Avoid breaking "recursive alias" state during errors gagged
+        if (global.isSpeculativeGagging())
+            return this;
+
         aliassym = new AliasDeclaration(loc, ident, Type::terror);
         type = Type::terror;
     }

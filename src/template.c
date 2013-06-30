@@ -2219,7 +2219,7 @@ void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
             dedtypes.setDim(td->parameters->dim);
             assert(td->semanticRun);
             MATCH mta = td->matchWithInstance(ti, &dedtypes, fargs, 0);
-            //printf("matchWithInstance = %d\n", m2);
+            //printf("matchWithInstance = %d\n", mta);
             if (!mta || mta < ta_last)      // no match or less match
                 continue;
 
