@@ -2807,9 +2807,20 @@ code *cdshtlng(elem *e,regm_t *pretregs)
         {
             *pretregs &= ~mPSW;                 // flags are set by eval of e1
             c1 = codelem(e1,&retregs,FALSE);
-            c2 = getregs(retregs);
-            reg = findreg(retregs);
-            c3 = genregs(NULL,0x89,reg,reg);    // MOV Ereg,Ereg
+            /* Determine if high 32 bits are already 0
+             */
+            if (e1->Eoper == OPu16_32 && !e1->Ecount)
+            {
+                c2 = NULL;
+                c3 = NULL;
+            }
+            else
+            {
+                // Zero high 32 bits
+                c2 = getregs(retregs);
+                reg = findreg(retregs);
+                c3 = genregs(NULL,0x89,reg,reg);    // MOV Ereg,Ereg
+            }
         }
         c4 = fixresult(e,retregs,pretregs);
         c = cat4(c1,c2,c3,c4);
@@ -2850,7 +2861,7 @@ code *cdshtlng(elem *e,regm_t *pretregs)
     {   code cs;
         unsigned opcode;
 
-        if (op == OPu16_32 && config.flags4 & CFG4speed)
+        if (I32 && op == OPu16_32 && config.flags4 & CFG4speed)
             goto L2;
         retregs = *pretregs;
         c1 = allocreg(&retregs,&reg,TYint);
