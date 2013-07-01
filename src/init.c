@@ -943,10 +943,15 @@ Initializer *ExpInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInte
 {
     //printf("ExpInitializer::semantic(%s), type = %s\n", exp->toChars(), t->toChars());
     if (needInterpret)
+    {
         exp = exp->ctfeSemantic(sc);
+        exp = ctfeResolveProperties(sc, exp);
+    }
     else
+    {
         exp = exp->semantic(sc);
-    exp = resolveProperties(sc, exp);
+        exp = resolveProperties(sc, exp);
+    }
     if (exp->op == TOKerror)
         return this;
 

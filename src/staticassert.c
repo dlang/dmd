@@ -56,7 +56,7 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
     Expression *e = exp->ctfeSemantic(sc);
-    e = resolveProperties(sc, e);
+    e = ctfeResolveProperties(sc, e);
     // Simplify expression, to make error messages nicer if CTFE fails
     e = e->optimize(0);
     sc = sc->pop();
@@ -79,7 +79,7 @@ void StaticAssert::semantic2(Scope *sc)
             OutBuffer buf;
 
             msg = msg->ctfeSemantic(sc);
-            msg = resolveProperties(sc, msg);
+            msg = ctfeResolveProperties(sc, msg);
             msg = msg->ctfeInterpret();
             hgs.console = 1;
             StringExp * s = msg->toString();

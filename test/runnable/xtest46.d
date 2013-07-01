@@ -2609,13 +2609,14 @@ void test129()
 }
 
 /***************************************************/
-
+// 6169
 
 auto ctfefunc6169() { return ";"; }
 enum ctfefptr6169 = &ctfefunc6169;
 int ctfefunc6169a() { return 1; }
 template x6169(string c) { alias int x6169; }
 template TT6169(T...) { alias T TT6169; }
+@property ctfeprop6169() { return "g"; }
 
 void test6169() pure @safe
 {
@@ -2649,6 +2650,8 @@ void test6169() pure @safe
     void fun(int i : ctfefunc6169a() = ctfefunc6169a(), alias j)() if (ctfefunc6169a()) {}
     fun!(ctfefunc6169a(), ctfefunc6169())();
     enum z = ctfefptr6169();
+
+    auto p = mixin(ctfeprop6169);
 }
 
 /***************************************************/

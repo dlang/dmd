@@ -481,7 +481,7 @@ Statements *CompileStatement::flatten(Scope *sc)
 {
     //printf("CompileStatement::flatten() %s\n", exp->toChars());
     exp = exp->ctfeSemantic(sc);
-    exp = resolveProperties(sc, exp);
+    exp = ctfeResolveProperties(sc, exp);
     exp = exp->ctfeInterpret();
     if (exp->op == TOKerror)
         return NULL;
@@ -2733,7 +2733,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->ctfeSemantic(sc);
-                e = resolveProperties(sc, e);
+                e = ctfeResolveProperties(sc, e);
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
@@ -2765,7 +2765,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->ctfeSemantic(sc);
-            e = resolveProperties(sc, e);
+            e = ctfeResolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp *se = e->toString();
@@ -2791,7 +2791,7 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->ctfeSemantic(sc);
-            e = resolveProperties(sc, e);
+            e = ctfeResolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -3127,7 +3127,7 @@ Statement *CaseStatement::semantic(Scope *sc)
 
     //printf("CaseStatement::semantic() %s\n", toChars());
     exp = exp->ctfeSemantic(sc);
-    exp = resolveProperties(sc, exp);
+    exp = ctfeResolveProperties(sc, exp);
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
@@ -3250,12 +3250,12 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
         error("case ranges not allowed in final switch");
 
     first = first->ctfeSemantic(sc);
-    first = resolveProperties(sc, first);
+    first = ctfeResolveProperties(sc, first);
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->ctfeInterpret();
 
     last = last->ctfeSemantic(sc);
-    last = resolveProperties(sc, last);
+    last = ctfeResolveProperties(sc, last);
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 

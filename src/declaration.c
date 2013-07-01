@@ -1616,10 +1616,15 @@ Lnomatch:
                     Expression *exp;
                     exp = ei->exp->syntaxCopy();
                     if (isDataseg() || (storage_class & STCmanifest))
+                    {
                         exp = exp->ctfeSemantic(sc);
+                        exp = ctfeResolveProperties(sc, exp);
+                    }
                     else
+                    {
                         exp = exp->semantic(sc);
-                    exp = resolveProperties(sc, exp);
+                        exp = resolveProperties(sc, exp);
+                    }
                     Type *tb = type->toBasetype();
                     Type *ti = exp->type->toBasetype();
 

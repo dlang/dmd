@@ -249,7 +249,7 @@ void EnumDeclaration::semantic(Scope *sc)
         {
             assert(e->dyncast() == DYNCAST_EXPRESSION);
             e = e->ctfeSemantic(sce);
-            e = resolveProperties(sc, e);
+            e = ctfeResolveProperties(sc, e);
             e = e->ctfeInterpret();
             if (first && !memtype && !isAnonymous())
                 memtype = e->type;

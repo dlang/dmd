@@ -932,7 +932,7 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
         }
 
         e = e->ctfeSemantic(sc);
-        e = resolveProperties(sc, e);
+        e = ctfeResolveProperties(sc, e);
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -2004,7 +2004,7 @@ Lmatch:
         }
 
         e = e->ctfeSemantic(paramscope);
-        e = resolveProperties(sc, e);
+        e = ctfeResolveProperties(sc, e);
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
@@ -4701,7 +4701,7 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
         Expression *e = specValue;
 
         e = e->ctfeSemantic(sc);
-        e = resolveProperties(sc, e);
+        e = ctfeResolveProperties(sc, e);
         e = e->implicitCastTo(sc, vt);
         e = e->ctfeInterpret();
 

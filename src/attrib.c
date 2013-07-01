@@ -1002,7 +1002,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 Expression *e = (*args)[i];
 
                 e = e->ctfeSemantic(sc);
-                e = resolveProperties(sc, e);
+                e = ctfeResolveProperties(sc, e);
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
@@ -1030,7 +1030,7 @@ void PragmaDeclaration::semantic(Scope *sc)
             Expression *e = (*args)[0];
 
             e = e->ctfeSemantic(sc);
-            e = resolveProperties(sc, e);
+            e = ctfeResolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
@@ -1070,7 +1070,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
             e = e->ctfeSemantic(sc);
-            e = resolveProperties(sc, e);
+            e = ctfeResolveProperties(sc, e);
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -1164,7 +1164,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
                     e = e->ctfeSemantic(sc);
-                    e = resolveProperties(sc, e);
+                    e = ctfeResolveProperties(sc, e);
                     e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");
@@ -1567,7 +1567,7 @@ void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
     exp = exp->ctfeSemantic(sc);
-    exp = resolveProperties(sc, exp);
+    exp = ctfeResolveProperties(sc, exp);
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)
