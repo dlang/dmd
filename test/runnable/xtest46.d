@@ -2652,6 +2652,23 @@ void test6169() pure @safe
 }
 
 /***************************************************/
+// 10506
+
+void impureFunc10506() {}
+string join10506(RoR)(RoR ror)
+{
+    impureFunc10506();
+    return ror[0] ~ ror[1];
+}
+
+void test10506() pure
+{
+    void foobar() {}
+
+    mixin(["foo", "bar"].join10506()~";");
+}
+
+/***************************************************/
 
 const shared class C5107
 {
