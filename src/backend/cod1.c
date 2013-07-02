@@ -3032,10 +3032,28 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             ce = cat(c1,cdrelconst(e1,&retregs));
 #if TARGET_SEGMENTED
             if (farfunc)
-                goto LF1;
+            {
+                unsigned reg = findregmsw(retregs);
+                unsigned lsreg = findreglsw(retregs);
+                floatreg = TRUE;                /* use float register   */
+                reflocal = TRUE;
+                ce = genc1(ce,0x89,             /* MOV floatreg+2,reg   */
+                        modregrm(2,reg,BPRM),FLfltreg,REGSIZE);
+                genc1(ce,0x89,                  /* MOV floatreg,lsreg   */
+                        modregrm(2,lsreg,BPRM),FLfltreg,0);
+                if (tym1 == TYifunc)
+                    gen1(ce,0x9C);              // PUSHF
+                genc1(ce,0xFF,                  /* CALL [floatreg]      */
+                        modregrm(2,3,BPRM),FLfltreg,0);
+            }
             else
 #endif
-                goto LF2;
+            {
+                unsigned reg = findreg(retregs);
+                ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
+                if (I64)
+                    code_orrex(ce, REX_W);
+            }
         }
         else
         {   int fl;
@@ -3080,8 +3098,6 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
   }
   else
   {     /* Call function via pointer    */
-        elem *e11;
-        tym_t e11ty;
 
 #ifdef DEBUG
         if (e1->Eoper != OPind
@@ -3089,32 +3105,34 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
 #endif
         c = save87();                   // assume 8087 regs are all trashed
         assert(e1->Eoper == OPind);
-        e11 = e1->E1;
-        e11ty = tybasic(e11->Ety);
+        elem *e11 = e1->E1;
+        tym_t e11ty = tybasic(e11->Ety);
 #if TARGET_SEGMENTED
         assert(!I16 || (e11ty == (farfunc ? TYfptr : TYnptr)));
 #else
         assert(!I16 || (e11ty == TYnptr));
 #endif
+        c = cat(c, load_localgot());
+
+        /* Mask of registers destroyed by the function call
+         */
+        regm_t desmsk = (mBP | ALLREGS | mES | XMMREGS) & ~fregsaved;
 
         /* if we can't use loadea()     */
         if ((EOP(e11) || e11->Eoper == OPconst) &&
             (e11->Eoper != OPind || e11->Ecount))
         {
-            unsigned reg;
-
             retregs = allregs & ~keepmsk;
             cgstate.stackclean++;
             ce = scodelem(e11,&retregs,keepmsk,TRUE);
             cgstate.stackclean--;
             /* Kill registers destroyed by an arbitrary function call */
-            ce = cat(ce,getregs((mBP | ALLREGS | mES | XMMREGS) & ~fregsaved));
+            ce = cat(ce,getregs(desmsk));
 #if TARGET_SEGMENTED
             if (e11ty == TYfptr)
-            {   unsigned lsreg;
-             LF1:
-                reg = findregmsw(retregs);
-                lsreg = findreglsw(retregs);
+            {
+                unsigned reg = findregmsw(retregs);
+                unsigned lsreg = findreglsw(retregs);
                 floatreg = TRUE;                /* use float register   */
                 reflocal = TRUE;
                 ce = genc1(ce,0x89,             /* MOV floatreg+2,reg   */
@@ -3129,8 +3147,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
             else
 #endif
             {
-             LF2:
-                reg = findreg(retregs);
+                unsigned reg = findreg(retregs);
                 ce = gen2(ce,0xFF,modregrmx(3,2,reg));   /* CALL reg     */
                 if (I64)
                     code_orrex(ce, REX_W);
@@ -3143,7 +3160,7 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
                                                 // CALL [function]
             cs.Iflags = 0;
             cgstate.stackclean++;
-            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,(mBP|ALLREGS|mES|XMMREGS) & ~fregsaved);
+            ce = loadea(e11,&cs,0xFF,farfunc ? 3 : 2,0,keepmsk,desmsk);
             cgstate.stackclean--;
             freenode(e11);
         }
