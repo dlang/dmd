@@ -63,13 +63,11 @@ template Foo(T, int V)
 				d = d + 1;
 			}
 		}
+		for (int i = 0;
+		 i < 10; i++)
 		{
-			for (int i = 0;
-			 i < 10; i++)
 			{
-				{
-					d = i ? d + 1 : 5;
-				}
+				d = i ? d + 1 : 5;
 			}
 		}
 		char[] s;
@@ -438,11 +436,9 @@ template V10(T)
 {
 	void func()
 	{
+		for (int i, j = 4; i < 3; i++)
 		{
-			for (int i, j = 4; i < 3; i++)
 			{
-				{
-				}
 			}
 		}
 	}

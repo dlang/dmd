@@ -1377,13 +1377,19 @@ Expression *BreakStatement::interpret(InterState *istate)
 #endif
     START()
     if (ident)
-    {   LabelDsymbol *label = istate->fd->searchLabel(ident);
+    {
+        LabelDsymbol *label = istate->fd->searchLabel(ident);
         assert(label && label->statement);
-        Statement *s = label->statement;
-        if (s->isLabelStatement())
-            s = s->isLabelStatement()->statement;
-        if (s->isScopeStatement())
-            s = s->isScopeStatement()->statement;
+        LabelStatement *ls = label->statement;
+        Statement *s;
+        if (ls->gotoTarget)
+            s = ls->gotoTarget;
+        else
+        {
+            s = ls->statement;
+            if (s->isScopeStatement())
+                s = s->isScopeStatement()->statement;
+        }
         istate->gotoTarget = s;
         return EXP_BREAK_INTERPRET;
     }
@@ -1401,13 +1407,19 @@ Expression *ContinueStatement::interpret(InterState *istate)
 #endif
     START()
     if (ident)
-    {   LabelDsymbol *label = istate->fd->searchLabel(ident);
+    {
+        LabelDsymbol *label = istate->fd->searchLabel(ident);
         assert(label && label->statement);
-        Statement *s = label->statement;
-        if (s->isLabelStatement())
-            s = s->isLabelStatement()->statement;
-        if (s->isScopeStatement())
-            s = s->isScopeStatement()->statement;
+        LabelStatement *ls = label->statement;
+        Statement *s;
+        if (ls->gotoTarget)
+            s = ls->gotoTarget;
+        else
+        {
+            s = ls->statement;
+            if (s->isScopeStatement())
+                s = s->isScopeStatement()->statement;
+        }
         istate->gotoTarget = s;
         return EXP_CONTINUE_INTERPRET;
     }

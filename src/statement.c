@@ -52,6 +52,15 @@ Identifier *fixupLabelName(Scope *sc, Identifier *ident)
     return ident;
 }
 
+LabelStatement *checkLabeledLoop(Scope *sc, Statement *statement)
+{
+    if (sc->slabel && sc->slabel->statement == statement)
+    {
+        return sc->slabel;
+    }
+    return NULL;
+}
+
 /******************************** Statement ***************************/
 
 Statement::Statement(Loc loc)
@@ -1170,7 +1179,6 @@ ForStatement::ForStatement(Loc loc, Statement *init, Expression *condition, Expr
     this->condition = condition;
     this->increment = increment;
     this->body = body;
-    this->nest = 0;
     this->relatedLabeled = NULL;
 }
 
@@ -1189,111 +1197,41 @@ Statement *ForStatement::syntaxCopy()
     return s;
 }
 
-/*
- * Run semantic on init recursively.
- * Rewrite:
- *      for (auto x=X(), y = Y(); ...; ...) {}
- * as:
- *      try {
- *          try {
- *              for (auto x=X(), auto y=Y(); ...; ...) {}
- *          }
- *          finally { y.~this(); }
- *      }
- *      finally { x.~this(); }
- */
-Statement *ForStatement::semanticInit(Scope *sc, Statements *ainit, size_t i)
-{
-    Statement *statement = this;
-    if (i < ainit->dim)
-    {
-        Statement *s = (*ainit)[i];
-        (*ainit)[i] = s = s->semantic(sc);
-        if (!s)
-            return semanticInit(sc, ainit, i + 1);
-
-        Statement *sentry;
-        Statement *sexception;
-        Statement *sfinally;
-        (*ainit)[i] = s->scopeCode(sc, &sentry, &sexception, &sfinally);
-
-        /* Rewrite to:
-         *  ainit =
-         *      [ ..., sentry, ainit[i], ... ]
-         *  statement =
-         *      try {                   // sfinally   != NULL
-         *          try {               // sexception != NULL
-         *              statement;
-         *          } catch (__o) {     // sexception != NULL
-         *              sexception;     // sexception != NULL
-         *              throw __o;      // sexception != NULL (internalThrow = true)
-         *          }                   // sexception != NULL
-         *      } finally { sfinally; } // sfinally   != NULL
-         */
-        if (sentry)
-        {   sentry = sentry->semantic(sc);
-            if (sentry)
-                ainit->insert(i++, sentry);
-        }
-        if (sexception)
-            sexception = sexception->semantic(sc);
-
-        statement = semanticInit(sc, ainit, i + 1);
-
-        if (sexception)
-        {
-            Identifier *id = Lexer::uniqueId("__o");
-            Statement *handler;
-            if (sexception->blockExit(FALSE) & BEfallthru)
-            {   handler = new ThrowStatement(Loc(), new IdentifierExp(Loc(), id));
-                ((ThrowStatement *)handler)->internalThrow = true;
-                handler = new CompoundStatement(Loc(), sexception, handler);
-            }
-            else
-                handler = sexception;
-            Catches *catches = new Catches();
-            Catch *ctch = new Catch(Loc(), NULL, id, handler);
-            catches->push(ctch);
-            statement = new TryCatchStatement(Loc(), statement, catches);
-        }
-        if (sfinally)
-            statement = new TryFinallyStatement(Loc(), statement, sfinally);
-    }
-
-    //printf("-ForStatement::semanticInit %s\n", statement->toChars());
-    return statement;
-}
-
 Statement *ForStatement::semantic(Scope *sc)
 {
     //printf("ForStatement::semantic %s\n", toChars());
 
-    if (!nest)
+    if (init)
     {
-        ScopeDsymbol *sym = new ScopeDsymbol();
-        sym->parent = sc->scopesym;
-        sc = sc->push(sym);
-    }
-    if (!nest && init)
-    {
-        Loc loc = init->loc;
-        Statements *ainit = init->flatten(sc);
-        if (!ainit)
-            (ainit = new Statements())->push(init);
-        init = NULL;
-
-        Statement *s = semanticInit(sc, ainit, 0);
-        ++nest;
+        /* Rewrite:
+         *  for (auto v1 = i1, v2 = i2; condition; increment) { ... }
+         * to:
+         *  { auto v1 = i1, v2 = i2; for (; condition; increment) { ... } }
+         * then lowered to:
+         *  auto v1 = i1;
+         *  try {
+         *    auto v2 = i2;
+         *    try {
+         *      for (; condition; increment) { ... }
+         *    } finally { v2.~this(); }
+         *  } finally { v1.~this(); }
+         */
+        Statements *ainit = new Statements();
+        ainit->push(init), init = NULL;
+        ainit->push(this);
+        Statement *s = new CompoundStatement(loc, ainit);
+        s = new ScopeStatement(loc, s);
         s = s->semantic(sc);
-        --nest;
-
-        init = new CompoundStatement(loc, ainit);
+        if (LabelStatement *ls = checkLabeledLoop(sc, this))
+            ls->gotoTarget = this;
         relatedLabeled = s;
-
-        sc->pop();
         return s;
     }
     assert(init == NULL);
+
+    ScopeDsymbol *sym = new ScopeDsymbol();
+    sym->parent = sc->scopesym;
+    sc = sc->push(sym);
 
     sc->noctor++;
     if (condition)
@@ -1314,8 +1252,7 @@ Statement *ForStatement::semantic(Scope *sc)
         body = body->semanticNoScope(sc);
     sc->noctor--;
 
-    if (!nest)
-        sc->pop();
+    sc->pop();
 
     return this;
 }
@@ -1466,7 +1403,7 @@ Statement *ForeachStatement::semantic(Scope *sc)
         if (dim < 1 || dim > 2)
         {
             error("only one (value) or two (key,value) arguments for tuple foreach");
-            return s;
+            return this;
         }
 
         Type *argtype = (*arguments)[dim-1]->type;
@@ -1586,6 +1523,8 @@ Statement *ForeachStatement::semantic(Scope *sc)
         }
 
         s = new UnrolledLoopStatement(loc, statements);
+        if (LabelStatement *ls = checkLabeledLoop(sc, this))
+            ls->gotoTarget = s;
         if (te && te->e0)
             s = new CompoundStatement(loc,
                     new ExpStatement(te->e0->loc, te->e0), s);
@@ -1764,6 +1703,8 @@ Lagain:
             body = new CompoundStatement(loc, ds, body);
 
             s = new ForStatement(loc, forinit, cond, increment, body);
+            if (LabelStatement *ls = checkLabeledLoop(sc, this))
+                ls->gotoTarget = s;
             s = s->semantic(sc);
             break;
         }
@@ -1939,6 +1880,8 @@ Lagain:
                 makeargs, this->body);
 
             s = new ForStatement(loc, init, condition, increment, forbody);
+            if (LabelStatement *ls = checkLabeledLoop(sc, this))
+                ls->gotoTarget = s;
 #if 0
             printf("init: %s\n", init->toChars());
             printf("condition: %s\n", condition->toChars());
@@ -2315,8 +2258,6 @@ Statement *ForeachRangeStatement::syntaxCopy()
 Statement *ForeachRangeStatement::semantic(Scope *sc)
 {
     //printf("ForeachRangeStatement::semantic() %p\n", this);
-    Statement *s = this;
-
     lwr = lwr->semantic(sc);
     lwr = resolveProperties(sc, lwr);
     lwr = lwr->optimize(WANTvalue);
@@ -2364,7 +2305,7 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
             upr = ea.e2;
         }
     }
-#if 1
+
     /* Convert to a for loop:
      *  foreach (key; lwr .. upr) =>
      *  for (auto key = lwr, auto tmp = upr; key < tmp; ++key)
@@ -2443,34 +2384,10 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
         }
     }
 
-    ForStatement *fs = new ForStatement(loc, forinit, cond, increment, body);
-    s = fs->semantic(sc);
-    return s;
-#else
-    if (!arg->type->isscalar())
-        error("%s is not a scalar type", arg->type->toChars());
-
-    sym = new ScopeDsymbol();
-    sym->parent = sc->scopesym;
-    sc = sc->push(sym);
-
-    sc->noctor++;
-
-    key = new VarDeclaration(loc, arg->type, arg->ident, NULL);
-    DeclarationExp *de = new DeclarationExp(loc, key);
-    de->semantic(sc);
-
-    if (key->storage_class)
-        error("foreach range: key cannot have storage class");
-
-    sc->sbreak = this;
-    sc->scontinue = this;
-    body = body->semantic(sc);
-
-    sc->noctor--;
-    sc->pop();
-    return s;
-#endif
+    ForStatement *s = new ForStatement(loc, forinit, cond, increment, body);
+    if (LabelStatement *ls = checkLabeledLoop(sc, this))
+        ls->gotoTarget = s;
+    return s->semantic(sc);
 }
 
 bool ForeachRangeStatement::hasBreak()
