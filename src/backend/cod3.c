@@ -3859,13 +3859,15 @@ void cod3_thunk(symbol *sthunk,symbol *sfunc,unsigned p,tym_t thisty,
     }
     else
     {
+#if 0
         localgot = NULL;                // no local variables
         code *c1 = load_localgot();
         if (c1)
         {   assignaddrc(c1);
             c = cat(c, c1);
         }
-        c1 = gencs(CNIL,(LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); /* JMP sfunc */
+#endif
+        code *c1 = gencs(CNIL,(LARGECODE ? 0xEA : 0xE9),0,FLfunc,sfunc); /* JMP sfunc */
         c1->Iflags |= LARGECODE ? (CFseg | CFoff) : (CFselfrel | CFoff);
         c = cat(c,c1);
     }
