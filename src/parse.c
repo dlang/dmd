@@ -4073,8 +4073,6 @@ Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
             }
             body = parseStatement(PSscope);
             s = new ForStatement(loc, init, condition, increment, body);
-            if (init)
-                s = new ScopeStatement(loc, s);
             break;
         }
 
