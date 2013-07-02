@@ -74,6 +74,7 @@ Dsymbols *Parser::parseModule()
     // ModuleDeclation leads off
     if (token.value == TOKmodule)
     {
+        Loc loc = this->loc;
         unsigned char *comment = token.blockComment;
         bool safe = FALSE;
 
@@ -120,7 +121,7 @@ Dsymbols *Parser::parseModule()
                 id = token.ident;
             }
 
-            md = new ModuleDeclaration(a, id, safe);
+            md = new ModuleDeclaration(loc, a, id, safe);
 
             if (token.value != TOKsemicolon)
                 error("';' expected following module declaration instead of %s", token.toChars());
