@@ -184,11 +184,12 @@ public:
 
 struct ModuleDeclaration
 {
+    Loc loc;
     Identifier *id;
     Identifiers *packages;            // array of Identifier's representing packages
     bool safe;
 
-    ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe);
+    ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe);
 
     char *toChars();
 };

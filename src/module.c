@@ -1045,8 +1045,9 @@ int Module::selfImports()
 
 /* =========================== ModuleDeclaration ===================== */
 
-ModuleDeclaration::ModuleDeclaration(Identifiers *packages, Identifier *id, bool safe)
+ModuleDeclaration::ModuleDeclaration(Loc loc, Identifiers *packages, Identifier *id, bool safe)
 {
+    this->loc = loc;
     this->packages = packages;
     this->id = id;
     this->safe = safe;
