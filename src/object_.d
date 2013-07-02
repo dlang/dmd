@@ -2583,15 +2583,11 @@ unittest
     assert(u == a.capacity); //a should not have been extended
 }
 
-unittest
+// Issue 6646: should be possible to use array.reserve from SafeD.
+@safe unittest
 {
-    // Issue 6646: should be possible to use array.reserve from SafeD.
-    void func() @safe
-    {
-        int[] a;
-        a.reserve(10);
-    }
-    func();
+    int[] a;
+    a.reserve(10);
 }
 
 /**
