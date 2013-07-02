@@ -641,7 +641,7 @@ private
     return _d_arraysetcapacity(typeid(T[]), 0, cast(void *)&arr);
 }
 
-size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow
+size_t reserve(T)(ref T[] arr, size_t newcapacity) pure nothrow @trusted
 {
     return _d_arraysetcapacity(typeid(T[]), newcapacity, cast(void *)&arr);
 }
