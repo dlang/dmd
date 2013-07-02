@@ -414,9 +414,16 @@ void escapeDdocString(OutBuffer *buf, size_t start)
 
  * Fix by replacing unmatched ( with $(LPAREN) and unmatched ) with $(RPAREN).
  */
-void escapeStrayParenthesis(OutBuffer *buf, size_t start, Loc loc)
+void escapeStrayParenthesis(OutBuffer *buf, size_t start, Dsymbol *s)
 {
     unsigned par_open = 0;
+    Loc loc = s->loc;
+
+    if (Module *m = s->isModule())
+    {
+        if (m->md)
+            loc = m->md->loc;
+    }
 
     for (size_t u = start; u < buf->offset; u++)
     {
@@ -1374,7 +1381,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring("$(DDOC_SUMMARY ");
                     size_t o = buf->offset;
                     buf->write(sec->body, sec->bodylen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    escapeStrayParenthesis(buf, o, s);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")\n");
             }
@@ -1419,7 +1426,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
             {   unsigned char c = name[u];
                 buf->writeByte((c == '_') ? ' ' : c);
             }
-            escapeStrayParenthesis(buf, o, s->loc);
+            escapeStrayParenthesis(buf, o, s);
             buf->writestring(":)\n");
     }
     else
@@ -1429,7 +1436,7 @@ void Section::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
   L1:
     size_t o = buf->offset;
     buf->write(body, bodylen);
-    escapeStrayParenthesis(buf, o, s->loc);
+    escapeStrayParenthesis(buf, o, s);
     highlightText(sc, s, buf, o);
     buf->writestring(")\n");
 }
@@ -1511,14 +1518,14 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     else
                         buf->write(namestart, namelen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    escapeStrayParenthesis(buf, o, s);
                     highlightCode(sc, s, buf, o, false);
                 buf->writestring(")\n");
 
                 buf->writestring("$(DDOC_PARAM_DESC ");
                     o = buf->offset;
                     buf->write(textstart, textlen);
-                    escapeStrayParenthesis(buf, o, s->loc);
+                    escapeStrayParenthesis(buf, o, s);
                     highlightText(sc, s, buf, o);
                 buf->writestring(")");
             buf->writestring(")\n");
