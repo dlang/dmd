@@ -32,3 +32,10 @@ auto merge1900(T)(int)
 {
     return 1;
 }
+
+/***************************************************/
+// 1900
+
+class AClass1900 {}
+template Traits1900(T : AClass1900) { enum name = "AClass"; }
+

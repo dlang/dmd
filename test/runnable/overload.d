@@ -630,6 +630,50 @@ void test1900e()
 }
 
 /***************************************************/
+// 1900
+
+void test1900()
+{
+    AClass1900 a;
+    BClass1900 b;
+
+    static assert(Traits1900!(AClass1900).name == "AClass");
+    static assert(Traits1900!(BClass1900).name == "BClass");
+    static assert(Traits1900!(int).name == "any");
+
+    Traits1900!(long) obj;
+}
+
+version(none)   // yet not implemented
+{
+alias imports.template_ovs1.Traits1900 Traits1900X;
+alias imports.template_ovs2.Traits1900 Traits1900X;
+alias imports.template_ovs3.Traits1900 Traits1900X;
+static assert(Traits1900X!(AClass1900).name == "AClass");
+static assert(Traits1900X!(BClass1900).name == "BClass");
+static assert(Traits1900X!(int).name == "any");
+
+// Traits1900Y is exact same as imports.template_ovs1.Traits1900.
+alias imports.template_ovs1.Traits1900 Traits1900Y1;
+alias imports.template_ovs1.Traits1900 Traits1900Y2;
+alias Traits1900Y1 Traits1900Y;
+alias Traits1900Y2 Traits1900Y;
+static assert(Traits1900Y!(AClass1900).name == "AClass");
+static assert(!__traits(compiles, Traits1900Y!(BClass1900)));
+static assert(!__traits(compiles, Traits1900Y!(int)));
+}
+
+template Foo1900(T)
+{
+    template Bar1900(U : T)
+    {
+    }
+}
+mixin Foo1900!(int) A;
+mixin Foo1900!(char) B;
+alias Bar1900!(int) bar;    //error
+
+/***************************************************/
 
 int main()
 {

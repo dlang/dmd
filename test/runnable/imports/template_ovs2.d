@@ -32,3 +32,10 @@ auto merge1900(T)(string)
 {
     return 2;
 }
+
+/***************************************************/
+// 1900
+
+class BClass1900 {}
+template Traits1900(T : BClass1900) { enum name = "BClass"; }
+string func1900(BClass1900 b) { return "BClass"; }

@@ -29,3 +29,8 @@ struct S1900
     mixin Mix1900_A a;
     mixin Mix1900_B b;
 }
+
+/***************************************************/
+// 1900
+
+struct Traits1900(T) if (!is(T == class)) { enum name = "any"; }
