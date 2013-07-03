@@ -708,6 +708,104 @@ void test8352()
 }
 
 /***************************************************/
+// 8441
+
+mixin template T8441a(string i)
+{
+    auto j(string s = "a", U)(U u1, U u2)
+    {
+        return 0;
+    }
+    auto j(int i,string s = "a", W)(W u1, W u2)
+    {
+        return i;
+    }
+
+    mixin("
+        class F" ~ i ~ "
+        {
+            auto j(string s = \"a\", U)(U u1, U u2)
+            {
+                return this.outer.t" ~ i ~ ".j!(s, U)(u1, u2);
+            }
+            auto j(int i, string s = \"a\", W)(W u1, W u2)
+            {
+                return this.outer.t" ~ i ~ ".j!(i, s, W)(u1, u2);   // <- dmd is giving error for j!(...).j's type
+            }
+        }
+        auto f" ~ i ~ "()
+        {
+            return new F" ~ i ~ "();
+        }
+    ");
+}
+class X8441a
+{
+    mixin T8441a!("1") t0;
+    alias t0 t1;
+}
+void test8441a()
+{
+    auto x = new X8441a();
+    x.f1().j!(3,"a")(2.2, 3.3);
+}
+
+// ----
+
+mixin template T8441b()
+{
+    void k()() {}
+
+    void j()() {}
+    void j(int i)() {}
+}
+class X8441b
+{
+    mixin T8441b t0;
+}
+void test8441b()
+{
+    auto x = new X8441b();
+    x.k!()();    // Fine
+    x.j!()();    // Fine
+    x.t0.k!()(); // Fine
+    x.t0.j!()(); // Derp
+}
+
+// ----
+
+mixin template Signal8441c(Args...)
+{
+    bool call = false;
+    final void connect(string method, ClassType)(ClassType obj)
+    if (is(ClassType == class) && __traits(compiles, { void delegate(Args) dg = mixin("&obj."~method); }))
+    {
+        call = true;
+    }
+}
+void test8441c()
+{
+    class Observer
+    {
+        void watchInt(string str, int i) {}
+    }
+    class Bar
+    {
+        mixin Signal8441c!(string, int)  s1;
+        mixin Signal8441c!(string, int)  s2;
+        mixin Signal8441c!(string, long) s3;
+    }
+    auto a = new Bar;
+    auto o1 = new Observer;
+
+    a.s1.connect!"watchInt"(o1);
+
+    assert( a.s1.call);
+    assert(!a.s2.call);
+    assert(!a.s3.call);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -729,6 +827,9 @@ int main()
     test1900e();
     test7780();
     test8352();
+    test8441a();
+    test8441b();
+    test8441c();
 
     printf("Success\n");
     return 0;
