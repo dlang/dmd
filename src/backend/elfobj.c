@@ -2592,7 +2592,7 @@ void ElfObj::addrel(int seg, targ_size_t offset, unsigned type,
  *      offset =        offset within seg
  *      val =           displacement from address
  *      targetdatum =   DATA, CDATA or UDATA, depending where the address is
- *      flags =         CFoff, CFseg, CFoffset64
+ *      flags =         CFoff, CFseg, CFoffset64, CFswitch
  * Example:
  *      int *abc = &def[3];
  *      to allocate storage:
@@ -2626,20 +2626,31 @@ void Obj::reftodatseg(int seg,targ_size_t offset,targ_size_t val,
             if (flags & CFoffset64)
             {
                 relinfo = R_X86_64_64;
-                ElfObj::addrel(seg, offset, relinfo, STI_RODAT, val);
+                ElfObj::addrel(seg, offset, relinfo, (flags & CFswitch) ? targetdatum : STI_RODAT, val);
                 buf->write64(0);
                 if (save > offset + 8)
                     buf->setsize(save);
                 return;
             }
+            else if (flags & CFswitch)
+            {
+                //printf("targetdatum = %d, MAP_SEG2SYMIDX = %d\n", targetdatum, MAP_SEG2SYMIDX(targetdatum));
+                relinfo = R_X86_64_PC32;
+                ElfObj::addrel(seg, offset, relinfo, MAP_SEG2SYMIDX(targetdatum), val);
+                buf->write32(0);
+                if (save > offset + 4)
+                    buf->setsize(save);
+                return;
+            }
             else if (MAP_SEG2TYP(seg) == CODE && config.flags3 & CFG3pic)
             {   relinfo = R_X86_64_PC32;
-                //v = -4L;
+                v = -4L + val;
+                val = 0;
             }
             else if (MAP_SEG2SEC(targetdatum)->sh_flags & SHF_TLS)
                 relinfo = config.flags3 & CFG3pic ? R_X86_64_TLSGD : R_X86_64_TPOFF32;
             else
-                relinfo = R_X86_64_32;
+                relinfo = (flags & CFswitch) ? R_X86_64_32S : R_X86_64_32;
         }
         else
         {
