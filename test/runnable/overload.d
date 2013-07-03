@@ -806,6 +806,83 @@ void test8441c()
 }
 
 /***************************************************/
+// 9235
+
+template FlowEvaluator9235()
+{
+    // if control flow
+    bool execute(Command cmd)()
+        if (cmd == Command.Jump ||
+            cmd == Command.Fork)
+    {
+        return false;
+    }
+}
+template MatchEvaluator9235()
+{
+    // if operation
+    bool execute(Command cmd)()
+        if (cmd == Command.Char ||
+            cmd == Command.Any ||
+            cmd == Command.End)
+    {
+        return true;
+    }
+}
+void test9235a()
+{
+    enum Command
+    {
+        Char, Any, Fork, Jump, End
+    }
+    struct Machine
+    {
+        mixin FlowEvaluator9235;
+        mixin MatchEvaluator9235;
+
+        bool exec_flow()
+        {
+            return execute!(Command.Jump)();
+        }
+        bool exec_match()
+        {
+            return execute!(Command.Any)();
+        }
+    }
+
+    Machine m;
+    assert(!m.exec_flow());
+    assert( m.exec_match());
+}
+
+// ----
+
+version(none)   // yet not implemented
+{
+mixin template mixA9235()
+{
+    int foo(string s)() if (s == "a") { return 1; }
+}
+mixin template mixB9235()
+{
+    int foo(string s)() if (s == "b") { return 2; }
+}
+struct Foo9235
+{
+    mixin mixA9235 A;
+    mixin mixB9235 B;
+    alias A.foo foo;
+    alias B.foo foo;
+}
+void test9235b()
+{
+    Foo9235 f;
+    assert(f.foo!"a"() == 1);
+    assert(f.foo!"b"() == 2);
+}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -830,6 +907,8 @@ int main()
     test8441a();
     test8441b();
     test8441c();
+    test9235a();
+    //test9235b();
 
     printf("Success\n");
     return 0;
