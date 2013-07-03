@@ -39,3 +39,9 @@ auto merge1900(T)(string)
 class BClass1900 {}
 template Traits1900(T : BClass1900) { enum name = "BClass"; }
 string func1900(BClass1900 b) { return "BClass"; }
+
+/***************************************************/
+// 8352
+
+void remove8352a(in char[] name) {}
+Range remove8352b(alias pred, Range)(Range range) { return range; }

@@ -39,3 +39,9 @@ auto merge1900(T)(int)
 class AClass1900 {}
 template Traits1900(T : AClass1900) { enum name = "AClass"; }
 
+
+/***************************************************/
+// 8352
+
+Range remove8352a(alias pred, Range)(Range range) { return range; }
+void remove8352b(in char[] name) {}
