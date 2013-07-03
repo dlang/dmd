@@ -541,8 +541,11 @@ typedef struct block
         // CODGEN
         struct
         {
-            targ_size_t Btablesize;     // BCswitch, BCjmptab
-            targ_size_t Btableoffset;   // BCswitch, BCjmptab
+            // For BCswitch, BCjmptab
+            targ_size_t Btablesize;     // size of generated table
+            targ_size_t Btableoffset;   // offset to start of table
+            targ_size_t Btablebase;     // offset to instruction pointer base
+
             targ_size_t Boffset;        // code offset of start of this block
             targ_size_t Bsize;          // code size of this block
             con_t       Bregcon;        // register state at block exit
@@ -550,6 +553,7 @@ typedef struct block
 
             #define Btablesize          _BLU._UD.Btablesize
             #define Btableoffset        _BLU._UD.Btableoffset
+            #define Btablebase          _BLU._UD.Btablebase
             #define Boffset             _BLU._UD.Boffset
             #define Bsize               _BLU._UD.Bsize
 //          #define Bcode               _BLU._UD.Bcode

@@ -404,7 +404,9 @@ tryagain:
         for (block* b = startblock; b; b = b->Bnext)
         {
             if (b->BC == BCjmptab || b->BC == BCswitch)
-            {   b->Btableoffset = swoffset;     /* offset of sw tab */
+            {
+                swoffset = align(0,swoffset);
+                b->Btableoffset = swoffset;     /* offset of sw tab */
                 swoffset += b->Btablesize;
             }
             jmpaddr(b->Bcode);          /* assign jump addresses        */
