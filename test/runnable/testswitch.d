@@ -515,6 +515,54 @@ void test9263()
 
 /*****************************************/
 
+int bar21(int i)
+{
+    switch (i)
+    {
+//	case 1: return 11;
+	case 2: return 12;
+	case 3: return 13;
+	case 4: return 14;
+	case 5: return 15;
+	case 6: return 16;
+	case 7: return 17;
+	case 8: return 18;
+	case 9: return 19;
+	case 10: return 20;
+	default: break;
+    }
+
+    switch (i)
+    {
+	case 11: return 21;
+	case 12: return 22;
+	case 13: return 23;
+	case 14: return 24;
+	case 15: return 25;
+	case 16: return 26;
+	case 17: return 27;
+	case 18: return 28;
+	case 19: return 29;
+	case 20: return 30;
+	default: return 31;
+    }
+}
+
+void test21()
+{
+//	int j = bar(12);
+//	printf("j = %d\n", j);
+
+    for (int i = 2; i < 21; i++)
+    {
+	int j = bar21(i);
+	//printf("j = %d\n", j);
+	assert(j == i + 10);
+    }
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -538,6 +586,7 @@ int main()
     test20();
     test7358();
     test9263();
+    test21();
 
     printf("Success\n");
     return 0;
