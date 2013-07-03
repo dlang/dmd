@@ -8615,6 +8615,7 @@ Lagain:
         {
             dve = (DotVarExp *)(e1);
             s = dve->var;
+            tiargs = NULL;
         }
         else
         {   dte = (DotTemplateExp *)(e1);
@@ -8799,6 +8800,8 @@ Lagain:
         Dsymbol *s = NULL;
         for (size_t i = 0; i < eo->vars->a.dim; i++)
         {   s = eo->vars->a[i];
+            if (tiargs && s->isFuncDeclaration())
+                continue;
             FuncDeclaration *f2 = resolveFuncCall(loc, sc, s, tiargs, tthis, arguments, 1);
             if (f2)
             {   if (f)
@@ -8950,6 +8953,7 @@ Lagain:
 
         f = ve->var->isFuncDeclaration();
         assert(f);
+        tiargs = NULL;
 
         if (ve->hasOverloads)
             f = resolveFuncCall(loc, sc, f, tiargs, NULL, arguments, 2);
