@@ -1,4 +1,9 @@
 // EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
+// EXTRA_SOURCES: imports/template_ovs1.d imports/template_ovs2.d imports/template_ovs3.d
+
+import imports.template_ovs1;
+import imports.template_ovs2;
+import imports.template_ovs3;
 
 extern(C) int printf(const char* fmt, ...);
 
@@ -479,6 +484,152 @@ void test10171()
 }
 
 /***************************************************/
+// 1900 - template overload set
+
+void test1900a()
+{
+    // function vs function template with IFTI call
+    assert(foo1900a(100) == 1);
+    assert(foo1900a("s") == 2);
+    assert(foo1900b(100) == 1);
+    assert(foo1900b("s") == 2);
+    // function template call with explicit template arguments
+    assert(foo1900a!string("s") == 2);
+    assert(foo1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(bar1900a(100) == 1);
+    assert(bar1900a("s") == 2);
+    assert(bar1900b(100) == 1);
+    assert(bar1900b("s") == 2);
+    // function template overloaded set call with explicit template arguments
+    assert(bar1900a!double(100) == 1);
+    assert(bar1900a!string("s") == 2);
+    assert(bar1900b!double(100) == 1);
+    assert(bar1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(baz1900(1234567890) == 1);
+    assert(baz1900([1:1, 2:2]) == 2);
+    assert(baz1900(new Object) == 3);
+    assert(baz1900("deadbeaf") == 4);
+    // function template overloaded set call with explicit template arguments
+    assert(baz1900!(double)(14142135) == 1);
+    assert(baz1900!(int[int])([12:34]) == 2);
+    assert(baz1900!(Object)(new Object) == 3);
+    assert(baz1900!(string)("cafe babe") == 4);
+
+    static assert(!__traits(compiles, bad1900!"++"()));
+}
+
+void test1900b()
+{
+    S1900 s;
+
+    // function vs function template with IFTI call
+    assert(s.foo1900a(100) == 1);
+    assert(s.foo1900a("s") == 2);
+    assert(s.foo1900b(100) == 1);
+    assert(s.foo1900b("s") == 2);
+    // function template call with explicit template arguments
+    assert(s.foo1900a!string("s") == 2);
+    assert(s.foo1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(s.bar1900a(100) == 1);
+    assert(s.bar1900a("s") == 2);
+    assert(s.bar1900b(100) == 1);
+    assert(s.bar1900b("s") == 2);
+    // function template overloaded set call with explicit template arguments
+    assert(s.bar1900a!double(100) == 1);
+    assert(s.bar1900a!string("s") == 2);
+    assert(s.bar1900b!double(100) == 1);
+    assert(s.bar1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(s.baz1900(1234567890) == 1);
+    assert(s.baz1900([1:1, 2:2]) == 2);
+    assert(s.baz1900(new Object) == 3);
+    assert(s.baz1900("deadbeaf") == 4);
+    // function template overloaded set call with explicit template arguments
+    assert(s.baz1900!(double)(14142135) == 1);
+    assert(s.baz1900!(int[int])([12:34]) == 2);
+    assert(s.baz1900!(Object)(new Object) == 3);
+    assert(s.baz1900!(string)("cafe babe") == 4);
+
+    static assert(!__traits(compiles, s.bad1900!"++"()));
+}
+
+void test1900c()
+{
+    S1900 s;
+
+    // This is a kind of Issue 1528 - [tdpl] overloading template and non-template functions
+    //s.funca();
+    //s.funca(10);
+    //s.funcb();
+    //s.funcb(10);
+
+    // Call function template overload set through mixin member lookup
+    assert(s.mixfooa() == 1);
+    assert(s.mixfooa(10) == 2);
+    assert(s.mixfoob() == 1);
+    assert(s.mixfoob(10) == 2);
+
+    // Call function template overload set through mixin^2 member lookup
+    assert(s.mixsubfooa() == 1);
+    assert(s.mixsubfooa(10) == 2);
+    assert(s.mixsubfoob() == 1);
+    assert(s.mixsubfoob(10) == 2);
+
+    // Using mixin identifier can limit overload set
+    assert(s.a.mixfooa() == 1);     static assert(!__traits(compiles, s.a.mixfooa(10)));
+    assert(s.b.mixfooa(10) == 2);   static assert(!__traits(compiles, s.b.mixfooa()));
+    assert(s.b.mixfoob() == 1);     static assert(!__traits(compiles, s.b.mixfoob(10)));
+    assert(s.a.mixfoob(10) == 2);   static assert(!__traits(compiles, s.a.mixfoob()));
+}
+
+version(none)   // yet not implemented
+{
+alias merge1900 = imports.template_ovs1.merge1900;
+alias merge1900 = imports.template_ovs2.merge1900;
+
+void test1900d()
+{
+    assert( merge1900!double(100) == 1);
+    assert(.merge1900!double(100) == 1);
+}
+}
+else
+{
+void test1900d() {} // dummy
+}
+
+mixin template Foo1900e(T)
+{
+    void foo(U : T)() { v++;}
+}
+void test1900e()
+{
+    struct S
+    {
+        int v;
+        mixin Foo1900e!double;
+        mixin Foo1900e!string;
+        void test()
+        {
+            foo!(int);          // ScopeExp(ti->tempovers != NULL)
+            foo!(typeof(null)); // ScopeExp(ti->tempovers != NULL)
+        }
+    }
+
+    S s;
+    assert(s.v == 0);
+    s.test();
+    assert(s.v == 2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -493,6 +644,11 @@ int main()
     test8943();
     test9410();
     test10171();
+    test1900a();
+    test1900b();
+    test1900c();
+    test1900d();
+    test1900e();
 
     printf("Success\n");
     return 0;

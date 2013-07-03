@@ -1019,7 +1019,7 @@ public:
 
     DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs);
     Expression *syntaxCopy();
-    TemplateDeclaration *getTempdecl(Scope *sc);
+    bool findTempDecl(Scope *sc);
     Expression *semantic(Scope *sc);
     Expression *semanticY(Scope *sc, int flag);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);

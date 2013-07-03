@@ -350,11 +350,22 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
     else if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
-        s      = dti->getTempdecl(sc);
-                 dti->ti->semanticTiargs(sc);
+        if (!dti->findTempDecl(sc))
+            goto Leprop;
+        if (!dti->ti->semanticTiargs(sc))
+            goto Leprop;
         tiargs = dti->ti->tiargs;
         tthis  = dti->e1->type;
-        goto Lfd;
+        if (dti->ti->tempovers)
+        {
+            os = dti->ti->tempovers;
+            goto Los;
+        }
+        if (dti->ti->tempdecl)
+        {
+            s = dti->ti->tempdecl;
+            goto Lfd;
+        }
     }
     else if (e1->op == TOKdottd)
     {
@@ -377,11 +388,20 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         if (ti && !ti->semanticRun)
         {
             //assert(ti->needsTypeInference(sc));
-            s      = ti->tempdecl;
-                     ti->semanticTiargs(sc);
+            if (!ti->semanticTiargs(sc))
+                goto Leprop;
             tiargs = ti->tiargs;
             tthis  = NULL;
-            goto Lfd;
+            if (ti->tempovers)
+            {
+                os = ti->tempovers;
+                goto Los;
+            }
+            if (ti->tempdecl)
+            {
+                s = ti->tempdecl;
+                goto Lfd;
+            }
         }
     }
     else if (e1->op == TOKtemplate)
@@ -686,7 +706,8 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
-    {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
+    {
+        TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
         if (tempdecl)
         {
             if (tempdecl->overroot)
@@ -697,21 +718,12 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
 
     if (ue->op == TOKdotti)
     {
-        Dsymbol *sx = s->toAlias();
-        TemplateDeclaration *td = sx->isTemplateDeclaration();
-        if (!td)
-        {   if (FuncDeclaration *fd = sx->isFuncDeclaration())
-                td = fd->findTemplateDeclRoot();
-        }
-        if (!td)
-        {   s->error(loc, "is not a template");
+        TemplateInstance *ti = new TemplateInstance(loc, s->ident);
+        if (!ti->updateTemplateDeclaration(sc, s))
             return new ErrorExp();
-        }
-
         DotTemplateInstanceExp *dti = (DotTemplateInstanceExp *)ue;
-        if (!dti->ti->semanticTiargs(sc))
-            return new ErrorExp();
-        return new ScopeExp(loc, new TemplateInstance(loc, td, dti->ti->tiargs));
+        ti->tiargs = dti->ti->tiargs;
+        return new ScopeExp(loc, ti);
     }
     else
     {
@@ -4905,28 +4917,40 @@ Expression *ScopeExp::syntaxCopy()
 
 Expression *ScopeExp::semantic(Scope *sc)
 {
-    TemplateInstance *ti;
-    ScopeDsymbol *sds2;
-
 #if LOGSEMANTIC
     printf("+ScopeExp::semantic('%s')\n", toChars());
 #endif
+    //if (type == Type::tvoid)
+    //    return this;
+
 Lagain:
-    ti = sds->isTemplateInstance();
+    TemplateInstance *ti = sds->isTemplateInstance();
     if (ti && !ti->errors)
     {
         unsigned olderrs = global.errors;
         if (ti->needsTypeInference(sc))
         {
-            TemplateDeclaration *td = ti->tempdecl;
-            Dsymbol *p = td->toParent2();
-            FuncDeclaration *fdthis = hasThis(sc);
-            AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
-            if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
-                (td->scope->stc & STCstatic) == 0)
+            if (TemplateDeclaration *td = ti->tempdecl)
             {
-                Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
-                return e->semantic(sc);
+                Dsymbol *p = td->toParent2();
+                FuncDeclaration *fdthis = hasThis(sc);
+                AggregateDeclaration *ad = p ? p->isAggregateDeclaration() : NULL;
+                if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad &&
+                    (td->scope->stc & STCstatic) == 0)
+                {
+                    Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
+                    return e->semantic(sc);
+                }
+            }
+            else if (OverloadSet *os = ti->tempovers)
+            {
+                FuncDeclaration *fdthis = hasThis(sc);
+                AggregateDeclaration *ad = os->parent->isAggregateDeclaration();
+                if (fdthis && ad && isAggregate(fdthis->vthis->type) == ad)
+                {
+                    Expression *e = new DotTemplateInstanceExp(loc, new ThisExp(loc), ti->name, ti->tiargs);
+                    return e->semantic(sc);
+                }
             }
             return this;
         }
@@ -4937,7 +4961,7 @@ Lagain:
             if (ti->inst->errors)
                 return new ErrorExp();
             Dsymbol *s = ti->inst->toAlias();
-            sds2 = s->isScopeDsymbol();
+            ScopeDsymbol *sds2 = s->isScopeDsymbol();
             if (!sds2)
             {   Expression *e;
 
@@ -7934,26 +7958,86 @@ Expression *DotTemplateInstanceExp::syntaxCopy()
     return de;
 }
 
-TemplateDeclaration *DotTemplateInstanceExp::getTempdecl(Scope *sc)
+// corresponding to TemplateInstance::findTemplateDeclaration
+bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
 {
 #if LOGSEMANTIC
-    printf("DotTemplateInstanceExp::getTempdecl('%s')\n", toChars());
+    printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
 #endif
-    if (!ti->tempdecl)
+    if (!ti->tempdecl && !ti->tempovers)
     {
+        OverloadSet *os;
         Expression *e = new DotIdExp(loc, e1, ti->name);
         e = e->semantic(sc);
-        if (e->op == TOKdottd)
+        if (e->op == TOKdotexp)
+        {
+            DotExp *de = (DotExp *)e;
+            if (de->e2->op == TOKoverloadset)
+            {
+                os = ((OverExp *)de->e2)->vars;
+                goto Los;
+            }
+            else if (de->e2->op == TOKimport)
+            {
+                ScopeExp *se = (ScopeExp *)de->e2;
+                if ((os = se->sds->isOverloadSet()) != NULL)
+                    goto Los;
+                ti->tempdecl = se->sds->isTemplateDeclaration();
+            }
+        }
+        else if (e->op == TOKoverloadset)
+        {
+            os = ((OverExp *)e)->vars;
+        Los:
+            Dsymbol *s = NULL;
+            for (size_t i = 0; i < os->a.dim; i++)
+            {
+                Dsymbol *s2 = os->a[i];
+                if (FuncDeclaration *f = s2->isFuncDeclaration())
+                    s2 = f->findTemplateDeclRoot();
+                else
+                    s2 = s2->isTemplateDeclaration();
+                if (s2)
+                {
+                    if (s)
+                    {
+                        ti->tempovers = os;
+                        break;
+                    }
+                    s = s2;
+                }
+            }
+            if (!ti->tempovers)
+                ti->tempdecl = s->isTemplateDeclaration();
+        }
+        else if (e->op == TOKdottd)
         {
             DotTemplateExp *dte = (DotTemplateExp *)e;
             ti->tempdecl = dte->td;
         }
         else if (e->op == TOKimport)
-        {   ScopeExp *se = (ScopeExp *)e;
+        {
+            ScopeExp *se = (ScopeExp *)e;
+            if ((os = se->sds->isOverloadSet()) != NULL)
+                goto Los;
             ti->tempdecl = se->sds->isTemplateDeclaration();
         }
+        else if (e->op == TOKdotvar)
+        {
+            DotVarExp *dve = (DotVarExp *)e;
+            FuncDeclaration *f = dve->var->isFuncDeclaration();
+            if (f)
+                ti->tempdecl = f->findTemplateDeclRoot();
+        }
+        else if (e->op == TOKvar)
+        {
+            VarExp *ve = (VarExp *)e;
+            FuncDeclaration *f = ve->var->isFuncDeclaration();
+            if (f)
+                ti->tempdecl = f->findTemplateDeclRoot();
+        }
     }
-    return ti->tempdecl;
+    return (ti->tempdecl || ti->tempovers);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
@@ -8107,9 +8191,34 @@ L1:
     }
     else if (e->op == TOKdotexp)
     {   DotExp *de = (DotExp *)e;
+        Expression *eleft = de->e1;
 
         if (de->e2->op == TOKoverloadset)
         {
+            if (!findTempDecl(sc))
+                goto Lerr;
+            if (ti->needsTypeInference(sc))
+            {
+                e1 = eleft;
+                return this;
+            }
+            else
+                ti->semantic(sc);
+            if (!ti->inst)                  // if template failed to expand
+                return new ErrorExp();
+            Dsymbol *s = ti->inst->toAlias();
+            Declaration *v = s->isDeclaration();
+            if (v)
+            {
+                if (v->type && !v->type->deco)
+                    v->type = v->type->semantic(v->loc, sc);
+                e = new DotVarExp(loc, eleft, v);
+                e = e->semantic(sc);
+                return e;
+            }
+            e = new ScopeExp(loc, ti);
+            e = new DotExp(loc, eleft, e);
+            e = e->semantic(sc);
             return e;
         }
 
@@ -8131,6 +8240,15 @@ L1:
         if (e == de)
             goto Lerr;
         goto L1;
+    }
+    else if (e->op == TOKoverloadset)
+    {
+        OverExp *oe = (OverExp *)e;
+        ti->tempdecl = NULL;
+        ti->tempovers = oe->vars;
+        e = new ScopeExp(loc, ti);
+        e = e->semantic(sc);
+        return e;
     }
 Lerr:
     error("%s isn't a template", e->toChars());
@@ -8320,18 +8438,18 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            unsigned olderrors = global.errors;
-            ti->semanticTiargs(sc);
-            if (olderrors != global.errors)
-                return new ErrorExp();
-            if (ti->needsTypeInference(sc))
+            if (ti->semanticTiargs(sc) &&
+                ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                assert(ti->tempdecl);
-                e1 = new TemplateExp(loc, ti->tempdecl);
+                assert(!!ti->tempdecl != !!ti->tempovers);
+                if (ti->tempdecl)
+                    e1 = new TemplateExp(loc, ti->tempdecl);
+                else
+                    e1 = new OverExp(loc, ti->tempovers);
             }
             else
             {
@@ -8352,18 +8470,18 @@ Ldotti:
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            ti->semanticTiargs(sc);
-            if (!ti->tempdecl)
-            {
-                se->getTempdecl(sc);
-            }
-            if (ti->tempdecl && ti->needsTypeInference(sc))
+            if (se->findTempDecl(sc) &&
+                ti->semanticTiargs(sc) &&
+                ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                e1 = new DotIdExp(loc, se->e1, ti->name);
+                if (ti->tempdecl)
+                    e1 = new DotTemplateExp(loc, se->e1, ti->tempdecl);
+                else
+                    e1 = new DotExp(loc, se->e1, new OverExp(loc, ti->tempovers));
             }
             else
             {
