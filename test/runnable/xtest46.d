@@ -6362,6 +6362,17 @@ void test10091()
 }
 
 /***************************************************/
+// 10539
+
+void test10539()
+{
+    int[2][2] a;
+    int* p1 = a.ptr.ptr;    // OK <- error
+    int* p2 = (*a.ptr).ptr; // OK
+    assert(p1 is p2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6629,6 +6640,7 @@ int main()
     test9834();
     test9883();
     test10091();
+    test10539();
 
     printf("Success\n");
     return 0;
