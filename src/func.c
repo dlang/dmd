@@ -1420,7 +1420,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                     ::error(loc, "%s '%s' is nothrow yet may throw", kind(), toPrettyChars());
                 if (flags & FUNCFLAGnothrowInprocess)
                 {
-                    if (type == f) f = f->copy();
+                    if (type == f) f = (TypeFunction *)f->copy();
                     f->isnothrow = !(blockexit & BEthrow);
                 }
 
@@ -1755,14 +1755,14 @@ void FuncDeclaration::semantic3(Scope *sc)
     if (flags & FUNCFLAGpurityInprocess)
     {
         flags &= ~FUNCFLAGpurityInprocess;
-        if (type == f) f = f->copy();
+        if (type == f) f = (TypeFunction *)f->copy();
         f->purity = PUREfwdref;
     }
 
     if (flags & FUNCFLAGsafetyInprocess)
     {
         flags &= ~FUNCFLAGsafetyInprocess;
-        if (type == f) f = f->copy();
+        if (type == f) f = (TypeFunction *)f->copy();
         f->trust = TRUSTsafe;
     }
 
