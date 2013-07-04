@@ -6414,6 +6414,17 @@ void test10542() nothrow pure @safe
 }
 
 /***************************************************/
+// 10539
+
+void test10539()
+{
+    int[2][2] a;
+    int* p1 = a.ptr.ptr;    // OK <- error
+    int* p2 = (*a.ptr).ptr; // OK
+    assert(p1 is p2);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6683,6 +6694,7 @@ int main()
     test10091();
     test9130();
     test10542();
+    test10539();
 
     printf("Success\n");
     return 0;
