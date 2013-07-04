@@ -4028,7 +4028,7 @@ Expression *TypeSArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
     {
         e = TypeArray::dotExp(sc, e, ident, flag);
     }
-    if (!flag && e)
+    if (!flag || e)
         e = e->semantic(sc);
     return e;
 }
