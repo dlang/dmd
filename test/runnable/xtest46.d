@@ -6397,6 +6397,23 @@ const c10390 = new C10390();
 pragma(msg, c10390);
 
 /***************************************************/
+// 10542
+
+class B10542
+{
+    this() nothrow pure @safe { }
+}
+
+class D10542 : B10542
+{
+}
+
+void test10542() nothrow pure @safe
+{
+    new D10542;
+}
+
+/***************************************************/
 
 int main()
 {
@@ -6665,6 +6682,7 @@ int main()
     test9883();
     test10091();
     test9130();
+    test10542();
 
     printf("Success\n");
     return 0;
