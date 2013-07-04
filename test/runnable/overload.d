@@ -674,6 +674,29 @@ mixin Foo1900!(char) B;
 alias Bar1900!(int) bar;    //error
 
 /***************************************************/
+// 7780
+
+mixin template A7780()
+{
+    template C(int n : 0) { int C = 0; }
+}
+mixin template B7780()
+{
+    template C(int n : 1) { int C = 1; }
+}
+
+class Foo7780
+{
+    mixin A7780!();
+    mixin B7780!();
+}
+
+void test7780()
+{
+    assert(Foo7780.C!0 == 0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -693,6 +716,7 @@ int main()
     test1900c();
     test1900d();
     test1900e();
+    test7780();
 
     printf("Success\n");
     return 0;
