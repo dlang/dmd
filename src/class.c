@@ -712,10 +712,14 @@ void ClassDeclaration::semantic(Scope *sc)
     //    this() { }
     if (!ctor && baseClass && baseClass->ctor)
     {
-        if (resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
+        if (FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
         {
             //printf("Creating default this(){} for class %s\n", toChars());
-            Type *tf = new TypeFunction(NULL, NULL, 0, LINKd, 0);
+            TypeFunction *btf = (TypeFunction *)fd->type;
+            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
+            tf->purity = btf->purity;
+            tf->isnothrow = btf->isnothrow;
+            tf->trust = btf->trust;
             CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
             ctor->fbody = new CompoundStatement(Loc(), new Statements());
             members->push(ctor);
