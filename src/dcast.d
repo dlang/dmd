@@ -140,6 +140,34 @@ extern (C++) Expression implicitCastTo(Expression e, Scope* sc, Type t)
                 semanticTypeInfo(sc, (cast(TypeDArray)tb).next);
         }
 
+        override void visit(SymOffExp e)
+        {
+            visit(cast(Expression)e);
+            if (!e.hasOverloads)
+                return;
+
+            if (result.op == TOKsymoff)
+            {
+                auto se = cast(SymOffExp)result;
+                if (!se.hasOverloads)
+                    se.checkDeprecated(sc, se.var);
+            }
+        }
+
+        override void visit(DelegateExp e)
+        {
+            visit(cast(Expression)e);
+            if (!e.hasOverloads)
+                return;
+
+            if (result.op == TOKdelegate)
+            {
+                auto de = cast(DelegateExp)result;
+                if (!de.hasOverloads)
+                    de.checkDeprecated(sc, de.func);
+            }
+        }
+
         override void visit(SliceExp e)
         {
             visit(cast(Expression)e);
