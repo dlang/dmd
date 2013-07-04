@@ -428,7 +428,7 @@ static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
 {
     ArgsCppMangleCtx *p = (ArgsCppMangleCtx *)ctx;
 
-    Type *t = arg->type;
+    Type *t = arg->type->merge2();
     if (arg->storageClass & (STCout | STCref))
         t = t->referenceTo();
     else if (arg->storageClass & STClazy)

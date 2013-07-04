@@ -562,6 +562,13 @@ void AliasDeclaration::semantic(Scope *sc)
     else if (t)
     {
         type = t->semantic(loc, sc);
+
+        /* TypeTuple might have extra info,
+         *    is(typeof(func) PT == __parameters)
+         * Otherwise, strip all redundant informations.
+         */
+        if (type->ty != Ttuple)
+            type = type->merge2();
         //printf("\talias resolved to type %s\n", type->toChars());
     }
     if (overnext)
