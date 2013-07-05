@@ -72,7 +72,7 @@ struct HdrGenState;
 class OverloadSet;
 struct AA;
 struct JsonOut;
-class Mangler;
+class DsymbolVisitor;
 
 #ifdef IN_GCC
 typedef union tree_node TYPE;
@@ -191,7 +191,7 @@ public:
     virtual AggregateDeclaration *isMember();   // is this symbol a member of an AggregateDeclaration?
     virtual Type *getType();                    // is this a type?
     virtual const char *mangle(bool isv = false);
-    virtual const char *mangleX(Mangler *m);
+    virtual void acceptVisitor(DsymbolVisitor *v);
     virtual bool needThis();                     // need a 'this' pointer?
     virtual PROT prot();
     virtual Dsymbol *syntaxCopy(Dsymbol *s);    // copy only syntax trees

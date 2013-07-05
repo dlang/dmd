@@ -155,7 +155,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj cppmangle.obj
+	libomf.obj scanomf.obj iasm.obj cppmangle.obj visitors.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -187,7 +187,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c staticassert.c \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
-	class.c mangle.c func.c inline.c access.c complex_t.h cppmangle.c \
+	class.c mangle.c func.c inline.c access.c complex_t.h \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
@@ -196,14 +196,14 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h cppmangle.c mangle.h
+	intrange.h intrange.c canthrow.c target.c target.h
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c
+	tk.c eh.c gluestub.c cppmangle.c mangle.h visitors.c visitors.h 
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -719,7 +719,8 @@ statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
 target.obj : $(TOTALH) target.c target.h mangle.h
-cppmangle.obj : $(TOTALH) cppmangle.c mangle.h
+cppmangle.obj : $(TOTALH) cppmangle.c mangle.h visitors.h
+visitors.obj : $(TOTALH) visitors.c visitors.h
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c

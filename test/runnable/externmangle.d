@@ -1,3 +1,4 @@
+// EXTRA_CPP_SOURCES: externmangle.cpp
 
 extern(C++) int test1(); 
 

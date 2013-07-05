@@ -21,8 +21,6 @@ int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
 
-static Mangler* manglers[LINKmax];
-
 void Target::init()
 {
     // These have default values for 32 bit code, they get
@@ -63,11 +61,6 @@ void Target::init()
 
     if (global.params.isLP64)
         ptrsize = 8;
-
-    if (global.params.isWindows)
-        manglers[LINKcpp] = new VisualCPPMangler;
-    else
-        manglers[LINKcpp] = new ItaniumCPPMangler;
 }
 
 /******************************
@@ -164,12 +157,29 @@ unsigned Target::critsecsize()
 
 const char *Target::mangleSymbol(Dsymbol* sym, size_t link)
 {
-    if(!manglers[link])
+    Mangler *mangler = NULL;
+    
+    switch(link)
     {
-        fprintf(stderr, "'%s', linkage = %d\n", sym->toChars(), link);
-        assert(0);
+        case LINKcpp:
+        {
+            if (global.params.isWindows)
+                mangler = new VisualCPPMangler;
+            else
+                mangler = new ItaniumCPPMangler;
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "'%s', linkage = %d\n", sym->toChars(), link);
+            assert(0);
+        }
     }
-    return sym->mangleX(manglers[link]);
+    
+    sym->acceptVisitor(mangler);
+    const char *ret = mangler->result();
+    delete mangler;
+    return ret;
 }
 
 bool Target::validateMangle(Loc loc, const void *mangle, size_t len)
