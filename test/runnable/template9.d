@@ -2627,6 +2627,31 @@ static: // necessary to make overloaded symbols accessible via __traits(getOverl
 }
 
 /******************************************/
+// 10537
+
+struct Iota10537
+{
+    int s,e,i;
+    mixin Yield10537!q{ ; };
+}
+
+auto skipStrings10537(T)(T source)
+{
+    return "";
+}
+
+mixin template Yield10537(dstring code)
+{
+    alias X = typeof({ enum x = rewriteCode10537(code); }());
+}
+
+dstring rewriteCode10537(dstring code)
+{
+    skipStrings10537(code);  // IFTI causes forward reference
+    return "";
+}
+
+/******************************************/
 
 int main()
 {
