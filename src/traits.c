@@ -15,6 +15,7 @@
 #include <math.h>
 
 #include "rmem.h"
+#include "aav.h"
 
 //#include "port.h"
 #include "mtype.h"
@@ -693,16 +694,22 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (global.params.useUnitTests && symbols)
         {
+            // Should actually be a set
+            AA* uniqueUnitTests = NULL;
+
             for (size_t i = 0; i < symbols->dim; i++)
             {
                 Dsymbol* symbol = (*symbols)[i];
-                UnitTestDeclaration* unitTest = symbol->isUnitTestDeclaration();
-                if (unitTest)
+                UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+
+                if (unitTest && !_aaGetRvalue(uniqueUnitTests, unitTest))
                 {
                     FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
                     alias->protection = unitTest->protection;
                     Expression* e = new DsymbolExp(Loc(), alias);
                     unitTests->push(e);
+                    bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                    *value = true;
                 }
             }
         }
@@ -728,6 +735,5 @@ Lfalse:
 Ltrue:
     return new IntegerExp(loc, 1, Type::tbool);
 }
-
 
 #endif
