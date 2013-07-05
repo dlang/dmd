@@ -331,18 +331,70 @@ elem *el_combines(void **args, int length)
                     el_combines(args + mid, length - mid));
 }
 
+/**************************************
+ * Return number of op nodes
+ */
+
+size_t el_opN(elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        return el_opN(e->E1, op) + el_opN(e->E2, op);
+    }
+    else
+        return 1;
+}
+
+/******************************************
+ * Fill an array with the ops.
+ */
+
+void el_opArray(elem ***parray, elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        el_opArray(parray, e->E1, op);
+        el_opArray(parray, e->E2, op);
+    }
+    else
+    {
+        **parray = e;
+        ++(*parray);
+    }
+}
+
+void el_opFree(elem *e, unsigned op)
+{
+    if (e->Eoper == op)
+    {
+        el_opFree(e->E1, op);
+        el_opFree(e->E2, op);
+        e->E1 = NULL;
+        e->E2 = NULL;
+        el_free(e);
+    }
+}
+
+/*****************************************
+ * Do an array of parameters as a tree
+ */
+
+elem *el_opCombine(elem **args, size_t length, unsigned op, unsigned ty)
+{
+    if (length == 0)
+        return NULL;
+    if (length == 1)
+        return args[0];
+    return el_bin(op, ty, el_opCombine(args, length - 1, op, ty), args[length - 1]);
+}
+
 /***************************************
  * Return a list of the parameters.
  */
 
 int el_nparams(elem *e)
 {
-    if (e->Eoper == OPparam)
-    {
-        return el_nparams(e->E1) + el_nparams(e->E2);
-    }
-    else
-        return 1;
+    return el_opN(e, OPparam);
 }
 
 /******************************************
