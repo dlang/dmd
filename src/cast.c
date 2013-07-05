@@ -2214,13 +2214,13 @@ Lagain:
 
         if (t1b->ty == ty1)     // if no promotions
         {
-            if (t1 == t2)
+            if (t1->equals(t2))
             {
                 t = t1;
                 goto Lret;
             }
 
-            if (t1b == t2b)
+            if (t1b->equals(t2b))
             {
                 t = t1b;
                 goto Lret;
@@ -2242,7 +2242,7 @@ Lagain:
     t1 = t1b;
     t2 = t2b;
 
-    if (t1 == t2)
+    if (t1->equals(t2))
     {
         // merging can not result in new enum type
         if (t->ty == Tenum)
@@ -2255,7 +2255,7 @@ Lagain:
         Type *t1n = t1->nextOf();
         Type *t2n = t2->nextOf();
 
-        if (t1n == t2n)
+        if (t1n->equals(t2n))
             ;
         else if (t1n->ty == Tvoid)      // pointers to void are always compatible
             t = t2;
@@ -2813,8 +2813,8 @@ Expression *Expression::integralPromotions(Scope *sc)
 
 int arrayTypeCompatible(Loc loc, Type *t1, Type *t2)
 {
-    t1 = t1->toBasetype();
-    t2 = t2->toBasetype();
+    t1 = t1->toBasetype()->merge2();
+    t2 = t2->toBasetype()->merge2();
 
     if ((t1->ty == Tarray || t1->ty == Tsarray || t1->ty == Tpointer) &&
         (t2->ty == Tarray || t2->ty == Tsarray || t2->ty == Tpointer))
