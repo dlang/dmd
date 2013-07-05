@@ -668,6 +668,48 @@ Expression *TraitsExp::semantic(Scope *sc)
         else
             goto Lfalse;
     }
+    else if (ident == Id::getUnitTests)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+            error("first argument is not a symbol");
+            goto Lfalse;
+        }
+
+        Module* module = s->isModule();
+
+        if (!module)
+        {
+            error("first argument is not a module");
+            goto Lfalse;
+        }
+
+        Expressions* unitTests = new Expressions();
+        Dsymbols* symbols = module->members;
+
+        if (global.params.useUnitTests && symbols)
+        {
+            for (size_t i = 0; i < symbols->dim; i++)
+            {
+                Dsymbol* symbol = (*symbols)[i];
+                UnitTestDeclaration* unitTest = symbol->isUnitTestDeclaration();
+                if (unitTest)
+                {
+                    FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
+                    alias->protection = unitTest->protection;
+                    Expression* e = new DsymbolExp(Loc(), alias);
+                    unitTests->push(e);
+                }
+            }
+        }
+
+        TupleExp *tup = new TupleExp(loc, unitTests);
+        return tup->semantic(sc);
+    }
     else
     {   error("unrecognized trait %s", ident->toChars());
         goto Lfalse;
