@@ -2192,6 +2192,18 @@ void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
     {
         if (!td->semanticRun)
         {
+            if (td->scope)
+            {
+                // Try to fix forward reference. Ungag errors while doing so.
+                int oldgag = global.gag;
+                if (global.isSpeculativeGagging() && !td->isSpeculative())
+                    global.gag = 0;
+                td->semantic(td->scope);
+                global.gag = oldgag;
+            }
+        }
+        if (!td->semanticRun)
+        {
             ::error(loc, "forward reference to template %s", td->toChars());
             goto Lerror;
         }
