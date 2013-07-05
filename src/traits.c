@@ -584,8 +584,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             unsigned errors = global.startGagging();
             unsigned oldspec = global.speculativeGag;
             global.speculativeGag = global.gag;
-            bool scSpec = sc->speculative;
+            sc = sc->push();
             sc->speculative = true;
+            sc->needctfe = 0;
+            sc->flags = sc->enclosing->flags;   // inherit
 
             Type *t = isType(o);
             if (t)
@@ -606,7 +608,7 @@ Expression *TraitsExp::semantic(Scope *sc)
                 }
             }
 
-            sc->speculative = scSpec;
+            sc = sc->pop();
             global.speculativeGag = oldspec;
             if (global.endGagging(errors))
             {

@@ -2201,7 +2201,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
             f->parent->isTemplateInstance()->enclosing == NULL)
         {   // The closest pure parent of instantiated non-nested template function is
             // always itself.
-            if (!f->isPure() && outerfunc->setImpure())
+            if (!f->isPure() && outerfunc->setImpure() && !sc->needctfe)
                 error("pure function '%s' cannot call impure function '%s'",
                     outerfunc->toPrettyChars(), f->toPrettyChars());
             return;
