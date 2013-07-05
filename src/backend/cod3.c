@@ -1122,47 +1122,40 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
  */
 
 void doswitch(block *b)
-{   code *cc,*c,*ce;
-    regm_t retregs;
-    unsigned ncases,n,reg,reg2,rm;
-    targ_llong vmax,vmin,val;
-    targ_llong *p;
-    list_t bl;
-    elem *e;
+{
+    code *c;
+    code *ce = NULL;
 
-    tym_t tys;
-    int sz;
-    unsigned char dword;
-    unsigned char mswsame;
 #if LONGLONG
     targ_ulong msw;
 #else
     unsigned msw;
 #endif
 
-#if TARGET_WINDOS
+#if TARGET_SEGMENTED
     // If switch tables are in code segment and we need a CS: override to get at them
     bool csseg = config.flags & CFGromable;
 #else
     bool csseg = false;
 #endif
 
-    e = b->Belem;
+    elem *e = b->Belem;
     elem_debug(e);
-    cc = docommas(&e);
+    code *cc = docommas(&e);
     cgstate.stackclean++;
-    tys = tybasic(e->Ety);
-    sz = tysize[tys];
-    dword = (sz == 2 * REGSIZE);
-    mswsame = 1;                        // assume all msw's are the same
-    p = b->BS.Bswitch;                  /* pointer to case data         */
+    tym_t tys = tybasic(e->Ety);
+    int sz = tysize[tys];
+    bool dword = (sz == 2 * REGSIZE);
+    bool mswsame = true;                // assume all msw's are the same
+    targ_llong *p = b->BS.Bswitch;      // pointer to case data
     assert(p);
-    ncases = *p++;                      /* number of cases              */
+    unsigned ncases = *p++;             // number of cases
 
-    vmax = MINLL;                       // smallest possible llong
-    vmin = MAXLL;                       // largest possible llong
-    for (n = 0; n < ncases; n++)        // find max and min case values
-    {   val = *p++;
+    targ_llong vmax = MINLL;            // smallest possible llong
+    targ_llong vmin = MAXLL;            // largest possible llong
+    for (unsigned n = 0; n < ncases; n++)   // find max and min case values
+    {
+        targ_llong val = *p++;
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
         if (REGSIZE == 2)
@@ -1185,38 +1178,41 @@ void doswitch(block *b)
     p -= ncases;
     //dbg_printf("vmax = x%lx, vmin = x%lx, vmax-vmin = x%lx\n",vmax,vmin,vmax - vmin);
 
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
-    if (//!(I64 && (config.flags3 & CFG3pic)) &&
-        ncases > 3 &&
+    /* Three kinds of switch strategies - pick one
+     */
+    if (ncases > 3 &&
         (targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
-    {
         goto Ljmptab;
-    }
+    else if (I64 || MACHOBJ || ncases <= 3)
+        goto Lifthen;
     else
-#endif
-#if TARGET_WINDOS
-    if (I64 &&
-        ncases > 3 &&
-        (targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
-    {
-        goto Ljmptab;
-    }
-    else
-#endif
-    if (I64)
-    {   // For now, just generate basic if-then sequence to get us running
-        retregs = ALLREGS;
+        goto Lswitch;
+
+    /*************************************************************************/
+    {   // generate if-then sequence
+    Lifthen:
+        regm_t retregs = ALLREGS;
         b->BC = BCifthen;
         c = scodelem(e,&retregs,0,TRUE);
-        assert(!dword);                 // 128 bit switches not supported
-        reg = findreg(retregs);         // reg that result is in
-        bl = b->Bsucc;
-        for (n = 0; n < ncases; n++)
-        {   code *cx;
-            val = *p;
-            if (sz == 4)
-                cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);  // CMP reg,val
-            else if (sz == 8)
+        unsigned reg, reg2;
+        if (dword)
+        {   reg = findreglsw(retregs);
+            reg2 = findregmsw(retregs);
+        }
+        else
+            reg = findreg(retregs);     /* reg that result is in        */
+        list_t bl = b->Bsucc;
+        if (dword && mswsame)
+        {   /* CMP reg2,MSW     */
+            c = genc2(c,0x81,modregrm(3,7,reg2),msw);
+            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+        }
+        for (unsigned n = 0; n < ncases; n++)
+        {
+            code *cx;
+                                        /* CMP reg,casevalue            */
+            targ_llong val = *p;
+            if (I64 && sz == 8)
             {
                 if (val == (int)val)    // if val is a 64 bit value sign-extended from 32 bits
                 {
@@ -1232,39 +1228,8 @@ void doswitch(block *b)
                 }
             }
             else
-                assert(0);
-            bl = list_next(bl);
-            genjmp(cx,JE,FLblock,list_block(bl));       // JE caseaddr
-            c = cat(c,cx);
-            p++;
-        }
-        if (list_block(b->Bsucc) != b->Bnext) /* if default is not next block */
-                c = cat(c,genjmp(CNIL,JMP,FLblock,list_block(b->Bsucc)));
-        ce = NULL;
-    }
-    // Need to do research on MACHOBJ to see about better methods
-    else if (MACHOBJ || ncases <= 3)
-    {   // generate if-then sequence
-        retregs = ALLREGS;
-    L1:
-        b->BC = BCifthen;
-        c = scodelem(e,&retregs,0,TRUE);
-        if (dword)
-        {   reg = findreglsw(retregs);
-            reg2 = findregmsw(retregs);
-        }
-        else
-            reg = findreg(retregs);     /* reg that result is in        */
-        bl = b->Bsucc;
-        if (dword && mswsame)
-        {   /* CMP reg2,MSW     */
-            c = genc2(c,0x81,modregrm(3,7,reg2),msw);
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
-        }
-        for (n = 0; n < ncases; n++)
-        {   code *cnext = CNIL;
-                                        /* CMP reg,casevalue            */
-            c = cat(c,ce = genc2(CNIL,0x81,modregrm(3,7,reg),(targ_int)*p));
+                cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);
+            code *cnext = CNIL;
             if (dword && !mswsame)
             {
                 cnext = gennop(CNIL);
@@ -1272,41 +1237,35 @@ void doswitch(block *b)
                 genc2(ce,0x81,modregrm(3,7,reg2),MSREG(*p));
             }
             bl = list_next(bl);
-                                        /* JE caseaddr                  */
-            genjmp(ce,JE,FLblock,list_block(bl));
-            c = cat(c,cnext);
+            genjmp(cx,JE,FLblock,list_block(bl));               // JE caseaddr
+            c = cat3(c,cx,cnext);
             p++;
         }
         if (list_block(b->Bsucc) != b->Bnext) /* if default is not next block */
                 c = cat(c,genjmp(CNIL,JMP,FLblock,list_block(b->Bsucc)));
         ce = NULL;
+        goto L2;
     }
-#if TARGET_WINDOS || TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
-    else if (
-#if TARGET_WINDOS
-        config.exe != EX_WIN64 &&
-#endif
-#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS || TARGET_OSX
-        I64 && !(config.flags3 & CFG3pic) &&
-#endif
-             (targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
+
+    /*************************************************************************/
     {
+        // Use switch value to index into jump table
     Ljmptab:
         //printf("Ljmptab:\n");
-        int modify;
 
         b->BC = BCjmptab;
         b->Btablesize = (int) (vmax - vmin + 1) * tysize[TYnptr];
-        retregs = IDXREGS;
+        regm_t retregs = IDXREGS;
         if (dword)
             retregs |= mMSW;
 #if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
         if (I32 && config.flags3 & CFG3pic)
             retregs &= ~mBX;                            // need EBX for GOT
 #endif
-        modify = (vmin || I16 || I64);
+        bool modify = (vmin || I16 || I64);
         c = scodelem(e,&retregs,0,!modify);
-        reg = findreg(retregs & IDXREGS); /* reg that result is in      */
+        unsigned reg = findreg(retregs & IDXREGS); // reg that result is in
+        unsigned reg2;
         if (dword)
             reg2 = findregmsw(retregs);
         if (modify)
@@ -1407,8 +1366,7 @@ void doswitch(block *b)
             ce = cat(ce, ctable);
             b->Btablesize = 0;
             goto L2;
-#else
-#if TARGET_OSX
+#elif TARGET_OSX
             /*     CALL L1
              * L1: POP  R1
              *     ADD  R1,disp[reg*4][R1]
@@ -1451,31 +1409,34 @@ void doswitch(block *b)
                 ce->Isib = modregrm(2,reg,5);
             }
 #endif
-#endif
         }
         else if (I16)
         {
-            c = gen2(c,0xD1,modregrm(3,4,reg)); /* SHL reg,1            */
-            rm = getaddrmode(retregs) | modregrm(0,4,0);
-            ce = genc1(CNIL,0xFF,rm,FLswitch,0);        /* JMP [CS:]disp[idxreg] */
+            c = gen2(c,0xD1,modregrm(3,4,reg));                   // SHL reg,1
+            unsigned rm = getaddrmode(retregs) | modregrm(0,4,0);
+            ce = genc1(CNIL,0xFF,rm,FLswitch,0);                  // JMP [CS:]disp[idxreg]
+            ce->Iflags |= csseg ? CFcs : 0;                       // segment override
         }
         else
             assert(0);
-        ce->Iflags |= csseg ? CFcs : 0;                    // segment override
         ce->IEV1.Vswitch = b;
+        goto L2;
     }
-#endif
-    else                                /* else use switch table (BCswitch) */
-    {   targ_size_t disp;
+
+    /*************************************************************************/
+    {
+        // Scan a table of case values, and jump to corresponding address
+    Lswitch:
+        targ_size_t disp;
         int mod;
         code *esw;
         code *ct;
 
-        retregs = mAX;                  /* SCASW requires AX            */
+        regm_t retregs = mAX;                  // SCASW requires AX
         if (dword)
             retregs |= mDX;
         else if (ncases <= 6 || config.flags4 & CFG4speed)
-            goto L1;
+            goto Lifthen;
         c = scodelem(e,&retregs,0,TRUE);
         if (dword && mswsame)
         {   /* CMP DX,MSW       */
@@ -1534,7 +1495,7 @@ void doswitch(block *b)
 
         disp = (ncases - 1) * intsize;          /* displacement to jump table */
         if (dword && !mswsame)
-        {   code *cloop;
+        {
 
             /* Build the following:
                 L1:     SCASW
@@ -1544,7 +1505,7 @@ void doswitch(block *b)
              */
 
             mod = (disp > 127) ? 2 : 1;         /* displacement size    */
-            cloop = genc2(CNIL,0xE0,0,-7 - mod - csseg); // LOOPNE scasw
+            code *cloop = genc2(CNIL,0xE0,0,-7 - mod - csseg); // LOOPNE scasw
             ce = gen1(ce,0xAF);                         /* SCASW        */
             code_orflag(ce,CFtarg2);                    // target of jump
             genjmp(ce,JNE,FLcode,(block *) cloop);      /* JNE loop     */
@@ -1579,6 +1540,7 @@ void doswitch(block *b)
         ce = cat(ce,ct);
         b->Btablesize = disp + intsize + ncases * tysize[TYnptr];
     }
+
 L2: ;
     b->Bcode = cat3(cc,c,ce);
     //assert(b->Bcode);
