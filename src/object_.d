@@ -1528,9 +1528,9 @@ unittest
 
 enum
 {
-    MIctorstart  = 1,   // we've started constructing it
-    MIctordone   = 2,   // finished construction
-    MIstandalone = 4,   // module ctor does not depend on other module
+    MIctorstart  = 0x1,   // we've started constructing it
+    MIctordone   = 0x2,   // finished construction
+    MIstandalone = 0x4,   // module ctor does not depend on other module
                         // ctors being done first
     MItlsctor    = 8,
     MItlsdtor    = 0x10,
@@ -1541,307 +1541,147 @@ enum
     MIunitTest   = 0x200,
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
-    MInew        = 0x80000000        // it's the "new" layout
+    MIname       = 0x1000,
 }
 
 
 struct ModuleInfo
 {
-    struct New
+    uint _flags;
+    uint _index; // index into _moduleinfo_array[]
+
+    private void* addrOf(int flag) nothrow pure
+    in
     {
-        uint flags;
-        uint index;                        // index into _moduleinfo_array[]
-
-        /* Order of appearance, depending on flags
-         * tlsctor
-         * tlsdtor
-         * xgetMembers
-         * ctor
-         * dtor
-         * ictor
-         * importedModules
-         * localClasses
-         * name
-         */
+        assert(flag >= MItlsctor && flag <= MIname);
+        assert(!(flag & (flag - 1)) && !(flag & ~(flag - 1) << 1));
     }
-    struct Old
+    body
     {
-        string          name;
-        ModuleInfo*[]    importedModules;
-        TypeInfo_Class[]     localClasses;
-        uint            flags;
+        void* p = cast(void*)&this + ModuleInfo.sizeof;
 
-        void function() ctor;       // module shared static constructor (order dependent)
-        void function() dtor;       // module shared static destructor
-        void function() unitTest;   // module unit tests
-
-        void* xgetMembers;          // module getMembers() function
-
-        void function() ictor;      // module shared static constructor (order independent)
-
-        void function() tlsctor;        // module thread local static constructor (order dependent)
-        void function() tlsdtor;        // module thread local static destructor
-
-        uint index;                        // index into _moduleinfo_array[]
-
-        void*[1] reserved;          // for future expansion
+        if (flags & MItlsctor)
+        {
+            if (flag == MItlsctor) return p;
+            p += typeof(tlsctor).sizeof;
+        }
+        if (flags & MItlsdtor)
+        {
+            if (flag == MItlsdtor) return p;
+            p += typeof(tlsdtor).sizeof;
+        }
+        if (flags & MIctor)
+        {
+            if (flag == MIctor) return p;
+            p += typeof(ctor).sizeof;
+        }
+        if (flags & MIdtor)
+        {
+            if (flag == MIdtor) return p;
+            p += typeof(dtor).sizeof;
+        }
+        if (flags & MIxgetMembers)
+        {
+            if (flag == MIxgetMembers) return p;
+            p += typeof(xgetMembers).sizeof;
+        }
+        if (flags & MIictor)
+        {
+            if (flag == MIictor) return p;
+            p += typeof(ictor).sizeof;
+        }
+        if (flags & MIunitTest)
+        {
+            if (flag == MIunitTest) return p;
+            p += typeof(unitTest).sizeof;
+        }
+        if (flags & MIimportedModules)
+        {
+            if (flag == MIimportedModules) return p;
+            p += size_t.sizeof + *cast(size_t*)p * typeof(importedModules[0]).sizeof;
+        }
+        if (flags & MIlocalClasses)
+        {
+            if (flag == MIlocalClasses) return p;
+            p += size_t.sizeof + *cast(size_t*)p * typeof(localClasses[0]).sizeof;
+        }
+        if (true || flags & MIname) // always available for now
+        {
+            if (flag == MIname) return p;
+            p += .strlen(cast(immutable char*)p);
+        }
+        assert(0);
     }
 
-    union
-    {
-        New n;
-        Old o;
-    }
+    @property uint index() nothrow pure { return _index; }
+    @property void index(uint i) nothrow pure { _index = i; }
 
-    @property bool isNew() nothrow pure { return (n.flags & MInew) != 0; }
-
-    @property uint index() nothrow pure { return isNew ? n.index : o.index; }
-    @property void index(uint i) nothrow pure { if (isNew) n.index = i; else o.index = i; }
-
-    @property uint flags() nothrow pure { return isNew ? n.flags : o.flags; }
-    @property void flags(uint f) nothrow pure { if (isNew) n.flags = f; else o.flags = f; }
+    @property uint flags() nothrow pure { return _flags; }
+    @property void flags(uint f) nothrow pure { _flags = f; }
 
     @property void function() tlsctor() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MItlsctor)
-            {
-                size_t off = New.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        else
-            return o.tlsctor;
+        return flags & MItlsctor ? *cast(typeof(return)*)addrOf(MItlsctor) : null;
     }
 
     @property void function() tlsdtor() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MItlsdtor)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        else
-            return o.tlsdtor;
+        return flags & MItlsdtor ? *cast(typeof(return)*)addrOf(MItlsdtor) : null;
     }
 
     @property void* xgetMembers() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MIxgetMembers)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        return o.xgetMembers;
+        return flags & MIxgetMembers ? *cast(typeof(return)*)addrOf(MIxgetMembers) : null;
     }
 
     @property void function() ctor() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MIctor)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        return o.ctor;
+        return flags & MIctor ? *cast(typeof(return)*)addrOf(MIctor) : null;
     }
 
     @property void function() dtor() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MIdtor)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                if (n.flags & MIctor)
-                    off += o.ctor.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        return o.ctor;
+        return flags & MIdtor ? *cast(typeof(return)*)addrOf(MIdtor) : null;
     }
 
     @property void function() ictor() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MIictor)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                if (n.flags & MIctor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIdtor)
-                    off += o.ctor.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        return o.ictor;
+        return flags & MIictor ? *cast(typeof(return)*)addrOf(MIictor) : null;
     }
 
     @property void function() unitTest() nothrow pure
     {
-        if (isNew)
-        {
-            if (n.flags & MIunitTest)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                if (n.flags & MIctor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIdtor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIictor)
-                    off += o.ictor.sizeof;
-                return *cast(typeof(return)*)(cast(void*)(&this) + off);
-            }
-            return null;
-        }
-        return o.unitTest;
+        return flags & MIunitTest ? *cast(typeof(return)*)addrOf(MIunitTest) : null;
     }
 
     @property ModuleInfo*[] importedModules() nothrow pure
     {
-        if (isNew)
+        if (flags & MIimportedModules)
         {
-            if (n.flags & MIimportedModules)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                if (n.flags & MIctor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIdtor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIictor)
-                    off += o.ictor.sizeof;
-                if (n.flags & MIunitTest)
-                    off += o.unitTest.sizeof;
-                auto plength = cast(size_t*)(cast(void*)(&this) + off);
-                ModuleInfo** pm = cast(ModuleInfo**)(plength + 1);
-                return pm[0 .. *plength];
-            }
-            return null;
+            auto p = cast(size_t*)addrOf(MIimportedModules);
+            return (cast(ModuleInfo**)(p + 1))[0 .. *p];
         }
-        return o.importedModules;
+        return null;
     }
 
     @property TypeInfo_Class[] localClasses() nothrow pure
     {
-        if (isNew)
+        if (flags & MIlocalClasses)
         {
-            if (n.flags & MIlocalClasses)
-            {
-                size_t off = New.sizeof;
-                if (n.flags & MItlsctor)
-                    off += o.tlsctor.sizeof;
-                if (n.flags & MItlsdtor)
-                    off += o.tlsdtor.sizeof;
-                if (n.flags & MIxgetMembers)
-                    off += o.xgetMembers.sizeof;
-                if (n.flags & MIctor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIdtor)
-                    off += o.ctor.sizeof;
-                if (n.flags & MIictor)
-                    off += o.ictor.sizeof;
-                if (n.flags & MIunitTest)
-                    off += o.unitTest.sizeof;
-                if (n.flags & MIimportedModules)
-                {
-                    auto plength = cast(size_t*)(cast(void*)(&this) + off);
-                    off += size_t.sizeof + *plength * plength.sizeof;
-                }
-                auto plength = cast(size_t*)(cast(void*)(&this) + off);
-                TypeInfo_Class* pt = cast(TypeInfo_Class*)(plength + 1);
-                return pt[0 .. *plength];
-            }
-            return null;
+            auto p = cast(size_t*)addrOf(MIlocalClasses);
+            return (cast(TypeInfo_Class*)(p + 1))[0 .. *p];
         }
-        return o.localClasses;
+        return null;
     }
 
     @property string name() nothrow pure
     {
-        if (isNew)
+        if (true || flags & MIname) // always available for now
         {
-            size_t off = New.sizeof;
-            if (n.flags & MItlsctor)
-                off += o.tlsctor.sizeof;
-            if (n.flags & MItlsdtor)
-                off += o.tlsdtor.sizeof;
-            if (n.flags & MIxgetMembers)
-                off += o.xgetMembers.sizeof;
-            if (n.flags & MIctor)
-                off += o.ctor.sizeof;
-            if (n.flags & MIdtor)
-                off += o.ctor.sizeof;
-            if (n.flags & MIictor)
-                off += o.ictor.sizeof;
-            if (n.flags & MIunitTest)
-                off += o.unitTest.sizeof;
-            if (n.flags & MIimportedModules)
-            {
-                auto plength = cast(size_t*)(cast(void*)(&this) + off);
-                off += size_t.sizeof + *plength * plength.sizeof;
-            }
-            if (n.flags & MIlocalClasses)
-            {
-                auto plength = cast(size_t*)(cast(void*)(&this) + off);
-                off += size_t.sizeof + *plength * plength.sizeof;
-            }
-            auto p = cast(immutable(char)*)(cast(void*)(&this) + off);
-            auto len = strlen(p);
-            return p[0 .. len];
+            auto p = cast(immutable char*)addrOf(MIname);
+            return p[0 .. .strlen(p)];
         }
-        return o.name;
+        // return null;
     }
 
     alias int delegate(ref ModuleInfo*) ApplyDg;

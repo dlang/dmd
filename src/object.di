@@ -268,37 +268,9 @@ class MemberInfo_function : MemberInfo
 
 struct ModuleInfo
 {
-    struct New
-    {
-        uint flags;
-        uint index;
-    }
+    uint _flags;
+    uint _index;
 
-    struct Old
-    {
-        string           name;
-        ModuleInfo*[]    importedModules;
-        TypeInfo_Class[] localClasses;
-        uint             flags;
-
-        void function() ctor;
-        void function() dtor;
-        void function() unitTest;
-        void* xgetMembers;
-        void function() ictor;
-        void function() tlsctor;
-        void function() tlsdtor;
-        uint index;
-        void*[1] reserved;
-    }
-
-    union
-    {
-        New n;
-        Old o;
-    }
-
-    @property bool isNew() nothrow pure;
     @property uint index() nothrow pure;
     @property void index(uint i) nothrow pure;
     @property uint flags() nothrow pure;
