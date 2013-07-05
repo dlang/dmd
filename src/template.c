@@ -1631,20 +1631,21 @@ Lretry:
                                            ((TypeIdentifier *)taai)->idents.dim == 0))
             {
                 if (farg->op == TOKstring)
-                {   StringExp *se = (StringExp *)farg;
-                    argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(se->loc, se->len, Type::tindex));
-                    argtype = argtype->semantic(se->loc, NULL);
+                {
+                    StringExp *se = (StringExp *)farg;
+                    argtype = TypeSArray::makeType(se->loc, argtype->nextOf(), se->len);
                 }
                 else if (farg->op == TOKslice)
-                {   SliceExp *se = (SliceExp *)farg;
+                {
+                    SliceExp *se = (SliceExp *)farg;
                     Type *tsa = se->toStaticArrayType();
                     if (tsa)
                         argtype = tsa;
                 }
                 else if (farg->op == TOKarrayliteral)
-                {   ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
-                    argtype = new TypeSArray(argtype->nextOf(), new IntegerExp(ae->loc, ae->elements->dim, Type::tindex));
-                    argtype = argtype->semantic(ae->loc, NULL);
+                {
+                    ArrayLiteralExp *ae = (ArrayLiteralExp *)farg;
+                    argtype = TypeSArray::makeType(ae->loc, argtype->nextOf(), ae->elements->dim);
                 }
             }
 

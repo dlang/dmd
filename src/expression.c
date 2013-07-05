@@ -1883,19 +1883,13 @@ Expression *Expression::trySemantic(Scope *sc)
 
 Expression *Expression::ctfeSemantic(Scope *sc)
 {
-    if (sc)
-    {
-        assert(sc->needctfe >= 0);
-        sc->needctfe++;
-        Expression *e = semantic(sc);
-        sc->needctfe--;
-        assert(sc->needctfe >= 0);
-        return e;
-    }
-    else
-    {
-        return semantic(sc);
-    }
+    assert(sc);
+    assert(sc->needctfe >= 0);
+    sc->needctfe++;
+    Expression *e = semantic(sc);
+    sc->needctfe--;
+    assert(sc->needctfe >= 0);
+    return e;
 }
 
 void Expression::print()

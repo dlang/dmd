@@ -1457,7 +1457,7 @@ Lnomatch:
                             if (t->ty != Tsarray)
                                 break;
                             dim *= ((TypeSArray *)t)->dim->toInteger();
-                            e1->type = new TypeSArray(t->nextOf(), new IntegerExp(Loc(), dim, Type::tindex));
+                            e1->type = TypeSArray::makeType(Loc(), t->nextOf(), dim);
                         }
                     }
                     e1 = new SliceExp(loc, e1, NULL, NULL);

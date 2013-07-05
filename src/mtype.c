@@ -3886,7 +3886,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
         return t;
     }
 
-    Type *tn = next->semantic(loc,sc);
+    Type *tn = next->semantic(loc, sc);
     if (tn->ty == Terror)
         return terror;
 
@@ -3982,6 +3982,19 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
 
 Lerror:
     return Type::terror;
+}
+
+// Make corresponding static array type without semantic
+Type *TypeSArray::makeType(Loc loc, Type *tn, dinteger_t dim)
+{
+    assert(tn->deco);
+    Type *t = new TypeSArray(tn, new IntegerExp(loc, dim, Type::tindex));
+
+    // according to TypeSArray::semantic()
+    t = t->addMod(tn->mod);
+    t = t->merge();
+
+    return t;
 }
 
 void TypeSArray::toDecoBuffer(OutBuffer *buf, int flag)
@@ -4481,10 +4494,8 @@ Type *TypeAArray::semantic(Loc loc, Scope *sc)
         if (e)
         {   // It was an expression -
             // Rewrite as a static array
-            TypeSArray *tsa;
-
-            tsa = new TypeSArray(next, e);
-            return tsa->semantic(loc,sc);
+            TypeSArray *tsa = new TypeSArray(next, e);
+            return tsa->semantic(loc, sc);
         }
         else if (t)
             index = t;
@@ -5945,20 +5956,23 @@ MATCH TypeFunction::callMatch(Type *tthis, Expressions *args, int flag)
             if (m && !arg->isLvalue())
             {
                 if (arg->op == TOKstring && tprmb->ty == Tsarray)
-                {   if (targb->ty != Tsarray)
-                        {
-                        targb = new TypeSArray(tprmb->nextOf()->castMod(targb->nextOf()->mod),
-                                new IntegerExp(Loc(), ((StringExp *)arg)->len,
-                                Type::tindex));
-                        targb = targb->semantic(Loc(), NULL);
+                {
+                    if (targb->ty != Tsarray)
+                    {
+                        Type *tn = tprmb->nextOf()->castMod(targb->nextOf()->mod);
+                        dinteger_t dim = ((StringExp *)arg)->len;
+                        targb = TypeSArray::makeType(Loc(), tn, dim);
                     }
                 }
                 else if (arg->op == TOKslice && tprmb->ty == Tsarray)
-                {   // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
-                    targb = new TypeSArray(targb->nextOf(),
-                            new IntegerExp(Loc(), ((TypeSArray *)tprmb)->dim->toUInteger(),
-                            Type::tindex));
-                    targb = targb->semantic(Loc(), NULL);
+                {
+                    // Allow conversion from T[lwr .. upr] to ref T[upr-lwr]
+                    if (targb->ty != Tsarray)
+                    {
+                        Type *tn = targb->nextOf();
+                        dinteger_t dim = ((TypeSArray *)tprmb)->dim->toUInteger();
+                        targb = TypeSArray::makeType(Loc(), tn, dim);
+                    }
                 }
                 else
                     goto Nomatch;
