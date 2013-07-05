@@ -205,6 +205,8 @@ void EnumDeclaration::semantic(Scope *sc)
     {   sce = sc->push(this);
         sce->parent = this;
     }
+    sce->startCTFE();
+
     if (members->dim == 0)
         error("enum %s must have at least one member", toChars());
 
@@ -248,8 +250,8 @@ void EnumDeclaration::semantic(Scope *sc)
         if (e)
         {
             assert(e->dyncast() == DYNCAST_EXPRESSION);
-            e = e->ctfeSemantic(sce);
-            e = ctfeResolveProperties(sc, e);
+            e = e->semantic(sce);
+            e = resolveProperties(sc, e);
             e = e->ctfeInterpret();
             if (first && !memtype && !isAnonymous())
                 memtype = e->type;
@@ -306,7 +308,7 @@ void EnumDeclaration::semantic(Scope *sc)
             if (!emax)
             {
                 emax = t->getProperty(Loc(), Id::max, 0);
-                emax = emax->ctfeSemantic(sce);
+                emax = emax->semantic(sce);
                 emax = emax->ctfeInterpret();
             }
 
@@ -314,14 +316,14 @@ void EnumDeclaration::semantic(Scope *sc)
             // But first check that (elast != t.max)
             assert(elast);
             e = new EqualExp(TOKequal, em->loc, elast, emax);
-            e = e->ctfeSemantic(sce);
+            e = e->semantic(sce);
             e = e->ctfeInterpret();
             if (e->toInteger())
                 error("overflow of enum value %s", elast->toChars());
 
             // Now set e to (elast + 1)
             e = new AddExp(em->loc, elast, new IntegerExp(em->loc, 1, Type::tint32));
-            e = e->ctfeSemantic(sce);
+            e = e->semantic(sce);
             e = e->castTo(sce, elast->type);
             e = e->ctfeInterpret();
 
@@ -329,7 +331,7 @@ void EnumDeclaration::semantic(Scope *sc)
             {
                 // Check that e != elast (not always true for floats)
                 Expression *etest = new EqualExp(TOKequal, em->loc, e, elast);
-                etest = etest->ctfeSemantic(sce);
+                etest = etest->semantic(sce);
                 etest = etest->ctfeInterpret();
                 if (etest->toInteger())
                     error("enum member %s has inexact value, due to loss of precision", em->toChars());
@@ -372,13 +374,13 @@ void EnumDeclaration::semantic(Scope *sc)
 
                 // Compute if(e < minval)
                 ec = new CmpExp(TOKlt, em->loc, e, minval);
-                ec = ec->ctfeSemantic(sce);
+                ec = ec->semantic(sce);
                 ec = ec->ctfeInterpret();
                 if (ec->toInteger())
                     minval = e;
 
                 ec = new CmpExp(TOKgt, em->loc, e, maxval);
-                ec = ec->ctfeSemantic(sce);
+                ec = ec->semantic(sce);
                 ec = ec->ctfeInterpret();
                 if (ec->toInteger())
                     maxval = e;
@@ -389,6 +391,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //printf("defaultval = %lld\n", defaultval);
 
     //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
+    sce->endCTFE();
     if (sc != sce)
         sce->pop();
     //members->print();

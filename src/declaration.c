@@ -1613,18 +1613,14 @@ Lnomatch:
 #if DMDV2
                 if (ei)
                 {
-                    Expression *exp;
-                    exp = ei->exp->syntaxCopy();
-                    if (isDataseg() || (storage_class & STCmanifest))
-                    {
-                        exp = exp->ctfeSemantic(sc);
-                        exp = ctfeResolveProperties(sc, exp);
-                    }
-                    else
-                    {
-                        exp = exp->semantic(sc);
-                        exp = resolveProperties(sc, exp);
-                    }
+                    Expression *exp = ei->exp->syntaxCopy();
+
+                    bool needctfe = isDataseg() || (storage_class & STCmanifest);
+                    if (needctfe) sc->startCTFE();
+                    exp = exp->semantic(sc);
+                    exp = resolveProperties(sc, exp);
+                    if (needctfe) sc->endCTFE();
+
                     Type *tb = type->toBasetype();
                     Type *ti = exp->type->toBasetype();
 

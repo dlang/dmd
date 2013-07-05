@@ -3750,16 +3750,24 @@ unsigned TypeSArray::alignsize()
 Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
 {
     if (t->ty == Ttuple)
-    {   ScopeDsymbol *sym = new ArrayScopeSymbol(sc, (TypeTuple *)t);
+    {
+        ScopeDsymbol *sym = new ArrayScopeSymbol(sc, (TypeTuple *)t);
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
 
-        exp = exp->ctfeSemantic(sc);
+        sc->startCTFE();
+        exp = exp->semantic(sc);
+        sc->endCTFE();
 
         sc->pop();
     }
     else
-        exp = exp->ctfeSemantic(sc);
+    {
+        sc->startCTFE();
+        exp = exp->semantic(sc);
+        sc->endCTFE();
+    }
+
     return exp;
 }
 
@@ -3769,7 +3777,9 @@ Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *exp)
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
-    exp = exp->ctfeSemantic(sc);
+    sc->startCTFE();
+    exp = exp->semantic(sc);
+    sc->endCTFE();
 
     sc->pop();
     return exp;
@@ -3797,12 +3807,13 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
+            sc->startCTFE();
+            dim = dim->semantic(sc);
+            sc->endCTFE();
+            sc = sc->pop();
 
-            dim = dim->ctfeSemantic(sc);
             dim = dim->ctfeInterpret();
             uinteger_t d = dim->toUInteger();
-
-            sc = sc->pop();
 
             if (d >= td->objects->dim)
             {   error(loc, "tuple index %llu exceeds length %u", d, td->objects->dim);
@@ -9185,16 +9196,16 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
-
-            lwr = lwr->ctfeSemantic(sc);
-            lwr = lwr->ctfeInterpret();
-            uinteger_t i1 = lwr->toUInteger();
-
-            upr = upr->ctfeSemantic(sc);
-            upr = upr->ctfeInterpret();
-            uinteger_t i2 = upr->toUInteger();
-
+            sc->startCTFE();
+            lwr = lwr->semantic(sc);
+            upr = upr->semantic(sc);
+            sc->endCTFE();
             sc = sc->pop();
+
+            lwr = lwr->ctfeInterpret();
+            upr = upr->ctfeInterpret();
+            uinteger_t i1 = lwr->toUInteger();
+            uinteger_t i2 = upr->toUInteger();
 
             if (!(i1 <= i2 && i2 <= td->objects->dim))
             {   error(loc, "slice [%llu..%llu] is out of range of [0..%u]", i1, i2, td->objects->dim);

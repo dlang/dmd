@@ -68,7 +68,6 @@ void initPrecedence();
 typedef int (*apply_fp_t)(Expression *, void *);
 
 Expression *resolveProperties(Scope *sc, Expression *e);
-Expression *ctfeResolveProperties(Scope *sc, Expression *e);
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d);
 Expression *build_overload(Loc loc, Scope *sc, Expression *ethis, Expression *earg, Dsymbol *d);
 Dsymbol *search_function(ScopeDsymbol *ad, Identifier *funcid);
@@ -130,7 +129,6 @@ public:
     virtual int apply(apply_fp_t fp, void *param);
     virtual Expression *semantic(Scope *sc);
     Expression *trySemantic(Scope *sc);
-    Expression *ctfeSemantic(Scope *sc);
 
     int dyncast() { return DYNCAST_EXPRESSION; }        // kludge for template.isExpression()
 

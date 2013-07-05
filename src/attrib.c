@@ -1001,8 +1001,11 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->ctfeSemantic(sc);
-                e = ctfeResolveProperties(sc, e);
+                sc->startCTFE();
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                sc->endCTFE();
+
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
@@ -1029,8 +1032,11 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->ctfeSemantic(sc);
-            e = ctfeResolveProperties(sc, e);
+            sc->startCTFE();
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             if (e->op == TOKerror)
@@ -1069,8 +1075,12 @@ void PragmaDeclaration::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->ctfeSemantic(sc);
-            e = ctfeResolveProperties(sc, e);
+
+            sc->startCTFE();
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -1163,8 +1173,12 @@ void PragmaDeclaration::semantic(Scope *sc)
                 for (size_t i = 0; i < args->dim; i++)
                 {
                     Expression *e = (*args)[i];
-                    e = e->ctfeSemantic(sc);
-                    e = ctfeResolveProperties(sc, e);
+
+                    sc->startCTFE();
+                    e = e->semantic(sc);
+                    e = resolveProperties(sc, e);
+                    sc->endCTFE();
+
                     e = e->ctfeInterpret();
                     if (i == 0)
                         printf(" (");
@@ -1566,8 +1580,10 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    exp = exp->ctfeSemantic(sc);
-    exp = ctfeResolveProperties(sc, exp);
+    sc->startCTFE();
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc->endCTFE();
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)

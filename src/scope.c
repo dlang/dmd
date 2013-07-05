@@ -190,6 +190,20 @@ Scope *Scope::pop()
     return enc;
 }
 
+int Scope::startCTFE()
+{
+    int old = needctfe;
+    assert(needctfe >= 0);
+    needctfe++;
+    return old;
+}
+
+void Scope::endCTFE()
+{
+    needctfe--;
+    assert(needctfe >= 0);
+}
+
 void Scope::mergeCallSuper(Loc loc, unsigned cs)
 {
     // This does a primitive flow analysis to support the restrictions

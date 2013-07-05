@@ -480,8 +480,10 @@ void CompileStatement::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 Statements *CompileStatement::flatten(Scope *sc)
 {
     //printf("CompileStatement::flatten() %s\n", exp->toChars());
-    exp = exp->ctfeSemantic(sc);
-    exp = ctfeResolveProperties(sc, exp);
+    sc->startCTFE();
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc->endCTFE();
     exp = exp->ctfeInterpret();
     if (exp->op == TOKerror)
         return NULL;
@@ -2732,8 +2734,10 @@ Statement *PragmaStatement::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                e = e->ctfeSemantic(sc);
-                e = ctfeResolveProperties(sc, e);
+                sc->startCTFE();
+                e = e->semantic(sc);
+                e = resolveProperties(sc, e);
+                sc->endCTFE();
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
                 if (e->op == TOKerror)
@@ -2764,8 +2768,11 @@ Statement *PragmaStatement::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            e = e->ctfeSemantic(sc);
-            e = ctfeResolveProperties(sc, e);
+            sc->startCTFE();
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             StringExp *se = e->toString();
@@ -2790,8 +2797,12 @@ Statement *PragmaStatement::semantic(Scope *sc)
         else
         {
             Expression *e = (*args)[0];
-            e = e->ctfeSemantic(sc);
-            e = ctfeResolveProperties(sc, e);
+
+            sc->startCTFE();
+            e = e->semantic(sc);
+            e = resolveProperties(sc, e);
+            sc->endCTFE();
+
             e = e->ctfeInterpret();
             (*args)[0] = e;
             Dsymbol *sa = getDsymbol(e);
@@ -3123,11 +3134,14 @@ Statement *CaseStatement::syntaxCopy()
 }
 
 Statement *CaseStatement::semantic(Scope *sc)
-{   SwitchStatement *sw = sc->sw;
+{
+    SwitchStatement *sw = sc->sw;
 
     //printf("CaseStatement::semantic() %s\n", toChars());
-    exp = exp->ctfeSemantic(sc);
-    exp = ctfeResolveProperties(sc, exp);
+    sc->startCTFE();
+    exp = exp->semantic(sc);
+    exp = resolveProperties(sc, exp);
+    sc->endCTFE();
     if (sw)
     {
         exp = exp->implicitCastTo(sc, sw->condition->type);
@@ -3249,13 +3263,17 @@ Statement *CaseRangeStatement::semantic(Scope *sc)
     if (sw->isFinal)
         error("case ranges not allowed in final switch");
 
-    first = first->ctfeSemantic(sc);
-    first = ctfeResolveProperties(sc, first);
+    sc->startCTFE();
+    first = first->semantic(sc);
+    first = resolveProperties(sc, first);
+    sc->endCTFE();
     first = first->implicitCastTo(sc, sw->condition->type);
     first = first->ctfeInterpret();
 
-    last = last->ctfeSemantic(sc);
-    last = ctfeResolveProperties(sc, last);
+    sc->startCTFE();
+    last = last->semantic(sc);
+    last = resolveProperties(sc, last);
+    sc->endCTFE();
     last = last->implicitCastTo(sc, sw->condition->type);
     last = last->ctfeInterpret();
 

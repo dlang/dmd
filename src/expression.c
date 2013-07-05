@@ -507,24 +507,6 @@ Expression *resolveProperties(Scope *sc, Expression *e)
     return e;
 }
 
-Expression *ctfeResolveProperties(Scope *sc, Expression *e)
-{
-    if (sc)
-    {
-        assert(sc->needctfe >= 0);
-        sc->needctfe++;
-        //printf("\t%s, sc->needctfe = %d\n", e->toChars(), sc->needctfe);
-        Expression *ex = resolveProperties(sc, e);
-        sc->needctfe--;
-        assert(sc->needctfe >= 0);
-        return ex;
-    }
-    else
-    {
-        return resolveProperties(sc, e);
-    }
-}
-
 /******************************
  * Check the tail CallExp is really property function call.
  */
@@ -1890,23 +1872,6 @@ Expression *Expression::trySemantic(Scope *sc)
         e = NULL;
     }
     //printf("-trySemantic(%s)\n", toChars());
-    return e;
-}
-
-/**********************************
- * Shortcut to run semantic with purity and
- * safety checking disabled for the immediate
- * expressions
- */
-
-Expression *Expression::ctfeSemantic(Scope *sc)
-{
-    assert(sc);
-    assert(sc->needctfe >= 0);
-    sc->needctfe++;
-    Expression *e = semantic(sc);
-    sc->needctfe--;
-    assert(sc->needctfe >= 0);
     return e;
 }
 
@@ -7030,8 +6995,10 @@ Expression *CompileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("CompileExp::semantic('%s')\n", toChars());
 #endif
-    e1 = e1->ctfeSemantic(sc);
-    e1 = ctfeResolveProperties(sc, e1);
+    sc->startCTFE();
+    e1 = e1->semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    sc->endCTFE();
     if (e1->op == TOKerror)
         return e1;
     if (!e1->type->isString())
@@ -7083,8 +7050,10 @@ Expression *FileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("FileExp::semantic('%s')\n", toChars());
 #endif
-    e1 = e1->ctfeSemantic(sc);
-    e1 = ctfeResolveProperties(sc, e1);
+    sc->startCTFE();
+    e1 = e1->semantic(sc);
+    e1 = resolveProperties(sc, e1);
+    sc->endCTFE();
     e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
     {   error("file name argument must be a string, not (%s)", e1->toChars());
@@ -10006,32 +9975,20 @@ Lagain:
 
     if (lwr)
     {
-        if (t->ty == Ttuple)
-        {
-            lwr = lwr->ctfeSemantic(sc2);
-            lwr = ctfeResolveProperties(sc2, lwr);
-        }
-        else
-        {
-            lwr = lwr->semantic(sc2);
-            lwr = resolveProperties(sc2, lwr);
-        }
+        if (t->ty == Ttuple) sc2->startCTFE();
+        lwr = lwr->semantic(sc2);
+        lwr = resolveProperties(sc2, lwr);
+        if (t->ty == Ttuple) sc2->endCTFE();
         lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
         if (lwr->type == Type::terror)
             goto Lerr;
     }
     if (upr)
     {
-        if (t->ty == Ttuple)
-        {
-            upr = upr->ctfeSemantic(sc2);
-            upr = ctfeResolveProperties(sc2, upr);
-        }
-        else
-        {
-            upr = upr->semantic(sc2);
-            upr = resolveProperties(sc2, upr);
-        }
+        if (t->ty == Ttuple) sc2->startCTFE();
+        upr = upr->semantic(sc2);
+        upr = resolveProperties(sc2, upr);
+        if (t->ty == Ttuple) sc2->endCTFE();
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
         if (upr->type == Type::terror)
             goto Lerr;
@@ -10504,16 +10461,10 @@ Expression *IndexExp::semantic(Scope *sc)
         sc = sc->push(sym);
     }
 
-    if (t1->ty == Ttuple)
-    {
-        e2 = e2->ctfeSemantic(sc);
-        e2 = ctfeResolveProperties(sc, e2);
-    }
-    else
-    {
-        e2 = e2->semantic(sc);
-        e2 = resolveProperties(sc, e2);
-    }
+    if (t1->ty == Ttuple) sc->startCTFE();
+    e2 = e2->semantic(sc);
+    e2 = resolveProperties(sc, e2);
+    if (t1->ty == Ttuple) sc->endCTFE();
     if (e2->type == Type::terror)
         goto Lerr;
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix

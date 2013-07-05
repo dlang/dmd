@@ -118,6 +118,9 @@ struct Scope
     Scope *push(ScopeDsymbol *ss);
     Scope *pop();
 
+    int startCTFE();
+    void endCTFE();
+
     void mergeCallSuper(Loc loc, unsigned cs);
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
