@@ -14,6 +14,8 @@
 #include        <stdio.h>
 #include        <string.h>
 #include        <time.h>
+#include        <stdlib.h>
+
 #include        "cc.h"
 #include        "oper.h"
 #include        "global.h"
@@ -2313,6 +2315,167 @@ L3:
     e = optelem(e,GOALvalue);
 L1:
     return e;
+}
+
+/**********************************************
+ * Try to rewrite sequence of || with faster operations, such as BT.
+ * Returns:
+ *      false   nothing changed
+ *      true    *pe is rewritten
+ */
+
+STATIC bool optim_oror(elem **pe)
+{
+    if (I16)
+        return false;
+    elem *e = *pe;
+    size_t n = el_opN(e, OPoror);
+    if (n <= 3)
+        return false;
+    unsigned ty = e->Ety;
+    elem **array = (elem **)malloc(n * sizeof(elem *));
+    assert(array);
+    elem **p = array;
+    el_opArray(&p, e, OPoror);
+
+    bool any = false;
+    size_t first, last;
+    targ_ullong emin, emax;
+    for (size_t i = 0; i < n; ++i)
+    {
+        elem *eq = array[i];
+        if (eq->Eoper == OPeqeq &&
+            eq->E2->Eoper == OPconst &&
+            tyintegral(eq->E2->Ety) &&
+            !el_sideeffect(eq->E1))
+        {
+            targ_ullong m = el_tolong(eq->E2);
+            if (any)
+            {
+                if (el_match(array[first]->E1, eq->E1))
+                {
+                    last = i;
+                    if (m < emin)
+                        emin = m;
+                    if (m > emax)
+                        emax = m;
+                }
+                else if (last - first > 2)
+                    break;
+                else
+                {
+                    first = last = i;
+                    emin = emax = m;
+                }
+            }
+            else
+            {
+                any = true;
+                first = last = i;
+                emin = emax = m;
+            }
+        }
+        else if (any && last - first > 2)
+            break;
+        else
+            any = false;
+    }
+
+    //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
+    if (any && last - first > 2 && emax - emin < REGSIZE * 8)
+    {
+        /**
+         * Transforms expressions of the form x==c1 || x==c2 || x==c3 || ... into a single
+         * comparison by using a bitmapped representation of data, as follows. First, the
+         * smallest constant of c1, c2, ... (call it min) is subtracted from all constants
+         * and also from x (this step may be elided if all constants are small enough). Then,
+         * the test is expressed as
+         *   (1 << (x-min)) | ((1 << (c1-min)) | (1 << (c2-min)) | ...)
+         * The test is guarded for overflow (x must be no larger than the largest of c1, c2, ...).
+         * Since each constant is encoded as a displacement in a bitmap, hitting any bit yields
+         * true for the expression.
+         *
+         * I.e. replace:
+         *   e==c1 || e==c2 || e==c3 ...
+         * with:
+         *   (e - emin) <= (emax - emin) && (1 << (int)(e - emin)) & bits
+         * where bits is:
+         *   (1<<(c1-emin)) | (1<<(c2-emin)) | (1<<(c3-emin)) ...
+         */
+
+        // Delete all the || nodes that are no longer referenced
+        el_opFree(e, OPoror);
+
+        unsigned tyc = array[first]->E1->Ety;
+        if (emax < 32)                  // if everything fits in a 32 bit register
+            emin = 0;                   // no need for bias
+
+        // Compute bit mask
+        targ_ullong bits = 0;
+        for (size_t i = first; i <= last; ++i)
+        {
+            elem *eq = array[i];
+            if (0 && eq->E2->Eoper != OPconst)
+            {
+                printf("eq = %p, eq->E2 = %p\n", eq, eq->E2);
+                printf("first = %d, i = %d, last = %d, Eoper = %d\n", first, i, last, eq->E2->Eoper);
+                printf("any = %d, n = %d, count = %d, min = %d, max = %d\n", any, (int)n, last - first + 1, (int)emin, (int)emax);
+            }
+            assert(eq->E2->Eoper == OPconst);
+            bits |= (targ_ullong)1 << (el_tolong(eq->E2) - emin);
+        }
+        //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
+        //printf("bits = x%llx\n", bits);
+
+        elem *ex = el_bin(OPmin,tyc,array[first]->E1,el_long(tyc,emin));
+        ex = el_bin(OPle,TYbool,ex,el_long(touns(tyc),emax - emin));
+        elem *ey = el_bin(OPmin,tyc,array[first + 1]->E1,el_long(tyc,emin));
+#if 1
+        ey = el_bin(OPbtst,TYbool,el_long(tyc,bits),ey);
+#else
+        // Shift count must be an int
+        switch (tysize(tyc))
+        {
+            case 1:
+                ey = el_una(OPu8_16,TYint,ey);
+            case 2:
+                ey = el_una(OPu16_32,TYint,ey);
+                break;
+            case 4:
+                break;
+            case 8:
+                ey = el_una(OP64_32,TYint,ey);
+                break;
+            default:
+                assert(0);
+        }
+        ey = el_bin(OPshl,tyc,el_long(tyc,1),ey);
+        ey = el_bin(OPand,tyc,ey,el_long(tyc,bits));
+#endif
+        ex = el_bin(OPandand,ty,ex,ey);
+
+        /* Free unneeded nodes
+         */
+        array[first]->E1 = NULL;
+        el_free(array[first]);
+        array[first + 1]->E1 = NULL;
+        el_free(array[first + 1]);
+        for (size_t i = first + 2; i <= last; ++i)
+            el_free(array[i]);
+
+        array[first] = ex;
+
+        for (size_t i = first + 1; last + i < n; ++i)
+            array[first + i] = array[last + i];
+        n -= last - first;
+        (*pe) = el_opCombine(array,n,OPoror,ty);
+
+        free(array);
+        return true;
+    }
+
+    free(array);
+    return false;
 }
 
 STATIC elem * elandand(elem *e, goal_t goal)
@@ -4626,9 +4789,13 @@ beg:
                 }
                 goto Llog;
 
+            case OPoror:
+                if (OPTIMIZER && optim_oror(&e))
+                    goto beg;
+                goto Llog;
+
             case OPandand:
-            case OPoror:        /* case (c || f()) with no goal         */
-            Llog:
+            Llog:               // case (c log f()) with no goal
                 if (goal || el_sideeffect(e->E2))
                     leftgoal = GOALflags;
                 break;
