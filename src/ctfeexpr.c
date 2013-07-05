@@ -457,6 +457,13 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 {
     Expressions *elements = new Expressions();
     elements->setDim(dim);
+    if (type->ty == Tsarray && type->nextOf()->ty == Tsarray &&
+        elem->type->ty != Tsarray)
+    {
+        // If it is a multidimensional array literal, do it recursively
+        elem = createBlockDuplicatedArrayLiteral(loc, type->nextOf(), elem,
+            ((TypeSArray *)type->nextOf())->dim->toInteger());
+    }
     bool mustCopy = needToCopyLiteral(elem);
     for (size_t i = 0; i < dim; i++)
     {   if (mustCopy)
