@@ -740,6 +740,35 @@ void bar10166(alias handler, T)(T t, int i)
 void buzz10166() {}
 
 /*******************************************/
+// 10526
+
+struct S10526
+{
+    int opDispatch(string s, A...)(A args)
+    if (s[0..3] == "foo")
+    {
+        return 1;
+    }
+}
+int bar10526(X)(X) { return 2; }
+int baz10526(T, X)(X) { return 3; }
+
+void test10526()
+{
+    S10526 s;
+
+    // with parenthesis
+    assert(s.foo10526() == 1);
+    assert(s.bar10526() == 2);
+    assert(s.baz10526!string() == 3);
+
+    // without parenthesis
+    assert(s.foo10526 == 1);
+    assert(s.bar10526 == 2);
+    assert(s.baz10526!string == 3);
+}
+
+/*******************************************/
 
 int main()
 {
@@ -766,6 +795,7 @@ int main()
     test10003();
     test10041();
     test10047();
+    test10526();
 
     printf("Success\n");
     return 0;
