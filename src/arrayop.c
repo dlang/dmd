@@ -465,30 +465,30 @@ void AssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     buf->writestring("Assign");
 }
 
-#define X(Str) \
-void Str##AssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments) \
-{                                                       \
-    /* Evaluate assign expressions right to left        \
-     */                                                 \
-    e2->buildArrayIdent(buf, arguments);                \
-    e1->buildArrayIdent(buf, arguments);                \
-    buf->writestring(#Str);                             \
-    buf->writestring("ass");                            \
-}
-
-X(Add)
-X(Min)
-X(Mul)
-X(Div)
-X(Mod)
-X(Xor)
-X(And)
-X(Or)
+void BinAssignExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+{
+    /* Evaluate assign expressions right to left
+     */
+    e2->buildArrayIdent(buf, arguments);
+    e1->buildArrayIdent(buf, arguments);
+    const char *s;
+    switch(op)
+    {
+    case TOKaddass: s = "Addass"; break;
+    case TOKminass: s = "Subass"; break;
+    case TOKmulass: s = "Mulass"; break;
+    case TOKdivass: s = "Divass"; break;
+    case TOKmodass: s = "Modass"; break;
+    case TOKxorass: s = "Xorass"; break;
+    case TOKandass: s = "Andass"; break;
+    case TOKorass:  s = "Orass";  break;
 #if DMDV2
-X(Pow)
+    case TOKpowass: s = "Powass"; break;
 #endif
-
-#undef X
+    default: assert(0);
+    }
+    buf->writestring(s);
+}
 
 void NegExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
 {
@@ -502,29 +502,30 @@ void ComExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
     buf->writestring("Com");
 }
 
-#define X(Str) \
-void Str##Exp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)  \
-{                                                                       \
-    /* Evaluate assign expressions left to right                        \
-     */                                                                 \
-    e1->buildArrayIdent(buf, arguments);                                \
-    e2->buildArrayIdent(buf, arguments);                                \
-    buf->writestring(#Str);                                             \
-}
-
-X(Add)
-X(Min)
-X(Mul)
-X(Div)
-X(Mod)
-X(Xor)
-X(And)
-X(Or)
+void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+{
+    /* Evaluate assign expressions left to right
+     */
+    e1->buildArrayIdent(buf, arguments);
+    e2->buildArrayIdent(buf, arguments);
+    const char *s;
+    switch(op)
+    {
+    case TOKadd: s = "Add"; break;
+    case TOKmin: s = "Sub"; break;
+    case TOKmul: s = "Mul"; break;
+    case TOKdiv: s = "Div"; break;
+    case TOKmod: s = "Mod"; break;
+    case TOKxor: s = "Xor"; break;
+    case TOKand: s = "And"; break;
+    case TOKor:  s = "Or";  break;
 #if DMDV2
-X(Pow)
+    case TOKpow: s = "Pow"; break;
 #endif
-
-#undef X
+    default: assert(0);
+    }
+    buf->writestring(s);
+}
 
 /******************************************
  * Construct the inner loop for the array operation function,
@@ -584,32 +585,33 @@ Expression *AssignExp::buildArrayLoop(Parameters *fparams)
     return e;
 }
 
-#define X(Str) \
-Expression *Str##AssignExp::buildArrayLoop(Parameters *fparams) \
-{                                                               \
-    /* Evaluate assign expressions right to left                \
-     */                                                         \
-    Expression *ex2 = e2->buildArrayLoop(fparams);              \
-    Expression *ex1 = e1->buildArrayLoop(fparams);              \
-    Parameter *param = (*fparams)[0];                           \
-    param->storageClass = 0;                                    \
-    Expression *e = new Str##AssignExp(loc, ex1, ex2);          \
-    return e;                                                   \
-}
-
-X(Add)
-X(Min)
-X(Mul)
-X(Div)
-X(Mod)
-X(Xor)
-X(And)
-X(Or)
+Expression *BinAssignExp::buildArrayLoop(Parameters *fparams)
+{
+    /* Evaluate assign expressions right to left
+     */
+    Expression *ex2 = e2->buildArrayLoop(fparams);
+    Expression *ex1 = e1->buildArrayLoop(fparams);
+    Parameter *param = (*fparams)[0];
+    param->storageClass = 0;
+    Expression *e;
+    switch(op)
+    {
+    case TOKaddass: return new AddAssignExp(loc, ex1, ex2);
+    case TOKminass: return new MinAssignExp(loc, ex1, ex2);
+    case TOKmulass: return new MulAssignExp(loc, ex1, ex2);
+    case TOKdivass: return new DivAssignExp(loc, ex1, ex2);
+    case TOKmodass: return new ModAssignExp(loc, ex1, ex2);
+    case TOKxorass: return new XorAssignExp(loc, ex1, ex2);
+    case TOKandass: return new AndAssignExp(loc, ex1, ex2);
+    case TOKorass:  return new OrAssignExp(loc, ex1, ex2);
 #if DMDV2
-X(Pow)
+    case TOKpowass: return new PowAssignExp(loc, ex1, ex2);
 #endif
-
-#undef X
+    default:
+        assert(0);
+        return NULL;
+    }
+}
 
 Expression *NegExp::buildArrayLoop(Parameters *fparams)
 {
@@ -625,31 +627,31 @@ Expression *ComExp::buildArrayLoop(Parameters *fparams)
     return e;
 }
 
-#define X(Str) \
-Expression *Str##Exp::buildArrayLoop(Parameters *fparams)       \
-{                                                               \
-    /* Evaluate assign expressions left to right                \
-     */                                                         \
-    Expression *ex1 = e1->buildArrayLoop(fparams);              \
-    Expression *ex2 = e2->buildArrayLoop(fparams);              \
-    Expression *e = new Str##Exp(Loc(), ex1, ex2);                  \
-    return e;                                                   \
-}
-
-X(Add)
-X(Min)
-X(Mul)
-X(Div)
-X(Mod)
-X(Xor)
-X(And)
-X(Or)
+Expression *BinExp::buildArrayLoop(Parameters *fparams)
+{
+    /* Evaluate assign expressions left to right
+     */
+    Expression *ex1 = e1->buildArrayLoop(fparams);
+    Expression *ex2 = e2->buildArrayLoop(fparams);
+    Expression *e;
+    switch(op)
+    {
+    case TOKadd: return new AddExp(Loc(), ex1, ex2);
+    case TOKmin: return new MinExp(Loc(), ex1, ex2);
+    case TOKmul: return new MulExp(Loc(), ex1, ex2);
+    case TOKdiv: return new DivExp(Loc(), ex1, ex2);
+    case TOKmod: return new ModExp(Loc(), ex1, ex2);
+    case TOKxor: return new XorExp(Loc(), ex1, ex2);
+    case TOKand: return new AndExp(Loc(), ex1, ex2);
+    case TOKor:  return new OrExp(Loc(), ex1, ex2);
 #if DMDV2
-X(Pow)
+    case TOKpow: return new PowExp(Loc(), ex1, ex2);
 #endif
-
-#undef X
-
+    default:
+        assert(0);
+        return NULL;
+    }
+}
 
 /***********************************************
  * Test if operand is a valid array op operand.
