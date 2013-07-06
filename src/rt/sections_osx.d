@@ -15,7 +15,7 @@ module rt.sections_osx;
 version(OSX):
 
 // debug = PRINTF;
-debug(PRINTF) import core.stdc.stdio;
+import core.stdc.stdio;
 import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
 import core.sys.osx.mach.dyld;
@@ -181,7 +181,11 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
     if (auto sect = getSection(h, slide, "__DATA", "__minfodata"))
     {
         // no support for multiple images yet
-        _sections.modules.ptr is null || assert(0);
+        if (_sections.modules.ptr !is null)
+        {
+            fprintf(stderr, "Shared libraries are not yet supported on OSX.\n");
+            return;
+        }
 
         debug(PRINTF) printf("  minfodata\n");
         auto p = cast(ModuleInfo**)sect.ptr;
@@ -193,7 +197,8 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
     if (auto sect = getSection(h, slide, "__DATA", "__deh_eh"))
     {
         // no support for multiple images yet
-        _sections._ehTables.ptr is null || assert(0);
+        if (_sections._ehTables.ptr !is null)
+            return;
 
         debug(PRINTF) printf("  deh_eh\n");
         auto p = cast(immutable(FuncTable)*)sect.ptr;
@@ -205,7 +210,8 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
     if (auto sect = getSection(h, slide, "__DATA", "__tls_data"))
     {
         // no support for multiple images yet
-        _sections._tlsImage[0].ptr is null || assert(0);
+        if (_sections._tlsImage[0].ptr !is null)
+            return;
 
         debug(PRINTF) printf("  tls_data %p %p\n", sect.ptr, sect.ptr + sect.length);
         _sections._tlsImage[0] = (cast(immutable(void)*)sect.ptr)[0 .. sect.length];
@@ -214,7 +220,8 @@ extern (C) void sections_osx_onAddImage(in mach_header* h, intptr_t slide)
     if (auto sect = getSection(h, slide, "__DATA", "__tlscoal_nt"))
     {
         // no support for multiple images yet
-        _sections._tlsImage[1].ptr is null || assert(0);
+        if (_sections._tlsImage[1].ptr !is null)
+            return;
 
         debug(PRINTF) printf("  tlscoal_nt %p %p\n", sect.ptr, sect.ptr + sect.length);
         _sections._tlsImage[1] = (cast(immutable(void)*)sect.ptr)[0 .. sect.length];
