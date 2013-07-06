@@ -6052,9 +6052,7 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
      */
-    TemplateDeclaration *td_ambig = NULL;
     TemplateDeclaration *td_best = NULL;
-    MATCH m_best = MATCHnomatch;
     Objects dedtypes;
     unsigned errs = global.errors;
 
@@ -6090,6 +6088,9 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         TemplateDeclaration *td = tempdecl ? tempdecl : tempovers->a[oi]->isTemplateDeclaration();
+        TemplateDeclaration *td_ambig = NULL;
+        MATCH m_best = MATCHnomatch;
+
         for (; td != NULL; td = td->overnext)
         {
             MATCH m;
@@ -6147,6 +6148,14 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             memcpy(tdtypes.tdata(), dedtypes.tdata(), tdtypes.dim * sizeof(void *));
             continue;
         }
+        if (td_ambig)
+        {
+            ::error(loc, "%s %s.%s matches more than one template declaration:\n\t%s(%d):%s\nand\n\t%s(%d):%s",
+                    td_best->kind(), td_best->parent->toPrettyChars(), td_best->ident->toChars(),
+                    td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
+                    td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
+            return false;
+        }
         if (td_best)
         {
             if (!td_last)
@@ -6172,13 +6181,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             ::error(loc, "%s %s.%s does not match any template declaration",
                     tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
         return false;
-    }
-    if (td_ambig)
-    {
-        ::error(loc, "%s %s.%s matches more than one template declaration, %s(%d):%s and %s(%d):%s",
-                td_best->kind(), td_best->parent->toPrettyChars(), td_best->ident->toChars(),
-                td_best->loc.filename,  td_best->loc.linnum,  td_best->toChars(),
-                td_ambig->loc.filename, td_ambig->loc.linnum, td_ambig->toChars());
     }
 
     /* The best match is td_best
