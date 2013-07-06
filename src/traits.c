@@ -677,7 +677,7 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-            error("first argument is not a symbol");
+            error("argument %s to __traits(getUnitTests) must be a module", o->toChars());
             goto Lfalse;
         }
 
@@ -685,7 +685,7 @@ Expression *TraitsExp::semantic(Scope *sc)
 
         if (!module)
         {
-            error("first argument is not a module");
+            error("argument %s to __traits(getUnitTests) must be a module, not a %s", s->toChars(), s->kind());
             goto Lfalse;
         }
 
