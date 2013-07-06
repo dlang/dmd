@@ -19,7 +19,7 @@
 
 
 class Identifier;
-class Scope;
+struct Scope;
 class OutBuffer;
 class Module;
 class Package;

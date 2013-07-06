@@ -21,7 +21,7 @@
 #include "arraytypes.h"
 #include "expression.h"
 
-class Scope;
+struct Scope;
 class Identifier;
 class Expression;
 class StructDeclaration;
