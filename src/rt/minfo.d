@@ -18,9 +18,9 @@ import rt.sections;
 
 enum
 {
-    MIctorstart  = 1,   // we've started constructing it
-    MIctordone   = 2,   // finished construction
-    MIstandalone = 4,   // module ctor does not depend on other module
+    MIctorstart  = 0x1,   // we've started constructing it
+    MIctordone   = 0x2,   // finished construction
+    MIstandalone = 0x4,   // module ctor does not depend on other module
                         // ctors being done first
     MItlsctor    = 8,
     MItlsdtor    = 0x10,
@@ -31,7 +31,7 @@ enum
     MIunitTest   = 0x200,
     MIimportedModules = 0x400,
     MIlocalClasses = 0x800,
-    MInew        = 0x80000000        // it's the "new" layout
+    MIname       = 0x1000,
 }
 
 struct ModuleGroup
@@ -372,38 +372,46 @@ unittest
     {
     }
 
-    static ModuleInfo mockMI(uint flags, ModuleInfo*[] imports...)
+    struct UTModuleInfo
     {
         ModuleInfo mi;
-        mi.n.flags |= flags | MInew;
-        size_t fcnt;
-        auto p = cast(ubyte*)&mi + ModuleInfo.New.sizeof;
-        foreach (fl; [MItlsctor, MItlsdtor, MIctor, MIdtor, MIictor])
-        {
-            if (flags & fl)
-            {
-                *cast(void function()*)p = &stub;
-                p += (&stub).sizeof;
-            }
-        }
+        size_t pad[8];
+        alias mi this;
+    }
+
+    static UTModuleInfo mockMI(uint flags, ModuleInfo*[] imports...)
+    {
+        import core.bitop;
+        size_t size = ModuleInfo.sizeof;
+        size += popcnt(flags & (MItlsctor|MItlsdtor|MIctor|MIdtor|MIictor)) * (void function()).sizeof;
+        if (imports.length)
+            size += size_t.sizeof + imports.length * (ModuleInfo*).sizeof;
+        assert(size <= UTModuleInfo.sizeof);
+
+        UTModuleInfo mi;
+        mi._flags = flags;
+        auto p = cast(void function()*)&mi.pad;
+        if (flags & MItlsctor) *p++ = &stub;
+        if (flags & MItlsdtor) *p++ = &stub;
+        if (flags & MIctor) *p++ = &stub;
+        if (flags & MIdtor) *p++ = &stub;
+        if (flags & MIictor) *p++ = &stub;
         if (imports.length)
         {
-            mi.n.flags |= MIimportedModules;
-            *cast(size_t*)p = imports.length;
-            p += size_t.sizeof;
-            immutable nb = imports.length * (ModuleInfo*).sizeof;
-            .memcpy(p, imports.ptr, nb);
-            p += nb;
+            mi._flags |= MIimportedModules;
+            *cast(size_t*)p++ = imports.length;
+            .memcpy(p, imports.ptr, imports.length * (ModuleInfo*).sizeof);
+            p += imports.length;
         }
-        assert(p - cast(ubyte*)&mi <= ModuleInfo.sizeof);
+        assert(cast(void*)p <= &mi + 1);
         return mi;
     }
 
-    ModuleInfo m0, m1, m2;
+    UTModuleInfo m0, m1, m2;
 
     void checkExp(ModuleInfo*[] dtors=null, ModuleInfo*[] tlsdtors=null)
     {
-        auto mgroup = ModuleGroup([&m0, &m1, &m2]);
+        auto mgroup = ModuleGroup([&m0.mi, &m1.mi, &m2.mi]);
         mgroup.sortCtors();
         foreach (m; mgroup._modules)
             assert(!(m.flags & (MIctorstart | MIctordone)));
@@ -427,70 +435,71 @@ unittest
     m0 = mockMI(MIstandalone | MIctor);
     m1 = mockMI(0);
     m2 = mockMI(0);
-    checkExp([&m0]);
+    checkExp([&m0.mi]);
 
     // imported standalone => no dependency
     m0 = mockMI(MIstandalone | MIctor);
-    m1 = mockMI(MIstandalone | MIctor, &m0);
+    m1 = mockMI(MIstandalone | MIctor, &m0.mi);
     m2 = mockMI(0);
-    checkExp([&m0, &m1]);
+    checkExp([&m0.mi, &m1.mi]);
 
-    m0 = mockMI(MIstandalone | MIctor, &m1);
+    m0 = mockMI(MIstandalone | MIctor, &m1.mi);
     m1 = mockMI(MIstandalone | MIctor);
     m2 = mockMI(0);
-    checkExp([&m0, &m1]);
+    checkExp([&m0.mi, &m1.mi]);
 
     // standalone may have cycle
-    m0 = mockMI(MIstandalone | MIctor, &m1);
-    m1 = mockMI(MIstandalone | MIctor, &m0);
+    m0 = mockMI(MIstandalone | MIctor, &m1.mi);
+    m1 = mockMI(MIstandalone | MIctor, &m0.mi);
     m2 = mockMI(0);
-    checkExp([&m0, &m1]);
+    checkExp([&m0.mi, &m1.mi]);
 
     // imported ctor => ordered ctors
     m0 = mockMI(MIctor);
-    m1 = mockMI(MIctor, &m0);
+    m1 = mockMI(MIctor, &m0.mi);
     m2 = mockMI(0);
-    checkExp([&m0, &m1], []);
+    checkExp([&m0.mi, &m1.mi], []);
 
-    m0 = mockMI(MIctor, &m1);
+    m0 = mockMI(MIctor, &m1.mi);
     m1 = mockMI(MIctor);
     m2 = mockMI(0);
-    checkExp([&m1, &m0], []);
+    assert(m0.importedModules == [&m1.mi]);
+    checkExp([&m1.mi, &m0.mi], []);
 
     // detects ctors cycles
-    m0 = mockMI(MIctor, &m1);
-    m1 = mockMI(MIctor, &m0);
+    m0 = mockMI(MIctor, &m1.mi);
+    m1 = mockMI(MIctor, &m0.mi);
     m2 = mockMI(0);
     assertThrown!Throwable(checkExp());
 
     // imported ctor/tlsctor => ordered ctors/tlsctors
-    m0 = mockMI(MIctor, &m1, &m2);
+    m0 = mockMI(MIctor, &m1.mi, &m2.mi);
     m1 = mockMI(MIctor);
     m2 = mockMI(MItlsctor);
-    checkExp([&m1, &m0], [&m2]);
+    checkExp([&m1.mi, &m0.mi], [&m2.mi]);
 
-    m0 = mockMI(MIctor | MItlsctor, &m1, &m2);
+    m0 = mockMI(MIctor | MItlsctor, &m1.mi, &m2.mi);
     m1 = mockMI(MIctor);
     m2 = mockMI(MItlsctor);
-    checkExp([&m1, &m0], [&m2, &m0]);
+    checkExp([&m1.mi, &m0.mi], [&m2.mi, &m0.mi]);
 
     // no cycle between ctors/tlsctors
-    m0 = mockMI(MIctor, &m1, &m2);
+    m0 = mockMI(MIctor, &m1.mi, &m2.mi);
     m1 = mockMI(MIctor);
-    m2 = mockMI(MItlsctor, &m0);
-    checkExp([&m1, &m0], [&m2]);
+    m2 = mockMI(MItlsctor, &m0.mi);
+    checkExp([&m1.mi, &m0.mi], [&m2.mi]);
 
     // detects tlsctors cycle
-    m0 = mockMI(MItlsctor, &m2);
+    m0 = mockMI(MItlsctor, &m2.mi);
     m1 = mockMI(MIctor);
-    m2 = mockMI(MItlsctor, &m0);
+    m2 = mockMI(MItlsctor, &m0.mi);
     assertThrown!Throwable(checkExp());
 
     // closed ctors cycle
-    m0 = mockMI(MIctor, &m1);
-    m1 = mockMI(MIstandalone | MIctor, &m2);
-    m2 = mockMI(MIstandalone | MIctor, &m0);
-    checkExp([&m1, &m2, &m0], []);
+    m0 = mockMI(MIctor, &m1.mi);
+    m1 = mockMI(MIstandalone | MIctor, &m2.mi);
+    m2 = mockMI(MIstandalone | MIctor, &m0.mi);
+    checkExp([&m1.mi, &m2.mi, &m0.mi], []);
 }
 
 version (Win64)
