@@ -57,9 +57,8 @@ enum PROT;
 #define SCOPEensure     0x60    // inside out contract code
 #define SCOPEcontract   0x60    // [mask] we're inside contract code
 
-class Scope
+struct Scope
 {
-public:
     Scope *enclosing;           // enclosing Scope
 
     Module *module;             // Root module

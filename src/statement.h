@@ -22,7 +22,7 @@
 #include "lexer.h"
 
 class OutBuffer;
-class Scope;
+struct Scope;
 class Expression;
 class LabelDsymbol;
 class Identifier;

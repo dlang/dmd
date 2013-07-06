@@ -18,7 +18,7 @@
 
 class Identifier;
 class Expression;
-class Scope;
+struct Scope;
 class Type;
 struct dt_t;
 class AggregateDeclaration;

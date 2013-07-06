@@ -19,7 +19,7 @@
 
 class Type;
 class TypeVector;
-class Scope;
+struct Scope;
 class TupleDeclaration;
 class VarDeclaration;
 class FuncDeclaration;

@@ -22,7 +22,7 @@
 #include "arraytypes.h"
 
 class Identifier;
-class Scope;
+struct Scope;
 class DsymbolTable;
 class Declaration;
 class ThisDeclaration;
