@@ -6424,6 +6424,15 @@ Expression *IsExp::semantic(Scope *sc)
             case TOKfunction:
             case TOKparameters:
             {
+                if (tok2 == TOKparameters)
+                {
+                    // Accept function pointer and delegate type.
+                    if (targ->ty == Tdelegate ||
+                        targ->ty == Tpointer && targ->nextOf()->ty == Tfunction)
+                    {
+                        targ = targ->nextOf();
+                    }
+                }
                 if (targ->ty != Tfunction)
                     goto Lno;
                 tded = targ;

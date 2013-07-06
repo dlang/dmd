@@ -245,6 +245,37 @@ void test8579()
 }
 
 /***************************************************/
+// 10557
+
+void test10557a()
+{
+    void function(int a = 10) fp;
+    static if (is(typeof(fp) PT == __parameters))
+    {
+        static assert(is(PT[0] == int));
+        static assert(__traits(identifier, PT[0..1]) == "a");
+        int fpx(PT args) { return args[0]; }
+        static assert(fpx() == 10);
+    }
+    else
+        static assert(0);
+}
+
+void test10557b()
+{
+    void delegate(int b = 20) dg;
+    static if (is(typeof(dg) PT == __parameters))
+    {
+        static assert(is(PT[0] == int));
+        static assert(__traits(identifier, PT[0..1]) == "b");
+        int dgx(PT args) { return args[0]; }
+        static assert(dgx() == 20);
+    }
+    else
+        static assert(0);
+}
+
+/***************************************************/
 
 int main()
 {
