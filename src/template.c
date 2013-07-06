@@ -5965,6 +5965,7 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
 
 bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
 {
+    if (s)
     {
         Identifier *id = name;
         s = s->toAlias();

@@ -7958,86 +7958,30 @@ Expression *DotTemplateInstanceExp::syntaxCopy()
     return de;
 }
 
-// corresponding to TemplateInstance::findTemplateDeclaration
 bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
 {
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
 #endif
-    if (!ti->tempdecl && !ti->tempovers)
+    if (ti->tempdecl || ti->tempovers)
+        return true;
+
+    Expression *e = new DotIdExp(loc, e1, ti->name);
+    e = e->semantic(sc);
+    if (e->op == TOKdotexp)
+        e = ((DotExp *)e)->e2;
+
+    Dsymbol *s = NULL;
+    switch (e->op)
     {
-        OverloadSet *os;
-        Expression *e = new DotIdExp(loc, e1, ti->name);
-        e = e->semantic(sc);
-        if (e->op == TOKdotexp)
-        {
-            DotExp *de = (DotExp *)e;
-            if (de->e2->op == TOKoverloadset)
-            {
-                os = ((OverExp *)de->e2)->vars;
-                goto Los;
-            }
-            else if (de->e2->op == TOKimport)
-            {
-                ScopeExp *se = (ScopeExp *)de->e2;
-                if ((os = se->sds->isOverloadSet()) != NULL)
-                    goto Los;
-                ti->tempdecl = se->sds->isTemplateDeclaration();
-            }
-        }
-        else if (e->op == TOKoverloadset)
-        {
-            os = ((OverExp *)e)->vars;
-        Los:
-            Dsymbol *s = NULL;
-            for (size_t i = 0; i < os->a.dim; i++)
-            {
-                Dsymbol *s2 = os->a[i];
-                if (FuncDeclaration *f = s2->isFuncDeclaration())
-                    s2 = f->findTemplateDeclRoot();
-                else
-                    s2 = s2->isTemplateDeclaration();
-                if (s2)
-                {
-                    if (s)
-                    {
-                        ti->tempovers = os;
-                        break;
-                    }
-                    s = s2;
-                }
-            }
-            if (!ti->tempovers)
-                ti->tempdecl = s->isTemplateDeclaration();
-        }
-        else if (e->op == TOKdottd)
-        {
-            DotTemplateExp *dte = (DotTemplateExp *)e;
-            ti->tempdecl = dte->td;
-        }
-        else if (e->op == TOKimport)
-        {
-            ScopeExp *se = (ScopeExp *)e;
-            if ((os = se->sds->isOverloadSet()) != NULL)
-                goto Los;
-            ti->tempdecl = se->sds->isTemplateDeclaration();
-        }
-        else if (e->op == TOKdotvar)
-        {
-            DotVarExp *dve = (DotVarExp *)e;
-            FuncDeclaration *f = dve->var->isFuncDeclaration();
-            if (f)
-                ti->tempdecl = f->findTemplateDeclRoot();
-        }
-        else if (e->op == TOKvar)
-        {
-            VarExp *ve = (VarExp *)e;
-            FuncDeclaration *f = ve->var->isFuncDeclaration();
-            if (f)
-                ti->tempdecl = f->findTemplateDeclRoot();
-        }
+        case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
+        case TOKdottd:          s = ((DotTemplateExp *)e)->td;  break;
+        case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+        case TOKdotvar:         s = ((DotVarExp *)e)->var;      break;
+        case TOKvar:            s = ((VarExp *)e)->var;         break;
+        default:                return false;
     }
-    return (ti->tempdecl || ti->tempovers);
+    return ti->updateTemplateDeclaration(sc, s);
 }
 
 Expression *DotTemplateInstanceExp::semantic(Scope *sc)
