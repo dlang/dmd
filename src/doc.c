@@ -2376,10 +2376,16 @@ void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 break;
         }
         if (highlight)
+        {
             res.writestring(highlight);
-        highlightCode3(sc, &res, tok.ptr, lex.p);
-        if (highlight)
+            size_t o = res.offset;
+            highlightCode3(sc, &res, tok.ptr, lex.p);
+            if (tok.value == TOKcomment || tok.value == TOKstring)
+                escapeDdocString(&res, o);  // Bugzilla 7656, 7715, and 10519
             res.writeByte(')');
+        }
+        else
+            highlightCode3(sc, &res, tok.ptr, lex.p);
         if (tok.value == TOKeof)
             break;
         lastp = lex.p;
