@@ -85,13 +85,15 @@ public:
     Expression *value;
     Type *type;
     VarDeclaration *vd;
+    PROT protection;
 
-    EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
+    EnumMember(Loc loc, Identifier *id, Expression *value, Type *type, PROT protection);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void semantic(Scope *sc);
     Expression *getVarExp(Loc loc, Scope *sc);
+    PROT prot();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);

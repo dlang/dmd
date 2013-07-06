@@ -1623,9 +1623,21 @@ EnumDeclaration *Parser::parseEnum()
 
             loc = this->loc;
 
+            PROT prot = PROTundefined;
+            switch (token.value)
+            {
+                case TOKprivate: prot = PROTprivate; nextToken(); break;
+                case TOKpackage: prot = PROTpackage; nextToken(); break;
+                case TOKprotected: prot = PROTprotected; nextToken(); break;
+                case TOKpublic: prot = PROTpublic; nextToken(); break;
+                case TOKexport: prot = PROTexport; nextToken(); break;
+                default: break;
+            }
+
             Type *type = NULL;
             Identifier *ident;
             Token *tp = peek(&token);
+
             if (token.value == TOKidentifier &&
                 (tp->value == TOKassign || tp->value == TOKcomma || tp->value == TOKrcurly))
             {
@@ -1652,7 +1664,7 @@ EnumDeclaration *Parser::parseEnum()
                     error("if type, there must be an initializer");
             }
 
-            EnumMember *em = new EnumMember(loc, ident, value, type);
+            EnumMember *em = new EnumMember(loc, ident, value, type, prot);
             e->members->push(em);
 
             if (token.value == TOKrcurly)

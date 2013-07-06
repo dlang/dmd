@@ -241,6 +241,9 @@ void EnumDeclaration::semantic(Scope *sc)
              */
             continue;
 
+        if (em->protection != PROTundefined && !isAnonymous())
+            em->error(": only anonymous enum members can have access specifiers");
+
         //printf("  Enum member '%s'\n",em->toChars());
         if (em->type)
             em->type = em->type->semantic(em->loc, sce);
@@ -476,7 +479,7 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 /********************************* EnumMember ****************************/
 
-EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
+EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type, PROT protection)
     : Dsymbol(id)
 {
     this->ed = NULL;
@@ -484,6 +487,7 @@ EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
     this->type = type;
     this->loc = loc;
     this->vd = NULL;
+    this->protection = protection;
 }
 
 Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
@@ -504,7 +508,7 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
         em->type = t;
     }
     else
-        em = new EnumMember(loc, ident, e, t);
+        em = new EnumMember(loc, ident, e, t, protection);
     return em;
 }
 
@@ -548,4 +552,17 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
     assert(vd);
     Expression *e = new VarExp(loc, vd);
     return e->semantic(sc);
+}
+
+PROT EnumMember::prot()
+{
+    if (!ed)
+    {
+        assert(ident);
+        assert(loc.filename);
+        printf("file %s, line %u, name %s", loc.filename, loc.linnum, ident->toChars());
+        fflush(stdout);
+        assert(ed);
+    }
+    return protection == PROTundefined ? ed->prot() : protection;
 }
