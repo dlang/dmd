@@ -32,7 +32,7 @@ class TemplateTupleParameter;
 class Type;
 class TypeQualified;
 class TypeTypeof;
-class Scope;
+struct Scope;
 class Expression;
 class AliasDeclaration;
 class FuncDeclaration;

@@ -15,7 +15,7 @@ class Expression;
 class Identifier;
 class OutBuffer;
 class Module;
-class Scope;
+struct Scope;
 class ScopeDsymbol;
 class DebugCondition;
 #include "lexer.h" // dmdhg
