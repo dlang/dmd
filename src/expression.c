@@ -543,6 +543,111 @@ void checkPropertyCall(Expression *e, Expression *emsg)
     }
 }
 
+/******************************
+ * If e1 is a property function (template), resolve it.
+ */
+
+Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
+{
+    OverloadSet *os;
+    FuncDeclaration *fd;
+    TemplateDeclaration *td;
+
+    if (e1->op == TOKdotexp)
+    {
+        DotExp *de = (DotExp *)e1;
+        if (de->e2->op == TOKoverloadset)
+        {
+            os = ((OverExp *)de->e2)->vars;
+            goto Los;
+        }
+    }
+    else if (e1->op == TOKoverloadset)
+    {
+        os = ((OverExp *)e1)->vars;
+    Los:
+        assert(os);
+        for (size_t i = 0; i < os->a.dim; i++)
+        {
+            Dsymbol *s = os->a[i];
+            fd = s->isFuncDeclaration();
+            td = s->isTemplateDeclaration();
+            if (fd)
+            {
+                if (((TypeFunction *)fd->type)->isproperty)
+                    return resolveProperties(sc, e1);
+            }
+            else if (td && td->onemember &&
+                     (fd = td->onemember->isFuncDeclaration()) != NULL)
+            {
+                if (((TypeFunction *)fd->type)->isproperty ||
+                    (fd->storage_class2 & STCproperty) ||
+                    (td->scope->stc & STCproperty))
+                {
+                    return resolveProperties(sc, e1);
+                }
+            }
+        }
+    }
+    else if (e1->op == TOKdotti)
+    {
+        DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
+        td = dti->ti->tempdecl;
+        if (td)
+            goto Ltd;
+    }
+    else if (e1->op == TOKdottd)
+    {
+        td = ((DotTemplateExp *)e1)->td;
+        goto Ltd;
+    }
+    else if (e1->op == TOKimport)
+    {
+        Dsymbol *s = ((ScopeExp *)e1)->sds;
+        td = s->isTemplateDeclaration();
+        if (td)
+            goto Ltd;
+        TemplateInstance *ti = s->isTemplateInstance();
+        if (ti && !ti->semanticRun)
+        {
+            td = ti->tempdecl;
+            if (td)
+                goto Ltd;
+        }
+    }
+    else if (e1->op == TOKtemplate)
+    {
+        td = ((TemplateExp *)e1)->td;
+    Ltd:
+        assert(td);
+        if (td->onemember &&
+            (fd = td->onemember->isFuncDeclaration()) != NULL)
+        {
+            if (((TypeFunction *)fd->type)->isproperty ||
+                (fd->storage_class2 & STCproperty) ||
+                (td->scope->stc & STCproperty))
+            {
+                return resolveProperties(sc, e1);
+            }
+        }
+    }
+    else if (e1->op == TOKdotvar && e1->type->ty == Tfunction)
+    {
+        DotVarExp *dve = (DotVarExp *)e1;
+        fd = dve->var->isFuncDeclaration();
+        goto Lfd;
+    }
+    else if (e1->op == TOKvar && e1->type->ty == Tfunction)
+    {
+        fd = ((VarExp *)e1)->var->isFuncDeclaration();
+    Lfd:
+        assert(fd);
+        if (((TypeFunction *)fd->type)->isproperty)
+            return resolveProperties(sc, e1);
+    }
+    return e1;
+}
+
 
 /******************************
  * Find symbol in accordance with the UFCS name look up rule

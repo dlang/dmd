@@ -6992,13 +6992,10 @@ void TypeTypeof::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
         if (global.gag)
             global.speculativeGag = global.gag;
         exp = exp->semantic(sc2);
-        global.speculativeGag = oldspecgag;
-
 #if DMDV2
-        if (exp->type && exp->type->ty == Tfunction &&
-            ((TypeFunction *)exp->type)->isproperty)
-            exp = resolveProperties(sc2, exp);
+        exp = resolvePropertiesOnly(sc2, exp);
 #endif
+        global.speculativeGag = oldspecgag;
         sc2->pop();
         if (exp->op == TOKtype)
         {
