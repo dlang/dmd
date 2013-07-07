@@ -270,6 +270,70 @@ version( linux )
             sigset_t    uc_sigmask;
         }
     }
+    else version (PPC)
+    {
+        private
+        {
+            enum NGREG  = 48;
+
+            alias c_ulong        greg_t;
+            alias greg_t[NGREG]  gregset_t;
+
+            struct fpregset_t
+            {
+                double[32] fpregs;
+                double fpscr;
+                uint[2] _pad;
+            }
+
+            struct vrregset_t
+            {
+                uint[32][4] vrregs;
+                uint        vrsave;
+                uint[2]     __pad;
+                uint vscr;
+            }
+
+            struct pt_regs
+            {
+                c_ulong[32] gpr;
+                c_ulong     nip;
+                c_ulong     msr;
+                c_ulong     orig_gpr3;
+                c_ulong     ctr;
+                c_ulong     link;
+                c_ulong     xer;
+                c_ulong     ccr;
+                c_ulong     mq;
+                c_ulong     trap;
+                c_ulong     dar;
+                c_ulong     dsisr;
+                c_ulong     result;
+            }
+        }
+
+        struct mcontext_t
+        {
+            gregset_t gregs;
+            fpregset_t fpregs;
+            align(16) vrregset_t vrregs;
+        }
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            int[7]      uc_pad;
+            union uc_mcontext
+            {
+                pt_regs*     regs;
+                mcontext_t*  uc_regs;
+            }
+            sigset_t    uc_sigmask;
+            char[mcontext_t.sizeof + 12] uc_reg_space;
+        }
+    }
     else version (PPC64)
     {
         private
@@ -311,7 +375,7 @@ version( linux )
                 c_ulong     dar;
                 c_ulong     dsisr;
                 c_ulong     result;
-            };
+            }
         }
 
         struct mcontext_t
