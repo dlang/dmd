@@ -5680,7 +5680,7 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 j--;
                 continue;
             }
-            (*tiargs)[j] = ta;
+            (*tiargs)[j] = ta->merge2();
         }
         else if (ea)
         {

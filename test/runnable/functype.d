@@ -14,8 +14,8 @@ void testfp()
     alias typeof(func1) Func1;
     alias typeof(func2) Func2;
     static assert(is(Func1 == Func2));
-    static assert(Func1.stringof == "int(int)");            // removed defaultArgs
-    static assert(Func2.stringof == "int(int)");
+    static assert(Func1.stringof == "int(int n = 1)");
+    static assert(Func2.stringof == "int(int n)");
 
     auto fp1 = &func1;
     auto fp2 = &func2;
@@ -27,8 +27,8 @@ void testfp()
     alias typeof(fp1) Fp1;
     alias typeof(fp2) Fp2;
     static assert(is(Fp1 == Fp2));
-    static assert(Fp1.stringof == "int function(int)");     // removed defaultArgs
-    static assert(Fp2.stringof == "int function(int)");
+    static assert(Fp1.stringof == "int function(int n = 1)");
+    static assert(Fp2.stringof == "int function(int n)");
 
     typeof(fp1) fp3 = fp1;
     typeof(fp2) fp4 = fp2;
@@ -41,8 +41,8 @@ void testfp()
     alias typeof(fp3) Fp3;
     alias typeof(fp4) Fp4;
     static assert(is(Fp3 == Fp4));
-    static assert(Fp3.stringof == "int function(int)");     // removed defaultArgs
-    static assert(Fp4.stringof == "int function(int)");
+    static assert(Fp3.stringof == "int function(int n = 1)");
+    static assert(Fp4.stringof == "int function(int n)");
 
     auto fplit1 = function(int n = 1) { return n; };
     auto fplit2 = function(int n    ) { return n; };
@@ -62,8 +62,8 @@ void testdg()
     alias typeof(nest1) Nest1;
     alias typeof(nest2) Nest2;
     static assert(is(Nest1 == Nest2));
-    static assert(Nest1.stringof == "int(int)");            // removed defaultArgs
-    static assert(Nest2.stringof == "int(int)");
+    static assert(Nest1.stringof == "int(int n = 1)");
+    static assert(Nest2.stringof == "int(int n)");
 
     auto dg1 = &nest1;
     auto dg2 = &nest2;
@@ -75,8 +75,8 @@ void testdg()
     alias typeof(dg1) Dg1;
     alias typeof(dg2) Dg2;
     static assert(is(Dg1 == Dg2));
-    static assert(Dg1.stringof == "int delegate(int)");     // removed defaultArgs
-    static assert(Dg2.stringof == "int delegate(int)");
+    static assert(Dg1.stringof == "int delegate(int n = 1)");
+    static assert(Dg2.stringof == "int delegate(int n)");
 
     typeof(dg1) dg3 = dg1;
     typeof(dg2) dg4 = dg2;
@@ -88,8 +88,8 @@ void testdg()
     alias typeof(dg3) Dg3;
     alias typeof(dg4) Dg4;
     static assert(is(Dg3 == Dg4));
-    static assert(Dg3.stringof == "int delegate(int)");     // removed defaultArgs
-    static assert(Dg4.stringof == "int delegate(int)");
+    static assert(Dg3.stringof == "int delegate(int n = 1)");
+    static assert(Dg4.stringof == "int delegate(int n)");
 
     auto dglit1 = delegate(int n = 1) { return n; };
     auto dglit2 = delegate(int n    ) { return n; };
@@ -137,6 +137,15 @@ void testti()
     double delegate(double x = 0.0) dg = x => x;
     static assert(typeof(dg).stringof == "double delegate(double x = " ~ (0.0).stringof ~ ")");
     static assert(StringOf!(typeof(dg)) == "double delegate(double)");
+
+    template F(T) {}
+    auto fp1 = (int a = 1) {};
+    auto fp2 = (int b = 2) {};
+    static assert(typeof(fp1).stringof != typeof(fp2).stringof);
+    alias F1 = F!(typeof(fp1));
+    alias F2 = F!(typeof(fp2));
+    static assert(__traits(isSame, F1, F2));
+    static assert(F1.mangleof == F2.mangleof);
 }
 
 void testxx()
