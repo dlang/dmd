@@ -340,6 +340,7 @@ Msgtable msgtable[] =
     { "compiles" },
     { "parameters" },
     { "getAttributes" },
+    { "getUnitTests" },
 };
 
 

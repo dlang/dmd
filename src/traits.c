@@ -15,6 +15,7 @@
 #include <math.h>
 
 #include "rmem.h"
+#include "aav.h"
 
 //#include "port.h"
 #include "mtype.h"
@@ -670,6 +671,54 @@ Expression *TraitsExp::semantic(Scope *sc)
         else
             goto Lfalse;
     }
+    else if (ident == Id::getUnitTests)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        if (!s)
+        {
+            error("argument %s to __traits(getUnitTests) must be a module", o->toChars());
+            goto Lfalse;
+        }
+
+        Module* module = s->isModule();
+
+        if (!module)
+        {
+            error("argument %s to __traits(getUnitTests) must be a module, not a %s", s->toChars(), s->kind());
+            goto Lfalse;
+        }
+
+        Expressions* unitTests = new Expressions();
+        Dsymbols* symbols = module->members;
+
+        if (global.params.useUnitTests && symbols)
+        {
+            // Should actually be a set
+            AA* uniqueUnitTests = NULL;
+
+            for (size_t i = 0; i < symbols->dim; i++)
+            {
+                Dsymbol* symbol = (*symbols)[i];
+                UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+
+                if (unitTest && !_aaGetRvalue(uniqueUnitTests, unitTest))
+                {
+                    FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
+                    alias->protection = unitTest->protection;
+                    Expression* e = new DsymbolExp(Loc(), alias);
+                    unitTests->push(e);
+                    bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                    *value = true;
+                }
+            }
+        }
+
+        TupleExp *tup = new TupleExp(loc, unitTests);
+        return tup->semantic(sc);
+    }
     else
     {   error("unrecognized trait %s", ident->toChars());
         goto Lfalse;
@@ -688,6 +737,5 @@ Lfalse:
 Ltrue:
     return new IntegerExp(loc, 1, Type::tbool);
 }
-
 
 #endif
