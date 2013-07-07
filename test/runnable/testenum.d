@@ -211,6 +211,42 @@ static assert(is(typeof(d10505) == int));
 static assert(is(typeof(e10505) == typeof(null)));
 
 /**********************************************/
+// 10561
+
+void test10561()
+{
+    template Tuple(T...) { alias Tuple = T; }
+
+    foreach (Type; Tuple!(char, wchar, dchar, byte, ubyte,
+                          short, ushort, int, uint, long,
+                          ulong, float, double, real))
+    {
+        enum : Type { v = 0, w = 0, x, y = x }
+        static assert(is(typeof(v) == Type));
+        static assert(is(typeof(w) == Type));
+        static assert(is(typeof(x) == Type));
+        static assert(is(typeof(y) == Type));
+    }
+
+    class B { }
+    class D : B { }
+    enum : B { a = new D, b = new B, c = null }
+    static assert(is(typeof(a) == B));
+    static assert(is(typeof(b) == B));
+    static assert(is(typeof(c) == B));
+
+    struct S { this(int) { } }
+    enum : S { d = S(1), e = S(2) }
+    static assert(is(typeof(d) == S));
+    static assert(is(typeof(e) == S));
+
+    enum : float[] { f = [], g = [1.0, 2.0], h = [1.0f] }
+    static assert(is(typeof(f) == float[]));
+    static assert(is(typeof(g) == float[]));
+    static assert(is(typeof(h) == float[]));
+}
+
+/**********************************************/
 
 int main()
 {
@@ -221,6 +257,7 @@ int main()
     test5();
     test6();
     test10113();
+    test10561();
 
     printf("Success\n");
     return 0;

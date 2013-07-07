@@ -255,8 +255,7 @@ void EnumDeclaration::semantic(Scope *sc)
                 memtype = e->type;
             if (memtype && !em->type)
             {
-                if (!isAnonymous())
-                    e = e->implicitCastTo(sce, memtype);
+                e = e->implicitCastTo(sce, memtype);
                 e = e->ctfeInterpret();
                 if (!isAnonymous())
                     e = e->castTo(sce, type);
