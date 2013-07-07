@@ -228,7 +228,7 @@ void Module::gendocfile()
     {   mbuf_done = 1;
 
         // Use our internal default
-        mbuf.write(ddoc_default, sizeof(ddoc_default) - 1);
+        mbuf.write(ddoc_default, strlen(ddoc_default));
 
         // Override with DDOCFILE specified in the sc.ini file
         char *p = getenv("DDOCFILE");
@@ -1998,7 +1998,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
                 {
                     static char blankline[] = "$(DDOC_BLANKLINE)\n";
 
-                    i = buf->insert(i, blankline, sizeof(blankline) - 1);
+                    i = buf->insert(i, blankline, strlen(blankline));
                 }
                 leadingBlank = 1;
                 iLineStart = i + 1;
@@ -2186,7 +2186,7 @@ void highlightText(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset)
 
                         inCode = 1;
                         codeIndent = istart - iLineStart;  // save indent count
-                        i = buf->insert(i, pre, sizeof(pre) - 1);
+                        i = buf->insert(i, pre, strlen(pre));
                         iCodeStart = i;
                         i--;            // place i on >
                         leadingBlank = true;
