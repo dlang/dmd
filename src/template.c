@@ -335,7 +335,7 @@ hash_t arrayObjectHash(Objects *oa1)
                 FuncAliasDeclaration *fa1 = s1->isFuncAliasDeclaration();
                 if (fa1)
                     s1 = fa1->toAliasFunc();
-                hash += (size_t)(void *)s1->ident + (size_t)(void *)s1->parent;
+                hash += (size_t)(void *)s1->getIdent() + (size_t)(void *)s1->parent;
             }
             else if (Tuple *u1 = isTuple(o1))
                 hash += arrayObjectHash(&u1->objects);

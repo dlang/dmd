@@ -2652,6 +2652,25 @@ dstring rewriteCode10537(dstring code)
 }
 
 /******************************************/
+// 10558
+
+template Template10558() {}
+
+struct Struct10558(alias T){}
+
+alias bar10558 = foo10558!(Template10558!());
+
+template foo10558(alias T)
+{
+    alias foobar = Struct10558!T;
+
+    void fun()
+    {
+        alias a = foo10558!T;
+    }
+}
+
+/******************************************/
 
 int main()
 {
