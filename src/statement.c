@@ -4538,7 +4538,7 @@ void Catch::semantic(Scope *sc)
     else if (ident)
     {
         var = new VarDeclaration(loc, type, ident, NULL);
-        var->parent = sc->parent;
+        var->semantic(sc);
         sc->insert(var);
     }
     handler = handler->semantic(sc);

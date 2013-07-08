@@ -732,6 +732,28 @@ void bug1841()
     assert(z() == 9);
 }
 
+/************************************/
+// 5911
+
+void writeln5911(const(char)[] str) {}
+
+void logout5911(lazy const(char)[] msg) { writeln5911(msg); }
+
+void test5911()
+{
+    string str = "hello world";
+    logout5911((){ return str; }());    // closure 1
+
+    try
+    {
+        throw new Exception("exception!!");
+    }
+    catch (Exception e)
+    {
+        assert(e !is null);
+        logout5911(e.toString());       // closure2 SEGV : e is null.
+    }
+}
 
 /************************************/
 
@@ -760,6 +782,7 @@ int main()
     test21();
     test22();
     bug1841();
+    test5911();
 
     printf("Success\n");
     return 0;
