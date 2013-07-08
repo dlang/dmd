@@ -352,10 +352,10 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
 
-        sc->startCTFE();
+        sc = sc->startCTFE();
         Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
-        sc->endCTFE();
+        sc = sc->endCTFE();
 
         sc->pop();
         --nest;

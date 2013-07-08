@@ -587,8 +587,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             global.speculativeGag = global.gag;
             sc = sc->push();
             sc->speculative = true;
-            sc->needctfe = 0;
-            sc->flags = sc->enclosing->flags;   // inherit
+            sc->flags = sc->enclosing->flags & ~SCOPEctfe;   // inherit without CTFEing
 
             Type *t = isType(o);
             if (t)

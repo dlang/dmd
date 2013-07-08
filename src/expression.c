@@ -2178,7 +2178,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
             f->parent->isTemplateInstance()->enclosing == NULL)
         {   // The closest pure parent of instantiated non-nested template function is
             // always itself.
-            if (!f->isPure() && outerfunc->setImpure() && !sc->needctfe)
+            if (!f->isPure() && outerfunc->setImpure() && !(sc->flags & SCOPEctfe))
                 error("pure function '%s' cannot call impure function '%s'",
                     outerfunc->toPrettyChars(), f->toPrettyChars());
             return;
@@ -2218,7 +2218,7 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         // OR, they must have the same pure parent.
         if (/*outerfunc->isPure() &&*/    // comment out because we deduce purity now
             !f->isPure() && calledparent != outerfunc &&
-            !sc->needctfe)
+            !(sc->flags & SCOPEctfe))
         {
             if (outerfunc->setImpure())
                 error("pure function '%s' cannot call impure function '%s'",
@@ -2320,7 +2320,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
 void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
 {
     if (sc->func && !sc->intypeof &&
-        !(sc->needctfe) &&
+        !(sc->flags & SCOPEctfe) &&
         !f->isSafe() && !f->isTrusted())
     {
         if (sc->func->setUnsafe())
@@ -5361,10 +5361,11 @@ Expression *NewAnonClassExp::semantic(Scope *sc)
 #endif
 
     Expression *d = new DeclarationExp(loc, cd);
-    int needctfe = sc->needctfe;
-    sc->needctfe = 0;
+    sc = sc->startCTFE();       // just create new scope
+    sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
     d = d->semantic(sc);
-    sc->needctfe = needctfe;
+    sc->flags |=  SCOPEctfe;
+    sc = sc->endCTFE();
 
     Expression *n = new NewExp(loc, thisexp, newargs, cd->type, arguments);
 
@@ -5822,8 +5823,8 @@ Expression *FuncExp::semantic(Scope *sc)
 #endif
     Expression *e = this;
 
-    int needctfe = sc->needctfe;
-    sc->needctfe = 0;
+    sc = sc->startCTFE();       // just create new scope
+    sc->flags &= ~SCOPEctfe;    // temporary stop CTFE
 
     if (!type || type == Type::tvoid)
     {
@@ -5912,7 +5913,8 @@ Expression *FuncExp::semantic(Scope *sc)
         fd->tookAddressOf++;
     }
 Ldone:
-    sc->needctfe = needctfe;
+    sc->flags |=  SCOPEctfe;
+    sc = sc->endCTFE();
     return e;
 }
 
@@ -6995,10 +6997,10 @@ Expression *CompileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("CompileExp::semantic('%s')\n", toChars());
 #endif
-    sc->startCTFE();
+    sc = sc->startCTFE();
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    sc->endCTFE();
+    sc = sc->endCTFE();
     if (e1->op == TOKerror)
         return e1;
     if (!e1->type->isString())
@@ -7050,10 +7052,10 @@ Expression *FileExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("FileExp::semantic('%s')\n", toChars());
 #endif
-    sc->startCTFE();
+    sc = sc->startCTFE();
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    sc->endCTFE();
+    sc = sc->endCTFE();
     e1 = e1->ctfeInterpret();
     if (e1->op != TOKstring)
     {   error("file name argument must be a string, not (%s)", e1->toChars());
@@ -8807,7 +8809,7 @@ Lagain:
 #endif
             f->checkNestedReference(sc, loc);
         }
-        else if (sc->func && !sc->needctfe)
+        else if (sc->func && !(sc->flags & SCOPEctfe))
         {
             if (!tf->purity && !(sc->flags & SCOPEdebug) && sc->func->setImpure())
             {
@@ -9975,20 +9977,20 @@ Lagain:
 
     if (lwr)
     {
-        if (t->ty == Ttuple) sc2->startCTFE();
+        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
         lwr = lwr->semantic(sc2);
         lwr = resolveProperties(sc2, lwr);
-        if (t->ty == Ttuple) sc2->endCTFE();
+        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         lwr = lwr->implicitCastTo(sc2, Type::tsize_t);
         if (lwr->type == Type::terror)
             goto Lerr;
     }
     if (upr)
     {
-        if (t->ty == Ttuple) sc2->startCTFE();
+        if (t->ty == Ttuple) sc2 = sc2->startCTFE();
         upr = upr->semantic(sc2);
         upr = resolveProperties(sc2, upr);
-        if (t->ty == Ttuple) sc2->endCTFE();
+        if (t->ty == Ttuple) sc2 = sc2->endCTFE();
         upr = upr->implicitCastTo(sc2, Type::tsize_t);
         if (upr->type == Type::terror)
             goto Lerr;
@@ -10461,10 +10463,10 @@ Expression *IndexExp::semantic(Scope *sc)
         sc = sc->push(sym);
     }
 
-    if (t1->ty == Ttuple) sc->startCTFE();
+    if (t1->ty == Ttuple) sc = sc->startCTFE();
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
-    if (t1->ty == Ttuple) sc->endCTFE();
+    if (t1->ty == Ttuple) sc = sc->endCTFE();
     if (e2->type == Type::terror)
         goto Lerr;
     if (e2->type->ty == Ttuple && ((TupleExp *)e2)->exps->dim == 1) // bug 4444 fix

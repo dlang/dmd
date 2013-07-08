@@ -74,7 +74,6 @@ Scope::Scope()
     this->nofree = 0;
     this->noctor = 0;
     this->noaccesscheck = 0;
-    this->needctfe = 0;
     this->intypeof = 0;
     this->speculative = 0;
     this->callSuper = 0;
@@ -123,11 +122,10 @@ Scope::Scope(Scope *enclosing)
     this->nofree = 0;
     this->noctor = enclosing->noctor;
     this->noaccesscheck = enclosing->noaccesscheck;
-    this->needctfe = enclosing->needctfe;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
     this->callSuper = enclosing->callSuper;
-    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug));
+    this->flags = (enclosing->flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe));
     this->lastdc = NULL;
     this->lastoffset = 0;
     this->docbuf = enclosing->docbuf;
@@ -190,18 +188,17 @@ Scope *Scope::pop()
     return enc;
 }
 
-int Scope::startCTFE()
+Scope *Scope::startCTFE()
 {
-    int old = needctfe;
-    assert(needctfe >= 0);
-    needctfe++;
-    return old;
+    Scope *sc = this->push();
+    sc->flags = this->flags | SCOPEctfe;
+    return sc;
 }
 
-void Scope::endCTFE()
+Scope *Scope::endCTFE()
 {
-    needctfe--;
-    assert(needctfe >= 0);
+    assert(flags & SCOPEctfe);
+    return pop();
 }
 
 void Scope::mergeCallSuper(Loc loc, unsigned cs)

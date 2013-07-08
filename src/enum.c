@@ -205,7 +205,7 @@ void EnumDeclaration::semantic(Scope *sc)
     {   sce = sc->push(this);
         sce->parent = this;
     }
-    sce->startCTFE();
+    sce = sce->startCTFE();
 
     if (members->dim == 0)
         error("enum %s must have at least one member", toChars());
@@ -391,7 +391,7 @@ void EnumDeclaration::semantic(Scope *sc)
     //printf("defaultval = %lld\n", defaultval);
 
     //if (defaultval) printf("defaultval: %s %s\n", defaultval->toChars(), defaultval->type->toChars());
-    sce->endCTFE();
+    sce = sce->endCTFE();
     if (sc != sce)
         sce->pop();
     //members->print();

@@ -1001,10 +1001,10 @@ void PragmaDeclaration::semantic(Scope *sc)
             {
                 Expression *e = (*args)[i];
 
-                sc->startCTFE();
+                sc = sc->startCTFE();
                 e = e->semantic(sc);
                 e = resolveProperties(sc, e);
-                sc->endCTFE();
+                sc = sc->endCTFE();
 
                 // pragma(msg) is allowed to contain types as well as expressions
                 e = ctfeInterpretForPragmaMsg(e);
@@ -1032,10 +1032,10 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            sc->startCTFE();
+            sc = sc->startCTFE();
             e = e->semantic(sc);
             e = resolveProperties(sc, e);
-            sc->endCTFE();
+            sc = sc->endCTFE();
 
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1076,10 +1076,10 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             Expression *e = (*args)[0];
 
-            sc->startCTFE();
+            sc = sc->startCTFE();
             e = e->semantic(sc);
             e = resolveProperties(sc, e);
-            sc->endCTFE();
+            sc = sc->endCTFE();
 
             e = e->ctfeInterpret();
             (*args)[0] = e;
@@ -1174,10 +1174,10 @@ void PragmaDeclaration::semantic(Scope *sc)
                 {
                     Expression *e = (*args)[i];
 
-                    sc->startCTFE();
+                    sc = sc->startCTFE();
                     e = e->semantic(sc);
                     e = resolveProperties(sc, e);
-                    sc->endCTFE();
+                    sc = sc->endCTFE();
 
                     e = e->ctfeInterpret();
                     if (i == 0)
@@ -1580,10 +1580,10 @@ int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 void CompileDeclaration::compileIt(Scope *sc)
 {
     //printf("CompileDeclaration::compileIt(loc = %d) %s\n", loc.linnum, exp->toChars());
-    sc->startCTFE();
+    sc = sc->startCTFE();
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
-    sc->endCTFE();
+    sc = sc->endCTFE();
     exp = exp->ctfeInterpret();
     StringExp *se = exp->toString();
     if (!se)

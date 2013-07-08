@@ -56,10 +56,10 @@ void StaticAssert::semantic2(Scope *sc)
     sc = sc->push(sd);
     sc->flags |= SCOPEstaticassert;
 
-    sc->startCTFE();
+    sc = sc->startCTFE();
     Expression *e = exp->semantic(sc);
     e = resolveProperties(sc, e);
-    sc->endCTFE();
+    sc = sc->endCTFE();
     sc = sc->pop();
 
     // Simplify expression, to make error messages nicer if CTFE fails
@@ -84,10 +84,10 @@ void StaticAssert::semantic2(Scope *sc)
             HdrGenState hgs;
             OutBuffer buf;
 
-            sc->startCTFE();
+            sc = sc->startCTFE();
             msg = msg->semantic(sc);
             msg = resolveProperties(sc, msg);
-            sc->endCTFE();
+            sc = sc->endCTFE();
             msg = msg->ctfeInterpret();
             hgs.console = 1;
             StringExp * s = msg->toString();

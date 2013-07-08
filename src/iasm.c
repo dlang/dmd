@@ -3672,9 +3672,9 @@ STATIC code *asm_db_parse(OP *pop)
             case TOKidentifier:
             {
                 Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
-                asmstate.sc->startCTFE();
-                e = e->semantic(asmstate.sc);
-                asmstate.sc->endCTFE();
+                Scope *sc = asmstate.sc->startCTFE();
+                e = e->semantic(sc);
+                sc->endCTFE();
                 e = e->ctfeInterpret();
                 if (e->op == TOKint64)
                 {   dt.ul = e->toInteger();
@@ -3749,9 +3749,9 @@ int asm_getnum()
         case TOKidentifier:
         {
             Expression *e = new IdentifierExp(asmstate.loc, asmtok->ident);
-            asmstate.sc->startCTFE();
-            e = e->semantic(asmstate.sc);
-            asmstate.sc->endCTFE();
+            Scope *sc = asmstate.sc->startCTFE();
+            e = e->semantic(sc);
+            sc->endCTFE();
             e = e->ctfeInterpret();
             i = e->toInteger();
             v = (int) i;
@@ -4462,9 +4462,9 @@ STATIC OPND *asm_primary_exp()
                                 break;
                             }
                         }
-                        asmstate.sc->startCTFE();
-                        e = e->semantic(asmstate.sc);
-                        asmstate.sc->endCTFE();
+                        Scope *sc = asmstate.sc->startCTFE();
+                        e = e->semantic(sc);
+                        sc->endCTFE();
                         e = e->ctfeInterpret();
                         if (e->isConst())
                         {

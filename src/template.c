@@ -931,10 +931,10 @@ MATCH TemplateDeclaration::matchWithInstance(TemplateInstance *ti,
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        sc->startCTFE();
+        sc = sc->startCTFE();
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
-        sc->endCTFE();
+        sc = sc->endCTFE();
         if (e->op == TOKerror)
             goto Lnomatch;
 
@@ -2005,10 +2005,10 @@ Lmatch:
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        paramscope->startCTFE();
-        e = e->semantic(paramscope);
-        e = resolveProperties(paramscope, e);
-        paramscope->endCTFE();
+        Scope *scx = paramscope->startCTFE();
+        e = e->semantic(scx);
+        e = resolveProperties(scx, e);
+        scx->endCTFE();
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
@@ -4242,9 +4242,9 @@ RootObject *aliasParameterSemantic(Loc loc, Scope *sc, RootObject *o, TemplatePa
         }
         else if (ea)
         {
-            sc->startCTFE();
+            sc = sc->startCTFE();
             ea = ea->semantic(sc);
-            sc->endCTFE();
+            sc = sc->endCTFE();
             o = ea->ctfeInterpret();
         }
     }
@@ -4572,9 +4572,9 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
     if (specValue)
     {
         Expression *e = specValue;
-        sc->startCTFE();
+        sc = sc->startCTFE();
         e = e->semantic(sc);
-        sc->endCTFE();
+        sc = sc->endCTFE();
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64 || e->op == TOKfloat64 ||
@@ -4586,9 +4586,9 @@ void TemplateValueParameter::semantic(Scope *sc, TemplateParameters *parameters)
     if (defaultValue)
     {
         Expression *e = defaultValue;
-        sc->startCTFE();
+        sc = sc->startCTFE();
         e = e->semantic(sc);
-        sc->endCTFE();
+        sc = sc->endCTFE();
         e = e->implicitCastTo(sc, valType);
         e = e->ctfeInterpret();
         if (e->op == TOKint64)
@@ -4710,17 +4710,17 @@ MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
 
         Expression *e = specValue;
 
-        sc->startCTFE();
+        sc = sc->startCTFE();
         e = e->semantic(sc);
         e = resolveProperties(sc, e);
-        sc->endCTFE();
+        sc = sc->endCTFE();
         e = e->implicitCastTo(sc, vt);
         e = e->ctfeInterpret();
 
         ei = ei->syntaxCopy();
-        sc->startCTFE();
+        sc = sc->startCTFE();
         ei = ei->semantic(sc);
-        sc->endCTFE();
+        sc = sc->endCTFE();
         ei = ei->implicitCastTo(sc, vt);
         ei = ei->ctfeInterpret();
         //printf("\tei: %s, %s\n", ei->toChars(), ei->type->toChars());
@@ -5701,9 +5701,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
         {
         Lexpr:
             //printf("+[%d] ea = %s %s\n", j, Token::toChars(ea->op), ea->toChars());
-            if (!(flags & 1)) sc->startCTFE();
+            if (!(flags & 1)) sc = sc->startCTFE();
             ea = ea->semantic(sc);
-            if (!(flags & 1)) sc->endCTFE();
+            if (!(flags & 1)) sc = sc->endCTFE();
             if (flags & 1) // only used by __traits, must not interpret the args
             {
                 VarDeclaration *v;

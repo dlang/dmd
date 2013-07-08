@@ -3755,17 +3755,17 @@ Expression *semanticLength(Scope *sc, Type *t, Expression *exp)
         sym->parent = sc->scopesym;
         sc = sc->push(sym);
 
-        sc->startCTFE();
+        sc = sc->startCTFE();
         exp = exp->semantic(sc);
-        sc->endCTFE();
+        sc = sc->endCTFE();
 
         sc->pop();
     }
     else
     {
-        sc->startCTFE();
+        sc = sc->startCTFE();
         exp = exp->semantic(sc);
-        sc->endCTFE();
+        sc = sc->endCTFE();
     }
 
     return exp;
@@ -3777,9 +3777,9 @@ Expression *semanticLength(Scope *sc, TupleDeclaration *s, Expression *exp)
     sym->parent = sc->scopesym;
     sc = sc->push(sym);
 
-    sc->startCTFE();
+    sc = sc->startCTFE();
     exp = exp->semantic(sc);
-    sc->endCTFE();
+    sc = sc->endCTFE();
 
     sc->pop();
     return exp;
@@ -3807,9 +3807,9 @@ void TypeSArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
             ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
-            sc->startCTFE();
+            sc = sc->startCTFE();
             dim = dim->semantic(sc);
-            sc->endCTFE();
+            sc = sc->endCTFE();
             sc = sc->pop();
 
             dim = dim->ctfeInterpret();
@@ -9196,10 +9196,10 @@ void TypeSlice::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol 
             ScopeDsymbol *sym = new ArrayScopeSymbol(sc, td);
             sym->parent = sc->scopesym;
             sc = sc->push(sym);
-            sc->startCTFE();
+            sc = sc->startCTFE();
             lwr = lwr->semantic(sc);
             upr = upr->semantic(sc);
-            sc->endCTFE();
+            sc = sc->endCTFE();
             sc = sc->pop();
 
             lwr = lwr->ctfeInterpret();
