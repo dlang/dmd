@@ -2531,6 +2531,11 @@ bool _xopEquals(in void*, in void*)
     throw new Error("TypeInfo.equals is not implemented");
 }
 
+bool _xopCmp(in void*, in void*)
+{
+    throw new Error("TypeInfo.compare is not implemented");
+}
+
 /******************************************
  * Create RTInfo for type T
  */
