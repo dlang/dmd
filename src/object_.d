@@ -2602,9 +2602,15 @@ unittest
  * Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
  */
-void assumeSafeAppend(T)(T[] arr)
+ref T[] assumeSafeAppend(T)(ref T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    return arr;
+}
+/// ditto
+T[] assumeSafeAppend(T)(T[] arr)
+{
+    return assumeSafeAppend(arr);
 }
 ///
 unittest
