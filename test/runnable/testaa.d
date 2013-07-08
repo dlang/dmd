@@ -249,8 +249,8 @@ void test11()
     printf("Key.hash = %d\n", Key.hash);
     assert(Key.hash == 1);
     printf("Key.cmp = %d\n", Key.cmp);
-    assert(Key.cmp == 1);
-//    assert(Key.equals == 1);
+    printf("Key.equals = %d\n", Key.equals);
+    assert(Key.cmp == 1 && !Key.equals || !Key.cmp && Key.equals == 1);
 }
 
 
