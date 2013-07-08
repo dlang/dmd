@@ -2379,9 +2379,15 @@ Expression *DeclarationExp::interpret(InterState *istate, CtfeGoal goal)
              declaration->isTupleDeclaration())
     {   // Check for static struct declarations, which aren't executable
         AttribDeclaration *ad = declaration->isAttribDeclaration();
-        if (ad && ad->decl && ad->decl->dim == 1
-            && (*ad->decl)[0]->isAggregateDeclaration())
-            return NULL;    // static struct declaration. Nothing to do.
+        if (ad && ad->decl && ad->decl->dim == 1)
+        {
+            Dsymbol *s = (*ad->decl)[0];
+            if (s->isAggregateDeclaration() ||
+                s->isTemplateDeclaration())
+            {
+                return NULL;    // static (template) struct declaration. Nothing to do.
+            }
+        }
 
         // These can be made to work, too lazy now
         error("Declaration %s is not yet implemented in CTFE", toChars());
