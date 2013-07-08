@@ -3456,11 +3456,6 @@ Lagain:
         if (!f->functionSemantic())
             return new ErrorExp();
 
-        if (f->isUnitTestDeclaration())
-        {
-            error("cannot call unittest function %s", toChars());
-            return new ErrorExp();
-        }
         if (!f->type->deco)
         {
             error("forward reference to %s", toChars());
