@@ -1787,8 +1787,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = new TypeSArray(t1->nextOf(), new IntegerExp(loc, es1->elements->dim, Type::tindex));
-            e->type = e->type->semantic(loc, NULL);
+            e->type = TypeSArray::makeType(loc, t1->nextOf(), es1->elements->dim);
         }
         else
             e->type = type;
@@ -1812,8 +1811,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = new TypeSArray(t1->nextOf(), new IntegerExp(loc, es->elements->dim, Type::tindex));
-            e->type = e->type->semantic(loc, NULL);
+            e->type = TypeSArray::makeType(loc, t1->nextOf(), es->elements->dim);
         }
         else
             e->type = type;
@@ -1835,8 +1833,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = new TypeSArray(e2->type, new IntegerExp(loc, es1->elements->dim, Type::tindex));
-            e->type = e->type->semantic(loc, NULL);
+            e->type = TypeSArray::makeType(loc, e2->type, es1->elements->dim);
         }
         else
             e->type = type;
@@ -1852,8 +1849,7 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
 
         if (type->toBasetype()->ty == Tsarray)
         {
-            e->type = new TypeSArray(e1->type, new IntegerExp(loc, es2->elements->dim, Type::tindex));
-            e->type = e->type->semantic(loc, NULL);
+            e->type = TypeSArray::makeType(loc, e1->type, es2->elements->dim);
         }
         else
             e->type = type;

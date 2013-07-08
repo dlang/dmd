@@ -351,9 +351,15 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
         sc->flags |= SCOPEstaticif;
-        Expression *e = exp->ctfeSemantic(sc);
+
+        sc = sc->startCTFE();
+        Expression *e = exp->semantic(sc);
         e = resolveProperties(sc, e);
+        sc = sc->endCTFE();
+
         sc->pop();
+        --nest;
+
         if (!e->type->checkBoolean())
         {
             if (e->type->toBasetype() != Type::terror)
@@ -362,7 +368,6 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
             return 0;
         }
         e = e->ctfeInterpret();
-        --nest;
         if (e->op == TOKerror)
         {   exp = e;
             inc = 0;

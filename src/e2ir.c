@@ -5045,8 +5045,7 @@ elem *ArrayLiteralExp::toElem(IRState *irs)
     Type *tb = type->toBasetype();
     if (tb->ty == Tsarray && tb->nextOf()->toBasetype()->ty == Tvoid)
     {   // Convert void[n] to ubyte[n]
-        tb = new TypeSArray(Type::tuns8, ((TypeSArray *)tb)->dim);
-        tb = tb->semantic(loc, NULL);
+        tb = TypeSArray::makeType(loc, Type::tuns8, ((TypeSArray *)tb)->dim->toUInteger());
     }
     if (elements)
     {
@@ -5143,8 +5142,7 @@ elem *ExpressionsToStaticArray(IRState *irs, Loc loc, Expressions *exps, symbol 
             szelem = telem->size();
             te = telem->toCtype();
 
-            tsarray = new TypeSArray(telem, new IntegerExp(loc, dim, Type::tsize_t));
-            tsarray = tsarray->semantic(loc, NULL);
+            tsarray = TypeSArray::makeType(loc, telem, dim);
             stmp = symbol_genauto(tsarray->toCtype());
             *psym = stmp;
         }

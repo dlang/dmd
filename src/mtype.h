@@ -506,6 +506,8 @@ public:
     void toCppMangle(OutBuffer *buf, CppMangleState *cms);
 #endif
 
+    static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
+
     type *toCtype();
     type *toCParamtype();
 };
