@@ -851,6 +851,12 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
     if (len != _aaLen(e2))
         return 0;
 
+    // Bug 9852: at this point, e1 and e2 have the same length, so if one is
+    // null, the other must either also be null or have zero entries, so they
+    // must be equal. We check this here to avoid dereferencing null later on.
+    if (e1.impl is null || e2.impl is null)
+        return 1;
+
     // Check for Bug 5925. ti_raw could be a TypeInfo_Const, we need to unwrap
     //   it until reaching a real TypeInfo_AssociativeArray.
     const TypeInfo_AssociativeArray ti = _aaUnwrapTypeInfo(tiRaw);
@@ -864,6 +870,8 @@ int _aaEqual(in TypeInfo tiRaw, in AA e1, in AA e2)
     const keyti = ti.key;
     const valueti = ti.next;
     const keysize = aligntsize(keyti.tsize);
+
+    assert(e2.impl !is null);
     const len2 = e2.impl.buckets.length;
 
     int _aaKeys_x(const(Entry)* e)
@@ -993,4 +1001,26 @@ unittest
     key2a[2] = "true";
 
     assert(aa1[key2a] == 200);
+}
+
+// Issue 9852
+unittest
+{
+    // Original test case (revised, original assert was wrong)
+    int[string] a;
+    a["foo"] = 0;
+    a.remove("foo");
+    assert(a == null);  // should not crash
+
+    int[string] b;
+    assert(b is null);
+    assert(a == b);     // should not deref null
+    assert(b == a);     // ditto
+
+    int[string] c;
+    c["a"] = 1;
+    assert(a != c);     // comparison with empty non-null AA
+    assert(c != a);
+    assert(b != c);     // comparison with null AA
+    assert(c != b);
 }
