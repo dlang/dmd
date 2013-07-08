@@ -2406,7 +2406,6 @@ STATIC bool optim_oror(elem **pe)
         // Delete all the || nodes that are no longer referenced
         el_opFree(e, OPoror);
 
-        unsigned tyc = array[first]->E1->Ety;
         if (emax < 32)                  // if everything fits in a 32 bit register
             emin = 0;                   // no need for bias
 
@@ -2427,12 +2426,19 @@ STATIC bool optim_oror(elem **pe)
         //printf("n = %d, count = %d, min = %d, max = %d\n", (int)n, last - first + 1, (int)emin, (int)emax);
         //printf("bits = x%llx\n", bits);
 
+        unsigned tyc = array[first]->E1->Ety;
+
         elem *ex = el_bin(OPmin,tyc,array[first]->E1,el_long(tyc,emin));
         ex = el_bin(OPle,TYbool,ex,el_long(touns(tyc),emax - emin));
         elem *ey = el_bin(OPmin,tyc,array[first + 1]->E1,el_long(tyc,emin));
-#if 1
-        ey = el_bin(OPbtst,TYbool,el_long(tyc,bits),ey);
-#else
+
+        tym_t tybits = TYuint;
+        if ((emax - emin) >= 32)
+        {
+            assert(I64);                // need 64 bit BT
+            tybits = TYullong;
+        }
+
         // Shift count must be an int
         switch (tysize(tyc))
         {
@@ -2449,8 +2455,11 @@ STATIC bool optim_oror(elem **pe)
             default:
                 assert(0);
         }
-        ey = el_bin(OPshl,tyc,el_long(tyc,1),ey);
-        ey = el_bin(OPand,tyc,ey,el_long(tyc,bits));
+#if 1
+        ey = el_bin(OPbtst,TYbool,el_long(tybits,bits),ey);
+#else
+        ey = el_bin(OPshl,tybits,el_long(tybits,1),ey);
+        ey = el_bin(OPand,tybits,ey,el_long(tybits,bits));
 #endif
         ex = el_bin(OPandand,ty,ex,ey);
 
