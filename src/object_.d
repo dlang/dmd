@@ -2624,8 +2624,7 @@ unittest
 
     //With assumeSafeAppend. Appending overwrites.
     int[] c = a [0 .. 3];
-    c.assumeSafeAppend();
-    c ~= 5;
+    c.assumeSafeAppend() ~= 5;
     assert(a.ptr == c.ptr);
 }
 
