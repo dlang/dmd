@@ -19,7 +19,7 @@ dg_t foo()
 
     int bar()
     {
-	return x + 3;
+        return x + 3;
     }
 
     return &bar;
@@ -39,14 +39,14 @@ dg_t foo2()
 {
     dg_t abc()
     {
-	int x = 7;
+        int x = 7;
 
-	int bar()
-	{
-	    return x + 3;
-	}
+        int bar()
+        {
+            return x + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     return abc();
@@ -66,12 +66,12 @@ dg_t foo3()
 {
     dg_t abc(int x)
     {
-	int bar()
-	{
-	    return x + 3;
-	}
+        int bar()
+        {
+            return x + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     return abc(7);
@@ -88,18 +88,19 @@ void test3()
 /************************************/
 
 dg_t foo4()
-{   S s;
+{
+    S s;
 
     s = S(4,5,6,7);
 
     dg_t abc(S t)
     {
-	int bar()
-	{
-	    return t.d + 3;
-	}
+        int bar()
+        {
+            return t.d + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     return abc(s);
@@ -116,16 +117,18 @@ void test4()
 /************************************/
 
 void test5()
-{   int x = 7;
+{
+    int x = 7;
 
     dg_t abc(ref int y)
     {
-	int bar()
-	{   y += 4;
-	    return y + 3;
-	}
+        int bar()
+        {
+            y += 4;
+            return y + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     dg_t dg = abc(x);
@@ -144,16 +147,18 @@ void test5()
 /************************************/
 
 void test6()
-{   int x = 7;
+{
+    int x = 7;
 
     dg_t abc(out int y)
     {
-	int bar()
-	{   y += 4;
-	    return y + 3;
-	}
+        int bar()
+        {
+            y += 4;
+            return y + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     dg_t dg = abc(x);
@@ -173,16 +178,18 @@ void test6()
 /************************************/
 
 void test7()
-{   int[3] a = [10,11,12];
+{
+    int[3] a = [10,11,12];
 
     dg_t abc(int[3] y)
     {
-	int bar()
-	{   y[2] += 4;
-	    return y[2] + 3;
-	}
+        int bar()
+        {
+            y[2] += 4;
+            return y[2] + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     dg_t dg = abc(a);
@@ -197,16 +204,18 @@ void test7()
 /************************************/
 
 void test8()
-{   S s = S(7,8,9,10);
+{
+    S s = S(7,8,9,10);
 
     dg_t abc(ref S t)
     {
-	int bar()
-	{   t.d += 4;
-	    return t.c + 3;
-	}
+        int bar()
+        {
+            t.d += 4;
+            return t.c + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     dg_t dg = abc(s);
@@ -221,16 +230,18 @@ void test8()
 /************************************/
 
 S foo9(out dg_t dg)
-{   S s1 = S(7,8,9,10);
+{
+    S s1 = S(7,8,9,10);
 
     dg_t abc()
     {
-	int bar()
-	{   s1.d += 4;
-	    return s1.c + 3;
-	}
+        int bar()
+        {
+            s1.d += 4;
+            return s1.c + 3;
+        }
 
-	return &bar;
+        return &bar;
     }
 
     dg = abc();
@@ -238,7 +249,8 @@ S foo9(out dg_t dg)
 }
 
 void test9()
-{   dg_t dg;
+{
+    dg_t dg;
 
     S s = foo9(dg);
     fill();
@@ -258,18 +270,18 @@ dg_t foo10()
 {
     dg_t abc()
     {
-	int x = 7;
+        int x = 7;
 
-	int bar()
-	{
-	    int def()
-	    {
-		return x + 3;
-	    }
-	    return def();
-	}
+        int bar()
+        {
+            int def()
+            {
+                return x + 3;
+            }
+            return def();
+        }
 
-	return &bar;
+        return &bar;
     }
 
     return abc();
@@ -292,10 +304,10 @@ dg_t foo11()
 
     class T
     {
-	int bar()
-	{
-	    return x + 3;
-	}
+        int bar()
+        {
+            return x + 3;
+        }
     }
 
     T t = new T;
@@ -319,15 +331,15 @@ dg_t foo12()
 
     class T
     {
-	int bar()
-	{
-	    return x + 3;
-	}
+        int bar()
+        {
+            return x + 3;
+        }
 
-	int xyz()
-	{
-	    return bar();
-	}
+        int xyz()
+        {
+            return bar();
+        }
     }
 
     T t = new T;
@@ -351,15 +363,15 @@ dg_t foo13()
 
     class T
     {
-	int xyz()
-	{
-	    int bar()
-	    {
-		return x + 3;
-	    }
+        int xyz()
+        {
+            int bar()
+            {
+                return x + 3;
+            }
 
-	    return bar();
-	}
+            return bar();
+        }
     }
 
     T t = new T;
@@ -382,16 +394,17 @@ dg_t foo14()
 {
     class T
     {
-	int xyz()
-	{   int x = 7;
+        int xyz()
+        {
+            int x = 7;
 
-	    int bar()
-	    {
-		return x + 3;
-	    }
+            int bar()
+            {
+                return x + 3;
+            }
 
-	    return bar();
-	}
+            return bar();
+        }
     }
 
     T t = new T;
@@ -412,17 +425,18 @@ void test14()
 dg_t foo15()
 {
     class T
-    {	int x = 7;
+    {
+        int x = 7;
 
-	int xyz()
-	{
-	    int bar()
-	    {
-		return x + 3;
-	    }
+        int xyz()
+        {
+            int bar()
+            {
+                return x + 3;
+            }
 
-	    return bar();
-	}
+            return bar();
+        }
     }
 
     T t = new T;
@@ -441,20 +455,23 @@ void test15()
 /************************************/
 
 dg_t foo16()
-{   int a = 5;
+{
+    int a = 5;
 
     class T
-    {	int x = 7;
+    {
+        int x = 7;
 
-	int xyz()
-	{   int y = 8;
-	    int bar()
-	    {
-		return a + x + y + 3;
-	    }
+        int xyz()
+        {
+            int y = 8;
+            int bar()
+            {
+                return a + x + y + 3;
+            }
 
-	    return bar();
-	}
+            return bar();
+        }
     }
 
     T t = new T;
@@ -473,21 +490,24 @@ void test16()
 /************************************/
 
 dg_t foo17()
-{   int a = 5;
+{
+    int a = 5;
 
     class T
-    {	int x = 7;
+    {
+        int x = 7;
 
-	dg_t xyz()
-	{   int y = 8;
+        dg_t xyz()
+        {
+            int y = 8;
 
-	    int bar()
-	    {
-		return a + x + y + 3;
-	    }
+            int bar()
+            {
+                return a + x + y + 3;
+            }
 
-	    return &bar;
-	}
+            return &bar;
+        }
     }
 
     T t = new T;
@@ -508,7 +528,8 @@ void test17()
 dg_t dg18;
 
 void bar18()
-{   int a = 7;
+{
+    int a = 7;
     int foo() { return a + 3; }
 
     dg18 = &foo;
@@ -537,15 +558,15 @@ struct S19
 {
     static S19 call(int v)
     {
-	S19 result;
+        S19 result;
 
-	result.v = v;
-	void nest()
-	{
-	    result.v += 1;
-	}
-	abc19(&nest);
-	return result;
+        result.v = v;
+        void nest()
+        {
+            result.v += 1;
+        }
+        abc19(&nest);
+        return result;
     }
     int a;
     int v;
@@ -554,8 +575,8 @@ struct S19
 
 int foo19()
 {
-   auto s = S19.call(5);
-   return s.v;
+    auto s = S19.call(5);
+    return s.v;
 }
 
 void test19()
@@ -578,8 +599,8 @@ void test20()
     foreach (j; 0 .. 10)
     {
         printf("%d\n", j);
-	assert(j == x);
-	x++;
+        assert(j == x);
+        x++;
         enforce20(j);
     }
 }
@@ -597,16 +618,16 @@ void f21()
 
     class X
     {
-	// both 'private' and 'final' to make non-virtual
-	private final void actual() 
-	{
-	    g_output = i;
-	}
+        // both 'private' and 'final' to make non-virtual
+        private final void actual()
+        {
+            g_output = i;
+        }
 
-	void go()
-	{
-	    actual();
-	}
+        void go()
+        {
+            actual();
+        }
     }
 
     dg21 = & (new X).go;
@@ -632,30 +653,30 @@ class A22
 
     void am()
     {
-	int j; /* Making f access this variable causes f's chain to be am's
-		  frame.  Otherwise, f's chain would be the A instance. */
-	void f()
-	{
-	    int k = j;
+        int j; /* Making f access this variable causes f's chain to be am's
+                  frame.  Otherwise, f's chain would be the A instance. */
+        void f()
+        {
+            int k = j;
 
-	    void g()
-	    {
-		class B
-		{
-		    void bm()
-		    {
-			gi22 = x; /* No checkedNestedReference for A.am.this,
-				   so it is never placed in a closure. */
-		    }
-		}
+            void g()
+            {
+                class B
+                {
+                    void bm()
+                    {
+                        gi22 = x; /* No checkedNestedReference for A.am.this,
+                                   so it is never placed in a closure. */
+                    }
+                }
 
-		(new B).bm();
-	    }
+                (new B).bm();
+            }
 
-	    dg22 = &g;
-	}
+            dg22 = &g;
+        }
 
-	f();
+        f();
     }
 }
 
@@ -667,49 +688,72 @@ void test22()
     assert(gi22 == 42);
 }
 
+/************************************/
 // 1841
 
 int delegate() foo1841()
 {
-  int stack;
-  int heap = 3;
+    int stack;
+    int heap = 3;
 
-  int nested_func()
-  {
-    ++heap;
-    return heap;
-  }
-  return delegate int() { return nested_func(); };
+    int nested_func()
+    {
+        ++heap;
+        return heap;
+    }
+    return delegate int() { return nested_func(); };
 }
 
 int delegate() foo1841b()
 {
-  int stack;
-  int heap = 7;
+    int stack;
+    int heap = 7;
 
-  int nested_func()
-  {
-    ++heap;
-    return heap;
-  }
-  int more_nested() { return nested_func(); }
-  return delegate int() { return more_nested(); };
+    int nested_func()
+    {
+        ++heap;
+        return heap;
+    }
+    int more_nested() { return nested_func(); }
+    return delegate int() { return more_nested(); };
 }
 
 void bug1841()
 {
-  auto z = foo1841();
-  auto p = foo1841();
-  assert(z() == 4);
-  p();
-  assert(z() == 5);
-  z = foo1841b();
-  p = foo1841b();
-  assert(z() == 8);
-  p();
-  assert(z() == 9);
+    auto z = foo1841();
+    auto p = foo1841();
+    assert(z() == 4);
+    p();
+    assert(z() == 5);
+    z = foo1841b();
+    p = foo1841b();
+    assert(z() == 8);
+    p();
+    assert(z() == 9);
 }
 
+/************************************/
+// 5911
+
+void writeln5911(const(char)[] str) {}
+
+void logout5911(lazy const(char)[] msg) { writeln5911(msg); }
+
+void test5911()
+{
+    string str = "hello world";
+    logout5911((){ return str; }());    // closure 1
+
+    try
+    {
+        throw new Exception("exception!!");
+    }
+    catch (Exception e)
+    {
+        assert(e !is null);
+        logout5911(e.toString());       // closure2 SEGV : e is null.
+    }
+}
 
 /************************************/
 
@@ -738,6 +782,7 @@ int main()
     test21();
     test22();
     bug1841();
+    test5911();
 
     printf("Success\n");
     return 0;

@@ -1082,10 +1082,23 @@ void TryCatchStatement::toIR(IRState *irs)
         if (cs->type)
             bcatch->Bcatchtype = cs->type->toBasetype()->toSymbol();
         tryblock->appendSucc(bcatch);
-        block_goto(blx,BCjcatch,NULL);
+        block_goto(blx, BCjcatch, NULL);
         if (cs->handler != NULL)
         {
             IRState catchState(irs, this);
+
+            /* Append to block:
+             *   *(sclosure + cs.offset) = cs;
+             */
+            if (cs->var && cs->var->offset)
+            {
+                tym_t tym = cs->var->type->totym();
+                elem *ex = el_var(irs->sclosure);
+                ex = el_bin(OPadd, TYnptr, ex, el_long(TYsize_t, cs->var->offset));
+                ex = el_una(OPind, tym, ex);
+                ex = el_bin(OPeq, tym, ex, el_var(cs->var->toSymbol()));
+                block_appendexp(catchState.blx->curblock, ex);
+            }
             cs->handler->toIR(&catchState);
         }
         blx->curblock->appendSucc(breakblock);
