@@ -1026,8 +1026,7 @@ Type *SliceExp::toStaticArrayType()
         if (lwr->isConst() && upr->isConst())
         {
             size_t len = upr->toUInteger() - lwr->toUInteger();
-            return new TypeSArray(type->toBasetype()->nextOf(),
-                        new IntegerExp(Loc(), len, Type::tindex));
+            return TypeSArray::makeType(loc, type->toBasetype()->nextOf(), len);
         }
     }
     return NULL;
