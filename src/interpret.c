@@ -4854,6 +4854,15 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                     indx+ofs, len);
                 return EXP_CANT_INTERPRET;
             }
+            if (goal == ctfeNeedLvalueRef)
+            {
+                // if we need a reference, IndexExp shouldn't be interpreting
+                // the expression to a value, it should stay as a reference
+                Expression *e = new IndexExp(loc, agg,
+                    ofs ? new IntegerExp(loc,indx + ofs, e2->type) : e2);
+                e->type = type;
+                return e;
+            }
             return ctfeIndex(loc, type, agg, indx+ofs);
         }
         else
@@ -4868,6 +4877,10 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                 error("pointer index [%lld] lies outside memory block [0..1]",
                     indx+ofs);
                 return EXP_CANT_INTERPRET;
+            }
+            if (goal == ctfeNeedLvalueRef)
+            {
+                return paintTypeOntoLiteral(type, agg);
             }
             return agg->interpret(istate);
         }
