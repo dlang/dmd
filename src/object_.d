@@ -2616,11 +2616,17 @@ T[] assumeSafeAppend(T)(T[] arr)
 unittest
 {
     int[] a = [1, 2, 3, 4];
-    int[] b = a[1 .. $ - 1];
-    assert(a.capacity >= 4);
-    assert(b.capacity == 0);
-    b.assumeSafeAppend();
-    assert(b.capacity >= 3);
+
+    //Without assumeSafeAppend. Appending relocates.
+    int[] b = a [0 .. 3];
+    b ~= 5;
+    assert(a.ptr != b.ptr);
+
+    //With assumeSafeAppend. Appending overwrites.
+    int[] c = a [0 .. 3];
+    c.assumeSafeAppend();
+    c ~= 5;
+    assert(a.ptr == c.ptr);
 }
 
 unittest
