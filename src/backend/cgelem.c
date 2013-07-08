@@ -1429,6 +1429,23 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 return optelem(e,goal);
             }
         }
+
+        /* Replace:
+         *  (1 << a) & b
+         * with:
+         *  b btst a
+         */
+        if (e1->Eoper == OPshl &&
+            ELCONST(e1->E1,1))
+        {
+            e->Eoper = OPbtst;
+            e->Ety = OPbool;
+            e->E1 = e2;
+            e->E2 = e1->E2;
+            e1->E2 = NULL;
+            el_free(e1);
+            return optelem(e, goal);
+        }
     }
 
     return e;
@@ -2430,9 +2447,11 @@ STATIC bool optim_oror(elem **pe)
         elem *ex = el_bin(OPmin,tyc,array[first]->E1,el_long(tyc,emin));
         ex = el_bin(OPle,TYbool,ex,el_long(touns(tyc),emax - emin));
         elem *ey = el_bin(OPmin,tyc,array[first + 1]->E1,el_long(tyc,emin));
-#if 1
-        ey = el_bin(OPbtst,TYbool,el_long(tyc,bits),ey);
-#else
+
+        tym_t tybits = TYuint;
+        if (I64 && (emax - emin) >= 32)
+            tybits = TYullong;
+
         // Shift count must be an int
         switch (tysize(tyc))
         {
@@ -2449,8 +2468,11 @@ STATIC bool optim_oror(elem **pe)
             default:
                 assert(0);
         }
-        ey = el_bin(OPshl,tyc,el_long(tyc,1),ey);
-        ey = el_bin(OPand,tyc,ey,el_long(tyc,bits));
+#if 1
+        ey = el_bin(OPbtst,TYbool,el_long(tybits,bits),ey);
+#else
+        ey = el_bin(OPshl,tybits,el_long(tybits,1),ey);
+        ey = el_bin(OPand,tybits,ey,el_long(tybits,bits));
 #endif
         ex = el_bin(OPandand,ty,ex,ey);
 
@@ -4790,11 +4812,15 @@ beg:
                 goto Llog;
 
             case OPoror:
+                if (rightgoal)
+                    rightgoal = GOALflags;
                 if (OPTIMIZER && optim_oror(&e))
                     goto beg;
                 goto Llog;
 
             case OPandand:
+                if (rightgoal)
+                    rightgoal = GOALflags;
             Llog:               // case (c log f()) with no goal
                 if (goal || el_sideeffect(e->E2))
                     leftgoal = GOALflags;

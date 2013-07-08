@@ -758,6 +758,80 @@ void testnegcom()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+int oror1(char c)
+{
+    return ((((((((((cast(int) c <= 32 || cast(int) c == 46) || cast(int) c == 44)
+		 || cast(int) c == 58) || cast(int) c == 59) || cast(int) c == 60)
+	      || cast(int) c == 62) || cast(int) c == 34) || cast(int) c == 92)
+	   || cast(int) c == 39) != 0);
+}
+
+int oror2(char c)
+{
+    return ((((((((((c <= 32 || c == 46) || c == 44)
+		 || c == 58) || c == 59) || c == 60)
+	         || c == 62) || c == 34) || c == 92)
+	         || c == 39) != 0);
+}
+
+void testoror()
+{
+    assert(oror1(0) == 1);
+    assert(oror1(32) == 1);
+    assert(oror1(46) == 1);
+    assert(oror1(44) == 1);
+    assert(oror1(58) == 1);
+    assert(oror1(59) == 1);
+    assert(oror1(60) == 1);
+    assert(oror1(62) == 1);
+    assert(oror1(34) == 1);
+    assert(oror1(92) == 1);
+    assert(oror1(39) == 1);
+    assert(oror1(33) == 0);
+    assert(oror1(61) == 0);
+    assert(oror1(93) == 0);
+    assert(oror1(255) == 0);
+
+    assert(oror2(0) == 1);
+    assert(oror2(32) == 1);
+    assert(oror2(46) == 1);
+    assert(oror2(44) == 1);
+    assert(oror2(58) == 1);
+    assert(oror2(59) == 1);
+    assert(oror2(60) == 1);
+    assert(oror2(62) == 1);
+    assert(oror2(34) == 1);
+    assert(oror2(92) == 1);
+    assert(oror2(39) == 1);
+    assert(oror2(33) == 0);
+    assert(oror2(61) == 0);
+    assert(oror2(93) == 0);
+    assert(oror2(255) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
+
+bool bt1(int p, int a, int b)
+{
+    return p && ((1 << b) & a);
+}
+
+bool bt2(int p, long a, long b)
+{
+    return p && ((1L << b) & a);
+}
+
+void testbt()
+{
+    assert(bt1(1,7,2) == 1);
+    assert(bt1(1,7,3) == 0);
+
+    assert(bt2(1,0x7_0000_0000,2+32) == 1);
+    assert(bt2(1,0x7_0000_0000,3+32) == 0);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -775,6 +849,8 @@ int main()
     testfastdiv();
     testdocond();
     testnegcom();
+    testoror();
+    testbt();
     printf("Success\n");
     return 0;
 }
