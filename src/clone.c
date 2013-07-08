@@ -485,6 +485,28 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         return NULL;        // bitwise comparison would work
 
     //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
+    if (Dsymbol *eq = search_function(this, Id::eq))
+    {
+        if (FuncDeclaration *fd = eq->isFuncDeclaration())
+        {
+            TypeFunction *tfeqptr;
+            {
+                Scope sc;
+
+                /* const bool opEquals(ref const S s);
+                 */
+                Parameters *parameters = new Parameters;
+                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                tfeqptr = new TypeFunction(parameters, Type::tbool, 0, LINKd);
+                tfeqptr->mod = MODconst;
+                tfeqptr = (TypeFunction *)tfeqptr->semantic(Loc(), &sc);
+            }
+            fd = fd->overloadExactMatch(tfeqptr);
+            if (fd)
+                return fd;
+        }
+    }
+
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
