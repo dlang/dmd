@@ -979,7 +979,8 @@ Expression *ArrayLengthExp::optimize(int result, bool keepLvalue)
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue | WANTexpand | (result & WANTinterpret));
     e = this;
-    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral)
+    if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral ||
+        e1->type->toBasetype()->ty == Tsarray)
     {
         e = ArrayLength(type, e1);
     }

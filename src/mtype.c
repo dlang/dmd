@@ -7747,7 +7747,13 @@ Expression *TypeTypedef::defaultInitLiteral(Loc loc)
     if (sym->init)
     {
         //sym->init->toExpression()->print();
-        return sym->init->toExpression();
+        Expression *e = sym->init->toExpression();
+        if (!e)
+        {
+            error(loc, "void initializer has no value");
+            e = new ErrorExp();
+        }
+        return e;
     }
     Type *bt = sym->basetype;
     Expression *e = bt->defaultInitLiteral(loc);

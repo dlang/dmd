@@ -132,8 +132,7 @@ Initializer *VoidInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInt
 
 Expression *VoidInitializer::toExpression(Type *t)
 {
-    error(loc, "void initializer has no value");
-    return new ErrorExp();
+    return NULL;
 }
 
 
