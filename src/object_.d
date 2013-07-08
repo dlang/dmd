@@ -2595,9 +2595,9 @@ unittest
  * after calling this function may append in place, even if the array was a
  * slice of a larger array to begin with.
  *
- * Use this only when you are sure no elements are in use beyond the array in
- * the memory block.  If there are, those elements could be overwritten by
- * appending to this array.
+ * Use this only when it is certain there are no elements in use beyond the
+ * array in the memory block.  If there are, those elements will be
+ * overwritten by appending to this array.
  *
  * Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
