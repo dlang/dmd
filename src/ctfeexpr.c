@@ -580,17 +580,23 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
         srcPointee = srcPointee->nextOf();
         destPointee = destPointee->nextOf();
     }
-   // It's OK if both are the same (modulo const)
+
 #if DMDV2
-    if (srcPointee->castMod(0) == destPointee->castMod(0))
-        return true;
-#else
+   // It's OK if both are the same (modulo const)
+    srcPointee = srcPointee->castMod(0);
+    destPointee = destPointee->castMod(0);
+#endif
     if (srcPointee == destPointee)
         return true;
-#endif
+
+    // It's OK if function pointers differ only in safe/pure/nothrow
+    if (srcPointee->ty == Tfunction && destPointee->ty == Tfunction)
+        return srcPointee->covariant(destPointee) == 1;
+
     // it's OK to cast to void*
     if (destPointee->ty == Tvoid)
         return true;
+
     // It's OK if they are the same size integers, eg int* and uint*
     return srcPointee->isintegral() && destPointee->isintegral()
            && srcPointee->size() == destPointee->size();

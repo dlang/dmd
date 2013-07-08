@@ -3529,6 +3529,21 @@ int bug10211()
 static assert(bug10211());
 
 /**************************************************
+    10568 CTFE rejects function pointer safety casts
+**************************************************/
+
+@safe void safetyDance() {}
+
+int isItSafeToDance()
+{
+    void function() @trusted yourfriends = &safetyDance;
+    void function() @safe nofriendsOfMine = yourfriends;
+    return 1;
+}
+
+static assert(isItSafeToDance());
+
+/**************************************************
     9170 Allow reinterpret casts float<->int
 **************************************************/
 int f9170(float x) {
