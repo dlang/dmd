@@ -72,6 +72,37 @@ static int fptraits(void *param, FuncDeclaration *f)
     return 0;
 }
 
+// Collects all unit test functions.
+void collectUnitTests (Dsymbols* symbols, AA* uniqueUnitTests, Expressions* unitTests)
+{
+    for (size_t i = 0; i < symbols->dim; i++)
+    {
+        Dsymbol* symbol = (*symbols)[i];
+        UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+
+        if (unitTest)
+        {
+            if (!_aaGetRvalue(uniqueUnitTests, unitTest))
+            {
+                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
+                alias->protection = unitTest->protection;
+                Expression* e = new DsymbolExp(Loc(), alias);
+                unitTests->push(e);
+                bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                *value = true;
+            }
+        }
+
+        else
+        {
+            AttribDeclaration* attrDecl = symbol->isAttribDeclaration();
+
+            if (attrDecl)
+                collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
+        }
+    }
+}
+
 /************************ TraitsExp ************************************/
 
 Expression *TraitsExp::semantic(Scope *sc)
@@ -678,41 +709,26 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-            error("argument %s to __traits(getUnitTests) must be a module", o->toChars());
+            error("argument %s to __traits(getUnitTests) must be a module or aggregate", o->toChars());
             goto Lfalse;
         }
 
-        Module* module = s->isModule();
+        ScopeDsymbol* scope = s->isScopeDsymbol();
 
-        if (!module)
+        if (!scope)
         {
-            error("argument %s to __traits(getUnitTests) must be a module, not a %s", s->toChars(), s->kind());
+            error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s->toChars(), s->kind());
             goto Lfalse;
         }
 
         Expressions* unitTests = new Expressions();
-        Dsymbols* symbols = module->members;
+        Dsymbols* symbols = scope->members;
 
         if (global.params.useUnitTests && symbols)
         {
             // Should actually be a set
             AA* uniqueUnitTests = NULL;
-
-            for (size_t i = 0; i < symbols->dim; i++)
-            {
-                Dsymbol* symbol = (*symbols)[i];
-                UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
-
-                if (unitTest && !_aaGetRvalue(uniqueUnitTests, unitTest))
-                {
-                    FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                    alias->protection = unitTest->protection;
-                    Expression* e = new DsymbolExp(Loc(), alias);
-                    unitTests->push(e);
-                    bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
-                    *value = true;
-                }
-            }
+            collectUnitTests(symbols, uniqueUnitTests, unitTests);
         }
 
         TupleExp *tup = new TupleExp(loc, unitTests);
