@@ -563,6 +563,66 @@ void test21()
 
 /*****************************************/
 
+int bar22(int i)
+{
+    switch (i)
+    {
+	case 1: return i + 1;
+	case 10: return i + 2;
+	case 20: return i + 3;
+	case 50: return i + 4;
+	case 1000: return i + 5;
+	default: return 28;
+    }
+}
+
+void test22()
+{
+    assert(bar22(1) == 2);
+    assert(bar22(10) == 12);
+    assert(bar22(20) == 23);
+    assert(bar22(50) == 54);
+    assert(bar22(1000) == 1005);
+    assert(bar22(0) == 28);
+    assert(bar22(5) == 28);
+    assert(bar22(15) == 28);
+    assert(bar22(25) == 28);
+    assert(bar22(58) == 28);
+    assert(bar22(2000) == 28);
+}
+
+/*****************************************/
+
+long bar23(long i)
+{
+    switch (i)
+    {
+	case 1: return i + 1;
+	case 0x10_0000_0000L: return i + 2;
+	case 0x20_0070_0000L: return i + 3;
+	case 0x50_0000_0000L: return i + 4;
+	case 0x1000_0000_8000L: return i + 5;
+	default: return 28;
+    }
+}
+
+void test23()
+{
+    assert(bar23(1) == 2);
+    assert(bar23(0x10_0000_0000L) == 0x10_0000_0000L + 2);
+    assert(bar23(0x20_0070_0000L) == 0x20_0070_0000L + 3);
+    assert(bar23(0x50_0000_0000L) == 0x50_0000_0000L + 4);
+    assert(bar23(0x1000_0000_8000L) == 0x1000_0000_8000L + 5);
+    assert(bar23(0) == 28);
+    assert(bar23(58) == 28);
+    assert(bar23(0x10_0000_0000L+1) == 28);
+    assert(bar23(0x20_0070_0000L+5) == 28);
+    assert(bar23(0x50_0000_0000L+25) == 28);
+    assert(bar23(0x1000_0000_8000L+1) == 28);
+}
+
+/*****************************************/
+
 int main()
 {
     test1();
@@ -587,6 +647,8 @@ int main()
     test7358();
     test9263();
     test21();
+    test22();
+    test23();
 
     printf("Success\n");
     return 0;
