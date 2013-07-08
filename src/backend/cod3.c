@@ -1180,13 +1180,16 @@ void doswitch(block *b)
 
     /* Three kinds of switch strategies - pick one
      */
-    if (ncases > 3 &&
-        (targ_ullong)(vmax - vmin) <= ncases * 2)  // then use jump table
-        goto Ljmptab;
-    else if (I64 || MACHOBJ || ncases <= 3)
+    if (ncases <= 3)
         goto Lifthen;
-    else
+    else if (I16 && (targ_ullong)(vmax - vmin) <= ncases * 2)
+        goto Ljmptab;           // >=50% of the table is case values, rest is default
+    else if ((targ_ullong)(vmax - vmin) <= ncases * 3)
+        goto Ljmptab;           // >= 33% of the table is case values, rest is default
+    else if (I16)
         goto Lswitch;
+    else
+        goto Lifthen;
 
     /*************************************************************************/
     {   // generate if-then sequence
@@ -1254,6 +1257,15 @@ void doswitch(block *b)
         //printf("Ljmptab:\n");
 
         b->BC = BCjmptab;
+
+        /* If vmin is small enough, we can just set it to 0 and the jump
+         * table entries from 0..vmin-1 can be set with the default target.
+         * This saves the SUB instruction.
+         * Must be same computation as used in outjmptab().
+         */
+        if (vmin > 0 && vmin <= intsize)
+            vmin = 0;
+
         b->Btablesize = (int) (vmax - vmin + 1) * tysize[TYnptr];
         regm_t retregs = IDXREGS;
         if (dword)
@@ -1425,7 +1437,11 @@ void doswitch(block *b)
 
     /*************************************************************************/
     {
-        // Scan a table of case values, and jump to corresponding address
+        /* Scan a table of case values, and jump to corresponding address.
+         * Since it relies on REPNE SCASW, it has really nothing to recommend it
+         * over Lifthen for 32 and 64 bit code.
+         * Note that it has not been tested with MACHOBJ (OSX).
+         */
     Lswitch:
         targ_size_t disp;
         int mod;
@@ -1559,35 +1575,39 @@ void outjmptab(block *b)
     if (I32)
         return;
 #endif
-  unsigned ncases,n;
-  targ_llong u,vmin,vmax,val,*p;
-  targ_size_t alignbytes,def,targ,*poffset;
-  int jmpseg;
-  symbol *gotsym = NULL;
+    targ_llong *p = b->BS.Bswitch;           // pointer to case data
+    size_t ncases = *p++;                    // number of cases
 
-  poffset = (config.flags & CFGromable) ? &Coffset : &JMPOFF;
-  p = b->BS.Bswitch;                    /* pointer to case data         */
-  ncases = *p++;                        /* number of cases              */
-  vmax = MINLL;                 // smallest possible llong
-  vmin = MAXLL;                 // largest possible llong
-  for (n = 0; n < ncases; n++)          /* find min case value          */
-  {     val = p[n];
+    /* Find vmin and vmax, the range of the table will be [vmin .. vmax + 1]
+     * Must be same computation as used in doswitch().
+     */
+    targ_llong vmax = MINLL;                 // smallest possible llong
+    targ_llong vmin = MAXLL;                 // largest possible llong
+    for (size_t n = 0; n < ncases; n++)      // find min case value
+    {   targ_llong val = p[n];
         if (val > vmax) vmax = val;
         if (val < vmin) vmin = val;
-  }
-  jmpseg = (config.flags & CFGromable) ? cseg : JMPSEG;
+    }
+    if (vmin > 0 && vmin <= intsize)
+        vmin = 0;
+    assert(vmin <= vmax);
 
-  /* Any alignment bytes necessary */
-  alignbytes = align(0,*poffset) - *poffset;
-  objmod->lidata(jmpseg,*poffset,alignbytes);
+    /* Segment and offset into which the jump table will be emitted
+     */
+    int jmpseg = (config.flags & CFGromable) ? cseg : JMPSEG;
+    targ_size_t *poffset = (config.flags & CFGromable) ? &Coffset : &JMPOFF;
 
-  assert(*poffset == b->Btableoffset);
+    /* Align start of jump table
+     */
+    targ_size_t alignbytes = align(0,*poffset) - *poffset;
+    objmod->lidata(jmpseg,*poffset,alignbytes);
+    assert(*poffset == b->Btableoffset);        // should match precomputed value
 
-  def = list_block(b->Bsucc)->Boffset;  /* default address              */
-  assert(vmin <= vmax);
-  for (u = vmin; ; u++)
-  {     targ = def;                     /* default                      */
-        for (n = 0; n < ncases; n++)
+    symbol *gotsym = NULL;
+    targ_size_t def = list_block(b->Bsucc)->Boffset;  // default address
+    for (targ_llong u = vmin; ; u++)
+    {   targ_size_t targ = def;                     // default
+        for (size_t n = 0; n < ncases; n++)
         {       if (p[n] == u)
                 {       targ = list_block(list_nth(b->Bsucc,n + 1))->Boffset;
                         break;
@@ -1642,11 +1662,12 @@ void outjmptab(block *b)
 #else
         assert(0);
 #endif
-        if (u == vmax)                  /* for case that (vmax == ~0)   */
-                break;
-  }
+        if (u == vmax)                  // for case that (vmax == ~0)
+            break;
+    }
 }
-
+
+
 /******************************
  * Output data block for a switch table.
  * Two consecutive tables, the first is the case value table, the
