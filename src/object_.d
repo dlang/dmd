@@ -2601,16 +2601,14 @@ unittest
  *
  * Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
+ *
+ * Returns:
+ *   The input is returned.
  */
-ref T[] assumeSafeAppend(T)(ref T[] arr)
+auto ref T[] assumeSafeAppend(T)(auto ref T[] arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
-}
-/// ditto
-T[] assumeSafeAppend(T)(T[] arr)
-{
-    return assumeSafeAppend(arr);
 }
 ///
 unittest
@@ -2644,6 +2642,25 @@ unittest
     assert(ptr == arr.ptr);
 }
 
+unittest
+{
+    int[] arr = [1, 2, 3];
+    void foo(ref int[] i)
+    {
+        i ~= 5;
+    }
+    arr = arr[0 .. 2];
+    foo(assumeSafeAppend(arr)); //pass by ref
+    assert(arr[]==[1, 2, 5]);
+    arr = arr[0 .. 1].assumeSafeAppend(); //pass by value
+}
+
+//@@@10574@@@
+version(none)unittest
+{
+    immutable(int[]) arr;
+    assumeSafeAppend(arr); //IFTI failure here. Should work. Please fix me.
+}
 
 version (none)
 {
