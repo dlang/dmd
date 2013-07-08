@@ -482,7 +482,7 @@ FuncDeclaration *StructDeclaration::buildOpEquals(Scope *sc)
 FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 {
     if (!needOpEquals())
-        return NULL;
+        return NULL;        // bitwise comparison would work
 
     //printf("StructDeclaration::buildXopEquals() %s\n", toChars());
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
@@ -531,11 +531,147 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
             e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
             e = e->semantic(sc);
             Dsymbol *s = getDsymbol(e);
+            assert(s);
             FuncDeclaration *fd = s->isFuncDeclaration();
 
             xerreq = fd;
         }
         fop = xerreq;
+    }
+    else
+        fop->addMember(sc, this, 1);
+
+    return fop;
+}
+
+/******************************************
+ * Build __xopCmp for TypeInfo_Struct
+ *      static bool __xopCmp(ref const S p, ref const S q)
+ *      {
+ *          return p.opCmp(q);
+ *      }
+ *
+ * This is called by TypeInfo.compare(p1, p2). If the struct does not support
+ * const objects comparison, it will throw "not implemented" Error in runtime.
+ */
+
+FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
+{
+    //printf("StructDeclaration::buildXopCmp() %s\n", toChars());
+    if (Dsymbol *cmp = search_function(this, Id::cmp))
+    {
+        if (FuncDeclaration *fd = cmp->isFuncDeclaration())
+        {
+            TypeFunction *tfcmpptr;
+            {
+                Scope sc;
+
+                /* const int opCmp(ref const S s);
+                 */
+                Parameters *parameters = new Parameters;
+                parameters->push(new Parameter(STCref | STCconst, type, NULL, NULL));
+                tfcmpptr = new TypeFunction(parameters, Type::tint32, 0, LINKd);
+                tfcmpptr->mod = MODconst;
+                tfcmpptr = (TypeFunction *)tfcmpptr->semantic(Loc(), &sc);
+            }
+            fd = fd->overloadExactMatch(tfcmpptr);
+            if (fd)
+                return fd;
+        }
+    }
+    else
+    {
+#if 0   // FIXME: doesn't work for recursive alias this
+        /* Check opCmp member exists.
+         * Consider 'alias this', but except opDispatch.
+         */
+        Expression *e = new DsymbolExp(loc, this);
+        e = new DotIdExp(loc, e, Id::cmp);
+        Scope *sc2 = sc->push();
+        e = e->trySemantic(sc2);
+        sc2->pop();
+        if (e)
+        {
+            Dsymbol *s = NULL;
+            switch (e->op)
+            {
+                case TOKoverloadset:    s = ((OverExp *)e)->vars;       break;
+                case TOKimport:         s = ((ScopeExp *)e)->sds;       break;
+                case TOKvar:            s = ((VarExp *)e)->var;         break;
+                default:                break;
+            }
+            if (!s || s->ident != Id::cmp)
+                e = NULL;   // there's no valid member 'opCmp'
+        }
+        if (!e)
+            return NULL;    // bitwise comparison would work
+        /* Essentially, a struct which does not define opCmp is not comparable.
+         * At this time, typeid(S).compare might be correct that throwing "not implement" Error.
+         * But implementing it would break existing code, such as:
+         *
+         * struct S { int value; }  // no opCmp
+         * int[S] aa;   // Currently AA key uses bitwise comparison
+         *              // (It's default behavior of TypeInfo_Strust.compare).
+         *
+         * Not sure we should fix this inconsistency, so just keep current behavior.
+         */
+#else
+        return NULL;
+#endif
+    }
+
+    Loc declLoc = Loc();    // loc is unnecessary so __xopCmp is never called directly
+    Loc loc = Loc();        // loc is unnecessary so errors are gagged
+
+    Parameters *parameters = new Parameters;
+    parameters->push(new Parameter(STCref | STCconst, type, Id::p, NULL));
+    parameters->push(new Parameter(STCref | STCconst, type, Id::q, NULL));
+    TypeFunction *tf = new TypeFunction(parameters, Type::tint32, 0, LINKd);
+    tf = (TypeFunction *)tf->semantic(loc, sc);
+
+    Identifier *id = Lexer::idPool("__xopCmp");
+    FuncDeclaration *fop = new FuncDeclaration(declLoc, Loc(), id, STCstatic, tf);
+
+    Expression *e1 = new IdentifierExp(loc, Id::p);
+    Expression *e2 = new IdentifierExp(loc, Id::q);
+    Expression *e = new CallExp(loc, new DotIdExp(loc, e1, Id::cmp), e2);
+
+    fop->fbody = new ReturnStatement(loc, e);
+
+    size_t index = members->dim;
+    members->push(fop);
+
+    unsigned errors = global.startGagging();    // Do not report errors, even if the
+    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
+    global.speculativeGag = global.gag;
+    Scope *sc2 = sc->push();
+    sc2->stc = 0;
+    sc2->linkage = LINKd;
+    sc2->speculative = true;
+
+    fop->semantic(sc2);
+    fop->semantic2(sc2);
+    fop->semantic3(sc2);
+
+    sc2->pop();
+    global.speculativeGag = oldspec;
+    if (global.endGagging(errors))    // if errors happened
+    {
+        members->remove(index);
+    Lerrcmp:
+        if (!xerrcmp)
+        {
+            Expression *e = new IdentifierExp(loc, Id::empty);
+            e = new DotIdExp(loc, e, Id::object);
+            e = new DotIdExp(loc, e, Lexer::idPool("_xopCmp"));
+            e = e->semantic(sc);
+            Dsymbol *s = getDsymbol(e);
+            assert(s);
+            FuncDeclaration *fd = s->isFuncDeclaration();
+
+            xerrcmp = fd;
+        }
+        fop = xerrcmp;
     }
     else
         fop->addMember(sc, this, 1);
