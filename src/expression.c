@@ -485,7 +485,7 @@ return_expr:
     if (!e1->type)
     {
         error(loc, "cannot resolve type for %s", e1->toChars());
-        e1->type = new TypeError();
+        e1 = new ErrorExp();
     }
     return e1;
 
