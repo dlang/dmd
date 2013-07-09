@@ -549,6 +549,12 @@ void FuncDeclaration::semantic(Scope *sc)
                 FuncDeclaration *fdc = cd->vtbl[vi]->isFuncDeclaration();
                 // This function is covariant with fdv
 
+                if (fdc == this)
+                {
+                    doesoverride = TRUE;
+                    break;
+                }
+
                 if (fdc->toParent() == parent)
                 {
                     //printf("vi = %d,\tthis = %p %s %s @ [%s]\n\tfdc  = %p %s %s @ [%s]\n\tfdv  = %p %s %s @ [%s]\n",
