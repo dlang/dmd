@@ -108,8 +108,6 @@ enum CtfeGoal
 
 #define WANTflags   1
 #define WANTvalue   2
-// A compile-time result is required. Give an error if not possible
-#define WANTinterpret 4
 // Same as WANTvalue, but also expand variables as far as possible
 #define WANTexpand  8
 
