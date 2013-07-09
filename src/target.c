@@ -1,4 +1,3 @@
-
 // Copyright (c) 2013 by Digital Mars
 // All Rights Reserved
 // written by Iain Buclaw
@@ -145,7 +144,7 @@ unsigned Target::critsecsize()
         // sizeof(pthread_mutex_t) for Solaris.
         return 24;
     }
-    else
-        assert(0);
+    assert(0);
+    return 0;
 }
 
