@@ -155,16 +155,16 @@ unsigned Target::critsecsize()
 }
 
 
-const char *Target::mangleSymbol(Dsymbol* sym, size_t link)
+const char *Target::mangleSymbol(Dsymbol *sym, size_t link)
 {
     Mangler *mangler = NULL;
-    
-    switch(link)
+
+    switch (link)
     {
         case LINKcpp:
         {
             if (global.params.isWindows)
-                mangler = new VisualCPPMangler;
+                mangler = new VisualCPPMangler(!global.params.is64bit);
             else
                 mangler = new ItaniumCPPMangler;
             break;
@@ -175,7 +175,7 @@ const char *Target::mangleSymbol(Dsymbol* sym, size_t link)
             assert(0);
         }
     }
-    
+
     sym->acceptVisitor(mangler);
     const char *ret = mangler->result();
     delete mangler;
@@ -207,13 +207,13 @@ bool Target::validateMangle(Loc loc, const void *mangle, size_t len)
                 return false;
             }
         }
-    
+
         if (const char* msg = utf_decodeChar((unsigned char *)mangle, len, &i, &c))
         {
             error(loc, "%s", msg);
             return false;
         }
-    
+
         if (!isUniAlpha(c))
         {
             error(loc, "char 0x%04x not allowed in mangled name", c);

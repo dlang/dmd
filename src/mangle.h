@@ -19,7 +19,7 @@ public:
 class ItaniumCPPMangler: public Mangler
 {
 public:
-    
+
     ItaniumCPPMangler();
     ~ItaniumCPPMangler();
 
@@ -37,9 +37,9 @@ public:
     void visitType(TypeStruct *type);
     void visitType(TypeEnum *type);
     void visitType(TypeClass *type);
-    
+
     const char *result();
-    
+
 private:
     int substitute(void *p);
     int exist(void *p);
@@ -58,7 +58,7 @@ class VisualCPPMangler: public Mangler
 {
 public:
 
-    VisualCPPMangler();
+    VisualCPPMangler(bool isdmc);
     ~VisualCPPMangler();
 
     void visitDsymbol(Dsymbol *d);
@@ -75,30 +75,32 @@ public:
     void visitType(TypeStruct *type);
     void visitType(TypeEnum *type);
     void visitType(TypeClass *type);
-    
+
     const char *result();
 private:
-    void mangleName(const char *name);
-    void mangleIdent(Dsymbol *sym);
+    void mangleName(Dsymbol *s, bool dont_use_back_reference = false);
+    void mangleIdent(Dsymbol *sym, bool dont_use_back_reference = false);
     void mangleNumber(uint64_t);
     bool checkTypeSaved(Type *type);
     void mangleModifier(Type *type);
     void mangleArray(TypeSArray*);
     const char *mangleFunction(TypeFunction*, bool needthis = false);
     void mangleParamenter(Parameter *type);
-    
+
     const char *saved_idents[10];
     Type *saved_types[10];
-    //when we mangling one argument, we can call visitType several times (for base types of arg type) 
+    //when we mangling one argument, we can call visitType several times (for base types of arg type)
     //but we must save only arg type:
     //For example: if we have an int** argument, we should save "int**" but visitType will be called for "int**", "int*", "int"
     //This flag is set up by the visitType(NextType, ) function  and should be reset when the arg type output is finished.
-    bool is_not_top_type; 
-    
+    bool is_not_top_type;
+
     //in some cases we should ignore CV-modifiers, like array:
     bool ignore_const;
-    
+
     OutBuffer *buf;
+	
+	bool is_dmc;
 };
 
 #endif
