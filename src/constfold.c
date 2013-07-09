@@ -1321,6 +1321,8 @@ Expression *ArrayLength(Type *type, Expression *e1)
 
         e = new IntegerExp(loc, dim, type);
     }
+    else if (e1->type->toBasetype()->ty == Tsarray)
+        e = ((TypeSArray *)e1->type->toBasetype())->dim;
     else
         e = EXP_CANT_INTERPRET;
     return e;

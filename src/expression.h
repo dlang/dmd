@@ -1339,6 +1339,7 @@ class IndexExp : public BinExp
 public:
     VarDeclaration *lengthVar;
     int modifiable;
+    bool skipboundscheck;
 
     IndexExp(Loc loc, Expression *e1, Expression *e2);
     Expression *syntaxCopy();
