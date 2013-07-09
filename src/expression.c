@@ -10413,6 +10413,7 @@ IndexExp::IndexExp(Loc loc, Expression *e1, Expression *e2)
     //printf("IndexExp::IndexExp('%s')\n", toChars());
     lengthVar = NULL;
     modifiable = 0;     // assume it is an rvalue
+    skipboundscheck = 0;
 }
 
 Expression *IndexExp::syntaxCopy()
@@ -10574,6 +10575,21 @@ Expression *IndexExp::semantic(Scope *sc)
         case Terror:
             goto Lerr;
     }
+
+    if (t1->ty == Tsarray || t1->ty == Tarray)
+    {
+        Expression *el = new ArrayLengthExp(loc, e1);
+        el = el->semantic(sc);
+        el = el->optimize(WANTvalue);
+        if (el->op == TOKint64)
+        {
+            e2 = e2->optimize(WANTvalue);
+            dinteger_t length = el->toInteger();
+            if (length)
+                skipboundscheck = IntRange(0, length).contains(e2->getIntRange());
+        }
+    }
+
     return e;
 
 Lerr:

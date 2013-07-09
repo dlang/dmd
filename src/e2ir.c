@@ -4955,7 +4955,7 @@ elem *IndexExp::toElem(IRState *irs)
         elem *einit = resolveLengthVar(lengthVar, &n1, t1);
         elem *n2 = e2->toElem(irs);
 
-        if (irs->arrayBoundsCheck())
+        if (irs->arrayBoundsCheck() && !skipboundscheck)
         {
             elem *elength;
             elem *n2x;
