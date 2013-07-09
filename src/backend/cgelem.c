@@ -1429,6 +1429,23 @@ STATIC elem * elbitwise(elem *e, goal_t goal)
                 return optelem(e,goal);
             }
         }
+
+        /* Replace:
+         *  (1 << a) & b
+         * with:
+         *  b btst a
+         */
+        if (e1->Eoper == OPshl &&
+            ELCONST(e1->E1,1))
+        {
+            e->Eoper = OPbtst;
+            e->Ety = OPbool;
+            e->E1 = e2;
+            e->E2 = e1->E2;
+            e1->E2 = NULL;
+            el_free(e1);
+            return optelem(e, goal);
+        }
     }
 
     return e;
@@ -4799,11 +4816,15 @@ beg:
                 goto Llog;
 
             case OPoror:
+                if (rightgoal)
+                    rightgoal = GOALflags;
                 if (OPTIMIZER && optim_oror(&e))
                     goto beg;
                 goto Llog;
 
             case OPandand:
+                if (rightgoal)
+                    rightgoal = GOALflags;
             Llog:               // case (c log f()) with no goal
                 if (goal || el_sideeffect(e->E2))
                     leftgoal = GOALflags;
