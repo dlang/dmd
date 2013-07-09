@@ -5327,6 +5327,18 @@ bool bug7987()
 
 static assert(bug7987());
 
+/**************************************************
+    10579 typeinfo.func() must not segfault
+**************************************************/
+
+static assert(!is(typeof(compiles!(typeid(int).toString.length))));
+
+class Bug10579 {
+    int foo() { return 1; }
+}
+Bug10579 uninitialized10579;
+
+static assert(!is(typeof(compiles!(uninitialized10579.foo()))));
 
 /******************************************************/
 
@@ -5386,8 +5398,6 @@ label:
     return true;
 }
 static assert(bug8865());
-
-
 
 /******************************************************/
 
