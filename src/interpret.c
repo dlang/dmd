@@ -4629,6 +4629,15 @@ Expression *CallExp::interpret(InterState *istate, CtfeGoal goal)
                 if (thisval->op != TOKnull && thisval->op != TOKclassreference)
                     thisval = pthis->interpret(istate);
             }
+            else if (pthis->op == TOKsymoff)
+            {
+                VarDeclaration *vthis = ((SymOffExp*)thisval)->var->isVarDeclaration();
+                assert(vthis);
+                thisval = getVarExp(loc, istate, vthis, ctfeNeedLvalue);
+                if (exceptionOrCantInterpret(thisval))
+                    return thisval;
+            }
+
             // Get the function from the vtable of the original class
             ClassDeclaration *cd;
             if (thisval && thisval->op == TOKnull)
