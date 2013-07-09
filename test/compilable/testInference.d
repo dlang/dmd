@@ -375,6 +375,50 @@ pure void test10296()
 }
 
 /***************************************************/
+// 10491
+
+void foo10491(a = 10, b = null)
+{
+    static assert(is(typeof(a) == int));
+    static assert(is(typeof(b) == typeof(null)));
+}
+
+class C10491 { }
+
+void bar10491(const c = new C10491, immutable i = 42, f = 44.34f, in j = "yo")
+{
+    static assert(is(typeof(c) == const C10491));
+    static assert(is(typeof(i) == immutable int));
+    static assert(is(typeof(f) == float));
+    static assert(is(typeof(j) == const string));
+}
+
+struct S10491(T) { T val; }
+
+void baz10491(T)(s = S10491!T("test"))
+{
+    static assert(is(typeof(s) == S10491!T));
+}
+
+class V10491(T...) { }
+
+void qux10491(T...)(const v = new V10491!T(), i = 43)
+{
+    static assert(is(typeof(v) == const V10491!T));
+    static assert(is(typeof(i) == int));
+}
+
+void test10491()
+{
+    foo10491;
+    foo10491(10);
+    bar10491;
+    bar10491(null, 10);
+    baz10491!string;
+    qux10491!(int, double, V10491);
+}
+
+/***************************************************/
 
 // Add more tests regarding inferences later.
 

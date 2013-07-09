@@ -1341,6 +1341,10 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
     {
         Parameter *fparam = Parameter::getNth(fparameters, parami);
 
+        // If inferred by default initializer, skip.
+        if (!fparam->type)
+            goto Lmatch;
+
         // Apply function parameter storage classes to parameter types
         Type *prmtype = fparam->type->addStorageClass(fparam->storageClass);
 
