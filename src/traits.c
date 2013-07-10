@@ -72,13 +72,27 @@ static int fptraits(void *param, FuncDeclaration *f)
     return 0;
 }
 
-// Collects all unit test functions.
-void collectUnitTests (Dsymbols* symbols, AA* uniqueUnitTests, Expressions* unitTests)
+/**
+ * Collects all unit test functions from the given array of symbols.
+ *
+ * This is a helper function used by the implementation of __traits(getUnitTests).
+ *
+ * Input:
+ *      symbols             array of symbols to collect the functions from
+ *      uniqueUnitTests     an associative array (should actually be a set) to
+ *                          keep track of already collected functions. We're
+ *                          using an AA here to avoid doing a linear search of unitTests
+ *
+ * Output:
+ *      unitTests           array of DsymbolExp's of the collected unit test functions
+ *      uniqueUnitTests     updated with symbols from unitTests[ ]
+ */
+static void collectUnitTests (const Dsymbols* const symbols, AA* uniqueUnitTests, Expressions* const unitTests)
 {
     for (size_t i = 0; i < symbols->dim; i++)
     {
-        Dsymbol* symbol = (*symbols)[i];
-        UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+        Dsymbol* const symbol = (*symbols)[i];
+        UnitTestDeclaration* const unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
 
         if (unitTest)
         {
@@ -95,7 +109,7 @@ void collectUnitTests (Dsymbols* symbols, AA* uniqueUnitTests, Expressions* unit
 
         else
         {
-            AttribDeclaration* attrDecl = symbol->isAttribDeclaration();
+            const AttribDeclaration* const attrDecl = symbol->isAttribDeclaration();
 
             if (attrDecl)
                 collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
