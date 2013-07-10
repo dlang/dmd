@@ -1181,6 +1181,33 @@ void test9694()
 }
 
 /**************************************/
+// 10064
+
+void test10064()
+{
+    static struct S
+    {
+        int x = 3;
+
+        @disable this();
+
+        this(int)
+        { x = 7; }
+
+        int opSlice(size_t, size_t)
+        { return 0; }
+
+        @property size_t opDollar()
+        {
+            assert(x == 7 || x == 3); // fails
+            assert(x == 7);
+            return 0;
+        }
+    }
+    auto x = S(0)[0 .. $];
+}
+
+/**************************************/
 
 int main()
 {
@@ -1212,6 +1239,7 @@ int main()
     test9496();
     test9689();
     test9694();
+    test10064();
 
     printf("Success\n");
     return 0;
