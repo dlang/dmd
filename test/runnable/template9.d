@@ -2174,6 +2174,23 @@ void test9536()
 }
 
 /**********************************/
+// 9578
+
+template t9578(alias f) { void tf()() { f(); } }
+
+void g9578a(alias f)()  { f(); }        // Error -> OK
+void g9578b(alias ti)() { ti.tf(); }    // Error -> OK
+
+void test9578()
+{
+    int i = 0;
+    int m() { return i; }
+
+    g9578a!(t9578!m.tf)();
+    g9578b!(t9578!m)();
+}
+
+/**********************************/
 // 9596
 
 int foo9596a(K, V)(inout(       V  [K])) { return 1; }
@@ -2801,6 +2818,7 @@ int main()
     test9143();
     test9266();
     test9536();
+    test9578();
     test9596();
     test9837();
     test9874();
