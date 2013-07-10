@@ -832,6 +832,79 @@ void testbt()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+int andand1(int c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+bool andand2(long c)
+{
+    return (c > 32 && c != 46 && c != 44
+		   && c != 58 && c != 59
+		   && c != 60 && c != 62
+                   && c != 34 && c != 92
+	           && c != 39) != 0;
+}
+
+int foox3() { return 1; }
+
+int andand3(uint op)
+{
+    if (foox3() &&
+	op != 7 &&
+	op != 3 &&
+	op != 18 &&
+	op != 30 &&
+	foox3())
+	return 3;
+    return 4;
+}
+
+
+void testandand()
+{
+    assert(andand1(0) == 0);
+    assert(andand1(32) == 0);
+    assert(andand1(46) == 0);
+    assert(andand1(44) == 0);
+    assert(andand1(58) == 0);
+    assert(andand1(59) == 0);
+    assert(andand1(60) == 0);
+    assert(andand1(62) == 0);
+    assert(andand1(34) == 0);
+    assert(andand1(92) == 0);
+    assert(andand1(39) == 0);
+    assert(andand1(33) == 1);
+    assert(andand1(61) == 1);
+    assert(andand1(93) == 1);
+    assert(andand1(255) == 1);
+
+    assert(andand2(0) == false);
+    assert(andand2(32) == false);
+    assert(andand2(46) == false);
+    assert(andand2(44) == false);
+    assert(andand2(58) == false);
+    assert(andand2(59) == false);
+    assert(andand2(60) == false);
+    assert(andand2(62) == false);
+    assert(andand2(34) == false);
+    assert(andand2(92) == false);
+    assert(andand2(39) == false);
+    assert(andand2(33) == true);
+    assert(andand2(61) == true);
+    assert(andand2(93) == true);
+    assert(andand2(255) == true);
+
+    assert(andand3(6) == 3);
+    assert(andand3(30) == 4);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -851,6 +924,7 @@ int main()
     testnegcom();
     testoror();
     testbt();
+    testandand();
     printf("Success\n");
     return 0;
 }
