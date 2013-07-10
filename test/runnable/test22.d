@@ -549,9 +549,13 @@ string toString26(cdouble z)
 void test26()
 {
   static cdouble[] A = [1+0i, 0+1i, 1+1i];
+  string s;
 
   foreach( cdouble z; A )
-    printf("%.*s  ",toString26(z));
+  {
+    s = toString26(z);
+    printf("%.*s  ", s.length, s.ptr);
+  }
   printf("\n");
 
   for(int ii=0; ii<A.length; ii++ )
@@ -562,7 +566,10 @@ void test26()
   assert(A[2] == 2);
 
   foreach( cdouble z; A )
-    printf("%.*s  ",toString26(z));
+  {
+    s = toString26(z);
+    printf("%.*s  ", s.length, s.ptr);
+  }
   printf("\n");
 }
 
