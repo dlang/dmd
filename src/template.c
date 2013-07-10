@@ -3154,7 +3154,12 @@ MATCH Type::deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters,
     }
 
     if (nextOf())
+    {
+        if (tparam->deco)
+            return implicitConvTo(tparam);
+
         return nextOf()->deduceType(sc, tparam->nextOf(), parameters, dedtypes, wildmatch);
+    }
 
 Lexact:
     return MATCHexact;
