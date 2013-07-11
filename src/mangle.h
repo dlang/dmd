@@ -23,8 +23,6 @@ public:
     ItaniumCPPMangler();
     ~ItaniumCPPMangler();
 
-    void visit(RootObject *d);
-
     void visit(Dsymbol *d);
     void visit(FuncDeclaration *d);
     void visit(VarDeclaration *d);
@@ -62,9 +60,7 @@ public:
 
     VisualCPPMangler(bool isdmc);
     ~VisualCPPMangler();
-    
-    void visit(RootObject *d);
-    
+
     void visit(Dsymbol *d);
     void visit(FuncDeclaration *d);
     void visit(VarDeclaration *d);

@@ -5,6 +5,11 @@ Visitor::~Visitor()
 {
 }
 
+void Visitor::visit(RootObject* arg)
+{
+    assert(0);
+}
+
 void Visitor::visit(Type* arg)
 {
     visit((RootObject*)arg);

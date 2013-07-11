@@ -43,7 +43,7 @@ class Visitor
 {
 public:
     virtual ~Visitor();
-    virtual void visit(RootObject*)=0;
+    virtual void visit(RootObject*);
     virtual void visit(Type*);
     virtual void visit(TypeError*);
     virtual void visit(TypeNext*);

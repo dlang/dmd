@@ -57,11 +57,6 @@ void ItaniumCPPMangler::visit(Dsymbol *d)
     buf->writeByte(0);
 }
 
-void ItaniumCPPMangler::visit(RootObject *d)
-{
-    assert(0);
-}
-
 void ItaniumCPPMangler::visit(VarDeclaration *d)
 {
     assert(!buf->size);
@@ -662,11 +657,6 @@ VisualCPPMangler::VisualCPPMangler(bool isdmc):
 VisualCPPMangler::~VisualCPPMangler()
 {
     delete buf;
-}
-
-void VisualCPPMangler::visit(RootObject *d)
-{
-    assert(0);
 }
 
 void VisualCPPMangler::visit(Dsymbol *d)
