@@ -80,6 +80,7 @@ ClassDeclaration *Type::typeinfowild;
 
 TemplateDeclaration *Type::associativearray;
 TemplateDeclaration *Type::rtinfo;
+TemplateDeclaration *Type::rminfo;
 
 Type *Type::tvoid;
 Type *Type::tint8;

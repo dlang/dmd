@@ -22,6 +22,8 @@
 #include "dsymbol.h"
 #include "hdrgen.h"
 #include "lexer.h"
+#include "mtype.h"
+#include "template.h"
 
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
@@ -96,6 +98,8 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
 
     nameoffset = 0;
     namelen = 0;
+
+    rmInfo = NULL;
 
     srcfilename = FileName::defaultExt(filename, global.mars_ext);
     if (!FileName::equalsExt(srcfilename, global.mars_ext) &&
@@ -806,6 +810,23 @@ void Module::semantic3()
     }
 
     sc = sc->pop();
+
+    if (!rmInfo && Type::rminfo &&
+        (!isDeprecated() || global.params.useDeprecated)) // don't do it for unused deprecated modules
+    {   // Evaluate: RMInfo!module
+        Objects *tiargs = new Objects();
+        tiargs->push(this);
+        TemplateInstance *ti = new TemplateInstance(loc, Type::rminfo, tiargs);
+        ti->semantic(sc);
+        ti->semantic2(sc);
+        ti->semantic3(sc);
+        Dsymbol *s = ti->toAlias();
+        Expression *e = new DsymbolExp(Loc(), s, 0);
+        e = e->ctfeSemantic(ti->tempdecl->scope);
+        e = e->ctfeInterpret();
+        rmInfo = e;
+    }
+
     sc->pop();
     semanticRun = semanticstarted;
 }

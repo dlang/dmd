@@ -210,6 +210,7 @@ public:
 
     static TemplateDeclaration *associativearray;
     static TemplateDeclaration *rtinfo;
+    static TemplateDeclaration *rminfo;
 
     static Type *basic[TMAX];
     static unsigned char mangleChar[TMAX];
