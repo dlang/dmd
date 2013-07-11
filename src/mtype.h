@@ -34,7 +34,7 @@ class Dsymbol;
 class TemplateInstance;
 class TemplateDeclaration;
 struct JsonOut;
-class TypeVisitor;
+class Visitor;
 
 enum LINK;
 
@@ -254,7 +254,7 @@ public:
     virtual void toJson(JsonOut *json);
 
     //Need be overrided in all mangling types, because mangleType uses static type of this for dispatching
-    virtual void acceptVisitor(TypeVisitor *m);
+    virtual void acceptVisitor(Visitor *m);
     virtual int isintegral();
     virtual int isfloating();   // real, imaginary, or complex
     virtual int isreal();
@@ -364,7 +364,7 @@ public:
     Expression *defaultInit(Loc loc);
     Expression *defaultInitLiteral(Loc loc);
     TypeTuple *toArgTypes();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeNext : public Type
@@ -388,7 +388,7 @@ public:
     MATCH constConv(Type *to);
     unsigned wildConvTo(Type *tprm);
     void transitive();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeBasic : public Type
@@ -407,7 +407,7 @@ public:
     char *toChars();
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
     int isintegral();
     int isfloating();
     int isreal();
@@ -445,7 +445,7 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Type *reliesOnTident(TemplateParameters *tparams);
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
     int isintegral();
     int isfloating();
     int isscalar();
@@ -467,7 +467,7 @@ class TypeArray : public TypeNext
 public:
     TypeArray(TY ty, Type *next);
     Expression *dotExp(Scope *sc, Expression *e, Identifier *ident, int flag);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 // Static array, one with a fixed dimension
@@ -506,7 +506,7 @@ public:
     TypeTuple *toArgTypes();
 
     static Type *makeType(Loc loc, Type *tn, dinteger_t dim);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
     
     type *toCtype();
     type *toCParamtype();
@@ -538,7 +538,7 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
 };
@@ -575,7 +575,7 @@ public:
     MATCH implicitConvTo(Type *to);
     MATCH constConv(Type *to);
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     // Back end
     Symbol *aaGetSymbol(const char *func, int flags);
@@ -602,7 +602,7 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
 };
@@ -621,7 +621,7 @@ public:
     Expression *defaultInit(Loc loc);
     int isZeroInit(Loc loc);
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 enum RET
@@ -682,7 +682,7 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     bool hasLazyParameters();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
@@ -718,7 +718,7 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
 };
@@ -739,7 +739,7 @@ public:
     d_uns64 size(Loc loc);
     void resolveHelper(Loc loc, Scope *sc, Dsymbol *s, Dsymbol *scopesym,
         Expression **pe, Type **pt, Dsymbol **ps);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeIdentifier : public TypeQualified
@@ -761,7 +761,7 @@ public:
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     Expression *toExpression();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 /* Similar to TypeIdentifier, but with a TemplateInstance as the root
@@ -784,7 +784,7 @@ public:
     Type *reliesOnTident(TemplateParameters *tparams = NULL);
     MATCH deduceType(Scope *sc, Type *tparam, TemplateParameters *parameters, Objects *dedtypes, unsigned *wildmatch = NULL);
     Expression *toExpression();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeTypeof : public TypeQualified
@@ -802,7 +802,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     Type *semantic(Loc loc, Scope *sc);
     d_uns64 size(Loc loc);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeReturn : public TypeQualified
@@ -816,7 +816,7 @@ public:
     Type *semantic(Loc loc, Scope *sc);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 // Whether alias this dependency is recursive or not.
@@ -866,7 +866,7 @@ public:
     unsigned wildConvTo(Type *tprm);
     Type *toHeadMutable();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
 };
@@ -911,7 +911,7 @@ public:
     int hasPointers();
     TypeTuple *toArgTypes();
     Type *nextOf();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
     type *toCtype();
 };
 
@@ -959,7 +959,7 @@ public:
     TypeTuple *toArgTypes();
     int hasWild();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
     type *toCParamtype();
@@ -998,7 +998,7 @@ public:
     TypeTuple *toArgTypes();
     int builtinTypeInfo();
 
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 
     type *toCtype();
 
@@ -1026,7 +1026,7 @@ public:
     Expression *getProperty(Loc loc, Identifier *ident, int flag);
     Expression *defaultInit(Loc loc);
     TypeInfoDeclaration *getTypeInfoDeclaration();
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeSlice : public TypeNext
@@ -1042,7 +1042,7 @@ public:
     void resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol **ps);
     void toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod);
     void toJson(JsonOut *json);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 class TypeNull : public Type
@@ -1061,7 +1061,7 @@ public:
 
     d_uns64 size(Loc loc);
     Expression *defaultInit(Loc loc);
-    void acceptVisitor(TypeVisitor *m);
+    void acceptVisitor(Visitor *m);
 };
 
 /**************************************************************/

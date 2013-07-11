@@ -32,7 +32,7 @@
 #include "template.h"
 #include "attrib.h"
 #include "enum.h"
-#include "visitors.h"
+#include "visitor.h"
 
 const char* Pprotectionnames[] = {NULL, "none", "private", "package", "protected", "public", "export"};
 
@@ -1510,9 +1510,9 @@ Dsymbol *DsymbolTable::update(Dsymbol *s)
     return s;
 }
 
-void Dsymbol::acceptVisitor(DsymbolVisitor *v)
+void Dsymbol::acceptVisitor(Visitor *v)
 {
-    v->visitDsymbol(this);
+    v->visit(this);
 }
 
 

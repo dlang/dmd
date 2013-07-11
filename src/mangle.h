@@ -5,10 +5,10 @@
 #include <stdint.h>
 #include "mtype.h"
 #include "declaration.h"
-#include "visitors.h"
+#include "visitor.h"
 
 
-class Mangler: public TypeVisitor, public DsymbolVisitor
+class Mangler: public Visitor
 {
 public:
     virtual ~Mangler(){}
@@ -23,20 +23,22 @@ public:
     ItaniumCPPMangler();
     ~ItaniumCPPMangler();
 
-    void visitDsymbol(Dsymbol *d);
-    void visitDsymbol(FuncDeclaration *d);
-    void visitDsymbol(VarDeclaration *d);
+    void visit(RootObject *d);
 
-    void visitType(Type *type);
-    void visitType(TypeBasic *type);
-    void visitType(TypeVector *type);
-    void visitType(TypeSArray *type);
-    void visitType(TypePointer *type);
-    void visitType(TypeReference *type);
-    void visitType(TypeFunction *type);
-    void visitType(TypeStruct *type);
-    void visitType(TypeEnum *type);
-    void visitType(TypeClass *type);
+    void visit(Dsymbol *d);
+    void visit(FuncDeclaration *d);
+    void visit(VarDeclaration *d);
+
+    void visit(Type *type);
+    void visit(TypeBasic *type);
+    void visit(TypeVector *type);
+    void visit(TypeSArray *type);
+    void visit(TypePointer *type);
+    void visit(TypeReference *type);
+    void visit(TypeFunction *type);
+    void visit(TypeStruct *type);
+    void visit(TypeEnum *type);
+    void visit(TypeClass *type);
 
     const char *result();
 
@@ -60,21 +62,23 @@ public:
 
     VisualCPPMangler(bool isdmc);
     ~VisualCPPMangler();
+    
+    void visit(RootObject *d);
+    
+    void visit(Dsymbol *d);
+    void visit(FuncDeclaration *d);
+    void visit(VarDeclaration *d);
 
-    void visitDsymbol(Dsymbol *d);
-    void visitDsymbol(FuncDeclaration *d);
-    void visitDsymbol(VarDeclaration *d);
-
-    void visitType(Type *type);
-    void visitType(TypeBasic *type);
-    void visitType(TypeVector *type);
-    void visitType(TypeSArray *type);
-    void visitType(TypePointer *type);
-    void visitType(TypeReference *type);
-    void visitType(TypeFunction *type);
-    void visitType(TypeStruct *type);
-    void visitType(TypeEnum *type);
-    void visitType(TypeClass *type);
+    void visit(Type *type);
+    void visit(TypeBasic *type);
+    void visit(TypeVector *type);
+    void visit(TypeSArray *type);
+    void visit(TypePointer *type);
+    void visit(TypeReference *type);
+    void visit(TypeFunction *type);
+    void visit(TypeStruct *type);
+    void visit(TypeEnum *type);
+    void visit(TypeClass *type);
 
     const char *result();
 private:
@@ -89,10 +93,10 @@ private:
 
     const char *saved_idents[10];
     Type *saved_types[10];
-    //when we mangling one argument, we can call visitType several times (for base types of arg type)
+    //when we mangling one argument, we can call visit several times (for base types of arg type)
     //but we must save only arg type:
-    //For example: if we have an int** argument, we should save "int**" but visitType will be called for "int**", "int*", "int"
-    //This flag is set up by the visitType(NextType, ) function  and should be reset when the arg type output is finished.
+    //For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
+    //This flag is set up by the visit(NextType, ) function  and should be reset when the arg type output is finished.
     bool is_not_top_type;
 
     //in some cases we should ignore CV-modifiers, like array:

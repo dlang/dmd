@@ -39,10 +39,6 @@ struct Target
      */
     //mangle specified symbol with spesified linkage
     static const char *mangleSymbol(Dsymbol* sym, size_t link);
-    
-    //Mangle validation is compiler implementation specific.
-    static bool validateMangle(Loc, const void *mangle, size_t len);
-    
 };
 
 #endif

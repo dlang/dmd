@@ -49,7 +49,7 @@ ItaniumCPPMangler::~ItaniumCPPMangler()
     delete buf;
 }
 
-void ItaniumCPPMangler::visitDsymbol(Dsymbol *d)
+void ItaniumCPPMangler::visit(Dsymbol *d)
 {
     assert(!buf->size);
     buf->writestring("__Z" + !global.params.isOSX);      // "__Z" for OSX, "_Z" for other
@@ -57,7 +57,12 @@ void ItaniumCPPMangler::visitDsymbol(Dsymbol *d)
     buf->writeByte(0);
 }
 
-void ItaniumCPPMangler::visitDsymbol(VarDeclaration *d)
+void ItaniumCPPMangler::visit(RootObject *d)
+{
+    assert(0);
+}
+
+void ItaniumCPPMangler::visit(VarDeclaration *d)
 {
     assert(!buf->size);
     if (!(d->storage_class & (STCextern | STCgshared)))
@@ -81,7 +86,7 @@ void ItaniumCPPMangler::visitDsymbol(VarDeclaration *d)
     }
 }
 
-void ItaniumCPPMangler::visitDsymbol(FuncDeclaration *d)
+void ItaniumCPPMangler::visit(FuncDeclaration *d)
 {
     /*
     * <mangled-name> ::= _Z <encoding>
@@ -311,13 +316,13 @@ void ItaniumCPPMangler::mangleName(Dsymbol *s)
 
 /* ============= Type Encodings ============================================= */
 
-void ItaniumCPPMangler::visitType(Type *type)
+void ItaniumCPPMangler::visit(Type *type)
 {
     type->error(Loc(), "Unsupported type %s\n", type->toChars());
     assert(0); //Assert, because this error should be handled in frontend
 }
 
-void ItaniumCPPMangler::visitType(TypeBasic *type)
+void ItaniumCPPMangler::visit(TypeBasic *type)
 {
     char c;
     char p = 0;
@@ -373,7 +378,7 @@ void ItaniumCPPMangler::visitType(TypeBasic *type)
         case Tcomplex64:   p = 'C'; c = 'd';    break;
         case Tcomplex80:   p = 'C'; c = 'e';    break;
 
-        default:        visitType((Type *)type);  return;
+        default:        visit((Type *)type);  return;
     }
     if (p || type->isConst() || type->isShared())
     {
@@ -392,7 +397,7 @@ void ItaniumCPPMangler::visitType(TypeBasic *type)
     buf->writeByte(c);
 }
 
-void ItaniumCPPMangler::visitType(TypeVector *type)
+void ItaniumCPPMangler::visit(TypeVector *type)
 {
     if (!substitute(type))
     {
@@ -408,7 +413,7 @@ void ItaniumCPPMangler::visitType(TypeVector *type)
     }
 }
 
-void ItaniumCPPMangler::visitType(TypeSArray *type)
+void ItaniumCPPMangler::visit(TypeSArray *type)
 {
     if (!substitute(type))
     {
@@ -421,7 +426,7 @@ void ItaniumCPPMangler::visitType(TypeSArray *type)
     }
 }
 
-void ItaniumCPPMangler::visitType(TypePointer *type)
+void ItaniumCPPMangler::visit(TypePointer *type)
 {
     if (!exist(type))
     {
@@ -437,7 +442,7 @@ void ItaniumCPPMangler::visitType(TypePointer *type)
         substitute(type);
 }
 
-void ItaniumCPPMangler::visitType(TypeReference *type)
+void ItaniumCPPMangler::visit(TypeReference *type)
 {
     if (!exist(type))
     {
@@ -449,7 +454,7 @@ void ItaniumCPPMangler::visitType(TypeReference *type)
         substitute(type);
 }
 
-void ItaniumCPPMangler::visitType(TypeFunction *type)
+void ItaniumCPPMangler::visit(TypeFunction *type)
 {
    /*
      *  <function-type> ::= F [Y] <bare-function-type> E
@@ -495,7 +500,7 @@ void ItaniumCPPMangler::visitType(TypeFunction *type)
 //Foo       => S_
 //int*      => S0_
 //Foo<int*> => S1_
-void ItaniumCPPMangler::visitType(TypeStruct *type)
+void ItaniumCPPMangler::visit(TypeStruct *type)
 {
     if (!exist(type))
     {
@@ -521,7 +526,7 @@ void ItaniumCPPMangler::visitType(TypeStruct *type)
         substitute(type);
 }
 
-void ItaniumCPPMangler::visitType(TypeEnum *type)
+void ItaniumCPPMangler::visit(TypeEnum *type)
 {
     if (!exist(type))
     {
@@ -547,7 +552,7 @@ void ItaniumCPPMangler::visitType(TypeEnum *type)
         substitute(type);
 }
 
-void ItaniumCPPMangler::visitType(TypeClass *type)
+void ItaniumCPPMangler::visit(TypeClass *type)
 {
     if (!exist(type))
     {
@@ -659,7 +664,12 @@ VisualCPPMangler::~VisualCPPMangler()
     delete buf;
 }
 
-void VisualCPPMangler::visitDsymbol(Dsymbol *d)
+void VisualCPPMangler::visit(RootObject *d)
+{
+    assert(0);
+}
+
+void VisualCPPMangler::visit(Dsymbol *d)
 {
     assert(!buf->size);
     buf->writeByte('?');
@@ -667,7 +677,7 @@ void VisualCPPMangler::visitDsymbol(Dsymbol *d)
     buf->writeByte(0);
 }
 
-void VisualCPPMangler::visitDsymbol(FuncDeclaration *d)
+void VisualCPPMangler::visit(FuncDeclaration *d)
 {
 	// <function mangle> ? <qualified name> <flags> <return type> <arg list>
     assert(!buf->size);
@@ -744,7 +754,7 @@ void VisualCPPMangler::visitDsymbol(FuncDeclaration *d)
     buf->writeByte(0);
 }
 
-void VisualCPPMangler::visitDsymbol(VarDeclaration *d)
+void VisualCPPMangler::visit(VarDeclaration *d)
 {
 	// <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
     assert(!buf->size);
@@ -813,15 +823,15 @@ const char *VisualCPPMangler::result()
     return (const char *)buf->extractData();
 }
 
-void VisualCPPMangler::visitType(Type *type)
+void VisualCPPMangler::visit(Type *type)
 {
     type->error(Loc(), "Unsupported type %s\n", type->toChars());
     assert(0); //Assert, because this error should be handled in frontend
 }
 
-void VisualCPPMangler::visitType(TypeBasic *type)
+void VisualCPPMangler::visit(TypeBasic *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeBasic); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeBasic); is_not_top_type = %d\n", (int)is_not_top_type);
     if (type->isConst() || type->isShared())
     {
         if (checkTypeSaved(type)) return;
@@ -863,24 +873,24 @@ void VisualCPPMangler::visitType(TypeBasic *type)
                 buf->writestring("_Y"); //DigitalMars wchar_t
             break;
 
-        default:        visitType((Type*)type); return;
+        default:        visit((Type*)type); return;
     }
     is_not_top_type = false;
     ignore_const = false;
 }
 
-void VisualCPPMangler::visitType(TypeVector *type)
+void VisualCPPMangler::visit(TypeVector *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeVector); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeVector); is_not_top_type = %d\n", (int)is_not_top_type);
     if (checkTypeSaved(type)) return;
     buf->writestring("T__m128@@"); //may be better as __m128i or __m128d?
     is_not_top_type = false;
     ignore_const = false;
 }
 
-void VisualCPPMangler::visitType(TypeSArray *type)
+void VisualCPPMangler::visit(TypeSArray *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeSArray); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeSArray); is_not_top_type = %d\n", (int)is_not_top_type);
     if (checkTypeSaved(type)) return;
     //first dimension always mangled as const pointer
     if (is_dmc)
@@ -901,9 +911,9 @@ void VisualCPPMangler::visitType(TypeSArray *type)
     }
 }
 
-void VisualCPPMangler::visitType(TypePointer *type)
+void VisualCPPMangler::visit(TypePointer *type)
 {
-    //printf("VisualCPPMangler::visitType(TypePointer); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypePointer); is_not_top_type = %d\n", (int)is_not_top_type);
 
     if (checkTypeSaved(type)) return;
     mangleModifier(type);
@@ -938,9 +948,9 @@ void VisualCPPMangler::visitType(TypePointer *type)
     }
 }
 
-void VisualCPPMangler::visitType(TypeReference *type)
+void VisualCPPMangler::visit(TypeReference *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeReference); type = %s\n", type->toChars());
+    //printf("VisualCPPMangler::visit(TypeReference); type = %s\n", type->toChars());
     if (checkTypeSaved(type)) return;
 
     if (type->isShared())
@@ -965,9 +975,9 @@ void VisualCPPMangler::visitType(TypeReference *type)
     }
 }
 
-void VisualCPPMangler::visitType(TypeFunction *type)
+void VisualCPPMangler::visit(TypeFunction *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeFunction); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeFunction); is_not_top_type = %d\n", (int)is_not_top_type);
     const char *arg = mangleFunction(type); //compute args before checking to save; args should be saved before function type
     if (checkTypeSaved(type)) return;
     buf->writeByte('6'); //pointer to function
@@ -976,10 +986,10 @@ void VisualCPPMangler::visitType(TypeFunction *type)
     ignore_const = false;
 }
 
-void VisualCPPMangler::visitType(TypeStruct *type)
+void VisualCPPMangler::visit(TypeStruct *type)
 {
     if (checkTypeSaved(type)) return;
-    //printf("VisualCPPMangler::visitType(TypeStruct); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeStruct); is_not_top_type = %d\n", (int)is_not_top_type);
     mangleModifier(type);
     if (type->sym->isUnionDeclaration())
         buf->writeByte('T');
@@ -990,9 +1000,9 @@ void VisualCPPMangler::visitType(TypeStruct *type)
     ignore_const = false;
 }
 
-void VisualCPPMangler::visitType(TypeEnum *type)
+void VisualCPPMangler::visit(TypeEnum *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeEnum); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeEnum); is_not_top_type = %d\n", (int)is_not_top_type);
     if (checkTypeSaved(type)) return;
     mangleModifier(type);
     buf->writeByte('W');
@@ -1025,7 +1035,7 @@ void VisualCPPMangler::visitType(TypeEnum *type)
             buf->writeByte('7');
             break;
         default:
-            visitType((Type*)type);
+            visit((Type*)type);
             break;
     }
 
@@ -1036,9 +1046,9 @@ void VisualCPPMangler::visitType(TypeEnum *type)
 
 //D class mangled as pointer to C++ class
 //const(Object) mangled as Object const* const
-void VisualCPPMangler::visitType(TypeClass *type)
+void VisualCPPMangler::visit(TypeClass *type)
 {
-    //printf("VisualCPPMangler::visitType(TypeClass); is_not_top_type = %d\n", (int)is_not_top_type);
+    //printf("VisualCPPMangler::visit(TypeClass); is_not_top_type = %d\n", (int)is_not_top_type);
     if (checkTypeSaved(type)) return;
     if (is_not_top_type)
         mangleModifier(type);
@@ -1324,7 +1334,7 @@ const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis)
                 buf->writeByte('C');
                 break;
             default:
-                visitType((Type*)type);
+                visit((Type*)type);
                 break;
         }
     }

@@ -1115,7 +1115,8 @@ void PragmaDeclaration::semantic(Scope *sc)
             if (se->sz != 1)
                 error("mangled name characters can only be of type char");
 
-            Target::validateMangle(loc, se->string, se->len);
+            if (!se->len)
+                error("zero-length string not allowed for mangled name");
         }
     }
     else if (global.params.ignoreUnsupportedPragmas)

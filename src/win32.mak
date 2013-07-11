@@ -155,7 +155,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj cppmangle.obj visitors.obj
+	libomf.obj scanomf.obj iasm.obj cppmangle.obj visitor.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -203,7 +203,7 @@ GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c cppmangle.c mangle.h visitors.c visitors.h 
+	tk.c eh.c gluestub.c cppmangle.c mangle.h visitor.c visitor.h 
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \
@@ -719,8 +719,8 @@ statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
 target.obj : $(TOTALH) target.c target.h mangle.h
-cppmangle.obj : $(TOTALH) cppmangle.c mangle.h visitors.h
-visitors.obj : $(TOTALH) visitors.c visitors.h
+cppmangle.obj : $(TOTALH) cppmangle.c mangle.h visitor.h
+visitor.obj : $(TOTALH) visitor.c visitor.h
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c

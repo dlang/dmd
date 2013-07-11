@@ -119,7 +119,7 @@ const char *Declaration::mangle(bool isv)
 #if __DMC__
     __out(result)
     {
-        assert(Target::validateMangle(loc, mangleOverride, strlen(result)));
+        assert(strlen(result));
     }
     __body
 #endif
@@ -202,7 +202,7 @@ const char *FuncDeclaration::mangleExact(bool isv)
 #if __DMC__
     __out(result)
     {
-        assert(Target::validateMangle(loc, mangleOverride, strlen(result)));
+        assert(strlen(result));
     }
     __body
 #endif
