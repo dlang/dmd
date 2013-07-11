@@ -2740,6 +2740,35 @@ template foo10558(alias T)
 }
 
 /******************************************/
+// 10592
+
+void test10592()
+{
+    struct A(E)
+    {
+        int put()(const(E)[] data)
+        {
+            return 1;
+        }
+
+        int put()(const(dchar)[] data) if (!is(E == dchar))
+        {
+            return 2;
+        }
+
+        int put(C)(const(C)[] data) if (!is(C == dchar) && !is(E == C))
+        {
+            return 3;
+        }
+    }
+
+    A!char x;
+    assert(x.put("abcde"c) == 1);   // OK: hit 1
+    assert(x.put("abcde"w) == 3);   // NG: this should hit 3
+    assert(x.put("abcde"d) == 2);   // OK: hit 2
+}
+
+/******************************************/
 
 int main()
 {
@@ -2826,6 +2855,7 @@ int main()
     test9971();
     test9977();
     test10083();
+    test10592();
 
     printf("Success\n");
     return 0;
