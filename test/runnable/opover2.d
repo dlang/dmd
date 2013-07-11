@@ -1181,6 +1181,77 @@ void test9694()
 }
 
 /**************************************/
+// 10064
+
+void test10064()
+{
+    static struct S
+    {
+        int x = 3;
+
+        @disable this();
+
+        this(int)
+        { x = 7; }
+
+        int opSlice(size_t, size_t)
+        { return 0; }
+
+        @property size_t opDollar()
+        {
+            assert(x == 7 || x == 3); // fails
+            assert(x == 7);
+            return 0;
+        }
+    }
+    auto x = S(0)[0 .. $];
+}
+
+/**************************************/
+// 10597
+
+struct R10597
+{
+    void opIndex(int) {}
+    void opSlice(int, int) {}
+    int opDollar();
+}
+R10597 r;
+
+struct S10597
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //fails
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //fails
+
+    void foo()
+    {
+        static assert(is(typeof(r[0]))); //ok
+        static assert(is(typeof(r[$]))); //ok
+
+        static assert(is(typeof(r[0..0]))); //ok
+        static assert(is(typeof(r[$..$]))); //ok
+    }
+}
+
+static assert(is(typeof(r[0]))); //ok
+static assert(is(typeof(r[$]))); //fails
+
+static assert(is(typeof(r[0..0]))); //ok
+static assert(is(typeof(r[$..$]))); //fails
+
+void test10597()
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //ok
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //ok
+}
+
+/**************************************/
 
 int main()
 {
@@ -1212,6 +1283,7 @@ int main()
     test9496();
     test9689();
     test9694();
+    test10064();
 
     printf("Success\n");
     return 0;

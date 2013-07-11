@@ -237,10 +237,11 @@ Expression *UnaExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opIndexUnary);
             if (fd)
             {
-                ae = resolveOpDollar(sc, ae);
+                Expression *e0 = resolveOpDollar(sc, ae);
                 Objects *tiargs = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, ae->arguments);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }
@@ -278,16 +279,18 @@ Expression *UnaExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opSliceUnary);
             if (fd)
             {
-                se = resolveOpDollar(sc, se);
+                Expression *e0 = resolveOpDollar(sc, se);
                 Expressions *a = new Expressions();
                 assert(!se->lwr || se->upr);
                 if (se->lwr)
-                {   a->push(se->lwr);
+                {
+                    a->push(se->lwr);
                     a->push(se->upr);
                 }
                 Objects *tiargs = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }
@@ -389,9 +392,10 @@ Expression *ArrayExp::op_overload(Scope *sc)
             /* Rewrite op e1[arguments] as:
              *    e1.opIndex(arguments)
              */
-            ArrayExp *ae = resolveOpDollar(sc, this);
-            Expression *e = new DotIdExp(loc, ae->e1, fd->ident);
-            e = new CallExp(loc, e, ae->arguments);
+            Expression *e0 = resolveOpDollar(sc, this);
+            Expression *e = new DotIdExp(loc, e1, fd->ident);
+            e = new CallExp(loc, e, arguments);
+            e = combine(e0, e);
             e = e->semantic(sc);
             return e;
         }
@@ -955,13 +959,14 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opIndexOpAssign);
             if (fd)
             {
-                ae = resolveOpDollar(sc, ae);
+                Expression *e0 = resolveOpDollar(sc, ae);
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
                 Objects *tiargs = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, ae->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }
@@ -999,18 +1004,20 @@ Expression *BinAssignExp::op_overload(Scope *sc)
             Dsymbol *fd = search_function(ad, Id::opSliceOpAssign);
             if (fd)
             {
-                se = resolveOpDollar(sc, se);
+                Expression *e0 = resolveOpDollar(sc, se);
                 Expressions *a = new Expressions();
                 a->push(e2);
                 assert(!se->lwr || se->upr);
                 if (se->lwr)
-                {   a->push(se->lwr);
+                {
+                    a->push(se->lwr);
                     a->push(se->upr);
                 }
 
                 Objects *tiargs = opToArg(sc, op);
                 Expression *e = new DotTemplateInstanceExp(loc, se->e1, fd->ident, tiargs);
                 e = new CallExp(loc, e, a);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }

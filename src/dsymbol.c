@@ -1400,29 +1400,6 @@ Dsymbol *ArrayScopeSymbol::search(Loc loc, Identifier *ident, int flags)
                     return NULL;
                 s = s->toAlias();
 
-                if (ce->hasSideEffect())
-                {
-                    /* Even if opDollar is needed, 'ce' should be evaluate only once. So
-                     * Rewrite:
-                     *      ce.opIndex( ... use of $ ... )
-                     *      ce.opSlice( ... use of $ ... )
-                     * as:
-                     *      (ref __dop = ce, __dop).opIndex( ... __dop.opDollar ...)
-                     *      (ref __dop = ce, __dop).opSlice( ... __dop.opDollar ...)
-                     */
-                    Identifier *id = Lexer::uniqueId("__dop");
-                    ExpInitializer *ei = new ExpInitializer(loc, ce);
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, id, ei);
-                    v->storage_class |= STCctfe | STCforeach | STCref;
-                    DeclarationExp *de = new DeclarationExp(loc, v);
-                    VarExp *ve = new VarExp(loc, v);
-                    v->semantic(sc);
-                    de->type = ce->type;
-                    ve->type = ce->type;
-                    ((UnaExp *)exp)->e1 = new CommaExp(loc, de, ve);
-                    ce = ve;
-                }
-
                 Expression *e = NULL;
                 // Check for multi-dimensional opDollar(dim) template.
                 if (TemplateDeclaration *td = s->isTemplateDeclaration())

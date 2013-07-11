@@ -10035,15 +10035,17 @@ Lagain:
         if (search_function(ad, Id::slice))
         {
             // Rewrite as e1.slice(lwr, upr)
-            SliceExp *se = resolveOpDollar(sc, this);
+            Expression *e0 = resolveOpDollar(sc, this);
             Expressions *a = new Expressions();
-            assert(!se->lwr || se->upr);
-            if (se->lwr)
-            {   a->push(se->lwr);
-                a->push(se->upr);
+            assert(!lwr || upr);
+            if (lwr)
+            {
+                a->push(lwr);
+                a->push(upr);
             }
-            e = new DotIdExp(loc, se->e1, Id::slice);
+            e = new DotIdExp(loc, e1, Id::slice);
             e = new CallExp(loc, e, a);
+            e = combine(e0, e);
             e = e->semantic(sc);
             return e;
         }
@@ -10932,12 +10934,13 @@ Expression *AssignExp::semantic(Scope *sc)
             if (search_function(ad, Id::indexass))
             {
                 // Deal with $
-                ae = resolveOpDollar(sc, ae);
+                Expression *e0 = resolveOpDollar(sc, ae);
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
                 Expression *e = new DotIdExp(loc, e1, Id::indexass);
                 e = new CallExp(loc, e, a);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }
@@ -10988,16 +10991,18 @@ Expression *AssignExp::semantic(Scope *sc)
             // Rewrite (a[i..j] = value) to (a.opSliceAssign(value, i, j))
             if (search_function(ad, Id::sliceass))
             {
-                ae = resolveOpDollar(sc, ae);
+                Expression *e0 = resolveOpDollar(sc, ae);
                 Expressions *a = new Expressions();
                 a->push(e2);
                 assert(!ae->lwr || ae->upr);
                 if (ae->lwr)
-                {   a->push(ae->lwr);
+                {
+                    a->push(ae->lwr);
                     a->push(ae->upr);
                 }
                 Expression *e = new DotIdExp(loc, e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
+                e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;
             }
@@ -13446,14 +13451,41 @@ Expression *PrettyFuncInitExp::resolveLoc(Loc loc, Scope *sc)
     return e;
 }
 
+Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
+{
+    Expression *e0 = NULL;
+    if (ue->e1->hasSideEffect())
+    {
+        /* Even if opDollar is needed, 'ue->e1' should be evaluate only once. So
+         * Rewrite:
+         *      ue->e1.opIndex( ... use of $ ... )
+         *      ue->e1.opSlice( ... use of $ ... )
+         * as:
+         *      (ref __dop = ue->e1, __dop).opIndex( ... __dop.opDollar ...)
+         *      (ref __dop = ue->e1, __dop).opSlice( ... __dop.opDollar ...)
+         */
+        Identifier *id = Lexer::uniqueId("__dop");
+        ExpInitializer *ei = new ExpInitializer(ue->loc, ue->e1);
+        VarDeclaration *v = new VarDeclaration(ue->loc, ue->e1->type, id, ei);
+        v->storage_class |= STCctfe | STCforeach | STCref;
+        e0 = new DeclarationExp(ue->loc, v);
+        e0 = e0->semantic(sc);
+        ue->e1 = new VarExp(ue->loc, v);
+        ue->e1 = ue->e1->semantic(sc);
+    }
+    return e0;
+}
+
 /**************************************
  * Runs semantic on ae->arguments. Declares temporary variables
  * if '$' was used.
  */
 
-ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
+Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
 {
     assert(!ae->lengthVar);
+
+    Expression *e0 = extractOpDollarSideEffect(sc, ae);
 
     for (size_t i = 0; i < ae->arguments->dim; i++)
     {
@@ -13470,8 +13502,9 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
         e = resolveProperties(sc, e);
         if (!e->type)
             ae->error("%s has no value", e->toChars());
-        if (ae->lengthVar)
-        {   // If $ was used, declare it now
+        if (ae->lengthVar && sc->func)
+        {
+            // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
             e = new CommaExp(Loc(), de, e);
             e = e->semantic(sc);
@@ -13479,7 +13512,8 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
         (*ae->arguments)[i] = e;
         sc = sc->pop();
     }
-    return ae;
+
+    return e0;
 }
 
 /**************************************
@@ -13487,12 +13521,14 @@ ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae)
  * if '$' was used.
  */
 
-SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
+Expression *resolveOpDollar(Scope *sc, SliceExp *se)
 {
     assert(!se->lengthVar);
     assert(!se->lwr || se->upr);
 
-    if (!se->lwr) return se;
+    if (!se->lwr) return NULL;
+
+    Expression *e0 = extractOpDollarSideEffect(sc, se);
 
     // create scope for '$'
     ArrayScopeSymbol *sym = new ArrayScopeSymbol(sc, se);
@@ -13507,17 +13543,19 @@ SliceExp *resolveOpDollar(Scope *sc, SliceExp *se)
         e = resolveProperties(sc, e);
         if (!e->type)
             se->error("%s has no value", e->toChars());
-        i == 0 ? se->lwr : se->upr = e;
+        (i == 0 ? se->lwr : se->upr) = e;
     }
 
-    if (se->lengthVar)
-    {   // If $ was used, declare it now
+    if (se->lengthVar && sc->func)
+    {
+        // If $ was used, declare it now
         Expression *de = new DeclarationExp(se->loc, se->lengthVar);
         se->lwr = new CommaExp(Loc(), de, se->lwr);
         se->lwr = se->lwr->semantic(sc);
     }
     sc = sc->pop();
-    return se;
+
+    return e0;
 }
 
 Expression *BinExp::reorderSettingAAElem(Scope *sc)
