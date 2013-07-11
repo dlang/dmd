@@ -13502,8 +13502,9 @@ Expression *resolveOpDollar(Scope *sc, ArrayExp *ae)
         e = resolveProperties(sc, e);
         if (!e->type)
             ae->error("%s has no value", e->toChars());
-        if (ae->lengthVar)
-        {   // If $ was used, declare it now
+        if (ae->lengthVar && sc->func)
+        {
+            // If $ was used, declare it now
             Expression *de = new DeclarationExp(ae->loc, ae->lengthVar);
             e = new CommaExp(Loc(), de, e);
             e = e->semantic(sc);
@@ -13542,11 +13543,12 @@ Expression *resolveOpDollar(Scope *sc, SliceExp *se)
         e = resolveProperties(sc, e);
         if (!e->type)
             se->error("%s has no value", e->toChars());
-        i == 0 ? se->lwr : se->upr = e;
+        (i == 0 ? se->lwr : se->upr) = e;
     }
 
-    if (se->lengthVar)
-    {   // If $ was used, declare it now
+    if (se->lengthVar && sc->func)
+    {
+        // If $ was used, declare it now
         Expression *de = new DeclarationExp(se->loc, se->lengthVar);
         se->lwr = new CommaExp(Loc(), de, se->lwr);
         se->lwr = se->lwr->semantic(sc);

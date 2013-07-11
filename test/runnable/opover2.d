@@ -1208,6 +1208,50 @@ void test10064()
 }
 
 /**************************************/
+// 10597
+
+struct R10597
+{
+    void opIndex(int) {}
+    void opSlice(int, int) {}
+    int opDollar();
+}
+R10597 r;
+
+struct S10597
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //fails
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //fails
+
+    void foo()
+    {
+        static assert(is(typeof(r[0]))); //ok
+        static assert(is(typeof(r[$]))); //ok
+
+        static assert(is(typeof(r[0..0]))); //ok
+        static assert(is(typeof(r[$..$]))); //ok
+    }
+}
+
+static assert(is(typeof(r[0]))); //ok
+static assert(is(typeof(r[$]))); //fails
+
+static assert(is(typeof(r[0..0]))); //ok
+static assert(is(typeof(r[$..$]))); //fails
+
+void test10597()
+{
+    static assert(is(typeof(r[0]))); //ok
+    static assert(is(typeof(r[$]))); //ok
+
+    static assert(is(typeof(r[0..0]))); //ok
+    static assert(is(typeof(r[$..$]))); //ok
+}
+
+/**************************************/
 
 int main()
 {
