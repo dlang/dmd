@@ -1112,7 +1112,109 @@ void outblkexitcode(block *bl, code*& c, int& anyspill, const char* sflsave, sym
             assert(0);
     }
 }
-
+
+/***********************************************
+ * Struct necessary for sorting switch cases.
+ */
+
+extern "C"  // qsort cmp functions need to be "C"
+{
+struct CaseVal
+{
+    targ_ullong val;
+    block *target;
+
+    /* Sort function for qsort() */
+    static int __cdecl cmp(const void *p, const void *q)
+    {
+        const CaseVal *c1 = (const CaseVal *)p;
+        const CaseVal *c2 = (const CaseVal *)q;
+        return (c1->val < c2->val) ? -1 : ((c1->val == c2->val) ? 0 : 1);
+    }
+};
+}
+
+/***
+ * Generate comparison of [reg2,reg] with val
+ */
+code *cmpval(targ_llong val, unsigned sz, unsigned reg, unsigned reg2, unsigned sreg)
+{
+    code *c;
+    if (I64 && sz == 8)
+    {
+        assert(reg2 == NOREG);
+        if (val == (int)val)    // if val is a 64 bit value sign-extended from 32 bits
+        {
+            c = genc2(CNIL,0x81,modregrmx(3,7,reg),val);  // CMP reg,value32
+            c->Irex |= REX_W;  // 64 bit operand
+        }
+        else
+        {
+            assert(sreg != NOREG);
+            c = movregconst(CNIL,sreg,val,64);        // MOV sreg,val64
+            c = genregs(c,0x3B,reg,sreg);             // CMP reg,sreg
+            code_orrex(c, REX_W);
+        }
+    }
+    else if (reg2 == NOREG)
+        c = genc2(CNIL,0x81,modregrmx(3,7,reg),val);   // CMP reg,casevalue
+    else
+    {
+        c = genc2(CNIL,0x81,modregrm(3,7,reg2),MSREG(val)); // CMP reg2,MSREG(casevalue)
+        code *cnext = gennop(CNIL);
+        genjmp(c,JNE,FLcode,(block *) cnext);               // JNE cnext
+        c = genc2(c,0x81,modregrm(3,7,reg),val);            // CMP reg,casevalue
+        c = cat(c, cnext);
+    }
+    return c;
+}
+
+code *ifthen(CaseVal *casevals, size_t ncases,
+        unsigned sz, unsigned reg, unsigned reg2, unsigned sreg, block *bdefault, bool last)
+{
+    code *c = NULL;
+
+    if (ncases >= 4 && config.flags4 & CFG4speed)
+    {
+        size_t pivot = ncases >> 1;
+
+        // Compares for casevals[0..pivot]
+        code *c1 = ifthen(casevals, pivot, sz, reg, reg2, sreg, bdefault, true);
+
+        // Compares for casevals[pivot+1..ncases]
+        code *c2 = ifthen(casevals + pivot + 1, ncases - pivot - 1, sz, reg, reg2, sreg, bdefault, last);
+
+        // Compare for caseval[pivot]
+        c = cmpval(casevals[pivot].val, sz, reg, reg2, sreg);
+        genjmp(c,JE,FLblock,casevals[pivot].target); // JE target
+        // Note unsigned jump here, as cases were sorted using unsigned comparisons
+        genjmp(c,JA,FLcode,(block *) c2);           // JG c2
+
+        c = cat3(c,c1,c2);
+    }
+    else
+    {   // Not worth doing a binary search, just do a sequence of CMP/JE
+        for (size_t n = 0; n < ncases; n++)
+        {
+            targ_llong val = casevals[n].val;
+            code *cx = cmpval(val, sz, reg, reg2, sreg);
+            code *cnext = CNIL;
+            if (reg2 != NOREG)
+            {
+                cnext = gennop(CNIL);
+                genjmp(cx,JNE,FLcode,(block *) cnext);          // JNE cnext
+                genc2(cx,0x81,modregrm(3,7,reg2),MSREG(val));   // CMP reg2,MSREG(casevalue)
+            }
+            genjmp(cx,JE,FLblock,casevals[n].target);           // JE caseaddr
+            c = cat3(c,cx,cnext);
+        }
+
+        if (last)       // if default is not next block
+            c = cat(c,genjmp(CNIL,JMP,FLblock,bdefault));
+    }
+    return c;
+}
+
 /*******************************
  * Generate code for blocks ending in a switch statement.
  * Take BCswitch and decide on
@@ -1203,49 +1305,48 @@ void doswitch(block *b)
             reg2 = findregmsw(retregs);
         }
         else
+        {
             reg = findreg(retregs);     /* reg that result is in        */
-        list_t bl = b->Bsucc;
-        if (dword && mswsame)
-        {   /* CMP reg2,MSW     */
-            c = genc2(c,0x81,modregrm(3,7,reg2),msw);
-            genjmp(c,JNE,FLblock,list_block(b->Bsucc)); /* JNE default  */
+            reg2 = NOREG;
         }
+        list_t bl = b->Bsucc;
+        block *bdefault = list_block(bl);
+        if (dword && mswsame)
+        {
+            c = genc2(c,0x81,modregrm(3,7,reg2),msw);   // CMP reg2,MSW
+            genjmp(c,JNE,FLblock,bdefault);             // JNE default
+            reg2 = NOREG;
+        }
+
+        unsigned sreg = NOREG;                          // may need a scratch register
+
+        // Put into casevals[0..ncases] so we can sort then slice
+        CaseVal *casevals = (CaseVal *)malloc(ncases * sizeof(CaseVal));
+        assert(casevals);
         for (unsigned n = 0; n < ncases; n++)
         {
-            code *cx;
-                                        /* CMP reg,casevalue            */
-            targ_llong val = *p;
-            if (I64 && sz == 8)
-            {
-                if (val == (int)val)    // if val is a 64 bit value sign-extended from 32 bits
-                {
-                    cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);  // CMP reg,value32
-                    cx->Irex |= REX_W;  // 64 bit operand
-                }
-                else
-                {   unsigned sreg;
-                                                                // MOV sreg,value64
-                    cx = regwithvalue(CNIL, ALLREGS & ~mask[reg], val, &sreg, 64);
-                    cx = genregs(cx,0x3B,reg,sreg);             // CMP reg,sreg
-                    code_orrex(cx, REX_W);
-                }
-            }
-            else
-                cx = genc2(CNIL,0x81,modregrmx(3,7,reg),val);
-            code *cnext = CNIL;
-            if (dword && !mswsame)
-            {
-                cnext = gennop(CNIL);
-                genjmp(ce,JNE,FLcode,(block *) cnext);
-                genc2(ce,0x81,modregrm(3,7,reg2),MSREG(*p));
-            }
+            casevals[n].val = p[n];
             bl = list_next(bl);
-            genjmp(cx,JE,FLblock,list_block(bl));               // JE caseaddr
-            c = cat3(c,cx,cnext);
-            p++;
+            casevals[n].target = list_block(bl);
+
+            // See if we need a scratch register
+            if (sreg == NOREG && I64 && sz == 8 && p[n] != (int)p[n])
+            {   regm_t regm = ALLREGS & ~mask[reg];
+                c = cat(c, allocreg(&regm, &sreg, TYint));
+            }
         }
-        if (list_block(b->Bsucc) != b->Bnext) /* if default is not next block */
-                c = cat(c,genjmp(CNIL,JMP,FLblock,list_block(b->Bsucc)));
+
+        // Sort cases so we can do a runtime binary search
+        qsort(casevals, ncases, sizeof(CaseVal), &CaseVal::cmp);
+
+        //for (unsigned n = 0; n < ncases; n++)
+            //printf("casevals[%lld] = x%x\n", n, casevals[n].val);
+
+        // Generate binary tree of comparisons
+        c = cat(c, ifthen(casevals, ncases, sz, reg, reg2, sreg, bdefault, bdefault != b->Bnext));
+
+        free(casevals);
+
         ce = NULL;
         goto L2;
     }
