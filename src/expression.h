@@ -88,8 +88,8 @@ Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope);
 bool checkPostblit(Loc loc, Type *t);
 #endif
-ArrayExp *resolveOpDollar(Scope *sc, ArrayExp *ae);
-SliceExp *resolveOpDollar(Scope *sc, SliceExp *se);
+Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
+Expression *resolveOpDollar(Scope *sc, SliceExp *se);
 Expressions *arrayExpressionSemantic(Expressions *exps, Scope *sc);
 
 /* Run CTFE on the expression, but allow the expression to be a TypeExp
