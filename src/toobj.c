@@ -55,22 +55,12 @@ void Module::genmoduleinfo()
     }
 
     Symbol *msym = toSymbol();
-#if DMDV2
-    unsigned sizeof_ModuleInfo = 16 * Target::ptrsize;
-#else
-    unsigned sizeof_ModuleInfo = 14 * Target::ptrsize;
-#endif
-#if !MODULEINFO_IS_STRUCT
-    sizeof_ModuleInfo -= 2 * Target::ptrsize;
-#endif
-    //printf("moduleinfo size = x%x\n", sizeof_ModuleInfo);
 
     //////////////////////////////////////////////
 
     csym->Sclass = SCglobal;
     csym->Sfl = FLdata;
 
-#if 1
     dt_t *dt = NULL;
     ClassDeclarations aclasses;
 
@@ -93,8 +83,8 @@ void Module::genmoduleinfo()
     FuncDeclaration *sgetmembers = findGetMembers();
 
     // These must match the values in druntime/src/object_.d
-    #define MIstandalone      4
-    #define MItlsctor         8
+    #define MIstandalone      0x4
+    #define MItlsctor         0x8
     #define MItlsdtor         0x10
     #define MIctor            0x20
     #define MIdtor            0x40
@@ -103,9 +93,11 @@ void Module::genmoduleinfo()
     #define MIunitTest        0x200
     #define MIimportedModules 0x400
     #define MIlocalClasses    0x800
-    #define MInew             0x80000000   // it's the "new" layout
+    #define MIname            0x1000
 
-    unsigned flags = MInew;
+    unsigned flags = 0;
+    if (!needmoduleinfo)
+        flags |= MIstandalone;
     if (sctor)
         flags |= MItlsctor;
     if (sdtor)
@@ -124,12 +116,10 @@ void Module::genmoduleinfo()
         flags |= MIimportedModules;
     if (aclasses.dim)
         flags |= MIlocalClasses;
+    flags |= MIname;
 
-    if (!needmoduleinfo)
-        flags |= MIstandalone;
-
-    dtdword(&dt, flags);        // n.flags
-    dtdword(&dt, 0);            // n.index
+    dtdword(&dt, flags);        // _flags
+    dtdword(&dt, 0);            // _index
 
     if (flags & MItlsctor)
         dtxoff(&dt, sctor, 0, TYnptr);
@@ -172,153 +162,15 @@ void Module::genmoduleinfo()
             dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
         }
     }
-
-    // Put out module name as a 0-terminated string, to save bytes
-    nameoffset = dt_size(dt);
-    const char *name = toPrettyChars();
-    namelen = strlen(name);
-    dtnbytes(&dt, namelen + 1, name);
-    //printf("nameoffset = x%x\n", nameoffset);
-#else
-    /* The layout is:
-       {
-            void **vptr;
-            monitor_t monitor;
-            char[] name;                // class name
-            ModuleInfo importedModules[];
-            ClassInfo localClasses[];
-            uint flags;                 // initialization state
-            void *ctor;
-            void *dtor;
-            void *unitTest;
-            const(MemberInfo[]) function(string) xgetMembers;   // module getMembers() function
-            void *ictor;
-            void *sharedctor;
-            void *shareddtor;
-            uint index;
-            void*[1] reserved;
-       }
-     */
-    dt_t *dt = NULL;
-
-#if !MODULEINFO_IS_STRUCT
-    if (moduleinfo)
-        dtxoff(&dt, moduleinfo->toVtblSymbol(), 0, TYnptr); // vtbl for ModuleInfo
-    else
-    {   //printf("moduleinfo is null\n");
-        dtdword(&dt, 0);                // BUG: should be an assert()
-    }
-    dtdword(&dt, 0);                    // monitor
-#endif
-
-    // name[]
-    const char *name = toPrettyChars();
-    size_t namelen = strlen(name);
-    dtdword(&dt, namelen);
-    dtabytes(&dt, TYnptr, 0, namelen + 1, name);
-
-    ClassDeclarations aclasses;
-
-    //printf("members->dim = %d\n", members->dim);
-    for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *member = (*members)[i];
-
-        //printf("\tmember '%s'\n", member->toChars());
-        member->addLocalClass(&aclasses);
-    }
-
-    // importedModules[]
-    int aimports_dim = aimports.dim;
-    for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports[i];
-        if (!m->needModuleInfo())
-            aimports_dim--;
-    }
-    dtdword(&dt, aimports_dim);
-    if (aimports_dim)
-        dtxoff(&dt, csym, sizeof_ModuleInfo, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    // localClasses[]
-    dtdword(&dt, aclasses.dim);
-    if (aclasses.dim)
-        dtxoff(&dt, csym, sizeof_ModuleInfo + aimports_dim * Target::ptrsize, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    if (needmoduleinfo)
-        dtdword(&dt, 8);                        // flags
-    else
-        dtdword(&dt, 8 | MIstandalone);         // flags
-
-    if (ssharedctor)
-        dtxoff(&dt, ssharedctor, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    if (sshareddtor)
-        dtxoff(&dt, sshareddtor, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    if (stest)
-        dtxoff(&dt, stest, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-#if DMDV2
-    FuncDeclaration *sgetmembers = findGetMembers();
-    if (sgetmembers)
-        dtxoff(&dt, sgetmembers->toSymbol(), 0, TYnptr);
-    else
-#endif
-        dtdword(&dt, 0);                        // xgetMembers
-
-    if (sictor)
-        dtxoff(&dt, sictor, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-#if DMDV2
-    if (sctor)
-        dtxoff(&dt, sctor, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    if (sdtor)
-        dtxoff(&dt, sdtor, 0, TYnptr);
-    else
-        dtdword(&dt, 0);
-
-    dtdword(&dt, 0);                            // index
-
-    // void*[1] reserved;
-    dtdword(&dt, 0);
-#endif
-    //////////////////////////////////////////////
-
-    for (size_t i = 0; i < aimports.dim; i++)
-    {   Module *m = aimports[i];
-
-        if (m->needModuleInfo())
-        {   Symbol *s = m->toSymbol();
-
-            /* Weak references don't pull objects in from the library,
-             * they resolve to 0 if not pulled in by something else.
-             * Don't pull in a module just because it was imported.
-             */
-            s->Sflags |= SFLweak;
-            dtxoff(&dt, s, 0, TYnptr);
-        }
-    }
-
-    for (size_t i = 0; i < aclasses.dim; i++)
+    if (flags & MIname)
     {
-        ClassDeclaration *cd = aclasses[i];
-        dtxoff(&dt, cd->toSymbol(), 0, TYnptr);
+        // Put out module name as a 0-terminated string, to save bytes
+        nameoffset = dt_size(dt);
+        const char *name = toPrettyChars();
+        namelen = strlen(name);
+        dtnbytes(&dt, namelen + 1, name);
+        //printf("nameoffset = x%x\n", nameoffset);
     }
-#endif
 
     csym->Sdt = dt;
     // Cannot be CONST because the startup code sets flag bits in it
