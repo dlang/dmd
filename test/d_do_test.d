@@ -50,6 +50,7 @@ struct TestArgs
     bool     compileSeparately;
     string   executeArgs;
     string[] sources;
+    string[] cppSources;
     string   permuteArgs;
     string   compileOutput;
     string   postScript;
@@ -69,6 +70,7 @@ struct EnvData
     string obj;
     string exe;
     string os;
+    string compiler;
     string model;
     string required_args;
 }
@@ -190,6 +192,13 @@ void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_
     // prepend input_dir to each extra source file
     foreach(s; split(extraSourcesStr))
         testArgs.sources ~= input_dir ~ "/" ~ s;
+
+    string extraCppSourcesStr;
+    findTestParameter(file, "EXTRA_CPP_SOURCES", extraCppSourcesStr);
+    testArgs.cppSources = [];
+    // prepend input_dir to each extra source file
+    foreach(s; split(extraCppSourcesStr))
+        testArgs.cppSources ~= s;
 
     // swap / with $SEP
     if (envData.sep && envData.sep != "/")
@@ -348,6 +357,7 @@ int main(string[] args)
     envData.exe           = getenv("EXE");
     envData.os            = getenv("OS");
     envData.dmd           = replace(getenv("DMD"), "/", envData.sep);
+    envData.compiler      = "dmd"; //should be replaced for other compilers
     envData.model         = getenv("MODEL");
     envData.required_args = getenv("REQUIRED_ARGS");
 
@@ -371,6 +381,59 @@ int main(string[] args)
 
     gatherTestParameters(testArgs, input_dir, input_file, envData);
 
+    //prepare cpp extra sources
+    if (testArgs.cppSources.length)
+    {
+        switch (envData.compiler)
+        {
+            case "dmd":
+                if(envData.os != "win32" && envData.os != "win64")
+                   testArgs.requiredArgs ~= " -L-lstdc++";
+                break;
+            case "ldc":
+                testArgs.requiredArgs ~= " -L-lstdc++";
+                break;
+            case "gdc":
+                testArgs.requiredArgs ~= "-Xlinker -lstdc++";
+                break;
+            default:
+                writeln("unknown compiler: "~envData.compiler);
+                return 1;
+        }
+        foreach (cur; testArgs.cppSources)
+        {
+            auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
+            auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
+            string command;
+            if (envData.compiler == "dmd")
+            {
+                if (envData.os == "win32")
+                {
+                    command = "dmc -c "~curSrc~" -o"~curObj;
+                }
+                else if (envData.os == "win64")
+                {
+                    command =  `\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe /c /nologo `~curSrc~` /Fo`~curObj;
+                }
+                else
+                {
+                    command = "g++ -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+                }
+            }
+            else
+            {
+                command = "g++ -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+            }
+
+            auto rc = system(command);
+            if(rc)
+            {
+                writeln("failed to execute '"~command~"'");
+                return 1;
+            }
+            testArgs.sources ~= curObj;
+        }
+    }
     writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
