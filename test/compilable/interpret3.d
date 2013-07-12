@@ -352,6 +352,18 @@ class X7988 { int y; this() { y = 2; }}
 static assert( (new X7988).y == 2);
 
 /**************************************************
+  8253 ICE: calling of member function of non-CTFE class variable
+**************************************************/
+
+class Bug8253 {
+    bool j(){
+        return true;
+    }
+}
+Bug8253 m8253;
+static assert(!is(typeof(compiles!(m8253.j()))));
+
+/**************************************************
   'this' parameter bug revealed during refactoring
 **************************************************/
 int thisbug1(int x) { return x; }
