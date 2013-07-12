@@ -364,6 +364,54 @@ Bug8253 m8253;
 static assert(!is(typeof(compiles!(m8253.j()))));
 
 /**************************************************
+  8285 Issue with slice returned from CTFE function
+**************************************************/
+
+string foo8285() {
+     string s = "ab";
+     return s[0 .. $];
+}
+
+template T8285b(string s) { }
+
+template T8285a() {
+     enum s = foo8285();
+     alias T8285b!(s) t2;
+}
+
+int bar8285() {
+     alias T8285a!() t1;
+     return 0;
+}
+
+int baz8285(int x) {
+     return 0;
+}
+
+static assert(baz8285(bar8285()) == 0);
+
+// test case 2
+
+string xbar8285() {
+    string s = "ab";
+    return s[0..$];
+}
+
+template xT8285a() {
+    enum xT8285a = xbar8285()[0..$];
+}
+
+string xbaz8285() {
+    return xT8285a!();
+}
+
+string xfoo8285(string s) {
+    return s;
+}
+
+static assert(xfoo8285(xbaz8285()) == "ab");
+
+/**************************************************
   'this' parameter bug revealed during refactoring
 **************************************************/
 int thisbug1(int x) { return x; }
