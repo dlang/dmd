@@ -331,6 +331,19 @@ static assert(!is(typeof(compiles!(rshr10252(80)))));
 static assert(is(typeof(compiles!(ushr10252(2)))));
 static assert(!is(typeof(compiles!(ushr10252(60)))));
 
+/**************************************************
+  1982 CTFE null problems
+**************************************************/
+
+enum a1982 = [1, 2, 3];
+static assert (a1982 !is null);
+
+string foo1982() { return null; }
+static assert (foo1982() is null);
+static assert (!foo1982().length);
+
+static assert (null is null);
+
 
 /**************************************************
   'this' parameter bug revealed during refactoring
