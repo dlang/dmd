@@ -288,6 +288,12 @@ struct Global
      */
     bool endGagging(unsigned oldGagged);
 
+    /*  Increment the error count to record that an error
+     *  has occured in the current context. An error message
+     *  may or may not have been printed.
+     */
+    void increaseErrorCount();
+
     void init();
 };
 

@@ -4657,7 +4657,14 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             offset = v->offset + v->type->size();
         }
         if (e && e->op == TOKerror)
+        {
+            /* An error in the initializer needs to be recorded as an error
+             * in the enclosing function or template, since the initializer
+             * will be part of the stuct declaration.
+             */
+            global.increaseErrorCount();
             return e;
+        }
         elements->push(e);
     }
 
