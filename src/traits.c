@@ -579,9 +579,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
 
         for (size_t i = 0; i < dim; i++)
-        {   RootObject *o = (*args)[i];
-            Expression *e;
-
+        {
             unsigned errors = global.startGagging();
             unsigned oldspec = global.speculativeGag;
             global.speculativeGag = global.gag;
@@ -589,23 +587,20 @@ Expression *TraitsExp::semantic(Scope *sc)
             sc->speculative = true;
             sc->flags = sc->enclosing->flags & ~SCOPEctfe;   // inherit without CTFEing
 
+            RootObject *o = (*args)[i];
             Type *t = isType(o);
-            if (t)
-            {   Dsymbol *s;
+            Expression *e = t ? t->toExpression() : isExpression(o);
+            if (!e && t)
+            {
+                Dsymbol *s;
                 t->resolve(loc, sc, &e, &t, &s);
                 if (t)
                     t->semantic(loc, sc);
-                else if (e)
-                {   e = e->semantic(sc);
-                    e = e->optimize(WANTvalue);
-                }
             }
-            else
-            {   e = isExpression(o);
-                if (e)
-                {   e = e->semantic(sc);
-                    e = e->optimize(WANTvalue);
-                }
+            if (e)
+            {
+                e = e->semantic(sc);
+                e = e->optimize(WANTvalue);
             }
 
             sc = sc->pop();

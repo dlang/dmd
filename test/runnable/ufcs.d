@@ -781,6 +781,19 @@ void test10526()
     assert(s.baz10526!string == 3);
 }
 
+/********************************************************/
+// 10609
+
+int foo10609(int x) { return x; }
+
+void test10609()
+{
+    int x = 1;
+    static assert(__traits(compiles, foo10609(x)));
+    static assert(__traits(compiles, 1.foo10609 ));
+    static assert(__traits(compiles, x.foo10609 ));
+}
+
 /*******************************************/
 
 int main()
