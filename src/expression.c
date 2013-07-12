@@ -13041,6 +13041,7 @@ Expression *EqualExp::semantic(Scope *sc)
         }
     }
 
+    // check tuple equality before typeCombine
     if (e1->op == TOKtuple && e2->op == TOKtuple)
     {
         TupleExp *tup1 = (TupleExp *)e1;

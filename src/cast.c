@@ -2241,6 +2241,9 @@ Lagain:
     t1 = t1b;
     t2 = t2b;
 
+    if (t1->ty == Ttuple || t2->ty == Ttuple)
+        goto Lincompatible;
+
     if (t1->equals(t2))
     {
         // merging can not result in new enum type
