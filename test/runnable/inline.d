@@ -55,8 +55,8 @@ void test2()
 
 struct Foo3
 {
-	int bar() { return y + 3; }
-	int y = 4;
+    int bar() { return y + 3; }
+    int y = 4;
 }
 
 void test3()
@@ -108,13 +108,13 @@ struct Struct
 {
     real foo()
     {
-	return 0;
+        return 0;
     }
 
     void bar(out Struct Q)
     {
-	if (foo() < 0)
-	    Q = this; 
+        if (foo() < 0)
+            Q = this; 
     }
 }
 
@@ -161,6 +161,92 @@ void test8() {
 }
 
 /************************************/
+// 4841
+
+auto fun4841a()
+{
+    int i = 42;
+    struct Result
+    {
+        this(int u) {}
+        auto bar()
+        {
+            // refer context of fun4841a
+            return i;
+        }
+    }
+    return Result();
+}
+void test4841a()
+{
+    auto t = fun4841a();
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+auto fun4841b()
+{
+    int i = 40;
+    auto foo()  // hasNestedFrameRefs() == false
+    {
+        //
+        struct Result
+        {
+            this(int u) {}
+            auto bar()
+            {
+                // refer context of fun4841b
+                return i + 2;
+            }
+        }
+        return Result();
+    }
+    return foo();
+}
+void test4841b()
+{
+    auto t = fun4841b();
+    assert(cast(void*)t.tupleof[$-1] !is null);     // Result to fun4841b
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+auto fun4841c()
+{
+    int i = 40;
+    auto foo()  // hasNestedFrameRefs() == true
+    {
+        int g = 2;
+        struct Result
+        {
+            this(int u) {}
+            auto bar()
+            {
+                // refer context of fun4841c and foo
+                return i + g;
+            }
+        }
+        return Result();
+    }
+    return foo();
+}
+void test4841c()
+{
+    auto t = fun4841c();
+    assert(  cast(void*)t.tupleof[$-1] !is null);   // Result to foo
+    assert(*cast(void**)t.tupleof[$-1] !is null);   // foo to fun4841c
+    auto x = t.bar();
+    assert(x == 42);
+}
+
+void test4841()
+{
+    test4841a();
+    test4841b();
+    test4841c();
+}
+
+/************************************/
 // 7261
 
 struct AbstractTask
@@ -195,6 +281,7 @@ int main()
     test6();
     test7();
     test8();
+    test4841();
 
     printf("Success\n");
     return 0;
