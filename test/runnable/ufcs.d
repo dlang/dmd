@@ -683,6 +683,19 @@ void test9946()
 }
 
 /*******************************************/
+// 10618
+
+template Temp10618(T)
+{
+    size_t len = 1;
+}
+void test10618()
+{
+    auto arr = new int[Temp10618!int.len];
+    assert(arr.length == 1);
+}
+
+/*******************************************/
 // 10003
 
 void foo10003(void *p) {}
@@ -792,6 +805,7 @@ int main()
     test9014();
     test9590();
     test9946();
+    test10618();
     test10003();
     test10041();
     test10047();
