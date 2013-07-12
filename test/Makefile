@@ -17,6 +17,8 @@
 #
 # In-test variables:
 #
+#   COMPILER:            set the compiler used to run the test with (this can be used for RDMD)
+#
 #   COMPILE_SEPARATELY:  if present, forces each .d file to compile separately and linked
 #                        together in an extra setp.
 #                        default: (none, aka compile/link all in one step)
@@ -48,7 +50,7 @@
 #
 #   REQUIRED_ARGS:       arguments to add to the $(DMD) command line
 #                        default: (none)
-#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD) 
+#                        note: the make variable REQUIRED_ARGS is also added to the $(DMD)
 #                              command line (see below)
 #
 #   DISABLED:            text describing why the test is disabled (if empty, the test is
@@ -100,6 +102,7 @@ export REQUIRED_ARGS=
 ifeq ($(findstring win,$(OS)),win)
 export ARGS=-inline -release -g -O -unittest
 export DMD=../src/dmd.exe
+export RDMD=../../tools/rdmd.exe
 export EXE=.exe
 export OBJ=.obj
 export DSEP=\\
@@ -108,6 +111,7 @@ export SEP=$(shell echo '\')
 else
 export ARGS=-inline -release -gc -O -unittest -fPIC
 export DMD=../src/dmd
+export RDMD=../../tools/rdmd
 export EXE=
 export OBJ=.o
 export DSEP=/
@@ -184,7 +188,7 @@ clean:
 	$(QUIET)if [ -e $(RESULTS_DIR) ]; then rm -rf $(RESULTS_DIR); fi
 
 $(RESULTS_DIR)/.created:
-	@echo Creating output directory: $(RESULTS_DIR) 
+	@echo Creating output directory: $(RESULTS_DIR)
 	$(QUIET)if [ ! -d $(RESULTS_DIR) ]; then mkdir $(RESULTS_DIR); fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/runnable ]; then mkdir $(RESULTS_DIR)/runnable; fi
 	$(QUIET)if [ ! -d $(RESULTS_DIR)/compilable ]; then mkdir $(RESULTS_DIR)/compilable; fi

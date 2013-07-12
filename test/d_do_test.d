@@ -48,6 +48,7 @@ struct TestArgs
     TestMode mode;
 
     bool     compileSeparately;
+    string   compiler;
     string   executeArgs;
     string[] sources;
     string   permuteArgs;
@@ -150,14 +151,23 @@ void replaceResultsDir(ref string arguments, const ref EnvData envData)
     arguments = replace(arguments, "${RESULTS_DIR}", envData.results_dir);
 }
 
+// ditto for ${DMD}
+void replaceDMD(ref string arguments, const ref EnvData envData)
+{
+    arguments = replace(arguments, "${DMD}", envData.dmd);
+}
+
 void gatherTestParameters(ref TestArgs testArgs, string input_dir, string input_file, const ref EnvData envData)
 {
     string file = cast(string)std.file.read(input_file);
+
+    findTestParameter(file, "COMPILER", testArgs.compiler);
 
     findTestParameter(file, "REQUIRED_ARGS", testArgs.requiredArgs);
     if(envData.required_args.length)
         testArgs.requiredArgs ~= " " ~ envData.required_args;
     replaceResultsDir(testArgs.requiredArgs, envData);
+    replaceDMD(testArgs.requiredArgs, envData);
 
     if (! findTestParameter(file, "PERMUTE_ARGS", testArgs.permuteArgs))
     {
@@ -371,6 +381,10 @@ int main(string[] args)
 
     gatherTestParameters(testArgs, input_dir, input_file, envData);
 
+    // e.g. for RDMD tests
+    const compiler = testArgs.compiler.length ? testArgs.compiler : envData.dmd;
+    const useRDMD = compiler.toLower == "rdmd";
+
     writef(" ... %-30s %s%s(%s)",
             input_file,
             testArgs.requiredArgs,
@@ -405,15 +419,16 @@ int main(string[] args)
             }
 
             string compile_output;
-            if (!testArgs.compileSeparately)
+            if (!testArgs.compileSeparately || useRDMD)
             {
                 string objfile = output_dir ~ envData.sep ~ test_name ~ "_" ~ to!string(i) ~ envData.obj;
                 toCleanup ~= objfile;
 
-                string command = format("%s -m%s -I%s %s %s -od%s -of%s %s%s", envData.dmd, envData.model, input_dir,
+                string command = format("%s -m%s -I%s %s %s -od%s -of%s %s%s%s", compiler, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir,
                         (testArgs.mode == TestMode.RUN ? test_app_dmd : objfile),
-                        (testArgs.mode == TestMode.RUN ? "" : "-c "),
+                        (testArgs.mode == TestMode.RUN ? "" : (useRDMD ? "--build-only " : "-c ")),
+                        (useRDMD ? "--force " : ""),
                         join(testArgs.sources, " "));
                 version(Windows) command ~= " -map nul.map";
 
@@ -426,7 +441,7 @@ int main(string[] args)
                     string newo= result_path ~ replace(replace(filename, ".d", envData.obj), envData.sep~"imports"~envData.sep, envData.sep);
                     toCleanup ~= newo;
 
-                    string command = format("%s -m%s -I%s %s %s -od%s -c %s", envData.dmd, envData.model, input_dir,
+                    string command = format("%s -m%s -I%s %s %s -od%s -c %s", compiler, envData.model, input_dir,
                         testArgs.requiredArgs, c, output_dir, filename);
                     compile_output ~= execute(fThisRun, command, testArgs.mode != TestMode.FAIL_COMPILE, result_path);
                 }
@@ -434,7 +449,7 @@ int main(string[] args)
                 if (testArgs.mode == TestMode.RUN)
                 {
                     // link .o's into an executable
-                    string command = format("%s -m%s %s -od%s -of%s %s", envData.dmd, envData.model, envData.required_args, output_dir, test_app_dmd, join(toCleanup, " "));
+                    string command = format("%s -m%s %s -od%s -of%s %s", compiler, envData.model, envData.required_args, output_dir, test_app_dmd, join(toCleanup, " "));
                     version(Windows) command ~= " -map nul.map";
 
                     execute(fThisRun, command, true, result_path);
@@ -442,6 +457,7 @@ int main(string[] args)
             }
 
             compile_output = std.regex.replace(compile_output, regex(`^DMD v2\.[0-9]+.* DEBUG$`, "m"), "");
+            compile_output = std.regex.replace(compile_output, regex(`^rdmd build.*$`, "m"), "");
             compile_output = std.string.strip(compile_output);
             compile_output = compile_output.unifyNewLine();
 
@@ -454,7 +470,7 @@ int main(string[] args)
                         "\nexpected:\n----\n"~testArgs.compileOutput~"\n----\nactual:\n----\n"~compile_output~"\n----\n");
             }
 
-            if (testArgs.mode == TestMode.RUN)
+            if (testArgs.mode == TestMode.RUN && !useRDMD)  // rdmd auto-runs unless --build-only is set
             {
                 toCleanup ~= test_app_dmd;
                 version(Windows)
