@@ -344,6 +344,12 @@ static assert (!foo1982().length);
 
 static assert (null is null);
 
+/**************************************************
+  7988 CTFE return values should be allowed in compile-time expressions
+**************************************************/
+
+class X7988 { int y; this() { y = 2; }}
+static assert( (new X7988).y == 2);
 
 /**************************************************
   'this' parameter bug revealed during refactoring
