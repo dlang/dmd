@@ -1328,7 +1328,9 @@ void FuncDeclaration::semantic3(Scope *sc)
                 }
             }
 
-            if (isCtorDeclaration() && ad)
+            if (fbody->isErrorStatement())
+                ;
+            else if (isCtorDeclaration() && ad)
             {
 #if DMDV2
                 // Check for errors related to 'nothrow'.
