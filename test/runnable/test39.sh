@@ -21,7 +21,7 @@ if [ $? -ne 0 ]; then
 fi
 
 if [ ${OS} == "win32" -o ${OS} == "win64" ]; then
-    lib -c ${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
+    $DMD -m${MODEL} -lib -of${dmddir}${SEP}test39a.lib ${dmddir}${SEP}test39a.obj >> ${output_file} 2>&1
     LIBEXT=.lib
 else
     ar -r ${dir}/test39a.a ${dir}/test39a.o >> ${output_file} 2>&1
