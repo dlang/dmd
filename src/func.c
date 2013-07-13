@@ -148,18 +148,10 @@ void FuncDeclaration::semantic(Scope *sc)
     Dsymbol *parent = toParent();
 
     if (semanticRun >= PASSsemanticdone)
-    {
-        if (!parent->isClassDeclaration())
-        {
-            return;
-        }
-        // need to re-run semantic() in order to set the class's vtbl[]
-    }
-    else
-    {
-        assert(semanticRun <= PASSsemantic);
-        semanticRun = PASSsemantic;
-    }
+        return;
+
+    assert(semanticRun <= PASSsemantic);
+    semanticRun = PASSsemantic;
 
     if (scope)
     {   sc = scope;

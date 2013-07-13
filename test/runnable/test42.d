@@ -2674,6 +2674,7 @@ enum FwdEnum : int
 }
 
 /***************************************************/
+// 3740
 
 abstract class Address {
     abstract int nameLen();
@@ -2689,7 +2690,8 @@ class Class171 : Address {
 
 void test171 ()
 {
-        Class171 xxx = new Class171;
+    Class171 xxx = new Class171;
+    assert(typeid(Class171).vtbl.length - typeid(Object).vtbl.length == 1);
 }
 
 /***************************************************/
@@ -5723,6 +5725,29 @@ void test9844() {
 }
 
 /***************************************************/
+// 10628
+
+abstract class B10628
+{
+    static if (! __traits(isVirtualMethod, foo))
+    {
+    }
+
+    private bool _bar;
+    public void foo();
+}
+
+class D10628 : B10628
+{
+    public override void foo() {}
+}
+
+void test10628()
+{
+    assert(typeid(D10628).vtbl.length - typeid(Object).vtbl.length == 1);
+}
+
+/***************************************************/
 
 struct TimeOfDay
 {
@@ -6081,6 +6106,7 @@ int main()
     test6962();
     test4414();
     test9844();
+    test10628();
     test10633();
     test10642();
 
