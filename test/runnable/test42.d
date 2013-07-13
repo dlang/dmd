@@ -4207,18 +4207,21 @@ void test6270()
 
 /***************************************************/
 
-void test236()
+void testrolror(int shift)
 {
-    uint a;
-    int shift;
-    a = 7;
-    shift = 1;
-    int r;
+    uint a = 7;
+    uint r;
     r = (a >> shift) | (a << (int.sizeof * 8 - shift));
     assert(r == 0x8000_0003);
-    r = (a << shift) | (a >> (int.sizeof * 8 - shift));
-    assert(a == 7);
+    r = (r << shift) | (r >> (int.sizeof * 8 - shift));
+    assert(r == 7);
 }
+
+void test236()
+{
+    testrolror(1);
+}
+
 
 /***************************************************/
 // 4460
