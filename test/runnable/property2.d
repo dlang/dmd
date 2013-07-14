@@ -78,6 +78,16 @@ template iota(int begin, int end)
         alias seq!(begin, iota!(begin+1, end)) iota;
 }
 
+int function() callableProp1a() @property
+{
+    return () => 10;
+}
+
+string delegate(string s1, string s2) callableProp1b() @property
+{
+    return (s1, s2) => s1 ~ " " ~ s2;
+}
+
 void test1()
 {
     foreach (N; iota!(0, 8))
@@ -100,6 +110,12 @@ void test1()
             assert(s.getset == Test!N.result);
         }
     }
+
+    auto a = callableProp1a();
+    assert(a == 10);
+
+    auto b = callableProp1b("hello", "prop");
+    assert(b == "hello prop");
 }
 
 /*******************************************/

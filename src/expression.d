@@ -9776,6 +9776,17 @@ public:
             }
         }
 
+        // Transform prop(...) to prop()(...)
+        if (prop == PROPnone)
+        {
+            auto e = resolvePropertiesOnly(sc, e1);
+            if (e != e1 && e.op == TOKerror)
+                return e;
+            e1 = e;
+            if (e1.type)
+                t1 = e1.type.toBasetype();
+        }
+
         static FuncDeclaration resolveOverloadSet(Loc loc, Scope* sc,
             OverloadSet os, Objects* tiargs, Type tthis, Expressions* arguments)
         {
@@ -9806,7 +9817,8 @@ public:
             return f;
         }
 
-        if (e1.op == TOKdotvar && t1.ty == Tfunction || e1.op == TOKdottd)
+        if (e1.op == TOKdotvar && t1.ty == Tfunction ||
+            e1.op == TOKdottd)
         {
             UnaExp ue = cast(UnaExp)e1;
 
