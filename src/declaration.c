@@ -1611,7 +1611,7 @@ Lnomatch:
              * Ignore failure.
              */
 
-            if (!global.errors && !inferred)
+            if (!inferred)
             {
                 unsigned errors = global.errors;
                 inuse++;
