@@ -613,6 +613,9 @@ else version( Win64 )
     int   _vsnprintf(char* s, size_t n, in char* format, va_list arg);
     alias _vsnprintf vsnprintf;
 
+    uint _set_output_format(uint format);
+    enum _TWO_DIGIT_EXPONENT = 1;
+
     int _filbuf(FILE *fp);
     int _flsbuf(int c, FILE *fp);
 
