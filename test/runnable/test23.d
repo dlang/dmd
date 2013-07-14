@@ -51,7 +51,7 @@ void test2()
 void test3()
 {
     size_t border = 8;
-    
+
     for(ulong i = 0; i < border; i++)
     {
 	ulong test = 1;
@@ -1131,36 +1131,36 @@ void test54()
 
 class Base56
 {
-        private string myfoo;
-        private string mybar;
+    private string myfoo;
+    private string mybar;
 
-        // Get/set properties that will be overridden.
-        void foo(string s) { myfoo = s; }
-        string foo() { return myfoo; }
+    // Get/set properties that will be overridden.
+    @property void foo(string s) { myfoo = s; }
+    @property string foo() { return myfoo; }
 
-        // Get/set properties that will not be overridden.
-        void bar(string s) { mybar = s; }
-        string bar() { return mybar; }
+    // Get/set properties that will not be overridden.
+    @property void bar(string s) { mybar = s; }
+    @property string bar() { return mybar; }
 }
 
 class Derived56: Base56
 {
-        alias Base56.foo foo; // Bring in Base56's foo getter.
-        override void foo(string s) { super.foo = s; } // Override foo setter.
+    alias Base56.foo foo; // Bring in Base56's foo getter.
+    override @property void foo(string s) { super.foo = s; } // Override foo setter.
 }
 
 void test56()
 {
-        Derived56 d = new Derived56;
-        with (d)
-        {
-                foo = "hi";
-                d.foo = "hi";
-                bar = "hi";
-		assert(foo == "hi");
-		assert(d.foo == "hi");
-		assert(bar == "hi");
-        }
+    Derived56 d = new Derived56;
+    with (d)
+    {
+        foo = "hi";
+        d.foo = "hi";
+        bar = "hi";
+        assert(foo == "hi");
+        assert(d.foo == "hi");
+        assert(bar == "hi");
+    }
 }
 
 /*******************************************/

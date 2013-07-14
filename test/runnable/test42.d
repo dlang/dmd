@@ -931,7 +931,7 @@ void test62()
    auto t1 = typeid(typeof(foo));
    auto t2 = typeid(typeof(bar));
 
-   t1.tsize();
+   t1.tsize;
 }
 
 /***************************************************/

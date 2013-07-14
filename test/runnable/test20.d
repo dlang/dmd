@@ -110,14 +110,14 @@ void test6()
 {
   void f()
   {
-    void i6(float j)
+    @property void i6(float j)
     {
-	m6 = j;
+      m6 = j;
     }
 
     void g()
     {
-	i6 = 1;
+      i6 = 1;
     }
     g();
   }

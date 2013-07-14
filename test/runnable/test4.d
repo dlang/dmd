@@ -1243,27 +1243,31 @@ void test49()
 
 /* ================================ */
 
-struct S50{
+struct S50
+{
 	int i;
 }
 
-class C50{
-	static S50 prop(){
-		S50 s;
-		return s;
-	}
+class C50
+{
+    static @property S50 prop()
+    {
+        S50 s;
+        return s;
+    }
 
-	static void prop(S50 s){
-	}
+    static @property void prop(S50 s)
+    {
+    }
 }
 
 void test50()
 {
-	C50 c = new C50();
-	c.prop = true ? C50.prop : C50.prop;
-	assert(c.prop.i == 0);
-	c.prop.i = 7;
-	assert(c.prop.i != 7);
+    C50 c = new C50();
+    c.prop = true ? C50.prop : C50.prop;
+    assert(c.prop.i == 0);
+    c.prop.i = 7;
+    assert(c.prop.i != 7);
 }
 
 /* ================================ */
