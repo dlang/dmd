@@ -1786,13 +1786,31 @@ public:
                     Dsymbol s;
                     if (!sx)
                     {
-                        // See module scope opDollar
-                        Dsymbol sm = sc.search(loc, Id.empty, null);
-                        assert(sm);
-                        Dsymbol sa = sm.search(loc, Id.opDollar);
-                        if (!sa) // no dollar exists -- search in higher scope
+                        // See UFCS opDollar (same as searchUFCS)
+                        s = null;
+                        for (Scope* scx = sc; scx; scx = scx.enclosing)
+                        {
+                            if (!scx.scopesym)
+                                continue;
+                            s = scx.scopesym.search(loc, Id.opDollar);
+                            if (s)
+                            {
+                                // overload set contains only module scope symbols.
+                                if (s.isOverloadSet())
+                                    break;
+                                // selective/renamed imports also be picked up
+                                if (s.isAliasDeclaration() && (cast(AliasDeclaration)s)._import)
+                                    break;
+                                // See only module scope symbols for UFCS target.
+                                Dsymbol p = s.toParent2();
+                                if (p && p.isModule())
+                                    break;
+                            }
+                            s = null;
+                        }
+                        if (!s) // no opDollar exists
                             return null;
-                        s = sa.toAlias();
+                        s = s.toAlias();
                     }
                     else
                         s = sx.toAlias();
@@ -1811,10 +1829,27 @@ public:
                     }
 
                     Expression e = null;
-                    auto td = s.isTemplateDeclaration();
-                    // Check for multi-dimensional opDollar(dim) template.
-                    if (td && td.parameters.dim &&
-                        (*td.parameters)[0].isTemplateValueParameter())
+                    TemplateDeclaration td;
+                    if (auto fd = s.isFuncDeclaration())
+                        td = fd.findTemplateDeclRoot();
+                    else
+                        td = s.isTemplateDeclaration();
+
+                    bool isMultiDimOpDollar(TemplateDeclaration td)
+                    {
+                        for (; td; td = td.overnext)
+                        {
+                            if (td.parameters.dim &&
+                                (*td.parameters)[0].isTemplateValueParameter())
+                            {
+                                return true;
+                            }
+                        }
+                        return false;
+                    }
+
+                    // Prefer multi-dimensional opDollar(size_t dim) template.
+                    if (td && isMultiDimOpDollar(td))
                     {
                         auto tiargs = new Objects();
                         Expression edim = new IntegerExp(Loc(), curdim, Type.tsize_t);
@@ -1822,8 +1857,7 @@ public:
                         tiargs.push(edim);
                         if (!sx)    // UFCS version
                         {
-                            e = new IdentifierExp(loc, Id.empty);
-                            e = new DotTemplateInstanceExp(loc, e, td.ident, tiargs);
+                            e = new ScopeExp(loc, new TemplateInstance(loc, td, tiargs));
                             e = new CallExp(loc, e, ce);
                             //printf("1 e = %s\n", e.toChars());
                         }
@@ -1846,8 +1880,7 @@ public:
                         }
                         if (!sx)    // UFCS version
                         {
-                            e = new IdentifierExp(loc, Id.empty);
-                            e = new DotIdExp(loc, e, s.ident);
+                            e = new DsymbolExp(loc, s);
                             e = new CallExp(loc, e, ce);
                             //printf("2 e = %s\n", e.toChars());
                         }
