@@ -726,7 +726,8 @@ Lsearchdone:
  */
 extern (C++) bool isDotOpDispatch(Expression e)
 {
-    return e.op == TOKdotti && (cast(DotTemplateInstanceExp)e).ti.name == Id.opDispatch;
+    return e.op == TOKdotti &&
+           (cast(DotTemplateInstanceExp)e).isOpDispatch;
 }
 
 /******************************
@@ -9003,6 +9004,7 @@ extern (C++) final class DotTemplateInstanceExp : UnaExp
 {
 public:
     TemplateInstance ti;
+    bool isOpDispatch;
 
     extern (D) this(Loc loc, Expression e, Identifier name, Objects* tiargs)
     {
@@ -9491,6 +9493,8 @@ public:
 
         if (Expression ex = resolveUFCS(sc, this))
             return ex;
+
+        bool isOpDispatch = isDotOpDispatch(e1);
 
         /* This recognizes:
          *  foo!(tiargs)(funcargs)
@@ -10277,6 +10281,14 @@ public:
                         break;
 
                     case PROPmemset:    // e1.func = e2; -> e1.func(e2);
+                        if (isOpDispatch)
+                        {
+                            auto ti = f.parent.isTemplateInstance();
+                            if (ti && ti.parent.pastMixin().isAggregateDeclaration())
+                                break;
+                        }
+                        goto case;
+
                     case PROPufcset:    // e1.func = e2; -> func(e1, e2);
                         e1.error("not a property %s", e1.toChars());
                         break;

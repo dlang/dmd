@@ -864,6 +864,7 @@ class DotTemplateInstanceExp : public UnaExp
 {
 public:
     TemplateInstance *ti;
+    bool isOpDispatch;
 
     DotTemplateInstanceExp(Loc loc, Expression *e, Identifier *name, Objects *tiargs);
     DotTemplateInstanceExp(Loc loc, Expression *e, TemplateInstance *ti);
