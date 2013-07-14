@@ -36,6 +36,7 @@ struct Token;
 struct InlineCostState;
 struct InlineDoState;
 struct InlineScanState;
+class ErrorStatement;
 class ReturnStatement;
 class CompoundStatement;
 class Parameter;
@@ -99,7 +100,6 @@ public:
     void warning(const char *format, ...);
     void deprecation(const char *format, ...);
     virtual void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
-    virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual Statement *semantic(Scope *sc);
     Statement *semanticScope(Scope *sc, Statement *sbreak, Statement *scontinue);
     Statement *semanticNoScope(Scope *sc);
@@ -129,6 +129,8 @@ public:
     virtual void toIR(IRState *irs);
 
     // Avoid dynamic_cast
+    virtual ErrorStatement *isErrorStatement() { return NULL; }
+    virtual ScopeStatement *isScopeStatement() { return NULL; }
     virtual ExpStatement *isExpStatement() { return NULL; }
     virtual CompoundStatement *isCompoundStatement() { return NULL; }
     virtual ReturnStatement *isReturnStatement() { return NULL; }
@@ -136,6 +138,20 @@ public:
     virtual CaseStatement *isCaseStatement() { return NULL; }
     virtual DefaultStatement *isDefaultStatement() { return NULL; }
     virtual LabelStatement *isLabelStatement() { return NULL; }
+};
+
+/** Any Statement that fails semantic() or has a component that is an ErrorExp or
+ * a TypeError should return an ErrorStatement from semantic().
+ */
+class ErrorStatement : public Statement
+{
+public:
+    ErrorStatement();
+    Statement *syntaxCopy();
+    Statement *semantic(Scope *sc);
+    int blockExit(bool mustNotThrow);
+
+    ErrorStatement *isErrorStatement() { return this; }
 };
 
 class PeelStatement : public Statement
