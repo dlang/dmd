@@ -642,6 +642,11 @@ void test1900()
     static assert(Traits1900!(int).name == "any");
 
     Traits1900!(long) obj;
+
+    static assert(Value1900a!double == 1);
+    static assert(Value1900b!double == 1);
+    static assert(Value1900a!string == 2);
+    static assert(Value1900b!string == 2);
 }
 
 version(none)   // yet not implemented

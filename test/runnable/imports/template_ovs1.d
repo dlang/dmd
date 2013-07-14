@@ -40,6 +40,12 @@ class AClass1900 {}
 template Traits1900(T : AClass1900) { enum name = "AClass"; }
 
 
+void Value1900a() {}
+template Value1900a(T) if (is(T == double)) { enum Value1900a = 1; }
+
+template Value1900b(T) if (is(T == double)) { enum Value1900b = 1; }
+void Value1900b() {}
+
 /***************************************************/
 // 8352
 

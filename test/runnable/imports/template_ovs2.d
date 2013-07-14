@@ -40,6 +40,12 @@ class BClass1900 {}
 template Traits1900(T : BClass1900) { enum name = "BClass"; }
 string func1900(BClass1900 b) { return "BClass"; }
 
+void Value1900a() {}
+template Value1900a(T) if (is(T == string)) { enum Value1900a = 2; }
+
+template Value1900b(T) if (is(T == string)) { enum Value1900b = 2; }
+void Value1900b() {}
+
 /***************************************************/
 // 8352
 

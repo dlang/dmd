@@ -503,7 +503,13 @@ public:
         if (!td && os)
         {
             for (; !td && oi < os->a.dim; )
-                td = os->a[oi++]->isTemplateDeclaration();
+            {
+                Dsymbol *s = os->a[oi++];
+                if (FuncDeclaration *fd = s->isFuncDeclaration())
+                    td = fd->findTemplateDeclRoot();
+                else
+                    td = s->isTemplateDeclaration();
+            }
         }
     }
 };
@@ -6088,7 +6094,17 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     TemplateDeclaration *td_last = NULL;
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        TemplateDeclaration *td = tempdecl ? tempdecl : tempovers->a[oi]->isTemplateDeclaration();
+        TemplateDeclaration *td;
+        if (tempdecl)
+            td = tempdecl;
+        else
+        {
+            Dsymbol *s = tempovers->a[oi];
+            if (FuncDeclaration *fd = s->isFuncDeclaration())
+                td = fd->findTemplateDeclRoot();
+            else
+                td = s->isTemplateDeclaration();
+        }
         TemplateDeclaration *td_ambig = NULL;
         MATCH m_best = MATCHnomatch;
 
