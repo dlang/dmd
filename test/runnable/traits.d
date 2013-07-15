@@ -1,3 +1,5 @@
+// PERMUTE_ARGS:
+module traits;
 
 import std.stdio;
 
@@ -1217,6 +1219,20 @@ void test10096()
     auto x = foo10096!s;
 }
 
+unittest { }
+
+struct GetUnitTests
+{
+    unittest { }
+}
+
+void test_getUnitTests ()
+{
+    // Always returns empty tuple if the -unittest flag isn't used
+    static assert(__traits(getUnitTests, mixin(__MODULE__)).length == 0);
+    static assert(__traits(getUnitTests, GetUnitTests).length == 0);
+}
+
 /********************************************************/
 
 int main()
@@ -1254,6 +1270,7 @@ int main()
     test9552();
     test9136();
     test10096();
+    test_getUnitTests();
 
     writeln("Success");
     return 0;
