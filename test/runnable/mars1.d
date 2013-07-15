@@ -905,6 +905,19 @@ void testandand()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+uint or1(ubyte x)
+{
+    return x | (x<<8) | (x<<16) | (x<<24) | (x * 3);
+}
+
+void testor_combine()
+{
+    printf("%x\n", or1(1));
+    assert(or1(5) == 5 * (0x1010101 | 3));
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -925,6 +938,7 @@ int main()
     testoror();
     testbt();
     testandand();
+    testor_combine();
     printf("Success\n");
     return 0;
 }
