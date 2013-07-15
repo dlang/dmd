@@ -72,6 +72,51 @@ static int fptraits(void *param, FuncDeclaration *f)
     return 0;
 }
 
+/**
+ * Collects all unit test functions from the given array of symbols.
+ *
+ * This is a helper function used by the implementation of __traits(getUnitTests).
+ *
+ * Input:
+ *      symbols             array of symbols to collect the functions from
+ *      uniqueUnitTests     an associative array (should actually be a set) to
+ *                          keep track of already collected functions. We're
+ *                          using an AA here to avoid doing a linear search of unitTests
+ *
+ * Output:
+ *      unitTests           array of DsymbolExp's of the collected unit test functions
+ *      uniqueUnitTests     updated with symbols from unitTests[ ]
+ */
+static void collectUnitTests (const Dsymbols* const symbols, AA* uniqueUnitTests, Expressions* const unitTests)
+{
+    for (size_t i = 0; i < symbols->dim; i++)
+    {
+        Dsymbol* const symbol = (*symbols)[i];
+        UnitTestDeclaration* const unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+
+        if (unitTest)
+        {
+            if (!_aaGetRvalue(uniqueUnitTests, unitTest))
+            {
+                FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
+                alias->protection = unitTest->protection;
+                Expression* e = new DsymbolExp(Loc(), alias);
+                unitTests->push(e);
+                bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
+                *value = true;
+            }
+        }
+
+        else
+        {
+            const AttribDeclaration* const attrDecl = symbol->isAttribDeclaration();
+
+            if (attrDecl)
+                collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
+        }
+    }
+}
+
 /************************ TraitsExp ************************************/
 
 Expression *TraitsExp::semantic(Scope *sc)
@@ -678,41 +723,26 @@ Expression *TraitsExp::semantic(Scope *sc)
         Dsymbol *s = getDsymbol(o);
         if (!s)
         {
-            error("argument %s to __traits(getUnitTests) must be a module", o->toChars());
+            error("argument %s to __traits(getUnitTests) must be a module or aggregate", o->toChars());
             goto Lfalse;
         }
 
-        Module* module = s->isModule();
+        ScopeDsymbol* scope = s->isScopeDsymbol();
 
-        if (!module)
+        if (!scope)
         {
-            error("argument %s to __traits(getUnitTests) must be a module, not a %s", s->toChars(), s->kind());
+            error("argument %s to __traits(getUnitTests) must be a module or aggregate, not a %s", s->toChars(), s->kind());
             goto Lfalse;
         }
 
         Expressions* unitTests = new Expressions();
-        Dsymbols* symbols = module->members;
+        Dsymbols* symbols = scope->members;
 
         if (global.params.useUnitTests && symbols)
         {
             // Should actually be a set
             AA* uniqueUnitTests = NULL;
-
-            for (size_t i = 0; i < symbols->dim; i++)
-            {
-                Dsymbol* symbol = (*symbols)[i];
-                UnitTestDeclaration* unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
-
-                if (unitTest && !_aaGetRvalue(uniqueUnitTests, unitTest))
-                {
-                    FuncAliasDeclaration* alias = new FuncAliasDeclaration(unitTest, 0);
-                    alias->protection = unitTest->protection;
-                    Expression* e = new DsymbolExp(Loc(), alias);
-                    unitTests->push(e);
-                    bool* value = (bool*) _aaGet(&uniqueUnitTests, unitTest);
-                    *value = true;
-                }
-            }
+            collectUnitTests(symbols, uniqueUnitTests, unitTests);
         }
 
         TupleExp *tup = new TupleExp(loc, unitTests);
