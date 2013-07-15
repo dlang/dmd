@@ -5724,6 +5724,34 @@ void test9844() {
 
 /***************************************************/
 
+struct TimeOfDay
+{
+    void roll(int value) 
+    {
+        value %= 60;
+        auto newVal = _seconds + value;
+
+        if(newVal < 0)
+            newVal += 60;
+        else if(newVal >= 60)
+            newVal -= 60;
+
+        _seconds = cast(ubyte)newVal;
+    }
+
+    ubyte _seconds;
+}
+
+
+void test10633()
+{
+    TimeOfDay tod = TimeOfDay(0);
+    tod.roll(-1);
+    assert(tod._seconds == 59);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6009,6 +6037,7 @@ int main()
     test6962();
     test4414();
     test9844();
+    test10633();
 
     writefln("Success");
     return 0;
