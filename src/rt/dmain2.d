@@ -433,7 +433,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
         // ensure that sprintf generates only 2 digit exponent when writing floating point values
         _set_output_format(_TWO_DIGIT_EXPONENT);
 
-        //_set_controlfp(_PC_64, _MCW_PC); // full precision for reals
+        // enable full precision for reals
         asm
         {
             push    RAX;
