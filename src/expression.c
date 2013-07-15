@@ -9766,6 +9766,12 @@ Expression *CastExp::semantic(Scope *sc)
             }
         }
 
+        if ((t1b->ty == Tarray || t1b->ty == Tsarray) && tob->ty == Tclass)
+        {
+            error("cannot cast from %s to %s", e1->type->toChars(), to->toChars());
+            return new ErrorExp();
+        }
+
         // Look for casting to a vector type
         if (tob->ty == Tvector && t1b->ty != Tvector)
         {
