@@ -16,10 +16,25 @@ void test8645()
 }
 
 /***************************************************/
+// 10646
+
+void test10646()
+{
+    class C { }
+
+    C[] csd;
+    C[2] css;
+
+    static assert(!__traits(compiles, { auto c1 = cast(C)csd; }));
+    static assert(!__traits(compiles, { auto c2 = cast(C)css; }));
+}
+
+/***************************************************/
 
 int main()
 {
     test8645();
+    test10646();
 
     printf("Success\n");
     return 0;
