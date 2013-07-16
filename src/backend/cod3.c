@@ -3588,6 +3588,8 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                     c2->Iflags |= CFopsize; // operand size
                 if (I64 && sz >= REGSIZE)
                     c2->Irex |= REX_W;
+                if (I64 && sz == 1 && s->Sreglsw >= 4)
+                    c2->Irex |= REX;
                 if (!hasframe)
                 {   /* Convert to ESP relative address rather than EBP      */
                     assert(!I16);
