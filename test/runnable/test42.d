@@ -5724,6 +5724,78 @@ void test9844() {
 
 /***************************************************/
 
+struct TimeOfDay
+{
+    void roll(int value) 
+    {
+        value %= 60;
+        auto newVal = _seconds + value;
+
+        if(newVal < 0)
+            newVal += 60;
+        else if(newVal >= 60)
+            newVal -= 60;
+
+        _seconds = cast(ubyte)newVal;
+    }
+
+    ubyte _seconds;
+}
+
+
+void test10633()
+{
+    TimeOfDay tod = TimeOfDay(0);
+    tod.roll(-1);
+    assert(tod._seconds == 59);
+}
+
+/***************************************************/
+
+import std.stdio;
+
+void _assertEq (ubyte lhs, short rhs, string msg, string file, size_t line)
+{
+    immutable result = lhs == rhs;
+
+    if(!result)
+    {
+        string op = "==";
+        if(msg.length > 0)
+            writefln(`_assertEq failed: [%s] is not [%s].`, lhs, rhs);
+        else
+            writefln(`_assertEq failed: [%s] is not [%s]: %s`, lhs, rhs, msg);
+    }
+
+    assert(result);
+}
+
+struct Date
+{
+    short year;
+    ubyte month;
+    ubyte day;
+}
+
+struct MonthDay
+{
+    ubyte month;
+    short day;
+}
+
+void test10642()
+{
+    static void test(Date date, int day, MonthDay expected, size_t line = __LINE__)
+    {
+        _assertEq(date.day, expected.day, "", __FILE__, line);
+    }
+
+    test(Date(1999, 1, 1), 1, MonthDay(1,1));
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6009,6 +6081,8 @@ int main()
     test6962();
     test4414();
     test9844();
+    test10633();
+    test10642();
 
     writefln("Success");
     return 0;
