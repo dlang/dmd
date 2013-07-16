@@ -143,7 +143,7 @@ void Mem::addroots(char* pStart, char* pEnd)
 /* Allocate, but never release
  */
 
-#define CHUNK_SIZE (4096 * 16)
+#define CHUNK_SIZE (4096 * 16 - 64) // let it fit into 64kB, even if the runtime adds some overhead
 
 static size_t heapleft = 0;
 static void *heapp;
