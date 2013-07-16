@@ -4877,10 +4877,13 @@ Statement *ThrowStatement::semantic(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (exp->op == TOKerror)
-        return this;
+        return new ErrorStatement();
     ClassDeclaration *cd = exp->type->toBasetype()->isClassHandle();
     if (!cd || ((cd != ClassDeclaration::throwable) && !ClassDeclaration::throwable->isBaseOf(cd, NULL)))
+    {
         error("can only throw class objects derived from Throwable, not type %s", exp->type->toChars());
+        return new ErrorStatement();
+    }
 
     return this;
 }
@@ -4888,21 +4891,19 @@ Statement *ThrowStatement::semantic(Scope *sc)
 int ThrowStatement::blockExit(bool mustNotThrow)
 {
     Type *t = exp->type->toBasetype();
-    if (t->ty != Terror)
-    {
-        ClassDeclaration *cd = t->isClassHandle();
-        assert(cd);
+    ClassDeclaration *cd = t->isClassHandle();
+    assert(cd);
 
-        if (cd == ClassDeclaration::errorException ||
-            ClassDeclaration::errorException->isBaseOf(cd, NULL))
-        {
-            return BEerrthrow;
-        }
-        // Bugzilla 8675
-        // Throwing Errors is allowed even if mustNotThrow
-        if (!internalThrow && mustNotThrow)
-            error("%s is thrown but not caught", exp->type->toChars());
+    if (cd == ClassDeclaration::errorException ||
+        ClassDeclaration::errorException->isBaseOf(cd, NULL))
+    {
+        return BEerrthrow;
     }
+    // Bugzilla 8675
+    // Throwing Errors is allowed even if mustNotThrow
+    if (!internalThrow && mustNotThrow)
+        error("%s is thrown but not caught", exp->type->toChars());
+
     return BEthrow;
 }
 
