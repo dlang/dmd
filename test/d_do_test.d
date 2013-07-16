@@ -27,6 +27,7 @@ void usage()
           "      ARGS:          set to execute all combinations of\n"
           "      REQUIRED_ARGS: arguments always passed to the compiler\n"
           "      DMD:           compiler to use, ex: ../src/dmd\n"
+          "      CC:            C++ compiler to use, ex: dmc, g++\n"
           "      OS:            win32, win64, linux, freebsd, osx\n"
           "      RESULTS_DIR:   base directory for test results\n"
           "   windows vs non-windows portability env vars:\n"
@@ -71,6 +72,7 @@ struct EnvData
     string exe;
     string os;
     string compiler;
+    string ccompiler;
     string model;
     string required_args;
 }
@@ -358,6 +360,7 @@ int main(string[] args)
     envData.os            = getenv("OS");
     envData.dmd           = replace(getenv("DMD"), "/", envData.sep);
     envData.compiler      = "dmd"; //should be replaced for other compilers
+    envData.ccompiler     = getenv("CC");
     envData.model         = getenv("MODEL");
     envData.required_args = getenv("REQUIRED_ARGS");
 
@@ -379,6 +382,15 @@ int main(string[] args)
             return 1;
     }
 
+    if (envData.ccompiler.empty)
+    {
+        switch (envData.os)
+        {
+            case "win32": envData.ccompiler = "dmc"; break;
+            case "win64": envData.ccompiler = `\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe`; break;
+            default:      envData.ccompiler = "g++"; break;
+        }
+    }
     gatherTestParameters(testArgs, input_dir, input_file, envData);
 
     //prepare cpp extra sources
@@ -404,25 +416,25 @@ int main(string[] args)
         {
             auto curSrc = input_dir ~ envData.sep ~"extra-files" ~ envData.sep ~ cur;
             auto curObj = output_dir ~ envData.sep ~ cur ~ envData.obj;
-            string command;
+            string command = envData.ccompiler;
             if (envData.compiler == "dmd")
             {
                 if (envData.os == "win32")
                 {
-                    command = "dmc -c "~curSrc~" -o"~curObj;
+                    command ~= " -c "~curSrc~" -o"~curObj;
                 }
                 else if (envData.os == "win64")
                 {
-                    command =  `\"Program Files (x86)"\"Microsoft Visual Studio 10.0"\VC\bin\amd64\cl.exe /c /nologo `~curSrc~` /Fo`~curObj;
+                    command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
                 }
                 else
                 {
-                    command = "g++ -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+                    command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
                 }
             }
             else
             {
-                command = "g++ -m"~envData.model~" -c "~curSrc~" -o "~curObj;
+                command ~= " -m"~envData.model~" -c "~curSrc~" -o "~curObj;
             }
 
             auto rc = system(command);
