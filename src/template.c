@@ -6548,15 +6548,16 @@ void TemplateInstance::semantic3(Scope *sc)
         sc = sc->push(argsym);
         sc = sc->push(this);
         sc->tinst = this;
-        int oldgag = global.gag;
+        int needGagging = (speculative && !global.gag);
         int olderrors = global.errors;
+        int oldGaggedErrors;
         /* If this is a speculative instantiation, gag errors.
          * Future optimisation: If the results are actually needed, errors
          * would already be gagged, so we don't really need to run semantic
          * on the members.
          */
-        if (speculative && !oldgag)
-            olderrors = global.startGagging();
+        if (needGagging)
+            oldGaggedErrors = global.startGagging();
         for (size_t i = 0; i < members->dim; i++)
         {
             Dsymbol *s = (*members)[i];
@@ -6564,10 +6565,9 @@ void TemplateInstance::semantic3(Scope *sc)
             if (speculative && global.errors != olderrors)
                 break;
         }
-        if (speculative && !oldgag)
+        if (needGagging)
         {   // If errors occurred, this instantiation failed
-            errors += global.errors - olderrors;
-            global.endGagging(olderrors);
+            errors += global.endGagging(oldGaggedErrors);
         }
         sc = sc->pop();
         sc->pop();
