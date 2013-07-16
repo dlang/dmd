@@ -924,9 +924,13 @@ code *cdaddass(elem *e,regm_t *pretregs)
                 !opsize)
             {
                 cs.Iop = op1;
-                cs.Irm |= modregrm(0,reg,0);
-                if (I64 && byte && reg >= 4)
-                    cs.Irex |= REX;
+                cs.Irm |= modregrm(0,reg & 7,0);
+                if (I64)
+                {   if (byte && reg >= 4)
+                        cs.Irex |= REX;
+                    if (reg & 8)
+                        cs.Irex |= REX_R;
+                }
             }
             else
             {
