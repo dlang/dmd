@@ -3020,8 +3020,6 @@ elem * elstruct(elem *e, goal_t goal)
         return optelem(e, goal);
     }
 
-    //printf("\tnumbytes = %d\n", (int)e->Enumbytes);
-
     if (!e->ET)
         return e;
     //printf("\tnumbytes = %d\n", (int)type_size(e->ET));
@@ -3038,6 +3036,7 @@ elem * elstruct(elem *e, goal_t goal)
     }
 
     unsigned sz = type_size(e->ET);
+    //printf("\tsz = %d\n", (int)sz);
     switch ((int)sz)
     {
         case 1:  tym = TYchar;   goto L1;
@@ -3052,7 +3051,7 @@ elem * elstruct(elem *e, goal_t goal)
         case 6:
         case 7:  tym = TYllong;
         L2:
-            if (config.exe == EX_WIN64)
+            if (e->Eoper == OPstrpar && config.exe == EX_WIN64)
             {
                  goto L1;
             }
