@@ -149,13 +149,13 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj
+	sideeffect.obj intrange.obj canthrow.obj target.obj cppmangle.obj visitor.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
 	toobj.obj toctype.obj tocvdebug.obj toir.obj \
 	libmscoff.obj scanmscoff.obj irstate.obj typinf.obj \
-	libomf.obj scanomf.obj iasm.obj cppmangle.obj visitor.obj
+	libomf.obj scanomf.obj iasm.obj
 
 #GLUEOBJ=gluestub.obj
 
@@ -196,14 +196,15 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h  cppmangle.c mangle.h \
+	visitor.c visitor.h 
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
 	toobj.c toctype.c tocvdebug.c toir.h toir.c \
 	libmscoff.c scanmscoff.c irstate.h irstate.c typinf.c iasm.c \
 	toelfdebug.c libomf.c scanomf.c libelf.c scanelf.c libmach.c scanmach.c \
-	tk.c eh.c gluestub.c cppmangle.c mangle.h visitor.c visitor.h 
+	tk.c eh.c gluestub.c
 
 # D back end
 BACKSRC= $C\cdef.h $C\cc.h $C\oper.h $C\ty.h $C\optabgen.c \

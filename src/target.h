@@ -16,11 +16,9 @@
 
 #include <stdlib.h> //for size_t
 
-class Type;
-class Mangler;
-class Dsymbol;
-struct Loc;
-//enum LINK;
+#include "mars.h"
+#include "mtype.h"
+#include "dsymbol.h"
 
 struct Target
 {
@@ -38,7 +36,7 @@ struct Target
      * mangle stuff
      */
     //mangle specified symbol with spesified linkage
-    static const char *mangleSymbol(Dsymbol* sym, size_t link);
+    static const char *mangleSymbol(Dsymbol* sym, LINK link);
 };
 
 #endif

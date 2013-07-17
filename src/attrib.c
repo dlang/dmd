@@ -28,7 +28,6 @@
 #include "parse.h"
 #include "template.h"
 #include "hdrgen.h"
-#include "target.h"
 
 /********************************* AttribDeclaration ****************************/
 

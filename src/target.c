@@ -155,7 +155,7 @@ unsigned Target::critsecsize()
 }
 
 
-const char *Target::mangleSymbol(Dsymbol *sym, size_t link)
+const char *Target::mangleSymbol(Dsymbol *sym, LINK link)
 {
     Mangler *mangler = NULL;
 
