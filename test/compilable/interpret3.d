@@ -4974,6 +4974,71 @@ void ice9445(void delegate() expr, void function() f2)
 }
 
 /**************************************************
+    10452 delegate ==
+**************************************************/
+
+struct S10452 {
+    bool func() { return true; }
+}
+
+struct Outer10452 {
+    S10452 inner;
+}
+
+class C10452 {
+    bool func() { return true; }
+}
+
+bool delegate() ref10452(ref S10452 s)
+{
+    return &s.func;
+}
+
+bool test10452()
+{
+    bool delegate() bar = () { return true; };
+
+    assert(bar !is null);
+    assert(bar is bar);
+
+    S10452 bag;
+    S10452[6] bad;
+    Outer10452 outer;
+    C10452 tag = new C10452;
+
+    auto rat = &outer.inner.func;
+    assert(rat == rat);
+    auto tat = &tag.func;
+    assert(tat == tat);
+
+    auto bat = &outer.inner.func;
+    auto mat = &bad[2].func;
+    assert(mat is mat);
+    assert(rat == bat);
+
+    auto zat = &bag.func;
+    auto cat = &bag.func;
+    assert(zat == zat);
+    assert(zat == cat);
+
+    auto drat = ref10452(bag);
+    assert(cat == drat);
+    assert(drat == drat);
+    drat = ref10452(bad[2]);
+    assert( drat == mat);
+    assert(tat != rat);
+    assert(zat != rat);
+    assert(rat != cat);
+    assert(zat != bar);
+    assert(tat != cat);
+    cat = bar;
+    assert(cat == bar);
+    return true;
+}
+static assert(test10452());
+
+
+/**************************************************
     7162 and 4711
 **************************************************/
 
@@ -5531,7 +5596,7 @@ static assert(!__traits(compiles, {static Test76 t76 = new Test76(0); return t76
 
 /***** Bug 5678 *********************************/
 
-struct Bug5678 
+struct Bug5678
 {
     this(int) {}
 }
