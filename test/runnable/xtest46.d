@@ -6446,6 +6446,37 @@ void test10539()
 
 /***************************************************/
 
+struct TimeOfDay
+{
+    ubyte h, m, s;
+}
+
+__gshared byte glob;
+
+struct DateTime
+{
+    this(ubyte _d, ubyte _m, ubyte _y, TimeOfDay _tod = TimeOfDay.init)
+    {
+        d = _d;
+        m = _m;
+        y = _y;
+        tod = _tod;
+    }
+    TimeOfDay tod;
+    ubyte d, m, y;
+}
+
+
+void test10634()
+{
+    glob = 123;
+    DateTime date1 = DateTime(0, 0, 0);
+    DateTime date2;
+    assert(date1 == date2);
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6715,6 +6746,7 @@ int main()
     test9130();
     test10542();
     test10539();
+    test10634();
 
     printf("Success\n");
     return 0;
