@@ -2605,7 +2605,7 @@ unittest
  * Returns:
  *   The input is returned.
  */
-auto ref T[] assumeSafeAppend(T)(auto ref T[] arr)
+auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
     return arr;
@@ -2656,10 +2656,18 @@ unittest
 }
 
 //@@@10574@@@
-version(none)unittest
+unittest
 {
-    immutable(int[]) arr;
-    assumeSafeAppend(arr); //IFTI failure here. Should work. Please fix me.
+    int[] a;
+    immutable(int[]) b;
+    auto a2 = &assumeSafeAppend(a);
+    auto b2 = &assumeSafeAppend(b);
+    auto a3 = assumeSafeAppend(a[]);
+    auto b3 = assumeSafeAppend(b[]);
+    assert(is(typeof(*a2) == int[]));
+    assert(is(typeof(*b2) == immutable(int[])));
+    assert(is(typeof(a3) == int[]));
+    assert(is(typeof(b3) == immutable(int[])));
 }
 
 version (none)
