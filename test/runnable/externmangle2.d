@@ -47,8 +47,9 @@ struct Test33(alias A, alias B)
 {
 }
 
-
+/*
 void test33(XXX, Test33!(test33a, test33a) arg, XXX);
+
 
 struct Test34(alias A)
 {
@@ -61,6 +62,7 @@ struct Test34A
 
 
 void test34(Test34!(Test34A.foo) arg);
+*/
 
 struct Test35
 {
@@ -72,6 +74,7 @@ struct Test35
 
 __gshared extern int test36;
 
+/*
 struct Test37(alias A)
 {
 };
@@ -83,6 +86,7 @@ struct Test37A
 
 void test37(Test37!(test36) arg);
 void test38(Test37!(Test37A.t38) arg);
+*/
 
 struct Test39
 {
@@ -119,10 +123,10 @@ void main()
     test32c(Test32!(Test32NS1.Foo, Test32NS2.Foo)());
     test32d(Test32!(Test32NS1.Foo, Test32NS2.Foo)(), Test32!(Test32NS2.Foo, Test32NS1.Foo)());
 
-    test33a(null, null);
-    test33(null, Test33!(test33a, test33a)(), null);
+    //test33a(null, null);
+    //test33(null, Test33!(test33a, test33a)(), null);
     
-    test34(Test34!(Test34A.foo)());
+    //test34(Test34!(Test34A.foo)());
     
     Test35* t35;
     auto t35_ctor = &t35.__ctor;
@@ -130,8 +134,8 @@ void main()
     
     assert(test36 == 36);
     
-    test37(Test37!(test36)());
-    test38(Test37!(Test37A.t38)());
+    //test37(Test37!(test36)());
+    //test38(Test37!(Test37A.t38)());
     test39(Test39.T39A!(.T39A)());
     
 }
