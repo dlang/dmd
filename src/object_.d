@@ -2435,26 +2435,35 @@ unittest
  * after calling this function may append in place, even if the array was a
  * slice of a larger array to begin with.
  *
- * Use this only when you are sure no elements are in use beyond the array in
- * the memory block.  If there are, those elements could be overwritten by
- * appending to this array.
+ * Use this only when it is certain there are no elements in use beyond the
+ * array in the memory block.  If there are, those elements will be
+ * overwritten by appending to this array.
  *
  * Calling this function, and then using references to data located after the
  * given array results in undefined behavior.
+ *
+ * Returns:
+ *   The input is returned.
  */
-void assumeSafeAppend(T)(T[] arr)
+auto ref inout(T[]) assumeSafeAppend(T)(auto ref inout(T[]) arr)
 {
     _d_arrayshrinkfit(typeid(T[]), *(cast(void[]*)&arr));
+    return arr;
 }
 ///
 unittest
 {
     int[] a = [1, 2, 3, 4];
-    int[] b = a[1 .. $ - 1];
-    assert(a.capacity >= 4);
-    assert(b.capacity == 0);
-    b.assumeSafeAppend();
-    assert(b.capacity >= 3);
+
+    // Without assumeSafeAppend. Appending relocates.
+    int[] b = a [0 .. 3];
+    b ~= 5;
+    assert(a.ptr != b.ptr);
+
+    // With assumeSafeAppend. Appending overwrites.
+    int[] c = a [0 .. 3];
+    c.assumeSafeAppend() ~= 5;
+    assert(a.ptr == c.ptr);
 }
 
 unittest
@@ -2473,6 +2482,33 @@ unittest
     assert(ptr == arr.ptr);
 }
 
+unittest
+{
+    int[] arr = [1, 2, 3];
+    void foo(ref int[] i)
+    {
+        i ~= 5;
+    }
+    arr = arr[0 .. 2];
+    foo(assumeSafeAppend(arr)); //pass by ref
+    assert(arr[]==[1, 2, 5]);
+    arr = arr[0 .. 1].assumeSafeAppend(); //pass by value
+}
+
+//@@@10574@@@
+unittest
+{
+    int[] a;
+    immutable(int[]) b;
+    auto a2 = &assumeSafeAppend(a);
+    auto b2 = &assumeSafeAppend(b);
+    auto a3 = assumeSafeAppend(a[]);
+    auto b3 = assumeSafeAppend(b[]);
+    assert(is(typeof(*a2) == int[]));
+    assert(is(typeof(*b2) == immutable(int[])));
+    assert(is(typeof(a3) == int[]));
+    assert(is(typeof(b3) == immutable(int[])));
+}
 
 version (none)
 {
