@@ -6795,7 +6795,8 @@ Expression *TypeIdentifier::toExpression()
             e = new DotIdExp(loc, e, (Identifier *)id);
         }
         else
-        {   assert(id->dyncast() == DYNCAST_DSYMBOL);
+        {
+            assert(id->dyncast() == DYNCAST_DSYMBOL);
             TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
             assert(ti);
             e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
@@ -6940,7 +6941,24 @@ Type *TypeInstance::reliesOnTident(TemplateParameters *tparams)
 
 Expression *TypeInstance::toExpression()
 {
-    return new ScopeExp(loc, tempinst);
+    Expression *e = new ScopeExp(loc, tempinst);
+    for (size_t i = 0; i < idents.dim; i++)
+    {
+        RootObject *id = idents[i];
+        if (id->dyncast() == DYNCAST_IDENTIFIER)
+        {
+            e = new DotIdExp(loc, e, (Identifier *)id);
+        }
+        else
+        {
+            assert(id->dyncast() == DYNCAST_DSYMBOL);
+            TemplateInstance *ti = ((Dsymbol *)id)->isTemplateInstance();
+            assert(ti);
+            e = new DotTemplateInstanceExp(loc, e, ti->name, ti->tiargs);
+        }
+    }
+
+    return e;
 }
 
 
