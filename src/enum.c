@@ -19,6 +19,7 @@
 #include "module.h"
 #include "declaration.h"
 #include "init.h"
+#include "visitor.h"
 
 /********************************* EnumDeclaration ****************************/
 
@@ -704,3 +705,14 @@ Expression *EnumMember::getVarExp(Loc loc, Scope *sc)
     Expression *e = new VarExp(loc, vd);
     return e->semantic(sc);
 }
+
+
+void EnumDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void EnumMember::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 

@@ -17,6 +17,7 @@
 #include "cond.h"
 #include "version.h"
 #include "module.h"
+#include "visitor.h"
 
 /* ================================================== */
 
@@ -196,4 +197,13 @@ const char *VersionSymbol::kind()
     return "version";
 }
 
+void DebugSymbol::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void VersionSymbol::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
 

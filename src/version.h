@@ -33,6 +33,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 class VersionSymbol : public Dsymbol
@@ -48,6 +49,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 #endif /* DMD_VERSION_H */

@@ -29,7 +29,7 @@
 #include "template.h"
 #include "hdrgen.h"
 #include "utf.h"
-
+#include "visitor.h"
 
 /********************************* AttribDeclaration ****************************/
 
@@ -1753,6 +1753,66 @@ void UserAttributeDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 const char *UserAttributeDeclaration::kind()
 {
     return "UserAttribute";
+}
+
+void AttribDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void StorageClassDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void DeprecatedDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void LinkDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void ProtDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void AlignDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void AnonDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void PragmaDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void ConditionalDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void StaticIfDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void CompileDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void UserAttributeDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
 }
 
 

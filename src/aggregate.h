@@ -129,6 +129,7 @@ public:
     Symbol *toInitializer();
 
     AggregateDeclaration *isAggregateDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class StructDeclaration : public AggregateDeclaration
@@ -185,6 +186,7 @@ public:
     void toDebug();                     // to symbolic debug info
 
     StructDeclaration *isStructDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class UnionDeclaration : public StructDeclaration
@@ -195,6 +197,7 @@ public:
     const char *kind();
 
     UnionDeclaration *isUnionDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 struct BaseClass
@@ -312,6 +315,7 @@ public:
     Symbol *vtblsym;
 
     ClassDeclaration *isClassDeclaration() { return (ClassDeclaration *)this; }
+    void acceptVisitor(Visitor *v);
 };
 
 class InterfaceDeclaration : public ClassDeclaration
@@ -334,6 +338,7 @@ public:
     Symbol *toSymbol();
 
     InterfaceDeclaration *isInterfaceDeclaration() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #endif /* DMD_AGGREGATE_H */

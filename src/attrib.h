@@ -60,6 +60,7 @@ public:
     AttribDeclaration *isAttribDeclaration() { return this; }
 
     void toObjFile(int multiobj);                       // compile to .obj file
+    void acceptVisitor(Visitor *v);
 };
 
 class StorageClassDeclaration : public AttribDeclaration
@@ -76,6 +77,7 @@ public:
 
     static const char *stcToChars(char tmp[], StorageClass& stc);
     static void stcToCBuffer(OutBuffer *buf, StorageClass stc);
+    void acceptVisitor(Visitor *v);
 };
 
 class DeprecatedDeclaration : public StorageClassDeclaration
@@ -87,6 +89,7 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     void setScope(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void acceptVisitor(Visitor *v);
 };
 
 class LinkDeclaration : public AttribDeclaration
@@ -101,6 +104,7 @@ public:
     void semantic3(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     char *toChars();
+    void acceptVisitor(Visitor *v);
 };
 
 class ProtDeclaration : public AttribDeclaration
@@ -116,6 +120,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     static void protectionToCBuffer(OutBuffer *buf, PROT protection);
+    void acceptVisitor(Visitor *v);
 };
 
 class AlignDeclaration : public AttribDeclaration
@@ -128,6 +133,7 @@ public:
     void setScope(Scope *sc);
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
+    void acceptVisitor(Visitor *v);
 };
 
 class AnonDeclaration : public AttribDeclaration
@@ -143,6 +149,7 @@ public:
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 class PragmaDeclaration : public AttribDeclaration
@@ -158,6 +165,7 @@ public:
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
     void toObjFile(int multiobj);                       // compile to .obj file
+    void acceptVisitor(Visitor *v);
 };
 
 class ConditionalDeclaration : public AttribDeclaration
@@ -176,6 +184,7 @@ public:
     void toJson(JsonOut *json);
     void importAll(Scope *sc);
     void setScope(Scope *sc);
+    void acceptVisitor(Visitor *v);
 };
 
 class StaticIfDeclaration : public ConditionalDeclaration
@@ -192,6 +201,7 @@ public:
     void importAll(Scope *sc);
     void setScope(Scope *sc);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 // Mixin declarations
@@ -211,6 +221,7 @@ public:
     void semantic(Scope *sc);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 /**
@@ -229,6 +240,7 @@ public:
     static Expressions *concat(Expressions *udas1, Expressions *udas2);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
+    void acceptVisitor(Visitor *v);
 };
 
 #endif /* DMD_ATTRIB_H */

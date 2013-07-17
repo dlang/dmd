@@ -22,6 +22,7 @@
 #include "dsymbol.h"
 #include "hdrgen.h"
 #include "lexer.h"
+#include "visitor.h"
 
 #ifdef IN_GCC
 #include "d-dmd-gcc.h"
@@ -1221,4 +1222,13 @@ const char *lookForSourceFile(const char *filename)
     return NULL;
 }
 
+void Package::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void Module::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
 

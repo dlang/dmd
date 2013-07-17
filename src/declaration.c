@@ -26,6 +26,7 @@
 #include "hdrgen.h"
 #include "ctfe.h"
 #include "target.h"
+#include "visitor.h" 
 
 AggregateDeclaration *isAggregate(Type *t); // from opover.c
 
@@ -2597,4 +2598,205 @@ Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)
     assert(0);          // should never be produced by syntax
     return NULL;
 }
+
+void Declaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void VarDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void FuncDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TupleDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypedefDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void AliasDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void SymbolDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void ClassInfoDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoStructDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoClassDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoInterfaceDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoTypedefDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoPointerDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoArrayDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoStaticArrayDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoAssociativeArrayDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoEnumDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoFunctionDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoDelegateDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoTupleDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoConstDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoInvariantDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoSharedDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoWildDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void TypeInfoVectorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void ThisDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void FuncAliasDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void FuncLiteralDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void CtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void PostBlitDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void DtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void StaticCtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void SharedStaticCtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void StaticDtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void SharedStaticDtorDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void InvariantDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void UnitTestDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void NewDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void DeleteDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
 

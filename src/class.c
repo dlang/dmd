@@ -29,6 +29,7 @@
 #include "expression.h"
 #include "statement.h"
 #include "template.h"
+#include "visitor.h"
 
 /********************************* ClassDeclaration ****************************/
 
@@ -1731,4 +1732,14 @@ void BaseClass::copyBaseInterfaces(BaseClasses *vtblInterfaces)
         b->copyBaseInterfaces(vtblInterfaces);
     }
     //printf("-copyBaseInterfaces\n");
+}
+
+void ClassDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+} 
+
+void InterfaceDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
 }

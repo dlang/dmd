@@ -66,6 +66,7 @@ public:
     void toJson(JsonOut *json);
 
     Import *isImport() { return this; }
+    void acceptVisitor(Visitor *v);
 };
 
 #endif /* DMD_IMPORT_H */
