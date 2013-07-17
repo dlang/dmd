@@ -519,6 +519,7 @@ mixin template Getter10103()
 {
     @property auto foo() { return v; }
     @property auto bar()() { return v; }
+    @property auto baz(T)() { return v; }
 
     static @property auto goo() { return 1; }
 }
@@ -527,6 +528,7 @@ mixin template Setter10103()
 {
     @property void foo(int x) { v = x; }
     @property void bar()(int x) { v = x; }
+    @property void baz(T)(int x) { v = x; }
 
     static @property void goo(int x) {}
 }
@@ -547,6 +549,9 @@ void test10103()
 
     f.bar;
     f.bar = 3;
+
+    f.baz!int;
+    f.baz!int = 3;
 
     Foo10103.goo = 3;
 }

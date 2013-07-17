@@ -408,6 +408,11 @@ static assert(is(typeof(bug4953(3))));
 /**********************************/
 // 5886 & 5393
 
+mixin template Foo5886(T)
+{
+    void foo(U : T, this X)() const { static assert(is(X == const K5886)); }
+}
+
 struct K5886
 {
     void get1(this T)() const
@@ -418,11 +423,18 @@ struct K5886
     {
         pragma(msg, N, " ; ", T);
     }
+
+    mixin Foo5886!double;
+    mixin Foo5886!string;
+
     void test() const
     {
         get1;       // OK
         get2;       // OK
         get2!8;     // NG
+
+        foo!(int);
+        foo!(typeof(null));
     }
 }
 

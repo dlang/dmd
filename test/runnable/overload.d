@@ -1,4 +1,9 @@
 // EXTRA_SOURCES: imports/ovs1528a.d imports/ovs1528b.d
+// EXTRA_SOURCES: imports/template_ovs1.d imports/template_ovs2.d imports/template_ovs3.d
+
+import imports.template_ovs1;
+import imports.template_ovs2;
+import imports.template_ovs3;
 
 extern(C) int printf(const char* fmt, ...);
 
@@ -479,6 +484,410 @@ void test10171()
 }
 
 /***************************************************/
+// 1900 - template overload set
+
+void test1900a()
+{
+    // function vs function template with IFTI call
+    assert(foo1900a(100) == 1);
+    assert(foo1900a("s") == 2);
+    assert(foo1900b(100) == 1);
+    assert(foo1900b("s") == 2);
+    // function template call with explicit template arguments
+    assert(foo1900a!string("s") == 2);
+    assert(foo1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(bar1900a(100) == 1);
+    assert(bar1900a("s") == 2);
+    assert(bar1900b(100) == 1);
+    assert(bar1900b("s") == 2);
+    // function template overloaded set call with explicit template arguments
+    assert(bar1900a!double(100) == 1);
+    assert(bar1900a!string("s") == 2);
+    assert(bar1900b!double(100) == 1);
+    assert(bar1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(baz1900(1234567890) == 1);
+    assert(baz1900([1:1, 2:2]) == 2);
+    assert(baz1900(new Object) == 3);
+    assert(baz1900("deadbeaf") == 4);
+    // function template overloaded set call with explicit template arguments
+    assert(baz1900!(double)(14142135) == 1);
+    assert(baz1900!(int[int])([12:34]) == 2);
+    assert(baz1900!(Object)(new Object) == 3);
+    assert(baz1900!(string)("cafe babe") == 4);
+
+    static assert(!__traits(compiles, bad1900!"++"()));
+}
+
+void test1900b()
+{
+    S1900 s;
+
+    // function vs function template with IFTI call
+    assert(s.foo1900a(100) == 1);
+    assert(s.foo1900a("s") == 2);
+    assert(s.foo1900b(100) == 1);
+    assert(s.foo1900b("s") == 2);
+    // function template call with explicit template arguments
+    assert(s.foo1900a!string("s") == 2);
+    assert(s.foo1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(s.bar1900a(100) == 1);
+    assert(s.bar1900a("s") == 2);
+    assert(s.bar1900b(100) == 1);
+    assert(s.bar1900b("s") == 2);
+    // function template overloaded set call with explicit template arguments
+    assert(s.bar1900a!double(100) == 1);
+    assert(s.bar1900a!string("s") == 2);
+    assert(s.bar1900b!double(100) == 1);
+    assert(s.bar1900b!string("s") == 2);
+
+    // function template overloaded set call with IFTI
+    assert(s.baz1900(1234567890) == 1);
+    assert(s.baz1900([1:1, 2:2]) == 2);
+    assert(s.baz1900(new Object) == 3);
+    assert(s.baz1900("deadbeaf") == 4);
+    // function template overloaded set call with explicit template arguments
+    assert(s.baz1900!(double)(14142135) == 1);
+    assert(s.baz1900!(int[int])([12:34]) == 2);
+    assert(s.baz1900!(Object)(new Object) == 3);
+    assert(s.baz1900!(string)("cafe babe") == 4);
+
+    static assert(!__traits(compiles, s.bad1900!"++"()));
+}
+
+void test1900c()
+{
+    S1900 s;
+
+    // This is a kind of Issue 1528 - [tdpl] overloading template and non-template functions
+    //s.funca();
+    //s.funca(10);
+    //s.funcb();
+    //s.funcb(10);
+
+    // Call function template overload set through mixin member lookup
+    assert(s.mixfooa() == 1);
+    assert(s.mixfooa(10) == 2);
+    assert(s.mixfoob() == 1);
+    assert(s.mixfoob(10) == 2);
+
+    // Call function template overload set through mixin^2 member lookup
+    assert(s.mixsubfooa() == 1);
+    assert(s.mixsubfooa(10) == 2);
+    assert(s.mixsubfoob() == 1);
+    assert(s.mixsubfoob(10) == 2);
+
+    // Using mixin identifier can limit overload set
+    assert(s.a.mixfooa() == 1);     static assert(!__traits(compiles, s.a.mixfooa(10)));
+    assert(s.b.mixfooa(10) == 2);   static assert(!__traits(compiles, s.b.mixfooa()));
+    assert(s.b.mixfoob() == 1);     static assert(!__traits(compiles, s.b.mixfoob(10)));
+    assert(s.a.mixfoob(10) == 2);   static assert(!__traits(compiles, s.a.mixfoob()));
+}
+
+version(none)   // yet not implemented
+{
+alias merge1900 = imports.template_ovs1.merge1900;
+alias merge1900 = imports.template_ovs2.merge1900;
+
+void test1900d()
+{
+    assert( merge1900!double(100) == 1);
+    assert(.merge1900!double(100) == 1);
+}
+}
+else
+{
+void test1900d() {} // dummy
+}
+
+mixin template Foo1900e(T)
+{
+    void foo(U : T)() { v++;}
+}
+void test1900e()
+{
+    struct S
+    {
+        int v;
+        mixin Foo1900e!double;
+        mixin Foo1900e!string;
+        void test()
+        {
+            foo!(int);          // ScopeExp(ti->tempovers != NULL)
+            foo!(typeof(null)); // ScopeExp(ti->tempovers != NULL)
+        }
+    }
+
+    S s;
+    assert(s.v == 0);
+    s.test();
+    assert(s.v == 2);
+}
+
+/***************************************************/
+// 1900
+
+void test1900()
+{
+    AClass1900 a;
+    BClass1900 b;
+
+    static assert(Traits1900!(AClass1900).name == "AClass");
+    static assert(Traits1900!(BClass1900).name == "BClass");
+    static assert(Traits1900!(int).name == "any");
+
+    Traits1900!(long) obj;
+
+    static assert(Value1900a!double == 1);
+    static assert(Value1900b!double == 1);
+    static assert(Value1900a!string == 2);
+    static assert(Value1900b!string == 2);
+}
+
+version(none)   // yet not implemented
+{
+alias imports.template_ovs1.Traits1900 Traits1900X;
+alias imports.template_ovs2.Traits1900 Traits1900X;
+alias imports.template_ovs3.Traits1900 Traits1900X;
+static assert(Traits1900X!(AClass1900).name == "AClass");
+static assert(Traits1900X!(BClass1900).name == "BClass");
+static assert(Traits1900X!(int).name == "any");
+
+// Traits1900Y is exact same as imports.template_ovs1.Traits1900.
+alias imports.template_ovs1.Traits1900 Traits1900Y1;
+alias imports.template_ovs1.Traits1900 Traits1900Y2;
+alias Traits1900Y1 Traits1900Y;
+alias Traits1900Y2 Traits1900Y;
+static assert(Traits1900Y!(AClass1900).name == "AClass");
+static assert(!__traits(compiles, Traits1900Y!(BClass1900)));
+static assert(!__traits(compiles, Traits1900Y!(int)));
+}
+
+template Foo1900(T)
+{
+    template Bar1900(U : T)
+    {
+    }
+}
+mixin Foo1900!(int) A;
+mixin Foo1900!(char) B;
+alias Bar1900!(int) bar;    //error
+
+/***************************************************/
+// 7780
+
+mixin template A7780()
+{
+    template C(int n : 0) { int C = 0; }
+}
+mixin template B7780()
+{
+    template C(int n : 1) { int C = 1; }
+}
+
+class Foo7780
+{
+    mixin A7780!();
+    mixin B7780!();
+}
+
+void test7780()
+{
+    assert(Foo7780.C!0 == 0);
+}
+
+/***************************************************/
+// 8352
+
+void test8352()
+{
+    [1, 2].remove8352a!(x => x == 2)();
+    [1, 2].remove8352b!(x => x == 2)();
+    remove8352a("deleteme");
+    remove8352b("deleteme");
+}
+
+/***************************************************/
+// 8441
+
+mixin template T8441a(string i)
+{
+    auto j(string s = "a", U)(U u1, U u2)
+    {
+        return 0;
+    }
+    auto j(int i,string s = "a", W)(W u1, W u2)
+    {
+        return i;
+    }
+
+    mixin("
+        class F" ~ i ~ "
+        {
+            auto j(string s = \"a\", U)(U u1, U u2)
+            {
+                return this.outer.t" ~ i ~ ".j!(s, U)(u1, u2);
+            }
+            auto j(int i, string s = \"a\", W)(W u1, W u2)
+            {
+                return this.outer.t" ~ i ~ ".j!(i, s, W)(u1, u2);   // <- dmd is giving error for j!(...).j's type
+            }
+        }
+        auto f" ~ i ~ "()
+        {
+            return new F" ~ i ~ "();
+        }
+    ");
+}
+class X8441a
+{
+    mixin T8441a!("1") t0;
+    alias t0 t1;
+}
+void test8441a()
+{
+    auto x = new X8441a();
+    x.f1().j!(3,"a")(2.2, 3.3);
+}
+
+// ----
+
+mixin template T8441b()
+{
+    void k()() {}
+
+    void j()() {}
+    void j(int i)() {}
+}
+class X8441b
+{
+    mixin T8441b t0;
+}
+void test8441b()
+{
+    auto x = new X8441b();
+    x.k!()();    // Fine
+    x.j!()();    // Fine
+    x.t0.k!()(); // Fine
+    x.t0.j!()(); // Derp
+}
+
+// ----
+
+mixin template Signal8441c(Args...)
+{
+    bool call = false;
+    final void connect(string method, ClassType)(ClassType obj)
+    if (is(ClassType == class) && __traits(compiles, { void delegate(Args) dg = mixin("&obj."~method); }))
+    {
+        call = true;
+    }
+}
+void test8441c()
+{
+    class Observer
+    {
+        void watchInt(string str, int i) {}
+    }
+    class Bar
+    {
+        mixin Signal8441c!(string, int)  s1;
+        mixin Signal8441c!(string, int)  s2;
+        mixin Signal8441c!(string, long) s3;
+    }
+    auto a = new Bar;
+    auto o1 = new Observer;
+
+    a.s1.connect!"watchInt"(o1);
+
+    assert( a.s1.call);
+    assert(!a.s2.call);
+    assert(!a.s3.call);
+}
+
+/***************************************************/
+// 9235
+
+template FlowEvaluator9235()
+{
+    // if control flow
+    bool execute(Command cmd)()
+        if (cmd == Command.Jump ||
+            cmd == Command.Fork)
+    {
+        return false;
+    }
+}
+template MatchEvaluator9235()
+{
+    // if operation
+    bool execute(Command cmd)()
+        if (cmd == Command.Char ||
+            cmd == Command.Any ||
+            cmd == Command.End)
+    {
+        return true;
+    }
+}
+void test9235a()
+{
+    enum Command
+    {
+        Char, Any, Fork, Jump, End
+    }
+    struct Machine
+    {
+        mixin FlowEvaluator9235;
+        mixin MatchEvaluator9235;
+
+        bool exec_flow()
+        {
+            return execute!(Command.Jump)();
+        }
+        bool exec_match()
+        {
+            return execute!(Command.Any)();
+        }
+    }
+
+    Machine m;
+    assert(!m.exec_flow());
+    assert( m.exec_match());
+}
+
+// ----
+
+version(none)   // yet not implemented
+{
+mixin template mixA9235()
+{
+    int foo(string s)() if (s == "a") { return 1; }
+}
+mixin template mixB9235()
+{
+    int foo(string s)() if (s == "b") { return 2; }
+}
+struct Foo9235
+{
+    mixin mixA9235 A;
+    mixin mixB9235 B;
+    alias A.foo foo;
+    alias B.foo foo;
+}
+void test9235b()
+{
+    Foo9235 f;
+    assert(f.foo!"a"() == 1);
+    assert(f.foo!"b"() == 2);
+}
+}
+
+/***************************************************/
 
 int main()
 {
@@ -493,6 +902,18 @@ int main()
     test8943();
     test9410();
     test10171();
+    test1900a();
+    test1900b();
+    test1900c();
+    test1900d();
+    test1900e();
+    test7780();
+    test8352();
+    test8441a();
+    test8441b();
+    test8441c();
+    test9235a();
+    //test9235b();
 
     printf("Success\n");
     return 0;

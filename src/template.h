@@ -309,6 +309,7 @@ public:
                                 // [int, char, 100]
 
     TemplateDeclaration *tempdecl;      // referenced by foo.bar.abc
+    OverloadSet *tempovers;             // template overload set
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table
@@ -344,7 +345,7 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    int needsTypeInference(Scope *sc);
+    int needsTypeInference(Scope *sc, int flag = 0);
     char *toChars();
     const char *mangle(bool isv = false);
     void printInstantiationTrace();
@@ -358,6 +359,7 @@ public:
     static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
     bool semanticTiargs(Scope *sc);
     bool findTemplateDeclaration(Scope *sc);
+    bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     void declareParameters(Scope *sc);
     int hasNestedArgs(Objects *tiargs);
