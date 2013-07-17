@@ -8382,8 +8382,9 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (ti->semanticTiargs(sc) &&
-                ti->needsTypeInference(sc, 1))
+            if (!ti->semanticTiargs(sc))
+                return new ErrorExp();
+            if (ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
                  */
@@ -8414,9 +8415,10 @@ Ldotti:
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (se->findTempDecl(sc) &&
-                ti->semanticTiargs(sc) &&
-                ti->needsTypeInference(sc, 1))
+            if (!se->findTempDecl(sc) ||
+                !ti->semanticTiargs(sc))
+                return new ErrorExp();
+            if (ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
                  */
