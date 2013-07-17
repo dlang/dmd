@@ -48,12 +48,16 @@ private:
     void prefixName(Dsymbol *s);
     void argsCppMangle(Parameters *arguments, int varargs);
     void mangleName(Dsymbol *s);
-
+    void mangleFunction(FuncDeclaration *d);
+    void mangleVariable(VarDeclaration *d, bool is_temp_arg);
+    
     Voids components;
     OutBuffer *buf;
 };
 
-//Windows DMC an Microsoft Visual C++ mangling
+//Windows DMC and Microsoft Visual C++ mangling
+#define VC_SAVED_TYPE_CNT 10
+#define VC_SAVED_IDENT_CNT 10
 class VisualCPPMangler: public Mangler
 {
 public:
@@ -80,15 +84,17 @@ public:
 private:
     void mangleName(Dsymbol *s, bool dont_use_back_reference = false);
     void mangleIdent(Dsymbol *sym, bool dont_use_back_reference = false);
+    bool checkAndSaveIdent(const char *name);
+    void saveIdent(const char *name);
     void mangleNumber(uint64_t);
     bool checkTypeSaved(Type *type);
     void mangleModifier(Type *type);
     void mangleArray(TypeSArray*);
-    const char *mangleFunction(TypeFunction*, bool needthis = false);
+    const char *mangleFunction(TypeFunction*, bool needthis = false, bool noreturn = false);
     void mangleParamenter(Parameter *type);
 
-    const char *saved_idents[10];
-    Type *saved_types[10];
+    const char *saved_idents[VC_SAVED_IDENT_CNT];
+    Type *saved_types[VC_SAVED_TYPE_CNT];
     //when we mangling one argument, we can call visit several times (for base types of arg type)
     //but we must save only arg type:
     //For example: if we have an int** argument, we should save "int**" but visit will be called for "int**", "int*", "int"
@@ -99,8 +105,8 @@ private:
     bool ignore_const;
 
     OutBuffer *buf;
-	
-	bool is_dmc;
+
+    bool is_dmc;
 };
 
 #endif

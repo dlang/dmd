@@ -253,7 +253,7 @@ public:
     char *modToChars();
     virtual void toJson(JsonOut *json);
 
-    //Need be overrided in all mangling types, because mangleType uses static type of this for dispatching
+    //Need be overridden in all mangling types, because mangleType uses static type of this for dispatching
     virtual void acceptVisitor(Visitor *m);
     virtual int isintegral();
     virtual int isfloating();   // real, imaginary, or complex

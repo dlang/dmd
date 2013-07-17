@@ -51,19 +51,33 @@ ItaniumCPPMangler::~ItaniumCPPMangler()
 
 void ItaniumCPPMangler::visit(Dsymbol *d)
 {
-    assert(!buf->size);
-    buf->writestring("__Z" + !global.params.isOSX);      // "__Z" for OSX, "_Z" for other
-    prefixName(d);
-    buf->writeByte(0);
+    
+    d->error(Loc(), "ICE: Unable to mangle %s\n", d->toPrettyChars());
+    assert(0);
 }
 
 void ItaniumCPPMangler::visit(VarDeclaration *d)
 {
     assert(!buf->size);
+    mangleVariable(d, false);
+    buf->writeByte(0);
+}
+
+void ItaniumCPPMangler::visit(FuncDeclaration *d)
+{
+    assert(!buf->size);
+    mangleFunction(d);
+    buf->writeByte(0);
+}
+
+
+void ItaniumCPPMangler::mangleVariable(VarDeclaration *d, bool is_temp_arg_ref)
+{
+    
     if (!(d->storage_class & (STCextern | STCgshared)))
     {
-        d->error("C++ static non- __gshared non-extern variables not supported");
-        return;
+        d->error("ICE: C++ static non- __gshared non-extern variables not supported");
+        assert(0);
     }
 
     Dsymbol *p = d->toParent();
@@ -73,15 +87,25 @@ void ItaniumCPPMangler::visit(VarDeclaration *d)
         prefixName(p);
         sourceName(d);
         buf->writeByte('E');
-        buf->writeByte(0);
     }
     else //char beta[6] should mangle as "beta"
     {
-        buf->writestring(d->ident->toChars());
+        if(!is_temp_arg_ref)
+        {
+            if (global.params.isOSX)
+                buf->writeByte('_');
+            buf->writestring(d->ident->toChars());
+        }
+        else
+        {
+            buf->writestring("__Z" + !global.params.isOSX);
+            sourceName(d);
+        }
     }
 }
 
-void ItaniumCPPMangler::visit(FuncDeclaration *d)
+
+void ItaniumCPPMangler::mangleFunction(FuncDeclaration *d)
 {
     /*
     * <mangled-name> ::= _Z <encoding>
@@ -89,16 +113,28 @@ void ItaniumCPPMangler::visit(FuncDeclaration *d)
     *         ::= <data name>
     *         ::= <special-name>
     */
-    assert(!buf->size);
-    buf->writestring("__Z" + !global.params.isOSX);      // "_Z" for OSX
+    TypeFunction *tf = (TypeFunction *)d->type;
+    
+    buf->writestring("__Z" + !global.params.isOSX);      // "__Z" for OSX, "_Z" for other
     Dsymbol *p = d->toParent();
-    if (p && !p->isModule())
+    if (p && !p->isModule() && tf->linkage == LINKcpp)
     {
         buf->writeByte('N');
         if (d->type->isConst())
             buf->writeByte('K');
         prefixName(p);
-        sourceName(d);
+        if (d->isCtorDeclaration())
+        {
+            buf->writestring("C1");
+        }
+        else if (d->isDtorDeclaration())
+        {
+            buf->writestring("D1");
+        }
+        else
+        {
+            sourceName(d);
+        }
         buf->writeByte('E');
     }
     else
@@ -106,12 +142,14 @@ void ItaniumCPPMangler::visit(FuncDeclaration *d)
         sourceName(d);
     }
 
-    TypeFunction *tf = (TypeFunction *)d->type;
-    assert(tf->ty == Tfunction);
-    argsCppMangle(tf->parameters, tf->varargs);
-
-    buf->writeByte(0);
+    if (tf->linkage == LINKcpp) //Template args accept extern "C" symbols with special mangling 
+    {
+        assert(tf->ty == Tfunction);
+        argsCppMangle(tf->parameters, tf->varargs);
+    }
 }
+
+
 
 
 const char *ItaniumCPPMangler::result()
@@ -174,7 +212,7 @@ void ItaniumCPPMangler::sourceName(Dsymbol *s)
 {
     char *name = s->ident->toChars();
     TemplateInstance *ti = s->isTemplateInstance();
-    if ((!s->parent || s->parent->isModule())&&!strcmp(name, "std"))
+    if ((!s->parent || s->parent->isModule()) && !strcmp(name, "std"))
     {
         /*
             <substitution> ::= St # ::std::
@@ -197,15 +235,32 @@ void ItaniumCPPMangler::sourceName(Dsymbol *s)
             buf->printf("%d%s", strlen(name), name);
         }
         buf->writeByte('I');
+        bool is_var_arg = false;
         for (size_t i = 0; i < ti->tiargs->dim; i++)
         {
             RootObject *o = (RootObject *)(*ti->tiargs)[i];
-            TemplateParameter* tp = (*ti->tempdecl->parameters)[i];
-            TemplateValueParameter* tv = tp->isTemplateValueParameter();
+            
+            TemplateParameter *tp = NULL;
+            TemplateValueParameter *tv = NULL;
+            TemplateTupleParameter *tt = NULL;
+            if(!is_var_arg)
+            {
+                tp = (*ti->tempdecl->parameters)[i];
+                tv = tp->isTemplateValueParameter();
+                tt = tp->isTemplateTupleParameter();
+            }
             /*
-                <template-arg> ::= <type>			# type or template
+                <template-arg> ::= <type>            # type or template
                                ::= <expr-primary>   # simple expressions
             */
+            
+            if (tt)
+            {
+                buf->writeByte('I');
+                is_var_arg = true;
+                tp = NULL;
+            }
+            
             if (tv)
             {
                 // <expr-primary> ::= L <type> <value number> E                   # integer literal
@@ -233,23 +288,68 @@ void ItaniumCPPMangler::sourceName(Dsymbol *s)
                 }
                 else
                 {
-                    s->error("C++ %s template value parameter is not supported", tv->valType->toChars());
-                    return;
+                    s->error("ICE: C++ %s template value parameter is not supported", tv->valType->toChars());
+                    assert(0);
                 }
             }
-            else if (tp->isTemplateTypeParameter())
+            else if (!tp || tp->isTemplateTypeParameter())
             {
                 Type *t = isType(o);
                 assert(t);
                 t->acceptVisitor(this);
             }
+            else if (tp->isTemplateAliasParameter())
+            {
+                Dsymbol* d = isDsymbol(o);
+                Expression* e = isExpression(o);
+                if(!d && !e)
+                {
+                    s->error("ICE: %s is unsupported parameter for C++ template: (%s)", o->toChars());
+                    assert(0);
+                }
+                if (d && d->isFuncDeclaration())
+                {
+                    bool is_nested = d->toParent() && !d->toParent()->isModule() && ((TypeFunction *)d->isFuncDeclaration()->type)->linkage == LINKcpp;
+                    if (is_nested) buf->writeByte('X');
+                    buf->writeByte('L');
+                    mangleFunction(d->isFuncDeclaration());
+                    buf->writeByte('E');
+                    if (is_nested) buf->writeByte('E');
+                }
+                else if (e && e->op == TOKvar && ((VarExp*)e)->var->isVarDeclaration())
+                {
+                    VarDeclaration *vd = ((VarExp*)e)->var->isVarDeclaration();
+                    buf->writeByte('L');
+                    mangleVariable(vd, true);
+                    buf->writeByte('E');
+                }
+                else if (d && d->isTemplateDeclaration() && d->isTemplateDeclaration()->onemember)
+                {
+                    if (!exist(d))
+                    {
+                        mangleName(d);
+                        store(d);
+                    }
+                    else
+                        substitute(d);
+                }
+                else
+                {
+                    s->error("ICE: %s is unsupported parameter for C++ template", o->toChars());
+                    assert(0);
+                }
+               
+            }
             else
             {
-                s->error("C++ templates support only integral value and type parameters");
-                return;
+                s->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                assert(0);
             }
         }
-
+        if (is_var_arg)
+        {
+            buf->writeByte('E');
+        }
         buf->writeByte('E');
         return;
     }
@@ -313,7 +413,7 @@ void ItaniumCPPMangler::mangleName(Dsymbol *s)
 
 void ItaniumCPPMangler::visit(Type *type)
 {
-    type->error(Loc(), "Unsupported type %s\n", type->toChars());
+    type->error(Loc(), "ICE: Unsupported type %s\n", type->toChars());
     assert(0); //Assert, because this error should be handled in frontend
 }
 
@@ -592,16 +692,9 @@ void ItaniumCPPMangler::visit(TypeClass *type)
         substitute(type);
 }
 
-
-struct ArgsCppMangleCtx
-{
-    ItaniumCPPMangler *mangler;
-    size_t cnt;
-};
-
 static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
 {
-    ArgsCppMangleCtx *p = (ArgsCppMangleCtx *)ctx;
+    ItaniumCPPMangler *mangler = (ItaniumCPPMangler *)ctx;
 
     Type *t = arg->type->merge2();
     if (arg->storageClass & (STCout | STCref))
@@ -620,38 +713,33 @@ static int argsCppMangleDg(void *ctx, size_t n, Parameter *arg)
     /* If it is a basic, enum or struct type,
      * then don't mark it const
      */
-    if ((t->ty == Tenum || t->ty == Tstruct || t->ty == Tpointer || t->isTypeBasic()) && (t->isConst()||t->isShared()))
-        t->mutableOf()->acceptVisitor(p->mangler);
+    if ((t->ty == Tenum || t->ty == Tstruct || t->ty == Tpointer || t->isTypeBasic()) && (t->isConst() || t->isShared()))
+        t->mutableOf()->acceptVisitor(mangler);
     else
-        t->acceptVisitor(p->mangler);
+        t->acceptVisitor(mangler);
 
-    p->cnt++;
     return 0;
 }
 
 void ItaniumCPPMangler::argsCppMangle(Parameters *arguments, int varargs)
 {
-    size_t n = 0;
     if (arguments)
-    {
-        ArgsCppMangleCtx ctx = { this, 0 };
-        Parameter::foreach(arguments, &argsCppMangleDg, &ctx);
-        n = ctx.cnt;
-    }
+        Parameter::foreach(arguments, &argsCppMangleDg, this);
+
     if (varargs)
         buf->writestring("z");
-    else if (!n)
+    else if (!arguments || !arguments->dim)
         buf->writeByte('v');            // encode ( ) arguments
 }
 
 VisualCPPMangler::VisualCPPMangler(bool isdmc):
     is_not_top_type(false),
     ignore_const(false),
-	is_dmc(isdmc)
+    is_dmc(isdmc)
 {
     buf = new OutBuffer();
-    memset(&saved_idents, 0, sizeof(saved_idents));
-    memset(&saved_types, 0, sizeof(saved_types));
+    memset(&saved_idents, 0, sizeof(const char*) * VC_SAVED_IDENT_CNT);
+    memset(&saved_types, 0, sizeof(Type*) * VC_SAVED_TYPE_CNT);
 }
 
 VisualCPPMangler::~VisualCPPMangler()
@@ -661,16 +749,13 @@ VisualCPPMangler::~VisualCPPMangler()
 
 void VisualCPPMangler::visit(Dsymbol *d)
 {
-    assert(!buf->size);
-    buf->writeByte('?');
-    mangleIdent(d);
-    buf->writeByte(0);
+    d->error(Loc(), "ICE: Unable to mangle %s\n", d->toPrettyChars());
+    assert(0);
 }
 
 void VisualCPPMangler::visit(FuncDeclaration *d)
 {
-	// <function mangle> ? <qualified name> <flags> <return type> <arg list>
-    assert(!buf->size);
+    // <function mangle> ? <qualified name> <flags> <return type> <arg list>
     assert(d);
     buf->writeByte('?');
     mangleIdent(d);
@@ -739,20 +824,19 @@ void VisualCPPMangler::visit(FuncDeclaration *d)
         buf->writeByte('Y');
     }
 
-    const char *args = mangleFunction((TypeFunction *)d->type, (bool)d->needThis());
+    const char *args = mangleFunction((TypeFunction *)d->type, (bool)d->needThis(), d->isCtorDeclaration() || d->isDtorDeclaration());
     buf->writestring(args);
     buf->writeByte(0);
 }
 
 void VisualCPPMangler::visit(VarDeclaration *d)
 {
-	// <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
-    assert(!buf->size);
+    // <static variable mangle> ::= ? <qualified name> <protection flag> <const/volatile flag> <type>
     assert(d);
     if (!(d->storage_class & (STCextern | STCgshared)))
     {
-        d->error("C++ static non- __gshared non-extern variables not supported");
-        return;
+        d->error("ICE: C++ static non- __gshared non-extern variables not supported");
+        assert(0);
     }
     buf->writeByte('?');
     mangleIdent(d);
@@ -815,7 +899,7 @@ const char *VisualCPPMangler::result()
 
 void VisualCPPMangler::visit(Type *type)
 {
-    type->error(Loc(), "Unsupported type %s\n", type->toChars());
+    type->error(Loc(), "ICE: Unsupported type %s\n", type->toChars());
     assert(0); //Assert, because this error should be handled in frontend
 }
 
@@ -827,7 +911,7 @@ void VisualCPPMangler::visit(TypeBasic *type)
         if (checkTypeSaved(type)) return;
     }
 
-    if ((type->ty == Tbool)&&checkTypeSaved(type))//try to replace long name with number
+    if ((type->ty == Tbool) && checkTypeSaved(type))//try to replace long name with number
     {
         return;
     }
@@ -1042,12 +1126,12 @@ void VisualCPPMangler::visit(TypeClass *type)
     if (checkTypeSaved(type)) return;
     if (is_not_top_type)
         mangleModifier(type);
-	buf->writeByte('P');
-	
+    buf->writeByte('P');
+    
     if (global.params.is64bit)
         buf->writeByte('E');
 
-	is_not_top_type = true;
+    is_not_top_type = true;
     mangleModifier(type);
 
     buf->writeByte('V');
@@ -1059,22 +1143,33 @@ void VisualCPPMangler::visit(TypeClass *type)
 
 void VisualCPPMangler::mangleName(Dsymbol *sym, bool dont_use_back_reference)
 {
-	const char* name = NULL;
-	TemplateInstance *ti = sym->isTemplateInstance();
-	bool is_dmc_template = false;
-	if (ti)
-	{
-		VisualCPPMangler tmp(is_dmc);
-		tmp.buf->writeByte('?');
-		tmp.buf->writeByte('$');
-		tmp.buf->writestring(ti->name->toChars());
-		tmp.buf->writeByte('@');
+    const char* name = NULL;
+    TemplateInstance *ti = sym->isTemplateInstance();
+    bool is_dmc_template = false;
+    if (sym->isCtorDeclaration())
+    {
+        buf->writestring("?0");
+        return;
+    }
+    if (sym->isDtorDeclaration())
+    {
+        buf->writestring("?1");
+        return;
+    }
+    if (ti)
+    {
+        VisualCPPMangler tmp(is_dmc);
+        tmp.buf->writeByte('?');
+        tmp.buf->writeByte('$');
+        tmp.buf->writestring(ti->name->toChars());
+        tmp.saved_idents[0] = ti->name->toChars();
+        tmp.buf->writeByte('@');
         if (is_dmc)
         {
             tmp.mangleIdent(sym->parent, true);
-			is_dmc_template = true;
+            is_dmc_template = true;
         }
-		for (size_t i = 0; i < ti->tiargs->dim; i++)
+        for (size_t i = 0; i < ti->tiargs->dim; i++)
         {
             RootObject *o = (RootObject *)(*ti->tiargs)[i];
             TemplateParameter* tp = (*ti->tempdecl->parameters)[i];
@@ -1083,16 +1178,16 @@ void VisualCPPMangler::mangleName(Dsymbol *sym, bool dont_use_back_reference)
             {
                 if (tv->valType->isintegral())
                 {
-					
-					tmp.buf->writeByte('$');
-					tmp.buf->writeByte('0');
-					
+                    
+                    tmp.buf->writeByte('$');
+                    tmp.buf->writeByte('0');
+                    
                     Expression* e = isExpression(o);
                     assert(e);
 
                     if (tv->valType->isunsigned())
                     {
-						tmp.mangleNumber(e->toUInteger());
+                        tmp.mangleNumber(e->toUInteger());
                     }
                     else
                     {
@@ -1107,72 +1202,162 @@ void VisualCPPMangler::mangleName(Dsymbol *sym, bool dont_use_back_reference)
                 }
                 else
                 {
-                    sym->error("C++ %s template value parameter is not supported", tv->valType->toChars());
-                    return;
+                    sym->error("ICE: C++ %s template value parameter is not supported", tv->valType->toChars());
+                    assert(0);
                 }
             }
             else if (tp->isTemplateTypeParameter())
             {
                 Type *t = isType(o);
                 assert(t);
-                if (is_dmc)
-                {
-                    memcpy(tmp.saved_idents, saved_idents, sizeof(saved_idents));
-                }
                 t->acceptVisitor(&tmp);
             }
-			else
-			{
-				sym->error("C++ templates support only integral value and type parameters");
-				return;
-			}
+            else if (tp->isTemplateAliasParameter())
+            {
+                Dsymbol* d = isDsymbol(o);
+                Expression* e = isExpression(o);
+                if(!d && !e)
+                {
+                    sym->error("ICE: %s is unsupported parameter for C++ template", o->toChars());
+                    assert(0);
+                }
+                if (d && d->isFuncDeclaration())
+                {
+                    tmp.buf->writeByte('$');
+                    tmp.buf->writeByte('1');
+                    d->acceptVisitor(&tmp);
+                    tmp.buf->offset -= 1; //remove end \0
+                }
+                else if (e && e->op == TOKvar && ((VarExp*)e)->var->isVarDeclaration())
+                {
+                    tmp.buf->writeByte('$');
+                    if (is_dmc)
+                        tmp.buf->writeByte('1');
+                    else
+                        tmp.buf->writeByte('E');
+                    ((VarExp*)e)->var->isVarDeclaration()->acceptVisitor(&tmp);
+                    tmp.buf->offset -= 1; //remove end \0
+                }
+                else if (d && d->isTemplateDeclaration() && d->isTemplateDeclaration()->onemember)
+                {
+
+                    Dsymbol *ds = d->isTemplateDeclaration()->onemember;
+                    if (is_dmc)
+                    {
+                        tmp.buf->writeByte('V');
+                    }
+                    else
+                    {
+                        if (ds->isUnionDeclaration())
+                        {
+                            tmp.buf->writeByte('T');
+                        }
+                        else if (ds->isStructDeclaration())
+                        {
+                            tmp.buf->writeByte('U');
+                        }
+                        else if (ds->isClassDeclaration())
+                        {
+                            tmp.buf->writeByte('V');
+                        }
+                        else
+                        {
+                            sym->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                            assert(0);
+                        }
+                    }
+                    tmp.mangleIdent(d);
+                }
+                else
+                {
+                    sym->error("ICE: %s is unsupported parameter for C++ template: (%s)", o->toChars());
+                    assert(0);
+                }
+               
+            }
+            else
+            {
+                sym->error("ICE: C++ templates support only integral value , type parameters, alias templates and alias function parameters");
+                assert(0);
+            }
         }
         tmp.buf->writeByte('\0');
-		name = tmp.result();
-	}
-	else
-	{
-		name = sym->ident->toChars();
-	}
-    assert(name);
-	if (!is_dmc_template && !dont_use_back_reference)
+        name = tmp.result();
+    }
+    else
     {
-        for (size_t i=0; i<10; i++)
+        name = sym->ident->toChars();
+    }
+    assert(name);
+    if (!is_dmc_template)
+    {
+        if (dont_use_back_reference)
         {
-            if (!saved_idents[i]) //no saved same name
-            {
-               saved_idents[i] = name;
-               break;
-            }
-
-            if (!strcmp(saved_idents[i], name)) //ok, we've found same name. use index instead of name
-            {
-                buf->writeByte(i + '0');
-                return;
-            }
+            saveIdent(name);
+        }
+        else
+        {
+            if (checkAndSaveIdent(name)) return;
         }
     }
     buf->writestring(name);
     buf->writeByte('@');
 }
 
+//returns true if name already saved
+bool VisualCPPMangler::checkAndSaveIdent(const char *name)
+{
+    for (size_t i=0; i<VC_SAVED_IDENT_CNT; i++)
+    {
+        if (!saved_idents[i]) //no saved same name
+        {
+           saved_idents[i] = name;
+           break;
+        }
+
+        if (!strcmp(saved_idents[i], name)) //ok, we've found same name. use index instead of name
+        {
+            buf->writeByte(i + '0');
+            return true;
+        }
+    }
+    return false;
+}
+
+void VisualCPPMangler::saveIdent(const char *name)
+{
+    for (size_t i=0; i<VC_SAVED_IDENT_CNT; i++)
+    {
+        if (!saved_idents[i]) //no saved same name
+        {
+           saved_idents[i] = name;
+           break;
+        }
+
+        if (!strcmp(saved_idents[i], name)) //ok, we've found same name. use index instead of name
+        {
+            return;
+        }
+    }
+}
+
 void VisualCPPMangler::mangleIdent(Dsymbol *sym, bool dont_use_back_reference)
 {
-	// <qualified name> ::= <sub-name list> @
-	// <sub-name list>  ::= <sub-name> <name parts>
-	//                  ::= <sub-name>
-	
-	// <sub-name> ::= <identifier> @
-	//            ::= ?$ <identifier> @ <template args> @
-	//            :: <back reference>
-	
-	//<back reference> ::= 0-9
-	
-	//<template args> ::= <template arg> <template args>
-	//                ::= <template arg>
-	
-	//<template arg>  ::= <type>
-	//                ::= $0<encoded integral number>
+    // <qualified name> ::= <sub-name list> @
+    // <sub-name list>  ::= <sub-name> <name parts>
+    //                  ::= <sub-name>
+    
+    // <sub-name> ::= <identifier> @
+    //            ::= ?$ <identifier> @ <template args> @
+    //            :: <back reference>
+    
+    //<back reference> ::= 0-9
+    
+    //<template args> ::= <template arg> <template args>
+    //                ::= <template arg>
+    
+    //<template arg>  ::= <type>
+    //                ::= $0<encoded integral number>
 
     Dsymbol *p = sym;
     if (p->toParent() && p->toParent()->isTemplateInstance())
@@ -1181,8 +1366,8 @@ void VisualCPPMangler::mangleIdent(Dsymbol *sym, bool dont_use_back_reference)
     }
     while (p && !p->isModule())
     {
-	
-		mangleName(p, dont_use_back_reference);
+    
+        mangleName(p, dont_use_back_reference);
 
         p = p->toParent();
         if (p->toParent() && p->toParent()->isTemplateInstance())
@@ -1223,7 +1408,7 @@ void VisualCPPMangler::mangleNumber(uint64_t num)
 bool VisualCPPMangler::checkTypeSaved(Type *type)
 {
     if (is_not_top_type) return false;
-    for (size_t i=0; i<10; i++)
+    for (size_t i=0; i<VC_SAVED_TYPE_CNT; i++)
     {
         if (!saved_types[i]) //no saved same type
         {
@@ -1292,7 +1477,7 @@ void VisualCPPMangler::mangleArray(TypeSArray *type)
     cur->acceptVisitor(this);
 }
 
-const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis)
+const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis, bool noreturn)
 {
     OutBuffer tmpbuf;
     OutBuffer *oldbuf = buf; //save base buffer
@@ -1328,15 +1513,22 @@ const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis)
                 break;
         }
     }
-    Type *rettype = type->next;
-    if (type->isref)
-        rettype = rettype->referenceTo();
-	bool intt = is_not_top_type;
+    
+    bool intt = is_not_top_type;
     is_not_top_type = false;
-    ignore_const = false;
+    if (noreturn)
+    {
+        buf->writeByte('@');
+    }
+    else
+    {
+        Type *rettype = type->next;
+        if (type->isref)
+            rettype = rettype->referenceTo();
+        ignore_const = false;
 
-    rettype->acceptVisitor(this);
-
+        rettype->acceptVisitor(this);
+    }
     if (!type->parameters || !type->parameters->dim)
     {
         if (type->varargs == 1)
@@ -1365,7 +1557,7 @@ const char *VisualCPPMangler::mangleFunction(TypeFunction *type, bool needthis)
     const char *ret = buf->extractData();
 
     buf = oldbuf; //restore base buffer
-	is_not_top_type = intt;
+    is_not_top_type = intt;
     return ret;
 }
 

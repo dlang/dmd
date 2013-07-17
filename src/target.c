@@ -9,8 +9,8 @@
 
 #include <assert.h>
 
-#include "target.h"
 #include "mars.h"
+#include "target.h"
 #include "mtype.h"
 #include "mangle.h"
 #include "dsymbol.h"

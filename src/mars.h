@@ -380,7 +380,6 @@ enum LINK
     LINKcpp,
     LINKwindows,
     LINKpascal,
-    LINKmax,
 };
 
 enum DYNCAST
