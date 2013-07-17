@@ -427,7 +427,7 @@ version ( D_SIMD )
    *    op1 op= op2
    * Returns:
    *    op2
-   * These cannot be market as pure, as semantic() doesn't check them.
+   * These cannot be marked as pure, as semantic() doesn't check them.
    */
   @safe void16 __simd_sto(XMM opcode, void16 op1, void16 op2);
   @safe void16 __simd_sto(XMM opcode, double op1, void16 op2); ///
