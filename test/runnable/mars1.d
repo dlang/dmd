@@ -918,6 +918,19 @@ void testor_combine()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+
+int shrshl(int i) {
+  return ((i+1)>>1)<<1;
+}
+
+void testshrshl()
+{
+    assert(shrshl(6) == 6);
+    assert(shrshl(7) == 8);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -939,6 +952,7 @@ int main()
     testbt();
     testandand();
     testor_combine();
+    testshrshl();
     printf("Success\n");
     return 0;
 }
