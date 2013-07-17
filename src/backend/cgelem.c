@@ -4459,6 +4459,22 @@ STATIC elem *elshl(elem *e, goal_t goal)
     {   e->E1->Ety = e->Ety;
         e = el_selecte1(e);             // (0 << e2) => 0
     }
+    if (OPTIMIZER &&
+        e->E2->Eoper == OPconst &&
+        (e->E1->Eoper == OPshr || e->E1->Eoper == OPashr) &&
+        e->E1->E2->Eoper == OPconst &&
+        el_tolong(e->E2) == el_tolong(e->E1->E2))
+    {   /* Rewrite:
+         *  (x >> c) << c)
+         * with:
+         *  x & ~((1 << c) - 1);
+         */
+        targ_ullong c = el_tolong(e->E2);
+        e = el_selecte1(e);
+        e = el_selecte1(e);
+        e = el_bin(OPand, e->Ety, e, el_long(e->Ety, ~((1ULL << c) - 1)));
+        return optelem(e, goal);
+    }
     return e;
 }
 
