@@ -1984,8 +1984,19 @@ bool isCtfeValueValid(Expression *newval)
         if (ie->e2->op == TOKvar)
             return true;
     }
-    if (newval->op == TOKfunction) return true; // function/delegate literal
-    if (newval->op == TOKdelegate) return true;
+
+    if (newval->op == TOKfunction)
+        return true; // function literal or delegate literal
+
+    if (newval->op == TOKdelegate)
+    {
+        Expression *dge = ((DelegateExp *)newval)->e1;
+        if (dge->op == TOKvar && ((VarExp *)dge)->var->isFuncDeclaration())
+            return true;        // &nestedfunc
+
+        if (dge->op == TOKstructliteral || dge->op == TOKclassreference)
+            return true;       // &struct.func or &clasinst.func
+    }
     if (newval->op == TOKsymoff)  // function pointer
     {
         if (((SymOffExp *)newval)->var->isFuncDeclaration())
@@ -1993,6 +2004,7 @@ bool isCtfeValueValid(Expression *newval)
         if (((SymOffExp *)newval)->var->isDataseg())
             return true;    // pointer to static variable
     }
+
     if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
         newval->op == TOKchar || newval->op == TOKcomplex80)
         return true;

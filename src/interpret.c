@@ -2085,7 +2085,27 @@ Expression *DelegateExp::interpret(InterState *istate, CtfeGoal goal)
 #if LOG
     printf("%s DelegateExp::interpret() %s\n", loc.toChars(), toChars());
 #endif
-    return this;
+    // TODO: Really we should create a CTFE-only delegate expression
+    // of a pointer and a funcptr.
+
+    // If it is &nestedfunc, just return it
+    // TODO: We should save the context pointer
+    if (e1->op == TOKvar && ((VarExp *)e1)->var->isFuncDeclaration())
+        return this;
+
+    // If it has already been CTFE'd, just return it
+    if (e1->op == TOKstructliteral || e1->op == TOKclassreference)
+        return this;
+
+    // Else change it into &structliteral.func or &classref.func
+    Expression *e = e1->interpret(istate, ctfeNeedLvalue);
+
+    if (exceptionOrCantInterpret(e))
+        return e;
+
+    e = new DelegateExp(loc, e, func);
+    e->type = type;
+    return e;
 }
 
 
