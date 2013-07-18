@@ -11525,9 +11525,9 @@ Ltupleassign:
             // Disallow da   = sa (Converted to da   = sa[])
             const char* e1str = e1->toChars();
             const char* e2str = e2->toChars();
+            const char* atypestr = e1->op == TOKslice ? "element-wise" : "slice";
             warning("explicit %s assignment %s = (%s)[] is better than %s = %s",
-                e1->op == TOKslice ? "element-wise" : "slice",
-                e1str, e2str, e1str, e2str);
+                atypestr, e1str, e2str, e1str, e2str);
         }
         e2 = e2->implicitCastTo(sc, e1->type);
     }
