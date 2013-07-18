@@ -1506,16 +1506,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                     case Tsarray:
                     case Tarray:
                     {   // Create a static array variable v of type arg->type
-#ifdef IN_GCC
-                        /* GCC 4.0 does not like zero length arrays used like
-                           this; pass a null array value instead. Could also
-                           just make a one-element array. */
-                        if (nargs - i == 0)
-                        {
-                            arg = new NullExp(loc);
-                            break;
-                        }
-#endif
                         Identifier *id = Lexer::uniqueId("__arrayArg");
                         Type *t = new TypeSArray(((TypeArray *)tb)->next, new IntegerExp(nargs - i));
                         t = t->semantic(loc, sc);
