@@ -931,6 +931,25 @@ void testshrshl()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+struct S1 
+{ 
+    cdouble val; 
+}
+
+void formatTest(S1 s, double re, double im)
+{
+    assert(s.val.re == re);
+    assert(s.val.im == im);
+}
+
+void test10639()
+{
+    S1 s = S1(3+2.25i);
+    formatTest(s, 3, 2.25);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -953,6 +972,7 @@ int main()
     testandand();
     testor_combine();
     testshrshl();
+    test10639();
     printf("Success\n");
     return 0;
 }

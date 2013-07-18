@@ -513,29 +513,37 @@ code *cdeq(elem *e,regm_t *pretregs)
                     // MOV EA,reg
                     regm_t rregm = allregs & ~idxregm(&cs);
                     unsigned reg;
-                    cl = regwithvalue(cl,rregm,e2->EV.Vpointer,&reg,64);
+                    cl = regwithvalue(cl,rregm,*p,&reg,64);
                     cs.Iop = 0x89;
                     cs.Irm |= modregrm(0,reg & 7,0);
                     if (reg & 8)
                         cs.Irex |= REX_R;
-                    c = gen(cl,&cs);
-                    freenode(e2);
-                    goto Lp;
+                    cl = gen(cl,&cs);
                 }
                 else
-                {   int regsize;
-
-                    i = sz;
+                {
+                    int i = sz;
                     do
-                    {   regsize = REGSIZE;
-                        retregs = (sz == 1) ? BYTEREGS : allregs;
+                    {   int regsize = REGSIZE;
                         if (i >= 4 && I16 && I386)
                         {
                             regsize = 4;
                             cs.Iflags |= CFopsize;      // use opsize to do 32 bit operation
                         }
+                        else if (I64 && sz == 16 && *p >= 0x80000000)
+                        {
+                            regm_t rregm = allregs & ~idxregm(&cs);
+                            unsigned reg;
+                            cl = regwithvalue(cl,rregm,*p,&reg,64);
+                            cs.Iop = 0x89;
+                            cs.Irm |= modregrm(0,reg & 7,0);
+                            if (reg & 8)
+                                cs.Irex |= REX_R;
+                        }
                         else
                         {
+                            regm_t retregs = (sz == 1) ? BYTEREGS : allregs;
+                            unsigned reg;
                             if (reghasvalue(retregs,*p,&reg))
                             {
                                 cs.Iop = (cs.Iop & 1) | 0x88;
