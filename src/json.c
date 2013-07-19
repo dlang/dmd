@@ -395,7 +395,7 @@ void JsonOut::propertyStorageClass(const char *name, StorageClass stc)
         {   char tmp[20];
             const char *p = StorageClassDeclaration::stcToChars(tmp, stc);
             assert(p);
-            assert(strlen(p) < sizeof(tmp));
+            assert(strlen(p) < sizeof(tmp) / sizeof(tmp[0]));
             if (p[0] == '@')
             {
                 indent();
