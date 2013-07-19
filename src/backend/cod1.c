@@ -3113,6 +3113,10 @@ STATIC code * funccall(elem *e,unsigned numpara,unsigned numalign,regm_t *pretre
         assert(!I16 || (e11ty == TYnptr));
 #endif
         c = cat(c, load_localgot());
+#if TARGET_LINUX || TARGET_FREEBSD || TARGET_OPENBSD || TARGET_SOLARIS
+        if (config.flags3 & CFG3pic && I32)
+            keepmsk |= mBX;
+#endif
 
         /* Mask of registers destroyed by the function call
          */
