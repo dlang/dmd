@@ -5035,6 +5035,7 @@ LabelStatement::LabelStatement(Loc loc, Identifier *ident, Statement *statement)
     this->ident = ident;
     this->statement = statement;
     this->tf = NULL;
+    this->gotoTarget = NULL;
     this->lblock = NULL;
     this->fwdrefs = NULL;
 }
