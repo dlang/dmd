@@ -897,7 +897,7 @@ Expression *EqualExp::op_overload(Scope *sc)
     {   ClassDeclaration *cd1 = t1->isClassHandle();
         ClassDeclaration *cd2 = t2->isClassHandle();
 
-        if (!(cd1->isCPPinterface() || cd2->isCPPinterface()))
+        if (!(cd1->cpp || cd2->cpp))
         {
             /* Rewrite as:
              *      .object.opEquals(e1, e2)
