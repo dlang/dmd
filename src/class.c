@@ -524,7 +524,8 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         // No base class, so this is the root of the class hierarchy
         vtbl.setDim(0);
-        vtbl.push(this);                // leave room for classinfo as first member
+        if (vtblOffset())
+            vtbl.push(this);            // leave room for classinfo as first member
     }
 
     protection = sc->protection;
@@ -1214,7 +1215,7 @@ bool ClassDeclaration::isAbstract()
 
 int ClassDeclaration::vtblOffset()
 {
-    return 1;
+    return (com || cpp) ? 0 : 1;
 }
 
 /****************************************

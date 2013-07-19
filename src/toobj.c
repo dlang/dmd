@@ -635,8 +635,9 @@ void ClassDeclaration::toObjFile(int multiobj)
     // Put out the vtbl[]
     //printf("putting out %s.vtbl[]\n", toChars());
     dt = NULL;
-    dtxoff(&dt, csym, 0, TYnptr);           // first entry is ClassInfo reference
-    for (size_t i = 1; i < vtbl.dim; i++)
+    if (vtblOffset())
+        dtxoff(&dt, csym, 0, TYnptr);           // first entry is ClassInfo reference
+    for (size_t i = vtblOffset(); i < vtbl.dim; i++)
     {
         FuncDeclaration *fd = vtbl[i]->isFuncDeclaration();
 
