@@ -7805,8 +7805,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             Dsymbol *vparent = var->toParent();
             AggregateDeclaration *ad = vparent ? vparent->isAggregateDeclaration() : NULL;
             e1 = getRightThis(loc, sc, ad, e1, var);
-            if (!sc->noaccesscheck)
-                accessCheck(loc, sc, e1, var);
+            accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
 #if PULL93
