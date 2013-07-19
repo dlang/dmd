@@ -325,7 +325,8 @@ Expression *TraitsExp::semantic(Scope *sc)
                 error("argument %s has no protection", o->toChars());
             goto Lfalse;
         }
-
+        if (s->scope)
+            s->semantic(s->scope);
         PROT protection = s->prot();
 
         const char *protName = Pprotectionnames[protection];
