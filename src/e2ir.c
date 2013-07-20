@@ -2049,7 +2049,8 @@ elem *AssertExp::toElem(IRState *irs)
 
         // If e1 is a class object, call the class invariant on it
         if (global.params.useInvariants && t1->ty == Tclass &&
-            !((TypeClass *)t1)->sym->isInterfaceDeclaration())
+            !((TypeClass *)t1)->sym->isInterfaceDeclaration() &&
+            !((TypeClass *)t1)->sym->isCPPclass())
         {
             ts = symbol_genauto(t1->toCtype());
             int rtl;

@@ -3381,7 +3381,8 @@ bool FuncDeclaration::needThis()
 bool FuncDeclaration::addPreInvariant()
 {
     AggregateDeclaration *ad = isThis();
-    return (ad &&
+    ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+    return (ad && !(cd && cd->isCPPclass()) &&
             //ad->isClassDeclaration() &&
             global.params.useInvariants &&
             (protection == PROTprotected || protection == PROTpublic || protection == PROTexport) &&
@@ -3392,7 +3393,8 @@ bool FuncDeclaration::addPreInvariant()
 bool FuncDeclaration::addPostInvariant()
 {
     AggregateDeclaration *ad = isThis();
-    return (ad &&
+    ClassDeclaration *cd = ad ? ad->isClassDeclaration() : NULL;
+    return (ad && !(cd && cd->isCPPclass()) &&
             ad->inv &&
             //ad->isClassDeclaration() &&
             global.params.useInvariants &&
