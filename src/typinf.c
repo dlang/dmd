@@ -29,6 +29,8 @@
 
 #include "dt.h"
 
+Parameters *Parameters_create();
+
 /*
  * Used in TypeInfo*::toDt to verify the runtime TypeInfo sizes
  */
@@ -771,7 +773,7 @@ Expression *createTypeInfoArray(Scope *sc, Expression *exps[], size_t dim)
      * at the start of the called function by offseting into the TypeInfo_Tuple
      * reference.
      */
-    Parameters *args = new Parameters;
+    Parameters *args = Parameters_create();
     args->setDim(dim);
     for (size_t i = 0; i < dim; i++)
     {   Parameter *arg = Parameter::create(STCin, exps[i]->type, NULL, NULL);
