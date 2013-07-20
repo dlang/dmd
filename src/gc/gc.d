@@ -660,6 +660,7 @@ class GC
                         }
                         if(alloc_size)
                             *alloc_size = newsz * PAGESIZE;
+                        gcx.updateCaches(p, newsz * PAGESIZE);
                         return p;
                     }
                     else if (pagenum + newsz <= pool.npages)
@@ -679,6 +680,7 @@ class GC
                             *alloc_size = newsz * PAGESIZE;
                         pool.freepages -= (newsz - psz);
                         debug(PRINTF) printFreeInfo(pool);
+                        gcx.updateCaches(p, newsz * PAGESIZE);
                         return p;
 
                     Lno:
@@ -786,10 +788,7 @@ class GC
         memset(pool.pagetable + pagenum + psz, B_PAGEPLUS, sz);
         pool.updateOffsets(pagenum);
         pool.freepages -= sz;
-        if (p == gcx.cached_size_key)
-            gcx.cached_size_val = (psz + sz) * PAGESIZE;
-        if (p == gcx.cached_info_key)
-            gcx.cached_info_val.size = (psz + sz) * PAGESIZE;
+        gcx.updateCaches(p, (psz + sz) * PAGESIZE);
         return (psz + sz) * PAGESIZE;
     }
 
@@ -1757,6 +1756,13 @@ struct Gcx
         return info;
     }
 
+    void updateCaches(void*p, size_t size)
+    {
+        if (USE_CACHE && p == cached_size_key)
+            cached_size_val = size;
+        if (p == cached_info_key)
+            cached_info_val.size = size;
+    }
 
     /**
      * Compute bin for size.

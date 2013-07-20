@@ -568,6 +568,16 @@ struct GC
         return gc_sizeOf( p );
     }
 
+    // verify that the reallocation doesn't leave the size cache in a wrong state
+    unittest
+    {
+        auto data = cast(int*)realloc(null, 4096);
+        size_t size = GC.sizeOf(data);
+        assert(size >= 4096);
+        data = cast(int*)GC.realloc(data, 4100);
+        size = GC.sizeOf(data);
+        assert(size >= 4100);
+    }
 
     /**
      * Returns aggregate information about the memory block containing p.  If p
