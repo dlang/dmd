@@ -262,7 +262,15 @@ bool Module::read(Loc loc)
         }
         else
         {
-            error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
+            // if module is not named 'package' but we're trying to read 'package.d', we're looking for a package module
+            bool isPackageMod = (strcmp(toChars(), "package") != 0) &&
+                                (strcmp(srcfile->name->name(), "package.d") == 0);
+
+            if (isPackageMod)
+                ::error(loc, "importing package '%s' requires a 'package.d' file which cannot be found in '%s'",
+                    toChars(), srcfile->toChars());
+            else
+                error(loc, "is in file '%s' which cannot be read", srcfile->toChars());
         }
 
         if (!global.gag)
