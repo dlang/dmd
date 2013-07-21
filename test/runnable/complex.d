@@ -324,6 +324,24 @@ void test8966()
 
 /***************************************/
 
+void formatTest2(cfloat s, double re, double im)
+{
+    assert(s.re == re);
+    assert(s.im == im);
+}
+
+cfloat getcf()
+{
+    return 2 + 1i;
+}
+
+void test10677()
+{
+    formatTest2( getcf(), 2, 1 );
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -346,6 +364,7 @@ int main(char[][] args)
     test7593();
     test7591();
     test8966();
+    test10677();
 
     printf("Success!\n");
     return 0;
