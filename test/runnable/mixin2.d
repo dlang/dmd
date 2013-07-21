@@ -234,6 +234,55 @@ class derived10577 : base10577
 }
 
 /*********************************************/
+// 10583
+
+enum sync10583;
+
+public template get_sync10583(size_t I, A...)
+{
+    static if (I == A.length)
+        enum bool get_sync10583 = false;
+    else static if (is(A[I] == sync10583))
+        enum bool get_sync10583 = true;
+    else
+        enum bool get_sync10583 = get_sync10583!(I+1, A);
+}
+
+template add_sync10583(T, size_t ITER = 0)
+{
+    static if (ITER == (__traits(derivedMembers, T).length))
+    {
+        enum string add_sync10583 = "";
+    }
+    else
+    {
+        enum string mem = __traits(derivedMembers, T)[ITER];
+        enum string add_sync10583 =
+            "mixin(add_sync10583!(get_sync10583!(0, __traits(getAttributes, "
+            ~ mem ~ ")), __traits(getProtection, "
+            ~ mem ~ "), \"" ~ mem ~ "\"));\n" ~ add_sync10583!(T, ITER+1);
+    }
+}
+
+template add_sync10583(bool A, string P, string M)
+{
+    static if (A)
+    {
+        enum string add_sync10583 = " auto " ~ M[1..$] ~
+            "() { synchronized(this) return " ~ M ~ "; }";
+    }
+    else
+        enum string add_sync10583 = "";
+}
+
+class derived10583
+{
+    mixin(add_sync10583!(derived10583));
+    @sync10583 private bool _bar;
+    void frop() {}
+}
+
+/*********************************************/
 
 void main()
 {
