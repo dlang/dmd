@@ -609,19 +609,10 @@ void ClassDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        /* There are problems doing this in the general case because
-         * Scope keeps track of things like 'offset'
-         */
-        if (s->isEnumDeclaration() ||
-            (s->isAggregateDeclaration() && s->ident) ||
-            s->isTemplateMixin() ||
-            s->isAttribDeclaration() ||
-            s->isAliasDeclaration())
-        {
-            //printf("[%d] setScope %s %s, sc = %p\n", i, s->kind(), s->toChars(), sc);
-            s->setScope(sc);
-        }
+    {
+        Dsymbol *s = (*members)[i];
+        //printf("[%d] setScope %s %s, sc = %p\n", i, s->kind(), s->toChars(), sc);
+        s->setScope(sc);
     }
 
     for (size_t i = 0; i < members_dim; i++)

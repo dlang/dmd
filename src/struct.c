@@ -539,15 +539,10 @@ void StructDeclaration::semantic(Scope *sc)
      * resolve individual members like enums.
      */
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
-        /* There are problems doing this in the general case because
-         * Scope keeps track of things like 'offset'
-         */
-        //if (s->isEnumDeclaration() || (s->isAggregateDeclaration() && s->ident))
-        {
-            //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
-            s->setScope(sc2);
-        }
+    {
+        Dsymbol *s = (*members)[i];
+        //printf("struct: setScope %s %s\n", s->kind(), s->toChars());
+        s->setScope(sc2);
     }
 
     for (size_t i = 0; i < members->dim; i++)
