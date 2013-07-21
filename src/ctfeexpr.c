@@ -1111,6 +1111,8 @@ bool isCtfeComparable(Expression *e)
     if (x->isConst() != 1 &&
         x->op != TOKnull &&
         x->op != TOKstring &&
+        x->op != TOKfunction &&
+        x->op != TOKdelegate &&
         x->op != TOKarrayliteral &&
         x->op != TOKstructliteral &&
         x->op != TOKclassreference)
@@ -1308,6 +1310,21 @@ int ctfeCmpArrays(Loc loc, Expression *e1, Expression *e2, uinteger_t len)
     return 0;
 }
 
+/* Given a delegate expression e, return .funcptr.
+ * If e is NullExp, return NULL.
+ */
+FuncDeclaration *funcptrOf(Expression *e)
+{
+    assert(e->type->ty == Tdelegate);
+
+    if (e->op == TOKdelegate)
+        return ((DelegateExp *)e)->func;
+    if (e->op == TOKfunction)
+        return ((FuncExp *)e)->fd;
+    assert(e->op == TOKnull);
+    return NULL;
+}
+
 bool isArray(Expression *e)
 {
     return e->op == TOKarrayliteral || e->op == TOKstring ||
@@ -1325,13 +1342,16 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             return 0;
         return 1;
     }
+
+    // null == null, regardless of type
+
     if (e1->op == TOKnull && e2->op == TOKnull)
         return 0;
 
     if (e1->type->ty == Tpointer && e2->type->ty == Tpointer)
-    {    // Can only be an equality test.
-        if (e1->op == TOKnull && e2->op == TOKnull)
-            return 0;
+    {
+        // Can only be an equality test.
+
         dinteger_t ofs1, ofs2;
         Expression *agg1 = getAggregateFromPointer(e1, &ofs1);
         Expression *agg2 = getAggregateFromPointer(e2, &ofs2);
@@ -1339,6 +1359,35 @@ int ctfeRawCmp(Loc loc, Expression *e1, Expression *e2)
             ((VarExp *)agg1)->var == ((VarExp *)agg2)->var))
         {   if (ofs1 == ofs2)
                 return 0;
+        }
+        return 1;
+    }
+    if (e1->type->ty == Tdelegate && e2->type->ty == Tdelegate)
+    {
+        // If .funcptr isn't the same, they are not equal
+
+        if (funcptrOf(e1) != funcptrOf(e2))
+            return 1;
+
+        // If both are delegate literals, assume they have the
+        // same closure pointer. TODO: We don't support closures yet!
+        if (e1->op == TOKfunction && e2->op == TOKfunction)
+            return 0;
+        assert(e1->op == TOKdelegate && e2->op == TOKdelegate);
+
+        // Same .funcptr. Do they have the same .ptr?
+        Expression * ptr1 = ((DelegateExp *)e1)->e1;
+        Expression * ptr2 = ((DelegateExp *)e2)->e1;
+
+        dinteger_t ofs1, ofs2;
+        Expression *agg1 = getAggregateFromPointer(ptr1, &ofs1);
+        Expression *agg2 = getAggregateFromPointer(ptr2, &ofs2);
+        // If they are TOKvar, it means they are FuncDeclarations
+        if ((agg1 == agg2 && ofs1 == ofs2) ||
+            (agg1->op == TOKvar && agg2->op == TOKvar &&
+             ((VarExp *)agg1)->var == ((VarExp *)agg2)->var))
+        {
+            return 0;
         }
         return 1;
     }
@@ -1984,8 +2033,19 @@ bool isCtfeValueValid(Expression *newval)
         if (ie->e2->op == TOKvar)
             return true;
     }
-    if (newval->op == TOKfunction) return true; // function/delegate literal
-    if (newval->op == TOKdelegate) return true;
+
+    if (newval->op == TOKfunction)
+        return true; // function literal or delegate literal
+
+    if (newval->op == TOKdelegate)
+    {
+        Expression *dge = ((DelegateExp *)newval)->e1;
+        if (dge->op == TOKvar && ((VarExp *)dge)->var->isFuncDeclaration())
+            return true;        // &nestedfunc
+
+        if (dge->op == TOKstructliteral || dge->op == TOKclassreference)
+            return true;       // &struct.func or &clasinst.func
+    }
     if (newval->op == TOKsymoff)  // function pointer
     {
         if (((SymOffExp *)newval)->var->isFuncDeclaration())
@@ -1993,6 +2053,7 @@ bool isCtfeValueValid(Expression *newval)
         if (((SymOffExp *)newval)->var->isDataseg())
             return true;    // pointer to static variable
     }
+
     if (newval->op == TOKint64 || newval->op == TOKfloat64 ||
         newval->op == TOKchar || newval->op == TOKcomplex80)
         return true;
