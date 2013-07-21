@@ -1252,6 +1252,119 @@ void test10597()
 }
 
 /**************************************/
+// 10567
+
+// doesn't require thunk
+struct S10567x1n { int value; int opCmp(ref const S10567x1n rhs) const { return 0; } }
+
+// requires thunk
+struct S10567y1n { int value; int opCmp(const S10567y1n rhs) const { return 0; } }
+struct S10567y1t { int value; int opCmp(S)(const S rhs) const { return 0; } }
+
+// doesn't support const comparison
+struct S10567z1n { int value; int opCmp(const S10567z1n rhs) { return 0; } }
+struct S10567z1t { int value; int opCmp(S)(const S rhs) { return 0; } }
+
+/+
+struct S10567x2n { S10567x1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567y2n { S10567y1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+struct S10567y2t { S10567y1t s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567z2n { S10567z1n s; this(int n) { s = typeof(s)(n); } alias s this; }
+struct S10567z2t { S10567z1t s; this(int n) { s = typeof(s)(n); } alias s this; }
+
+struct S10567d1
+{
+    int value;
+    int opDispatch(string name, S)(const S rhs) const if (name == "opCmp")
+    { assert(0); }
+}
+struct S10567d2
+{
+    int value;
+    template opDispatch(string name) if (name == "opCmp")
+    {
+        int opDispatch(const S rhs) const
+        { assert(0); }
+    }
+}
+
+// recursive alias this + opCmp searching
+struct S10567r1
+{
+    static S10567r2 t;
+    ref S10567r2 payload() { return t; }
+    alias payload this;
+
+    int opCmp(const S10567r1 s) const { return 0; }
+}
+struct S10567r2
+{
+    static S10567r1 s;
+    ref S10567r1 payload() { return s; }
+    alias payload this;
+}
++/
+
+void test10567()
+{
+    foreach (S; Seq!(S10567x1n/+, S10567x2n+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        assert(typeid(S).compare(&sx, &sy) == 0);
+        static if (is(S == S10567x1n))
+            assert(cast(void*)typeid(S).xopCmp == cast(void*)&S.opCmp, S.stringof);
+    }
+
+    foreach (S; Seq!(S10567y1n, S10567y1t/+, S10567y2n, S10567y2t+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        assert(typeid(S).compare(&sx, &sy) == 0);
+    }
+
+    foreach (S; Seq!(S10567z1n, S10567z1t/+, S10567z2n, S10567z2t+/))
+    {
+        S sx = S(1);
+        S sy = S(2);
+        assert(!(sx < sy) && !(sx > sy));
+        assert(sx.opCmp(sy) == 0);
+
+        try
+        {
+            auto x = typeid(S).compare(&sx, &sy);
+            assert(0);
+        }
+        catch (Error e) { assert(e.msg[$-15 .. $] == "not implemented"); }
+    }
+/+
+    foreach (S; Seq!(S10567d1, S10567d2))
+    {
+        int[S] aa;
+        aa[S(1)] = 10;  aa[S(1)] = 1;
+        aa[S(2)] = 20;  aa[S(2)] = 2;
+        assert(aa.length == 2);
+        foreach (k, v; aa)
+            assert(k.value == v);
+
+        S sx = S(1);
+        S sy = S(2);
+
+        // Don't invoke opDispatch!"opCmp"
+        assert(typeid(S).compare(&sx, &sy) != 0);
+    }
++/
+}
+
+/**************************************/
 
 int main()
 {
@@ -1284,6 +1397,7 @@ int main()
     test9689();
     test9694();
     test10064();
+    test10567();
 
     printf("Success\n");
     return 0;

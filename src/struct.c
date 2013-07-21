@@ -22,6 +22,7 @@
 #include "template.h"
 
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
+FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
 /********************************* AggregateDeclaration ****************************/
 
@@ -111,6 +112,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
             //assert(sd->xeq == NULL);
             if (sd->xeq == NULL)
                 sd->xeq = sd->buildXopEquals(sc);
+            if (sd->xcmp == NULL)
+                sd->xcmp = sd->buildXopCmp(sc);
         }
         sc = sc->pop();
 
@@ -432,6 +435,7 @@ StructDeclaration::StructDeclaration(Loc loc, Identifier *id)
     postblit = NULL;
 
     xeq = NULL;
+    xcmp = NULL;
     alignment = 0;
 #endif
     arg1type = NULL;
