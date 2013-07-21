@@ -143,7 +143,9 @@ public:
     FuncDeclaration *postblit;  // aggregate postblit
 
     FuncDeclaration *xeq;       // TypeInfo_Struct.xopEquals
+    FuncDeclaration *xcmp;      // TypeInfo_Struct.xopCmp
     static FuncDeclaration *xerreq;      // object.xopEquals
+    static FuncDeclaration *xerrcmp;     // object.xopCmp
 
     structalign_t alignment;    // alignment applied outside of the struct
 #endif
@@ -172,6 +174,7 @@ public:
     FuncDeclaration *buildCpCtor(Scope *sc);
     FuncDeclaration *buildOpEquals(Scope *sc);
     FuncDeclaration *buildXopEquals(Scope *sc);
+    FuncDeclaration *buildXopCmp(Scope *sc);
 #endif
     void toDocBuffer(OutBuffer *buf, Scope *sc);
 
