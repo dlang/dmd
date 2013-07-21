@@ -854,6 +854,8 @@ RET TypeFunction::retStyle()
 
     if (global.params.isWindows && global.params.is64bit)
     {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+        if (tns->ty == Tcomplex32)
+            return RETstack;
         if (tns->isscalar())
             return RETregs;
 
