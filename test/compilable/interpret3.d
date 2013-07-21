@@ -1620,16 +1620,28 @@ static assert(bug6001h());
 
 /**************************************************
    10243 wrong code *&arr as ref parameter
+   10551 wrong code (&arr)[0] as ref parameter
 **************************************************/
 
 void bug10243(ref int n)
 { n = 3; }
+
+void bug10551(int *p)
+{
+   bug10243(p[0]);
+}
 
 bool test10243()
 {
     int[1] arr;
     bug10243(*arr.ptr);
     assert(arr[0] == 3);
+    int [1] arr2;
+    bug10551(arr2.ptr);
+    assert(arr2[0] == 3);
+    int v;
+    bug10551(&v);
+    assert(v == 3);
     return true;
 }
 
