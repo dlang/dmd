@@ -125,7 +125,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     printf("TraitsExp::semantic() %s\n", toChars());
 #endif
     if (ident != Id::compiles && ident != Id::isSame &&
-        ident != Id::identifier)
+        ident != Id::identifier && ident != Id::getProtection)
     {
         TemplateInstance::semanticTiargs(loc, sc, args, 1);
     }
@@ -317,6 +317,12 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         if (dim != 1)
             goto Ldimerror;
+
+        Scope *sc2 = sc->push();
+        sc2->flags = sc->flags | SCOPEnoaccesscheck;
+        TemplateInstance::semanticTiargs(loc, sc2, args, 1);
+        sc2->pop();
+
         RootObject *o = (*args)[0];
         Dsymbol *s = getDsymbol(o);
         if (!s)

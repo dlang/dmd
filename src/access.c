@@ -410,6 +410,9 @@ int AggregateDeclaration::hasPrivateAccess(Dsymbol *smember)
 
 void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
 {
+    if (sc->flags & SCOPEnoaccesscheck)
+        return;
+
 #if LOG
     if (e)
     {   printf("accessCheck(%s . %s)\n", e->toChars(), d->toChars());
@@ -430,7 +433,8 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
         }
     }
     else if (e->type->ty == Tclass)
-    {   // Do access check
+    {
+        // Do access check
         ClassDeclaration *cd = (ClassDeclaration *)(((TypeClass *)e->type)->sym);
         if (e->op == TOKsuper)
         {
@@ -441,7 +445,8 @@ void accessCheck(Loc loc, Scope *sc, Expression *e, Declaration *d)
         cd->accessCheck(loc, sc, d);
     }
     else if (e->type->ty == Tstruct)
-    {   // Do access check
+    {
+        // Do access check
         StructDeclaration *cd = (StructDeclaration *)(((TypeStruct *)e->type)->sym);
         cd->accessCheck(loc, sc, d);
     }
