@@ -7964,10 +7964,10 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
             exps->push(new DotVarExp(ev->loc, ev, v));
         }
         e = new TupleExp(e->loc, e0, exps);
-        sc = sc->push();
-        sc->noaccesscheck = 1;
-        e = e->semantic(sc);
-        sc->pop();
+        Scope *sc2 = sc->push();
+        sc2->flags = sc->flags | SCOPEnoaccesscheck;
+        e = e->semantic(sc2);
+        sc2->pop();
         return e;
     }
 
@@ -8504,17 +8504,18 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             ev = new VarExp(e->loc, vd);
         }
         for (size_t i = 0; i < sym->fields.dim; i++)
-        {   VarDeclaration *v = sym->fields[i];
+        {
+            VarDeclaration *v = sym->fields[i];
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
             exps->push(new DotVarExp(ev->loc, ev, v));
         }
         e = new TupleExp(e->loc, e0, exps);
-        sc = sc->push();
-        sc->noaccesscheck = 1;
-        e = e->semantic(sc);
-        sc->pop();
+        Scope *sc2 = sc->push();
+        sc2->flags = sc->flags | SCOPEnoaccesscheck;
+        e = e->semantic(sc2);
+        sc2->pop();
         return e;
     }
 

@@ -73,7 +73,6 @@ Scope::Scope()
     this->inunion = 0;
     this->nofree = 0;
     this->noctor = 0;
-    this->noaccesscheck = 0;
     this->intypeof = 0;
     this->speculative = 0;
     this->callSuper = 0;
@@ -121,7 +120,6 @@ Scope::Scope(Scope *enclosing)
     this->inunion = enclosing->inunion;
     this->nofree = 0;
     this->noctor = enclosing->noctor;
-    this->noaccesscheck = enclosing->noaccesscheck;
     this->intypeof = enclosing->intypeof;
     this->speculative = enclosing->speculative;
     this->callSuper = enclosing->callSuper;
