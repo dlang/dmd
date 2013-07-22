@@ -1,3 +1,4 @@
+module xheader;
 class C
 {
 }
