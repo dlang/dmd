@@ -2919,6 +2919,22 @@ void test10244()
 }
 
 /**********************************/
+// 10694
+
+struct Foo10694 { ~this() { } }
+
+void test10694() pure
+{
+    static Foo10694 i1;
+    __gshared Foo10694 i2;
+    void foo() pure
+    {
+        static Foo10694 j1;
+        __gshared Foo10694 j2;
+    }
+}
+
+/**********************************/
 
 int main()
 {
@@ -3010,6 +3026,7 @@ int main()
     test9994();
     test10094();
     test10244();
+    test10694();
 
     printf("Success\n");
     return 0;
