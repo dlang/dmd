@@ -1270,6 +1270,8 @@ void test10096()
     auto x = foo10096!s;
 }
 
+/********************************************************/
+
 unittest { }
 
 struct GetUnitTests
@@ -1282,6 +1284,24 @@ void test_getUnitTests ()
     // Always returns empty tuple if the -unittest flag isn't used
     static assert(__traits(getUnitTests, mixin(__MODULE__)).length == 0);
     static assert(__traits(getUnitTests, GetUnitTests).length == 0);
+}
+
+/********************************************************/
+
+class TestIsOverrideFunctionBase
+{
+    void bar () {}
+}
+
+class TestIsOverrideFunctionPass : TestIsOverrideFunctionBase
+{
+    override void bar () {}
+}
+
+void test_isOverrideFunction ()
+{
+    assert(__traits(isOverrideFunction, TestIsOverrideFunctionPass.bar) == true);
+    assert(__traits(isOverrideFunction, TestIsOverrideFunctionBase.bar) == false);
 }
 
 /********************************************************/
@@ -1322,6 +1342,7 @@ int main()
     test9136();
     test10096();
     test_getUnitTests();
+    test_isOverrideFunction();
 
     writeln("Success");
     return 0;
