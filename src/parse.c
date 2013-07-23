@@ -5650,7 +5650,8 @@ Expression *Parser::parsePrimaryExp()
             break;
 
         case TOKmodulestring:
-        {   const char *s = md->toChars();
+        {
+            const char *s = md ? md->toChars() : mod->toChars();
             e = new StringExp(loc, (char *)s, strlen(s), 0);
             nextToken();
             break;
