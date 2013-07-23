@@ -3499,14 +3499,10 @@ elem *PowAssignExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
     if (tb1->ty == Tarray || tb1->ty == Tsarray)
-    {
         error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
     else
-    {   assert(0);
-        return NULL;
-    }
+        error("must import std.math to use ^^ operator");
+    return el_long(type->totym(), 0);  // error recovery
 }
 
 
@@ -3564,12 +3560,10 @@ elem *PowExp::toElem(IRState *irs)
 {
     Type *tb1 = e1->type->toBasetype();
     if (tb1->ty == Tarray || tb1->ty == Tsarray)
-    {
         error("Array operation %s not implemented", toChars());
-        return el_long(type->totym(), 0);  // error recovery
-    }
-    assert(0);
-    return NULL;
+    else
+        error("must import std.math to use ^^ operator");
+    return el_long(type->totym(), 0);  // error recovery
 }
 
 

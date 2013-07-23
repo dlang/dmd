@@ -12437,21 +12437,16 @@ Expression *PowExp::semantic(Scope *sc)
                 !mi->parent->parent)
             {
                 importMath = true;
-                goto L1;
+                break;
             }
         }
-        error("must import std.math to use ^^ operator");
-        return new ErrorExp();
-
-     L1: ;
     }
-    else
-    {
-        if (!importMath)
-        {
-            error("must import std.math to use ^^ operator");
-            return new ErrorExp();
-        }
+    if (!importMath)
+    {   // Leave handling of PowExp to the backend, or throw
+        // an error gracefully if no backend support exists.
+        typeCombine(sc);
+        e = this;
+        return e;
     }
 
     e = new IdentifierExp(loc, Id::empty);
