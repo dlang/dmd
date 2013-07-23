@@ -750,6 +750,11 @@ Expression *TraitsExp::semantic(Scope *sc)
         TupleExp *tup = new TupleExp(loc, unitTests);
         return tup->semantic(sc);
     }
+    else if (ident == Id::isOverrideFunction)
+    {
+        FuncDeclaration *f;
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
+    }
     else
     {   error("unrecognized trait %s", ident->toChars());
         goto Lfalse;

@@ -341,6 +341,7 @@ Msgtable msgtable[] =
     { "parameters" },
     { "getAttributes" },
     { "getUnitTests" },
+    { "isOverrideFunction" },
 };
 
 
