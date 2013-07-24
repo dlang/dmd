@@ -69,7 +69,7 @@ struct Impl
 {
     Entry*[] buckets;
     size_t nodes;       // total number of entries
-    TypeInfo _keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
+    TypeInfo _keyti;
     Entry*[4] binit;    // initial value of buckets[]
 
     @property const(TypeInfo) keyti() const @safe pure nothrow
@@ -79,7 +79,6 @@ struct Impl
 /* This is the type actually seen by the programmer, although
  * it is completely opaque.
  */
-
 struct AA
 {
     Impl* impl;
@@ -90,7 +89,6 @@ struct AA
  * GC won't be faced with misaligned pointers
  * in value.
  */
-
 size_t aligntsize(in size_t tsize) @safe pure nothrow
 {
     version (D_LP64) {
@@ -104,78 +102,9 @@ size_t aligntsize(in size_t tsize) @safe pure nothrow
 
 extern (C):
 
-/*************************************************
- * Invariant for aa.
- */
-
-/+
-void _aaInvAh(Entry*[] aa)
-{
-    for (size_t i = 0; i < aa.length; i++)
-    {
-        if (aa[i])
-            _aaInvAh_x(aa[i]);
-    }
-}
-
-private int _aaCmpAh_x(Entry *e1, Entry *e2)
-{   int c;
-
-    c = e1.hash - e2.hash;
-    if (c == 0)
-    {
-        c = e1.key.length - e2.key.length;
-        if (c == 0)
-            c = memcmp((char *)e1.key, (char *)e2.key, e1.key.length);
-    }
-    return c;
-}
-
-private void _aaInvAh_x(Entry *e)
-{
-    size_t key_hash;
-    Entry *e1;
-    Entry *e2;
-
-    key_hash = getHash(e.key);
-    assert(key_hash == e.hash);
-
-    while (1)
-    {   int c;
-
-        e1 = e.left;
-        if (e1)
-        {
-            _aaInvAh_x(e1);             // ordinary recursion
-            do
-            {
-                c = _aaCmpAh_x(e1, e);
-                assert(c < 0);
-                e1 = e1.right;
-            } while (e1 != null);
-        }
-
-        e2 = e.right;
-        if (e2)
-        {
-            do
-            {
-                c = _aaCmpAh_x(e, e2);
-                assert(c < 0);
-                e2 = e2.left;
-            } while (e2 != null);
-            e = e.right;                // tail recursion
-        }
-        else
-            break;
-    }
-}
-+/
-
 /****************************************************
  * Determine number of entries in associative array.
  */
-
 size_t _aaLen(in AA aa) pure nothrow
 in
 {
@@ -210,14 +139,7 @@ body
  * Get pointer to value in associative array indexed by key.
  * Add entry for key if it is not already there.
  */
-
-// retained for backwards compatibility
-void* _aaGet(AA* aa, const TypeInfo keyti, in size_t valuesize, ...)
-{
-    return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
-}
-
-void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, void* pkey)
+void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey)
 in
 {
     assert(aa);
@@ -288,12 +210,6 @@ Lret:
  * Get pointer to value in associative array indexed by key.
  * Returns null if it is not already there.
  */
-
-inout(void)* _aaGetRvalue(inout AA aa, in TypeInfo keyti, in size_t valuesize, ...)
-{
-    return _aaGetRvalueX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
-}
-
 inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, in void* pkey)
 {
     //printf("_aaGetRvalue(valuesize = %u)\n", valuesize);
@@ -330,12 +246,6 @@ inout(void)* _aaGetRvalueX(inout AA aa, in TypeInfo keyti, in size_t valuesize, 
  *      null    not in aa
  *      !=null  in aa, return pointer to value
  */
-
-inout(void)* _aaIn(inout AA aa, in TypeInfo keyti, ...)
-{
-    return _aaInX(aa, keyti, cast(void*)(&keyti + 1));
-}
-
 inout(void)* _aaInX(inout AA aa, in TypeInfo keyti, in void* pkey)
 in
 {
@@ -378,12 +288,6 @@ body
  * Delete key entry in aa[].
  * If key is not in aa[], do nothing.
  */
-
-bool _aaDel(AA aa, in TypeInfo keyti, ...)
-{
-    return _aaDelX(aa, keyti, cast(void*)(&keyti + 1));
-}
-
 bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
 {
     Entry *e;
@@ -417,7 +321,6 @@ bool _aaDelX(AA aa, in TypeInfo keyti, in void* pkey)
 /********************************************
  * Produce array of values from aa.
  */
-
 inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize) pure nothrow
 {
     size_t resi;
@@ -451,7 +354,6 @@ inout(ArrayRet_t) _aaValues(inout AA aa, in size_t keysize, in size_t valuesize)
 /********************************************
  * Rehash an array.
  */
-
 void* _aaRehash(AA* paa, in TypeInfo keyti) pure nothrow
 in
 {
@@ -507,7 +409,6 @@ body
 /********************************************
  * Produce array of N byte keys from aa.
  */
-
 inout(ArrayRet_t) _aaKeys(inout AA aa, in size_t keysize) pure nothrow
 {
     auto len = _aaLen(aa);
@@ -594,7 +495,6 @@ unittest // Test for Issue 10381
 /**********************************************
  * 'apply' for associative arrays - to support foreach
  */
-
 // dg is D, but _aaApply() is C
 extern (D) alias int delegate(void *) dg_t;
 
@@ -654,88 +554,6 @@ int _aaApply2(AA aa, in size_t keysize, dg2_t dg)
  * Construct an associative array of type ti from
  * length pairs of key/value pairs.
  */
-
-extern (C)
-Impl* _d_assocarrayliteralT(const TypeInfo_AssociativeArray ti, in size_t length, ...)
-{
-    const valuesize = ti.next.tsize;             // value size
-    const keyti = ti.key;
-    const keysize = keyti.tsize;                 // key size
-    Impl* result;
-
-    //printf("_d_assocarrayliteralT(keysize = %d, valuesize = %d, length = %d)\n", keysize, valuesize, length);
-    //printf("tivalue = %.*s\n", ti.next.classinfo.name);
-    if (length == 0 || valuesize == 0 || keysize == 0)
-    {
-    }
-    else
-    {
-        va_list q;
-        version (Win64)
-            va_start(q, length);
-        else version(X86_64)
-            va_start(q, __va_argsave);
-        else
-            va_start(q, length);
-
-        result = new Impl();
-        result._keyti = cast() keyti;
-        size_t i;
-
-        for (i = 0; i < prime_list.length - 1; i++)
-        {
-            if (length <= prime_list[i])
-                break;
-        }
-        auto len = prime_list[i];
-        result.buckets = newBuckets(len);
-
-        size_t keystacksize   = (keysize   + int.sizeof - 1) & ~(int.sizeof - 1);
-        size_t valuestacksize = (valuesize + int.sizeof - 1) & ~(int.sizeof - 1);
-
-        size_t keytsize = aligntsize(keysize);
-
-        for (size_t j = 0; j < length; j++)
-        {   void* pkey = q;
-            q += keystacksize;
-            void* pvalue = q;
-            q += valuestacksize;
-            Entry* e;
-
-            auto key_hash = keyti.getHash(pkey);
-            //printf("hash = %d\n", key_hash);
-            i = key_hash % len;
-            auto pe = &result.buckets[i];
-            while (1)
-            {
-                e = *pe;
-                if (!e)
-                {
-                    // Not found, create new elem
-                    //printf("create new one\n");
-                    e = cast(Entry *) cast(void*) new void[Entry.sizeof + keytsize + valuesize];
-                    memcpy(e + 1, pkey, keysize);
-                    e.hash = key_hash;
-                    *pe = e;
-                    result.nodes++;
-                    break;
-                }
-                if (key_hash == e.hash)
-                {
-                    auto c = keyti.compare(pkey, e + 1);
-                    if (c == 0)
-                        break;
-                }
-                pe = &e.next;
-            }
-            memcpy(cast(void *)(e + 1) + keytsize, pvalue, valuesize);
-        }
-
-        va_end(q);
-    }
-    return result;
-}
-
 Impl* _d_assocarrayliteralTX(const TypeInfo_AssociativeArray ti, void[] keys, void[] values)
 {
     const valuesize = ti.next.tsize;             // value size
