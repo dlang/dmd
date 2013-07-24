@@ -217,7 +217,7 @@ void* _aaGet(AA* aa, const TypeInfo keyti, in size_t valuesize, ...)
     return _aaGetX(aa, keyti, valuesize, cast(void*)(&valuesize + 1));
 }
 
-void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, void* pkey)
+void* _aaGetX(AA* aa, const TypeInfo keyti, in size_t valuesize, in void* pkey)
 in
 {
     assert(aa);
