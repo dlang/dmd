@@ -721,7 +721,7 @@ public:
     bool hasNestedFrameRefs();
     void buildResultVar();
     Statement *mergeFrequire(Statement *);
-    Statement *mergeFensure(Statement *);
+    Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
 
     static FuncDeclaration *genCfunc(Type *treturn, const char *name);
