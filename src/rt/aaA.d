@@ -69,7 +69,7 @@ struct Impl
 {
     Entry*[] buckets;
     size_t nodes;       // total number of entries
-    TypeInfo _keyti;     // TODO: replace this with TypeInfo_AssociativeArray when available in _aaGet()
+    TypeInfo _keyti;
     Entry*[4] binit;    // initial value of buckets[]
 
     @property const(TypeInfo) keyti() const @safe pure nothrow
