@@ -9908,7 +9908,10 @@ Expression *CastExp::semantic(Scope *sc)
         {
             Type* tobn = tob->nextOf()->toBasetype();
             Type* t1bn = t1b->nextOf()->toBasetype();
-            if (!tobn->hasPointers() &&
+            // If the struct is opaque we don't know about the struct members and the cast becomes unsafe
+            bool sfwrd = tobn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)tobn)->sym)->members ||
+                    t1bn->ty == Tstruct && !((StructDeclaration *)((TypeStruct *)t1bn)->sym)->members;
+            if (!sfwrd && !tobn->hasPointers() &&
                 tobn->ty != Tfunction && t1bn->ty != Tfunction &&
                 tobn->size() <= t1bn->size() &&
                 MODimplicitConv(t1bn->mod, tobn->mod))
