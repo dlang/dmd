@@ -1696,7 +1696,10 @@ Ldtor:
     edtor = callScopeDtor(sc);
     if (edtor)
     {
-        edtor = edtor->semantic(sc);
+        if (sc->func && storage_class & (STCstatic | STCgshared))
+            edtor = edtor->semantic(sc->module->scope);
+        else
+            edtor = edtor->semantic(sc);
 
 #if 0 // currently disabled because of std.stdio.stdin, stdout and stderr
         if (isDataseg() && !(storage_class & STCextern))
