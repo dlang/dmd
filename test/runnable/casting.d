@@ -1,6 +1,23 @@
 extern(C) int printf(const char*, ...);
 
 /***************************************************/
+// 8119
+
+struct S8119;
+
+void test8119()
+{
+    void* v;
+    auto sp1 = cast(S8119*)v;
+
+    int* i;
+    auto sp2 = cast(S8119*)i;
+
+    S8119* s;
+    auto ip = cast(int*)s;
+}
+
+/***************************************************/
 // 8645
 
 template TypeTuple8645(TL...)
@@ -33,6 +50,7 @@ void test10646()
 
 int main()
 {
+    test8119();
     test8645();
     test10646();
 
