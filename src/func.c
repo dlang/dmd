@@ -338,7 +338,12 @@ void FuncDeclaration::semantic(Scope *sc)
     }
 
     if (isOverride() && !isVirtual())
-        error("cannot override a non-virtual function");
+    {
+        if ((prot() == PROTprivate || prot() == PROTpackage) && isMember())
+            error("%s method is not virtual and cannot override", Pprotectionnames[prot()]);
+        else
+            error("cannot override a non-virtual function");
+    }
 
     if (isAbstract() && isFinal())
         error("cannot be both final and abstract");
