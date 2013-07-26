@@ -1396,7 +1396,6 @@ Lnomatch:
             init = new ExpInitializer(e->loc, e);
         }
 
-        StructInitializer *si = init->isStructInitializer();
         ExpInitializer *ei = init->isExpInitializer();
 
         if (ei && isScope())

@@ -5925,7 +5925,6 @@ FuncLiteralDeclaration *getFuncLit(Dsymbols *members);
 
 Expression *FuncExp::syntaxCopy()
 {
-    FuncExp *fe;
     TemplateDeclaration *td2;
     FuncLiteralDeclaration *fd2;
     if (td)
@@ -6169,7 +6168,7 @@ Expression *DeclarationExp::semantic(Scope *sc)
             return new ErrorExp();
         }
         else if (sc->func)
-        {   VarDeclaration *v = s->isVarDeclaration();
+        {
             if ( (s->isFuncDeclaration() || s->isTypedefDeclaration() ||
                 s->isAggregateDeclaration() || s->isEnumDeclaration() ||
                 s->isInterfaceDeclaration()) &&
@@ -9188,7 +9187,6 @@ Expression *AddrExp::semantic(Scope *sc)
     if (!type)
     {
         UnaExp::semantic(sc);
-        Expression *olde1 = e1;
         if (e1->type == Type::terror)
             return new ErrorExp();
         int wasCond = e1->op == TOKquestion;
@@ -10977,7 +10975,6 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         ArrayExp *ae = (ArrayExp *)e1;
         AggregateDeclaration *ad = NULL;
-        Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
@@ -11035,7 +11032,6 @@ Expression *AssignExp::semantic(Scope *sc)
     {
         SliceExp *ae = (SliceExp *)e1;
         AggregateDeclaration *ad = NULL;
-        Identifier *id = Id::index;
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
@@ -12890,9 +12886,6 @@ Expression *CmpExp::semantic(Scope *sc)
         incompatibleTypes();
         return new ErrorExp();
     }
-
-    Expression *eb1 = e1;
-    Expression *eb2 = e2;
 
     e = typeCombine(sc);
     if (e->op == TOKerror)

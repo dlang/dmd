@@ -785,7 +785,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     Type *tb = type->toBasetype();
     assert(tb->ty == Tfunction);
     TypeFunction *tf = (TypeFunction *)tb;
-    Type *tret = tf->next->toBasetype();
     if (tf->varargs && arguments &&
         ((parameters && arguments->dim != parameters->dim) || (!parameters && arguments->dim)))
     {
@@ -1982,7 +1981,6 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     // Check for taking an address of a shared variable.
     // If the shared variable is an array, the offset might not be zero.
-    VarDeclaration *vd = var->isVarDeclaration();
     Type *fromType = NULL;
     if (var->type->ty == Tarray || var->type->ty == Tsarray)
     {
@@ -2024,7 +2022,6 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
             return EXP_CANT_INTERPRET;
         }
 
-        TypeArray *tar = (TypeArray *)val->type;
         dinteger_t sz = pointee->size();
         dinteger_t indx = offset/sz;
         assert(sz * indx == offset);
@@ -3775,7 +3772,6 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
         aggregate->op == TOKslice || aggregate->op == TOKcall ||
         aggregate->op == TOKstar)
     {
-        Expression *origagg = aggregate;
         aggregate = aggregate->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(aggregate))
             return false;
@@ -5902,11 +5898,7 @@ Expression *interpret_aaApply(InterState *istate, Expression *aa, Expression *de
     assert(fd && fd->fbody);
     assert(fd->parameters);
     int numParams = fd->parameters->dim;
-    assert(numParams == 1 || numParams==2);
-
-    Type *valueType = (*fd->parameters)[numParams-1]->type;
-    Type *keyType = numParams == 2 ? (*fd->parameters)[0]->type
-                                   : Type::tsize_t;
+    assert(numParams == 1 || numParams == 2);
 
     Parameter *valueArg = Parameter::getNth(((TypeFunction *)fd->type)->parameters, numParams - 1);
     bool wantRefValue = 0 != (valueArg->storageClass & (STCout | STCref));

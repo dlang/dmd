@@ -325,8 +325,6 @@ TypeTuple *TypeStruct::toArgTypes()
     if (global.params.is64bit && sym->fields.dim)
     {
 #if 1
-        unsigned sz1 = 0;
-        unsigned sz2 = 0;
         t1 = NULL;
         for (size_t i = 0; i < sym->fields.dim; i++)
         {   VarDeclaration *f = sym->fields[i];

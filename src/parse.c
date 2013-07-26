@@ -4897,7 +4897,6 @@ int Parser::isBasicType(Token **pt)
 {
     // This code parallels parseBasicType()
     Token *t = *pt;
-    int haveId = 0;
 
     switch (t->value)
     {
@@ -6092,7 +6091,6 @@ Expression *Parser::parsePostExp(Expression *e)
                     nextToken();
                     if (token.value == TOKnot && peekNext() != TOKis && peekNext() != TOKin)
                     {   // identifier!(template-argument-list)
-                        TemplateInstance *tempinst = new TemplateInstance(loc, id);
                         Objects *tiargs;
                         nextToken();
                         if (token.value == TOKlparen)
