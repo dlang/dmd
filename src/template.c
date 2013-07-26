@@ -5323,16 +5323,10 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 
     TemplateInstance *tempdecl_instance_idx = tempdecl->addInstance(this);
 
-    parent = tempdecl->parent;
+    parent = enclosing ? enclosing : tempdecl->parent;
     //printf("parent = '%s'\n", parent->kind());
 
     //getIdent();
-
-#if 1
-    if (enclosing)
-        parent = enclosing;
-#endif
-    //printf("parent = '%s'\n", parent->kind());
 
     // Add 'this' to the enclosing scope's members[] so the semantic routines
     // will get called on the instance members. Store the place we added it to
@@ -5530,8 +5524,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      */
     bool found_deferred_ad = false;
     for (size_t i = 0; i < Module::deferred.dim; i++)
-    {   Dsymbol *sd = Module::deferred[i];
-
+    {
+        Dsymbol *sd = Module::deferred[i];
         AggregateDeclaration *ad = sd->isAggregateDeclaration();
         if (ad && ad->parent && ad->parent->isTemplateInstance())
         {
@@ -5598,7 +5592,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         if (tinst)
         {   tinst->printInstantiationTrace();
         }
-        errors = 1;
+        errors = true;
         if (global.gag)
         {
             // Errors are gagged, so remove the template instance from the
@@ -6017,7 +6011,8 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
             if (!s->parent && global.errors)
                 return false;
             if (!s->parent && s->getType())
-            {   Dsymbol *s2 = s->getType()->toDsymbol(sc);
+            {
+                Dsymbol *s2 = s->getType()->toDsymbol(sc);
                 if (!s2)
                 {
                     error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
@@ -6110,8 +6105,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
         for (; td != NULL; td = td->overnext)
         {
-            MATCH m;
-
             //if (tiargs->dim) printf("2: tiargs->dim = %d, data[0] = %p\n", tiargs->dim, (*tiargs)[0]);
 
             // If more arguments than parameters,
@@ -6125,28 +6118,21 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
             assert(td->semanticRun);
-            m = td->matchWithInstance(this, &dedtypes, fargs, 0);
+            MATCH m = td->matchWithInstance(this, &dedtypes, fargs, 0);
             //printf("matchWithInstance = %d\n", m);
             if (!m)                 // no match at all
                 continue;
 
-            if (m < m_best)
-                goto Ltd_best;
-            if (m > m_best)
-                goto Ltd;
+            if (m < m_best) goto Ltd_best;
+            if (m > m_best) goto Ltd;
 
             {
             // Disambiguate by picking the most specialized TemplateDeclaration
             MATCH c1 = td->leastAsSpecialized(td_best, fargs);
             MATCH c2 = td_best->leastAsSpecialized(td, fargs);
             //printf("c1 = %d, c2 = %d\n", c1, c2);
-
-            if (c1 > c2)
-                goto Ltd;
-            else if (c1 < c2)
-                goto Ltd_best;
-            else
-                goto Lambig;
+            if (c1 > c2) goto Ltd;
+            if (c1 < c2) goto Ltd_best;
             }
 
           Lambig:           // td_best and td are ambiguous
@@ -6205,29 +6191,10 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     tempdecl = td_best;
     tempovers = NULL;
 
-#if 0
-    /* Cast any value arguments to be same type as value parameter
-     */
-    for (size_t i = 0; i < tiargs->dim; i++)
-    {   RootObject *o = (*tiargs)[i];
-        Expression *ea = isExpression(o);       // value argument
-        TemplateParameter *tp = (*tempdecl->parameters)[i];
-        assert(tp);
-        TemplateValueParameter *tvp = tp->isTemplateValueParameter();
-        if (tvp)
-        {
-            assert(ea);
-            ea = ea->castTo(tvp->valType);
-            ea = ea->ctfeInterpret();
-            (*tiargs)[i] = (RootObject *)ea;
-        }
-    }
-#endif
-
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
 #endif
-    return (errs == global.errors) && tempdecl;
+    return (errs == global.errors);
 }
 
 
@@ -6238,14 +6205,16 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
  */
 
 int TemplateInstance::hasNestedArgs(Objects *args)
-{   int nested = 0;
+{
+    int nested = 0;
     //printf("TemplateInstance::hasNestedArgs('%s')\n", tempdecl->ident->toChars());
 
     /* A nested instance happens when an argument references a local
      * symbol that is on the stack.
      */
     for (size_t i = 0; i < args->dim; i++)
-    {   RootObject *o = (*args)[i];
+    {
+        RootObject *o = (*args)[i];
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
         Tuple *va = isTuple(o);
@@ -6317,7 +6286,8 @@ int TemplateInstance::hasNestedArgs(Objects *args)
             {
                 // if module level template
                 if (tempdecl->toParent()->isModule())
-                {   Dsymbol *dparent = sa->toParent2();
+                {
+                    Dsymbol *dparent = sa->toParent2();
                     if (!enclosing)
                         enclosing = dparent;
                     else if (enclosing != dparent)
@@ -6372,7 +6342,8 @@ Identifier *TemplateInstance::genIdent(Objects *args)
     char *id = tempdecl->ident->toChars();
     buf.printf("__T%llu%s", (ulonglong)strlen(id), id);
     for (size_t i = 0; i < args->dim; i++)
-    {   RootObject *o = (*args)[i];
+    {
+        RootObject *o = (*args)[i];
         Type *ta = isType(o);
         Expression *ea = isExpression(o);
         Dsymbol *sa = isDsymbol(o);
@@ -6573,26 +6544,32 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
                 return TRUE;
 
             if (tiargs->dim < td->parameters->dim)
-            {   // Can remain tiargs be filled by default arguments?
+            {
+                // Can remain tiargs be filled by default arguments?
                 for (size_t i = tiargs->dim; i < td->parameters->dim; i++)
-                {   tp = (*td->parameters)[i];
+                {
+                    tp = (*td->parameters)[i];
                     if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
-                    {   if (!ttp->defaultType)
+                    {
+                        if (!ttp->defaultType)
                             return TRUE;
                     }
                     else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
-                    {   if (!tap->defaultAlias)
+                    {
+                        if (!tap->defaultAlias)
                             return TRUE;
                     }
                     else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
-                    {   if (!tvp->defaultValue)
+                    {
+                        if (!tvp->defaultValue)
                             return TRUE;
                     }
                 }
             }
 
             for (size_t i = 0; i < dim; i++)
-            {   // 'auto ref' needs inference.
+            {
+                // 'auto ref' needs inference.
                 if (Parameter::getNth(tf->parameters, i)->storageClass & STCauto)
                     return TRUE;
             }
@@ -6873,8 +6850,9 @@ Dsymbol *TemplateInstance::toAlias()
 //                inst = NULL;            // trigger fwd ref error
         }
         if (!inst)
-        {   error("cannot resolve forward reference");
-            errors = 1;
+        {
+            error("cannot resolve forward reference");
+            errors = true;
             return this;
         }
     }
@@ -7147,7 +7125,8 @@ void TemplateMixin::semantic(Scope *sc)
             continue;
 
         for (size_t i = 0; i < tiargs->dim; i++)
-        {   RootObject *o = (*tiargs)[i];
+        {
+            RootObject *o = (*tiargs)[i];
             Type *ta = isType(o);
             Expression *ea = isExpression(o);
             Dsymbol *sa = isDsymbol(o);
@@ -7161,7 +7140,8 @@ void TemplateMixin::semantic(Scope *sc)
                     goto Lcontinue;
             }
             else if (ea)
-            {   Expression *tme = isExpression(tmo);
+            {
+                Expression *tme = isExpression(tmo);
                 if (!tme || !ea->equals(tme))
                     goto Lcontinue;
             }
@@ -7218,9 +7198,9 @@ void TemplateMixin::semantic(Scope *sc)
 
     // Add members to enclosing scope, as well as this scope
     for (size_t i = 0; i < members->dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
         s->addMember(argscope, this, i);
-        //sc->insert(s);
         //printf("sc->parent = %p, sc->scopesym = %p\n", sc->parent, sc->scopesym);
         //printf("s->parent = %s\n", s->parent->toChars());
     }
@@ -7298,13 +7278,9 @@ void TemplateMixin::semantic(Scope *sc)
     }
 
     sc2->pop();
-
     argscope->pop();
+    scy->pop();
 
-//    if (!isAnonymous())
-    {
-        scy->pop();
-    }
 #if LOG
     printf("-TemplateMixin::semantic('%s', this=%p)\n", toChars(), this);
 #endif
