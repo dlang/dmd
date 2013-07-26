@@ -1253,7 +1253,20 @@ WithScopeSymbol::WithScopeSymbol(WithStatement *withstate)
 Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
 {
     // Acts as proxy to the with class declaration
-    return withstate->exp->type->toDsymbol(NULL)->search(loc, ident, 0);
+    Dsymbol *s = NULL;
+    Expression *eold = NULL;
+    for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(scope, e))
+    {
+        s = e->type->toDsymbol(NULL);
+        if (s)
+        {
+            s = s->search(loc, ident, 0);
+            if (s)
+                return s;
+        }
+        eold = e;
+    }
+    return NULL;
 }
 
 /****************************** ArrayScopeSymbol ******************************/
