@@ -382,6 +382,82 @@ class D7699 : P7699
 }
 
 /*******************************************/
+// 7883
+
+// Segmentation fault
+class AA7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BA7883 : AA7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+}
+
+class CA7883 : BA7883
+{
+    override int foo()
+    body { return 1; }
+}
+
+// Error: undefined identifier r2, did you mean variable r3?
+class AB7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BB7883 : AB7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+
+}
+
+class CB7883 : BB7883
+{
+    override int foo()
+    out (r3) { }
+    body { return 1; }
+}
+
+// Error: undefined identifier r3, did you mean variable r4?
+class AC7883
+{
+    int foo()
+    out (r1) { }
+    body { return 1; }
+}
+
+class BC7883 : AC7883
+{
+    override int foo()
+    out (r2) { }
+    body { return 1; }
+}
+
+class CC7883 : BC7883
+{
+    override int foo()
+    out (r3) { }
+    body { return 1; }
+}
+
+class DC7883 : CC7883
+{
+    override int foo()
+    out (r4) { }
+    body { return 1; }
+}
+
+/*******************************************/
 // 8066
 
 struct CLCommandQueue
