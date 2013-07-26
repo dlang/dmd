@@ -4412,6 +4412,8 @@ Statement *WithStatement::semantic(Scope *sc)
             wthis = new VarDeclaration(loc, e->type, Id::withSym, init);
             wthis->semantic(sc);
             sym = new WithScopeSymbol(this);
+            // Need to set the scope to make use of resolveAliasThis
+            sym->setScope(sc);
             sym->parent = sc->scopesym;
         }
         else
