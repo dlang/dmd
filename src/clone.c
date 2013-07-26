@@ -680,7 +680,6 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
     if (global.endGagging(errors))    // if errors happened
     {
         members->remove(index);
-    Lerrcmp:
         if (!xerrcmp)
         {
             Expression *e = new IdentifierExp(loc, Id::empty);

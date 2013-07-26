@@ -501,7 +501,6 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         }
     }
 
-return_expr:
     if (!e1->type)
     {
         error(loc, "cannot resolve type for %s", e1->toChars());
@@ -9152,7 +9151,6 @@ Expression *CallExp::addDtorHook(Scope *sc)
             return e;
         }
     }
-Lnone:
     return this;
 }
 
