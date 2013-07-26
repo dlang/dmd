@@ -7449,26 +7449,15 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
     {
         if (AggregateDeclaration *ad = sc->getStructClassScope())
         {
-            if (ClassDeclaration *cd = ad->isClassDeclaration())
+            if (e1->op == TOKthis)
             {
-                if (e1->op == TOKthis)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, cd->type, ident);
-                    return die->semanticY(sc, flag);
-                }
-                else if (cd->baseClass && e1->op == TOKsuper)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, cd->baseClass->type, ident);
-                    return die->semanticY(sc, flag);
-                }
+                e1 = new TypeExp(e1->loc, ad->type);
             }
-            else if (StructDeclaration *sd = ad->isStructDeclaration())
+            else
             {
-                if (e1->op == TOKthis)
-                {
-                    DotIdExp *die = typeDotIdExp(loc, sd->type, ident);
-                    return die->semanticY(sc, flag);
-                }
+                ClassDeclaration *cd = ad->isClassDeclaration();
+                if (cd && cd->baseClass)
+                    e1 = new TypeExp(e1->loc, cd->baseClass->type);
             }
         }
     }
@@ -7663,7 +7652,7 @@ Expression *DotIdExp::semanticY(Scope *sc, int flag)
     }
     else
     {
-        if (e1->op == TOKtemplate)
+        if (e1->op == TOKtype || e1->op == TOKtemplate)
             flag = 0;
         e = e1->type->dotExp(sc, e1, ident, flag);
         if (!flag || e)
