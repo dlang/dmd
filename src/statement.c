@@ -2000,8 +2000,6 @@ Lagain:
                 return this;
             }
 
-            Type *tret = func->type->nextOf();
-
             TypeFunction *tfld = NULL;
             if (sapply)
             {   FuncDeclaration *fdapply = sapply->isFuncDeclaration();

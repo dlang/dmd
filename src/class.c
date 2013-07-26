@@ -623,7 +623,6 @@ void ClassDeclaration::semantic(Scope *sc)
     // Set the offsets of the fields and determine the size of the class
 
     unsigned offset = structsize;
-    bool isunion = isUnionDeclaration() != NULL;
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
         s->setFieldOffset(this, &offset, false);
@@ -1621,7 +1620,6 @@ BaseClass::BaseClass(Type *type, PROT protection)
 
 int BaseClass::fillVtbl(ClassDeclaration *cd, FuncDeclarations *vtbl, int newinstance)
 {
-    ClassDeclaration *id = base;
     int result = 0;
 
     //printf("BaseClass::fillVtbl(this='%s', cd='%s')\n", base->toChars(), cd->toChars());

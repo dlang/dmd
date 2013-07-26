@@ -776,9 +776,7 @@ int comparePointers(Loc loc, TOK op, Type *type, Expression *agg1, dinteger_t of
 {
     if ( pointToSameMemoryBlock(agg1, agg2) )
     {
-        dinteger_t cm = ofs1 - ofs2;
         dinteger_t n;
-        dinteger_t zero = 0;
         switch(op)
         {
         case TOKlt:          n = (ofs1 <  ofs2); break;

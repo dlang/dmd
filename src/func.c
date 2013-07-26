@@ -123,7 +123,6 @@ void FuncDeclaration::semantic(Scope *sc)
     StructDeclaration *sd;
     ClassDeclaration *cd;
     InterfaceDeclaration *id;
-    Dsymbol *pd;
     bool doesoverride;
 
 #if 0
@@ -420,10 +419,8 @@ void FuncDeclaration::semantic(Scope *sc)
 
     cd = parent->isClassDeclaration();
     if (cd)
-    {   size_t vi;
-        CtorDeclaration *ctor;
-        DtorDeclaration *dtor;
-
+    {
+        size_t vi;
         if (isCtorDeclaration())
         {
 //          ctor = (CtorDeclaration *)this;
@@ -431,34 +428,6 @@ void FuncDeclaration::semantic(Scope *sc)
 //              cd->ctor = ctor;
             goto Ldone;
         }
-
-#if 0
-        dtor = isDtorDeclaration();
-        if (dtor)
-        {
-            if (cd->dtor)
-                error("multiple destructors for class %s", cd->toChars());
-            cd->dtor = dtor;
-        }
-
-        if (isInvariantDeclaration())
-        {
-            cd->invs.push(this);
-        }
-
-        if (isNewDeclaration())
-        {
-            if (!cd->aggNew)
-                cd->aggNew = (NewDeclaration *)(this);
-        }
-
-        if (isDelete())
-        {
-            if (cd->aggDelete)
-                error("multiple delete's for class %s", cd->toChars());
-            cd->aggDelete = (DeleteDeclaration *)(this);
-        }
-#endif
 
         if (storage_class & STCabstract)
             cd->isabstract = 1;
@@ -4434,8 +4403,6 @@ void StaticDtorDeclaration::semantic(Scope *sc)
     {   sc = scope;
         scope = NULL;
     }
-
-    ClassDeclaration *cd = sc->scopesym->isClassDeclaration();
 
     if (!type)
         type = new TypeFunction(NULL, Type::tvoid, FALSE, LINKd);
