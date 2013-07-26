@@ -300,7 +300,6 @@ public:
      *      tiargs = args
      */
     Identifier *name;
-    //Identifiers idents;
     Objects *tiargs;            // Array of Types/Expressions of template
                                 // instance arguments [int*, char, 10*10]
 
@@ -308,8 +307,7 @@ public:
                                 // to TemplateDeclaration.parameters
                                 // [int, char, 100]
 
-    TemplateDeclaration *tempdecl;      // referenced by foo.bar.abc
-    OverloadSet *tempovers;             // template overload set
+    Dsymbol *tempdecl;                  // referenced by foo.bar.abc
     TemplateInstance *inst;             // refer to existing instance
     TemplateInstance *tinst;            // enclosing template instance
     ScopeDsymbol *argsym;               // argument symbol table

@@ -486,9 +486,9 @@ private:
 public:
     TemplateOverloadSet(TemplateInstance *ti)
     {
-        assert(!!ti->tempdecl != !!ti->tempovers);
-        this->td = ti->tempdecl;
-        this->os = ti->tempovers;
+        assert(ti->tempdecl);
+        this->td = ti->tempdecl->isTemplateDeclaration();
+        this->os = ti->tempdecl->isOverloadSet();
         this->oi = 0;
         if (os) popFront();
     }
@@ -2494,8 +2494,8 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
     TemplateInstance *ti = new TemplateInstance(loc, this, tdargs);
     ti->tinst = sc->tinst;
     {
-        ti->tdtypes.setDim(ti->tempdecl->parameters->dim);
-        if (!ti->tempdecl->matchWithInstance(ti, &ti->tdtypes, fargs, 2))
+        ti->tdtypes.setDim(parameters->dim);
+        if (!matchWithInstance(ti, &ti->tdtypes, fargs, 2))
             return NULL;
     }
 
@@ -3453,13 +3453,15 @@ MATCH TypeInstance::deduceType(Scope *sc,
     printf("\tthis   = %d, ", ty); print();
     printf("\ttparam = %d, ", tparam->ty); tparam->print();
 #endif
+    TemplateDeclaration *tempdecl = tempinst->tempdecl->isTemplateDeclaration();
+    assert(tempdecl);
 
     // Extra check
     if (tparam && tparam->ty == Tinstance)
     {
         TypeInstance *tp = (TypeInstance *)tparam;
 
-        //printf("tempinst->tempdecl = %p\n", tempinst->tempdecl);
+        //printf("tempinst->tempdecl = %p\n", tempdecl);
         //printf("tp->tempinst->tempdecl = %p\n", tp->tempinst->tempdecl);
         if (!tp->tempinst->tempdecl)
         {   //printf("tp->tempinst->name = '%s'\n", tp->tempinst->name->toChars());
@@ -3490,17 +3492,17 @@ MATCH TypeInstance::deduceType(Scope *sc,
                     {
                         s = s->toAlias();
                         TemplateDeclaration *td = s->isTemplateDeclaration();
-                        if (td && td == tempinst->tempdecl)
+                        if (td && td == tempdecl)
                             goto L2;
                     }
                     goto Lnomatch;
                 }
                 TemplateParameter *tpx = (*parameters)[i];
-                if (!tpx->matchArg(sc, tempinst->tempdecl, i, parameters, dedtypes, NULL))
+                if (!tpx->matchArg(sc, tempdecl, i, parameters, dedtypes, NULL))
                     goto Lnomatch;
             }
         }
-        else if (tempinst->tempdecl != tp->tempinst->tempdecl)
+        else if (tempdecl != tp->tempinst->tempdecl)
             goto Lnomatch;
 
       L2:
@@ -3541,7 +3543,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 /* Create tuple from remaining args
                  */
                 Tuple *vt = new Tuple();
-                size_t vtdim = (tempinst->tempdecl->isVariadic()
+                size_t vtdim = (tempdecl->isVariadic()
                                 ? tempinst->tiargs->dim : tempinst->tdtypes.dim) - i;
                 vt->objects.setDim(vtdim);
                 for (size_t k = 0; k < vtdim; k++)
@@ -3557,7 +3559,7 @@ MATCH TypeInstance::deduceType(Scope *sc,
                 Tuple *v = (Tuple *)(*dedtypes)[j];
                 if (v)
                 {
-                    if (checkRecursiveExpansion(v, tempinst->tempdecl, sc))
+                    if (checkRecursiveExpansion(v, tempdecl, sc))
                         goto Lnomatch;
                     if (!match(v, vt))
                         goto Lnomatch;
@@ -5026,7 +5028,6 @@ TemplateInstance::TemplateInstance(Loc loc, Identifier *ident)
     this->name = ident;
     this->tiargs = NULL;
     this->tempdecl = NULL;
-    this->tempovers = NULL;
     this->inst = NULL;
     this->tinst = NULL;
     this->argsym = NULL;
@@ -5057,7 +5058,6 @@ TemplateInstance::TemplateInstance(Loc loc, TemplateDeclaration *td, Objects *ti
     this->name = td->ident;
     this->tiargs = tiargs;
     this->tempdecl = td;
-    this->tempovers = NULL;
     this->inst = NULL;
     this->tinst = NULL;
     this->argsym = NULL;
@@ -5101,8 +5101,9 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
 
     ti->tiargs = arraySyntaxCopy(tiargs);
 
-    if (inst && tempdecl)
-        tempdecl->ScopeDsymbol::syntaxCopy(ti);
+    TemplateDeclaration *td;
+    if (inst && (td = tempdecl->isTemplateDeclaration()) != NULL)
+        td->ScopeDsymbol::syntaxCopy(ti);
     else
         ScopeDsymbol::syntaxCopy(ti);
     return ti;
@@ -5232,8 +5233,11 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
     printf("\tdo semantic\n");
 #endif
+    TemplateDeclaration *tempdecl;
     if (havetempdecl)
     {
+        tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
         assert(tempdecl->scope);
         // Deduce tdtypes
         tdtypes.setDim(tempdecl->parameters->dim);
@@ -5260,6 +5264,8 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
                 inst->errors = true;
             return;             // error recovery
         }
+        tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
     }
 
     // If tempdecl is a mixin, disallow it
@@ -5904,17 +5910,15 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 bool TemplateInstance::findTemplateDeclaration(Scope *sc)
 {
     //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
-    if (!tempdecl && !tempovers)
+    if (!tempdecl)
     {
         /* Given:
          *    foo!( ... )
          * figure out which TemplateDeclaration foo refers to.
          */
-        Dsymbol *s;
-        Dsymbol *scopesym;
         Identifier *id = name;
-
-        s = sc->search(loc, id, &scopesym);
+        Dsymbol *scopesym;
+        Dsymbol *s = sc->search(loc, id, &scopesym);
         if (!s)
         {
             s = sc->search_correct(id);
@@ -5945,18 +5949,19 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
                  * template, even if it has the same name as a member
                  * of the template, if it has a !(arguments)
                  */
-                tempdecl = ti->tempdecl;
-                if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
-                    tempdecl = tempdecl->overroot; // then get the start
-                s = tempdecl;
+                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
+                assert(td);
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    td = td->overroot;  // then get the start
+                s = td;
             }
         }
 
         updateTemplateDeclaration(sc, s);
     }
     else
-        assert(tempovers || tempdecl);
-    return (tempdecl || tempovers);
+        assert(tempdecl);
+    return (tempdecl != NULL);
 }
 
 /**********************************************
@@ -5987,7 +5992,7 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                 {
                     if (s)
                     {
-                        tempovers = os;
+                        tempdecl = os;
                         return true;
                     }
                     s = s2;
@@ -6035,9 +6040,11 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
                  * template, even if it has the same name as a member
                  * of the template, if it has a !(arguments)
                  */
-                tempdecl = ti->tempdecl;
-                if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
-                    tempdecl = tempdecl->overroot; // then get the start
+                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
+                assert(td);
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    td = td->overroot;  // then get the start
+                tempdecl = td;
             }
             else
             {
@@ -6046,7 +6053,7 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
             }
         }
     }
-    return (tempdecl || tempovers);
+    return (tempdecl != NULL);
 }
 
 bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
@@ -6085,16 +6092,23 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
         }
     }
 
-    size_t overs_dim = tempdecl ? 1 : tempovers->a.dim;
+    Dsymbol *sa = tempdecl;
+    TemplateDeclaration *tdecl = sa->isTemplateDeclaration();
+    OverloadSet *tovers = sa->isOverloadSet();
+    //if (!(tdecl || tovers))
+    //    printf("[%s] %s %s\n", loc.toChars(), sa->kind(), sa->toChars());
+    assert(tdecl || tovers);
+    size_t overs_dim = tdecl ? 1 : tovers->a.dim;
+
     TemplateDeclaration *td_last = NULL;
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         TemplateDeclaration *td;
-        if (tempdecl)
-            td = tempdecl;
+        if (tdecl)
+            td = tdecl;
         else
         {
-            Dsymbol *s = tempovers->a[oi];
+            Dsymbol *s = tovers->a[oi];
             if (FuncDeclaration *fd = s->isFuncDeclaration())
                 td = fd->findTemplateDeclRoot();
             else
@@ -6175,21 +6189,20 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     {
         if (errs != global.errors)
             errorSupplemental(loc, "while looking for match for %s", toChars());
-        else if (tempovers)
-            error("does not match template overload set %s", tempovers->toChars());
-        else if (tempdecl && !tempdecl->overnext)
+        else if (tovers)
+            error("does not match template overload set %s", tovers->toChars());
+        else if (tdecl && !tdecl->overnext)
             // Only one template, so we can give better error message
-            error("does not match template declaration %s", tempdecl->toChars());
+            error("does not match template declaration %s", tdecl->toChars());
         else
             ::error(loc, "%s %s.%s does not match any template declaration",
-                    tempdecl->kind(), tempdecl->parent->toPrettyChars(), tempdecl->ident->toChars());
+                    tdecl->kind(), tdecl->parent->toPrettyChars(), tdecl->ident->toChars());
         return false;
     }
 
     /* The best match is td_best
      */
     tempdecl = td_best;
-    tempovers = NULL;
 
 #if LOG
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
@@ -6481,6 +6494,9 @@ Identifier *TemplateInstance::getIdent()
 
 void TemplateInstance::declareParameters(Scope *sc)
 {
+    TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+    assert(tempdecl);
+
     //printf("TemplateInstance::declareParameters()\n");
     for (size_t i = 0; i < tdtypes.dim; i++)
     {
@@ -7045,14 +7061,14 @@ void TemplateMixin::semantic(Scope *sc)
                 {
                     if (s)
                     {
-                        tempovers = os;
+                        tempdecl = os;
                         break;
                     }
                     s = s2;
                 }
             }
         }
-        if (!tempdecl && !tempovers)
+        if (!tempdecl)
         {
             error("%s isn't a template", s->toChars());
             inst = this;
@@ -7103,6 +7119,8 @@ void TemplateMixin::semantic(Scope *sc)
         inst->errors = true;
         return;         // error recovery
     }
+    TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+    assert(tempdecl);
 
     if (!ident)
         ident = genIdent(tiargs);
