@@ -862,6 +862,7 @@ Ldone:
     if (fbody &&
         (isFuncLiteralDeclaration() ||
          parent->isTemplateInstance() ||
+         ident == Id::require || ident == Id::ensure ||
          ad && ad->parent && ad->parent->isTemplateInstance() && !isVirtualMethod()))
     {
         /* isVirtualMethod() needs setting correct foverrides
