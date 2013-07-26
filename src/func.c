@@ -1475,6 +1475,12 @@ void FuncDeclaration::semantic3(Scope *sc)
 
             // BUG: need to treat parameters as const
             // BUG: need to disallow returns and throws
+            if (inferRetType && isMember() && ((TypeFunction *)fdensure->type)->parameters)
+            {
+                // Return type was unknown in the first semantic pass
+                Parameter *p = (*((TypeFunction *)fdensure->type)->parameters)[0];
+                p->type = ((TypeFunction *)type)->nextOf();
+            }
             fens = fens->semantic(sc2);
 
             sc2 = sc2->pop();
