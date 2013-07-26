@@ -1555,7 +1555,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                         nextToken();
                         break;
                     }
-                            L3:
                     a = new Parameter(storageClass, at, ai, ae);
                     arguments->push(a);
                     if (token.value == TOKcomma)
@@ -6002,7 +6001,6 @@ Expression *Parser::parsePrimaryExp()
                     /* fall through to TOKlparen */
 
                 case TOKlparen:
-                Lparen:
                 {   // (parameters) => expression
                     // (parameters) { statements... }
                     parameters = parseParameters(&varargs, &tpl);

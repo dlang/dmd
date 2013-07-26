@@ -6498,7 +6498,6 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                 }
                 else
                 {
-                  Lerror:
                     if (id->dyncast() == DYNCAST_DSYMBOL)
                     {   // searchX already handles errors for template instances
                         assert(global.errors);

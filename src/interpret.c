@@ -1473,7 +1473,6 @@ Expression *DoStatement::interpret(InterState *istate)
         if (istate->gotoTarget && istate->gotoTarget != this)
             break; // continue at a higher level
 
-    Lcontinue:
         istate->gotoTarget = NULL;
         e = condition->interpret(istate);
         if (exceptionOrCantInterpret(e))

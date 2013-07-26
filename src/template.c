@@ -2382,7 +2382,7 @@ void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
                 if (c1 < c2) goto Ltd_best;
             }
 
-          Lambig:           // td_best and td are ambiguous
+          Lambig:   // td_best and td are ambiguous
             //printf("Lambig\n");
             td_ambig = td;
             m->nextf = fd;  // Caution! m->nextf isn't complete instantiated fd, so must not call toPrettyChars()
@@ -6447,7 +6447,6 @@ Identifier *TemplateInstance::genIdent(Objects *args)
             buf.writeByte('S');
             sa = sa->toAlias();
             Declaration *d = sa->isDeclaration();
-          Lsa2:
             if (d && (!d->type || !d->type->deco))
             {
                 error("forward reference of %s %s", d->kind(), d->toChars());
