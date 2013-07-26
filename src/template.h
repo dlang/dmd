@@ -343,7 +343,7 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    int needsTypeInference(Scope *sc, int flag = 0);
+    bool needsTypeInference(Scope *sc, int flag = 0);
     char *toChars();
     const char *mangle(bool isv = false);
     void printInstantiationTrace();
@@ -391,6 +391,8 @@ public:
     void toJson(JsonOut *json);
 
     void toObjFile(int multiobj);                       // compile to .obj file
+
+    bool findTemplateDeclaration(Scope *sc);
 
     TemplateMixin *isTemplateMixin() { return this; }
 };

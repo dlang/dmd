@@ -5233,40 +5233,20 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
     printf("\tdo semantic\n");
 #endif
-    TemplateDeclaration *tempdecl;
-    if (havetempdecl)
+    /* Find template declaration first,
+     * then run semantic on each argument (place results in tiargs[]),
+     * last find most specialized template from overload list/set.
+     */
+    if (!findTemplateDeclaration(sc) ||
+        !semanticTiargs(sc) ||
+        !findBestMatch(sc, fargs))
     {
-        tempdecl = this->tempdecl->isTemplateDeclaration();
-        assert(tempdecl);
-        assert(tempdecl->scope);
-        // Deduce tdtypes
-        tdtypes.setDim(tempdecl->parameters->dim);
-        if (!tempdecl->matchWithInstance(this, &tdtypes, fargs, 2))
-        {
-            error("incompatible arguments for template instantiation");
-            inst = this;
-            return;
-        }
+        inst = this;
+        inst->errors = true;
+        return;             // error recovery
     }
-    else
-    {
-        /* Find template declaration first,
-         * then run semantic on each argument (place results in tiargs[]),
-         * last find most specialized template from overload list/set.
-         */
-        if (!findTemplateDeclaration(sc) ||
-            !semanticTiargs(sc) ||
-            !findBestMatch(sc, fargs))
-        {
-            inst = this;
-            //printf("error return %p, %d\n", tempdecl, global.errors);
-            if (inst)
-                inst->errors = true;
-            return;             // error recovery
-        }
-        tempdecl = this->tempdecl->isTemplateDeclaration();
-        assert(tempdecl);
-    }
+    TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+    assert(tempdecl);
 
     // If tempdecl is a mixin, disallow it
     if (tempdecl->ismixin)
@@ -5909,6 +5889,9 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 
 bool TemplateInstance::findTemplateDeclaration(Scope *sc)
 {
+    if (havetempdecl)
+        return true;
+
     //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
     if (!tempdecl)
     {
@@ -5957,11 +5940,38 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
             }
         }
 
-        updateTemplateDeclaration(sc, s);
+        if (!updateTemplateDeclaration(sc, s))
+        {
+            return false;
+        }
     }
-    else
-        assert(tempdecl);
-    return (tempdecl != NULL);
+    assert(tempdecl);
+
+    // Look for forward references
+    TemplateOverloadSet tos(this);
+    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
+    {
+        if (!td->semanticRun)
+        {
+            if (td->scope)
+            {
+                // Try to fix forward reference. Ungag errors while doing so.
+                int oldgag = global.gag;
+                if (global.isSpeculativeGagging() && !td->isSpeculative())
+                    global.gag = 0;
+
+                td->semantic(td->scope);
+
+                global.gag = oldgag;
+            }
+            if (!td->semanticRun)
+            {
+                error("%s forward references template declaration %s", toChars(), td->toChars());
+                return false;
+            }
+        }
+    }
+    return true;
 }
 
 /**********************************************
@@ -6058,6 +6068,21 @@ bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
 
 bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 {
+    if (havetempdecl)
+    {
+        TemplateDeclaration *tempdecl = this->tempdecl->isTemplateDeclaration();
+        assert(tempdecl);
+        assert(tempdecl->scope);
+        // Deduce tdtypes
+        tdtypes.setDim(tempdecl->parameters->dim);
+        if (!tempdecl->matchWithInstance(this, &tdtypes, fargs, 2))
+        {
+            error("incompatible arguments for template instantiation");
+            return false;
+        }
+        return true;
+    }
+
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
      */
@@ -6068,30 +6093,6 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 #if LOG
     printf("TemplateInstance::findBestMatch()\n");
 #endif
-    // First look for forward references
-    TemplateOverloadSet tos(this);
-    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
-    {
-        if (!td->semanticRun)
-        {
-            if (td->scope)
-            {   // Try to fix forward reference. Ungag errors while doing so.
-                int oldgag = global.gag;
-                if (global.isSpeculativeGagging() && !td->isSpeculative())
-                    global.gag = 0;
-
-                td->semantic(td->scope);
-
-                global.gag = oldgag;
-            }
-            if (!td->semanticRun)
-            {
-                error("%s forward references template declaration %s", toChars(), td->toChars());
-                return false;
-            }
-        }
-    }
-
     Dsymbol *sa = tempdecl;
     TemplateDeclaration *tdecl = sa->isTemplateDeclaration();
     OverloadSet *tovers = sa->isOverloadSet();
@@ -6515,13 +6516,17 @@ void TemplateInstance::declareParameters(Scope *sc)
  * arguments.
  */
 
-int TemplateInstance::needsTypeInference(Scope *sc, int flag)
+bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 {
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
-    if (!findTemplateDeclaration(sc))
-        return FALSE;
+    if (!findTemplateDeclaration(sc) ||
+        !flag && !semanticTiargs(sc))
+    {
+        inst = this;
+        inst->errors = true;
+        return false;
+    }
 
-    int multipleMatches = FALSE;
     Objects dedtypes;
     size_t count = 0;
 
@@ -6529,7 +6534,7 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
     for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
     {
         /* If any of the overloaded template declarations need inference,
-         * then return TRUE
+         * then return true
          */
         FuncDeclaration *fd;
         if (!td->onemember ||
@@ -6539,13 +6544,13 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
             /* Not a template function, therefore type inference is not possible.
              */
             //printf("false\n");
-            return FALSE;
+            return false;
         }
 
         for (size_t i = 0; i < td->parameters->dim; i++)
         {
             if ((*td->parameters)[i]->isTemplateThisParameter())
-                return TRUE;
+                return true;
         }
 
         /* Determine if the instance arguments, tiargs, are all that is necessary
@@ -6557,7 +6562,7 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
         {
             TemplateParameter *tp = td->isVariadic();
             if (tp && td->parameters->dim > 1)
-                return TRUE;
+                return true;
 
             if (tiargs->dim < td->parameters->dim)
             {
@@ -6568,17 +6573,17 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
                     if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
                     {
                         if (!ttp->defaultType)
-                            return TRUE;
+                            return true;
                     }
                     else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
                     {
                         if (!tap->defaultAlias)
-                            return TRUE;
+                            return true;
                     }
                     else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
                     {
                         if (!tvp->defaultValue)
-                            return TRUE;
+                            return true;
                     }
                 }
             }
@@ -6587,30 +6592,17 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
             {
                 // 'auto ref' needs inference.
                 if (Parameter::getNth(tf->parameters, i)->storageClass & STCauto)
-                    return TRUE;
+                    return true;
             }
         }
 
         if (!flag)
         {
-            if (!semanticTiargs(sc))
-                return FALSE;
-
             /* Calculate the need for overload resolution.
              * When only one template can match with tiargs, inference is not necessary.
              */
             dedtypes.setDim(td->parameters->dim);
             dedtypes.zero();
-            if (!td->semanticRun)
-            {
-                if (td->scope)
-                    td->semantic(td->scope);
-                else
-                {
-                    error("forward reference to template %s", td->toChars());
-                    return FALSE;
-                }
-            }
             assert(td->semanticRun);
             MATCH m = td->matchWithInstance(this, &dedtypes, NULL, 0);
             if (m == MATCHnomatch)
@@ -6621,10 +6613,10 @@ int TemplateInstance::needsTypeInference(Scope *sc, int flag)
          * need type inference (see Bugzilla 4430)
          */
         if (++count > 1)
-            return TRUE;
+            return true;
     }
     //printf("false\n");
-    return multipleMatches;
+    return false;
 }
 
 void TemplateInstance::semantic2(Scope *sc)
@@ -6995,6 +6987,69 @@ Dsymbol *TemplateMixin::syntaxCopy(Dsymbol *s)
     return tm;
 }
 
+bool TemplateMixin::findTemplateDeclaration(Scope *sc)
+{
+    // Follow qualifications to find the TemplateDeclaration
+    if (!tempdecl)
+    {
+        Expression *e;
+        Type *t;
+        Dsymbol *s;
+        tqual->resolve(loc, sc, &e, &t, &s);
+        if (!s)
+        {
+            error("is not defined");
+            return false;
+        }
+        s = s->toAlias();
+        tempdecl = s->isTemplateDeclaration();
+        OverloadSet *os = s->isOverloadSet();
+
+        /* If an OverloadSet, look for a unique member that is a template declaration
+         */
+        if (os)
+        {
+            Dsymbol *s = NULL;
+            for (size_t i = 0; i < os->a.dim; i++)
+            {
+                Dsymbol *s2 = os->a[i]->isTemplateDeclaration();
+                if (s2)
+                {
+                    if (s)
+                    {
+                        tempdecl = os;
+                        break;
+                    }
+                    s = s2;
+                }
+            }
+        }
+        if (!tempdecl)
+        {
+            error("%s isn't a template", s->toChars());
+            return false;
+        }
+    }
+    assert(tempdecl);
+
+    // Look for forward reference
+    TemplateOverloadSet tos(this);
+    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
+    {
+        if (!td->semanticRun)
+        {
+            if (td->scope)
+                td->semantic(td->scope);
+            else
+            {
+                semanticRun = PASSinit;
+                return false;
+            }
+        }
+    }
+    return true;
+}
+
 void TemplateMixin::semantic(Scope *sc)
 {
 #if LOG
@@ -7027,94 +7082,42 @@ void TemplateMixin::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
 
-    // Follow qualifications to find the TemplateDeclaration
-    if (!tempdecl)
-    {
-        Expression *e;
-        Type *t;
-        Dsymbol *s;
-        tqual->resolve(loc, sc, &e, &t, &s);
-        if (!s)
-        {
-            error("is not defined");
-            inst = this;
-            return;
-        }
-        s = s->toAlias();
-        tempdecl = s->isTemplateDeclaration();
-        OverloadSet *os = s->isOverloadSet();
-
-        /* If an OverloadSet, look for a unique member that is a template declaration
-         */
-        if (os)
-        {
-            Dsymbol *s = NULL;
-            for (size_t i = 0; i < os->a.dim; i++)
-            {
-                Dsymbol *s2 = os->a[i]->isTemplateDeclaration();
-                if (s2)
-                {
-                    if (s)
-                    {
-                        tempdecl = os;
-                        break;
-                    }
-                    s = s2;
-                }
-            }
-        }
-        if (!tempdecl)
-        {
-            error("%s isn't a template", s->toChars());
-            inst = this;
-            return;
-        }
-    }
-
-    // Look for forward reference
-    TemplateOverloadSet tos(this);
-    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
-    {
-        if (!td->semanticRun)
-        {
-            if (td->scope)
-                td->semantic(td->scope);
-            else
-            {
-                /* Cannot handle forward references if mixin is a struct member,
-                 * because addField must happen during struct's semantic, not
-                 * during the mixin semantic.
-                 * runDeferred will re-run mixin's semantic outside of the struct's
-                 * semantic.
-                 */
-                semanticRun = PASSinit;
-                AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
-                if (ad)
-                    ad->sizeok = SIZEOKfwd;
-                else
-                {
-                    // Forward reference
-                    //printf("forward reference - deferring\n");
-                    scope = scx ? scx : new Scope(*sc);
-                    scope->setNoFree();
-                    scope->module->addDeferredSemantic(this);
-                }
-                return;
-            }
-        }
-    }
 
     /* Run semantic on each argument, place results in tiargs[],
      * then find best match template with tiargs
      */
-    if (!semanticTiargs(sc) ||
+    if (!findTemplateDeclaration(sc) ||
+        !semanticTiargs(sc) ||
         !findBestMatch(sc, NULL))
     {
+        if (semanticRun == PASSinit)    // forward reference had occured
+        {
+            /* Cannot handle forward references if mixin is a struct member,
+             * because addField must happen during struct's semantic, not
+             * during the mixin semantic.
+             * runDeferred will re-run mixin's semantic outside of the struct's
+             * semantic.
+             */
+            AggregateDeclaration *ad = toParent()->isAggregateDeclaration();
+            if (ad)
+                ad->sizeok = SIZEOKfwd;
+            else
+            {
+                // Forward reference
+                //printf("forward reference - deferring\n");
+                scope = scx ? scx : new Scope(*sc);
+                scope->setNoFree();
+                scope->module->addDeferredSemantic(this);
+            }
+            return;
+        }
+
         inst = this;
         inst->errors = true;
         return;         // error recovery
