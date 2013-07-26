@@ -1168,12 +1168,7 @@ Statement *ReturnStatement::inlineScan(InlineScanState *iss)
 {
     //printf("ReturnStatement::inlineScan()\n");
     if (exp)
-    {
         exp = exp->inlineScan(iss);
-
-        FuncDeclaration *func = iss->fd;
-        TypeFunction *tf = (TypeFunction *)(func->type);
-    }
     return this;
 }
 
