@@ -63,7 +63,7 @@ char *obj_mangle2(Symbol *s,char *dest);
  * section registration and will no longer create global bracket
  * symbols (_deh_beg,_deh_end,_tlsstart,_tlsend).
  */
-#define REQUIRE_DSO_REGISTRY 0
+#define REQUIRE_DSO_REGISTRY (DMDV2 && TARGET_LINUX)
 
 /***************************************************
  * Correspondence of relocation types
