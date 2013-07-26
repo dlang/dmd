@@ -356,16 +356,10 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             goto Leprop;
         tiargs = dti->ti->tiargs;
         tthis  = dti->e1->type;
-        if (dti->ti->tempovers)
-        {
-            os = dti->ti->tempovers;
+        if ((os = dti->ti->tempdecl->isOverloadSet()) != NULL)
             goto Los;
-        }
-        if (dti->ti->tempdecl)
-        {
-            s = dti->ti->tempdecl;
+        if ((s = dti->ti->tempdecl) != NULL)
             goto Lfd;
-        }
     }
     else if (e1->op == TOKdottd)
     {
@@ -385,23 +379,17 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
             goto Lfd;
         }
         TemplateInstance *ti = s->isTemplateInstance();
-        if (ti && !ti->semanticRun)
+        if (ti && !ti->semanticRun && ti->tempdecl)
         {
             //assert(ti->needsTypeInference(sc));
             if (!ti->semanticTiargs(sc))
                 goto Leprop;
             tiargs = ti->tiargs;
             tthis  = NULL;
-            if (ti->tempovers)
-            {
-                os = ti->tempovers;
+            if ((os = ti->tempdecl->isOverloadSet()) != NULL)
                 goto Los;
-            }
-            if (ti->tempdecl)
-            {
-                s = ti->tempdecl;
+            if ((s = ti->tempdecl) != NULL)
                 goto Lfd;
-            }
         }
     }
     else if (e1->op == TOKtemplate)
@@ -611,8 +599,7 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
     else if (e1->op == TOKdotti)
     {
         DotTemplateInstanceExp* dti = (DotTemplateInstanceExp *)e1;
-        td = dti->ti->tempdecl;
-        if (td)
+        if (dti->ti->tempdecl && (td = dti->ti->tempdecl->isTemplateDeclaration()) != NULL)
             goto Ltd;
     }
     else if (e1->op == TOKdottd)
@@ -627,10 +614,9 @@ Expression *resolvePropertiesOnly(Scope *sc, Expression *e1)
         if (td)
             goto Ltd;
         TemplateInstance *ti = s->isTemplateInstance();
-        if (ti && !ti->semanticRun)
+        if (ti && !ti->semanticRun && ti->tempdecl)
         {
-            td = ti->tempdecl;
-            if (td)
+            if ((td = ti->tempdecl->isTemplateDeclaration()) != NULL)
                 goto Ltd;
         }
     }
@@ -706,12 +692,12 @@ Expression *searchUFCS(Scope *sc, UnaExp *ue, Identifier *ident)
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f)
     {
-        TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
-        if (tempdecl)
+        TemplateDeclaration *td = getFuncTemplateDecl(f);
+        if (td)
         {
-            if (tempdecl->overroot)
-                tempdecl = tempdecl->overroot;
-            s = tempdecl;
+            if (td->overroot)
+                td = td->overroot;
+            s = td;
         }
     }
 
@@ -1226,16 +1212,19 @@ TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s)
 {
     FuncDeclaration *f = s->isFuncDeclaration();
     if (f && f->parent)
-    {   TemplateInstance *ti = f->parent->isTemplateInstance();
-
+    {
+        TemplateInstance *ti = f->parent->isTemplateInstance();
+        TemplateDeclaration *td;
         if (ti &&
             !ti->isTemplateMixin() &&
             (ti->name == f->ident ||
              ti->toAlias()->ident == f->ident)
             &&
-            ti->tempdecl && ti->tempdecl->onemember)
+            ti->tempdecl &&
+            (td = ti->tempdecl->isTemplateDeclaration()) != NULL &&
+            td->onemember)
         {
-            return ti->tempdecl;
+            return td;
         }
     }
     return NULL;
@@ -3335,12 +3324,13 @@ Expression *IdentifierExp::semantic(Scope *sc)
              */
             FuncDeclaration *f = s->isFuncDeclaration();
             if (f)
-            {   TemplateDeclaration *tempdecl = getFuncTemplateDecl(f);
-                if (tempdecl)
+            {
+                TemplateDeclaration *td = getFuncTemplateDecl(f);
+                if (td)
                 {
-                    if (tempdecl->overroot)         // if not start of overloaded list of TemplateDeclaration's
-                        tempdecl = tempdecl->overroot; // then get the start
-                    e = new TemplateExp(loc, tempdecl, f);
+                    if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                        td = td->overroot;  // then get the start
+                    e = new TemplateExp(loc, td, f);
                     e = e->semantic(sc);
                     return e;
                 }
@@ -4919,7 +4909,7 @@ Lagain:
         unsigned olderrs = global.errors;
         if (ti->needsTypeInference(sc))
         {
-            if (TemplateDeclaration *td = ti->tempdecl)
+            if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
             {
                 Dsymbol *p = td->toParent2();
                 FuncDeclaration *fdthis = hasThis(sc);
@@ -4931,7 +4921,7 @@ Lagain:
                     return e->semantic(sc);
                 }
             }
-            else if (OverloadSet *os = ti->tempovers)
+            else if (OverloadSet *os = ti->tempdecl->isOverloadSet())
             {
                 FuncDeclaration *fdthis = hasThis(sc);
                 AggregateDeclaration *ad = os->parent->isAggregateDeclaration();
@@ -7939,7 +7929,7 @@ bool DotTemplateInstanceExp::findTempDecl(Scope *sc)
 #if LOGSEMANTIC
     printf("DotTemplateInstanceExp::findTempDecl('%s')\n", toChars());
 #endif
-    if (ti->tempdecl || ti->tempovers)
+    if (ti->tempdecl)
         return true;
 
     Expression *e = new DotIdExp(loc, e1, ti->name);
@@ -8164,8 +8154,7 @@ L1:
     else if (e->op == TOKoverloadset)
     {
         OverExp *oe = (OverExp *)e;
-        ti->tempdecl = NULL;
-        ti->tempovers = oe->vars;
+        ti->tempdecl = oe->vars;
         e = new ScopeExp(loc, ti);
         e = e->semantic(sc);
         return e;
@@ -8366,11 +8355,11 @@ Expression *CallExp::semantic(Scope *sc)
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                assert(!!ti->tempdecl != !!ti->tempovers);
-                if (ti->tempdecl)
-                    e1 = new TemplateExp(loc, ti->tempdecl);
+                assert(ti->tempdecl);
+                if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
+                    e1 = new TemplateExp(loc, td);
                 else
-                    e1 = new OverExp(loc, ti->tempovers);
+                    e1 = new OverExp(loc, ti->tempdecl->isOverloadSet());
             }
             else
             {
@@ -8400,10 +8389,11 @@ Ldotti:
                  */
                 tiargs = ti->tiargs;
                 tierror = ti;                   // for error reporting
-                if (ti->tempdecl)
-                    e1 = new DotTemplateExp(loc, se->e1, ti->tempdecl);
+                assert(ti->tempdecl);
+                if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
+                    e1 = new DotTemplateExp(loc, se->e1, td);
                 else
-                    e1 = new DotExp(loc, se->e1, new OverExp(loc, ti->tempovers));
+                    e1 = new DotExp(loc, se->e1, new OverExp(loc, ti->tempdecl->isOverloadSet()));
             }
             else
             {
