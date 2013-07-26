@@ -975,7 +975,7 @@ void FuncDeclaration::semantic3(Scope *sc)
     }
 
     frequire = mergeFrequire(frequire);
-    fensure = mergeFensure(fensure);
+    fensure = mergeFensure(fensure, outId);
 
     if (fbody || frequire || fensure)
     {
@@ -2157,7 +2157,7 @@ Statement *FuncDeclaration::mergeFrequire(Statement *sf)
  * 'out's are AND'd together, i.e. all of them need to pass.
  */
 
-Statement *FuncDeclaration::mergeFensure(Statement *sf)
+Statement *FuncDeclaration::mergeFensure(Statement *sf, Identifier *oid)
 {
     /* Same comments as for mergeFrequire(), except that we take care
      * of generating a consistent reference to the 'result' local by
@@ -2184,7 +2184,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
             sc->pop();
         }
 
-        sf = fdv->mergeFensure(sf);
+        sf = fdv->mergeFensure(sf, oid);
         if (fdv->fdensure)
         {
             //printf("fdv->fensure: %s\n", fdv->fensure->toChars());
@@ -2192,7 +2192,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
             Expression *eresult = NULL;
             if (outId)
             {
-                eresult = new IdentifierExp(loc, outId);
+                eresult = new IdentifierExp(loc, oid);
 
                 Type *t1 = fdv->type->nextOf()->toBasetype();
                 Type *t2 = this->type->nextOf()->toBasetype();
@@ -2214,7 +2214,7 @@ Statement *FuncDeclaration::mergeFensure(Statement *sf)
 
             if (sf)
             {
-                sf = new CompoundStatement(fensure->loc, s2, sf);
+                sf = new CompoundStatement(sf->loc, s2, sf);
             }
             else
                 sf = s2;
