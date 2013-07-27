@@ -359,6 +359,13 @@ extern (C)
     extern (D) alias scope int delegate(void *, void *) _dg2_t;
     int _aaApply2(void* aa, size_t keysize, _dg2_t dg);
 
+    private struct AARange { void* impl, current; }
+    AARange _aaRange(void* aa);
+    bool _aaRangeEmpty(AARange r);
+    void* _aaRangeFrontKey(AARange r);
+    void* _aaRangeFrontValue(AARange r);
+    void _aaRangePopFront(ref AARange r);
+
     void* _d_assocarrayliteralT(TypeInfo_AssociativeArray ti, in size_t length, ...);
 }
 
@@ -375,79 +382,9 @@ private template _Unqual(T)
 struct AssociativeArray(Key, Value)
 {
 private:
-    // Duplicates of the stuff found in druntime/src/rt/aaA.d
-    struct Slot
-    {
-        Slot *next;
-        size_t hash;
-        Key key;
-        version(D_LP64) align(16) _Unqual!Value value; // c.f. rt/aaA.d, aligntsize()
-        else align(4) _Unqual!Value value;
-
-        // Stop creating built-in opAssign
-        @disable void opAssign(Slot);
-    }
-
-    struct Hashtable
-    {
-        Slot*[] b;
-        size_t nodes;
-        TypeInfo keyti;
-        Slot*[4] binit;
-    }
-
-    Hashtable* p;
-
-    struct Range
-    {
-        // State
-        Slot*[] slots;
-        Slot* current;
-
-        this(Hashtable* aa)
-        {
-            if (aa is null) return;
-            slots = aa.b;
-            nextSlot();
-        }
-
-        void nextSlot()
-        {
-            foreach (i, slot; slots)
-            {
-                if (!slot) continue;
-                current = slot;
-                slots = slots.ptr[i .. slots.length];
-                break;
-            }
-        }
-
-    public:
-        @property bool empty() const
-        {
-            return current is null;
-        }
-
-        @property ref inout(Slot) front() inout
-        {
-            assert(current);
-            return *current;
-        }
-
-        void popFront()
-        {
-            assert(current);
-            current = current.next;
-            if (!current)
-            {
-                slots = slots[1 .. $];
-                nextSlot();
-            }
-        }
-    }
+    void* p;
 
 public:
-
     @property size_t length() const { return _aaLen(p); }
 
     Value[Key] rehash() @property
@@ -515,44 +452,28 @@ public:
     {
         static struct Result
         {
-            Range state;
+            AARange r;
 
-            this(Hashtable* p)
-            {
-                state = Range(p);
-            }
-
-            @property ref Key front()
-            {
-                return state.front.key;
-            }
-
-            alias state this;
+            @property bool empty() { return _aaRangeEmpty(r); }
+            @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
+            void popFront() { _aaRangePopFront(r); }
         }
 
-        return Result(p);
+        return Result(_aaRange(p));
     }
 
     @property auto byValue()
     {
         static struct Result
         {
-            Range state;
+            AARange r;
 
-            this(Hashtable* p)
-            {
-                state = Range(p);
-            }
-
-            @property ref Value front()
-            {
-                return *cast(Value*)&state.front.value;
-            }
-
-            alias state this;
+            @property bool empty() { return _aaRangeEmpty(r); }
+            @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
+            void popFront() { _aaRangePopFront(r); }
         }
 
-        return Result(p);
+        return Result(_aaRange(p));
     }
 }
 
