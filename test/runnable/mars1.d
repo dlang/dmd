@@ -950,6 +950,33 @@ void test10639()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+bool bt10715(in uint[] ary, size_t bitnum)
+{
+    return !!(ary[bitnum >> 5] & 1 << (bitnum & 31)); // uses bt
+}
+
+bool neg_bt10715(in uint[] ary, size_t bitnum)
+{
+    return !(ary[bitnum >> 5] & 1 << (bitnum & 31)); // does not use bt
+}
+
+void test10715()
+{
+    static uint[2]  a1 = [0x1001_1100, 0x0220_0012];
+
+    if ( bt10715(a1,30)) assert(0);
+    if (!bt10715(a1,8))  assert(0);
+    if ( bt10715(a1,30+32)) assert(0);
+    if (!bt10715(a1,1+32))  assert(0);
+
+    if (!neg_bt10715(a1,30)) assert(0);
+    if ( neg_bt10715(a1,8))  assert(0);
+    if (!neg_bt10715(a1,30+32)) assert(0);
+    if ( neg_bt10715(a1,1+32))  assert(0);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -973,6 +1000,7 @@ int main()
     testor_combine();
     testshrshl();
     test10639();
+    test10715();
     printf("Success\n");
     return 0;
 }

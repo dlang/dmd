@@ -1760,14 +1760,14 @@ STATIC elem * elnot(elem *e, goal_t goal)
                   }
                   e1->Eoper = op;
 
-            L1: e = optelem(el_selecte1(e),GOALvalue);
+            L1: e = optelem(el_selecte1(e), goal);
             }
             else if (tybasic(e1->Ety) == TYbool && tysize(e->Ety) == 1)
             {
                 // !e1 => (e1 ^ 1)
                 e->Eoper = OPxor;
                 e->E2 = el_long(e1->Ety,1);
-                e = optelem(e,GOALvalue);
+                e = optelem(e, goal);
             }
 #if 0
 // Can't use this because what if OPd_s32?
@@ -1808,7 +1808,7 @@ STATIC elem * elnot(elem *e, goal_t goal)
             e1->Ety = e->Ety;
             e1->E1 = e1->E2;            // b
             e1->E2 = NULL;
-            e = optelem(e,GOALvalue);
+            e = optelem(e, goal);
             break;
   }
   return e;
@@ -5181,7 +5181,7 @@ beg:
             return optelem(e,GOALnone);
         }
 
-        e1 = e->E1 = optelem(e->E1,op == OPbool ? GOALflags : GOALvalue);
+        e1 = e->E1 = optelem(e->E1,(op == OPbool || op == OPnot) ? GOALflags : GOALvalue);
         if (e1->Eoper == OPconst)
         {
 #if TARGET_SEGMENTED
