@@ -58,7 +58,7 @@ void writeFilename(OutBuffer *buf, const char *filename, size_t len)
     for (size_t i = 0; i < len; i++)
     {   char c = filename[i];
 
-        if (isalnum((unsigned char)c) || c == '_')
+        if (isalnum((utf8_t)c) || c == '_')
             continue;
 
         /* Need to quote

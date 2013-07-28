@@ -3843,7 +3843,7 @@ bool interpretAssignToIndex(InterState *istate, Loc loc,
     }
     if (existingSE)
     {
-        unsigned char *s = (unsigned char *)existingSE->string;
+        utf8_t *s = (utf8_t *)existingSE->string;
         if (!existingSE->ownedByCtfe)
         {
             originalExp->error("cannot modify read-only string literal %s", ie->e1->toChars());
@@ -4106,7 +4106,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
     else if (existingSE)
     {   // String literal block slice assign
         unsigned value = newval->toInteger();
-        unsigned char *s = (unsigned char *)existingSE->string;
+        utf8_t *s = (utf8_t *)existingSE->string;
         for (size_t j = 0; j < upperbound-lowerbound; j++)
         {
             switch (existingSE->sz)
@@ -5990,7 +5990,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
     Expression *eresult;
 
     // Buffers for encoding; also used for decoding array literals
-    unsigned char utf8buf[4];
+    utf8_t utf8buf[4];
     unsigned short utf16buf[2];
 
     size_t start = rvs ? len : 0;
@@ -6020,7 +6020,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                     {
                         Expression * r = (*ale->elements)[indx];
                         assert(r->op == TOKint64);
-                        unsigned char x = (unsigned char)(((IntegerExp *)r)->value);
+                        utf8_t x = (utf8_t)(((IntegerExp *)r)->value);
                         if ( (x & 0xC0) != 0x80)
                             break;
                         ++buflen;
@@ -6032,7 +6032,7 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
                 {
                     Expression * r = (*ale->elements)[indx + i];
                     assert(r->op == TOKint64);
-                    utf8buf[i] = (unsigned char)(((IntegerExp *)r)->value);
+                    utf8buf[i] = (utf8_t)(((IntegerExp *)r)->value);
                 }
                 n = 0;
                 errmsg = utf_decodeChar(&utf8buf[0], buflen, &n, &rawvalue);
@@ -6088,13 +6088,13 @@ Expression *foreachApplyUtf(InterState *istate, Expression *str, Expression *del
             case 1:
                 if (rvs)
                 {   // find the start of the string
-                    unsigned char *s = (unsigned char *)se->string;
+                    utf8_t *s = (utf8_t *)se->string;
                     --indx;
                     while (indx > 0 && ((s[indx]&0xC0)==0x80))
                         --indx;
                     saveindx = indx;
                 }
-                errmsg = utf_decodeChar((unsigned char *)se->string, se->len, &indx, &rawvalue);
+                errmsg = utf_decodeChar((utf8_t *)se->string, se->len, &indx, &rawvalue);
                 if (rvs)
                     indx = saveindx;
                 break;

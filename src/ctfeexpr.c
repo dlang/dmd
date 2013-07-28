@@ -238,8 +238,7 @@ Expression *copyLiteral(Expression *e)
     if (e->op == TOKstring) // syntaxCopy doesn't make a copy for StringExp!
     {
         StringExp *se = (StringExp *)e;
-        unsigned char *s;
-        s = (unsigned char *)mem.calloc(se->len + 1, se->sz);
+        utf8_t *s = (utf8_t *)mem.calloc(se->len + 1, se->sz);
         memcpy(s, se->string, se->len * se->sz);
         StringExp *se2 = new StringExp(se->loc, s, se->len);
         se2->committed = se->committed;
@@ -483,8 +482,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
 StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
         unsigned value, size_t dim, int sz)
 {
-    unsigned char *s;
-    s = (unsigned char *)mem.calloc(dim + 1, sz);
+    utf8_t *s = (utf8_t *)mem.calloc(dim + 1, sz);
     for (size_t elemi = 0; elemi < dim; ++elemi)
     {
         switch (sz)
@@ -1596,11 +1594,11 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
-            memcpy((unsigned char *)s + i * sz, &v, sz);
+            memcpy((utf8_t *)s + i * sz, &v, sz);
         }
 
         // Add terminating 0
-        memset((unsigned char *)s + len * sz, 0, sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
 
         StringExp *es = new StringExp(loc, s, len);
         es->sz = sz;
@@ -1627,11 +1625,11 @@ Expression *ctfeCat(Type *type, Expression *e1, Expression *e2)
             if (es2e->op != TOKint64)
                 return EXP_CANT_INTERPRET;
             dinteger_t v = es2e->toInteger();
-            memcpy((unsigned char *)s + (es1->len + i) * sz, &v, sz);
+            memcpy((utf8_t *)s + (es1->len + i) * sz, &v, sz);
         }
 
         // Add terminating 0
-        memset((unsigned char *)s + len * sz, 0, sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
 
         StringExp *es = new StringExp(loc, s, len);
         es->sz = sz;
@@ -1923,7 +1921,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
     if (oldval->op == TOKstring)
     {
         StringExp *oldse = (StringExp *)oldval;
-        unsigned char *s = (unsigned char *)mem.calloc(newlen + 1, oldse->sz);
+        utf8_t *s = (utf8_t *)mem.calloc(newlen + 1, oldse->sz);
         memcpy(s, oldse->string, copylen * oldse->sz);
         unsigned defaultValue = (unsigned)(defaultElem->toInteger());
         for (size_t elemi = copylen; elemi < newlen; ++elemi)

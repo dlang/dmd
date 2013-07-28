@@ -264,7 +264,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
             case '[':           // look for [Environment]
                 p = skipspace(p + 1);
-                for (pn = p; isalnum((unsigned char)*pn); pn++)
+                for (pn = p; isalnum((utf8_t)*pn); pn++)
                     ;
                 if (pn - p == envsectionnamelen &&
                     Port::memicmp(p, envsectionname, envsectionnamelen) == 0 &&
@@ -283,14 +283,14 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
                     // Convert name to upper case;
                     // remove spaces bracketing =
                     for (p = pn; *p; p++)
-                    {   if (islower((unsigned char)*p))
+                    {   if (islower((utf8_t)*p))
                             *p &= ~0x20;
-                        else if (isspace((unsigned char)*p))
+                        else if (isspace((utf8_t)*p))
                             memmove(p, p + 1, strlen(p));
                         else if (*p == '=')
                         {
                             p++;
-                            while (isspace((unsigned char)*p))
+                            while (isspace((utf8_t)*p))
                                 memmove(p, p + 1, strlen(p));
                             break;
                         }
@@ -318,7 +318,7 @@ const char *inifile(const char *argv0x, const char *inifilex, const char *envsec
 
 char *skipspace(const char *p)
 {
-    while (isspace((unsigned char)*p))
+    while (isspace((utf8_t)*p))
         p++;
     return (char *)p;
 }

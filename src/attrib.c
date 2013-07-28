@@ -204,7 +204,7 @@ void AttribDeclaration::inlineScan()
     }
 }
 
-void AttribDeclaration::addComment(unsigned char *comment)
+void AttribDeclaration::addComment(utf8_t *comment)
 {
     //printf("AttribDeclaration::addComment %s\n", comment);
     if (comment)
@@ -1127,7 +1127,7 @@ void PragmaDeclaration::semantic(Scope *sc)
              */
             for (size_t i = 0; i < se->len; )
             {
-                unsigned char *p = (unsigned char *)se->string;
+                utf8_t *p = (utf8_t *)se->string;
                 dchar_t c = p[i];
                 if (c < 0x80)
                 {
@@ -1146,7 +1146,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                     }
                 }
 
-                if (const char* msg = utf_decodeChar((unsigned char *)se->string, se->len, &i, &c))
+                if (const char* msg = utf_decodeChar((utf8_t *)se->string, se->len, &i, &c))
                 {
                     error("%s", msg);
                     break;
@@ -1354,7 +1354,7 @@ void ConditionalDeclaration::importAll(Scope *sc)
     }
 }
 
-void ConditionalDeclaration::addComment(unsigned char *comment)
+void ConditionalDeclaration::addComment(utf8_t *comment)
 {
     /* Because addComment is called by the parser, if we called
      * include() it would define a version before it was used.
@@ -1592,7 +1592,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     else
     {
         se = se->toUTF8(sc);
-        Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+        Parser p(sc->module, (utf8_t *)se->string, se->len, 0);
         p.loc = loc;
         p.nextToken();
         decl = p.parseDeclDefs(0);

@@ -30,7 +30,7 @@
 #include "id.h"
 #include "module.h"
 
-extern int HtmlNamedEntity(unsigned char *p, size_t length);
+extern int HtmlNamedEntity(utf8_t *p, size_t length);
 
 #define LS 0x2028       // UTF line separator
 #define PS 0x2029       // UTF paragraph separator
@@ -47,9 +47,9 @@ const int CMoctal =     0x1;
 const int CMhex =       0x2;
 const int CMidchar =    0x4;
 
-inline unsigned char isoctal (unsigned char c) { return cmtable[c] & CMoctal; }
-inline unsigned char ishex   (unsigned char c) { return cmtable[c] & CMhex; }
-inline unsigned char isidchar(unsigned char c) { return cmtable[c] & CMidchar; }
+inline bool isoctal (utf8_t c) { return cmtable[c] & CMoctal; }
+inline bool ishex   (utf8_t c) { return cmtable[c] & CMhex; }
+inline bool isidchar(utf8_t c) { return cmtable[c] & CMidchar; }
 
 static void cmtable_init()
 {
@@ -151,7 +151,7 @@ const char *Token::toChars()
             for (size_t i = 0; i < len; )
             {   unsigned c;
 
-                utf_decodeChar((unsigned char *)ustring, len, &i, &c);
+                utf_decodeChar((utf8_t *)ustring, len, &i, &c);
                 switch (c)
                 {
                     case 0:
@@ -215,7 +215,7 @@ StringTable Lexer::stringtable;
 OutBuffer Lexer::stringbuffer;
 
 Lexer::Lexer(Module *mod,
-        unsigned char *base, size_t begoffset, size_t endoffset,
+        utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken)
     : loc(mod, 1)
 {
@@ -238,7 +238,7 @@ Lexer::Lexer(Module *mod,
     {
         p += 2;
         while (1)
-        {   unsigned char c = *p;
+        {   utf8_t c = *p;
             switch (c)
             {
                 case '\n':
@@ -420,7 +420,7 @@ int Lexer::isValidIdentifier(char *p)
     while (p[idx])
     {   dchar_t dc;
 
-        const char *q = utf_decodeChar((unsigned char *)p, len, &idx, &dc);
+        const char *q = utf_decodeChar((utf8_t *)p, len, &idx, &dc);
         if (q)
             goto Linvalid;
 
@@ -522,7 +522,7 @@ void Lexer::scan(Token *t)
 #if ! TEXTUAL_ASSEMBLY_OUT
             case '\\':                  // escaped string literal
             {   unsigned c;
-                unsigned char *pstart = p;
+                utf8_t *pstart = p;
 
                 stringbuffer.reset();
                 do
@@ -545,7 +545,7 @@ void Lexer::scan(Token *t)
                 } while (*p == '\\');
                 t->len = stringbuffer.offset;
                 stringbuffer.writeByte(0);
-                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 t->postfix = 0;
                 t->value = TOKstring;
@@ -574,7 +574,7 @@ void Lexer::scan(Token *t)
             case 'Z':
             case '_':
             case_ident:
-            {   unsigned char c;
+            {   utf8_t c;
 
                 while (1)
                 {
@@ -582,7 +582,7 @@ void Lexer::scan(Token *t)
                     if (isidchar(c))
                         continue;
                     else if (c & 0x80)
-                    {   unsigned char *s = p;
+                    {   utf8_t *s = p;
                         unsigned u = decodeUTF();
                         if (isUniAlpha(u))
                             continue;
@@ -622,7 +622,7 @@ void Lexer::scan(Token *t)
 #if DMDV1
                     if (mod && id == Id::FILE)
                     {
-                        t->ustring = (unsigned char *)(loc.filename ? loc.filename : mod->ident->toChars());
+                        t->ustring = (utf8_t *)(loc.filename ? loc.filename : mod->ident->toChars());
                         goto Lstr;
                     }
                     else if (mod && id == Id::LINE)
@@ -634,22 +634,22 @@ void Lexer::scan(Token *t)
 #endif
                     if (id == Id::DATE)
                     {
-                        t->ustring = (unsigned char *)date;
+                        t->ustring = (utf8_t *)date;
                         goto Lstr;
                     }
                     else if (id == Id::TIME)
                     {
-                        t->ustring = (unsigned char *)time;
+                        t->ustring = (utf8_t *)time;
                         goto Lstr;
                     }
                     else if (id == Id::VENDOR)
                     {
-                        t->ustring = (unsigned char *)global.compiler.vendor;
+                        t->ustring = (utf8_t *)global.compiler.vendor;
                         goto Lstr;
                     }
                     else if (id == Id::TIMESTAMP)
                     {
-                        t->ustring = (unsigned char *)timestamp;
+                        t->ustring = (utf8_t *)timestamp;
                      Lstr:
                         t->value = TOKstring;
                         t->postfix = 0;
@@ -663,7 +663,7 @@ void Lexer::scan(Token *t)
                         for (const char *p = global.version + 1; 1; p++)
                         {
                             char c = *p;
-                            if (isdigit((unsigned char)c))
+                            if (isdigit((utf8_t)c))
                                 minor = minor * 10 + c - '0';
                             else if (c == '.')
                             {
@@ -708,7 +708,7 @@ void Lexer::scan(Token *t)
                         while (1)
                         {
                             while (1)
-                            {   unsigned char c = *p;
+                            {   utf8_t c = *p;
                                 switch (c)
                                 {
                                     case '/':
@@ -761,7 +761,7 @@ void Lexer::scan(Token *t)
                     case '/':           // do // style comments
                         linnum = loc.linnum;
                         while (1)
-                        {   unsigned char c = *++p;
+                        {   utf8_t c = *++p;
                             switch (c)
                             {
                                 case '\n':
@@ -818,7 +818,7 @@ void Lexer::scan(Token *t)
                         p++;
                         nest = 1;
                         while (1)
-                        {   unsigned char c = *p;
+                        {   utf8_t c = *p;
                             switch (c)
                             {
                                 case '/':
@@ -1268,7 +1268,7 @@ unsigned Lexer::escapeSequence()
                 break;
 
         case '&':                       // named character entity
-                for (unsigned char *idstart = ++p; 1; p++)
+                for (utf8_t *idstart = ++p; 1; p++)
                 {
                     switch (*p)
                     {
@@ -1347,7 +1347,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t->ustring = (unsigned char *)"";
+                t->ustring = (utf8_t *)"";
                 t->len = 0;
                 t->postfix = 0;
                 return TOKstring;
@@ -1358,7 +1358,7 @@ TOK Lexer::wysiwygStringConstant(Token *t, int tc)
                 {
                     t->len = stringbuffer.offset;
                     stringbuffer.writeByte(0);
-                    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                    t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                     stringPostfix(t);
                     return TOKstring;
@@ -1416,7 +1416,7 @@ TOK Lexer::hexStringConstant(Token *t)
             case 0:
             case 0x1A:
                 error("unterminated string constant starting at %s", start.toChars());
-                t->ustring = (unsigned char *)"";
+                t->ustring = (utf8_t *)"";
                 t->len = 0;
                 t->postfix = 0;
                 return TOKstring;
@@ -1428,7 +1428,7 @@ TOK Lexer::hexStringConstant(Token *t)
                 }
                 t->len = stringbuffer.offset;
                 stringbuffer.writeByte(0);
-                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);
                 return TOKstring;
@@ -1593,7 +1593,7 @@ TOK Lexer::delimitedStringConstant(Token *t)
 #endif
                            )
             {   Token t;
-                unsigned char *psave = p;
+                utf8_t *psave = p;
                 p--;
                 scan(&t);               // read in possible heredoc identifier
                 //printf("endid = '%s'\n", t.ident->toChars());
@@ -1616,14 +1616,14 @@ Ldone:
         error("delimited string must end in %c\"", delimright);
     t->len = stringbuffer.offset;
     stringbuffer.writeByte(0);
-    t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+    t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
     memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
     stringPostfix(t);
     return TOKstring;
 
 Lerror:
     error("unterminated string constant starting at %s", start.toChars());
-    t->ustring = (unsigned char *)"";
+    t->ustring = (utf8_t *)"";
     t->len = 0;
     t->postfix = 0;
     return TOKstring;
@@ -1642,7 +1642,7 @@ TOK Lexer::tokenStringConstant(Token *t)
 {
     unsigned nest = 1;
     Loc start = loc;
-    unsigned char *pstart = ++p;
+    utf8_t *pstart = ++p;
 
     while (1)
     {   Token tok;
@@ -1669,7 +1669,7 @@ TOK Lexer::tokenStringConstant(Token *t)
 
 Ldone:
     t->len = p - 1 - pstart;
-    t->ustring = (unsigned char *)mem.malloc(t->len + 1);
+    t->ustring = (utf8_t *)mem.malloc(t->len + 1);
     memcpy(t->ustring, pstart, t->len);
     t->ustring[t->len] = 0;
     stringPostfix(t);
@@ -1677,7 +1677,7 @@ Ldone:
 
 Lerror:
     error("unterminated token string constant starting at %s", start.toChars());
-    t->ustring = (unsigned char *)"";
+    t->ustring = (utf8_t *)"";
     t->len = 0;
     t->postfix = 0;
     return TOKstring;
@@ -1731,7 +1731,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
             case '"':
                 t->len = stringbuffer.offset;
                 stringbuffer.writeByte(0);
-                t->ustring = (unsigned char *)mem.malloc(stringbuffer.offset);
+                t->ustring = (utf8_t *)mem.malloc(stringbuffer.offset);
                 memcpy(t->ustring, stringbuffer.data, stringbuffer.offset);
                 stringPostfix(t);
                 return TOKstring;
@@ -1740,7 +1740,7 @@ TOK Lexer::escapeStringConstant(Token *t, int wide)
             case 0x1A:
                 p--;
                 error("unterminated string constant starting at %s", start.toChars());
-                t->ustring = (unsigned char *)"";
+                t->ustring = (utf8_t *)"";
                 t->len = 0;
                 t->postfix = 0;
                 return TOKstring;
@@ -1883,7 +1883,7 @@ TOK Lexer::number(Token *t)
     FLAGS flags = FLAGS_decimal;
 
     unsigned c;
-    unsigned char *start;
+    utf8_t *start;
     TOK result;
 
     //printf("Lexer::number()\n");
@@ -2073,7 +2073,7 @@ done:
                 p += 2, r = 16;
             else if (p[1] == 'b' || p[1] == 'B')
                 p += 2, r = 2;
-            else if (isdigit((unsigned char)p[1]))
+            else if (isdigit((utf8_t)p[1]))
                 p += 1, r = 8;
         }
 
@@ -2108,9 +2108,9 @@ done:
     }
 
     // Parse trailing 'u', 'U', 'l' or 'L' in any combination
-    const unsigned char *psuffix = p;
+    const utf8_t *psuffix = p;
     while (1)
-    {   unsigned char f;
+    {   utf8_t f;
 
         switch (*p)
         {   case 'U':
@@ -2495,8 +2495,8 @@ Lerr:
 unsigned Lexer::decodeUTF()
 {
     dchar_t u;
-    unsigned char c;
-    unsigned char *s = p;
+    utf8_t c;
+    utf8_t *s = p;
     size_t len;
     size_t idx;
     const char *msg;
@@ -2532,13 +2532,13 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 {
     /* ct tells us which kind of comment it is: '/', '*', or '+'
      */
-    unsigned char ct = t->ptr[2];
+    utf8_t ct = t->ptr[2];
 
     /* Start of comment text skips over / * *, / + +, or / / /
      */
-    unsigned char *q = t->ptr + 3;      // start of comment text
+    utf8_t *q = t->ptr + 3;      // start of comment text
 
-    unsigned char *qend = p;
+    utf8_t *qend = p;
     if (ct == '*' || ct == '+')
         qend -= 2;
 
@@ -2569,7 +2569,7 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     for (; q < qend; q++)
     {
-        unsigned char c = *q;
+        utf8_t c = *q;
 
         switch (c)
         {
@@ -2631,15 +2631,15 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
 
     // It's a line comment if the start of the doc comment comes
     // after other non-whitespace on the same line.
-    unsigned char** dc = (lineComment && anyToken)
+    utf8_t** dc = (lineComment && anyToken)
                          ? &t->lineComment
                          : &t->blockComment;
 
     // Combine with previous doc comment, if any
     if (*dc)
-        *dc = combineComments(*dc, (unsigned char *)buf.data);
+        *dc = combineComments(*dc, (utf8_t *)buf.data);
     else
-        *dc = (unsigned char *)buf.extractData();
+        *dc = (utf8_t *)buf.extractData();
 }
 
 /********************************************
@@ -2647,11 +2647,11 @@ void Lexer::getDocComment(Token *t, unsigned lineComment)
  * separated by a newline.
  */
 
-unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
+utf8_t *Lexer::combineComments(utf8_t *c1, utf8_t *c2)
 {
     //printf("Lexer::combineComments('%s', '%s')\n", c1, c2);
 
-    unsigned char *c = c2;
+    utf8_t *c = c2;
 
     if (c1)
     {   c = c1;
@@ -2659,7 +2659,7 @@ unsigned char *Lexer::combineComments(unsigned char *c1, unsigned char *c2)
         {   size_t len1 = strlen((char *)c1);
             size_t len2 = strlen((char *)c2);
 
-            c = (unsigned char *)mem.malloc(len1 + 1 + len2 + 1);
+            c = (utf8_t *)mem.malloc(len1 + 1 + len2 + 1);
             memcpy(c, c1, len1);
             if (len1 && c1[len1 - 1] != '\n')
             {   c[len1] = '\n';
@@ -2683,10 +2683,10 @@ Loc Lexer::tokenLoc()
     while (last->next)
         last = last->next;
 
-    unsigned char* start = token.ptr;
-    unsigned char* stop = last->ptr;
+    utf8_t* start = token.ptr;
+    utf8_t* stop = last->ptr;
 
-    for (unsigned char* p = start; p < stop; ++p)
+    for (utf8_t* p = start; p < stop; ++p)
     {
         switch (*p)
         {
@@ -3039,8 +3039,8 @@ void unittest_lexer()
 
     /* Not much here, just trying things out.
      */
-    const unsigned char text[] = "int";
-    Lexer lex1(NULL, (unsigned char *)text, 0, sizeof(text), 0, 0);
+    const utf8_t text[] = "int";
+    Lexer lex1(NULL, (utf8_t *)text, 0, sizeof(text), 0, 0);
     TOK tok;
     tok = lex1.nextToken();
     //printf("tok == %s, %d, %d\n", Token::toChars(tok), tok, TOKint32);

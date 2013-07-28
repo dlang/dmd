@@ -55,7 +55,7 @@
 // Support D1 inout
 #define D1INOUT         0
 
-Parser::Parser(Module *module, unsigned char *base, size_t length, int doDocComment)
+Parser::Parser(Module *module, utf8_t *base, size_t length, int doDocComment)
     : Lexer(module, base, 0, length, doDocComment, 0)
 {
     //printf("Parser::Parser()\n");
@@ -75,7 +75,7 @@ Dsymbols *Parser::parseModule()
     if (token.value == TOKmodule)
     {
         Loc loc = this->loc;
-        unsigned char *comment = token.blockComment;
+        utf8_t *comment = token.blockComment;
         bool safe = FALSE;
 
         nextToken();
@@ -153,7 +153,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
     StorageClass stc;
     StorageClass storageClass;
     Condition *condition;
-    unsigned char *comment;
+    utf8_t *comment;
     Dsymbol *lastDecl = NULL;   // used to link unittest to its previous declaration
     if (!pLastDecl)
         pLastDecl = &lastDecl;
@@ -1316,8 +1316,8 @@ UnitTestDeclaration *Parser::parseUnitTest()
     Loc loc = this->loc;
 
     nextToken();
-    unsigned char *begPtr = token.ptr + 1;  // skip '{'
-    unsigned char *endPtr = NULL;
+    utf8_t *begPtr = token.ptr + 1;  // skip '{'
+    utf8_t *endPtr = NULL;
     body = parseStatement(PScurly, &endPtr);
 
     /** Extract unittest body as a string. Must be done eagerly since memory
@@ -1326,7 +1326,7 @@ UnitTestDeclaration *Parser::parseUnitTest()
     if (global.params.doDocComments && endPtr > begPtr)
     {
         /* Remove trailing whitespaces */
-        for (unsigned char *p = endPtr - 1;
+        for (utf8_t *p = endPtr - 1;
              begPtr <= p && (*p == ' ' || *p == '\n' || *p == '\t'); --p)
         {
             endPtr = p;
@@ -1611,7 +1611,7 @@ EnumDeclaration *Parser::parseEnum()
         //printf("enum definition\n");
         e->members = new Dsymbols();
         nextToken();
-        unsigned char *comment = token.blockComment;
+        utf8_t *comment = token.blockComment;
         while (token.value != TOKrcurly)
         {
             /* Can take the following forms:
@@ -2849,7 +2849,7 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
  * Return array of Declaration *'s.
  */
 
-Dsymbols *Parser::parseDeclarations(StorageClass storage_class, unsigned char *comment)
+Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
 {
     StorageClass stc;
     int disable;
@@ -3403,7 +3403,7 @@ L2:
  */
 
 #if DMDV2
-Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, unsigned char *comment)
+Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, utf8_t *comment)
 {
     Dsymbols *a = new Dsymbols;
 
@@ -3815,7 +3815,7 @@ void Parser::checkDanglingElse(Loc elseloc)
  *      flags   PSxxxx
  */
 
-Statement *Parser::parseStatement(int flags, unsigned char** endPtr)
+Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
 {   Statement *s;
     Condition *condition;
     Statement *ifbody;
@@ -5778,7 +5778,7 @@ Expression *Parser::parsePrimaryExp()
         case TOKstring:
         {
             // cat adjacent strings
-            unsigned char *s = token.ustring;
+            utf8_t *s = token.ustring;
             size_t len = token.len;
             unsigned char postfix = token.postfix;
             while (1)
@@ -5795,9 +5795,9 @@ Expression *Parser::parsePrimaryExp()
                     size_t len1 = len;
                     size_t len2 = token.len;
                     len = len1 + len2;
-                    unsigned char *s2 = (unsigned char *)mem.malloc((len + 1) * sizeof(unsigned char));
-                    memcpy(s2, s, len1 * sizeof(unsigned char));
-                    memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(unsigned char));
+                    utf8_t *s2 = (utf8_t *)mem.malloc((len + 1) * sizeof(utf8_t));
+                    memcpy(s2, s, len1 * sizeof(utf8_t));
+                    memcpy(s2 + len1, token.ustring, (len2 + 1) * sizeof(utf8_t));
                     s = s2;
                 }
                 else
@@ -7065,7 +7065,7 @@ Expression *Parser::parseNewExp(Expression *thisexp)
 /**********************************************
  */
 
-void Parser::addComment(Dsymbol *s, unsigned char *blockComment)
+void Parser::addComment(Dsymbol *s, utf8_t *blockComment)
 {
     s->addComment(combineComments(blockComment, token.lineComment));
     token.lineComment = NULL;

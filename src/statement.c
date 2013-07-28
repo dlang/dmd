@@ -519,7 +519,7 @@ Statements *CompileStatement::flatten(Scope *sc)
         else
         {
             se = se->toUTF8(sc);
-            Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+            Parser p(sc->module, (utf8_t *)se->string, se->len, 0);
             p.loc = loc;
             p.nextToken();
 

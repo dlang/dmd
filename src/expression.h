@@ -400,12 +400,12 @@ public:
     size_t len;         // number of chars, wchars, or dchars
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
-    unsigned char postfix;      // 'c', 'w', 'd'
+    utf8_t postfix;      // 'c', 'w', 'd'
     bool ownedByCtfe;   // true = created in CTFE
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
-    StringExp(Loc loc, void *s, size_t len, unsigned char postfix);
+    StringExp(Loc loc, void *s, size_t len, utf8_t postfix);
     //Expression *syntaxCopy();
     bool equals(RootObject *o);
     Expression *semantic(Scope *sc);
