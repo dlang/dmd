@@ -14,7 +14,11 @@
 // At present it is incomplete, but in future it should grow to contain
 // most or all target machine and target O/S specific information.
 
-class Type;
+#include <stdlib.h> //for size_t
+
+#include "mars.h"
+#include "mtype.h"
+#include "dsymbol.h"
 
 struct Target
 {
@@ -27,6 +31,12 @@ struct Target
     static unsigned alignsize(Type* type);
     static unsigned fieldalign(Type* type);
     static unsigned critsecsize();
+    
+    /*
+     * mangle stuff
+     */
+    //mangle specified symbol with spesified linkage
+    static const char *mangleSymbol(Dsymbol* sym, LINK link);
 };
 
 #endif

@@ -26,6 +26,7 @@
 #include "hdrgen.h"
 #include "ctfe.h"
 #include "target.h"
+#include "visitor.h"
 
 AggregateDeclaration *isAggregate(Type *t); // from opover.c
 
@@ -2591,4 +2592,22 @@ Dsymbol *ThisDeclaration::syntaxCopy(Dsymbol *s)
     assert(0);          // should never be produced by syntax
     return NULL;
 }
+
+
+void Declaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void VarDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void FuncDeclaration::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+
 

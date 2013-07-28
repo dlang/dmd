@@ -9,15 +9,17 @@
 
 #include <assert.h>
 
-#include "target.h"
 #include "mars.h"
+#include "target.h"
 #include "mtype.h"
+#include "mangle.h"
+#include "dsymbol.h"
+#include "utf.h"
 
 int Target::ptrsize;
 int Target::realsize;
 int Target::realpad;
 int Target::realalignsize;
-
 
 void Target::init()
 {
@@ -152,3 +154,30 @@ unsigned Target::critsecsize()
     return 0;
 }
 
+
+const char *Target::mangleSymbol(Dsymbol *sym, LINK link)
+{
+    Mangler *mangler = NULL;
+
+    switch (link)
+    {
+        case LINKcpp:
+        {
+            if (global.params.isWindows)
+                mangler = new VisualCPPMangler(!global.params.is64bit);
+            else
+                mangler = new ItaniumCPPMangler;
+            break;
+        }
+        default:
+        {
+            fprintf(stderr, "'%s', linkage = %d\n", sym->toChars(), link);
+            assert(0);
+        }
+    }
+
+    sym->acceptVisitor(mangler);
+    const char *ret = mangler->result();
+    delete mangler;
+    return ret;
+}

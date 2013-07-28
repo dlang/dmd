@@ -45,6 +45,7 @@
 #include "import.h"
 #include "aggregate.h"
 #include "hdrgen.h"
+#include "visitor.h"
 
 FuncDeclaration *hasThis(Scope *sc);
 
@@ -9629,4 +9630,129 @@ int Parameter::foreach(Parameters *args, Parameter::ForeachDg dg, void *ctx, siz
     if (pn)
         *pn = n; // update index
     return result;
+}
+
+void Type::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeError::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeNext::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeBasic::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeVector::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeArray::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeSArray::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeDArray::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeAArray::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypePointer::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeReference::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeFunction::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeDelegate::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeQualified::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeIdentifier::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeInstance::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeTypeof::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeReturn::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeStruct::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeEnum::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeTypedef::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeClass::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeTuple::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeSlice::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
+}
+
+void TypeNull::acceptVisitor(Visitor *v)
+{
+    v->visit(this);
 }

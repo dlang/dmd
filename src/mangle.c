@@ -23,10 +23,8 @@
 #include "template.h"
 #include "id.h"
 #include "module.h"
-
-#if CPP_MANGLE
-char *cpp_mangle(Dsymbol *s);
-#endif
+#include "mangle.h"
+#include "target.h"
 
 /******************************************************************************
  *  isv     : for the enclosing auto functions of an inner class/struct type.
@@ -121,49 +119,31 @@ const char *Declaration::mangle(bool isv)
 #if __DMC__
     __out(result)
     {
-        int len = strlen(result);
-
-        assert(len > 0);
-        //printf("mangle: '%s' => '%s'\n", toChars(), result);
-        for (int i = 0; i < len; i++)
-        {
-            assert(result[i] == '_' ||
-                   result[i] == '@' ||
-                   isalnum(result[i]) || result[i] & 0x80);
-        }
+        assert(strlen(result));
     }
     __body
 #endif
     {
+        if (mangleOverride)
+        {
+            return mangleOverride;
+        }
         //printf("Declaration::mangle(this = %p, '%s', parent = '%s', linkage = %d)\n", this, toChars(), parent ? parent->toChars() : "null", linkage);
-        if (!parent || parent->isModule() || linkage == LINKcpp) // if at global scope
+        if (linkage != LINKd && (!parent || parent->isModule() || linkage == LINKcpp)) // if at global scope
         {
             // If it's not a D declaration, no mangling
-            switch (linkage)
+            if (linkage == LINKcpp)
             {
-                case LINKd:
-                    break;
-
-                case LINKc:
-                case LINKwindows:
-                case LINKpascal:
-                    return ident->toChars();
-
-                case LINKcpp:
-#if CPP_MANGLE
-                    return cpp_mangle(this);
-#else
-                    // Windows C++ mangling is done by C++ back end
-                    return ident->toChars();
-#endif
-
-                case LINKdefault:
-                    error("forward declaration");
-                    return ident->toChars();
-
-                default:
-                    fprintf(stderr, "'%s', linkage = %d\n", toChars(), linkage);
-                    assert(0);
+                return Target::mangleSymbol(this, LINKcpp);
+            }
+            else if (linkage == LINKdefault)
+            {
+                error("forward declaration");
+                return ident->toChars();
+            }
+            else
+            {
+                return ident->toChars();
             }
         }
         char *p = ::mangle(this, isv);
@@ -222,7 +202,7 @@ const char *FuncDeclaration::mangleExact(bool isv)
 #if __DMC__
     __out(result)
     {
-        assert(strlen(result) > 0);
+        assert(strlen(result));
     }
     __body
 #endif
@@ -230,32 +210,18 @@ const char *FuncDeclaration::mangleExact(bool isv)
         assert(!isFuncAliasDeclaration());
 
         if (mangleOverride)
-            return mangleOverride;
+            return Declaration::mangle(isv);
 
         if (isMain())
             return (char *)"_Dmain";
 
-        if (isWinMain() || isDllMain() || ident == Id::tls_get_addr)
+        if (isWinMain() || isDllMain() || ident == Id::tls_get_addr || ident == Id::__alloca)
             return ident->toChars();
 
         assert(this);
         return Declaration::mangle(isv);
     }
 
-const char *VarDeclaration::mangle(bool isv)
-#if __DMC__
-    __out(result)
-    {
-        assert(strlen(result) > 0);
-    }
-    __body
-#endif
-    {
-        if (mangleOverride)
-            return mangleOverride;
-
-        return Declaration::mangle();
-    }
 
 const char *TypedefDeclaration::mangle(bool isv)
 {
@@ -350,8 +316,6 @@ const char *TemplateInstance::mangle(bool isv)
     return id;
 }
 
-
-
 const char *Dsymbol::mangle(bool isv)
 {
     OutBuffer buf;
@@ -377,5 +341,4 @@ const char *Dsymbol::mangle(bool isv)
     //printf("Dsymbol::mangle() %s = %s\n", toChars(), id);
     return id;
 }
-
 

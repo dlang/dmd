@@ -149,7 +149,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj
+	sideeffect.obj intrange.obj canthrow.obj target.obj cppmangle.obj visitor.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -187,7 +187,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	cond.h cond.c link.c aggregate.h staticassert.h parse.c statement.c \
 	constfold.c version.h version.c inifile.c staticassert.c \
 	module.c scope.c dump.c init.h init.c attrib.h attrib.c opover.c \
-	class.c mangle.c func.c inline.c access.c complex_t.h cppmangle.c \
+	class.c mangle.c func.c inline.c access.c complex_t.h \
 	identifier.h parse.h scope.h enum.h import.h \
 	mars.h module.h mtype.h dsymbol.h \
 	declaration.h lexer.h expression.h statement.h doc.h doc.c \
@@ -196,7 +196,8 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h  cppmangle.c mangle.h \
+	visitor.c visitor.h 
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -718,7 +719,9 @@ sideeffect.obj : $(TOTALH) sideeffect.c
 statement.obj : $(TOTALH) statement.h statement.c expression.h
 staticassert.obj : $(TOTALH) staticassert.h staticassert.c
 struct.obj : $(TOTALH) identifier.h enum.h struct.c
-target.obj : $(TOTALH) target.c target.h
+target.obj : $(TOTALH) target.c target.h mangle.h
+cppmangle.obj : $(TOTALH) cppmangle.c mangle.h visitor.h
+visitor.obj : $(TOTALH) visitor.c visitor.h
 traits.obj : $(TOTALH) traits.c
 dsymbol.obj : $(TOTALH) identifier.h dsymbol.h dsymbol.c
 mtype.obj : $(TOTALH) mtype.h mtype.c
