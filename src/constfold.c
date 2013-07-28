@@ -1451,7 +1451,7 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
 
             es = new StringExp(loc, s, len, es1->postfix);
             es->sz = sz;
-            es->committed = 1;
+            es->committed = es1->committed;
             es->type = type;
             e = es;
         }
