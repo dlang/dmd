@@ -977,6 +977,23 @@ void test10715()
 }
 
 ////////////////////////////////////////////////////////////////////////
+
+int foo10678(char[5] txt)
+{
+    return txt[0] + txt[1] + txt[4];
+}
+
+void test10678()
+{
+    char[5] hello = void;
+    hello[0] = 8;
+    hello[1] = 9;
+    hello[4] = 10;
+    int i = foo10678(hello);
+    assert(i == 27);
+}
+
+////////////////////////////////////////////////////////////////////////
  
 int main()
 {
@@ -1001,6 +1018,7 @@ int main()
     testshrshl();
     test10639();
     test10715();
+    test10678();
     printf("Success\n");
     return 0;
 }
