@@ -112,9 +112,6 @@ void scanTLSRanges(Array!(void[])* rngs, scope void delegate(void* pbeg, void* p
 
 private:
 
-// start of linked list for ModuleInfo references
-deprecated extern (C) __gshared void* _Dmodule_ref;
-
 /*
  * Static DSOs loaded by the runtime linker. This includes the
  * executable. These can't be unloaded.
