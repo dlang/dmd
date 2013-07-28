@@ -603,16 +603,17 @@ void Lexer::scan(Token *t)
                 anyToken = 1;
                 if (*t->ptr == '_')     // if special identifier token
                 {
+                    static bool initdone = false;
                     static char date[11+1];
                     static char time[8+1];
                     static char timestamp[24+1];
 
-                    if (!date[0])       // lazy evaluation
-                    {   time_t t;
-                        char *p;
-
+                    if (!initdone)       // lazy evaluation
+                    {
+                        initdone = true;
+                        time_t t;
                         ::time(&t);
-                        p = ctime(&t);
+                        char *p = ctime(&t);
                         assert(p);
                         sprintf(date, "%.6s %.4s", p + 4, p + 20);
                         sprintf(time, "%.8s", p + 11);
