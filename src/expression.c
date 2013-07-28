@@ -10640,7 +10640,7 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->optimize(WANTvalue);
             if (e2->op == TOKint64 && e2->toInteger() == 0)
                 ;
-            else if (sc->func->setUnsafe())
+            else if (sc->func && sc->func->setUnsafe())
             {
                 error("safe function '%s' cannot index pointer '%s'",
                     sc->func->toPrettyChars(), e1->toChars());
