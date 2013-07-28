@@ -796,7 +796,7 @@ Dsymbols *Dsymbol::arraySyntaxCopy(Dsymbols *a)
  * Ignore NULL comments.
  */
 
-void Dsymbol::addComment(unsigned char *comment)
+void Dsymbol::addComment(utf8_t *comment)
 {
     //if (comment)
         //printf("adding comment '%s' to symbol %p '%s'\n", comment, this, toChars());

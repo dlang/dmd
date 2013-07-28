@@ -128,7 +128,7 @@ void JsonOut::stringPart(const char *s)
 {
     for (; *s; s++)
     {
-        unsigned char c = (unsigned char) *s;
+        utf8_t c = (utf8_t) *s;
         switch (c)
         {
             case '\n':

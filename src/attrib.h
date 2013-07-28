@@ -46,7 +46,7 @@ public:
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
     void inlineScan();
-    void addComment(unsigned char *comment);
+    void addComment(utf8_t *comment);
     void emitComment(Scope *sc);
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
@@ -171,7 +171,7 @@ public:
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void emitComment(Scope *sc);
     Dsymbols *include(Scope *sc, ScopeDsymbol *s);
-    void addComment(unsigned char *comment);
+    void addComment(utf8_t *comment);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toJson(JsonOut *json);
     void importAll(Scope *sc);

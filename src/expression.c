@@ -3911,7 +3911,7 @@ StringExp::StringExp(Loc loc, void *string, size_t len)
     this->ownedByCtfe = false;
 }
 
-StringExp::StringExp(Loc loc, void *string, size_t len, unsigned char postfix)
+StringExp::StringExp(Loc loc, void *string, size_t len, utf8_t postfix)
         : Expression(loc, TOKstring, sizeof(StringExp))
 {
     this->string = string;
@@ -3961,7 +3961,7 @@ Expression *StringExp::semantic(Scope *sc)
             case 'd':
                 for (u = 0; u < len;)
                 {
-                    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+                    p = utf_decodeChar((utf8_t *)string, len, &u, &c);
                     if (p)
                     {   error("%s", p);
                         return new ErrorExp();
@@ -3983,7 +3983,7 @@ Expression *StringExp::semantic(Scope *sc)
             case 'w':
                 for (u = 0; u < len;)
                 {
-                    p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+                    p = utf_decodeChar((utf8_t *)string, len, &u, &c);
                     if (p)
                     {   error("%s", p);
                         return new ErrorExp();
@@ -4033,7 +4033,7 @@ size_t StringExp::length()
         case 1:
             for (size_t u = 0; u < len;)
             {
-                p = utf_decodeChar((unsigned char *)string, len, &u, &c);
+                p = utf_decodeChar((utf8_t *)string, len, &u, &c);
                 if (p)
                 {   error("%s", p);
                     return 0;
@@ -4179,7 +4179,7 @@ unsigned StringExp::charAt(size_t i)
     switch (sz)
     {
         case 1:
-            value = ((unsigned char *)string)[i];
+            value = ((utf8_t *)string)[i];
             break;
 
         case 2:
@@ -4238,7 +4238,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
     const char *p;
     unsigned c;
     size_t u;
-    unsigned char *q;
+    utf8_t *q;
     size_t qlen;
 
     /* Write string in UTF-8 format
@@ -4246,7 +4246,7 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
     switch (sz)
     {   case 1:
             m = 'a';
-            q = (unsigned char *)string;
+            q = (utf8_t *)string;
             qlen = len;
             break;
         case 2:
@@ -4282,12 +4282,12 @@ void StringExp::toMangleBuffer(OutBuffer *buf)
     buf->writeByte(m);
     buf->printf("%d_", (int)qlen); // nbytes <= 11
 
-    for (unsigned char *p = buf->data + buf->offset, *pend = p + 2 * qlen;
+    for (utf8_t *p = buf->data + buf->offset, *pend = p + 2 * qlen;
          p < pend; p += 2, ++q)
     {
-        unsigned char hi = *q >> 4 & 0xF;
+        utf8_t hi = *q >> 4 & 0xF;
         p[0] = (hi < 10 ? hi + '0' : hi - 10 + 'a');
-        unsigned char lo = *q & 0xF;
+        utf8_t lo = *q & 0xF;
         p[1] = (lo < 10 ? lo + '0' : lo - 10 + 'a');
     }
     buf->offset += 2 * qlen;
@@ -7129,7 +7129,7 @@ Expression *CompileExp::semantic(Scope *sc)
         return new ErrorExp();
     }
     se = se->toUTF8(sc);
-    Parser p(sc->module, (unsigned char *)se->string, se->len, 0);
+    Parser p(sc->module, (utf8_t *)se->string, se->len, 0);
     p.loc = loc;
     p.nextToken();
     //printf("p.loc.linnum = %d\n", p.loc.linnum);
