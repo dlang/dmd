@@ -592,6 +592,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (baseClass)
     {   sc->offset = baseClass->structsize;
         alignsize = baseClass->alignsize;
+        sc->offset = (sc->offset + alignsize - 1) & ~(alignsize - 1);
 //      if (enclosing)
 //          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
