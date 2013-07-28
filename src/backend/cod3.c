@@ -3421,7 +3421,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                             {
                                 //printf("%s Fast.size = %d, BPoff = %d, Soffset = %d, sz = %d\n",
                                 //         s->Sident, (int)Fast.size, (int)BPoff, (int)s->Soffset, (int)sz);
-                                if (I64 && sz >= 8)
+                                if (I64 && sz > 4)
                                     code_orrex(c2, REX_W);
                             }
                         }
@@ -3437,7 +3437,7 @@ code* prolog_loadparams(tym_t tyf, bool pushalloc, regm_t* namedargs)
                             }
                             else
                             {
-                                if (I64 && sz >= 8)
+                                if (I64 && sz > 4)
                                     c2->Irex |= REX_W;
                             }
                         }
