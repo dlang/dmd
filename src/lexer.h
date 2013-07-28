@@ -226,10 +226,10 @@ enum TOK
 struct Token
 {
     Token *next;
-    unsigned char *ptr;         // pointer to first character of this token within buffer
+    utf8_t *ptr;         // pointer to first character of this token within buffer
     TOK value;
-    unsigned char *blockComment; // doc comment string prior to this token
-    unsigned char *lineComment;  // doc comment for previous token
+    utf8_t *blockComment; // doc comment string prior to this token
+    utf8_t *lineComment;  // doc comment for previous token
     union
     {
         // Integers
@@ -242,7 +242,7 @@ struct Token
         d_float80 float80value;
 
         struct
-        {   unsigned char *ustring;     // UTF8 string
+        {   utf8_t *ustring;     // UTF8 string
             unsigned len;
             unsigned char postfix;      // 'c', 'w', 'd'
         };
@@ -271,9 +271,9 @@ public:
 
     Loc loc;                    // for error messages
 
-    unsigned char *base;        // pointer to start of buffer
-    unsigned char *end;         // past end of buffer
-    unsigned char *p;           // current character
+    utf8_t *base;        // pointer to start of buffer
+    utf8_t *end;         // past end of buffer
+    utf8_t *p;           // current character
     Token token;
     Module *mod;
     int doDocComment;           // collect doc comment information
@@ -281,7 +281,7 @@ public:
     int commentToken;           // !=0 means comments are TOKcomment's
 
     Lexer(Module *mod,
-        unsigned char *base, size_t begoffset, size_t endoffset,
+        utf8_t *base, size_t begoffset, size_t endoffset,
         int doDocComment, int commentToken);
 
     static void initKeywords();
@@ -315,7 +315,7 @@ public:
     void getDocComment(Token *t, unsigned lineComment);
 
     static int isValidIdentifier(char *p);
-    static unsigned char *combineComments(unsigned char *c1, unsigned char *c2);
+    static utf8_t *combineComments(utf8_t *c1, utf8_t *c2);
 
     Loc tokenLoc();
 };

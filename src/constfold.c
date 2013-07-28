@@ -1446,8 +1446,8 @@ Expression *Slice(Type *type, Expression *e1, Expression *lwr, Expression *upr)
             StringExp *es;
 
             s = mem.malloc((len + 1) * sz);
-            memcpy((unsigned char *)s, (unsigned char *)es1->string + ilwr * sz, len * sz);
-            memset((unsigned char *)s + len * sz, 0, sz);
+            memcpy((utf8_t *)s, (utf8_t *)es1->string + ilwr * sz, len * sz);
+            memset((utf8_t *)s + len * sz, 0, sz);
 
             es = new StringExp(loc, s, len, es1->postfix);
             es->sz = sz;
@@ -1489,7 +1489,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
 {
     size_t newlen =  newval->len;
     size_t sz = newval->sz;
-    unsigned char *s = (unsigned char *)newval->string;
+    utf8_t *s = (utf8_t *)newval->string;
     Type *elemType = existingAE->type->nextOf();
     for (size_t j = 0; j < newlen; j++)
     {
@@ -1513,7 +1513,7 @@ void sliceAssignArrayLiteralFromString(ArrayLiteralExp *existingAE, StringExp *n
  */
 void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *newae, size_t firstIndex)
 {
-    unsigned char *s = (unsigned char *)existingSE->string;
+    utf8_t *s = (utf8_t *)existingSE->string;
     for (size_t j = 0; j < newae->elements->dim; j++)
     {
         unsigned value = (unsigned)((*newae->elements)[j]->toInteger());
@@ -1534,7 +1534,7 @@ void sliceAssignStringFromArrayLiteral(StringExp *existingSE, ArrayLiteralExp *n
  */
 void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_t firstIndex)
 {
-    unsigned char *s = (unsigned char *)existingSE->string;
+    utf8_t *s = (utf8_t *)existingSE->string;
     size_t sz = existingSE->sz;
     assert(sz == newstr->sz);
     memcpy(s + firstIndex * sz, newstr->string, sz * newstr->len);
@@ -1545,8 +1545,8 @@ void sliceAssignStringFromString(StringExp *existingSE, StringExp *newstr, size_
  */
 int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t lo2, size_t len)
 {
-    unsigned char *s1 = (unsigned char *)se1->string;
-    unsigned char *s2 = (unsigned char *)se2->string;
+    utf8_t *s1 = (utf8_t *)se1->string;
+    utf8_t *s2 = (utf8_t *)se2->string;
     size_t sz = se1->sz;
     assert(sz == se2->sz);
 
@@ -1558,7 +1558,7 @@ int sliceCmpStringWithString(StringExp *se1, StringExp *se2, size_t lo1, size_t 
  */
 int sliceCmpStringWithArray(StringExp *se1, ArrayLiteralExp *ae2, size_t lo1, size_t lo2, size_t len)
 {
-    unsigned char *s = (unsigned char *)se1->string;
+    utf8_t *s = (utf8_t *)se1->string;
     size_t sz = se1->sz;
 
     for (size_t j = 0; j < len; j++)
@@ -1616,12 +1616,12 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
             size_t len = (t->ty == tn->ty) ? 1 : utf_codeLength(sz, v);
             s = mem.malloc((len + 1) * sz);
             if (t->ty == tn->ty)
-                memcpy((unsigned char *)s, &v, sz);
+                memcpy((utf8_t *)s, &v, sz);
             else
                 utf_encode(sz, s, v);
 
             // Add terminating 0
-            memset((unsigned char *)s + len * sz, 0, sz);
+            memset((utf8_t *)s + len * sz, 0, sz);
 
             es = new StringExp(loc, s, len);
             es->sz = sz;
@@ -1675,10 +1675,10 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         }
         s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
-        memcpy((unsigned char *)s + es1->len * sz, es2->string, es2->len * sz);
+        memcpy((utf8_t *)s + es1->len * sz, es2->string, es2->len * sz);
 
         // Add terminating 0
-        memset((unsigned char *)s + len * sz, 0, sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
 
         es = new StringExp(loc, s, len);
         es->sz = sz;
@@ -1740,12 +1740,12 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         s = mem.malloc((len + 1) * sz);
         memcpy(s, es1->string, es1->len * sz);
         if (homoConcat)
-             memcpy((unsigned char *)s + (sz * es1->len), &v, sz);
+             memcpy((utf8_t *)s + (sz * es1->len), &v, sz);
         else
-             utf_encode(sz, (unsigned char *)s + (sz * es1->len), v);
+             utf_encode(sz, (utf8_t *)s + (sz * es1->len), v);
 
         // Add terminating 0
-        memset((unsigned char *)s + len * sz, 0, sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
 
         es = new StringExp(loc, s, len);
         es->sz = sz;
@@ -1764,11 +1764,11 @@ Expression *Cat(Type *type, Expression *e1, Expression *e2)
         dinteger_t v = e1->toInteger();
 
         s = mem.malloc((len + 1) * sz);
-        memcpy((unsigned char *)s, &v, sz);
-        memcpy((unsigned char *)s + sz, es2->string, es2->len * sz);
+        memcpy((utf8_t *)s, &v, sz);
+        memcpy((utf8_t *)s + sz, es2->string, es2->len * sz);
 
         // Add terminating 0
-        memset((unsigned char *)s + len * sz, 0, sz);
+        memset((utf8_t *)s + len * sz, 0, sz);
 
         es = new StringExp(loc, s, len);
         es->sz = sz;

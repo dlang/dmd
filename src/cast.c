@@ -1362,7 +1362,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Twchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 else
@@ -1375,7 +1375,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         case X(Tchar, Tdchar):
             for (size_t u = 0; u < len;)
             {   unsigned c;
-                const char *p = utf_decodeChar((unsigned char *)se->string, len, &u, &c);
+                const char *p = utf_decodeChar((utf8_t *)se->string, len, &u, &c);
                 if (p)
                     error("%s", p);
                 buffer.write4(c);
@@ -1474,7 +1474,7 @@ L2:
             // Copy when changing the string literal
             size_t newsz = se->sz;
             size_t d = (dim2 < se->len) ? dim2 : se->len;
-            void *s = (unsigned char *)mem.malloc((dim2 + 1) * newsz);
+            void *s = (void *)mem.malloc((dim2 + 1) * newsz);
             memcpy(s, se->string, d * newsz);
             // Extend with 0, add terminating 0
             memset((char *)s + d * newsz, 0, (dim2 + 1 - d) * newsz);

@@ -24,22 +24,22 @@ struct Macro
   private:
     Macro *next;                // next in list
 
-    unsigned char *name;        // macro name
+    utf8_t *name;        // macro name
     size_t namelen;             // length of macro name
 
-    unsigned char *text;        // macro replacement text
+    utf8_t *text;        // macro replacement text
     size_t textlen;             // length of replacement text
 
     int inuse;                  // macro is in use (don't expand)
 
-    Macro(unsigned char *name, size_t namelen, unsigned char *text, size_t textlen);
-    Macro *search(unsigned char *name, size_t namelen);
+    Macro(utf8_t *name, size_t namelen, utf8_t *text, size_t textlen);
+    Macro *search(utf8_t *name, size_t namelen);
 
   public:
-    static Macro *define(Macro **ptable, unsigned char *name, size_t namelen, unsigned char *text, size_t textlen);
+    static Macro *define(Macro **ptable, utf8_t *name, size_t namelen, utf8_t *text, size_t textlen);
 
     void expand(OutBuffer *buf, size_t start, size_t *pend,
-        unsigned char *arg, size_t arglen);
+        utf8_t *arg, size_t arglen);
 };
 
 #endif
