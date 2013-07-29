@@ -344,7 +344,7 @@ void FuncDeclaration::semantic(Scope *sc)
             error("cannot override a non-virtual function");
     }
 
-    if (isAbstract() && isFinal())
+    if (isAbstract() && isFinalFunc())
         error("cannot be both final and abstract");
 #if 0
     if (isAbstract() && fbody)
@@ -481,13 +481,13 @@ void FuncDeclaration::semantic(Scope *sc)
                         if (f)
                         {
                             f = f->overloadExactMatch(type);
-                            if (f && f->isFinal() && f->prot() != PROTprivate)
+                            if (f && f->isFinalFunc() && f->prot() != PROTprivate)
                                 error("cannot override final function %s", f->toPrettyChars());
                         }
                     }
                 }
 
-                if (isFinal())
+                if (isFinalFunc())
                 {
                     // Don't check here, as it may override an interface function
                     //if (isOverride())
@@ -534,7 +534,7 @@ void FuncDeclaration::semantic(Scope *sc)
                 }
 
                 // This function overrides fdv
-                if (fdv->isFinal())
+                if (fdv->isFinalFunc())
                     error("cannot override final function %s", fdv->toPrettyChars());
 
                 doesoverride = TRUE;
@@ -699,7 +699,7 @@ void FuncDeclaration::semantic(Scope *sc)
                     if (f)
                     {
                         f = f->overloadExactMatch(type);
-                        if (f && f->isFinal() && f->prot() != PROTprivate)
+                        if (f && f->isFinalFunc() && f->prot() != PROTprivate)
                             error("cannot override final function %s.%s", b->base->toChars(), f->toPrettyChars());
                     }
                 }
@@ -3183,12 +3183,12 @@ bool FuncDeclaration::isVirtual()
         isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
-        !(p->isInterfaceDeclaration() && isFinal()));
+        !(p->isInterfaceDeclaration() && isFinalFunc()));
 #endif
     return isMember() &&
         !(isStatic() || protection == PROTprivate || protection == PROTpackage) &&
         p->isClassDeclaration() &&
-        !(p->isInterfaceDeclaration() && isFinal());
+        !(p->isInterfaceDeclaration() && isFinalFunc());
 }
 
 // Determine if a function is pedantically virtual
@@ -3202,21 +3202,21 @@ bool FuncDeclaration::isVirtualMethod()
     if (!isVirtual())
         return false;
     // If it's a final method, and does not override anything, then it is not virtual
-    if (isFinal() && foverrides.dim == 0)
+    if (isFinalFunc() && foverrides.dim == 0)
     {
         return false;
     }
     return true;
 }
 
-bool FuncDeclaration::isFinal()
+bool FuncDeclaration::isFinalFunc()
 {
     if (toAliasFunc() != this)
-        return toAliasFunc()->isFinal();
+        return toAliasFunc()->isFinalFunc();
 
     ClassDeclaration *cd;
 #if 0
-    printf("FuncDeclaration::isFinal(%s), %x\n", toChars(), Declaration::isFinal());
+    printf("FuncDeclaration::isFinalFunc(%s), %x\n", toChars(), Declaration::isFinal());
     printf("%p %d %d %d\n", isMember(), isStatic(), Declaration::isFinal(), ((cd = toParent()->isClassDeclaration()) != NULL && cd->storage_class & STCfinal));
     printf("result is %d\n",
         isMember() &&

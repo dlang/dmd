@@ -1563,7 +1563,7 @@ int FuncDeclaration::canInline(int hasthis, int hdrscan, int statementsToo)
         isSynchronized() ||
         isImportedSymbol() ||
         hasNestedFrameRefs() ||      // no nested references to this frame
-        (isVirtual() && !isFinal())
+        (isVirtual() && !isFinalFunc())
        ))
     {
         goto Lno;

@@ -262,7 +262,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     else if (ident == Id::isFinalFunction)
     {
         FuncDeclaration *f;
-        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinal())
+        ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isFinalFunc())
     }
 #if DMDV2
     else if (ident == Id::isStaticFunction)
