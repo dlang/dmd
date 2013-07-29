@@ -1783,7 +1783,7 @@ Dsymbol *Parser::parseAggregate()
         {
             /* Anonymous structs/unions are more like attributes.
              */
-            return new AnonDeclaration(loc, anon - 1, decl);
+            return new AnonDeclaration(loc, anon == 2, decl);
         }
         else
             a->members = decl;

@@ -137,7 +137,7 @@ public:
     structalign_t alignment;
     int sem;                    // 1 if successful semantic()
 
-    AnonDeclaration(Loc loc, int isunion, Dsymbols *decl);
+    AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
     void setFieldOffset(AggregateDeclaration *ad, unsigned *poffset, bool isunion);
