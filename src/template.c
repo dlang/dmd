@@ -2158,7 +2158,7 @@ bool TemplateDeclaration::isOverloadable()
  * to expand, and return matching result.
  * Input:
  *      m               matching result
- *      tdstart         the root of overloaded function templates
+ *      dstart          the root of overloaded function templates
  *      loc             instantiation location
  *      sc              instantiation scope
  *      tiargs          initial list of template arguments
@@ -2166,11 +2166,11 @@ bool TemplateDeclaration::isOverloadable()
  *      fargs           arguments to function
  */
 
-void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
+void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         Objects *tiargs, Type *tthis, Expressions *fargs)
 {
 #if 0
-    printf("templateResolve() tdstart = %s\n", tdstart->toChars());
+    printf("templateResolve() dstart = %s\n", dstart->toChars());
     printf("    tiargs:\n");
     if (tiargs)
     {   for (size_t i = 0; i < tiargs->dim; i++)
@@ -2184,7 +2184,7 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
-    printf("stc = %llx\n", tdstart->scope->stc);
+    printf("stc = %llx\n", dstart->scope->stc);
     printf("match:t/f = %d/%d\n", ta_last, m->last);
 #endif
 
@@ -2198,7 +2198,10 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
     Expressions *fargs;
     // result
     Match *m;
-    size_t overload_index;
+    int property;       // 0: unintialized
+                        // 1: seen @property
+                        // 2: not @property
+    size_t ov_index;
     TemplateDeclaration *td_best;
     MATCH ta_last;
     Objects *tdargs;
@@ -2206,14 +2209,12 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
 
     static int fp(void *param, Dsymbol *s)
     {
-        return ((ParamDeduce *)param)->fp(s);
+        if (TemplateDeclaration *td = s->isTemplateDeclaration())
+            return ((ParamDeduce *)param)->fp(td);
+        return 0;
     }
-    int fp(Dsymbol *s)
+    int fp(TemplateDeclaration *td)
     {
-        TemplateDeclaration *td = s->isTemplateDeclaration();
-        if (!td)
-            return 0;
-
         if (!sc)
             sc = td->scope; // workaround for Type::aliasthisOf
 
@@ -2278,11 +2279,11 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
             return 0;
         }
 
-        for (size_t ov_index = 0; f; f = f->overnext0, ov_index++)
+        for (size_t ovi = 0; f; f = f->overnext0, ovi++)
         {
-            Objects dedargs;
+            Objects dedtypes;
             FuncDeclaration *fd = NULL;
-            int x = td->deduceFunctionTemplateMatch(f, loc, sc, tiargs, tthis, fargs, &dedargs);
+            int x = td->deduceFunctionTemplateMatch(f, loc, sc, tiargs, tthis, fargs, &dedtypes);
             MATCH mta = (MATCH)(x >> 4);
             MATCH mfa = (MATCH)(x & 0xF);
             //printf("match:t/f = %d/%d\n", mta, mfa);
@@ -2294,7 +2295,7 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
             {
                 // Constructor call requires additional check.
                 // For that, do instantiate in early stage.
-                fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
+                fd = td->doHeaderInstantiation(sc, &dedtypes, tthis, fargs);
                 if (!fd)
                     goto Lerror;
 
@@ -2338,7 +2339,7 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
             }
             if (!fd)
             {
-                fd = td->doHeaderInstantiation(sc, &dedargs, tthis, fargs);
+                fd = td->doHeaderInstantiation(sc, &dedtypes, tthis, fargs);
                 if (!fd) goto Lerror;
                 tthis_fd = fd->needThis() ? tthis : NULL;
             }
@@ -2379,11 +2380,11 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
             m->last = mfa;
             m->lastf = fd;
             tthis_best = tthis_fd;
-            overload_index = ov_index;
+            ov_index = ovi;
             m->nextf = NULL;
             m->count = 1;
-            tdargs->setDim(dedargs.dim);
-            memcpy(tdargs->tdata(), dedargs.tdata(), tdargs->dim * sizeof(void *));
+            tdargs->setDim(dedtypes.dim);
+            memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             continue;
         }
         return 0;
@@ -2405,77 +2406,83 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
 
     // result
     p.m          = m;
-    p.overload_index = 0;
+    p.property   = 0;
+    p.ov_index   = 0;
     p.td_best    = NULL;
     p.ta_last    = m->last ? MATCHexact : MATCHnomatch;
     p.tdargs     = new Objects();
     p.tthis_best = NULL;
 
-    overloadApply(tdstart, &p, &ParamDeduce::fp);
+    overloadApply(dstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p, match:t/f = %d/%d\n", td_best, m->lastf, mta, mfa);
-    if (!p.td_best)
+    if (p.td_best)
     {
-        if (m->lastf) return;
-        goto Lerror;
-    }
-    if (!p.td_best->onemember || !p.td_best->onemember->toAlias()->isFuncDeclaration())
-        return;
+        // Matches to template function
+        if (!p.td_best->onemember || !p.td_best->onemember->toAlias()->isFuncDeclaration())
+            return; // goto Lerror?
 
-    /* The best match is td_best with arguments tdargs.
-     * Now instantiate the template.
-     */
-    assert(p.td_best->scope);
-    if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
-    TemplateInstance *ti;
-    ti = new TemplateInstance(loc, p.td_best, p.tdargs);
-    ti->semantic(sc, fargs);
-    m->lastf = ti->toAlias()->isFuncDeclaration();
-    if (!m->lastf)
-        goto Lerror;
+        /* The best match is td_best with arguments tdargs.
+         * Now instantiate the template.
+         */
+        assert(p.td_best->scope);
+        if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
+        TemplateInstance *ti;
+        ti = new TemplateInstance(loc, p.td_best, p.tdargs);
+        ti->semantic(sc, fargs);
+        m->lastf = ti->toAlias()->isFuncDeclaration();
+        if (!m->lastf)
+            goto Lerror;
 
-    // look forward instantiated overload function
-    // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.
-    // it has filled overnext0d
-    while (p.overload_index--)
-    {
-        m->lastf = m->lastf->overnext0;
-        assert(m->lastf);
-    }
-
-    if (!((TypeFunction*)m->lastf->type)->callMatch(m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL, fargs))
-        goto Lerror;
-
-    if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
-    {
-        // Inside template constraint, nested reference check doesn't work correctly.
-        if (!(sc->flags & SCOPEstaticif) && fld->tok == TOKreserved)
-        {   // change to non-nested
-            fld->tok = TOKfunction;
-            fld->vthis = NULL;
+        // look forward instantiated overload function
+        // Dsymbol::oneMembers is alredy called in TemplateInstance::semantic.
+        // it has filled overnext0d
+        while (p.ov_index--)
+        {
+            m->lastf = m->lastf->overnext0;
+            assert(m->lastf);
         }
-    }
 
-    /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
-     * that same template. Thus, the function type can be incomplete. Complete it.
-     *
-     * Bugzilla 9208: For auto function, completion should be deferred to the end of
-     * its semantic3. Should not complete it in here.
-     */
-    {   TypeFunction *tf = (TypeFunction *)m->lastf->type;
+        p.tthis_best = m->lastf->needThis() && !m->lastf->isCtorDeclaration() ? tthis : NULL;
+
+        TypeFunction *tf = (TypeFunction *)m->lastf->type;
         assert(tf->ty == Tfunction);
+        if (!tf->callMatch(p.tthis_best, fargs))
+            goto Lerror;
+
+        if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
+        {
+            // Inside template constraint, nested reference check doesn't work correctly.
+            if (!(sc->flags & SCOPEstaticif) && fld->tok == TOKreserved)
+            {
+                // change to non-nested
+                fld->tok = TOKfunction;
+                fld->vthis = NULL;
+            }
+        }
+
+        /* As Bugzilla 3682 shows, a template instance can be matched while instantiating
+         * that same template. Thus, the function type can be incomplete. Complete it.
+         *
+         * Bugzilla 9208: For auto function, completion should be deferred to the end of
+         * its semantic3. Should not complete it in here.
+         */
         if (tf->next && !m->lastf->inferRetType)
         {
             m->lastf->type = tf->semantic(loc, sc);
         }
     }
-    return;
-
-  Lerror:
-    m->lastf = NULL;
-    m->count = 0;
-    m->last = MATCHnomatch;
-    return;
+    else if (m->lastf)
+    {
+        // Matches to non template function
+    }
+    else
+    {
+    Lerror:
+        m->lastf = NULL;
+        m->count = 0;
+        m->last = MATCHnomatch;
+    }
 }
 
 /*************************************************

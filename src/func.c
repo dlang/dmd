@@ -2528,79 +2528,77 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
  */
 
 void functionResolve(Match *m, Dsymbol *fstart,
-        Type *tthis, Expressions *arguments)
+        Type *tthis, Expressions *fargs)
 {
   struct ParamFuncRes
   {
     Match *m;
-#if DMDV2
     Type *tthis;
     int property;       // 0: unintialized
                         // 1: seen @property
                         // 2: not @property
-#endif
-    Expressions *arguments;
+    Expressions *fargs;
 
     static int fp(void *param, Dsymbol *s)
     {
-        FuncDeclaration *f = s->isFuncDeclaration();
-        if (!f)
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamFuncRes *)param)->fp(fd);
+        return 0;
+    }
+    int fp(FuncDeclaration *fd)
+    {
+        // skip duplicates
+        if (fd == m->lastf)
             return 0;
-        ParamFuncRes *p = (ParamFuncRes *)param;
-        Match *m = p->m;
 
-        if (f == m->lastf)          // skip duplicates
-            return 0;
+        m->anyf = fd;
+        TypeFunction *tf = (TypeFunction *)fd->type;
 
-        m->anyf = f;
-        TypeFunction *tf = (TypeFunction *)f->type;
-
-        int property = (tf->isproperty) ? 1 : 2;
-        if (p->property == 0)
-            p->property = property;
-        else if (p->property != property)
-            error(f->loc, "cannot overload both property and non-property functions");
+        int prop = (tf->isproperty) ? 1 : 2;
+        if (property == 0)
+            property = prop;
+        else if (property != prop)
+            error(fd->loc, "cannot overload both property and non-property functions");
 
         /* For constructors, qualifier check will be opposite direction.
          * Qualified constructor always makes qualified object, then will be checked
          * that it is implicitly convertible to tthis.
          */
-        Type *tthis = f->needThis() ? p->tthis : NULL;
-        if (tthis && f->isCtorDeclaration())
+        Type *tthis_fd = fd->needThis() ? tthis : NULL;
+        if (tthis_fd && fd->isCtorDeclaration())
         {
-            //printf("%s tf->mod = x%x tthis->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis->mod, f->isolateReturn());
-            if (MODimplicitConv(tf->mod, tthis->mod) ||
-                tf->isWild() && tf->isShared() == tthis->isShared() ||
-                f->isolateReturn()/* && tf->isShared() == tthis->isShared()*/)
+            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
+            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
+            if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
+                tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
+                fd->isolateReturn()/* && tf->isShared() == tthis_fd->isShared()*/)
             {   // Uniquely constructed object can ignore shared qualifier.
                 // TODO: Is this appropriate?
-                tthis = NULL;
+                tthis_fd = NULL;
             }
             else
                 return 0;   // MATCHnomatch
         }
-        MATCH match = tf->callMatch(tthis, p->arguments);
-        //printf("test1: match = %d\n", match);
-        if (match != MATCHnomatch)
+        MATCH mfa = tf->callMatch(tthis_fd, fargs);
+        //printf("test1: mfa = %d\n", mfa);
+        if (mfa != MATCHnomatch)
         {
-            if (match > m->last) goto LfIsBetter;
-            if (match < m->last) goto LlastIsBetter;
+            if (mfa > m->last) goto LfIsBetter;
+            if (mfa < m->last) goto LlastIsBetter;
 
             /* See if one of the matches overrides the other.
              */
-            if (m->lastf->overrides(f)) goto LlastIsBetter;
-            if (f->overrides(m->lastf)) goto LfIsBetter;
+            if (m->lastf->overrides(fd)) goto LlastIsBetter;
+            if (fd->overrides(m->lastf)) goto LfIsBetter;
 
-#if DMDV2
             /* Try to disambiguate using template-style partial ordering rules.
              * In essence, if f() and g() are ambiguous, if f() can call g(),
              * but g() cannot call f(), then pick f().
              * This is because f() is "more specialized."
              */
             {
-                MATCH c1 = f->leastAsSpecialized(m->lastf);
-                MATCH c2 = m->lastf->leastAsSpecialized(f);
+                MATCH c1 = fd->leastAsSpecialized(m->lastf);
+                MATCH c2 = m->lastf->leastAsSpecialized(fd);
                 //printf("c1 = %d, c2 = %d\n", c1, c2);
                 if (c1 > c2) goto LfIsBetter;
                 if (c1 < c2) goto LlastIsBetter;
@@ -2612,27 +2610,27 @@ void functionResolve(Match *m, Dsymbol *fstart,
              * then pick the one with the body.
              */
             if (tf->equals(m->lastf->type) &&
-                f->storage_class == m->lastf->storage_class &&
-                f->parent == m->lastf->parent &&
-                f->protection == m->lastf->protection &&
-                f->linkage == m->lastf->linkage)
+                fd->storage_class == m->lastf->storage_class &&
+                fd->parent == m->lastf->parent &&
+                fd->protection == m->lastf->protection &&
+                fd->linkage == m->lastf->linkage)
             {
-                if ( f->fbody && !m->lastf->fbody) goto LfIsBetter;
-                if (!f->fbody &&  m->lastf->fbody) goto LlastIsBetter;
+                if ( fd->fbody && !m->lastf->fbody) goto LfIsBetter;
+                if (!fd->fbody &&  m->lastf->fbody) goto LlastIsBetter;
             }
-#endif
+
         Lambiguous:
-            m->nextf = f;
+            m->nextf = fd;
             m->count++;
             return 0;
 
-        LfIsBetter:
-            m->last = match;
-            m->lastf = f;
-            m->count = 1;
+        LlastIsBetter:
             return 0;
 
-        LlastIsBetter:
+        LfIsBetter:
+            m->last = mfa;
+            m->lastf = fd;
+            m->count = 1;
             return 0;
         }
         return 0;
@@ -2642,7 +2640,7 @@ void functionResolve(Match *m, Dsymbol *fstart,
     p.m = m;
     p.tthis = tthis;
     p.property = 0;
-    p.arguments = arguments;
+    p.fargs = fargs;
     overloadApply(fstart, &p, &ParamFuncRes::fp);
 }
 
@@ -2790,7 +2788,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Type *tthis,
-        Expressions *arguments,
+        Expressions *fargs,
         int flags)
 {
     if (!s)
@@ -2798,11 +2796,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
 #if 0
     printf("resolveFuncCall('%s')\n", toChars());
-    if (arguments)
+    if (fargs)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < fargs->dim; i++)
         {
-            Expression *arg = (*arguments)[i];
+            Expression *arg = (*fargs)[i];
             assert(arg->type);
             printf("\t%s: ", arg->toChars());
             arg->type->print();
@@ -2810,8 +2808,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
 #endif
 
-    if (tiargs    && arrayObjectIsError(tiargs) ||
-        arguments && arrayObjectIsError((Objects *)arguments))
+    if (tiargs && arrayObjectIsError(tiargs) ||
+        fargs  && arrayObjectIsError((Objects *)fargs))
     {
         return NULL;
     }
@@ -2826,8 +2824,8 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         s = fd = td->funcroot;
 
     if (!tiargs || tiargs->dim == 0)
-        functionResolve(&m, s, tthis, arguments);
-    templateResolve(&m, s, loc, sc, tiargs, tthis, arguments);
+        functionResolve(&m, s, tthis, fargs);
+    templateResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
     if (m.count == 1)   // exactly one match
     {
@@ -2867,7 +2865,7 @@ Lerror:
 
     OutBuffer fargsBuf;
     fargsBuf.writeByte('(');
-    argExpTypesToCBuffer(&fargsBuf, arguments, &hgs);
+    argExpTypesToCBuffer(&fargsBuf, fargs, &hgs);
     fargsBuf.writeByte(')');
     if (tthis)
         tthis->modToBuffer(&fargsBuf);
@@ -2917,7 +2915,7 @@ Lerror:
             }
             else
             {
-                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+                //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 fd->error(loc, "%s%s is not callable using argument types %s",
                     Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     tf->modToChars(),
