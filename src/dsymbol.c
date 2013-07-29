@@ -1257,10 +1257,11 @@ Dsymbol *WithScopeSymbol::search(Loc loc, Identifier *ident, int flags)
     Expression *eold = NULL;
     for (Expression *e = withstate->exp; e != eold; e = resolveAliasThis(scope, e))
     {
-        if (e->type->ty == Taarray)
-            s = ((TypeAArray *)e->type)->getImpl();
+        Type *t = e->type->toBasetype();
+        if (t->ty == Taarray)
+            s = ((TypeAArray *)t)->getImpl();
         else
-            s = e->type->toDsymbol(NULL);
+            s = t->toDsymbol(NULL);
         if (s)
         {
             s = s->search(loc, ident, 0);
