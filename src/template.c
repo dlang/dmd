@@ -6683,7 +6683,8 @@ void TemplateInstance::semantic3(Scope *sc)
         }
         if (needGagging)
         {   // If errors occurred, this instantiation failed
-            errors += global.endGagging(oldGaggedErrors);
+            if (global.endGagging(oldGaggedErrors))
+                errors = true;
         }
         sc = sc->pop();
         sc->pop();
