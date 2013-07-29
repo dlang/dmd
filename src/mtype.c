@@ -1724,7 +1724,7 @@ Type *Type::merge()
         }
         else
         {
-            sv->ptrvalue = (t = stripDefaultArgs(t));
+            sv->ptrvalue = (char *)(t = stripDefaultArgs(t));
             deco = t->deco = (char *)sv->toDchars();
             //printf("new value, deco = '%s' %p\n", t->deco, t->deco);
         }
