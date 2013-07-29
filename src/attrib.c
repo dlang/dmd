@@ -475,7 +475,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
     {
         StorageClass stc;
         TOK tok;
-        Identifier *id;
+        const char *id;
     };
 
     static SCstring table[] =
@@ -503,11 +503,11 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCref,          TOKref },
         { STCtls },
         { STCgshared,      TOKgshared },
-        { STCproperty,     TOKat,       Id::property },
-        { STCsafe,         TOKat,       Id::safe },
-        { STCtrusted,      TOKat,       Id::trusted },
-        { STCsystem,       TOKat,       Id::system },
-        { STCdisable,      TOKat,       Id::disable },
+        { STCproperty,     TOKat,       "property" },
+        { STCsafe,         TOKat,       "safe" },
+        { STCtrusted,      TOKat,       "trusted" },
+        { STCsystem,       TOKat,       "system" },
+        { STCdisable,      TOKat,       "disable" },
 #endif
     };
 
@@ -526,7 +526,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
             if (tok == TOKat)
             {
                 tmp[0] = '@';
-                strcpy(tmp + 1, table[i].id->toChars());
+                strcpy(tmp + 1, table[i].id);
                 return tmp;
             }
             else
