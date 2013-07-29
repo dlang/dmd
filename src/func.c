@@ -864,7 +864,7 @@ Ldone:
         {
             printedMain = true;
             const char *name = FileName::searchPath(global.path, mod->srcfile->toChars(), 1);
-            printf("%-10s%-10s\t%s\n", "entry", type, name);
+            printf("entry     %-10s\t%s\n", type, name);
         }
     }
 
