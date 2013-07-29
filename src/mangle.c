@@ -220,6 +220,33 @@ public:
         visit((Dsymbol *)fd);
     }
 
+    void visit(OverDeclaration *od)
+    {
+        if (od->overnext)
+        {
+            visit((Dsymbol *)od);
+            return;
+        }
+    
+        if (FuncDeclaration *fd = od->aliassym->isFuncDeclaration())
+        {
+            if (!od->hasOverloads || fd->isUnique())
+            {
+                mangleExact(fd);
+                return;
+            }
+        }
+        if (TemplateDeclaration *td = od->aliassym->isTemplateDeclaration())
+        {
+            if (!od->hasOverloads || td->overnext == NULL)
+            {
+                td->accept(this);
+                return;
+            }
+        }
+        visit((Dsymbol *)od);
+    }
+
     void mangleExact(FuncDeclaration *fd)
     {
         assert(!fd->isFuncAliasDeclaration());

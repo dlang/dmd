@@ -589,8 +589,6 @@ void test1900c()
     assert(s.a.mixfoob(10) == 2);   static assert(!__traits(compiles, s.a.mixfoob()));
 }
 
-version(none)   // yet not implemented
-{
 alias merge1900 = imports.template_ovs1.merge1900;
 alias merge1900 = imports.template_ovs2.merge1900;
 
@@ -598,11 +596,6 @@ void test1900d()
 {
     assert( merge1900!double(100) == 1);
     assert(.merge1900!double(100) == 1);
-}
-}
-else
-{
-void test1900d() {} // dummy
 }
 
 mixin template Foo1900e(T)
@@ -649,8 +642,6 @@ void test1900()
     static assert(Value1900b!string == 2);
 }
 
-version(none)   // yet not implemented
-{
 alias imports.template_ovs1.Traits1900 Traits1900X;
 alias imports.template_ovs2.Traits1900 Traits1900X;
 alias imports.template_ovs3.Traits1900 Traits1900X;
@@ -666,7 +657,6 @@ alias Traits1900Y2 Traits1900Y;
 static assert(Traits1900Y!(AClass1900).name == "AClass");
 static assert(!__traits(compiles, Traits1900Y!(BClass1900)));
 static assert(!__traits(compiles, Traits1900Y!(int)));
-}
 
 template Foo1900(T)
 {
@@ -862,8 +852,6 @@ void test9235a()
 
 // ----
 
-version(none)   // yet not implemented
-{
 mixin template mixA9235()
 {
     int foo(string s)() if (s == "a") { return 1; }
@@ -885,6 +873,88 @@ void test9235b()
     assert(f.foo!"a"() == 1);
     assert(f.foo!"b"() == 2);
 }
+
+/***************************************************/
+// 10658
+
+alias Val10658 = imports.template_ovs1.Val10658;
+alias Val10658 = imports.template_ovs2.Val10658;
+static assert(Val10658!1 == 1);
+static assert(Val10658!1L == 2);
+
+// ----
+
+template Foo10658(T) if (is(T == double)) { enum Foo10658 = 1; }
+template Bar10658(T) if (is(T == string)) { enum Bar10658 = 2; }
+alias Baz10658 = Foo10658;
+alias Baz10658 = Bar10658;
+
+template Voo10658(T) if (is(T == cfloat)) { enum Voo10658 = 5; }
+template Voo10658(T) if (is(T == Object)) { enum Voo10658 = 6; }
+
+alias Vaz10658 = Baz10658;  // OvarDeclaration
+alias Vaz10658 = Voo10658;  // TemplateDeclaration (overnext != NULL)
+
+template Merge10658a(alias A)
+{
+    enum Merge10658a = A!double + A!string;
+}
+template Merge10658b(alias A)
+{
+    enum Merge10658b = A!double + A!string + A!cfloat + A!Object;
+}
+
+void test10658a()
+{
+    static assert(Baz10658!double == 1);
+    static assert(Baz10658!string == 2);
+    static assert(Voo10658!cfloat == 5);
+    static assert(Voo10658!Object == 6);
+
+    // pass OverDeclaration through TemplateAliasParameter
+    static assert(Merge10658a!Baz10658 == 1 + 2);
+    static assert(Merge10658b!Vaz10658 == 1 + 2 + 5 + 6);
+}
+
+// ----
+
+mixin template mix10658A()
+{
+    int f10658(string s)() if (s == "a") { return 1; }
+}
+mixin template mix10658B()
+{
+    int f10658(string s)() if (s == "b") { return 2; }
+}
+mixin mix10658A A10658;
+mixin mix10658B B10658;
+alias A10658.f10658 foo10658;
+alias B10658.f10658 foo10658;
+
+mixin template mix10658C()
+{
+    int f10658(string s, T)(T arg) if (s == "c") { return 3; }
+}
+mixin template mix10658D()
+{
+    int f10658(string s, T)(T arg) if (s == "d") { return 4; }
+}
+struct S10658
+{
+    mixin mix10658C C10658;
+    mixin mix10658D D10658;
+    alias C10658.f10658 foo10658;
+    alias D10658.f10658 foo10658;
+}
+
+void test10658b()
+{
+    assert( foo10658!"a"() == 1);
+    assert(.foo10658!"b"() == 2);
+
+    S10658 s;
+    assert(s.foo10658!"c"(0) == 3);
+    assert(s.foo10658!"d"(0) == 4);
 }
 
 /***************************************************/
@@ -946,7 +1016,9 @@ int main()
     test8441b();
     test8441c();
     test9235a();
-    //test9235b();
+    test9235b();
+    test10658a();
+    test10658b();
     test11785();
 
     printf("Success\n");
