@@ -866,6 +866,9 @@ public:
     virtual Expression *op_overload(Scope *sc);
 };
 
+typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
+typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
+
 class BinExp : public Expression
 {
 public:
@@ -890,12 +893,9 @@ public:
     void dump(int indent);
 
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
-    Expression *interpretCommon(InterState *istate, CtfeGoal goal,
-        Expression *(*fp)(Type *, Expression *, Expression *));
-    Expression *interpretCompareCommon(InterState *istate, CtfeGoal goal,
-        int (*fp)(Loc, TOK, Expression *, Expression *));
-    Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal,
-        Expression *(*fp)(Type *, Expression *, Expression *), int post = 0);
+    Expression *interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp);
+    Expression *interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp);
+    Expression *interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_t fp, int post = 0);
     Expression *interpretFourPointerRelation(InterState *istate, CtfeGoal goal);
     virtual Expression *arrayOp(Scope *sc);
 
