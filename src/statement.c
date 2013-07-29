@@ -2112,20 +2112,38 @@ Lagain:
                 /* Call:
                  *      _aaApply(aggr, keysize, flde)
                  */
-                FuncDeclaration *fdapply;
-                if (dim == 2)
-                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply2");
-                else
-                    fdapply = FuncDeclaration::genCfunc(Type::tint32, "_aaApply");
-                ec = new VarExp(Loc(), fdapply);
+                static const char *name[2] = { "_aaApply", "_aaApply2" };
+                static FuncDeclaration *fdapply[2] = { NULL, NULL };
+                static TypeDelegate *fldeTy[2] = { NULL, NULL };
+
+                unsigned char i = dim == 2;
+                if (!fdapply[i]) {
+                    Parameters* args = new Parameters;
+                    args->push(new Parameter(STCin, Type::tvoid->pointerTo(), NULL, NULL));
+                    args->push(new Parameter(STCin, Type::tsize_t, NULL, NULL));
+                    Parameters* dgargs = new Parameters;
+                    dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                    if (dim == 2)
+                        dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                    fldeTy[i] = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
+                    args->push(new Parameter(STCin, fldeTy[i], NULL, NULL));
+                    fdapply[i] = FuncDeclaration::genCfunc(args, Type::tint32, name[i]);
+                }
+
+                ec = new VarExp(Loc(), fdapply[i]);
                 Expressions *exps = new Expressions();
                 exps->push(aggr);
                 size_t keysize = taa->index->size();
                 keysize = (keysize + ((size_t)Target::ptrsize-1)) & ~((size_t)Target::ptrsize-1);
+                // paint delegate argument to the type runtime expects
+                if (!fldeTy[i]->equals(flde->type)) {
+                    flde = new CastExp(loc, flde, flde->type);
+                    flde->type = fldeTy[i];
+                }
                 exps->push(new IntegerExp(Loc(), keysize, Type::tsize_t));
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);
-                e->type = Type::tindex; // don't run semantic() on e
+                e->type = Type::tint32; // don't run semantic() on e
             }
             else if (tab->ty == Tarray || tab->ty == Tsarray)
             {
@@ -2157,16 +2175,32 @@ Lagain:
                 const char *r = (op == TOKforeach_reverse) ? "R" : "";
                 int j = sprintf(fdname, "_aApply%s%.*s%llu", r, 2, fntab[flag], (ulonglong)dim);
                 assert(j < sizeof(fdname) / sizeof(fdname[0]));
-                FuncDeclaration *fdapply = FuncDeclaration::genCfunc(Type::tint32, fdname);
+
+                FuncDeclaration *fdapply;
+                TypeDelegate *dgty;
+                Parameters* args = new Parameters;
+                args->push(new Parameter(STCin, tn->arrayOf(), NULL, NULL));
+                Parameters* dgargs = new Parameters;
+                dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                if (dim == 2)
+                    dgargs->push(new Parameter(STCin, Type::tvoidptr, NULL, NULL));
+                dgty = new TypeDelegate(new TypeFunction(dgargs, Type::tint32, 0, LINKd));
+                args->push(new Parameter(STCin, dgty, NULL, NULL));
+                fdapply = FuncDeclaration::genCfunc(args, Type::tint32, fdname);
 
                 ec = new VarExp(Loc(), fdapply);
                 Expressions *exps = new Expressions();
                 if (tab->ty == Tsarray)
                    aggr = aggr->castTo(sc, tn->arrayOf());
                 exps->push(aggr);
+                // paint delegate argument to the type runtime expects
+                if (!dgty->equals(flde->type)) {
+                    flde = new CastExp(loc, flde, flde->type);
+                    flde->type = dgty;
+                }
                 exps->push(flde);
                 e = new CallExp(loc, ec, exps);
-                e->type = Type::tindex; // don't run semantic() on e
+                e->type = Type::tint32; // don't run semantic() on e
             }
             else if (tab->ty == Tdelegate)
             {
@@ -4252,12 +4286,15 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         Statements *cs = new Statements();
         cs->push(new ExpStatement(loc, tmp));
 
-        FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorenter);
+        Parameters* args = new Parameters;
+        args->push(new Parameter(STCin, ClassDeclaration::object->type, NULL, NULL));
+
+        FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorenter);
         Expression *e = new CallExp(loc, new VarExp(loc, fdenter), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
-        FuncDeclaration *fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::monitorexit);
+        FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::monitorexit);
         e = new CallExp(loc, new VarExp(loc, fdexit), new VarExp(loc, tmp));
         e->type = Type::tvoid;                  // do not run semantic on e
         Statement *s = new ExpStatement(loc, e);
@@ -4283,14 +4320,17 @@ Statement *SynchronizedStatement::semantic(Scope *sc)
         Statements *cs = new Statements();
         cs->push(new ExpStatement(loc, tmp));
 
-        FuncDeclaration *fdenter = FuncDeclaration::genCfunc(Type::tvoid, Id::criticalenter);
+        Parameters* args = new Parameters;
+        args->push(new Parameter(STCin, t->pointerTo(), NULL, NULL));
+
+        FuncDeclaration *fdenter = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalenter);
         Expression *e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
         e = e->semantic(sc);
         e = new CallExp(loc, new VarExp(loc, fdenter), e);
         e->type = Type::tvoid;                  // do not run semantic on e
         cs->push(new ExpStatement(loc, e));
 
-        FuncDeclaration *fdexit = FuncDeclaration::genCfunc(Type::tvoid, Id::criticalexit);
+        FuncDeclaration *fdexit = FuncDeclaration::genCfunc(args, Type::tvoid, Id::criticalexit);
         e = new DotIdExp(loc, new VarExp(loc, tmp), Id::ptr);
         e = e->semantic(sc);
         e = new CallExp(loc, new VarExp(loc, fdexit), e);

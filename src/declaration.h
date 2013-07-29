@@ -724,8 +724,8 @@ public:
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
 
-    static FuncDeclaration *genCfunc(Type *treturn, const char *name);
-    static FuncDeclaration *genCfunc(Type *treturn, Identifier *id);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
+    static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);
 
     Symbol *toSymbol();
     Symbol *toThunkSymbol(int offset);  // thunk version
