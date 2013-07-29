@@ -596,7 +596,7 @@ void Lexer::scan(Token *t)
                 Identifier *id = (Identifier *) sv->ptrvalue;
                 if (!id)
                 {   id = new Identifier(sv->toDchars(),TOKidentifier);
-                    sv->ptrvalue = id;
+                    sv->ptrvalue = (char *)id;
                 }
                 t->ident = id;
                 t->value = (TOK) id->value;
@@ -2717,7 +2717,7 @@ Identifier *Lexer::idPool(const char *s)
     if (!id)
     {
         id = new Identifier(sv->toDchars(), TOKidentifier);
-        sv->ptrvalue = id;
+        sv->ptrvalue = (char *)id;
     }
     return id;
 }
@@ -2907,7 +2907,7 @@ void Lexer::initKeywords()
         const char *s = keywords[u].name;
         TOK v = keywords[u].value;
         StringValue *sv = stringtable.insert(s, strlen(s));
-        sv->ptrvalue = (void *) new Identifier(sv->toDchars(),v);
+        sv->ptrvalue = (char *)new Identifier(sv->toDchars(),v);
 
         //printf("tochars[%d] = '%s'\n",v, s);
         Token::tochars[v] = s;
