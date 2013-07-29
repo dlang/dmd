@@ -4614,7 +4614,10 @@ StructDeclaration *TypeAArray::getImpl()
         ti->semantic2(scx);
         ti->semantic3(scx);
         scx->pop();
-        impl = ti->toAlias()->isStructDeclaration();
+        if (global.gag && ti->errors)
+            impl = ti->aliasdecl->aliassym->isStructDeclaration();
+        else
+            impl = ti->toAlias()->isStructDeclaration();
 #ifdef DEBUG
         if (!impl)
         {   Dsymbol *s = ti->toAlias();

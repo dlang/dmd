@@ -2781,6 +2781,21 @@ void test10592()
 }
 
 /******************************************/
+// 10720
+
+struct NC10720
+{
+    @disable this(this) { }
+}
+
+void test10720()
+{
+    NC10720[string] aa;
+    auto v = is (aa.nonExistingField);
+    assert(!v);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2868,6 +2883,7 @@ int main()
     test9977();
     test10083();
     test10592();
+    test10720();
 
     printf("Success\n");
     return 0;
