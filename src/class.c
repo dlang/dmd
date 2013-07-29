@@ -40,7 +40,7 @@ ClassDeclaration *ClassDeclaration::errorException;
 ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses, bool inObject)
     : AggregateDeclaration(loc, id)
 {
-    static char msg[] = "only object.d can define this reserved class name";
+    static const char msg[] = "only object.d can define this reserved class name";
 
     if (baseclasses)
         // Actually, this is a transfer
