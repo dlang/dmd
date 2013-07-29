@@ -2571,14 +2571,13 @@ Statement *IfStatement::semantic(Scope *sc)
     unsigned cs0 = sc->callSuper;
     unsigned cs1;
 
-    Scope *scd;
+    ScopeDsymbol *sym = new ScopeDsymbol();
+    sym->parent = sc->scopesym;
+    Scope *scd = sc->push(sym);
     if (arg)
     {   /* Declare arg, which we will set to be the
          * result of condition.
          */
-        ScopeDsymbol *sym = new ScopeDsymbol();
-        sym->parent = sc->scopesym;
-        scd = sc->push(sym);
 
         match = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, condition));
         match->parent = sc->func;
@@ -2602,7 +2601,6 @@ Statement *IfStatement::semantic(Scope *sc)
         condition = condition->semantic(sc);
         condition = condition->addDtorHook(sc);
         condition = resolveProperties(sc, condition);
-        scd = sc->push();
     }
 
     // Convert to boolean after declaring arg so this works:
