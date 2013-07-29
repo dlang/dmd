@@ -2199,7 +2199,6 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
     // result
     Match *m;
     size_t overload_index;
-    TemplateDeclaration *td_ambig;
     TemplateDeclaration *td_best;
     MATCH ta_last;
     Objects *tdargs;
@@ -2269,7 +2268,6 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
                 return 0;
 
             // td is the new best match
-            td_ambig = NULL;
             assert(td->scope);
             td_best = td;
             ta_last = mta;
@@ -2367,17 +2365,14 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
 
           Lambig:   // td_best and td are ambiguous
             //printf("Lambig\n");
-            td_ambig = td;
             m->nextf = fd;  // Caution! m->nextf isn't complete instantiated fd, so must not call toPrettyChars()
             m->count++;
             continue;
 
           Ltd_best:         // td_best is the best match so far
-            td_ambig = NULL;
             continue;
 
           Ltd:              // td is the new best match
-            td_ambig = NULL;
             assert(td->scope);
             td_best = td;
             ta_last = mta;
@@ -2411,7 +2406,6 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
     // result
     p.m          = m;
     p.overload_index = 0;
-    p.td_ambig   = NULL;
     p.td_best    = NULL;
     p.ta_last    = m->last ? MATCHexact : MATCHnomatch;
     p.tdargs     = new Objects();
