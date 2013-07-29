@@ -2166,11 +2166,11 @@ bool TemplateDeclaration::isOverloadable()
  *      fargs           arguments to function
  */
 
-void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
+void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         Objects *tiargs, Type *tthis, Expressions *fargs)
 {
 #if 0
-    printf("templateResolve() dstart = %s\n", dstart->toChars());
+    printf("functionResolve() dstart = %s\n", dstart->toChars());
     printf("    tiargs:\n");
     if (tiargs)
     {   for (size_t i = 0; i < tiargs->dim; i++)
@@ -2209,8 +2209,8 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
     static int fp(void *param, Dsymbol *s)
     {
-        //if (FuncDeclaration *fd = s->isFuncDeclaration())
-        //    return ((ParamDeduce *)param)->fp(fd);
+        if (FuncDeclaration *fd = s->isFuncDeclaration())
+            return ((ParamDeduce *)param)->fp(fd);
         if (TemplateDeclaration *td = s->isTemplateDeclaration())
             return ((ParamDeduce *)param)->fp(td);
         return 0;
@@ -2220,7 +2220,11 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         // skip duplicates
         if (fd == m->lastf)
             return 0;
+        // explicitly specified tiargs never match to non template function
+        if (tiargs && tiargs->dim > 0)
+            return 0;
 
+        //printf("fd = %s %s\n", fd->toChars(), fd->type->toChars());
         m->anyf = fd;
         TypeFunction *tf = (TypeFunction *)fd->type;
 
@@ -2258,6 +2262,7 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
             /* See if one of the matches overrides the other.
              */
+            assert(m->lastf);
             if (m->lastf->overrides(fd)) goto LlastIsBetter;
             if (fd->overrides(m->lastf)) goto LfIsBetter;
 
@@ -2298,15 +2303,24 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             return 0;
 
         LfIsBetter:
+            td_best = NULL;
+            ta_last = MATCHexact;
             m->last = mfa;
             m->lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = 0;
             m->count = 1;
+            tdargs->setDim(0);
             return 0;
         }
         return 0;
     }
     int fp(TemplateDeclaration *td)
     {
+        // skip duplicates
+        if (td == td_best)
+            return 0;
+
         if (!sc)
             sc = td->scope; // workaround for Type::aliasthisOf
 
@@ -2355,22 +2369,30 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (!fd)
                 return 0;
 
+            Type *tthis_fd = fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL;
+
             TypeFunction *tf = (TypeFunction *)fd->type;
-            MATCH mfa = tf->callMatch(fd->needThis() && !fd->isCtorDeclaration() ? tthis : NULL, fargs);
+            MATCH mfa = tf->callMatch(tthis_fd, fargs);
             if (mfa < m->last)
                 return 0;
 
             // td is the new best match
             assert(td->scope);
             td_best = td;
+            property = 0;   // (backward compatibility)
             ta_last = mta;
             m->last = mfa;
             m->lastf = fd;
+            tthis_best = tthis_fd;
+            ov_index = 0;
+            m->nextf = NULL;
+            m->count = 1;
             tdargs->setDim(dedtypes.dim);
             memcpy(tdargs->tdata(), dedtypes.tdata(), tdargs->dim * sizeof(void *));
             return 0;
         }
 
+        //printf("td = %s\n", td->toChars());
         for (size_t ovi = 0; f; f = f->overnext0, ovi++)
         {
             Objects dedtypes;
@@ -2425,6 +2447,7 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
             if (!m->lastf)
             {
+                assert(td_best);
                 m->lastf = td_best->doHeaderInstantiation(sc, tdargs, tthis, fargs);
                 if (!m->lastf) goto Lerror;
                 tthis_best = m->lastf->needThis() ? tthis : NULL;
@@ -2468,6 +2491,7 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
           Ltd:              // td is the new best match
             assert(td->scope);
             td_best = td;
+            property = 0;   // (backward compatibility)
             ta_last = mta;
             m->last = mfa;
             m->lastf = fd;
@@ -2505,6 +2529,10 @@ void templateResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
     p.tdargs     = new Objects();
     p.tthis_best = NULL;
 
+    FuncDeclaration *fd = dstart->isFuncDeclaration();
+    TemplateDeclaration *td = dstart->isTemplateDeclaration();
+    if (td && td->funcroot)
+        dstart = td->funcroot;
     overloadApply(dstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p, match:t/f = %d/%d\n", td_best, m->lastf, mta, mfa);

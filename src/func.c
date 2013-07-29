@@ -2368,10 +2368,6 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     return true;
 }
 
-/********************************************
- * Find function in overload list that exactly matches t.
- */
-
 /***************************************************
  * Visit each overloaded function/template in turn, and call
  * (*fp)(param, s) on it.
@@ -2518,130 +2514,6 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
     p.f = NULL;
     overloadApply(this, &p, &ParamExact::fp);
     return p.f;
-}
-
-
-/********************************************
- * Decide which function matches the arguments best.
- *      flags           1: do not issue error message on no match, just return NULL
- *                      2: do not issue error on ambiguous matches and need explicit this
- */
-
-void functionResolve(Match *m, Dsymbol *fstart,
-        Type *tthis, Expressions *fargs)
-{
-  struct ParamFuncRes
-  {
-    Match *m;
-    Type *tthis;
-    int property;       // 0: unintialized
-                        // 1: seen @property
-                        // 2: not @property
-    Expressions *fargs;
-
-    static int fp(void *param, Dsymbol *s)
-    {
-        if (FuncDeclaration *fd = s->isFuncDeclaration())
-            return ((ParamFuncRes *)param)->fp(fd);
-        return 0;
-    }
-    int fp(FuncDeclaration *fd)
-    {
-        // skip duplicates
-        if (fd == m->lastf)
-            return 0;
-
-        m->anyf = fd;
-        TypeFunction *tf = (TypeFunction *)fd->type;
-
-        int prop = (tf->isproperty) ? 1 : 2;
-        if (property == 0)
-            property = prop;
-        else if (property != prop)
-            error(fd->loc, "cannot overload both property and non-property functions");
-
-        /* For constructors, qualifier check will be opposite direction.
-         * Qualified constructor always makes qualified object, then will be checked
-         * that it is implicitly convertible to tthis.
-         */
-        Type *tthis_fd = fd->needThis() ? tthis : NULL;
-        if (tthis_fd && fd->isCtorDeclaration())
-        {
-            //printf("%s tf->mod = x%x tthis_fd->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis_fd->mod, fd->isolateReturn());
-            if (MODimplicitConv(tf->mod, tthis_fd->mod) ||
-                tf->isWild() && tf->isShared() == tthis_fd->isShared() ||
-                fd->isolateReturn()/* && tf->isShared() == tthis_fd->isShared()*/)
-            {   // Uniquely constructed object can ignore shared qualifier.
-                // TODO: Is this appropriate?
-                tthis_fd = NULL;
-            }
-            else
-                return 0;   // MATCHnomatch
-        }
-        MATCH mfa = tf->callMatch(tthis_fd, fargs);
-        //printf("test1: mfa = %d\n", mfa);
-        if (mfa != MATCHnomatch)
-        {
-            if (mfa > m->last) goto LfIsBetter;
-            if (mfa < m->last) goto LlastIsBetter;
-
-            /* See if one of the matches overrides the other.
-             */
-            if (m->lastf->overrides(fd)) goto LlastIsBetter;
-            if (fd->overrides(m->lastf)) goto LfIsBetter;
-
-            /* Try to disambiguate using template-style partial ordering rules.
-             * In essence, if f() and g() are ambiguous, if f() can call g(),
-             * but g() cannot call f(), then pick f().
-             * This is because f() is "more specialized."
-             */
-            {
-                MATCH c1 = fd->leastAsSpecialized(m->lastf);
-                MATCH c2 = m->lastf->leastAsSpecialized(fd);
-                //printf("c1 = %d, c2 = %d\n", c1, c2);
-                if (c1 > c2) goto LfIsBetter;
-                if (c1 < c2) goto LlastIsBetter;
-            }
-
-            /* If the two functions are the same function, like:
-             *    int foo(int);
-             *    int foo(int x) { ... }
-             * then pick the one with the body.
-             */
-            if (tf->equals(m->lastf->type) &&
-                fd->storage_class == m->lastf->storage_class &&
-                fd->parent == m->lastf->parent &&
-                fd->protection == m->lastf->protection &&
-                fd->linkage == m->lastf->linkage)
-            {
-                if ( fd->fbody && !m->lastf->fbody) goto LfIsBetter;
-                if (!fd->fbody &&  m->lastf->fbody) goto LlastIsBetter;
-            }
-
-        Lambiguous:
-            m->nextf = fd;
-            m->count++;
-            return 0;
-
-        LlastIsBetter:
-            return 0;
-
-        LfIsBetter:
-            m->last = mfa;
-            m->lastf = fd;
-            m->count = 1;
-            return 0;
-        }
-        return 0;
-    }
-  };
-    ParamFuncRes p;
-    p.m = m;
-    p.tthis = tthis;
-    p.property = 0;
-    p.fargs = fargs;
-    overloadApply(fstart, &p, &ParamFuncRes::fp);
 }
 
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
@@ -2818,14 +2690,7 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
 
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td && td->funcroot)
-        s = fd = td->funcroot;
-
-    if (!tiargs || tiargs->dim == 0)
-        functionResolve(&m, s, tthis, fargs);
-    templateResolve(&m, s, loc, sc, tiargs, tthis, fargs);
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
     if (m.count == 1)   // exactly one match
     {
@@ -2850,17 +2715,19 @@ Lerror:
 
     HdrGenState hgs;
 
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td && td->funcroot)
+        s = fd = td->funcroot;
+
     OutBuffer tiargsBuf;
-    if (td)
+    size_t dim = tiargs ? tiargs->dim : 0;
+    for (size_t i = 0; i < dim; i++)
     {
-        size_t dim = tiargs ? tiargs->dim : 0;
-        for (size_t i = 0; i < dim; i++)
-        {
-            if (i)
-                tiargsBuf.writestring(", ");
-            RootObject *oarg = (*tiargs)[i];
-            ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
-        }
+        if (i)
+            tiargsBuf.writestring(", ");
+        RootObject *oarg = (*tiargs)[i];
+        ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
     }
 
     OutBuffer fargsBuf;
