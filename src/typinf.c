@@ -111,7 +111,7 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 Expression *Type::getTypeInfo(Scope *sc)
 {
     //printf("Type::getTypeInfo() %p, %s\n", this, toChars());
-    if (!Type::typeinfo)
+    if (!Type::dtypeinfo)
     {
         error(Loc(), "TypeInfo not found. object.d may be incorrectly installed or corrupt, compile with -v switch");
         fatal();
@@ -234,9 +234,9 @@ TypeInfoDeclaration *TypeTuple::getTypeInfoDeclaration()
 void TypeInfoDeclaration::toDt(dt_t **pdt)
 {
     //printf("TypeInfoDeclaration::toDt() %s\n", toChars());
-    verifyStructSize(Type::typeinfo, 2 * Target::ptrsize);
+    verifyStructSize(Type::dtypeinfo, 2 * Target::ptrsize);
 
-    dtxoff(pdt, Type::typeinfo->toVtblSymbol(), 0); // vtbl for TypeInfo
+    dtxoff(pdt, Type::dtypeinfo->toVtblSymbol(), 0); // vtbl for TypeInfo
     dtsize_t(pdt, 0);                        // monitor
 }
 

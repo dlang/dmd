@@ -1028,7 +1028,7 @@ void FuncDeclaration::semantic3(Scope *sc)
                 v_arguments->parent = this;
 
                 //t = Type::typeinfo->type->constOf()->arrayOf();
-                t = Type::typeinfo->type->arrayOf();
+                t = Type::dtypeinfo->type->arrayOf();
                 _arguments = new VarDeclaration(Loc(), t, Id::_arguments, NULL);
                 _arguments->semantic(sc2);
                 sc2->insert(_arguments);
