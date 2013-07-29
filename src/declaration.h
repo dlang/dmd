@@ -705,7 +705,7 @@ public:
     bool needThis();
     bool isVirtualMethod();
     virtual bool isVirtual();
-    virtual bool isFinal();
+    virtual bool isFinalFunc();
     virtual bool addPreInvariant();
     virtual bool addPostInvariant();
     Expression *interpret(InterState *istate, Expressions *arguments, Expression *thisexp = NULL);

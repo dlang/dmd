@@ -258,7 +258,7 @@ elem *callfunc(Loc loc,
 
         if (!fd->isVirtual() ||
             directcall ||               // BUG: fix
-            fd->isFinal()
+            fd->isFinalFunc()
            /* Future optimization: || (whole program analysis && not overridden)
             */
            )
@@ -3747,7 +3747,7 @@ elem *DelegateExp::toElem(IRState *irs)
 
         if (!func->isVirtual() ||
             directcall ||
-            func->isFinal())
+            func->isFinalFunc())
         {
             ep = el_ptr(sfunc);
         }
