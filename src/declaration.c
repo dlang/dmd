@@ -522,7 +522,8 @@ void AliasDeclaration::semantic(Scope *sc)
 
     type = type->addStorageClass(storage_class);
     if (storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCdisable))
-    {   // For 'ref' to be attached to function types, and picked
+    {
+        // For 'ref' to be attached to function types, and picked
         // up by Type::resolve(), it has to go into sc.
         sc = sc->push();
         sc->stc |= storage_class & (STCref | STCnothrow | STCnogc | STCpure | STCshared | STCdisable);
@@ -571,27 +572,26 @@ void AliasDeclaration::semantic(Scope *sc)
     else
     {
         Dsymbol *savedovernext = overnext;
-        FuncDeclaration *f = s->toAlias()->isFuncDeclaration();
-        if (f)
+        Dsymbol *sa = s->toAlias();
+        if (FuncDeclaration *fd = sa->isFuncDeclaration())
         {
             if (overnext)
             {
-                FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+                FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
                 if (!fa->overloadInsert(overnext))
-                    ScopeDsymbol::multiplyDefined(Loc(), overnext, f);
+                    ScopeDsymbol::multiplyDefined(Loc(), overnext, fd);
                 overnext = NULL;
                 s = fa;
                 s->parent = sc->parent;
             }
         }
-        OverloadSet *o = s->toAlias()->isOverloadSet();
-        if (o)
+        else if (OverloadSet *os = sa->isOverloadSet())
         {
             if (overnext)
             {
-                o->push(overnext);
+                os->push(overnext);
                 overnext = NULL;
-                s = o;
+                s = os;
                 s->parent = sc->parent;
             }
         }
@@ -625,14 +625,14 @@ bool AliasDeclaration::overloadInsert(Dsymbol *s)
     //printf("AliasDeclaration::overloadInsert('%s')\n", s->toChars());
     if (aliassym) // see test/test56.d
     {
-        Dsymbol *a = aliassym->toAlias();
-        FuncDeclaration *f = a->isFuncDeclaration();
-        if (f)  // BUG: what if it's a template?
+        Dsymbol *sa = aliassym->toAlias();
+        if (FuncDeclaration *fd = sa->isFuncDeclaration())
         {
-            FuncAliasDeclaration *fa = new FuncAliasDeclaration(f);
+            FuncAliasDeclaration *fa = new FuncAliasDeclaration(fd);
             aliassym = fa;
             return fa->overloadInsert(s);
         }
+        // BUG: what if it's a template?
     }
 
     if (overnext == NULL)

@@ -5278,10 +5278,10 @@ Expression *VarExp::semantic(Scope *sc)
 #if LOGSEMANTIC
     printf("VarExp::semantic(%s)\n", toChars());
 #endif
-    if (FuncDeclaration *f = var->isFuncDeclaration())
+    if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
         //printf("L%d fd = %s\n", __LINE__, f->toChars());
-        if (!f->functionSemantic())
+        if (!fd->functionSemantic())
             return new ErrorExp();
     }
 
@@ -5297,15 +5297,15 @@ Expression *VarExp::semantic(Scope *sc)
      */
     //accessCheck(loc, sc, NULL, var);
 
-    VarDeclaration *v = var->isVarDeclaration();
-    if (v)
+    if (VarDeclaration *vd = var->isVarDeclaration())
     {
         hasOverloads = 0;
-        v->checkNestedReference(sc, loc);
+        vd->checkNestedReference(sc, loc);
     }
-    FuncDeclaration *f = var->isFuncDeclaration();
-    if (f)
-        f->checkNestedReference(sc, loc);
+    else if (FuncDeclaration *fd = var->isFuncDeclaration())
+    {
+        fd->checkNestedReference(sc, loc);
+    }
 
     return this;
 }
@@ -7369,14 +7369,13 @@ Expression *DotVarExp::semantic(Scope *sc)
     e1 = e1->addDtorHook(sc);
 
     Type *t1 = e1->type;
-    FuncDeclaration *f = var->isFuncDeclaration();
-    if (f)  // for functions, do checks after overload resolution
+    if (FuncDeclaration *fd = var->isFuncDeclaration())
     {
-        //printf("L%d fd = %s\n", __LINE__, f->toChars());
-        if (!f->functionSemantic())
+        // for functions, do checks after overload resolution
+        if (!fd->functionSemantic())
             return new ErrorExp();
 
-        type = f->type;
+        type = fd->type;
         assert(type);
     }
     else
@@ -7646,10 +7645,9 @@ L1:
     if (e->op == TOKdotvar)
     {
         DotVarExp *dve = (DotVarExp *)e;
-        FuncDeclaration *f = dve->var->isFuncDeclaration();
-        if (f)
+        if (FuncDeclaration *fd = dve->var->isFuncDeclaration())
         {
-            TemplateDeclaration *td = f->findTemplateDeclRoot();
+            TemplateDeclaration *td = fd->findTemplateDeclRoot();
             if (td)
             {
                 e = new DotTemplateExp(dve->loc, dve->e1, td);
@@ -7660,10 +7658,9 @@ L1:
     else if (e->op == TOKvar)
     {
         VarExp *ve = (VarExp *)e;
-        FuncDeclaration *f = ve->var->isFuncDeclaration();
-        if (f)
+        if (FuncDeclaration *fd = ve->var->isFuncDeclaration())
         {
-            TemplateDeclaration *td = f->findTemplateDeclRoot();
+            TemplateDeclaration *td = fd->findTemplateDeclRoot();
             if (td)
             {
                 e = new ScopeExp(ve->loc, td);
@@ -7713,10 +7710,12 @@ L1:
         return e;
     }
     else if (e->op == TOKimport)
-    {   ScopeExp *se = (ScopeExp *)e;
+    {
+        ScopeExp *se = (ScopeExp *)e;
         TemplateDeclaration *td = se->sds->isTemplateDeclaration();
         if (!td)
-        {   error("%s is not a template", e->toChars());
+        {
+            error("%s is not a template", e->toChars());
             return new ErrorExp();
         }
         ti->tempdecl = td;
@@ -7725,7 +7724,8 @@ L1:
         return e;
     }
     else if (e->op == TOKdotexp)
-    {   DotExp *de = (DotExp *)e;
+    {
+        DotExp *de = (DotExp *)e;
         Expression *eleft = de->e1;
 
         if (de->e2->op == TOKoverloadset)
@@ -7763,14 +7763,16 @@ L1:
         }
 
         if (de->e2->op == TOKimport)
-        {   // This should *really* be moved to ScopeExp::semantic()
+        {
+            // This should *really* be moved to ScopeExp::semantic()
             ScopeExp *se = (ScopeExp *)de->e2;
             de->e2 = new DsymbolExp(loc, se->sds);
             de->e2 = de->e2->semantic(sc);
         }
 
         if (de->e2->op == TOKtemplate)
-        {   TemplateExp *te = (TemplateExp *) de->e2;
+        {
+            TemplateExp *te = (TemplateExp *) de->e2;
             e = new DotTemplateExp(loc,de->e1,te->td);
         }
         else
@@ -8478,7 +8480,8 @@ Lagain:
             // BUG: this should really be done by checking the static
             // call graph
             if (f == sc->func)
-            {   error("cyclic constructor call");
+            {
+                error("cyclic constructor call");
                 return new ErrorExp();
             }
         }
@@ -8564,8 +8567,7 @@ Lagain:
                 if (hasThis(sc))
                 {
                     // Supply an implicit 'this', as in
-                    //        this.ident
-
+                    //    this.ident
                     e1 = new DotTemplateExp(loc, (new ThisExp(loc))->semantic(sc), te->td);
                     goto Lagain;
                 }
@@ -8575,7 +8577,6 @@ Lagain:
                     return new ErrorExp();
                 }
             }
-
             e1 = new VarExp(loc, f);
             goto Lagain;
         }
