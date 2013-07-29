@@ -26,9 +26,7 @@
  * Creating an iterator for this would be much more complex.
  */
 
-typedef int (*fp_t)(Expression *, void *);
-
-int Expression::apply(fp_t fp, void *param)
+int Expression::apply(apply_fp_t fp, void *param)
 {
     return (*fp)(this, param);
 }
@@ -58,47 +56,47 @@ int NewAnonClassExp::apply(int (*fp)(Expression *, void *), void *param)
            (*fp)(this, param);
 }
 
-int UnaExp::apply(fp_t fp, void *param)
+int UnaExp::apply(apply_fp_t fp, void *param)
 {
     return e1->apply(fp, param) ||
            (*fp)(this, param);
 }
 
-int BinExp::apply(fp_t fp, void *param)
+int BinExp::apply(apply_fp_t fp, void *param)
 {
     return e1->apply(fp, param) ||
            e2->apply(fp, param) ||
            (*fp)(this, param);
 }
 
-int AssertExp::apply(fp_t fp, void *param)
+int AssertExp::apply(apply_fp_t fp, void *param)
 {
-    //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
+    //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
            condApply(msg, fp, param) ||
            (*fp)(this, param);
 }
 
 
-int CallExp::apply(fp_t fp, void *param)
+int CallExp::apply(apply_fp_t fp, void *param)
 {
-    //printf("CallExp::apply(fp_t fp, void *param): %s\n", toChars());
+    //printf("CallExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
            condApply(arguments, fp, param) ||
            (*fp)(this, param);
 }
 
 
-int ArrayExp::apply(fp_t fp, void *param)
+int ArrayExp::apply(apply_fp_t fp, void *param)
 {
-    //printf("ArrayExp::apply(fp_t fp, void *param): %s\n", toChars());
+    //printf("ArrayExp::apply(apply_fp_t fp, void *param): %s\n", toChars());
     return e1->apply(fp, param) ||
            condApply(arguments, fp, param) ||
            (*fp)(this, param);
 }
 
 
-int SliceExp::apply(fp_t fp, void *param)
+int SliceExp::apply(apply_fp_t fp, void *param)
 {
     return e1->apply(fp, param) ||
            condApply(lwr, fp, param) ||
@@ -107,14 +105,14 @@ int SliceExp::apply(fp_t fp, void *param)
 }
 
 
-int ArrayLiteralExp::apply(fp_t fp, void *param)
+int ArrayLiteralExp::apply(apply_fp_t fp, void *param)
 {
     return condApply(elements, fp, param) ||
            (*fp)(this, param);
 }
 
 
-int AssocArrayLiteralExp::apply(fp_t fp, void *param)
+int AssocArrayLiteralExp::apply(apply_fp_t fp, void *param)
 {
     return condApply(keys, fp, param) ||
            condApply(values, fp, param) ||
@@ -122,7 +120,7 @@ int AssocArrayLiteralExp::apply(fp_t fp, void *param)
 }
 
 
-int StructLiteralExp::apply(fp_t fp, void *param)
+int StructLiteralExp::apply(apply_fp_t fp, void *param)
 {
     if(stageflags & stageApply) return 0;
     int old = stageflags;
@@ -134,7 +132,7 @@ int StructLiteralExp::apply(fp_t fp, void *param)
 }
 
 
-int TupleExp::apply(fp_t fp, void *param)
+int TupleExp::apply(apply_fp_t fp, void *param)
 {
     return (e0 ? (*fp)(e0, param) : 0) ||
            condApply(exps, fp, param) ||
@@ -142,7 +140,7 @@ int TupleExp::apply(fp_t fp, void *param)
 }
 
 
-int CondExp::apply(fp_t fp, void *param)
+int CondExp::apply(apply_fp_t fp, void *param)
 {
     return econd->apply(fp, param) ||
            e1->apply(fp, param) ||
