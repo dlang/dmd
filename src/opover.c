@@ -1479,47 +1479,48 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments)
 {
-    struct Param3
+  struct ParamOpOver
+  {
+    Parameters *arguments;
+    int mod;
+    MATCH match;
+    FuncDeclaration *fd_best;
+    FuncDeclaration *fd_ambig;
+
+    static int fp(void *param, FuncDeclaration *f)
     {
-        Parameters *arguments;
-        int mod;
-        MATCH match;
-        FuncDeclaration *fd_best;
-        FuncDeclaration *fd_ambig;
+        ParamOpOver *p = (ParamOpOver *)param;
+        TypeFunction *tf = (TypeFunction *)f->type;
+        MATCH m = MATCHexact;
 
-        static int fp(void *param, FuncDeclaration *f)
+        if (f->isThis())
         {
-            Param3 *p = (Param3 *)param;
-            TypeFunction *tf = (TypeFunction *)f->type;
-            MATCH m = MATCHexact;
-
-            if (f->isThis())
-            {   if (!MODimplicitConv(p->mod, tf->mod))
-                    m = MATCHnomatch;
-                else if (p->mod != tf->mod)
-                    m = MATCHconst;
-            }
-            if (!inferApplyArgTypesY(tf, p->arguments, 1))
+            if (!MODimplicitConv(p->mod, tf->mod))
                 m = MATCHnomatch;
-
-            if (m > p->match)
-            {   p->fd_best = f;
-                p->fd_ambig = NULL;
-                p->match = m;
-            }
-            else if (m == p->match)
-                p->fd_ambig = f;
-            return 0;
+            else if (p->mod != tf->mod)
+                m = MATCHconst;
         }
-    };
+        if (!inferApplyArgTypesY(tf, p->arguments, 1))
+            m = MATCHnomatch;
 
-    Param3 p;
+        if (m > p->match)
+        {
+            p->fd_best = f;
+            p->fd_ambig = NULL;
+            p->match = m;
+        }
+        else if (m == p->match)
+            p->fd_ambig = f;
+        return 0;
+    }
+  };
+    ParamOpOver p;
     p.arguments = arguments;
     p.mod = ethis->type->mod;
     p.match = MATCHnomatch;
     p.fd_best = NULL;
     p.fd_ambig = NULL;
-    overloadApply(fstart, &Param3::fp, &p);
+    overloadApply(fstart, &ParamOpOver::fp, &p);
     if (p.fd_best)
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);

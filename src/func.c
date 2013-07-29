@@ -2448,23 +2448,28 @@ int overloadApply(FuncDeclaration *fstart,
  * otherwise return NULL.
  */
 
-static int fpunique(void *param, FuncDeclaration *f)
-{   FuncDeclaration **pf = (FuncDeclaration **)param;
-
-    if (*pf)
-    {   *pf = NULL;
-        return 1;               // ambiguous, done
-    }
-    else
-    {   *pf = f;
-        return 0;
-    }
-}
-
 FuncDeclaration *FuncDeclaration::isUnique()
 {
+  struct ParamUnique
+  {
+    static int fp(void *param, FuncDeclaration *f)
+    {
+        FuncDeclaration **pf = (FuncDeclaration **)param;
+
+        if (*pf)
+        {
+            *pf = NULL;
+            return 1;               // ambiguous, done
+        }
+        else
+        {
+            *pf = f;
+            return 0;
+        }
+    }
+  };
     FuncDeclaration *result = NULL;
-    overloadApply(this, &fpunique, &result);
+    overloadApply(this, &ParamUnique::fp, &result);
     return result;
 }
 
@@ -2472,45 +2477,46 @@ FuncDeclaration *FuncDeclaration::isUnique()
  * Find function in overload list that exactly matches t.
  */
 
-struct Param1
+FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 {
+  struct ParamExact
+  {
     Type *t;            // type to match
     FuncDeclaration *f; // return value
-};
 
-int fp1(void *param, FuncDeclaration *f)
-{   Param1 *p = (Param1 *)param;
-    Type *t = p->t;
+    static int fp(void *param, FuncDeclaration *f)
+    {
+        ParamExact *p = (ParamExact *)param;
+        Type *t = p->t;
 
-    if (t->equals(f->type))
-    {   p->f = f;
-        return 1;
-    }
-
-#if DMDV2
-    /* Allow covariant matches, as long as the return type
-     * is just a const conversion.
-     * This allows things like pure functions to match with an impure function type.
-     */
-    if (t->ty == Tfunction)
-    {   TypeFunction *tf = (TypeFunction *)f->type;
-        if (tf->covariant(t) == 1 &&
-            tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+        if (t->equals(f->type))
         {
             p->f = f;
             return 1;
         }
-    }
-#endif
-    return 0;
-}
 
-FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
-{
-    Param1 p;
+#if DMDV2
+        /* Allow covariant matches, as long as the return type
+         * is just a const conversion.
+         * This allows things like pure functions to match with an impure function type.
+         */
+        if (t->ty == Tfunction)
+        {   TypeFunction *tf = (TypeFunction *)f->type;
+            if (tf->covariant(t) == 1 &&
+                tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+            {
+                p->f = f;
+                return 1;
+            }
+        }
+#endif
+        return 0;
+    }
+  };
+    ParamExact p;
     p.t = t;
     p.f = NULL;
-    overloadApply(this, &fp1, &p);
+    overloadApply(this, &ParamExact::fp, &p);
     return p.f;
 }
 
@@ -2521,8 +2527,11 @@ FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
  *                      2: do not issue error on ambiguous matches and need explicit this
  */
 
-struct Param2
+void functionResolve(Match *m, FuncDeclaration *fstart,
+        Type *tthis, Expressions *arguments, Dsymbol **plast)
 {
+  struct ParamFuncRes
+  {
     Match *m;
 #if DMDV2
     Type *tthis;
@@ -2531,15 +2540,15 @@ struct Param2
                         // 2: not @property
 #endif
     Expressions *arguments;
-};
 
-int fp2(void *param, FuncDeclaration *f)
-{
-    Param2 *p = (Param2 *)param;
-    Match *m = p->m;
-
-    if (f != m->lastf)          // skip duplicates
+    static int fp(void *param, FuncDeclaration *f)
     {
+        ParamFuncRes *p = (ParamFuncRes *)param;
+        Match *m = p->m;
+
+        if (f == m->lastf)          // skip duplicates
+            return 0;
+
         m->anyf = f;
         TypeFunction *tf = (TypeFunction *)f->type;
 
@@ -2623,20 +2632,16 @@ int fp2(void *param, FuncDeclaration *f)
         LlastIsBetter:
             return 0;
         }
+        return 0;
     }
-    return 0;
-}
-
-void functionResolve(Match *m, FuncDeclaration *fstart,
-        Type *tthis, Expressions *arguments, Dsymbol **plast)
-{
-    Param2 p;
+  };
+    ParamFuncRes p;
     p.m = m;
     p.tthis = tthis;
     p.property = 0;
     p.arguments = arguments;
     if (plast) *plast = NULL;
-    overloadApply(fstart, &fp2, &p, plast);
+    overloadApply(fstart, &ParamFuncRes::fp, &p, plast);
 }
 
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
