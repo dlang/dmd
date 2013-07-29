@@ -476,44 +476,6 @@ FuncLiteralDeclaration *getFuncLit(Dsymbols *members)
     return (FuncLiteralDeclaration *)(*members)[0];
 }
 
-struct TemplateOverloadSet
-{
-private:
-    TemplateDeclaration *td;
-    OverloadSet *os;
-    size_t oi;
-
-public:
-    TemplateOverloadSet(TemplateInstance *ti)
-    {
-        assert(ti->tempdecl);
-        this->td = ti->tempdecl->isTemplateDeclaration();
-        this->os = ti->tempdecl->isOverloadSet();
-        this->oi = 0;
-        if (os) popFront();
-    }
-    TemplateDeclaration *front()
-    {
-        return td;
-    }
-    void popFront()
-    {
-        if (td)
-            td = td->overnext;
-        if (!td && os)
-        {
-            for (; !td && oi < os->a.dim; )
-            {
-                Dsymbol *s = os->a[oi++];
-                if (FuncDeclaration *fd = s->isFuncDeclaration())
-                    td = fd->findTemplateDeclRoot();
-                else
-                    td = s->isTemplateDeclaration();
-            }
-        }
-    }
-};
-
 
 /* ======================== TemplateDeclaration ============================= */
 
@@ -2253,6 +2215,9 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
         if (!td)
             return 0;
 
+        if (!sc)
+            sc = td->scope; // workaround for Type::aliasthisOf
+
         if (!td->semanticRun)
         {
             if (td->scope)
@@ -2467,6 +2432,7 @@ void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
      * Now instantiate the template.
      */
     assert(p.td_best->scope);
+    if (!sc) sc = p.td_best->scope; // workaround for Type::aliasthisOf
     TemplateInstance *ti;
     ti = new TemplateInstance(loc, p.td_best, p.tdargs);
     ti->semantic(sc, fargs);
@@ -6023,10 +5989,11 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
     }
   };
     // Look for forward references
-    TemplateOverloadSet tos(this);
-    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
+    for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        if (int r = ParamFwdTi::fp((void *)this, td))
+        if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdTi::fp))
             return false;
     }
     return true;
@@ -6223,38 +6190,17 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     /* Since there can be multiple TemplateDeclaration's with the same
      * name, look for the best match.
      */
-    Dsymbol *sa = tempdecl;
-    TemplateDeclaration *tdecl = sa->isTemplateDeclaration();
-    OverloadSet *tovers = sa->isOverloadSet();
-    //if (!(tdecl || tovers))
-    //    printf("[%s] %s %s\n", loc.toChars(), sa->kind(), sa->toChars());
-    assert(tdecl || tovers);
-    size_t overs_dim = tdecl ? 1 : tovers->a.dim;
-
     TemplateDeclaration *td_last = NULL;
+
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        TemplateDeclaration *td;
-        if (tdecl)
-            td = tdecl;
-        else
-        {
-            Dsymbol *s = tovers->a[oi];
-            if (FuncDeclaration *fd = s->isFuncDeclaration())
-                td = fd->findTemplateDeclRoot();
-            else
-                td = s->isTemplateDeclaration();
-        }
-
         // result
         p.td_best  = NULL;
         p.td_ambig = NULL;
         p.m_best   = MATCHnomatch;
-        for (; td != NULL; td = td->overnext)
-        {
-            if (int r = ParamBest::fp(&p, td))
-                break;
-        }
+        overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamBest::fp);
 
         if (p.td_ambig)
         {
@@ -6278,6 +6224,8 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 
     if (!td_last)
     {
+        TemplateDeclaration *tdecl = tempdecl->isTemplateDeclaration();
+
         if (errs != global.errors)
             errorSupplemental(loc, "while looking for match for %s", toChars());
         else if (tovers)
@@ -6730,10 +6678,11 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
     // result
     p.count = 0;
 
-    TemplateOverloadSet tos(this);
-    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
+    for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        if (int r = ParamNeedsInf::fp(&p, td))
+        if (int r = overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
             return r > 0;
     }
     //printf("false\n");
@@ -7176,11 +7125,12 @@ bool TemplateMixin::findTemplateDeclaration(Scope *sc)
         return 0;
     }
   };
-    // Look for forward reference
-    TemplateOverloadSet tos(this);
-    for (TemplateDeclaration *td; (td = tos.front()) != NULL; tos.popFront())
+    // Look for forward references
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
+    for (size_t oi = 0; oi < overs_dim; oi++)
     {
-        if (int r = ParamFwdResTm::fp((void *)this, td))
+        if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdResTm::fp))
             return false;
     }
     return true;
