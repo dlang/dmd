@@ -103,6 +103,121 @@ void test6()
 }
 
 /**********************************************/
+// 2407
+
+int i2407;
+
+void add2407() { ++i2407; }
+void sub2407() { --i2407; }
+
+enum EF2407f : void function()
+{
+    a = &add2407,
+    s = &sub2407,
+}
+
+enum EF2407s
+{
+    a = &add2407,
+    s = &sub2407,
+}
+
+enum
+{
+    a2407 = &add2407,
+    s2407 = &sub2407,
+}
+
+enum : void function()
+{
+    at2407 = &add2407,
+    st2407 = &sub2407,
+}
+
+enum EEF2407 : EF2407s
+{
+    a = EF2407s.a,
+    s = EF2407s.s,
+}
+
+void test2407()
+{
+    alias i2407 i;
+
+    EF2407f.a();
+    assert(i == 1);
+    EF2407f.s();
+    assert(i == 0);
+
+    EF2407s.a();
+    assert(i == 1);
+    EF2407s.s();
+    assert(i == 0);
+
+    a2407();
+    assert(i == 1);
+    s2407();
+    assert(i == 0);
+
+    at2407();
+    assert(i == 1);
+    st2407();
+    assert(i == 0);
+
+    EEF2407.a();
+    assert(i == 1);
+    EEF2407.s();
+    assert(i == 0);
+
+    EEF2407.init();
+    assert(i == 1);
+
+    struct S { int i; }
+    enum ES : S
+    {
+        a = S(1),
+        b = S(3),
+        c = S(2),
+    }
+    static assert(ES.init == S(1));
+    static assert(!__traits(compiles, ES.min));
+    static assert(!__traits(compiles, ES.max));
+
+    enum EES : ES
+    {
+        a = ES.a,
+        b = ES.b,
+        c = ES.c,
+    }
+    static assert(EES.init == ES.init);
+    static assert(EES.init == S(1));
+    static assert(!__traits(compiles, EES.min));
+    static assert(!__traits(compiles, EES.max));
+
+    ES es = ES.c;
+    assert(es.i == 2);
+    es = ES.b;
+    assert(es.i == 3);
+
+    class C { this(int i) { this.i = i; } int i; }
+    enum EC : C
+    {
+        a = new C(42),
+        b = null,
+        c = new C(1),
+        d = new C(33),
+    }
+    static assert(EC.init.i == (new C(42)).i);
+    static assert(!__traits(compiles, EC.min));
+    static assert(!__traits(compiles, EC.max));
+
+    EC ec = EC.d;
+    assert(ec.i == 33);
+    ec = EC.b;
+    assert(ec is null);
+}
+
+/**********************************************/
 // 3096
 
 void test3096()
@@ -265,11 +380,10 @@ int main()
     test4();
     test5();
     test6();
+    test2407();
     test10113();
     test10561();
 
     printf("Success\n");
     return 0;
 }
-
-
