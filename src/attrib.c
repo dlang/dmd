@@ -799,7 +799,7 @@ void AlignDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
 /********************************* AnonDeclaration ****************************/
 
-AnonDeclaration::AnonDeclaration(Loc loc, int isunion, Dsymbols *decl)
+AnonDeclaration::AnonDeclaration(Loc loc, bool isunion, Dsymbols *decl)
         : AttribDeclaration(decl)
 {
     this->loc = loc;
