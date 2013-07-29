@@ -189,7 +189,7 @@ public:
     static Type *thash_t;               // matches hash_t alias
     static Type *tindex;                // array/ptr index
 
-    static ClassDeclaration *typeinfo;
+    static ClassDeclaration *dtypeinfo;
     static ClassDeclaration *typeinfoclass;
     static ClassDeclaration *typeinfointerface;
     static ClassDeclaration *typeinfostruct;

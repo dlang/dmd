@@ -548,8 +548,8 @@ TypeAArray *toBuiltinAAType(Type *t)
 bool isTypeInfo_Class(Type *type)
 {
     return type->ty == Tclass &&
-        (( Type::typeinfo == ((TypeClass*)type)->sym)
-        || Type::typeinfo->isBaseOf(((TypeClass*)type)->sym, NULL));
+        (( Type::dtypeinfo == ((TypeClass*)type)->sym)
+        || Type::dtypeinfo->isBaseOf(((TypeClass*)type)->sym, NULL));
 }
 
 /************** Pointer operations ************************************/
