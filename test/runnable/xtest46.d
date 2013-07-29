@@ -4489,10 +4489,10 @@ void test4647()
     assert(app.run() == 1);             // This would call Timer.run() if the two calls
                                         // above were commented out
     assert(app.funCalls == 5);
-    
+
     assert(app.TimedApp.fun() == 2);
     assert(app.funCalls == 6);
-    
+
     //Test direct access to SubTimedApp interfaces
     auto app2 = new SubTimedApp();
     assert((cast(Application)app2).run() == 2);
@@ -4501,7 +4501,7 @@ void test4647()
     assert(app2.Timer.run() == 1);
     assert(app2.funCalls == 0);
     assert(app2.subFunCalls == 4);
-    
+
     assert(app2.fun() == 1);
     assert(app2.SubTimedApp.fun() == 1);
     assert(app2.funCalls == 0);
@@ -6342,6 +6342,50 @@ void test9834()
         }
     };
     ev.call();
+}
+
+/***************************************************/
+// 9859
+
+void test9859(inout int[] arr)
+{
+    auto dg1 = { foreach (i, e; arr) { } };
+    dg1();
+
+    void foo() { auto v = arr; auto w = arr[0]; }
+    void bar(inout int i) { auto v = arr[i]; }
+
+    auto dg2 =
+    {
+        auto dg =
+        {
+            void foo(T)()
+            {
+                auto dg =
+                {
+                    auto dg =
+                    {
+                        auto v = arr;
+                    };
+                };
+            }
+            foo!int;
+        };
+    };
+
+    void qux(T)()
+    {
+        auto v = arr;
+        auto dg1 = { auto v = arr; };
+        auto dg2 =
+        {
+            auto dg =
+            {
+                auto v = arr;
+            };
+        };
+    }
+    qux!int;
 }
 
 /***************************************************/
