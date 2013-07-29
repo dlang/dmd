@@ -2848,7 +2848,6 @@ Expression *UnaExp::interpret(InterState *istate,  CtfeGoal goal)
     return e;
 }
 
-typedef Expression *(*fp_t)(Type *, Expression *, Expression *);
 
 Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
 {   Expression *e;
@@ -2925,8 +2924,6 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
         error("%s cannot be interpreted at compile time", toChars());
     return e;
 }
-
-typedef int (*fp2_t)(Loc loc, TOK, Expression *, Expression *);
 
 Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp2_t fp)
 {
