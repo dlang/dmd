@@ -1487,8 +1487,11 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     FuncDeclaration *fd_best;
     FuncDeclaration *fd_ambig;
 
-    static int fp(void *param, FuncDeclaration *f)
+    static int fp(void *param, Dsymbol *s)
     {
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (!f)
+            return 0;
         ParamOpOver *p = (ParamOpOver *)param;
         TypeFunction *tf = (TypeFunction *)f->type;
         MATCH m = MATCHexact;
@@ -1520,7 +1523,7 @@ static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, 
     p.match = MATCHnomatch;
     p.fd_best = NULL;
     p.fd_ambig = NULL;
-    overloadApply(fstart, &ParamOpOver::fp, &p);
+    overloadApply(fstart, &p, &ParamOpOver::fp);
     if (p.fd_best)
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);

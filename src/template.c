@@ -2204,7 +2204,7 @@ bool TemplateDeclaration::isOverloadable()
  *      fargs           arguments to function
  */
 
-void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
+void templateResolve(Match *m, Dsymbol *tdstart, Loc loc, Scope *sc,
         Objects *tiargs, Type *tthis, Expressions *fargs)
 {
 #if 0
@@ -2452,11 +2452,7 @@ void templateResolve(Match *m, TemplateDeclaration *tdstart, Loc loc, Scope *sc,
     p.tdargs     = new Objects();
     p.tthis_best = NULL;
 
-    for (TemplateDeclaration *td = tdstart; td; td = td->overnext)
-    {
-        if (int r = ParamDeduce::fp(&p, td))
-            break;
-    }
+    overloadApply(tdstart, &p, &ParamDeduce::fp);
 
     //printf("td_best = %p, m->lastf = %p, match:t/f = %d/%d\n", td_best, m->lastf, mta, mfa);
     if (!p.td_best)
