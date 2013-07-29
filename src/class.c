@@ -78,7 +78,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
             if (id == Id::TypeInfo)
             {   if (!inObject)
                     error("%s", msg);
-                Type::typeinfo = this;
+                Type::dtypeinfo = this;
             }
 
             if (id == Id::TypeInfo_Class)
