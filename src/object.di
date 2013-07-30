@@ -437,7 +437,12 @@ public:
         return p ? *p : defaultValue;
     }
 
-    static if (is(typeof({ Value[Key] r; r[Key.init] = Value.init; }())))
+    static if (is(typeof({
+        ref Value get();    // pseudo lvalue of Value
+        Value[Key] r; r[Key.init] = get();
+        // bug 10720 - check whether Value is copyable
+    })))
+    {
         @property Value[Key] dup()
         {
             Value[Key] result;
@@ -447,6 +452,9 @@ public:
             }
             return result;
         }
+    }
+    else
+        @disable @property Value[Key] dup();    // for better error message
 
     @property auto byKey()
     {
