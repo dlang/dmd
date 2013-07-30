@@ -1399,53 +1399,113 @@ public:
     ConstructExp(Loc loc, Expression *e1, Expression *e2);
 };
 
-#define ASSIGNEXP(op)   \
-class op##AssignExp : public BinAssignExp                       \
-{                                                               \
-public:                                                         \
-    op##AssignExp(Loc loc, Expression *e1, Expression *e2);     \
-    S(Expression *semantic(Scope *sc);)                          \
-                                                                \
-    Identifier *opId();    /* For operator overloading */       \
-                                                                \
-    elem *toElem(IRState *irs);                                 \
+class AddAssignExp : public BinAssignExp
+{
+public:
+    AddAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
 };
 
-#define X(a) a
-#define S(a)
-ASSIGNEXP(Add)
-ASSIGNEXP(Min)
-ASSIGNEXP(Mul)
-ASSIGNEXP(Div)
-ASSIGNEXP(Mod)
-ASSIGNEXP(And)
-ASSIGNEXP(Or)
-ASSIGNEXP(Xor)
-#undef S
+class MinAssignExp : public BinAssignExp
+{
+public:
+    MinAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class MulAssignExp : public BinAssignExp
+{
+public:
+    MulAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class DivAssignExp : public BinAssignExp
+{
+public:
+    DivAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class ModAssignExp : public BinAssignExp
+{
+public:
+    ModAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class AndAssignExp : public BinAssignExp
+{
+public:
+    AndAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class OrAssignExp : public BinAssignExp
+{
+public:
+    OrAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
+
+class XorAssignExp : public BinAssignExp
+{
+public:
+    XorAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 
 #if DMDV2
-#define S(a) a
-ASSIGNEXP(Pow)
-#undef S
+class PowAssignExp : public BinAssignExp
+{
+public:
+    PowAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 #endif
 
-#undef S
-#undef X
+class ShlAssignExp : public BinAssignExp
+{
+public:
+    ShlAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 
-#define X(a)
+class ShrAssignExp : public BinAssignExp
+{
+public:
+    ShrAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 
-#define S(a)
-ASSIGNEXP(Shl)
-ASSIGNEXP(Shr)
-ASSIGNEXP(Ushr)
-#undef S
+class UshrAssignExp : public BinAssignExp
+{
+public:
+    UshrAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 
-#define S(a) a
-ASSIGNEXP(Cat)
-#undef S
-
-#undef X
-#undef ASSIGNEXP
+class CatAssignExp : public BinAssignExp
+{
+public:
+    CatAssignExp(Loc loc, Expression *e1, Expression *e2);
+    Expression *semantic(Scope *sc);
+    Identifier *opId();    /* For operator overloading */
+    elem *toElem(IRState *irs);
+};
 
 class AddExp : public BinExp
 {
