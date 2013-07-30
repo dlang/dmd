@@ -1353,7 +1353,7 @@ int File::exists()
 void File::remove()
 {
 #if POSIX
-    ::remove(this->name->toChars());
+    int dummy = ::remove(this->name->toChars());
 #elif _WIN32
     DeleteFileA(this->name->toChars());
 #else
