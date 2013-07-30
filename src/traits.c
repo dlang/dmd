@@ -52,9 +52,13 @@ struct Ptrait
     Identifier *ident;          // which trait we're looking for
 };
 
-static int fptraits(void *param, FuncDeclaration *f)
-{   Ptrait *p = (Ptrait *)param;
+static int fptraits(void *param, Dsymbol *s)
+{
+    FuncDeclaration *f = s->isFuncDeclaration();
+    if (!f)
+        return 0;
 
+    Ptrait *p = (Ptrait *)param;
     if (p->ident == Id::getVirtualFunctions && !f->isVirtual())
         return 0;
 
@@ -463,7 +467,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             p.exps = exps;
             p.e1 = e;
             p.ident = ident;
-            overloadApply(f, &fptraits, &p);
+            overloadApply(f, &p, &fptraits);
 
             TupleExp *tup = new TupleExp(loc, exps);
             return tup->semantic(sc);

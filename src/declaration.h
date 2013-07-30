@@ -102,13 +102,8 @@ struct Match
     FuncDeclaration *anyf;      // pick a func, any func, to use for error recovery
 };
 
-void functionResolve(Match *m, FuncDeclaration *f,
-        Type *tthis, Expressions *arguments, Dsymbol **plast = NULL);
-void templateResolve(Match *m, TemplateDeclaration *td, Loc loc, Scope *sc,
-        Objects *tiargs, Type *tthis, Expressions *fargs);
-int overloadApply(FuncDeclaration *fstart,
-        int (*fp)(void *, FuncDeclaration *),
-        void *param, Dsymbol **plast = NULL);
+void functionResolve(Match *m, Dsymbol *fd, Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs);
+int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *));
 
 void ObjectNotFound(Identifier *id);
 
