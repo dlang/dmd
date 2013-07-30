@@ -456,7 +456,7 @@ struct Array
         return data;
     }
 
-    TYPE*& operator[] (size_t index) const
+    TYPE*& operator[] (size_t index)
     {
 #ifdef DEBUG
         assert(index < dim);
