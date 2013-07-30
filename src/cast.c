@@ -1748,7 +1748,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     printf("DelegateExp::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    static char msg[] = "cannot form delegate due to covariant return type";
+    static const char msg[] = "cannot form delegate due to covariant return type";
 
     Expression *e = this;
     Type *tb = t->toBasetype();
