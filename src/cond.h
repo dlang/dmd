@@ -33,7 +33,6 @@ public:
                         // 2: do not include
 
     Condition(Loc loc);
-    virtual ~Condition() {}
 
     virtual Condition *syntaxCopy() = 0;
     virtual int include(Scope *sc, ScopeDsymbol *s) = 0;
