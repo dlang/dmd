@@ -2879,7 +2879,7 @@ IntRange Expression::getIntRange()
 
 IntRange IntegerExp::getIntRange()
 {
-    return IntRange(value).cast(type) DUMP;
+    return IntRange(SignExtendedNumber(value)).cast(type) DUMP;
 }
 
 IntRange CastExp::getIntRange()
