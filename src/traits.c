@@ -87,12 +87,12 @@ static int fptraits(void *param, FuncDeclaration *f)
  *      unitTests           array of DsymbolExp's of the collected unit test functions
  *      uniqueUnitTests     updated with symbols from unitTests[ ]
  */
-static void collectUnitTests (const Dsymbols* const symbols, AA* uniqueUnitTests, Expressions* const unitTests)
+static void collectUnitTests (Dsymbols *symbols, AA *uniqueUnitTests, Expressions *unitTests)
 {
     for (size_t i = 0; i < symbols->dim; i++)
     {
-        Dsymbol* const symbol = (*symbols)[i];
-        UnitTestDeclaration* const unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+        Dsymbol *symbol = (*symbols)[i];
+        UnitTestDeclaration *unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
 
         if (unitTest)
         {
@@ -109,7 +109,7 @@ static void collectUnitTests (const Dsymbols* const symbols, AA* uniqueUnitTests
 
         else
         {
-            const AttribDeclaration* const attrDecl = symbol->isAttribDeclaration();
+            AttribDeclaration *attrDecl = symbol->isAttribDeclaration();
 
             if (attrDecl)
                 collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
