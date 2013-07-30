@@ -832,19 +832,20 @@ void FileName::ensurePathExists(const char *path)
                 mem.free((void *)p);
             }
 #if _WIN32
-            if (path[strlen(path) - 1] != '\\')
+            char sep = '\\';
+#elif POSIX
+            char sep = '/';
 #endif
-#if POSIX
-            if (path[strlen(path) - 1] != '\\')
-#endif
+            if (path[strlen(path) - 1] != sep)
             {
                 //printf("mkdir(%s)\n", path);
 #if _WIN32
-                if (_mkdir(path))
+                int r = _mkdir(path);
 #endif
 #if POSIX
-                if (mkdir(path, 0777))
+                int r = mkdir(path, 0777);
 #endif
+                if (r)
                 {
                     /* Don't error out if another instance of dmd just created
                      * this directory
@@ -1650,12 +1651,13 @@ void OutBuffer::writewchar(unsigned w)
 
 void OutBuffer::writeword(unsigned w)
 {
-    if (doindent && !notlinehead
 #if _WIN32
-        && w != 0x0A0D)
+    unsigned newline = 0x0A0D;
 #else
-        && w != '\n')
+    unsigned newline = '\n';
 #endif
+    if (doindent && !notlinehead
+        && w != newline)
     {
         if (level)
         {
@@ -1693,12 +1695,12 @@ void OutBuffer::writeUTF16(unsigned w)
 
 void OutBuffer::write4(unsigned w)
 {
-    if (doindent && !notlinehead
 #if _WIN32
-        && w != 0x000A000D)
+    bool notnewline = w != 0x000A000D;
 #else
-        )
+    bool notnewline = true;
 #endif
+    if (doindent && !notlinehead && notnewline)
     {
         if (level)
         {
