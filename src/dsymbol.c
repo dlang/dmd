@@ -429,7 +429,7 @@ Dsymbol *Dsymbol::search_correct(Identifier *ident)
     if (global.gag)
         return NULL;            // don't do it for speculative compiles; too time consuming
 
-    return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, this, idchars);
+    return (Dsymbol *)speller(ident->toChars(), &symbol_search_fp, (void *)this, idchars);
 }
 
 /***************************************
