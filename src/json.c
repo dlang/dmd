@@ -970,9 +970,10 @@ void TemplateDeclaration::toJson(JsonOut *json)
             if (s->isTemplateThisParameter())
                 json->property("kind", "this");
             else
-#endif
                 json->property("kind", "type");
-
+#else
+            json->property("kind", "type");
+#endif
             json->property("type", "deco", type->specType);
 
             json->property("default", "defaultDeco", type->defaultType);
