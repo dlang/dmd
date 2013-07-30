@@ -39,8 +39,6 @@
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments);
 static void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments);
 static int inferApplyArgTypesY(TypeFunction *tf, Parameters *arguments, int flags = 0);
-static void overloadResolveX(Match *m, Dsymbol *s, Loc loc, Scope *sc,
-        Objects *tiargs, Expression *ethis, Expressions *arguments);
 
 /******************************** Expression **************************/
 
@@ -560,12 +558,12 @@ Expression *BinExp::op_overload(Scope *sc)
         m.last = MATCHnomatch;
 
         if (s)
-            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
+            functionResolve(&m, s, loc, sc, tiargs, e1->type, &args2);
 
         FuncDeclaration *lastf = m.lastf;
 
         if (s_r)
-            overloadResolveX(&m, s_r, loc, sc, tiargs, e2, &args1);
+            functionResolve(&m, s_r, loc, sc, tiargs, e2->type, &args1);
 
         if (m.count > 1)
         {
@@ -633,12 +631,12 @@ L1:
             m.last = MATCHnomatch;
 
             if (s_r)
-                overloadResolveX(&m, s_r, loc, sc, tiargs, e1, &args2);
+                functionResolve(&m, s_r, loc, sc, tiargs, e1->type, &args2);
 
             FuncDeclaration *lastf = m.lastf;
 
             if (s)
-                overloadResolveX(&m, s, loc, sc, tiargs, e2, &args1);
+                functionResolve(&m, s, loc, sc, tiargs, e2->type, &args1);
 
             if (m.count > 1)
             {
@@ -785,13 +783,13 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
         }
 
         if (s)
-            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
+            functionResolve(&m, s, loc, sc, tiargs, e1->type, &args2);
 
         FuncDeclaration *lastf = m.lastf;
         int count = m.count;
 
         if (s_r)
-            overloadResolveX(&m, s_r, loc, sc, tiargs, e2, &args1);
+            functionResolve(&m, s_r, loc, sc, tiargs, e2->type, &args1);
 
         if (m.count > 1)
         {
@@ -1102,7 +1100,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
         m.last = MATCHnomatch;
 
         if (s)
-            overloadResolveX(&m, s, loc, sc, tiargs, e1, &args2);
+            functionResolve(&m, s, loc, sc, tiargs, e1->type, &args2);
 
         if (m.count > 1)
         {
@@ -1479,47 +1477,51 @@ int ForeachStatement::inferApplyArgTypes(Scope *sc, Dsymbol *&sapply)
 
 static Dsymbol *inferApplyArgTypesX(Expression *ethis, FuncDeclaration *fstart, Parameters *arguments)
 {
-    struct Param3
+  struct ParamOpOver
+  {
+    Parameters *arguments;
+    int mod;
+    MATCH match;
+    FuncDeclaration *fd_best;
+    FuncDeclaration *fd_ambig;
+
+    static int fp(void *param, Dsymbol *s)
     {
-        Parameters *arguments;
-        int mod;
-        MATCH match;
-        FuncDeclaration *fd_best;
-        FuncDeclaration *fd_ambig;
-
-        static int fp(void *param, FuncDeclaration *f)
-        {
-            Param3 *p = (Param3 *)param;
-            TypeFunction *tf = (TypeFunction *)f->type;
-            MATCH m = MATCHexact;
-
-            if (f->isThis())
-            {   if (!MODimplicitConv(p->mod, tf->mod))
-                    m = MATCHnomatch;
-                else if (p->mod != tf->mod)
-                    m = MATCHconst;
-            }
-            if (!inferApplyArgTypesY(tf, p->arguments, 1))
-                m = MATCHnomatch;
-
-            if (m > p->match)
-            {   p->fd_best = f;
-                p->fd_ambig = NULL;
-                p->match = m;
-            }
-            else if (m == p->match)
-                p->fd_ambig = f;
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (!f)
             return 0;
-        }
-    };
+        ParamOpOver *p = (ParamOpOver *)param;
+        TypeFunction *tf = (TypeFunction *)f->type;
+        MATCH m = MATCHexact;
 
-    Param3 p;
+        if (f->isThis())
+        {
+            if (!MODimplicitConv(p->mod, tf->mod))
+                m = MATCHnomatch;
+            else if (p->mod != tf->mod)
+                m = MATCHconst;
+        }
+        if (!inferApplyArgTypesY(tf, p->arguments, 1))
+            m = MATCHnomatch;
+
+        if (m > p->match)
+        {
+            p->fd_best = f;
+            p->fd_ambig = NULL;
+            p->match = m;
+        }
+        else if (m == p->match)
+            p->fd_ambig = f;
+        return 0;
+    }
+  };
+    ParamOpOver p;
     p.arguments = arguments;
     p.mod = ethis->type->mod;
     p.match = MATCHnomatch;
     p.fd_best = NULL;
     p.fd_ambig = NULL;
-    overloadApply(fstart, &Param3::fp, &p);
+    overloadApply(fstart, &p, &ParamOpOver::fp);
     if (p.fd_best)
     {
         inferApplyArgTypesY((TypeFunction *)p.fd_best->type, arguments);
@@ -1615,21 +1617,3 @@ void inferApplyArgTypesZ(TemplateDeclaration *tstart, Parameters *arguments)
     }
 }
 #endif
-
-/**************************************
- */
-
-static void overloadResolveX(Match *m, Dsymbol *s, Loc loc, Scope *sc,
-        Objects *tiargs, Expression *ethis, Expressions *arguments)
-{
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    if (fd)
-    {
-        functionResolve(m, fd, ethis->type, arguments);
-    }
-    else
-    {
-        TemplateDeclaration *td = s->isTemplateDeclaration();
-        templateResolve(m, td, loc, sc, tiargs, ethis->type, arguments);
-    }
-}

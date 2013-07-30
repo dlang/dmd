@@ -2368,76 +2368,66 @@ bool FuncDeclaration::overloadInsert(Dsymbol *s)
     return true;
 }
 
-/********************************************
- * Find function in overload list that exactly matches t.
- */
-
 /***************************************************
- * Visit each overloaded function in turn, and call
- * (*fp)(param, f) on it.
- * Exit when no more, or (*fp)(param, f) returns 1.
+ * Visit each overloaded function/template in turn, and call
+ * (*fp)(param, s) on it.
+ * Exit when no more, or (*fp)(param, f) returns nonzero.
  * Returns:
- *      0       continue
- *      1       done
+ *      ==0     continue
+ *      !=0     done
  */
 
-int overloadApply(FuncDeclaration *fstart,
-        int (*fp)(void *, FuncDeclaration *),
-        void *param, Dsymbol **plast)
+int overloadApply(Dsymbol *fstart, void *param, int (*fp)(void *, Dsymbol *))
 {
-    FuncDeclaration *f;
-    Declaration *d;
-    Declaration *next;
-
+    Dsymbol *d;
+    Dsymbol *next;
     for (d = fstart; d; d = next)
-    {   FuncAliasDeclaration *fa = d->isFuncAliasDeclaration();
-
-        if (fa)
+    {
+        if (FuncAliasDeclaration *fa = d->isFuncAliasDeclaration())
         {
             if (fa->hasOverloads)
             {
-                if (overloadApply(fa->funcalias, fp, param, plast))
-                    return 1;
+                if (int r = overloadApply(fa->funcalias, param, fp))
+                    return r;
             }
             else
             {
-                f = fa->toAliasFunc();
-                if (!f)
-                {   d->error("is aliased to a function");
+                FuncDeclaration *fd = fa->toAliasFunc();
+                if (!fd)
+                {
+                    d->error("is aliased to a function");
                     break;
                 }
-                if ((*fp)(param, f))
-                    return 1;
+                if (int r = (*fp)(param, fd))
+                    return r;
             }
-            next = fa->overnext ? fa->overnext->isDeclaration() : NULL;
-            if (plast) *plast = fa->overnext;
+            next = fa->overnext;
+        }
+        else if (AliasDeclaration *ad = d->isAliasDeclaration())
+        {
+            next = ad->toAlias();
+            if (next == ad)
+                break;
+            if (next == fstart)
+                break;
+        }
+        else if (TemplateDeclaration *td = d->isTemplateDeclaration())
+        {
+            if (int r = (*fp)(param, td))
+                return r;
+            next = td->overnext;
         }
         else
         {
-            AliasDeclaration *a = d->isAliasDeclaration();
-
-            if (a)
+            FuncDeclaration *fd = d->isFuncDeclaration();
+            if (!fd)
             {
-                Dsymbol *s = a->toAlias();
-                next = s->isDeclaration();
-                if (next == a)
-                    break;
-                if (next == fstart)
-                    break;
+                d->error("is aliased to a function");
+                break;              // BUG: should print error message?
             }
-            else
-            {
-                f = d->isFuncDeclaration();
-                if (!f)
-                {   d->error("is aliased to a function");
-                    break;              // BUG: should print error message?
-                }
-                if ((*fp)(param, f))
-                    return 1;
-
-                next = f->overnext ? f->overnext->isDeclaration() : NULL;
-                if (plast) *plast = f->overnext;
-            }
+            if (int r = (*fp)(param, fd))
+                return r;
+            next = fd->overnext;
         }
     }
     return 0;
@@ -2448,23 +2438,31 @@ int overloadApply(FuncDeclaration *fstart,
  * otherwise return NULL.
  */
 
-static int fpunique(void *param, FuncDeclaration *f)
-{   FuncDeclaration **pf = (FuncDeclaration **)param;
-
-    if (*pf)
-    {   *pf = NULL;
-        return 1;               // ambiguous, done
-    }
-    else
-    {   *pf = f;
-        return 0;
-    }
-}
-
 FuncDeclaration *FuncDeclaration::isUnique()
 {
+  struct ParamUnique
+  {
+    static int fp(void *param, Dsymbol *s)
+    {
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (!f)
+            return 0;
+        FuncDeclaration **pf = (FuncDeclaration **)param;
+
+        if (*pf)
+        {
+            *pf = NULL;
+            return 1;               // ambiguous, done
+        }
+        else
+        {
+            *pf = f;
+            return 0;
+        }
+    }
+  };
     FuncDeclaration *result = NULL;
-    overloadApply(this, &fpunique, &result);
+    overloadApply(this, &result, &ParamUnique::fp);
     return result;
 }
 
@@ -2472,171 +2470,50 @@ FuncDeclaration *FuncDeclaration::isUnique()
  * Find function in overload list that exactly matches t.
  */
 
-struct Param1
+FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
 {
+  struct ParamExact
+  {
     Type *t;            // type to match
     FuncDeclaration *f; // return value
-};
 
-int fp1(void *param, FuncDeclaration *f)
-{   Param1 *p = (Param1 *)param;
-    Type *t = p->t;
+    static int fp(void *param, Dsymbol *s)
+    {
+        FuncDeclaration *f = s->isFuncDeclaration();
+        if (!f)
+            return 0;
+        ParamExact *p = (ParamExact *)param;
+        Type *t = p->t;
 
-    if (t->equals(f->type))
-    {   p->f = f;
-        return 1;
-    }
-
-#if DMDV2
-    /* Allow covariant matches, as long as the return type
-     * is just a const conversion.
-     * This allows things like pure functions to match with an impure function type.
-     */
-    if (t->ty == Tfunction)
-    {   TypeFunction *tf = (TypeFunction *)f->type;
-        if (tf->covariant(t) == 1 &&
-            tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+        if (t->equals(f->type))
         {
             p->f = f;
             return 1;
         }
-    }
-#endif
-    return 0;
-}
 
-FuncDeclaration *FuncDeclaration::overloadExactMatch(Type *t)
-{
-    Param1 p;
+#if DMDV2
+        /* Allow covariant matches, as long as the return type
+         * is just a const conversion.
+         * This allows things like pure functions to match with an impure function type.
+         */
+        if (t->ty == Tfunction)
+        {   TypeFunction *tf = (TypeFunction *)f->type;
+            if (tf->covariant(t) == 1 &&
+                tf->nextOf()->implicitConvTo(t->nextOf()) >= MATCHconst)
+            {
+                p->f = f;
+                return 1;
+            }
+        }
+#endif
+        return 0;
+    }
+  };
+    ParamExact p;
     p.t = t;
     p.f = NULL;
-    overloadApply(this, &fp1, &p);
+    overloadApply(this, &p, &ParamExact::fp);
     return p.f;
-}
-
-
-/********************************************
- * Decide which function matches the arguments best.
- *      flags           1: do not issue error message on no match, just return NULL
- *                      2: do not issue error on ambiguous matches and need explicit this
- */
-
-struct Param2
-{
-    Match *m;
-#if DMDV2
-    Type *tthis;
-    int property;       // 0: unintialized
-                        // 1: seen @property
-                        // 2: not @property
-#endif
-    Expressions *arguments;
-};
-
-int fp2(void *param, FuncDeclaration *f)
-{
-    Param2 *p = (Param2 *)param;
-    Match *m = p->m;
-
-    if (f != m->lastf)          // skip duplicates
-    {
-        m->anyf = f;
-        TypeFunction *tf = (TypeFunction *)f->type;
-
-        int property = (tf->isproperty) ? 1 : 2;
-        if (p->property == 0)
-            p->property = property;
-        else if (p->property != property)
-            error(f->loc, "cannot overload both property and non-property functions");
-
-        /* For constructors, qualifier check will be opposite direction.
-         * Qualified constructor always makes qualified object, then will be checked
-         * that it is implicitly convertible to tthis.
-         */
-        Type *tthis = f->needThis() ? p->tthis : NULL;
-        if (tthis && f->isCtorDeclaration())
-        {
-            //printf("%s tf->mod = x%x tthis->mod = x%x %d\n", tf->toChars(),
-            //        tf->mod, tthis->mod, f->isolateReturn());
-            if (MODimplicitConv(tf->mod, tthis->mod) ||
-                tf->isWild() && tf->isShared() == tthis->isShared() ||
-                f->isolateReturn()/* && tf->isShared() == tthis->isShared()*/)
-            {   // Uniquely constructed object can ignore shared qualifier.
-                // TODO: Is this appropriate?
-                tthis = NULL;
-            }
-            else
-                return 0;   // MATCHnomatch
-        }
-        MATCH match = tf->callMatch(tthis, p->arguments);
-        //printf("test1: match = %d\n", match);
-        if (match != MATCHnomatch)
-        {
-            if (match > m->last) goto LfIsBetter;
-            if (match < m->last) goto LlastIsBetter;
-
-            /* See if one of the matches overrides the other.
-             */
-            if (m->lastf->overrides(f)) goto LlastIsBetter;
-            if (f->overrides(m->lastf)) goto LfIsBetter;
-
-#if DMDV2
-            /* Try to disambiguate using template-style partial ordering rules.
-             * In essence, if f() and g() are ambiguous, if f() can call g(),
-             * but g() cannot call f(), then pick f().
-             * This is because f() is "more specialized."
-             */
-            {
-                MATCH c1 = f->leastAsSpecialized(m->lastf);
-                MATCH c2 = m->lastf->leastAsSpecialized(f);
-                //printf("c1 = %d, c2 = %d\n", c1, c2);
-                if (c1 > c2) goto LfIsBetter;
-                if (c1 < c2) goto LlastIsBetter;
-            }
-
-            /* If the two functions are the same function, like:
-             *    int foo(int);
-             *    int foo(int x) { ... }
-             * then pick the one with the body.
-             */
-            if (tf->equals(m->lastf->type) &&
-                f->storage_class == m->lastf->storage_class &&
-                f->parent == m->lastf->parent &&
-                f->protection == m->lastf->protection &&
-                f->linkage == m->lastf->linkage)
-            {
-                if ( f->fbody && !m->lastf->fbody) goto LfIsBetter;
-                if (!f->fbody &&  m->lastf->fbody) goto LlastIsBetter;
-            }
-#endif
-        Lambiguous:
-            m->nextf = f;
-            m->count++;
-            return 0;
-
-        LfIsBetter:
-            m->last = match;
-            m->lastf = f;
-            m->count = 1;
-            return 0;
-
-        LlastIsBetter:
-            return 0;
-        }
-    }
-    return 0;
-}
-
-void functionResolve(Match *m, FuncDeclaration *fstart,
-        Type *tthis, Expressions *arguments, Dsymbol **plast)
-{
-    Param2 p;
-    p.m = m;
-    p.tthis = tthis;
-    p.property = 0;
-    p.arguments = arguments;
-    if (plast) *plast = NULL;
-    overloadApply(fstart, &fp2, &p, plast);
 }
 
 static void MODMatchToBuffer(OutBuffer *buf, unsigned char lhsMod, unsigned char rhsMod)
@@ -2783,7 +2660,7 @@ MATCH FuncDeclaration::leastAsSpecialized(FuncDeclaration *g)
 FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
         Objects *tiargs,
         Type *tthis,
-        Expressions *arguments,
+        Expressions *fargs,
         int flags)
 {
     if (!s)
@@ -2791,11 +2668,11 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
 
 #if 0
     printf("resolveFuncCall('%s')\n", toChars());
-    if (arguments)
+    if (fargs)
     {
-        for (size_t i = 0; i < arguments->dim; i++)
+        for (size_t i = 0; i < fargs->dim; i++)
         {
-            Expression *arg = (*arguments)[i];
+            Expression *arg = (*fargs)[i];
             assert(arg->type);
             printf("\t%s: ", arg->toChars());
             arg->type->print();
@@ -2803,44 +2680,25 @@ FuncDeclaration *resolveFuncCall(Loc loc, Scope *sc, Dsymbol *s,
     }
 #endif
 
-    if (tiargs    && arrayObjectIsError(tiargs) ||
-        arguments && arrayObjectIsError((Objects *)arguments))
+    if (tiargs && arrayObjectIsError(tiargs) ||
+        fargs  && arrayObjectIsError((Objects *)fargs))
     {
         return NULL;
     }
-
-    FuncDeclaration *fd = s->isFuncDeclaration();
-    TemplateDeclaration *td = s->isTemplateDeclaration();
-    if (td) fd = td->funcroot;
-    assert(fd || td); //?
 
     Match m;
     memset(&m, 0, sizeof(m));
     m.last = MATCHnomatch;
 
-    if (fd && tiargs && tiargs->dim > 0)
-    {
-        td = fd->findTemplateDeclRoot();
-    }
-    else if (fd)
-    {
-        Dsymbol *lastnext;
-        functionResolve(&m, fd, tthis, arguments, &lastnext);
-        if (lastnext) td = lastnext->isTemplateDeclaration();
-    }
-    if (td)
-    {
-        if (!sc) sc = td->scope;
-        templateResolve(&m, td, loc, sc, tiargs, tthis, arguments);
-    }
+    functionResolve(&m, s, loc, sc, tiargs, tthis, fargs);
 
     if (m.count == 1)   // exactly one match
-    {   assert(m.lastf);
+    {
+        assert(m.lastf);
         if (!(flags & 1))
             m.lastf->functionSemantic();
         return m.lastf;
     }
-
     if (m.last != MATCHnomatch && (flags & 2) && !tthis && m.lastf->needThis())
     {
         return m.lastf;
@@ -2857,22 +2715,24 @@ Lerror:
 
     HdrGenState hgs;
 
+    FuncDeclaration *fd = s->isFuncDeclaration();
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td && td->funcroot)
+        s = fd = td->funcroot;
+
     OutBuffer tiargsBuf;
-    if (td)
+    size_t dim = tiargs ? tiargs->dim : 0;
+    for (size_t i = 0; i < dim; i++)
     {
-        size_t dim = tiargs ? tiargs->dim : 0;
-        for (size_t i = 0; i < dim; i++)
-        {
-            if (i)
-                tiargsBuf.writestring(", ");
-            RootObject *oarg = (*tiargs)[i];
-            ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
-        }
+        if (i)
+            tiargsBuf.writestring(", ");
+        RootObject *oarg = (*tiargs)[i];
+        ObjectToCBuffer(&tiargsBuf, &hgs, oarg);
     }
 
     OutBuffer fargsBuf;
     fargsBuf.writeByte('(');
-    argExpTypesToCBuffer(&fargsBuf, arguments, &hgs);
+    argExpTypesToCBuffer(&fargsBuf, fargs, &hgs);
     fargsBuf.writeByte(')');
     if (tthis)
         tthis->modToBuffer(&fargsBuf);
@@ -2922,7 +2782,7 @@ Lerror:
             }
             else
             {
-                //printf("tf = %s, args = %s\n", tf->deco, (*arguments)[0]->type->deco);
+                //printf("tf = %s, args = %s\n", tf->deco, (*fargs)[0]->type->deco);
                 fd->error(loc, "%s%s is not callable using argument types %s",
                     Parameter::argsTypesToChars(tf->parameters, tf->varargs),
                     tf->modToChars(),
@@ -2936,28 +2796,20 @@ Lerror:
          * (created by doHeaderInstantiation), so call toPrettyChars will segfault.
          */
         assert(m.lastf);
-        if (td)
-        {
-            TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
-            TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
-            Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
-            Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
-            ::error(loc, "%s %s.%s matches more than one template declaration:\n\t%s(%d):%s\nand:\n\t%s(%d):%s",
-                    td->kind(), td->parent->toPrettyChars(), td->ident->toChars(),
-                    lasts->loc.filename, lasts->loc.linnum, lasts->toChars(),
-                    nexts->loc.filename, nexts->loc.linnum, nexts->toChars());
-        }
-        else
-        {
-            assert(fd);
-            TypeFunction *t1 = (TypeFunction *)m.lastf->type;
-            TypeFunction *t2 = (TypeFunction *)m.nextf->type;
-            error(loc, "called with argument types:\n\t%s\nmatches both:\n"
-                       "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
-                    fargsBuf.toChars(),
-                    m.lastf->loc.filename, m.lastf->loc.linnum, m.lastf->toPrettyChars(), Parameter::argsTypesToChars(t1->parameters, t1->varargs),
-                    m.nextf->loc.filename, m.nextf->loc.linnum, m.nextf->toPrettyChars(), Parameter::argsTypesToChars(t2->parameters, t2->varargs));
-        }
+        TypeFunction *t1 = (TypeFunction *)m.lastf->type;
+        TypeFunction *t2 = (TypeFunction *)m.nextf->type;
+        TemplateInstance *lastti = m.lastf->parent->isTemplateInstance();
+        TemplateInstance *nextti = m.nextf->parent->isTemplateInstance();
+        Dsymbol *lasts = lastti ? (Dsymbol *)lastti->tempdecl : (Dsymbol *)m.lastf;
+        Dsymbol *nexts = nextti ? (Dsymbol *)nextti->tempdecl : (Dsymbol *)m.nextf;
+        const char *lastprms = lastti ? "" : Parameter::argsTypesToChars(t1->parameters, t1->varargs);
+        const char *nextprms = nextti ? "" : Parameter::argsTypesToChars(t2->parameters, t2->varargs);
+        ::error(loc, "%s.%s called with argument types %s matches both:\n"
+                     "\t%s(%d): %s%s\nand:\n\t%s(%d): %s%s",
+                s->parent->toPrettyChars(), s->ident->toChars(),
+                fargsBuf.toChars(),
+                lasts->loc.filename, lasts->loc.linnum, lasts->toChars(), lastprms,
+                nexts->loc.filename, nexts->loc.linnum, nexts->toChars(), nextprms);
     }
     return NULL;
 }
