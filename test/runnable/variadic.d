@@ -1537,6 +1537,24 @@ void test10414()
 }
 
 /***************************************/
+// 10722
+
+struct S10722
+{
+    int x;
+}
+
+template GetSomething10722(S...)
+{
+    alias GetSomething = int;
+}
+
+void test10722()
+{
+    alias X10722 = GetSomething10722!(S10722.tupleof[0]);
+}
+
+/***************************************/
 
 int main()
 {
