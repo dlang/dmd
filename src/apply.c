@@ -36,7 +36,7 @@ int Expression::apply(apply_fp_t fp, void *param)
  */
 #define condApply(t, fp, param) (t ? t->apply(fp, param) : 0)
 
-int NewExp::apply(int (*fp)(Expression *, void *), void *param)
+int NewExp::apply(apply_fp_t fp, void *param)
 {
     //printf("NewExp::apply(): %s\n", toChars());
 
@@ -46,7 +46,7 @@ int NewExp::apply(int (*fp)(Expression *, void *), void *param)
            (*fp)(this, param);
 }
 
-int NewAnonClassExp::apply(int (*fp)(Expression *, void *), void *param)
+int NewAnonClassExp::apply(apply_fp_t fp, void *param)
 {
     //printf("NewAnonClassExp::apply(): %s\n", toChars());
 
