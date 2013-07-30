@@ -21,7 +21,7 @@
 #include "dsymbol.h"
 #include "lexer.h"
 
-class OutBuffer;
+struct OutBuffer;
 struct Scope;
 class Expression;
 class LabelDsymbol;

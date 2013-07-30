@@ -20,7 +20,7 @@
 #include "dsymbol.h"
 
 
-class OutBuffer;
+struct OutBuffer;
 class Identifier;
 class TemplateInstance;
 class TemplateParameter;
