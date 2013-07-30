@@ -20,7 +20,7 @@
 
 class Identifier;
 struct Scope;
-class OutBuffer;
+struct OutBuffer;
 class Module;
 class Package;
 class AliasDeclaration;

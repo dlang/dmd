@@ -17,7 +17,7 @@
 
 #include "dsymbol.h"
 
-class OutBuffer;
+struct OutBuffer;
 struct HdrGenState;
 
 class DebugSymbol : public Dsymbol

@@ -13,7 +13,7 @@
 
 class Expression;
 class Identifier;
-class OutBuffer;
+struct OutBuffer;
 class Module;
 struct Scope;
 class ScopeDsymbol;

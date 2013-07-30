@@ -1463,7 +1463,7 @@ OutBuffer::OutBuffer()
 
     doindent = 0;
     level = 0;
-    linehead = 1;
+    notlinehead = 0;
 }
 
 OutBuffer::~OutBuffer()
@@ -1510,7 +1510,7 @@ void OutBuffer::setsize(size_t size)
 
 void OutBuffer::write(const void *data, size_t nbytes)
 {
-    if (doindent && linehead)
+    if (doindent && !notlinehead)
     {
         if (level)
         {
@@ -1521,7 +1521,7 @@ void OutBuffer::write(const void *data, size_t nbytes)
                 offset++;
             }
         }
-        linehead = 0;
+        notlinehead = 1;
     }
     reserve(nbytes);
     memcpy(this->data + offset, data, nbytes);
@@ -1555,12 +1555,12 @@ void OutBuffer::writenl()
     writeByte('\n');
 #endif
     if (doindent)
-        linehead = 1;
+        notlinehead = 0;
 }
 
 void OutBuffer::writeByte(unsigned b)
 {
-    if (doindent && linehead
+    if (doindent && !notlinehead
         && b != '\n')
     {
         if (level)
@@ -1572,7 +1572,7 @@ void OutBuffer::writeByte(unsigned b)
                 offset++;
             }
         }
-        linehead = 0;
+        notlinehead = 1;
     }
     reserve(1);
     this->data[offset] = (unsigned char)b;
@@ -1650,7 +1650,7 @@ void OutBuffer::writewchar(unsigned w)
 
 void OutBuffer::writeword(unsigned w)
 {
-    if (doindent && linehead
+    if (doindent && !notlinehead
 #if _WIN32
         && w != 0x0A0D)
 #else
@@ -1666,7 +1666,7 @@ void OutBuffer::writeword(unsigned w)
                 offset++;
             }
         }
-        linehead = 0;
+        notlinehead = 1;
     }
     reserve(2);
     *(unsigned short *)(this->data + offset) = (unsigned short)w;
@@ -1693,7 +1693,7 @@ void OutBuffer::writeUTF16(unsigned w)
 
 void OutBuffer::write4(unsigned w)
 {
-    if (doindent && linehead
+    if (doindent && !notlinehead
 #if _WIN32
         && w != 0x000A000D)
 #else
@@ -1709,7 +1709,7 @@ void OutBuffer::write4(unsigned w)
                 offset++;
             }
         }
-        linehead = 0;
+        notlinehead = 1;
     }
     reserve(4);
     *(unsigned *)(this->data + offset) = w;

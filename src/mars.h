@@ -116,7 +116,7 @@ void unittests();
 #endif
 
 
-class OutBuffer;
+struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
