@@ -27,7 +27,7 @@ typedef size_t hash_t;
  * Root of our class library.
  */
 
-class OutBuffer;
+struct OutBuffer;
 
 // Can't include arraytypes.h here, need to declare these directly.
 template <typename TYPE> struct Array;
@@ -237,14 +237,15 @@ public:
     void remove();              // delete file
 };
 
-class OutBuffer : public RootObject
+struct OutBuffer
 {
-public:
     unsigned char *data;
     size_t offset;
     size_t size;
 
-    int doindent, level, linehead;
+    int doindent;
+    int level;
+    int notlinehead;
 
     OutBuffer();
     ~OutBuffer();
