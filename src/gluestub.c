@@ -1043,7 +1043,6 @@ void obj_append(Dsymbol *s)
 
 void obj_write_deferred(Library *library)
 {
-    assert(0);
 }
 
 void obj_start(char *srcfile)
@@ -1516,8 +1515,10 @@ Statement *AsmStatement::semantic(Scope *)
     return NULL;
 }
 
-int binary(const char *, const char **, int)
+int binary(const char *p, const char **tab, int n)
 {
-    assert(0);
-    return 0;
+    for (int i = 0; i < n; ++i)
+        if (!strcmp(p, tab[i]))
+            return i;
+    return -1;
 }
