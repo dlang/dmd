@@ -684,7 +684,7 @@ Language changes listed by -transition=id:\n\
                         if (strcmp(p + 12, "tls") == 0)
                             global.params.vtls = 1;
 #if PULL93
-                        else if (strcmp(p + 12, "field") == 0)
+                        if (strcmp(p + 12, "field") == 0)
                             global.params.vfield = 1;
 #endif
                     }
