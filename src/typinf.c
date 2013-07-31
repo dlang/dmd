@@ -575,16 +575,14 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
 
     if (!tftohash)
     {
-        Scope sc;
-
         /* const hash_t toHash();
          */
         tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
         tftohash->mod = MODconst;
-        tftohash = (TypeFunction *)tftohash->semantic(Loc(), &sc);
+        tftohash = (TypeFunction *)tftohash->merge();
 
         tftostring = new TypeFunction(NULL, Type::tstring, 0, LINKd);
-        tftostring = (TypeFunction *)tftostring->semantic(Loc(), &sc);
+        tftostring = (TypeFunction *)tftostring->merge();
     }
 
     s = search_function(sd, Id::tohash);
