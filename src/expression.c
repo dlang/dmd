@@ -2080,7 +2080,7 @@ real_t Expression::toImaginary()
 complex_t Expression::toComplex()
 {
     error("Floating point constant expression expected instead of %s", toChars());
-    return 0.0;
+    return (complex_t)0.0;
 }
 
 StringExp *Expression::toString()
@@ -2745,7 +2745,7 @@ real_t IntegerExp::toImaginary()
 
 complex_t IntegerExp::toComplex()
 {
-    return toReal();
+    return (complex_t)toReal();
 }
 
 int IntegerExp::isBool(int result)
