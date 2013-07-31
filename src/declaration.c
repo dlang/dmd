@@ -1202,6 +1202,12 @@ Lnomatch:
                 const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
                 fprintf(stderr, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
             }
+            storage_class |= STCfield;
+#if DMDV2
+            if (tbn->ty == Tstruct && ((TypeStruct *)tbn)->sym->noDefaultCtor ||
+                tbn->ty == Tclass  && ((TypeClass  *)tbn)->sym->noDefaultCtor)
+                aad->noDefaultCtor = TRUE;
+#endif
 #else
             if (storage_class & (STCconst | STCimmutable) && init)
             {
@@ -1212,7 +1218,6 @@ Lnomatch:
                     storage_class |= STCstatic;
             }
             else
-#endif
             {
                 storage_class |= STCfield;
 #if DMDV2
@@ -1221,6 +1226,7 @@ Lnomatch:
                     aad->noDefaultCtor = TRUE;
 #endif
             }
+#endif
         }
 
         InterfaceDeclaration *id = parent->isInterfaceDeclaration();

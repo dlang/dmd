@@ -7785,9 +7785,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             accessCheck(loc, sc, e1, var);
 
             VarDeclaration *v = var->isVarDeclaration();
-#if PULL93
-            if (v && (v->isDataseg() || (v->storage_class & STCmanifest)))
-#endif
+            if (!PULL93 || v && (v->isDataseg() || (v->storage_class & STCmanifest)))
             {
                 Expression *e = expandVar(WANTvalue, v);
                 if (e)
