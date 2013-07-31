@@ -310,8 +310,15 @@ void ClassDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (*baseclasses)[i];
+    {
+        BaseClass *b = (*baseclasses)[i];
+
+        unsigned oldgag = global.gag;
+        if (global.isSpeculativeGagging() && !isSpeculative())
+            global.gag = 0;
         b->type = b->type->semantic(loc, sc);
+        global.gag = oldgag;
+
         Type *tb = b->type->toBasetype();
 
         if (tb->ty == Ttuple)
