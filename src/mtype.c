@@ -3598,19 +3598,19 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
 
     if (ident == Id::reverse && (n->ty == Tchar || n->ty == Twchar))
     {
-        static const char *name[2] = { "_adReverseChar", "_adReverseWchar" };
-        static FuncDeclaration *fd[2] = { NULL, NULL };
+        static const char *reverseName[2] = { "_adReverseChar", "_adReverseWchar" };
+        static FuncDeclaration *reverseFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!fd[i]) {
+        if (!reverseFd[i]) {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
             args->push(new Parameter(STCin, arrty, NULL, NULL));
-            fd[i] = FuncDeclaration::genCfunc(args, arrty, name[i]);
+            reverseFd[i] = FuncDeclaration::genCfunc(args, arrty, reverseName[i]);
         }
 
-        Expression *ec = new VarExp(Loc(), fd[i]);
+        Expression *ec = new VarExp(Loc(), reverseFd[i]);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         Expressions *arguments = new Expressions();
         arguments->push(e);
@@ -3619,19 +3619,19 @@ Expression *TypeArray::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
     }
     else if (ident == Id::sort && (n->ty == Tchar || n->ty == Twchar))
     {
-        static const char *name[2] = { "_adSortChar", "_adSortWchar" };
-        static FuncDeclaration *fd[2] = { NULL, NULL };
+        static const char *sortName[2] = { "_adSortChar", "_adSortWchar" };
+        static FuncDeclaration *sortFd[2] = { NULL, NULL };
 
         int i = n->ty == Twchar;
-        if (!fd[i]) {
+        if (!sortFd[i]) {
             Parameters *args = new Parameters;
             Type *next = n->ty == Twchar ? Type::twchar : Type::tchar;
             Type *arrty = next->arrayOf();
             args->push(new Parameter(STCin, arrty, NULL, NULL));
-            fd[i] = FuncDeclaration::genCfunc(args, arrty, name[i]);
+            sortFd[i] = FuncDeclaration::genCfunc(args, arrty, sortName[i]);
         }
 
-        Expression *ec = new VarExp(Loc(), fd[i]);
+        Expression *ec = new VarExp(Loc(), sortFd[i]);
         e = e->castTo(sc, n->arrayOf());        // convert to dynamic array
         Expressions *arguments = new Expressions();
         arguments->push(e);
