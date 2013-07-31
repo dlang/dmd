@@ -943,13 +943,13 @@ void FuncDeclaration::toObjFile(int multiobj)
             se->type = se->type->semantic(Loc(), NULL);
             Expressions *exps = new Expressions();
             exps->push(se);
-            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(Type::tvoid, "trace_pro");
+            FuncDeclaration *fdpro = FuncDeclaration::genCfunc(NULL, Type::tvoid, "trace_pro");
             Expression *ec = new VarExp(Loc(), fdpro);
             Expression *e = new CallExp(Loc(), ec, exps);
             e->type = Type::tvoid;
             Statement *sp = new ExpStatement(loc, e);
 
-            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(Type::tvoid, "_c_trace_epi");
+            FuncDeclaration *fdepi = FuncDeclaration::genCfunc(NULL, Type::tvoid, "_c_trace_epi");
             ec = new VarExp(Loc(), fdepi);
             e = new CallExp(Loc(), ec);
             e->type = Type::tvoid;

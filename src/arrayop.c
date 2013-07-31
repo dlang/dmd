@@ -230,9 +230,12 @@ int isDruntimeArrayOp(Identifier *ident)
 
 ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
 {
+    Parameters *fparams = new Parameters();
+    Expression *loopbody = exp->buildArrayLoop(fparams);
+
     ArrayOp *op = new ArrayOp;
     if (isDruntimeArrayOp(ident))
-        op->cFunc = FuncDeclaration::genCfunc(exp->type, ident);
+        op->cFunc = FuncDeclaration::genCfunc(fparams, exp->type, ident);
     else
         op->cFunc = NULL;
 
@@ -242,8 +245,6 @@ ArrayOp *buildArrayOp(Identifier *ident, BinExp *exp, Scope *sc, Loc loc)
      *  return p;
      */
 
-    Parameters *fparams = new Parameters();
-    Expression *loopbody = exp->buildArrayLoop(fparams);
     Parameter *p = (*fparams)[0 /*fparams->dim - 1*/];
 #if DMDV1
     // for (size_t i = 0; i < p.length; i++)
