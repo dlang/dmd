@@ -1991,7 +1991,12 @@ public:
         return p ? *p : defaultValue;
     }
 
-    static if (is(typeof({ Value[Key] r; r[Key.init] = Value.init; }())))
+    static if (is(typeof({
+        ref Value get();    // pseudo lvalue of Value
+        Value[Key] r; r[Key.init] = get();
+        // bug 10720 - check whether Value is copyable
+    })))
+    {
         @property Value[Key] dup()
         {
             Value[Key] result;
@@ -2001,6 +2006,9 @@ public:
             }
             return result;
         }
+    }
+    else
+        @disable @property Value[Key] dup();    // for better error message
 
     @property auto byKey()
     {
@@ -2098,6 +2106,18 @@ unittest
     assert(aa2.byValue.front == 987);
     assert(aa3.byValue.front == 1234);
     assert(aa4.byValue.front == "onetwothreefourfive");
+}
+
+unittest
+{
+    // test for bug 10720
+    static struct NC
+    {
+        @disable this(this) { }
+    }
+
+    NC[string] aa;
+    static assert(!is(aa.nonExistingField));
 }
 
 deprecated("Please use destroy instead of clear.")
