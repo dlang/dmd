@@ -7427,14 +7427,24 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
 
     if (ident == Id::max)
     {
-        if (!sym->maxval)
+        if (!sym->isdone)
             goto Lfwd;
+        if (!sym->maxval)
+        {
+            error(loc, "enum %s has no .max property because the base type %s is not an integral type", toChars(), sym->memtype->toChars());
+            return new ErrorExp;
+        }
         e = sym->maxval;
     }
     else if (ident == Id::min)
     {
-        if (!sym->minval)
+        if (!sym->isdone)
             goto Lfwd;
+        if (!sym->minval)
+        {
+            error(loc, "enum %s has no .min property because the base type %s is not an integral type", toChars(), sym->memtype->toChars());
+            return new ErrorExp;
+        }
         e = sym->minval;
     }
     else if (ident == Id::init)
