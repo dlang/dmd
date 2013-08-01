@@ -355,35 +355,37 @@ void EnumDeclaration::semantic(Scope *sc)
          * If enum doesn't have a name, we can never identify the enum type,
          * so there is no purpose for a .min, .max or .default
          */
-        if (!isAnonymous() && memtype != Type::terror)
+        if (first)
         {
-            if (first)
-            {   defaultval = e;
+            defaultval = e;
+            if (memtype && memtype->isintegral())
+            {
                 minval = e;
                 maxval = e;
             }
-            else
-            {   Expression *ec;
+        }
+        else if (!isAnonymous() && memtype->isintegral() && memtype != Type::terror)
+        {
+            Expression *ec;
 
-                /* In order to work successfully with UDTs,
-                 * build expressions to do the comparisons,
-                 * and let the semantic analyzer and constant
-                 * folder give us the result.
-                 */
+            /* In order to work successfully with UDTs,
+             * build expressions to do the comparisons,
+             * and let the semantic analyzer and constant
+             * folder give us the result.
+             */
 
-                // Compute if(e < minval)
-                ec = new CmpExp(TOKlt, em->loc, e, minval);
-                ec = ec->semantic(sce);
-                ec = ec->ctfeInterpret();
-                if (ec->toInteger())
-                    minval = e;
+            // Compute if(e < minval)
+            ec = new CmpExp(TOKlt, em->loc, e, minval);
+            ec = ec->semantic(sce);
+            ec = ec->ctfeInterpret();
+            if (ec->toInteger())
+                minval = e;
 
-                ec = new CmpExp(TOKgt, em->loc, e, maxval);
-                ec = ec->semantic(sce);
-                ec = ec->ctfeInterpret();
-                if (ec->toInteger())
-                    maxval = e;
-            }
+            ec = new CmpExp(TOKgt, em->loc, e, maxval);
+            ec = ec->semantic(sce);
+            ec = ec->ctfeInterpret();
+            if (ec->toInteger())
+                maxval = e;
         }
         first = 0;
     }
