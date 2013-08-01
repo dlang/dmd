@@ -254,6 +254,27 @@ void test8579()
 }
 
 /***************************************************/
+// 10734
+
+// There's no platform independent export symbol, so
+// test just only in Win32.
+version(Win32)
+{
+
+extern(Windows)
+{
+    export uint DefWindowProcA(void*, uint, uint, ptrdiff_t);
+    alias uint function (void*, uint, uint, ptrdiff_t) WNDPROC;
+}
+
+void test10734()
+{
+    WNDPROC lpfnWndProc = &DefWindowProcA;
+}
+
+}
+
+/***************************************************/
 
 int main()
 {

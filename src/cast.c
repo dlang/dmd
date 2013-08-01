@@ -1503,7 +1503,7 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
     tb = t->toBasetype();
     type = type->toBasetype();
-    if (tb != type)
+    if (!tb->equals(type))
     {
         // Look for pointers to functions where the functions are overloaded.
 
