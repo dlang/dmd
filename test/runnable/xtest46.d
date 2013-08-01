@@ -1873,6 +1873,20 @@ void test93()
 
 /***************************************************/
 
+
+extern(C++) class C1687
+{
+    void func() {}
+}
+
+void test1687()
+{
+    auto c = new C1687();
+    assert(c.__vptr[0] == (&c.func).funcptr);
+}
+
+/***************************************************/
+
 struct Foo94
 {
     int x, y;
@@ -6731,6 +6745,7 @@ int main()
     test5046();
     test1471();
     test6335();
+    test1687();
     test6228();
     test2774();
     test3733();

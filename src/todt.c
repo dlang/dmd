@@ -712,7 +712,8 @@ void ClassDeclaration::toDt(dt_t **pdt)
 
     // Put in first two members, the vtbl[] and the monitor
     dtxoff(pdt, toVtblSymbol(), 0);
-    dtsize_t(pdt, 0);                    // monitor
+    if (!cpp)
+        dtsize_t(pdt, 0);                    // monitor
 
     // Put in the rest
     toDt2(pdt, this);

@@ -356,7 +356,7 @@ void ClassDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, 0);                    // monitor
 
     // initializer[]
-    assert(structsize >= 8);
+    assert(structsize >= 8 || (cpp && structsize >= 4));
     dtsize_t(&dt, structsize);           // size
     dtxoff(&dt, sinit, 0, TYnptr);      // initializer
 
@@ -400,7 +400,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
     // flags
-    int flags = 4 | isCOMclass();
+    int flags = 4 | isCOMclass() | isCPPclass();
 #if DMDV2
     flags |= 16;
 #endif
