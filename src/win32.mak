@@ -173,7 +173,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 
 # Root package
-GCOBJS=rmem.obj
+GCOBJS=winmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
 ROOTOBJS= man.obj root.obj port.obj \
@@ -233,7 +233,7 @@ TKSRCC=	$(TK)\filespec.c $(TK)\mem.c $(TK)\vec.c $(TK)\list.c
 TKSRC= $(TK)\filespec.h $(TK)\mem.h $(TK)\list.h $(TK)\vec.h $(TKSRCC)
 
 # Root package
-ROOTSRCC=$(ROOT)\root.c $(ROOT)\rmem.c $(ROOT)\stringtable.c \
+ROOTSRCC=$(ROOT)\root.c $(ROOT)\winmem.c $(ROOT)\stringtable.c \
 	$(ROOT)\man.c $(ROOT)\port.c $(ROOT)\async.c $(ROOT)\response.c \
 	$(ROOT)\speller.c $(ROOT)\aav.c $(ROOT)\longdouble.c $(ROOT)\dmgcmem.c
 ROOTSRC= $(ROOT)\root.h \
@@ -639,8 +639,8 @@ dmgcmem.obj : $(ROOT)\dmgcmem.c
 man.obj : $(ROOT)\man.c
 	$(CC) -c $(CFLAGS) $(ROOT)\man.c
 
-rmem.obj : $(ROOT)\rmem.c
-	$(CC) -c $(CFLAGS) $(ROOT)\rmem.c
+winmem.obj : $(ROOT)\winmem.c
+	$(CC) -c $(CFLAGS) $(ROOT)\winmem.c
 
 port.obj : $(ROOT)\port.c
 	$(CC) -c $(CFLAGS) $(ROOT)\port.c
