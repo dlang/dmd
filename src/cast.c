@@ -163,7 +163,7 @@ MATCH Expression::implicitConvTo(Type *t)
         type = Type::terror;
     }
     Expression *e = optimize(WANTvalue | WANTflags);
-    if (e->type == t)
+    if (e->type->equals(t))
         return MATCHexact;
     if (e != this)
     {   //printf("\toptimized to %s of type %s\n", e->toChars(), e->type->toChars());
@@ -1063,7 +1063,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     printf("Expression::castTo(this=%s, type=%s, t=%s)\n",
         toChars(), type->toChars(), t->toChars());
 #endif
-    if (type == t)
+    if (type->equals(t))
         return this;
     if (op == TOKvar)
     {
@@ -1077,7 +1077,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (!tb->equals(typeb))
     {
         // Do (type *) cast of (type [dim])
         if (tb->ty == Tpointer &&
@@ -1145,7 +1145,7 @@ Expression *Expression::castTo(Scope *sc, Type *t)
                 e = e->semantic(sc);
                 return e;
             }
-            else if (typeb->implicitConvTo(tb) == MATCHconst && t == type->constOf())
+            else if (typeb->implicitConvTo(tb) == MATCHconst && t->equals(type->constOf()))
             {
                 Expression *e = copy();
                 e->type = t;
@@ -1172,8 +1172,9 @@ Expression *ErrorExp::castTo(Scope *sc, Type *t)
 
 
 Expression *RealExp::castTo(Scope *sc, Type *t)
-{   Expression *e = this;
-    if (type != t)
+{
+    Expression *e = this;
+    if (!type->equals(t))
     {
         if ((type->isreal() && t->isreal()) ||
             (type->isimaginary() && t->isimaginary())
@@ -1189,8 +1190,9 @@ Expression *RealExp::castTo(Scope *sc, Type *t)
 
 
 Expression *ComplexExp::castTo(Scope *sc, Type *t)
-{   Expression *e = this;
-    if (type != t)
+{
+    Expression *e = this;
+    if (!type->equals(t))
     {
         if (type->iscomplex() && t->iscomplex())
         {   e = copy();
@@ -1206,7 +1208,7 @@ Expression *ComplexExp::castTo(Scope *sc, Type *t)
 Expression *NullExp::castTo(Scope *sc, Type *t)
 {
     //printf("NullExp::castTo(t = %p)\n", t);
-    if (type == t)
+    if (type->equals(t))
     {
         committed = 1;
         return this;
@@ -1217,7 +1219,7 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
     Type *tb = t->toBasetype();
 #if 0
     e->type = type->toBasetype();
-    if (tb != e->type)
+    if (!tb->equals(e->type))
     {
         // NULL implicitly converts to any pointer type or dynamic array
         if (e->type->ty == Tpointer && e->type->nextOf()->ty == Tvoid &&
@@ -1283,7 +1285,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         copied = 1;
     }
 
-    if (type == t)
+    if (type->equals(t))
     {
         return se;
     }
@@ -1294,7 +1296,7 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         return Expression::castTo(sc, t);
 
     Type *typeb = type->toBasetype();
-    if (typeb == tb)
+    if (typeb->equals(tb))
     {
         if (!copied)
         {   se = (StringExp *)copy();
@@ -1503,7 +1505,7 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
     tb = t->toBasetype();
     type = type->toBasetype();
-    if (tb != type)
+    if (!tb->equals(type))
     {
         // Look for pointers to functions where the functions are overloaded.
 
@@ -1684,7 +1686,7 @@ Expression *SymOffExp::castTo(Scope *sc, Type *t)
     Expression *e;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb)
+    if (!tb->equals(typeb))
     {
         // Look for pointers to functions where the functions are overloaded.
         FuncDeclaration *f;
@@ -1753,7 +1755,7 @@ Expression *DelegateExp::castTo(Scope *sc, Type *t)
     Expression *e = this;
     Type *tb = t->toBasetype();
     Type *typeb = type->toBasetype();
-    if (tb != typeb || hasOverloads)
+    if (!tb->equals(typeb) || hasOverloads)
     {
         // Look for delegates to functions where the functions are overloaded.
         FuncDeclaration *f;
@@ -1815,7 +1817,7 @@ Expression *CondExp::castTo(Scope *sc, Type *t)
 {
     Expression *e = this;
 
-    if (type != t)
+    if (!type->equals(t))
     {
         if (1 || e1->op == TOKstring || e2->op == TOKstring)
         {   e = new CondExp(loc, econd, e1->castTo(sc, t), e2->castTo(sc, t));
