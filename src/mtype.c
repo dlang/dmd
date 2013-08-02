@@ -1378,57 +1378,19 @@ int MODmerge(unsigned char mod1, unsigned char mod2)
         return mod1;
 
     //printf("MODmerge(1 = %x, 2 = %x)\n", modfrom, modto);
-    #define X(m, n) (((m) << 4) | (n))
-    // cases are commutative
-    #define Y(m, n) X(m, n): case X(n, m)
-    switch (X(mod1, mod2))
-    {
-#if 0
-        case X(0, 0):
-        case X(MODconst, MODconst):
-        case X(MODimmutable, MODimmutable):
-        case X(MODshared, MODshared):
-        case X(MODshared | MODconst, MODshared | MODconst):
-        case X(MODwild, MODwild):
-        case X(MODshared | MODwild, MODshared | MODwild):
-#endif
+    unsigned char result = 0;
 
-        case Y(0, MODconst):
-        case Y(0, MODimmutable):
-        case Y(MODconst, MODimmutable):
-        case Y(MODconst, MODwild):
-        case Y(0, MODwild):
-        case Y(MODimmutable, MODwild):
-            return MODconst;
-
-        case Y(0, MODshared):
-            return MODshared;
-
-        case Y(0, MODshared | MODconst):
-        case Y(MODconst, MODshared):
-        case Y(MODconst, MODshared | MODconst):
-        case Y(MODimmutable, MODshared):
-        case Y(MODimmutable, MODshared | MODconst):
-        case Y(MODshared, MODshared | MODconst):
-        case Y(0, MODshared | MODwild):
-        case Y(MODconst, MODshared | MODwild):
-        case Y(MODimmutable, MODshared | MODwild):
-        case Y(MODshared, MODwild):
-        case Y(MODshared, MODshared | MODwild):
-        case Y(MODshared | MODconst, MODwild):
-        case Y(MODshared | MODconst, MODshared | MODwild):
-            return MODshared | MODconst;
-
-        case Y(MODwild, MODshared | MODwild):
-            return MODshared | MODwild;
-
-        default:
-            assert(0);
-    }
-    #undef Y
-    #undef X
-    assert(0);
-    return 0;
+    // If either type is shared, the result will be shared
+    if ((mod1 | mod2) & MODshared)
+        result |= MODshared;
+    // If both types are wild, the result will be wild
+    // Otherwise if either type is const or immutable or wild
+    // the result will be const
+    if (mod1 & mod2 & MODwild)
+        result |= MODwild;
+    else if ((mod1 | mod2) & (MODconst | MODimmutable | MODwild))
+        result |= MODconst;
+    return result;
 }
 
 /*********************************
