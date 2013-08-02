@@ -326,7 +326,7 @@ public:
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
        is used.  This can be different from getModule(). */
-    Module * objFileModule;
+    Module *objFileModule;
 #endif
 
     TemplateInstance(Loc loc, Identifier *temp_id);
@@ -337,6 +337,7 @@ public:
     void semantic(Scope *sc);
     void semantic2(Scope *sc);
     void semantic3(Scope *sc);
+    void semantic3a(Scope *sc);
     void inlineScan();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     void toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs);
