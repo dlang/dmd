@@ -507,6 +507,23 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
         }
     }
 
+    if (!xerreq)
+    {
+        Identifier *id = Lexer::idPool("_xopEquals");
+        Expression *e = new IdentifierExp(loc, Id::empty);
+        e = new DotIdExp(loc, e, Id::object);
+        e = new DotIdExp(loc, e, id);
+        e = e->semantic(sc);
+        Dsymbol *s = getDsymbol(e);
+        if (!s)
+        {
+            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            fatal();
+        }
+        assert(s);
+        xerreq = s->isFuncDeclaration();
+    }
+
     Loc declLoc = Loc();    // loc is unnecessary so __xopEquals is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
@@ -525,43 +542,17 @@ FuncDeclaration *StructDeclaration::buildXopEquals(Scope *sc)
 
     fop->fbody = new ReturnStatement(loc, e);
 
-    size_t index = members->dim;
-    members->push(fop);
-
-    unsigned errors = global.startGagging();    // Do not report errors, even if the
-    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-    global.speculativeGag = global.gag;
+    unsigned errors = global.startGagging();    // Do not report errors
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
-    sc2->speculative = true;
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
-    fop->semantic3(sc2);
 
     sc2->pop();
-    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
-    {
-        members->remove(index);
-
-        if (!xerreq)
-        {
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
-            e = new DotIdExp(loc, e, Lexer::idPool("_xopEquals"));
-            e = e->semantic(sc);
-            Dsymbol *s = getDsymbol(e);
-            assert(s);
-            FuncDeclaration *fd = s->isFuncDeclaration();
-
-            xerreq = fd;
-        }
         fop = xerreq;
-    }
-    else
-        fop->addMember(sc, this, 1);
 
     return fop;
 }
@@ -642,6 +633,23 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
 #endif
     }
 
+    if (!xerrcmp)
+    {
+        Identifier *id = Lexer::idPool("_xopCmp");
+        Expression *e = new IdentifierExp(loc, Id::empty);
+        e = new DotIdExp(loc, e, Id::object);
+        e = new DotIdExp(loc, e, id);
+        e = e->semantic(sc);
+        Dsymbol *s = getDsymbol(e);
+        if (!s)
+        {
+            ::error(Loc(), "ICE: %s not found in object module. You must update druntime", id->toChars());
+            fatal();
+        }
+        assert(s);
+        xerrcmp = s->isFuncDeclaration();
+    }
+
     Loc declLoc = Loc();    // loc is unnecessary so __xopCmp is never called directly
     Loc loc = Loc();        // loc is unnecessary so errors are gagged
 
@@ -660,42 +668,17 @@ FuncDeclaration *StructDeclaration::buildXopCmp(Scope *sc)
 
     fop->fbody = new ReturnStatement(loc, e);
 
-    size_t index = members->dim;
-    members->push(fop);
-
-    unsigned errors = global.startGagging();    // Do not report errors, even if the
-    unsigned oldspec = global.speculativeGag;   // template opAssign fbody makes it.
-    global.speculativeGag = global.gag;
+    unsigned errors = global.startGagging();    // Do not report errors
     Scope *sc2 = sc->push();
     sc2->stc = 0;
     sc2->linkage = LINKd;
-    sc2->speculative = true;
 
     fop->semantic(sc2);
     fop->semantic2(sc2);
-    fop->semantic3(sc2);
 
     sc2->pop();
-    global.speculativeGag = oldspec;
     if (global.endGagging(errors))    // if errors happened
-    {
-        members->remove(index);
-        if (!xerrcmp)
-        {
-            Expression *e = new IdentifierExp(loc, Id::empty);
-            e = new DotIdExp(loc, e, Id::object);
-            e = new DotIdExp(loc, e, Lexer::idPool("_xopCmp"));
-            e = e->semantic(sc);
-            Dsymbol *s = getDsymbol(e);
-            assert(s);
-            FuncDeclaration *fd = s->isFuncDeclaration();
-
-            xerrcmp = fd;
-        }
         fop = xerrcmp;
-    }
-    else
-        fop->addMember(sc, this, 1);
 
     return fop;
 }

@@ -986,6 +986,11 @@ void StructDeclaration::toObjFile(int multiobj)
              */
             member->toObjFile(multiobj);
         }
+
+        if (xeq && xeq != xerreq)
+            xeq->toObjFile(multiobj);
+        if (xcmp && xcmp != xerrcmp)
+            xcmp->toObjFile(multiobj);
     }
 }
 
