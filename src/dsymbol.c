@@ -377,6 +377,15 @@ void Dsymbol::semantic3(Scope *sc)
 }
 
 /*************************************
+ * Does semantic analysis on templates, and functions used for runtime.
+ */
+
+void Dsymbol::semantic3a(Scope *sc)
+{
+    // Most Dsymbols have no further semantic analysis needed
+}
+
+/*************************************
  * Look for function inlining possibilities.
  */
 
