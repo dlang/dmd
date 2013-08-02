@@ -146,9 +146,9 @@ One and only one of these macros must be set by the makefile:
 #ifndef CDEF_H
 #define CDEF_H  1
 
-#define VERSION "8.55.0"        // for banner and imbedding in .OBJ file
-#define VERSIONHEX "0x855"      // for __DMC__ macro
-#define VERSIONINT 0x855        // for precompiled headers and DLL version
+#define VERSION "8.57.0"        // for banner and imbedding in .OBJ file
+#define VERSIONHEX "0x857"      // for __DMC__ macro
+#define VERSIONINT 0x857        // for precompiled headers and DLL version
 
 
 /***********************************
