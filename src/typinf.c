@@ -104,6 +104,30 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
+Dsymbol *isImportedSym(Type *t)
+{
+    if (t->mod != 0)
+        return NULL;
+
+    Dsymbol *sx = t->toDsymbol(NULL);
+    if (!sx || !sx->parent)
+        return NULL;
+
+    Dsymbol *s = sx->parent;
+    for (; s; s = s->parent)
+    {
+        if (s->isTemplateInstance())
+            return NULL;
+        else if (Module *m = s->isModule())
+        {
+            if (m->importedFrom != m)
+                return sx;
+            break;
+        }
+    }
+    return NULL;
+}
+
 /****************************************************
  * Get the exact TypeInfo.
  */
@@ -139,11 +163,23 @@ Expression *Type::getTypeInfo(Scope *sc)
          * do not generate a COMDAT for it.
          */
         if (!t->builtinTypeInfo())
-        {   // Generate COMDAT
+        {
+            // Generate COMDAT
             if (sc)                     // if in semantic() pass
-            {   // Find module that will go all the way to an object file
+            {
+                // Find module that will go all the way to an object file
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
+
+                if (ty == Tstruct)
+                {
+                    /* TypeInfo_Struct requires additional semantic3 to
+                     * generate xopEquals and xopCmp.
+                     * See 'runnable/test10567.sh'.
+                     */
+                    if (Dsymbol *s = isImportedSym(this))
+                        Module::addDeferredSemantic3(s);
+                }
             }
             else                        // if in obj generation pass
             {
