@@ -173,7 +173,7 @@ BACKOBJ= go.obj gdag.obj gother.obj gflow.obj gloop.obj var.obj el.obj \
 
 
 # Root package
-GCOBJS=winmem.obj
+GCOBJS=rmem.obj winmem.obj
 # Removed garbage collector (look in history)
 #GCOBJS=dmgcmem.obj bits.obj win32.obj gc.obj
 ROOTOBJS= man.obj root.obj port.obj \

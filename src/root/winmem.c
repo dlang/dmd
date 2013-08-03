@@ -143,15 +143,11 @@ void Mem::addroots(char* pStart, char* pEnd)
 
 /* =================================================== */
 
-#if 1
-
 /* Allocate, but never release
  */
 
-// Allocate a little less than 64kB because the C runtime adds some overhead that
-// causes the actual memory block to be larger than 64kB otherwise. E.g. the dmc
-// runtime rounds the size up to 128kB, but the remaining space in the chunk is less 
-// than 64kB, so it cannot be used by another chunk.
+// Allocate a little less than 64kB because the Heap code adds some overhead that
+// causes the actual memory block to be larger than 64kB otherwise.
 #define CHUNK_SIZE (4096 * 16 - 64)
 
 static size_t heapleft = 0;
@@ -195,22 +191,3 @@ void * operator new(size_t m_size)
 void operator delete(void *p)
 {
 }
-
-#else
-
-void * operator new(size_t m_size)
-{
-    void *p = malloc(m_size);
-    if (p)
-        return p;
-    printf("Error: out of memory\n");
-    exit(EXIT_FAILURE);
-    return p;
-}
-
-void operator delete(void *p)
-{
-    free(p);
-}
-
-#endif
