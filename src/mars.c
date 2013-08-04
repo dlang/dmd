@@ -1510,6 +1510,7 @@ Language changes listed by -transition=id:\n\
             printf("semantic3 %s\n", m->toChars());
         m->semantic3();
     }
+    Module::runDeferredSemantic3();
     if (global.errors)
         fatal();
 
