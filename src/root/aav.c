@@ -99,7 +99,7 @@ Value* _aaGet(AA** paa, Key key)
     *pe = e;
 
     //printf("length = %d, nodes = %d\n", (*paa)->b_length, nodes);
-    if (nodes > (*paa)->b_length*2)
+    if (nodes > (*paa)->b_length * 2)
     {
         //printf("rehash\n");
         _aaRehash(paa);
@@ -146,21 +146,6 @@ void _aaRehash(AA** paa)
         AA *aa = *paa;
         if (aa)
         {
-#if 0 
-            printf("Rehash of %d items in %d slots AA\n", aa->nodes, aa->b_length);
-            for (size_t i = 0; i < aa->b_length; i++)
-            {
-                aaA *e = aa->b[i];
-                size_t cnt=0;
-                while (e)
-                {
-                    e = e->next;
-                    cnt++;
-                }
-                printf("%d: %d\n", i, cnt);
-            }
-            printf("---\n");
-#endif
             size_t len = aa->b_length;
             if (len == 4)
                 len = 32;
