@@ -980,6 +980,8 @@ ClassDeclaration *ClassDeclaration::searchBase(Loc loc, Identifier *ident)
     {
         BaseClass *b = (*baseclasses)[i];
         ClassDeclaration *cdb = b->type->isClassHandle();
+        if (!cdb)   // Bugzilla 10616
+            return NULL;
         if (cdb->ident->equals(ident))
             return cdb;
         cdb = cdb->searchBase(loc, ident);
