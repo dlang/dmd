@@ -7349,7 +7349,7 @@ void TypeEnum::toDecoBuffer(OutBuffer *buf, int flag)
 {
     const char *name = sym->mangle();
     Type::toDecoBuffer(buf, flag);
-    buf->printf("%s", name);
+    buf->writestring(name);
 }
 
 void TypeEnum::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
@@ -7613,7 +7613,7 @@ void TypeTypedef::toDecoBuffer(OutBuffer *buf, int flag)
 {
     Type::toDecoBuffer(buf, flag);
     const char *name = sym->mangle();
-    buf->printf("%s", name);
+    buf->writestring(name);
 }
 
 void TypeTypedef::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
@@ -7917,7 +7917,7 @@ void TypeStruct::toDecoBuffer(OutBuffer *buf, int flag)
     const char *name = sym->mangle();
     //printf("TypeStruct::toDecoBuffer('%s') = '%s'\n", toChars(), name);
     Type::toDecoBuffer(buf, flag);
-    buf->printf("%s", name);
+    buf->writestring(name);
 }
 
 void TypeStruct::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
@@ -8451,7 +8451,7 @@ void TypeClass::toDecoBuffer(OutBuffer *buf, int flag)
     const char *name = sym->mangle();
     //printf("TypeClass::toDecoBuffer('%s' flag=%d mod=%x) = '%s'\n", toChars(), flag, mod, name);
     Type::toDecoBuffer(buf, flag);
-    buf->printf("%s", name);
+    buf->writestring(name);
 }
 
 void TypeClass::toCBuffer2(OutBuffer *buf, HdrGenState *hgs, int mod)
