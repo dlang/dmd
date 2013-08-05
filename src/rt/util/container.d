@@ -68,19 +68,19 @@ struct Array(T)
         return _ptr[_length - 1];
     }
 
-    @property ref inout(T) opIndex(size_t idx) inout
+    ref inout(T) opIndex(size_t idx) inout
     in { assert(idx < length); }
     body
     {
         return _ptr[idx];
     }
 
-    @property inout(T)[] opSlice() inout
+    inout(T)[] opSlice() inout
     {
         return _ptr[0 .. _length];
     }
 
-    @property inout(T)[] opSlice(size_t a, size_t b) inout
+    inout(T)[] opSlice(size_t a, size_t b) inout
     in { assert(a < b && b <= length); }
     body
     {

@@ -914,7 +914,7 @@ class Thread
     unittest
     {
         auto thr = Thread.getThis();
-        immutable prio = thr.priority();
+        immutable prio = thr.priority;
         scope (exit) thr.priority = prio;
 
         assert(prio == PRIORITY_DEFAULT);
