@@ -2192,6 +2192,29 @@ void test111()
 }
 
 /***************************************************/
+// 658
+
+void test658()
+{
+    struct S { int i; }
+    class C { int i; }
+
+    S s;
+    S* sp = &s;
+    with (sp) i = 42;
+    assert(s.i == 42);
+    with (&s) i = 43;
+    assert(s.i == 43);
+
+    C c = new C;
+    C* cp = &c;
+    with (cp) i = 42;
+    assert(c.i == 42);
+    with (&c) i = 43;
+    assert(c.i == 43);
+}
+
+/***************************************************/
 
 void test3069()
 {
@@ -6717,6 +6740,7 @@ int main()
     test154();
     test155();
     test156();
+    test658();
     test4258();
     test4539();
     test4596();
