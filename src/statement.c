@@ -4421,7 +4421,17 @@ Statement *WithStatement::semantic(Scope *sc)
         }
     }
     else
-    {   Type *t = exp->type;
+    {
+        Type *t = exp->type;
+        t = t->toBasetype();
+
+        Expression *olde = exp;
+        if (t->ty == Tpointer)
+        {
+            exp = new PtrExp(loc, exp);
+            exp = exp->semantic(sc);
+            t = exp->type->toBasetype();
+        }
 
         assert(t);
         t = t->toBasetype();
@@ -4453,7 +4463,8 @@ Statement *WithStatement::semantic(Scope *sc)
             sym->parent = sc->scopesym;
         }
         else
-        {   error("with expressions must be aggregate types, not '%s'", exp->type->toChars());
+        {
+            error("with expressions must be aggregate types or pointers to them, not '%s'", olde->type->toChars());
             return NULL;
         }
     }
