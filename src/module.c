@@ -34,6 +34,7 @@ DsymbolTable *Module::modules;
 Modules Module::amodules;
 
 Dsymbols Module::deferred; // deferred Dsymbol's needing semantic() run on them
+Dsymbols Module::deferred3;
 unsigned Module::dprogress;
 
 const char *lookForSourceFile(const char *filename);
@@ -992,6 +993,33 @@ void Module::runDeferredSemantic()
     } while (deferred.dim < len || dprogress);  // while making progress
     nested--;
     //printf("-Module::runDeferredSemantic(), len = %d\n", deferred.dim);
+}
+
+void Module::addDeferredSemantic3(Dsymbol *s)
+{
+    // Don't add it if it is already there
+    for (size_t i = 0; i < deferred3.dim; i++)
+    {
+        Dsymbol *sd = deferred3[i];
+        if (sd == s)
+            return;
+    }
+    deferred3.push(s);
+}
+
+void Module::runDeferredSemantic3()
+{
+    Dsymbols *a = &Module::deferred3;
+    for (size_t i = 0; i < a->dim; i++)
+    {
+        Dsymbol *s = (*a)[i];
+        //printf("[%d] %s semantic3a\n", i, s->toPrettyChars());
+
+        s->semantic3(NULL);
+
+        if (global.errors)
+            break;
+    }
 }
 
 /************************************
