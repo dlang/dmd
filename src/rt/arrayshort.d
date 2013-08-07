@@ -249,7 +249,6 @@ in
         assert(a.length == b.length && b.length == c.length);
         assert(disjoint(a, b));
         assert(disjoint(a, c));
-        assert(disjoint(b, c));
 }
 body
 {
@@ -1123,7 +1122,6 @@ in
         assert(a.length == b.length && b.length == c.length);
         assert(disjoint(a, b));
         assert(disjoint(a, c));
-        assert(disjoint(b, c));
 }
 body
 {
@@ -1814,7 +1812,6 @@ in
         assert(a.length == b.length && b.length == c.length);
         assert(disjoint(a, b));
         assert(disjoint(a, c));
-        assert(disjoint(b, c));
 }
 body
 {
