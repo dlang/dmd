@@ -10,8 +10,8 @@ ModuleInfo* getModuleInfo(string name)
 
 bool tester()
 {
-    assert(Runtime.args().length == 2);
-    auto name = Runtime.args()[1];
+    assert(Runtime.args.length == 2);
+    auto name = Runtime.args[1];
 
     auto m = getModuleInfo(name);
     if (auto fp = m.unitTest)
