@@ -243,6 +243,14 @@ typedef unsigned structalign_t;
 #define STRUCTALIGN_DEFAULT ~0  // magic value means "match whatever the underlying C compiler does"
 // other values are all powers of 2
 
+struct Ungag
+{
+    unsigned oldgag;
+
+    Ungag(unsigned old) : oldgag(old) {}
+    ~Ungag();
+};
+
 struct Global
 {
     const char *mars_ext;

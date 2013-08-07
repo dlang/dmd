@@ -2329,11 +2329,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             if (td->scope)
             {
                 // Try to fix forward reference. Ungag errors while doing so.
-                int oldgag = global.gag;
-                if (global.isSpeculativeGagging() && !td->isSpeculative())
-                    global.gag = 0;
+                Ungag ungag = td->ungagSpeculative();
                 td->semantic(td->scope);
-                global.gag = oldgag;
             }
         }
         if (!td->semanticRun)
@@ -6116,13 +6113,8 @@ bool TemplateInstance::findTemplateDeclaration(Scope *sc)
             if (td->scope)
             {
                 // Try to fix forward reference. Ungag errors while doing so.
-                int oldgag = global.gag;
-                if (global.isSpeculativeGagging() && !td->isSpeculative())
-                    global.gag = 0;
-
+                Ungag ungag = td->ungagSpeculative();
                 td->semantic(td->scope);
-
-                global.gag = oldgag;
             }
             if (!td->semanticRun)
             {
