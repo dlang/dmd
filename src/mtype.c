@@ -5212,8 +5212,8 @@ int Type::covariant(Type *t, StorageClass *pstc)
 
         // If t1n is forward referenced:
         ClassDeclaration *cd = ((TypeClass *)t1n)->sym;
-//        if (cd->scope)
-//            cd->semantic(NULL);
+        if (cd->scope)
+            cd->semantic(NULL);
         if (!cd->isBaseInfoComplete())
         {
             return 3;   // forward references
@@ -8861,6 +8861,8 @@ MATCH TypeClass::implicitConvTo(Type *to)
     {
         if (cdto->scope)
             cdto->semantic(NULL);
+        if (sym->scope)
+            sym->semantic(NULL);
         if (cdto->isBaseOf(sym, NULL) && MODimplicitConv(mod, to->mod))
         {   //printf("'to' is base\n");
             return MATCHconvert;

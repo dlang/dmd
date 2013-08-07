@@ -962,6 +962,39 @@ interface I7950a {} // ok
 interface I7950b : I7950a, TypeTuple7950!() {} // fail
 
 /*******************************************************/
+// 10744
+
+interface A10744
+{
+    int x();
+    Foo10744 foo();
+}
+
+class B10744 : A10744
+{
+    int x() { return 0; }
+    Bar10744 foo() { return null; }
+}
+
+class Foo10744 { }
+class Bar10744 : Foo10744 { }
+
+interface C10744
+{
+    int x();
+    Baz10744 foo();
+}
+
+class D10744 : C10744
+{
+    int x() { return 0; }
+    Qux10744 foo() { return null; }
+}
+
+interface Baz10744 { }
+interface Qux10744 : Baz10744 { }
+
+/*******************************************************/
 
 int main()
 {
