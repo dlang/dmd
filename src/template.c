@@ -2184,8 +2184,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
         printf("\t%s %s\n", arg->type->toChars(), arg->toChars());
         //printf("\tty = %d\n", arg->type->ty);
     }
-    printf("stc = %llx\n", dstart->scope->stc);
-    printf("match:t/f = %d/%d\n", ta_last, m->last);
+    //printf("stc = %llx\n", dstart->scope->stc);
+    //printf("match:t/f = %d/%d\n", ta_last, m->last);
 #endif
 
   struct ParamDeduce
@@ -5450,7 +5450,6 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     // in target_symbol_list(_idx) so we can remove it later if we encounter
     // an error.
 #if 1
-    int dosemantic3 = 0;
     Dsymbols *target_symbol_list = NULL;
     size_t target_symbol_list_idx;
 
@@ -5482,13 +5481,22 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
         }
         else
         {
-            Module *m = (enclosing ? sc : tempdecl->scope)->module->importedFrom;
+            Module *m = (enclosing ? sc : tempdecl->scope)->module;
+            if (m->importedFrom != m)
+            {
+                //if (tinst && tinst->objFileModule)
+                //    m = tinst->objFileModule;
+                //else
+                    m = m->importedFrom;
+            }
             //printf("\t2: adding to module %s instead of module %s\n", m->toChars(), sc->module->toChars());
             a = m->members;
+
+            /* Defer semantic3 running in order to avoid mutual forward reference.
+             * See test/runnable/test10736.d
+             */
             if (m->semanticRun >= 3)
-            {
-                dosemantic3 = 1;
-            }
+                Module::addDeferredSemantic3(this);
         }
         for (size_t i = 0; 1; i++)
         {
@@ -5685,14 +5693,15 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * for initializers inside a function.
      */
 //    if (sc->parent->isFuncDeclaration())
-
+    {
         /* BUG 782: this has problems if the classes this depends on
          * are forward referenced. Find a way to defer semantic()
          * on this template.
          */
         semantic2(sc2);
+    }
 
-    if (sc->func || dosemantic3)
+    if (sc->func)
     {
         trySemantic3(sc2);
     }
