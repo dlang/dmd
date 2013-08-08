@@ -2992,6 +2992,80 @@ void test9209() {
 }
 
 /************************************/
+// 10761
+
+inout(int)* function(inout(int)*) fptr10761(inout(int)*)
+{
+    static inout(int)* screwUp(inout(int)* x) { return x; }
+    auto fp = &screwUp;
+    static assert(is(typeof(fp) == inout(int)* function(inout(int)*)));
+    return fp;
+}
+
+inout(int)* delegate(inout(int)*) nest10761(inout(int)* x)
+{
+    inout(int)* screwUp(inout(int)* _) { return x; }
+    auto dg = &screwUp;
+    static assert(is(typeof(dg) == inout(int)* delegate(inout(int)*)));
+    return dg;
+}
+
+struct S10761
+{
+    int x;
+    inout(int)* screwUp() inout { return &x; }
+}
+
+inout(int)* delegate() inout memfn10761(inout(int)* x)
+{
+    auto s = new inout S10761(1);
+    auto dg = &s.screwUp;
+    static assert(is(typeof(dg) == inout(int)* delegate() inout));
+    return dg;
+}
+
+void test10761()
+{
+              int  mx = 1;
+        const(int) cx = 1;
+    immutable(int) ix = 1;
+
+    // inout substitution has no effect on function pointer type
+    {
+        auto fp_m = fptr10761(&mx);
+        auto fp_c = fptr10761(&cx);
+        auto fp_i = fptr10761(&ix);
+        alias FP = inout(int)* function(inout(int)*);
+        static assert(is(typeof(fp_m) == FP));
+        static assert(is(typeof(fp_c) == FP));
+        static assert(is(typeof(fp_i) == FP));
+    }
+
+    // inout substitution on delegate type should always
+    // modify inout to const.
+    {
+        auto dg_m = nest10761(&mx);
+        auto dg_c = nest10761(&cx);
+        auto dg_i = nest10761(&ix);
+        alias DG = const(int)* delegate(const(int)*);
+        static assert(is(typeof(dg_m) == DG));
+        static assert(is(typeof(dg_c) == DG));
+        static assert(is(typeof(dg_i) == DG));
+    }
+
+    // same as above
+    {
+        auto dg_m = memfn10761(&mx);
+        auto dg_c = memfn10761(&cx);
+        auto dg_i = memfn10761(&ix);
+        alias DG = const(int)* delegate() const;
+        static assert(is(typeof(dg_m) == DG));
+        static assert(is(typeof(dg_c) == DG));
+        static assert(is(typeof(dg_i) == DG));
+    }
+}
+
+/************************************/
 
 int main()
 {
