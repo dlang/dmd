@@ -2992,6 +2992,118 @@ void test9209() {
 }
 
 /************************************/
+// 10758
+
+struct X10758
+{
+static:
+        inout(int)   screwUpVal(ref inout(int) wx) { return wx; }
+    ref inout(int)   screwUpRef(ref inout(int) wx) { return wx; }
+        inout(int)*  screwUpPtr(ref inout(int) wx) { return &wx; }
+        inout(int)[] screwUpArr(ref inout(int) wx) { return (&wx)[0 .. 1]; }
+}
+
+struct S10758
+{
+    int x;
+        inout(int)   screwUpVal(ref inout(int) _) inout { return x; }
+    ref inout(int)   screwUpRef(ref inout(int) _) inout { return x; }
+        inout(int)*  screwUpPtr(ref inout(int) _) inout { return &x; }
+        inout(int)[] screwUpArr(ref inout(int) _) inout { return (&x)[0 .. 1]; }
+}
+
+void test10758(ref inout(int) wx, inout(int)* wp, inout(int)[] wa, inout(S10758) ws)
+{
+        inout(int)   screwUpVal(inout(int) _) { return wx; }
+    ref inout(int)   screwUpRef(inout(int) _) { return wx; }
+        inout(int)*  screwUpPtr(inout(int) _) { return &wx; }
+        inout(int)[] screwUpArr(inout(int) _) { return (&wx)[0 .. 1]; }
+
+              int  mx = 1;
+        const(int) cx = 1;
+    immutable(int) ix = 1;
+
+    // nested inout function may return an inout reference of the context,
+    // so substitude inout to mutable or immutable should be disallowed.
+    {
+        // value return does not leak any inout reference, so safe.
+        screwUpVal(mx);
+        screwUpVal(ix);
+        screwUpVal(wx);
+        screwUpVal(cx);
+
+        static assert(!__traits(compiles, screwUpRef(mx)));
+        static assert(!__traits(compiles, screwUpRef(ix)));
+        screwUpRef(wx);
+        screwUpRef(cx);
+
+        static assert(!__traits(compiles, screwUpPtr(mx)));
+        static assert(!__traits(compiles, screwUpPtr(ix)));
+        screwUpPtr(wx);
+        screwUpPtr(cx);
+
+        static assert(!__traits(compiles, screwUpArr(mx)));
+        static assert(!__traits(compiles, screwUpArr(ix)));
+        screwUpArr(cx);
+        screwUpArr(wx);
+    }
+
+    // function pointer holds no context, so there's no screw up.
+    {
+        auto fp_screwUpVal = &X10758.screwUpVal;
+        fp_screwUpVal(mx);
+        fp_screwUpVal(ix);
+        fp_screwUpVal(wx);
+        fp_screwUpVal(cx);
+
+        auto fp_screwUpRef = &X10758.screwUpRef;
+        fp_screwUpRef(mx);
+        fp_screwUpRef(ix);
+        fp_screwUpRef(wx);
+        fp_screwUpRef(cx);
+
+        auto fp_screwUpPtr = &X10758.screwUpVal;
+        fp_screwUpPtr(mx);
+        fp_screwUpPtr(ix);
+        fp_screwUpPtr(wx);
+        fp_screwUpPtr(cx);
+
+        auto fp_screwUpArr = &X10758.screwUpVal;
+        fp_screwUpArr(mx);
+        fp_screwUpArr(ix);
+        fp_screwUpArr(wx);
+        fp_screwUpArr(cx);
+    }
+
+    // inout delegate behaves same as nested functions.
+    {
+        auto dg_screwUpVal = &ws.screwUpVal;
+        dg_screwUpVal(mx);
+        dg_screwUpVal(ix);
+        dg_screwUpVal(wx);
+        dg_screwUpVal(cx);
+
+        auto dg_screwUpRef = &ws.screwUpRef;
+        static assert(!__traits(compiles, dg_screwUpRef(mx)));
+        static assert(!__traits(compiles, dg_screwUpRef(ix)));
+        dg_screwUpRef(wx);
+        dg_screwUpRef(cx);
+
+        auto dg_screwUpPtr = &ws.screwUpPtr;
+        static assert(!__traits(compiles, dg_screwUpPtr(mx)));
+        static assert(!__traits(compiles, dg_screwUpPtr(ix)));
+        dg_screwUpPtr(wx);
+        dg_screwUpPtr(cx);
+
+        auto dg_screwUpArr = &ws.screwUpArr;
+        static assert(!__traits(compiles, dg_screwUpArr(mx)));
+        static assert(!__traits(compiles, dg_screwUpArr(ix)));
+        dg_screwUpArr(cx);
+        dg_screwUpArr(wx);
+    }
+}
+
+/************************************/
 // 10761
 
 inout(int)* function(inout(int)*) fptr10761(inout(int)*)
