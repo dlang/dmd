@@ -126,7 +126,9 @@ int moduleinfos_apply(scope int delegate(ref ModuleInfo*) dg)
  * Module constructor and destructor routines.
  */
 
-extern (C) void rt_moduleCtor()
+extern (C)
+{
+void rt_moduleCtor()
 {
     foreach (ref sg; SectionGroup)
     {
@@ -135,7 +137,7 @@ extern (C) void rt_moduleCtor()
     }
 }
 
-extern (C) void rt_moduleTlsCtor()
+void rt_moduleTlsCtor()
 {
     foreach (ref sg; SectionGroup)
     {
@@ -143,7 +145,7 @@ extern (C) void rt_moduleTlsCtor()
     }
 }
 
-extern (C) void rt_moduleTlsDtor()
+void rt_moduleTlsDtor()
 {
     foreach_reverse (ref sg; SectionGroup)
     {
@@ -151,13 +153,38 @@ extern (C) void rt_moduleTlsDtor()
     }
 }
 
-extern (C) void rt_moduleDtor()
+void rt_moduleDtor()
 {
     foreach_reverse (ref sg; SectionGroup)
     {
         sg.moduleGroup.runDtors();
         sg.moduleGroup.free();
     }
+}
+
+version (Win32)
+{
+    // Alternate names for backwards compatibility with older DLL code
+    void _moduleCtor()
+    {
+        rt_moduleCtor();
+    }
+
+    void _moduleDtor()
+    {
+        rt_moduleDtor();
+    }
+
+    void _moduleTlsCtor()
+    {
+        rt_moduleTlsCtor();
+    }
+
+    void _moduleTlsDtor()
+    {
+        rt_moduleTlsDtor();
+    }
+}
 }
 
 /********************************************
