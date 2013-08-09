@@ -2,29 +2,22 @@
  * Written in the D programming language.
  * Implementation of exception handling support routines for Posix and Win64.
  *
- * Copyright: Copyright Digital Mars 2000 - 2012.
+ * Copyright: Copyright Digital Mars 2000 - 2013.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
  * Authors:   Walter Bright, Sean Kelly
- * Source: $(DRUNTIMESRC src/rt/_deh2.d)
+ * Source: $(DRUNTIMESRC src/rt/deh_win64_posix.d)
  */
 
-module rt.deh2;
+module rt.deh_win64_posix;
 
+version (Win64)
+    version = Win64_Posix;
 version (Posix)
-{
-    version = deh2;
-}
-else version (Win64)
-{
-    version = deh2;
-}
+    version = Win64_Posix;
 
-// Use deh.d for Win32
-
-version (deh2)
-{
+version (Win64_Posix):
 
 //debug=PRINTF;
 debug(PRINTF) import core.stdc.stdio : printf;
@@ -33,17 +26,7 @@ extern (C)
 {
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
-
-    void _d_createTrace(Object o, void* context)
-    {
-        auto t = cast(Throwable) o;
-
-        if (t !is null && t.info is null &&
-            cast(byte*) t !is t.classinfo.init.ptr)
-        {
-            t.info = _d_traceContext(context);
-        }
-    }
+    void _d_createTrace(Object o, void* context);
 }
 
 alias int function() fp_t;   // function pointer in ambient memory model
@@ -493,4 +476,3 @@ extern (C) void _d_throwc(Object h)
     terminate();
 }
 
-}

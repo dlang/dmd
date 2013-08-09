@@ -15,7 +15,7 @@ version (FreeBSD):
 // debug = PRINTF;
 debug(PRINTF) import core.stdc.stdio;
 import core.stdc.stdlib : malloc, free;
-import rt.deh2, rt.minfo;
+import rt.deh, rt.minfo;
 
 struct SectionGroup
 {
