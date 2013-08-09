@@ -3087,7 +3087,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     else
     {
         condition = condition->integralPromotions(sc);
-        if (!condition->type->isintegral())
+        if (condition->op != TOKerror && !condition->type->isintegral())
             error("'%s' must be of integral or string type, it is a %s", condition->toChars(), condition->type->toChars());
     }
     condition = condition->optimize(WANTvalue);
@@ -3177,7 +3177,7 @@ Statement *SwitchStatement::semantic(Scope *sc)
     if (!sc->sw->sdefault && (!isFinal || needswitcherror || global.params.useAssert))
     {   hasNoDefault = 1;
 
-        if (!isFinal)
+        if (!isFinal && !body->isErrorStatement())
            deprecation("non-final switch statement without a default is deprecated");
 
         // Generate runtime error if the default is hit
@@ -4402,7 +4402,7 @@ Statement *WithStatement::semantic(Scope *sc)
     exp = exp->semantic(sc);
     exp = resolveProperties(sc, exp);
     if (exp->op == TOKerror)
-        return NULL;
+        return new ErrorStatement();
     if (exp->op == TOKimport)
     {   ScopeExp *es = (ScopeExp *)exp;
 
