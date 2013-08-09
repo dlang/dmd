@@ -5581,18 +5581,30 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
         sc->stc &= ~(STC_TYPECTOR | STC_FUNCATTR);
         tf->next = tf->next->semantic(loc,sc);
         sc = sc->pop();
-        if (tf->next->toBasetype()->ty == Tfunction)
-        {   error(loc, "functions cannot return a function");
+        Type *tb = tf->next->toBasetype();
+        if (tb->ty == Tfunction)
+        {
+            error(loc, "functions cannot return a function");
             tf->next = Type::terror;
         }
-        if (tf->next->toBasetype()->ty == Ttuple)
-        {   error(loc, "functions cannot return a tuple");
+        else if (tb->ty == Ttuple)
+        {
+            error(loc, "functions cannot return a tuple");
             tf->next = Type::terror;
         }
+        else if (tb->ty == Tstruct)
+        {
+            StructDeclaration *sd = ((TypeStruct *)tb)->sym;
+            if (sd->isforwardRef())
+            {
+                error(loc, "cannot return opaque struct %s by value", tb->toChars());
+                tf->next = Type::terror;
+            }
+        }
+        else if (tb->ty == Tvoid)
+            tf->isref = FALSE;                  // rewrite "ref void" as just "void"
         if (tf->next->isscope() && !(sc->flags & SCOPEctor))
             error(loc, "functions cannot return scope %s", tf->next->toChars());
-        if (tf->next->toBasetype()->ty == Tvoid)
-            tf->isref = FALSE;                  // rewrite "ref void" as just "void"
         if (tf->next->hasWild() &&
             !(tf->next->ty == Tpointer && tf->next->nextOf()->ty == Tfunction || tf->next->ty == Tdelegate))
             wildreturn = TRUE;
