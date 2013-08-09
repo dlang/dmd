@@ -2935,6 +2935,25 @@ void test10694() pure
 }
 
 /**********************************/
+// 10787
+
+int global10787;
+
+static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+shared static ~this() nothrow pure @safe
+{
+    int* p;
+    static assert(!__traits(compiles, ++p));
+    static assert(!__traits(compiles, ++global10787));
+}
+
+/**********************************/
 
 int main()
 {
