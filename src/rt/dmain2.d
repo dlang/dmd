@@ -77,27 +77,6 @@ extern (C) void rt_moduleDtor();
 extern (C) void rt_moduleTlsDtor();
 extern (C) void thread_joinAll();
 
-// NOTE: This is to preserve compatibility with old Windows DLLs.
-extern (C) void _moduleCtor()
-{
-    rt_moduleCtor();
-}
-
-extern (C) void _moduleDtor()
-{
-    rt_moduleDtor();
-}
-
-extern (C) void _moduleTlsCtor()
-{
-    rt_moduleTlsCtor();
-}
-
-extern (C) void _moduleTlsDtor()
-{
-    rt_moduleTlsDtor();
-}
-
 version (OSX)
 {
     // The bottom of the stack
