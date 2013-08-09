@@ -32,10 +32,18 @@ debug(PRINTF) import core.stdc.stdio : printf;
 extern (C)
 {
     Throwable.TraceInfo _d_traceContext(void* ptr = null);
-
     int _d_isbaseof(ClassInfo oc, ClassInfo c);
 
-    void _d_createTrace(Object*, void*);
+    void _d_createTrace(Object o, void* context)
+    {
+        auto t = cast(Throwable) o;
+
+        if (t !is null && t.info is null &&
+            cast(byte*) t !is t.classinfo.init.ptr)
+        {
+            t.info = _d_traceContext(context);
+        }
+    }
 }
 
 alias int function() fp_t;   // function pointer in ambient memory model
@@ -210,7 +218,7 @@ size_t __eh_find_caller(size_t regbp, size_t *pretaddr)
  * Throw a D object.
  */
 
-extern (C) void _d_throwc(Object *h)
+extern (C) void _d_throwc(Object h)
 {
     size_t regebp;
 
@@ -336,7 +344,7 @@ extern (C) void _d_throwc(Object *h)
                         n = n.next;
                     n.next = cast(Throwable) h;
                     prev.next = curr.next;
-                    h = cast(Object*) t;
+                    h = t;
                 }
             }
         }
@@ -365,7 +373,7 @@ extern (C) void _d_throwc(Object *h)
                         // Matched the catch type, so we've found the handler.
 
                         // Initialize catch variable
-                        *cast(void **)(regebp + (pcb.bpoffset)) = h;
+                        *cast(void **)(regebp + (pcb.bpoffset)) = cast(void*)h;
 
                         // Jump to catch block. Does not return.
                         {

@@ -211,10 +211,22 @@ extern __gshared DWORD _except_list; // This is just FS:[0]
 
 extern(C)
 {
-void _d_setUnhandled(Object);
-void _d_createTrace(Object, void*);
-int _d_isbaseof(ClassInfo b, ClassInfo c);
+    void _d_setUnhandled(Object);
+    int _d_isbaseof(ClassInfo b, ClassInfo c);
+    Throwable.TraceInfo _d_traceContext(void* ptr = null);
+
+    void _d_createTrace(Object o, void* context)
+    {
+        auto t = cast(Throwable) o;
+
+        if (t !is null && t.info is null &&
+            cast(byte*) t !is t.classinfo.init.ptr)
+        {
+            t.info = _d_traceContext(context);
+        }
+    }
 }
+
 
 /+
 
