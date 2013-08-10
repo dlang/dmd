@@ -79,6 +79,14 @@ longdouble Port::fmodl(longdouble x, longdouble y)
     return ::fmodl(x, y);
 }
 
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
+}
+
 char *Port::strupr(char *s)
 {
     return ::strupr(s);
@@ -208,6 +216,14 @@ longdouble Port::fmodl(longdouble x, longdouble y)
     return ::fmodl(x, y);
 }
 
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
+}
+
 char *Port::strupr(char *s)
 {
     return ::strupr(s);
@@ -249,6 +265,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -333,6 +350,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
@@ -422,6 +447,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -550,6 +576,14 @@ longdouble Port::fmodl(longdouble x, longdouble y)
 #endif
 }
 
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
+}
+
 char *Port::strupr(char *s)
 {
     char *t = s;
@@ -631,6 +665,7 @@ longdouble Port::strtold(const char *p, char **endp)
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <ctype.h>
 #include <wchar.h>
 #include <float.h>
@@ -715,6 +750,14 @@ int Port::isInfinity(double r)
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
     return ::fmodl(x, y);
+}
+
+int Port::fequal(longdouble x, longdouble y)
+{
+    /* In some cases, the REALPAD bytes get garbage in them,
+     * so be sure and ignore them.
+     */
+    return memcmp(&x, &y, 10) == 0;
 }
 
 char *Port::strupr(char *s)
