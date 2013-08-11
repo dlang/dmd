@@ -84,6 +84,7 @@ SRCS=\
 	src\rt\deh.d \
 	src\rt\deh2.d \
 	src\rt\dmain2.d \
+	src\rt\entrypoint.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
