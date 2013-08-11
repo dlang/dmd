@@ -2976,6 +2976,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, utf8_t *comment)
             /* Look for:
              *  enum identifier(...) = type;
              */
+            tok = token.value;
             Token *tk = peek(&token);
             if (tk->value == TOKidentifier &&
                 (tk = peek(tk))->value == TOKlparen && skipParens(tk, &tk) &&
