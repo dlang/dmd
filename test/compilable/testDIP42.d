@@ -22,6 +22,14 @@ static assert( anySatisfy!(isIntegral, int, double));
 static assert(!anySatisfy!(isIntegral, int[], double));
 }
 
+void test1()
+{
+    // statement
+    enum isIntegral2(T) = is(T == int) || is(T == long);
+    static assert(isIntegral2!int);
+}
+
+/******************************************/
 // alias ident(tpl) = Type;
 
 alias TypeTuple(TL...) = TL;
@@ -31,3 +39,15 @@ static assert(is(TypeTuple!(int, long)[1] == long));
 alias Id(T) = T, Id(alias A) = A;
 static assert(is(Id!int == int));
 static assert(__traits(isSame, Id!TypeTuple, TypeTuple));
+
+void test2()
+{
+    // statement
+    alias TypeTuple2(TL...) = TL;
+    static assert(is(TypeTuple2!(int, long)[0] == int));
+    static assert(is(TypeTuple2!(int, long)[1] == long));
+
+    alias IdT(T) = T, IdA(alias A) = A;
+    static assert(is(IdT!int == int));
+    static assert(__traits(isSame, IdA!TypeTuple, TypeTuple));
+}
