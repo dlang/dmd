@@ -792,7 +792,6 @@ void FuncDeclaration::toObjFile(int multiobj)
 
     if (vthis)
     {
-        assert(!vthis->csym);
         sthis = vthis->toSymbol();
         irs.sthis = sthis;
         if (!(f->Fflags3 & Fnested))
