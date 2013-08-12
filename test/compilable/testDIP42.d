@@ -76,3 +76,22 @@ void test3()
     assert(tynameLen2!int == 4);
     assert(tynameLen2!long == 5);
 }
+
+/******************************************/
+// template variable declaration
+
+static T math_pi(T) = cast(T)3.1415;
+
+enum bool isFloatingPoint(T) = is(T == float) || is(T == double);
+static assert( isFloatingPoint!double);
+static assert(!isFloatingPoint!string);
+
+void main()
+{
+    assert(math_pi!int == 3);
+    assert(math_pi!double == 3.1415);
+
+    enum bool isFloatingPoint2(T) = is(T == float) || is(T == double);
+    static assert( isFloatingPoint2!double);
+    static assert(!isFloatingPoint2!string);
+}

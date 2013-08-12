@@ -2882,12 +2882,22 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
                     /* Look ahead to see if this is (...)(...),
                      * i.e. a function template declaration
                      */
-                    if (peekPastParen(&token)->value == TOKlparen)
+                    Token *tk = peekPastParen(&token);
+                    if (tk->value == TOKlparen)
                     {
                         //printf("function template declaration\n");
 
                         // Gather template parameter list
                         *tpl = parseTemplateParameterList();
+                    }
+                    /* or (...) =,
+                     * i.e. a variable template declaration
+                     */
+                    else if (tk->value == TOKassign)
+                    {
+                        //printf("variable template declaration\n");
+                        *tpl = parseTemplateParameterList();
+                        break;
                     }
                 }
 
@@ -3378,10 +3388,23 @@ L2:
                 nextToken();
                 init = parseInitializer();
             }
+            else
+                assert(!tpl);
 
             VarDeclaration *v = new VarDeclaration(loc, t, ident, init);
             v->storage_class = storage_class;
             Dsymbol *s = v;
+
+            if (tpl)
+            {
+                assert(init);
+                Dsymbols *a2 = new Dsymbols();
+                a2->push(s);
+                TemplateDeclaration *tempdecl =
+                    new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+                s = tempdecl;
+            }
+
             if (link != linkage)
             {
                 Dsymbols *ax = new Dsymbols();
@@ -3396,7 +3419,8 @@ L2:
             }
             a->push(s);
             switch (token.value)
-            {   case TOKsemicolon:
+            {
+                case TOKsemicolon:
                     nextToken();
                     addComment(v, comment);
                     break;
@@ -5296,10 +5320,19 @@ int Parser::isDeclarator(Token **pt, int *haveId, int *haveTpl, TOK endtok)
             case TOKlparen:
                 parens = false;
                 if (Token *tk = peekPastParen(t))
-                {   if (tk->value == TOKlparen)
-                    {   if (!haveTpl) return false;
+                {
+                    if (tk->value == TOKlparen)
+                    {
+                        if (!haveTpl) return false;
                         *haveTpl = 1;
                         t = tk;
+                    }
+                    else if (tk->value == TOKassign)
+                    {
+                        if (!haveTpl) return false;
+                        *haveTpl = 1;
+                        *pt = tk;
+                        return true;
                     }
                 }
                 if (!isParameters(&t))
