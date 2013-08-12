@@ -86,9 +86,6 @@ public:
     int selfImports();          // returns !=0 if module imports itself
 
     int insearch;
-    Identifier *searchCacheIdent;
-    Dsymbol *searchCacheSymbol; // cached value of search
-    int searchCacheFlags;       // cached flags
 
     int semanticstarted;        // has semantic() been started?
     int semanticRun;            // has semantic() been done?
@@ -142,13 +139,11 @@ public:
     void gendocfile();
     int needModuleInfo();
     Dsymbol *search(Loc loc, Identifier *ident, int flags);
-    Dsymbol *symtabInsert(Dsymbol *s);
     void deleteObjFile();
     static void addDeferredSemantic(Dsymbol *s);
     static void runDeferredSemantic();
     static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic3();
-    static void clearCache();
     int imports(Module *m);
 
     // Back end

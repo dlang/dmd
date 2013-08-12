@@ -60,9 +60,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
-    searchCacheIdent = NULL;
-    searchCacheSymbol = NULL;
-    searchCacheFlags = 0;
     semanticstarted = 0;
     semanticRun = 0;
     decldefs = NULL;
@@ -889,36 +886,13 @@ Dsymbol *Module::search(Loc loc, Identifier *ident, int flags)
     Dsymbol *s;
     if (insearch)
         s = NULL;
-    else if (searchCacheIdent == ident && searchCacheFlags == flags)
-    {
-        s = searchCacheSymbol;
-        //printf("%s Module::search('%s', flags = %d) insearch = %d searchCacheSymbol = %s\n", toChars(), ident->toChars(), flags, insearch, searchCacheSymbol ? searchCacheSymbol->toChars() : "null");
-    }
     else
     {
         insearch = 1;
         s = ScopeDsymbol::search(loc, ident, flags);
         insearch = 0;
-
-        searchCacheIdent = ident;
-        searchCacheSymbol = s;
-        searchCacheFlags = flags;
     }
     return s;
-}
-
-Dsymbol *Module::symtabInsert(Dsymbol *s)
-{
-    searchCacheIdent = NULL;       // symbol is inserted, so invalidate cache
-    return Package::symtabInsert(s);
-}
-
-void Module::clearCache()
-{
-    for (size_t i = 0; i < amodules.dim; i++)
-    {   Module *m = amodules[i];
-        m->searchCacheIdent = NULL;
-    }
 }
 
 /*******************************************

@@ -418,7 +418,6 @@ void *scope_search_fp(void *arg, const char *seed)
     assert(id);
 
     Scope *sc = (Scope *)arg;
-    Module::clearCache();
     Dsymbol *s = sc->search(Loc(), id, NULL);
     return (void*)s;
 }
