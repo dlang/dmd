@@ -354,7 +354,7 @@ Expression *AddrExp::optimize(int result, bool keepLvalue)
 
         if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
         {
-            dinteger_t index = ae->e2->toInteger();
+            sinteger_t index = ae->e2->toInteger();
             VarExp *ve = (VarExp *)ae->e1;
             if (ve->type->ty == Tsarray
                 && !ve->var->isImportedSymbol())

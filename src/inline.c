@@ -765,7 +765,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
             VarDeclaration *vto;
 
             vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-            memcpy(vto, vd, sizeof(VarDeclaration));
+            memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
             vto->parent = ids->parent;
             vto->csym = NULL;
             vto->isym = NULL;
@@ -859,7 +859,7 @@ Expression *IndexExp::doInline(InlineDoState *ids)
         VarDeclaration *vto;
 
         vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy(vto, vd, sizeof(VarDeclaration));
+        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
         vto->parent = ids->parent;
         vto->csym = NULL;
         vto->isym = NULL;
@@ -896,7 +896,7 @@ Expression *SliceExp::doInline(InlineDoState *ids)
         VarDeclaration *vto;
 
         vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        memcpy(vto, vd, sizeof(VarDeclaration));
+        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
         vto->parent = ids->parent;
         vto->csym = NULL;
         vto->isym = NULL;

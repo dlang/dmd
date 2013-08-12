@@ -3961,7 +3961,7 @@ Expression *interpretAssignToSlice(InterState *istate, CtfeGoal goal, Loc loc,
         return newval;
 
     Expression *aggregate = resolveReferences(sexp->e1);
-    dinteger_t firstIndex = lowerbound;
+    sinteger_t firstIndex = lowerbound;
 
     ArrayLiteralExp *existingAE = NULL;
     StringExp *existingSE = NULL;
@@ -4894,7 +4894,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
         {
             dinteger_t len = ArrayLength(Type::tsize_t, agg)->toInteger();
             //Type *pointee = ((TypePointer *)agg->type)->next;
-            if ((indx + ofs) < 0 || (indx+ofs) > len)
+            if ((sinteger_t)(indx + ofs) < 0 || (indx+ofs) > len)
             {
                 error("pointer index [%lld] exceeds allocated memory block [0..%lld]",
                     indx+ofs, len);
