@@ -19,7 +19,7 @@ import core.stdc.string : strlen;
 import core.sys.linux.elf;
 import core.sys.linux.link;
 import rt.minfo;
-import rt.deh2;
+import rt.deh;
 import rt.util.container;
 
 alias DSO SectionGroup;
@@ -146,7 +146,7 @@ struct CompilerDSOData
     size_t _version;                                  // currently 1
     void** _slot;                                     // can be used to store runtime data
     object.ModuleInfo** _minfo_beg, _minfo_end;       // array of modules in this object file
-    immutable(rt.deh2.FuncTable)* _deh_beg, _deh_end; // array of exception handling data
+    immutable(rt.deh.FuncTable)* _deh_beg, _deh_end; // array of exception handling data
 }
 
 T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }

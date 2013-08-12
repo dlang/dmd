@@ -20,7 +20,7 @@ import core.stdc.string, core.stdc.stdlib;
 import core.sys.posix.pthread;
 import core.sys.osx.mach.dyld;
 import core.sys.osx.mach.getsect;
-import rt.deh2, rt.minfo;
+import rt.deh, rt.minfo;
 import rt.util.container;
 
 struct SectionGroup
