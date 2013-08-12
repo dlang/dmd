@@ -55,11 +55,11 @@ ifeq (OSX,$(OS))
 endif
 LDFLAGS=-lm -lstdc++ -lpthread
 
-ifeq (OSX,$(OS))
-	HOST_CC=clang++
-else
+#ifeq (OSX,$(OS))
+#	HOST_CC=clang++
+#else
 	HOST_CC=g++
-endif
+#endif
 CC=$(HOST_CC) $(MODEL_FLAG)
 GIT=git
 
