@@ -1566,6 +1566,9 @@ Dsymbol *CompileDeclaration::syntaxCopy(Dsymbol *s)
 int CompileDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
 {
     //printf("CompileDeclaration::addMember(sc = %p, sd = %p, memnum = %d)\n", sc, sd, memnum);
+    if (compiled)
+        return 1;
+
     this->sd = sd;
     if (memnum == 0)
     {   /* No members yet, so parse the mixin now

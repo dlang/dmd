@@ -4314,6 +4314,29 @@ ArrayLiteralExp::ArrayLiteralExp(Loc loc, Expression *e)
     this->ownedByCtfe = false;
 }
 
+bool ArrayLiteralExp::equals(RootObject *o)
+{
+    if (this == o)
+        return true;
+    if (o && o->dyncast() == DYNCAST_EXPRESSION &&
+        ((Expression *)o)->op == TOKarrayliteral)
+    {
+        ArrayLiteralExp *ae = (ArrayLiteralExp *)o;
+        if (elements->dim != ae->elements->dim)
+            return false;
+        for (size_t i = 0; i < elements->dim; i++)
+        {
+            Expression *e1 = (*elements)[i];
+            Expression *e2 = (*ae->elements)[i];
+            if (e1 != e2 &&
+                (!e1 || !e2 || !e1->equals(e2)))
+                return false;
+        }
+        return true;
+    }
+    return false;
+}
+
 Expression *ArrayLiteralExp::syntaxCopy()
 {
     return new ArrayLiteralExp(loc, arraySyntaxCopy(elements));
