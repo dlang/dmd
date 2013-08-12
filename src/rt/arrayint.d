@@ -1,5 +1,5 @@
 /**
- * Contains MMX versions of certain operations for dchar, int, and uint ('w',
+ * Contains SSE/MMX versions of certain operations for dchar, int, and uint ('w',
  * 'i' and 'k' suffixes).
  *
  * Copyright: Copyright Digital Mars 2008 - 2010.
@@ -193,39 +193,10 @@ body
                 mov bptr, EAX;
             }
         }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add ESI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add EAX, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
-                mov aptr, ESI;
-                mov bptr, EAX;
-            }
-        }
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -284,7 +255,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -311,34 +282,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-                mov bptr, RAX;
-            }
-        }
-        else if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov RAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add RSI, 8;
-                mov EBX, [RAX];
-                mov ECX, [RAX+4];
-                add RAX, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
                 mov bptr, RAX;
             }
@@ -526,7 +469,7 @@ body
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -591,7 +534,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -782,36 +725,10 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 mov aptr, ESI;
             }
         }
-        else
-        if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [ESI];
-                mov ECX, [ESI+4];
-                add ESI, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
-                mov aptr, ESI;
-            }
-        }
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -864,7 +781,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -889,31 +806,6 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-            }
-        }
-        else if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [RSI];
-                mov ECX, [RSI+4];
-                add RSI, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
             }
         }
@@ -1090,7 +982,7 @@ body
     }
     else version (D_InlineAsm_X86_64)
     {   
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1150,7 +1042,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1355,39 +1247,10 @@ body
                 mov bptr, EAX;
             }
         }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add ESI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add EAX, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
-                mov aptr, ESI;
-                mov bptr, EAX;
-            }
-        }
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1446,7 +1309,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1473,35 +1336,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-                mov bptr, RAX;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov RAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add RSI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add RAX, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
                 mov bptr, RAX;
             }
@@ -1685,7 +1519,7 @@ body
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -1748,7 +1582,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1963,7 +1797,7 @@ body
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -2028,7 +1862,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -2218,36 +2052,10 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 mov aptr, ESI;
             }
         }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [ESI];
-                mov ECX, [ESI+4];
-                add ESI, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
-                mov aptr, ESI;
-            }
-        }
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -2300,7 +2108,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -2325,32 +2133,6 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [RSI];
-                mov ECX, [RSI+4];
-                add RSI, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
             }
         }
@@ -2527,7 +2309,7 @@ body
     }
     version (D_InlineAsm_X86_64)
     {
-        if (sse2 && a.length >= 8)
+        if (a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -2586,7 +2368,7 @@ body
                 }
             }
         }
-        else if (mmx && a.length >= 4)
+        else if (a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
