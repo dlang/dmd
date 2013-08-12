@@ -24,6 +24,25 @@
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
+bool isImportedSym(Dsymbol *s)
+{
+    if (!s || !s->parent)
+        return false;
+    s = s->parent;
+    for (; s; s = s->parent)
+    {
+        if (s->isTemplateInstance())
+            return false;
+        else if (Module *m = s->isModule())
+        {
+            if (m->importedFrom != m)
+                return true;
+            break;
+        }
+    }
+    return false;
+}
+
 /********************************* AggregateDeclaration ****************************/
 
 AggregateDeclaration::AggregateDeclaration(Loc loc, Identifier *id)
@@ -89,22 +108,6 @@ void AggregateDeclaration::semantic2(Scope *sc)
             //printf("\t[%d] %s\n", i, s->toChars());
             s->semantic2(sc);
         }
-
-        if (StructDeclaration *sd = isStructDeclaration())
-        {
-            /* Even if the struct exists in imported module, calculating
-             * xeq and xcmp is necessary in order to generate correct TypeInfo.
-             * However, immediately doing it at the end of StructDeclaration::semantic
-             * might cause forward reference error during instantiation of
-             * template opEquals/opCmp. So should be done at the end of semantic2.
-             */
-            //if (sd->xeq != NULL) printf("sd = %s xeq @ [%s]\n", sd->toChars(), sd->loc.toChars());
-            //assert(sd->xeq == NULL);
-            if (sd->xeq == NULL)
-                sd->xeq = sd->buildXopEquals(sc);
-            if (sd->xcmp == NULL)
-                sd->xcmp = sd->buildXopCmp(sc);
-        }
         sc->pop();
     }
 }
@@ -114,6 +117,10 @@ void AggregateDeclaration::semantic3(Scope *sc)
     //printf("AggregateDeclaration::semantic3(%s)\n", toChars());
     if (members)
     {
+        StructDeclaration *sd = isStructDeclaration();
+        if (isImportedSym(sd))
+            goto Lxop;
+
         sc = sc->push(this);
         sc->parent = this;
         for (size_t i = 0; i < members->dim; i++)
@@ -126,7 +133,8 @@ void AggregateDeclaration::semantic3(Scope *sc)
         if (!getRTInfo && Type::rtinfo &&
             (!isDeprecated() || global.params.useDeprecated) && // don't do it for unused deprecated types
             (type && type->ty != Terror)) // or error types
-        {   // Evaluate: gcinfo!type
+        {
+            // Evaluate: RTinfo!type
             Objects *tiargs = new Objects();
             tiargs->push(type);
             TemplateInstance *ti = new TemplateInstance(loc, Type::rtinfo, tiargs);
@@ -142,6 +150,29 @@ void AggregateDeclaration::semantic3(Scope *sc)
 
             e = e->ctfeInterpret();
             getRTInfo = e;
+        }
+
+        if (sd)
+        {
+        Lxop:
+            if (sd->xeq &&
+                sd->xeq->scope &&
+                sd->xeq->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xeq->semantic3(sd->xeq->scope);
+                if (global.endGagging(errors))
+                    sd->xeq = sd->xerreq;
+            }
+            if (sd->xcmp &&
+                sd->xcmp->scope &&
+                sd->xcmp->semanticRun < PASSsemantic3done)
+            {
+                unsigned errors = global.startGagging();
+                sd->xcmp->semantic3(sd->xcmp->scope);
+                if (global.endGagging(errors))
+                    sd->xcmp = sd->xerrcmp;
+            }
         }
     }
 }
@@ -701,6 +732,16 @@ void StructDeclaration::semantic(Scope *sc)
 
     buildOpAssign(sc2);
     buildOpEquals(sc2);
+
+    xeq = buildXopEquals(sc2);
+    xcmp = buildXopCmp(sc2);
+
+    /* Even if the struct is merely imported and its semantic3 is not run,
+     * the TypeInfo object would be speculatively stored in each object
+     * files. To set correct function pointer, run semantic3 for xeq and xcmp.
+     */
+    if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
+        Module::addDeferredSemantic3(this);
 #endif
     inv = buildInv(sc2);
 

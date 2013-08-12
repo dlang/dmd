@@ -5463,8 +5463,9 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #endif
 
         //if (scx && scx->scopesym) printf("3: scx is %s %s\n", scx->scopesym->kind(), scx->scopesym->toChars());
-        if (scx && scx->scopesym &&
-            scx->scopesym->members && !scx->scopesym->isTemplateMixin()
+        if (scx && scx->scopesym && scx->scopesym->members &&
+            !scx->scopesym->isTemplateMixin() &&
+            !scx->scopesym->isModule()
 #if 0 // removed because it bloated compile times
             /* The problem is if A imports B, and B imports A, and both A
              * and B instantiate the same template, does the compilation of A
