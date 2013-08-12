@@ -500,9 +500,11 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
                 /* Look for auto initializers:
                  *      storage_class identifier = initializer;
+                 *      storage_class identifier(...) = initializer;
                  */
                 if (token.value == TOKidentifier &&
-                    peek(&token)->value == TOKassign)
+                    skipParensIf(peek(&token), &tk) &&
+                    tk->value == TOKassign)
                 {
                     a = parseAutoDeclarations(storageClass, comment);
                     if (a->dim) *pLastDecl = (*a)[a->dim-1];
@@ -3048,70 +3050,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
             }
             break;
         }
-        case TOKenum:
-        {
-            /* Look for:
-             *  enum identifier(...) = type;
-             */
-            tok = token.value;
-            if ((tk = peek(&token))->value == TOKidentifier &&
-                skipParens(peek(tk), &tk) &&
-                tk->value == TOKassign)
-            {
-                nextToken();
-                Dsymbols *a = new Dsymbols();
-                while (1)
-                {
-                    ident = token.ident;
-                    nextToken();
-                    TemplateParameters *tpl = NULL;
-                    if (token.value == TOKlparen)
-                        tpl = parseTemplateParameterList();
-                    check(TOKassign);
-                    Initializer *init = parseInitializer();
-                    VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
-                    v->storage_class = STCmanifest;
-                    Dsymbol *s = v;
-                    if (tpl)
-                    {
-                        Dsymbols *a2 = new Dsymbols();
-                        a2->push(s);
-                        TemplateDeclaration *tempdecl =
-                            new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2);
-                        s = tempdecl;
-                    }
-                    a->push(s);
-                    switch (token.value)
-                    {
-                        case TOKsemicolon:
-                            nextToken();
-                            addComment(s, comment);
-                            break;
-                        case TOKcomma:
-                            nextToken();
-                            addComment(s, comment);
-                            if (token.value != TOKidentifier)
-                            {
-                                error("Identifier expected following comma, not %s", token.toChars());
-                                break;
-                            }
-                            if (peekNext() != TOKassign && peekNext() != TOKlparen)
-                            {
-                                error("= expected following identifier");
-                                nextToken();
-                                break;
-                            }
-                            continue;
-                        default:
-                            error("semicolon expected to close %s declaration", Token::toChars(tok));
-                            break;
-                    }
-                    break;
-                }
-                return a;
-            }
-            break;
-        }
         case TOKtypedef:
             deprecation("use of typedef is deprecated; use alias instead");
             tok = token.value;
@@ -3254,12 +3192,13 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
     /* Look for auto initializers:
      *  storage_class identifier = initializer;
+     *  storage_class identifier(...) = initializer;
      */
     if (storage_class &&
         token.value == TOKidentifier &&
-        peek(&token)->value == TOKassign)
+        skipParensIf(peek(&token), &tk) &&
+        tk->value == TOKassign)
     {
-
         if (udas)
         {
             // Need to improve this
@@ -3487,6 +3426,7 @@ L2:
 
 Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t *comment)
 {
+    Token *tk;
     Dsymbols *a = new Dsymbols;
 
     while (1)
@@ -3494,12 +3434,28 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         Loc loc = token.loc;
         Identifier *ident = token.ident;
         nextToken();            // skip over ident
+
+        TemplateParameters *tpl = NULL;
+        if (token.value == TOKlparen)
+            tpl = parseTemplateParameterList();
+
         assert(token.value == TOKassign);
         nextToken();            // skip over '='
         Initializer *init = parseInitializer();
         VarDeclaration *v = new VarDeclaration(loc, NULL, ident, init);
         v->storage_class = storageClass;
-        a->push(v);
+
+        Dsymbol *s = v;
+        if (tpl)
+        {
+            Dsymbols *a2 = new Dsymbols();
+            a2->push(v);
+            TemplateDeclaration *tempdecl =
+                new TemplateDeclaration(loc, ident, tpl, NULL/*constraint*/, a2, 0);
+            s = tempdecl;
+        }
+
+        a->push(s);
         if (token.value == TOKsemicolon)
         {
             nextToken();
@@ -3509,7 +3465,8 @@ Dsymbols *Parser::parseAutoDeclarations(StorageClass storageClass, const utf8_t 
         {
             nextToken();
             if (token.value == TOKidentifier &&
-                peek(&token)->value == TOKassign)
+                skipParensIf(peek(&token), &tk) &&
+                tk->value == TOKassign)
             {
                 addComment(v, comment);
                 continue;

@@ -51,3 +51,28 @@ void test2()
     static assert(is(IdT!int == int));
     static assert(__traits(isSame, IdA!TypeTuple, TypeTuple));
 }
+
+/******************************************/
+// template auto declaration
+
+auto tynameLen(T) = T.stringof.length;
+
+void test3()
+{
+    assert(tynameLen!int == 3);
+    assert(tynameLen!long == 4);
+    tynameLen!int = 4;
+    tynameLen!long = 5;
+    assert(tynameLen!int == 4);
+    assert(tynameLen!long == 5);
+
+    // statement
+    auto tynameLen2(T) = T.stringof.length;
+
+    assert(tynameLen2!int == 3);
+    assert(tynameLen2!long == 4);
+    tynameLen2!int = 4;
+    tynameLen2!long = 5;
+    assert(tynameLen2!int == 4);
+    assert(tynameLen2!long == 5);
+}
