@@ -496,6 +496,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
                         break;
                 }
 
+                Token *tk;
+
                 /* Look for auto initializers:
                  *      storage_class identifier = initializer;
                  */
@@ -510,11 +512,8 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
                 /* Look for return type inference for template functions.
                  */
-                Token *tk;
                 if (token.value == TOKidentifier &&
-                    (tk = peek(&token))->value == TOKlparen &&
-                    skipParens(tk, &tk) &&
-                    ((tk = peek(tk)), 1) &&
+                    skipParens(peek(&token), &tk) &&
                     skipAttributes(tk, &tk) &&
                     (tk->value == TOKlparen ||
                      tk->value == TOKlcurly ||
@@ -2942,6 +2941,7 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
     unsigned structalign = 0;
     Loc loc = token.loc;
     Expressions *udas = NULL;
+    Token *tk;
 
     //printf("parseDeclarations() %s\n", token.toChars());
     if (!comment)
@@ -2993,10 +2993,8 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
              *  alias identifier = type;
              *  alias identifier(...) = type;
              */
-            Token *tk = &token;
-            if (tk->value == TOKidentifier &&
-                ((tk = peek(tk))->value == TOKlparen
-                 ? skipParens(tk, &tk) && (tk = peek(tk), 1) : 1) &&
+            if (token.value == TOKidentifier &&
+                skipParensIf(peek(&token), &tk) &&
                 tk->value == TOKassign)
             {
                 Dsymbols *a = new Dsymbols();
@@ -3056,10 +3054,9 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
              *  enum identifier(...) = type;
              */
             tok = token.value;
-            Token *tk = peek(&token);
-            if (tk->value == TOKidentifier &&
-                (tk = peek(tk))->value == TOKlparen && skipParens(tk, &tk) &&
-                (tk = peek(tk))->value == TOKassign)
+            if ((tk = peek(&token))->value == TOKidentifier &&
+                skipParens(peek(tk), &tk) &&
+                tk->value == TOKassign)
             {
                 nextToken();
                 Dsymbols *a = new Dsymbols();
@@ -3273,13 +3270,9 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
 
     /* Look for return type inference for template functions.
      */
-    {
-    Token *tk;
     if (storage_class &&
         token.value == TOKidentifier &&
-        (tk = peek(&token))->value == TOKlparen &&
-        skipParens(tk, &tk) &&
-        ((tk = peek(tk)), 1) &&
+        skipParens(peek(&token), &tk) &&
         skipAttributes(tk, &tk) &&
         (tk->value == TOKlparen ||
          tk->value == TOKlcurly ||
@@ -3294,7 +3287,6 @@ Dsymbols *Parser::parseDeclarations(StorageClass storage_class, const utf8_t *co
     {
         ts = parseBasicType();
         ts = parseBasicType2(ts);
-    }
     }
 
 L2:
@@ -5134,12 +5126,13 @@ int Parser::isBasicType(Token **pt)
                      */
                     t = peek(t);
                     switch (t->value)
-                    {   case TOKidentifier:
+                    {
+                        case TOKidentifier:
                             goto L5;
                         case TOKlparen:
                             if (!skipParens(t, &t))
                                 goto Lfalse;
-                            break;
+                            goto L3;
                         case TOKwchar: case TOKdchar:
                         case TOKbool: case TOKchar:
                         case TOKint8: case TOKuns8:
@@ -5191,11 +5184,9 @@ int Parser::isBasicType(Token **pt)
             /* typeof(exp).identifier...
              */
             t = peek(t);
-            if (t->value != TOKlparen)
-                goto Lfalse;
             if (!skipParens(t, &t))
                 goto Lfalse;
-            goto L2;
+            goto L3;
 
         case TOKconst:
         case TOKinvariant:
@@ -5588,6 +5579,9 @@ int Parser::isExpression(Token **pt)
 
 int Parser::skipParens(Token *t, Token **pt)
 {
+    if (t->value != TOKlparen)
+        return 0;
+
     int parens = 0;
 
     while (1)
@@ -5617,11 +5611,22 @@ int Parser::skipParens(Token *t, Token **pt)
 
   Ldone:
     if (pt)
-        *pt = t;
+        *pt = peek(t);  // skip found rparen
     return 1;
 
   Lfalse:
     return 0;
+}
+
+int Parser::skipParensIf(Token *t, Token **pt)
+{
+    if (t->value != TOKlparen)
+    {
+        if (pt)
+            *pt = t;
+        return 1;
+    }
+    return skipParens(t, pt);
 }
 
 /*******************************************
@@ -5682,8 +5687,7 @@ int Parser::skipAttributes(Token *t, Token **pt)
                         {   // @identifier!(arglist)
                             if (!skipParens(t, &t))
                                 goto Lerror;
-                            // t is on closing parenthesis
-                            t = peek(t);
+                            // t is on the next of closing parenthesis
                         }
                         else
                         {
@@ -5695,15 +5699,15 @@ int Parser::skipAttributes(Token *t, Token **pt)
                                 if (!skipParens(t, &t))
                                     goto Lerror;
                             }
-                            t = peek(t);
+                            else
+                                t = peek(t);
                         }
                     }
                     if (t->value == TOKlparen)
                     {
                         if (!skipParens(t, &t))
                             goto Lerror;
-                        // t is on closing parenthesis
-                        t = peek(t);
+                        // t is on the next of closing parenthesis
                         continue;
                     }
                     continue;
@@ -5712,8 +5716,8 @@ int Parser::skipAttributes(Token *t, Token **pt)
                 {   // @( ArgumentList )
                     if (!skipParens(t, &t))
                         goto Lerror;
-                    // t is on closing parenthesis
-                    break;
+                    // t is on the next of closing parenthesis
+                    continue;
                 }
                 goto Lerror;
             default:
