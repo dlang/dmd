@@ -1515,6 +1515,34 @@ void test7263()
 }
 
 /***************************************/
+// 9017
+
+template X9017(Args...)
+{
+    static if(__traits(compiles, { enum e = Args; }))
+        enum e = Args;
+}
+alias X9017!0 x9017;
+static assert(x9017.e[0] == 0);
+
+void test9017()
+{
+    enum tup1 = TypeTuple!(11, 22);
+    enum tup2 = TypeTuple!("one", "two");
+    static assert(tup1 == TypeTuple!(11, 22));
+    static assert(tup2 == TypeTuple!("one", "two"));
+    static assert(tup1[0] == 11 && tup1[1] == 22);
+    static assert(tup2[0] == "one" && tup2[1] == "two");
+
+    shared const tup3 = TypeTuple!(10, 3.14);
+    immutable    tup4 = TypeTuple!("a", [1,2]);
+    static assert(is(typeof(tup3[0]) == shared const int));
+    static assert(is(typeof(tup3[1]) == shared const double));
+    static assert(is(typeof(tup4[0]) == immutable string));
+    static assert(is(typeof(tup4[1]) == immutable int[]));
+}
+
+/***************************************/
 // 10279
 
 void foo10279(int[][] strs...) @trusted { }
@@ -1612,6 +1640,7 @@ int main()
     test6530();
     test7233();
     test7263();
+    test9017();
     test10414();
 
     printf("Success\n");

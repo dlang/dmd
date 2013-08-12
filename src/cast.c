@@ -1566,6 +1566,9 @@ Expression *AddrExp::castTo(Scope *sc, Type *t)
 
 Expression *TupleExp::castTo(Scope *sc, Type *t)
 {
+    if (type->equals(t))
+        return this;
+
     TupleExp *e = (TupleExp *)copy();
     e->e0 = e0 ? e0->copy() : NULL;
     e->exps = (Expressions *)exps->copy();
