@@ -2362,10 +2362,9 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
                 return 0;
 
             Dsymbol *s = ti->inst->toAlias();
-            FuncDeclaration *fd = s->isFuncDeclaration();
-            if (!fd)
+            if (!s->isFuncDeclaration() && !s->isTemplateDeclaration())
                 goto Lerror;
-            fd = resolveFuncCall(loc, sc, fd, NULL, tthis, fargs, 1);
+            FuncDeclaration *fd = resolveFuncCall(loc, sc, s, NULL, tthis, fargs, 1);
             if (!fd)
                 return 0;
 
@@ -6721,14 +6720,20 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
          * then return true
          */
         FuncDeclaration *fd;
-        if (!td->onemember ||
-            (fd = td->onemember/*->toAlias()*/->isFuncDeclaration()) == NULL ||
+        if (!td->onemember)
+            return 0;
+        if (TemplateDeclaration *td2 = td->onemember->isTemplateDeclaration())
+        {
+            if (!td2->onemember || !td2->onemember->isFuncDeclaration())
+                return 0;
+            if (ti->tiargs->dim > td->parameters->dim && !td->isVariadic())
+                return 0;
+            return 1;
+        }
+        if ((fd = td->onemember->isFuncDeclaration()) == NULL ||
             fd->type->ty != Tfunction)
         {
-            /* Not a template function, therefore type inference is not possible.
-             */
-            //printf("false\n");
-            return -1;
+            return 0;
         }
 
         for (size_t i = 0; i < td->parameters->dim; i++)
@@ -6814,7 +6819,7 @@ bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
     for (size_t oi = 0; oi < overs_dim; oi++)
     {
         if (int r = overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
-            return r > 0;
+            return true;
     }
     //printf("false\n");
     return false;

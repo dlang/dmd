@@ -2781,6 +2781,24 @@ void test10592()
 }
 
 /******************************************/
+// 10811
+
+void foo10811a(R1, R2)(R1, R2) {}
+template foo10811a(alias pred) { void foo10811a(R1, R2)(R1, R2) {} }
+
+template foo10811b(alias pred) { void foo10811b(R1, R2)(R1, R2) {} }
+void foo10811b(R1, R2)(R1, R2) {}
+
+void test10811()
+{
+    foo10811a(1, 2);
+    foo10811a!(a => a)(1, 2);
+
+    foo10811b(1, 2);
+    foo10811b!(a => a)(1, 2);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2868,6 +2886,7 @@ int main()
     test9977();
     test10083();
     test10592();
+    test10811();
 
     printf("Success\n");
     return 0;
