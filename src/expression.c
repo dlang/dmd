@@ -3465,6 +3465,11 @@ Lagain:
     em = s->isEnumMember();
     if (em)
     {
+        if (!em->ed->isdone)
+        {
+            assert(em->ed->scope);
+            em->ed->semantic(NULL);
+        }
         e = em->value;
         if (!e)
         {
