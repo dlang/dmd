@@ -1252,8 +1252,11 @@ StaticDtorDeclaration *Parser::parseStaticDtor()
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix();
+    if (stc & STCshared)
+        error("to create a 'shared' static destructor, move 'shared' in front of the declaration");
 
-    StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc());
+    StaticDtorDeclaration *f = new StaticDtorDeclaration(loc, Loc(), stc);
     parseContracts(f);
     return f;
 }
@@ -1274,8 +1277,11 @@ SharedStaticDtorDeclaration *Parser::parseSharedStaticDtor()
     check(TOKthis);
     check(TOKlparen);
     check(TOKrparen);
+    StorageClass stc = parsePostfix();
+    if (stc & STCshared)
+        error("static destructor is 'shared' already");
 
-    SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc());
+    SharedStaticDtorDeclaration *f = new SharedStaticDtorDeclaration(loc, Loc(), stc);
     parseContracts(f);
     return f;
 }
