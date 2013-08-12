@@ -54,4 +54,8 @@ struct Mem
 
 extern Mem mem;
 
+extern size_t heapleft;
+extern size_t memNeeded;
+void guessMem(size_t size);
+
 #endif /* ROOT_MEM_H */

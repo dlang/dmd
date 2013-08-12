@@ -1371,7 +1371,7 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-#define ASYNCREAD 1
+#define ASYNCREAD 0
 #if ASYNCREAD
     // Multi threaded
     AsyncRead *aw = AsyncRead::create(modules.dim);
@@ -1383,11 +1383,17 @@ Language changes listed by -transition=id:\n\
     aw->start();
 #else
     // Single threaded
+    size_t mem = 0;
     for (size_t i = 0; i < modules.dim; i++)
     {
         m = modules[i];
         m->read(Loc());
+        mem += m->srcfile->len;
     }
+    mem *= 64;
+    //printf("mem guess: %zu\n", mem);
+    memNeeded += mem;
+    guessMem(mem);
 #endif
 
     // Parse files
@@ -1681,6 +1687,15 @@ Language changes listed by -transition=id:\n\
     backend_term();
     if (global.errors)
         fatal();
+
+    //printf("mem needed: %zu (%f chunks)\n", memNeeded,
+    //       (double)memNeeded / (double)(4096 * 16));
+    //printf("mem guess/need ratio %f\n",
+    //       (double)mem / (double)(memNeeded - heapleft));
+    //printf("wasted %zu bytes (%f chunks)\n", heapleft,
+    //       (double)heapleft / (double)(4096 * 16));
+    //printf("mem allocated/needed ratio: %f\n",
+    //       double(memNeeded) / (double)(memNeeded - heapleft));
 
     int status = EXIT_SUCCESS;
     if (!global.params.objfiles->dim)

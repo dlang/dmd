@@ -2132,25 +2132,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
 
 bool VarDeclaration::canTakeAddressOf()
 {
-#if 0
-    /* Global variables and struct/class fields of the form:
-     *  const int x = 3;
-     * are not stored and hence cannot have their address taken.
-     */
-    if ((isConst() || isImmutable()) &&
-        storage_class & STCinit &&
-        (!(storage_class & (STCstatic | STCextern)) || isField()) &&
-        (!parent || toParent()->isModule() || toParent()->isTemplateInstance()) &&
-        type->toBasetype()->isTypeBasic()
-       )
-    {
-        return false;
-    }
-#else
-    if (storage_class & STCmanifest)
-        return false;
-#endif
-    return true;
+    return !(storage_class & STCmanifest);
 }
 
 
@@ -2166,18 +2148,17 @@ bool VarDeclaration::isDataseg()
     printf("%llx, isModule: %p, isTemplateInstance: %p\n", storage_class & (STCstatic | STCconst), parent->isModule(), parent->isTemplateInstance());
     printf("parent = '%s'\n", parent->toChars());
 #endif
-    if (storage_class & STCmanifest)
+    if (!canTakeAddressOf())
         return false;
-    Dsymbol *parent = this->toParent();
+    Dsymbol *parent = toParent();
     if (!parent && !(storage_class & STCstatic))
-    {   error("forward referenced");
+    {
+        error("forward referenced");
         type = Type::terror;
         return false;
     }
-    return canTakeAddressOf() &&
-        (storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
-         toParent()->isModule() ||
-         toParent()->isTemplateInstance());
+    return storage_class & (STCstatic | STCextern | STCtls | STCgshared) ||
+            parent->isModule() || parent->isTemplateInstance();
 }
 
 /************************************
