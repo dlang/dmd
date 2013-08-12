@@ -863,8 +863,8 @@ class StaticDtorDeclaration : public FuncDeclaration
 public:
     VarDeclaration *vgate;      // 'gate' variable
 
-    StaticDtorDeclaration(Loc loc, Loc endloc);
-    StaticDtorDeclaration(Loc loc, Loc endloc, const char *name);
+    StaticDtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
+    StaticDtorDeclaration(Loc loc, Loc endloc, const char *name, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void semantic(Scope *sc);
     AggregateDeclaration *isThis();
@@ -882,7 +882,7 @@ public:
 class SharedStaticDtorDeclaration : public StaticDtorDeclaration
 {
 public:
-    SharedStaticDtorDeclaration(Loc loc, Loc endloc);
+    SharedStaticDtorDeclaration(Loc loc, Loc endloc, StorageClass stc);
     Dsymbol *syntaxCopy(Dsymbol *);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
