@@ -2948,7 +2948,11 @@ int Obj::reftoident(int seg, targ_size_t offset, Symbol *s, targ_size_t val,
 outaddrval:
                 if (I64)
                 {
-                    // Elf64 uses only relocations with explicit addends
+                    // Elf64 uses only the explicit addends of Rela
+                    // relocations. It seems like ld.bfd still adds the value at
+                    // the to be relocated address, but ld.gold and the runtime
+                    // linker do not. So make sure we write a 0 to the target
+                    // if we emitted a relocation for it. See Issue 10274.
                     assert(relinfo == R_X86_64_NONE || val == 0);
                 }
 

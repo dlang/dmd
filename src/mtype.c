@@ -2921,10 +2921,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
     if (parameters)
     {   tf->parameters = (Parameters *)parameters->copy();
         for (size_t i = 0; i < parameters->dim; i++)
-        {   Parameter *arg = parameters->tdata()[i];
+        {   Parameter *arg = (*parameters)[i];
             Parameter *cpy = (Parameter *)mem.malloc(sizeof(Parameter));
-            memcpy(cpy, arg, sizeof(Parameter));
-            tf->parameters->tdata()[i] = cpy;
+            memcpy((void*)cpy, (void*)arg, sizeof(Parameter));
+            (*tf->parameters)[i] = cpy;
         }
     }
 

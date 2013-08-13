@@ -227,16 +227,16 @@ Expression *AddrExp::optimize(int result)
 
         if (ae->e2->op == TOKint64 && ae->e1->op == TOKvar)
         {
-            dinteger_t index = ae->e2->toInteger();
+            sinteger_t index = ae->e2->toInteger();
             VarExp *ve = (VarExp *)ae->e1;
             if (ve->type->ty == Tsarray && ve->type->next->ty != Tbit
                 && !ve->var->isImportedSymbol())
             {
                 TypeSArray *ts = (TypeSArray *)ve->type;
-                dinteger_t dim = ts->dim->toInteger();
+                sinteger_t dim = ts->dim->toInteger();
                 if (index < 0 || index >= dim)
-                    error("array index %jd is out of bounds [0..%jd]", index, dim);
-                e = new SymOffExp(loc, ve->var, index * ts->next->size());
+                    error("array index %lld is out of bounds [0..%lld]", index, dim);
+                e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
                 e->type = type;
                 return e;
             }

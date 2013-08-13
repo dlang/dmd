@@ -520,6 +520,9 @@ void cod3_buildmodulector(Outbuffer* buf, int codeOffset, int refOffset)
         buf->writeByte(0xB8);
         if (I64)
         {
+            // Elf64 uses only the explicit addends of a relocation.
+            // It seems like ld.bfd still adds the value at the to be relocated address,
+            // but ld.gold does not.
             buf->write32(0);
             ElfObj::addrel(seg, codeOffset + 1, reltype, 3 /*STI_DATA*/, refOffset);
         }

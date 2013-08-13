@@ -2506,8 +2506,8 @@ STATIC bool optim_loglog(elem **pe)
             if (0 && eq->E2->Eoper != OPconst)
             {
                 printf("eq = %p, eq->E2 = %p\n", eq, eq->E2);
-                printf("first = %d, i = %d, last = %d, Eoper = %d\n", first, i, last, eq->E2->Eoper);
-                printf("any = %d, n = %d, count = %d, min = %d, max = %d\n", any, (int)n, last - first + 1, (int)emin, (int)emax);
+                printf("first = %d, i = %d, last = %d, Eoper = %d\n", (int)first, (int)i, (int)last, eq->E2->Eoper);
+                printf("any = %d, n = %d, count = %d, min = %d, max = %d\n", any, (int)n, (int)(last - first + 1), (int)emin, (int)emax);
             }
             assert(eq->E2->Eoper == OPconst);
             bits |= (targ_ullong)1 << (el_tolong(eq->E2) - emin);

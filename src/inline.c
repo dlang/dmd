@@ -599,11 +599,11 @@ Expression *SymOffExp::doInline(InlineDoState *ids)
     //printf("SymOffExp::doInline(%s)\n", toChars());
     for (size_t i = 0; i < ids->from.dim; i++)
     {
-        if (var == ids->from.tdata()[i])
+        if (var == ids->from[i])
         {
             SymOffExp *se = (SymOffExp *)copy();
 
-            se->var = (Declaration *)ids->to.tdata()[i];
+            se->var = (Declaration *)ids->to[i];
             return se;
         }
     }
@@ -615,7 +615,7 @@ Expression *VarExp::doInline(InlineDoState *ids)
     //printf("VarExp::doInline(%s)\n", toChars());
     for (size_t i = 0; i < ids->from.dim; i++)
     {
-        if (var == ids->from.tdata()[i])
+        if (var == ids->from[i])
         {
             VarExp *ve = (VarExp *)copy();
 
@@ -663,7 +663,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
         if (td)
         {
             for (size_t i = 0; i < td->objects->dim; i++)
-            {   DsymbolExp *se = td->objects->tdata()[i];
+            {   DsymbolExp *se = (*td->objects)[i];
                 assert(se->op == TOKdsymbol);
                 se->s;
             }
@@ -677,7 +677,7 @@ Expression *DeclarationExp::doInline(InlineDoState *ids)
             VarDeclaration *vto;
 
             vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-            *vto = *vd;
+            memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
             vto->parent = ids->parent;
             vto->csym = NULL;
             vto->isym = NULL;
@@ -771,7 +771,7 @@ Expression *IndexExp::doInline(InlineDoState *ids)
         VarDeclaration *vto;
 
         vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        *vto = *vd;
+        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
         vto->parent = ids->parent;
         vto->csym = NULL;
         vto->isym = NULL;
@@ -808,7 +808,7 @@ Expression *SliceExp::doInline(InlineDoState *ids)
         VarDeclaration *vto;
 
         vto = new VarDeclaration(vd->loc, vd->type, vd->ident, vd->init);
-        *vto = *vd;
+        memcpy((void*)vto, (void*)vd, sizeof(VarDeclaration));
         vto->parent = ids->parent;
         vto->csym = NULL;
         vto->isym = NULL;

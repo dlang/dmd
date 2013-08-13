@@ -1201,12 +1201,12 @@ void ReturnStatement::toIR(IRState *irs)
             if (exp->op == TOKstructliteral)
             {   StructLiteralExp *se = (StructLiteralExp *)exp;
                 char save[sizeof(StructLiteralExp)];
-                memcpy(save, se, sizeof(StructLiteralExp));
+                memcpy(save, (void*)se, sizeof(StructLiteralExp));
                 se->sym = irs->shidden;
                 se->soffset = 0;
                 se->fillHoles = 1;
                 e = exp->toElem(irs);
-                memcpy(se, save, sizeof(StructLiteralExp));
+                memcpy((void*)se, save, sizeof(StructLiteralExp));
 
             }
             else

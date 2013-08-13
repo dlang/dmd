@@ -500,7 +500,7 @@ void Module::genobjfile(int multiobj)
             b->Belem = e;
             ma->Sfunc->Fstartline.Sfilename = arg;
             ma->Sfunc->Fstartblock = b;
-            ma->Sclass = SCglobal;
+            ma->Sclass = SCcomdat;
             ma->Sfl = 0;
             ma->Sflags |= rtlsym[rt]->Sflags & SFLexit;
             writefunc(ma);

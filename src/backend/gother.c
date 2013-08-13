@@ -1315,9 +1315,9 @@ STATIC void accumda(elem *n,vec_t DEAD, vec_t POSS)
                         POSS[i] = tmp1 | tmp2;
                 }
 #else
-                {       DEAD[i] |= POSS[i] & Dl[i] & Dr[i] |
-                                   ~POSS[i] & (Dl[i] | Dr[i]);
-                        POSS[i] = Pl[i] & Pr[i] | ~POSS[i] & (Pl[i] | Pr[i]);
+                {       DEAD[i] |= (POSS[i] & Dl[i] & Dr[i]) |
+                                   (~POSS[i] & (Dl[i] | Dr[i]));
+                        POSS[i] = (Pl[i] & Pr[i]) | (~POSS[i] & (Pl[i] | Pr[i]));
                 }
 #endif
                 vec_free(Pl); vec_free(Pr); vec_free(Dl); vec_free(Dr);

@@ -134,7 +134,7 @@ inline longdouble ldouble(unsigned long long mantissa, int exp, int sign = 0)
     return d;
 }
 
-// codegen bug in VS2010/VS2012, if the set() function not inlined 
+// codegen bug in VS2010/VS2012, if the set() function not inlined
 //  (this passed on stack, but expected in ECX; RVO?)
 #if _MSC_VER >= 1600 && defined(_DEBUG)
 #define LDOUBLE_INLINE __declspec(noinline)

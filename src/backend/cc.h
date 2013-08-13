@@ -368,9 +368,9 @@ typedef enum SC enum_SC;
  */
 
 #if MARS
-struct ClassDeclaration;
-struct Declaration;
-struct Module;
+class ClassDeclaration;
+class Declaration;
+class Module;
 #endif
 
 struct Blockx
