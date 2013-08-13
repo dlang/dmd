@@ -41,7 +41,7 @@ version (unittest)
 }
 else
 {
-    version(x86_64) //guaranteed on x86_64
+    version(X86_64) //guaranteed on x86_64
     {
         enum mmx = true;
         enum sse = true;
