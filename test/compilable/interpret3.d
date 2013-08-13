@@ -5615,4 +5615,16 @@ struct Bug5678
 
 static assert(!__traits(compiles, {enum const(Bug5678)* b5678 = new const(Bug5678)(0); return b5678;}));
 
-/******************************************************/
+/**************************************************
+    10782 run semantic2 for class field
+**************************************************/
+
+enum e10782 = 0;
+class C10782 { int x = e10782; }
+string f10782()
+{
+    auto c = new C10782();
+    return "";
+}
+mixin(f10782());
+
