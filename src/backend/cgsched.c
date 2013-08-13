@@ -2924,14 +2924,10 @@ code *peephole(code *cstart,regm_t scratch)
             continue;
         }
 
-        if ((rmi & 0xC0) != 0xC0)
-        {
-            continue;
-        }
-
         // Combine two SUBs of the same register
         if (c->Iop == c1->Iop &&
             c->Iop == 0x83 &&
+            (rmi & 0xC0) == 0xC0 &&
             (rmi & modregrm(3,0,7)) == (c1->Irm & modregrm(3,0,7)) &&
             !(c1->Iflags & CFpsw) &&
             c->IFL2 == FLconst && c1->IFL2 == FLconst
@@ -2959,11 +2955,11 @@ code *peephole(code *cstart,regm_t scratch)
             }
         }
 
-        if (c->Iop == 0x8B)                     // MOV r1,EA
+        if (c->Iop == 0x8B && (rmi & 0xC0) == 0xC0)    // MOV r1,EA
         {   r1 = (rmi >> 3) & 7;
             r2 = rmi & 7;
         }
-        else if (c->Iop == 0x89)                // MOV EA,r2
+        else if (c->Iop == 0x89 && (rmi & 0xC0) == 0xC0)   // MOV EA,r2
         {   r1 = rmi & 7;
             r2 = (rmi >> 3) & 7;
         }
