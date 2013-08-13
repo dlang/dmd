@@ -476,7 +476,7 @@ body
     }
     version (D_InlineAsm_X86_64)
     {
-        if (a.length >= 8)
+        if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
 
@@ -576,7 +576,6 @@ body
         }
     }
 
-  normal:
     while (aptr < aend)
         *aptr++ = *bptr++ + *cptr++;
 
@@ -985,101 +984,100 @@ body
             }
         }
     }
-    else version (D_InlineAsm_X86_64)
-         {
-             if (sse2 && a.length >= 8)
-             {
-                 auto n = aptr + (a.length & ~7);
-
-                 if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
-                 {
-                     asm // unaligned case
-                     {
-                         mov RSI, aptr;
-                         mov RDI, n;
-                         mov RCX, bptr;
-
-                         align 4;
-                       startsse2u:
-                         movdqu XMM0, [RSI];
-                         movdqu XMM2, [RCX];
-                         movdqu XMM1, [RSI+16];
-                         movdqu XMM3, [RCX+16];
-                         add RSI, 32;
-                         add RCX, 32;
-                         paddd XMM0, XMM2;
-                         paddd XMM1, XMM3;
-                         movdqu [RSI   -32], XMM0;
-                         movdqu [RSI+16-32], XMM1;
-                         cmp RSI, RDI;
-                         jb startsse2u;
-
-                         mov aptr, RSI;
-                         mov bptr, RCX;
-                     }
-                 }
-                 else
-                 {
-                     asm // aligned case
-                     {
-                         mov RSI, aptr;
-                         mov RDI, n;
-                         mov RCX, bptr;
-
-                         align 4;
-                       startsse2a:
-                         movdqa XMM0, [RSI];
-                         movdqa XMM2, [RCX];
-                         movdqa XMM1, [RSI+16];
-                         movdqa XMM3, [RCX+16];
-                         add RSI, 32;
-                         add RCX, 32;
-                         paddd XMM0, XMM2;
-                         paddd XMM1, XMM3;
-                         movdqa [RSI-32], XMM0;
-                         movdqa [RSI-16], XMM1;
-
-                         cmp RSI, RDI;
-                         jb startsse2a;
-
-                         mov aptr, RSI;
-                         mov bptr, RCX;
-                     }
-                 }
-             }
-             else if (mmx && a.length >= 4)
-             {
-                 auto n = aptr + (a.length & ~3);
-
-                 asm
-                 {
-                     mov RSI, aptr;
-                     mov RDI, n;
-                     mov RCX, bptr;
-
-                     align 4;
-                   startmmx:
-                     movq MM0, [RSI];
-                     movq MM2, [RCX];
-                     movq MM1, [RSI+8];
-                     movq MM3, [RCX+8];
-                     add RSI, 16;
-                     add RCX, 16;
-                     paddd MM0, MM2;
-                     paddd MM1, MM3;
-                     movq [RSI  -16], MM0;
-                     movq [RSI+8-16], MM1;
-                     cmp RSI, RDI;
-                     jb startmmx;
-
-                     emms;
-                     mov aptr, RSI;
-                     mov bptr, RCX;
-                 }
-             }
-         }
-
-  normal:
+    version (D_InlineAsm_X86_64)
+    {
+        if (sse2 && a.length >= 8)
+        {
+            auto n = aptr + (a.length & ~7);
+            
+            if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
+            {
+                asm // unaligned case
+                {
+                    mov RSI, aptr;
+                    mov RDI, n;
+                    mov RCX, bptr;
+                    
+                    align 4;
+                  startsse2u:
+                    movdqu XMM0, [RSI];
+                    movdqu XMM2, [RCX];
+                    movdqu XMM1, [RSI+16];
+                    movdqu XMM3, [RCX+16];
+                    add RSI, 32;
+                    add RCX, 32;
+                    paddd XMM0, XMM2;
+                    paddd XMM1, XMM3;
+                    movdqu [RSI   -32], XMM0;
+                    movdqu [RSI+16-32], XMM1;
+                    cmp RSI, RDI;
+                    jb startsse2u;
+                    
+                    mov aptr, RSI;
+                    mov bptr, RCX;
+                }
+            }
+            else
+            {
+                asm // aligned case
+                {
+                    mov RSI, aptr;
+                    mov RDI, n;
+                    mov RCX, bptr;
+                    
+                    align 4;
+                  startsse2a:
+                    movdqa XMM0, [RSI];
+                    movdqa XMM2, [RCX];
+                    movdqa XMM1, [RSI+16];
+                    movdqa XMM3, [RCX+16];
+                    add RSI, 32;
+                    add RCX, 32;
+                    paddd XMM0, XMM2;
+                    paddd XMM1, XMM3;
+                    movdqa [RSI-32], XMM0;
+                    movdqa [RSI-16], XMM1;
+                    
+                    cmp RSI, RDI;
+                    jb startsse2a;
+                    
+                    mov aptr, RSI;
+                    mov bptr, RCX;
+                }
+            }
+        }
+        else if (mmx && a.length >= 4)
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            asm
+            {
+                mov RSI, aptr;
+                mov RDI, n;
+                mov RCX, bptr;
+                
+                align 4;
+              startmmx:
+                movq MM0, [RSI];
+                movq MM2, [RCX];
+                movq MM1, [RSI+8];
+                movq MM3, [RCX+8];
+                add RSI, 16;
+                add RCX, 16;
+                paddd MM0, MM2;
+                paddd MM1, MM3;
+                movq [RSI  -16], MM0;
+                movq [RSI+8-16], MM1;
+                cmp RSI, RDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, RSI;
+                mov bptr, RCX;
+            }
+        }
+    }
+    
     while (aptr < aend)
         *aptr++ += *bptr++;
 
@@ -2655,8 +2653,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                    //possibly slow. needs measuring.
-                {
+                {//possibly slow, needs measuring
                     asm
                     {
                         mov RSI, aptr;
@@ -2847,8 +2844,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                    //possibly not a good idea. Performance?
-                {
+                {//possibly not a good idea. Performance?
                     asm
                     {
                         mov ESI, aptr;
@@ -2968,8 +2964,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                    //possibly not a good idea. Performance?
-                {
+                {//possibly not a good idea. Performance?
                     asm
                     {
                         mov RSI, aptr;
