@@ -80,15 +80,11 @@ private:
     size_t _tlsSize;
 }
 
-// drag in _d_dso_registry ref to support weak linkage
-private __gshared void* _dummy_ref;
-
 /****
  * Gets called on program startup just before GC is initialized.
  */
 void initSections()
 {
-    _dummy_ref = &_d_dso_registry;
 }
 
 
@@ -157,7 +153,6 @@ T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
  * so it gets called by the loader on startup and shutdown.
  * (Note that there can be multiple modules in one object file.)
  */
-package // dmain weak linkage
 extern(C) void _d_dso_registry(CompilerDSOData* data)
 {
     // only one supported currently
