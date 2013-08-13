@@ -4386,23 +4386,31 @@ StringExp *ArrayLiteralExp::toString()
     if (telem == Tchar || telem == Twchar || telem == Tdchar ||
         (telem == Tvoid && (!elements || elements->dim == 0)))
     {
+        unsigned char sz = 1;
+        if (telem == Twchar) sz = 2;
+        else if (telem == Tdchar) sz = 4;
+
         OutBuffer buf;
         if (elements)
+        {
             for (int i = 0; i < elements->dim; ++i)
             {
                 Expression *ch = (*elements)[i];
                 if (ch->op != TOKint64)
                     return NULL;
-                buf.writeUTF8(ch->toInteger());
+                     if (sz == 1) buf.writebyte(ch->toInteger());
+                else if (sz == 2) buf.writeword(ch->toInteger());
+                else              buf.write4(ch->toInteger());
             }
-        buf.writebyte(0);
+        }
+        char prefix;
+             if (sz == 1) { prefix = 'c'; buf.writebyte(0); }
+        else if (sz == 2) { prefix = 'w'; buf.writeword(0); }
+        else              { prefix = 'd'; buf.write4(0); }
 
-        char prefix = 'c';
-        if (telem == Twchar) prefix = 'w';
-        else if (telem == Tdchar) prefix = 'd';
-
-        const size_t len = buf.offset - 1;
+        const size_t len = buf.offset / sz - 1;
         StringExp *se = new StringExp(loc, buf.extractData(), len, prefix);
+        se->sz = sz;
         se->type = type;
         return se;
     }
