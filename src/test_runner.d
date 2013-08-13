@@ -1,4 +1,4 @@
-import core.runtime;
+import core.runtime, core.time : TickDuration;
 import core.stdc.stdio;
 
 ModuleInfo* getModuleInfo(string name)
@@ -13,11 +13,23 @@ bool tester()
     assert(Runtime.args.length == 2);
     auto name = Runtime.args[1];
 
-    auto m = getModuleInfo(name);
-    if (auto fp = m.unitTest)
+    if (auto fp = getModuleInfo(name).unitTest)
     {
-        printf("Testing %.*s\n", cast(int)name.length, name.ptr);
-        fp();
+        printf("Testing %.*s", cast(int)name.length, name.ptr);
+
+        try
+        {
+            immutable t0 = TickDuration.currSystemTick;
+            fp();
+            immutable t1 = TickDuration.currSystemTick;
+            printf(" OK (took %dms)\n", (t1 - t0).msecs);
+        }
+        catch (Throwable e)
+        {
+            auto msg = e.toString();
+            printf(" FAIL\n%.*s", cast(int)msg.length, msg.ptr);
+            return false;
+        }
     }
     return true;
 }
