@@ -125,7 +125,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -152,7 +152,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -169,38 +169,38 @@ body
                 }
             }
         }
-	// MMX version is 298% faster
+        // MMX version is 298% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    ulong l = cast(uint) value | ((cast(ulong)cast(uint) value) << 32);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov EAX, bptr;
-		movq MM2, l;
-		
-		align 4;
-	      startmmx:
-		add ESI, 16;
-		movq MM0, [EAX];
-		movq MM1, [EAX+8];
-		add EAX, 16;
-		paddd MM0, MM2;
-		paddd MM1, MM2;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, EAX;
-	    }
-	}
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            ulong l = cast(uint) value | ((cast(ulong)cast(uint) value) << 32);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov EAX, bptr;
+                movq MM2, l;
+                
+                align 4;
+              startmmx:
+                add ESI, 16;
+                movq MM0, [EAX];
+                movq MM1, [EAX+8];
+                add EAX, 16;
+                paddd MM0, MM2;
+                paddd MM1, MM2;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, EAX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -219,7 +219,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM1, [RAX+16];
@@ -246,7 +246,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM1, [RAX+16];
@@ -277,7 +277,7 @@ body
                 movq MM2, l;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM1, [RAX+8];
@@ -439,40 +439,40 @@ body
                 }
             }
         }
-	// MMX version is 995% faster
+        // MMX version is 995% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov EAX, bptr;
-		mov ECX, cptr;
-		
-		align 4;
-	      startmmx:
-		add ESI, 16;
-		movq MM0, [EAX];
-		movq MM2, [ECX];
-		movq MM1, [EAX+8];
-		movq MM3, [ECX+8];
-		add EAX, 16;
-		add ECX, 16;
-		paddd MM0, MM2;
-		paddd MM1, MM3;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, EAX;
-		mov cptr, ECX;
-	    }
-	}
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov EAX, bptr;
+                mov ECX, cptr;
+                
+                align 4;
+              startmmx:
+                add ESI, 16;
+                movq MM0, [EAX];
+                movq MM2, [ECX];
+                movq MM1, [EAX+8];
+                movq MM3, [ECX+8];
+                add EAX, 16;
+                add ECX, 16;
+                paddd MM0, MM2;
+                paddd MM1, MM3;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, EAX;
+                mov cptr, ECX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -702,35 +702,35 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 }
             }
         }
-	// MMX version is 81% faster
+        // MMX version is 81% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		movq MM2, l;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                movq MM2, l;
+                
+                align 4;
               startmmx:
-		movq MM0, [ESI];
-		movq MM1, [ESI+8];
-		add ESI, 16;
-		paddd MM0, MM2;
-		paddd MM1, MM2;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-	    }
-	}
+                movq MM0, [ESI];
+                movq MM1, [ESI+8];
+                add ESI, 16;
+                paddd MM0, MM2;
+                paddd MM1, MM2;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -952,132 +952,132 @@ body
                     mov bptr, ECX;
                 }
             }
-        }	
-	// MMX version is 471% faster
+        }       
+        // MMX version is 471% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
+        {
+            auto n = aptr + (a.length & ~3);
 
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov ECX, bptr;
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov ECX, bptr;
 
-		align 4;
+                align 4;
               startmmx:
-		movq MM0, [ESI];
-		movq MM2, [ECX];
-		movq MM1, [ESI+8];
-		movq MM3, [ECX+8];
-		add ESI, 16;
-		add ECX, 16;
-		paddd MM0, MM2;
-		paddd MM1, MM3;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
+                movq MM0, [ESI];
+                movq MM2, [ECX];
+                movq MM1, [ESI+8];
+                movq MM3, [ECX+8];
+                add ESI, 16;
+                add ECX, 16;
+                paddd MM0, MM2;
+                paddd MM1, MM3;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
 
-		emms;
-		mov aptr, ESI;
-		mov bptr, ECX;
-	    }
-	}
+                emms;
+                mov aptr, ESI;
+                mov bptr, ECX;
+            }
+        }
     }
     else version (D_InlineAsm_X86_64)
-	 {   
-	     if (sse2 && a.length >= 8)
-	     {
-		 auto n = aptr + (a.length & ~7);
+         {   
+             if (sse2 && a.length >= 8)
+             {
+                 auto n = aptr + (a.length & ~7);
 
-		 if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
-		 {
-		     asm // unaligned case
-		     {
-			 mov RSI, aptr;
-			 mov RDI, n;
-			 mov RCX, bptr;
+                 if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
+                 {
+                     asm // unaligned case
+                     {
+                         mov RSI, aptr;
+                         mov RDI, n;
+                         mov RCX, bptr;
 
-			 align 4;
-		       startsse2u:
-			 movdqu XMM0, [RSI];
-			 movdqu XMM2, [RCX];
-			 movdqu XMM1, [RSI+16];
-			 movdqu XMM3, [RCX+16];
-			 add RSI, 32;
-			 add RCX, 32;
-			 paddd XMM0, XMM2;
-			 paddd XMM1, XMM3;
-			 movdqu [RSI   -32], XMM0;
-			 movdqu [RSI+16-32], XMM1;
-			 cmp RSI, RDI;
-			 jb startsse2u;
+                         align 4;
+                       startsse2u:
+                         movdqu XMM0, [RSI];
+                         movdqu XMM2, [RCX];
+                         movdqu XMM1, [RSI+16];
+                         movdqu XMM3, [RCX+16];
+                         add RSI, 32;
+                         add RCX, 32;
+                         paddd XMM0, XMM2;
+                         paddd XMM1, XMM3;
+                         movdqu [RSI   -32], XMM0;
+                         movdqu [RSI+16-32], XMM1;
+                         cmp RSI, RDI;
+                         jb startsse2u;
 
-			 mov aptr, RSI;
-			 mov bptr, RCX;
-		     }
-		 }
-		 else
-		 {
-		     asm // aligned case
-		     {
-			 mov RSI, aptr;
-			 mov RDI, n;
-			 mov RCX, bptr;
+                         mov aptr, RSI;
+                         mov bptr, RCX;
+                     }
+                 }
+                 else
+                 {
+                     asm // aligned case
+                     {
+                         mov RSI, aptr;
+                         mov RDI, n;
+                         mov RCX, bptr;
 
-			 align 4;
-		       startsse2a:
-			 movdqa XMM0, [RSI];
-			 movdqa XMM2, [RCX];
-			 movdqa XMM1, [RSI+16];
-			 movdqa XMM3, [RCX+16];
-			 add RSI, 32;
-			 add RCX, 32;
-			 paddd XMM0, XMM2;
-			 paddd XMM1, XMM3;
-			 movdqa [RSI-32], XMM0;
-			 movdqa [RSI-16], XMM1;
+                         align 4;
+                       startsse2a:
+                         movdqa XMM0, [RSI];
+                         movdqa XMM2, [RCX];
+                         movdqa XMM1, [RSI+16];
+                         movdqa XMM3, [RCX+16];
+                         add RSI, 32;
+                         add RCX, 32;
+                         paddd XMM0, XMM2;
+                         paddd XMM1, XMM3;
+                         movdqa [RSI-32], XMM0;
+                         movdqa [RSI-16], XMM1;
 
-			 cmp RSI, RDI;
-			 jb startsse2a;
+                         cmp RSI, RDI;
+                         jb startsse2a;
 
-			 mov aptr, RSI;
-			 mov bptr, RCX;
-		     }
-		 }
-	     }
-	     else if (mmx && a.length >= 4)
-	     {
-		 auto n = aptr + (a.length & ~3);
+                         mov aptr, RSI;
+                         mov bptr, RCX;
+                     }
+                 }
+             }
+             else if (mmx && a.length >= 4)
+             {
+                 auto n = aptr + (a.length & ~3);
 
-		 asm
-		 {
-		     mov RSI, aptr;
-		     mov RDI, n;
-		     mov RCX, bptr;
+                 asm
+                 {
+                     mov RSI, aptr;
+                     mov RDI, n;
+                     mov RCX, bptr;
 
-		     align 4;
-		   startmmx:
-		     movq MM0, [RSI];
-		     movq MM2, [RCX];
-		     movq MM1, [RSI+8];
-		     movq MM3, [RCX+8];
-		     add RSI, 16;
-		     add RCX, 16;
-		     paddd MM0, MM2;
-		     paddd MM1, MM3;
-		     movq [RSI  -16], MM0;
-		     movq [RSI+8-16], MM1;
-		     cmp RSI, RDI;
-		     jb startmmx;
+                     align 4;
+                   startmmx:
+                     movq MM0, [RSI];
+                     movq MM2, [RCX];
+                     movq MM1, [RSI+8];
+                     movq MM3, [RCX+8];
+                     add RSI, 16;
+                     add RCX, 16;
+                     paddd MM0, MM2;
+                     paddd MM1, MM3;
+                     movq [RSI  -16], MM0;
+                     movq [RSI+8-16], MM1;
+                     cmp RSI, RDI;
+                     jb startmmx;
 
-		     emms;
-		     mov aptr, RSI;
-		     mov bptr, RCX;
-		 }
-	     }
-	 }
+                     emms;
+                     mov aptr, RSI;
+                     mov bptr, RCX;
+                 }
+             }
+         }
 
   normal:
     while (aptr < aend)
@@ -1219,38 +1219,38 @@ body
                 }
             }
         }
-	// MMX version is 315% faster
+        // MMX version is 315% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov EAX, bptr;
-		movq MM2, l;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov EAX, bptr;
+                movq MM2, l;
+                
+                align 4;
               startmmx:
-		add ESI, 16;
-		movq MM0, [EAX];
-		movq MM1, [EAX+8];
-		add EAX, 16;
-		psubd MM0, MM2;
-		psubd MM1, MM2;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, EAX;
-	    }
-	}
+                add ESI, 16;
+                movq MM0, [EAX];
+                movq MM1, [EAX+8];
+                add EAX, 16;
+                psubd MM0, MM2;
+                psubd MM1, MM2;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, EAX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -1485,40 +1485,40 @@ body
                 }
             }
         }
-	// MMX version is 1077% faster
+        // MMX version is 1077% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov EAX, bptr;
-		movq MM4, l;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov EAX, bptr;
+                movq MM4, l;
+                
+                align 4;
               startmmx:
-		add ESI, 16;
-		movq MM2, [EAX];
-		movq MM3, [EAX+8];
-		movq MM0, MM4;
-		movq MM1, MM4;
-		add EAX, 16;
-		psubd MM0, MM2;
-		psubd MM1, MM3;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, EAX;
-	    }
-	}
+                add ESI, 16;
+                movq MM2, [EAX];
+                movq MM3, [EAX+8];
+                movq MM0, MM4;
+                movq MM1, MM4;
+                add EAX, 16;
+                psubd MM0, MM2;
+                psubd MM1, MM3;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, EAX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -1762,40 +1762,40 @@ body
                 }
             }
         }
-	// MMX version is 1002% faster
+        // MMX version is 1002% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov EAX, bptr;
-		mov ECX, cptr;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov EAX, bptr;
+                mov ECX, cptr;
+                
+                align 4;
               startmmx:
-		add ESI, 16;
-		movq MM0, [EAX];
-		movq MM2, [ECX];
-		movq MM1, [EAX+8];
-		movq MM3, [ECX+8];
-		add EAX, 16;
-		add ECX, 16;
-		psubd MM0, MM2;
-		psubd MM1, MM3;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, EAX;
-		mov cptr, ECX;
-	    }
-	}
+                add ESI, 16;
+                movq MM0, [EAX];
+                movq MM2, [ECX];
+                movq MM1, [EAX+8];
+                movq MM3, [ECX+8];
+                add EAX, 16;
+                add ECX, 16;
+                psubd MM0, MM2;
+                psubd MM1, MM3;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, EAX;
+                mov cptr, ECX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2024,35 +2024,35 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 }
             }
         }
-	// MMX version is 81% faster
+        // MMX version is 81% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		movq MM2, l;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                movq MM2, l;
+                
+                align 4;
               startmmx:
-		movq MM0, [ESI];
-		movq MM1, [ESI+8];
-		add ESI, 16;
-		psubd MM0, MM2;
-		psubd MM1, MM2;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-	    }
-	}
+                movq MM0, [ESI];
+                movq MM1, [ESI+8];
+                add ESI, 16;
+                psubd MM0, MM2;
+                psubd MM1, MM2;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2275,37 +2275,37 @@ body
                 }
             }
         }
-	// MMX version is 441% faster
+        // MMX version is 441% faster
         else if (mmx && a.length >= 4)
-	{
-	    auto n = aptr + (a.length & ~3);
-	    
-	    asm
-	    {
-		mov ESI, aptr;
-		mov EDI, n;
-		mov ECX, bptr;
-		
-		align 4;
+        {
+            auto n = aptr + (a.length & ~3);
+            
+            asm
+            {
+                mov ESI, aptr;
+                mov EDI, n;
+                mov ECX, bptr;
+                
+                align 4;
               startmmx:
-		movq MM0, [ESI];
-		movq MM2, [ECX];
-		movq MM1, [ESI+8];
-		movq MM3, [ECX+8];
-		add ESI, 16;
-		add ECX, 16;
-		psubd MM0, MM2;
-		psubd MM1, MM3;
-		movq [ESI  -16], MM0;
-		movq [ESI+8-16], MM1;
-		cmp ESI, EDI;
-		jb startmmx;
-		
-		emms;
-		mov aptr, ESI;
-		mov bptr, ECX;
-	    }
-	}
+                movq MM0, [ESI];
+                movq MM2, [ECX];
+                movq MM1, [ESI+8];
+                movq MM3, [ECX+8];
+                add ESI, 16;
+                add ECX, 16;
+                psubd MM0, MM2;
+                psubd MM1, MM3;
+                movq [ESI  -16], MM0;
+                movq [ESI+8-16], MM1;
+                cmp ESI, EDI;
+                jb startmmx;
+                
+                emms;
+                mov aptr, ESI;
+                mov bptr, ECX;
+            }
+        }
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2498,7 +2498,7 @@ body
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         add ESI, 32;
                         movdqu XMM0, [EAX];
                         movdqu XMM1, [EAX+16];
@@ -2655,7 +2655,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-		    //possibly slow. needs measuring.
+                    //possibly slow. needs measuring.
                 {
                     asm
                     {
@@ -2729,7 +2729,7 @@ unittest
                 c[] = b[] * 6;
                 for (int i = 0; i < dim; i++)
                 {
-		    //printf("[%d]: %d ?= %d * 6\n", i, c[i], b[i]);
+                    //printf("[%d]: %d ?= %d * 6\n", i, c[i], b[i]);
                     if (c[i] != cast(T)(b[i] * 6))
                     {
                         printf("[%d]: %d != %d * 6\n", i, c[i], b[i]);
@@ -2847,7 +2847,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-		    //possibly not a good idea. Performance?
+                    //possibly not a good idea. Performance?
                 {
                     asm
                     {
@@ -2968,7 +2968,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-		    //possibly not a good idea. Performance?
+                    //possibly not a good idea. Performance?
                 {
                     asm
                     {
@@ -3314,7 +3314,7 @@ unittest
         
                 for (int i = 0; i < dim; i++)
                 {
-		    if (a[i] != cast(T)(b[i] * 6))
+                    if (a[i] != cast(T)(b[i] * 6))
                     {
                         printf("[%d]: %d != %d * 6\n", i, a[i], b[i]);
                         assert(0);
@@ -3418,7 +3418,7 @@ body
     
                         mov aptr, ESI;
                         mov bptr, ECX;
-		    }
+                    }
                 }
             }
             else if (a.length >= 4)
@@ -3528,7 +3528,7 @@ body
     
                         mov aptr, RSI;
                         mov bptr, RCX;
-		    }
+                    }
                 }
             }
             else if (a.length >= 4)
