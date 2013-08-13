@@ -989,7 +989,7 @@ body
         if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
-            
+
             if (((cast(size_t) aptr | cast(size_t) bptr) & 15) != 0)
             {
                 asm // unaligned case
@@ -997,7 +997,7 @@ body
                     mov RSI, aptr;
                     mov RDI, n;
                     mov RCX, bptr;
-                    
+
                     align 4;
                   startsse2u:
                     movdqu XMM0, [RSI];
@@ -1012,7 +1012,7 @@ body
                     movdqu [RSI+16-32], XMM1;
                     cmp RSI, RDI;
                     jb startsse2u;
-                    
+
                     mov aptr, RSI;
                     mov bptr, RCX;
                 }
@@ -1024,7 +1024,7 @@ body
                     mov RSI, aptr;
                     mov RDI, n;
                     mov RCX, bptr;
-                    
+
                     align 4;
                   startsse2a:
                     movdqa XMM0, [RSI];
@@ -1037,10 +1037,10 @@ body
                     paddd XMM1, XMM3;
                     movdqa [RSI-32], XMM0;
                     movdqa [RSI-16], XMM1;
-                    
+
                     cmp RSI, RDI;
                     jb startsse2a;
-                    
+
                     mov aptr, RSI;
                     mov bptr, RCX;
                 }
@@ -1049,13 +1049,13 @@ body
         else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
-            
+
             asm
             {
                 mov RSI, aptr;
                 mov RDI, n;
                 mov RCX, bptr;
-                
+
                 align 4;
               startmmx:
                 movq MM0, [RSI];
@@ -1070,14 +1070,14 @@ body
                 movq [RSI+8-16], MM1;
                 cmp RSI, RDI;
                 jb startmmx;
-                
+
                 emms;
                 mov aptr, RSI;
                 mov bptr, RCX;
             }
         }
     }
-    
+
     while (aptr < aend)
         *aptr++ += *bptr++;
 
