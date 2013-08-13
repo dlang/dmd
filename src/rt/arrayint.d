@@ -95,11 +95,11 @@ T[] _arraySliceExpAddSliceAssign_k(T[] a, T value, T[] b)
 }
 
 T[] _arraySliceExpAddSliceAssign_i(T[] a, T value, T[] b)
-    in
-    {
-	assert(a.length == b.length);
-	assert(disjoint(a, b));
-    }
+in
+{
+    assert(a.length == b.length);
+    assert(disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceExpAddSliceAssign_i()\n");
@@ -169,39 +169,38 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 298% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 298% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    ulong l = cast(uint) value | ((cast(ulong)cast(uint) value) << 32);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		ulong l = cast(uint) value | ((cast(ulong)cast(uint) value) << 32);
-        
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov EAX, bptr;
-		    movq MM2, l;
-
-		    align 4;
-		  startmmx:
-		    add ESI, 16;
-		    movq MM0, [EAX];
-		    movq MM1, [EAX+8];
-		    add EAX, 16;
-		    paddd MM0, MM2;
-		    paddd MM1, MM2;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, EAX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov EAX, bptr;
+		movq MM2, l;
+		
+		align 4;
+	      startmmx:
+		add ESI, 16;
+		movq MM0, [EAX];
+		movq MM1, [EAX+8];
+		add EAX, 16;
+		paddd MM0, MM2;
+		paddd MM1, MM2;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, EAX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -358,12 +357,12 @@ T[] _arraySliceSliceAddSliceAssign_k(T[] a, T[] c, T[] b)
 }
 
 T[] _arraySliceSliceAddSliceAssign_i(T[] a, T[] c, T[] b)
-    in
-    {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-    }
+in
+{
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
+}
 body
 {
     //printf("_arraySliceSliceAddSliceAssign_i()\n");
@@ -440,41 +439,40 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 995% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 995% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov EAX, bptr;
-		    mov ECX, cptr;
-
-		    align 4;
-		  startmmx:
-		    add ESI, 16;
-		    movq MM0, [EAX];
-		    movq MM2, [ECX];
-		    movq MM1, [EAX+8];
-		    movq MM3, [ECX+8];
-		    add EAX, 16;
-		    add ECX, 16;
-		    paddd MM0, MM2;
-		    paddd MM1, MM3;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, EAX;
-		    mov cptr, ECX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov EAX, bptr;
+		mov ECX, cptr;
+		
+		align 4;
+	      startmmx:
+		add ESI, 16;
+		movq MM0, [EAX];
+		movq MM2, [ECX];
+		movq MM1, [EAX+8];
+		movq MM3, [ECX+8];
+		add EAX, 16;
+		add ECX, 16;
+		paddd MM0, MM2;
+		paddd MM1, MM3;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, EAX;
+		mov cptr, ECX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -704,36 +702,35 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 }
             }
         }
-        else
-	    // MMX version is 81% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 81% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    movq MM2, l;
-
-		    align 4;
-		  startmmx:
-		    movq MM0, [ESI];
-		    movq MM1, [ESI+8];
-		    add ESI, 16;
-		    paddd MM0, MM2;
-		    paddd MM1, MM2;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		movq MM2, l;
+		
+		align 4;
+	      startmmx:
+		movq MM0, [ESI];
+		movq MM1, [ESI+8];
+		add ESI, 16;
+		paddd MM0, MM2;
+		paddd MM1, MM2;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -882,11 +879,11 @@ T[] _arraySliceSliceAddass_k(T[] a, T[] b)
 }
 
 T[] _arraySliceSliceAddass_i(T[] a, T[] b)
-    in
-    {
-	assert (a.length == b.length);
-	assert (disjoint(a, b));
-    }
+in
+{
+    assert (a.length == b.length);
+    assert (disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceSliceAddass_i()\n");
@@ -955,39 +952,38 @@ body
                     mov bptr, ECX;
                 }
             }
-        }
-        else
-	    // MMX version is 471% faster
-	    if (mmx && a.length >= 4)
+        }	
+	// MMX version is 471% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
+		mov ESI, aptr;
+		mov EDI, n;
+		mov ECX, bptr;
 
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov ECX, bptr;
+		align 4;
+	      startmmx:
+		movq MM0, [ESI];
+		movq MM2, [ECX];
+		movq MM1, [ESI+8];
+		movq MM3, [ECX+8];
+		add ESI, 16;
+		add ECX, 16;
+		paddd MM0, MM2;
+		paddd MM1, MM3;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
 
-		    align 4;
-		  startmmx:
-		    movq MM0, [ESI];
-		    movq MM2, [ECX];
-		    movq MM1, [ESI+8];
-		    movq MM3, [ECX+8];
-		    add ESI, 16;
-		    add ECX, 16;
-		    paddd MM0, MM2;
-		    paddd MM1, MM3;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, ECX;
-		}
+		emms;
+		mov aptr, ESI;
+		mov bptr, ECX;
 	    }
+	}
     }
     else version (D_InlineAsm_X86_64)
 	 {   
@@ -1149,11 +1145,11 @@ T[] _arraySliceExpMinSliceAssign_k(T[] a, T value, T[] b)
 }
 
 T[] _arraySliceExpMinSliceAssign_i(T[] a, T value, T[] b)
-    in
-    {
-	assert(a.length == b.length);
-	assert(disjoint(a, b));
-    }
+in
+{
+    assert(a.length == b.length);
+    assert(disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceExpMinSliceAssign_i()\n");
@@ -1223,39 +1219,38 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 315% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 315% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov EAX, bptr;
-		    movq MM2, l;
-
-		    align 4;
-		  startmmx:
-		    add ESI, 16;
-		    movq MM0, [EAX];
-		    movq MM1, [EAX+8];
-		    add EAX, 16;
-		    psubd MM0, MM2;
-		    psubd MM1, MM2;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, EAX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov EAX, bptr;
+		movq MM2, l;
+		
+		align 4;
+	      startmmx:
+		add ESI, 16;
+		movq MM0, [EAX];
+		movq MM1, [EAX+8];
+		add EAX, 16;
+		psubd MM0, MM2;
+		psubd MM1, MM2;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, EAX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -1412,11 +1407,11 @@ T[] _arrayExpSliceMinSliceAssign_k(T[] a, T[] b, T value)
 }
 
 T[] _arrayExpSliceMinSliceAssign_i(T[] a, T[] b, T value)
-    in
-    {
-	assert(a.length == b.length);
-	assert(disjoint(a, b));
-    }
+in
+{
+    assert(a.length == b.length);
+    assert(disjoint(a, b));
+}
 body
 {
     //printf("_arrayExpSliceMinSliceAssign_i()\n");
@@ -1490,41 +1485,40 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 1077% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 1077% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov EAX, bptr;
-		    movq MM4, l;
-
-		    align 4;
-		  startmmx:
-		    add ESI, 16;
-		    movq MM2, [EAX];
-		    movq MM3, [EAX+8];
-		    movq MM0, MM4;
-		    movq MM1, MM4;
-		    add EAX, 16;
-		    psubd MM0, MM2;
-		    psubd MM1, MM3;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, EAX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov EAX, bptr;
+		movq MM4, l;
+		
+		align 4;
+	      startmmx:
+		add ESI, 16;
+		movq MM2, [EAX];
+		movq MM3, [EAX+8];
+		movq MM0, MM4;
+		movq MM1, MM4;
+		add EAX, 16;
+		psubd MM0, MM2;
+		psubd MM1, MM3;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, EAX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -1687,12 +1681,12 @@ T[] _arraySliceSliceMinSliceAssign_k(T[] a, T[] c, T[] b)
 }
 
 T[] _arraySliceSliceMinSliceAssign_i(T[] a, T[] c, T[] b)
-    in
-    {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-    }
+in
+{
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
+}
 body
 {
     auto aptr = a.ptr;
@@ -1768,41 +1762,40 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 1002% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 1002% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov EAX, bptr;
-		    mov ECX, cptr;
-
-		    align 4;
-		  startmmx:
-		    add ESI, 16;
-		    movq MM0, [EAX];
-		    movq MM2, [ECX];
-		    movq MM1, [EAX+8];
-		    movq MM3, [ECX+8];
-		    add EAX, 16;
-		    add ECX, 16;
-		    psubd MM0, MM2;
-		    psubd MM1, MM3;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, EAX;
-		    mov cptr, ECX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov EAX, bptr;
+		mov ECX, cptr;
+		
+		align 4;
+	      startmmx:
+		add ESI, 16;
+		movq MM0, [EAX];
+		movq MM2, [ECX];
+		movq MM1, [EAX+8];
+		movq MM3, [ECX+8];
+		add EAX, 16;
+		add ECX, 16;
+		psubd MM0, MM2;
+		psubd MM1, MM3;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, EAX;
+		mov cptr, ECX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2031,36 +2024,35 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 }
             }
         }
-        else
-	    // MMX version is 81% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 81% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		ulong l = cast(uint) value | (cast(ulong)cast(uint) value << 32);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    movq MM2, l;
-
-		    align 4;
-		  startmmx:
-		    movq MM0, [ESI];
-		    movq MM1, [ESI+8];
-		    add ESI, 16;
-		    psubd MM0, MM2;
-		    psubd MM1, MM2;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		movq MM2, l;
+		
+		align 4;
+	      startmmx:
+		movq MM0, [ESI];
+		movq MM1, [ESI+8];
+		add ESI, 16;
+		psubd MM0, MM2;
+		psubd MM1, MM2;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2209,11 +2201,11 @@ T[] _arraySliceSliceMinass_k(T[] a, T[] b)
 }
 
 T[] _arraySliceSliceMinass_i(T[] a, T[] b)
-    in
-    {
-	assert (a.length == b.length);
-	assert (disjoint(a, b));
-    }
+in
+{
+    assert (a.length == b.length);
+    assert (disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceSliceMinass_i()\n");
@@ -2283,38 +2275,37 @@ body
                 }
             }
         }
-        else
-	    // MMX version is 441% faster
-	    if (mmx && a.length >= 4)
+	// MMX version is 441% faster
+        else if (mmx && a.length >= 4)
+	{
+	    auto n = aptr + (a.length & ~3);
+	    
+	    asm
 	    {
-		auto n = aptr + (a.length & ~3);
-
-		asm
-		{
-		    mov ESI, aptr;
-		    mov EDI, n;
-		    mov ECX, bptr;
-
-		    align 4;
-		  startmmx:
-		    movq MM0, [ESI];
-		    movq MM2, [ECX];
-		    movq MM1, [ESI+8];
-		    movq MM3, [ECX+8];
-		    add ESI, 16;
-		    add ECX, 16;
-		    psubd MM0, MM2;
-		    psubd MM1, MM3;
-		    movq [ESI  -16], MM0;
-		    movq [ESI+8-16], MM1;
-		    cmp ESI, EDI;
-		    jb startmmx;
-
-		    emms;
-		    mov aptr, ESI;
-		    mov bptr, ECX;
-		}
+		mov ESI, aptr;
+		mov EDI, n;
+		mov ECX, bptr;
+		
+		align 4;
+	      startmmx:
+		movq MM0, [ESI];
+		movq MM2, [ECX];
+		movq MM1, [ESI+8];
+		movq MM3, [ECX+8];
+		add ESI, 16;
+		add ECX, 16;
+		psubd MM0, MM2;
+		psubd MM1, MM3;
+		movq [ESI  -16], MM0;
+		movq [ESI+8-16], MM1;
+		cmp ESI, EDI;
+		jb startmmx;
+		
+		emms;
+		mov aptr, ESI;
+		mov bptr, ECX;
 	    }
+	}
     }
     version (D_InlineAsm_X86_64)
     {
@@ -2474,11 +2465,11 @@ T[] _arraySliceExpMulSliceAssign_k(T[] a, T value, T[] b)
 }
 
 T[] _arraySliceExpMulSliceAssign_i(T[] a, T value, T[] b)
-    in
-    {
-	assert(a.length == b.length);
-	assert(disjoint(a, b));
-    }
+in
+{
+    assert(a.length == b.length);
+    assert(disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceExpMulSliceAssign_i()\n");
@@ -2768,12 +2759,12 @@ T[] _arraySliceSliceMulSliceAssign_k(T[] a, T[] c, T[] b)
 }
 
 T[] _arraySliceSliceMulSliceAssign_i(T[] a, T[] c, T[] b)
-    in
-    {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
-    }
+in
+{
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
+}
 body
 {
     //printf("_arraySliceSliceMulSliceAssign_i()\n");
@@ -3353,11 +3344,11 @@ T[] _arraySliceSliceMulass_k(T[] a, T[] b)
 }
 
 T[] _arraySliceSliceMulass_i(T[] a, T[] b)
-    in
-    {
-	assert (a.length == b.length);
-	assert (disjoint(a, b));
-    }
+in
+{
+    assert (a.length == b.length);
+    assert (disjoint(a, b));
+}
 body
 {
     //printf("_arraySliceSliceMulass_i()\n");
