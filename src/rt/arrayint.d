@@ -388,7 +388,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM2, [ECX];
@@ -418,7 +418,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM2, [ECX];
@@ -490,7 +490,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM2, [RCX];
@@ -520,7 +520,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM2, [RCX];
@@ -553,7 +553,7 @@ body
                 mov RCX, cptr;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM2, [RCX];
@@ -663,7 +663,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM1, [ESI+16];
                     add ESI, 32;
@@ -687,7 +687,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM1, [ESI+16];
                     add ESI, 32;
@@ -716,7 +716,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
 		movq MM2, l;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		movq MM0, [ESI];
 		movq MM1, [ESI+8];
 		add ESI, 16;
@@ -748,7 +748,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM1, [RSI+16];
                     add RSI, 32;
@@ -772,7 +772,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM1, [RSI+16];
                     add RSI, 32;
@@ -800,7 +800,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM1, [RSI+8];
                 add RSI, 16;
@@ -907,7 +907,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM2, [ECX];
                     movdqu XMM1, [ESI+16];
@@ -934,7 +934,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM2, [ECX];
                     movdqa XMM1, [ESI+16];
@@ -965,7 +965,7 @@ body
 		mov ECX, bptr;
 
 		align 4;
-	      startmmx:
+              startmmx:
 		movq MM0, [ESI];
 		movq MM2, [ECX];
 		movq MM1, [ESI+8];
@@ -1175,7 +1175,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -1202,7 +1202,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -1234,7 +1234,7 @@ body
 		movq MM2, l;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		add ESI, 16;
 		movq MM0, [EAX];
 		movq MM1, [EAX+8];
@@ -1269,7 +1269,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -1296,7 +1296,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -1327,7 +1327,7 @@ body
                 movq MM2, l;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [EAX];
                 movq MM1, [EAX+8];
@@ -1437,7 +1437,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM2, [EAX];
                     movdqu XMM3, [EAX+16];
@@ -1466,7 +1466,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM2, [EAX];
                     movdqa XMM3, [EAX+16];
@@ -1500,7 +1500,7 @@ body
 		movq MM4, l;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		add ESI, 16;
 		movq MM2, [EAX];
 		movq MM3, [EAX+8];
@@ -1537,7 +1537,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM2, [RAX];
                     movdqu XMM3, [RAX+16];
@@ -1566,7 +1566,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM2, [EAX];
                     movdqa XMM3, [EAX+16];
@@ -1599,7 +1599,7 @@ body
                 movq MM4, l;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM2, [EAX];
                 movq MM3, [EAX+8];
@@ -1711,7 +1711,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM2, [ECX];
@@ -1741,7 +1741,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM2, [ECX];
@@ -1775,7 +1775,7 @@ body
 		mov ECX, cptr;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		add ESI, 16;
 		movq MM0, [EAX];
 		movq MM2, [ECX];
@@ -1813,7 +1813,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM2, [RCX];
@@ -1843,7 +1843,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM2, [RCX];
@@ -1876,7 +1876,7 @@ body
                 mov RCX, cptr;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM2, [RCX];
@@ -1985,7 +1985,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM1, [ESI+16];
                     add ESI, 32;
@@ -2009,7 +2009,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM1, [ESI+16];
                     add ESI, 32;
@@ -2038,7 +2038,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
 		movq MM2, l;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		movq MM0, [ESI];
 		movq MM1, [ESI+8];
 		add ESI, 16;
@@ -2070,7 +2070,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM1, [RSI+16];
                     add RSI, 32;
@@ -2094,7 +2094,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-		  startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM1, [RSI+16];
                     add RSI, 32;
@@ -2122,7 +2122,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM1, [RSI+8];
                 add RSI, 16;
@@ -2229,7 +2229,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM2, [ECX];
                     movdqu XMM1, [ESI+16];
@@ -2256,7 +2256,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM2, [ECX];
                     movdqa XMM1, [ESI+16];
@@ -2287,7 +2287,7 @@ body
 		mov ECX, bptr;
 		
 		align 4;
-	      startmmx:
+              startmmx:
 		movq MM0, [ESI];
 		movq MM2, [ECX];
 		movq MM1, [ESI+8];
@@ -2322,7 +2322,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-		  startsse2u:
+                  startsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM2, [RCX];
                     movdqu XMM1, [RSI+16];
@@ -2349,7 +2349,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-		  startsse2a:
+                  startsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM2, [RCX];
                     movdqa XMM1, [RSI+16];
@@ -2379,7 +2379,7 @@ body
                 mov RCX, bptr;
 
                 align 4;
-	      startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM2, [RCX];
                 movq MM1, [RSI+8];
@@ -2525,7 +2525,7 @@ body
                         pshufd XMM2, XMM1, 0;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         add ESI, 32;
                         movdqa XMM0, [EAX];
                         movdqa XMM1, [EAX+16];
@@ -2608,7 +2608,7 @@ body
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         add RSI, 32;
                         movdqu XMM0, [RAX];
                         movdqu XMM1, [RAX+16];
@@ -2635,7 +2635,7 @@ body
                         pshufd XMM2, XMM1, 0;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         add RSI, 32;
                         movdqa XMM0, [RAX];
                         movdqa XMM1, [RAX+16];
@@ -2793,7 +2793,7 @@ body
                         mov ECX, cptr;
 
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         add ESI, 32;
                         movdqu XMM0, [EAX];
                         movdqu XMM2, [ECX];
@@ -2823,7 +2823,7 @@ body
                         mov ECX, cptr;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         add ESI, 32;
                         movdqa XMM0, [EAX];
                         movdqa XMM2, [ECX];
@@ -2914,7 +2914,7 @@ body
                         mov RCX, cptr;
 
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         add RSI, 32;
                         movdqu XMM0, [RAX];
                         movdqu XMM2, [RCX];
@@ -2944,7 +2944,7 @@ body
                         mov RCX, cptr;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         add RSI, 32;
                         movdqa XMM0, [RAX];
                         movdqa XMM2, [RCX];
@@ -3107,7 +3107,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         movdqu XMM0, [ESI];
                         movdqu XMM1, [ESI+16];
                         add ESI, 32;
@@ -3131,7 +3131,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         movdqa XMM0, [ESI];
                         movdqa XMM1, [ESI+16];
                         add ESI, 32;
@@ -3203,7 +3203,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         movdqu XMM0, [RSI];
                         movdqu XMM1, [RSI+16];
                         add RSI, 32;
@@ -3227,7 +3227,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         pshufd XMM2, XMM2, 0;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         movdqa XMM0, [RSI];
                         movdqa XMM1, [RSI+16];
                         add RSI, 32;
@@ -3375,7 +3375,7 @@ body
                         mov ECX, bptr;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         movdqu XMM0, [ESI];
                         movdqu XMM2, [ECX];
                         movdqu XMM1, [ESI+16];
@@ -3402,7 +3402,7 @@ body
                         mov ECX, bptr;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         movdqa XMM0, [ESI];
                         movdqa XMM2, [ECX];
                         movdqa XMM1, [ESI+16];
@@ -3485,7 +3485,7 @@ body
                         mov RCX, bptr;
     
                         align 4;
-		      startsse41u:
+                      startsse41u:
                         movdqu XMM0, [RSI];
                         movdqu XMM2, [RCX];
                         movdqu XMM1, [RSI+16];
@@ -3512,7 +3512,7 @@ body
                         mov RCX, bptr;
     
                         align 4;
-		      startsse41a:
+                      startsse41a:
                         movdqa XMM0, [RSI];
                         movdqa XMM2, [RCX];
                         movdqa XMM1, [RSI+16];
