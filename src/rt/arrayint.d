@@ -1,5 +1,5 @@
 /**
- * Contains MMX versions of certain operations for dchar, int, and uint ('w',
+ * Contains SSE/MMX versions of certain operations for dchar, int, and uint ('w',
  * 'i' and 'k' suffixes).
  *
  * Copyright: Copyright Digital Mars 2008 - 2010.
@@ -25,25 +25,34 @@ version (unittest)
      */
     uint cpuid;
     enum CPUID_MAX = 14;
-    @property bool mmx()        { return cpuid == 1 && core.cpuid.mmx; }
-    @property bool sse()        { return cpuid == 2 && core.cpuid.sse; }
-    @property bool sse2()       { return cpuid == 3 && core.cpuid.sse2; }
-    @property bool sse3()       { return cpuid == 4 && core.cpuid.sse3; }
-    @property bool sse41()      { return cpuid == 5 && core.cpuid.sse41; }
-    @property bool sse42()      { return cpuid == 6 && core.cpuid.sse42; }
-    @property bool sse4a()      { return cpuid == 7 && core.cpuid.sse4a; }
-    @property bool avx()        { return cpuid == 8 && core.cpuid.avx; }
-    @property bool avx2()       { return cpuid == 9 && core.cpuid.avx2; }
-    @property bool amd3dnow()   { return cpuid == 10 && core.cpuid.amd3dnow; }
-    @property bool and3dnowExt()    { return cpuid == 11 && core.cpuid.amd3dnowExt; }
-    @property bool amdMmx()     { return cpuid == 12 && core.cpuid.amdMmx; }
+    @property bool mmx()                { return cpuid == 1 && core.cpuid.mmx; }
+    @property bool sse()                { return cpuid == 2 && core.cpuid.sse; }
+    @property bool sse2()               { return cpuid == 3 && core.cpuid.sse2; }
+    @property bool sse3()               { return cpuid == 4 && core.cpuid.sse3; }
+    @property bool sse41()              { return cpuid == 5 && core.cpuid.sse41; }
+    @property bool sse42()              { return cpuid == 6 && core.cpuid.sse42; }
+    @property bool sse4a()              { return cpuid == 7 && core.cpuid.sse4a; }
+    @property bool avx()                { return cpuid == 8 && core.cpuid.avx; }
+    @property bool avx2()               { return cpuid == 9 && core.cpuid.avx2; }
+    @property bool amd3dnow()           { return cpuid == 10 && core.cpuid.amd3dnow; }
+    @property bool and3dnowExt()        { return cpuid == 11 && core.cpuid.amd3dnowExt; }
+    @property bool amdMmx()             { return cpuid == 12 && core.cpuid.amdMmx; }
     @property bool has3dnowPrefetch()   { return cpuid == 13 && core.cpuid.has3dnowPrefetch; }
 }
 else
 {
-    alias core.cpuid.mmx mmx;
-    alias core.cpuid.sse sse;
-    alias core.cpuid.sse2 sse2;
+    version(x86_64) //guaranteed on x86_64
+    {
+        enum mmx = true;
+        enum sse = true;
+        enum sse2 = true;
+    }
+    else
+    {
+        alias core.cpuid.mmx mmx;
+        alias core.cpuid.sse sse;
+        alias core.cpuid.sse2 sse2;
+    }
     alias core.cpuid.sse3 sse3;
     alias core.cpuid.sse41 sse41;
     alias core.cpuid.sse42 sse42;
@@ -116,7 +125,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -143,7 +152,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -160,14 +169,13 @@ body
                 }
             }
         }
-        else
         // MMX version is 298% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
             ulong l = cast(uint) value | ((cast(ulong)cast(uint) value) << 32);
-        
+
             asm
             {
                 mov ESI, aptr;
@@ -176,7 +184,7 @@ body
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add ESI, 16;
                 movq MM0, [EAX];
                 movq MM1, [EAX+8];
@@ -189,35 +197,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, ESI;
-                mov bptr, EAX;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add ESI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add EAX, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
                 mov aptr, ESI;
                 mov bptr, EAX;
             }
@@ -240,7 +219,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM1, [RAX+16];
@@ -267,7 +246,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM1, [RAX+16];
@@ -298,7 +277,7 @@ body
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM1, [RAX+8];
@@ -311,34 +290,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-                mov bptr, RAX;
-            }
-        }
-        else if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov RAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add RSI, 8;
-                mov EBX, [RAX];
-                mov ECX, [RAX+4];
-                add RAX, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
                 mov bptr, RAX;
             }
@@ -408,9 +359,9 @@ T[] _arraySliceSliceAddSliceAssign_k(T[] a, T[] c, T[] b)
 T[] _arraySliceSliceAddSliceAssign_i(T[] a, T[] c, T[] b)
 in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
 }
 body
 {
@@ -437,7 +388,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM2, [ECX];
@@ -467,7 +418,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM2, [ECX];
@@ -488,9 +439,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 995% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -502,7 +452,7 @@ body
                 mov ECX, cptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add ESI, 16;
                 movq MM0, [EAX];
                 movq MM2, [ECX];
@@ -540,7 +490,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM2, [RCX];
@@ -570,7 +520,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM2, [RCX];
@@ -603,7 +553,7 @@ body
                 mov RCX, cptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM2, [RCX];
@@ -626,7 +576,6 @@ body
         }
     }
 
-normal:
     while (aptr < aend)
         *aptr++ = *bptr++ + *cptr++;
 
@@ -713,7 +662,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM1, [ESI+16];
                     add ESI, 32;
@@ -737,7 +686,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM1, [ESI+16];
                     add ESI, 32;
@@ -752,9 +701,8 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 }
             }
         }
-        else
         // MMX version is 81% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -767,7 +715,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [ESI];
                 movq MM1, [ESI+8];
                 add ESI, 16;
@@ -779,32 +727,6 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, ESI;
-            }
-        }
-        else
-        if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [ESI];
-                mov ECX, [ESI+4];
-                add ESI, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
                 mov aptr, ESI;
             }
         }
@@ -825,7 +747,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM1, [RSI+16];
                     add RSI, 32;
@@ -849,7 +771,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM1, [RSI+16];
                     add RSI, 32;
@@ -877,7 +799,7 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM1, [RSI+8];
                 add RSI, 16;
@@ -889,31 +811,6 @@ T[] _arrayExpSliceAddass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-            }
-        }
-        else if (a.length >= 2) //should probably be left to the compiler?
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [RSI];
-                mov ECX, [RSI+4];
-                add RSI, 8;
-                add EBX, EDX;
-                add ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
             }
         }
@@ -992,7 +889,7 @@ body
     auto aptr = a.ptr;
     auto aend = aptr + a.length;
     auto bptr = b.ptr;
-    
+
     version (D_InlineAsm_X86)
     {
         // SSE2 aligned version is 695% faster
@@ -1009,7 +906,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM2, [ECX];
                     movdqu XMM1, [ESI+16];
@@ -1036,7 +933,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM2, [ECX];
                     movdqa XMM1, [ESI+16];
@@ -1055,9 +952,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 471% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1068,7 +964,7 @@ body
                 mov ECX, bptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [ESI];
                 movq MM2, [ECX];
                 movq MM1, [ESI+8];
@@ -1088,8 +984,8 @@ body
             }
         }
     }
-    else version (D_InlineAsm_X86_64)
-    {   
+    version (D_InlineAsm_X86_64)
+    {
         if (sse2 && a.length >= 8)
         {
             auto n = aptr + (a.length & ~7);
@@ -1103,7 +999,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM2, [RCX];
                     movdqu XMM1, [RSI+16];
@@ -1130,7 +1026,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM2, [RCX];
                     movdqa XMM1, [RSI+16];
@@ -1161,7 +1057,7 @@ body
                 mov RCX, bptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM2, [RCX];
                 movq MM1, [RSI+8];
@@ -1182,7 +1078,6 @@ body
         }
     }
 
-normal:
     while (aptr < aend)
         *aptr++ += *bptr++;
 
@@ -1278,7 +1173,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -1305,7 +1200,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -1322,9 +1217,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 315% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1338,7 +1232,7 @@ body
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add ESI, 16;
                 movq MM0, [EAX];
                 movq MM1, [EAX+8];
@@ -1351,35 +1245,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, ESI;
-                mov bptr, EAX;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add ESI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add EAX, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
                 mov aptr, ESI;
                 mov bptr, EAX;
             }
@@ -1402,7 +1267,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM1, [EAX+16];
@@ -1429,7 +1294,7 @@ body
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM1, [EAX+16];
@@ -1460,7 +1325,7 @@ body
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [EAX];
                 movq MM1, [EAX+8];
@@ -1473,35 +1338,6 @@ body
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-                mov bptr, RAX;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov RAX, bptr;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                add RSI, 8;
-                mov EBX, [EAX];
-                mov ECX, [EAX+4];
-                add RAX, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
                 mov bptr, RAX;
             }
@@ -1599,7 +1435,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add ESI, 32;
                     movdqu XMM2, [EAX];
                     movdqu XMM3, [EAX+16];
@@ -1628,7 +1464,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add ESI, 32;
                     movdqa XMM2, [EAX];
                     movdqa XMM3, [EAX+16];
@@ -1647,9 +1483,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 1077% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1663,7 +1498,7 @@ body
                 movq MM4, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add ESI, 16;
                 movq MM2, [EAX];
                 movq MM3, [EAX+8];
@@ -1700,7 +1535,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     add RSI, 32;
                     movdqu XMM2, [RAX];
                     movdqu XMM3, [RAX+16];
@@ -1729,7 +1564,7 @@ body
                     pshufd XMM4, XMM4, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     add RSI, 32;
                     movdqa XMM2, [EAX];
                     movdqa XMM3, [EAX+16];
@@ -1762,7 +1597,7 @@ body
                 movq MM4, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM2, [EAX];
                 movq MM3, [EAX+8];
@@ -1846,9 +1681,9 @@ T[] _arraySliceSliceMinSliceAssign_k(T[] a, T[] c, T[] b)
 T[] _arraySliceSliceMinSliceAssign_i(T[] a, T[] c, T[] b)
 in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
 }
 body
 {
@@ -1874,7 +1709,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     add ESI, 32;
                     movdqu XMM0, [EAX];
                     movdqu XMM2, [ECX];
@@ -1904,7 +1739,7 @@ body
                     mov ECX, cptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     add ESI, 32;
                     movdqa XMM0, [EAX];
                     movdqa XMM2, [ECX];
@@ -1925,9 +1760,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 1002% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -1939,7 +1773,7 @@ body
                 mov ECX, cptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add ESI, 16;
                 movq MM0, [EAX];
                 movq MM2, [ECX];
@@ -1977,7 +1811,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     add RSI, 32;
                     movdqu XMM0, [RAX];
                     movdqu XMM2, [RCX];
@@ -2007,7 +1841,7 @@ body
                     mov RCX, cptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     add RSI, 32;
                     movdqa XMM0, [RAX];
                     movdqa XMM2, [RCX];
@@ -2040,7 +1874,7 @@ body
                 mov RCX, cptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 add RSI, 16;
                 movq MM0, [RAX];
                 movq MM2, [RCX];
@@ -2149,7 +1983,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM1, [ESI+16];
                     add ESI, 32;
@@ -2173,7 +2007,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM1, [ESI+16];
                     add ESI, 32;
@@ -2188,9 +2022,8 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 }
             }
         }
-        else
         // MMX version is 81% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -2203,7 +2036,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [ESI];
                 movq MM1, [ESI+8];
                 add ESI, 16;
@@ -2215,32 +2048,6 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, ESI;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov ESI, aptr;
-                mov EDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [ESI];
-                mov ECX, [ESI+4];
-                add ESI, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [ESI  -8], EBX;
-                mov [ESI+4-8], ECX;
-                cmp ESI, EDI;
-                jb start386;
-
                 mov aptr, ESI;
             }
         }
@@ -2261,7 +2068,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2u:
+                  startaddsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM1, [RSI+16];
                     add RSI, 32;
@@ -2285,7 +2092,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                     pshufd XMM2, XMM2, 0;
 
                     align 4;
-                startaddsse2a:
+                  startaddsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM1, [RSI+16];
                     add RSI, 32;
@@ -2313,7 +2120,7 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 movq MM2, l;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM1, [RSI+8];
                 add RSI, 16;
@@ -2325,32 +2132,6 @@ T[] _arrayExpSliceMinass_i(T[] a, T value)
                 jb startmmx;
 
                 emms;
-                mov aptr, RSI;
-            }
-        }
-        else
-        if (a.length >= 2)
-        {
-            auto n = aptr + (a.length & ~1);
-
-            asm
-            {
-                mov RSI, aptr;
-                mov RDI, n;
-                mov EDX, value;
-
-                align 4;
-            start386:
-                mov EBX, [RSI];
-                mov ECX, [RSI+4];
-                add RSI, 8;
-                sub EBX, EDX;
-                sub ECX, EDX;
-                mov [RSI  -8], EBX;
-                mov [RSI+4-8], ECX;
-                cmp RSI, RDI;
-                jb start386;
-
                 mov aptr, RSI;
             }
         }
@@ -2446,7 +2227,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     movdqu XMM0, [ESI];
                     movdqu XMM2, [ECX];
                     movdqu XMM1, [ESI+16];
@@ -2473,7 +2254,7 @@ body
                     mov ECX, bptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     movdqa XMM0, [ESI];
                     movdqa XMM2, [ECX];
                     movdqa XMM1, [ESI+16];
@@ -2492,9 +2273,8 @@ body
                 }
             }
         }
-        else
         // MMX version is 441% faster
-        if (mmx && a.length >= 4)
+        else if (mmx && a.length >= 4)
         {
             auto n = aptr + (a.length & ~3);
 
@@ -2505,7 +2285,7 @@ body
                 mov ECX, bptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [ESI];
                 movq MM2, [ECX];
                 movq MM1, [ESI+8];
@@ -2540,7 +2320,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-                startsse2u:
+                  startsse2u:
                     movdqu XMM0, [RSI];
                     movdqu XMM2, [RCX];
                     movdqu XMM1, [RSI+16];
@@ -2567,7 +2347,7 @@ body
                     mov RCX, bptr;
 
                     align 4;
-                startsse2a:
+                  startsse2a:
                     movdqa XMM0, [RSI];
                     movdqa XMM2, [RCX];
                     movdqa XMM1, [RSI+16];
@@ -2597,7 +2377,7 @@ body
                 mov RCX, bptr;
 
                 align 4;
-            startmmx:
+              startmmx:
                 movq MM0, [RSI];
                 movq MM2, [RCX];
                 movq MM1, [RSI+8];
@@ -2700,7 +2480,7 @@ body
         if (sse41)
         {
             auto aligned = ((cast(size_t) aptr | cast(size_t) bptr) & 15) == 0;
- 
+
             if (a.length >= 8)
             {
                 auto n = aptr + (a.length & ~7);
@@ -2714,9 +2494,9 @@ body
                         mov EAX, bptr;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         add ESI, 32;
                         movdqu XMM0, [EAX];
                         movdqu XMM1, [EAX+16];
@@ -2727,7 +2507,7 @@ body
                         movdqu [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41u;
-    
+
                         mov aptr, ESI;
                         mov bptr, EAX;
                     }
@@ -2741,9 +2521,9 @@ body
                         mov EAX, bptr;
                         movd XMM1, value;
                         pshufd XMM2, XMM1, 0;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         add ESI, 32;
                         movdqa XMM0, [EAX];
                         movdqa XMM1, [EAX+16];
@@ -2754,7 +2534,7 @@ body
                         movdqa [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41a;
-    
+
                         mov aptr, ESI;
                         mov bptr, EAX;
                     }
@@ -2810,7 +2590,7 @@ body
         if (sse41)
         {
             auto aligned = ((cast(size_t) aptr | cast(size_t) bptr) & 15) == 0;
- 
+
             if (a.length >= 8)
             {
                 auto n = aptr + (a.length & ~7);
@@ -2824,9 +2604,9 @@ body
                         mov RAX, bptr;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         add RSI, 32;
                         movdqu XMM0, [RAX];
                         movdqu XMM1, [RAX+16];
@@ -2837,7 +2617,7 @@ body
                         movdqu [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41u;
-    
+
                         mov aptr, RSI;
                         mov bptr, RAX;
                     }
@@ -2851,9 +2631,9 @@ body
                         mov RAX, bptr;
                         movd XMM1, value;
                         pshufd XMM2, XMM1, 0;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         add RSI, 32;
                         movdqa XMM0, [RAX];
                         movdqa XMM1, [RAX+16];
@@ -2864,7 +2644,7 @@ body
                         movdqa [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41a;
-    
+
                         mov aptr, RSI;
                         mov bptr, RAX;
                     }
@@ -2873,8 +2653,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                //possibly slow. needs measuring.
-                {
+                {//possibly slow, needs measuring
                     asm
                     {
                         mov RSI, aptr;
@@ -2937,17 +2716,17 @@ unittest
                 b = b[j .. dim + j];        // misalign for second iteration
                 T[] c = new T[dim + j];
                 c = c[j .. dim + j];
-    
+
                 for (int i = 0; i < dim; i++)
                 {
                     b[i] = cast(T)(i-3);
                     c[i] = cast(T)((i-10) * 2);
                 }
-    
+
                 c[] = b[] * 6;
                 for (int i = 0; i < dim; i++)
                 {
-              //printf("[%d]: %d ?= %d * 6\n", i, c[i], b[i]);
+                    //printf("[%d]: %d ?= %d * 6\n", i, c[i], b[i]);
                     if (c[i] != cast(T)(b[i] * 6))
                     {
                         printf("[%d]: %d != %d * 6\n", i, c[i], b[i]);
@@ -2979,9 +2758,9 @@ T[] _arraySliceSliceMulSliceAssign_k(T[] a, T[] c, T[] b)
 T[] _arraySliceSliceMulSliceAssign_i(T[] a, T[] c, T[] b)
 in
 {
-        assert(a.length == b.length && b.length == c.length);
-        assert(disjoint(a, b));
-        assert(disjoint(a, c));
+    assert(a.length == b.length && b.length == c.length);
+    assert(disjoint(a, b));
+    assert(disjoint(a, c));
 }
 body
 {
@@ -3011,7 +2790,7 @@ body
                         mov ECX, cptr;
 
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         add ESI, 32;
                         movdqu XMM0, [EAX];
                         movdqu XMM2, [ECX];
@@ -3039,9 +2818,9 @@ body
                         mov EDI, n;
                         mov EAX, bptr;
                         mov ECX, cptr;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         add ESI, 32;
                         movdqa XMM0, [EAX];
                         movdqa XMM2, [ECX];
@@ -3065,8 +2844,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                //possibly not a good idea. Performance?
-                {
+                {//possibly not a good idea. Performance?
                     asm
                     {
                         mov ESI, aptr;
@@ -3081,7 +2859,7 @@ body
                         add ESI, 16;
                         add EAX, 16;
                         add ECX, 16;
-    
+
                         mov aptr, ESI;
                         mov bptr, EAX;
                         mov cptr, ECX;
@@ -3103,7 +2881,7 @@ body
                         add ESI, 16;
                         add EAX, 16;
                         add ECX, 16;
-    
+
                         mov aptr, ESI;
                         mov bptr, EAX;
                         mov cptr, ECX;
@@ -3132,7 +2910,7 @@ body
                         mov RCX, cptr;
 
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         add RSI, 32;
                         movdqu XMM0, [RAX];
                         movdqu XMM2, [RCX];
@@ -3160,9 +2938,9 @@ body
                         mov RDI, n;
                         mov RAX, bptr;
                         mov RCX, cptr;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         add RSI, 32;
                         movdqa XMM0, [RAX];
                         movdqa XMM2, [RCX];
@@ -3186,8 +2964,7 @@ body
             else if (a.length >= 4)
             {
                 if (!aligned)
-                //possibly not a good idea. Performance?
-                {
+                {//possibly not a good idea. Performance?
                     asm
                     {
                         mov RSI, aptr;
@@ -3202,7 +2979,7 @@ body
                         add RSI, 16;
                         add RAX, 16;
                         add RCX, 16;
-    
+
                         mov aptr, RSI;
                         mov bptr, RAX;
                         mov cptr, RCX;
@@ -3224,7 +3001,7 @@ body
                         add RSI, 16;
                         add RAX, 16;
                         add RCX, 16;
-    
+
                         mov aptr, RSI;
                         mov bptr, RAX;
                         mov cptr, RCX;
@@ -3258,16 +3035,16 @@ unittest
                 b = b[j .. dim + j];
                 T[] c = new T[dim + j];
                 c = c[j .. dim + j];
-    
+
                 for (int i = 0; i < dim; i++)
                 {
                     a[i] = cast(T)(i-10);
                     b[i] = cast(T)(i-3);
                     c[i] = cast(T)((i-10) * 2);
                 }
-    
+
                 c[] = a[] * b[];
-    
+
                 for (int i = 0; i < dim; i++)
                 {
                     if (c[i] != cast(T)(a[i] * b[i]))
@@ -3314,7 +3091,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
             if (a.length >= 8)
             {
                 auto n = aptr + (a.length & ~7);
-    
+
                 if (!aligned)
                 {
                     asm
@@ -3323,9 +3100,9 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov EDI, n;
                         movd XMM2,value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         movdqu XMM0, [ESI];
                         movdqu XMM1, [ESI+16];
                         add ESI, 32;
@@ -3335,7 +3112,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         movdqu [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41u;
-    
+
                         mov aptr, ESI;
                     }
                 }
@@ -3347,9 +3124,9 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov EDI, n;
                         movd XMM2,value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         movdqa XMM0, [ESI];
                         movdqa XMM1, [ESI+16];
                         add ESI, 32;
@@ -3359,7 +3136,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         movdqa [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41a;
-    
+
                         mov aptr, ESI;
                     }
                 }
@@ -3373,12 +3150,12 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov ESI, aptr;
                         movd XMM2,value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         movdqu XMM0, [ESI];
                         pmulld XMM0, XMM2;
                         movdqu [ESI], XMM0;
 
-                        add ESI, 16;    
+                        add ESI, 16;
                         mov aptr, ESI;
                     }
                 }
@@ -3389,12 +3166,12 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov ESI, aptr;
                         movd XMM2,value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         movdqa XMM0, [ESI];
                         pmulld XMM0, XMM2;
                         movdqa [ESI], XMM0;
 
-                        add ESI, 16;    
+                        add ESI, 16;
                         mov aptr, ESI;
                     }
                 }
@@ -3410,7 +3187,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
             if (a.length >= 8)
             {
                 auto n = aptr + (a.length & ~7);
-    
+
                 if (!aligned)
                 {
                     asm
@@ -3419,9 +3196,9 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov RDI, n;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         movdqu XMM0, [RSI];
                         movdqu XMM1, [RSI+16];
                         add RSI, 32;
@@ -3431,7 +3208,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         movdqu [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41u;
-    
+
                         mov aptr, RSI;
                     }
                 }
@@ -3443,9 +3220,9 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov RDI, n;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         movdqa XMM0, [RSI];
                         movdqa XMM1, [RSI+16];
                         add RSI, 32;
@@ -3455,7 +3232,7 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         movdqa [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41a;
-    
+
                         mov aptr, RSI;
                     }
                 }
@@ -3469,12 +3246,12 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov RSI, aptr;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         movdqu XMM0, [RSI];
                         pmulld XMM0, XMM2;
                         movdqu [RSI], XMM0;
 
-                        add RSI, 16;    
+                        add RSI, 16;
                         mov aptr, RSI;
                     }
                 }
@@ -3485,12 +3262,12 @@ T[] _arrayExpSliceMulass_i(T[] a, T value)
                         mov RSI, aptr;
                         movd XMM2, value;
                         pshufd XMM2, XMM2, 0;
-    
+
                         movdqa XMM0, [RSI];
                         pmulld XMM0, XMM2;
                         movdqa [RSI], XMM0;
 
-                        add RSI, 16;    
+                        add RSI, 16;
                         mov aptr, RSI;
                     }
                 }
@@ -3520,19 +3297,19 @@ unittest
                 a = a[j .. dim + j];        // misalign for second iteration
                 T[] b = new T[dim + j];
                 b = b[j .. dim + j];
-    
+
                 for (int i = 0; i < dim; i++)
                 {
                     a[i] = cast(T)(i-10);
                     b[i] = cast(T)(i-3);
                 }
-    
+
                 b[] = a[];
                 a[] *= 6;
-        
+
                 for (int i = 0; i < dim; i++)
                 {
-                   if (a[i] != cast(T)(b[i] * 6))
+                    if (a[i] != cast(T)(b[i] * 6))
                     {
                         printf("[%d]: %d != %d * 6\n", i, a[i], b[i]);
                         assert(0);
@@ -3591,9 +3368,9 @@ body
                         mov ESI, aptr;
                         mov EDI, n;
                         mov ECX, bptr;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         movdqu XMM0, [ESI];
                         movdqu XMM2, [ECX];
                         movdqu XMM1, [ESI+16];
@@ -3606,7 +3383,7 @@ body
                         movdqu [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41u;
-    
+
                         mov aptr, ESI;
                         mov bptr, ECX;
                     }
@@ -3618,9 +3395,9 @@ body
                         mov ESI, aptr;
                         mov EDI, n;
                         mov ECX, bptr;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         movdqa XMM0, [ESI];
                         movdqa XMM2, [ECX];
                         movdqa XMM1, [ESI+16];
@@ -3633,10 +3410,10 @@ body
                         movdqa [ESI+16-32], XMM1;
                         cmp ESI, EDI;
                         jb startsse41a;
-    
+
                         mov aptr, ESI;
                         mov bptr, ECX;
-                   }
+                    }
                 }
             }
             else if (a.length >= 4)
@@ -3653,10 +3430,10 @@ body
 
                         pmulld XMM0, XMM2;
                         movdqu [ESI], XMM0;
-                        
+
                         add ESI, 16;
                         add ECX, 16;
-    
+
                         mov aptr, ESI;
                         mov bptr, ECX;
                     }
@@ -3673,10 +3450,10 @@ body
 
                         pmulld XMM0, XMM2;
                         movdqa [ESI], XMM0;
-                        
+
                         add ESI, 16;
                         add ECX, 16;
-    
+
                         mov aptr, ESI;
                         mov bptr, ECX;
                     }
@@ -3701,9 +3478,9 @@ body
                         mov RSI, aptr;
                         mov RDI, n;
                         mov RCX, bptr;
-    
+
                         align 4;
-                    startsse41u:
+                      startsse41u:
                         movdqu XMM0, [RSI];
                         movdqu XMM2, [RCX];
                         movdqu XMM1, [RSI+16];
@@ -3716,7 +3493,7 @@ body
                         movdqu [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41u;
-    
+
                         mov aptr, RSI;
                         mov bptr, RCX;
                     }
@@ -3728,9 +3505,9 @@ body
                         mov RSI, aptr;
                         mov RDI, n;
                         mov RCX, bptr;
-    
+
                         align 4;
-                    startsse41a:
+                      startsse41a:
                         movdqa XMM0, [RSI];
                         movdqa XMM2, [RCX];
                         movdqa XMM1, [RSI+16];
@@ -3743,10 +3520,10 @@ body
                         movdqa [RSI+16-32], XMM1;
                         cmp RSI, RDI;
                         jb startsse41a;
-    
+
                         mov aptr, RSI;
                         mov bptr, RCX;
-                   }
+                    }
                 }
             }
             else if (a.length >= 4)
@@ -3763,10 +3540,10 @@ body
 
                         pmulld XMM0, XMM2;
                         movdqu [RSI], XMM0;
-                        
+
                         add RSI, 16;
                         add RCX, 16;
-    
+
                         mov aptr, RSI;
                         mov bptr, RCX;
                     }
@@ -3783,16 +3560,16 @@ body
 
                         pmulld XMM0, XMM2;
                         movdqa [RSI], XMM0;
-                        
+
                         add RSI, 16;
                         add RCX, 16;
-    
+
                         mov aptr, RSI;
                         mov bptr, RCX;
                     }
                 }
             }
-        } 
+        }
     }
     while (aptr < aend)
         *aptr++ *= *bptr++;
@@ -3818,17 +3595,17 @@ unittest
                 b = b[j .. dim + j];
                 T[] c = new T[dim + j];
                 c = c[j .. dim + j];
-            
+
                 for (int i = 0; i < dim; i++)
                 {
                     a[i] = cast(T)(i-10);
                     b[i] = cast(T)(i-3);
                     c[i] = cast(T)((i-10) * 2);
                 }
-    
+
                 b[] = a[];
                 a[] *= c[];
-    
+
                 for (int i = 0; i < dim; i++)
                 {
                     if (a[i] != cast(T)(b[i] * c[i]))
