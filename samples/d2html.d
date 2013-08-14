@@ -1,4 +1,3 @@
-
 /*
  * Copyright (c) 2001
  * Pavel "EvilOne" Minayev
@@ -17,6 +16,7 @@ import std.c.stdio;
 import std.conv;
 import std.string;
 import std.stream;    //   don't forget to link with stream.obj!
+import std.ascii;
 
 // colors for syntax highlighting, default values are
 // my preferences in Microsoft Visual Studio editor
@@ -54,13 +54,13 @@ byte isdigit(char c)
 // true if c is a hexadecimal digit, false otherwise
 byte ishexdigit(char c)
 {
-    return indexOf(hexdigits, c) >= 0;
+    return indexOf(hexDigits, c) >= 0;
 }
 
 // true if c is an octal digit, false otherwise
 byte isoctdigit(char c)
 {
-    return indexOf(octdigits, c) >= 0;
+    return indexOf(octalDigits, c) >= 0;
 }
 
 // true if c is legal D symbol other than above, false otherwise
