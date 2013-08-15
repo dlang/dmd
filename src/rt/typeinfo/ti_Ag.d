@@ -186,3 +186,14 @@ class TypeInfo_Aya : TypeInfo_Aa
     }
 }
 
+// const(char)[]
+
+class TypeInfo_Axa : TypeInfo_Aa
+{
+    override string toString() const { return "const(char)[]"; }
+
+    override @property inout(TypeInfo) next() inout
+    {
+        return cast(inout)typeid(const(char));
+    }
+}
