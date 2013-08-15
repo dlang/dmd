@@ -172,7 +172,6 @@ MANIFEST=\
 	src\rt\deh_win64_posix.d \
 	src\rt\dmain2.d \
 	src\rt\dylib_fixes.c \
-	src\rt\entrypoint.d \
 	src\rt\image.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \

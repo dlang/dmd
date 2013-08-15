@@ -85,7 +85,6 @@ SRCS=\
 	src\rt\deh_win32.d \
 	src\rt\deh_win64_posix.d \
 	src\rt\dmain2.d \
-	src\rt\entrypoint.d \
 	src\rt\invariant.d \
 	src\rt\lifetime.d \
 	src\rt\llmath.d \
