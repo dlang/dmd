@@ -7973,11 +7973,11 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         exps->reserve(sym->fields.dim);
 
         Expression *e0 = NULL;
-        Expression *ev = e;
-        if (sc->func && e->hasSideEffect())
+        Expression *ev = e->op == TOKtype ? NULL : e;
+        if (sc->func && ev && ev->hasSideEffect())
         {
             Identifier *id = Lexer::uniqueId("__tup");
-            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
             vd->storage_class |= STCctfe | STCref | STCforeach;
 
@@ -7987,7 +7987,15 @@ Expression *TypeStruct::dotExp(Scope *sc, Expression *e, Identifier *ident, int 
         for (size_t i = 0; i < sym->fields.dim; i++)
         {
             VarDeclaration *v = sym->fields[i];
-            exps->push(new DotVarExp(ev->loc, ev, v));
+            Expression *ex;
+            if (ev)
+                ex = new DotVarExp(e->loc, ev, v);
+            else
+            {
+                ex = new VarExp(e->loc, v);
+                ex->type = ex->type->addMod(e->type->mod);
+            }
+            exps->push(ex);
         }
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
@@ -8518,11 +8526,11 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
         exps->reserve(sym->fields.dim);
 
         Expression *e0 = NULL;
-        Expression *ev = e;
-        if (sc->func && e->hasSideEffect())
+        Expression *ev = e->op == TOKtype ? NULL : e;
+        if (sc->func && ev && ev->hasSideEffect())
         {
             Identifier *id = Lexer::uniqueId("__tup");
-            ExpInitializer *ei = new ExpInitializer(e->loc, e);
+            ExpInitializer *ei = new ExpInitializer(e->loc, ev);
             VarDeclaration *vd = new VarDeclaration(e->loc, NULL, id, ei);
             vd->storage_class |= STCctfe | STCref | STCforeach;
 
@@ -8535,7 +8543,15 @@ Expression *TypeClass::dotExp(Scope *sc, Expression *e, Identifier *ident, int f
             // Don't include hidden 'this' pointer
             if (v->isThisDeclaration())
                 continue;
-            exps->push(new DotVarExp(ev->loc, ev, v));
+            Expression *ex;
+            if (ev)
+                ex = new DotVarExp(e->loc, ev, v);
+            else
+            {
+                ex = new VarExp(e->loc, v);
+                ex->type = ex->type->addMod(e->type->mod);
+            }
+            exps->push(ex);
         }
         e = new TupleExp(e->loc, e0, exps);
         Scope *sc2 = sc->push();
