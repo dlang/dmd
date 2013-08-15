@@ -465,6 +465,7 @@ public:
             @property bool empty() { return _aaRangeEmpty(r); }
             @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
             void popFront() { _aaRangePopFront(r); }
+            Result save() { return this; }
         }
 
         return Result(_aaRange(p));
@@ -479,6 +480,7 @@ public:
             @property bool empty() { return _aaRangeEmpty(r); }
             @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
             void popFront() { _aaRangePopFront(r); }
+            Result save() { return this; }
         }
 
         return Result(_aaRange(p));

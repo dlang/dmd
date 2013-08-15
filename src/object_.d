@@ -2019,6 +2019,7 @@ public:
             @property bool empty() { return _aaRangeEmpty(r); }
             @property ref Key front() { return *cast(Key*)_aaRangeFrontKey(r); }
             void popFront() { _aaRangePopFront(r); }
+            Result save() { return this; }
         }
 
         return Result(_aaRange(p));
@@ -2033,6 +2034,7 @@ public:
             @property bool empty() { return _aaRangeEmpty(r); }
             @property ref Value front() { return *cast(Value*)_aaRangeFrontValue(r); }
             void popFront() { _aaRangePopFront(r); }
+            Result save() { return this; }
         }
 
         return Result(_aaRange(p));
@@ -2128,6 +2130,87 @@ unittest
     test.remove("test1");
     test.rehash;
     test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
+}
+
+unittest
+{
+    string[] keys = ["a", "b", "c", "d", "e", "f"];
+
+    // Test forward range capabilities of byKey
+    {
+        int[string] aa;
+        foreach (key; keys)
+            aa[key] = 0;
+
+        auto keyRange = aa.byKey();
+        auto savedKeyRange = keyRange.save;
+
+        // Consume key range once
+        size_t keyCount = 0;
+        while (!keyRange.empty)
+        {
+            aa[keyRange.front]++;
+            keyCount++;
+            keyRange.popFront();
+        }
+
+        foreach (key; keys)
+        {
+            assert(aa[key] == 1);
+        }
+        assert(keyCount == keys.length);
+
+        // Verify it's possible to iterate the range the second time
+        keyCount = 0;
+        while (!savedKeyRange.empty())
+        {
+            aa[savedKeyRange.front]++;
+            keyCount++;
+            savedKeyRange.popFront();
+        }
+
+        foreach (key; keys)
+        {
+            assert(aa[key] == 2);
+        }
+        assert(keyCount == keys.length);
+    }
+
+    // Test forward range capabilities of byValue
+    {
+        size_t[string] aa;
+        foreach (i; 0 .. keys.length)
+        {
+            aa[keys[i]] = i;
+        }
+
+        auto valRange = aa.byValue();
+        auto savedValRange = valRange.save;
+
+        // Consume value range once
+        int[] hasSeen;
+        hasSeen.length = keys.length;
+        while (!valRange.empty)
+        {
+            assert(hasSeen[valRange.front] == 0);
+            hasSeen[valRange.front]++;
+            valRange.popFront();
+        }
+
+        foreach (sawValue; hasSeen) { assert(sawValue == 1); }
+
+        // Verify it's possible to iterate the range the second time
+        hasSeen = null;
+        hasSeen.length = keys.length;
+        while (!savedValRange.empty)
+        {
+            assert(!hasSeen[savedValRange.front]);
+            hasSeen[savedValRange.front] = true;
+            savedValRange.popFront();
+        }
+
+        foreach (sawValue; hasSeen) { assert(sawValue); }
+    }
 }
 
 unittest
