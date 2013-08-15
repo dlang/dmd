@@ -790,7 +790,8 @@ int TypeDArray::builtinTypeInfo()
 #if DMDV2
     return !mod && (next->isTypeBasic() != NULL && !next->mod ||
         // strings are so common, make them builtin
-        next->ty == Tchar && next->mod == MODimmutable);
+        next->ty == Tchar && next->mod == MODimmutable ||
+        next->ty == Tchar && next->mod == MODconst);
 #else
     return next->isTypeBasic() != NULL;
 #endif
