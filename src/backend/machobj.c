@@ -2148,6 +2148,7 @@ int Obj::external(Symbol *s)
     symbol_debug(s);
     extern_symbuf->write(&s, sizeof(s));
     s->Sxtrnnum = 1;
+    return 0;
 }
 
 /*******************************

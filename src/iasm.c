@@ -3981,6 +3981,8 @@ STATIC OPND *asm_rel_exp()
                         case TOKle:
                             o1->disp = o1->disp <= o2->disp;
                             break;
+                        default:
+                            assert(0);
                     }
                 }
                 else
@@ -4562,6 +4564,9 @@ STATIC OPND *asm_primary_exp()
                 o1->s = asmstate.psLocalsize;
                 o1->ptype = Type::tint32;
                 asm_token();
+                break;
+
+             default:
                 break;
         }
 Lret:

@@ -2163,8 +2163,8 @@ STATIC code * comsub(elem *e,regm_t *pretregs)
     //printf("comsub(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
     elem_debug(e);
 #ifdef DEBUG
-    if (e->Ecomsub > e->Ecount)
-        elem_print(e);
+    //if (e->Ecomsub > e->Ecount)
+        //elem_print(e);
 #endif
     assert(e->Ecomsub <= e->Ecount);
 
@@ -2201,7 +2201,7 @@ if (debugw)
 {
 printf("comsub(e=%p): *pretregs=%s, emask=%s, csemask=%s, regcon.cse.mval=%s, regcon.mvar=%s\n",
         e,regm_str(*pretregs),regm_str(emask),regm_str(csemask),regm_str(regcon.cse.mval),regm_str(regcon.mvar));
-if (regcon.cse.mval & 1) elem_print(regcon.cse.value[i]);
+if (regcon.cse.mval & 1) elem_print(regcon.cse.value[0]);
 }
 #endif
 

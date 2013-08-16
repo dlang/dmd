@@ -1932,7 +1932,7 @@ Expression *Expression::copy()
     }
     e = (Expression *)mem.malloc(size);
     //printf("Expression::copy(op = %d) e = %p\n", op, e);
-    return (Expression *)memcpy(e, this, size);
+    return (Expression *)memcpy((void*)e, (void*)this, size);
 }
 
 /**************************
