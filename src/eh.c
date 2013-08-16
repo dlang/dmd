@@ -302,8 +302,8 @@ void except_fillInEHTable(symbol *s)
                     {
                         n++;
                     }
-                    else
-                        eoffset += calccodsize(c2);
+                    //else
+                        //eoffset += calccodsize(c2); // issue 10723
                 }
                 //printf("boffset = %x, eoffset = %x, foffset = %x\n", boffset, eoffset, foffset);
                 pdt = dtdword(pdt,stack[stacki - 1]);   // parent index

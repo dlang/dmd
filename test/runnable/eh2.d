@@ -59,6 +59,39 @@ void b9438()
     catch (Exception e){ }
 }
 
+struct File
+{
+    private struct Impl
+    {
+        uint refs = uint.max / 2;
+    }
+    private Impl* _p;
+    private string _name;
+
+    this(string name, in char[] stdioOpenmode = "rb")
+    {
+       _p = new Impl();
+       _p.refs = 1;
+       throw new Exception(name);
+    }
+
+    ~this() {
+        assert(_p.refs);
+        --_p.refs;
+        _p = null;
+    }
+
+    int byLine() {
+        return 0;
+    }
+}
+
+void b10723() {
+    try {
+        int f = File("It's OK").byLine();
+    } catch(Exception e) { }
+}
+
 int main()
 {
     printf("hello world\n");
@@ -81,5 +114,6 @@ int main()
     }
     printf("Success!\n");
     b9438();
+    b10723();
     return 0;
 }
