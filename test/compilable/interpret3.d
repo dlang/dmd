@@ -5496,6 +5496,57 @@ Bug10579 uninitialized10579;
 
 static assert(!is(typeof(compiles!(uninitialized10579.foo()))));
 
+/**************************************************
+    10804 mixin ArrayLiteralExp typed string
+**************************************************/
+
+void test10804()
+{
+    String identity(String)(String a) { return a; }
+
+    string cfun()
+    {
+        char[] s;
+        s.length = 8 + 2 + (2) + 1 + 2;
+        s[] = "identity(`Ω`c)"c[];
+        return cast(string)s;   // Return ArrayLiteralExp as the CTFE result
+    }
+    {
+        enum a1 = "identity(`Ω`c)"c;
+        enum a2 = cfun();
+        static assert(cast(ubyte[])mixin(a1) == [0xCE, 0xA9]);
+        static assert(cast(ubyte[])mixin(a2) == [0xCE, 0xA9]);  // should pass
+    }
+
+    wstring wfun()
+    {
+        wchar[] s;
+        s.length = 8 + 2 + (2) + 1 + 2;
+        s[] = "identity(`\U0002083A`w)"w[];
+        return cast(wstring)s;  // Return ArrayLiteralExp as the CTFE result
+    }
+    {
+        enum a1 = "identity(`\U0002083A`w)"w;
+        enum a2 = wfun();
+        static assert(cast(ushort[])mixin(a1) == [0xD842, 0xDC3A]);
+        static assert(cast(ushort[])mixin(a2) == [0xD842, 0xDC3A]);
+    }
+
+    dstring dfun()
+    {
+        dchar[] s;
+        s.length = 8 + 2 + (1) + 1 + 2;
+        s[] = "identity(`\U00101000`d)"d[];
+        return cast(dstring)s;  // Return ArrayLiteralExp as the CTFE result
+    }
+    {
+        enum a1 = "identity(`\U00101000`d)"d;
+        enum a2 = dfun();
+        static assert(cast(uint[])mixin(a1) == [0x00101000]);
+        static assert(cast(uint[])mixin(a2) == [0x00101000]);
+    }
+}
+
 /******************************************************/
 
 struct B73 {}
