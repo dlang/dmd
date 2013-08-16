@@ -886,8 +886,8 @@ restart:
             if (dfo[i]->Belem)
             {   // If there is any hope of making an improvement
                 if (domexit || l->Llis)
-                {   if (dfo[i] != l->Lhead)
-                        ; //domexit |= 2;
+                {   //if (dfo[i] != l->Lhead)
+                        //domexit |= 2;
                     movelis(dfo[i]->Belem, dfo[i], l, &domexit);
                 }
             }

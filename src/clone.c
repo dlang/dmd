@@ -715,7 +715,7 @@ FuncDeclaration *StructDeclaration::buildCpCtor(Scope *sc)
 
     stc = mergeFuncAttrs(stc, postblit->storage_class);
     if (stc & STCsafe)  // change to @trusted for unsafe casts
-        stc = stc & ~STCsafe | STCtrusted;
+        stc = (stc & ~STCsafe) | STCtrusted;
 
     Parameters *fparams = new Parameters;
     fparams->push(new Parameter(STCref, type->constOf(), Id::p, NULL));

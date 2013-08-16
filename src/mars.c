@@ -1541,14 +1541,14 @@ Language changes listed by -transition=id:\n\
     if (global.params.moduleDeps)
     {
         OutBuffer* ob = global.params.moduleDeps;
-        if (global.params.moduleDepsFile) 
+        if (global.params.moduleDepsFile)
         {
             File deps(global.params.moduleDepsFile);
             deps.setbuffer((void*)ob->data, ob->offset);
             deps.writev();
         }
         else
-            printf("%.*s", ob->offset, ob->data);
+            printf("%.*s", (int)ob->offset, ob->data);
     }
 
     // Scan for functions to inline

@@ -55,6 +55,9 @@ void util_assert(const char *file, int line)
     fflush(stdout);
     printf("Internal error: %s %d\n",file,line);
     err_exit();
+#if __clang__
+    __builtin_unreachable();
+#endif
 }
 
 /****************************
