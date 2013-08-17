@@ -2120,6 +2120,16 @@ unittest
     static assert(!is(aa.nonExistingField));
 }
 
+unittest
+{
+    // bug 5842
+    string[string] test = null;
+    test["test1"] = "test1";
+    test.remove("test1");
+    test.rehash;
+    test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
+}
+
 deprecated("Please use destroy instead of clear.")
 alias destroy clear;
 
