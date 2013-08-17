@@ -269,6 +269,7 @@ struct Global
     unsigned warnings;     // number of warnings reported so far
     unsigned gag;          // !=0 means gag reporting of errors & warnings
     unsigned gaggedErrors; // number of errors reported while gagged
+    FILE *stdmsg;          // where to send verbose messages
 
     /* Gagging can either be speculative (is(typeof()), etc)
      * or because of forward references

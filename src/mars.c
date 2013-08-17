@@ -110,6 +110,7 @@ void Global::init()
     ;
 
     compiler.vendor = "Digital Mars D";
+    stdmsg = stdout;
 
     main_d = "__main.d";
 
@@ -975,9 +976,9 @@ Language changes listed by -transition=id:\n\
     initPrecedence();
 
     if (global.params.verbose)
-    {   printf("binary    %s\n", argv[0]);
-        printf("version   %s\n", global.version);
-        printf("config    %s\n", inifilename ? inifilename : "(none)");
+    {   fprintf(global.stdmsg, "binary    %s\n", argv[0]);
+        fprintf(global.stdmsg, "version   %s\n", global.version);
+        fprintf(global.stdmsg, "config    %s\n", inifilename ? inifilename : "(none)");
     }
 
     //printf("%d source files\n",files.dim);
@@ -1191,7 +1192,7 @@ Language changes listed by -transition=id:\n\
     {
         m = modules[modi];
         if (global.params.verbose)
-            printf("parse     %s\n", m->toChars());
+            fprintf(global.stdmsg, "parse     %s\n", m->toChars());
         if (!Module::rootModule)
             Module::rootModule = m;
         m->importedFrom = m;
@@ -1251,7 +1252,7 @@ Language changes listed by -transition=id:\n\
         {
             m = modules[i];
             if (global.params.verbose)
-                printf("import    %s\n", m->toChars());
+                fprintf(global.stdmsg, "import    %s\n", m->toChars());
             m->genhdrfile();
         }
     }
@@ -1263,7 +1264,7 @@ Language changes listed by -transition=id:\n\
     {
        m = modules[i];
        if (global.params.verbose)
-           printf("importall %s\n", m->toChars());
+           fprintf(global.stdmsg, "importall %s\n", m->toChars());
        m->importAll(NULL);
     }
     if (global.errors)
@@ -1276,7 +1277,7 @@ Language changes listed by -transition=id:\n\
     {
         m = modules[i];
         if (global.params.verbose)
-            printf("semantic  %s\n", m->toChars());
+            fprintf(global.stdmsg, "semantic  %s\n", m->toChars());
         m->semantic();
     }
     if (global.errors)
@@ -1290,7 +1291,7 @@ Language changes listed by -transition=id:\n\
     {
         m = modules[i];
         if (global.params.verbose)
-            printf("semantic2 %s\n", m->toChars());
+            fprintf(global.stdmsg, "semantic2 %s\n", m->toChars());
         m->semantic2();
     }
     if (global.errors)
@@ -1301,7 +1302,7 @@ Language changes listed by -transition=id:\n\
     {
         m = modules[i];
         if (global.params.verbose)
-            printf("semantic3 %s\n", m->toChars());
+            fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
         m->semantic3();
     }
     Module::runDeferredSemantic3();
@@ -1324,7 +1325,7 @@ Language changes listed by -transition=id:\n\
             {
                 m = Module::amodules[i];
                 if (global.params.verbose)
-                    printf("semantic3 %s\n", m->toChars());
+                    fprintf(global.stdmsg, "semantic3 %s\n", m->toChars());
                 m->semantic3();
             }
             if (global.errors)
@@ -1352,7 +1353,7 @@ Language changes listed by -transition=id:\n\
         {
             m = modules[i];
             if (global.params.verbose)
-                printf("inline scan %s\n", m->toChars());
+                fprintf(global.stdmsg, "inline scan %s\n", m->toChars());
             m->inlineScan();
         }
     }
@@ -1431,7 +1432,7 @@ Language changes listed by -transition=id:\n\
         {
             m = modules[i];
             if (global.params.verbose)
-                printf("code      %s\n", m->toChars());
+                fprintf(global.stdmsg, "code      %s\n", m->toChars());
             if (i == 0)
                 obj_start(m->srcfile->toChars());
             m->genobjfile(0);
@@ -1449,7 +1450,7 @@ Language changes listed by -transition=id:\n\
         {
             m = modules[i];
             if (global.params.verbose)
-                printf("code      %s\n", m->toChars());
+                fprintf(global.stdmsg, "code      %s\n", m->toChars());
             if (global.params.obj)
             {   obj_start(m->srcfile->toChars());
                 m->genobjfile(global.params.multiobj);
