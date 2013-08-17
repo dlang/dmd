@@ -149,7 +149,7 @@ FRONTOBJ= enum.obj struct.obj dsymbol.obj import.obj id.obj \
 	interpret.obj ctfeexpr.obj traits.obj aliasthis.obj \
 	builtin.obj clone.obj arrayop.obj \
 	json.obj unittests.obj imphint.obj argtypes.obj apply.obj sapply.obj \
-	sideeffect.obj intrange.obj canthrow.obj target.obj
+	sideeffect.obj intrange.obj canthrow.obj target.obj errors.obj
 
 # Glue layer
 GLUEOBJ=glue.obj msc.obj s2ir.obj todt.obj e2ir.obj tocsym.obj \
@@ -196,7 +196,7 @@ SRCS= mars.c enum.c struct.c dsymbol.c import.c idgen.c impcnvgen.c utf.h \
 	clone.c lib.h arrayop.c \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c argtypes.c \
 	apply.c sapply.c sideeffect.c ctfe.h \
-	intrange.h intrange.c canthrow.c target.c target.h
+	intrange.h intrange.c canthrow.c target.c target.h errors.c
 
 # Glue layer
 GLUESRC= glue.c msc.c s2ir.c todt.c e2ir.c tocsym.c \
@@ -501,6 +501,9 @@ eh.obj : $C\cc.h $C\code.h $C\type.h $C\dt.h eh.c
 
 el.obj : $C\rtlsym.h $C\el.h $C\el.c
 	$(CC) -c $(MFLAGS) $C\el
+
+errors.obj : $(TOTALH) errors.c
+	$(CC) -c $(CFLAGS) -I$C $(PREC) errors.c
 
 evalu8.obj : $C\evalu8.c
 	$(CC) -c $(MFLAGS) $C\evalu8

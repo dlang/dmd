@@ -96,7 +96,7 @@ DMD_OBJS = \
 	type.o typinf.o util2.o var.o version.o strtold.o utf.o staticassert.o \
 	toobj.o toctype.o toelfdebug.o entity.o doc.o macro.o \
 	hdrgen.o delegatize.o aa.o ti_achar.o toir.o interpret.o traits.o \
-	builtin.o ctfeexpr.o clone.o aliasthis.o \
+	builtin.o ctfeexpr.o clone.o aliasthis.o errors.o \
 	man.o arrayop.o port.o response.o async.o json.o speller.o aav.o unittests.o \
 	imphint.o argtypes.o ti_pvoid.o apply.o sapply.o sideeffect.o \
 	intrange.o canthrow.o target.o \
@@ -129,7 +129,7 @@ SRC = win32.mak posix.mak \
 	aliasthis.h aliasthis.c json.h json.c unittests.c imphint.c \
 	argtypes.c apply.c sapply.c sideeffect.c \
 	intrange.h intrange.c canthrow.c target.c target.h \
-	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c \
+	scanmscoff.c scanomf.c ctfe.h ctfeexpr.c errors.c \
 	$C/cdef.h $C/cc.h $C/oper.h $C/ty.h $C/optabgen.c \
 	$C/global.h $C/code.h $C/type.h $C/dt.h $C/cgcv.h \
 	$C/el.h $C/iasm.h $C/rtlsym.h \
@@ -393,6 +393,9 @@ entity.o: entity.c
 	$(CC) -c $(CFLAGS) $<
 
 enum.o: enum.c
+	$(CC) -c $(CFLAGS) $<
+
+errors.o: errors.c
 	$(CC) -c $(CFLAGS) $<
 
 evalu8.o: $C/evalu8.c
@@ -683,6 +686,7 @@ gcov:
 	gcov eh.c
 	gcov entity.c
 	gcov enum.c
+	gcov errors.c
 	gcov expression.c
 	gcov func.c
 	gcov glue.c
