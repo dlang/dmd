@@ -9788,6 +9788,10 @@ Expression *CastExp::semantic(Scope *sc)
         if (e1->type->ty == Terror)
             return new ErrorExp();
 
+        // cast(void) is used to mark e1 as unused, so it is safe
+        if (to->ty == Tvoid)
+            goto Lsafe;
+
         if (!to->equals(e1->type))
         {
             Expression *e = op_overload(sc);

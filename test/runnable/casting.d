@@ -47,12 +47,34 @@ void test10646()
 }
 
 /***************************************************/
+// 10834
+
+void test10834()
+{
+    struct S { int i; }
+    S s;
+    cast(void)s;
+
+    class C { int i; }
+    C c;
+    cast(void)c;
+
+    enum E { a, b }
+    E e;
+    cast(void)e;
+
+    int[] ia;
+    cast(void)ia;
+}
+
+/***************************************************/
 
 int main()
 {
     test8119();
     test8645();
     test10646();
+    test10834();
 
     printf("Success\n");
     return 0;
