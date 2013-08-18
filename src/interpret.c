@@ -2788,7 +2788,16 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                 Dsymbol *s = c->fields[i];
                 VarDeclaration *v = s->isVarDeclaration();
                 assert(v);
-                Expression *m = v->init ? v->init->toExpression() : v->type->defaultInitLiteral(loc);
+                Expression *m;
+                if (v->init)
+                {
+                    if (v->init->isVoidInitializer())
+                        m = v->type->voidInitLiteral(v);
+                    else
+                        m = v->getConstInitializer(true);
+                }
+                else
+                    m = v->type->defaultInitLiteral(loc);
                 if (exceptionOrCantInterpret(m))
                     return m;
                 (*elems)[fieldsSoFar+i] = copyLiteral(m);
