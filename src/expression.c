@@ -1575,7 +1575,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             break;
     }
     if (wildmatch)
-    {   /* Calculate wild matching modifier
+    {
+        /* Calculate wild matching modifier
          */
         if (wildmatch & MODconst || wildmatch & (wildmatch - 1))
             wildmatch = MODconst;
@@ -1584,8 +1585,39 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
         else if (wildmatch & MODwild)
             wildmatch = MODwild;
         else
-        {   assert(wildmatch & MODmutable);
+        {
+            assert(wildmatch & MODmutable);
             wildmatch = MODmutable;
+        }
+
+        if ((wildmatch == MODmutable || wildmatch == MODimmutable) &&
+            tf->next->hasWild() &&
+            (tf->isref || !tf->next->implicitConvTo(tf->next->immutableOf())))
+        {
+            if (fd && fd->isNested())
+            {
+                FuncDeclaration *f = fd->toParent2()->isFuncDeclaration();
+                for (; f; f = f->toParent2()->isFuncDeclaration())
+                {
+                    /* If the called nested function may return the reference to
+                     * outer inout data, it should be rejected.
+                     *
+                     * void foo(ref inout(int) x) {
+                     *   ref inout(int) bar(inout(int)) { return x; }
+                     *   bar(int.init) = 1;  // bad!
+                     * }
+                     */
+                    if (((TypeFunction *)f->type)->iswild)
+                        goto Linouterr;
+                }
+            }
+            else if (!fd && tf->isWild())
+            {
+            Linouterr:
+                const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
+                error(loc, "modify inout to %s is not allowed inside inout function", s);
+                return Type::terror;
+            }
         }
     }
 

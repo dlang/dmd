@@ -307,7 +307,7 @@ public:
     virtual MATCH implicitConvTo(Type *to);
     virtual MATCH constConv(Type *to);
     virtual unsigned wildConvTo(Type *tprm);
-    Type *substWildTo(unsigned mod);
+    virtual Type *substWildTo(unsigned mod);
     virtual Type *toHeadMutable();
     virtual ClassDeclaration *isClassHandle();
     virtual Expression *getProperty(Loc loc, Identifier *ident, int flag);
@@ -691,6 +691,7 @@ public:
     bool parameterEscapes(Parameter *p);
     Type *addStorageClass(StorageClass stc);
 
+    Type *substWildTo(unsigned mod);
     MATCH callMatch(Type *tthis, Expressions *toargs, int flag = 0);
     type *toCtype();
     RET retStyle();
