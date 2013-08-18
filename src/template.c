@@ -6438,6 +6438,18 @@ int TemplateInstance::hasNestedArgs(Objects *args)
                     sa = ((FuncExp *)ea)->fd;
                 goto Lsa;
             }
+            // Emulate Expression::toMangleBuffer call that had exist in TemplateInstance::genIdent.
+            if (ea->op != TOKint64 &&               // IntegerExp
+                ea->op != TOKfloat64 &&             // RealExp
+                ea->op != TOKcomplex80 &&           // CompexExp
+                ea->op != TOKnull &&                // NullExp
+                ea->op != TOKstring &&              // StringExp
+                ea->op != TOKarrayliteral &&        // ArrayLiteralExp
+                ea->op != TOKassocarrayliteral &&   // AssocArrayLiteralExp
+                ea->op != TOKstructliteral)         // StructLiteralExp
+            {
+                ea->error("expression %s is not a valid template value argument", ea->toChars());
+            }
         }
         else if (sa)
         {
