@@ -99,7 +99,6 @@ private:
     ModuleInfo*[] _tlsctors;
 }
 
-__gshared ModuleGroup _moduleGroup;
 
 /********************************************
  * Iterate over all module infos.
