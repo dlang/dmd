@@ -31,7 +31,8 @@
 #include "module.h"
 #include "tokens.h"
 
-static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
+Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
     Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
 bool walkPostorder(Expression *e, StoppableVisitor *v);
 bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
@@ -1786,7 +1787,7 @@ Lno:
     return false;
 }
 
-static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps)
 {
     InlineDoState ids;
@@ -1891,7 +1892,7 @@ static Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         else
         {
             Identifier* tmp = Identifier::generateId("__nrvoretval");
-            VarDeclaration* vd = new VarDeclaration(fd->loc, fd->nrvo_var->type, tmp, NULL);
+            VarDeclaration* vd = new VarDeclaration(fd->loc, fd->nrvo_var->type, tmp, new VoidInitializer(fd->loc));
             assert(!tf->isref);
             vd->storage_class = STCtemp | STCrvalue;
             vd->linkage = tf->linkage;

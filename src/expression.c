@@ -52,6 +52,10 @@ bool checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad, size_t istar
 Symbol *toInitializer(AggregateDeclaration *ad);
 Expression *getTypeInfo(Type *t, Scope *sc);
 
+bool canInline(FuncDeclaration *fd, int hasthis, int hdrscan, int statementsToo);
+Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
+    Expression *eret, Expression *ethis, Expressions *arguments, Statement **ps);
+
 #define LOGSEMANTIC     0
 
 /*************************************************************
@@ -9015,6 +9019,17 @@ Lagain:
         sc->func && !sc->intypeof)
     {
         f->tookAddressOf = 0;
+
+        // Enforce direct lambda call inlining
+        if (canInline(f, 0, 0, 0))
+        {
+            Expression *e = expandInline(f, sc->func, NULL, NULL, arguments, NULL);
+            if (e)  // inlining may fail
+            {
+                //printf("f = %s -> e = %s\n", f->toChars(), e->toChars());
+                return e;
+            }
+        }
     }
 
     return combine(argprefix, this);
