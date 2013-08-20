@@ -1,4 +1,4 @@
-module imports.a4481;
+module imports.ice4481a;
 
 template reduce(alias pred)
 {
