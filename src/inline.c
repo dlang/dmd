@@ -1974,6 +1974,12 @@ Expression *expandInline(FuncDeclaration *fd, FuncDeclaration *parent,
         if (tf->isref)
             e = e->toLvalue(NULL, NULL);
 
+        if (e && e->type != Type::tvoid && fd->type->nextOf() == Type::tvoid)
+        {
+            e = new CastExp(e->loc, e, Type::tvoid);
+            e->type = Type::tvoid;
+        }
+
         /* There's a problem if what the function returns is used subsequently as an
          * lvalue, as in a struct return that is then used as a 'this'.
          * If we take the address of the return value, we will be taking the address

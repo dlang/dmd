@@ -4061,6 +4061,7 @@ Expression *addInvariant(Scope *sc, AggregateDeclaration *ad, VarDeclaration *vt
         se = se->semantic(sc);
         se->type = Type::tchar->arrayOf();
         e = new AssertExp(Loc(), v, se);
+        e->type = Type::tvoid;
     }
     return e;
 }

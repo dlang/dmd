@@ -159,22 +159,47 @@ void test10833()
 }
 
 /************************************/
-// Bugzilla 4825
 
-int a8() {
+auto fn8(Handlers...)(bool cond)
+{
+    // Infer return type from Handlers[n] call
+    if (cond)
+        return Handlers[0]();
+    else
+        return Handlers[1]();
+}
+
+void test8()
+{
+    int which;
+
+    void errorfunc() { which = -1; }
+
+    fn8!((){ which = 0; },  // <-- Expanded expr should have void type
+         errorfunc
+        )(true);
+}
+
+/************************************/
+// 4825
+
+int a4825()
+{
     int r;
     return r;
 }
 
-int b8() {
-    return a8();
+int b4825()
+{
+    return a4825();
 }
 
-void test8() {
+void test4825()
+{
     void d() {
-        auto e = b8();
+        auto e = b4825();
     }
-    static const int f = b8();
+    static const int f = b4825();
 }
 
 /************************************/
@@ -637,6 +662,7 @@ int main()
     test6();
     test7();
     test8();
+    test4825();
     test4841();
     test11201();
     test11223();
