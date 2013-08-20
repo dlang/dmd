@@ -15,7 +15,7 @@ bool tester()
 
     if (auto fp = getModuleInfo(name).unitTest)
     {
-        printf("Testing %.*s", cast(int)name.length, name.ptr);
+        printf("Testing %.*s:", cast(int)name.length, name.ptr);
 
         try
         {
