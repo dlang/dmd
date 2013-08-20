@@ -85,6 +85,14 @@ void lambdaSetParent(Expression *e, Scope *sc)
         void visit(DeclarationExp *e)
         {
             e->declaration->parent = sc->parent;
+
+            // Same as lambdaCheckForNestedRefs
+            VarDeclaration *v = e->declaration->isVarDeclaration();
+            if (v && v->init && v->init->isExpInitializer())
+            {
+                Expression *ie = v->init->toExpression();
+                lambdaSetParent(ie, sc);
+            }
         }
 
         void visit(IndexExp *e)
