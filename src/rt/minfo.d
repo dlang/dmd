@@ -2,7 +2,7 @@
  * Written in the D programming language.
  * Module initialization routines.
  *
- * Copyright: Copyright Digital Mars 2000 - 2012.
+ * Copyright: Copyright Digital Mars 2000 - 2013.
  * License: Distributed under the
  *      $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost Software License 1.0).
  *    (See accompanying file LICENSE)
@@ -34,6 +34,13 @@ enum
     MIname       = 0x1000,
 }
 
+/*****
+ * A ModuleGroup is an unordered collection of modules.
+ * There is exactly one for:
+ *  1. all statically linked in D modules, either directely or as shared libraries
+ *  2. each call to rt_loadLibrary()
+ */
+
 struct ModuleGroup
 {
     this(ModuleInfo*[] modules)
@@ -46,13 +53,152 @@ struct ModuleGroup
         return _modules;
     }
 
+    /******************************
+     * Allocate and fill in _ctors[] and _tlsctors[].
+     * Modules are inserted into the arrays in the order in which the constructors
+     * need to be run.
+     * Throws:
+     *  Exception if it fails.
+     */
     void sortCtors()
     {
-        // don't bother to initialize, as they are getting overwritten anyhow
-        immutable n = _modules.length;
-        _ctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
-        _tlsctors = (cast(ModuleInfo**).malloc(n * size_t.sizeof))[0 .. n];
-        .sortCtors(this);
+        immutable len = _modules.length;
+        if (!len)
+            return;
+
+        static struct StackRec
+        {
+            @property ModuleInfo* mod()
+            {
+                return _mods[_idx];
+            }
+
+            ModuleInfo*[] _mods;
+            size_t         _idx;
+        }
+
+        auto stack = (cast(StackRec*).calloc(len, StackRec.sizeof))[0 .. len];
+        if (!stack.ptr)
+            assert(0);
+        scope (exit) .free(stack.ptr);
+
+        void sort(ref ModuleInfo*[] ctors, uint mask)
+        {
+            ctors = (cast(ModuleInfo**).malloc(len * size_t.sizeof))[0 .. len];
+            if (!ctors.ptr)
+                assert(0);
+
+            size_t stackidx = 0;
+            size_t cidx;
+
+            ModuleInfo*[] mods = _modules;
+            size_t idx;
+            while (true)
+            {
+                while (idx < mods.length)
+                {
+                    auto m = mods[idx];
+                    auto fl = m.flags;
+                    if (fl & MIctorstart)
+                    {
+                        // trace back to cycle start
+                        fl &= ~MIctorstart;
+                        size_t start = stackidx;
+                        while (start--)
+                        {
+                            auto sm = stack[start].mod;
+                            if (sm == m)
+                                break;
+                            fl |= sm.flags & MIctorstart;
+                        }
+                        assert(stack[start].mod == m);
+                        if (fl & MIctorstart)
+                        {
+                            /* This is an illegal cycle, no partial order can be established
+                             * because the import chain have contradicting ctor/dtor
+                             * constraints.
+                             */
+                            string msg = "Aborting: Cycle detected between modules with ctors/dtors:\n";
+                            foreach (e; stack[start .. stackidx])
+                            {
+                                msg ~= e.mod.name;
+                                msg ~= " -> ";
+                            }
+                            msg ~= stack[start].mod.name;
+                            free();
+                            throw new Exception(msg);
+                        }
+                        else
+                        {
+                            /* This is also a cycle, but the import chain does not constrain
+                             * the order of initialization, either because the imported
+                             * modules have no ctors or the ctors are standalone.
+                             */
+                            ++idx;
+                        }
+                    }
+                    else if (fl & MIctordone)
+                    {   // already visited => skip
+                        ++idx;
+                    }
+                    else
+                    {
+                        if (fl & mask)
+                        {
+                            if (fl & MIstandalone || !m.importedModules.length)
+                            {   // trivial ctor => sort in
+                                ctors[cidx++] = m;
+                                m.flags = fl | MIctordone;
+                            }
+                            else
+                            {   // non-trivial ctor => defer
+                                m.flags = fl | MIctorstart;
+                            }
+                        }
+                        else    // no ctor => mark as visited
+                            m.flags = fl | MIctordone;
+
+                        if (m.importedModules.length)
+                        {
+                            /* Internal runtime error, dependency on an uninitialized
+                             * module outside of the current module group.
+                             */
+                            (stackidx < _modules.length) || assert(0);
+
+                            // recurse
+                            stack[stackidx++] = StackRec(mods, idx);
+                            idx  = 0;
+                            mods = m.importedModules;
+                        }
+                    }
+                }
+
+                if (stackidx)
+                {   // pop old value from stack
+                    --stackidx;
+                    mods    = stack[stackidx]._mods;
+                    idx     = stack[stackidx]._idx;
+                    auto m  = mods[idx++];
+                    auto fl = m.flags;
+                    if (fl & mask && !(fl & MIctordone))
+                        ctors[cidx++] = m;
+                    m.flags = (fl & ~MIctorstart) | MIctordone;
+                }
+                else // done
+                    break;
+            }
+            // store final number
+            ctors = ctors[0 .. cidx];
+
+            // clean flags
+            foreach(m; _modules)
+                m.flags = m.flags & ~(MIctorstart | MIctordone);
+        }
+
+        /* Do two passes: ctor/dtor, tlsctor/tlsdtor
+         */
+        sort(_ctors, MIctor | MIdtor);
+        sort(_tlsctors, MItlsctor | MItlsdtor);
     }
 
     void runCtors()
@@ -86,9 +232,11 @@ struct ModuleGroup
 
     void free()
     {
-        .free(_ctors.ptr);
+        if (_ctors.ptr)
+            .free(_ctors.ptr);
         _ctors = null;
-        .free(_tlsctors.ptr);
+        if (_tlsctors.ptr)
+            .free(_tlsctors.ptr);
         _tlsctors = null;
         // _modules = null; // let the owner free it
     }
@@ -204,182 +352,6 @@ void runModuleFuncsRev(alias getfp)(ModuleInfo*[] modules)
     {
         if (auto fp = getfp(m))
             (*fp)();
-    }
-}
-
-/********************************************
- * Check for cycles on module constructors, and establish an order for module
- * constructors.
- */
-
-void sortCtors(ref ModuleGroup mgroup)
-in
-{
-    assert(mgroup._modules.length == mgroup._ctors.length);
-    assert(mgroup._modules.length == mgroup._tlsctors.length);
-}
-body
-{
-    enum AllocaLimit = 100 * 1024; // 100KB
-
-    immutable len = mgroup._modules.length;
-    immutable size = len * StackRec.sizeof;
-
-    if (!len)
-    {
-        return;
-    }
-    else if (size <= AllocaLimit)
-    {
-        auto p = cast(ubyte*).alloca(size);
-        p[0 .. size] = 0;
-        sortCtorsImpl(mgroup, (cast(StackRec*)p)[0 .. len]);
-    }
-    else
-    {
-        auto p = cast(ubyte*).malloc(size);
-        p[0 .. size] = 0;
-        sortCtorsImpl(mgroup, (cast(StackRec*)p)[0 .. len]);
-        .free(p);
-    }
-}
-
-private:
-
-struct StackRec
-{
-    @property ModuleInfo* mod()
-    {
-        return _mods[_idx];
-    }
-
-    ModuleInfo*[] _mods;
-    size_t         _idx;
-}
-
-void onCycleError(StackRec[] stack)
-{
-    string msg = "Aborting: Cycle detected between modules with ctors/dtors:\n";
-    foreach (e; stack)
-    {
-        msg ~= e.mod.name;
-        msg ~= " -> ";
-    }
-    msg ~= stack[0].mod.name;
-    throw new Exception(msg);
-}
-
-private void sortCtorsImpl(ref ModuleGroup mgroup, StackRec[] stack)
-{
-    size_t stackidx;
-    bool tlsPass;
-
- Lagain:
-
-    const mask = tlsPass ? (MItlsctor | MItlsdtor) : (MIctor | MIdtor);
-    auto ctors = tlsPass ? mgroup._tlsctors : mgroup._ctors;
-    size_t cidx;
-
-    ModuleInfo*[] mods = mgroup._modules;
-    size_t idx;
-    while (true)
-    {
-        while (idx < mods.length)
-        {
-            auto m = mods[idx];
-            auto fl = m.flags;
-            if (fl & MIctorstart)
-            {
-                // trace back to cycle start
-                fl &= ~MIctorstart;
-                size_t start = stackidx;
-                while (start--)
-                {
-                    auto sm = stack[start].mod;
-                    if (sm == m)
-                        break;
-                    fl |= sm.flags & MIctorstart;
-                }
-                assert(stack[start].mod == m);
-                if (fl & MIctorstart)
-                {
-                    /* This is an illegal cycle, no partial order can be established
-                     * because the import chain have contradicting ctor/dtor
-                     * constraints.
-                     */
-                    onCycleError(stack[start .. stackidx]);
-                }
-                else
-                {
-                    /* This is also a cycle, but the import chain does not constrain
-                     * the order of initialization, either because the imported
-                     * modules have no ctors or the ctors are standalone.
-                     */
-                    ++idx;
-                }
-            }
-            else if (fl & MIctordone)
-            {   // already visited => skip
-                ++idx;
-            }
-            else
-            {
-                if (fl & mask)
-                {
-                    if (fl & MIstandalone || !m.importedModules.length)
-                    {   // trivial ctor => sort in
-                        ctors[cidx++] = m;
-                        m.flags = fl | MIctordone;
-                    }
-                    else
-                    {   // non-trivial ctor => defer
-                        m.flags = fl | MIctorstart;
-                    }
-                }
-                else    // no ctor => mark as visited
-                    m.flags = fl | MIctordone;
-
-                if (m.importedModules.length)
-                {
-                    /* Internal runtime error, dependency on an uninitialized
-                     * module outside of the current module group.
-                     */
-                    (stackidx < mgroup._modules.length) || assert(0);
-
-                    // recurse
-                    stack[stackidx++] = StackRec(mods, idx);
-                    idx  = 0;
-                    mods = m.importedModules;
-                }
-            }
-        }
-
-        if (stackidx)
-        {   // pop old value from stack
-            --stackidx;
-            mods    = stack[stackidx]._mods;
-            idx     = stack[stackidx]._idx;
-            auto m  = mods[idx++];
-            auto fl = m.flags;
-            if (fl & mask && !(fl & MIctordone))
-                ctors[cidx++] = m;
-            m.flags = (fl & ~MIctorstart) | MIctordone;
-        }
-        else // done
-            break;
-    }
-    // store final number
-    tlsPass ? mgroup._tlsctors : mgroup._ctors = ctors[0 .. cidx];
-
-    // clean flags
-    foreach(m; mgroup._modules)
-        m.flags = m.flags & ~(MIctorstart | MIctordone);
-
-    // rerun for TLS constructors
-    if (!tlsPass)
-    {
-        tlsPass = true;
-        goto Lagain;
     }
 }
 
