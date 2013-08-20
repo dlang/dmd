@@ -296,8 +296,8 @@ void Lexer::deprecation(const char *format, ...)
 }
 
 TOK Lexer::nextToken()
-{   Token *t;
-
+{   Token *t = (Token*)mem.malloc(sizeof(Token));;
+    assert(t);
     if (token.next)
     {
         t = token.next;

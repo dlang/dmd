@@ -602,7 +602,7 @@ typedef int bool;
 #endif
 
 #if _WINDLL
-#define COPYRIGHT "Copyright © 2001 Digital Mars"
+#define COPYRIGHT "Copyright (C) 2001 Digital Mars"
 #else
 #ifdef DEBUG
 #define COPYRIGHT "Copyright (C) Digital Mars 2000-2013.  All Rights Reserved.\n\
@@ -618,7 +618,7 @@ Written by Walter Bright"
 #endif
 #endif
 #endif
-
+
 /**********************************
  * Configuration
  */
