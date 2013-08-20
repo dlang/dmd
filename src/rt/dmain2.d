@@ -84,9 +84,9 @@ extern (C)
 }
 
 /*******************************************
- * Loads a DLL with the name 'name'.
+ * Loads a DLL written in D with the name 'name'.
  * Returns:
- *      handle to the DLL if successfully loaded
+ *      opaque handle to the DLL if successfully loaded
  *      null if failure
  */
 extern (C) void* rt_loadLibrary(in char[] name)
@@ -130,6 +130,39 @@ extern (C) void* rt_loadLibrary(in char[] name)
     else version (Posix)
     {
         throw new Exception("rt_loadLibrary not yet implemented on Posix.");
+        version (none)
+        {
+            /* This also means that the library libdl.so must be linked in,
+             * meaning this code should go into a separate module so it is only
+             * linked in if rt_loadLibrary() is actually called.
+             */
+            import core.sys.posix.dlfcn;
+
+            /* Need a 0-terminated C string for the dll name
+             */
+            auto buf = cast(char*)malloc(name.length + 1);
+            if (!buf)
+                return null;
+            buf[0..len] = name[];
+            buf[len] = 0;
+            scope (exit) free(buf);
+
+            auto dl_handle = dlopen(buf, RTLD_LAZY);
+            if (!dl_handle)
+                return null;
+
+            /* As the DLL is now loaded, if we get here, it means that
+             * the DLL has also successfully called all the functions in its .ctors
+             * segment. For D, that means all the _d_dso_registry() calls are done.
+             * Next up is:
+             *  registering the DLL's static data segments with the GC
+             *  (Does the DLL's TLS data need to be registered with the GC?)
+             *  registering the DLL's exception handler tables
+             *  calling the DLL's module constructors
+             *  calling the DLL's TLS module constructors
+             *  calling the DLL's unit tests
+             */
+        }
     }
 }
 
@@ -153,6 +186,23 @@ extern (C) bool rt_unloadLibrary(void* ptr)
     else version (Posix)
     {
         throw new Exception("rt_unloadLibrary not yet implemented on Posix.");
+        version (none)
+        {
+            import core.sys.posix.dlfcn;
+
+            /* Perform the following:
+             *  calling the DLL's TLS module destructors
+             *  calling the DLL's module destructors
+             *  unregistering the DLL's exception handler tables
+             *  (Does the DLL's TLS data need to be unregistered with the GC?)
+             *  unregistering the DLL's static data segments with the GC
+             */
+
+            dlclose(ptr);
+            /* dlclose() will also call all the functions in the .dtors segment,
+             * meaning calls to _d_dso_register() will get called.
+             */
+        }
     }
 }
 
@@ -174,6 +224,8 @@ alias void delegate(Throwable) ExceptionHandler;
 
 /**********************************************
  * Initialize druntime.
+ * If a C program wishes to call D code, and there's no D main(), then it
+ * must call rt_init() and rt_term().
  * If it fails, call dg. Except that what dg might be
  * able to do is undetermined, since the state of druntime
  * will not be known.
