@@ -4824,7 +4824,7 @@ Expression *CondExp::interpret(InterState *istate, CtfeGoal goal)
     Expression *e;
     if ( isPointer(econd->type) )
     {
-        e = econd->interpret(istate, ctfeNeedLvalue);
+        e = econd->interpret(istate);
         if (exceptionOrCantInterpret(e))
             return e;
         if (e->op != TOKnull)
@@ -5704,6 +5704,10 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
         }
         if (ex->op == TOKnull && ex->type->toBasetype()->ty == Tclass)
         {   error("class '%s' is null and cannot be dereferenced", e1->toChars());
+            return EXP_CANT_INTERPRET;
+        }
+        if (ex->op == TOKnull)
+        {   error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
         if (ex->op == TOKstructliteral || ex->op == TOKclassreference)

@@ -2222,6 +2222,35 @@ bool nullptrcmp()
 static assert(nullptrcmp());
 
 /**************************************************
+ 10840 null pointer in dotvar
+**************************************************/
+
+struct Data10840
+{
+   bool xxx;
+}
+
+struct Bug10840
+{
+    Data10840* _data;
+}
+
+bool bug10840(int n)
+{
+    Bug10840 stack;
+    if (n == 1)
+    {   // detect deref through null pointer
+        return stack._data.xxx;
+    }
+    // Wrong-code for ?:
+    return stack._data ? false : true;
+}
+
+static assert(bug10840(0));
+static assert(!is(typeof(Compileable!(bug10840(1)))));
+
+
+/**************************************************
   8216 ptr inside a pointer range
 **************************************************/
 
