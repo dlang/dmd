@@ -403,6 +403,10 @@ body
 
             *paa.impl = newImpl;
         }
+        else
+        {
+            paa.impl.buckets = paa.impl.binit[];
+        }
     }
     return (*paa).impl;
 }
