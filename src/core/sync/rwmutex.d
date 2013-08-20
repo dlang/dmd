@@ -450,7 +450,7 @@ version( unittest )
         int  numWriters = 0;
         int  maxReaders = 0;
         int  maxWriters = 0;
-        int  numTries   = 20;
+        int  numTries   = 5;
 
         void readerFn()
         {
@@ -463,7 +463,7 @@ version( unittest )
                         if( ++numReaders > maxReaders )
                             maxReaders = numReaders;
                     }
-                    Thread.sleep( dur!"msecs"(1) );
+                    Thread.sleep( dur!"usecs"(100) );
                     synchronized( synInfo )
                     {
                         --numReaders;
@@ -483,7 +483,7 @@ version( unittest )
                         if( ++numWriters > maxWriters )
                             maxWriters = numWriters;
                     }
-                    Thread.sleep( dur!"msecs"(1) );
+                    Thread.sleep( dur!"usecs"(100) );
                     synchronized( synInfo )
                     {
                         --numWriters;
