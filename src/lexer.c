@@ -296,11 +296,11 @@ void Lexer::deprecation(const char *format, ...)
 }
 
 TOK Lexer::nextToken()
-{   Token *t = (Token*)mem.malloc(sizeof(Token));;
-    assert(t);
+{   
+    
     if (token.next)
     {
-        t = token.next;
+        Token *t = token.next;
         memcpy(&token,t,sizeof(Token));
         t->next = freelist;
         freelist = t;
