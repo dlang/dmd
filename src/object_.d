@@ -2130,6 +2130,19 @@ unittest
     test["test3"] = "test3"; // causes divide by zero if rehash broke the AA
 }
 
+unittest
+{
+    // expanded test for 5842: increase AA size past the point where the AA
+    // stops using binit, in order to test another code path in rehash.
+    int[int] aa;
+    foreach (int i; 0 .. 32)
+        aa[i] = i;
+    foreach (int i; 0 .. 32)
+        aa.remove(i);
+    aa.rehash;
+    aa[1] = 1;
+}
+
 deprecated("Please use destroy instead of clear.")
 alias destroy clear;
 

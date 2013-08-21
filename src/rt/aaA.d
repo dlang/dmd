@@ -405,6 +405,8 @@ body
         }
         else
         {
+            if (paa.impl.buckets.ptr != paa.impl.binit.ptr)
+                GC.free(paa.impl.buckets.ptr);
             paa.impl.buckets = paa.impl.binit[];
         }
     }
