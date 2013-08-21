@@ -506,9 +506,7 @@ void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
 {
     /* Evaluate assign expressions left to right
      */
-    e1->buildArrayIdent(buf, arguments);
-    e2->buildArrayIdent(buf, arguments);
-    const char *s;
+    const char *s = NULL;
     switch(op)
     {
     case TOKadd: s = "Add"; break;
@@ -522,9 +520,16 @@ void BinExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
 #if DMDV2
     case TOKpow: s = "Pow"; break;
 #endif
-    default: assert(0);
+    default: break;
     }
-    buf->writestring(s);
+    if (s)
+    {
+        e1->buildArrayIdent(buf, arguments);
+        e2->buildArrayIdent(buf, arguments);
+        buf->writestring(s);
+    }
+    else
+        Expression::buildArrayIdent(buf, arguments);
 }
 
 /******************************************
@@ -629,27 +634,30 @@ Expression *ComExp::buildArrayLoop(Parameters *fparams)
 
 Expression *BinExp::buildArrayLoop(Parameters *fparams)
 {
-    /* Evaluate assign expressions left to right
-     */
-    Expression *ex1 = e1->buildArrayLoop(fparams);
-    Expression *ex2 = e2->buildArrayLoop(fparams);
-    Expression *e;
     switch(op)
     {
-    case TOKadd: return new AddExp(Loc(), ex1, ex2);
-    case TOKmin: return new MinExp(Loc(), ex1, ex2);
-    case TOKmul: return new MulExp(Loc(), ex1, ex2);
-    case TOKdiv: return new DivExp(Loc(), ex1, ex2);
-    case TOKmod: return new ModExp(Loc(), ex1, ex2);
-    case TOKxor: return new XorExp(Loc(), ex1, ex2);
-    case TOKand: return new AndExp(Loc(), ex1, ex2);
-    case TOKor:  return new OrExp(Loc(), ex1, ex2);
+    case TOKadd:
+    case TOKmin:
+    case TOKmul:
+    case TOKdiv:
+    case TOKmod:
+    case TOKxor:
+    case TOKand:
+    case TOKor:
 #if DMDV2
-    case TOKpow: return new PowExp(Loc(), ex1, ex2);
+    case TOKpow:
 #endif
+    {
+        /* Evaluate assign expressions left to right
+         */
+        BinExp *e = (BinExp *)copy();
+        e->e1 = e->e1->buildArrayLoop(fparams);
+        e->e2 = e->e2->buildArrayLoop(fparams);
+        e->type = NULL;
+        return e;
+    }
     default:
-        assert(0);
-        return NULL;
+        return Expression::buildArrayLoop(fparams);
     }
 }
 
