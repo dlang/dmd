@@ -147,11 +147,10 @@ struct CompilerDSOData
 
 T[] toRange(T)(T* beg, T* end) { return beg[0 .. end - beg]; }
 
-/* For each object file (not for each module), the compiler generates code that sets
- * up CompilerDSOData and then calls _d_dso_registry().
- * A pointer to that code is then inserted into both the .ctors and .dtors segment
- * so it gets called by the loader on startup and shutdown.
- * (Note that there can be multiple modules in one object file.)
+/* For each shared library and executable, the compiler generates code that
+ * sets up CompilerDSOData and calls _d_dso_registry().
+ * A pointer to that code is inserted into both the .ctors and .dtors
+ * segment so it gets called by the loader on startup and shutdown.
  */
 extern(C) void _d_dso_registry(CompilerDSOData* data)
 {
