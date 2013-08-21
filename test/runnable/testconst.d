@@ -3019,6 +3019,14 @@ void test10758(ref inout(int) wx, inout(int)* wp, inout(int)[] wa, inout(S10758)
         inout(int)*  screwUpPtr(inout(int) _) { return &wx; }
         inout(int)[] screwUpArr(inout(int) _) { return (&wx)[0 .. 1]; }
 
+    struct NS
+    {
+            inout(int)   screwUpVal() inout { return wx; }
+        ref inout(int)   screwUpRef() inout { return wx; }
+            inout(int)*  screwUpPtr() inout { return &wx; }
+            inout(int)[] screwUpArr() inout { return (&wx)[0 .. 1]; }
+    }
+
               int  mx = 1;
         const(int) cx = 1;
     immutable(int) ix = 1;
@@ -3046,6 +3054,29 @@ void test10758(ref inout(int) wx, inout(int)* wp, inout(int)[] wa, inout(S10758)
         static assert(!__traits(compiles, screwUpArr(ix)));
         screwUpArr(cx);
         screwUpArr(wx);
+    }
+
+    // inout method of the nested struct may return an inout reference of the context,
+    {
+        (          NS()).screwUpVal();
+        (immutable NS()).screwUpVal();
+        (    inout NS()).screwUpVal();
+        (    const NS()).screwUpVal();
+
+        static assert(!__traits(compiles, (          NS()).screwUpRef()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpRef()));
+        (inout NS()).screwUpRef();
+        (const NS()).screwUpRef();
+
+        static assert(!__traits(compiles, (          NS()).screwUpPtr()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpPtr()));
+        (inout NS()).screwUpPtr();
+        (const NS()).screwUpPtr();
+
+        static assert(!__traits(compiles, (          NS()).screwUpArr()));
+        static assert(!__traits(compiles, (immutable NS()).screwUpArr()));
+        (inout NS()).screwUpArr();
+        (const NS()).screwUpArr();
     }
 
     // function pointer holds no context, so there's no screw up.
