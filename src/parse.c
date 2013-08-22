@@ -1708,13 +1708,13 @@ Dsymbol *Parser::parseAggregate()
 {
     AggregateDeclaration *a = NULL;
     int anon = 0;
-    TOK tok;
     Identifier *id;
     TemplateParameters *tpl = NULL;
     Expression *constraint = NULL;
+    Loc loc = token.loc;
+    TOK tok = token.value;
 
     //printf("Parser::parseAggregate()\n");
-    tok = token.value;
     nextToken();
     if (token.value != TOKidentifier)
     {   id = NULL;
@@ -1732,7 +1732,6 @@ Dsymbol *Parser::parseAggregate()
         }
     }
 
-    Loc loc = token.loc;
     switch (tok)
     {
         case TOKclass:
