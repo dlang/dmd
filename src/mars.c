@@ -461,7 +461,7 @@ void genCmain(Scope *sc)
     Module *m = new Module("__entrypoint.d", id, 0, 0);
 
     Parser p(m, code, sizeof(code) / sizeof(code[0]), 0);
-    p.loc = Loc();
+    p.scanloc = Loc();
     p.nextToken();
     m->members = p.parseModule();
     assert(p.token.value == TOKeof);

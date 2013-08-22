@@ -506,7 +506,7 @@ void Module::parse()
     srcfile->len = 0;
 
     md = p.md;
-    numlines = p.loc.linnum;
+    numlines = p.scanloc.linnum;
 
     /* The symbol table into which the module is to be inserted.
      */

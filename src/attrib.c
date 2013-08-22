@@ -1597,7 +1597,7 @@ void CompileDeclaration::compileIt(Scope *sc)
     {
         se = se->toUTF8(sc);
         Parser p(sc->module, (utf8_t *)se->string, se->len, 0);
-        p.loc = loc;
+        p.scanloc = loc;
         p.nextToken();
         unsigned errors = global.errors;
         decl = p.parseDeclDefs(0);
