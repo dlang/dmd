@@ -2125,6 +2125,36 @@ Value[] values(T : Value[Key], Value, Key)(T *aa) @property
     return (*aa).values;
 }
 
+auto byKeyValue(T : Value[Key], Value, Key)(T aa) pure nothrow @nogc @property
+{
+    static struct Result
+    {
+        AARange r;
+
+      pure nothrow @nogc:
+        @property bool empty() { return _aaRangeEmpty(r); }
+        @property auto front() @trusted
+        {
+            static struct Pair
+            {
+                // We save the pointers here so that the Pair we return
+                // won't mutate when Result.popFront is called afterwards.
+                private Key* keyp;
+                private Value* valp;
+
+                @property ref Key key() { return *keyp; }
+                @property ref Value value() { return *valp; }
+            }
+            return Pair(cast(Key*)_aaRangeFrontKey(r),
+                        cast(Value*)_aaRangeFrontValue(r));
+        }
+        void popFront() { _aaRangePopFront(r); }
+        Result save() { return this; }
+    }
+
+    return Result(_aaRange(cast(void*)aa));
+}
+
 inout(V) get(K, V)(inout(V[K]) aa, K key, lazy inout(V) defaultValue)
 {
     auto p = key in aa;
@@ -2352,6 +2382,41 @@ pure nothrow unittest
     testFwdRange(aa.byKey, "a");
     testFwdRange(aa.byValue, 1);
     //testFwdRange(aa.byPair, tuple("a", 1));
+}
+
+unittest
+{
+    // Issue 9119
+    int[string] aa;
+    assert(aa.byKeyValue.empty);
+
+    aa["a"] = 1;
+    aa["b"] = 2;
+    aa["c"] = 3;
+
+    auto pairs = aa.byKeyValue;
+
+    auto savedPairs = pairs.save;
+    size_t count = 0;
+    while (!pairs.empty)
+    {
+        assert(pairs.front.key in aa);
+        assert(pairs.front.value == aa[pairs.front.key]);
+        count++;
+        pairs.popFront();
+    }
+    assert(count == aa.length);
+
+    // Verify that saved range can iterate over the AA again
+    count = 0;
+    while (!savedPairs.empty)
+    {
+        assert(savedPairs.front.key in aa);
+        assert(savedPairs.front.value == aa[savedPairs.front.key]);
+        count++;
+        savedPairs.popFront();
+    }
+    assert(count == aa.length);
 }
 
 // Explicitly undocumented. It will be removed in March 2015.
