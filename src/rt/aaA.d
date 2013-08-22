@@ -368,12 +368,13 @@ body
     //printf("Rehash\n");
     if (paa.impl !is null)
     {
-        Impl newImpl;
-        Impl* oldImpl = paa.impl;
         auto len = _aaLen(*paa);
         if (len)
-        {   size_t i;
+        {
+            Impl newImpl;
+            Impl* oldImpl = paa.impl;
 
+            size_t i;
             for (i = 0; i < prime_list.length - 1; i++)
             {
                 if (len <= prime_list[i])
@@ -399,9 +400,15 @@ body
 
             newImpl.nodes = oldImpl.nodes;
             newImpl._keyti = oldImpl._keyti;
-        }
 
-        *paa.impl = newImpl;
+            *paa.impl = newImpl;
+        }
+        else
+        {
+            if (paa.impl.buckets.ptr != paa.impl.binit.ptr)
+                GC.free(paa.impl.buckets.ptr);
+            paa.impl.buckets = paa.impl.binit[];
+        }
     }
     return (*paa).impl;
 }
