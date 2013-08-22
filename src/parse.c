@@ -4281,7 +4281,8 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
         }
 
         case TOKif:
-        {   Parameter *arg = NULL;
+        {
+            Parameter *arg = NULL;
             Expression *condition;
             Statement *ifbody;
             Statement *elsebody;
@@ -4372,6 +4373,8 @@ Statement *Parser::parseStatement(int flags, utf8_t** endPtr)
             }
 
             condition = parseExpression();
+            if (condition->op == TOKassign)
+                error("assignment cannot be used as a condition, perhaps == was meant?");
             check(TOKrparen);
             {
                 Loc lookingForElseSave = lookingForElse;
