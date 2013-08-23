@@ -3527,18 +3527,22 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // collapsed into a single assignment.
     if (!wantRef && e1->op == TOKdotvar)
     {
-        // Strip of all of the leading dotvars, unless we started with a call
-        // or a ref parameter
+        // Strip of all of the leading dotvars, unless it is a CTFE dotvar
+        // pointer or reference
         // (in which case, we already have the lvalue).
-        if (this->e1->op != TOKcall && !(this->e1->op==TOKvar
-            && ((VarExp*)this->e1)->var->storage_class & (STCref | STCout)))
-            e1 = e1->interpret(istate, isPointer(type)? ctfeNeedLvalueRef : ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(e1))
-            return e1;
-        if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
+        DotVarExp *dve = (DotVarExp *)e1;
+        bool isCtfePointer = (dve->e1->op == TOKstructliteral)
+                && ((StructLiteralExp *)(dve->e1))->ownedByCtfe;
+        if (!isCtfePointer)
         {
-            assignInPlace(e1, newval);
-            return returnValue;
+            e1 = e1->interpret(istate, isPointer(type) ? ctfeNeedLvalueRef : ctfeNeedLvalue);
+            if (exceptionOrCantInterpret(e1))
+                return e1;
+            if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
+            {
+                assignInPlace(e1, newval);
+                return returnValue;
+            }
         }
     }
 #if LOGASSIGN
