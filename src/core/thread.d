@@ -960,6 +960,10 @@ class Thread
         {
             auto maxSleepMillis = dur!("msecs")( uint.max - 1 );
 
+            // avoid a non-zero time to be round down to 0
+            if( val > dur!"msecs"( 0 ) && val < dur!"msecs"( 1 ) )
+                val = dur!"msecs"( 1 );
+
             // NOTE: In instances where all other threads in the process have a
             //       lower priority than the current thread, the current thread
             //       will not yield with a sleep time of zero.  However, unlike
