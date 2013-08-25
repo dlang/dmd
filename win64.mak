@@ -257,7 +257,22 @@ $(IMPDIR)\core\sys\freebsd\dlfcn.d : src\core\sys\freebsd\dlfcn.d
 $(IMPDIR)\core\sys\freebsd\execinfo.d : src\core\sys\freebsd\execinfo.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\freebsd\sys\elf.d : src\core\sys\freebsd\sys\elf.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\elf_common.d : src\core\sys\freebsd\sys\elf_common.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\elf32.d : src\core\sys\freebsd\sys\elf32.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\elf64.d : src\core\sys\freebsd\sys\elf64.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\freebsd\sys\event.d : src\core\sys\freebsd\sys\event.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\freebsd\sys\link_elf.d : src\core\sys\freebsd\sys\link_elf.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\config.d : src\core\sys\linux\config.d

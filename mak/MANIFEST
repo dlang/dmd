@@ -65,7 +65,12 @@ MANIFEST=\
 	src\core\sys\freebsd\dlfcn.d \
 	src\core\sys\freebsd\execinfo.d \
 	\
+	src\core\sys\freebsd\sys\elf.d \
+	src\core\sys\freebsd\sys\elf_common.d \
+	src\core\sys\freebsd\sys\elf32.d \
+	src\core\sys\freebsd\sys\elf64.d \
 	src\core\sys\freebsd\sys\event.d \
+	src\core\sys\freebsd\sys\link_elf.d \
 	\
 	src\core\sys\linux\config.d \
 	src\core\sys\linux\dlfcn.d \
