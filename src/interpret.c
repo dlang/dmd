@@ -3206,7 +3206,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
         if (exceptionOrCantInterpret(e1))
             return e1;
         if (!(e1->op == TOKvar || e1->op == TOKdotvar || e1->op == TOKindex
-            || e1->op == TOKslice))
+            || e1->op == TOKslice || e1->op == TOKstructliteral))
         {
             error("cannot dereference invalid pointer %s",
                 this->e1->toChars());
@@ -3215,7 +3215,7 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     }
 
     if (!(e1->op == TOKarraylength || e1->op == TOKvar || e1->op == TOKdotvar
-        || e1->op == TOKindex || e1->op == TOKslice))
+        || e1->op == TOKindex || e1->op == TOKslice || e1->op == TOKstructliteral))
     {
         error("CTFE internal error: unsupported assignment %s", toChars());
         return EXP_CANT_INTERPRET;
@@ -3538,11 +3538,6 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
             e1 = e1->interpret(istate, isPointer(type) ? ctfeNeedLvalueRef : ctfeNeedLvalue);
             if (exceptionOrCantInterpret(e1))
                 return e1;
-            if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
-            {
-                assignInPlace(e1, newval);
-                return returnValue;
-            }
         }
     }
 #if LOGASSIGN
@@ -3591,6 +3586,15 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
                 v->setValue(newval);
             }
         }
+    }
+    else if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
+    {
+        /* Assignment to complete struct of the form:
+         *  e1 = newval
+         * (e1 was a ref parameter, or was created via TOKstar dereferencing).
+         */
+        assignInPlace(e1, newval);
+        return returnValue;
     }
     else if (e1->op == TOKdotvar)
     {

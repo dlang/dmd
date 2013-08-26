@@ -4878,6 +4878,27 @@ int test9982()
 
 static assert(test9982());
 
+// 9982, rejects-valid case
+
+struct SS9982
+{
+    Bug9982 s2;
+    this(Bug9982 s1)
+    {
+        s2.a = 6;
+        emplace9982(&s2, s1);
+        assert(s2.a == 3);
+    }
+}
+
+void emplace9982(Bug9982* chunk, Bug9982 arg)
+{
+    *chunk = arg;
+}
+
+enum s9982 = Bug9982(3);
+enum p9982 = SS9982(s9982);
+
 /**************************************************
     7143 'is' for classes
 **************************************************/
