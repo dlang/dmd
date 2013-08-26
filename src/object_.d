@@ -2162,7 +2162,7 @@ unittest
 
         // Verify it's possible to iterate the range the second time
         keyCount = 0;
-        while (!savedKeyRange.empty())
+        while (!savedKeyRange.empty)
         {
             aa[savedKeyRange.front]++;
             keyCount++;
