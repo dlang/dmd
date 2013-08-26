@@ -437,6 +437,13 @@ extern (C) void thread_init();
 
 
 /**
+ * Terminates the thread module. No other thread routine may be called
+ * afterwards.
+ */
+extern (C) void thread_term();
+
+
+/**
  *
  */
 extern (C) bool thread_isMainThread();

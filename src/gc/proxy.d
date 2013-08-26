@@ -29,6 +29,7 @@ private
     __gshared gc_t _gc;
 
     extern (C) void thread_init();
+    extern (C) void thread_term();
 
     struct Proxy
     {
@@ -136,8 +137,9 @@ extern (C)
         //       the problems mentioned above though, so I guess we'll see.
         _gc.fullCollectNoStack(); // not really a 'collect all' -- still scans
                                   // static data area, roots, and ranges.
-        _gc.Dtor();
+        thread_term();
 
+        _gc.Dtor();
         free(cast(void*)_gc);
         _gc = null;
     }

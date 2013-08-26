@@ -1393,13 +1393,12 @@ private:
             lock[] = Mutex.classinfo.init[];
             (cast(Mutex)lock.ptr).__ctor();
         }
+    }
 
-        extern(C) void destroy()
-        {
-            foreach (ref lock; _locks)
-                (cast(Mutex)lock.ptr).__dtor();
-        }
-        atexit(&destroy);
+    static void termLocks()
+    {
+        foreach (ref lock; _locks)
+            (cast(Mutex)lock.ptr).__dtor();
     }
 
     __gshared Context*  sm_cbeg;
@@ -1723,6 +1722,16 @@ extern (C) void thread_init()
         assert( status == 0 );
     }
     Thread.sm_main = thread_attachThis();
+}
+
+
+/**
+ * Terminates the thread module. No other thread routine may be called
+ * afterwards.
+ */
+extern (C) void thread_term()
+{
+    Thread.termLocks();
 }
 
 
