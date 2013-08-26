@@ -2010,7 +2010,7 @@ public:
     else
         @disable @property Value[Key] dup();    // for better error message
 
-    @property auto byKey()
+    auto byKey()
     {
         static struct Result
         {
@@ -2025,7 +2025,7 @@ public:
         return Result(_aaRange(p));
     }
 
-    @property auto byValue()
+    auto byValue()
     {
         static struct Result
         {
