@@ -894,14 +894,17 @@ void prefix(OutBuffer *buf, Dsymbol *s)
         else if (d->isAbstract())
             buf->writestring("abstract ");
 
-        if (d->isConst())
-            buf->writestring("const ");
-#if DMDV2
-        if (d->isImmutable())
-            buf->writestring("immutable ");
-#endif
-        if (d->isSynchronized())
-            buf->writestring("synchronized ");
+        if (!d->isFuncDeclaration())  // toCBufferWithAttributes handles this
+        {
+            if (d->isConst())
+                buf->writestring("const ");
+    #if DMDV2
+            if (d->isImmutable())
+                buf->writestring("immutable ");
+    #endif
+            if (d->isSynchronized())
+                buf->writestring("synchronized ");
+        }
     }
 }
 
