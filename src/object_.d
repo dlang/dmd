@@ -1941,7 +1941,7 @@ private:
 public:
     @property size_t length() const { return _aaLen(p); }
 
-    Value[Key] rehash() @property
+    Value[Key] rehash()
     {
         auto p = _aaRehash(cast(void**) &p, typeid(Value[Key]));
         return *cast(Value[Key]*)(&p);
