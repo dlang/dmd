@@ -1997,7 +1997,7 @@ public:
         // bug 10720 - check whether Value is copyable
     })))
     {
-        @property Value[Key] dup()
+        Value[Key] dup()
         {
             Value[Key] result;
             foreach (k, v; this)
@@ -2008,7 +2008,7 @@ public:
         }
     }
     else
-        @disable @property Value[Key] dup();    // for better error message
+        @disable Value[Key] dup();    // for better error message
 
     auto byKey()
     {
