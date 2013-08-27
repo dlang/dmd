@@ -2800,6 +2800,11 @@ Expression *NewExp::interpret(InterState *istate, CtfeGoal goal)
                     m = v->type->defaultInitLiteral(loc);
                 if (exceptionOrCantInterpret(m))
                     return m;
+                if (!m)
+                {
+                    error("Error interpreting initializer %s of class %s", v->toChars(), c->toChars());
+                    return EXP_CANT_INTERPRET;
+                }
                 (*elems)[fieldsSoFar+i] = copyLiteral(m);
             }
         }
