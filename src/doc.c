@@ -838,7 +838,7 @@ void prefix(OutBuffer *buf, Dsymbol *s)
     if (d)
     {
         emitProtection(buf, d->protection);
-        if (d->isAbstract())
+        if (!d->isInterfaceDeclaration() && d->isAbstract())
             buf->writestring("abstract ");
         if (d->isStatic())
             buf->writestring("static ");
