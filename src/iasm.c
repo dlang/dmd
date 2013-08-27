@@ -4409,14 +4409,17 @@ STATIC OPND *asm_primary_exp()
                 {
                     asm_token();
                     if (tok_value == TOKlparen)
-                    {   unsigned n;
-
+                    {
                         asm_token();
+                        if (tok_value == TOKint32v)
+                        {
+                            unsigned n = (unsigned)asmtok->uns64value;
+                            if (n > 7)
+                                asmerr(EM_bad_operand);
+                            else
+                                o1->base = &(aregFp[n]);
+                        }
                         asm_chktok(TOKint32v, EM_num);
-                        n = (unsigned)asmtok->uns64value;
-                        if (n > 7)
-                            asmerr(EM_bad_operand);
-                        o1->base = &(aregFp[n]);
                         asm_chktok(TOKrparen, EM_rpar);
                     }
                     else
