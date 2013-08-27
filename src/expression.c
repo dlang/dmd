@@ -1594,24 +1594,36 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             tf->next->hasWild() &&
             (tf->isref || !tf->next->implicitConvTo(tf->next->immutableOf())))
         {
-            if (fd && fd->isNested())
+            if (fd)
             {
-                FuncDeclaration *f = fd->toParent2()->isFuncDeclaration();
-                for (; f; f = f->toParent2()->isFuncDeclaration())
+                /* If the called function may return the reference to
+                 * outer inout data, it should be rejected.
+                 *
+                 * void foo(ref inout(int) x) {
+                 *   ref inout(int) bar(inout(int)) { return x; }
+                 *   struct S { ref inout(int) bar() inout { return x; } }
+                 *   bar(int.init) = 1;  // bad!
+                 *   S().bar() = 1;      // bad!
+                 * }
+                 */
+                FuncDeclaration *f;
+                if (AggregateDeclaration *ad = fd->isThis())
                 {
-                    /* If the called nested function may return the reference to
-                     * outer inout data, it should be rejected.
-                     *
-                     * void foo(ref inout(int) x) {
-                     *   ref inout(int) bar(inout(int)) { return x; }
-                     *   bar(int.init) = 1;  // bad!
-                     * }
-                     */
-                    if (((TypeFunction *)f->type)->iswild)
-                        goto Linouterr;
+                    f = ad->toParent2()->isFuncDeclaration();
+                    goto Linoutnest;
+                }
+                else if (fd->isNested())
+                {
+                    f = fd->toParent2()->isFuncDeclaration();
+                Linoutnest:
+                    for (; f; f = f->toParent2()->isFuncDeclaration())
+                    {
+                        if (((TypeFunction *)f->type)->iswild)
+                            goto Linouterr;
+                    }
                 }
             }
-            else if (!fd && tf->isWild())
+            else if (tf->isWild())
             {
             Linouterr:
                 const char *s = wildmatch == MODmutable ? "mutable" : MODtoChars(wildmatch);
