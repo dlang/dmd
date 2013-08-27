@@ -549,8 +549,10 @@ Expression *BinExp::op_overload(Scope *sc)
 
         args1.setDim(1);
         args1[0] = e1;
+        expandTuples(&args1);
         args2.setDim(1);
         args2[0] = e2;
+        expandTuples(&args2);
         argsset = 1;
 
         Match m;
@@ -620,10 +622,13 @@ L1:
              */
 
             if (!argsset)
-            {   args1.setDim(1);
+            {
+                args1.setDim(1);
                 args1[0] = e1;
+                expandTuples(&args1);
                 args2.setDim(1);
                 args2[0] = e2;
+                expandTuples(&args2);
             }
 
             Match m;
@@ -769,8 +774,10 @@ Expression *BinExp::compare_overload(Scope *sc, Identifier *id)
 
         args1.setDim(1);
         args1[0] = e1;
+        expandTuples(&args1);
         args2.setDim(1);
         args2[0] = e2;
+        expandTuples(&args2);
 
         Match m;
         memset(&m, 0, sizeof(m));
@@ -1094,6 +1101,7 @@ Expression *BinAssignExp::op_overload(Scope *sc)
 
         args2.setDim(1);
         args2[0] = e2;
+        expandTuples(&args2);
 
         Match m;
         memset(&m, 0, sizeof(m));
