@@ -1510,10 +1510,8 @@ Language changes listed by -transition=id:\n\
             printf("semantic3 %s\n", m->toChars());
         m->semantic3();
     }
-    Module::runDeferredSemantic3();
     if (global.errors)
         fatal();
-
     if (global.params.useInline)
     {
         /* The problem with useArrayBounds and useAssert is that the
@@ -1537,6 +1535,9 @@ Language changes listed by -transition=id:\n\
                 fatal();
         }
     }
+    Module::runDeferredSemantic3();
+    if (global.errors)
+        fatal();
 
     if (global.params.moduleDeps)
     {
