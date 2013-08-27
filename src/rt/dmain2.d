@@ -32,6 +32,7 @@ version (Windows)
     {
         alias int function() FARPROC;
         FARPROC    GetProcAddress(void*, in char*);
+        void*      LoadLibraryA(in char*);
         void*      LoadLibraryW(in wchar_t*);
         int        FreeLibrary(void*);
         void*      LocalFree(void*);
@@ -89,34 +90,22 @@ extern (C)
  *      opaque handle to the DLL if successfully loaded
  *      null if failure
  */
-extern (C) void* rt_loadLibrary(in char[] name)
+version (Windows)
 {
-    version (Windows)
+    extern (C) void* rt_loadLibrary(const char* name)
     {
-        if (name.length == 0) return null;
-        // Load a DLL at runtime
-        enum CP_UTF8 = 65001;
-        auto len = MultiByteToWideChar(
-            CP_UTF8, 0, name.ptr, cast(int)name.length, null, 0);
-        if (len == 0)
-            return null;
+        return initLibrary(.LoadLibraryA(name));
+    }
 
-        auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
-        if (buf is null)
-            return null;
-        scope (exit)
-            free(buf);
+    extern (C) void* rt_loadLibraryW(const wchar_t* name)
+    {
+        return initLibrary(.LoadLibraryW(name));
+    }
 
-        len = MultiByteToWideChar(
-            CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
-        if (len == 0)
-            return null;
-
-        buf[len] = '\0';
-
-        // BUG: LoadLibraryW() call calls rt_init(), which fails if proxy is not set!
-        // (What? LoadLibraryW() is a Windows API call, it shouldn't call rt_init().)
-        auto mod = LoadLibraryW(buf);
+    void* initLibrary(void* mod)
+    {
+        // BUG: LoadLibrary() call calls rt_init(), which fails if proxy is not set!
+        // (What? LoadLibrary() is a Windows API call, it shouldn't call rt_init().)
         if (mod is null)
             return mod;
         gcSetFn gcSet = cast(gcSetFn) GetProcAddress(mod, "gc_setProxy");
@@ -125,9 +114,11 @@ extern (C) void* rt_loadLibrary(in char[] name)
             gcSet(gc_getProxy());
         }
         return mod;
-
     }
-    else version (Posix)
+}
+else version (Posix)
+{
+    extern (C) void* rt_loadLibrary(const char* name)
     {
         throw new Exception("rt_loadLibrary not yet implemented on Posix.");
         version (none)
@@ -138,16 +129,7 @@ extern (C) void* rt_loadLibrary(in char[] name)
              */
             import core.sys.posix.dlfcn;
 
-            /* Need a 0-terminated C string for the dll name
-             */
-            auto buf = cast(char*)malloc(name.length + 1);
-            if (!buf)
-                return null;
-            buf[0..len] = name[];
-            buf[len] = 0;
-            scope (exit) free(buf);
-
-            auto dl_handle = dlopen(buf, RTLD_LAZY);
+            auto dl_handle = dlopen(name, RTLD_LAZY);
             if (!dl_handle)
                 return null;
 
