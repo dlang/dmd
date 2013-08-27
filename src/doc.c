@@ -1146,7 +1146,7 @@ void ClassDeclaration::toDocBuffer(OutBuffer *buf, Scope *sc)
         }
         else
         {
-            if (isAbstract())
+            if (!isInterfaceDeclaration() && isAbstract())
                 buf->writestring("abstract ");
             buf->printf("%s %s", kind(), toChars());
         }
