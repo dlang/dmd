@@ -37,7 +37,12 @@ COPY=\
 	\
 	$(IMPDIR)\core\sys\freebsd\dlfcn.d \
 	$(IMPDIR)\core\sys\freebsd\execinfo.d \
+	$(IMPDIR)\core\sys\freebsd\sys\elf.d \
+	$(IMPDIR)\core\sys\freebsd\sys\elf_common.d \
+	$(IMPDIR)\core\sys\freebsd\sys\elf32.d \
+	$(IMPDIR)\core\sys\freebsd\sys\elf64.d \
 	$(IMPDIR)\core\sys\freebsd\sys\event.d \
+	$(IMPDIR)\core\sys\freebsd\sys\link_elf.d \
 	\
 	$(IMPDIR)\core\sys\linux\config.d \
 	$(IMPDIR)\core\sys\linux\dlfcn.d \
