@@ -76,9 +76,7 @@ unittest
  * (No longer an intrisic - the compiler recognizes the patterns
  * in the body.)
  */
-@system
-{
-int bt(in size_t* p, size_t bitnum) pure
+int bt(in size_t* p, size_t bitnum) pure @system
 {
     static if (size_t.sizeof == 8)
         return ((p[bitnum >> 6] & (1L << (bitnum & 63)))) != 0;
@@ -87,31 +85,29 @@ int bt(in size_t* p, size_t bitnum) pure
     else
         static assert(0);
 }
-
-unittest
+///
+@system pure unittest
 {
     size_t array[2];
 
     array[0] = 2;
     array[1] = 0x100;
 
-
     assert(bt(array.ptr, 1));
     assert(array[0] == 2);
     assert(array[1] == 0x100);
-}
 }
 
 /**
  * Tests and complements the bit.
  */
-int btc(size_t* p, size_t bitnum) pure;
+int btc(size_t* p, size_t bitnum) pure @system;
 
 
 /**
  * Tests and resets (sets to 0) the bit.
  */
-int btr(size_t* p, size_t bitnum) pure;
+int btr(size_t* p, size_t bitnum) pure @system;
 
 
 /**
@@ -126,46 +122,11 @@ p[index / (size_t.sizeof*8)] & (1 << (index & ((size_t.sizeof*8) - 1)))
  * Returns:
  *      A non-zero value if the bit was set, and a zero
  *      if it was clear.
- *
- * Example:
- * ---
-import std.stdio;
-import core.bitop;
-
-int main()
-{
-    size_t array[2];
-
-    array[0] = 2;
-    array[1] = 0x100;
-
-    assert(btc(array, 35) == 0);
-    assert(array[0] == 2);
-    assert(array[1] == 0x108);
-
-    assert(btc(array, 35));
-    assert(array[0] == 2);
-    assert(array[1] == 0x100);
-
-    assert(bts(array, 35) == 0);
-    assert(array[0] == 2);
-    assert(array[1] == 0x108);
-
-    assert(btr(array, 35));
-    assert(array[0] == 2);
-    assert(array[1] == 0x100);
-
-    assert(bt(array, 1));
-    assert(array[0] == 2);
-    assert(array[1] == 0x100);
-
-    return 0;
-}
- * ---
  */
-int bts(size_t* p, size_t bitnum) pure;
+int bts(size_t* p, size_t bitnum) pure @system;
 
-unittest
+///
+@system pure unittest
 {
     size_t array[2];
 
