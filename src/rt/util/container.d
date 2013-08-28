@@ -238,6 +238,8 @@ struct HashTab(Key, Value)
     in { assert(key in this); }
     body
     {
+        ensureNotInOpApply();
+
         immutable hash = hashOf(key) & mask;
         auto pp = &_buckets[hash];
         while (*pp)
@@ -286,6 +288,9 @@ struct HashTab(Key, Value)
 
     int opApply(scope int delegate(ref Key, ref Value) dg)
     {
+        immutable save = _inOpApply;
+        _inOpApply = true;
+        scope (exit) _inOpApply = save;
         foreach (p; _buckets)
         {
             while (p !is null)
@@ -304,6 +309,8 @@ private:
     {
         if (auto p = opIn_r(key))
             return p;
+
+        ensureNotInOpApply();
 
         if (!_buckets.length)
             _buckets.length = 4;
@@ -391,8 +398,15 @@ private:
         _buckets.length = ncnt;
     }
 
+    void ensureNotInOpApply()
+    {
+        if (_inOpApply)
+            assert(0, "Invalid HashTab manipulation during opApply iteration.");
+    }
+
     Array!(Node*) _buckets;
     size_t _length;
+    bool _inOpApply;
 }
 
 unittest
@@ -471,4 +485,27 @@ unittest
     assert(cnt == 1);
     tab.remove(1);
     assert(cnt == 0);
+}
+
+unittest
+{
+    import core.exception;
+
+    HashTab!(uint, uint) tab;
+    foreach (i; 0 .. 5)
+        tab[i] = i;
+    bool thrown;
+    foreach (k, v; tab)
+    {
+        try
+        {
+            if (k == 3) tab.remove(k);
+        }
+        catch (AssertError e)
+        {
+            thrown = true;
+        }
+    }
+    assert(thrown);
+    assert(tab[3] == 3);
 }
