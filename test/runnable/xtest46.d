@@ -4420,6 +4420,25 @@ template Hoge6691()
 alias Hoge6691!() H6691;
 
 /***************************************************/
+
+void test10626()
+{
+    double[2] v, x;
+    struct Y { double u; }
+    double z;
+    Y y;
+    double[2] r = v[] * x[0];
+    //double[2] s = v[] * z++;
+    //double[2] t = v[] * z--;
+    double[2] a = v[] * ++z;
+    double[2] b = v[] * --z;
+    double[2] c = v[] * y.u;
+    double[2] d = v[] * (x[] = 3, x[0]);
+    double[2] e = v[] * (v[] ~ z)[0];
+}
+
+
+/***************************************************/
 // 2953
 
 template Tuple2953(T...)
