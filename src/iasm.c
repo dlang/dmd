@@ -2241,8 +2241,9 @@ STATIC int asm_isNonZeroInt(OPND *o)
 STATIC int asm_is_fpreg(char *szReg)
 {
 #if 1
-        return(szReg[2] == '\0' && szReg[0] == 'S' &&
-                szReg[1] == 'T');
+        return(szReg[0] == 'S' &&
+               szReg[1] == 'T' &&
+               szReg[2] == 0);
 #else
         return(szReg[2] == '\0' && (szReg[0] == 's' || szReg[0] == 'S') &&
                 (szReg[1] == 't' || szReg[1] == 'T'));
