@@ -682,7 +682,7 @@ code *cdorth(elem *e,regm_t *pretregs)
                     }
                 }
                 rval = reghasvalue(byte ? BYTEREGS : ALLREGS,i,&rreg);
-                cs.IEV2.Vint = i;
+                cs.IEV2.Vsize_t = i;
         L3:
                 op1 ^= byte;
                 cs.Iflags |= word;
