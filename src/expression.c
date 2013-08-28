@@ -7273,7 +7273,7 @@ Expression *FileExp::semantic(Scope *sc)
     }
 
     if (global.params.verbose)
-        printf("file      %s\t(%s)\n", (char *)se->string, name);
+        fprintf(global.stdmsg, "file      %s\t(%s)\n", (char *)se->string, name);
     if (global.params.moduleDeps != NULL && global.params.moduleDepsFile == NULL)
     {
         OutBuffer *ob = global.params.moduleDeps;

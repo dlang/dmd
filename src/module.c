@@ -225,15 +225,15 @@ Module *Module::load(Loc loc, Identifiers *packages, Identifier *ident)
 
     if (global.params.verbose)
     {
-        printf("import    ");
+        fprintf(global.stdmsg, "import    ");
         if (packages)
         {
             for (size_t i = 0; i < packages->dim; i++)
             {   Identifier *pid = (*packages)[i];
-                printf("%s.", pid->toChars());
+                fprintf(global.stdmsg, "%s.", pid->toChars());
             }
         }
-        printf("%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
+        fprintf(global.stdmsg, "%s\t(%s)\n", ident->toChars(), m->srcfile->toChars());
     }
 
     if (!m->read(loc))
@@ -279,11 +279,11 @@ bool Module::read(Loc loc)
                 for (size_t i = 0; i < global.path->dim; i++)
                 {
                     char *p = (*global.path)[i];
-                    fprintf(stderr, "import path[%llu] = %s\n", (ulonglong)i, p);
+                    errorSupplemental(loc, "import path[%llu] = %s\n", (ulonglong)i, p);
                 }
             }
             else
-                fprintf(stderr, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
+                errorSupplemental(loc, "Specify path to file '%s' with -I switch\n", srcfile->toChars());
             fatal();
         }
         return false;
@@ -831,7 +831,7 @@ void Module::inlineScan()
     for (size_t i = 0; i < members->dim; i++)
     {   Dsymbol *s = (*members)[i];
         //if (global.params.verbose)
-            //printf("inline scan symbol %s\n", s->toChars());
+            //fprintf(global.stdmsg, "inline scan symbol %s\n", s->toChars());
 
         s->inlineScan();
     }

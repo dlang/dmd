@@ -1201,7 +1201,7 @@ Lnomatch:
             {
                 const char *p = loc.toChars();
                 const char *s = (storage_class & STCimmutable) ? "immutable" : "const";
-                fprintf(stderr, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
+                fprintf(global.stdmsg, "%s: %s.%s is %s field\n", p ? p : "", ad->toPrettyChars(), toChars(), s);
             }
             storage_class |= STCfield;
 #if DMDV2
