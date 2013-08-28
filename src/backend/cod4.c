@@ -920,7 +920,7 @@ code *cdaddass(elem *e,regm_t *pretregs)
         cl = getlvalue(&cs,e1,0);
         cl = cat(cl,modEA(&cs));
         cs.IFL2 = FLconst;
-        cs.IEV2.Vint = e2->EV.Vint;
+        cs.IEV2.Vsize_t = e2->EV.Vint;
         if (sz <= REGSIZE || tyfv(tyml) || opsize)
         {
             targ_int i = cs.IEV2.Vint;
