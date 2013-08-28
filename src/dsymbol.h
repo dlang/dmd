@@ -144,6 +144,7 @@ public:
     Dsymbol *toParent2();
     TemplateInstance *inTemplateInstance();
     TemplateInstance *isSpeculative();
+    Ungag ungagSpeculative();
 
     int dyncast() { return DYNCAST_DSYMBOL; }   // kludge for template.isSymbol()
 

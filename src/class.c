@@ -292,7 +292,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
@@ -311,16 +312,13 @@ void ClassDeclaration::semantic(Scope *sc)
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
     {
-        BaseClass *b = (*baseclasses)[i];
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
 
-        unsigned oldgag = global.gag;
-        if (global.isSpeculativeGagging() && !isSpeculative())
-            global.gag = 0;
+        BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
-        global.gag = oldgag;
 
         Type *tb = b->type->toBasetype();
-
         if (tb->ty == Ttuple)
         {   TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
@@ -338,21 +336,23 @@ void ClassDeclaration::semantic(Scope *sc)
 
     // See if there's a base class as first in baseclasses[]
     if (baseclasses->dim)
-    {   TypeClass *tc;
-        BaseClass *b;
-        Type *tb;
+    {
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
 
-        b = (*baseclasses)[0];
+        BaseClass *b = (*baseclasses)[0];
         //b->type = b->type->semantic(loc, sc);
-        tb = b->type->toBasetype();
+
+        Type *tb = b->type->toBasetype();
         if (tb->ty != Tclass)
-        {   if (b->type != Type::terror)
+        {
+            if (b->type != Type::terror)
                 error("base type must be class or interface, not %s", b->type->toChars());
             baseclasses->remove(0);
         }
         else
         {
-            tc = (TypeClass *)(tb);
+            TypeClass *tc = (TypeClass *)(tb);
 
             if (tc->sym->isDeprecated())
             {
@@ -408,19 +408,18 @@ void ClassDeclaration::semantic(Scope *sc)
     // Treat the remaining entries in baseclasses as interfaces
     // Check for errors, handle forward references
     for (size_t i = (baseClass ? 1 : 0); i < baseclasses->dim; )
-    {   TypeClass *tc;
-        BaseClass *b;
-        Type *tb;
+    {
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
 
-        b = (*baseclasses)[i];
+        BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
-        tb = b->type->toBasetype();
-        if (tb->ty == Tclass)
-            tc = (TypeClass *)tb;
-        else
-            tc = NULL;
+
+        Type *tb = b->type->toBasetype();
+        TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
-        {   if (b->type != Type::terror)
+        {
+            if (b->type != Type::terror)
                 error("base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
@@ -624,7 +623,11 @@ void ClassDeclaration::semantic(Scope *sc)
     }
 
     for (size_t i = 0; i < members_dim; i++)
-    {   Dsymbol *s = (*members)[i];
+    {
+        Dsymbol *s = (*members)[i];
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
         s->semantic(sc);
     }
 
@@ -926,14 +929,7 @@ Dsymbol *ClassDeclaration::search(Loc loc, Identifier *ident, int flags)
     {
         // must semantic on base class/interfaces
         doAncestorsSemantic = SemanticIn;
-
-        // If speculatively gagged, ungag now.
-        unsigned oldgag = global.gag;
-        if (global.isSpeculativeGagging())
-            global.gag = 0;
         semantic(scope);
-        global.gag = oldgag;
-
         if (doAncestorsSemantic != SemanticDone)
             doAncestorsSemantic = SemanticStart;
     }
@@ -1276,7 +1272,8 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
@@ -1291,10 +1288,14 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
-    {   BaseClass *b = (*baseclasses)[i];
-        b->type = b->type->semantic(loc, sc);
-        Type *tb = b->type->toBasetype();
+    {
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
 
+        BaseClass *b = (*baseclasses)[i];
+        b->type = b->type->semantic(loc, sc);
+
+        Type *tb = b->type->toBasetype();
         if (tb->ty == Ttuple)
         {   TypeTuple *tup = (TypeTuple *)tb;
             PROT protection = b->protection;
@@ -1315,19 +1316,18 @@ void InterfaceDeclaration::semantic(Scope *sc)
 
     // Check for errors, handle forward references
     for (size_t i = 0; i < baseclasses->dim; )
-    {   TypeClass *tc;
-        BaseClass *b;
-        Type *tb;
+    {
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
 
-        b = (*baseclasses)[i];
+        BaseClass *b = (*baseclasses)[i];
         b->type = b->type->semantic(loc, sc);
-        tb = b->type->toBasetype();
-        if (tb->ty == Tclass)
-            tc = (TypeClass *)tb;
-        else
-            tc = NULL;
+
+        Type *tb = b->type->toBasetype();
+        TypeClass *tc = (tb->ty == Tclass) ? (TypeClass *)tb : NULL;
         if (!tc || !tc->sym->isInterfaceDeclaration())
-        {   if (b->type != Type::terror)
+        {
+            if (b->type != Type::terror)
                 error("base type must be interface, not %s", b->type->toChars());
             baseclasses->remove(i);
             continue;
@@ -1455,6 +1455,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     for (size_t i = 0; i < members->dim; i++)
     {
         Dsymbol *s = (*members)[i];
+
+        // Ungag errors when not speculative
+        Ungag ungag = ungagSpeculative();
         s->semantic(sc);
     }
 
