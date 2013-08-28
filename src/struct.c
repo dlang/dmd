@@ -533,14 +533,13 @@ void StructDeclaration::semantic(Scope *sc)
 
     Scope *scx = NULL;
     if (scope)
-    {   sc = scope;
+    {
+        sc = scope;
         scx = scope;            // save so we don't make redundant copies
         scope = NULL;
     }
-
-    int errors = global.errors;
-
     unsigned dprogress_save = Module::dprogress;
+    int errors = global.errors;
 
     parent = sc->parent;
     type = type->semantic(loc, sc);
@@ -600,14 +599,10 @@ void StructDeclaration::semantic(Scope *sc)
             if (sizeok == SIZEOKnone && s->isAliasDeclaration())
                 finalizeSize(sc2);
         }
+
         // Ungag errors when not speculative
-        unsigned oldgag = global.gag;
-        if (global.isSpeculativeGagging() && !isSpeculative())
-        {
-            global.gag = 0;
-        }
+        Ungag ungag = ungagSpeculative();
         s->semantic(sc2);
-        global.gag = oldgag;
     }
     finalizeSize(sc2);
 
