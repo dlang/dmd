@@ -26,11 +26,12 @@
 
 #include "mars.h"
 #include "module.h"
+#include "scope.h"
 #include "mtype.h"
 #include "id.h"
 #include "cond.h"
 #include "expression.h"
-#include "lexer.h"
+#include "parse.h"
 #include "lib.h"
 #include "json.h"
 
@@ -430,6 +431,51 @@ extern "C"
     extern int _end;
 }
 #endif
+
+static Module *entrypoint = NULL;
+
+/************************************
+ * Generate C main() in response to seeing D main().
+ * This used to be in druntime, but contained a reference to _Dmain
+ * which didn't work when druntime was made into a dll and was linked
+ * to a program, such as a C++ program, that didn't have a _Dmain.
+ */
+
+void genCmain(Scope *sc)
+{
+    if (entrypoint)
+        return;
+
+    /* The D code to be generated is provided as D source code in the form of a string.
+     * Note that Solaris, for unknown reasons, requires both a main() and an _main()
+     */
+    static utf8_t code[] = "extern(C) {\n\
+        int _d_run_main(int argc, char **argv, void* mainFunc);\n\
+        int _Dmain(char[][] args);\n\
+        int main(int argc, char **argv) { return _d_run_main(argc, argv, &_Dmain); }\n\
+        version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }\n\
+        }\n\
+        ";
+
+    Module *m = new Module("__entrypoint.d", NULL, 0, 0);
+
+    Parser p(m, code, sizeof(code) / sizeof(code[0]), 0);
+    p.loc = Loc();
+    p.nextToken();
+    m->members = p.parseModule();
+    assert(p.token.value == TOKeof);
+
+    char v = global.params.verbose;
+    global.params.verbose = 0;
+    m->importedFrom = sc->module;
+    m->importAll(NULL);
+    m->semantic();
+    m->semantic2();
+    m->semantic3();
+    global.params.verbose = v;
+
+    entrypoint = m;
+}
 
 int tryMain(size_t argc, char *argv[])
 {
@@ -1650,14 +1696,21 @@ Language changes listed by -transition=id:\n\
 
     if (global.params.oneobj)
     {
+        if (modules.dim)
+            obj_start(modules[0]->srcfile->toChars());
         for (size_t i = 0; i < modules.dim; i++)
         {
             m = modules[i];
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
-            if (i == 0)
-                obj_start(m->srcfile->toChars());
             m->genobjfile(0);
+            if (entrypoint && m == entrypoint->importedFrom)
+            {
+                char v = global.params.verbose;
+                global.params.verbose = 0;
+                entrypoint->genobjfile(0);
+                global.params.verbose = v;
+            }
             if (!global.errors && global.params.doDocComments)
                 m->gendocfile();
         }
@@ -1674,8 +1727,16 @@ Language changes listed by -transition=id:\n\
             if (global.params.verbose)
                 printf("code      %s\n", m->toChars());
             if (global.params.obj)
-            {   obj_start(m->srcfile->toChars());
+            {
+                obj_start(m->srcfile->toChars());
                 m->genobjfile(global.params.multiobj);
+                if (entrypoint && m == entrypoint->importedFrom)
+                {
+                    char v = global.params.verbose;
+                    global.params.verbose = 0;
+                    entrypoint->genobjfile(global.params.multiobj);
+                    global.params.verbose = v;
+                }
                 obj_end(library, m->objfile);
                 obj_write_deferred(library);
             }
