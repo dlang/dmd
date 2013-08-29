@@ -273,13 +273,13 @@ release:
 	$(DMDMAKE) clean
 
 debdmd:
-	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co" $(TARGETEXE)
+	$(DMDMAKE) "OPT=" "DEBUG=-D -g -DUNITTEST" "LFLAGS=-L/ma/co/la" $(TARGETEXE)
 
 reldmd:
-	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=" "LFLAGS=-L/delexe/la" $(TARGETEXE)
 
 trace:
-	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe" $(TARGETEXE)
+	$(DMDMAKE) "OPT=-o" "DEBUG=-gt -Nc" "LFLAGS=-L/ma/co/delexe/la" $(TARGETEXE)
 
 ################################ Libraries ##################################
 
