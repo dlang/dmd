@@ -219,6 +219,7 @@ Lexer::Lexer(Module *mod,
         int doDocComment, int commentToken)
 {
     scanloc = Loc(mod, 1);
+    trueloc = Loc(mod, 1);
     //printf("Lexer::Lexer(%p,%d)\n",base,length);
     //printf("lexer.mod = %p, %p\n", mod, this->loc.mod);
     memset(&token,0,sizeof(token));
@@ -465,12 +466,16 @@ void Lexer::scan(Token *t)
             case '\r':
                 p++;
                 if (*p != '\n')                 // if CR stands by itself
+                {
                     scanloc.linnum++;
+                    trueloc.linnum++;
+                }
                 continue;                       // skip white space
 
             case '\n':
                 p++;
                 scanloc.linnum++;
+                trueloc.linnum++;
                 continue;                       // skip white space
 
             case '0':   case '1':   case '2':   case '3':   case '4':
@@ -2262,14 +2267,18 @@ TOK Lexer::inreal(Token *t)
 
 void Lexer::poundLine()
 {
-    Token tok;
     int linnum;
     char *filespec = NULL;
     Loc loc = this->scanloc;
 
-    scan(&tok);
-    if (tok.value == TOKint32v || tok.value == TOKint64v)
-    {   linnum = (int)(tok.uns64value - 1);
+    if (*p == ' ' && isdigit(*(p + 1)))
+    {
+        ++p;
+        Token tok;
+        scan(&tok);
+        if (tok.value != TOKint32v && tok.value != TOKint64v)
+            goto Lerr;
+        linnum = (int)tok.uns64value - 1;
         if (linnum != tok.uns64value - 1)
             error("line number out of range");
     }
@@ -2278,7 +2287,10 @@ void Lexer::poundLine()
         linnum = this->scanloc.linnum;
     }
     else
-        goto Lerr;
+    {
+        this->scanloc = trueloc;
+        return;
+    }
 
     while (1)
     {
@@ -2365,7 +2377,7 @@ void Lexer::poundLine()
     }
 
 Lerr:
-    error(loc, "#line integer [\"filespec\"]\\n expected");
+    error(loc, "#line [integer] [\"filespec\"]\\n expected");
 }
 
 
