@@ -664,6 +664,27 @@ void test10433()
 }
 
 /************************************************************************/
+// 10918
+
+// Simplified
+void test10918()
+{
+    int[] args = [1, 2, 3];
+    int[] result;
+    result[] = args[] / args[0];
+}
+
+// Original
+static this()
+{
+    (real[][] args...)
+    {
+        real[] result;
+        result[] = args[0][] / args[1][0];
+    }([[1.0], [2.0]]);
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -677,6 +698,7 @@ int main()
     test8651();
     test9656();
     test10433();
+    test10918();
 
     printf("Success\n");
     return 0;
