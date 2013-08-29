@@ -525,8 +525,9 @@ Statements *CompileStatement::flatten(Scope *sc)
 
             while (p.token.value != TOKeof)
             {
+                unsigned errors = global.errors;
                 Statement *s = p.parseStatement(PSsemi | PScurlyscope);
-                if (!s)                  // fix: parsing error returns ErrorStatement
+                if (!s || global.errors != errors)
                     goto Lerror;
                 a->push(s);
             }
