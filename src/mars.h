@@ -265,7 +265,6 @@ struct Global
     const char *map_ext;        // for .map files
     const char *copyright;
     const char *written;
-    const char *main_d;         // dummy filename for dummy main()
     Strings *path;        // Array of char*'s which form the import lookup path
     Strings *filePath;    // Array of char*'s which form the file import lookup path
 
