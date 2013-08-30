@@ -192,8 +192,9 @@ code *cdorth(elem *e,regm_t *pretregs)
   unsigned char word = (!I16 && sz == SHORTSIZE) ? CFopsize : 0;
   unsigned test = FALSE;                // assume we destroyed lvalue
   code cs;
-  cs.Iflags = 0;
-  cs.Irex = 0;
+  memset(&cs, 0, sizeof(cs));
+  //cs.Iflags = 0;
+  //cs.Irex = 0;
   code *cr = CNIL;
 
   switch (e->Eoper)
@@ -2720,6 +2721,7 @@ code *cdind(elem *e,regm_t *pretregs)
   unsigned sz;
 
   //printf("cdind(e = %p, *pretregs = %s)\n",e,regm_str(*pretregs));
+  memset(&cs, 0, sizeof(cs));
   tym = tybasic(e->Ety);
   if (tyfloating(tym))
   {

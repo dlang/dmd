@@ -95,7 +95,7 @@ StringEntry *StringEntry::alloc(const char *s, size_t len)
 {
     StringEntry *se;
 
-    se = (StringEntry *) mem.calloc(1,sizeof(StringEntry) + len + 1);
+    se = (StringEntry *) mem.calloc(1,sizeof(StringEntry) + len + 2);
     se->value.ctor(s, len);
     se->hash = calcHash(s,len);
     return se;
