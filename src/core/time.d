@@ -2179,8 +2179,8 @@ struct TickDuration
     of days in a month or year).
 
     Params:
-        from  = The units of time to covert from.
-        to    = The units of time to covert to.
+        from  = The units of time to convert from.
+        to    = The units of time to convert to.
         value = The value to convert.
 
     Examples:
