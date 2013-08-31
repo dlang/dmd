@@ -171,7 +171,7 @@ class Semaphore
      *  period = The time to wait.
      *
      * In:
-     *  val must be non-negative.
+     *  period must be non-negative.
      *
      * Throws:
      *  SyncException on error.
@@ -179,10 +179,10 @@ class Semaphore
      * Returns:
      *  true if notified before the timeout and false if not.
      */
-    bool wait( Duration val )
+    bool wait( Duration period )
     in
     {
-        assert( !val.isNegative );
+        assert( !period.isNegative );
     }
     body
     {
@@ -190,7 +190,7 @@ class Semaphore
         {
             auto maxWaitMillis = dur!("msecs")( uint.max - 1 );
 
-            while( val > maxWaitMillis )
+            while( period > maxWaitMillis )
             {
                 auto rc = WaitForSingleObject( m_hndl, cast(uint)
                                                        maxWaitMillis.total!"msecs" );
@@ -199,13 +199,13 @@ class Semaphore
                 case WAIT_OBJECT_0:
                     return true;
                 case WAIT_TIMEOUT:
-                    val -= maxWaitMillis;
+                    period -= maxWaitMillis;
                     continue;
                 default:
                     throw new SyncException( "Unable to wait for semaphore" );
                 }
             }
-            switch( WaitForSingleObject( m_hndl, cast(uint) val.total!"msecs" ) )
+            switch( WaitForSingleObject( m_hndl, cast(uint) period.total!"msecs" ) )
             {
             case WAIT_OBJECT_0:
                 return true;
@@ -220,15 +220,15 @@ class Semaphore
             mach_timespec_t t = void;
             (cast(byte*) &t)[0 .. t.sizeof] = 0;
 
-            if( val.total!"seconds" > t.tv_sec.max )
+            if( period.total!"seconds" > t.tv_sec.max )
             {
                 t.tv_sec  = t.tv_sec.max;
-                t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
+                t.tv_nsec = cast(typeof(t.tv_nsec)) period.fracSec.nsecs;
             }
             else
             {
-                t.tv_sec  = cast(typeof(t.tv_sec)) val.total!"seconds";
-                t.tv_nsec = cast(typeof(t.tv_nsec)) val.fracSec.nsecs;
+                t.tv_sec  = cast(typeof(t.tv_sec)) period.total!"seconds";
+                t.tv_nsec = cast(typeof(t.tv_nsec)) period.fracSec.nsecs;
             }
             while( true )
             {
@@ -244,7 +244,7 @@ class Semaphore
         else version( Posix )
         {
             timespec t = void;
-            mktspec( t, val );
+            mktspec( t, period );
 
             while( true )
             {
