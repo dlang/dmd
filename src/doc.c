@@ -107,6 +107,7 @@ void highlightCode(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset, bool an
 void highlightCode2(Scope *sc, Dsymbol *s, OutBuffer *buf, size_t offset);
 TypeFunction *isTypeFunction(Dsymbol *s);
 Parameter *isFunctionParameter(Dsymbol *s, utf8_t *p, size_t len);
+TemplateParameter *isTemplateParameter(Dsymbol *s, utf8_t *p, size_t len);
 
 int isIdStart(utf8_t *p);
 int isIdTail(utf8_t *p);
@@ -1520,9 +1521,14 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     {
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     }
-                    else
+                    else 
                     {
-                        if (!arg)
+                        if (isTemplateParameter(s, namestart, namelen))
+                        {
+                            // 10236: Don't count template parameters for params check
+                            --paramcount;
+                        }
+                        else if (!arg)
                         {
                             warning(s->loc, "Ddoc: function declaration has no parameter '%.*s'", namelen, namestart);
                         }
@@ -1572,8 +1578,8 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
     TypeFunction *tf = isTypeFunction(s);
     if (tf)
     {
-        if ((tf->parameters && tf->parameters->dim != paramcount) ||
-            (!tf->parameters && paramcount))
+        size_t pcount = tf->parameters ? tf->parameters->dim : 0;
+        if (pcount != paramcount)
         {
             warning(s->loc, "Ddoc: parameter count mismatch");
         }
@@ -1990,6 +1996,26 @@ Parameter *isFunctionParameter(Dsymbol *s, utf8_t *p, size_t len)
         for (size_t k = 0; k < tf->parameters->dim; k++)
         {
             Parameter *arg = (*tf->parameters)[k];
+            if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
+            {
+                return arg;
+            }
+        }
+    }
+    return NULL;
+}
+
+/****************************************************
+ */
+
+TemplateParameter *isTemplateParameter(Dsymbol *s, utf8_t *p, size_t len)
+{
+    TemplateDeclaration *td = s->isTemplateDeclaration();
+    if (td && td->origParameters)
+    {
+        for (size_t k = 0; k < td->origParameters->dim; k++)
+        {
+            TemplateParameter *arg = (*td->origParameters)[k];
             if (arg->ident && cmp(arg->ident->toChars(), p, len) == 0)
             {
                 return arg;
