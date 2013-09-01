@@ -12,6 +12,11 @@ bool tester()
 {
     assert(Runtime.args.length == 2);
     auto name = Runtime.args[1];
+    immutable pkg = ".package";
+    immutable pkgLen = pkg.length;
+
+    if(name.length > pkgLen && name[$ - pkgLen .. $] == pkg)
+        name = name[0 .. $ - pkgLen];
 
     if (auto fp = getModuleInfo(name).unitTest)
     {
