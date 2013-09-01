@@ -14,6 +14,15 @@
  */
 module core.runtime;
 
+version (Windows) import core.stdc.wchar_ : wchar_t;
+
+
+/// C interface for Runtime.loadLibrary
+extern (C) void* rt_loadLibrary(const char* name);
+/// ditto
+version (Windows) extern (C) void* rt_loadLibraryW(const wchar_t* name);
+/// C interface for Runtime.unloadLibrary
+extern (C) bool  rt_unloadLibrary(void* ptr);
 
 private
 {
@@ -30,9 +39,6 @@ private
     alias void delegate( Throwable ) ExceptionHandler;
     extern (C) bool rt_init( ExceptionHandler dg = null );
     extern (C) bool rt_term( ExceptionHandler dg = null );
-
-    extern (C) void* rt_loadLibrary( in char[] name );
-    extern (C) bool  rt_unloadLibrary( void* ptr );
 
     extern (C) void* thread_stackBottom();
 
@@ -165,7 +171,46 @@ struct Runtime
      */
     static void* loadLibrary( in char[] name )
     {
-        return rt_loadLibrary( name );
+        import core.stdc.stdlib : free, malloc;
+        version (Windows)
+        {
+            import core.sys.windows.windows;
+
+            if (name.length == 0) return null;
+            // Load a DLL at runtime
+            enum CP_UTF8 = 65001;
+            auto len = MultiByteToWideChar(
+                CP_UTF8, 0, name.ptr, cast(int)name.length, null, 0);
+            if (len == 0)
+                return null;
+
+            auto buf = cast(wchar_t*)malloc((len+1) * wchar_t.sizeof);
+            if (buf is null) return null;
+            scope (exit) free(buf);
+
+            len = MultiByteToWideChar(
+                CP_UTF8, 0, name.ptr, cast(int)name.length, buf, len);
+            if (len == 0)
+                return null;
+
+            buf[len] = '\0';
+
+            return rt_loadLibraryW(buf);
+        }
+        else version (Posix)
+        {
+            /* Need a 0-terminated C string for the dll name
+             */
+            immutable len = name.length;
+            auto buf = cast(char*)malloc(len + 1);
+            if (!buf) return null;
+            scope (exit) free(buf);
+
+            buf[0 .. len] = name[];
+            buf[len] = 0;
+
+            return rt_loadLibrary(buf);
+        }
     }
 
 
