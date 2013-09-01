@@ -241,20 +241,49 @@ int runLINK()
             cmdbuf.writestring((*global.params.linkswitches)[i]);
         }
 
-        /* Append the path to the VC lib files, and then the SDK lib files
+        /* VCINSTALLDIR is usually set by the VS installer, and is usually set
+         * if the desktop shortcut "Visual Studio x64 Win64..." is clicked on.
          */
         const char *vcinstalldir = getenv("VCINSTALLDIR");
-        if (vcinstalldir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
-            cmdbuf.writestring(vcinstalldir);
-            cmdbuf.writestring("lib\\amd64\"");
-        }
 
-        const char *windowssdkdir = getenv("WindowsSdkDir");
-        if (windowssdkdir)
-        {   cmdbuf.writestring(" \"/LIBPATH:");
-            cmdbuf.writestring(windowssdkdir);
-            cmdbuf.writestring("lib\\x64\"");
+        /* Where the libraries are
+         */
+        const char *libpath64 = getenv("LIBPATH64");
+        if (libpath64)
+        {
+            // Linker cannot handle ; separated paths, we must do it explicitly
+            const char *p = libpath64;
+            while (*p)
+            {
+                cmdbuf.writestring(" \"/LIBPATH:");
+                const char *q = strchr(p, ';');
+                if (!q)
+                {
+                    cmdbuf.writestring(p);
+                    cmdbuf.writeByte('"');
+                    break;
+                }
+                cmdbuf.write(p, q - p);
+                cmdbuf.writeByte('"');
+                p = q + 1;
+            }
+        }
+        else
+        {
+            /* Append the path to the VC lib files, and then the SDK lib files
+             */
+            if (vcinstalldir)
+            {   cmdbuf.writestring(" \"/LIBPATH:");
+                cmdbuf.writestring(vcinstalldir);
+                cmdbuf.writestring("lib\\amd64\"");     // works for VS 2010
+            }
+
+            const char *windowssdkdir = getenv("WindowsSdkDir");
+            if (windowssdkdir)
+            {   cmdbuf.writestring(" \"/LIBPATH:");
+                cmdbuf.writestring(windowssdkdir);
+                cmdbuf.writestring("lib\\x64\"");       // works for VS 2010
+            }
         }
 
         char *p = cmdbuf.toChars();
@@ -280,7 +309,7 @@ int runLINK()
             {
                 OutBuffer linkcmdbuf;
                 linkcmdbuf.writestring(vcinstalldir);
-                linkcmdbuf.writestring("bin\\amd64\\link");
+                linkcmdbuf.writestring("bin\\amd64\\link");     // works for VS 2010
                 linkcmd = linkcmdbuf.toChars();
                 linkcmdbuf.extractData();
             }
