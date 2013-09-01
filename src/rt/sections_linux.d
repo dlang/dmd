@@ -13,13 +13,15 @@ module rt.sections_linux;
 version (linux):
 
 // debug = PRINTF;
+import core.memory;
 import core.stdc.stdio;
-import core.stdc.stdlib : calloc, malloc, free;
+import core.stdc.stdlib : calloc, exit, free, malloc, EXIT_FAILURE;
 import core.stdc.string : strlen;
 import core.sys.linux.elf;
 import core.sys.linux.link;
 import rt.minfo;
 import rt.deh;
+import rt.dmain2;
 import rt.util.container;
 
 alias DSO SectionGroup;
@@ -100,9 +102,6 @@ void finiSections()
  */
 Array!(void[])* initTLSRanges()
 {
-    _tlsRanges.length = _static_dsos.length;
-    foreach (i, ref dso; _static_dsos)
-        _tlsRanges[i] = getTLSRange(dso._tlsMod, dso._tlsSize);
     return &_tlsRanges;
 }
 
@@ -174,20 +173,82 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         checkModuleCollisions(info, pdso._moduleGroup.modules);
 
+        // initialize the runtime when loading the first DSO
+        if (_static_dsos.empty) initRuntime();
+
         _static_dsos.insertBack(pdso);
+        _tlsRanges.insertBack(getTLSRange(pdso._tlsMod, pdso._tlsSize));
+        registerGCRanges(pdso);
+        runModuleConstructors(pdso);
     }
     // has backlink => unregister
     else
     {
         DSO* pdso = cast(DSO*)*data._slot;
-        assert(pdso == _static_dsos.back); // DSOs are unloaded in reverse order
-        _static_dsos.popBack();
-
         *data._slot = null;
 
-        pdso._gcRanges.reset();
-        .free(pdso);
+        runModuleDestructors(pdso);
+        unregisterGCRanges(pdso);
+        assert(pdso._tlsSize == _tlsRanges.back.length);
+        _tlsRanges.popBack();
+        assert(pdso == _static_dsos.back); // static DSOs are unloaded in reverse order
+        _static_dsos.popBack();
+
+        freeDSO(pdso);
+
+        // terminate the runtime when unloading the last DSO
+        if (_static_dsos.empty) termRuntime();
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// helper functions
+///////////////////////////////////////////////////////////////////////////////
+
+void initRuntime()
+{
+    if (!rt_init())
+    {
+        rt_term();
+        exit(EXIT_FAILURE);
+    }
+}
+
+void termRuntime()
+{
+    if (!rt_term())
+        exit(EXIT_FAILURE);
+}
+
+void runModuleConstructors(DSO* pdso)
+{
+    pdso._moduleGroup.sortCtors();
+    pdso._moduleGroup.runCtors();
+    pdso._moduleGroup.runTlsCtors();
+}
+
+void runModuleDestructors(DSO* pdso)
+{
+    pdso._moduleGroup.runTlsDtors();
+    pdso._moduleGroup.runDtors();
+}
+
+void registerGCRanges(DSO* pdso)
+{
+    foreach (rng; pdso._gcRanges)
+        GC.addRange(rng.ptr, rng.length);
+}
+
+void unregisterGCRanges(DSO* pdso)
+{
+    foreach (rng; pdso._gcRanges)
+        GC.removeRange(rng.ptr);
+}
+
+void freeDSO(DSO* pdso)
+{
+    pdso._gcRanges.reset();
+    .free(pdso);
 }
 
 ///////////////////////////////////////////////////////////////////////////////

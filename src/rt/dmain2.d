@@ -548,7 +548,15 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     //       the user's main function.  If main terminates with an exception,
     //       the exception is handled and then cleanup begins.  An exception
     //       thrown during cleanup, however, will abort the cleanup process.
-    void runAll()
+    void runMain()
+    {
+        if (runModuleUnitTests())
+            tryExec({ result = mainFunc(args); });
+        else
+            result = EXIT_FAILURE;
+    }
+
+    void runMainWithInit()
     {
         if (rt_init() && runModuleUnitTests())
             tryExec({ result = mainFunc(args); });
@@ -559,7 +567,10 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
             result = (result == EXIT_SUCCESS) ? EXIT_FAILURE : result;
     }
 
-    tryExec(&runAll);
+    version (linux) // initialization is done in rt.sections_linux
+        tryExec(&runMain);
+    else
+        tryExec(&runMainWithInit);
 
     // Issue 10344: flush stdout and return nonzero on failure
     if (.fflush(.stdout) != 0)
