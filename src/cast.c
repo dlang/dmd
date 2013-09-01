@@ -1315,6 +1315,16 @@ Expression *StringExp::castTo(Scope *sc, Type *t)
         se->len = (len * sz) / se->sz;
         se->committed = 1;
         se->type = t;
+
+        /* Assure space for terminating 0
+         */
+        if ((se->len + 1) * se->sz > (len + 1) * sz)
+        {
+            void *s = (void *)mem.malloc((se->len + 1) * se->sz);
+            memcpy(s, se->string, se->len * se->sz);
+            memset((char *)s + se->len * se->sz, 0, se->sz);
+            se->string = s;
+        }
         return se;
     }
 

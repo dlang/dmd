@@ -3805,9 +3805,31 @@ code *params(elem *e,unsigned stackalign)
         {
             if (i)                      /* be careful not to go negative */
                 i--;
-            targ_size_t value = (regsize == 4) ? pi[i] : ps[i];
-            if (regsize == 8)
-                value = pl[i];
+
+            targ_size_t value;
+            switch (regsize)
+            {
+                case 2:
+                    value = ps[i];
+                    break;
+                case 4:
+                    if (tym == TYldouble || tym == TYildouble)
+                        /* The size is 10 bytes, and since we have 2 bytes left over,
+                         * just read those 2 bytes, not 4.
+                         * Otherwise we're reading uninitialized data.
+                         * I.e. read 4 bytes, 4 bytes, then 2 bytes
+                         */
+                        value = i == 2 ? ps[4] : pi[i]; // 80 bits
+                    else
+                        value = pi[i];
+                    break;
+                case 8:
+                    value = pl[i];
+                    break;
+                default:
+                    assert(0);
+            }
+
             if (pushi)
             {
                 if (I64 && regsize == 8 && value != (int)value)
