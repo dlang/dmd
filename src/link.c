@@ -747,7 +747,7 @@ int executecmd(char *cmd, char *args, int useenv)
         if(len > 0 && len <= cmdlen)
             cmd = shortName;
     }
-#endif 
+#endif
 #endif
 
     status = executearg0(cmd,args);
