@@ -130,12 +130,16 @@ Symbol *Dsymbol::toImport(Symbol *sym)
         if (config.exe == EX_WIN64)
             sprintf(id,"__imp_%s",n);
         else
-        sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
+            sprintf(id,"_imp__%s@%lu",n,(unsigned long)type_paramsize(sym->Stype));
     }
     else if (sym->Stype->Tmangle == mTYman_d)
-        sprintf(id,"_imp_%s",n);
+    {
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp_%s" : "_imp_%s",n);
+    }
     else
-        sprintf(id,"_imp__%s",n);
+    {
+        sprintf(id,(config.exe == EX_WIN64) ? "__imp__%s" : "_imp__%s",n);
+    }
     t = type_alloc(TYnptr | mTYconst);
     t->Tnext = sym->Stype;
     t->Tnext->Tcount++;
