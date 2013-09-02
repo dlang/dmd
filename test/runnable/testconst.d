@@ -2910,6 +2910,16 @@ void test8688()
 }
 
 /************************************/
+// 10946 (regression by fixing bug 8688, from 2.061)
+
+enum xlen10946 = 4;
+alias immutable(char)[xlen10946] e3;
+alias immutable(char[xlen10946]) e4; // NG -> OK
+immutable vlen10946 = 4;
+alias immutable(char)[vlen10946] i3;
+alias immutable(char[vlen10946]) i4; // NG -> OK
+
+/************************************/
 // 9046
 
 void test9046()
