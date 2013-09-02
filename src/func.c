@@ -785,6 +785,9 @@ void FuncDeclaration::semantic(Scope *sc)
              */
             Loc loc = frequire->loc;
             TypeFunction *tf = new TypeFunction(NULL, Type::tvoid, 0, LINKd);
+            tf->isnothrow = f->isnothrow;
+            tf->purity = f->purity;
+            tf->trust = f->trust;
             FuncDeclaration *fd = new FuncDeclaration(loc, loc,
                 Id::require, STCundefined, tf);
             fd->fbody = frequire;
@@ -812,6 +815,9 @@ void FuncDeclaration::semantic(Scope *sc)
                 arguments->push(a);
             }
             TypeFunction *tf = new TypeFunction(arguments, Type::tvoid, 0, LINKd);
+            tf->isnothrow = f->isnothrow;
+            tf->purity = f->purity;
+            tf->trust = f->trust;
             FuncDeclaration *fd = new FuncDeclaration(loc, loc,
                 Id::ensure, STCundefined, tf);
             fd->fbody = fensure;
