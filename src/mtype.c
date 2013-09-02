@@ -5707,12 +5707,24 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
                 error(loc, "cannot have parameter of type %s", fparam->type->toChars());
-            if (fparam->storageClass & (STCout | STCref | STClazy))
+            if (fparam->storageClass & (STCref | STClazy))
             {
-                //if (t->ty == Tsarray)
-                    //error(loc, "cannot have out or ref parameter of type %s", t->toChars());
-                if (fparam->storageClass & STCout && fparam->type->mod & (STCconst | STCimmutable))
+            }
+            else if (fparam->storageClass & STCout)
+            {
+                if (fparam->type->mod & (STCconst | STCimmutable))
                     error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
+                else
+                {
+                    Type *tv = t;
+                    while (tv->ty == Tsarray)
+                        tv = tv->nextOf()->toBasetype();
+                    if (tv->ty == Tstruct && ((TypeStruct *)tv)->sym->noDefaultCtor)
+                    {
+                        error(loc, "cannot have out parameter of type %s because the default construction is disbaled",
+                            fparam->type->toChars());
+                    }
+                }
             }
 
             if (t->hasWild() &&
