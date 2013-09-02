@@ -654,6 +654,10 @@ Expression *AddExp::optimize(int result, bool keepLvalue)
     //printf("AddExp::optimize(%s)\n", toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() && e2->isConst())
     {
         if (e1->op == TOKsymoff && e2->op == TOKsymoff)
@@ -670,6 +674,10 @@ Expression *MinExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() && e2->isConst())
     {
         if (e2->op == TOKsymoff)
@@ -687,6 +695,10 @@ Expression *MulExp::optimize(int result, bool keepLvalue)
     //printf("MulExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
     {
         e = Mul(type, e1, e2);
@@ -702,6 +714,10 @@ Expression *DivExp::optimize(int result, bool keepLvalue)
     //printf("DivExp::optimize(%s)\n", toChars());
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
     {
         e = Div(type, e1, e2);
@@ -716,6 +732,10 @@ Expression *ModExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
     {
         e = Mod(type, e1, e2);
@@ -730,6 +750,10 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
 
     e->e1 = e->e1->optimize(result);
     e->e2 = e->e2->optimize(result);
+    if (e->e1->op == TOKerror)
+        return e->e1;
+    if (e->e2->op == TOKerror)
+        return e->e2;
     if (e->e2->isConst() == 1)
     {
         sinteger_t i2 = e->e2->toInteger();
@@ -767,6 +791,10 @@ Expression *AndExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
         e = And(type, e1, e2);
     else
@@ -779,6 +807,10 @@ Expression *OrExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
         e = Or(type, e1, e2);
     else
@@ -791,6 +823,10 @@ Expression *XorExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
     if (e1->isConst() == 1 && e2->isConst() == 1)
         e = Xor(type, e1, e2);
     else
@@ -803,6 +839,10 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(result);
     e2 = e2->optimize(result);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op == TOKerror)
+        return e2;
 
     // Replace 1 ^^ x or 1.0^^x by (x, 1)
     if ((e1->op == TOKint64 && e1->toInteger() == 1) ||
@@ -890,6 +930,8 @@ Expression *CommaExp::optimize(int result, bool keepLvalue)
 
     e1 = e1->optimize(0);
     e2 = e2->optimize(result, keepLvalue);
+    if (e1->op == TOKerror)
+        return e1;
     if (!e1 || e1->op == TOKint64 || e1->op == TOKfloat64 || !e1->hasSideEffect())
     {
         e = e2;
@@ -907,6 +949,8 @@ Expression *ArrayLengthExp::optimize(int result, bool keepLvalue)
 
     //printf("ArrayLengthExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue | WANTexpand);
+    if (e1->op == TOKerror)
+        return e1;
     e = this;
     if (e1->op == TOKstring || e1->op == TOKarrayliteral || e1->op == TOKassocarrayliteral ||
         e1->type->toBasetype()->ty == Tsarray)
@@ -924,6 +968,10 @@ Expression *EqualExp::optimize(int result, bool keepLvalue)
 
     Expression *e1 = fromConstInitializer(result, this->e1);
     Expression *e2 = fromConstInitializer(result, this->e2);
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op = TOKerror)
+        return e2;
 
     Expression *e = Equal(op, type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
@@ -936,6 +984,12 @@ Expression *IdentityExp::optimize(int result, bool keepLvalue)
     //printf("IdentityExp::optimize(result = %d) %s\n", result, toChars());
     e1 = e1->optimize(WANTvalue);
     e2 = e2->optimize(WANTvalue);
+
+    if (e1->op == TOKerror)
+        return e1;
+    if (e2->op = TOKerror)
+        return e2;
+
     Expression *e = this;
 
     if ((this->e1->isConst()     && this->e2->isConst()) ||
@@ -1031,6 +1085,8 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
 
     //printf("AndAndExp::optimize(%d) %s\n", result, toChars());
     e1 = e1->optimize(WANTflags);
+    if (e1->op == TOKerror)
+        return e1;
     e = this;
     if (e1->isBool(FALSE))
     {
@@ -1070,6 +1126,8 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
 {   Expression *e;
 
     e1 = e1->optimize(WANTflags);
+    if (e1->op == TOKerror)
+        return e1;
     e = this;
     if (e1->isBool(TRUE))
     {   // Replace with (e1, 1)
