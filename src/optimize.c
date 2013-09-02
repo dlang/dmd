@@ -56,13 +56,19 @@ Expression *expandVar(int result, VarDeclaration *v)
             {
                 if (v->inuse)
                 {   if (v->storage_class & STCmanifest)
+                    {
                         v->error("recursive initialization of constant");
+                        goto Lerror;
+                    }
                     goto L1;
                 }
                 Expression *ei = v->getConstInitializer();
                 if (!ei)
                 {   if (v->storage_class & STCmanifest)
+                    {
                         v->error("enum cannot be initialized with %s", v->init->toChars());
+                        goto Lerror;
+                    }
                     goto L1;
                 }
                 if (ei->op == TOKconstruct || ei->op == TOKblit)
@@ -119,6 +125,9 @@ Expression *expandVar(int result, VarDeclaration *v)
 L1:
     //if (e) printf("\te = %p, %s, e->type = %d, %s\n", e, e->toChars(), e->type->ty, e->type->toChars());
     return e;
+
+Lerror:
+    return new ErrorExp();
 }
 
 
@@ -362,7 +371,10 @@ Expression *AddrExp::optimize(int result, bool keepLvalue)
                 TypeSArray *ts = (TypeSArray *)ve->type;
                 sinteger_t dim = ts->dim->toInteger();
                 if (index < 0 || index >= dim)
+                {
                     error("array index %lld is out of bounds [0..%lld]", index, dim);
+                    return new ErrorExp();
+                }
                 e = new SymOffExp(loc, ve->var, index * ts->nextOf()->size());
                 e->type = type;
                 return e;
@@ -641,7 +653,7 @@ Expression *BinExp::optimize(int result, bool keepLvalue)
             d_uns64 sz = e1->type->size() * 8;
             if (i2 < 0 || i2 >= sz)
             {   error("shift assign by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
-                e2 = new IntegerExp(0);
+                return new ErrorExp();
             }
         }
     }
@@ -760,7 +772,7 @@ Expression *shift_optimize(int result, BinExp *e, Expression *(*shift)(Type *, E
         d_uns64 sz = e->e1->type->size() * 8;
         if (i2 < 0 || i2 >= sz)
         {   e->error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
-            e->e2 = new IntegerExp(0);
+            return new ErrorExp();
         }
         if (e->e1->isConst() == 1)
             ex = (*shift)(e->type, e->e1, e->e2);
@@ -970,7 +982,7 @@ Expression *EqualExp::optimize(int result, bool keepLvalue)
     Expression *e2 = fromConstInitializer(result, this->e2);
     if (e1->op == TOKerror)
         return e1;
-    if (e2->op = TOKerror)
+    if (e2->op == TOKerror)
         return e2;
 
     Expression *e = Equal(op, type, e1, e2);
@@ -987,7 +999,7 @@ Expression *IdentityExp::optimize(int result, bool keepLvalue)
 
     if (e1->op == TOKerror)
         return e1;
-    if (e2->op = TOKerror)
+    if (e2->op == TOKerror)
         return e2;
 
     Expression *e = this;
@@ -1102,7 +1114,10 @@ Expression *AndAndExp::optimize(int result, bool keepLvalue)
     {
         e2 = e2->optimize(WANTflags);
         if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
+        {
             error("void has no value");
+            return new ErrorExp();
+        }
         if (e1->isConst())
         {
             if (e2->isConst())
@@ -1139,7 +1154,10 @@ Expression *OrOrExp::optimize(int result, bool keepLvalue)
     {
         e2 = e2->optimize(WANTflags);
         if (result && e2->type->toBasetype()->ty == Tvoid && !global.errors)
+        {
             error("void has no value");
+            return new ErrorExp();
+        }
         if (e1->isConst())
         {
             if (e2->isConst())
