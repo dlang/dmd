@@ -1507,10 +1507,6 @@ Parameters *Parser::parseParameters(int *pvarargs, TemplateParameters **tpl)
                     if (stc & (stc - 1) &&        // if stc is not a power of 2
                         !(stc == (STCin | STCref)))
                         error("incompatible parameter storage classes");
-                    if ((storageClass & (STCconst | STCout)) == (STCconst | STCout))
-                        error("out cannot be const");
-                    if ((storageClass & (STCimmutable | STCout)) == (STCimmutable | STCout))
-                        error("out cannot be immutable");
                     if ((storageClass & STCscope) && (storageClass & (STCref | STCout)))
                         error("scope cannot be ref or out");
 
