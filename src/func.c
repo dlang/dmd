@@ -98,6 +98,13 @@ FuncDeclaration::FuncDeclaration(Loc loc, Loc endloc, Identifier *id, StorageCla
     flags = 0;
 #endif
     returns = NULL;
+    if (type)
+    {
+        assert(type->ty == Tfunction && "invalid function type");
+        TypeFunction *tf = (TypeFunction*)type;
+        if (tf->sym == NULL)
+            tf->sym = this;
+    }
 }
 
 Dsymbol *FuncDeclaration::syntaxCopy(Dsymbol *s)

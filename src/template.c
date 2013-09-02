@@ -5874,7 +5874,38 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
                 j--;
                 continue;
             }
+            // Strip default arguments
             (*tiargs)[j] = ta->merge2();
+            // TypeFunction::sym may have been changed by merge2. We need to restore it.
+            if (ta->ty == Tfunction)
+            {
+                FuncDeclaration *sym = ((TypeFunction*)ta)->sym;
+                TypeFunction *merged = (TypeFunction*)(*tiargs)[j];
+                if (sym != merged->sym)
+                {
+                    merged = (TypeFunction*)merged->copy();
+                    merged->sym = sym;
+                    (*tiargs)[j] = merged;
+                }
+            }
+            else if (ta->ty == Tdelegate || ta->ty == Tpointer)
+            {
+                TypeNext *merged = (TypeNext*)(*tiargs)[j];
+                Type *next = ta->nextOf();
+                if (next->ty == Tfunction)
+                {
+                    FuncDeclaration *sym = ((TypeFunction*)next)->sym;
+                    TypeFunction *tf = (TypeFunction*)merged->next;
+                    if (sym != tf->sym)
+                    {
+                        merged = (TypeNext*)merged->copy();
+                        tf = (TypeFunction*)tf->copy();
+                        tf->sym = sym;
+                        merged->next = tf;
+                        (*tiargs)[j] = merged;
+                    }
+                }
+            }
         }
         else if (ea)
         {
