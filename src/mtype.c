@@ -5705,6 +5705,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
 
             Type *t = fparam->type->toBasetype();
 
+            if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
+                error(loc, "cannot have parameter of type %s", fparam->type->toChars());
             if (fparam->storageClass & (STCout | STCref | STClazy))
             {
                 //if (t->ty == Tsarray)
@@ -5712,8 +5714,6 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
                 if (fparam->storageClass & STCout && fparam->type->mod & (STCconst | STCimmutable))
                     error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
             }
-            if (!(fparam->storageClass & STClazy) && t->ty == Tvoid)
-                error(loc, "cannot have parameter of type %s", fparam->type->toChars());
 
             if (t->hasWild() &&
                 !(t->ty == Tpointer && t->nextOf()->ty == Tfunction || t->ty == Tdelegate))
