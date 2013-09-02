@@ -118,7 +118,7 @@ int btr(size_t* p, size_t bitnum) pure;
  * Tests and sets the bit.
  * Params:
  * p = a non-NULL pointer to an array of size_ts.
- * index = a bit number, starting with bit 0 of p[0],
+ * bitnum = a bit number, starting with bit 0 of p[0],
  * and progressing. It addresses bits like the expression:
 ---
 p[index / (size_t.sizeof*8)] & (1 << (index & ((size_t.sizeof*8) - 1)))

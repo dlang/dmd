@@ -475,7 +475,10 @@ extern (C) void onRangeError( string file = __FILE__, size_t line = __LINE__ ) @
  * A callback for finalize errors in D.  A FinalizeError will be thrown.
  *
  * Params:
+ *  info = The ClassInfo instance for the object that failed finalization.
  *  e = The exception thrown during finalization.
+ *  file = The name of the file that signaled this error.
+ *  line = The line number on which this error occurred.
  *
  * Throws:
  *  FinalizeError.
@@ -552,6 +555,8 @@ extern (C) void onSwitchError( string file = __FILE__, size_t line = __LINE__ ) 
  * Params:
  *  msg = Information about the error.
  *  idx = String index where this error was detected.
+ *  file = The name of the file that signaled this error.
+ *  line = The line number on which this error occurred.
  *
  * Throws:
  *  UnicodeException.
