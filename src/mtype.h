@@ -656,6 +656,7 @@ class TypeFunction : public TypeNext
 public:
     // .next is the return type
 
+    FuncDeclaration *sym;
     Parameters *parameters;     // function parameters
     int varargs;        // 1: T t, ...) style for variable number of arguments
                         // 2: T t ...) style for variable number of arguments

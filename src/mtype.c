@@ -5125,6 +5125,7 @@ TypeFunction::TypeFunction(Parameters *parameters, Type *treturn, int varargs, L
     this->isref = false;
     this->iswild = false;
     this->fargs = NULL;
+    this->sym = NULL;
 
     if (stc & STCpure)
         this->purity = PUREfwdref;
@@ -6262,6 +6263,7 @@ Type *TypeFunction::addStorageClass(StorageClass stc)
         tf->isref = t->isref;
         tf->trust = t->trust;
         tf->iswild = t->iswild;
+        tf->sym = t->sym;
 
         if (stc & STCpure)
             tf->purity = PUREfwdref;
