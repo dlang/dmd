@@ -4698,11 +4698,12 @@ void TypeAArray::resolve(Loc loc, Scope *sc, Expression **pe, Type **pt, Dsymbol
 
         index->resolve(loc, sc, &e, &t, &s);
         if (e)
-        {   // It was an expression -
+        {
+            // It was an expression -
             // Rewrite as a static array
-
             TypeSArray *tsa = new TypeSArray(next, e);
-            return tsa->addMod(this->mod)->resolve(loc, sc, pe, pt, ps);
+            tsa->mod = this->mod;   // just copy mod field so tsa's semantic is not yet done
+            return tsa->resolve(loc, sc, pe, pt, ps);
         }
         else if (t)
             index = t;
