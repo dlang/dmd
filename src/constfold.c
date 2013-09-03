@@ -1214,7 +1214,7 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
     }
 
     if (e1->op == TOKarrayliteral && typeb == tb)
-        return e1;
+        return expType(to, e1);
 
     if (e1->isConst() != 1)
         return EXP_CANT_INTERPRET;
