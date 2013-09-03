@@ -40,6 +40,16 @@ void test5689()
 
 // ------------------
 
+class Foo10617
+{
+    void foo() nothrow pure @safe
+    in { }
+    out { }
+    body { }
+}
+
+// ------------------
+
 void main()
 {
     test1();
