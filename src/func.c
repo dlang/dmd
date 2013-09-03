@@ -711,6 +711,10 @@ void FuncDeclaration::semantic(Scope *sc)
     else if (isOverride() && !parent->isTemplateInstance())
         error("override only applies to class member functions");
 
+    // Reflect this->type to f because it could be changed by findVtblIndex
+    assert(type->ty == Tfunction);
+    f = (TypeFunction *)type;
+
     /* Do not allow template instances to add virtual functions
      * to a class.
      */
