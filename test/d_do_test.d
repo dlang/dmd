@@ -122,14 +122,14 @@ bool findOutputParameter(string file, string token, out string result, string se
         enum embed_sep = "---";
 
         auto n = std.string.indexOf(file[istart .. $], embed_sep);
-        enforce(n != -1);
+        enforce(n != -1, "invalid TEST_OUTPUT format");
         istart += n + embed_sep.length;
         while (file[istart] == '-') ++istart;
         if (file[istart] == '\r') ++istart;
         if (file[istart] == '\n') ++istart;
 
         auto iend = std.string.indexOf(file[istart .. $], embed_sep);
-        enforce(iend != -1);
+        enforce(iend != -1, "invalid TEST_OUTPUT format");
         iend += istart;
 
         result ~= file[istart .. iend];
