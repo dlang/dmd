@@ -2954,6 +2954,73 @@ shared static ~this() nothrow pure @safe
 }
 
 /**********************************/
+// 10789
+
+struct S10789
+{
+    static int count;
+    int value;
+
+    this(int)  { value = ++count; }
+    ~this()    { --count; }
+    this(this) { value = ++count; assert(value == 3); }
+}
+
+S10789 fun10789a(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+auto fun10789b(bool isCondExp)(bool cond)
+{
+    S10789 s1 = S10789(42), s2 = S10789(24);
+    assert(S10789.count == 2);
+    static if (isCondExp)
+    {
+        return cond ? s1 : s2;
+    }
+    else
+    {
+        if (cond)
+            return s1;
+        else
+            return s2;
+    }
+}
+
+void test10789()
+{
+    foreach (fun; TypeTuple!(fun10789a, fun10789b))
+    foreach (isCondExp; TypeTuple!(false, true))
+    {
+        {
+            S10789 s = fun!isCondExp(true);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+        {
+            S10789 s = fun!isCondExp(false);
+            assert(S10789.count == 1);
+            assert(s.value == 3);
+        }
+        assert(S10789.count == 0);
+    }
+}
+
+/**********************************/
 
 int main()
 {
@@ -3046,6 +3113,7 @@ int main()
     test10094();
     test10244();
     test10694();
+    test10789();
 
     printf("Success\n");
     return 0;
