@@ -3727,7 +3727,8 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
 
         if (fd->nrvo_can && exp->op == TOKvar)
-        {   VarExp *ve = (VarExp *)exp;
+        {
+            VarExp *ve = (VarExp *)exp;
             VarDeclaration *v = ve->var->isVarDeclaration();
 
             if (isRefReturn)
@@ -3736,8 +3737,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
             else if (!v || v->isOut() || v->isRef())
                 fd->nrvo_can = 0;
             else if (fd->nrvo_var == NULL)
-            {   if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
-                {   //printf("Setting nrvo to %s\n", v->toChars());
+            {
+                if (!v->isDataseg() && !v->isParameter() && v->toParent2() == fd)
+                {
+                    //printf("Setting nrvo to %s\n", v->toChars());
                     fd->nrvo_var = v;
                 }
                 else
@@ -3809,13 +3812,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
                 tf->next = exp->type;
                 //fd->type = tf->semantic(loc, sc);     // Removed with 6902
                 if (!fd->tintro)
-                {   tret = tf->next;
+                {
+                    tret = tf->next;
                     tbret = tret->toBasetype();
                 }
-            }
-            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
-            {
-                exp = callCpCtor(exp->loc, sc, exp, 1);
             }
             if (fd->returnLabel)
                 eorg = exp->copy();
@@ -3826,11 +3826,6 @@ Statement *ReturnStatement::semantic(Scope *sc)
         }
         else if (tbret->ty != Tvoid)
         {
-            if (!fd->nrvo_can && exp->isLvalue() && !isRefReturn)
-            {
-                exp = callCpCtor(exp->loc, sc, exp, 1);
-            }
-
             if (!exp->type->implicitConvTo(tret) &&
                 fd->parametersIntersect(exp->type))
             {
@@ -3849,6 +3844,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
 
             if (!isRefReturn)
                 exp = exp->optimize(WANTvalue);
+
+            if (!fd->returns)
+                fd->returns = new ReturnStatements();
+            fd->returns->push(this);
         }
     }
     else if (fd->inferRetType)

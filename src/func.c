@@ -1267,26 +1267,31 @@ void FuncDeclaration::semantic3(Scope *sc)
                 fbody = new CompoundStatement(Loc(), new Statements());
 
             if (inferRetType)
-            {   // If no return type inferred yet, then infer a void
+            {
+                // If no return type inferred yet, then infer a void
                 if (!type->nextOf())
                 {
                     f->next = Type::tvoid;
                     //type = type->semantic(loc, sc);   // Removed with 6902
                 }
-                else if (returns && f->next->ty != Tvoid)
-                {
-                    for (size_t i = 0; i < returns->dim; i++)
-                    {   Expression *exp = (*returns)[i]->exp;
-                        if (!f->next->immutableOf()->equals(exp->type->immutableOf()))
-                        {   exp = exp->castTo(sc2, f->next);
-                            exp = exp->optimize(WANTvalue);
-                            (*returns)[i]->exp = exp;
-                        }
-                        //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
-                    }
-                }
-                assert(type == f);
             }
+            if (returns && f->next->ty != Tvoid)
+            {
+                for (size_t i = 0; i < returns->dim; i++)
+                {
+                    Expression *exp = (*returns)[i]->exp;
+                    if (!nrvo_can && !f->isref && exp->isLvalue())
+                        exp = callCpCtor(sc2, exp);
+                    if (!tintro && !f->next->immutableOf()->equals(exp->type->immutableOf()))
+                    {
+                        exp = exp->castTo(sc2, f->next);
+                        exp = exp->optimize(WANTvalue);
+                    }
+                    //printf("[%d] %s %s\n", i, exp->type->toChars(), exp->toChars());
+                    (*returns)[i]->exp = exp;
+                }
+            }
+            assert(type == f);
 
             if (isStaticCtorDeclaration())
             {   /* It's a static constructor. Ensure that all
