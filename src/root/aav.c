@@ -19,16 +19,12 @@
 
 #include "aav.h"
 
-static const size_t prime_list[] = {
-              31UL,
-              97UL,            389UL,
-            1543UL,           6151UL,
-           24593UL,          98317UL,
-          393241UL,        1572869UL,
-         6291469UL,       25165843UL,
-       100663319UL,      402653189UL,
-      1610612741UL,     4294967291UL,
-};
+
+inline size_t hash(size_t a)
+{
+    a ^= (a >> 20) ^ (a >> 12);
+    return a ^ (a >> 7) ^ (a >> 4);
+}
 
 struct aaA
 {
@@ -81,7 +77,7 @@ Value* _aaGet(AA** paa, Key key)
     //printf("paa = %p, *paa = %p\n", paa, *paa);
 
     assert((*paa)->b_length);
-    size_t i = (size_t)key % (*paa)->b_length;
+    size_t i = hash((size_t)key) & ((*paa)->b_length - 1);
     aaA** pe = &(*paa)->b[i];
     aaA *e;
     while ((e = *pe) != NULL)
@@ -125,12 +121,7 @@ Value _aaGetRvalue(AA* aa, Key key)
     {
         size_t i;
         size_t len = aa->b_length;
-        if (len == 4)
-            i = (size_t)key & 3;
-        else if (len == 31)
-            i = (size_t)key % 31;
-        else
-            i = (size_t)key % len;
+        i = hash((size_t)key) & (len-1);
         aaA* e = aa->b[i];
         while (e)
         {
@@ -153,16 +144,13 @@ void _aaRehash(AA** paa)
     if (*paa)
     {
         AA *aa = *paa;
-        size_t len = _aaLen(aa);
-        if (len)
-        {   size_t i;
-
-            for (i = 0; i < sizeof(prime_list)/sizeof(prime_list[0]) - 1; i++)
-            {
-                if (len <= prime_list[i])
-                    break;
-            }
-            len = prime_list[i];
+        if (aa)
+        {
+            size_t len = aa->b_length;
+            if (len == 4)
+                len = 32;
+            else
+                len *= 4;
             aaA** newb = new aaA*[len];
             memset(newb, 0, len * sizeof(aaA*));
 
@@ -170,7 +158,7 @@ void _aaRehash(AA** paa)
             {   aaA *e = aa->b[k];
                 while (e)
                 {   aaA* enext = e->next;
-                    size_t j = (size_t)e->key % len;
+                    size_t j = hash((size_t)e->key) & (len-1);
                     e->next = newb[j];
                     newb[j] = e;
                     e = enext;
