@@ -9986,6 +9986,16 @@ Expression *CastExp::semantic(Scope *sc)
     }
 
 Lsafe:
+#if DMDV2
+    /* Instantiate AA implementations during semantic analysis.
+     */
+    Type *tfrom = e1->type->toBasetype();
+    Type *t = to->toBasetype();
+    if (tfrom->ty == Taarray)
+        ((TypeAArray *)tfrom)->getImpl();
+    if (t->ty == Taarray)
+        ((TypeAArray *)t)->getImpl();
+#endif
     Expression *e = e1->castTo(sc, to);
     return e;
 }
