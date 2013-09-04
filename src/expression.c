@@ -1137,14 +1137,14 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             e = ex;
         if (e->isLvalue())
         {
-            e = callCpCtor(e->loc, sc, e, 1);
+            e = callCpCtor(sc, e);
         }
         else
         {
             Type *tb = e->type->toBasetype();
             if (tb->ty == Tsarray)
             {
-                e = callCpCtor(e->loc, sc, e, 1);
+                e = callCpCtor(sc, e);
             }
             else if (tb->ty == Tstruct)
             {
@@ -1153,9 +1153,10 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
                     valueNoDtor(e);
                 }
                 else
-                {   /* Not transferring it, so call the copy constructor
+                {
+                    /* Not transferring it, so call the copy constructor
                      */
-                    e = callCpCtor(e->loc, sc, e, 1);
+                    e = callCpCtor(sc, e);
                 }
             }
         }
@@ -1336,9 +1337,11 @@ bool checkPostblit(Loc loc, Type *t)
 
 /*********************************************
  * Call copy constructor for struct value argument.
+ * Input:
+ *      sc      just used to specify the scope of created temporary variable
  */
 #if DMDV2
-Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
+Expression *callCpCtor(Scope *sc, Expression *e)
 {
     if (e->op == TOKarrayliteral)
     {
@@ -1346,9 +1349,8 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
         for (size_t i = 0; i < ae->elements->dim; i++)
         {
             (*ae->elements)[i] =
-                callCpCtor(loc, sc, (*ae->elements)[i], noscope);
+                callCpCtor(sc, (*ae->elements)[i]);
         }
-        e = ae->semantic(sc);
         return e;
     }
 
@@ -1368,12 +1370,15 @@ Expression *callCpCtor(Loc loc, Scope *sc, Expression *e, int noscope)
              * directly onto the stack.
              */
             Identifier *idtmp = Lexer::uniqueId("__cpcttmp");
-            VarDeclaration *tmp = new VarDeclaration(loc, tb, idtmp, new ExpInitializer(Loc(), e));
+            VarDeclaration *tmp = new VarDeclaration(e->loc, e->type, idtmp, new ExpInitializer(e->loc, e));
             tmp->storage_class |= STCctfe;
-            tmp->noscope = noscope;
-            Expression *ae = new DeclarationExp(loc, tmp);
-            e = new CommaExp(loc, ae, new VarExp(loc, tmp));
-            e = e->semantic(sc);
+            tmp->noscope = 1;
+            tmp->semantic(sc);
+            Expression *de = new DeclarationExp(e->loc, tmp);
+            Expression *ve = new VarExp(e->loc, tmp);
+            de->type = Type::tvoid;
+            ve->type = e->type;
+            e = Expression::combine(de, ve);
         }
     }
     return e;
@@ -1688,7 +1693,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 if (tb->ty == Tsarray)
                 {
                     // call copy constructor of each element
-                    arg = callCpCtor(loc, sc, arg, 1);
+                    arg = callCpCtor(sc, arg);
                 }
 #if DMDV2
                 else if (tb->ty == Tstruct)
@@ -1702,9 +1707,10 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                         valueNoDtor(arg);
                     }
                     else
-                    {   /* Not transferring it, so call the copy constructor
+                    {
+                        /* Not transferring it, so call the copy constructor
                          */
-                        arg = callCpCtor(loc, sc, arg, 1);
+                        arg = callCpCtor(sc, arg);
                     }
                 }
 #endif
@@ -1791,7 +1797,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 #if DMDV2
             if (tb->ty == Tstruct)
             {
-                arg = callCpCtor(loc, sc, arg, 1);
+                arg = callCpCtor(sc, arg);
             }
 #endif
 
@@ -4686,7 +4692,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (e->op == TOKerror)
             return e;
 
-        (*elements)[i] = callCpCtor(e->loc, sc, e, 1);
+        (*elements)[i] = callCpCtor(sc, e);
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
