@@ -6,7 +6,7 @@ class Test (T)
 {
         final void show (in T[] msg)
         {
-                printf ("%.*s\n", msg);
+                printf ("%.*s\n", msg.length, msg.ptr);
         }
 }
 
