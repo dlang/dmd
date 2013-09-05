@@ -693,7 +693,7 @@ public:
     bool isSafe();
     bool isSafeBypassingInference();
     bool isTrusted();
-    bool setUnsafe();
+    bool setUnsafe(Scope *sc);
     bool isolateReturn();
     bool parametersIntersect(Type *t);
     virtual bool isNested();
@@ -718,6 +718,7 @@ public:
     Statement *mergeFrequire(Statement *);
     Statement *mergeFensure(Statement *, Identifier *oid);
     Parameters *getParameters(int *pvarargs);
+    Statement *callInvariant(Scope *sc, Scope *sc2, FuncDeclaration *inv);
 
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, const char *name);
     static FuncDeclaration *genCfunc(Parameters *args, Type *treturn, Identifier *id);

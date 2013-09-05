@@ -2293,7 +2293,7 @@ void Expression::checkDeprecated(Scope *sc, Dsymbol *s)
 void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 {
 #if 1
-    if (sc->func && !sc->intypeof && !(sc->flags & SCOPEdebug))
+    if (sc->func && !sc->intypeof && !(sc->flags & (SCOPEdebug | SCOPEcontract)))
     {
         /* Given:
          * void f()
@@ -2317,6 +2317,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
         {
             outerfunc = outerfunc->toParent2()->isFuncDeclaration();
         }
+
+        if (outerfunc->isInvariantDeclaration())
+            return;
 
         // Find the closest pure parent of the called function
         if (getFuncTemplateDecl(f) && !f->isNested() &&
@@ -2390,7 +2393,9 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
      */
     if (sc->func &&
         !sc->intypeof &&             // allow violations inside typeof(expression)
-        !(sc->flags & SCOPEdebug) && // allow violations inside debug conditionals
+        // allow violations inside debug conditionals and contracts
+        !(sc->flags & (SCOPEdebug | SCOPEcontract)) &&
+        !sc->func->isInvariantDeclaration() && // in invariants
         v->ident != Id::ctfe &&      // magic variable never violates pure and safe
         !v->isImmutable() &&         // always safe and pure to access immutables...
         !(v->isConst() && !v->isRef() && (v->isDataseg() || v->isParameter()) &&
@@ -2455,7 +2460,7 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
          */
         if (v->storage_class & STCgshared)
         {
-            if (sc->func->setUnsafe())
+            if (sc->func->setUnsafe(sc))
                 error("safe function '%s' cannot access __gshared data '%s'",
                     sc->func->toChars(), v->toChars());
         }
@@ -2468,7 +2473,7 @@ void Expression::checkSafety(Scope *sc, FuncDeclaration *f)
         !(sc->flags & SCOPEctfe) &&
         !f->isSafe() && !f->isTrusted())
     {
-        if (sc->func->setUnsafe())
+        if (sc->func->setUnsafe(sc))
         {
             if (loc.linnum == 0)  // e.g. implicitly generated dtor
                 loc = sc->func->loc;
@@ -7892,7 +7897,7 @@ Expression *DotVarExp::semantic(Scope *sc)
             AggregateDeclaration *ad = s->isAggregateDeclaration();
             if (ad && ad->hasUnions)
             {
-                if (sc->func->setUnsafe())
+                if (sc->func->setUnsafe(sc))
                 {   error("union %s containing pointers are not allowed in @safe functions", t1->toChars());
                     goto Lerr;
                 }
@@ -9042,7 +9047,7 @@ Lagain:
                 error("pure function '%s' cannot call impure %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
                 return new ErrorExp();
             }
-            if (tf->trust <= TRUSTsystem && sc->func->setUnsafe())
+            if (tf->trust <= TRUSTsystem && sc->func->setUnsafe(sc))
             {
                 error("safe function '%s' cannot call system %s '%s'", sc->func->toPrettyChars(), p, e1->toChars());
                 return new ErrorExp();
@@ -9356,7 +9361,7 @@ Expression *AddrExp::semantic(Scope *sc)
 
                 if (sc->func && !sc->intypeof && !v->isDataseg())
                 {
-                    if (sc->func->setUnsafe())
+                    if (sc->func->setUnsafe(sc))
                     {
                         error("cannot take address of %s %s in @safe function %s",
                             v->isParameter() ? "parameter" : "local",
@@ -9979,7 +9984,7 @@ Expression *CastExp::semantic(Scope *sc)
         }
 
     Lunsafe:
-        if (sc->func->setUnsafe())
+        if (sc->func->setUnsafe(sc))
         {   error("cast from %s to %s not allowed in safe code", e1->type->toChars(), to->toChars());
             return new ErrorExp();
         }
@@ -10146,7 +10151,7 @@ Lagain:
         {   error("need upper and lower bound to slice pointer");
             return new ErrorExp();
         }
-        if (sc->func && !sc->intypeof && sc->func->setUnsafe())
+        if (sc->func && !sc->intypeof && sc->func->setUnsafe(sc))
             error("pointer slicing not allowed in safe functions");
     }
     else if (t->ty == Tarray)
@@ -10725,7 +10730,7 @@ Expression *IndexExp::semantic(Scope *sc)
             e2 = e2->optimize(WANTvalue);
             if (e2->op == TOKint64 && e2->toInteger() == 0)
                 ;
-            else if (sc->func && sc->func->setUnsafe())
+            else if (sc->func && sc->func->setUnsafe(sc))
             {
                 error("safe function '%s' cannot index pointer '%s'",
                     sc->func->toPrettyChars(), e1->toChars());

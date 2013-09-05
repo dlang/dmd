@@ -2120,7 +2120,7 @@ Expression *BinExp::scaleFactor(Scope *sc)
         eoff = eoff->optimize(WANTvalue);
         if (eoff->op == TOKint64 && eoff->toInteger() == 0)
             ;
-        else if (sc->func->setUnsafe())
+        else if (sc->func->setUnsafe(sc))
         {
             error("pointer arithmetic not allowed in @safe functions");
             return new ErrorExp();

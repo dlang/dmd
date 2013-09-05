@@ -934,12 +934,12 @@ void VarDeclaration::semantic(Scope *sc)
     {
         if (storage_class & STCgshared)
         {
-            if (sc->func->setUnsafe())
+            if (sc->func->setUnsafe(sc))
                 error("__gshared not allowed in safe functions; use shared");
         }
         if (init && init->isVoidInitializer() && type->hasPointers())
         {
-            if (sc->func->setUnsafe())
+            if (sc->func->setUnsafe(sc))
                 error("void initializers for pointers not allowed in safe functions");
         }
         if (type->hasPointers() && type->toDsymbol(sc))
@@ -950,7 +950,7 @@ void VarDeclaration::semantic(Scope *sc)
                 AggregateDeclaration *ad2 = s->isAggregateDeclaration();
                 if (ad2 && ad2->hasUnions)
                 {
-                    if (sc->func->setUnsafe())
+                    if (sc->func->setUnsafe(sc))
                         error("unions containing pointers are not allowed in @safe functions");
                 }
             }

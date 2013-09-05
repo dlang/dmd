@@ -775,6 +775,28 @@ void FuncDeclaration::semantic(Scope *sc)
         }
     }
 
+    if (frequire)
+    {
+        static StringExp *msg = new StringExp(loc, (char *)"Exception thrown in contract code.");
+        Statement *handler = new ExpStatement(loc, new AssertExp(loc, new IntegerExp(0), msg));
+        Catch *c = new Catch(loc, new TypeIdentifier(loc, Id::Exception), NULL, handler);
+        Catches *catches = new Catches;
+        catches->push(c);
+        TryCatchStatement *tcs = new TryCatchStatement(loc, frequire, catches);
+        frequire = tcs;
+    }
+
+    if (fensure)
+    {
+        static StringExp *msg = new StringExp(loc, (char *)"Exception thrown in contract code.");
+        Statement *handler = new ExpStatement(loc, new AssertExp(loc, new IntegerExp(0), msg));
+        Catch *c = new Catch(loc, new TypeIdentifier(loc, Id::Exception), NULL, handler);
+        Catches *catches = new Catches;
+        catches->push(c);
+        TryCatchStatement *tcs = new TryCatchStatement(loc, fensure, catches);
+        fensure = tcs;
+    }
+
     if (isVirtual() && semanticRun != PASSsemanticdone)
     {
         /* Rewrite contracts as nested functions, then call them.
@@ -1151,81 +1173,30 @@ void FuncDeclaration::semantic3(Scope *sc)
             }
         }
 
-        // Precondition invariant
+        // Pre- and postcondition invariant
         Statement *fpreinv = NULL;
-        if (addPreInvariant())
-        {
-            Expression *e = NULL;
-            if (isDtorDeclaration())
-            {
-                // Call invariant directly only if it exists
-                FuncDeclaration *inv = ad->inv;
-                ClassDeclaration *cd = ad->isClassDeclaration();
-
-                while (!inv && cd)
-                {
-                    cd = cd->baseClass;
-                    if (!cd)
-                        break;
-                    inv = cd->inv;
-                }
-                if (inv)
-                {
-                    e = new DsymbolExp(Loc(), inv);
-                    e = new CallExp(Loc(), e);
-                    e = e->semantic(sc2);
-                }
-            }
-            else
-            {   // Call invariant virtually
-                Expression *v = new ThisExp(Loc());
-                v->type = vthis->type;
-                if (ad->isStructDeclaration())
-                    v = v->addressOf(sc);
-                Expression *se = new StringExp(Loc(), (char *)"null this");
-                se = se->semantic(sc);
-                se->type = Type::tchar->arrayOf();
-                e = new AssertExp(loc, v, se);
-            }
-            if (e)
-                fpreinv = new ExpStatement(Loc(), e);
-        }
-
-        // Postcondition invariant
         Statement *fpostinv = NULL;
-        if (addPostInvariant())
-        {
-            Expression *e = NULL;
-            if (isCtorDeclaration())
-            {
-                // Call invariant directly only if it exists
-                FuncDeclaration *inv = ad->inv;
-                ClassDeclaration *cd = ad->isClassDeclaration();
 
-                while (!inv && cd)
-                {
-                    cd = cd->baseClass;
-                    if (!cd)
-                        break;
-                    inv = cd->inv;
-                }
-                if (inv)
-                {
-                    e = new DsymbolExp(Loc(), inv);
-                    e = new CallExp(Loc(), e);
-                    e = e->semantic(sc2);
-                }
+        if (ad)
+        {
+            FuncDeclaration *inv = ad->inv;
+            ClassDeclaration *cd = ad->isClassDeclaration();
+
+            while (!inv && cd)
+            {
+                cd = cd->baseClass;
+                if (!cd)
+                    break;
+                inv = cd->inv;
             }
-            else
-            {   // Call invariant virtually
-                Expression *v = new ThisExp(Loc());
-                v->type = vthis->type;
-                if (ad->isStructDeclaration())
-                    v = v->addressOf(sc);
-                e = new AssertExp(Loc(), v);
+
+            if (inv)
+            {
+                if (addPreInvariant())
+                    fpreinv = callInvariant(sc, sc2, inv);
+                if (addPostInvariant())
+                    fpostinv = callInvariant(sc, sc2, inv);
             }
-            if (e)
-                fpostinv = new ExpStatement(Loc(), e);
         }
 
         if (fensure || addPostInvariant())
@@ -3177,7 +3148,7 @@ bool FuncDeclaration::isSafe()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
-        setUnsafe();
+        setUnsafe(scope);
     return ((TypeFunction *)type)->trust == TRUSTsafe;
 }
 
@@ -3193,7 +3164,7 @@ bool FuncDeclaration::isTrusted()
 {
     assert(type->ty == Tfunction);
     if (flags & FUNCFLAGsafetyInprocess)
-        setUnsafe();
+        setUnsafe(scope);
     return ((TypeFunction *)type)->trust == TRUSTtrusted;
 }
 
@@ -3202,8 +3173,10 @@ bool FuncDeclaration::isTrusted()
  * so mark it as unsafe.
  * If there's a safe error, return TRUE.
  */
-bool FuncDeclaration::setUnsafe()
+bool FuncDeclaration::setUnsafe(Scope *sc)
 {
+    if (sc->flags & SCOPEcontract)
+        return false;
     if (flags & FUNCFLAGsafetyInprocess)
     {
         flags &= ~FUNCFLAGsafetyInprocess;
@@ -3779,6 +3752,35 @@ Parameters *FuncDeclaration::getParameters(int *pvarargs)
     if (pvarargs)
         *pvarargs = fvarargs;
     return fparameters;
+}
+
+
+/*********************************************
+ * Catch all exceptions thrown (if any)
+ * by the invariant and fail an assertion if there are any.
+ */
+
+Statement *FuncDeclaration::callInvariant(Scope *sc, Scope *sc2, FuncDeclaration *inv)
+{
+    /* nothrow:
+     * try { invariant(); }
+     * catch (Exception) { assert(0, "Exception thrown in invariant."); }
+     */
+    Expression* e = new DsymbolExp(Loc(), inv);
+    e = new CallExp(Loc(), e);
+    e = e->semantic(sc2);
+    Expression *se = new StringExp(Loc(), (char *)"Exception thrown in invariant.");
+    se = se->semantic(sc);
+    Expression *ae = new AssertExp(loc, new IntegerExp(0), se);
+    Statement *h = new ExpStatement(Loc(), ae);
+    Type *ti = new TypeIdentifier(Loc(), Id::Exception);
+    Catch *c = new Catch(Loc(), ti, NULL, h);
+    Catches *cs = new Catches;
+    cs->push(c);
+    Statement *es = new ExpStatement(Loc(), e);
+    Statement *tcs = new TryCatchStatement(Loc(), es, cs);
+    tcs = tcs->semantic(sc);
+    return tcs;
 }
 
 
@@ -4471,6 +4473,8 @@ void InvariantDeclaration::semantic(Scope *sc)
     sc = sc->push();
     sc->stc &= ~STCstatic;              // not a static invariant
     sc->stc |= STCconst;                // invariant() is always const
+    sc->stc |= STCtrusted;              // invariant() is always @trusted
+    sc->stc |= STCpure;                 // invariant() is always pure even though it is not checked
     sc->flags = (sc->flags & ~SCOPEcontract) | SCOPEinvariant;
     sc->linkage = LINKd;
 

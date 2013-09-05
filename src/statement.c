@@ -4688,7 +4688,7 @@ void Catch::semantic(Scope *sc)
         !internalCatch &&
         cd != ClassDeclaration::exception &&
         !ClassDeclaration::exception->isBaseOf(cd, NULL) &&
-        sc->func->setUnsafe())
+        sc->func->setUnsafe(sc))
     {
         error(loc, "can only catch class objects derived from Exception in @safe code, not '%s'", type->toChars());
         type = Type::terror;
