@@ -618,6 +618,52 @@ void test9()
 }
 
 /****************************************************/
+// 10964
+
+void test10964()
+{
+    static struct S
+    {
+        this(this)
+        {
+            throw new Exception("BOOM!");
+        }
+    }
+
+    S    ss;
+    S[1] sa;
+    int result;
+
+    result = 0;
+    try
+    {
+        ss = ss;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+
+    try
+    {
+        sa = ss;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+
+    try
+    {
+        sa = sa;
+    }
+    catch (Exception e) result = 1;
+    catch (Error     e) result = 2;
+    catch (Throwable e) result = 3;
+    assert(result == 1);
+}
+
+/****************************************************/
 
 int main()
 {
@@ -638,6 +684,7 @@ int main()
 
     test8();
     test9();
+    test10964();
 
     printf("finish\n");
     return 0;
