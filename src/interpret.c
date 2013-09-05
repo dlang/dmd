@@ -2389,14 +2389,14 @@ Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp
     Expression *e2;
 
 #if LOG
-    printf("%s BinExp::interpretCommon2() %s\n", loc.toChars(), toChars());
+    printf("%s BinExp::interpretCompareCommon() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer)
     {
-        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        e1 = this->e1->interpret(istate);
         if (exceptionOrCantInterpret(e1))
             return e1;
-        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        e2 = this->e2->interpret(istate);
         if (exceptionOrCantInterpret(e2))
             return e2;
         dinteger_t ofs1, ofs2;
@@ -4992,7 +4992,9 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKaddress)
             {
                 e = ((AddrExp*)e)->e1;
-                if (e->op == TOKdotvar || e->op == TOKindex)
+                // *&p becomes p if p is a CTFE pointer, otherwise we need to
+                // simplify it.
+                if ((e->op == TOKdotvar || e->op == TOKindex) && !isPointer(e->type))
                     e = e->interpret(istate, goal);
             }
             else if (e->op == TOKvar)
@@ -5009,7 +5011,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        e->type = type;
+        e = paintTypeOntoLiteral(type, e);
     }
 
 #if LOG
