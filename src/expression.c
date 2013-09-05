@@ -1314,7 +1314,7 @@ bool checkDefCtor(Loc loc, Type *t)
  * Determine if t is an array of structs that need a postblit.
  */
 #if DMDV2
-bool checkPostblit(Loc loc, Type *t)
+bool Expression::checkPostblit(Scope *sc, Type *t)
 {
     t = t->baseElemOf();
     if (t->ty == Tstruct)
@@ -1324,6 +1324,11 @@ bool checkPostblit(Loc loc, Type *t)
         {
             if (sd->postblit->storage_class & STCdisable)
                 sd->error(loc, "is not copyable because it is annotated with @disable");
+            else
+            {
+                checkPurity(sc, sd->postblit);
+                checkSafety(sc, sd->postblit);
+            }
             return true;
         }
     }
@@ -11294,7 +11299,8 @@ Ltupleassign:
     // Determine if this is an initialization of a reference
     int refinit = 0;
     if (op == TOKconstruct && e1->op == TOKvar)
-    {   VarExp *ve = (VarExp *)e1;
+    {
+        VarExp *ve = (VarExp *)e1;
         VarDeclaration *v = ve->var->isVarDeclaration();
         if (v->storage_class & (STCout | STCref))
             refinit = 1;
@@ -11349,7 +11355,8 @@ Ltupleassign:
             }
         }
         else if (op == TOKconstruct && !refinit)
-        {   Type *t2 = e2->type->toBasetype();
+        {
+            Type *t2 = e2->type->toBasetype();
             if (t2->ty == Tstruct &&
                 sd == ((TypeStruct *)t2)->sym &&
                 sd->cpctor)
@@ -11389,7 +11396,8 @@ Ltupleassign:
         }
     }
     else if (t1->ty == Tclass)
-    {   // Disallow assignment operator overloads for same type
+    {
+        // Disallow assignment operator overloads for same type
         if (op == TOKassign && !e2->implicitConvTo(e1->type))
         {
             Expression *e = op_overload(sc);
@@ -11462,7 +11470,8 @@ Ltupleassign:
     {
         Type *tn = e1->type->nextOf();
         if (op == TOKassign && e1->checkModifiable(sc) == 1 && !tn->isMutable())
-        {   error("slice %s is not mutable", e1->toChars());
+        {
+            error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
         }
     }
@@ -11493,6 +11502,8 @@ Ltupleassign:
     {   // memset
         ismemset = 1;   // make it easy for back end to tell what this is
         e2 = e2->implicitCastTo(sc, t1->nextOf());
+        if (op != TOKblit && e2->isLvalue())
+            e2->checkPostblit(sc, t1->nextOf());
     }
     else if (t1->ty == Tsarray)
     {
@@ -11520,7 +11531,8 @@ Ltupleassign:
                 tx2 = ((SliceExp *)e2)->e1->type->toBasetype();
             uinteger_t dim1, dim2;
             if (e2->op == TOKarrayliteral)
-            {   dim2 = ((ArrayLiteralExp *)e2)->elements->dim;
+            {
+                dim2 = ((ArrayLiteralExp *)e2)->elements->dim;
                 goto Lsa;
             }
             if (tx2->ty == Tsarray)
@@ -11542,7 +11554,7 @@ Ltupleassign:
              e2->op == TOKcast  && ((UnaExp *)e2)->e1->isLvalue() ||
              e2->op != TOKslice && e2->isLvalue()))
         {
-            checkPostblit(e2->loc, t2->nextOf());
+            e2->checkPostblit(sc, t2->nextOf());
         }
         if (global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
@@ -11696,7 +11708,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         )
        )
     {   // Append array
-        checkPostblit(e1->loc, tb1next);
+        e1->checkPostblit(sc, tb1next);
         e2 = e2->castTo(sc, e1->type);
         type = e1->type;
     }
@@ -11704,7 +11716,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
         e2->implicitConvTo(tb1next)
        )
     {   // Append element
-        checkPostblit(e2->loc, tb2);
+        e2->checkPostblit(sc, tb2);
         e2 = e2->castTo(sc, tb1next);
         type = e1->type;
     }
@@ -12123,7 +12135,7 @@ Expression *CatExp::semantic(Scope *sc)
             e2->implicitConvTo(tb1next) >= MATCHconvert &&
             tb2->ty != Tvoid)
         {
-            checkPostblit(e2->loc, tb2);
+            e2->checkPostblit(sc, tb2);
             e2 = e2->implicitCastTo(sc, tb1next);
             type = tb1next->arrayOf();
             if (tb2->ty == Tarray || tb2->ty == Tsarray)
@@ -12137,7 +12149,7 @@ Expression *CatExp::semantic(Scope *sc)
             e1->implicitConvTo(tb2next) >= MATCHconvert &&
             tb1->ty != Tvoid)
         {
-            checkPostblit(e1->loc, tb1);
+            e1->checkPostblit(sc, tb1);
             e1 = e1->implicitCastTo(sc, tb2next);
             type = tb2next->arrayOf();
             if (tb1->ty == Tarray || tb1->ty == Tsarray)
@@ -12179,7 +12191,7 @@ Expression *CatExp::semantic(Scope *sc)
         }
         if (tb->nextOf())
         {
-            checkPostblit(loc, tb->nextOf());
+            checkPostblit(sc, tb->nextOf());
         }
 #if 0
         e1->type->print();
