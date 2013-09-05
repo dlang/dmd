@@ -30,3 +30,52 @@ shared static this() { ++shared_static_ctor; }
 shared static ~this() { ++shared_static_dtor; }
 static this() { ++static_ctor; }
 static ~this() { ++static_dtor; }
+
+extern(C) int runTests()
+{
+    try
+        runTestsImpl();
+    catch (Throwable)
+        return 0;
+    return 1;
+}
+
+void runTestsImpl()
+{
+    import core.memory, core.thread;
+
+    bool passed;
+    try
+        throwException();
+    catch (Exception e)
+        passed = true;
+    assert(passed);
+    assert(collectException({throwException();}) !is null);
+
+    alloc();
+    tls_alloc();
+    access();
+    tls_access();
+    GC.collect();
+    tls_access();
+    access();
+    tls_free();
+    free();
+
+    assert(shared_static_ctor == 1);
+    assert(static_ctor == 1);
+    static void run()
+    {
+        assert(static_ctor == 2);
+        assert(shared_static_ctor == 1);
+    }
+    auto thr = new Thread(&run);
+    thr.start();
+    thr.join();
+    assert(static_dtor == 1);
+
+    passed = false;
+    foreach (m; ModuleInfo)
+        if (m.name == "lib") passed = true;
+    assert(passed);
+}
