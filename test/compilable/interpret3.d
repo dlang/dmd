@@ -2552,6 +2552,19 @@ bool bug7216() {
 static assert(bug7216());
 
 /**************************************************
+    10858 Wrong code with array of pointers
+**************************************************/
+
+bool bug10858()
+{
+    int *[4] x;
+    x[0] = null;
+    assert(x[0] == null);
+    return true;
+}
+static assert(bug10858());
+
+/**************************************************
     9745 Allow pointers to static variables
 **************************************************/
 
