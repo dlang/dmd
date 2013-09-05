@@ -1296,9 +1296,7 @@ void valueNoDtor(Expression *e)
 #if DMDV2
 bool checkDefCtor(Loc loc, Type *t)
 {
-    t = t->toBasetype();
-    while (t->ty == Tsarray)
-        t = t->nextOf()->toBasetype();
+    t = t->baseElemOf();
     if (t->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
@@ -1318,9 +1316,7 @@ bool checkDefCtor(Loc loc, Type *t)
 #if DMDV2
 bool checkPostblit(Loc loc, Type *t)
 {
-    t = t->toBasetype();
-    while (t->ty == Tsarray)
-        t = t->nextOf()->toBasetype();
+    t = t->baseElemOf();
     if (t->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)t)->sym;
@@ -1354,10 +1350,7 @@ Expression *callCpCtor(Scope *sc, Expression *e)
         return e;
     }
 
-    Type *tb = e->type->toBasetype();
-    Type *tv = tb;
-    while (tv->ty == Tsarray)
-        tv = tv->nextOf()->toBasetype();
+    Type *tv = e->type->baseElemOf();
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
@@ -4678,11 +4671,13 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (stype)
             telem = telem->addMod(stype->mod);
         Type *origType = telem;
-        while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
-        {   /* Static array initialization, as in:
+        if (!e->implicitConvTo(telem))
+        {
+            /* Static array initialization, as in:
              *  T[3][5] = e;
              */
-            telem = telem->toBasetype()->nextOf();
+            while (telem->toBasetype()->ty == Tsarray)
+                telem = telem->toBasetype()->nextOf();
         }
 
         if (!e->implicitConvTo(telem))
@@ -5453,9 +5448,7 @@ Lagain:
     }
     else if (tb->ty == Tarray && nargs)
     {
-        Type *tn = tb->nextOf()->toBasetype();
-        while (tn->ty == Tsarray)
-            tn = tn->nextOf()->toBasetype();
+        Type *tn = tb->nextOf()->baseElemOf();
         Dsymbol *s = tn->toDsymbol(sc);
         AggregateDeclaration *ad = s ? s->isAggregateDeclaration() : NULL;
         if (ad && ad->noDefaultCtor)
@@ -9200,16 +9193,14 @@ Expression *CallExp::addDtorHook(Scope *sc)
             return this;
     }
 
-    Type *tv = type->toBasetype();
-    while (tv->ty == Tsarray)
-    {   TypeSArray *ta = (TypeSArray *)tv;
-        tv = tv->nextOf()->toBasetype();
-    }
+    Type *tv = type->baseElemOf();
     if (tv->ty == Tstruct)
-    {   TypeStruct *ts = (TypeStruct *)tv;
+    {
+        TypeStruct *ts = (TypeStruct *)tv;
         StructDeclaration *sd = ts->sym;
         if (sd->dtor)
-        {   /* Type needs destruction, so declare a tmp
+        {
+            /* Type needs destruction, so declare a tmp
              * which the back end will recognize and call dtor on
              */
             Identifier *idtmp = Lexer::uniqueId("__tmpfordtor");
