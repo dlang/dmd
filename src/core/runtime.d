@@ -169,7 +169,7 @@ struct Runtime
      * Returns:
      *  A reference to the library or null on error.
      */
-    static void* loadLibrary( in char[] name )
+    static void* loadLibrary()(in char[] name)
     {
         import core.stdc.stdlib : free, malloc;
         version (Windows)
@@ -222,9 +222,9 @@ struct Runtime
      * Params:
      *  p = A reference to the library to unload.
      */
-    static bool unloadLibrary( void* p )
+    static bool unloadLibrary()(void* p)
     {
-        return rt_unloadLibrary( p );
+        return rt_unloadLibrary(p);
     }
 
 
