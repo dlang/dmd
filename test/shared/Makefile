@@ -7,7 +7,7 @@ QUIET:=
 
 SRC:=src
 ROOT:=obj/$(OS)/$(MODEL)
-TESTS:=link load linkD linkDR loadDR
+TESTS:=link load linkD linkDR loadDR host
 TESTS+=link_linkdep load_linkdep link_loaddep load_loaddep
 
 ifneq (default,$(MODEL))
@@ -53,8 +53,14 @@ $(ROOT)/linkDR: $(SRC)/linkDR.c $(ROOT)/lib.so $(DRUNTIMESO)
 $(ROOT)/loadDR: $(SRC)/loadDR.c $(ROOT)/lib.so $(DRUNTIMESO)
 	$(QUIET)$(CC) $(CFLAGS) -o $@ $< -ldl
 
+$(ROOT)/host: $(SRC)/host.c $(ROOT)/plugin1.so $(ROOT)/plugin2.so
+	$(QUIET)$(CC) $(CFLAGS) -o $@ $< -ldl
+
 $(ROOT)/liblinkdep.so: $(ROOT)/lib.so
 $(ROOT)/liblinkdep.so: DFLAGS+=-L$(ROOT)/lib.so
+
+$(ROOT)/plugin1.so $(ROOT)/plugin2.so: $(SRC)/plugin.d $(DRUNTIMESO)
+	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $<
 
 $(ROOT)/%.so: $(SRC)/%.d $(DRUNTIMESO)
 	$(QUIET)$(DMD) -fPIC -shared $(DFLAGS) -of$@ $< -L-ldl
