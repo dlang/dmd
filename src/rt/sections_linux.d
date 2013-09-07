@@ -17,11 +17,13 @@ import core.memory;
 import core.stdc.stdio;
 import core.stdc.stdlib : calloc, exit, free, malloc, EXIT_FAILURE;
 import core.stdc.string : strlen;
+import core.sys.linux.dlfcn;
 import core.sys.linux.elf;
 import core.sys.linux.link;
-import rt.minfo;
+import core.sys.posix.pthread;
 import rt.deh;
 import rt.dmain2;
+import rt.minfo;
 import rt.util.container;
 
 alias DSO SectionGroup;
@@ -29,7 +31,7 @@ struct DSO
 {
     static int opApply(scope int delegate(ref DSO) dg)
     {
-        foreach(dso; _static_dsos)
+        foreach (dso; _loadedDSOs)
         {
             if (auto res = dg(*dso))
                 return res;
@@ -39,7 +41,7 @@ struct DSO
 
     static int opApplyReverse(scope int delegate(ref DSO) dg)
     {
-        foreach_reverse(dso; _static_dsos)
+        foreach_reverse (dso; _loadedDSOs)
         {
             if (auto res = dg(*dso))
                 return res;
@@ -80,6 +82,12 @@ private:
     Array!(void[]) _gcRanges;
     size_t _tlsMod;
     size_t _tlsSize;
+
+    version (Shared)
+    {
+        Array!(DSO*) _deps; // D libraries needed by this DSO
+        link_map* _linkMap; // corresponding link_map*
+    }
 }
 
 /****
@@ -87,6 +95,8 @@ private:
  */
 void initSections()
 {
+    version (Shared)
+        !pthread_mutex_init(&_linkMapToDSOMutex, null) || assert(0);
 }
 
 
@@ -95,37 +105,170 @@ void initSections()
  */
 void finiSections()
 {
+    version (Shared)
+        !pthread_mutex_destroy(&_linkMapToDSOMutex) || assert(0);
 }
 
-/***
- * Called once per thread; returns array of thread local storage ranges
- */
-Array!(void[])* initTLSRanges()
-{
-    return &_tlsRanges;
-}
+alias ScanDG = void delegate(void* pbeg, void* pend);
 
-void finiTLSRanges(Array!(void[])* rngs)
+version (Shared)
 {
-    rngs.reset();
-}
+    /***
+     * Called once per thread; returns array of thread local storage ranges
+     */
+    Array!(ThreadDSO)* initTLSRanges()
+    {
+        return &_loadedDSOs;
+    }
 
-void scanTLSRanges(Array!(void[])* rngs, scope void delegate(void* pbeg, void* pend) dg)
+    void finiTLSRanges(Array!(ThreadDSO)* tdsos)
+    {
+        tdsos.reset();
+    }
+
+    void scanTLSRanges(Array!(ThreadDSO)* tdsos, scope ScanDG dg)
+    {
+        foreach (ref tdso; *tdsos)
+            dg(tdso._tlsRange.ptr, tdso._tlsRange.ptr + tdso._tlsRange.length);
+    }
+
+    // interface for core.thread to inherit loaded libraries
+    void* pinLoadedLibraries()
+    {
+        auto res = cast(Array!(ThreadDSO)*)calloc(1, Array!(ThreadDSO).sizeof);
+        res.length = _loadedDSOs.length;
+        foreach (i, ref tdso; _loadedDSOs)
+        {
+            (*res)[i] = tdso;
+            if (tdso._addCnt)
+            {
+                // Increment the dlopen ref for explicitly loaded libraries to pin them.
+                .dlopen(tdso._pdso._linkMap.l_name, RTLD_LAZY) !is null || assert(0);
+                (*res)[i]._addCnt = 1; // new array takes over the additional ref count
+            }
+        }
+        return res;
+    }
+
+    void unpinLoadedLibraries(void* p)
+    {
+        auto pary = cast(Array!(ThreadDSO)*)p;
+        // In case something failed we need to undo the pinning.
+        foreach (ref tdso; *pary)
+        {
+            if (tdso._addCnt)
+            {
+                auto handle = handleForName(tdso._pdso._linkMap.l_name);
+                handle !is null || assert(0);
+                .dlclose(handle);
+            }
+        }
+        pary.reset();
+        .free(pary);
+    }
+
+    // Called before TLS ctors are ran, copy over the loaded libraries
+    // of the parent thread.
+    void inheritLoadedLibraries(void* p)
+    {
+        assert(_loadedDSOs.empty);
+        _loadedDSOs.swap(*cast(Array!(ThreadDSO)*)p);
+        .free(p);
+    }
+
+    // Called after all TLS dtors ran, decrements all remaining dlopen refs.
+    void cleanupLoadedLibraries()
+    {
+        foreach (ref tdso; _loadedDSOs)
+        {
+            if (tdso._addCnt == 0) continue;
+
+            auto handle = handleForName(tdso._pdso._linkMap.l_name);
+            handle !is null || assert(0);
+            for (; tdso._addCnt > 0; --tdso._addCnt)
+                .dlclose(handle);
+        }
+        _loadedDSOs.reset();
+    }
+}
+else
 {
-    foreach (rng; *rngs)
-        dg(rng.ptr, rng.ptr + rng.length);
+    /***
+     * Called once per thread; returns array of thread local storage ranges
+     */
+    Array!(void[])* initTLSRanges()
+    {
+        return &_tlsRanges;
+    }
+
+    void finiTLSRanges(Array!(void[])* rngs)
+    {
+        rngs.reset();
+    }
+
+    void scanTLSRanges(Array!(void[])* rngs, scope ScanDG dg)
+    {
+        foreach (rng; *rngs)
+            dg(rng.ptr, rng.ptr + rng.length);
+    }
 }
 
 private:
 
-/*
- * Static DSOs loaded by the runtime linker. This includes the
- * executable. These can't be unloaded.
- */
-__gshared Array!(DSO*) _static_dsos;
+version (Shared)
+{
+    /*
+     * Array of thread local DSO metadata for all libraries loaded and
+     * initialized in this thread.
+     *
+     * Note:
+     *     A newly spawned thread will inherit these libraries.
+     * Note:
+     *     We use an array here to preserve the order of
+     *     initialization.  If that became a performance issue, we
+     *     could use a hash table and enumerate the DSOs during
+     *     loading so that the hash table values could be sorted when
+     *     necessary.
+     */
+    struct ThreadDSO
+    {
+        DSO* _pdso;
+        static if (_pdso.sizeof == 8) uint _refCnt, _addCnt;
+        else static if (_pdso.sizeof == 4) ushort _refCnt, _addCnt;
+        else static assert(0, "unimplemented");
+        void[] _tlsRange;
+        alias _pdso this;
+    }
+    Array!(ThreadDSO) _loadedDSOs;
 
-Array!(void[]) _tlsRanges;
+    /*
+     * Set to true during rt_loadLibrary/rt_unloadLibrary calls.
+     */
+    bool _rtLoading;
 
+    /*
+     * Hash table to map link_map* to corresponding DSO*.
+     * The hash table is protected by a Mutex.
+     */
+    __gshared pthread_mutex_t _linkMapToDSOMutex;
+    __gshared HashTab!(void*, DSO*) _linkMapToDSO;
+}
+else
+{
+    /*
+     * Static DSOs loaded by the runtime linker. This includes the
+     * executable. These can't be unloaded.
+     */
+    __gshared Array!(DSO*) _loadedDSOs;
+
+    /*
+     * Thread local array that contains TLS memory ranges for each
+     * library initialized in this thread.
+     */
+    Array!(void[]) _tlsRanges;
+
+    enum _rtLoading = false;
+}
 
 ///////////////////////////////////////////////////////////////////////////////
 // Compiler to runtime interface.
@@ -159,6 +302,10 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
     // no backlink => register
     if (*data._slot is null)
     {
+        // initialize the runtime when loading the first DSO
+        if (_loadedDSOs.empty)
+            initRuntime();
+
         DSO* pdso = cast(DSO*).calloc(1, DSO.sizeof);
         assert(typeid(DSO).init().ptr is null);
         *data._slot = pdso; // store backlink in library record
@@ -173,13 +320,39 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         checkModuleCollisions(info, pdso._moduleGroup.modules);
 
-        // initialize the runtime when loading the first DSO
-        if (_static_dsos.empty) initRuntime();
+        version (Shared)
+        {
+            // the first loaded DSO is druntime itself
+            assert(!_loadedDSOs.empty ||
+                   linkMapForAddr(&_d_dso_registry) == linkMapForAddr(data._slot));
 
-        _static_dsos.insertBack(pdso);
-        _tlsRanges.insertBack(getTLSRange(pdso._tlsMod, pdso._tlsSize));
+            getDependencies(info, pdso._deps);
+            pdso._linkMap = linkMapForAddr(data._slot);
+            setDSOForLinkMap(pdso, pdso._linkMap);
+
+            if (!_rtLoading)
+            {
+                /* This DSO was not loaded by rt_loadLibrary which
+                 * happens for all dependencies of an executable or
+                 * the first dlopen call from a C program.
+                 * In this case we add the DSO to the _loadedDSOs of this
+                 * thread with a refCnt of 1 and call the TlsCtors.
+                 */
+                immutable ushort refCnt = 1, addCnt = 0;
+                auto tlsRng = getTLSRange(pdso._tlsMod, pdso._tlsSize);
+                _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, tlsRng));
+            }
+        }
+        else
+        {
+            foreach (p; _loadedDSOs) assert(p !is pdso);
+            _loadedDSOs.insertBack(pdso);
+            _tlsRanges.insertBack(getTLSRange(pdso._tlsMod, pdso._tlsSize));
+        }
+
         registerGCRanges(pdso);
-        runModuleConstructors(pdso);
+        immutable runTlsCtors = !_rtLoading;
+        runModuleConstructors(pdso, runTlsCtors);
     }
     // has backlink => unregister
     else
@@ -187,17 +360,124 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         DSO* pdso = cast(DSO*)*data._slot;
         *data._slot = null;
 
-        runModuleDestructors(pdso);
+        immutable runTlsDtors = !_rtLoading;
+        runModuleDestructors(pdso, runTlsDtors);
         unregisterGCRanges(pdso);
-        assert(pdso._tlsSize == _tlsRanges.back.length);
-        _tlsRanges.popBack();
-        assert(pdso == _static_dsos.back); // static DSOs are unloaded in reverse order
-        _static_dsos.popBack();
+
+        version (Shared)
+        {
+            if (!_rtLoading)
+            {
+                /* This DSO was not unloaded by rt_unloadLibrary so we
+                 * have to remove it from _loadedDSOs here.
+                 */
+                foreach (i, ref tdso; _loadedDSOs)
+                {
+                    if (tdso._pdso == pdso)
+                    {
+                        _loadedDSOs.remove(i);
+                        break;
+                    }
+                }
+            }
+
+            assert(pdso._linkMap == linkMapForAddr(data._slot));
+            unsetDSOForLinkMap(pdso, pdso._linkMap);
+            pdso._linkMap = null;
+        }
+        else
+        {
+            // static DSOs are unloaded in reverse order
+            assert(pdso._tlsSize == _tlsRanges.back.length);
+            _tlsRanges.popBack();
+            assert(pdso == _loadedDSOs.back);
+            _loadedDSOs.popBack();
+        }
 
         freeDSO(pdso);
 
         // terminate the runtime when unloading the last DSO
-        if (_static_dsos.empty) termRuntime();
+        if (_loadedDSOs.empty)
+            termRuntime();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////
+// dynamic loading
+///////////////////////////////////////////////////////////////////////////////
+
+// Shared D libraries are only supported when linking against a shared druntime library.
+
+version (Shared)
+{
+    ThreadDSO* findThreadDSO(DSO* pdso)
+    {
+        foreach (ref tdata; _loadedDSOs)
+            if (tdata._pdso == pdso) return &tdata;
+        return null;
+    }
+
+    void incThreadRef(DSO* pdso, bool incAdd)
+    {
+        if (auto tdata = findThreadDSO(pdso)) // already initialized
+        {
+            if (incAdd && ++tdata._addCnt > 1) return;
+            ++tdata._refCnt;
+        }
+        else
+        {
+            foreach (dep; pdso._deps)
+                incThreadRef(dep, false);
+            immutable ushort refCnt = 1, addCnt = incAdd ? 1 : 0;
+            auto tlsRng = getTLSRange(pdso._tlsMod, pdso._tlsSize);
+            _loadedDSOs.insertBack(ThreadDSO(pdso, refCnt, addCnt, tlsRng));
+            pdso._moduleGroup.runTlsCtors();
+        }
+    }
+
+    void decThreadRef(DSO* pdso, bool decAdd)
+    {
+        auto tdata = findThreadDSO(pdso);
+        tdata !is null || assert(0);
+        !decAdd || tdata._addCnt > 0 || assert(0, "Mismatching rt_unloadLibrary call.");
+
+        if (decAdd && --tdata._addCnt > 0) return;
+        if (--tdata._refCnt > 0) return;
+
+        pdso._moduleGroup.runTlsDtors();
+        foreach (i, ref td; _loadedDSOs)
+            if (td._pdso == pdso) _loadedDSOs.remove(i);
+        foreach (dep; pdso._deps)
+            decThreadRef(dep, false);
+    }
+
+    extern(C) void* rt_loadLibrary(const char* name)
+    {
+        immutable save = _rtLoading;
+        _rtLoading = true;
+        scope (exit) _rtLoading = save;
+
+        auto handle = .dlopen(name, RTLD_LAZY);
+        if (handle is null) return null;
+
+        // if it's a D library
+        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+            incThreadRef(pdso, true);
+        return handle;
+    }
+
+    extern(C) bool rt_unloadLibrary(void* handle)
+    {
+        if (handle is null) return false;
+
+        immutable save = _rtLoading;
+        _rtLoading = true;
+        scope (exit) _rtLoading = save;
+
+        // if it's a D library
+        if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+            decThreadRef(pdso, true);
+        return .dlclose(handle) == 0;
     }
 }
 
@@ -220,17 +500,17 @@ void termRuntime()
         exit(EXIT_FAILURE);
 }
 
-void runModuleConstructors(DSO* pdso)
+void runModuleConstructors(DSO* pdso, bool runTlsCtors)
 {
     pdso._moduleGroup.sortCtors();
     pdso._moduleGroup.runCtors();
-    pdso._moduleGroup.runTlsCtors();
+    if (runTlsCtors) pdso._moduleGroup.runTlsCtors();
 }
 
-void runModuleDestructors(DSO* pdso)
+void runModuleDestructors(DSO* pdso, bool runTlsDtors)
 {
     pdso._moduleGroup.runTlsDtors();
-    pdso._moduleGroup.runDtors();
+    if (runTlsDtors) pdso._moduleGroup.runDtors();
 }
 
 void registerGCRanges(DSO* pdso)
@@ -249,6 +529,90 @@ void freeDSO(DSO* pdso)
 {
     pdso._gcRanges.reset();
     .free(pdso);
+}
+
+version (Shared)
+{
+    link_map* linkMapForHandle(void* handle)
+    {
+        link_map* map;
+        dlinfo(handle, RTLD_DI_LINKMAP, &map) == 0 || assert(0);
+        return map;
+    }
+
+    DSO* dsoForLinkMap(link_map* map)
+    {
+        DSO* pdso;
+        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
+        if (auto ppdso = map in _linkMapToDSO)
+            pdso = *ppdso;
+        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+        return pdso;
+    }
+
+    void setDSOForLinkMap(DSO* pdso, link_map* map)
+    {
+        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
+        assert(map !in _linkMapToDSO);
+        _linkMapToDSO[map] = pdso;
+        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+    }
+
+    void unsetDSOForLinkMap(DSO* pdso, link_map* map)
+    {
+        !pthread_mutex_lock(&_linkMapToDSOMutex) || assert(0);
+        assert(_linkMapToDSO[map] == pdso);
+        _linkMapToDSO.remove(map);
+        !pthread_mutex_unlock(&_linkMapToDSOMutex) || assert(0);
+    }
+
+    void getDependencies(in ref dl_phdr_info info, ref Array!(DSO*) deps)
+    {
+        // get the entries of the .dynamic section
+        ElfW!"Dyn"[] dyns;
+        foreach (ref phdr; info.dlpi_phdr[0 .. info.dlpi_phnum])
+        {
+            if (phdr.p_type == PT_DYNAMIC)
+            {
+                auto p = cast(ElfW!"Dyn"*)(info.dlpi_addr + phdr.p_vaddr);
+                dyns = p[0 .. phdr.p_memsz / ElfW!"Dyn".sizeof];
+                break;
+            }
+        }
+        // find the string table which contains the sonames
+        const(char)* strtab;
+        foreach (dyn; dyns)
+        {
+            if (dyn.d_tag == DT_STRTAB)
+            {
+                strtab = cast(const(char)*)dyn.d_un.d_ptr;
+                break;
+            }
+        }
+        foreach (dyn; dyns)
+        {
+            immutable tag = dyn.d_tag;
+            if (!(tag == DT_NEEDED || tag == DT_AUXILIARY || tag == DT_FILTER))
+                continue;
+
+            // soname of the dependency
+            auto name = strtab + dyn.d_un.d_val;
+            // get handle without loading the library
+            auto handle = handleForName(name);
+            // the runtime linker has already loaded all dependencies
+            if (handle is null) assert(0);
+            // if it's a D library
+            if (auto pdso = dsoForLinkMap(linkMapForHandle(handle)))
+                deps.insertBack(pdso); // append it to the dependencies
+        }
+    }
+
+    void* handleForName(const char* name)
+    {
+        auto handle = .dlopen(name, RTLD_NOLOAD | RTLD_LAZY);
+        if (handle !is null) .dlclose(handle); // drop reference count
+        return handle;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -387,6 +751,22 @@ body
                 cast(int)existing.length, existing.ptr);
         assert(0);
     }
+}
+
+/**************************
+ * Input:
+ *      addr  an internal address of a DSO
+ * Returns:
+ *      the dlopen handle for that DSO or null if addr is not within a loaded DSO
+ */
+version (Shared) link_map* linkMapForAddr(void* addr)
+{
+    Dl_info info = void;
+    link_map* map;
+    if (dladdr1(addr, &info, cast(void**)&map, RTLD_DL_LINKMAP) != 0)
+        return map;
+    else
+        return null;
 }
 
 ///////////////////////////////////////////////////////////////////////////////

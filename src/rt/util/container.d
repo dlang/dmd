@@ -124,6 +124,25 @@ struct Array(T)
         length = length - 1;
     }
 
+    void remove(size_t idx)
+    in { assert(idx < length); }
+    body
+    {
+        foreach (i; idx .. length - 1)
+            _ptr[i] = _ptr[i+1];
+        popBack();
+    }
+
+    void swap(ref Array other)
+    {
+        auto ptr = _ptr;
+        _ptr = other._ptr;
+        other._ptr = ptr;
+        immutable len = _length;
+        _length = other._length;
+        other._length = len;
+    }
+
 private:
     T* _ptr;
     size_t _length;
@@ -151,6 +170,10 @@ unittest
     foreach (i, val; ary) assert(i == val);
     foreach_reverse (i, val; ary) assert(i == val);
 
+    ary.insertBack(2);
+    ary.remove(1);
+    assert(ary[] == [0, 2]);
+
     assert(!ary.empty);
     ary.reset();
     assert(ary.empty);
@@ -165,6 +188,13 @@ unittest
     static assert(!__traits(compiles, ary = ary2));
     static void foo(Array!size_t copy) {}
     static assert(!__traits(compiles, foo(ary)));
+
+    ary2.insertBack(0);
+    assert(ary.empty);
+    assert(ary2[] == [0]);
+    ary.swap(ary2);
+    assert(ary[] == [0]);
+    assert(ary2.empty);
 }
 
 

@@ -152,11 +152,12 @@ $(OBJDIR)/threadasm.o : src/core/threadasm.S
 
 ######################## Create a shared library ##############################
 
-dll: override PIC:=-fPIC
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: override PIC:=-fPIC
+$(DRUNTIMESO) $(DRUNTIMESOLIB) dll: DFLAGS+=-version=Shared
 dll: $(DRUNTIMESOLIB)
 
 $(DRUNTIMESO): $(OBJS) $(SRCS)
-	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS)
+	$(DMD) -shared -debuglib= -defaultlib= -of$(DRUNTIMESO) $(DFLAGS) $(SRCS) $(OBJS) -L-ldl
 
 $(DRUNTIMESOLIB): $(OBJS) $(SRCS)
 	$(DMD) -c -fPIC -of$(DRUNTIMESOOBJ) $(DFLAGS) $(SRCS)
@@ -168,8 +169,10 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
+ADDITIONAL_TESTS:=
+ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
 
-unittest : $(UT_MODULES)
+unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
 	@echo done
 
 ifeq ($(OS),freebsd)
@@ -191,8 +194,9 @@ else
 UT_DRUNTIME:=$(OBJDIR)/lib$(DRUNTIME_BASE)-ut$(DOTDLL)
 
 $(UT_DRUNTIME): override PIC:=-fPIC
+$(UT_DRUNTIME): UDFLAGS+=-version=Shared
 $(UT_DRUNTIME): $(OBJS) $(SRCS)
-	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -debuglib= -defaultlib=
+	$(DMD) $(UDFLAGS) -shared -version=druntime_unittest -unittest -of$@ $(SRCS) $(OBJS) -L-ldl -debuglib= -defaultlib=
 
 $(OBJDIR)/test_runner: $(UT_DRUNTIME) src/test_runner.d
 	$(DMD) $(UDFLAGS) -of$@ src/test_runner.d -L$(UT_DRUNTIME) -debuglib= -defaultlib=
@@ -210,6 +214,9 @@ $(OBJDIR)/% : $(OBJDIR)/test_runner
 	$(QUIET)$(RUN) $(OBJDIR)/test_runner $(call moduleName,$*)
 # succeeded, render the file new again
 	@touch $@
+
+test/%/.run: test/%/Makefile $(DRUNTIMESO)
+	$(QUIET)$(MAKE) -C test/$* MODEL=$(MODEL) OS=$(OS) DMD=$(abspath $(DMD)) DRUNTIMESO=$(abspath $(DRUNTIMESO)) QUIET=$(QUIET)
 
 detab:
 	detab $(MANIFEST)
@@ -230,5 +237,8 @@ install: target
 	cp -r lib/* $(INSTALL_DIR)/lib/
 	cp LICENSE $(INSTALL_DIR)/druntime-LICENSE.txt
 
-clean:
+clean: $(addsuffix /.clean,$(ADDITIONAL_TESTS))
 	rm -rf obj lib $(IMPDIR) $(DOCDIR) druntime.zip
+
+test/%/.clean: test/%/Makefile
+	$(MAKE) -C test/$* clean
