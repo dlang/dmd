@@ -461,6 +461,32 @@ version( linux )
             align(8) c_ulong[128] uc_regspace;
         }
     }
+    else version (AArch64)
+    {
+        alias int greg_t;
+
+        struct sigcontext {
+            ulong           fault_address;
+            /* AArch64 registers */
+            ulong           regs[31];
+            ulong           sp;
+            ulong           pc;
+            ulong           pstate;
+            /* 4K reserved for FP/SIMD state and future expansion */
+            align(16) ubyte __reserved[4096];
+        }
+
+        alias sigcontext mcontext_t;
+
+        struct ucontext_t
+        {
+            c_ulong     uc_flags;
+            ucontext_t* uc_link;
+            stack_t     uc_stack;
+            sigset_t    uc_sigmask;
+            mcontext_t  uc_mcontext;
+        }
+    }
     else
         static assert(0, "unimplemented");
 }
