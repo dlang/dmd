@@ -194,6 +194,8 @@ version( linux )
         enum MAP_ANON       = 0x20;   // non-standard
     else version (PPC64)
         enum MAP_ANON       = 0x20;   // non-standard
+    else version (AArch64)
+        enum MAP_ANON       = 0x20;   // non-standard
     else
         static assert(0, "unimplemented");
 
