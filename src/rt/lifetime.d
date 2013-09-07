@@ -2060,7 +2060,7 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
         __va_list argsave = __va_argsave.va;
         va_list ap;
         va_start(ap, __va_argsave);
-        for (auto i = 0; i < n; i++)
+        for (auto i = 0u; i < n; i++)
         {
             byte[] b;
             va_arg(ap, b);
@@ -2111,7 +2111,7 @@ extern (C) void[] _d_arraycatnT(const TypeInfo ti, uint n, ...)
     {
         va_list ap2 = &argsave;
         size_t j = 0;
-        for (auto i = 0; i < n; i++)
+        for (auto i = 0u; i < n; i++)
         {
             byte[] b;
             va_arg(ap2, b);
