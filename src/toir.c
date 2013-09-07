@@ -853,22 +853,17 @@ RET TypeFunction::retStyle()
     Type *tns = tn;
 
     if (global.params.isWindows && global.params.is64bit)
-    {   // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
+    {
+        // http://msdn.microsoft.com/en-us/library/7572ztz4(v=vs.80)
         if (tns->ty == Tcomplex32)
             return RETstack;
         if (tns->isscalar())
             return RETregs;
 
-        if (tns->ty == Tsarray)
-        {
-            do
-            {
-                tns = tns->nextOf()->toBasetype();
-            } while (tns->ty == Tsarray);
-        }
-
+        tns = tns->baseElemOf();
         if (tns->ty == Tstruct)
-        {   StructDeclaration *sd = ((TypeStruct *)tns)->sym;
+        {
+            StructDeclaration *sd = ((TypeStruct *)tns)->sym;
             if (!sd->isPOD() || sz >= 8)
                 return RETstack;
         }
@@ -880,11 +875,7 @@ RET TypeFunction::retStyle()
 Lagain:
     if (tns->ty == Tsarray)
     {
-        do
-        {
-            tns = tns->nextOf()->toBasetype();
-        } while (tns->ty == Tsarray);
-
+        tns = tns->baseElemOf();
         if (tns->ty != Tstruct)
         {
 L2:

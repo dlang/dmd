@@ -2380,6 +2380,18 @@ Type *Type::nextOf()
     return NULL;
 }
 
+/*************************************
+ * If this is a type of static array, return its base element type.
+ */
+
+Type *Type::baseElemOf()
+{
+    Type *t = toBasetype();
+    while (t->ty == Tsarray)
+        t = ((TypeSArray *)t)->next->toBasetype();
+    return t;
+}
+
 /****************************************
  * Return the mask that an integral type will
  * fit into.

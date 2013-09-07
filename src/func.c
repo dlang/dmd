@@ -3220,12 +3220,7 @@ bool FuncDeclaration::setUnsafe()
 
 Type *getIndirection(Type *t)
 {
-    t = t->toBasetype();
-
-    if (t->ty == Tsarray)
-    {   while (t->ty == Tsarray)
-            t = t->nextOf()->toBasetype();
-    }
+    t = t->baseElemOf();
     if (t->ty == Tarray || t->ty == Tpointer)
         return t->nextOf()->toBasetype();
     if (t->ty == Taarray || t->ty == Tclass)
@@ -3276,10 +3271,7 @@ int traverseIndirections(Type *ta, Type *tb, void *p = NULL, bool a2b = true)
     if (tbb != tb)
         return traverseIndirections(ta, tbb, ctxt, a2b);
 
-    if (tb->ty == Tsarray)
-    {   while (tb->toBasetype()->ty == Tsarray)
-            tb = tb->toBasetype()->nextOf();
-    }
+    tb = tb->baseElemOf();
     if (tb->ty == Tclass || tb->ty == Tstruct)
     {
         for (Ctxt *c = ctxt; c; c = c->prev)

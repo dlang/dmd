@@ -332,6 +332,7 @@ public:
     virtual int hasPointers();
     virtual TypeTuple *toArgTypes();
     virtual Type *nextOf();
+    Type *baseElemOf();
     uinteger_t sizemask();
     virtual int needsDestruction();
     virtual bool needsNested();

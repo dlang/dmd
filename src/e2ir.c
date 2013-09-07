@@ -616,11 +616,10 @@ elem *sarray_toDarray(Loc loc, Type *tfrom, Type *tto, elem *e)
 
 StructDeclaration *needsPostblit(Type *t)
 {
-    t = t->toBasetype();
-    while (t->ty == Tsarray)
-        t = t->nextOf()->toBasetype();
+    t = t->baseElemOf();
     if (t->ty == Tstruct)
-    {   StructDeclaration *sd = ((TypeStruct *)t)->sym;
+    {
+        StructDeclaration *sd = ((TypeStruct *)t)->sym;
         if (sd->postblit)
             return sd;
     }
@@ -3977,13 +3976,10 @@ elem *DeleteExp::toElem(IRState *irs)
             /* See if we need to run destructors on the array contents
              */
             elem *et = NULL;
-            Type *tv = tb->nextOf()->toBasetype();
-            while (tv->ty == Tsarray)
-            {   TypeSArray *ta = (TypeSArray *)tv;
-                tv = tv->nextOf()->toBasetype();
-            }
+            Type *tv = tb->nextOf()->baseElemOf();
             if (tv->ty == Tstruct)
-            {   TypeStruct *ts = (TypeStruct *)tv;
+            {
+                TypeStruct *ts = (TypeStruct *)tv;
                 StructDeclaration *sd = ts->sym;
                 if (sd->dtor)
                     et = tb->nextOf()->getTypeInfo(NULL)->toElem(irs);
