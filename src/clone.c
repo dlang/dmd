@@ -135,13 +135,10 @@ int StructDeclaration::needOpAssign()
         assert(v && v->isField());
         if (v->storage_class & STCref)
             continue;
-        Type *tv = v->type->toBasetype();
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
+        Type *tv = v->type->baseElemOf();
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->needOpAssign())
                 goto Lneed;
@@ -210,13 +207,10 @@ FuncDeclaration *StructDeclaration::buildOpAssign(Scope *sc)
             assert(v && v->isField());
             if (v->storage_class & STCref)
                 continue;
-            Type *tv = v->type->toBasetype();
-            while (tv->ty == Tsarray)
-            {   TypeSArray *ta = (TypeSArray *)tv;
-                tv = tv->nextOf()->toBasetype();
-            }
+            Type *tv = v->type->baseElemOf();
             if (tv->ty == Tstruct)
-            {   TypeStruct *ts = (TypeStruct *)tv;
+            {
+                TypeStruct *ts = (TypeStruct *)tv;
                 StructDeclaration *sd = ts->sym;
                 if (FuncDeclaration *f = sd->hasIdentityOpAssign(sc))
                     stc = mergeFuncAttrs(stc, f->storage_class);
@@ -380,12 +374,10 @@ int StructDeclaration::needOpEquals()
             goto Lneed;
         if (tv->ty == Tclass)
             goto Lneed;
-        while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            tv = tv->nextOf()->toBasetype();
-        }
+        tv = tv->baseElemOf();
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->needOpEquals())
                 goto Lneed;
@@ -785,12 +777,14 @@ FuncDeclaration *StructDeclaration::buildPostBlit(Scope *sc)
         Type *tv = v->type->toBasetype();
         dinteger_t dim = 1;
         while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            dim *= ((TypeSArray *)tv)->dim->toInteger();
-            tv = tv->nextOf()->toBasetype();
+        {
+            TypeSArray *tsa = (TypeSArray *)tv;
+            dim *= tsa->dim->toInteger();
+            tv = tsa->next->toBasetype();
         }
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->postblit && dim)
             {
@@ -899,12 +893,14 @@ FuncDeclaration *AggregateDeclaration::buildDtor(Scope *sc)
         Type *tv = v->type->toBasetype();
         dinteger_t dim = 1;
         while (tv->ty == Tsarray)
-        {   TypeSArray *ta = (TypeSArray *)tv;
-            dim *= ((TypeSArray *)tv)->dim->toInteger();
-            tv = tv->nextOf()->toBasetype();
+        {
+            TypeSArray *tsa = (TypeSArray *)tv;
+            dim *= tsa->dim->toInteger();
+            tv = tsa->next->toBasetype();
         }
         if (tv->ty == Tstruct)
-        {   TypeStruct *ts = (TypeStruct *)tv;
+        {
+            TypeStruct *ts = (TypeStruct *)tv;
             StructDeclaration *sd = ts->sym;
             if (sd->dtor && dim)
             {

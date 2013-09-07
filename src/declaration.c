@@ -962,9 +962,7 @@ void VarDeclaration::semantic(Scope *sc)
     FuncDeclaration *fd = parent->isFuncDeclaration();
 
     Type *tb = type->toBasetype();
-    Type *tbn = tb;
-    while (tbn->ty == Tsarray)
-        tbn = tbn->nextOf()->toBasetype();
+    Type *tbn = tb->baseElemOf();
     if (tb->ty == Tvoid && !(storage_class & STClazy))
     {
         if (inferred)
@@ -1863,11 +1861,7 @@ void VarDeclaration::setFieldOffset(AggregateDeclaration *ad, unsigned *poffset,
     }
     if (t->ty == Tstruct || t->ty == Tsarray)
     {
-        Type *tv = t;
-        while (tv->ty == Tsarray)
-        {
-            tv = tv->nextOf()->toBasetype();
-        }
+        Type *tv = t->baseElemOf();
         if (tv->ty == Tstruct)
         {
             TypeStruct *ts = (TypeStruct *)tv;
@@ -2252,19 +2246,14 @@ Expression *VarDeclaration::callScopeDtor(Scope *sc)
     }
 
     // Destructors for structs and arrays of structs
-    bool array = false;
-    Type *tv = type->toBasetype();
-    while (tv->ty == Tsarray)
-    {   TypeSArray *ta = (TypeSArray *)tv;
-        array = true;
-        tv = tv->nextOf()->toBasetype();
-    }
+    Type *tv = type->baseElemOf();
     if (tv->ty == Tstruct)
-    {   TypeStruct *ts = (TypeStruct *)tv;
+    {
+        TypeStruct *ts = (TypeStruct *)tv;
         StructDeclaration *sd = ts->sym;
         if (sd->dtor)
         {
-            if (array)
+            if (type->toBasetype()->ty == Tsarray)
             {
                 // Typeinfo.destroy(cast(void*)&v);
                 Expression *ea = new SymOffExp(loc, this, 0, 0);

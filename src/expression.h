@@ -86,7 +86,6 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 #if DMDV2
 Expression *resolveAliasThis(Scope *sc, Expression *e);
 Expression *callCpCtor(Scope *sc, Expression *e);
-bool checkPostblit(Loc loc, Type *t);
 #endif
 Expression *resolveOpDollar(Scope *sc, ArrayExp *ae);
 Expression *resolveOpDollar(Scope *sc, SliceExp *se);
@@ -169,6 +168,7 @@ public:
     void checkPurity(Scope *sc, FuncDeclaration *f);
     void checkPurity(Scope *sc, VarDeclaration *v, Expression *e1);
     void checkSafety(Scope *sc, FuncDeclaration *f);
+    bool checkPostblit(Scope *sc, Type *t);
     virtual int checkModifiable(Scope *sc, int flag = 0);
     virtual Expression *checkToBoolean(Scope *sc);
     virtual Expression *addDtorHook(Scope *sc);
