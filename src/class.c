@@ -225,6 +225,7 @@ ClassDeclaration::ClassDeclaration(Loc loc, Identifier *id, BaseClasses *basecla
     }
 
     com = 0;
+    cpp = 0;
     isscope = 0;
     isabstract = 0;
     inuse = 0;
@@ -307,7 +308,7 @@ void ClassDeclaration::semantic(Scope *sc)
     userAttributes = sc->userAttributes;
 
     if (sc->linkage == LINKcpp)
-        error("cannot create C++ classes");
+        cpp = 1;
 
     // Expand any tuples in baseclasses[]
     for (size_t i = 0; i < baseclasses->dim; )
@@ -472,7 +473,7 @@ void ClassDeclaration::semantic(Scope *sc)
 
 
     // If no base class, and this is not an Object, use Object as base class
-    if (!baseClass && ident != Id::Object)
+    if (!baseClass && ident != Id::Object && !cpp)
     {
         if (!object)
         {
@@ -511,6 +512,8 @@ void ClassDeclaration::semantic(Scope *sc)
 
         // Inherit properties from base class
         com = baseClass->isCOMclass();
+        if (baseClass->isCPPclass())
+            cpp = 1;
         isscope = baseClass->isscope;
         vthis = baseClass->vthis;
         enclosing = baseClass->enclosing;
@@ -520,7 +523,8 @@ void ClassDeclaration::semantic(Scope *sc)
     {
         // No base class, so this is the root of the class hierarchy
         vtbl.setDim(0);
-        vtbl.push(this);                // leave room for classinfo as first member
+        if (vtblOffset())
+            vtbl.push(this);            // leave room for classinfo as first member
     }
 
     protection = sc->protection;
@@ -603,7 +607,11 @@ void ClassDeclaration::semantic(Scope *sc)
 //          sc->offset += Target::ptrsize;      // room for uplevel context pointer
     }
     else
-    {   sc->offset = Target::ptrsize * 2;       // allow room for __vptr and __monitor
+    {
+        if (cpp)
+            sc->offset = Target::ptrsize;       // allow room for __vptr
+        else
+            sc->offset = Target::ptrsize * 2;  // allow room for __vptr and __monitor
         alignsize = Target::ptrsize;
     }
     sc->userAttributes = NULL;
@@ -1140,8 +1148,8 @@ void ClassDeclaration::interfaceSemantic(Scope *sc)
         if (b->base->isCOMinterface())
             com = 1;
 
-        if (b->base->isCPPinterface() && id)
-            id->cpp = 1;
+        if (b->base->isCPPinterface())
+            cpp = 1;
 
         vtblInterfaces->push(b);
         b->copyBaseInterfaces(vtblInterfaces);
@@ -1162,6 +1170,11 @@ int ClassDeclaration::isCOMinterface()
 }
 
 #if DMDV2
+int ClassDeclaration::isCPPclass()
+{
+    return cpp;
+}
+
 int ClassDeclaration::isCPPinterface()
 {
     return 0;
@@ -1200,7 +1213,7 @@ bool ClassDeclaration::isAbstract()
 
 int ClassDeclaration::vtblOffset()
 {
-    return 1;
+    return (com || cpp) ? 0 : 1;
 }
 
 /****************************************
@@ -1224,8 +1237,6 @@ void ClassDeclaration::addLocalClass(ClassDeclarations *aclasses)
 InterfaceDeclaration::InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses)
     : ClassDeclaration(loc, id, baseclasses)
 {
-    com = 0;
-    cpp = 0;
     if (id == Id::IUnknown)     // IUnknown is the root of all COM interfaces
     {   com = 1;
         cpp = 1;                // IUnknown is also a C++ interface
@@ -1424,9 +1435,9 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc = sc->push(this);
     sc->stc &= STCsafe | STCtrusted | STCsystem;
     sc->parent = this;
-    if (isCOMinterface())
+    if (com)
         sc->linkage = LINKwindows;
-    else if (isCPPinterface())
+    else if (cpp)
         sc->linkage = LINKcpp;
     sc->structalign = STRUCTALIGN_DEFAULT;
     sc->protection = PROTpublic;
