@@ -280,6 +280,7 @@ void EnumDeclaration::semantic(Scope *sc)
         }
         else if (first)
         {
+        Lfirst:
             if (memtype)
                 t = memtype;
             else
@@ -303,6 +304,9 @@ void EnumDeclaration::semantic(Scope *sc)
         }
         else
         {
+            if (!elast)
+                goto Lfirst;
+
             // Lazily evaluate enum.max
             if (!emax)
             {
@@ -336,7 +340,8 @@ void EnumDeclaration::semantic(Scope *sc)
                     error("enum member %s has inexact value, due to loss of precision", em->toChars());
             }
         }
-        elast = e;
+        if (!em->isAlias)
+            elast = e;
         em->value = e;
 
         // Add to symbol table only after evaluating 'value'
@@ -480,10 +485,11 @@ Dsymbol *EnumDeclaration::search(Loc loc, Identifier *ident, int flags)
 
 /********************************* EnumMember ****************************/
 
-EnumMember::EnumMember(Loc loc, Identifier *id, Expression *value, Type *type)
+EnumMember::EnumMember(Loc loc, bool isAlias, Identifier *id, Expression *value, Type *type)
     : Dsymbol(id)
 {
     this->ed = NULL;
+    this->isAlias = isAlias;
     this->value = value;
     this->type = type;
     this->loc = loc;
@@ -508,7 +514,7 @@ Dsymbol *EnumMember::syntaxCopy(Dsymbol *s)
         em->type = t;
     }
     else
-        em = new EnumMember(loc, ident, e, t);
+        em = new EnumMember(loc, isAlias, ident, e, t);
     return em;
 }
 

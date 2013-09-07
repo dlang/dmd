@@ -1630,6 +1630,7 @@ EnumDeclaration *Parser::parseEnum()
 
             Type *type = NULL;
             Identifier *ident;
+            bool isAlias = token.value == TOKalias ? nextToken(), true : false;
             Token *tp = peek(&token);
             if (token.value == TOKidentifier &&
                 (tp->value == TOKassign || tp->value == TOKcomma || tp->value == TOKrcurly))
@@ -1657,7 +1658,7 @@ EnumDeclaration *Parser::parseEnum()
                     error("if type, there must be an initializer");
             }
 
-            EnumMember *em = new EnumMember(loc, ident, value, type);
+            EnumMember *em = new EnumMember(loc, isAlias, ident, value, type);
             e->members->push(em);
 
             if (token.value == TOKrcurly)
