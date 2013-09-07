@@ -257,6 +257,9 @@ public:
     TypeInfoClassDeclaration *vclassinfo;       // the ClassInfo object for this ClassDeclaration
     int com;                            // !=0 if this is a COM class (meaning
                                         // it derives from IUnknown)
+#if DMDV2
+    int cpp;                            // !=0 if this is a C++ interface
+#endif
     int isscope;                        // !=0 if this is an auto class
     int isabstract;                     // !=0 if abstract class
     int inuse;                          // to prevent recursive attempts
@@ -284,6 +287,7 @@ public:
     int isCOMclass();
     virtual int isCOMinterface();
 #if DMDV2
+    int isCPPclass();
     virtual int isCPPinterface();
 #endif
     bool isAbstract();
@@ -313,9 +317,6 @@ public:
 class InterfaceDeclaration : public ClassDeclaration
 {
 public:
-#if DMDV2
-    int cpp;                            // !=0 if this is a C++ interface
-#endif
     InterfaceDeclaration(Loc loc, Identifier *id, BaseClasses *baseclasses);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void semantic(Scope *sc);
