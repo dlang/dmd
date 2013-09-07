@@ -786,13 +786,104 @@ void test4826c()
 
 struct ICE5131
 {
+    this(int n) {}
     ICE5131 opAssign(int x) { return this; }
 }
 
 void test5131()
 {
     ICE5131[string] a;
-    a["ICE?"] = 1;
+    a["ICE?"] = 1;  // call ctor
+    a["ICE?"] = 1;  // call opAssign
+}
+
+/************************************************/
+// 6178
+
+bool test6178a()
+{
+    // AA value setting through identity opAssign
+
+    int assign = 0;
+    struct S
+    {
+        int value = 10;
+
+        void opAssign(S rhs)
+        {
+            ++assign;
+            assert(value == 10);
+        }
+    }
+
+    int count = 0;
+    int makeKey() { return ++count; }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    aa[makeKey()] = S();
+    assert(assign == 0);
+    assert(aa.length == 1 && 1 in aa);
+
+    aa[1] = S();
+    assert(assign == 1);
+    assert(aa.length == 1 && 1 in aa);
+
+    return true;
+}
+
+bool test6178b()
+{
+    // AA value setting through implicit ctor call + non-identity opAssign
+
+    int ctor = 0;
+    int assign = 0;
+    struct S
+    {
+        int value = 10;
+
+        @disable this();
+
+        this(int n)
+        {
+            ++ctor;
+            assert(value == 10);
+            value = 20;
+        }
+        void opAssign(int rhs)
+        {
+            ++assign;
+            assert(value == 20);
+            assert(rhs == 30);
+            value = rhs;
+        }
+    }
+
+    int count = 0;
+    int makeKey() { return ++count; }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    aa[makeKey()] = 20;
+    assert(assign == 0 && ctor == 1 && count == 1);
+    assert(aa.length == 1 && (1 in aa));
+
+    aa[1] = 30;
+    assert(assign == 1 && ctor == 1);
+    assert(aa.length == 1 && 1 in aa);
+
+    return true;
+}
+
+void test6178()
+{
+    static assert(test6178a()); // ctfe check
+    test6178a();                // runtime test
+
+    static assert(test6178b());
+    test6178b();
 }
 
 /************************************************/
@@ -896,6 +987,7 @@ int main()
 
     test4826c();
     test5131();
+    test6178();
     test6433();
     test6612();
     test7365();

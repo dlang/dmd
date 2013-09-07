@@ -11429,36 +11429,105 @@ Ltupleassign:
         StructDeclaration *sd = ((TypeStruct *)t1)->sym;
         if (op == TOKassign)
         {
-            Expression *e = op_overload(sc);
-            if (e && e1->op == TOKindex &&
+            if (e1->op == TOKindex &&
                 ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
             {
-                // Deal with AAs (Bugzilla 2451)
-                // Rewrite as:
-                // e1 = (typeof(aa.value) tmp = void, tmp = e2, tmp);
-                Type * aaValueType = ((TypeAArray *)((IndexExp*)e1)->e1->type->toBasetype())->next;
-                Identifier *id = Lexer::uniqueId("__aatmp");
-                VarDeclaration *v = new VarDeclaration(loc, aaValueType,
-                    id, new VoidInitializer(Loc()));
-                v->storage_class |= STCctfe;
-                v->semantic(sc);
-                v->parent = sc->parent;
+                // Check opAssign method existent
+                if (!search_function(sd, Id::assign))
+                {
+                    if (Expression *e = op_overload(sc))
+                    {
+                        /* Disallow these forms and report better error message:
+                         *  aa[key].aliasthis = val;
+                         *  aa[key].aliasthis.opAssign(val);
+                         */
+                        error("AA value setting through alias this (%s) is not allowed", e->toChars());
+                        return new ErrorExp();
+                    }
+                    goto Lx;
+                }
 
-                Expression *de = new DeclarationExp(loc, v);
-                VarExp *ve = new VarExp(loc, v);
+                /*
+                 * Rewrite:
+                 *      aa[key] = e2;
+                 * as:
+                 *      ref __aatmp = aa;
+                 *      ref __aakey = key;
+                 *      ref __aaval = e2;
+                 *      (__aakey in __aatmp
+                 *          ? __aatmp[__aakey].opAssign(__aaval)
+                 *          : ConstructExp(__aatmp[__aakey], __aaval));
+                 */
+                IndexExp *ie = (IndexExp *)e1;
+                Expression *e0 = NULL;
 
-                AssignExp *ae = new AssignExp(loc, ve, e2);
-                e = ae->op_overload(sc);
-                e2 = new CommaExp(loc, new CommaExp(loc, de, e), ve);
-                e2 = e2->semantic(sc);
+                Expression *ea = ie->e1;
+                Expression *ek = ie->e2;
+                Expression *ev = e2;
+                if (ea->hasSideEffect())
+                {
+                    VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
+                        Lexer::uniqueId("__aatmp"), new ExpInitializer(loc, ie->e1));
+                    v->storage_class |= STCctfe;
+                    v->semantic(sc);
+                    e0 = combine(e0, new DeclarationExp(loc, v));
+                    ea = new VarExp(loc, v);
+                }
+                if (ek->hasSideEffect())
+                {
+                    VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
+                        Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
+                    v->storage_class |= STCctfe;
+                    v->semantic(sc);
+                    e0 = combine(e0, new DeclarationExp(loc, v));
+                    ek = new VarExp(loc, v);
+                }
+                if (ev->hasSideEffect())
+                {
+                    VarDeclaration *v = new VarDeclaration(loc, e2->type,
+                        Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
+                    v->storage_class |= STCctfe;
+                    v->semantic(sc);
+                    e0 = combine(e0, new DeclarationExp(loc, v));
+                    ev = new VarExp(loc, v);
+                }
+                if (e0)
+                    e0 = e0->semantic(sc);
 
-                e1 = e1->optimize(WANTvalue);
-                e1 = e1->modifiableLvalue(sc, e1);
-                e2 = e2->implicitCastTo(sc, e1->type);
-                type = e1->type;
-                assert(type);
-                e = this;
+                Expression *ex;
+                ex = new IndexExp(loc, ea, ek);
+                ex = ex->semantic(sc);
+                ex = ex->optimize(WANTvalue);
+                ex = ex->modifiableLvalue(sc, ex);
+
+                //Expression *ey = (new AssignExp(loc, ex, ev))->op_overload(sc);
+                Expression *ey = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
+
+                // Look for implicit constructor call
+                Type *t2 = e2->type->toBasetype();
+                if (!(t2->ty == Tstruct && sd == t2->toDsymbol(sc)) &&
+                    !e2->implicitConvTo(e1->type))
+                {
+                    if (sd->ctor)
+                    {
+                        // Rewrite as S().ctor(e2)
+                        Expression *e;
+                        e = new StructLiteralExp(loc, sd, NULL);
+                        e = new DotIdExp(loc, e, Id::ctor);
+                        e = new CallExp(loc, e, ev);
+                        e = e->semantic(sc);
+                        ev = e->optimize(WANTvalue);
+                    }
+                }
+                Expression *ez = new ConstructExp(loc, ex, ev);
+
+                Expression *e = new CondExp(loc, new InExp(loc, ek, ea), ey, ez);
+                e = combine(e0, e);
+                e = e->semantic(sc);
+                return e;
             }
+
+            Expression *e = op_overload(sc);
             if (e)
             {
                 /* See if we need to set ctorinit, i.e. track
@@ -11509,6 +11578,7 @@ Ltupleassign:
                 }
             }
         }
+        Lx: ;
     }
     else if (t1->ty == Tclass)
     {
