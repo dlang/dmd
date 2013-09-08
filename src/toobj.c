@@ -400,7 +400,7 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
     // flags
-    int flags = 4 | isCOMclass() | isCPPclass();
+    int flags = 4 | isCOMclass();
 #if DMDV2
     flags |= 16;
 #endif

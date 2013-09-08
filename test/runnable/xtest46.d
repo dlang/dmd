@@ -1882,6 +1882,8 @@ extern(C++) class C1687
 void test1687()
 {
     auto c = new C1687();
+    import core.memory;
+    GC.clrAttr(cast(void*)c, GC.BlkAttr.FINALIZE);
     assert(c.__vptr[0] == (&c.func).funcptr);
 }
 
