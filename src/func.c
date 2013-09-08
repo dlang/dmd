@@ -444,18 +444,32 @@ void FuncDeclaration::semantic(Scope *sc)
         if (type->nextOf() == Type::terror)
             goto Ldone;
 
-        if (cd->baseClass)
+        bool may_override = false;
+        for (size_t i = 0; i < cd->baseclasses->dim; i++)
         {
-            Dsymbol *cbd = cd->baseClass;
-            if (cbd->parent && cbd->parent->isTemplateInstance())
+            BaseClass *b = (*cd->baseclasses)[i];
+            ClassDeclaration *cbd = b->type->toBasetype()->isClassHandle();
+            if (!cbd)
+                continue;
+            for (size_t j = 0; j < cbd->vtbl.dim; j++)
             {
-                for (size_t i = 0; i < cd->baseClass->vtbl.dim; i++)
+                FuncDeclaration *f = cbd->vtbl[j]->isFuncDeclaration();
+                if (!f || f->ident != ident)
+                    continue;
+                if (cbd->parent && cbd->parent->isTemplateInstance())
                 {
-                    FuncDeclaration *f = cd->baseClass->vtbl[i]->isFuncDeclaration();
-                    if (f && f->ident == ident && !f->functionSemantic())
+                    if (!f->functionSemantic())
                         goto Ldone;
                 }
+                may_override = true;
             }
+        }
+        if (may_override && type->nextOf() == NULL)
+        {
+            /* If same name function exists in base class but 'this' is auto return,
+             * cannot find index of base class's vtbl[] to override.
+             */
+            error("return type inference is not supported if may override base class function");
         }
 
         /* Find index of existing function in base class's vtbl[] to override
@@ -669,7 +683,7 @@ void FuncDeclaration::semantic(Scope *sc)
             }
         }
 
-        if (!doesoverride && isOverride())
+        if (!doesoverride && isOverride() && type->nextOf())
         {
             Dsymbol *s = NULL;
             for (size_t i = 0; i < cd->baseclasses->dim; i++)
@@ -2314,9 +2328,6 @@ int FuncDeclaration::findVtblIndex(Dsymbols *vtbl, int dim)
             type = type->addStorageClass(mismatchstc);
             bestvi = mismatchvi;
         }
-        else
-            error("of type %s overrides but is not covariant with %s of type %s",
-                type->toChars(), mismatch->toPrettyChars(), mismatch->type->toChars());
     }
     return bestvi;
 }

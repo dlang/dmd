@@ -962,6 +962,22 @@ interface I7950a {} // ok
 interface I7950b : I7950a, TypeTuple7950!() {} // fail
 
 /*******************************************************/
+// 10007
+
+struct A10007 {}
+
+interface IFoo10007
+{
+    void bar(ref const A10007);
+}
+
+class Foo10007 : IFoo10007
+{
+    void bar(ref const A10007 a) {}
+    void bar(    const A10007 a) { return this.bar(a); }
+}
+
+/*******************************************************/
 // 10744
 
 interface A10744
