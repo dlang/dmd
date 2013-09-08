@@ -2784,7 +2784,7 @@ code *cdind(elem *e,regm_t *pretregs)
                 cs.Iop = 0x81 ^ byte;
                 cs.Irm |= modregrm(0,7,0);
                 cs.IFL2 = FLconst;
-                cs.IEV2.Vint = 0;
+                cs.IEV2.Vsize_t = 0;
                 ce = gen(CNIL,&cs);             /* CMP [idx],0          */
         }
         else if (!I16 && sz == REGSIZE + 2)      // if far pointer
