@@ -2430,17 +2430,22 @@ Statement *ForeachRangeStatement::semantic(Scope *sc)
             /* Just picking the first really isn't good enough.
              */
             arg->type = lwr->type;
-            arg->type = arg->type->addStorageClass(arg->storageClass);
+        }
+        else if (lwr->type == upr->type)
+        {
+            /* Same logic as CondExp ?lwr:upr
+             */
+            arg->type = lwr->type;
         }
         else
         {
             AddExp ea(loc, lwr, upr);
             Expression *e = ea.typeCombine(sc);
             arg->type = ea.type;
-            arg->type = arg->type->addStorageClass(arg->storageClass);
             lwr = ea.e1;
             upr = ea.e2;
         }
+        arg->type = arg->type->addStorageClass(arg->storageClass);
     }
 
     /* Convert to a for loop:
