@@ -5,4 +5,8 @@ void main()
   {
     static assert(is(typeof(i) == ubyte));
   }
+  foreach(i; 'a'..'l')
+  {
+    static assert(is(typeof(i) == char));
+  }
 }
