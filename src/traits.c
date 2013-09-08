@@ -758,6 +758,21 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
+    } else if(ident == Id::getVirtualIndex)
+    {
+        if (dim != 1)
+            goto Ldimerror;
+        RootObject *o = (*args)[0];
+        Dsymbol *s = getDsymbol(o);
+        FuncDeclaration *fd;
+        if (!s || (fd = s->isFuncDeclaration()) == NULL)
+        {
+            error("first argument to __traits(getVirtualIndex) must be a function");
+            goto Lfalse;
+        }
+        fd = fd->toAliasFunc(); // Neccessary to support multiple overloads.
+        ptrdiff_t result = fd->isVirtual() ? fd->vtblIndex : -1;
+        return new IntegerExp(loc, fd->vtblIndex, Type::tptrdiff_t);
     }
     else
     {   error("unrecognized trait %s", ident->toChars());
