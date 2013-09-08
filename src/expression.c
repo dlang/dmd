@@ -11498,30 +11498,37 @@ Ltupleassign:
                 ex = new IndexExp(loc, ea, ek);
                 ex = ex->semantic(sc);
                 ex = ex->optimize(WANTvalue);
-                ex = ex->modifiableLvalue(sc, ex);
+                Expression *e = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
 
-                //Expression *ey = (new AssignExp(loc, ex, ev))->op_overload(sc);
-                Expression *ey = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
-
-                // Look for implicit constructor call
+                Expression *ey = NULL;
                 Type *t2 = e2->type->toBasetype();
-                if (!(t2->ty == Tstruct && sd == t2->toDsymbol(sc)) &&
-                    !e2->implicitConvTo(e1->type))
+                if (t2->ty == Tstruct && sd == t2->toDsymbol(sc))
                 {
-                    if (sd->ctor)
+                    ey = ev;
+                    goto Lctor;
+                }
+                else if (!e2->implicitConvTo(e1->type) && sd->ctor)
+                {
+                    // Look for implicit constructor call
+                    // Rewrite as S().ctor(e2)
+                    ey = new StructLiteralExp(loc, sd, NULL);
+                    ey = new DotIdExp(loc, ey, Id::ctor);
+                    ey = new CallExp(loc, ey, ev);
+                    ey = ey->trySemantic(sc);
+                    if (ey)
                     {
-                        // Rewrite as S().ctor(e2)
-                        Expression *e;
-                        e = new StructLiteralExp(loc, sd, NULL);
-                        e = new DotIdExp(loc, e, Id::ctor);
-                        e = new CallExp(loc, e, ev);
-                        e = e->semantic(sc);
-                        ev = e->optimize(WANTvalue);
+                    Lctor:
+                        ex = new IndexExp(loc, ea, ek);
+                        ex = ex->semantic(sc);
+                        ex = ex->optimize(WANTvalue);
+                        ex = ex->modifiableLvalue(sc, ex);  // allocate new slot
+                        ey = new ConstructExp(loc, ex, ey);
                     }
                 }
-                Expression *ez = new ConstructExp(loc, ex, ev);
+                if (ey)
+                    e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
+                //printf("e = %s\n", e->toChars());
 
-                Expression *e = new CondExp(loc, new InExp(loc, ek, ea), ey, ez);
                 e = combine(e0, e);
                 e = e->semantic(sc);
                 return e;

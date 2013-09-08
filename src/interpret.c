@@ -4999,7 +4999,7 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
 
     if (e1->op == TOKnull)
     {
-        if (goal == ctfeNeedLvalue && e1->type->ty == Taarray)
+        if (goal == ctfeNeedLvalue && e1->type->ty == Taarray && modifiable)
             return paintTypeOntoLiteral(type, e1);
         error("cannot index null array %s", this->e1->toChars());
         return EXP_CANT_INTERPRET;

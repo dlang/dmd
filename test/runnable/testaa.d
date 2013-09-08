@@ -877,6 +877,34 @@ bool test6178b()
     return true;
 }
 
+bool test6178c()
+{
+    // AA value setting through non-identity opAssign
+
+    struct S
+    {
+        //this(int) {}
+        // not possible to perform implicit ctor call
+        void opAssign(int) {}
+    }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    if (!__ctfe)
+    {
+        // currently CTFE does not support throwing RangeError
+        import core.exception : RangeError;
+        try { aa[1] = 1; assert(0); } catch (RangeError) {}
+
+        // The above line is exactly same as:
+        try { aa[1].opAssign(1); assert(0); } catch (RangeError) {}
+    }
+    assert(aa.length == 0);
+
+    return true;
+}
+
 void test6178()
 {
     static assert(test6178a()); // ctfe check
@@ -884,6 +912,9 @@ void test6178()
 
     static assert(test6178b());
     test6178b();
+
+    static assert(test6178c());
+    test6178c();
 }
 
 /************************************************/
