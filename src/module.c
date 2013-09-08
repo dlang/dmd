@@ -60,8 +60,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     needmoduleinfo = 0;
     selfimports = 0;
     insearch = 0;
-    semanticstarted = 0;
-    semanticRun = 0;
     decldefs = NULL;
     massert = NULL;
     munittest = NULL;
@@ -680,11 +678,11 @@ void Module::importAll(Scope *prevsc)
 
 void Module::semantic()
 {
-    if (semanticstarted)
+    if (semanticRun != PASSinit)
         return;
 
     //printf("+Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
-    semanticstarted = 1;
+    semanticRun = PASSsemantic;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -744,7 +742,7 @@ void Module::semantic()
     {   sc = sc->pop();
         sc->pop();              // 2 pops because Scope::createGlobal() created 2
     }
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemanticdone;
     //printf("-Module::semantic(this = %p, '%s'): parent = %p\n", this, toChars(), parent);
 }
 
@@ -761,12 +759,9 @@ void Module::semantic2()
         return;
     }
     //printf("Module::semantic2('%s'): parent = %p\n", toChars(), parent);
-    if (semanticRun == 0)       // semantic() not completed yet - could be recursive call
+    if (semanticRun != PASSsemanticdone)       // semantic() not completed yet - could be recursive call
         return;
-    if (semanticstarted >= 2)
-        return;
-    assert(semanticstarted == 1);
-    semanticstarted = 2;
+    semanticRun = PASSsemantic2;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -784,17 +779,16 @@ void Module::semantic2()
 
     sc = sc->pop();
     sc->pop();
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemantic2done;
     //printf("-Module::semantic2('%s'): parent = %p\n", toChars(), parent);
 }
 
 void Module::semantic3()
 {
     //printf("Module::semantic3('%s'): parent = %p\n", toChars(), parent);
-    if (semanticstarted >= 3)
+    if (semanticRun != PASSsemantic2done)
         return;
-    assert(semanticstarted == 2);
-    semanticstarted = 3;
+    semanticRun = PASSsemantic3;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -813,15 +807,14 @@ void Module::semantic3()
 
     sc = sc->pop();
     sc->pop();
-    semanticRun = semanticstarted;
+    semanticRun = PASSsemantic3done;
 }
 
 void Module::inlineScan()
 {
-    if (semanticstarted >= 4)
+    if (semanticRun != PASSsemantic3done)
         return;
-    assert(semanticstarted == 3);
-    semanticstarted = 4;
+    semanticRun = PASSinline;
 
     // Note that modules get their own scope, from scratch.
     // This is so regardless of where in the syntax a module
@@ -835,7 +828,7 @@ void Module::inlineScan()
 
         s->inlineScan();
     }
-    semanticRun = semanticstarted;
+    semanticRun = PASSinlinedone;
 }
 
 /****************************************************
