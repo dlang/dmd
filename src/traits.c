@@ -758,7 +758,8 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
-    } else if(ident == Id::getVirtualIndex)
+    } 
+    else if(ident == Id::getVirtualIndex)
     {
         if (dim != 1)
             goto Ldimerror;
