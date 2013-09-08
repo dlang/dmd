@@ -66,8 +66,6 @@ public:
     TemplateDeclaration *overroot;      // first in overnext list
     FuncDeclaration *funcroot;          // first function in unified overload list
 
-    PASS semanticRun;              // 1 semantic() run
-
     Dsymbol *onemember;         // if !=NULL then one member of this template
 
     int literal;                // this template declaration is a literal
@@ -314,7 +312,6 @@ public:
     AliasDeclaration *aliasdecl;        // !=NULL if instance is an alias for its
                                         // sole member
     WithScopeSymbol *withsym;           // if a member of a with statement
-    PASS semanticRun;                   // has semantic() been done?
     int nest;                           // for recursion detection
     bool semantictiargsdone;            // has semanticTiargs() been done?
     bool havetempdecl;                  // if used second constructor

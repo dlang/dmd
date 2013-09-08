@@ -102,9 +102,12 @@ enum PASS
     PASSinit,           // initial state
     PASSsemantic,       // semantic() started
     PASSsemanticdone,   // semantic() done
-    PASSsemantic2,      // semantic2() run
+    PASSsemantic2,      // semantic2() started
+    PASSsemantic2done,  // semantic2() done
     PASSsemantic3,      // semantic3() started
     PASSsemantic3done,  // semantic3() done
+    PASSinline,         // inline started
+    PASSinlinedone,     // inline done
     PASSobj,            // toObjFile() run
 };
 
@@ -121,6 +124,7 @@ public:
     Loc loc;                    // where defined
     Scope *scope;               // !=NULL means context to use for semantic()
     bool errors;                // this symbol failed to pass semantic()
+    PASS semanticRun;
     char *depmsg;               // customized deprecation message
     Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
     UnitTestDeclaration *unittest; // !=NULL means there's a unittest associated with this symbol
