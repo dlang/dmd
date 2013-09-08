@@ -4,7 +4,8 @@ class VirtualIndexBase
 {
     protected int _foo;
 
-    int doubler() {
+    int doubler() 
+    {
         return foo * 2;
     }
 
