@@ -71,6 +71,13 @@ version( linux )
         enum RTLD_GLOBAL    = 0x00100;
         enum RTLD_LOCAL     = 0;
     }
+    else version (ARM)
+    {
+        enum RTLD_LAZY      = 0x00001;
+        enum RTLD_NOW       = 0x00002;
+        enum RTLD_GLOBAL    = 0x00100;
+        enum RTLD_LOCAL     = 0;
+    }
     else version (AArch64)
     {
         enum RTLD_LAZY      = 0x00001;
