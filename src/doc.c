@@ -546,7 +546,7 @@ void emitUnittestComment(Scope *sc, Dsymbol *s, size_t ofs)
 {
     OutBuffer *buf = sc->docbuf;
 
-    for (UnitTestDeclaration *utd = s->unittest; utd; utd = utd->unittest)
+    for (UnitTestDeclaration *utd = s->ddocUnittest; utd; utd = utd->ddocUnittest)
     {
         if (utd->protection == PROTprivate || !utd->comment || !utd->fbody)
             continue;
@@ -607,7 +607,7 @@ void Dsymbol::emitDitto(Scope *sc)
     sc->lastoffset += b.offset;
 
     Dsymbol *s = this;
-    if (!s->unittest && parent)
+    if (!s->ddocUnittest && parent)
         s = parent->isTemplateDeclaration();
     if (s)
         emitUnittestComment(sc, s, strlen(ddoc_decl_dd_e));
@@ -1370,7 +1370,7 @@ void DocComment::parseSections(utf8_t *comment)
 void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
 {
     //printf("DocComment::writeSections()\n");
-    if (sections.dim || s->unittest)
+    if (sections.dim || s->ddocUnittest)
     {
         buf->writestring("$(DDOC_SECTIONS \n");
         for (size_t i = 0; i < sections.dim; i++)
@@ -1391,7 +1391,7 @@ void DocComment::writeSections(Scope *sc, Dsymbol *s, OutBuffer *buf)
                 buf->writestring(")\n");
             }
         }
-        if (s->unittest)
+        if (s->ddocUnittest)
             emitUnittestComment(sc, s, 0);
         buf->writestring(")\n");
     }
@@ -1524,7 +1524,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     {
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     }
-                    else 
+                    else
                     {
                         if (isTemplateParameter(s, namestart, namelen))
                         {

@@ -96,7 +96,7 @@ static void collectUnitTests (Dsymbols *symbols, AA *uniqueUnitTests, Expression
     for (size_t i = 0; i < symbols->dim; i++)
     {
         Dsymbol *symbol = (*symbols)[i];
-        UnitTestDeclaration *unitTest = symbol->unittest ? symbol->unittest : symbol->isUnitTestDeclaration();
+        UnitTestDeclaration *unitTest = symbol->ddocUnittest ? symbol->ddocUnittest : symbol->isUnitTestDeclaration();
 
         if (unitTest)
         {
@@ -762,7 +762,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
-    } 
+    }
     else if(ident == Id::getVirtualIndex)
     {
         if (dim != 1)

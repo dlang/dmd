@@ -52,7 +52,7 @@ Dsymbol::Dsymbol()
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
-    this->unittest = NULL;
+    this->ddocUnittest = NULL;
 }
 
 Dsymbol::Dsymbol(Identifier *ident)
@@ -69,7 +69,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
-    this->unittest = NULL;
+    this->ddocUnittest = NULL;
 }
 
 bool Dsymbol::equals(RootObject *o)

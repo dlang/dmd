@@ -274,7 +274,7 @@ Dsymbols *Parser::parseDeclDefs(int once, Dsymbol **pLastDecl)
 
             case TOKunittest:
                 s = parseUnitTest();
-                if (*pLastDecl) (*pLastDecl)->unittest = (UnitTestDeclaration *)s;
+                if (*pLastDecl) (*pLastDecl)->ddocUnittest = (UnitTestDeclaration *)s;
                 break;
 
             case TOKnew:
