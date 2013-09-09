@@ -1675,9 +1675,7 @@ Lnomatch:
                                         goto LNoCopyConstruction;
                                 }
                             }
-                            global.gag--;
                             error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
-                            global.gag++;
 
                           LNoCopyConstruction:
                             ;
