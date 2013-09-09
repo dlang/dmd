@@ -91,13 +91,12 @@ static int fptraits(void *param, Dsymbol *s)
  *      unitTests           array of DsymbolExp's of the collected unit test functions
  *      uniqueUnitTests     updated with symbols from unitTests[ ]
  */
-static void collectUnitTests (Dsymbols *symbols, AA *uniqueUnitTests, Expressions *unitTests)
+static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions *unitTests)
 {
     for (size_t i = 0; i < symbols->dim; i++)
     {
         Dsymbol *symbol = (*symbols)[i];
-        UnitTestDeclaration *unitTest = symbol->ddocUnittest ? symbol->ddocUnittest : symbol->isUnitTestDeclaration();
-
+        UnitTestDeclaration *unitTest = symbol->isUnitTestDeclaration();
         if (unitTest)
         {
             if (!_aaGetRvalue(uniqueUnitTests, unitTest))
@@ -110,13 +109,15 @@ static void collectUnitTests (Dsymbols *symbols, AA *uniqueUnitTests, Expression
                 *value = true;
             }
         }
-
         else
         {
             AttribDeclaration *attrDecl = symbol->isAttribDeclaration();
 
             if (attrDecl)
-                collectUnitTests(attrDecl->decl, uniqueUnitTests, unitTests);
+            {
+                Dsymbols *decl = attrDecl->include(NULL, NULL);
+                collectUnitTests(decl, uniqueUnitTests, unitTests);
+            }
         }
     }
 }
