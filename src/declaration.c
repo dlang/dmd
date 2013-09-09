@@ -1657,28 +1657,17 @@ Lnomatch:
                      * because the postblit doesn't get run on the initialization of w.
                      */
                     if (ti->ty == Tstruct)
-                    {   StructDeclaration *sd = ((TypeStruct *)ti)->sym;
+                    {
+                        StructDeclaration *sd = ((TypeStruct *)ti)->sym;
                         /* Look to see if initializer involves a copy constructor
                          * (which implies a postblit)
                          */
                         if (sd->cpctor &&               // there is a copy constructor
-                            tb->equals(ti))             // rvalue is the same struct
+                            tb->toDsymbol(NULL) == sd)  // exp is the same struct
                         {
                             // The only allowable initializer is a (non-copy) constructor
-                            if (exp->op == TOKcall)
-                            {
-                                CallExp *ce = (CallExp *)exp;
-                                if (ce->e1->op == TOKdotvar)
-                                {
-                                    DotVarExp *dve = (DotVarExp *)ce->e1;
-                                    if (dve->var->isCtorDeclaration())
-                                        goto LNoCopyConstruction;
-                                }
-                            }
-                            error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
-
-                          LNoCopyConstruction:
-                            ;
+                            if (exp->isLvalue())
+                                error("of type struct %s uses this(this), which is not allowed in static initialization", tb->toChars());
                         }
                     }
                     ei->exp = exp;
