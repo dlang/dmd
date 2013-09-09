@@ -342,6 +342,7 @@ Msgtable msgtable[] =
     { "getAttributes" },
     { "getUnitTests" },
     { "isOverrideFunction" },
+    { "getVirtualIndex" }
 };
 
 
