@@ -82,11 +82,12 @@ class EnumMember : public Dsymbol
 {
 public:
     EnumDeclaration *ed;
+    bool isAlias;
     Expression *value;
     Type *type;
     VarDeclaration *vd;
 
-    EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);
+    EnumMember(Loc loc, bool isAlias, Identifier *id, Expression *value, Type *type);
     Dsymbol *syntaxCopy(Dsymbol *s);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     const char *kind();
