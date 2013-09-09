@@ -8383,10 +8383,10 @@ Expression *CallExp::semantic(Scope *sc)
 #endif
 
     if (e1->op == TOKcomma)
-    {   /* Rewrite (a,b)(args) as (a,(b(args)))
+    {
+        /* Rewrite (a,b)(args) as (a,(b(args)))
          */
         CommaExp *ce = (CommaExp *)e1;
-
         e1 = ce->e2;
         e1->type = ce->type;
         ce->e2 = this;
@@ -8395,15 +8395,15 @@ Expression *CallExp::semantic(Scope *sc)
     }
 
     if (e1->op == TOKdelegate)
-    {   DelegateExp *de = (DelegateExp *)e1;
-
+    {
+        DelegateExp *de = (DelegateExp *)e1;
         e1 = new DotVarExp(de->loc, de->e1, de->func);
         return semantic(sc);
     }
 
     if (e1->op == TOKfunction)
-    {   FuncExp *fe = (FuncExp *)e1;
-
+    {
+        FuncExp *fe = (FuncExp *)e1;
         arguments = arrayExpressionSemantic(arguments, sc);
         preFunctionParameters(loc, sc, arguments);
         e1 = fe->semantic(sc, arguments);
@@ -9156,6 +9156,13 @@ Lagain:
             type = tf->next;
             return castTo(sc, t);
         }
+    }
+
+    // Handle the case of a direct lambda call
+    if (f && f->isFuncLiteralDeclaration() &&
+        sc->func && !sc->intypeof)
+    {
+        f->tookAddressOf = 0;
     }
 
     return this;
