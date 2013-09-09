@@ -48,6 +48,7 @@ Dsymbol::Dsymbol()
     this->loc = Loc();
     this->comment = NULL;
     this->scope = NULL;
+    this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
@@ -64,6 +65,7 @@ Dsymbol::Dsymbol(Identifier *ident)
     this->loc = Loc();
     this->comment = NULL;
     this->scope = NULL;
+    this->semanticRun = PASSinit;
     this->errors = false;
     this->depmsg = NULL;
     this->userAttributes = NULL;
