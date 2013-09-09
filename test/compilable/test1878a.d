@@ -9,4 +9,8 @@ void main()
   {
     static assert(is(typeof(i) == char));
   }
+  foreach(i; 'א' .. 'ת')
+  {
+    static assert(is(typeof(i) == wchar));
+  }
 }
