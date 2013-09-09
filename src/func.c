@@ -3466,49 +3466,6 @@ FuncDeclaration *FuncDeclaration::genCfunc(Parameters *args, Type *treturn, Iden
     return fd;
 }
 
-/************************************
- * Generate C main() in response to seeing D main().
- * This used to be in druntime, but contained a reference to _Dmain
- * which didn't work when druntime was made into a dll and was linked
- * to a program, such as a C++ program, that didn't have a _Dmain.
- */
-
-void genCmain(Scope *sc)
-{
-    /* The D code to be generated is provided as D source code in the form of a string.
-     * Note that Solaris, for unknown reasons, requires both a main() and an _main()
-     */
-    static utf8_t code[] = "extern(C) {\n\
-        int _d_run_main(int argc, char **argv, void* mainFunc);\n\
-        int main(int argc, char **argv) { return _d_run_main(argc, argv, &main); }\n\
-        version (Solaris) int _main(int argc, char** argv) { return main(argc, argv); }\n\
-        }\n\
-        ";
-
-    Parser p(sc->module, code, sizeof(code) / sizeof(code[0]), 0);
-    p.loc = Loc();
-    p.nextToken();
-    Dsymbols *decl = p.parseDeclDefs(0);
-    assert(p.token.value == TOKeof);
-
-    sc = sc->push();
-    sc->parent = sc->module->importedFrom;
-    sc->stc = 0;
-
-    for (size_t i = 0; i < decl->dim; ++i)
-    {   Dsymbol *s = (*decl)[i];
-        sc->module->importedFrom->members->push(s);
-        s->addMember(sc, sc->module->importedFrom, 1);
-    }
-
-    for (size_t i = 0; i < decl->dim; ++i)
-    {   Dsymbol *s = (*decl)[i];
-        s->semantic(sc);
-    }
-
-    sc->pop();
-}
-
 const char *FuncDeclaration::kind()
 {
     return "function";
