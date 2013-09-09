@@ -87,7 +87,7 @@ else version (MIPS32)
 }
 else version (PPC)
 {
-    // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/mips/bits/dlfcn.h
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/dlfcn.h
     // enum RTLD_LAZY = 0x0001; // POSIX
     // enum RTLD_NOW = 0x0002; // POSIX
     enum RTLD_BINDING_MASK = 0x3;
@@ -111,7 +111,7 @@ else version (PPC)
 }
 else version (PPC64)
 {
-    // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/mips/bits/dlfcn.h
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/dlfcn.h
     // enum RTLD_LAZY = 0x0001; // POSIX
     // enum RTLD_NOW = 0x0002; // POSIX
     enum RTLD_BINDING_MASK = 0x3;
@@ -135,7 +135,7 @@ else version (PPC64)
 }
 else version (ARM)
 {
-    // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/mips/bits/dlfcn.h
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/dlfcn.h
     // enum RTLD_LAZY = 0x0001; // POSIX
     // enum RTLD_NOW = 0x0002; // POSIX
     enum RTLD_BINDING_MASK = 0x3;
@@ -159,7 +159,7 @@ else version (ARM)
 }
 else version (AArch64)
 {
-    // http://sourceware.org/git/?p=glibc.git;a=blob;f=ports/sysdeps/mips/bits/dlfcn.h
+    // http://sourceware.org/git/?p=glibc.git;a=blob;f=bits/dlfcn.h
     // enum RTLD_LAZY = 0x0001; // POSIX
     // enum RTLD_NOW = 0x0002; // POSIX
     enum RTLD_BINDING_MASK = 0x3;
