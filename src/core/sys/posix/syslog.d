@@ -13,7 +13,7 @@
  *    (See accompanying file LICENSE or copy at
  *          http://www.boost.org/LICENSE_1_0.txt)
  */
-module core.sys.posix.stdlib;
+module core.sys.posix.syslog;
 
 version (Posix):
 
