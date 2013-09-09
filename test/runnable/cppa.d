@@ -1,23 +1,37 @@
+// EXTRA_CPP_SOURCES: cppb.cpp
+
+version (Win64)
+{
+// Name mangling isn't compatible with VC yet
+pragma(mangle, "?foo@@YAHHHH@Z")
+int foo(int i, int j, int k) { return 0; }
+
+void main() {}
+
+}
+else
+{
+
 import std.c.stdio;
 
 extern (C++)
-	int foob(int i, int j, int k);
+        int foob(int i, int j, int k);
 
 class C
 {
     extern (C++) int bar(int i, int j, int k)
     {
-	printf("this = %p\n", this);
-	printf("i = %d\n", i);
-	printf("j = %d\n", j);
-	printf("k = %d\n", k);
-	return 1;
+        printf("this = %p\n", this);
+        printf("i = %d\n", i);
+        printf("j = %d\n", j);
+        printf("k = %d\n", k);
+        return 1;
     }
 }
 
 
 extern (C++)
-	int foo(int i, int j, int k)
+        int foo(int i, int j, int k)
 {
     printf("i = %d\n", i);
     printf("j = %d\n", j);
@@ -68,13 +82,13 @@ class F : E
 {
     extern (C++) int bar(int i, int j, int k)
     {
-	printf("F.bar: i = %d\n", i);
-	printf("F.bar: j = %d\n", j);
-	printf("F.bar: k = %d\n", k);
-	assert(i == 11);
-	assert(j == 12);
-	assert(k == 13);
-	return 8;
+        printf("F.bar: i = %d\n", i);
+        printf("F.bar: j = %d\n", j);
+        printf("F.bar: k = %d\n", k);
+        assert(i == 11);
+        assert(j == 12);
+        assert(k == 13);
+        return 8;
     }
 }
 
@@ -122,8 +136,8 @@ extern(C++)
 {
     struct S6
     {
-	int i;
-	double d;
+        int i;
+        double d;
     }
     S6 foo6();
 }
@@ -135,9 +149,12 @@ void test6()
     S6 f = foo6();
     printf("%d %d\n", foosize6(), S6.sizeof);
     assert(foosize6() == S6.sizeof);
+version (X86)
+{
     assert(f.i == 42);
     printf("f.d = %g\n", f.d);
     assert(f.d == 2.5);
+}
 }
 
 /****************************************/
@@ -223,4 +240,5 @@ void main()
     test10();
 
     printf("Success\n");
+}
 }
