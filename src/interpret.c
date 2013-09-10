@@ -1184,8 +1184,11 @@ bool stopPointersEscaping(Loc loc, Expression *e)
         return true;
     if ( isPointer(e->type) )
     {
-        if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
-            ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
+        Expression *x = e;
+        if (e->op == TOKaddress)
+            x = ((AddrExp *)e)->e1;
+        if (x->op == TOKvar && ((VarExp *)x)->var->isVarDeclaration() &&
+            ctfeStack.isInCurrentFrame( ((VarExp *)x)->var->isVarDeclaration() ) )
         {   error(loc, "returning a pointer to a local stack variable");
             return false;
         }
@@ -1351,21 +1354,19 @@ Expression *ReturnStatement::interpret(InterState *istate)
     {   e = exp->interpret(istate, ctfeNeedLvalue);
         if (exceptionOrCantInterpret(e))
             return e;
-        // Disallow returning pointers to stack-allocated variables (bug 7876)
-        if (e->op == TOKvar && ((VarExp *)e)->var->isVarDeclaration() &&
-            ctfeStack.isInCurrentFrame( ((VarExp *)e)->var->isVarDeclaration() ) )
-        {   error("returning a pointer to a local stack variable");
-            return EXP_CANT_INTERPRET;
-        }
     }
     else
     {
         e = exp->interpret(istate);
         if (exceptionOrCantInterpret(e))
             return e;
-        if (!stopPointersEscaping(loc, e))
-            return EXP_CANT_INTERPRET;
     }
+
+    // Disallow returning pointers to stack-allocated variables (bug 7876)
+
+    if (!stopPointersEscaping(loc, e))
+        return EXP_CANT_INTERPRET;
+
     if (needToCopyLiteral(e))
         e = copyLiteral(e);
 #if LOGASSIGN
@@ -2043,9 +2044,12 @@ Expression *SymOffExp::interpret(InterState *istate, CtfeGoal goal)
     }
     else if ( offset == 0 && isSafePointerCast(var->type, pointee) )
     {
+        // Create a CTFE pointer &var
         VarExp *ve = new VarExp(loc, var);
-        ve->type = type;
-        return ve;
+        ve->type = var->type;
+        AddrExp *re = new AddrExp(loc, ve);
+        re->type = type;
+        return re;
     }
 
     error("Cannot convert &%s to %s at compile time", var->type->toChars(), type->toChars());
@@ -5656,10 +5660,26 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKaddress)
             {
                 e = ((AddrExp*)e)->e1;
-                // *&p becomes p if p is a CTFE pointer, otherwise we need to
-                // simplify it.
-                if ((e->op == TOKdotvar || e->op == TOKindex) && !isPointer(e->type))
+                // We're changing *&e to e.
+                // We needed the AddrExp to deal with type painting expressions
+                // we couldn't otherwise express. Now that the type painting is
+                // undone, we must simplify them. This applies to references
+                // (which will be a DotVarExp or IndexExp) and to local structs
+                // (which will be a VarExp).
+
+                // We sometimes use DotVarExp and IndexExp to represent pointers,
+                // so in that case, they shouldn't be simplified.
+
+                bool isCtfePtr = (e->op == TOKdotvar || e->op == TOKindex)
+                        && isPointer(e->type);
+
+                // We also must not simplify if it is already a struct Literal
+                // or array literal, because it has already been interpreted.
+                if ( !isCtfePtr && e->op != TOKstructliteral &&
+                    e->op != TOKassocarrayliteral && e->op != TOKarrayliteral)
+                {
                     e = e->interpret(istate, goal);
+                }
             }
             else if (e->op == TOKvar)
             {
