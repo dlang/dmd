@@ -1518,6 +1518,134 @@ char[] demangleType( const(char)[] buf, char[] dst = null )
 }
 
 
+/**
+ * Mangles a D symbol.
+ *
+ * Params:
+ *  T = The type of the symbol.
+ *  fqn = The fully qualified name of the symbol.
+ *  dst = An optional destination buffer.
+ *
+ * Returns:
+ *  The mangled name for a symbols of type T and the given fully
+ *  qualified name.
+ */
+char[] mangle(T)(const(char)[] fqn, char[] dst = null) @safe pure nothrow
+{
+    static size_t numToString(char[] dst, size_t val) @safe pure nothrow
+    {
+        char[20] buf = void;
+        size_t i = buf.length;
+        do
+        {
+            buf[--i] = cast(char)(val % 10 + '0');
+        } while (val /= 10);
+        immutable len = buf.length - i;
+        if (dst.length >= len)
+            dst[0 .. len] = buf[i .. $];
+        return len;
+    }
+
+    static struct DotSplitter
+    {
+    @safe pure nothrow:
+        const(char)[] s;
+
+        @property bool empty() const { return !s.length; }
+
+        @property const(char)[] front() const
+        {
+            immutable i = indexOfDot();
+            return i == -1 ? s[0 .. $] : s[0 .. i];
+        }
+
+        void popFront()
+        {
+            immutable i = indexOfDot();
+            s = i == -1 ? s[$ .. $] : s[i+1 .. $];
+        }
+
+        private ptrdiff_t indexOfDot() const
+        {
+            foreach (i, c; s) if (c == '.') return i;
+            return -1;
+        }
+    }
+
+    size_t len = "_D".length;
+    foreach (comp; DotSplitter(fqn))
+        len += numToString(null, comp.length) + comp.length;
+    len += T.mangleof.length;
+    if (dst.length < len) dst.length = len;
+
+    size_t i = "_D".length;
+    dst[0 .. i] = "_D";
+    foreach (comp; DotSplitter(fqn))
+    {
+        i += numToString(dst[i .. $], comp.length);
+        dst[i .. i + comp.length] = comp[];
+        i += comp.length;
+    }
+    dst[i .. i + T.mangleof.length] = T.mangleof[];
+    i += T.mangleof.length;
+    return dst[0 .. i];
+}
+
+
+///
+unittest
+{
+    assert(mangle!int("a.b") == "_D1a1bi");
+    assert(mangle!(char[])("test.foo") == "_D4test3fooAa");
+    assert(mangle!(int function(int))("a.b") == "_D1a1bPFiZi");
+}
+
+unittest
+{
+    static assert(mangle!int("a.b") == "_D1a1bi");
+
+    auto buf = new char[](10);
+    buf = mangle!int("a.b", buf);
+    assert(buf == "_D1a1bi");
+    buf = mangle!(char[])("test.foo", buf);
+    assert(buf == "_D4test3fooAa");
+    buf = mangle!(real delegate(int))("modµ.dg");
+    assert(buf == "_D5modµ2dgDFiZe", buf);
+}
+
+
+/**
+ * Mangles a D function.
+ *
+ * Params:
+ *  T = function pointer type.
+ *  fqn = The fully qualified name of the symbol.
+ *  dst = An optional destination buffer.
+ *
+ * Returns:
+ *  The mangled name for a function with function pointer type T and
+ *  the given fully qualified name.
+ */
+char[] mangleFunc(T:FT*, FT)(const(char)[] fqn, char[] dst = null) @safe pure nothrow if (is(FT == function))
+{
+    return mangle!FT(fqn, dst);
+}
+
+
+///
+unittest
+{
+    assert(mangleFunc!(int function(int))("a.b") == "_D1a1bFiZi");
+    assert(mangleFunc!(int function(Object))("object.Object.opEquals") == "_D6object6Object8opEqualsFC6ObjectZi");
+}
+
+unittest
+{
+    int function(lazy int[], ...) fp;
+    assert(mangle!(typeof(fp))("demangle.test") == "_D8demangle4testPFLAiYi");
+    assert(mangle!(typeof(*fp))("demangle.test") == "_D8demangle4testFLAiYi");
+}
+
 version(unittest)
 {
     immutable string[2][] table =
