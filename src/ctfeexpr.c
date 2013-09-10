@@ -367,6 +367,11 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
 {
     if (lit->type->equals(type))
         return lit;
+
+    // If it is a cast to inout, retain the original type.
+    if (type->hasWild())
+        return lit;
+
     Expression *e;
     if (lit->op == TOKslice)
     {
