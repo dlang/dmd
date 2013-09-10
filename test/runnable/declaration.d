@@ -199,48 +199,6 @@ void test8942()
 }
 
 /***************************************************/
-// 9073
-
-bool foo9073(bool expected, alias pred)()
-{
-    static if (expected)
-    {
-        enum isLessThan = (is(typeof(pred) : string) && pred == "a < b");
-    }
-    else
-    {
-        static if (is(typeof(pred) : string) && pred == "a < b")
-            enum isLessThan = true;
-        else
-            enum isLessThan = false;
-    }
-    return isLessThan;
-}
-
-template Failure9073() { static assert(0); enum Failure9073 = false; }
-template AndAnd9073a(alias pred) { enum bool AndAnd9073a = (is(typeof(pred) : string) && pred == "a < b"); }
-template AndAnd9073b(alias pred) { enum      AndAnd9073b = (is(typeof(pred) : string) && pred == "a < b"); }
-template   OrOr9073a(alias pred) { enum bool   OrOr9073a = (is(typeof(pred) : string) || Failure9073!()); }
-template   OrOr9073b(alias pred) { enum        OrOr9073b = (is(typeof(pred) : string) || Failure9073!()); }
-
-void test9073()
-{
-    assert(foo9073!(true,  "a < b")() == true);
-    assert(foo9073!(false, "a < b")() == true);
-    assert(foo9073!(true,  (a,b) => a<b)() == false);
-    assert(foo9073!(false, (a,b) => a<b)() == false);
-
-    static assert( AndAnd9073a!("a < b"));
-    static assert( AndAnd9073b!("a < b"));
-    static assert(!AndAnd9073a!((a,b)=>true));
-    static assert(!AndAnd9073b!((a,b)=>true));
-    static assert( OrOr9073a!("a < b"));
-    static assert( OrOr9073b!("a < b"));
-    static assert(!__traits(compiles, OrOr9073a!((a,b)=>true)));
-    static assert(!__traits(compiles, OrOr9073b!((a,b)=>true)));
-}
-
-/***************************************************/
 // 10144
 
 final class TNFA10144(char_t)
@@ -313,7 +271,6 @@ int main()
     test8147();
     test8410();
     test8942();
-    test9073();
     test10142();
 
     printf("Success\n");

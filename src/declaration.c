@@ -879,21 +879,13 @@ void VarDeclaration::semantic(Scope *sc)
                 e = new ErrorExp();
             }
             init = new ExpInitializer(e->loc, e);
-
-            sc = sc->push();
-            if (storage_class & STCmanifest) sc->flags |= SCOPEstaticif;
             type = init->inferType(sc);
-            sc = sc->pop();
-
             if (type->ty == Tsarray)
                 type = type->nextOf()->arrayOf();
         }
         else
         {
-            sc = sc->push();
-            if (storage_class & STCmanifest) sc->flags |= SCOPEstaticif;
             type = init->inferType(sc);
-            sc = sc->pop();
         }
 
         if (needctfe) sc = sc->endCTFE();
@@ -1412,7 +1404,6 @@ Lnomatch:
     {
         sc = sc->push();
         sc->stc &= ~(STC_TYPECTOR | STCpure | STCnothrow | STCref | STCdisable);
-        if (storage_class & STCmanifest) sc->flags |= SCOPEstaticif;
 
         ArrayInitializer *ai = init->isArrayInitializer();
         if (ai && tb->ty == Taarray)
