@@ -128,8 +128,6 @@ void Global::init()
 
     compiler.vendor = "Digital Mars D";
 
-    main_d = "__main.d";
-
     memset(&params, 0, sizeof(Param));
 }
 
@@ -457,18 +455,32 @@ void genCmain(Scope *sc)
         }\n\
         ";
 
+    /* D main function code emitted by -main switch
+     */
+    static utf8_t code2[] = "int main() { return 0; }\n";
+
     Identifier *id = Lexer::idPool("__entrypoint");
     Module *m = new Module("__entrypoint.d", id, 0, 0);
-
-    Parser p(m, code, sizeof(code) / sizeof(code[0]), 0);
-    p.loc = Loc();
-    p.nextToken();
-    m->members = p.parseModule();
-    assert(p.token.value == TOKeof);
+    {
+        Parser p(m, code, sizeof(code) / sizeof(code[0]), 0);
+        p.loc = Loc();
+        p.nextToken();
+        m->members = p.parseModule();
+        assert(p.token.value == TOKeof);
+    }
+    if (!sc)
+    {
+        Parser p(m, code2, sizeof(code2) / sizeof(code2[0]), 0);
+        p.loc = Loc();
+        p.nextToken();
+        m->members->insert(m->members->dim, p.parseDeclDefs(0));
+        assert(p.token.value == TOKeof);
+    }
 
     char v = global.params.verbose;
     global.params.verbose = 0;
-    m->importedFrom = sc->module;
+    if (sc)
+        m->importedFrom = sc->module;
     m->importAll(NULL);
     m->semantic();
     m->semantic2();
@@ -1285,11 +1297,6 @@ Language changes listed by -transition=id:\n\
         }
     }
 
-    if (global.params.addMain)
-    {
-        files.push(const_cast<char*>(global.main_d)); // a dummy name, we never actually look up this file
-    }
-
     // Create Modules
     Modules modules;
     modules.reserve(files.dim);
@@ -1416,24 +1423,6 @@ Language changes listed by -transition=id:\n\
 
     // Read files
 
-    /* Start by "reading" the dummy main.d file
-     */
-    if (global.params.addMain)
-    {
-        for (size_t i = 0; 1; i++)
-        {
-            assert(i != modules.dim);
-            Module *m = modules[i];
-            if (strcmp(m->srcfile->name->str, global.main_d) == 0)
-            {
-                static const char buf[] = "int main(){return 0;}";
-                m->srcfile->setbuffer((void *)buf, sizeof(buf));
-                m->srcfile->ref = 1;
-                break;
-            }
-        }
-    }
-
 #define ASYNCREAD 1
 #if ASYNCREAD
     // Multi threaded
@@ -1553,6 +1542,9 @@ Language changes listed by -transition=id:\n\
 
     Module::dprogress = 1;
     Module::runDeferredSemantic();
+
+    if (!entrypoint && global.params.addMain)
+        genCmain(NULL);
 
     // Do pass 2 semantic analysis
     for (size_t i = 0; i < modules.dim; i++)
@@ -1717,6 +1709,13 @@ Language changes listed by -transition=id:\n\
         }
         if (!global.errors && modules.dim)
         {
+            if (entrypoint && entrypoint->importedFrom == NULL)
+            {
+                char v = global.params.verbose;
+                global.params.verbose = 0;
+                entrypoint->genobjfile(0);
+                global.params.verbose = v;
+            }
             obj_end(library, modules[0]->objfile);
         }
     }
@@ -1750,6 +1749,21 @@ Language changes listed by -transition=id:\n\
             {
                 if (global.params.doDocComments)
                     m->gendocfile();
+            }
+        }
+        if (entrypoint && entrypoint->importedFrom == NULL)
+        {
+            if (global.params.obj && !global.errors)
+            {
+                obj_start(entrypoint->srcfile->toChars());
+                {
+                    char v = global.params.verbose;
+                    global.params.verbose = 0;
+                    entrypoint->genobjfile(global.params.multiobj);
+                    global.params.verbose = v;
+                }
+                obj_end(library, entrypoint->objfile);
+                obj_write_deferred(library);
             }
         }
     }
