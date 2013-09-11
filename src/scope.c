@@ -50,6 +50,7 @@ Scope::Scope()
 
     //printf("Scope::Scope() %p\n", this);
     this->module = NULL;
+    this->instantiatingModule = NULL;
     this->scopesym = NULL;
     this->sd = NULL;
     this->enclosing = NULL;
@@ -88,6 +89,7 @@ Scope::Scope(Scope *enclosing)
     //printf("Scope::Scope(enclosing = %p) %p\n", enclosing, this);
     assert(!(enclosing->flags & SCOPEfree));
     this->module = enclosing->module;
+    this->instantiatingModule = enclosing->instantiatingModule;
     this->func   = enclosing->func;
     this->parent = enclosing->parent;
     this->scopesym = NULL;
