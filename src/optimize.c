@@ -922,7 +922,7 @@ Expression *PowExp::optimize(int result, bool keepLvalue)
         while ((i >>= 1) > 1)
             mul++;
         Expression *shift = new MulExp(loc, e2, new IntegerExp(loc, mul, e2->type));
-        shift->type = e2->type;
+        shift->type = Type::tshiftcnt;
         e = new ShlExp(loc, new IntegerExp(loc, 1, e1->type), shift);
         e->type = type;
     }
