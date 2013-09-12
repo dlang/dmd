@@ -996,12 +996,6 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
         return EXP_CANT_INTERPRET;
     }
 
-    // If we're about to leave CTFE, make sure we don't crash the
-    // compiler by returning a CTFE-internal expression.
-    if (!istate && !evaluatingArgs)
-    {
-        e = scrubReturnValue(loc, e);
-    }
     return e;
 }
 
@@ -5765,7 +5759,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             }
             if (!e)
             {
-                error("couldn't find field %s in %s", v->toChars(), type->toChars());
+                error("Internal Compiler Error: Null field %s", v->toChars());
                 return EXP_CANT_INTERPRET;
             }
             // If it is an rvalue literal, return it...
@@ -5775,8 +5769,7 @@ Expression *DotVarExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKvoid)
             {
                 VoidInitExp *ve = (VoidInitExp *)e;
-                error("cannot read uninitialized variable %s in ctfe", toChars());
-                ve->var->error("was uninitialized and used before set");
+                error("cannot read uninitialized variable %s in CTFE", ve->var->toChars());
                 return EXP_CANT_INTERPRET;
             }
             if ( isPointer(type) )
