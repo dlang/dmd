@@ -733,6 +733,10 @@ Expression *TraitsExp::semantic(Scope *sc)
             goto Lfalse;
         }
 
+        Import *imp = s->isImport();
+        if (imp)  // Bugzilla 10990
+            s = imp->mod;
+
         ScopeDsymbol* scope = s->isScopeDsymbol();
 
         if (!scope)
