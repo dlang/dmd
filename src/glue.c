@@ -131,7 +131,7 @@ void obj_write_deferred(Library *library)
 
             md->genobjfile(0);
         }
-     
+
         /* Set object file name to be source name with sequence number,
          * as mangled symbol names get way too long.
          */
@@ -532,6 +532,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     int has_arguments;
 
     //printf("FuncDeclaration::toObjFile(%p, %s.%s)\n", func, parent->toChars(), func->toChars());
+
     //if (type) printf("type = %s\n", func->type->toChars());
 #if 0
     //printf("line = %d\n",func->getWhere() / LINEINC);
@@ -579,6 +580,17 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     assert(semanticRun == PASSsemantic3done);
     semanticRun = PASSobj;
+
+    /* Skip generating code if this part of a TemplateInstance that is instantiated
+     * only by non-root modules (i.e. modules not listed on the command line).
+     */
+    TemplateInstance *ti = inTemplateInstance();
+    if (!global.params.useUnitTests &&
+        ti && ti->instantiatingModule && !ti->instantiatingModule->root)
+    {
+        //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
+        return;
+    }
 
     if (global.params.verbose)
         printf("function  %s\n",func->toPrettyChars());

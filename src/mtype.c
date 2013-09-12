@@ -4680,6 +4680,7 @@ StructDeclaration *TypeAArray::getImpl()
 #endif
         // Instantiate on the root module of import dependency graph.
         Scope *scx = sc->push(sc->module->importedFrom);
+        scx->instantiatingModule = sc->module->importedFrom;
         ti->semantic(scx);
         ti->semantic2(scx);
         ti->semantic3(scx);
