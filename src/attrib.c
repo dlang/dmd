@@ -1054,10 +1054,11 @@ void PragmaDeclaration::semantic(Scope *sc)
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer *ob = global.params.moduleDeps;
+                    Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
                     ob->writestring("depsLib ");
-                    ob->writestring(sc->module->toPrettyChars());
+                    ob->writestring(imod->toPrettyChars());
                     ob->writestring(" (");
-                    escapePath(ob, sc->module->srcfile->toChars());
+                    escapePath(ob, imod->srcfile->toChars());
                     ob->writestring(") : ");
                     ob->writestring((char *) name);
                     ob->writenl();

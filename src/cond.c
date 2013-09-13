@@ -90,13 +90,13 @@ void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;
     OutBuffer *ob = global.params.moduleDeps;
-    Module* md = sc && sc->module ? sc->module : condition->mod;
-    if (!md)
+    Module* imod = sc ? (sc->instantiatingModule ? sc->instantiatingModule : sc->module) : condition->mod;
+    if (!imod)
         return;
     ob->writestring(depType);
-    ob->writestring(md->toPrettyChars());
+    ob->writestring(imod->toPrettyChars());
     ob->writestring(" (");
-    escapePath(ob, md->srcfile->toChars());
+    escapePath(ob, imod->srcfile->toChars());
     ob->writestring(") : ");
     if (condition->ident)
         ob->printf("%s\n", condition->ident->toChars());
