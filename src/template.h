@@ -95,8 +95,8 @@ public:
     PROT prot();
 //    void toDocBuffer(OutBuffer *buf);
 
-    MATCH matchWithInstance(TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
-    MATCH leastAsSpecialized(TemplateDeclaration *td2, Expressions *fargs);
+    MATCH matchWithInstance(Scope *sc, TemplateInstance *ti, Objects *atypes, Expressions *fargs, int flag);
+    MATCH leastAsSpecialized(Scope *sc, TemplateDeclaration *td2, Expressions *fargs);
 
     MATCH deduceFunctionTemplateMatch(FuncDeclaration *f, Loc loc, Scope *sc, Objects *tiargs, Type *tthis, Expressions *fargs, Objects *dedargs);
     RootObject *declareParameter(Scope *sc, TemplateParameter *tp, RootObject *o);
@@ -319,6 +319,7 @@ public:
     Dsymbol *enclosing;                 // if referencing local symbols, this is the context
     hash_t hash;                        // cached result of hashCode()
     Expressions *fargs;                 // for function template, these are the function arguments
+    Module *instantiatingModule;        // the top module that instantiated this instance
 #ifdef IN_GCC
     /* On some targets, it is necessary to know whether a symbol
        will be emitted in the output or not before the symbol
