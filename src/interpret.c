@@ -2340,6 +2340,15 @@ Expression *BinExp::interpretCommon(InterState *istate, CtfeGoal goal, fp_t fp)
     if (e2->isConst() != 1)
         goto Lcant;
 
+    if (op == TOKshr || op == TOKshl || op == TOKushr)
+    {
+        sinteger_t i2 = e2->toInteger();
+        d_uns64 sz = e1->type->size() * 8;
+        if (i2 < 0 || i2 >= sz)
+        {   error("shift by %lld is outside the range 0..%llu", i2, (ulonglong)sz - 1);
+            return EXP_CANT_INTERPRET;
+        }
+    }
     e = (*fp)(type, e1, e2);
     if (e == EXP_CANT_INTERPRET)
         error("%s cannot be interpreted at compile time", toChars());
@@ -2380,14 +2389,14 @@ Expression *BinExp::interpretCompareCommon(InterState *istate, CtfeGoal goal, fp
     Expression *e2;
 
 #if LOG
-    printf("%s BinExp::interpretCommon2() %s\n", loc.toChars(), toChars());
+    printf("%s BinExp::interpretCompareCommon() %s\n", loc.toChars(), toChars());
 #endif
     if (this->e1->type->ty == Tpointer && this->e2->type->ty == Tpointer)
     {
-        e1 = this->e1->interpret(istate, ctfeNeedLvalue);
+        e1 = this->e1->interpret(istate);
         if (exceptionOrCantInterpret(e1))
             return e1;
-        e2 = this->e2->interpret(istate, ctfeNeedLvalue);
+        e2 = this->e2->interpret(istate);
         if (exceptionOrCantInterpret(e2))
             return e2;
         dinteger_t ofs1, ofs2;
@@ -2948,18 +2957,22 @@ Expression *BinExp::interpretAssignCommon(InterState *istate, CtfeGoal goal, fp_
     // collapsed into a single assignment.
     if (!wantRef && e1->op == TOKdotvar)
     {
-        // Strip of all of the leading dotvars, unless we started with a call
-        // or a ref parameter
+        // Strip of all of the leading dotvars, unless it is a CTFE dotvar
+        // pointer or reference
         // (in which case, we already have the lvalue).
-        if (this->e1->op != TOKcall && !(this->e1->op==TOKvar
-            && ((VarExp*)this->e1)->var->storage_class & (STCref | STCout)))
-            e1 = e1->interpret(istate, isPointer(type)? ctfeNeedLvalueRef : ctfeNeedLvalue);
-        if (exceptionOrCantInterpret(e1))
-            return e1;
-        if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
+        DotVarExp *dve = (DotVarExp *)e1;
+        bool isCtfePointer = (dve->e1->op == TOKstructliteral)
+                && ((StructLiteralExp *)(dve->e1))->ownedByCtfe;
+        if (!isCtfePointer)
         {
-            assignInPlace(e1, newval);
-            return returnValue;
+            e1 = e1->interpret(istate, isPointer(type) ? ctfeNeedLvalueRef : ctfeNeedLvalue);
+            if (exceptionOrCantInterpret(e1))
+                return e1;
+            if (e1->op == TOKstructliteral && newval->op == TOKstructliteral)
+            {
+                assignInPlace(e1, newval);
+                return returnValue;
+            }
         }
     }
 #if LOGASSIGN
@@ -4268,6 +4281,15 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                     indx+ofs, len);
                 return EXP_CANT_INTERPRET;
             }
+            if (goal == ctfeNeedLvalueRef)
+            {
+                // if we need a reference, IndexExp shouldn't be interpreting
+                // the expression to a value, it should stay as a reference
+                Expression *e = new IndexExp(loc, agg,
+                    ofs ? new IntegerExp(loc,indx + ofs, e2->type) : e2);
+                e->type = type;
+                return e;
+            }
             return ctfeIndex(loc, type, agg, indx+ofs);
         }
         else
@@ -4282,6 +4304,10 @@ Expression *IndexExp::interpret(InterState *istate, CtfeGoal goal)
                 error("pointer index [%lld] lies outside memory block [0..1]",
                     indx+ofs);
                 return EXP_CANT_INTERPRET;
+            }
+            if (goal == ctfeNeedLvalueRef)
+            {
+                return paintTypeOntoLiteral(type, agg);
             }
             return agg->interpret(istate);
         }
@@ -4966,7 +4992,9 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             if (e->op == TOKaddress)
             {
                 e = ((AddrExp*)e)->e1;
-                if (e->op == TOKdotvar || e->op == TOKindex)
+                // *&p becomes p if p is a CTFE pointer, otherwise we need to
+                // simplify it.
+                if ((e->op == TOKdotvar || e->op == TOKindex) && !isPointer(e->type))
                     e = e->interpret(istate, goal);
             }
             else if (e->op == TOKvar)
@@ -4983,7 +5011,7 @@ Expression *PtrExp::interpret(InterState *istate, CtfeGoal goal)
             error("dereference of null pointer '%s'", e1->toChars());
             return EXP_CANT_INTERPRET;
         }
-        e->type = type;
+        e = paintTypeOntoLiteral(type, e);
     }
 
 #if LOG
