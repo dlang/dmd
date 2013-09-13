@@ -1,4 +1,6 @@
 module depsOutput9948a;
-void templateFunc(string myImport)() {
+
+void templateFunc(string myImport)()
+{
    mixin(myImport);
 }

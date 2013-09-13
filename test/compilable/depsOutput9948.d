@@ -6,6 +6,7 @@
 module depsOutput9948;
 import depsOutput9948a;
 
-void main() {
+void main()
+{
    templateFunc!("import std.string;")();
 }
