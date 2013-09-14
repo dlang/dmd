@@ -1,5 +1,5 @@
 
-// Copyright (c) 1999-2011 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -33,8 +33,6 @@ EnumDeclaration::EnumDeclaration(Loc loc, Identifier *id, Type *memtype)
     defaultval = NULL;
     sinit = NULL;
     isdeprecated = false;
-    isdone = 0;
-    objFileDone = 0;
     protection = PROTundefined;
     parent = NULL;
 }
@@ -66,7 +64,7 @@ Dsymbol *EnumDeclaration::syntaxCopy(Dsymbol *s)
 
 void EnumDeclaration::setScope(Scope *sc)
 {
-    if (isdone)
+    if (semanticRun > PASSinit)
         return;
     ScopeDsymbol::setScope(sc);
 }
@@ -101,7 +99,7 @@ void EnumDeclaration::semantic0(Scope *sc)
      * to compile it if it doesn't depend on anything else.
      */
 
-    if (isdone || !scope)
+    if (semanticRun > PASSinit || !scope)
         return;
 
     parent = scope->parent;
@@ -131,7 +129,7 @@ void EnumDeclaration::semantic(Scope *sc)
         return;
 
     if (symtab)                 // if already done
-    {   if (isdone || !scope)
+    {   if (semanticRun > PASSinit || !scope)
             return;             // semantic() already completed
     }
     else
@@ -191,7 +189,7 @@ void EnumDeclaration::semantic(Scope *sc)
 #endif
     }
 
-    isdone = 1;
+    semanticRun = PASSsemanticdone;
 
     if (!members)               // enum ident : memtype;
         return;

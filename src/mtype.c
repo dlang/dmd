@@ -7371,7 +7371,7 @@ Type *TypeEnum::syntaxCopy()
 Type *TypeEnum::semantic(Loc loc, Scope *sc)
 {
     //printf("TypeEnum::semantic() %s\n", toChars());
-    if (!sym->isdone)
+    if (sym->semanticRun == PASSinit)
     {
         assert(sym->scope);
         sym->semantic(sym->scope);
@@ -7469,7 +7469,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
 
     if (ident == Id::max)
     {
-        if (!sym->isdone)
+        if (sym->semanticRun == PASSinit)
             goto Lfwd;
         if (!sym->maxval)
         {
@@ -7480,7 +7480,7 @@ Expression *TypeEnum::getProperty(Loc loc, Identifier *ident, int flag)
     }
     else if (ident == Id::min)
     {
-        if (!sym->isdone)
+        if (sym->semanticRun == PASSinit)
             goto Lfwd;
         if (!sym->minval)
         {
