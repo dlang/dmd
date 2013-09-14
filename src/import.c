@@ -294,11 +294,12 @@ void Import::semantic(Scope *sc)
          */
 
         OutBuffer *ob = global.params.moduleDeps;
+        Module* imod = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
         if (!global.params.moduleDepsFile)
             ob->writestring("depsImport ");
-        ob->writestring(sc->module->toPrettyChars());
+        ob->writestring(imod->toPrettyChars());
         ob->writestring(" (");
-        escapePath(ob, sc->module->srcfile->toChars());
+        escapePath(ob,  imod->srcfile->toChars());
         ob->writestring(") : ");
 
         // use protection instead of sc->protection because it couldn't be
