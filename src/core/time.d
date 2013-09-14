@@ -1390,15 +1390,15 @@ Duration dur(string units)(long length) @safe pure nothrow
     return Duration(convert!(units, "hnsecs")(length));
 }
 
-alias dur!"weeks"   weeks;   /// Ditto
-alias dur!"days"    days;    /// Ditto
-alias dur!"hours"   hours;   /// Ditto
-alias dur!"minutes" minutes; /// Ditto
-alias dur!"seconds" seconds; /// Ditto
-alias dur!"msecs"   msecs;   /// Ditto
-alias dur!"usecs"   usecs;   /// Ditto
-alias dur!"hnsecs"  hnsecs;  /// Ditto
-alias dur!"nsecs"   nsecs;   /// Ditto
+alias weeks   = dur!"weeks";   /// Ditto
+alias days    = dur!"days";    /// Ditto
+alias hours   = dur!"hours";   /// Ditto
+alias minutes = dur!"minutes"; /// Ditto
+alias seconds = dur!"seconds"; /// Ditto
+alias msecs   = dur!"msecs";   /// Ditto
+alias usecs   = dur!"usecs";   /// Ditto
+alias hnsecs  = dur!"hnsecs";  /// Ditto
+alias nsecs   = dur!"nsecs";   /// Ditto
 
 //Verify Examples.
 unittest
