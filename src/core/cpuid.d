@@ -175,6 +175,10 @@ public:
     bool hle()          {return (extfeatures & HLE_BIT) != 0;}
     /// Is RTM (restricted transactional memory) supported
     bool rtm()          {return (extfeatures & RTM_BIT) != 0;}
+    /// Is rdseed supported
+    bool hasRdseed()    {return (extfeatures&RDSEED_BIT)!=0;}
+    /// Is SHA supported
+    bool hasSha()       {return (extfeatures&SHA_BIT)!=0;}
     /// Is AMD 3DNOW supported?
     bool amd3dnow()     {return (amdfeatures&AMD_3DNOW_BIT)!=0;}
     /// Is AMD 3DNOW Ext supported?
@@ -322,15 +326,17 @@ private:
     // Feature flags for cpuid.{EAX = 7, ECX = 0}.EBX.
     enum : uint
     {
-        FSGSBASE_BIT = 1 << 1,
-        BMI1_BIT = 1 << 4,
-        HLE_BIT = 1 << 5,
-        AVX2_BIT = 1 << 6,
-        SMEP_BIT = 1 << 8,
-        BMI2_BIT = 1 << 9,
-        ERMS_BIT = 1 << 10,
-        INVPCID_BIT = 1 << 11,
-        RTM_BIT = 1 << 12,
+        FSGSBASE_BIT = 1 << 0,
+        BMI1_BIT = 1 << 3,
+        HLE_BIT = 1 << 4,
+        AVX2_BIT = 1 << 5,
+        SMEP_BIT = 1 << 7,
+        BMI2_BIT = 1 << 8,
+        ERMS_BIT = 1 << 9,
+        INVPCID_BIT = 1 << 10,
+        RTM_BIT = 1 << 11,
+        RDSEED_BIT = 1 << 18,
+        SHA_BIT = 1 << 29,
     }
     // feature flags XFEATURES_ENABLED_MASK
     enum : ulong
