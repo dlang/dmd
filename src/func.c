@@ -2964,7 +2964,11 @@ int FuncDeclaration::getLevel(Loc loc, Scope *sc, FuncDeclaration *fd)
 Lerr:
     // Don't give error if in template constraint
     if (!((sc->flags & SCOPEstaticif) && parent->isTemplateDeclaration()))
-        error(loc, "cannot access frame of function %s", fd->toPrettyChars());
+    {
+        // better diagnostics for static functions
+        ::error(loc, "%s%s %s cannot access frame of function %s",
+            isStatic() ? "static " : "", kind(), toPrettyChars(), fd->toPrettyChars());
+    }
     return 1;
 }
 
