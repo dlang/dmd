@@ -3513,7 +3513,7 @@ Lagain:
     em = s->isEnumMember();
     if (em)
     {
-        if (!em->ed->isdone)
+        if (em->ed->semanticRun == PASSinit)
         {
             assert(em->ed->scope);
             em->ed->semantic(NULL);

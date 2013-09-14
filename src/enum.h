@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2008 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -27,7 +27,7 @@ class VarDeclaration;
 class EnumDeclaration : public ScopeDsymbol
 {
 public:
-    /* enum ident : memtype { ... }
+    /* enum id : memtype { ... }
      */
     Type *type;                 // the TypeEnum
     Type *memtype;              // type of the members
@@ -43,8 +43,6 @@ public:
     Expression *defaultval;     // default initializer
 #endif
     bool isdeprecated;
-    int isdone;                 // 0: not done
-                                // 1: semantic() successfully completed
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -68,7 +66,6 @@ public:
 
     EnumDeclaration *isEnumDeclaration() { return this; }
 
-    bool objFileDone;  // if toObjFile was already called
     void toObjFile(int multiobj);                       // compile to .obj file
     void toDebug();
     int cvMember(unsigned char *p);
