@@ -1171,7 +1171,7 @@ void TypedefDeclaration::toObjFile(int multiobj)
 
 void EnumDeclaration::toObjFile(int multiobj)
 {
-    if (objFileDone)  // already written
+    if (semanticRun >= PASSobj)  // already written
         return;
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 
@@ -1212,7 +1212,7 @@ void EnumDeclaration::toObjFile(int multiobj)
 #endif
         outdata(sinit);
     }
-    objFileDone = true;
+    semanticRun = PASSobj;
 }
 
 /* ================================================================== */
