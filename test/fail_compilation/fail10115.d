@@ -1,12 +1,15 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/fail10115.d(40): Error: struct fail10115.S default construction is disabled
-fail_compilation/fail10115.d(41): Error: struct fail10115.S default construction is disabled
-fail_compilation/fail10115.d(42): Error: union fail10115.U default construction is disabled
-fail_compilation/fail10115.d(45): Error: struct fail10115.S default construction is disabled
-fail_compilation/fail10115.d(46): Error: struct fail10115.S default construction is disabled
-fail_compilation/fail10115.d(47): Error: union fail10115.U default construction is disabled
+fail_compilation/fail10115.d(38): Error: cannot have out parameter of type S because the default construction is disbaled
+fail_compilation/fail10115.d(38): Error: cannot have out parameter of type E because the default construction is disbaled
+fail_compilation/fail10115.d(38): Error: cannot have out parameter of type U because the default construction is disbaled
+fail_compilation/fail10115.d(43): Error: struct fail10115.S default construction is disabled
+fail_compilation/fail10115.d(44): Error: struct fail10115.S default construction is disabled
+fail_compilation/fail10115.d(45): Error: union fail10115.U default construction is disabled
+fail_compilation/fail10115.d(48): Error: struct fail10115.S default construction is disabled
+fail_compilation/fail10115.d(49): Error: struct fail10115.S default construction is disabled
+fail_compilation/fail10115.d(50): Error: union fail10115.U default construction is disabled
 ---
 */
 
@@ -30,10 +33,10 @@ union U
     ~this() { assert (s.a !is 0); }
 }
 
-void foo(out S s, out E e, out U u) { }
-
 void main()
 {
+    void foo(out S s, out E e, out U u) { }
+
     S[] a;
     E[] e;
     U[] u;
