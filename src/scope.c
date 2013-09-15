@@ -150,7 +150,7 @@ Scope *Scope::push()
     s->slabel = NULL;
     s->nofree = 0;
     s->fieldinit = saveFieldInit();
-    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile));
+    s->flags = (flags & (SCOPEcontract | SCOPEdebug | SCOPEctfe | SCOPEcompile | SCOPEconstraint));
     s->lastdc = NULL;
     s->lastoffset = 0;
 

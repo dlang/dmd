@@ -49,20 +49,22 @@ enum LINK;
 #define CSXreturn       0x20    // seen a return statement
 #define CSXany_ctor     0x40    // either this() or super() was called
 
+// Flags that would not be inherited beyond scope nesting
 #define SCOPEctor           0x0001  // constructor type
-#define SCOPEstaticif       0x0002  // inside static if
-#define SCOPEfree           0x0004  // is on free list
-#define SCOPEstaticassert   0x0008  // inside static assert
-#define SCOPEdebug          0x0010  // inside debug conditional
+#define SCOPEnoaccesscheck  0x0002  // don't do access checks
+#define SCOPEcondition      0x0004  // inside static if/assert condition
+#define SCOPEdebug          0x0008  // inside debug conditional
 
+// Flags that would be inherited beyond scope nesting
+#define SCOPEconstraint     0x0010  // inside template constraint
 #define SCOPEinvariant      0x0020  // inside invariant code
 #define SCOPErequire        0x0040  // inside in contract code
 #define SCOPEensure         0x0060  // inside out contract code
 #define SCOPEcontract       0x0060  // [mask] we're inside contract code
-
 #define SCOPEctfe           0x0080  // inside a ctfe-only expression
-#define SCOPEnoaccesscheck  0x0100  // don't do access checks
-#define SCOPEcompile        0x0200  // inside __traits(compile)
+#define SCOPEcompile        0x0100  // inside __traits(compile)
+
+#define SCOPEfree           0x8000  // is on free list
 
 struct Scope
 {

@@ -552,6 +552,30 @@ class C10326
 }
 
 /***************************************************/
+// 11042
+
+static if           ((true  || error) == true ) {} else { static assert(0); }
+static if           ((false && error) == false) {} else { static assert(0); }
+static assert       ((true  || error) == true );
+static assert       ((false && error) == false);
+int f11042a1()() if ((true  || error) == true ) { return 0; }   enum x11042a1 = f11042a1();
+int f11042b1()() if ((false && error) == false) { return 0; }   enum x11042b1 = f11042b1();
+
+static if           (is(typeof(true  || error)) == false) {} else { static assert(0); }
+static if           (is(typeof(false && error)) == false) {} else { static assert(0); }
+static assert       (is(typeof(true  || error)) == false);
+static assert       (is(typeof(false && error)) == false);
+int f11042a2()() if (is(typeof(true  || error)) == false) { return 0; }   enum x11042a2 = f11042a2();
+int f11042b2()() if (is(typeof(false && error)) == false) { return 0; }   enum x11042b2 = f11042b2();
+
+static if           (__traits(compiles, true  || error) == false) {} else { static assert(0); }
+static if           (__traits(compiles, false && error) == false) {} else { static assert(0); }
+static assert       (__traits(compiles, true  || error) == false);
+static assert       (__traits(compiles, false && error) == false);
+int f11042a3()() if (__traits(compiles, true  || error) == false) { return 0; }   enum x11042a3 = f11042a3();
+int f11042b3()() if (__traits(compiles, false && error) == false) { return 0; }   enum x11042b3 = f11042b3();
+
+/***************************************************/
 // 11554
 
 enum E11554;
