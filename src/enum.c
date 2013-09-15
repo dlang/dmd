@@ -86,43 +86,9 @@ int EnumDeclaration::addMember(Scope *sc, ScopeDsymbol *sd, int memnum)
     return 1;
 }
 
-void EnumDeclaration::semantic0(Scope *sc)
-{
-    /* This function is a hack to get around a significant problem.
-     * The members of anonymous enums, like:
-     *  enum { A, B, C }
-     * don't get installed into the symbol table until after they are
-     * semantically analyzed, yet they're supposed to go into the enclosing
-     * scope's table. Hence, when forward referenced, they come out as
-     * 'undefined'. The real fix is to add them in at addSymbol() time.
-     * But to get code to compile, we'll just do this quick hack at the moment
-     * to compile it if it doesn't depend on anything else.
-     */
-
-    if (semanticRun > PASSinit || !scope)
-        return;
-
-    parent = scope->parent;
-    protection = scope->protection;
-
-    if (!isAnonymous() || memtype)
-        return;
-    for (size_t i = 0; i < members->dim; i++)
-    {
-        EnumMember *em = (*members)[i]->isEnumMember();
-        if (em && (em->type || em->value))
-            return;
-    }
-
-    // Can do it
-    semantic(sc);
-}
 
 void EnumDeclaration::semantic(Scope *sc)
 {
-    Type *t;
-    Scope *sce;
-
     //printf("EnumDeclaration::semantic(sd = %p, '%s') %s\n", sc->scopesym, sc->scopesym->toChars(), toChars());
     //printf("EnumDeclaration::semantic() %s\n", toChars());
     if (!members && !memtype)               // enum ident;
@@ -197,6 +163,7 @@ void EnumDeclaration::semantic(Scope *sc)
     Module::dprogress++;
 
     type = type->semantic(loc, sc);
+    Scope *sce;
     if (isAnonymous())
         sce = sc;
     else
@@ -229,6 +196,7 @@ void EnumDeclaration::semantic(Scope *sc)
 
     int first = 1;
     Expression *elast = NULL;
+    Type *t;
     for (size_t i = 0; i < members->dim; i++)
     {
         EnumMember *em = (*members)[i]->isEnumMember();
