@@ -902,6 +902,71 @@ bool test6178c()
     }
     assert(aa.length == 0);
 
+    aa[1] = S();
+    aa[1] = 1;
+    assert(aa.length == 1);
+
+    return true;
+}
+
+bool test6178d()
+{
+    // AA value setting through implicit ctor call + alias this
+
+    int ctor;
+    struct S
+    {
+        this(int n) { ++ctor; value = n; }
+
+        int value;
+        alias value this;
+    }
+
+    S[int] aa;
+    assert(ctor == 0);
+    assert(aa.length == 0);
+
+    aa[1] = 0;      // implicit ctor call + blit assign
+    assert(aa[1].value == 0 && ctor == 1);
+    assert(aa.length == 1);
+
+    aa[1] = 1;      // set through alias this
+    assert(aa[1].value == 1 && ctor == 1);
+    assert(aa.length == 1);
+
+    return true;
+}
+
+bool test6178e()
+{
+    // AA value setting through alias this
+
+    struct S
+    {
+        int value;
+        alias value this;
+    }
+
+    S[int] aa;
+    assert(aa.length == 0);
+
+    if (!__ctfe)
+    {
+        // currently CTFE does not support throwing RangeError
+        import core.exception : RangeError;
+        try { aa[1] = 1; assert(0); } catch (RangeError) {}
+
+        // The above line is exactly same as:
+        try { aa[1].value = 1; assert(0); } catch (RangeError) {}
+    }
+    assert(aa.length == 0);
+
+    aa[1] = S(0);   // construct + blit assign
+    assert(aa[1].value == 0 && aa.length == 1);
+
+    aa[1] = 1;      // set through alias this
+    assert(aa[1].value == 1 && aa.length == 1);
+
     return true;
 }
 
@@ -915,6 +980,12 @@ void test6178()
 
     static assert(test6178c());
     test6178c();
+
+    static assert(test6178d());
+    test6178d();
+
+    static assert(test6178e());
+    test6178e();
 }
 
 /************************************************/

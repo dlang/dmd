@@ -11432,21 +11432,6 @@ Ltupleassign:
             if (e1->op == TOKindex &&
                 ((IndexExp *)e1)->e1->type->toBasetype()->ty == Taarray)
             {
-                // Check opAssign method existent
-                if (!search_function(sd, Id::assign))
-                {
-                    if (Expression *e = op_overload(sc))
-                    {
-                        /* Disallow these forms and report better error message:
-                         *  aa[key].aliasthis = val;
-                         *  aa[key].aliasthis.opAssign(val);
-                         */
-                        error("AA value setting through alias this (%s) is not allowed", e->toChars());
-                        return new ErrorExp();
-                    }
-                    goto Lx;
-                }
-
                 /*
                  * Rewrite:
                  *      aa[key] = e2;
@@ -11459,6 +11444,7 @@ Ltupleassign:
                  *          : ConstructExp(__aatmp[__aakey], __aaval));
                  */
                 IndexExp *ie = (IndexExp *)e1;
+                Type *t2 = e2->type->toBasetype();
                 Expression *e0 = NULL;
 
                 Expression *ea = ie->e1;
@@ -11494,20 +11480,23 @@ Ltupleassign:
                 if (e0)
                     e0 = e0->semantic(sc);
 
-                Expression *ex;
-                ex = new IndexExp(loc, ea, ek);
-                ex = ex->semantic(sc);
-                ex = ex->optimize(WANTvalue);
-                Expression *e = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
+                AssignExp *ae = (AssignExp *)copy();
+                ae->e1 = new IndexExp(loc, ea, ek);
+                ae->e1 = ae->e1->semantic(sc);
+                ae->e1 = ae->e1->optimize(WANTvalue);
+                ae->e2 = ev;
+                //Expression *e = new CallExp(loc, new DotIdExp(loc, ex, Id::assign), ev);
+                Expression *e = ae->op_overload(sc);
+                if (!e)
+                    goto Lx;
 
                 Expression *ey = NULL;
-                Type *t2 = e2->type->toBasetype();
                 if (t2->ty == Tstruct && sd == t2->toDsymbol(sc))
                 {
                     ey = ev;
                     goto Lctor;
                 }
-                else if (!e2->implicitConvTo(e1->type) && sd->ctor)
+                else if (!ev->implicitConvTo(ie->type) && sd->ctor)
                 {
                     // Look for implicit constructor call
                     // Rewrite as S().ctor(e2)
@@ -11518,16 +11507,18 @@ Ltupleassign:
                     if (ey)
                     {
                     Lctor:
+                        Expression *ex;
                         ex = new IndexExp(loc, ea, ek);
                         ex = ex->semantic(sc);
                         ex = ex->optimize(WANTvalue);
                         ex = ex->modifiableLvalue(sc, ex);  // allocate new slot
                         ey = new ConstructExp(loc, ex, ey);
+
+                        ey = new CastExp(ey->loc, ey, Type::tvoid);
                     }
                 }
                 if (ey)
                     e = new CondExp(loc, new InExp(loc, ek, ea), e, ey);
-                //printf("e = %s\n", e->toChars());
 
                 e = combine(e0, e);
                 e = e->semantic(sc);
@@ -11818,7 +11809,7 @@ Ltupleassign:
 
     type = e1->type;
     assert(type);
-    return reorderSettingAAElem(sc);
+    return op == TOKassign ? reorderSettingAAElem(sc) : this;
 }
 
 Expression *AssignExp::checkToBoolean(Scope *sc)
