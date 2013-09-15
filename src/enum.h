@@ -48,7 +48,6 @@ public:
     Dsymbol *syntaxCopy(Dsymbol *s);
     int addMember(Scope *sc, ScopeDsymbol *sd, int memnum);
     void setScope(Scope *sc);
-    void semantic0(Scope *sc);
     void semantic(Scope *sc);
     bool oneMember(Dsymbol **ps, Identifier *ident);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
