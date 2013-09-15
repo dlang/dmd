@@ -370,7 +370,7 @@ void TypeInfoEnumDeclaration::toDt(dt_t **pdt)
     dtabytes(pdt, 0, namelen + 1, name);
 
     // void[] init;
-    if (!sd->defaultval || tinfo->isZeroInit())
+    if (!sd->members || tinfo->isZeroInit())
     {   // 0 initializer, or the same as the base type
         dtsize_t(pdt, 0);        // init.length
         dtsize_t(pdt, 0);        // init.ptr

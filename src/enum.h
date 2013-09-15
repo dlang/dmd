@@ -33,16 +33,14 @@ public:
     Type *memtype;              // type of the members
     PROT protection;
 
-#if DMDV1
-    dinteger_t maxval;
-    dinteger_t minval;
-    dinteger_t defaultval;      // default initializer
-#else
+private:
     Expression *maxval;
     Expression *minval;
     Expression *defaultval;     // default initializer
-#endif
+
+public:
     bool isdeprecated;
+    Scope *sce;                 // scope for evaluating members
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -58,6 +56,9 @@ public:
 #endif
     bool isDeprecated();                // is Dsymbol deprecated?
     PROT prot();
+    Expression *getMaxMinValue(Loc loc, Identifier *id);
+    Expression *getDefaultValue(Loc loc);
+    Type *getMemtype(Loc loc);
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
