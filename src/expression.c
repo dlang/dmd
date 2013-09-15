@@ -6008,7 +6008,7 @@ Expression *IsExp::semantic(Scope *sc)
      */
 
     //printf("IsExp::semantic(%s)\n", toChars());
-    if (id && !(sc->flags & (SCOPEstaticif | SCOPEstaticassert)))
+    if (id && !(sc->flags & SCOPEcondition))
     {
         error("can only declare type aliases within static if conditionals or static asserts");
         return new ErrorExp();
@@ -12655,7 +12655,7 @@ Expression *OrOrExp::semantic(Scope *sc)
     e1 = e1->checkToBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
-    if (sc->flags & SCOPEstaticif)
+    if (sc->flags & SCOPEcondition)
     {
         /* If in static if, don't evaluate e2 if we don't have to.
          */
@@ -12713,7 +12713,7 @@ Expression *AndAndExp::semantic(Scope *sc)
     e1 = e1->checkToBoolean(sc);
     unsigned cs1 = sc->callSuper;
 
-    if (sc->flags & SCOPEstaticif)
+    if (sc->flags & SCOPEcondition)
     {
         /* If in static if, don't evaluate e2 if we don't have to.
          */

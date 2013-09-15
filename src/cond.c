@@ -352,7 +352,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         ++nest;
         sc = sc->push(sc->scopesym);
         sc->sd = s;                     // s gets any addMember()
-        sc->flags |= SCOPEstaticif;
+        sc->flags |= SCOPEcondition;
 
         sc = sc->startCTFE();
         Expression *e = exp->semantic(sc);

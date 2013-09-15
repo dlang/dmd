@@ -803,7 +803,7 @@ bool TemplateDeclaration::evaluateConstraint(
     Expression *e = constraint->syntaxCopy();
 
     scx = scx->startCTFE();
-    scx->flags |= SCOPEstaticif;
+    scx->flags |= SCOPEcondition | SCOPEconstraint;
     assert(ti->inst == NULL);
     ti->inst = ti;  // temporary instantiation to enable genIdent()
 
@@ -2495,7 +2495,7 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
-            if ((sc->flags & SCOPEstaticif) || sc->intypeof)
+            if ((sc->flags & SCOPEconstraint) || sc->intypeof)
             {
                 // Inside template constraint, or inside typeof,
                 // nested reference check doesn't work correctly.
