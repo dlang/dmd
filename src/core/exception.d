@@ -629,6 +629,11 @@ extern (C)
         onRangeError(m.name, line);
     }
 
+    void _d_arraybounds(string file, uint line)
+    {
+        onRangeError(file, line);
+    }
+
     /* Called when a switch statement has no DefaultStatement, yet none of the cases match
      */
     void _d_switch_error(ModuleInfo* m, uint line)
