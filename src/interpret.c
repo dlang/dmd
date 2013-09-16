@@ -1289,20 +1289,45 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     return e;
 }
 
+// Return true if every element in the array literal is either void,
+// or is an array literal of void elements.
+bool isEntirelyVoid(ArrayLiteralExp *e)
+{
+    Expressions *elems = e->elements;
+    for (size_t i = 0; i < elems->dim; i++)
+    {
+        Expression *m = (*elems)[i];
+        if ( !( m->op == TOKvoid ||
+            (m->op == TOKarrayliteral && isEntirelyVoid((ArrayLiteralExp *)m))))
+        {
+            return false;
+        }
+    }
+    return true;
+}
+
 // Scrub all members of an array. Return false if error
 bool scrubArray(Loc loc, Expressions *elems, bool structlit)
 {
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];
-        if (!m)
-            continue;
-        if (m && m->op == TOKvoid && structlit)
-            m = NULL;
-        if (m)
+        assert(m);
+
+        // A struct .init may contain void members.
+        // Static array members are a weird special case (bug 10994).
+        if (structlit && (m->op == TOKvoid ||
+            (m->op == TOKarrayliteral && m->type->ty == Tsarray
+                 && isEntirelyVoid((ArrayLiteralExp *)m) )))
+        {
+                m = NULL;
+        }
+        else
+        {
             m = scrubReturnValue(loc, m);
-        if (m == EXP_CANT_INTERPRET)
-            return false;
+            if (m == EXP_CANT_INTERPRET)
+                return false;
+        }
         (*elems)[i] = m;
     }
     return true;
