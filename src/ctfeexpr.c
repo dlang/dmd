@@ -157,7 +157,7 @@ char *ThrownExceptionExp::toChars()
 void ThrownExceptionExp::generateUncaughtError()
 {
     thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
-        (*thrown->value->elements)[0]->toChars());
+        (*thrown->value->elements)[0]->toString()->toChars());
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
