@@ -425,7 +425,7 @@ int main(string[] args)
                 }
                 else if (envData.os == "win64")
                 {
-                    command ~= ` /c /nologo `~curSrc~` /Fo`~curObj;
+                    command ~= ` /c /nologo `~curSrc~` /Fo`~curObj~` /I"\Program Files (x86)\Microsoft Visual Studio 10.0\VC\INCLUDE`;
                 }
                 else
                 {
