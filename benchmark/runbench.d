@@ -24,7 +24,7 @@ void runCmd(string cmd)
     enforce(!system(cmd));
 }
 
-void runTest(string pattern, string dflags)
+void runTest(string pattern, string dmd, string dflags)
 {
     string[] sources;
     auto re = regex(pattern, "g");
@@ -42,7 +42,7 @@ void runTest(string pattern, string dflags)
     {
         writeln("COMPILING ", src);
         auto bin = buildPath(absolutePath("bin"), src.chompPrefix("./").chomp(".d"));
-        auto cmd = std.string.format("dmd %s -op -odobj -of%s %s", dflags, bin, src);
+        auto cmd = std.string.format("%s %s -op -odobj -of%s %s", dmd, dflags, bin, src);
         runCmd(cmd);
         src = bin;
     }
@@ -104,6 +104,9 @@ void main(string[] args)
     if (verbose)
         dflags ~= " -version=VERBOSE";
 
+    auto dmd = getenv("DMD");
+    if (!dmd.length) dmd = "dmd";
+
     foreach(p; patterns)
-        runTest(p, dflags);
+        runTest(p, dmd, dflags);
 }
