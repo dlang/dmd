@@ -20,6 +20,7 @@ public import core.sys.posix.sys.types; // for off_t, mode_t
 
 version (Posix):
 extern (C):
+nothrow:
 
 //
 // Advisory Information (ADV)
@@ -41,11 +42,23 @@ POSIX_MADV_DONTNEED
 
 version( linux )
 {
-    enum POSIX_MADV_NORMAL      = 0;
-    enum POSIX_MADV_RANDOM      = 1;
-    enum POSIX_MADV_SEQUENTIAL  = 2;
-    enum POSIX_MADV_WILLNEED    = 3;
-    enum POSIX_MADV_DONTNEED    = 4;
+    version (Alpha)
+        private enum __POSIX_MADV_DONTNEED = 6;
+    else
+        private enum __POSIX_MADV_DONTNEED = 4;
+
+    static if (__USE_XOPEN2K)
+    {
+        enum
+        {
+            POSIX_MADV_NORMAL = 0,
+            POSIX_MADV_RANDOM = 1,
+            POSIX_MADV_SEQUENTIAL = 2,
+            POSIX_MADV_WILLNEED = 3,
+            POSIX_MADV_DONTNEED = __POSIX_MADV_DONTNEED,
+        }
+        int posix_madvise(void *__addr, size_t __len, int __advice);
+    }
 }
 else version( OSX )
 {
@@ -54,6 +67,7 @@ else version( OSX )
     enum POSIX_MADV_SEQUENTIAL  = 2;
     enum POSIX_MADV_WILLNEED    = 3;
     enum POSIX_MADV_DONTNEED    = 4;
+    int posix_madvise(void *addr, size_t len, int advice);
 }
 else version( FreeBSD )
 {
@@ -62,14 +76,10 @@ else version( FreeBSD )
     enum POSIX_MADV_SEQUENTIAL  = 2;
     enum POSIX_MADV_WILLNEED    = 3;
     enum POSIX_MADV_DONTNEED    = 4;
+    int posix_madvise(void *addr, size_t len, int advice);
 }
 else version (Solaris)
 {
-    enum POSIX_MADV_NORMAL = 0;
-    enum POSIX_MADV_RANDOM = 1;
-    enum POSIX_MADV_SEQUENTIAL = 2;
-    enum POSIX_MADV_WILLNEED = 3;
-    enum POSIX_MADV_DONTNEED = 4;
 }
 else
 {
@@ -129,18 +139,12 @@ int munmap(void*, size_t);
 
 version( linux )
 {
-    //void* mmap(void*, size_t, int, int, int, off_t);
-    int   munmap(void*, size_t);
-
-  static if( __USE_FILE_OFFSET64 )
-  {
-    void* mmap64(void*, size_t, int, int, int, off_t);
-    alias mmap64 mmap;
-  }
-  else
-  {
-    void* mmap(void*, size_t, int, int, int, off_t);
-  }
+    static if (__USE_LARGEFILE64) void* mmap64(void*, size_t, int, int, int, off_t);
+    static if (__USE_FILE_OFFSET64)
+        alias mmap = mmap64;
+    else
+        void* mmap(void*, size_t, int, int, int, off_t);
+    int munmap(void*, size_t);
 }
 else version( OSX )
 {
@@ -184,30 +188,35 @@ version( linux )
     enum MAP_PRIVATE    = 0x02;
     enum MAP_FIXED      = 0x10;
 
-    version (X86)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else version (X86_64)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else version (MIPS32)
-        enum MAP_ANON       = 0x0800; // non-standard
-    else version (PPC)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else version (PPC64)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else version (ARM)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else version (AArch64)
-        enum MAP_ANON       = 0x20;   // non-standard
-    else
-        static assert(0, "unimplemented");
+    static import core.sys.linux.sys.mman;
+    deprecated("Please use core.sys.linux.sys.mman for non-POSIX extensions")
+    alias MAP_ANON = core.sys.linux.sys.mman.MAP_ANON;
 
     enum MAP_FAILED     = cast(void*) -1;
 
-    enum
+    version (Alpha) enum
     {
-        MS_ASYNC         = 1,
-        MS_SYNC          = 4,
-        MS_INVALIDATE    = 2
+        MS_ASYNC = 1,
+        MS_SYNC = 2,
+        MS_INVALIDATE = 4,
+    }
+    else version (HPPA) enum
+    {
+        MS_ASYNC = 1,
+        MS_SYNC = 2,
+        MS_INVALIDATE = 4,
+    }
+    else version (HPPA64) enum
+    {
+        MS_ASYNC = 1,
+        MS_SYNC = 2,
+        MS_INVALIDATE = 4,
+    }
+    else enum
+    {
+        MS_ASYNC = 1,
+        MS_SYNC = 4,
+        MS_INVALIDATE = 2
     }
 
     int msync(void*, size_t, int);
@@ -275,8 +284,36 @@ int munlockall();
 
 version( linux )
 {
-    enum MCL_CURRENT    = 1;
-    enum MCL_FUTURE     = 2;
+    version (SPARC) enum
+    {
+        MCL_CURRENT = 0x2000,
+        MCL_FUTURE = 0x4000,
+    }
+    else version (SPARC64) enum
+    {
+        MCL_CURRENT = 0x2000,
+        MCL_FUTURE = 0x4000,
+    }
+    else version (PPC) enum
+    {
+        MCL_CURRENT = 0x2000,
+        MCL_FUTURE = 0x4000,
+    }
+    else version (PPC64) enum
+    {
+        MCL_CURRENT = 0x2000,
+        MCL_FUTURE = 0x4000,
+    }
+    else version (Alpha) enum
+    {
+        MCL_CURRENT = 8192,
+        MCL_FUTURE = 16384,
+    }
+    else enum
+    {
+        MCL_CURRENT = 1,
+        MCL_FUTURE = 2,
+    }
 
     int mlockall(int);
     int munlockall();
