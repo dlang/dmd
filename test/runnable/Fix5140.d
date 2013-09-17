@@ -51,12 +51,12 @@ void main(string[] args) nothrow
         static assert(getTemplCallingModule() == "Fix5140");
         static assert(getCalleeModule() == "imports.Fix5140a");
 
-        static assert(getCallingFunc() == "Fix5140.main.__lambda1");
-        static assert(getTemplCallingFunc() == "Fix5140.main.__lambda1");
+        static assert(getCallingFunc() == "Fix5140.main.__lambda3");
+        static assert(getTemplCallingFunc() == "Fix5140.main.__lambda3");
         static assert(getCalleeFunc() == "imports.Fix5140a.getCalleeFunc");
 
-        static assert(getCallingPrettyFunc() == "Fix5140.main.__lambda1(int x, int y)");
-        static assert(getTemplCallingPrettyFunc() == "Fix5140.main.__lambda1(int x, int y)");
+        static assert(getCallingPrettyFunc() == "Fix5140.main.__lambda3(int x, int y)");
+        static assert(getTemplCallingPrettyFunc() == "Fix5140.main.__lambda3(int x, int y)");
         static assert(getCalleePrettyFunc(1, 1.0) == "string imports.Fix5140a.getCalleePrettyFunc(int x, float y)");
     };
     funcLiteral(1, 2);
