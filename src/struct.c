@@ -35,7 +35,7 @@ bool isImportedSym(Dsymbol *s)
             return false;
         else if (Module *m = s->isModule())
         {
-            if (m->importedFrom != m)
+            if (!m->isRoot())
                 return true;
             break;
         }

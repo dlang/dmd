@@ -1123,7 +1123,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
 
     paramscope->instantiatingModule = sc->instantiatingModule;
     Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
-    if (!sc->instantiatingModule || sc->instantiatingModule->root)
+    if (!sc->instantiatingModule || sc->instantiatingModule->isRoot())
         paramscope->instantiatingModule = mi;
 
     paramscope->callsc = sc;
@@ -5349,7 +5349,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
      * we do not have to generate code for it,
      * because it will be generated when the non-root module is compiled.
      */
-    if (!instantiatingModule || instantiatingModule->root)
+    if (!instantiatingModule || instantiatingModule->isRoot())
         instantiatingModule = mi;
     //printf("mi = %s\n", mi->toChars());
 
@@ -5438,7 +5438,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 #if LOG
             printf("\tit's a match with instance %p, %d\n", inst, inst->semanticRun);
 #endif
-            if (!inst->instantiatingModule || inst->instantiatingModule->root)
+            if (!inst->instantiatingModule || inst->instantiatingModule->isRoot())
                 inst->instantiatingModule = mi;
             return;
         }
@@ -5517,7 +5517,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             }
             assert(s);
             Module *m = (Module *)s;
-            if (m->importedFrom != m)
+            if (!m->isRoot())
             {
                 //if (tinst && tinst->objFileModule)
                 //    m = tinst->objFileModule;
@@ -5599,7 +5599,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     argsym = new ScopeDsymbol();
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
-    if (!scope->instantiatingModule || scope->instantiatingModule->root)
+    if (!scope->instantiatingModule || scope->instantiatingModule->isRoot())
         scope->instantiatingModule = mi;
 //    scope->stc = 0;
 

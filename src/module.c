@@ -71,7 +71,6 @@ Module::Module(char *filename, Identifier *ident, int doDocComment, int doHdrGen
     sshareddtor = NULL;
     stest = NULL;
     sfilename = NULL;
-    root = 0;
     importedFrom = NULL;
     srcfile = NULL;
     docfile = NULL;
