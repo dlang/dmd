@@ -642,6 +642,7 @@ Expression *TraitsExp::semantic(Scope *sc)
             sc = sc->push();
             sc->speculative = true;
             sc->flags = sc->enclosing->flags & ~SCOPEctfe;   // inherit without CTFEing
+            bool err = false;
 
             RootObject *o = (*args)[i];
             Type *t = isType(o);
@@ -651,17 +652,25 @@ Expression *TraitsExp::semantic(Scope *sc)
                 Dsymbol *s;
                 t->resolve(loc, sc, &e, &t, &s);
                 if (t)
+                {
                     t->semantic(loc, sc);
+                    if (t->ty == Terror)
+                        err = true;
+                }
+                else if (s && s->errors)
+                    err = true;
             }
             if (e)
             {
                 e = e->semantic(sc);
                 e = e->optimize(WANTvalue);
+                if (e->op == TOKerror)
+                    err = true;
             }
 
             sc = sc->pop();
             global.speculativeGag = oldspec;
-            if (global.endGagging(errors))
+            if (global.endGagging(errors) || err)
             {
                 goto Lfalse;
             }
@@ -762,7 +771,7 @@ Expression *TraitsExp::semantic(Scope *sc)
     {
         FuncDeclaration *f;
         ISDSYMBOL((f = s->isFuncDeclaration()) != NULL && f->isOverride())
-    } 
+    }
     else if(ident == Id::getVirtualIndex)
     {
         if (dim != 1)
