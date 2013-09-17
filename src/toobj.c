@@ -1175,7 +1175,7 @@ void EnumDeclaration::toObjFile(int multiobj)
         return;
     //printf("EnumDeclaration::toObjFile('%s')\n", toChars());
 
-    if (type->ty == Terror)
+    if (errors || type->ty == Terror)
     {   error("had semantic errors when compiling");
         return;
     }
@@ -1191,7 +1191,7 @@ void EnumDeclaration::toObjFile(int multiobj)
     type->getTypeInfo(NULL);    // generate TypeInfo
 
     TypeEnum *tc = (TypeEnum *)type;
-    if (!tc->sym->defaultval || type->isZeroInit())
+    if (!tc->sym->members || type->isZeroInit())
         ;
     else
     {
@@ -1203,13 +1203,7 @@ void EnumDeclaration::toObjFile(int multiobj)
         toInitializer();
         sinit->Sclass = scclass;
         sinit->Sfl = FLdata;
-#if DMDV1
-        dtnbytes(&sinit->Sdt, tc->size(Loc()), (char *)&tc->sym->defaultval);
-        //sinit->Sdt = tc->sym->init->toDt();
-#endif
-#if DMDV2
         tc->sym->defaultval->toDt(&sinit->Sdt);
-#endif
         outdata(sinit);
     }
     semanticRun = PASSobj;
