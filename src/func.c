@@ -3789,16 +3789,7 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
         TOK tok, ForeachStatement *fes, Identifier *id)
     : FuncDeclaration(loc, endloc, NULL, STCundefined, type)
 {
-    if (!id)
-    {
-        const char *s;
-        if (fes)                        s = "__foreachbody";
-        else if (tok == TOKreserved)    s = "__lambda";
-        else if (tok == TOKdelegate)    s = "__dgliteral";
-        else                            s = "__funcliteral";
-        id = Lexer::uniqueId(s);
-    }
-    this->ident = id;
+    this->ident = id ? id : Id::empty;
     this->tok = tok;
     this->fes = fes;
     this->treq = NULL;
@@ -3807,21 +3798,13 @@ FuncLiteralDeclaration::FuncLiteralDeclaration(Loc loc, Loc endloc, Type *type,
 
 Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s)
 {
-    return syntaxCopy(s, false);
-}
-
-Dsymbol *FuncLiteralDeclaration::syntaxCopy(Dsymbol *s, bool keepId)
-{
     FuncLiteralDeclaration *f;
 
     //printf("FuncLiteralDeclaration::syntaxCopy('%s')\n", toChars());
     if (s)
         f = (FuncLiteralDeclaration *)s;
     else
-    {
-        Identifier *id = keepId ? ident : NULL;
-        f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes, id);
-    }
+        f = new FuncLiteralDeclaration(loc, endloc, type->syntaxCopy(), tok, fes, ident);
     f->treq = treq;     // don't need to copy
     FuncDeclaration::syntaxCopy(f);
     return f;

@@ -41,7 +41,7 @@
 #include "hdrgen.h"
 #include "parse.h"
 #include "doc.h"
-
+#include "aav.h"
 
 Expression *createTypeInfoArray(Scope *sc, Expression *args[], size_t dim);
 Expression *expandVar(int result, VarDeclaration *v);
@@ -6018,7 +6018,39 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     tok = fd->tok;  // save original kind of function/delegate/(infer)
 }
 
-FuncLiteralDeclaration *getFuncLit(Dsymbols *members);
+void FuncExp::genIdent(Scope *sc)
+{
+    if (fd->ident == Id::empty)
+    {
+        const char *s;
+        if (fd->fes)                        s = "__foreachbody";
+        else if (fd->tok == TOKreserved)    s = "__lambda";
+        else if (fd->tok == TOKdelegate)    s = "__dgliteral";
+        else                                s = "__funcliteral";
+
+        DsymbolTable *symtab;
+        if (sc->flags & (SCOPEstaticif | SCOPEstaticassert))
+        {
+            // e.g. in template constraint
+        }
+        else if (FuncDeclaration *func = sc->parent->isFuncDeclaration())
+        {
+            symtab = func->localsymtab;
+            goto L1;
+        }
+        else
+        {
+            symtab = sc->parent->isScopeDsymbol()->symtab;
+        L1:
+            assert(symtab);
+            int num = _aaLen(symtab->tab) + 1;
+            Identifier *id = Lexer::uniqueId(s, num);
+            fd->ident = id;
+            if (td) td->ident = id;
+            symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)fd);
+        }
+    }
+}
 
 Expression *FuncExp::syntaxCopy()
 {
@@ -6027,7 +6059,9 @@ Expression *FuncExp::syntaxCopy()
     if (td)
     {
         td2 = (TemplateDeclaration *)td->syntaxCopy(NULL);
-        fd2 = getFuncLit(td2->members);
+        assert(td2->members->dim == 1);
+        fd2 = (*td2->members)[0]->isFuncLiteralDeclaration();
+        assert(fd2);
     }
     else
     {
@@ -6057,6 +6091,8 @@ Expression *FuncExp::semantic(Scope *sc)
          */
         //if (fd->treq)
         //    fd->treq = fd->treq->semantic(loc, sc);
+
+        genIdent(sc);
 
         // Set target of return type inference
         if (fd->treq && !fd->type->nextOf())
@@ -6150,6 +6186,8 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
             if (checkarg->op == TOKerror)
                 return checkarg;
         }
+
+        genIdent(sc);
 
         assert(td->parameters && td->parameters->dim);
         td->semantic(sc);
