@@ -197,11 +197,11 @@ bool needToCopyLiteral(Expression *expr)
        switch (expr->op)
        {
             case TOKarrayliteral:
-                return !((ArrayLiteralExp *)expr)->ownedByCtfe;
+                return ((ArrayLiteralExp *)expr)->ctfeOwned != ctfeVariable;
             case TOKassocarrayliteral:
-                return !((AssocArrayLiteralExp *)expr)->ownedByCtfe;
+                return ((AssocArrayLiteralExp *)expr)->ctfeOwned != ctfeVariable;
             case TOKstructliteral:
-                return !((StructLiteralExp *)expr)->ownedByCtfe;
+                return ((StructLiteralExp *)expr)->ctfeOwned != ctfeVariable;
             case TOKstring:
             case TOKthis:
             case TOKvar:
@@ -252,7 +252,7 @@ Expression *copyLiteral(Expression *e)
         se2->postfix = se->postfix;
         se2->type = se->type;
         se2->sz = se->sz;
-        se2->ownedByCtfe = true;
+        se2->ctfeOwned = ctfeVariable;
         return se2;
     }
     else if (e->op == TOKarrayliteral)
@@ -261,7 +261,7 @@ Expression *copyLiteral(Expression *e)
         ArrayLiteralExp *r = new ArrayLiteralExp(e->loc,
             copyLiteralArray(ae->elements));
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ctfeOwned = ctfeVariable;
         return r;
     }
     else if (e->op == TOKassocarrayliteral)
@@ -270,7 +270,7 @@ Expression *copyLiteral(Expression *e)
         AssocArrayLiteralExp *r = new AssocArrayLiteralExp(e->loc,
             copyLiteralArray(aae->keys), copyLiteralArray(aae->values));
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ctfeOwned = ctfeVariable;
         return r;
     }
     /* syntaxCopy doesn't work for struct literals, because of a nasty special
@@ -311,7 +311,7 @@ Expression *copyLiteral(Expression *e)
         StructLiteralExp *r = new StructLiteralExp(e->loc, se->sd, newelems);
 #endif
         r->type = e->type;
-        r->ownedByCtfe = true;
+        r->ctfeOwned = ctfeVariable;
         r->origin = ((StructLiteralExp*)e)->origin;
         return r;
     }
@@ -409,9 +409,9 @@ Expression *paintTypeOntoLiteral(Type *type, Expression *lit)
         AssocArrayLiteralExp *aae = (AssocArrayLiteralExp *)lit;
         // TODO: we should be creating a reference to this AAExp, not
         // just a ref to the keys and values.
-        bool wasOwned = aae->ownedByCtfe;
+        CtfeOwnership wasOwned = aae->ctfeOwned;
         aae = new AssocArrayLiteralExp(lit->loc, aae->keys, aae->values);
-        aae->ownedByCtfe = wasOwned;
+        aae->ctfeOwned = wasOwned;
         e = aae;
     }
     else
@@ -486,7 +486,7 @@ ArrayLiteralExp *createBlockDuplicatedArrayLiteral(Loc loc, Type *type,
     }
     ArrayLiteralExp *ae = new ArrayLiteralExp(loc, elements);
     ae->type = type;
-    ae->ownedByCtfe = true;
+    ae->ctfeOwned = ctfeVariable;
     return ae;
 }
 
@@ -512,7 +512,7 @@ StringExp *createBlockDuplicatedStringLiteral(Loc loc, Type *type,
     se->type = type;
     se->sz = sz;
     se->committed = true;
-    se->ownedByCtfe = true;
+    se->ctfeOwned = ctfeVariable;
     return se;
 }
 
@@ -1775,9 +1775,9 @@ Expression *ctfeCast(Loc loc, Type *type, Type *to, Expression *e)
     if (r == EXP_CANT_INTERPRET)
         error(loc, "cannot cast %s to %s at compile time", e->toChars(), to->toChars());
     if (e->op == TOKarrayliteral)
-        ((ArrayLiteralExp *)e)->ownedByCtfe = true;
+        ((ArrayLiteralExp *)e)->ctfeOwned = ctfeVariable;
     if (e->op == TOKstring)
-        ((StringExp *)e)->ownedByCtfe = true;
+        ((StringExp *)e)->ctfeOwned = ctfeVariable;
     return r;
 }
 
@@ -1902,7 +1902,7 @@ Expression * modifyStructField(Type *type, StructLiteralExp *se, size_t offset, 
     Expressions *expsx = changeOneElement(se->elements, fieldi, newval);
     StructLiteralExp * ee = new StructLiteralExp(se->loc, se->sd, expsx);
     ee->type = se->type;
-    ee->ownedByCtfe = 1;
+    ee->ctfeOwned = ctfeVariable;
     return ee;
 }
 
@@ -1972,7 +1972,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         se->type = arrayType;
         se->sz = oldse->sz;
         se->committed = oldse->committed;
-        se->ownedByCtfe = true;
+        se->ctfeOwned = ctfeVariable;
         return se;
     }
     else
@@ -1996,7 +1996,7 @@ Expression *changeArrayLiteralLength(Loc loc, TypeArray *arrayType,
         }
         ArrayLiteralExp *aae = new ArrayLiteralExp(loc, elements);
         aae->type = arrayType;
-        aae->ownedByCtfe = true;
+        aae->ctfeOwned = ctfeVariable;
         return aae;
     }
 }
@@ -2046,7 +2046,7 @@ bool isCtfeValueValid(Expression *newval)
     {
         if (((DotVarExp *)newval)->e1->op == TOKstructliteral)
         {
-            assert(((StructLiteralExp *)((DotVarExp *)newval)->e1)->ownedByCtfe);
+            assert(((StructLiteralExp *)((DotVarExp *)newval)->e1)->ctfeOwned == ctfeVariable);
             return true;
         }
     }
@@ -2095,11 +2095,11 @@ bool isCtfeValueValid(Expression *newval)
     // References
 
     if (newval->op == TOKstructliteral)
-        assert(((StructLiteralExp *)newval)->ownedByCtfe);
+        assert(((StructLiteralExp *)newval)->ctfeOwned == ctfeVariable);
     if (newval->op == TOKarrayliteral)
-        assert(((ArrayLiteralExp *)newval)->ownedByCtfe);
+        assert(((ArrayLiteralExp *)newval)->ctfeOwned == ctfeVariable);
     if (newval->op == TOKassocarrayliteral)
-        assert(((AssocArrayLiteralExp *)newval)->ownedByCtfe);
+        assert(((AssocArrayLiteralExp *)newval)->ctfeOwned == ctfeVariable);
 
     if ((newval->op ==TOKarrayliteral) || ( newval->op==TOKstructliteral) ||
         (newval->op==TOKstring) || (newval->op == TOKassocarrayliteral) ||
@@ -2266,7 +2266,7 @@ Expression *TypeSArray::voidInitLiteral(VarDeclaration *var)
     }
     ArrayLiteralExp *ae = new ArrayLiteralExp(var->loc, elements);
     ae->type = this;
-    ae->ownedByCtfe = true;
+    ae->ctfeOwned = ctfeVariable;
     return ae;
 }
 
@@ -2280,6 +2280,6 @@ Expression *TypeStruct::voidInitLiteral(VarDeclaration *var)
     }
     StructLiteralExp *se = new StructLiteralExp(var->loc, sym, exps);
     se->type = this;
-    se->ownedByCtfe = true;
+    se->ctfeOwned = ctfeVariable;
     return se;
 }

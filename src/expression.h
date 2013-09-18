@@ -106,6 +106,16 @@ enum CtfeGoal
     ctfeNeedNothing   // The return value is not required
 };
 
+/* Interpreter: distinguish between expressions that have been const-folded,
+ * versus those which have not. This saves a lot of CTFE processing.
+ */
+enum CtfeOwnership
+{
+    notCtfe,        // An expression which hasn't been processed by CTFE
+    ctfeVariable,   // Owned exclusively by CTFE, and used as a variable
+    ctfeConstant    // A value created in CTFE, which will never change
+};
+
 #define WANTflags   1
 #define WANTvalue   2
 // Same as WANTvalue, but also expand variables as far as possible
@@ -400,7 +410,7 @@ public:
     unsigned char sz;   // 1: char, 2: wchar, 4: dchar
     unsigned char committed;    // !=0 if type is committed
     utf8_t postfix;      // 'c', 'w', 'd'
-    bool ownedByCtfe;   // true = created in CTFE
+    CtfeOwnership ctfeOwned;    // Has it been processed by CTFE?
 
     StringExp(Loc loc, char *s);
     StringExp(Loc loc, void *s, size_t len);
@@ -465,7 +475,7 @@ class ArrayLiteralExp : public Expression
 {
 public:
     Expressions *elements;
-    bool ownedByCtfe;   // true = created in CTFE
+    CtfeOwnership ctfeOwned;    // Has it been processed by CTFE?
 
     ArrayLiteralExp(Loc loc, Expressions *elements);
     ArrayLiteralExp(Loc loc, Expression *e);
@@ -498,7 +508,7 @@ class AssocArrayLiteralExp : public Expression
 public:
     Expressions *keys;
     Expressions *values;
-    bool ownedByCtfe;   // true = created in CTFE
+    CtfeOwnership ctfeOwned;    // Has it been processed by CTFE?
 
     AssocArrayLiteralExp(Loc loc, Expressions *keys, Expressions *values);
     bool equals(RootObject *o);
@@ -544,7 +554,8 @@ public:
     Symbol *sym;                // back end symbol to initialize with literal
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
-    bool ownedByCtfe;           // true = created in CTFE
+    CtfeOwnership ctfeOwned;    // Has it been processed by CTFE?
+    int ctorinit;
 
     StructLiteralExp *origin;   // pointer to the origin instance of the expression.
                                 // once a new expression is created, origin is set to 'this'.
