@@ -1297,6 +1297,11 @@ bool isEntirelyVoid(ArrayLiteralExp *e)
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];
+        // It can be NULL for performance reasons,
+        // see StructLiteralExp::interpret().
+        if (!m)
+            continue;
+
         if ( !( m->op == TOKvoid ||
             (m->op == TOKarrayliteral && isEntirelyVoid((ArrayLiteralExp *)m))))
         {
@@ -1312,7 +1317,10 @@ bool scrubArray(Loc loc, Expressions *elems, bool structlit)
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];
-        assert(m);
+        // It can be NULL for performance reasons,
+        // see StructLiteralExp::interpret().
+        if (!m)
+            continue;
 
         // A struct .init may contain void members.
         // Static array members are a weird special case (bug 10994).
@@ -2687,11 +2695,22 @@ Expression *StructLiteralExp::interpret(InterState *istate, CtfeGoal goal)
         {
             e = (*elements)[i];
             if (!e)
-                continue;
-
-            ex = e->interpret(istate);
-            if (exceptionOrCantInterpret(ex))
-                return ex;
+            {
+                /* Ideally, we'd convert NULL members into void expressions.
+                * The problem is that the VoidExp will be removed when we
+                * leave CTFE, causing another memory allocation if we use this
+                * same struct literal again.
+                *
+                * ex = sd->fields[i]->type->voidInitLiteral(sd->fields[i]);
+                */
+                ex = NULL;
+            }
+            else
+            {
+                ex = e->interpret(istate);
+                if (exceptionOrCantInterpret(ex))
+                    return ex;
+            }
         }
 
         /* If any changes, do Copy On Write
