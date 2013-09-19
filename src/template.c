@@ -5775,6 +5775,199 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
 }
 
 
+/**********************************************
+ * Find template declaration corresponding to template instance.
+ */
+
+bool TemplateInstance::findTemplateDeclaration(Scope *sc)
+{
+    if (havetempdecl)
+        return true;
+
+    //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
+    if (!tempdecl)
+    {
+        /* Given:
+         *    foo!( ... )
+         * figure out which TemplateDeclaration foo refers to.
+         */
+        Identifier *id = name;
+        Dsymbol *scopesym;
+        Dsymbol *s = sc->search(loc, id, &scopesym);
+        if (!s)
+        {
+            s = sc->search_correct(id);
+            if (s)
+                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
+            else
+                error("template '%s' is not defined", id->toChars());
+            return false;
+        }
+
+#if LOG
+        printf("It's an instance of '%s' kind '%s'\n", s->toChars(), s->kind());
+        if (s->parent)
+            printf("s->parent = '%s'\n", s->parent->toChars());
+#endif
+        withsym = scopesym->isWithScopeSymbol();
+
+        /* We might have found an alias within a template when
+         * we really want the template.
+         */
+        TemplateInstance *ti;
+        if (s->parent &&
+            (ti = s->parent->isTemplateInstance()) != NULL)
+        {
+            if (ti->tempdecl && ti->tempdecl->ident == id)
+            {
+                /* This is so that one can refer to the enclosing
+                 * template, even if it has the same name as a member
+                 * of the template, if it has a !(arguments)
+                 */
+                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
+                assert(td);
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    td = td->overroot;  // then get the start
+                s = td;
+            }
+        }
+
+        if (!updateTemplateDeclaration(sc, s))
+        {
+            return false;
+        }
+    }
+    assert(tempdecl);
+
+  struct ParamFwdTi
+  {
+    static int fp(void *param, Dsymbol *s)
+    {
+        TemplateDeclaration *td = s->isTemplateDeclaration();
+        if (!td)
+            return 0;
+
+        TemplateInstance *ti = (TemplateInstance *)param;
+        if (td->semanticRun == PASSinit)
+        {
+            if (td->scope)
+            {
+                // Try to fix forward reference. Ungag errors while doing so.
+                Ungag ungag = td->ungagSpeculative();
+                td->semantic(td->scope);
+            }
+            if (td->semanticRun == PASSinit)
+            {
+                ti->error("%s forward references template declaration %s", ti->toChars(), td->toChars());
+                return 1;
+            }
+        }
+        return 0;
+    }
+  };
+    // Look for forward references
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
+    for (size_t oi = 0; oi < overs_dim; oi++)
+    {
+        if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdTi::fp))
+            return false;
+    }
+    return true;
+}
+
+/**********************************************
+ * Confirm s is a valid template, then store it.
+ */
+
+bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
+{
+    if (s)
+    {
+        Identifier *id = name;
+        s = s->toAlias();
+
+        /* If an OverloadSet, look for a unique member that is a template declaration
+         */
+        OverloadSet *os = s->isOverloadSet();
+        if (os)
+        {
+            s = NULL;
+            for (size_t i = 0; i < os->a.dim; i++)
+            {
+                Dsymbol *s2 = os->a[i];
+                if (FuncDeclaration *f = s2->isFuncDeclaration())
+                    s2 = f->findTemplateDeclRoot();
+                else
+                    s2 = s2->isTemplateDeclaration();
+                if (s2)
+                {
+                    if (s)
+                    {
+                        tempdecl = os;
+                        return true;
+                    }
+                    s = s2;
+                }
+            }
+            if (!s)
+            {
+                error("template '%s' is not defined", id->toChars());
+                return false;
+            }
+        }
+
+        /* It should be a TemplateDeclaration, not some other symbol
+         */
+        if (FuncDeclaration *f = s->isFuncDeclaration())
+            tempdecl = f->findTemplateDeclRoot();
+        else
+            tempdecl = s->isTemplateDeclaration();
+        if (!tempdecl)
+        {
+            if (!s->parent && global.errors)
+                return false;
+            if (!s->parent && s->getType())
+            {
+                Dsymbol *s2 = s->getType()->toDsymbol(sc);
+                if (!s2)
+                {
+                    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+                    return false;
+                }
+                s = s2;
+            }
+#ifdef DEBUG
+            //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
+#endif
+            //assert(s->parent);
+            TemplateInstance *ti = s->parent ? s->parent->isTemplateInstance() : NULL;
+            if (ti &&
+                (ti->name == s->ident ||
+                 ti->toAlias()->ident == s->ident)
+                &&
+                ti->tempdecl)
+            {
+                /* This is so that one can refer to the enclosing
+                 * template, even if it has the same name as a member
+                 * of the template, if it has a !(arguments)
+                 */
+                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
+                assert(td);
+                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
+                    td = td->overroot;  // then get the start
+                tempdecl = td;
+            }
+            else
+            {
+                error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
+                return false;
+            }
+        }
+    }
+    return (tempdecl != NULL);
+}
+
 bool TemplateInstance::semanticTiargs(Scope *sc)
 {
     //printf("+TemplateInstance::semanticTiargs() %s\n", toChars());
@@ -6054,199 +6247,6 @@ void TemplateInstance::semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int f
 #endif
 }
 
-/**********************************************
- * Find template declaration corresponding to template instance.
- */
-
-bool TemplateInstance::findTemplateDeclaration(Scope *sc)
-{
-    if (havetempdecl)
-        return true;
-
-    //printf("TemplateInstance::findTemplateDeclaration() %s\n", toChars());
-    if (!tempdecl)
-    {
-        /* Given:
-         *    foo!( ... )
-         * figure out which TemplateDeclaration foo refers to.
-         */
-        Identifier *id = name;
-        Dsymbol *scopesym;
-        Dsymbol *s = sc->search(loc, id, &scopesym);
-        if (!s)
-        {
-            s = sc->search_correct(id);
-            if (s)
-                error("template '%s' is not defined, did you mean %s?", id->toChars(), s->toChars());
-            else
-                error("template '%s' is not defined", id->toChars());
-            return false;
-        }
-
-#if LOG
-        printf("It's an instance of '%s' kind '%s'\n", s->toChars(), s->kind());
-        if (s->parent)
-            printf("s->parent = '%s'\n", s->parent->toChars());
-#endif
-        withsym = scopesym->isWithScopeSymbol();
-
-        /* We might have found an alias within a template when
-         * we really want the template.
-         */
-        TemplateInstance *ti;
-        if (s->parent &&
-            (ti = s->parent->isTemplateInstance()) != NULL)
-        {
-            if (ti->tempdecl && ti->tempdecl->ident == id)
-            {
-                /* This is so that one can refer to the enclosing
-                 * template, even if it has the same name as a member
-                 * of the template, if it has a !(arguments)
-                 */
-                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
-                assert(td);
-                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
-                    td = td->overroot;  // then get the start
-                s = td;
-            }
-        }
-
-        if (!updateTemplateDeclaration(sc, s))
-        {
-            return false;
-        }
-    }
-    assert(tempdecl);
-
-  struct ParamFwdTi
-  {
-    static int fp(void *param, Dsymbol *s)
-    {
-        TemplateDeclaration *td = s->isTemplateDeclaration();
-        if (!td)
-            return 0;
-
-        TemplateInstance *ti = (TemplateInstance *)param;
-        if (td->semanticRun == PASSinit)
-        {
-            if (td->scope)
-            {
-                // Try to fix forward reference. Ungag errors while doing so.
-                Ungag ungag = td->ungagSpeculative();
-                td->semantic(td->scope);
-            }
-            if (td->semanticRun == PASSinit)
-            {
-                ti->error("%s forward references template declaration %s", ti->toChars(), td->toChars());
-                return 1;
-            }
-        }
-        return 0;
-    }
-  };
-    // Look for forward references
-    OverloadSet *tovers = tempdecl->isOverloadSet();
-    size_t overs_dim = tovers ? tovers->a.dim : 1;
-    for (size_t oi = 0; oi < overs_dim; oi++)
-    {
-        if (overloadApply(tovers ? tovers->a[oi] : tempdecl, (void *)this, &ParamFwdTi::fp))
-            return false;
-    }
-    return true;
-}
-
-/**********************************************
- * Confirm s is a valid template, then store it.
- */
-
-bool TemplateInstance::updateTemplateDeclaration(Scope *sc, Dsymbol *s)
-{
-    if (s)
-    {
-        Identifier *id = name;
-        s = s->toAlias();
-
-        /* If an OverloadSet, look for a unique member that is a template declaration
-         */
-        OverloadSet *os = s->isOverloadSet();
-        if (os)
-        {
-            s = NULL;
-            for (size_t i = 0; i < os->a.dim; i++)
-            {
-                Dsymbol *s2 = os->a[i];
-                if (FuncDeclaration *f = s2->isFuncDeclaration())
-                    s2 = f->findTemplateDeclRoot();
-                else
-                    s2 = s2->isTemplateDeclaration();
-                if (s2)
-                {
-                    if (s)
-                    {
-                        tempdecl = os;
-                        return true;
-                    }
-                    s = s2;
-                }
-            }
-            if (!s)
-            {
-                error("template '%s' is not defined", id->toChars());
-                return false;
-            }
-        }
-
-        /* It should be a TemplateDeclaration, not some other symbol
-         */
-        if (FuncDeclaration *f = s->isFuncDeclaration())
-            tempdecl = f->findTemplateDeclRoot();
-        else
-            tempdecl = s->isTemplateDeclaration();
-        if (!tempdecl)
-        {
-            if (!s->parent && global.errors)
-                return false;
-            if (!s->parent && s->getType())
-            {
-                Dsymbol *s2 = s->getType()->toDsymbol(sc);
-                if (!s2)
-                {
-                    error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                    return false;
-                }
-                s = s2;
-            }
-#ifdef DEBUG
-            //if (!s->parent) printf("s = %s %s\n", s->kind(), s->toChars());
-#endif
-            //assert(s->parent);
-            TemplateInstance *ti = s->parent ? s->parent->isTemplateInstance() : NULL;
-            if (ti &&
-                (ti->name == s->ident ||
-                 ti->toAlias()->ident == s->ident)
-                &&
-                ti->tempdecl)
-            {
-                /* This is so that one can refer to the enclosing
-                 * template, even if it has the same name as a member
-                 * of the template, if it has a !(arguments)
-                 */
-                TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration();
-                assert(td);
-                if (td->overroot)       // if not start of overloaded list of TemplateDeclaration's
-                    td = td->overroot;  // then get the start
-                tempdecl = td;
-            }
-            else
-            {
-                error("%s is not a template declaration, it is a %s", id->toChars(), s->kind());
-                return false;
-            }
-        }
-    }
-    return (tempdecl != NULL);
-}
-
 bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
 {
     if (havetempdecl)
@@ -6405,6 +6405,152 @@ bool TemplateInstance::findBestMatch(Scope *sc, Expressions *fargs)
     printf("\tIt's a match with template declaration '%s'\n", tempdecl->toChars());
 #endif
     return (errs == global.errors);
+}
+
+/*****************************************************
+ * Determine if template instance is really a template function,
+ * and that template function needs to infer types from the function
+ * arguments.
+ *
+ * Like findBestMatch, iterate possible template candidates,
+ * but just looks only the necessity of type inference.
+ */
+
+bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
+{
+    //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
+
+  struct ParamNeedsInf
+  {
+    // context
+    Scope *sc;
+    TemplateInstance *ti;
+    int flag;
+    // result
+    Objects dedtypes;
+    size_t count;
+
+    static int fp(void *param, Dsymbol *s)
+    {
+        return ((ParamNeedsInf *)param)->fp(s);
+    }
+    int fp(Dsymbol *s)
+    {
+        TemplateDeclaration *td = s->isTemplateDeclaration();
+        if (!td)
+        {
+        Lcontinue:
+            return 0;
+        }
+
+        /* If any of the overloaded template declarations need inference,
+         * then return true
+         */
+        FuncDeclaration *fd;
+        if (!td->onemember)
+            return 0;
+        if (TemplateDeclaration *td2 = td->onemember->isTemplateDeclaration())
+        {
+            if (!td2->onemember || !td2->onemember->isFuncDeclaration())
+                return 0;
+            if (ti->tiargs->dim > td->parameters->dim && !td->isVariadic())
+                return 0;
+            return 1;
+        }
+        if ((fd = td->onemember->isFuncDeclaration()) == NULL ||
+            fd->type->ty != Tfunction)
+        {
+            return 0;
+        }
+
+        for (size_t i = 0; i < td->parameters->dim; i++)
+        {
+            if ((*td->parameters)[i]->isTemplateThisParameter())
+                return 1;
+        }
+
+        /* Determine if the instance arguments, tiargs, are all that is necessary
+         * to instantiate the template.
+         */
+        //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, ti->tiargs->dim);
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        if (size_t dim = Parameter::dim(tf->parameters))
+        {
+            TemplateParameter *tp = td->isVariadic();
+            if (tp && td->parameters->dim > 1)
+                return 1;
+
+            if (ti->tiargs->dim < td->parameters->dim)
+            {
+                // Can remain tiargs be filled by default arguments?
+                for (size_t i = ti->tiargs->dim; i < td->parameters->dim; i++)
+                {
+                    tp = (*td->parameters)[i];
+                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
+                    {
+                        if (!ttp->defaultType)
+                            return 1;
+                    }
+                    else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
+                    {
+                        if (!tap->defaultAlias)
+                            return 1;
+                    }
+                    else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
+                    {
+                        if (!tvp->defaultValue)
+                            return 1;
+                    }
+                }
+            }
+
+            for (size_t i = 0; i < dim; i++)
+            {
+                // 'auto ref' needs inference.
+                if (Parameter::getNth(tf->parameters, i)->storageClass & STCauto)
+                    return 1;
+            }
+        }
+
+        if (!flag)
+        {
+            /* Calculate the need for overload resolution.
+             * When only one template can match with tiargs, inference is not necessary.
+             */
+            dedtypes.setDim(td->parameters->dim);
+            dedtypes.zero();
+            assert(td->semanticRun != PASSinit);
+            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
+            if (m == MATCHnomatch)
+                return 0;
+        }
+
+        /* If there is more than one function template which matches, we may
+         * need type inference (see Bugzilla 4430)
+         */
+        if (++count > 1)
+            return 1;
+
+        return 0;
+    }
+  };
+    ParamNeedsInf p;
+    // context
+    p.ti    = this;
+    p.sc    = sc;
+    p.flag  = flag;
+    // result
+    p.count = 0;
+
+    OverloadSet *tovers = tempdecl->isOverloadSet();
+    size_t overs_dim = tovers ? tovers->a.dim : 1;
+    for (size_t oi = 0; oi < overs_dim; oi++)
+    {
+        if (int r = overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
+            return true;
+    }
+    //printf("false\n");
+    return false;
 }
 
 
@@ -6715,149 +6861,6 @@ void TemplateInstance::declareParameters(Scope *sc)
         //printf("\ttdtypes[%d] = %p\n", i, o);
         tempdecl->declareParameter(sc, tp, o);
     }
-}
-
-/*****************************************************
- * Determine if template instance is really a template function,
- * and that template function needs to infer types from the function
- * arguments.
- */
-
-bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
-{
-    //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
-
-  struct ParamNeedsInf
-  {
-    // context
-    Scope *sc;
-    TemplateInstance *ti;
-    int flag;
-    // result
-    Objects dedtypes;
-    size_t count;
-
-    static int fp(void *param, Dsymbol *s)
-    {
-        return ((ParamNeedsInf *)param)->fp(s);
-    }
-    int fp(Dsymbol *s)
-    {
-        TemplateDeclaration *td = s->isTemplateDeclaration();
-        if (!td)
-        {
-        Lcontinue:
-            return 0;
-        }
-
-        /* If any of the overloaded template declarations need inference,
-         * then return true
-         */
-        FuncDeclaration *fd;
-        if (!td->onemember)
-            return 0;
-        if (TemplateDeclaration *td2 = td->onemember->isTemplateDeclaration())
-        {
-            if (!td2->onemember || !td2->onemember->isFuncDeclaration())
-                return 0;
-            if (ti->tiargs->dim > td->parameters->dim && !td->isVariadic())
-                return 0;
-            return 1;
-        }
-        if ((fd = td->onemember->isFuncDeclaration()) == NULL ||
-            fd->type->ty != Tfunction)
-        {
-            return 0;
-        }
-
-        for (size_t i = 0; i < td->parameters->dim; i++)
-        {
-            if ((*td->parameters)[i]->isTemplateThisParameter())
-                return 1;
-        }
-
-        /* Determine if the instance arguments, tiargs, are all that is necessary
-         * to instantiate the template.
-         */
-        //printf("tp = %p, td->parameters->dim = %d, tiargs->dim = %d\n", tp, td->parameters->dim, ti->tiargs->dim);
-        TypeFunction *tf = (TypeFunction *)fd->type;
-        if (size_t dim = Parameter::dim(tf->parameters))
-        {
-            TemplateParameter *tp = td->isVariadic();
-            if (tp && td->parameters->dim > 1)
-                return 1;
-
-            if (ti->tiargs->dim < td->parameters->dim)
-            {
-                // Can remain tiargs be filled by default arguments?
-                for (size_t i = ti->tiargs->dim; i < td->parameters->dim; i++)
-                {
-                    tp = (*td->parameters)[i];
-                    if (TemplateTypeParameter *ttp = tp->isTemplateTypeParameter())
-                    {
-                        if (!ttp->defaultType)
-                            return 1;
-                    }
-                    else if (TemplateAliasParameter *tap = tp->isTemplateAliasParameter())
-                    {
-                        if (!tap->defaultAlias)
-                            return 1;
-                    }
-                    else if (TemplateValueParameter *tvp = tp->isTemplateValueParameter())
-                    {
-                        if (!tvp->defaultValue)
-                            return 1;
-                    }
-                }
-            }
-
-            for (size_t i = 0; i < dim; i++)
-            {
-                // 'auto ref' needs inference.
-                if (Parameter::getNth(tf->parameters, i)->storageClass & STCauto)
-                    return 1;
-            }
-        }
-
-        if (!flag)
-        {
-            /* Calculate the need for overload resolution.
-             * When only one template can match with tiargs, inference is not necessary.
-             */
-            dedtypes.setDim(td->parameters->dim);
-            dedtypes.zero();
-            assert(td->semanticRun != PASSinit);
-            MATCH m = td->matchWithInstance(sc, ti, &dedtypes, NULL, 0);
-            if (m == MATCHnomatch)
-                return 0;
-        }
-
-        /* If there is more than one function template which matches, we may
-         * need type inference (see Bugzilla 4430)
-         */
-        if (++count > 1)
-            return 1;
-
-        return 0;
-    }
-  };
-    ParamNeedsInf p;
-    // context
-    p.ti    = this;
-    p.sc    = sc;
-    p.flag  = flag;
-    // result
-    p.count = 0;
-
-    OverloadSet *tovers = tempdecl->isOverloadSet();
-    size_t overs_dim = tovers ? tovers->a.dim : 1;
-    for (size_t oi = 0; oi < overs_dim; oi++)
-    {
-        if (int r = overloadApply(tovers ? tovers->a[oi] : tempdecl, &p, &ParamNeedsInf::fp))
-            return true;
-    }
-    //printf("false\n");
-    return false;
 }
 
 void TemplateInstance::semantic2(Scope *sc)

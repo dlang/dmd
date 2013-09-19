@@ -341,7 +341,6 @@ public:
     Dsymbol *toAlias();                 // resolve real symbol
     const char *kind();
     bool oneMember(Dsymbol **ps, Identifier *ident);
-    bool needsTypeInference(Scope *sc, int flag = 0);
     char *toChars();
     const char *mangle(bool isv = false);
     void printInstantiationTrace();
@@ -352,13 +351,14 @@ public:
     void toObjFile(int multiobj);                       // compile to .obj file
 
     // Internal
-    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
-    bool semanticTiargs(Scope *sc);
     bool findTemplateDeclaration(Scope *sc);
     bool updateTemplateDeclaration(Scope *sc, Dsymbol *s);
+    static void semanticTiargs(Loc loc, Scope *sc, Objects *tiargs, int flags);
+    bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
-    void declareParameters(Scope *sc);
+    bool needsTypeInference(Scope *sc, int flag = 0);
     int hasNestedArgs(Objects *tiargs);
+    void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);
     void tryExpandMembers(Scope *sc);
