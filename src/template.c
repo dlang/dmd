@@ -6726,13 +6726,6 @@ void TemplateInstance::declareParameters(Scope *sc)
 bool TemplateInstance::needsTypeInference(Scope *sc, int flag)
 {
     //printf("TemplateInstance::needsTypeInference() %s\n", toChars());
-    if (!findTemplateDeclaration(sc) ||
-        !flag && !semanticTiargs(sc))
-    {
-        inst = this;
-        inst->errors = true;
-        return false;
-    }
 
   struct ParamNeedsInf
   {
