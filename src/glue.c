@@ -588,8 +588,34 @@ void FuncDeclaration::toObjFile(int multiobj)
     if (!global.params.useUnitTests &&
         ti && ti->instantiatingModule && !ti->instantiatingModule->root)
     {
-        //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
-        return;
+        Module *mi = ti->instantiatingModule;
+
+        // If mi imports any root modules, we still need to generate the code.
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        bool importsRoot = false;
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            if (m->root && mi->imports(m))
+            {
+                importsRoot = true;
+                break;
+            }
+        }
+        for (size_t i = 0; i < Module::amodules.dim; ++i)
+        {
+            Module *m = Module::amodules[i];
+            m->insearch = 0;
+        }
+        if (!importsRoot)
+        {
+            //printf("instantiated by %s   %s\n", ti->instantiatingModule->toChars(), ti->toChars());
+            return;
+        }
     }
 
     if (global.params.verbose)
