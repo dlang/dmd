@@ -383,7 +383,11 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         {
             //assert(ti->needsTypeInference(sc));
             if (!ti->semanticTiargs(sc))
+            {
+                ti->inst = ti;
+                ti->inst->errors = true;
                 goto Leprop;
+            }
             tiargs = ti->tiargs;
             tthis  = NULL;
             if ((os = ti->tempdecl->isOverloadSet()) != NULL)
@@ -5014,9 +5018,15 @@ Expression *ScopeExp::semantic(Scope *sc)
 
 Lagain:
     TemplateInstance *ti = sds->isTemplateInstance();
-    if (ti && !ti->errors)
+    if (ti)
     {
-        unsigned olderrs = global.errors;
+        if (!ti->findTemplateDeclaration(sc) ||
+            !ti->semanticTiargs(sc))
+        {
+            ti->inst = ti;
+            ti->inst->errors = true;
+            return new ErrorExp();
+        }
         if (ti->needsTypeInference(sc))
         {
             if (TemplateDeclaration *td = ti->tempdecl->isTemplateDeclaration())
@@ -5043,6 +5053,7 @@ Lagain:
             }
             return this;
         }
+        unsigned olderrs = global.errors;
         if (!ti->semanticRun)
             ti->semantic(sc);
         if (ti->inst)
@@ -5052,7 +5063,8 @@ Lagain:
             Dsymbol *s = ti->inst->toAlias();
             ScopeDsymbol *sds2 = s->isScopeDsymbol();
             if (!sds2)
-            {   Expression *e;
+            {
+                Expression *e;
 
                 //printf("s = %s, '%s'\n", s->kind(), s->toChars());
                 if (ti->withsym)
@@ -6136,8 +6148,12 @@ Expression *FuncExp::semantic(Scope *sc)
         }
 
         // need to infer return type
-        if ((olderrors != global.errors) && fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
-            ((TypeFunction *)fd->type)->next = Type::terror;
+        if (olderrors != global.errors)
+        {
+            if (fd->type && fd->type->ty == Tfunction && !fd->type->nextOf())
+                ((TypeFunction *)fd->type)->next = Type::terror;
+            return new ErrorExp();
+        }
 
         // Type is a "delegate to" or "pointer to" the function literal
         if ((fd->isNested() && fd->tok == TOKdelegate) ||
@@ -8183,9 +8199,14 @@ L1:
         if (ti->errors)
             return new ErrorExp();
         DotTemplateExp *dte = (DotTemplateExp *)e;
-        TemplateDeclaration *td = dte->td;
         Expression *eleft = dte->e1;
-        ti->tempdecl = td;
+        ti->tempdecl = dte->td;
+        if (!ti->semanticTiargs(sc))
+        {
+            ti->inst = ti;
+            ti->inst->errors = true;
+            return new ErrorExp();
+        }
         if (ti->needsTypeInference(sc))
         {
             e1 = eleft;                 // save result of semantic()
@@ -8251,8 +8272,13 @@ L1:
 
         if (de->e2->op == TOKoverloadset)
         {
-            if (!findTempDecl(sc))
-                goto Lerr;
+            if (!findTempDecl(sc) ||
+                !ti->semanticTiargs(sc))
+            {
+                ti->inst = ti;
+                ti->inst->errors = true;
+                return new ErrorExp();
+            }
             if (ti->needsTypeInference(sc))
             {
                 e1 = eleft;
@@ -8493,8 +8519,13 @@ Expression *CallExp::semantic(Scope *sc)
             /* Attempt to instantiate ti. If that works, go with it.
              * If not, go with partial explicit specialization.
              */
-            if (!ti->semanticTiargs(sc))
+            if (!ti->findTemplateDeclaration(sc) ||
+                !ti->semanticTiargs(sc))
+            {
+                ti->inst = ti;
+                ti->inst->errors = true;
                 return new ErrorExp();
+            }
             if (ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
@@ -8510,6 +8541,8 @@ Expression *CallExp::semantic(Scope *sc)
             else
             {
                 ti->semantic(sc);
+                if (ti->errors)
+                    e1 = new ErrorExp();
             }
         }
     }
@@ -8528,7 +8561,11 @@ Ldotti:
              */
             if (!se->findTempDecl(sc) ||
                 !ti->semanticTiargs(sc))
+            {
+                ti->inst = ti;
+                ti->inst->errors = true;
                 return new ErrorExp();
+            }
             if (ti->needsTypeInference(sc, 1))
             {
                 /* Go with partial explicit specialization
