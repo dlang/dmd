@@ -357,7 +357,7 @@ public:
     bool semanticTiargs(Scope *sc);
     bool findBestMatch(Scope *sc, Expressions *fargs);
     bool needsTypeInference(Scope *sc, int flag = 0);
-    int hasNestedArgs(Objects *tiargs);
+    bool hasNestedArgs(Objects *tiargs);
     void declareParameters(Scope *sc);
     Identifier *genIdent(Objects *args);
     void expandMembers(Scope *sc);
