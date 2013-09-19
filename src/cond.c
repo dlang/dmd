@@ -335,9 +335,7 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {
             error(loc, (nest > 1000) ? "unresolvable circular static if expression"
                                      : "error evaluating static if expression");
-            if (!global.gag)
-                inc = 2;                // so we don't see the error message again
-            return 0;
+            goto Lerror;
         }
 
         if (!sc)
@@ -364,13 +362,12 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         {
             if (e->type->toBasetype() != Type::terror)
                 exp->error("expression %s of type %s does not have a boolean value", exp->toChars(), e->type->toChars());
-            inc = 0;
-            return 0;
+            goto Lerror;
         }
         e = e->ctfeInterpret();
         if (e->op == TOKerror)
-        {   exp = e;
-            inc = 0;
+        {
+            goto Lerror;
         }
         else if (e->isBool(TRUE))
             inc = 1;
@@ -379,10 +376,15 @@ int StaticIfCondition::include(Scope *sc, ScopeDsymbol *s)
         else
         {
             e->error("expression %s is not constant or does not evaluate to a bool", e->toChars());
-            inc = 2;
+            goto Lerror;
         }
     }
     return (inc == 1);
+
+Lerror:
+    if (!global.gag)
+        inc = 2;                // so we don't see the error message again
+    return 0;
 }
 
 void StaticIfCondition::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
