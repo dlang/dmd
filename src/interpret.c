@@ -81,8 +81,8 @@ public:
 
     // Largest number of stack positions we've used
     size_t maxStackUsage();
-    // Start a new stack frame, using the provided 'this'.
-    void startFrame(Expression *thisexp);
+    // Start a new stack frame for numVars, using the provided 'this'.
+    void startFrame(int numVars, Expression *thisexp);
     void endFrame();
     bool isInCurrentFrame(VarDeclaration *v);
     Expression *getValue(VarDeclaration *v);
@@ -131,7 +131,7 @@ size_t CtfeStack::maxStackUsage()
     return maxStackPointer;
 }
 
-void CtfeStack::startFrame(Expression *thisexp)
+void CtfeStack::startFrame(int numVars, Expression *thisexp)
 {
     size_t oldframe = framepointer;
     frames.push((void *)(size_t)(framepointer));
@@ -303,8 +303,8 @@ int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
         // Currently there's a front-end bug: silent errors
         // can occur inside delegate literals inside is(typeof()).
         // Suppress the check in this case.
-        if (global.gag && ccf->func)
-            return 1;
+//        if (global.gag && ccf->func)
+//            return 1;
 
         printf("CTFE: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() :  ccf->callingloc.toChars());
         assert(0);
@@ -692,10 +692,12 @@ Expression *Expression::ctfeInterpret()
     CompiledCtfeFunction ctfeCodeGlobal(NULL);
     ctfeCodeGlobal.callingloc = loc;
     ctfeCodeGlobal.onExpression(this);
+    ctfeStack.startFrame(ctfeCodeGlobal.numVars, NULL);
 
     Expression *e = interpret(NULL);
     if (e != EXP_CANT_INTERPRET)
         e = scrubReturnValue(loc, e);
+    ctfeStack.endFrame();
     if (e == EXP_CANT_INTERPRET)
         e = new ErrorExp();
     return e;
@@ -889,7 +891,7 @@ Expression *FuncDeclaration::interpret(InterState *istate, Expressions *argument
     InterState istatex;
     istatex.caller = istate;
     istatex.fd = this;
-    ctfeStack.startFrame(thisarg);
+    ctfeStack.startFrame(ctfeCode->numVars, thisarg);
 
     if (arguments)
     {
@@ -4812,7 +4814,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
     InterState istateComma;
     if (!istate &&  firstComma->e1->op == TOKdeclaration)
     {
-        ctfeStack.startFrame(NULL);
         istate = &istateComma;
     }
 
@@ -4839,8 +4840,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
             newval = newval->interpret(istate);
             if (exceptionOrCantInterpret(newval))
             {
-                if (istate == &istateComma)
-                    ctfeStack.endFrame();
                 return newval;
             }
             if (newval != EXP_VOID_INTERPRET)
@@ -4860,9 +4859,6 @@ Expression *CommaExp::interpret(InterState *istate, CtfeGoal goal)
         if (!exceptionOrCantInterpret(e))
             e = e2->interpret(istate, goal);
     }
-    // If we created a temporary stack frame, end it now.
-    if (istate == &istateComma)
-        ctfeStack.endFrame();
     return e;
 }
 
