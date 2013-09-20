@@ -27,7 +27,13 @@ class VarDeclaration;
 class EnumDeclaration : public ScopeDsymbol
 {
 public:
-    /* enum id : memtype { ... }
+    /* The separate, and distinct, cases are:
+     *  1. enum { ... }
+     *  2. enum : memtype { ... }
+     *  3. enum id { ... }
+     *  4. enum id : memtype { ... }
+     *  5. enum id : memtype;
+     *  6. enum id;
      */
     Type *type;                 // the TypeEnum
     Type *memtype;              // type of the members
@@ -40,7 +46,7 @@ private:
 
 public:
     bool isdeprecated;
-    Scope *sce;                 // scope for evaluating members
+    bool added;
 
     EnumDeclaration(Loc loc, Identifier *id, Type *memtype);
     Dsymbol *syntaxCopy(Dsymbol *s);
@@ -78,9 +84,15 @@ public:
 class EnumMember : public Dsymbol
 {
 public:
-    EnumDeclaration *ed;
+    /* Can take the following forms:
+     *  1. id
+     *  2. id = value
+     *  3. type id = value
+     */
     Expression *value;
     Type *type;
+
+    EnumDeclaration *ed;
     VarDeclaration *vd;
 
     EnumMember(Loc loc, Identifier *id, Expression *value, Type *type);

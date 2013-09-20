@@ -378,6 +378,41 @@ enum : int { e10788 }
 
 /**********************************************/
 
+class C7
+{
+    enum Policy
+    {
+        PREFER_READERS,
+        PREFER_WRITERS
+    }
+
+    void foo1( Policy policy = Policy.PREFER_READERS ) { }
+    void foo2( Policy policy = Policy.PREFER_WRITERS ) { }
+}
+
+/**********************************************/
+
+void test8()
+{
+    enum E
+    {
+        A = B,
+	E = D + 7,
+        B = 3,
+	C,
+	D,
+    }
+
+    assert(E.A == 3);
+    assert(E.B == 3);
+    assert(E.C == 4);
+    assert(E.D == 5);
+    assert(E.E == 12);
+    assert(E.max == 12);
+}
+
+/**********************************************/
+
 int main()
 {
     test1();
@@ -389,6 +424,7 @@ int main()
     test2407();
     test10113();
     test10561();
+    test8();
 
     printf("Success\n");
     return 0;
