@@ -893,7 +893,7 @@ Ldone:
         }
     }
 
-    if (fbody && isMain() && sc->module == sc->module->importedFrom)
+    if (fbody && isMain() && sc->module->isRoot())
         genCmain(sc);
 
     return;

@@ -586,7 +586,7 @@ void FuncDeclaration::toObjFile(int multiobj)
      */
     TemplateInstance *ti = inTemplateInstance();
     if (!global.params.useUnitTests &&
-        ti && ti->instantiatingModule && !ti->instantiatingModule->root)
+        ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
     {
         Module *mi = ti->instantiatingModule;
 
@@ -600,7 +600,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         for (size_t i = 0; i < Module::amodules.dim; ++i)
         {
             Module *m = Module::amodules[i];
-            if (m->root && mi->imports(m))
+            if (m->isRoot() && mi->imports(m))
             {
                 importsRoot = true;
                 break;
