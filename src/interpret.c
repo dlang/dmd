@@ -303,8 +303,8 @@ int CompiledCtfeFunction::walkAllVars(Expression *e, void *_this)
         // Currently there's a front-end bug: silent errors
         // can occur inside delegate literals inside is(typeof()).
         // Suppress the check in this case.
-        if (global.gag && ccf->func)
-            return 1;
+//        if (global.gag && ccf->func)
+//            return 1;
 
         printf("CTFE: ErrorExp in %s\n", ccf->func ? ccf->func->loc.toChars() :  ccf->callingloc.toChars());
         assert(0);
