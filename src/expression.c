@@ -3544,18 +3544,6 @@ Lagain:
     em = s->isEnumMember();
     if (em)
     {
-        if (em->ed->semanticRun == PASSinit)
-        {
-            assert(em->ed->scope);
-            em->ed->semantic(NULL);
-        }
-        e = em->value;
-        if (!e)
-        {
-            em->errors = true;
-            error("forward reference of %s %s", s->kind(), s->toChars());
-            return new ErrorExp();
-        }
         return em->getVarExp(loc, sc);
     }
     v = s->isVarDeclaration();
