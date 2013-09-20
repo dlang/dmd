@@ -1394,6 +1394,50 @@ void test10567()
 }
 
 /**************************************/
+// 11062
+
+struct S11062ia
+{
+    struct S1
+    {
+        void opIndexAssign(int val, int key) {}
+    }
+    struct S2
+    {
+        S1 headers;
+    }
+
+    private S2 m_obj;
+    @property S2 get() { return m_obj; }
+    alias get this;
+}
+
+struct S11062sa
+{
+    struct S1
+    {
+        void opSliceAssign(int val, int lwr, int upr) {}
+    }
+    struct S2
+    {
+        S1 headers;
+    }
+
+    private S2 m_obj;
+    @property S2 get() { return m_obj; }
+    alias get this;
+}
+
+void test11062()
+{
+    auto sia = S11062ia();
+    sia.headers[1] = 1;     // bug
+
+    auto ssa = S11062sa();
+    ssa.headers[1..2] = 1;  // bug
+}
+
+/**************************************/
 
 int main()
 {
@@ -1428,6 +1472,7 @@ int main()
     test10064();
     test10394();
     test10567();
+    test11062();
 
     printf("Success\n");
     return 0;

@@ -11168,7 +11168,8 @@ Expression *AssignExp::semantic(Scope *sc)
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
-        Expression *e1 = ae->e1;
+        Expression *ae1old = ae->e1;
+
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
@@ -11187,7 +11188,7 @@ Expression *AssignExp::semantic(Scope *sc)
                 Expressions *a = (Expressions *)ae->arguments->copy();
                 a->insert(0, e2);
 
-                Expression *e = new DotIdExp(loc, e1, Id::indexass);
+                Expression *e = new DotIdExp(loc, ae->e1, Id::indexass);
                 e = new CallExp(loc, e, a);
                 e = combine(e0, e);
                 e = e->semantic(sc);
@@ -11200,8 +11201,8 @@ Expression *AssignExp::semantic(Scope *sc)
         {
             if (!att1 && t1->checkAliasThisRec())
                 att1 = t1;
-            e1 = resolveAliasThis(sc, e1);
-            t1 = e1->type->toBasetype();
+            ae->e1 = resolveAliasThis(sc, ae->e1);
+            t1 = ae->e1->type->toBasetype();
             if (t1->ty == Tstruct)
             {
                 ad = ((TypeStruct *)t1)->sym;
@@ -11213,6 +11214,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 goto L1;
             }
         }
+
+        ae->e1 = ae1old;    // restore
     }
     /* Look for operator overloading of a[i..j]=value.
      * Do it before semantic() otherwise the a[i..j] will have been
@@ -11225,7 +11228,8 @@ Expression *AssignExp::semantic(Scope *sc)
 
         ae->e1 = ae->e1->semantic(sc);
         ae->e1 = resolveProperties(sc, ae->e1);
-        Expression *e1 = ae->e1;
+        Expression *ae1old = ae->e1;
+
         Type *t1 = ae->e1->type->toBasetype();
         if (t1->ty == Tstruct)
         {
@@ -11248,7 +11252,7 @@ Expression *AssignExp::semantic(Scope *sc)
                     a->push(ae->lwr);
                     a->push(ae->upr);
                 }
-                Expression *e = new DotIdExp(loc, e1, Id::sliceass);
+                Expression *e = new DotIdExp(loc, ae->e1, Id::sliceass);
                 e = new CallExp(loc, e, a);
                 e = combine(e0, e);
                 e = e->semantic(sc);
@@ -11261,8 +11265,8 @@ Expression *AssignExp::semantic(Scope *sc)
         {
             if (!att1 && t1->checkAliasThisRec())
                 att1 = t1;
-            e1 = resolveAliasThis(sc, e1);
-            t1 = e1->type->toBasetype();
+            ae->e1 = resolveAliasThis(sc, ae->e1);
+            t1 = ae->e1->type->toBasetype();
             if (t1->ty == Tstruct)
             {
                 ad = ((TypeStruct *)t1)->sym;
@@ -11274,6 +11278,8 @@ Expression *AssignExp::semantic(Scope *sc)
                 goto L2;
             }
         }
+
+        ae->e1 = ae1old;    // restore
     }
 
     /* With UFCS, e.f = value
