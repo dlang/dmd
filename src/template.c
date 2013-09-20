@@ -841,7 +841,8 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     ScopeDsymbol *paramsym = new ScopeDsymbol();
     paramsym->parent = scope->parent;
     Scope *paramscope = scope->push(paramsym);
-    paramscope->instantiatingModule = sc->instantiatingModule;
+    Module *mi = ti->instantiatingModule ? ti->instantiatingModule : sc->instantiatingModule;
+    paramscope->instantiatingModule = mi;
     paramscope->stc = 0;
 
     // Attempt type deduction
@@ -5599,8 +5600,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
     argsym = new ScopeDsymbol();
     argsym->parent = scope->parent;
     scope = scope->push(argsym);
-    if (!scope->instantiatingModule || scope->instantiatingModule->isRoot())
-        scope->instantiatingModule = mi;
+    scope->instantiatingModule = mi;
 //    scope->stc = 0;
 
     // Declare each template parameter as an alias for the argument type
