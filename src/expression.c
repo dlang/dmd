@@ -13118,6 +13118,11 @@ Expression *CmpExp::semantic(Scope *sc)
         error("compare not defined for complex operands");
         e = new ErrorExp();
     }
+    else if (t1->ty == Taarray || t2->ty == Taarray)
+    {
+        error("%s is not defined for associative arrays", Token::toChars(op));
+        e = new ErrorExp();
+    }
     else if (t1->ty == Tvector)
         return incompatibleTypes();
     else
