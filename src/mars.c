@@ -1459,12 +1459,11 @@ Language changes listed by -transition=id:\n\
     for (size_t filei = 0, modi = 0; filei < filecount; filei++, modi++)
     {
         m = modules[modi];
-        m->root = TRUE;
         if (global.params.verbose)
             printf("parse     %s\n", m->toChars());
         if (!Module::rootModule)
             Module::rootModule = m;
-        m->importedFrom = m;
+        m->importedFrom = m;    // m->isRoot() == true
         if (!global.params.oneobj || modi == 0 || m->isDocFile)
             m->deleteObjFile();
 #if ASYNCREAD

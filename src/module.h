@@ -87,9 +87,6 @@ public:
 
     int insearch;
 
-    int root;                   // != 0 if this is a 'root' module,
-                                // i.e. a module that will be taken all the
-                                // way to an object file
     Module *importedFrom;       // module from command line we're imported from,
                                 // i.e. a module that will be taken all the
                                 // way to an object file
@@ -108,7 +105,7 @@ public:
 
     Macro *macrotable;          // document comment macros
     Escape *escapetable;        // document comment escapes
-    bool safe;                  // TRUE if module is marked as 'safe'
+    bool safe;                  // true if module is marked as 'safe'
 
     size_t nameoffset;          // offset of module name from start of ModuleInfo
     size_t namelen;             // length of module name in characters
@@ -143,6 +140,10 @@ public:
     static void addDeferredSemantic3(Dsymbol *s);
     static void runDeferredSemantic3();
     int imports(Module *m);
+
+    bool isRoot() { return this->importedFrom == this; }
+                                // true if the module source file is directly
+                                // listed in command line.
 
     // Back end
 
