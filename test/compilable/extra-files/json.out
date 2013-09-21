@@ -349,7 +349,7 @@
    {
     "name" : "S",
     "kind" : "struct",
-    "line" : 83,
+    "line" : 82,
     "members" : [
      {
       "kind" : "template",
@@ -422,7 +422,7 @@
    {
     "name" : "C_9755",
     "kind" : "class",
-    "line" : 93,
+    "line" : 92,
     "members" : [
      {
       "kind" : "template",
