@@ -226,6 +226,7 @@ enum TOK
 struct Token
 {
     Token *next;
+    Loc loc;
     utf8_t *ptr;         // pointer to first character of this token within buffer
     TOK value;
     utf8_t *blockComment; // doc comment string prior to this token
@@ -269,7 +270,7 @@ public:
     static OutBuffer stringbuffer;
     static Token *freelist;
 
-    Loc loc;                    // for error messages
+    Loc scanloc;                // for error messages
 
     utf8_t *base;        // pointer to start of buffer
     utf8_t *end;         // past end of buffer
@@ -316,8 +317,6 @@ public:
 
     static int isValidIdentifier(char *p);
     static utf8_t *combineComments(utf8_t *c1, utf8_t *c2);
-
-    Loc tokenLoc();
 };
 
 #endif /* DMD_LEXER_H */
