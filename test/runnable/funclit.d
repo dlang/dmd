@@ -843,6 +843,24 @@ void foo10666(S10666 s1)
 }
 
 /***************************************************/
+// 11081
+
+T ifThrown11081(E : Throwable, T)(T delegate(E) errorHandler)
+{
+    return errorHandler();
+}
+
+void test11081()
+{
+    static if (__traits(compiles, ifThrown11081!Exception(e => 0)))
+    {
+    }
+    static if (__traits(compiles, ifThrown11081!Exception(e => 0)))
+    {
+    }
+}
+
+/***************************************************/
 
 int main()
 {
