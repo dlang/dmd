@@ -1833,6 +1833,9 @@ bool FuncDeclaration::functionSemantic()
             return false;
     }
 
+    if(FuncLiteralDeclaration* fld = isFuncLiteralDeclaration())
+        fld->genIdent(scope, 0);
+
     // if inferring return type, sematic3 needs to be run
     if (inferRetType && type && !type->nextOf())
         return functionSemantic3();

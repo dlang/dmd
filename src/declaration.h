@@ -766,6 +766,7 @@ public:
         ForeachStatement *fes, Identifier *id = NULL);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     Dsymbol *syntaxCopy(Dsymbol *);
+    void genIdent(Scope *sc, TemplateDeclaration *td);
     bool isNested();
     bool isVirtual();
 
