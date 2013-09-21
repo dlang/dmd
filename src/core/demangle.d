@@ -857,13 +857,8 @@ private struct Demangle
         Y     // variadic T t...) style
         Z     // not variadic
     */
-    enum IsDelegate { no, yes }
-    char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no )
+    void parseCallConvention()
     {
-        debug(trace) printf( "parseTypeFunction+\n" );
-        debug(trace) scope(success) printf( "parseTypeFunction-\n" );
-        auto beg = len;
-
         // CallConvention
         switch( tok() )
         {
@@ -889,7 +884,10 @@ private struct Demangle
         default:
             error();
         }
+    }
 
+    void parseFuncAttr()
+    {
         // FuncAttrs
         breakFuncAttrs:
         while( 'N' == tok() )
@@ -932,32 +930,10 @@ private struct Demangle
                 error();
             }
         }
+    }
 
-        beg = len;
-        put( "(" );
-        scope(success)
-        {
-            put( ")" );
-            auto t = len;
-            parseType();
-            put( " " );
-            if( name.length )
-            {
-                if( !contains( dst[0 .. len], name ) )
-                    put( name );
-                else if( shift( name ).ptr != name.ptr )
-                {
-                    beg -= name.length;
-                    t -= name.length;
-                }
-            }
-            else if( IsDelegate.yes == isdg )
-                put( "delegate" );
-            else
-                put( "function" );
-            shift( dst[beg .. t] );
-        }
-
+    void parseFuncArguments()
+    {
         // Arguments
         for( size_t n = 0; true; n++ )
         {
@@ -967,14 +943,14 @@ private struct Demangle
             case 'X': // ArgClose (variadic T t...) style)
                 next();
                 put( "..." );
-                return dst[beg .. len];
+                return;
             case 'Y': // ArgClose (variadic T t,...) style)
                 next();
                 put( ", ..." );
-                return dst[beg .. len];
+                return;
             case 'Z': // ArgClose (not variadic)
                 next();
-                return dst[beg .. len];
+                return;
             default:
                 break;
             }
@@ -1010,6 +986,55 @@ private struct Demangle
         }
     }
 
+    enum IsDelegate { no, yes }
+    // returns the argument list with the left parenthesis, but not the right
+    char[] parseTypeFunction( char[] name = null, IsDelegate isdg = IsDelegate.no )
+    {
+        debug(trace) printf( "parseTypeFunction+\n" );
+        debug(trace) scope(success) printf( "parseTypeFunction-\n" );
+        auto beg = len;
+
+        parseCallConvention();
+        parseFuncAttr();
+
+        beg = len;
+        put( "(" );
+        scope(success)
+        {
+            put( ")" );
+            auto t = len;
+            parseType();
+            put( " " );
+            if( name.length )
+            {
+                if( !contains( dst[0 .. len], name ) )
+                    put( name );
+                else if( shift( name ).ptr != name.ptr )
+                {
+                    beg -= name.length;
+                    t -= name.length;
+                }
+            }
+            else if( IsDelegate.yes == isdg )
+                put( "delegate" );
+            else
+                put( "function" );
+            shift( dst[beg .. t] );
+        }
+        parseFuncArguments();
+        return dst[beg..len];
+    }
+
+    static bool isCallConvention( char ch )
+    {
+        switch( ch )
+        {
+            case 'F', 'U', 'V', 'W', 'R':
+                return true;
+            default:
+                return false;
+        }
+    }
 
     /*
     Value:
@@ -1399,6 +1424,36 @@ private struct Demangle
             if( n++ )
                 put( "." );
             parseSymbolName();
+
+            if( isCallConvention( tok() ) )
+            {
+                // try to demangle a function, in case we are pointing to some function local
+                auto prevpos = pos;
+                auto prevlen = len;
+
+                // we don't want calling convention and attributes in the qualified name
+                parseCallConvention();
+                parseFuncAttr();
+                len = prevlen;
+
+                put( "(" );
+                parseFuncArguments();
+                put( ")" );
+                if( !isDigit( tok() ) ) // voldemort types don't have a return type on the function
+                {
+                    auto funclen = len;
+                    parseType();
+
+                    if( !isDigit( tok() ) )
+                    {
+                        // not part of a qualified name, so back up
+                        pos = prevpos;
+                        len = prevlen;
+                    }
+                    else
+                        len = funclen; // remove return type from qualified name
+                }
+            }
         } while( isDigit( tok() ) );
         return dst[beg .. len];
     }
@@ -1668,9 +1723,9 @@ version(unittest)
         ["_D6plugin8generateFiiZAya", "immutable(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAxa", "const(char)[] plugin.generate(int, int)"],
         ["_D6plugin8generateFiiZAOa", "shared(char)[] plugin.generate(int, int)"],
-        ["_D8demangle3fnAFZv3fnBMFZv", "void demangle.fnA().void fnB()"],
-        ["_D8demangle4mainFZv1S3fnCFZv", "void demangle.main().void S.fnC()"],
-        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().void S.fnD()"],
+        ["_D8demangle3fnAFZv3fnBMFZv", "void demangle.fnA().fnB()"],
+        ["_D8demangle4mainFZv1S3fnCFZv", "void demangle.main().S.fnC()"],
+        ["_D8demangle4mainFZv1S3fnDMFZv", "void demangle.main().S.fnD()"],
         ["_D8demangle20__T2fnVAiA4i1i2i3i4Z2fnFZv", "void demangle.fn!([1, 2, 3, 4]).fn()"],
         ["_D8demangle10__T2fnVi1Z2fnFZv", "void demangle.fn!(1).fn()"],
         ["_D8demangle26__T2fnVS8demangle1SS2i1i2Z2fnFZv", "void demangle.fn!(demangle.S(1, 2)).fn()"],
@@ -1679,7 +1734,12 @@ version(unittest)
         ["_D8demangle13__T2fnVeeINFZ2fnFZv", "void demangle.fn!(real.infinity).fn()"],
         ["_D8demangle21__T2fnVHiiA2i1i2i3i4Z2fnFZv", "void demangle.fn!([1:2, 3:4]).fn()"],
         ["_D8demangle2fnFNgiZNgi", "inout(int) demangle.fn(inout(int))"],
-        ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"]
+        ["_D8demangle29__T2fnVa97Va9Va0Vu257Vw65537Z2fnFZv", "void demangle.fn!('a', '\\t', \\x00, '\\u0101', '\\U00010001').fn()"],
+        ["_D2gc11gctemplates56__T8mkBitmapTS3std5range13__T4iotaTiTiZ4iotaFiiZ6ResultZ8mkBitmapFNbNfPmmZv",
+         "nothrow @safe void gc.gctemplates.mkBitmap!(std.range.iota!(int, int).iota(int, int).Result).mkBitmap(ulong*, ulong)"],
+        ["_D8serenity9persister6Sqlite70__T15SqlitePersisterTS8serenity9persister6Sqlite11__unittest6FZv4TestZ15SqlitePersister12__T7opIndexZ7opIndexMFmZS8serenity9persister6Sqlite11__unittest6FZv4Test",
+         "serenity.persister.Sqlite.__unittest6().Test serenity.persister.Sqlite.SqlitePersister!(serenity.persister.Sqlite.__unittest6().Test).SqlitePersister.opIndex!().opIndex(ulong)"],
+        ["_D8bug100274mainFZv5localMFZi","int bug10027.main().local()"],
     ];
 
     template staticIota(int x)
