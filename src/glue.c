@@ -563,6 +563,8 @@ void FuncDeclaration::toObjFile(int multiobj)
     }
     if (func->isUnitTestDeclaration() && !global.params.useUnitTests)
         return;
+    if (func->isFuncLiteralDeclaration() && func->ident->len == 0)
+        return; // function literal never referenced from an expression, do not emit
 
     if (multiobj && !isStaticDtorDeclaration() && !isStaticCtorDeclaration())
     {   obj_append(this);
