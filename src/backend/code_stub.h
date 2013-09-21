@@ -74,6 +74,7 @@ struct code
       #define CFoff       (1 << 2)          // get offset of immediate value
       #define CFoffset64  (1 << 3)          // offset is 64 bits
       #define CFseg       (1 << 4)          // get segment of immediate value
+      #define CFswitch    (1 << 5)          // kludge for switch table fixups
 
     unsigned char IFL1;                     // FLavors of 1st operands
     union evc IEV1;                         // 1st operand, if any
