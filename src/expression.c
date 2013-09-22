@@ -6018,15 +6018,15 @@ FuncExp::FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td)
     tok = fd->tok;  // save original kind of function/delegate/(infer)
 }
 
-void FuncExp::genIdent(Scope *sc)
+void FuncLiteralDeclaration::genIdent(Scope *sc, TemplateDeclaration *td)
 {
-    if (fd->ident == Id::empty)
+    if (ident == Id::empty)
     {
         const char *s;
-        if (fd->fes)                        s = "__foreachbody";
-        else if (fd->tok == TOKreserved)    s = "__lambda";
-        else if (fd->tok == TOKdelegate)    s = "__dgliteral";
-        else                                s = "__funcliteral";
+        if (fes)                        s = "__foreachbody";
+        else if (tok == TOKreserved)    s = "__lambda";
+        else if (tok == TOKdelegate)    s = "__dgliteral";
+        else                            s = "__funcliteral";
 
         DsymbolTable *symtab;
         if (FuncDeclaration *func = sc->parent->isFuncDeclaration())
@@ -6045,9 +6045,9 @@ void FuncExp::genIdent(Scope *sc)
             assert(symtab);
             int num = _aaLen(symtab->tab) + 1;
             Identifier *id = Lexer::uniqueId(s, num);
-            fd->ident = id;
+            ident = id;
             if (td) td->ident = id;
-            symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)fd);
+            symtab->insert(td ? (Dsymbol *)td : (Dsymbol *)this);
         }
     }
 }
@@ -6092,7 +6092,7 @@ Expression *FuncExp::semantic(Scope *sc)
         //if (fd->treq)
         //    fd->treq = fd->treq->semantic(loc, sc);
 
-        genIdent(sc);
+        fd->genIdent(sc, td);
 
         // Set target of return type inference
         if (fd->treq && !fd->type->nextOf())
@@ -6191,7 +6191,7 @@ Expression *FuncExp::semantic(Scope *sc, Expressions *arguments)
                 return checkarg;
         }
 
-        genIdent(sc);
+        fd->genIdent(sc, td);
 
         assert(td->parameters && td->parameters->dim);
         td->semantic(sc);

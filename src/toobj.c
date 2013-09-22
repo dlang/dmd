@@ -1310,8 +1310,12 @@ void TemplateInstance::toObjFile(int multiobj)
 #if LOG
     printf("TemplateInstance::toObjFile('%s', this = %p)\n", toChars(), this);
 #endif
-    if (!errors && members)
+    if (members)
     {
+        for (Dsymbol* p = this; p; p = p->parent)
+            if (p->errors)
+                return; // will fail to build correct symbols anyway
+
         if (multiobj)
             // Append to list of object files to be written later
             obj_append(this);

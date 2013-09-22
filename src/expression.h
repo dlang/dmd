@@ -751,7 +751,6 @@ public:
     TOK tok;
 
     FuncExp(Loc loc, FuncLiteralDeclaration *fd, TemplateDeclaration *td = NULL);
-    void genIdent(Scope *sc);
     Expression *syntaxCopy();
     Expression *semantic(Scope *sc);
     Expression *semantic(Scope *sc, Expressions *arguments);
