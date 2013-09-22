@@ -579,7 +579,7 @@ void FuncDeclaration::toObjFile(int multiobj)
         return;
     }
     assert(semanticRun == PASSsemantic3done);
-    semanticRun = PASSobj;
+    assert(ident != Id::empty);
 
     /* Skip generating code if this part of a TemplateInstance that is instantiated
      * only by non-root modules (i.e. modules not listed on the command line).
@@ -617,6 +617,9 @@ void FuncDeclaration::toObjFile(int multiobj)
             return;
         }
     }
+
+    // start code generation
+    semanticRun = PASSobj;
 
     if (global.params.verbose)
         printf("function  %s\n",func->toPrettyChars());
