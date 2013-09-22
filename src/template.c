@@ -5228,7 +5228,7 @@ Dsymbol *TemplateInstance::syntaxCopy(Dsymbol *s)
     ti->tiargs = arraySyntaxCopy(tiargs);
 
     TemplateDeclaration *td;
-    if (inst && (td = tempdecl->isTemplateDeclaration()) != NULL)
+    if (inst && tempdecl && (td = tempdecl->isTemplateDeclaration()) != NULL)
         td->ScopeDsymbol::syntaxCopy(ti);
     else
         ScopeDsymbol::syntaxCopy(ti);
