@@ -337,7 +337,7 @@ const char *TemplateInstance::mangle(bool isv)
         Dsymbol *par = enclosing || isTemplateMixin() ? parent : tempdecl->parent;
         if (par)
         {
-            const char *p = par->mangle();
+            const char *p = par->mangle(isv);
             if (p[0] == '_' && p[1] == 'D')
                 p += 2;
             buf.writestring(p);
