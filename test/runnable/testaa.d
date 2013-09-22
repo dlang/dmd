@@ -1033,6 +1033,45 @@ void test10595()
 }
 
 /************************************************/
+// 10970
+
+struct RefCounted10970(T) //if (!is(T == class))
+{
+    struct RefCountedStore
+    {
+    }
+    RefCountedStore _refCounted;
+
+    this(this) {}
+
+    ~this() {}
+}
+
+struct Array10970(T) if (!is(T : const(bool)))
+{
+    struct Payload
+    {
+    }
+    RefCounted10970!Payload _data;
+}
+
+class C10970
+{
+    this(string name)
+    {
+        m[name] = Arr();
+    }
+
+    alias Array10970!C10970 Arr;
+    Arr[string] m;
+}
+
+void test10970()
+{
+    C10970 c = new C10970("test");
+}
+
+/************************************************/
 // 6433
 
 void test6433()
@@ -1135,6 +1174,7 @@ int main()
     test5131();
     test6178();
     test10595();
+    test10970();
     test6433();
     test6612();
     test7365();
