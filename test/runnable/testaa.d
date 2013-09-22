@@ -989,6 +989,50 @@ void test6178()
 }
 
 /************************************************/
+// 10595
+
+struct S10595
+{
+    bool b = true;
+
+    bool test()
+    {
+        if (!b)  // note: must be a check, not 'return b;'
+            return false;
+
+        return true;
+    }
+}
+
+struct Wrap10595
+{
+    int i;
+    alias i this;
+    S10595 s;
+}
+
+void test10595()
+{
+    {
+        Wrap10595[int] wrap;
+
+        wrap[0] = Wrap10595();
+        wrap[0].i = 0;
+
+        assert(wrap[0].s.test());  // ok
+    }
+
+    {
+        Wrap10595[int] wrap;
+
+        wrap[0] = Wrap10595();
+        wrap[0] = 0;  // note: using 'alias this' to assign
+
+        assert(wrap[0].s.test());  // failure
+    }
+}
+
+/************************************************/
 // 6433
 
 void test6433()
@@ -1090,6 +1134,7 @@ int main()
     test4826c();
     test5131();
     test6178();
+    test10595();
     test6433();
     test6612();
     test7365();
