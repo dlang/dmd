@@ -2485,6 +2485,8 @@ struct Bar124 {
 void test124() {
     Foo124[string] stuff;
     stuff["foo"] = Foo124.init;
+    assert(stuff["foo"].z == 3);
+    stuff["foo"] = Foo124.init;
     assert(stuff["foo"].z == 2);
 
     Bar124[string] stuff2;
