@@ -258,7 +258,7 @@ private:
         char[2+2*size_t.sizeof+1] buf=void;
 
         immutable len = snprintf(buf.ptr, buf.length, "0x%p", pc);
-        len < buf.length || assert(0);
+        cast(uint)len < buf.length || assert(0);
         return buf[0 .. len].dup;
     }
 
@@ -290,7 +290,7 @@ private:
         res ~= fileName[0 .. strlen(fileName)];
         res ~= "(";
         immutable len = snprintf(buf.ptr, buf.length, "%u", lineNum);
-        len < buf.length || assert(0);
+        cast(uint)len < buf.length || assert(0);
         res ~= buf[0 .. len];
         res ~= ")";
         return res;

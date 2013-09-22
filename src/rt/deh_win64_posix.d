@@ -278,7 +278,7 @@ extern (C) void _d_throwc(Object h)
         debug(PRINTF)
         {
             printf("handler_info[%d]:\n", dim);
-            for (int i = 0; i < dim; i++)
+            for (uint i = 0; i < dim; i++)
             {
                 auto phi = &handler_table.handler_info.ptr[i];
                 printf("\t[%d]: offset = x%04x, endoffset = x%04x, prev_index = %d, cioffset = x%04x, finally_offset = %x\n",
@@ -287,7 +287,7 @@ extern (C) void _d_throwc(Object h)
         }
 
         auto index = -1;
-        for (int i = 0; i < dim; i++)
+        for (uint i = 0; i < dim; i++)
         {
             auto phi = &handler_table.handler_info.ptr[i];
 
@@ -345,7 +345,7 @@ extern (C) void _d_throwc(Object h)
 
                 auto pci = cast(DCatchInfo *)(cast(char *)handler_table + phi.cioffset);
                 auto ncatches = pci.ncatches;
-                for (int i = 0; i < ncatches; i++)
+                for (uint i = 0; i < ncatches; i++)
                 {
                     auto ci = **cast(ClassInfo **)h;
 
