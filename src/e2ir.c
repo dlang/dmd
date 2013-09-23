@@ -3636,7 +3636,7 @@ elem *CondExp::toElem(IRState *irs)
     elem *ec = econd->toElem(irs);
 
     elem *eleft = e1->toElemDtor(irs);
-    tym_t ty = type->totym();
+    tym_t ty = eleft->Ety;
     if (global.params.cov && e1->loc.linnum)
         eleft = el_combine(incUsageElem(irs, e1->loc), eleft);
 
@@ -3646,7 +3646,7 @@ elem *CondExp::toElem(IRState *irs)
 
     elem *e = el_bin(OPcond, ty, ec, el_bin(OPcolon, ty, eleft, eright));
     if (tybasic(ty) == TYstruct)
-        e->ET = type->toCtype();
+        e->ET = e1->type->toCtype();
     el_setLoc(e, loc);
     return e;
 }
