@@ -279,6 +279,7 @@ Msgtable msgtable[] =
     { "WinMain" },
     { "DllMain" },
     { "tls_get_addr", "___tls_get_addr" },
+    { "entrypoint", "__entrypoint" },
 
     // varargs implementation
     { "va_argsave_t", "__va_argsave_t" },
