@@ -24,15 +24,19 @@
 FuncDeclaration *StructDeclaration::xerreq;     // object.xopEquals
 FuncDeclaration *StructDeclaration::xerrcmp;    // object.xopCmp
 
-bool isImportedSym(Dsymbol *s)
+bool inNonRoot(Dsymbol *s)
 {
     if (!s || !s->parent)
         return false;
     s = s->parent;
     for (; s; s = s->parent)
     {
-        if (s->isTemplateInstance())
+        if (TemplateInstance *ti = s->isTemplateInstance())
+        {
+            if (!ti->instantiatingModule || !ti->instantiatingModule->isRoot())
+                return true;
             return false;
+        }
         else if (Module *m = s->isModule())
         {
             if (!m->isRoot())
@@ -41,6 +45,51 @@ bool isImportedSym(Dsymbol *s)
         }
     }
     return false;
+}
+
+/***************************************
+ * Search toHash member function for TypeInfo_Struct.
+ *      const hash_t toHash();
+ */
+FuncDeclaration *search_toHash(StructDeclaration *sd)
+{
+    Dsymbol *s = search_function(sd, Id::tohash);
+    FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
+    if (fd)
+    {
+        static TypeFunction *tftohash;
+        if (!tftohash)
+        {
+            tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
+            tftohash->mod = MODconst;
+            tftohash = (TypeFunction *)tftohash->merge();
+        }
+
+        fd = fd->overloadExactMatch(tftohash);
+    }
+    return fd;
+}
+
+/***************************************
+ * Search toString member function for TypeInfo_Struct.
+ *      string toString();
+ */
+FuncDeclaration *search_toString(StructDeclaration *sd)
+{
+    Dsymbol *s = search_function(sd, Id::tostring);
+    FuncDeclaration *fd = s ? s->isFuncDeclaration() : NULL;
+    if (fd)
+    {
+        static TypeFunction *tftostring;
+        if (!tftostring)
+        {
+            tftostring = new TypeFunction(NULL, Type::tstring, 0, LINKd);
+            tftostring = (TypeFunction *)tftostring->merge();
+        }
+
+        fd = fd->overloadExactMatch(tftostring);
+    }
+    return fd;
 }
 
 /********************************* AggregateDeclaration ****************************/
@@ -118,7 +167,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
     if (members)
     {
         StructDeclaration *sd = isStructDeclaration();
-        if (isImportedSym(sd))
+        if (!sc)    // from runDeferredSemantic3 for TypeInfo generation
             goto Lxop;
 
         sc = sc->push(this);
@@ -165,6 +214,7 @@ void AggregateDeclaration::semantic3(Scope *sc)
                 if (global.endGagging(errors))
                     sd->xeq = sd->xerreq;
             }
+
             if (sd->xcmp &&
                 sd->xcmp->scope &&
                 sd->xcmp->semanticRun < PASSsemantic3done)
@@ -173,6 +223,22 @@ void AggregateDeclaration::semantic3(Scope *sc)
                 sd->xcmp->semantic3(sd->xcmp->scope);
                 if (global.endGagging(errors))
                     sd->xcmp = sd->xerrcmp;
+            }
+
+            FuncDeclaration *ftostr = search_toString(sd);
+            if (ftostr &&
+                ftostr->scope &&
+                ftostr->semanticRun < PASSsemantic3done)
+            {
+                ftostr->semantic3(ftostr->scope);
+            }
+
+            FuncDeclaration *ftohash = search_toHash(sd);
+            if (ftohash &&
+                ftohash->scope &&
+                ftohash->semanticRun < PASSsemantic3done)
+            {
+                ftohash->semantic3(ftohash->scope);
             }
         }
     }
@@ -736,8 +802,11 @@ void StructDeclaration::semantic(Scope *sc)
      * the TypeInfo object would be speculatively stored in each object
      * files. To set correct function pointer, run semantic3 for xeq and xcmp.
      */
-    if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
-        Module::addDeferredSemantic3(this);
+    //if ((xeq && xeq != xerreq || xcmp && xcmp != xerrcmp) && isImportedSym(this))
+    //    Module::addDeferredSemantic3(this);
+    /* Defer requesting semantic3 until TypeInfo generation is actually invoked.
+     * See Type::getTypeInfo().
+     */
 #endif
     inv = buildInv(sc2);
 

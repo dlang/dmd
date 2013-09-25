@@ -104,6 +104,10 @@ Expression *Type::getInternalTypeInfo(Scope *sc)
 }
 
 
+bool inNonRoot(Dsymbol *s);
+FuncDeclaration *search_toHash(StructDeclaration *sd);
+FuncDeclaration *search_toString(StructDeclaration *sd);
+
 /****************************************************
  * Get the exact TypeInfo.
  */
@@ -139,11 +143,28 @@ Expression *Type::getTypeInfo(Scope *sc)
          * do not generate a COMDAT for it.
          */
         if (!t->builtinTypeInfo())
-        {   // Generate COMDAT
+        {
+            // Generate COMDAT
             if (sc)                     // if in semantic() pass
-            {   // Find module that will go all the way to an object file
+            {
+                // Find module that will go all the way to an object file
                 Module *m = sc->module->importedFrom;
                 m->members->push(t->vtinfo);
+
+                if (ty == Tstruct)
+                {
+                    Dsymbol *s;
+                    StructDeclaration *sd = ((TypeStruct *)this)->sym;
+                    if ((sd->xeq  && sd->xeq  != sd->xerreq  ||
+                         sd->xcmp && sd->xcmp != sd->xerrcmp ||
+                         search_toHash(sd) ||
+                         search_toString(sd)
+                        ) && inNonRoot(sd))
+                    {
+                        //printf("deferred sem3 for TypeInfo - sd = %s, inNonRoot = %d\n", sd->toChars(), inNonRoot(sd));
+                        Module::addDeferredSemantic3(sd);
+                    }
+                }
             }
             else                        // if in obj generation pass
             {
@@ -566,47 +587,18 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
         dtxoff(pdt, sd->toInitializer(), 0);    // init.ptr
 
-    FuncDeclaration *fd;
-    FuncDeclaration *fdx;
-    Dsymbol *s;
-
-    static TypeFunction *tftohash;
-    static TypeFunction *tftostring;
-
-    if (!tftohash)
+    if (FuncDeclaration *fd = search_toHash(sd))
     {
-        /* const hash_t toHash();
+        dtxoff(pdt, fd->toSymbol(), 0);
+        TypeFunction *tf = (TypeFunction *)fd->type;
+        assert(tf->ty == Tfunction);
+        /* I'm a little unsure this is the right way to do it. Perhaps a better
+         * way would to automatically add these attributes to any struct member
+         * function with the name "toHash".
+         * So I'm leaving this here as an experiment for the moment.
          */
-        tftohash = new TypeFunction(NULL, Type::thash_t, 0, LINKd);
-        tftohash->mod = MODconst;
-        tftohash = (TypeFunction *)tftohash->merge();
-
-        tftostring = new TypeFunction(NULL, Type::tstring, 0, LINKd);
-        tftostring = (TypeFunction *)tftostring->merge();
-    }
-
-    s = search_function(sd, Id::tohash);
-    fdx = s ? s->isFuncDeclaration() : NULL;
-    if (fdx)
-    {   fd = fdx->overloadExactMatch(tftohash);
-        if (fd)
-        {
-            dtxoff(pdt, fd->toSymbol(), 0);
-            TypeFunction *tf = (TypeFunction *)fd->type;
-            assert(tf->ty == Tfunction);
-            /* I'm a little unsure this is the right way to do it. Perhaps a better
-             * way would to automatically add these attributes to any struct member
-             * function with the name "toHash".
-             * So I'm leaving this here as an experiment for the moment.
-             */
-            if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
-                warning(fd->loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
-        }
-        else
-        {
-            //fdx->error("must be declared as extern (D) uint toHash()");
-            dtsize_t(pdt, 0);
-        }
+        if (!tf->isnothrow || tf->trust == TRUSTsystem /*|| tf->purity == PUREimpure*/)
+            warning(fd->loc, "toHash() must be declared as extern (D) size_t toHash() const nothrow @safe, not %s", tf->toChars());
     }
     else
         dtsize_t(pdt, 0);
@@ -621,15 +613,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     else
         dtsize_t(pdt, 0);
 
-    s = search_function(sd, Id::tostring);
-    fdx = s ? s->isFuncDeclaration() : NULL;
-    if (fdx)
-    {   fd = fdx->overloadExactMatch(tftostring);
-        if (fd)
-            dtxoff(pdt, fd->toSymbol(), 0);
-        else
-            //fdx->error("must be declared as extern (D) char[] toString()");
-            dtsize_t(pdt, 0);
+    if (FuncDeclaration *fd = search_toString(sd))
+    {
+        dtxoff(pdt, fd->toSymbol(), 0);
     }
     else
         dtsize_t(pdt, 0);
