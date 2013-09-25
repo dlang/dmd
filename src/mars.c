@@ -457,7 +457,7 @@ void genCmain(Scope *sc)
         }\n\
         ";
 
-    Identifier *id = Lexer::idPool("__entrypoint");
+    Identifier *id = Id::entrypoint;
     Module *m = new Module("__entrypoint.d", id, 0, 0);
 
     Parser p(m, code, sizeof(code) / sizeof(code[0]), 0);
