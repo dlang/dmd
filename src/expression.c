@@ -6398,7 +6398,7 @@ Expression *TypeidExp::semantic(Scope *sc)
 
     if (ta)
     {
-        ta->resolve(loc, sc, &ea, &ta, &sa);
+        ta->resolve(loc, sc, &ea, &ta, &sa, true);
     }
 
     if (ea)
