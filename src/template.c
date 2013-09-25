@@ -7049,9 +7049,10 @@ void TemplateInstance::toCBufferTiargs(OutBuffer *buf, HdrGenState *hgs)
             RootObject *oarg = (*tiargs)[0];
             if (Type *t = isType(oarg))
             {
-                if (t->isTypeBasic() ||
-                    t->equals(Type::tstring) ||
-                    t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0)
+                if (t->equals(Type::tstring) ||
+                    t->mod == 0 &&
+                    (t->isTypeBasic() ||
+                     t->ty == Tident && ((TypeIdentifier *)t)->idents.dim == 0))
                 {
                     buf->writestring(t->toChars());
                     return;
