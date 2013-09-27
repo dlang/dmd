@@ -325,7 +325,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             ClassInfo *base;            // base class
             void *destructor;
             void *invariant;            // class invariant
-            uint flags;
+            ClassFlags flags;
             void *deallocator;
             OffsetTypeInfo[] offTi;
             void *defaultConstructor;
@@ -400,15 +400,17 @@ void ClassDeclaration::toObjFile(int multiobj)
         dtsize_t(&dt, 0);
 
     // flags
-    int flags = 4 | isCOMclass() | isCPPclass();
+    ClassFlags::Type flags = ClassFlags::hasOffTi;
+    if (isCOMclass()) flags |= ClassFlags::isCOMclass;
+    if (isCPPclass()) flags |= ClassFlags::isCPPclass;
 #if DMDV2
-    flags |= 16;
+    flags |= ClassFlags::hasGetMembers;
 #endif
-    flags |= 32;
+    flags |= ClassFlags::hasTypeInfo;
     if (ctor)
-        flags |= 8;
+        flags |= ClassFlags::hasCtor;
     if (isabstract)
-        flags |= 64;
+        flags |= ClassFlags::isAbstract;
     for (ClassDeclaration *cd = this; cd; cd = cd->baseClass)
     {
         if (cd->members)
@@ -422,7 +424,7 @@ void ClassDeclaration::toObjFile(int multiobj)
             }
         }
     }
-    flags |= 2;                 // no pointers
+    flags |= ClassFlags::noPointers;
   L2:
     dtsize_t(&dt, flags);
 
@@ -455,10 +457,10 @@ void ClassDeclaration::toObjFile(int multiobj)
     // xgetRTInfo
     if (getRTInfo)
         getRTInfo->toDt(&dt);
-    else if (flags & 2)
-        dtsize_t(&dt, 0);       // no pointers
+    else if (flags & ClassFlags::noPointers)
+        dtsize_t(&dt, 0);
     else
-        dtsize_t(&dt, 1);       // has pointers
+        dtsize_t(&dt, 1);
 #endif
 
     //dtxoff(&dt, type->vtinfo->toSymbol(), 0, TYnptr); // typeinfo
@@ -879,7 +881,9 @@ void InterfaceDeclaration::toObjFile(int multiobj)
     dtsize_t(&dt, 0);
 
     // flags
-    dtsize_t(&dt, 4 | isCOMinterface() | 32);
+    ClassFlags::Type flags = ClassFlags::hasOffTi | ClassFlags::hasTypeInfo;
+    if (isCOMinterface()) flags |= ClassFlags::isCOMclass;
+    dtsize_t(&dt, flags);
 
     // deallocator
     dtsize_t(&dt, 0);

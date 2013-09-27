@@ -226,6 +226,22 @@ struct BaseClass
 #define CLASSINFO_SIZE_64  (0x98)       // value of ClassInfo.size
 #endif
 
+struct ClassFlags
+{
+    typedef unsigned Type;
+    enum Enum
+    {
+        isCOMclass = 0x1,
+        noPointers = 0x2,
+        hasOffTi = 0x4,
+        hasCtor = 0x8,
+        hasGetMembers = 0x10,
+        hasTypeInfo = 0x20,
+        isAbstract = 0x40,
+        isCPPclass = 0x80,
+    };
+};
+
 class ClassDeclaration : public AggregateDeclaration
 {
 public:
