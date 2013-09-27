@@ -3837,16 +3837,24 @@ void FuncLiteralDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     TypeFunction *tf = (TypeFunction *)type;
     // Don't print tf->mod, tf->trust, and tf->linkage
-    if (tf->next)
+    if (!inferRetType && tf->next)
         tf->next->toCBuffer2(buf, hgs, 0);
     Parameter::argsToCBuffer(buf, hgs, tf->parameters, tf->varargs);
 
-    ReturnStatement *ret = !fbody->isCompoundStatement() ?
-                            fbody->isReturnStatement() : NULL;
-    if (ret && ret->exp)
+    CompoundStatement *cs = fbody->isCompoundStatement();
+    Statement *s1;
+    if (semanticRun >= PASSsemantic3done)
+    {
+        assert(cs);
+        s1 = (*cs->statements)[cs->statements->dim - 1];
+    }
+    else
+        s1 = !cs ? fbody : NULL;
+    ReturnStatement *rs = s1 ? s1->isReturnStatement() : NULL;
+    if (rs && rs->exp)
     {
         buf->writestring(" => ");
-        ret->exp->toCBuffer(buf, hgs);
+        rs->exp->toCBuffer(buf, hgs);
     }
     else
     {
