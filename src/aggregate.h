@@ -131,6 +131,15 @@ public:
     AggregateDeclaration *isAggregateDeclaration() { return this; }
 };
 
+struct StructFlags
+{
+    typedef unsigned Type;
+    enum Enum
+    {
+        hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
+    };
+};
+
 class StructDeclaration : public AggregateDeclaration
 {
 public:
