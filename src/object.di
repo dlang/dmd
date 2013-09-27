@@ -162,13 +162,18 @@ class TypeInfo_Class : TypeInfo
     TypeInfo_Class   base;
     void*       destructor;
     void function(Object) classInvariant;
-    uint        m_flags;
-    //  1:      // is IUnknown or is derived from IUnknown
-    //  2:      // has no possible pointers into GC memory
-    //  4:      // has offTi[] member
-    //  8:      // has constructors
-    // 16:      // has xgetMembers member
-    // 32:      // has typeinfo member
+    enum ClassFlags : uint
+    {
+        isCOMclass = 0x1,
+        noPointers = 0x2,
+        hasOffTi = 0x4,
+        hasCtor = 0x8,
+        hasGetMembers = 0x10,
+        hasTypeInfo = 0x20,
+        isAbstract = 0x40,
+        isCPPclass = 0x80,
+    }
+    ClassFlags m_flags;
     void*       deallocator;
     OffsetTypeInfo[] m_offTi;
     void*       defaultConstructor;
@@ -197,7 +202,11 @@ class TypeInfo_Struct : TypeInfo
     int function(in void*, in void*)      xopCmp;
     string function(in void*)             xtoString;
 
-    uint m_flags;
+    enum StructFlags : uint
+    {
+        hasPointers = 0x1,
+    }
+    StructFlags m_flags;
   }
     void function(void*)                    xdtor;
     void function(void*)                    xpostblit;
