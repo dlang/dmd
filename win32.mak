@@ -289,13 +289,16 @@ $(IMPDIR)\core\sys\linux\execinfo.d : src\core\sys\linux\execinfo.d
 $(IMPDIR)\core\sys\linux\link.d : src\core\sys\linux\link.d
 	copy $** $@
 
+$(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
+	copy $** $@
+
+$(IMPDIR)\core\sys\linux\sys\mman.d : src\core\sys\linux\sys\mman.d
+	copy $** $@
+
 $(IMPDIR)\core\sys\linux\sys\signalfd.d : src\core\sys\linux\sys\signalfd.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\linux\sys\xattr.d : src\core\sys\linux\sys\xattr.d
-	copy $** $@
-
-$(IMPDIR)\core\sys\linux\sys\inotify.d : src\core\sys\linux\sys\inotify.d
 	copy $** $@
 
 $(IMPDIR)\core\sys\osx\execinfo.d : src\core\sys\osx\execinfo.d
