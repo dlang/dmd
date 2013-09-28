@@ -3322,7 +3322,7 @@ elem *CatAssignExp::toElem(IRState *irs)
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
         }
-        else if (I64)
+        else if (1 || I64)
         {
             // Append element
             elem *e2x = NULL;
@@ -3365,10 +3365,12 @@ elem *CatAssignExp::toElem(IRState *irs)
             elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
             elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, this->e2->type->size()));
             eptr = el_bin(OPadd, TYnptr, eptr, elength);
+#if 0
             StructDeclaration *sd = needsPostblit(tb2);
             elem *epost = NULL;
             if (sd)
                 epost = el_same(&eptr);
+#endif
             elem *ederef = el_una(OPind, e2->Ety, eptr);
             elem *eeq = el_bin(OPeq, e2->Ety, ederef, e2);
 
@@ -3383,7 +3385,7 @@ elem *CatAssignExp::toElem(IRState *irs)
                 eeq->Ejty = eeq->Ety = TYstruct;
                 eeq->ET = tb1n->toCtype();
             }
-
+#if 0
             /* Need to call postblit on eeq
              */
             if (sd)
@@ -3391,11 +3393,12 @@ elem *CatAssignExp::toElem(IRState *irs)
                 epost = callfunc(loc, irs, 1, Type::tvoid, epost, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
                 eeq = el_bin(OPcomma, epost->Ety, eeq, epost);
             }
-
+#endif
             e = el_combine(e2x, e);
             e = el_combine(e, eeq);
             e = el_combine(e, el_var(stmp));
         }
+#if 0
         else
         {
             // Append element
@@ -3405,7 +3408,7 @@ elem *CatAssignExp::toElem(IRState *irs)
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCT]), ep);
             e->Eflags |= EFLAGS_variadic;
         }
-
+#endif
         el_setLoc(e,loc);
     }
     else

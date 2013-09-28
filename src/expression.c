@@ -11861,6 +11861,7 @@ Expression *CatAssignExp::semantic(Scope *sc)
     {   // Append element
         e2->checkPostblit(sc, tb2);
         e2 = e2->castTo(sc, tb1next);
+        e2 = e2->isLvalue() ? callCpCtor(sc, e2) : valueNoDtor(e2);
         type = e1->type;
     }
     else if (tb1->ty == Tarray &&
