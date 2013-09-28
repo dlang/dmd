@@ -3722,14 +3722,10 @@ Statement *ReturnStatement::semantic(Scope *sc)
         if (!tf->isref)
             exp = exp->optimize(WANTvalue);
 
+        if (Expression *e = exp->isTemp())
+            exp = e;                // don't need temporary
         if (exp->op == TOKcall)
-            valueNoDtor(exp);
-        else
-        {
-            Expression *e = exp->isTemp();
-            if (e)
-                exp = e;                // don't need temporary
-        }
+            exp = valueNoDtor(exp);
 
         if (fd->nrvo_can && exp->op == TOKvar)
         {

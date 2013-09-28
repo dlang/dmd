@@ -1140,31 +1140,7 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
 
         if (Expression *ex = e->isTemp())
             e = ex;
-        if (e->isLvalue())
-        {
-            e = callCpCtor(sc, e);
-        }
-        else
-        {
-            Type *tb = e->type->toBasetype();
-            if (tb->ty == Tsarray)
-            {
-                e = callCpCtor(sc, e);
-            }
-            else if (tb->ty == Tstruct)
-            {
-                if (e->op == TOKcall && !e->isLvalue())
-                {
-                    valueNoDtor(e);
-                }
-                else
-                {
-                    /* Not transferring it, so call the copy constructor
-                     */
-                    e = callCpCtor(sc, e);
-                }
-            }
-        }
+        e = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
 
         if (t0)
         {
@@ -1267,7 +1243,7 @@ void preFunctionParameters(Loc loc, Scope *sc, Expressions *exps)
  * the destructor on it.
  */
 
-void valueNoDtor(Expression *e)
+Expression *valueNoDtor(Expression *e)
 {
     if (e->op == TOKcall)
     {
@@ -1293,12 +1269,16 @@ void valueNoDtor(Expression *e)
                         VarExp *ve = (VarExp *)comma->e2;
                         VarDeclaration *ctmp = ve->var->isVarDeclaration();
                         if (ctmp)
+                        {
                             ctmp->noscope = 1;
+                            assert(!ce->isLvalue());
+                        }
                     }
                 }
             }
         }
     }
+    return e;
 }
 
 /********************************************
@@ -1355,22 +1335,11 @@ bool Expression::checkPostblit(Scope *sc, Type *t)
 #if DMDV2
 Expression *callCpCtor(Scope *sc, Expression *e)
 {
-    if (e->op == TOKarrayliteral)
-    {
-        ArrayLiteralExp *ae = (ArrayLiteralExp *)e;
-        for (size_t i = 0; i < ae->elements->dim; i++)
-        {
-            (*ae->elements)[i] =
-                callCpCtor(sc, (*ae->elements)[i]);
-        }
-        return e;
-    }
-
     Type *tv = e->type->baseElemOf();
     if (tv->ty == Tstruct)
     {
         StructDeclaration *sd = ((TypeStruct *)tv)->sym;
-        if (sd->cpctor && e->isLvalue())
+        if (sd->cpctor)
         {
             /* Create a variable tmp, and replace the argument e with:
              *      (tmp = e),tmp
@@ -1698,31 +1667,7 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             {
                 if (Expression *e = arg->isTemp())
                     arg = e;
-                Type *tb = arg->type->toBasetype();
-                if (tb->ty == Tsarray)
-                {
-                    // call copy constructor of each element
-                    arg = callCpCtor(sc, arg);
-                }
-#if DMDV2
-                else if (tb->ty == Tstruct)
-                {
-                    if (arg->op == TOKcall && !arg->isLvalue())
-                    {
-                        /* The struct value returned from the function is transferred
-                         * to the function, so the callee should not call the destructor
-                         * on it.
-                         */
-                        valueNoDtor(arg);
-                    }
-                    else
-                    {
-                        /* Not transferring it, so call the copy constructor
-                         */
-                        arg = callCpCtor(sc, arg);
-                    }
-                }
-#endif
+                arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
             }
 
             //printf("arg: %s\n", arg->toChars());
@@ -1793,6 +1738,9 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 arg = new ErrorExp();
             }
 
+#if 0
+            arg = arg->isLvalue() ? callCpCtor(sc, arg) : valueNoDtor(arg);
+#else
             // Convert static arrays to dynamic arrays
             // BUG: I don't think this is right for D2
             Type *tb = arg->type->toBasetype();
@@ -1805,7 +1753,6 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
                 else
                     arg = arg->castTo(sc, ta);
             }
-#if DMDV2
             if (tb->ty == Tstruct)
             {
                 arg = callCpCtor(sc, arg);
@@ -4723,7 +4670,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (e->op == TOKerror)
             return e;
 
-        (*elements)[i] = callCpCtor(sc, e);
+        (*elements)[i] = e->isLvalue() ? callCpCtor(sc, e) : valueNoDtor(e);
     }
 
     /* Fill out remainder of elements[] with default initializers for fields[]
@@ -11567,7 +11514,8 @@ Ltupleassign:
                     Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
                     return e->semantic(sc);
                 }
-                else if (e2->isLvalue())
+
+                if (e2->isLvalue())
                 {
                     /* Write as:
                      *  e1.cpctor(e2);
@@ -11579,12 +11527,12 @@ Ltupleassign:
                     e = new CallExp(loc, e, e2);
                     return e->semantic(sc);
                 }
-                else if (e2->op == TOKcall)
+                else
                 {
                     /* The struct value returned from the function is transferred
                      * so should not call the destructor on it.
                      */
-                    valueNoDtor(e2);
+                    e2 = valueNoDtor(e2);
                 }
             }
         }

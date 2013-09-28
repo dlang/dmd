@@ -81,7 +81,7 @@ FuncDeclaration *hasThis(Scope *sc);
 Expression *fromConstInitializer(int result, Expression *e);
 int arrayExpressionCanThrow(Expressions *exps, bool mustNotThrow);
 TemplateDeclaration *getFuncTemplateDecl(Dsymbol *s);
-void valueNoDtor(Expression *e);
+Expression *valueNoDtor(Expression *e);
 int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1);
 #if DMDV2
 Expression *resolveAliasThis(Scope *sc, Expression *e);
