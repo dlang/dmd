@@ -1133,7 +1133,8 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         Expression *e = (*exps)[i];
         e = resolveProperties(sc, e);
         if (!e->type)
-        {   e->error("%s has no value", e->toChars());
+        {
+            e->error("%s has no value", e->toChars());
             e = new ErrorExp();
         }
 
@@ -1166,7 +1167,8 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
         }
 
         if (t0)
-        {   if (t0 != e->type)
+        {
+            if (t0 != e->type)
             {
                 /* This applies ?: to merge the types. It's backwards;
                  * ?: should call this function to merge types.
@@ -1184,7 +1186,8 @@ Expressions *arrayExpressionToCommonType(Scope *sc, Expressions *exps, Type **pt
             }
         }
         else
-        {   j0 = i;
+        {
+            j0 = i;
             e0 = e;
             t0 = e->type;
         }
@@ -1277,13 +1280,17 @@ void valueNoDtor(Expression *e)
          */
         CallExp *ce = (CallExp *)e;
         if (ce->e1->op == TOKdotvar)
-        {   DotVarExp *dve = (DotVarExp *)ce->e1;
+        {
+            DotVarExp *dve = (DotVarExp *)ce->e1;
             if (dve->var->isCtorDeclaration())
-            {   // It's a constructor call
+            {
+                // It's a constructor call
                 if (dve->e1->op == TOKcomma)
-                {   CommaExp *comma = (CommaExp *)dve->e1;
+                {
+                    CommaExp *comma = (CommaExp *)dve->e1;
                     if (comma->e2->op == TOKvar)
-                    {   VarExp *ve = (VarExp *)comma->e2;
+                    {
+                        VarExp *ve = (VarExp *)comma->e2;
                         VarDeclaration *ctmp = ve->var->isVarDeclaration();
                         if (ctmp)
                             ctmp->noscope = 1;
@@ -1781,7 +1788,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
 
             // Do not allow types that need destructors
             if (arg->type->needsDestruction())
-            {   arg->error("cannot pass types that need destruction as variadic arguments");
+            {
+                arg->error("cannot pass types that need destruction as variadic arguments");
                 arg = new ErrorExp();
             }
 
@@ -1789,7 +1797,8 @@ Type *functionParameters(Loc loc, Scope *sc, TypeFunction *tf,
             // BUG: I don't think this is right for D2
             Type *tb = arg->type->toBasetype();
             if (tb->ty == Tsarray)
-            {   TypeSArray *ts = (TypeSArray *)tb;
+            {
+                TypeSArray *ts = (TypeSArray *)tb;
                 Type *ta = ts->next->arrayOf();
                 if (ts->size(arg->loc) == 0)
                     arg = new NullExp(arg->loc, ta);
@@ -2663,20 +2672,25 @@ Expression *Expression::isTemp()
 {
     //printf("isTemp() %s\n", toChars());
     if (op == TOKcomma)
-    {   CommaExp *ec = (CommaExp *)this;
+    {
+        CommaExp *ec = (CommaExp *)this;
         if (ec->e1->op == TOKdeclaration &&
             ec->e2->op == TOKvar)
-        {   DeclarationExp *de = (DeclarationExp *)ec->e1;
+        {
+            DeclarationExp *de = (DeclarationExp *)ec->e1;
             VarExp *ve = (VarExp *)ec->e2;
-            if (ve->var == de->declaration && ve->var->storage_class & STCctfe)
-            {   VarDeclaration *v = ve->var->isVarDeclaration();
+            if (de->declaration == ve->var && ve->var->storage_class & STCctfe)
+            {
+                VarDeclaration *v = ve->var->isVarDeclaration();
                 if (v && v->init)
                 {
                     ExpInitializer *ei = v->init->isExpInitializer();
                     if (ei)
-                    {   Expression *e = ei->exp;
+                    {
+                        Expression *e = ei->exp;
                         if (e->op == TOKconstruct)
-                        {   ConstructExp *ce = (ConstructExp *)e;
+                        {
+                            ConstructExp *ce = (ConstructExp *)e;
                             if (ce->e1->op == TOKvar && ((VarExp *)ce->e1)->var == ve->var)
                                 e = ce->e2;
                         }
@@ -11537,10 +11551,12 @@ Ltupleassign:
             if (t2->ty == Tstruct &&
                 sd == ((TypeStruct *)t2)->sym &&
                 sd->cpctor)
-            {   /* We have a copy constructor for this
+            {
+                /* We have a copy constructor for this
                  */
                 if (e2->op == TOKquestion)
-                {   /* Write as:
+                {
+                    /* Write as:
                      *  a ? e1 = b : e1 = c;
                      */
                     CondExp *econd = (CondExp *)e2;
@@ -11552,7 +11568,8 @@ Ltupleassign:
                     return e->semantic(sc);
                 }
                 else if (e2->isLvalue())
-                {   /* Write as:
+                {
+                    /* Write as:
                      *  e1.cpctor(e2);
                      */
                     if (!e2->type->implicitConvTo(e1->type))

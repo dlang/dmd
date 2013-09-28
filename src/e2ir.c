@@ -3312,7 +3312,8 @@ elem *CatAssignExp::toElem(IRState *irs)
         Type *tb1n = tb1->nextOf()->toBasetype();
         if ((tb2->ty == Tarray || tb2->ty == Tsarray) &&
             tb1n->equals(tb2->nextOf()->toBasetype()))
-        {   // Append array
+        {
+            // Append array
             e1 = el_una(OPaddr, TYnptr, e1);
             if (config.exe == EX_WIN64)
                 e2 = addressElem(e2, tb2);
@@ -3322,8 +3323,8 @@ elem *CatAssignExp::toElem(IRState *irs)
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
         }
         else if (I64)
-        {   // Append element
-
+        {
+            // Append element
             elem *e2x = NULL;
 
             if (e2->Eoper != OPvar && e2->Eoper != OPconst)
@@ -3396,7 +3397,8 @@ elem *CatAssignExp::toElem(IRState *irs)
             e = el_combine(e, el_var(stmp));
         }
         else
-        {   // Append element
+        {
+            // Append element
             e1 = el_una(OPaddr, TYnptr, e1);
             e2 = useOPstrpar(e2);
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
@@ -5408,7 +5410,8 @@ elem *StructLiteralExp::toElem(IRState *irs)
                     e1->ET = v->type->toCtype();
                 e1 = el_bin(OPeq, ty, e1, ep);
                 if (tybasic(ty) == TYstruct)
-                {   e1->Eoper = OPstreq;
+                {
+                    e1->Eoper = OPstreq;
                     e1->ET = v->type->toCtype();
                 }
 #if 0
@@ -5416,7 +5419,8 @@ elem *StructLiteralExp::toElem(IRState *irs)
                  */
                 StructDeclaration *sd = needsPostblit(v->type);
                 if (sd && el->isLvalue())
-                {   FuncDeclaration *fd = sd->postblit;
+                {
+                    FuncDeclaration *fd = sd->postblit;
                     ec = el_copytree(ec);
                     ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
                     e1 = el_bin(OPcomma, ec->Ety, e1, ec);
