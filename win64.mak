@@ -9,7 +9,7 @@ DMD=dmd
 
 CC="$(VCDIR)\bin\amd64\cl"
 LD="$(VCDIR)\bin\amd64\link"
-LIB="$(VCDIR)\bin\amd64\lib"
+AR="$(VCDIR)\bin\amd64\lib"
 CP=cp
 
 DOCDIR=doc
