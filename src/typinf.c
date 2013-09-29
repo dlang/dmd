@@ -557,6 +557,9 @@ void TypeInfoStructDeclaration::toDt(dt_t **pdt)
     TypeStruct *tc = (TypeStruct *)tinfo;
     StructDeclaration *sd = tc->sym;
 
+    if (!sd->members)
+        return;
+
     /* Put out:
      *  char[] name;
      *  void[] init;
