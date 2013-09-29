@@ -1296,11 +1296,12 @@ Lnomatch:
         }
     }
 
-    if (!(storage_class & (STCctfe | STCref)) && tbn->ty == Tstruct &&
+    if (!(storage_class & (STCctfe | STCref | STCresult)) && tbn->ty == Tstruct &&
         ((TypeStruct *)tbn)->sym->noDefaultCtor)
     {
         if (!init)
-        {   if (isField())
+        {
+            if (isField())
                 /* For fields, we'll check the constructor later to make sure it is initialized
                  */
                 storage_class |= STCnodefaultctor;
