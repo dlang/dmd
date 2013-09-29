@@ -1,6 +1,50 @@
 extern(C) int printf(const char*, ...);
 
 /***************************************************/
+// 7504
+
+void test7504() pure nothrow @safe
+{
+    auto n = null;
+    char[] k = n;
+    assert(k.ptr == null);
+    assert(k.length == 0);
+
+    double[] l;
+    l = n;
+    assert(l.ptr == null);
+    assert(l.length == 0);
+
+    immutable(int[]) m = n;
+    assert(m.ptr == null);
+    assert(m.length == 0);
+
+    const(float)[] o;
+    o = n;
+    assert(o.ptr == null);
+    assert(o.length == 0);
+
+    auto c = create7504(null, null);
+    assert(c.k.ptr == null);
+    assert(c.k.length == 0);
+    assert(c.l.ptr == null);
+    assert(c.l.length == 0);
+}
+
+class C7504
+{
+    int[] k;
+    string l;
+}
+
+C7504 create7504(T...)(T input)
+{
+    auto obj = new C7504;
+    obj.tupleof = input;
+    return obj;
+}
+
+/***************************************************/
 // 8119
 
 struct S8119;
@@ -99,6 +143,7 @@ void test10834()
 
 int main()
 {
+    test7504();
     test8119();
     test8645();
     test10646();
