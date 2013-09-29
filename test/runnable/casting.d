@@ -1,5 +1,7 @@
 extern(C) int printf(const char*, ...);
 
+template Seq(T...) { alias T Seq; }
+
 /***************************************************/
 // 7504
 
@@ -140,6 +142,54 @@ void test10834()
 }
 
 /***************************************************/
+// 10842
+
+template Test10842(F, T)
+{
+    bool res;
+    F from()
+    {
+        res = true;
+        return F.init;
+    }
+    T to()
+    {
+        // The cast operand had incorrectly been eliminated
+        return cast(T)from();
+    }
+    bool test()
+    {
+        res = false;
+        to();
+        return res;
+    }
+}
+
+void test10842()
+{
+    foreach (From; Seq!(bool, byte, ubyte, short, ushort, int, uint, long, ulong, float, double, real))
+    {
+        foreach (To; Seq!(ifloat, idouble, ireal))
+        {
+            if (!Test10842!(From, To).test())
+                assert(0);
+        }
+    }
+
+    foreach (From; Seq!(ifloat, idouble, ireal))
+    {
+        foreach (To; Seq!(/*bool*, */byte, ubyte, short, ushort, int, uint, long, ulong, float, double, real))
+        {
+            if (!Test10842!(From, To).test())
+                assert(0);
+        }
+    }
+
+    if (!Test10842!(typeof(null), string).test())   // 10842
+        assert(0);
+}
+
+/***************************************************/
 
 int main()
 {
@@ -149,6 +199,7 @@ int main()
     test10646();
     test10793();
     test10834();
+    test10842();
 
     printf("Success\n");
     return 0;
