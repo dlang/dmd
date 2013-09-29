@@ -143,14 +143,12 @@ void Mem::addroots(char* pStart, char* pEnd)
 /* Allocate, but never release
  */
 
-// Allocate a little less than 64kB because the C runtime adds some overhead that
-// causes the actual memory block to be larger than 64kB otherwise. E.g. the dmc
-// runtime rounds the size up to 128kB, but the remaining space in the chunk is less 
-// than 64kB, so it cannot be used by another chunk.
-#define CHUNK_SIZE (4096 * 16 - 64)
+#define CHUNK_SIZE (4096 * 16)
 
-static size_t heapleft = 0;
+size_t heapleft = 0;
 static void *heapp;
+size_t memNeeded = 0;
+size_t chunkCount = 1;
 
 void * operator new(size_t m_size)
 {
@@ -170,6 +168,7 @@ void * operator new(size_t m_size)
     if (m_size > CHUNK_SIZE)
     {
         void *p = malloc(m_size);
+        memNeeded += m_size;
         if (p)
             return p;
         printf("Error: out of memory\n");
@@ -177,8 +176,14 @@ void * operator new(size_t m_size)
         return p;
     }
 
-    heapleft = CHUNK_SIZE;
-    heapp = malloc(CHUNK_SIZE);
+    // Allocate a little less than 64kB because the C runtime adds some overhead that
+    // causes the actual memory block to be larger than 64kB otherwise. E.g. the dmc
+    // runtime rounds the size up to 128kB, but the remaining space in the chunk is less
+    // than 64kB, so it cannot be used by another chunk.
+    heapleft = CHUNK_SIZE * chunkCount - 64;
+    heapp = malloc(heapleft);
+    memNeeded += heapleft;
+    ++chunkCount;
     if (!heapp)
     {
         printf("Error: out of memory\n");
@@ -189,6 +194,18 @@ void * operator new(size_t m_size)
 
 void operator delete(void *p)
 {
+}
+
+void guessMem(size_t size)
+{
+    heapp = malloc(size);
+    if (!heapp)
+    {
+        printf("Error: out of memory\n");
+        exit(EXIT_FAILURE);
+    }
+    heapleft = size;
+    chunkCount = ((double)size / (double)CHUNK_SIZE / 2.0) + 1;
 }
 
 #else
