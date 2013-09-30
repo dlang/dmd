@@ -26,6 +26,7 @@ struct Scope;
 class DsymbolTable;
 class Declaration;
 class ThisDeclaration;
+class TypeInfoDeclaration;
 class TupleDeclaration;
 class TypedefDeclaration;
 class AliasDeclaration;
@@ -228,6 +229,7 @@ public:
     virtual TemplateMixin *isTemplateMixin() { return NULL; }
     virtual Declaration *isDeclaration() { return NULL; }
     virtual ThisDeclaration *isThisDeclaration() { return NULL; }
+    virtual TypeInfoDeclaration *isTypeInfoDeclaration() { return NULL; }
     virtual TupleDeclaration *isTupleDeclaration() { return NULL; }
     virtual TypedefDeclaration *isTypedefDeclaration() { return NULL; }
     virtual AliasDeclaration *isAliasDeclaration() { return NULL; }
