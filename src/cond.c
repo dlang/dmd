@@ -85,7 +85,7 @@ DebugCondition::DebugCondition(Module *mod, unsigned level, Identifier *ident)
 }
 
 // Helper for printing dependency information
-void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType) 
+void printDepsConditional(Scope *sc, DVCondition* condition, const char* depType)
 {
     if (!global.params.moduleDeps || global.params.moduleDepsFile)
         return;
