@@ -128,7 +128,7 @@ public:
     PASS semanticRun;
     char *depmsg;               // customized deprecation message
     Expressions *userAttributes;        // user defined attributes from UserAttributeDeclaration
-    UnitTestDeclaration *unittest; // !=NULL means there's a unittest associated with this symbol
+    UnitTestDeclaration *ddocUnittest; // !=NULL means there's a ddoc unittest associated with this symbol (only use this with ddoc)
 
     Dsymbol();
     Dsymbol(Identifier *);
