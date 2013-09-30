@@ -458,6 +458,36 @@ class DC7883 : CC7883
 }
 
 /*******************************************/
+// 7892
+
+struct S7892
+{
+    @disable this();
+    this(int x) {}
+}
+
+S7892 f7892()
+out (result) {}     // case 1
+body
+{
+    return S7892(1);
+}
+
+interface I7892
+{
+    S7892 f();
+}
+class C7892
+{
+    invariant() {}  // case 2
+
+    S7892 f()
+    {
+        return S7892(1);
+    }
+}
+
+/*******************************************/
 // 8066
 
 struct CLCommandQueue
