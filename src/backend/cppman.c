@@ -360,7 +360,7 @@ char *cpp_typetostring(type *t,char *prefix)
 #endif
             case TYulong:       c1 = 'U';
             case TYlong:        c2 = 'l';       break;
-#if M_UNIX || M_XENIX
+#if M_UNIX
             case TYnptr:        // For Gnu gdb and ARM compatibility
 #endif
             case TYfptr:        c2 = 'P';       break;
@@ -374,7 +374,7 @@ char *cpp_typetostring(type *t,char *prefix)
             case TYfref:
 #endif
             case TYref:         c2 = 'R';       break;
-#if M_UNIX || M_XENIX
+#if M_UNIX
             case TYmfunc:
             case TYnfunc:
             case TYnpfunc:              // Near functions under Unix are coded as F
@@ -387,14 +387,14 @@ char *cpp_typetostring(type *t,char *prefix)
             case TYffunc:       c2 = 'D';       goto L4;
 #if TX86
             case TYsptr:        c2 = 'b';       break;
-#if !(M_UNIX || M_XENIX)
+#if !M_UNIX
             case TYnptr:        c2 = 'p';       break;
 #endif
             case TYcptr:        c2 = 'E';       break;
             case TYf16ptr:      c2 = 'g';       break;
             case TYf16func:     c2 = 'G';       goto L4;
             case TYhptr:        c2 = 'H';       break;
-#if !(M_UNIX || M_XENIX)
+#if !M_UNIX
             case TYnpfunc:      c2 = 'N';       goto L4;
             case TYmfunc:
             case TYnsysfunc:

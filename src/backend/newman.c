@@ -1629,6 +1629,21 @@ STATIC void cpp_symbol_name(symbol *s)
         }
     }
 #endif
+#if MARS
+    if (tyfunc(s->Stype->Tty) && s->Sfunc)
+    {
+        if (s->Sfunc->Fflags & Fctor)
+        {
+            cpp_zname(cpp_name_ct);
+            return;
+        }
+        if (s->Sfunc->Fflags & Fdtor)
+        {
+            cpp_zname(cpp_name_dt);
+            return;
+        }
+    }
+#endif
     cpp_zname(p);
 }
 

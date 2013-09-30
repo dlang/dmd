@@ -3163,14 +3163,25 @@ static void obj_rtinit()
 
     {
         /*
-         *  Create a DSO instance on stack. The DSORec is writeable
-         *  and allows the runtime to store information.
+         * Create an instance of DSORec as global static data in the section .data.d_dso_rec
+         * It is writeable and allows the runtime to store information.
+         * Make it a COMDAT so there's only one per DSO.
          *
          * typedef union
          * {
          *     size_t        id;
          *     void       *data;
          * } DSORec;
+         */
+        seg = ElfObj::getsegment(".data.d_dso_rec", NULL, SHT_PROGDEF,
+                         SHF_ALLOC|SHF_WRITE|SHF_GROUP, NPTRSIZE);
+        dso_rec = MAP_SEG2SYMIDX(seg);
+        Obj::bytes(seg, 0, NPTRSIZE, NULL);
+        // add to section group
+        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(seg));
+
+        /*
+         * Create an instance of DSO on the stack:
          *
          * typedef struct
          * {
@@ -3180,14 +3191,27 @@ static void obj_rtinit()
          *     void       *deh_beg, *deh_end;
          * } DSO;
          *
+         * Generate the following function as a COMDAT so there's only one per DSO:
+         *  .text.d_dso_init    segment
+         *      enter   0,0
+         *      lea     RAX,deh_end[RIP]
+         *      push    RAX
+         *      lea     RAX,deh_beg[RIP]
+         *      push    RAX
+         *      lea     RAX,minfo_end[RIP]
+         *      push    RAX
+         *      lea     RAX,minfo_beg[RIP]
+         *      push    RAX
+         *      lea     RAX,.data.d_dso_rec[RIP]
+         *      push    RAX
+         *      push    1       // version
+         *      mov     RDI,RSP
+         *      call      _d_dso_registry@PLT32
+         *      leave
+         *      ret
+         * and then put a pointer to that function in .ctors and in .dtors so it'll
+         * get executed once upon loading and once upon unloading the DSO.
          */
-        seg = ElfObj::getsegment(".data.d_dso_rec", NULL, SHT_PROGDEF,
-                         SHF_ALLOC|SHF_WRITE|SHF_GROUP, NPTRSIZE);
-        dso_rec = MAP_SEG2SYMIDX(seg);
-        Obj::bytes(seg, 0, NPTRSIZE, NULL);
-        // add to section group
-        SegData[groupseg]->SDbuf->write32(MAP_SEG2SECIDX(seg));
-
         int codseg;
         {
             codseg = ElfObj::getsegment(".text.d_dso_init", NULL, SHT_PROGDEF,
