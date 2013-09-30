@@ -12,7 +12,6 @@
 #include <time.h>
 
 #define M_UNIX 1
-#define IMPLIED_PRAGMA_ONCE 1
 #define MEMMODELS 1
 #if __GNUC__
 #define __SC__ 0
@@ -80,4 +79,4 @@ char * strupr(char *);
 #include "optdata.h"
 #endif
 
-#define TRIGRAPHS (ANSI || OPT_IS_SET(OPTtrigraphs))
+//#define TRIGRAPHS (ANSI || OPT_IS_SET(OPTtrigraphs))
