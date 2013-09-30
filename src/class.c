@@ -783,7 +783,7 @@ void ClassDeclaration::semantic(Scope *sc)
     if (FuncDeclaration *f = hasIdentityOpAssign(sc))
     {
         if (!(f->storage_class & STCdisable))
-            error("identity assignment operator overload is illegal");
+            error(f->loc, "identity assignment operator overload is illegal");
     }
     sc->pop();
 
