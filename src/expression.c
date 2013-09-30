@@ -5690,6 +5690,8 @@ void SymOffExp::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 {
     if (offset)
         buf->printf("(& %s+%u)", var->toChars(), offset);
+    else if (var->isTypeInfoDeclaration())
+        buf->printf("%s", var->toChars());
     else
         buf->printf("& %s", var->toChars());
 }

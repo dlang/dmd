@@ -2358,6 +2358,17 @@ void TypeInfoDeclaration::semantic(Scope *sc)
     assert(linkage == LINKc);
 }
 
+char *TypeInfoDeclaration::toChars()
+{
+    //printf("TypeInfoDeclaration::toChars() tinfo = %s\n", tinfo->toChars());
+    OutBuffer buf;
+    buf.writestring("typeid(");
+    buf.writestring(tinfo->toChars());
+    buf.writeByte(')');
+    buf.writeByte(0);
+    return buf.extractData();
+}
+
 /***************************** TypeInfoConstDeclaration **********************/
 
 #if DMDV2
