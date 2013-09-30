@@ -446,7 +446,7 @@ void obj_append(Dsymbol *s);
 void obj_write_deferred(Library *library);
 
 const char *importHint(const char *s);
-/// Little helper function for writting out deps. 
+/// Little helper function for writting out deps.
 void escapePath(OutBuffer *buf, const char *fname);
 
 #endif /* DMD_MARS_H */

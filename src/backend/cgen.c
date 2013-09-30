@@ -458,6 +458,7 @@ bool reghasvalue(regm_t regm,targ_size_t value,unsigned *preg)
 code *regwithvalue(code *c,regm_t regm,targ_size_t value,unsigned *preg,regm_t flags)
 {   unsigned reg;
 
+    //printf("regwithvalue(value = %lld)\n", (long long)value);
     if (!preg)
         preg = &reg;
 

@@ -1500,7 +1500,11 @@ typedef struct Srcfiles
 {
 //  Sfile *arr;         // array of Sfiles
     Sfile **pfiles;     // parallel array of pointers into arr[]
+#if SPP
+    #define SRCFILES_MAX (2*512*4)      // no precompiled headers for SPP
+#else
     #define SRCFILES_MAX (2*512)
+#endif
     unsigned dim;       // dimension of array
     unsigned idx;       // # used in array
 } Srcfiles;

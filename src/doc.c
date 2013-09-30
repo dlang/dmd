@@ -1524,7 +1524,7 @@ void ParamSection::write(DocComment *dc, Scope *sc, Dsymbol *s, OutBuffer *buf)
                     {
                         arg->type->toCBuffer(buf, arg->ident, &hgs);
                     }
-                    else 
+                    else
                     {
                         if (isTemplateParameter(s, namestart, namelen))
                         {
