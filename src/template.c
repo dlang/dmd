@@ -2634,12 +2634,13 @@ FuncDeclaration *TemplateDeclaration::doHeaderInstantiation(Scope *sc,
         fd = new FuncDeclaration(fd->loc, fd->endloc, fd->ident, fd->storage_class, fd->type->syntaxCopy());
     fd->parent = ti;
 
-    Scope *scope = this->scope;
+    Module *mi = sc->instantiatingModule ? sc->instantiatingModule : sc->module;
 
+    Scope *scope = this->scope;
     ti->argsym = new ScopeDsymbol();
     ti->argsym->parent = scope->parent;
     scope = scope->push(ti->argsym);
-    scope->instantiatingModule = sc->instantiatingModule;
+    scope->instantiatingModule = mi;
 
     bool hasttp = false;
 
