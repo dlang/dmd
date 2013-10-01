@@ -3565,7 +3565,7 @@ Lagain:
             if (v->scope)
             {
                 v->inuse++;
-                v->init->semantic(v->scope, v->type, INITinterpret);
+                v->init = v->init->semantic(v->scope, v->type, INITinterpret);
                 v->scope = NULL;
                 v->inuse--;
             }

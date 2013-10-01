@@ -2210,7 +2210,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 #endif
         {
             if(v->scope)
-                v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
             e = v->init->toExpression(v->type);
             if (v->inuse)
             {
