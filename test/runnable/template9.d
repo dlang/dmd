@@ -2799,6 +2799,21 @@ void test10811()
 }
 
 /******************************************/
+// 10969
+
+template A10969(T, U...) { alias A10969 = T; }
+void foo10969(T, U...)(A10969!(T, U) a) {}
+
+template B10969(T, U) { alias B10969 = T; }
+void bar10969(T, U...)(B10969!(T, U[0]) a) {}
+
+void test10969()
+{
+    foo10969!(int, float)(3);
+    bar10969!(int, float)(3);
+}
+
+/******************************************/
 
 int main()
 {
@@ -2887,6 +2902,7 @@ int main()
     test10083();
     test10592();
     test10811();
+    test10969();
 
     printf("Success\n");
     return 0;
