@@ -320,7 +320,6 @@ install-copy:
 	$(MD) $(INSTALL)\src\dmd\tk
 	$(MD) $(INSTALL)\src\dmd\backend
 	$(CP) $(TARGETEXE)          $(INSTALL)\windows\bin\$(TARGETEXE)
-	$(CP) phobos\phobos.lib     $(INSTALL)\windows\lib\phobos.lib
 	$(CP) $(SRCS)               $(INSTALL)\src\dmd
 	$(CP) $(GLUESRC)            $(INSTALL)\src\dmd
 	$(CP) $(ROOTSRC)            $(INSTALL)\src\dmd\root
