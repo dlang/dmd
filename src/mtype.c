@@ -5722,8 +5722,8 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             }
             else if (fparam->storageClass & STCout)
             {
-                if (fparam->type->mod & (STCconst | STCimmutable))
-                    error(loc, "cannot have const or immutable out parameter of type %s", t->toChars());
+                if (unsigned m = fparam->type->mod & (MODimmutable | MODconst | MODwild))
+                    error(loc, "cannot have %s out parameter of type %s", MODtoChars(m), t->toChars());
                 else
                 {
                     Type *tv = t;
