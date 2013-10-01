@@ -147,7 +147,6 @@ void VoidInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 StructInitializer::StructInitializer(Loc loc)
     : Initializer(loc)
 {
-    ad = NULL;
 }
 
 Initializer *StructInitializer::syntaxCopy()
@@ -178,7 +177,6 @@ void StructInitializer::addInit(Identifier *field, Initializer *value)
 Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needInterpret)
 {
     //printf("StructInitializer::semantic(t = %s) %s\n", t->toChars(), toChars());
-    vars.setDim(field.dim);
     t = t->toBasetype();
     if (t->ty == Tsarray && t->nextOf()->toBasetype()->ty == Tstruct)
         t = t->nextOf()->toBasetype();
