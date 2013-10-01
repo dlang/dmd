@@ -140,7 +140,7 @@ BFLAGS=
 LINKN=$(SCROOT)\bin\link /de
 
 CFLAGS=-I$(ROOT);$(INCLUDE) $(XFLG) $(OPT) $(DEBUG) -cpp -DDM_TARGET_CPU_X86=1
-MFLAGS=-I$C;$(TK) $(OPT) -DMARS -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
+MFLAGS=-I$C;$(TK) $(OPT) -DMARS -DDMDV1 -cpp $(DEBUG) -e -wx -DDM_TARGET_CPU_X86=1
 
 # Makerules:
 .c.obj:
