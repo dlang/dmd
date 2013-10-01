@@ -414,7 +414,18 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         if (!e)
             continue;
         dt_t *dt = NULL;
-        e->toDt(&dt);           // convert e to an initializer dt
+        Type *t = sd->fields[i]->type;
+        size_t dim = 1;
+        t = t->toBasetype();
+        while (!t->immutableOf()->equals(e->type->immutableOf()) &&
+               t->toBasetype()->ty == Tsarray)
+        {
+            TypeSArray *tsa = (TypeSArray *)t->toBasetype();
+            dim *= tsa->dim->toInteger();
+            t = t->nextOf();
+        }
+        for (size_t j = 0; j < dim; j++)
+            e->toDt(&dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
 
@@ -425,7 +436,8 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
 
         dt_t *d = dts[j];
         if (!d)
-        {   /* An instance specific initializer was not provided.
+        {
+            /* An instance specific initializer was not provided.
              * If there is no overlap with any explicit initializer in dts[],
              * supply a default initializer.
              */
@@ -455,12 +467,14 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
             if (v->offset < offset)
                 error("duplicate union initialization for %s", v->toChars());
             else
-            {   unsigned sz = dt_size(d);
+            {
+                unsigned sz = dt_size(d);
                 unsigned vsz = v->type->size();
                 unsigned voffset = v->offset;
 
                 if (sz > vsz)
-                {   assert(v->type->ty == Tsarray && vsz == 0);
+                {
+                    assert(v->type->ty == Tsarray && vsz == 0);
                     error("zero length array %s has non-zero length initializer", v->toChars());
                 }
 
@@ -469,7 +483,8 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
                 for (vt = v->type->toBasetype();
                      vt->ty == Tsarray;
                      vt = vt->nextOf()->toBasetype())
-                {   TypeSArray *tsa = (TypeSArray *)vt;
+                {
+                    TypeSArray *tsa = (TypeSArray *)vt;
                     dim *= tsa->dim->toInteger();
                 }
                 //printf("sz = %d, dim = %d, vsz = %d\n", sz, dim, vsz);
