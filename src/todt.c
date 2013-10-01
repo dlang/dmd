@@ -721,58 +721,10 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
-    unsigned offset = 0;
+    StructInitializer si(loc);
 
-    // Note equivalence of this loop to class's
-    for (size_t i = 0; i < fields.dim; i++)
-    {
-        VarDeclaration *v = fields[i];
-        //printf("\tfield '%s' voffset %d, offset = %d\n", v->toChars(), v->offset, offset);
-        dt_t *dt = NULL;
-        int sz;
-
-        if (v->storage_class & STCref)
-        {
-            sz = Target::ptrsize;
-            if (v->offset >= offset)
-                dtnzeros(&dt, sz);
-        }
-        else
-        {
-            sz = v->type->size();
-            Initializer *init = v->init;
-            if (init)
-            {   //printf("\t\thas initializer %s\n", init->toChars());
-                ExpInitializer *ei = init->isExpInitializer();
-                Type *tb = v->type->toBasetype();
-                if (init->isVoidInitializer())
-                    ;
-                else if (ei && tb->ty == Tsarray)
-                    ((TypeSArray *)tb)->toDtElem(&dt, ei->exp);
-                else
-                    dt = init->toDt();
-            }
-            else if (v->offset >= offset)
-                v->type->toDt(&dt);
-        }
-        if (dt)
-        {
-            if (v->offset < offset)
-                error("overlapping initialization for struct %s.%s", toChars(), v->toChars());
-            else
-            {
-                if (offset < v->offset)
-                    dtnzeros(pdt, v->offset - offset);
-                dtcat(pdt, dt);
-                offset = v->offset + sz;
-            }
-        }
-    }
-
-    if (offset < structsize)
-        dtnzeros(pdt, structsize - offset);
-
-    dt_optimize(*pdt);
+    Expression *e = si.fill(NULL, type, INITinterpret);
+    e->toDt(pdt);
 }
 
 /* ================================================================= */
