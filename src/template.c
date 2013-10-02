@@ -910,6 +910,34 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
          * Workaround the problem by setting a flag to relax the checking on frame errors.
          */
 
+        int nmatches = 0;
+        for (Previous *p = previous; p; p = p->prev)
+        {
+            if (arrayCheckRecursiveExpansion(p->dedargs, this, sc))
+                goto Lnomatch;
+
+            if (arrayObjectMatch(p->dedargs, dedtypes))
+            {
+                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                /* It must be a subscope of p->sc, other scope chains are not recursive
+                 * instantiations.
+                 */
+                for (Scope *scx = sc; scx; scx = scx->enclosing)
+                {
+                    if (scx == p->sc)
+                        goto Lnomatch;
+                }
+            }
+            /* BUG: should also check for ref param differences
+             */
+        }
+
+        Previous pr;
+        pr.prev = previous;
+        pr.sc = paramscope;
+        pr.dedargs = dedtypes;
+        previous = &pr;                 // add this to threaded list
+
         int nerrors = global.errors;
 
         FuncDeclaration *fd = onemember && onemember->toAlias() ?
@@ -933,6 +961,8 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
+
+        previous = pr.prev;             // unlink from threaded list
 
         if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
             goto Lnomatch;
