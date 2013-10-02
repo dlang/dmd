@@ -2479,6 +2479,30 @@ template useItemAt10067(size_t idx, T)
 useItemAt10067!(0, char) mapS10067;
 
 /******************************************/
+// 4072
+
+void bug4072(T)(T x)
+    if (is(typeof(bug4072(x))))
+{}
+
+static assert(!is(typeof(bug4072(7))));
+
+/******************************************/
+// 10074
+
+template foo10074(F)
+{
+    enum foo10074 = false;
+}
+bool foo10074(F)(F f)
+    if (foo10074!F)
+{
+    return false;
+}
+
+static assert(!is(typeof(foo10074(1))));
+
+/******************************************/
 // 10083
 
 // [a-c] IFTI can find syntactic eponymous member
