@@ -898,11 +898,11 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
 
 #if DMDV2
     if (m && constraint && !flag)
-    {   /* Check to see if constraint is satisfied.
+    {
+        /* Check to see if constraint is satisfied.
          */
         makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
-        Scope *sc = paramscope->push();
 
         /* There's a chicken-and-egg problem here. We don't know yet if this template
          * instantiation will be a local one (enclosing is set), and we won't know until
@@ -910,7 +910,36 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
          * is not on the sc scope chain, and this can cause errors in FuncDeclaration::getLevel().
          * Workaround the problem by setting a flag to relax the checking on frame errors.
          */
-        sc->flags |= SCOPEstaticif;
+
+        int nmatches = 0;
+        for (Previous *p = previous; p; p = p->prev)
+        {
+            if (arrayCheckRecursiveExpansion(p->dedargs, this, sc))
+                goto Lnomatch;
+
+            if (arrayObjectMatch(p->dedargs, dedtypes))
+            {
+                //printf("recursive, no match p->sc=%p %p %s\n", p->sc, this, this->toChars());
+                /* It must be a subscope of p->sc, other scope chains are not recursive
+                 * instantiations.
+                 */
+                for (Scope *scx = sc; scx; scx = scx->enclosing)
+                {
+                    if (scx == p->sc)
+                        goto Lnomatch;
+                }
+            }
+            /* BUG: should also check for ref param differences
+             */
+        }
+
+        Previous pr;
+        pr.prev = previous;
+        pr.sc = paramscope;
+        pr.dedargs = dedtypes;
+        previous = &pr;                 // add this to threaded list
+
+        int nerrors = global.errors;
 
         FuncDeclaration *fd = onemember && onemember->toAlias() ?
             onemember->toAlias()->isFuncDeclaration() : NULL;
@@ -925,17 +954,22 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             fd->vthis = fd->declareThis(paramscope, ad);
         }
 
-        sc = sc->startCTFE();
-        e = e->semantic(sc);
-        e = resolveProperties(sc, e);
-        sc = sc->endCTFE();
-        if (e->op == TOKerror)
-            goto Lnomatch;
+        Scope *scx = paramscope->startCTFE();
+        scx->flags |= SCOPEstaticif;
+        e = e->semantic(scx);
+        e = resolveProperties(scx, e);
+        scx = scx->endCTFE();
 
         if (fd && fd->vthis)
             fd->vthis = vthissave;
 
-        sc->pop();
+        previous = pr.prev;             // unlink from threaded list
+
+        if (nerrors != global.errors)   // if any errors from evaluating the constraint, no match
+            goto Lnomatch;
+        if (e->op == TOKerror)
+            goto Lnomatch;
+
         e = e->ctfeInterpret();
         if (e->isBool(TRUE))
             ;
@@ -1952,12 +1986,12 @@ Lmatch:
 
 #if DMDV2
     if (constraint)
-    {   /* Check to see if constraint is satisfied.
+    {
+        /* Check to see if constraint is satisfied.
          * Most of this code appears twice; this is a good candidate for refactoring.
          */
         makeParamNamesVisibleInConstraint(paramscope, fargs);
         Expression *e = constraint->syntaxCopy();
-        paramscope->flags |= SCOPEstaticif;
 
         /* Detect recursive attempts to instantiate this template declaration,
          * Bugzilla 4072
@@ -2008,6 +2042,7 @@ Lmatch:
         }
 
         Scope *scx = paramscope->startCTFE();
+        scx->flags |= SCOPEstaticif;
         e = e->semantic(scx);
         e = resolveProperties(scx, e);
         scx->endCTFE();
