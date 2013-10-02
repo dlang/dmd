@@ -508,7 +508,8 @@ TemplateDeclaration::TemplateDeclaration(Loc loc, Identifier *id,
     this->numinstances = 0;
 
     // Compute in advance for Ddoc's use
-    if (members)
+    // Bugzilla 11153: ident could be NULL if parsing fails.
+    if (members && ident)
     {
         Dsymbol *s;
         if (Dsymbol::oneMembers(members, &s, ident) && s)
