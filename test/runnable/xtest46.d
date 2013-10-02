@@ -2166,14 +2166,6 @@ void test107()
 
 /***************************************************/
 
-void bug4072(T)(T x)
-   if (is(typeof(bug4072(x))))
-{}
-
-static assert(!is(typeof(bug4072(7))));
-
-/***************************************************/
-
 class A109 {}
 
 void test109()
@@ -5962,6 +5954,61 @@ void test8108()
 }
 
 /***************************************************/
+// 8360
+
+struct Foo8360
+{
+    int value = 0;
+    int check = 1337;
+
+    this(int value)
+    {
+        assert(0);
+        this.value = value;
+    }
+
+    ~this()
+    {
+        assert(0);
+        assert(check == 1337);
+    }
+
+    string str()
+    {
+        assert(0);
+        return "Foo";
+    }
+}
+
+Foo8360 makeFoo8360()
+{
+    assert(0);
+    return Foo8360(2);
+}
+
+void test8360()
+{
+    size_t length = 0;
+
+    // The message part 'makeFoo().str()' should not be evaluated at all.
+    assert(length < 5, makeFoo8360().str());
+}
+
+/***************************************************/
+// 8361
+
+struct Foo8361
+{
+    string bar = "hello";
+    ~this() {}
+}
+
+void test8361()
+{
+    assert(true, Foo8361().bar);
+}
+
+/***************************************************/
 // 6141 + 8526
 
 void test6141()
@@ -6603,6 +6650,43 @@ void test10634()
 
 /***************************************************/
 
+immutable(char)[4] bar7254(int i) {
+    if (i)
+    {
+        immutable(char)[4] r; return r;
+    }
+    else
+        return "1234";
+}
+
+void test7254()
+{
+    assert(bar7254(0) == "1234");
+}
+
+/***************************************************/
+
+struct S11075() { int x = undefined_expr; }
+
+class C11075() { int x = undefined_expr; }
+
+interface I11075() { enum int x = undefined_expr; }
+
+void test11075()
+{
+    static assert(!is(typeof(S11075!().x)));
+    static assert(!is(typeof(S11075!().x)));
+
+    static assert(!is(typeof(C11075!().x)));
+    static assert(!is(typeof(C11075!().x)));
+
+    static assert(!is(typeof(I11075!().x)));
+    static assert(!is(typeof(I11075!().x)));
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6857,6 +6941,7 @@ int main()
     test160();
     test8665();
     test8108();
+    test8360();
     test6141();
     test8526();
     test161();
@@ -6875,6 +6960,8 @@ int main()
     test10542();
     test10539();
     test10634();
+    test7254();
+    test11075();
 
     printf("Success\n");
     return 0;

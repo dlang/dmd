@@ -687,11 +687,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = search(Loc(), Id::ctor, 0);
-#if DMDV1
-    if (ctor && (ctor->toParent() != this || !ctor->isCtorDeclaration()))
-        ctor = NULL;
-#else
+    searchCtor();
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
     if (!ctor && noDefaultCtor)
@@ -704,11 +700,6 @@ void ClassDeclaration::semantic(Scope *sc)
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-#endif
-
-//    dtor = (DtorDeclaration *)search(Id::dtor, 0);
-//    if (dtor && dtor->toParent() != this)
-//      dtor = NULL;
 
     inv = buildInv(sc);
 
@@ -804,14 +795,12 @@ void ClassDeclaration::semantic(Scope *sc)
         deferred->semantic3(sc);
     }
 
-#if 0
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+        error("failed semantic analysis");
+        this->errors = true;
+        type = Type::terror;
     }
-#endif
-    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 void ClassDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
@@ -1489,14 +1478,12 @@ void InterfaceDeclaration::semantic(Scope *sc)
     sc->pop();
     //printf("-InterfaceDeclaration::semantic(%s), type = %p\n", toChars(), type);
 
-#if 0
     if (type->ty == Tclass && ((TypeClass *)type)->sym != this)
     {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeClass *)type)->sym);
+        error("failed semantic analysis");
+        this->errors = true;
+        type = Type::terror;
     }
-#endif
-    assert(type->ty != Tclass || ((TypeClass *)type)->sym == this);
 }
 
 
