@@ -600,9 +600,12 @@ bool isSafePointerCast(Type *srcPointee, Type *destPointee)
     if (destPointee->ty == Tvoid)
         return true;
 
-    // It's OK if they are the same size integers, eg int* and uint*
-    return srcPointee->isintegral() && destPointee->isintegral()
-           && srcPointee->size() == destPointee->size();
+    // It's OK if they are the same size (static array of) integers, eg:
+    //     int*     --> uint*
+    //     int[5][] --> uint[5][]
+    return srcPointee->baseElemOf()->isintegral() &&
+           destPointee->baseElemOf()->isintegral() &&
+           srcPointee->size() == destPointee->size();
 }
 
 Expression *getAggregateFromPointer(Expression *e, dinteger_t *ofs)
