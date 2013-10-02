@@ -2775,7 +2775,8 @@ Type *Parser::parseDeclarator(Type *t, Identifier **pident, TemplateParameters *
              * Improve error messages for the common bug of a missing return type
              * by looking to see if (a) looks like a parameter list.
              */
-            if (isParameters(&peekt)) {
+            if (isParameters(&peekt))
+            {
                 error("function declaration without return type. "
                 "(Note that constructors are always named 'this')");
             }
