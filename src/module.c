@@ -521,6 +521,7 @@ void Module::parse()
         this->safe = md->safe;
         Package *ppack = NULL;
         dst = Package::resolve(md->packages, &this->parent, &ppack);
+        assert(dst);
 #if 0
         if (ppack && ppack->isModule())
         {
@@ -559,7 +560,7 @@ void Module::parse()
          * If both are used in one compilation, 'pkg' as a module (== pkg/package.d)
          * and a package name 'pkg' will conflict each other.
          *
-         * To avoid the confliction,
+         * To avoid the conflict:
          * 1. If preceding package name insertion had occurred by Package::resolve,
          *    later package.d loading will change Package::isPkgMod to PKGmodule and set Package::mod.
          * 2. Otherwise, 'package.d' wrapped by 'Package' is inserted to the internal tree in here.
@@ -688,7 +689,7 @@ void Module::semantic()
     // gets imported, it is unaffected by context.
     Scope *sc = scope;                  // see if already got one from importAll()
     if (!sc)
-    {   printf("test2\n");
+    {
         Scope::createGlobal(this);      // create root scope
     }
 
@@ -1121,6 +1122,10 @@ DsymbolTable *Package::resolve(Identifiers *packages, Dsymbol **pparent, Package
                 // to be checked at a higher level, where a nice error message
                 // can be generated.
                 // dot net needs modules and packages with same name
+
+                // But we still need a symbol table for it
+                if (!pkg->symtab)
+                    pkg->symtab = new DsymbolTable();
             }
             parent = pkg;
             dst = pkg->symtab;
