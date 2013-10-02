@@ -823,7 +823,8 @@ void FileName::ensurePathExists(const char *path)
             {
 #if _WIN32
                 size_t len = strlen(path);
-                if (len > 2 && p[-1] == ':' && path + 2 == p)
+                if ((len > 2 && p[-1] == ':' && strcmp(path + 2, p) == 0) ||
+                    len == strlen(p))
                 {   mem.free((void *)p);
                     return;
                 }
