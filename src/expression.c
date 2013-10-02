@@ -4695,13 +4695,12 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         if (stype)
             telem = telem->addMod(stype->mod);
         Type *origType = telem;
-        if (!e->implicitConvTo(telem))
+        while (!e->implicitConvTo(telem) && telem->toBasetype()->ty == Tsarray)
         {
             /* Static array initialization, as in:
              *  T[3][5] = e;
              */
-            while (telem->toBasetype()->ty == Tsarray)
-                telem = telem->toBasetype()->nextOf();
+            telem = telem->toBasetype()->nextOf();
         }
 
         if (!e->implicitConvTo(telem))
