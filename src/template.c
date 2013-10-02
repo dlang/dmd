@@ -4078,6 +4078,45 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
 }
 #endif
 
+/*******************************************
+ * Match to a particular TemplateParameter.
+ * Input:
+ *      i               i'th argument
+ *      tiargs[]        actual arguments to template instance
+ *      parameters[]    template parameters
+ *      dedtypes[]      deduced arguments to template instance
+ *      *psparam        set to symbol declared and initialized to dedtypes[i]
+ */
+
+MATCH TemplateParameter::matchArg(Scope *sc, Objects *tiargs,
+        size_t i, TemplateParameters *parameters, Objects *dedtypes,
+        Declaration **psparam)
+{
+    RootObject *oarg;
+
+    if (i < tiargs->dim)
+        oarg = (*tiargs)[i];
+    else
+    {
+        // Get default argument instead
+        oarg = defaultArg(loc, sc);
+        if (!oarg)
+        {
+            assert(i < dedtypes->dim);
+            // It might have already been deduced
+            oarg = (*dedtypes)[i];
+            if (!oarg)
+                goto Lnomatch;
+        }
+    }
+    return matchArg(sc, oarg, i, parameters, dedtypes, psparam);
+
+Lnomatch:
+    if (psparam)
+        *psparam = NULL;
+    return MATCHnomatch;
+}
+
 /* ======================== TemplateTypeParameter =========================== */
 
 // type-parameter
@@ -4157,45 +4196,6 @@ int TemplateTypeParameter::overloadMatch(TemplateParameter *tp)
 
 Lnomatch:
     return 0;
-}
-
-/*******************************************
- * Match to a particular TemplateParameter.
- * Input:
- *      i               i'th argument
- *      tiargs[]        actual arguments to template instance
- *      parameters[]    template parameters
- *      dedtypes[]      deduced arguments to template instance
- *      *psparam        set to symbol declared and initialized to dedtypes[i]
- */
-
-MATCH TemplateTypeParameter::matchArg(Scope *sc, Objects *tiargs,
-        size_t i, TemplateParameters *parameters, Objects *dedtypes,
-        Declaration **psparam)
-{
-    RootObject *oarg;
-
-    if (i < tiargs->dim)
-        oarg = (*tiargs)[i];
-    else
-    {   // Get default argument instead
-        oarg = defaultArg(loc, sc);
-        if (!oarg)
-        {   assert(i < dedtypes->dim);
-            // It might have already been deduced
-            oarg = (*dedtypes)[i];
-            if (!oarg)
-            {
-                goto Lnomatch;
-            }
-        }
-    }
-    return matchArg(sc, oarg, i, parameters, dedtypes, psparam);
-
-Lnomatch:
-    if (psparam)
-        *psparam = NULL;
-    return MATCHnomatch;
 }
 
 MATCH TemplateTypeParameter::matchArg(Scope *sc, RootObject *oarg,
@@ -4494,33 +4494,6 @@ bool isPseudoDsymbol(RootObject *o)
     return false;
 }
 
-MATCH TemplateAliasParameter::matchArg(Scope *sc, Objects *tiargs,
-        size_t i, TemplateParameters *parameters, Objects *dedtypes,
-        Declaration **psparam)
-{
-    RootObject *oarg;
-
-    if (i < tiargs->dim)
-        oarg = (*tiargs)[i];
-    else
-    {   // Get default argument instead
-        oarg = defaultArg(loc, sc);
-        if (!oarg)
-        {   assert(i < dedtypes->dim);
-            // It might have already been deduced
-            oarg = (*dedtypes)[i];
-            if (!oarg)
-                goto Lnomatch;
-        }
-    }
-    return matchArg(sc, oarg, i, parameters, dedtypes, psparam);
-
-Lnomatch:
-    if (psparam)
-        *psparam = NULL;
-    return MATCHnomatch;
-}
-
 MATCH TemplateAliasParameter::matchArg(Scope *sc, RootObject *oarg,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
@@ -4793,34 +4766,6 @@ int TemplateValueParameter::overloadMatch(TemplateParameter *tp)
 
 Lnomatch:
     return 0;
-}
-
-
-MATCH TemplateValueParameter::matchArg(Scope *sc, Objects *tiargs,
-        size_t i, TemplateParameters *parameters, Objects *dedtypes,
-        Declaration **psparam)
-{
-    RootObject *oarg;
-
-    if (i < tiargs->dim)
-        oarg = (*tiargs)[i];
-    else
-    {   // Get default argument instead
-        oarg = defaultArg(loc, sc);
-        if (!oarg)
-        {   assert(i < dedtypes->dim);
-            // It might have already been deduced
-            oarg = (*dedtypes)[i];
-            if (!oarg)
-                goto Lnomatch;
-        }
-    }
-    return matchArg(sc, oarg, i, parameters, dedtypes, psparam);
-
-Lnomatch:
-    if (psparam)
-        *psparam = NULL;
-    return MATCHnomatch;
 }
 
 MATCH TemplateValueParameter::matchArg(Scope *sc, RootObject *oarg,
