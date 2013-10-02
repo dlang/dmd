@@ -1060,20 +1060,29 @@ Type *ExpInitializer::inferType(Scope *sc)
 
     // Give error for overloaded function addresses
     if (exp->op == TOKsymoff)
-    {   SymOffExp *se = (SymOffExp *)exp;
+    {
+        SymOffExp *se = (SymOffExp *)exp;
         if (se->hasOverloads && !se->var->isFuncDeclaration()->isUnique())
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
             return Type::terror;
         }
     }
-
-    // Give error for overloaded function addresses
     if (exp->op == TOKdelegate)
-    {   DelegateExp *se = (DelegateExp *)exp;
+    {
+        DelegateExp *se = (DelegateExp *)exp;
         if (se->hasOverloads &&
             se->func->isFuncDeclaration() &&
             !se->func->isFuncDeclaration()->isUnique())
+        {
+            exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
+            return Type::terror;
+        }
+    }
+    if (exp->op == TOKaddress)
+    {
+        AddrExp *ae = (AddrExp *)exp;
+        if (ae->e1->op == TOKoverloadset)
         {
             exp->error("cannot infer type from overloaded function symbol %s", exp->toChars());
             return Type::terror;
