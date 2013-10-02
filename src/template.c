@@ -844,12 +844,14 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
     Scope *paramscope = scope->push(paramsym);
     Module *mi = ti->instantiatingModule ? ti->instantiatingModule : sc->instantiatingModule;
     paramscope->instantiatingModule = mi;
+    paramscope->callsc = sc;
     paramscope->stc = 0;
 
     // Attempt type deduction
     m = MATCHexact;
     for (size_t i = 0; i < dedtypes_dim; i++)
-    {   MATCH m2;
+    {
+        MATCH m2;
         TemplateParameter *tp = (*parameters)[i];
         Declaration *sparam;
 
@@ -861,7 +863,7 @@ MATCH TemplateDeclaration::matchWithInstance(Scope *sc, TemplateInstance *ti,
             printf("\tparameter[%d] is %s : %s\n", i, tp->ident->toChars(), ttp->specType ? ttp->specType->toChars() : "");
 #endif
 
-        m2 = tp->matchArg(paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
+        m2 = tp->matchArg(ti->loc, paramscope, ti->tiargs, i, parameters, dedtypes, &sparam);
         //printf("\tm2 = %d\n", m2);
 
         if (m2 == MATCHnomatch)
@@ -1184,7 +1186,7 @@ MATCH TemplateDeclaration::deduceFunctionTemplateMatch(FuncDeclaration *f, Loc l
             MATCH m;
             Declaration *sparam = NULL;
 
-            m = tp->matchArg(paramscope, dedargs, i, parameters, &dedtypes, &sparam);
+            m = tp->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, &sparam);
             //printf("\tdeduceType m = %d\n", m);
             if (m == MATCHnomatch)
                 goto Lnomatch;
@@ -1916,7 +1918,7 @@ Lmatch:
                      * the oded == oarg
                      */
                     (*dedargs)[i] = oded;
-                    MATCH m2 = tparam->matchArg(paramscope, dedargs, i, parameters, &dedtypes, NULL);
+                    MATCH m2 = tparam->matchArg(loc, paramscope, dedargs, i, parameters, &dedtypes, NULL);
                     //printf("m2 = %d\n", m2);
                     if (!m2)
                         goto Lnomatch;
@@ -4088,7 +4090,7 @@ TemplateThisParameter  *TemplateParameter::isTemplateThisParameter()
  *      *psparam        set to symbol declared and initialized to dedtypes[i]
  */
 
-MATCH TemplateParameter::matchArg(Scope *sc, Objects *tiargs,
+MATCH TemplateParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
@@ -4987,7 +4989,7 @@ int TemplateTupleParameter::overloadMatch(TemplateParameter *tp)
     return 0;
 }
 
-MATCH TemplateTupleParameter::matchArg(Scope *sc, Objects *tiargs,
+MATCH TemplateTupleParameter::matchArg(Loc loc, Scope *sc, Objects *tiargs,
         size_t i, TemplateParameters *parameters, Objects *dedtypes,
         Declaration **psparam)
 {
