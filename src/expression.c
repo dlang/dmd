@@ -2409,10 +2409,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 /*******************************************
  * Accessing variable v.
  * Check for purity and safety violations.
- * If ethis is not NULL, then ethis is the 'this' pointer as in ethis.v
  */
 
-void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
+void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 {
     /* Look for purity and safety violations when accessing variable v
      * from current function.
@@ -5752,7 +5751,7 @@ Expression *VarExp::semantic(Scope *sc)
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
 #if DMDV2
-        checkPurity(sc, v, NULL);
+        checkPurity(sc, v);
 #endif
     }
     FuncDeclaration *f = var->isFuncDeclaration();
