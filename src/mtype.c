@@ -380,7 +380,7 @@ Type *Type::trySemantic(Loc loc, Scope *sc)
     //printf("+trySemantic(%s) %d\n", toChars(), global.errors);
     unsigned errors = global.startGagging();
     Type *t = semantic(loc, sc);
-    if (global.endGagging(errors))        // if any errors happened
+    if (global.endGagging(errors) || t->ty == Terror)        // if any errors happened
     {
         t = NULL;
     }
