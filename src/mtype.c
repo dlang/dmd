@@ -7425,6 +7425,8 @@ Dsymbol *TypeEnum::toDsymbol(Scope *sc)
 
 Type *TypeEnum::toBasetype()
 {
+    if (!sym->members && !sym->memtype)
+        return this;
     return sym->getMemtype(Loc())->toBasetype();
 }
 
