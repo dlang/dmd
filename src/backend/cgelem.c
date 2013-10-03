@@ -2931,6 +2931,12 @@ STATIC elem * eladdr(elem *e, goal_t goal)
         e = optelem(e,GOALvalue);
         break;
     }
+    case OPinfo:
+        // Replace &(e1 info e2) with (e1 info &e2)
+        e = el_selecte1(e);
+        e->E2 = el_una(OPaddr,tym,e->E2);
+        e = optelem(e,GOALvalue);
+        break;
   }
   return e;
 }
