@@ -2877,7 +2877,7 @@ code *post87(elem *e,regm_t *pretregs)
         unsigned reg;
         tym_t ty1;
 
-        //printf("post87()\n");
+        //printf("post87(e = %p, *pretregs = %s)\n", e, regm_str(*pretregs));
         assert(*pretregs);
         cl = getlvalue(&cs,e->E1,0);
         cs.Iflags |= ADDFWAIT() ? CFwait : 0;
@@ -2925,7 +2925,7 @@ code *post87(elem *e,regm_t *pretregs)
             return cat4(cl, cr, c, fixresult_complex87(e, mST01, pretregs));
         }
 
-        if (*pretregs & (mST0 | ALLREGS | mBP))
+        if (*pretregs & (mST0 | ALLREGS | mBP | XMMREGS))
         {   // Want the result in a register
             cl = cat(cl,push87());
             genf2(cl,0xD9,0xC0);        // FLD ST0
