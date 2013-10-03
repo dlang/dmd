@@ -3113,12 +3113,16 @@ void test112()
 // 10687
 
 enum Foo10687 : uint { A, B, C, D, E }
+immutable uint[5][] m10687 = [[0, 1, 2, 3, 4]];
 
 void test10687()
 {
     static immutable uint[5] a1 = [0, 1, 2, 3, 4];
-    auto a2 = cast(immutable(Foo10687[5]))a1;
+    auto   a2 = cast(immutable(Foo10687[5]))a1;
     static a3 = cast(immutable(Foo10687[5]))a1;
+
+    auto   foos1 = cast(immutable(Foo10687[5][]))m10687;
+    static foos2 = cast(immutable(Foo10687[5][]))m10687;
 }
 
 /************************************************/
