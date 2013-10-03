@@ -3022,6 +3022,16 @@ void test10789()
 
 /**********************************/
 
+struct S7474 {
+  float x;
+  ~this() {}
+}
+
+void fun7474(T...)() { T x; }
+void test7474() { fun7474!S7474(); }
+
+/**********************************/
+
 int main()
 {
     test1();
@@ -3114,6 +3124,7 @@ int main()
     test10244();
     test10694();
     test10789();
+    test7474();
 
     printf("Success\n");
     return 0;
