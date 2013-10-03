@@ -6792,7 +6792,7 @@ Expression *IsExp::semantic(Scope *sc)
             {   TemplateParameter *tp = (*parameters)[i];
                 Declaration *s = NULL;
 
-                m = tp->matchArg(sc, &tiargs, i, parameters, &dedtypes, &s);
+                m = tp->matchArg(loc, sc, &tiargs, i, parameters, &dedtypes, &s);
                 if (m == MATCHnomatch)
                     goto Lno;
                 s->semantic(sc);
