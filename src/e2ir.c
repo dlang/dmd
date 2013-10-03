@@ -2118,7 +2118,16 @@ elem *AssertExp::toElem(IRState *irs)
                                                        : el_var(assertexp_sfilename);
 
             if (msg)
-            {   elem *emsg = eval_Darray(irs, msg, false);
+            {
+                /* Bugzilla 8360: If the condition is evalated to true,
+                 * msg is not evaluated at all. so should use
+                 * msg->toElemDtor(irs) instead of msg->toElem(irs).
+                 */
+                elem *emsg = msg->toElemDtor(irs);
+                emsg = array_toDarray(msg->type, emsg);
+                if (config.exe == EX_WIN64)
+                    emsg = addressElem(emsg, Type::tvoid->arrayOf(), false);
+
                 ea = el_var(rtlsym[ud ? RTLSYM_DUNITTEST_MSG : RTLSYM_DASSERT_MSG]);
                 ea = el_bin(OPcall, TYvoid, ea, el_params(el_long(TYint, loc.linnum), efilename, emsg, NULL));
             }

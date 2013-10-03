@@ -5954,6 +5954,47 @@ void test8108()
 }
 
 /***************************************************/
+// 8360
+
+struct Foo8360
+{
+    int value = 0;
+    int check = 1337;
+
+    this(int value)
+    {
+        assert(0);
+        this.value = value;
+    }
+
+    ~this()
+    {
+        assert(0);
+        assert(check == 1337);
+    }
+
+    string str()
+    {
+        assert(0);
+        return "Foo";
+    }
+}
+
+Foo8360 makeFoo8360()
+{
+    assert(0);
+    return Foo8360(2);
+}
+
+void test8360()
+{
+    size_t length = 0;
+
+    // The message part 'makeFoo().str()' should not be evaluated at all.
+    assert(length < 5, makeFoo8360().str());
+}
+
+/***************************************************/
 // 6141 + 8526
 
 void test6141()
@@ -6849,6 +6890,7 @@ int main()
     test160();
     test8665();
     test8108();
+    test8360();
     test6141();
     test8526();
     test161();
