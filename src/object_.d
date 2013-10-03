@@ -27,7 +27,6 @@ private
     import core.memory;
     import rt.util.hash;
     import rt.util.string;
-    import rt.util.console;
     import rt.minfo;
     debug(PRINTF) import core.stdc.stdio;
 

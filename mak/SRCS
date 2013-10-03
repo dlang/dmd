@@ -105,7 +105,6 @@ SRCS=\
 	src\rt\tlsgc.d \
 	src\rt\trace.d \
 	\
-	src\rt\util\console.d \
 	src\rt\util\container.d \
 	src\rt\util\hash.d \
 	src\rt\util\string.d \
