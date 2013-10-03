@@ -2395,6 +2395,7 @@ done:
 /*********************************************
  * parse:
  *      #line linnum [filespec]
+ * also allow __LINE__ for linnum, and __FILE__ for filespec
  */
 
 void Lexer::poundLine()
@@ -2409,6 +2410,10 @@ void Lexer::poundLine()
     {   linnum = tok.uns64value - 1;
         if (linnum != tok.uns64value - 1)
             error("line number out of range");
+    }
+    else if (tok.value == TOKline)
+    {
+        linnum = this->scanloc.linnum;
     }
     else
         goto Lerr;
