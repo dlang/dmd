@@ -191,34 +191,7 @@ void WReqn(elem *e)
   {
         switch (e->Eoper)
         {   case OPconst:
-                switch (tybasic(e->Ety))
-                {
-                    case TYfloat:
-                        dbg_printf("%g <float> ",e->EV.Vfloat);
-                        break;
-                    case TYdouble:
-                        dbg_printf("%g ",e->EV.Vdouble);
-                        break;
-                    case TYldouble:
-#if _MSC_VER
-                    {
-                        char buffer[3 + 3 * sizeof(targ_ldouble) + 1];
-                        ld_sprint(buffer, 'g', e->EV.Vldouble);
-                        dbg_printf("%s ",buffer);
-                        break;
-                    }
-#else
-                        dbg_printf("%Lg ",e->EV.Vldouble);
-                        break;
-#endif
-                    case TYcent:
-                    case TYucent:
-                        dbg_printf("%lld+%lld ", e->EV.Vcent.msw, e->EV.Vcent.lsw);
-                        break;
-                    default:
-                        dbg_printf("%lld ",el_tolong(e));
-                        break;
-                }
+                elem_print_const(e);
                 break;
             case OPrelconst:
                 ferr("#");
