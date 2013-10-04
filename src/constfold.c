@@ -570,8 +570,8 @@ Expression *Pow(Type *type, Expression *e1, Expression *e2)
         }
         else
         {
-            r = new RealExp(loc, e1->toReal(), Type::tfloat64);
-            v = new RealExp(loc, ldouble(1.0), Type::tfloat64);
+            r = new IntegerExp(loc, e1->toInteger(), e1->type);
+            v = new IntegerExp(loc, 1, e1->type);
         }
 
         while (n != 0)
