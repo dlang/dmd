@@ -279,8 +279,9 @@ void Import::semantic(Scope *sc)
     if (global.params.moduleDeps != NULL &&
         // object self-imports itself, so skip that (Bugzilla 7547)
         !(id == Id::object && sc->module->ident == Id::object) &&
-        // don't list pseudo module __entrypoint.d (Bugzilla 11117)
-        sc->module->ident != Id::entrypoint)
+        // don't list pseudo modules __entrypoint.d, __main.d (Bugzilla 11117, 11164)
+        sc->module->ident != Id::entrypoint &&
+        strcmp(sc->module->ident->string, "__main") != 0)
     {
         /* The grammar of the file is:
          *      ImportDeclaration
