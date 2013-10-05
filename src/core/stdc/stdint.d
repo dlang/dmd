@@ -19,7 +19,8 @@ private import core.stdc.signal; // for sig_atomic_t
 private import core.stdc.wchar_; // for wint_t
 
 
-private T _typify(T)(T val) @safe pure nothrow { return val; }
+// Can't be `private` because of @@@BUG11173@@@.
+T _typify(T)(T val) @safe pure nothrow { return val; }
 
 extern (C):
 @trusted: // Types and constants only.
