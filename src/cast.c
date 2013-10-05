@@ -934,8 +934,8 @@ MATCH NewExp::implicitConvTo(Type *t)
             goto Lnomatch;
 
         for (size_t i = 0; i < cd->fields.dim; i++)
-        {   Dsymbol *sm = cd->fields[i];
-            Declaration *d = sm->isDeclaration();
+        {
+            Declaration *d = cd->fields[i];
             if (d->storage_class & STCref || d->hasPointers())
                 goto Lnomatch;
         }
@@ -984,8 +984,8 @@ MATCH NewExp::implicitConvTo(Type *t)
                 goto Lnomatch;
 
             for (size_t i = 0; i < sd->fields.dim; i++)
-            {   Dsymbol *sm = sd->fields[i];
-                Declaration *d = sm->isDeclaration();
+            {
+                Declaration *d = sd->fields[i];
                 if (d->storage_class & STCref || d->hasPointers())
                     goto Lnomatch;
             }

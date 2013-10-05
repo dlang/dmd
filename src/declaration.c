@@ -45,7 +45,8 @@ void checkFrameAccess(Loc loc, Scope *sc, AggregateDeclaration *ad)
             {
                 // Is it better moving this check to AggregateDeclaration:semantic?
                 for (size_t i = 0; i < ad->fields.dim; i++)
-                {   VarDeclaration *vd = ad->fields[i]->isVarDeclaration();
+                {
+                    VarDeclaration *vd = ad->fields[i];
                     if (vd)
                         if (AggregateDeclaration *ad2 = isAggregate(vd->type))
                             if (ad2->isStructDeclaration())

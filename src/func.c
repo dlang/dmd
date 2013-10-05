@@ -1354,8 +1354,8 @@ void FuncDeclaration::semantic3(Scope *sc)
                 if (!(sc2->callSuper & CSXthis_ctor))
                 {
                     for (size_t i = 0; i < ad2->fields.dim; i++)
-                    {   VarDeclaration *v = ad2->fields[i];
-
+                    {
+                        VarDeclaration *v = ad2->fields[i];
                         if (v->ctorinit == 0)
                         {
                             /* Current bugs in the flow analysis:

@@ -1183,10 +1183,8 @@ Expression *Cast(Type *type, Type *to, Expression *e1)
         assert(sd);
         Expressions *elements = new Expressions;
         for (size_t i = 0; i < sd->fields.dim; i++)
-        {   Dsymbol *s = sd->fields[i];
-            VarDeclaration *v = s->isVarDeclaration();
-            assert(v);
-
+        {
+            VarDeclaration *v = sd->fields[i];
             Expression *exp = new IntegerExp(0);
             exp = Cast(v->type, v->type, exp);
             if (exp == EXP_CANT_INTERPRET)
