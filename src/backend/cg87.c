@@ -281,6 +281,8 @@ void note87(elem *e, unsigned offset, int i)
 #endif
         //if (i >= stackused) *(char*)0=0;
         assert(i < stackused);
+        while (e->Eoper == OPcomma)
+            e = e->E2;
         _8087elems[i].e = e;
         _8087elems[i].offset = offset;
 }
@@ -312,14 +314,13 @@ STATIC code * makesure87(elem *e,unsigned offset,int i,unsigned flag,int linnum)
 STATIC code * makesure87(elem *e,unsigned offset,int i,unsigned flag)
 #endif
 {
-        code *c;
-        int j;
-
 #ifdef DEBUG
         if (NDPP) printf("makesure87(e=%p, offset=%d, i=%d, flag=%d, line=%d)\n",e,offset,i,flag,linnum);
 #endif
+        while (e->Eoper == OPcomma)
+            e = e->E2;
         assert(e && i < 4);
-        c = CNIL;
+        code *c = CNIL;
     L1:
         if (_8087elems[i].e != e || _8087elems[i].offset != offset)
         {
@@ -328,6 +329,7 @@ STATIC code * makesure87(elem *e,unsigned offset,int i,unsigned flag)
                     printf("_8087elems[%d].e = %p, .offset = %d\n",i,_8087elems[i].e,_8087elems[i].offset);
 #endif
                 assert(_8087elems[i].e == NULL);
+                int j;
                 for (j = 0; 1; j++)
                 {
                     if (j >= NDP::savetop && e->Eoper == OPcomma)
