@@ -547,7 +547,7 @@ void getAMDcacheinfo()
             mov d6, EDX; // L3 cache info
         }
 
-        immutable ubyte [] assocmap = [ 0, 1, 2, 0, 4, 0, 8, 0, 16, 0, 32, 48, 64, 96, 128, 0xFF ];
+        static immutable ubyte [] assocmap = [ 0, 1, 2, 0, 4, 0, 8, 0, 16, 0, 32, 48, 64, 96, 128, 0xFF ];
         datacache[1].size = (c6>>16) & 0xFFFF;
         datacache[1].associativity = assocmap[(c6>>12)&0xF];
         datacache[1].lineSize = c6 & 0xFF;
