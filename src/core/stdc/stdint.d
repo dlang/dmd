@@ -18,63 +18,59 @@ private import core.stdc.stddef; // for ptrdiff_t, size_t, wchar_t
 private import core.stdc.signal; // for sig_atomic_t
 private import core.stdc.wchar_; // for wint_t
 
-private
-{
-    template typify(T)
-    {
-        T typify( T val ) { return val; }
-    }
-}
+
+// Can't be `private` because of @@@BUG11173@@@.
+T _typify(T)(T val) @safe pure nothrow { return val; }
 
 extern (C):
 @trusted: // Types and constants only.
 nothrow:
 
-alias byte      int8_t;
-alias short     int16_t;
-alias int       int32_t;
-alias long      int64_t;
-//alias cent      int128_t;
+alias int8_t  = byte ;
+alias int16_t = short;
+alias int32_t = int  ;
+alias int64_t = long ;
+//alias int128_t = cent;
 
-alias ubyte     uint8_t;
-alias ushort    uint16_t;
-alias uint      uint32_t;
-alias ulong     uint64_t;
-//alias ucent     uint128_t;
+alias uint8_t  = ubyte ;
+alias uint16_t = ushort;
+alias uint32_t = uint  ;
+alias uint64_t = ulong ;
+//alias uint128_t = ucent;
 
-alias byte      int_least8_t;
-alias short     int_least16_t;
-alias int       int_least32_t;
-alias long      int_least64_t;
+alias int_least8_t  = byte ;
+alias int_least16_t = short;
+alias int_least32_t = int  ;
+alias int_least64_t = long ;
 
-alias ubyte     uint_least8_t;
-alias ushort    uint_least16_t;
-alias uint      uint_least32_t;
-alias ulong     uint_least64_t;
+alias uint_least8_t  = ubyte ;
+alias uint_least16_t = ushort;
+alias uint_least32_t = uint  ;
+alias uint_least64_t = ulong ;
 
-alias byte      int_fast8_t;
-alias int       int_fast16_t;
-alias int       int_fast32_t;
-alias long      int_fast64_t;
+alias int_fast8_t  = byte;
+alias int_fast16_t = int ;
+alias int_fast32_t = int ;
+alias int_fast64_t = long;
 
-alias ubyte     uint_fast8_t;
-alias uint      uint_fast16_t;
-alias uint      uint_fast32_t;
-alias ulong     uint_fast64_t;
+alias uint_fast8_t  = ubyte;
+alias uint_fast16_t = uint ;
+alias uint_fast32_t = uint ;
+alias uint_fast64_t = ulong;
 
 version( D_LP64 )
 {
-    alias long  intptr_t;
-    alias ulong uintptr_t;
+    alias intptr_t  = long ;
+    alias uintptr_t = ulong;
 }
 else
 {
-    alias int   intptr_t;
-    alias uint  uintptr_t;
+    alias intptr_t  = int ;
+    alias uintptr_t = uint;
 }
 
-alias long      intmax_t;
-alias ulong     uintmax_t;
+alias intmax_t  = long ;
+alias uintmax_t = ulong;
 
 enum int8_t   INT8_MIN  = int8_t.min;
 enum int8_t   INT8_MAX  = int8_t.max;
@@ -143,15 +139,15 @@ enum wchar_t WCHAR_MAX = wchar_t.max;
 enum wint_t  WINT_MIN  = wint_t.min;
 enum wint_t  WINT_MAX  = wint_t.max;
 
-alias typify!(int8_t)  INT8_C;
-alias typify!(int16_t) INT16_C;
-alias typify!(int32_t) INT32_C;
-alias typify!(int64_t) INT64_C;
+alias INT8_C  = _typify!int8_t ;
+alias INT16_C = _typify!int16_t;
+alias INT32_C = _typify!int32_t;
+alias INT64_C = _typify!int64_t;
 
-alias typify!(uint8_t)  UINT8_C;
-alias typify!(uint16_t) UINT16_C;
-alias typify!(uint32_t) UINT32_C;
-alias typify!(uint64_t) UINT64_C;
+alias UINT8_C  = _typify!uint8_t ;
+alias UINT16_C = _typify!uint16_t;
+alias UINT32_C = _typify!uint32_t;
+alias UINT64_C = _typify!uint64_t;
 
-alias typify!(intmax_t)  INTMAX_C;
-alias typify!(uintmax_t) UINTMAX_C;
+alias INTMAX_C  = _typify!intmax_t ;
+alias UINTMAX_C = _typify!uintmax_t;
