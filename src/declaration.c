@@ -2107,7 +2107,7 @@ Expression *VarDeclaration::getConstInitializer(bool needFullType)
     if (scope)
     {
         inuse++;
-        init->semantic(scope, type, INITinterpret);
+        init = init->semantic(scope, type, INITinterpret);
         scope = NULL;
         inuse--;
     }

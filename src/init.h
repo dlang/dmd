@@ -90,14 +90,12 @@ public:
     Identifiers field;  // of Identifier *'s
     Initializers value; // parallel array of Initializer *'s
 
-    VarDeclarations vars;       // parallel array of VarDeclaration *'s
-    AggregateDeclaration *ad;   // which aggregate this is for
-
     StructInitializer(Loc loc);
     Initializer *syntaxCopy();
     void addInit(Identifier *field, Initializer *value);
     Initializer *semantic(Scope *sc, Type *t, NeedInterpret needInterpret);
     Expression *toExpression(Type *t = NULL);
+    Expression *fill(Scope *sc, Type *t, NeedInterpret needInterpret);
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
 
     dt_t *toDt();

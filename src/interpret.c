@@ -1289,11 +1289,10 @@ Expression *scrubReturnValue(Loc loc, Expression *e)
     return e;
 }
 
-// Return true if every element in the array literal is either void,
-// or is an array literal of void elements.
-bool isEntirelyVoid(ArrayLiteralExp *e)
+// Return true if every element is either void,
+// or is an array literal or struct literal of void elements.
+bool isEntirelyVoid(Expressions *elems)
 {
-    Expressions *elems = e->elements;
     for (size_t i = 0; i < elems->dim; i++)
     {
         Expression *m = (*elems)[i];
@@ -1302,8 +1301,9 @@ bool isEntirelyVoid(ArrayLiteralExp *e)
         if (!m)
             continue;
 
-        if ( !( m->op == TOKvoid ||
-            (m->op == TOKarrayliteral && isEntirelyVoid((ArrayLiteralExp *)m))))
+        if (!(m->op == TOKvoid) &&
+            !(m->op == TOKarrayliteral && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) &&
+            !(m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
         {
             return false;
         }
@@ -1324,9 +1324,11 @@ bool scrubArray(Loc loc, Expressions *elems, bool structlit)
 
         // A struct .init may contain void members.
         // Static array members are a weird special case (bug 10994).
-        if (structlit && (m->op == TOKvoid ||
-            (m->op == TOKarrayliteral && m->type->ty == Tsarray
-                 && isEntirelyVoid((ArrayLiteralExp *)m) )))
+        if (structlit &&
+            ((m->op == TOKvoid) ||
+             (m->op == TOKarrayliteral && m->type->ty == Tsarray && isEntirelyVoid(((ArrayLiteralExp *)m)->elements)) ||
+             (m->op == TOKstructliteral && isEntirelyVoid(((StructLiteralExp *)m)->elements)))
+           )
         {
                 m = NULL;
         }
@@ -2210,7 +2212,7 @@ Expression *getVarExp(Loc loc, InterState *istate, Declaration *d, CtfeGoal goal
 #endif
         {
             if(v->scope)
-                v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
+                v->init = v->init->semantic(v->scope, v->type, INITinterpret); // might not be run on aggregate members
             e = v->init->toExpression(v->type);
             if (v->inuse)
             {
