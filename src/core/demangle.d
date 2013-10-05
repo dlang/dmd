@@ -1683,7 +1683,24 @@ unittest
  */
 char[] mangleFunc(T:FT*, FT)(const(char)[] fqn, char[] dst = null) @safe pure nothrow if (is(FT == function))
 {
-    return mangle!FT(fqn, dst);
+    static if (isExternD!FT)
+    {
+        return mangle!FT(fqn, dst);
+    }
+    else static if (hasPlainMangling!FT)
+    {
+        dst.length = fqn.length;
+        dst[] = fqn[];
+        return dst;
+    }
+    else static if (isExternCPP!FT)
+    {
+        static assert(0, "Can't mangle extern(C++) functions.");
+    }
+    else
+    {
+        static assert(0, "Can't mangle function with unknown linkage ("~FT.stringof~").");
+    }
 }
 
 
@@ -1700,6 +1717,50 @@ unittest
     assert(mangle!(typeof(fp))("demangle.test") == "_D8demangle4testPFLAiYi");
     assert(mangle!(typeof(*fp))("demangle.test") == "_D8demangle4testFLAiYi");
 }
+
+private template isExternD(FT) if (is(FT == function))
+{
+    enum isExternD = FT.mangleof[0] == 'F';
+}
+
+private template isExternCPP(FT) if (is(FT == function))
+{
+    enum isExternCPP = FT.mangleof[0] == 'R';
+}
+
+private template hasPlainMangling(FT) if (is(FT == function))
+{
+    enum c = FT.mangleof[0];
+    // C || Pascal || Windows
+    enum hasPlainMangling = c == 'U' || c == 'V' || c == 'W';
+}
+
+unittest
+{
+    static extern(D) void fooD();
+    static extern(C) void fooC();
+    static extern(Pascal) void fooP();
+    static extern(Windows) void fooW();
+    static extern(C++) void fooCPP();
+
+    bool check(FT)(bool isD, bool isCPP, bool isPlain)
+    {
+        return isExternD!FT == isD && isExternCPP!FT == isCPP &&
+            hasPlainMangling!FT == isPlain;
+    }
+    static assert(check!(typeof(fooD))(true, false, false));
+    static assert(check!(typeof(fooC))(false, false, true));
+    static assert(check!(typeof(fooP))(false, false, true));
+    static assert(check!(typeof(fooW))(false, false, true));
+    static assert(check!(typeof(fooCPP))(false, true, false));
+
+    static assert(__traits(compiles, mangleFunc!(typeof(&fooD))("")));
+    static assert(__traits(compiles, mangleFunc!(typeof(&fooC))("")));
+    static assert(__traits(compiles, mangleFunc!(typeof(&fooP))("")));
+    static assert(__traits(compiles, mangleFunc!(typeof(&fooW))("")));
+    static assert(!__traits(compiles, mangleFunc!(typeof(&fooCPP))("")));
+}
+
 
 version(unittest)
 {
