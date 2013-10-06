@@ -1618,6 +1618,8 @@ elem *StringExp::toElem(IRState *irs)
         outdata(si);
 
         e = el_var(si);
+
+        e->Ejty = e->Ety = TYstruct;
         e->ET = t;
         t->Tcount++;
     }

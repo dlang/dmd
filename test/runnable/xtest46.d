@@ -6650,6 +6650,22 @@ void test10634()
 
 /***************************************************/
 
+immutable(char)[4] bar7254(int i) {
+    if (i)
+    {
+        immutable(char)[4] r; return r;
+    }
+    else
+        return "1234";
+}
+
+void test7254()
+{
+    assert(bar7254(0) == "1234");
+}
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6923,6 +6939,7 @@ int main()
     test10542();
     test10539();
     test10634();
+    test7254();
 
     printf("Success\n");
     return 0;
