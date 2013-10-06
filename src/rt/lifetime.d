@@ -340,7 +340,7 @@ bool __setArrayAllocLength(ref BlkInfo info, size_t newlength, bool isshared, si
 /**
   get the start of the array for the given block
   */
-void *__arrayStart(BlkInfo info)
+void *__arrayStart(BlkInfo info) nothrow pure
 {
     return info.base + ((info.size & BIGLENGTHMASK) ? LARGEPREFIX : 0);
 }
@@ -350,7 +350,7 @@ void *__arrayStart(BlkInfo info)
   NOT included in the passed in size.  Therefore, do NOT call this function
   with the size of an allocated block.
   */
-size_t __arrayPad(size_t size)
+size_t __arrayPad(size_t size) nothrow pure @safe
 {
     return size > MAXMEDSIZE ? LARGEPAD : (size > MAXSMALLSIZE ? MEDPAD : SMALLPAD);
 }
@@ -382,7 +382,7 @@ else
     int __nextBlkIdx;
 }
 
-@property BlkInfo *__blkcache()
+@property BlkInfo *__blkcache() nothrow
 {
     if(!__blkcache_storage)
     {
@@ -444,7 +444,7 @@ void processGCMarks(BlkInfo* cache, scope rt.tlsgc.IsMarkedDg isMarked)
         the base ptr as an indication of whether the struct is valid, or set
         the BlkInfo as a side-effect and return a bool to indicate success.
   */
-BlkInfo *__getBlkInfo(void *interior)
+BlkInfo *__getBlkInfo(void *interior) nothrow
 {
     BlkInfo *ptr = __blkcache;
     version(single_cache)
@@ -481,7 +481,7 @@ BlkInfo *__getBlkInfo(void *interior)
     return null; // not in cache.
 }
 
-void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos)
+void __insertBlkInfoCache(BlkInfo bi, BlkInfo *curpos) nothrow
 {
     version(single_cache)
     {
