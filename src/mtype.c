@@ -4010,6 +4010,7 @@ Type *TypeSArray::semantic(Loc loc, Scope *sc)
                  tbn->ty == Tarray ||
                  tbn->ty == Tsarray ||
                  tbn->ty == Taarray ||
+                 (tbn->ty == Tstruct && (((TypeStruct *)tbn)->sym->sizeok == SIZEOKdone)) ||
                  tbn->ty == Tclass)
         {
             /* Only do this for types that don't need to have semantic()
