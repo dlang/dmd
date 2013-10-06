@@ -156,8 +156,10 @@ char *ThrownExceptionExp::toChars()
 // Generate an error message when this exception is not caught
 void ThrownExceptionExp::generateUncaughtError()
 {
-    thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(),
-        (*thrown->value->elements)[0]->toString()->toChars());
+    Expression *e = (*thrown->value->elements)[0];
+    StringExp* se = e->toString();
+    thrown->error("Uncaught CTFE exception %s(%s)", thrown->type->toChars(), se ? se->toChars() : e->toChars());
+
     /* Also give the line where the throw statement was. We won't have it
      * in the case where the ThrowStatement is generated internally
      * (eg, in ScopeStatement)
