@@ -4195,7 +4195,15 @@ else
     else version (Posix)
     {
         static if( __traits( compiles, ucontext_t ) )
-            static assert(__traits(classInstanceSize, Fiber) == 44 + ucontext_t.sizeof + 4);
+        {
+            // ucontext_t might have an alignment larger than 4.
+            static roundUp()(size_t n)
+            {
+                return (n + (ucontext_t.alignof - 1)) & ~(ucontext_t.alignof - 1);
+            }
+            static assert(__traits(classInstanceSize, Fiber) ==
+                roundUp(roundUp(44) + ucontext_t.sizeof + 4));
+        }
         else
             static assert(__traits(classInstanceSize, Fiber) == 44);
     }
