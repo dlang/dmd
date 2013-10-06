@@ -150,11 +150,25 @@ struct Runtime
     }
 
     /**
-     * Returns the unprocessed C arguments supplied when the process was
-     * started. Use this when you need to supply argc and argv to C libraries.
+     * Returns the unprocessed C arguments supplied when the process was started.
+     * Use this when you need to supply argc and argv to C libraries.
      *
      * Returns:
      *  A $(LREF CArgs) struct with the arguments supplied when this process was started.
+     *
+     * Example:
+     * ---
+     * import core.runtime;
+     *
+     * // A C library function requiring char** arguments
+     * extern(C) void initLibFoo(int argc, char** argv);
+     *
+     * void main()
+     * {
+     *     auto args = Runtime.cArgs;
+     *     initLibFoo(args.argc, args.argv);
+     * }
+     * ---
      */
     static @property CArgs cArgs()
     {
