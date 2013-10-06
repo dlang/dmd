@@ -10000,6 +10000,12 @@ Expression *CastExp::semantic(Scope *sc)
 
         if (tob->ty == Tpointer && t1b->ty == Tdelegate)
             deprecation("casting from %s to %s is deprecated", e1->type->toChars(), to->toChars());
+
+        if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
+        {
+            error("cannot cast %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
+            return new ErrorExp();
+        }
     }
     else if (!to)
     {   error("cannot cast tuple");
