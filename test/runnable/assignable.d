@@ -614,8 +614,7 @@ void test6216d()
     S s;
     const(S) cs;
     s = s;
-    static assert(!__traits(compiles, s = cs));
-                // copying cx, const(S) to S is not possible
+    s = cs;
     //assert(cnt == 4);
     static assert(!__traits(compiles, cs = cs));
                 // built-in opAssin is only allowed with mutable object
@@ -810,6 +809,26 @@ struct S9658
 }
 
 /***************************************************/
+// 11187
+
+void test11187()
+{
+    static struct X
+    {
+        int[] arr;
+    }
+    static struct S
+    {
+        const(X) cx;
+    }
+    static assert(is(typeof((const S).init.cx.arr) == const(int[])));
+    static assert(is(typeof((      S).init.cx.arr) == const(int[])));
+    const S sc;
+    S sm = sc;
+    static assert(is(const S : S));
+}
+
+/***************************************************/
 
 int main()
 {
@@ -831,6 +850,7 @@ int main()
     test6336();
     test9154();
     test9416();
+    test11187();
 
     printf("Success\n");
     return 0;
