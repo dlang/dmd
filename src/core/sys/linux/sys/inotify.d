@@ -52,5 +52,5 @@ enum: uint
 
 int inotify_init();
 int inotify_init1(int flags);
-int inotify_add_watch(int fd, char* name, uint mask);
+int inotify_add_watch(int fd, const(char)* name, uint mask);
 int inotify_rm_watch(int fd, uint wd);
