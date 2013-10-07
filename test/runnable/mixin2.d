@@ -284,6 +284,19 @@ class derived10583
 
 /*********************************************/
 
+string rep(string s, int n)
+{
+    return n > 1 ? s ~ rep(s, n-1) : s;
+}
+
+void test7156()
+{
+    int i;
+    mixin(rep("++i;", 200));
+}
+
+/*********************************************/
+
 void main()
 {
     test1();
@@ -296,6 +309,7 @@ void main()
     test8();
     test9();
     test10();
+    test7156();
 
     writeln("Success");
 }
