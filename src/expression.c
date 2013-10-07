@@ -7855,6 +7855,12 @@ Expression *CastExp::semantic(Scope *sc)
                 return new ErrorExp();
             }
         }
+
+        if (t1b->ty == Tvoid && tob->ty != Tvoid && e1->op != TOKfunction)
+        {
+            error("cannot cast %s of type %s to %s", e1->toChars(), e1->type->toChars(), to->toChars());
+            return new ErrorExp();
+        }
     }
 
     if (!e1->type)
