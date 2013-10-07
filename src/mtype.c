@@ -8407,7 +8407,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                     Type *tvf = v->type->addMod(mod);
 
                     // 'to' type
-                    Type *tv = v->type->castMod(to->mod);
+                    Type *tv = v->type->addMod(to->mod);
 
                     // field match
                     MATCH mf = tvf->implicitConvTo(tv);
