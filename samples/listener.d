@@ -1,4 +1,3 @@
-
 /*
         D listener written by Christopher E. Miller
         This code is public domain.
@@ -50,7 +49,7 @@ next:
             if (sset.isSet(reads[i]))
             {
                 char[1024] buf;
-                int read = reads[i].receive(buf);
+                ptrdiff_t read = reads[i].receive(buf);
 
                 if (Socket.ERROR == read)
                 {
