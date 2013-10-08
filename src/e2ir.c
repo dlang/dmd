@@ -3312,7 +3312,8 @@ elem *CatAssignExp::toElem(IRState *irs)
         Type *tb1n = tb1->nextOf()->toBasetype();
         if ((tb2->ty == Tarray || tb2->ty == Tsarray) &&
             tb1n->equals(tb2->nextOf()->toBasetype()))
-        {   // Append array
+        {
+            // Append array
             e1 = el_una(OPaddr, TYnptr, e1);
             if (config.exe == EX_WIN64)
                 e2 = addressElem(e2, tb2);
@@ -3321,9 +3322,9 @@ elem *CatAssignExp::toElem(IRState *irs)
             elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
             e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDT]), ep);
         }
-        else if (I64)
-        {   // Append element
-
+        else
+        {
+            // Append element
             elem *e2x = NULL;
 
             if (e2->Eoper != OPvar && e2->Eoper != OPconst)
@@ -3364,10 +3365,6 @@ elem *CatAssignExp::toElem(IRState *irs)
             elength = el_bin(OPmin, TYsize_t, elength, el_long(TYsize_t, 1));
             elength = el_bin(OPmul, TYsize_t, elength, el_long(TYsize_t, this->e2->type->size()));
             eptr = el_bin(OPadd, TYnptr, eptr, elength);
-            StructDeclaration *sd = needsPostblit(tb2);
-            elem *epost = NULL;
-            if (sd)
-                epost = el_same(&eptr);
             elem *ederef = el_una(OPind, e2->Ety, eptr);
             elem *eeq = el_bin(OPeq, e2->Ety, ederef, e2);
 
@@ -3383,27 +3380,10 @@ elem *CatAssignExp::toElem(IRState *irs)
                 eeq->ET = tb1n->toCtype();
             }
 
-            /* Need to call postblit on eeq
-             */
-            if (sd)
-            {   FuncDeclaration *fd = sd->postblit;
-                epost = callfunc(loc, irs, 1, Type::tvoid, epost, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
-                eeq = el_bin(OPcomma, epost->Ety, eeq, epost);
-            }
-
             e = el_combine(e2x, e);
             e = el_combine(e, eeq);
             e = el_combine(e, el_var(stmp));
         }
-        else
-        {   // Append element
-            e1 = el_una(OPaddr, TYnptr, e1);
-            e2 = useOPstrpar(e2);
-            elem *ep = el_params(e2, e1, this->e1->type->getTypeInfo(NULL)->toElem(irs), NULL);
-            e = el_bin(OPcall, TYdarray, el_var(rtlsym[RTLSYM_ARRAYAPPENDCT]), ep);
-            e->Eflags |= EFLAGS_variadic;
-        }
-
         el_setLoc(e,loc);
     }
     else
@@ -5362,37 +5342,9 @@ elem *StructLiteralExp::toElem(IRState *irs)
             {
                 if (t2b->implicitConvTo(t1b))
                 {
-#if 0
-                    // Determine if postblit is needed
-                    int postblit = 0;
-                    if (needsPostblit(t1b))
-                        postblit = 1;
-
-                    if (postblit)
-                    {
-                        /* Generate:
-                         *      _d_arrayctor(ti, From: ep, To: e1)
-                         */
-                        Expression *ti = t1b->nextOf()->toBasetype()->getTypeInfo(NULL);
-                        elem *esize = el_long(TYsize_t, ((TypeSArray *)t1b)->dim->toInteger());
-                        e1 = el_pair(TYdarray, esize, e1);
-                        ep = el_pair(TYdarray, el_copytree(esize), array_toPtr(el->type, ep));
-                        if (config.exe == EX_WIN64)
-                        {
-                            e1 = addressElem(e1, Type::tvoid->arrayOf());
-                            ep = addressElem(ep, Type::tvoid->arrayOf());
-                        }
-                        ep = el_params(e1, ep, ti->toElem(irs), NULL);
-                        int rtl = RTLSYM_ARRAYCTOR;
-                        e1 = el_bin(OPcall, type->totym(), el_var(rtlsym[rtl]), ep);
-                    }
-                    else
-#endif
-                    {
-                        elem *esize = el_long(TYsize_t, t1b->size());
-                        ep = array_toPtr(el->type, ep);
-                        e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
-                    }
+                    elem *esize = el_long(TYsize_t, t1b->size());
+                    ep = array_toPtr(el->type, ep);
+                    e1 = el_bin(OPmemcpy, TYnptr, e1, el_param(ep, esize));
                 }
                 else
                 {
@@ -5408,20 +5360,10 @@ elem *StructLiteralExp::toElem(IRState *irs)
                     e1->ET = v->type->toCtype();
                 e1 = el_bin(OPeq, ty, e1, ep);
                 if (tybasic(ty) == TYstruct)
-                {   e1->Eoper = OPstreq;
+                {
+                    e1->Eoper = OPstreq;
                     e1->ET = v->type->toCtype();
                 }
-#if 0
-                /* Call postblit() on e1
-                 */
-                StructDeclaration *sd = needsPostblit(v->type);
-                if (sd && el->isLvalue())
-                {   FuncDeclaration *fd = sd->postblit;
-                    ec = el_copytree(ec);
-                    ec = callfunc(loc, irs, 1, Type::tvoid, ec, sd->type->pointerTo(), fd, fd->type, NULL, NULL);
-                    e1 = el_bin(OPcomma, ec->Ety, e1, ec);
-                }
-#endif
             }
             e = el_combine(e, e1);
         }
