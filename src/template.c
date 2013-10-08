@@ -2374,6 +2374,8 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
             ::error(loc, "forward reference to template %s", td->toChars());
             goto Lerror;
         }
+        if (td->ismixin)
+            return 0;
         FuncDeclaration *f;
         f = td->onemember ? td->onemember/*->toAlias()*/->isFuncDeclaration() : NULL;
         if (!f)

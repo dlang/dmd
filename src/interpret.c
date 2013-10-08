@@ -706,8 +706,13 @@ Expression *Expression::ctfeInterpret()
  */
 Expression *ctfeInterpretForPragmaMsg(Expression *e)
 {
-    if (e->op == TOKerror || e->op == TOKtype)
+    if (e->op == TOKerror ||
+        e->op == TOKtype ||
+        e->op == TOKtemplate ||
+        e->op == TOKimport)
+    {
         return e;
+    }
 
     // It's also OK for it to be a function declaration (happens only with
     // __traits(getOverloads))
