@@ -2409,10 +2409,9 @@ void Expression::checkPurity(Scope *sc, FuncDeclaration *f)
 /*******************************************
  * Accessing variable v.
  * Check for purity and safety violations.
- * If ethis is not NULL, then ethis is the 'this' pointer as in ethis.v
  */
 
-void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
+void Expression::checkPurity(Scope *sc, VarDeclaration *v)
 {
     /* Look for purity and safety violations when accessing variable v
      * from current function.
@@ -2450,6 +2449,26 @@ void Expression::checkPurity(Scope *sc, VarDeclaration *v, Expression *ethis)
         }
         else
         {
+            /* Bugzilla 10981: Special case for the contracts of pure virtual function.
+             * Rewrite:
+             *  tret foo(int i) pure
+             *  in { assert(i); } out { assert(i); } body { ... }
+             *
+             * as:
+             *  tret foo(int i) pure {
+             *    void __require() pure { assert(i); }  // allow accessing to i
+             *    void __ensure() pure { assert(i); }   // allow accessing to i
+             *    __require();
+             *    ...
+             *    __ensure();
+             *  }
+             */
+            if ((sc->func->ident == Id::require || sc->func->ident == Id::ensure) &&
+                v->isParameter() && sc->func->parent == v->parent)
+            {
+                return;
+            }
+
             /* Given:
              * void f()
              * { int fx;
@@ -5751,7 +5770,7 @@ Expression *VarExp::semantic(Scope *sc)
         hasOverloads = 0;
         v->checkNestedReference(sc, loc);
 #if DMDV2
-        checkPurity(sc, v, NULL);
+        checkPurity(sc, v);
 #endif
     }
     FuncDeclaration *f = var->isFuncDeclaration();

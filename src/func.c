@@ -795,7 +795,8 @@ void FuncDeclaration::semantic(Scope *sc)
          * can call them.
          */
         if (frequire)
-        {   /*   in { ... }
+        {
+            /*   in { ... }
              * becomes:
              *   void __require() { ... }
              *   __require();
@@ -819,9 +820,10 @@ void FuncDeclaration::semantic(Scope *sc)
             outId = Id::result; // provide a default
 
         if (fensure)
-        {   /*   out (result) { ... }
+        {
+            /*   out (result) { ... }
              * becomes:
-             *   tret __ensure(ref tret result) { ... }
+             *   void __ensure(ref tret result) { ... }
              *   __ensure(result);
              */
             Loc loc = fensure->loc;
