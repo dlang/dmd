@@ -3057,6 +3057,30 @@ void test11134()
 }
 
 /**********************************/
+// 11197
+
+struct S11197a
+{
+    this(bool) {}
+    this(this) {}
+}
+
+struct S11197b
+{
+    //this(bool) {}
+    this(this) {}
+}
+
+void test11197()
+{
+    S11197a[][string] aa1;
+    aa1["test"] ~= S11197a.init;
+
+    S11197b[][string] aa2;
+    aa2["test"] ~= S11197b.init;
+}
+
+/**********************************/
 
 struct S7474 {
   float x;
@@ -3161,6 +3185,7 @@ int main()
     test10694();
     test10789();
     test11134();
+    test11197();
     test7474();
 
     printf("Success\n");
