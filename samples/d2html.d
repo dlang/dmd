@@ -177,8 +177,8 @@ int main(string[] args)
                     src.read(c);
 
                     while (ishexdigit(c)) {
-		      dst.write(c);
-		      src.read(c);
+                        dst.write(c);
+                        src.read(c);
 		    }
 
                     // TODO: add support for hexadecimal floats
@@ -189,8 +189,8 @@ int main(string[] args)
                     src.read(c);
 
                     while (c == '0' || c == '1') {
-		      dst.write(c);
-		      src.read(c);
+                        dst.write(c);
+                        src.read(c);
 		    }
                 }
                 else                    // octal
