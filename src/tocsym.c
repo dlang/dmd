@@ -218,7 +218,7 @@ Symbol *VarDeclaration::toSymbol()
                 if (global.params.vtls)
                 {
                     char *p = loc.toChars();
-                    fprintf(stderr, "%s: %s is thread local\n", p ? p : "", toChars());
+                    fprintf(global.stdmsg, "%s: %s is thread local\n", p ? p : "", toChars());
                     if (p)
                         mem.free(p);
                 }
