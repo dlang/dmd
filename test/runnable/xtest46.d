@@ -6650,6 +6650,16 @@ void test10634()
 
 /***************************************************/
 
+struct S11075() { int x = undefined_expr; }
+
+void test11075() {
+    static assert(!is(typeof(S11075!().x)));
+    static assert(!is(typeof(S11075!().x)));
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6923,6 +6933,7 @@ int main()
     test10542();
     test10539();
     test10634();
+    test11075();
 
     printf("Success\n");
     return 0;

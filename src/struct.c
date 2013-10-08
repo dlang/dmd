@@ -841,6 +841,7 @@ void StructDeclaration::semantic(Scope *sc)
     if (global.errors != errors)
     {   // The type is no good.
         type = Type::terror;
+        this->errors = true;
     }
 
     if (deferred && !global.gag)
@@ -849,14 +850,12 @@ void StructDeclaration::semantic(Scope *sc)
         deferred->semantic3(sc);
     }
 
-#if 0
     if (type->ty == Tstruct && ((TypeStruct *)type)->sym != this)
     {
-        printf("this = %p %s\n", this, this->toChars());
-        printf("type = %d sym = %p\n", type->ty, ((TypeStruct *)type)->sym);
+        error("failed semantic analysis");
+        this->errors = true;
+        type = Type::terror;
     }
-#endif
-    assert(type->ty != Tstruct || ((TypeStruct *)type)->sym == this);
 }
 
 Dsymbol *StructDeclaration::search(Loc loc, Identifier *ident, int flags)
