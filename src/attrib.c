@@ -1050,7 +1050,7 @@ void PragmaDeclaration::semantic(Scope *sc)
                 memcpy(name, se->string, se->len);
                 name[se->len] = 0;
                 if (global.params.verbose)
-                    printf("library   %s\n", name);
+                    fprintf(global.stdmsg, "library   %s\n", name);
                 if (global.params.moduleDeps && !global.params.moduleDepsFile)
                 {
                     OutBuffer *ob = global.params.moduleDeps;
@@ -1168,7 +1168,7 @@ void PragmaDeclaration::semantic(Scope *sc)
         {
             /* Print unrecognized pragmas
              */
-            printf("pragma    %s", ident->toChars());
+            fprintf(global.stdmsg, "pragma    %s", ident->toChars());
             if (args)
             {
                 for (size_t i = 0; i < args->dim; i++)
@@ -1182,15 +1182,15 @@ void PragmaDeclaration::semantic(Scope *sc)
 
                     e = e->ctfeInterpret();
                     if (i == 0)
-                        printf(" (");
+                        fprintf(global.stdmsg, " (");
                     else
-                        printf(",");
-                    printf("%s", e->toChars());
+                        fprintf(global.stdmsg, ",");
+                    fprintf(global.stdmsg, "%s", e->toChars());
                 }
                 if (args->dim)
-                    printf(")");
+                    fprintf(global.stdmsg, ")");
             }
-            printf("\n");
+            fprintf(global.stdmsg, "\n");
         }
         goto Lnodecl;
     }

@@ -608,9 +608,8 @@ int runLINK()
     {
         // Print it
         for (size_t i = 0; i < argv.dim; i++)
-            printf("%s ", argv[i]);
-        printf("\n");
-        fflush(stdout);
+            fprintf(global.stdmsg, "%s ", argv[i]);
+        fprintf(global.stdmsg, "\n");
     }
 
     argv.push(NULL);
@@ -700,10 +699,7 @@ int executecmd(char *cmd, char *args, int useenv)
     size_t len;
 
     if (!global.params.quiet || global.params.verbose)
-    {
-        printf("%s %s\n", cmd, args);
-        fflush(stdout);
-    }
+        fprintf(global.stdmsg, "%s %s\n", cmd, args);
 
     if (global.params.is64bit)
     {
@@ -757,7 +753,7 @@ int executecmd(char *cmd, char *args, int useenv)
         status = spawnlp(0,cmd,cmd,args,NULL);
 #endif
 //    if (global.params.verbose)
-//      printf("\n");
+//      fprintf(global.stdmsg, "\n");
     if (status)
     {
         if (status == -1)
@@ -826,10 +822,10 @@ int runProgram()
     //printf("runProgram()\n");
     if (global.params.verbose)
     {
-        printf("%s", global.params.exefile);
+        fprintf(global.stdmsg, "%s", global.params.exefile);
         for (size_t i = 0; i < global.params.runargs_length; i++)
-            printf(" %s", (char *)global.params.runargs[i]);
-        printf("\n");
+            fprintf(global.stdmsg, " %s", (char *)global.params.runargs[i]);
+        fprintf(global.stdmsg, "\n");
     }
 
     // Build argv[]

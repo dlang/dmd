@@ -113,7 +113,7 @@ void LibElf::setFilename(char *dir, char *filename)
 void LibElf::write()
 {
     if (global.params.verbose)
-        printf("library   %s\n", libfile->name->toChars());
+        fprintf(global.stdmsg, "library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);

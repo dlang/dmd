@@ -119,7 +119,7 @@ void LibOMF::setFilename(char *dir, char *filename)
 void LibOMF::write()
 {
     if (global.params.verbose)
-        printf("library   %s\n", libfile->name->toChars());
+        fprintf(global.stdmsg, "library   %s\n", libfile->name->toChars());
 
     OutBuffer libbuf;
     WriteLibToBuffer(&libbuf);
