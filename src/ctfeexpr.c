@@ -349,6 +349,8 @@ Expression *copyLiteral(Expression *e)
     }
     else if (e->op == TOKclassreference)
         return new ClassReferenceExp(e->loc, ((ClassReferenceExp *)e)->value, e->type);
+    else if (e->op == TOKerror)
+        return e;
     else
     {
         e->error("Internal Compiler Error: CTFE literal %s", e->toChars());
