@@ -622,7 +622,7 @@ void FuncDeclaration::toObjFile(int multiobj)
     semanticRun = PASSobj;
 
     if (global.params.verbose)
-        printf("function  %s\n",func->toPrettyChars());
+        fprintf(global.stdmsg, "function  %s\n",func->toPrettyChars());
 
     Symbol *s = func->toSymbol();
     func_t *f = s->Sfunc;
