@@ -2474,7 +2474,7 @@ Type *Parser::parseType(Identifier **pident, TemplateParameters **tpl)
         /* invariant type
          */
         t = parseType(pident, tpl);
-        t = t->makeInvariant();
+        t = t->makeImmutable();
         return t;
     }
     else if (token.value == TOKshared && peekNext() != TOKlparen)
@@ -2604,7 +2604,7 @@ Type *Parser::parseBasicType()
             check(TOKlparen);
             t = parseType();
             check(TOKrparen);
-            t = t->makeInvariant();
+            t = t->makeImmutable();
             break;
 
         case TOKshared:
