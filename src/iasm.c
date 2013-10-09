@@ -2619,6 +2619,7 @@ STATIC void asm_make_modrm_byte(
             {
                 pc->IFL1 = FLfunc;
                 pc->IEVdsym1 = d;
+                pc->Iflags |= CFoff;
                 pc->IEVoffset1 = popnd->disp;
             }
             else
