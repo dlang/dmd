@@ -687,11 +687,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    ctor = search(Loc(), Id::ctor, 0);
-#if DMDV1
-    if (ctor && (ctor->toParent() != this || !ctor->isCtorDeclaration()))
-        ctor = NULL;
-#else
+    searchCtor();
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
     if (!ctor && noDefaultCtor)
@@ -704,11 +700,6 @@ void ClassDeclaration::semantic(Scope *sc)
                 ::error(v->loc, "field %s must be initialized in constructor", v->toChars());
         }
     }
-#endif
-
-//    dtor = (DtorDeclaration *)search(Id::dtor, 0);
-//    if (dtor && dtor->toParent() != this)
-//      dtor = NULL;
 
     inv = buildInv(sc);
 
