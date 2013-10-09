@@ -1207,7 +1207,7 @@ Expression *ComplexExp::castTo(Scope *sc, Type *t)
 
 Expression *NullExp::castTo(Scope *sc, Type *t)
 {
-    //printf("NullExp::castTo(t = %p)\n", t);
+    //printf("NullExp::castTo(t = %s) %s\n", t->toChars(), toChars());
     if (type->equals(t))
     {
         committed = 1;
@@ -1250,6 +1250,10 @@ Expression *NullExp::castTo(Scope *sc, Type *t)
         return e->Expression::castTo(sc, t);
     }
 #endif
+    if (tb->ty == Tsarray || tb->ty == Tstruct)
+    {
+        error("cannot cast null to %s", t->toChars());
+    }
     e->type = t;
     return e;
 }
