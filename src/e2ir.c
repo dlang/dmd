@@ -417,6 +417,11 @@ elem *addressElem(elem *e, Type *t, bool alwaysCopy)
         TY ty;
         if (t && ((ty = t->toBasetype()->ty) == Tstruct || ty == Tsarray))
             tx = t->toCtype();
+        else if (tybasic(e2->Ety) == TYstruct)
+        {
+            assert(t);                  // don't know of a case where this can be NULL
+            tx = t->toCtype();
+        }
         else
             tx = type_fake(e2->Ety);
         Symbol *stmp = symbol_genauto(tx);

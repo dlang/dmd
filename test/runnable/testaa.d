@@ -1136,6 +1136,21 @@ int[N6655] bar6655;
 
 /************************************************/
 
+struct ChunkLoc {}
+
+ChunkLoc Get()
+{
+    return ChunkLoc();
+}
+
+void test6799()
+{
+    int[ChunkLoc] aa;
+    aa.remove(Get());
+}
+
+/************************************************/
+
 int main()
 {
     printf("before test 1\n");   test1();
@@ -1179,6 +1194,7 @@ int main()
     test6612();
     test7365();
     test5520();
+    test6799();
 
     printf("Success\n");
     return 0;
