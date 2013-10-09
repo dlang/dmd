@@ -4509,8 +4509,8 @@ Lagain:
                                    fty = Tfloat64;
                                    goto Lagain;
         case X(Tfloat32,Tfloat64): eop = OPf_d; goto Leop;
-        case X(Tfloat32,Timaginary32): goto Lzero;
-        case X(Tfloat32,Timaginary64): goto Lzero;
+        case X(Tfloat32,Timaginary32):
+        case X(Tfloat32,Timaginary64):
         case X(Tfloat32,Timaginary80): goto Lzero;
         case X(Tfloat32,Tcomplex32):
         case X(Tfloat32,Tcomplex64):
@@ -4533,8 +4533,8 @@ Lagain:
         case X(Tfloat64,Tuns64):   eop = OPd_u64; goto Leop;
         case X(Tfloat64,Tfloat32): eop = OPd_f;   goto Leop;
         case X(Tfloat64,Tfloat80): eop = OPd_ld;  goto Leop;
-        case X(Tfloat64,Timaginary32):  goto Lzero;
-        case X(Tfloat64,Timaginary64):  goto Lzero;
+        case X(Tfloat64,Timaginary32):
+        case X(Tfloat64,Timaginary64):
         case X(Tfloat64,Timaginary80):  goto Lzero;
         case X(Tfloat64,Tcomplex32):
         case X(Tfloat64,Tcomplex64):
@@ -4558,8 +4558,8 @@ Lagain:
         case X(Tfloat80,Tuns64):
                                    eop = OPld_u64; goto Leop;
         case X(Tfloat80,Tfloat64): eop = OPld_d; goto Leop;
-        case X(Tfloat80,Timaginary32): goto Lzero;
-        case X(Tfloat80,Timaginary64): goto Lzero;
+        case X(Tfloat80,Timaginary32):
+        case X(Tfloat80,Timaginary64):
         case X(Tfloat80,Timaginary80): goto Lzero;
         case X(Tfloat80,Tcomplex32):
         case X(Tfloat80,Tcomplex64):
@@ -4731,10 +4731,11 @@ Lagain:
             //dump(0);
             //printf("fty = %d, tty = %d, %d\n", fty, tty, t->ty);
             error("e2ir: cannot cast %s of type %s to type %s", e1->toChars(), e1->type->toChars(), t->toChars());
-            goto Lzero;
+            e = el_long(ttym, 0);
+            break;
 
         Lzero:
-            e = el_long(ttym, 0);
+            e = el_bin(OPcomma, ttym, e, el_long(ttym, 0));
             break;
 
         Lpaint:
