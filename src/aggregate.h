@@ -105,6 +105,7 @@ public:
     bool isNested();
     void makeNested();
     bool isExport();
+    void searchCtor();
 
     void emitComment(Scope *sc);
     void toJson(JsonOut *json);
