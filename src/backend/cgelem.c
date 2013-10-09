@@ -401,6 +401,15 @@ STATIC elem *fixconvop(elem *e)
             return optelem(ecomma, GOALvalue);
         }
 
+        if (e->E1->Eoper == OPd_f && OTconv(e->E1->E1->Eoper) && tyintegral(tyme))
+        {   e1 = e->E1;
+            e->E1 = e1->E1;
+            e->E2 = el_una(OPf_d, e->E1->Ety, e->E2);
+            e1->E1 = NULL;
+            el_free(e1);
+            return fixconvop(e);
+        }
+
         tycop = e->E1->Ety;
         tym = e->E1->E1->Ety;
         e->E1 = el_selecte1(e->E1);     /* dump it for now              */
