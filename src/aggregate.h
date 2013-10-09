@@ -132,6 +132,15 @@ public:
     AggregateDeclaration *isAggregateDeclaration() { return this; }
 };
 
+struct StructFlags
+{
+    typedef unsigned Type;
+    enum Enum
+    {
+        hasPointers = 0x1, // NB: should use noPointers as in ClassFlags
+    };
+};
+
 class StructDeclaration : public AggregateDeclaration
 {
 public:
@@ -226,6 +235,22 @@ struct BaseClass
 #define CLASSINFO_SIZE  (0x3C+12+4)     // value of ClassInfo.size
 #define CLASSINFO_SIZE_64  (0x98)       // value of ClassInfo.size
 #endif
+
+struct ClassFlags
+{
+    typedef unsigned Type;
+    enum Enum
+    {
+        isCOMclass = 0x1,
+        noPointers = 0x2,
+        hasOffTi = 0x4,
+        hasCtor = 0x8,
+        hasGetMembers = 0x10,
+        hasTypeInfo = 0x20,
+        isAbstract = 0x40,
+        isCPPclass = 0x80,
+    };
+};
 
 class ClassDeclaration : public AggregateDeclaration
 {
