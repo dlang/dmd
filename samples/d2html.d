@@ -176,8 +176,10 @@ int main(string[] args)
                     dst.write(c);
                     src.read(c);
 
-                    while (ishexdigit(c))
+                    while (ishexdigit(c)) {
                         dst.write(c);
+                        src.read(c);
+		    }
 
                     // TODO: add support for hexadecimal floats
                 }
@@ -186,8 +188,10 @@ int main(string[] args)
                     dst.write(c);
                     src.read(c);
 
-                    while (c == '0' || c == '1')
+                    while (c == '0' || c == '1') {
                         dst.write(c);
+                        src.read(c);
+		    }
                 }
                 else                    // octal
                 {
@@ -384,7 +388,7 @@ int main(string[] args)
             }
             else
                 // whatever it is, it's not a valid D token
-                throw new Error("unrecognized token");
+                throw new Error("unrecognized token " ~ c);
                 //~ break;
         }
     }
