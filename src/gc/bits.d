@@ -19,7 +19,7 @@ import core.stdc.string;
 import core.stdc.stdlib;
 
 
-private extern (C) void onOutOfMemoryError();
+private extern (C) void onOutOfMemoryError() @trusted pure nothrow;
 
 
 version (DigitalMars)
