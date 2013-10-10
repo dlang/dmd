@@ -873,9 +873,9 @@ void test6711()
             assert(length == 2);
             rehash;
             auto vs = values;
-            assert(vs == ["a", "b"]);
+            assert(vs == ["a", "b"] || vs == ["b", "a"]);
             auto ks = keys;
-            assert(ks == ["first", "second"]);
+            assert(ks == ["first", "second"] || ks == ["second", "first"]);
             foreach (k; byKey) { }
             foreach (v; byValue) { }
             assert(get("a", "default") == "default");
