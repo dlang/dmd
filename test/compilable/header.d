@@ -307,7 +307,7 @@ void func8()
   scope a= new D8();
 }
 
-T func9(T)()
+T func9(T)() if (true)
 {
     T i;
     scope(exit) i= 1;

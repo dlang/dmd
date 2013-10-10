@@ -35,24 +35,74 @@ class C3
 
 
 }
-template foo3(T)
+T foo3(T)()
 {
-	T foo3()
-	{
-	}
-
 }
-template Foo4(T)
+struct S4A(T)
 {
-	struct Foo4
+	T x;
+}
+struct S4B(T) if (1)
+{
+	T x;
+}
+union U4A(T)
+{
+	T x;
+}
+union U4B(T) if (2 * 4 == 8)
+{
+	T x;
+}
+class C4A(T)
+{
+	T x;
+}
+class C4B(T) if (true)
+{
+	T x;
+}
+class C4C(T) if (!false) : C4A!int
+{
+	T x;
+}
+class C4D(T) if (!false) : C4B!long, C4C!(int[])
+{
+	T x;
+}
+interface I4(T) if ((int[1]).length == 1)
+{
+	T x;
+}
+template MyClass4(T) if (is(typeof(T.subtype)))
+{
+	alias T.subtype HelperSymbol;
+	class MyClass4
 	{
-		T x;
 	}
 }
-template C4(T)
+auto flit = 3 / 2.00000;
+void foo11217()(const int[] arr)
 {
-	class C4
-	{
-		T x;
-	}
+}
+void foo11217()(immutable int[] arr)
+{
+}
+void foo11217()(ref int[] arr)
+{
+}
+void foo11217()(lazy int[] arr)
+{
+}
+void foo11217()(auto ref int[] arr)
+{
+}
+void foo11217()(scope int[] arr)
+{
+}
+void foo11217()(in int[] arr)
+{
+}
+void foo11217()(inout int[] arr)
+{
 }

@@ -1911,15 +1911,15 @@ void FuncDeclaration::toCBuffer(OutBuffer *buf, HdrGenState *hgs)
 
     StorageClassDeclaration::stcToCBuffer(buf, storage_class);
     type->toCBuffer(buf, ident, hgs);
-    if(hgs->hdrgen == 1)
+    if (hgs->hdrgen == 1)
     {
-        if(storage_class & STCauto)
+        if (storage_class & STCauto)
         {
             hgs->autoMember++;
             bodyToCBuffer(buf, hgs);
             hgs->autoMember--;
         }
-        else if(hgs->tpltMember == 0 && global.params.useInline == 0)
+        else if (hgs->tpltMember == 0 && global.params.useInline == 0)
             buf->writestring(";");
         else
             bodyToCBuffer(buf, hgs);
@@ -2027,7 +2027,8 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         {
             buf->writestring("out");
             if (outId)
-            {   buf->writebyte('(');
+            {
+                buf->writebyte('(');
                 buf->writestring(outId->toChars());
                 buf->writebyte(')');
             }
@@ -2053,7 +2054,8 @@ void FuncDeclaration::bodyToCBuffer(OutBuffer *buf, HdrGenState *hgs)
         hgs->autoMember = saveauto;
     }
     else
-    {   buf->writeByte(';');
+    {
+        buf->writeByte(';');
         buf->writenl();
     }
 }

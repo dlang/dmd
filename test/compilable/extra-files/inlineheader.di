@@ -338,13 +338,9 @@ class Test
 	alias A!ushort getHUShort;
 	alias A!real getHReal;
 }
-template templ(T)
+void templ(T)(T val)
 {
-	void templ(T val)
-	{
-		pragma (msg, "Invalid destination type.");
-	}
-
+	pragma (msg, "Invalid destination type.");
 }
 static char[] charArray = ['"', '\''];
 
@@ -391,15 +387,11 @@ class Baz4
 	mixin Foo4x!(int, "str") foox;
 	alias foo.bar baz;
 }
-template test(T)
+int test(T)(T t)
 {
-	int test(T t)
-	{
-		if (auto o = cast(Object)t)
-			return 1;
-		return 0;
-	}
-
+	if (auto o = cast(Object)t)
+		return 1;
+	return 0;
 }
 enum x6 = 1;
 bool foo6(int a, int b, int c, int d)
@@ -420,17 +412,13 @@ void func8()
 	scope a = new D8;
 }
 
-template func9(T)
+T func9(T)() if (true)
 {
-	T func9()
-	{
-		T i;
-		scope(exit) i = 1;
-		scope(success) i = 2;
-		scope(failure) i = 3;
-		return i;
-	}
-
+	T i;
+	scope(exit) i = 1;
+	scope(success) i = 2;
+	scope(failure) i = 3;
+	return i;
 }
 template V10(T)
 {
@@ -449,17 +437,13 @@ int foo11(int function() fn)
 	return fn();
 }
 
-template bar11(T)
+int bar11(T)()
 {
-	int bar11()
+	return foo11(function int()
 	{
-		return foo11(function int()
-		{
-			return 0;
-		}
-		);
+		return 0;
 	}
-
+	);
 }
 struct S6360
 {
@@ -490,30 +474,26 @@ struct S12
 }
 struct T12
 {
-	template __ctor()
+	immutable this()(int args)
 	{
-		immutable this(int args)
-		{
-		}
-
 	}
-	immutable template __ctor(A...)
+	immutable this(A...)(A args)
 	{
-		this(A args)
-		{
-		}
-
 	}
 
 }
 import std.stdio : writeln, F = File;
-template foo6591()
+void foo6591()()
 {
-	void foo6591()
-	{
-		import std.stdio : writeln, F = File;
-	}
-
+	import std.stdio : writeln, F = File;
+}
+version (unittest)
+{
+	nothrow pure {}
+	nothrow pure {}
+	public {}
+	extern (C) {}
+	align{}
 }
 template Foo10334(T) if (Bar10334!())
 {
