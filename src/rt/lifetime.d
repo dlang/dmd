@@ -111,10 +111,10 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     else
     {
         // TODO: should this be + 1 to avoid having pointers to the next block?
-        BlkAttr attr;
+        BlkAttr attr = BlkAttr.FINALIZE;
         // extern(C++) classes don't have a classinfo pointer in their vtable so the GC can't finalize them
-        if (!(ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass))
-            attr |= BlkAttr.FINALIZE;
+        if (ci.m_flags & TypeInfo_Class.ClassFlags.isCPPclass)
+            attr &= ~BlkAttr.FINALIZE;
         if (ci.m_flags & TypeInfo_Class.ClassFlags.noPointers)
             attr |= BlkAttr.NO_SCAN;
         p = gc_malloc(ci.init.length, attr);
@@ -124,7 +124,7 @@ extern (C) Object _d_newclass(const ClassInfo ci)
     debug(PRINTF)
     {
         printf("p = %p\n", p);
-        printf("ci = %p, ci.init = %p, len = %d\n", ci, ci.init, ci.init.length);
+        printf("ci = %p, ci.init.ptr = %p, len = %llu\n", ci, ci.init.ptr, cast(ulong)ci.init.length);
         printf("vptr = %p\n", *cast(void**) ci.init);
         printf("vtbl[0] = %p\n", (*cast(void***) ci.init)[0]);
         printf("vtbl[1] = %p\n", (*cast(void***) ci.init)[1]);
