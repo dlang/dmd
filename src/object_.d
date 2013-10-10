@@ -1739,17 +1739,17 @@ struct Monitor
     /* stuff */
 }
 
-Monitor* getMonitor(Object h)
+Monitor* getMonitor(Object h) pure nothrow
 {
     return cast(Monitor*) h.__monitor;
 }
 
-void setMonitor(Object h, Monitor* m)
+void setMonitor(Object h, Monitor* m) pure nothrow
 {
     h.__monitor = m;
 }
 
-void setSameMutex(shared Object ownee, shared Object owner)
+void setSameMutex(shared Object ownee, shared Object owner) nothrow
 in
 {
     assert(ownee.__monitor is null);
@@ -1776,10 +1776,10 @@ body
     ownee.__monitor = owner.__monitor;
 }
 
-extern (C) void _d_monitor_create(Object);
-extern (C) void _d_monitor_destroy(Object);
-extern (C) void _d_monitor_lock(Object);
-extern (C) int  _d_monitor_unlock(Object);
+extern (C) void _d_monitor_create(Object) nothrow;
+extern (C) void _d_monitor_destroy(Object) nothrow;
+extern (C) void _d_monitor_lock(Object) nothrow;
+extern (C) int  _d_monitor_unlock(Object) nothrow;
 
 extern (C) void _d_monitordelete(Object h, bool det)
 {
