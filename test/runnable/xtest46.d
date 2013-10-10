@@ -6666,6 +6666,27 @@ void test7254()
 
 /***************************************************/
 
+struct S11075() { int x = undefined_expr; }
+
+class C11075() { int x = undefined_expr; }
+
+interface I11075() { enum int x = undefined_expr; }
+
+void test11075()
+{
+    static assert(!is(typeof(S11075!().x)));
+    static assert(!is(typeof(S11075!().x)));
+
+    static assert(!is(typeof(C11075!().x)));
+    static assert(!is(typeof(C11075!().x)));
+
+    static assert(!is(typeof(I11075!().x)));
+    static assert(!is(typeof(I11075!().x)));
+}
+
+
+/***************************************************/
+
 int main()
 {
     test1();
@@ -6940,6 +6961,7 @@ int main()
     test10539();
     test10634();
     test7254();
+    test11075();
 
     printf("Success\n");
     return 0;
