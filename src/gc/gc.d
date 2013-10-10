@@ -42,6 +42,8 @@ import cstdlib = core.stdc.stdlib : calloc, free, malloc, realloc;
 import core.stdc.string;
 import core.bitop;
 import core.sync.mutex;
+static import core.memory;
+private alias BlkAttr = core.memory.GC.BlkAttr;
 
 version (GNU) import gcc.builtins;
 
@@ -78,16 +80,6 @@ private
     // multiple heap traversals to avoid consuming O(D) stack space where
     // D is the depth of the heap graph.
     enum MAX_MARK_RECURSIONS = 64;
-
-    enum BlkAttr : uint
-    {
-        FINALIZE    = 0b0000_0001,
-        NO_SCAN     = 0b0000_0010,
-        NO_MOVE     = 0b0000_0100,
-        APPENDABLE  = 0b0000_1000,
-        NO_INTERIOR = 0b0001_0000,
-        ALL_BITS    = 0b1111_1111
-    }
 }
     struct BlkInfo
     {
@@ -619,7 +611,7 @@ class GC
 
                             if (bits)
                             {
-                                gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
+                                gcx.clrBits(pool, biti, ~BlkAttr.NONE);
                                 gcx.setBits(pool, biti, bits);
                             }
                             else
@@ -700,7 +692,7 @@ class GC
 
                             if (bits)
                             {
-                                gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
+                                gcx.clrBits(pool, biti, ~BlkAttr.NONE);
                                 gcx.setBits(pool, biti, bits);
                             }
                             else
@@ -868,7 +860,7 @@ class GC
         debug(PRINTF) if(pool.isLargeObject) printf("Block size = %d\n", pool.bPageOffsets[pagenum]);
         biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
 
-        gcx.clrBits(pool, biti, BlkAttr.ALL_BITS);
+        gcx.clrBits(pool, biti, ~BlkAttr.NONE);
 
         bin = cast(Bins)pool.pagetable[pagenum];
         if (bin == B_PAGE)              // if large alloc
@@ -2563,7 +2555,7 @@ struct Gcx
                         sentinel_Invariant(sentinel_add(p));
                         if (pool.finals.nbits && pool.finals.testClear(biti))
                             rt_finalize2(sentinel_add(p), false, false);
-                        clrBits(pool, biti, BlkAttr.ALL_BITS ^ BlkAttr.FINALIZE);
+                        clrBits(pool, biti, ~BlkAttr.NONE ^ BlkAttr.FINALIZE);
 
                         debug(COLLECT_PRINTF) printf("\tcollecting big %p\n", p);
                         log_free(sentinel_add(p));

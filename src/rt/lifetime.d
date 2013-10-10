@@ -12,27 +12,17 @@
 
 module rt.lifetime;
 
-private
-{
-    import core.stdc.stdlib;
-    import core.stdc.string;
-    import core.stdc.stdarg;
-    import core.bitop;
-    debug(PRINTF) import core.stdc.stdio;
-    static import rt.tlsgc;
-}
+import core.stdc.stdlib;
+import core.stdc.string;
+import core.stdc.stdarg;
+import core.bitop;
+static import core.memory;
+private alias BlkAttr = core.memory.GC.BlkAttr;
+debug(PRINTF) import core.stdc.stdio;
+static import rt.tlsgc;
 
 private
 {
-    enum BlkAttr : uint
-    {
-        FINALIZE   = 0b0000_0001,
-        NO_SCAN    = 0b0000_0010,
-        NO_MOVE    = 0b0000_0100,
-        APPENDABLE = 0b0000_1000,
-        ALL_BITS   = 0b1111_1111
-    }
-
     package struct BlkInfo
     {
         void*  base;
