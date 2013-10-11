@@ -569,7 +569,7 @@ int Port::isInfinity(double r)
 
 longdouble Port::fmodl(longdouble x, longdouble y)
 {
-#if __FreeBSD__ || __OpenBSD__
+#if __FreeBSD__ && __FreeBSD_version < 800000 || __OpenBSD__
     return ::fmod(x, y);        // hack for now, fix later
 #else
     return ::fmodl(x, y);
