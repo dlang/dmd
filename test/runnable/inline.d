@@ -316,6 +316,34 @@ void test11314()
 }
 
 /************************************/
+// 11224
+
+S11224* ptr11224;
+
+struct S11224
+{
+    this(int)
+    {
+        ptr11224 = &this;
+        /*printf("ctor &this = %p\n", &this);*/
+    }
+    int num;
+}
+S11224 foo11224()
+{
+    S11224 s = S11224(1);
+    //printf("foo  &this = %p\n", &s);
+    assert(ptr11224 is &s);
+    return s;
+}
+void test11224()
+{
+    auto s = foo11224();
+    //printf("main &this = %p\n", &s);
+    assert(ptr11224 is &s);
+}
+
+/************************************/
 
 int main()
 {
@@ -330,6 +358,7 @@ int main()
     test4841();
     test11223();
     test11314();
+    test11224();
 
     printf("Success\n");
     return 0;
