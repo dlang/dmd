@@ -706,45 +706,43 @@ void ClassDeclaration::semantic(Scope *sc)
     // create a default constructor:
     //   1. this() { super(); }
     //   2. this() { this(/*some def-args...*/); }
-    if (!ctor && baseClass && baseClass->ctor)
+    if (!defaultCtor)
     {
-        if (FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
+        FuncDeclaration *bfd = NULL;
+        if (ctor)
+        {
+            bfd = resolveFuncCall(loc, sc, ctor, NULL, NULL, NULL, 1);
+        }
+        else if (baseClass && baseClass->ctor)
+        {
+            bfd = baseClass->defaultCtor;
+            if (!bfd)
+            {
+                error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                    baseClass->toPrettyChars());
+            }
+        }
+        if (bfd)
         {
             //printf("Creating default this(){} for class %s\n", toChars());
-            TypeFunction *btf = (TypeFunction *)fd->type;
-            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
+            TypeFunction *btf = (TypeFunction *)bfd->type;
+
+            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, bfd->storage_class);
             tf->purity    = btf->purity;
             tf->isnothrow = btf->isnothrow;
             tf->trust     = btf->trust;
-            CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
-            ctor->fbody = new CompoundStatement(Loc(), new Statements());
-            members->push(ctor);
-            ctor->addMember(sc, this, 1);
-            ctor->semantic(sc);
-            this->ctor = ctor;
-            defaultCtor = ctor;
-        }
-        else
-        {
-            error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
-        }
-    }
-    else if (ctor && !defaultCtor)
-    {
-        if (FuncDeclaration *fd = resolveFuncCall(loc, sc, ctor, NULL, NULL, NULL, 1))
-        {
-            //printf("Creating default this(){} for class %s\n", toChars());
-            TypeFunction *btf = (TypeFunction *)fd->type;
-            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
-            tf->purity    = btf->purity;
-            tf->isnothrow = btf->isnothrow;
-            tf->trust     = btf->trust;
-            CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
-            ctor->fbody = new ExpStatement(Loc(), new CallExp(Loc(), new ThisExp(Loc())));
-            members->push(ctor);
-            //ctor->addMember(sc, this, 1); // Don't insert in symbol table
-            ctor->semantic(sc);
-            defaultCtor = ctor;
+
+            CtorDeclaration *defCtor = new CtorDeclaration(loc, Loc(), 0, tf);
+            defCtor->fbody = new ExpStatement(Loc(),
+                                new CallExp(Loc(),
+                                    ctor ? new ThisExp(Loc()) : new SuperExp(Loc())));
+            members->push(defCtor);
+            if (!ctor) defCtor->addMember(sc, this, 1);
+
+            defCtor->semantic(sc);
+
+            if (!ctor) ctor = defCtor;
+            assert(defaultCtor != NULL);
         }
     }
 
