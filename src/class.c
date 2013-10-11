@@ -616,7 +616,6 @@ void ClassDeclaration::semantic(Scope *sc)
     }
     sc->userAttributes = NULL;
     structsize = sc->offset;
-    Scope scsave = *sc;
     size_t members_dim = members->dim;
     sizeok = SIZEOKnone;
 
@@ -687,7 +686,7 @@ void ClassDeclaration::semantic(Scope *sc)
     /* Look for special member functions.
      * They must be in this class, not in a base class.
      */
-    searchCtor();
+    ctor = searchCtor();
     if (ctor && (ctor->toParent() != this || !(ctor->isCtorDeclaration() || ctor->isTemplateDeclaration())))
         ctor = NULL;    // search() looks through ancestor classes
     if (!ctor && noDefaultCtor)
@@ -701,39 +700,57 @@ void ClassDeclaration::semantic(Scope *sc)
         }
     }
 
+    // If this class has no default constructor, but
+    //   1. base class has a default ctor
+    //   2. this class has a non-default ctor which callable with no-arg
+    // create a default constructor:
+    //   1. this() { super(); }
+    //   2. this() { this(/*some def-args...*/); }
+    if (!defaultCtor)
+    {
+        FuncDeclaration *bfd = NULL;
+        if (ctor)
+        {
+            bfd = resolveFuncCall(loc, sc, ctor, NULL, NULL, NULL, 1);
+        }
+        else if (baseClass && baseClass->ctor)
+        {
+            bfd = baseClass->defaultCtor;
+            if (!bfd)
+            {
+                error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor",
+                    baseClass->toPrettyChars());
+            }
+        }
+        if (bfd)
+        {
+            //printf("Creating default this(){} for class %s\n", toChars());
+            TypeFunction *btf = (TypeFunction *)bfd->type;
+
+            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, bfd->storage_class);
+            tf->purity    = btf->purity;
+            tf->isnothrow = btf->isnothrow;
+            tf->trust     = btf->trust;
+
+            CtorDeclaration *defCtor = new CtorDeclaration(loc, Loc(), 0, tf);
+            defCtor->fbody = new ExpStatement(Loc(),
+                                new CallExp(Loc(),
+                                    ctor ? new ThisExp(Loc()) : new SuperExp(Loc())));
+            members->push(defCtor);
+            if (!ctor) defCtor->addMember(sc, this, 1);
+
+            defCtor->semantic(sc);
+
+            if (!ctor) ctor = defCtor;
+            assert(defaultCtor != NULL);
+        }
+    }
+
     inv = buildInv(sc);
 
     // Can be in base class
     aggNew    = (NewDeclaration *)search(Loc(), Id::classNew, 0);
     aggDelete = (DeleteDeclaration *)search(Loc(), Id::classDelete, 0);
-
-    // If this class has no constructor, but base class has a default
-    // ctor, create a constructor:
-    //    this() { }
-    if (!ctor && baseClass && baseClass->ctor)
-    {
-        if (FuncDeclaration *fd = resolveFuncCall(loc, sc, baseClass->ctor, NULL, NULL, NULL, 1))
-        {
-            //printf("Creating default this(){} for class %s\n", toChars());
-            TypeFunction *btf = (TypeFunction *)fd->type;
-            TypeFunction *tf = new TypeFunction(NULL, NULL, 0, LINKd, fd->storage_class);
-            tf->purity = btf->purity;
-            tf->isnothrow = btf->isnothrow;
-            tf->trust = btf->trust;
-            CtorDeclaration *ctor = new CtorDeclaration(loc, Loc(), 0, tf);
-            ctor->fbody = new CompoundStatement(Loc(), new Statements());
-            members->push(ctor);
-            ctor->addMember(sc, this, 1);
-            *sc = scsave;   // why? What about sc->nofree?
-            ctor->semantic(sc);
-            this->ctor = ctor;
-            defaultCtor = ctor;
-        }
-        else
-        {
-            error("Cannot implicitly generate a default ctor when base class %s is missing a default ctor", baseClass->toPrettyChars());
-        }
-    }
 
 #if 0
     if (baseClass)
