@@ -270,6 +270,28 @@ struct Task
 }
 
 /************************************/
+// 11223
+
+struct Tuple11223(T...)
+{
+    T values;
+
+    void opAssign(Tuple11223 rhs)
+    {
+        if (0)
+            values = rhs.values;
+        else
+            assert(1);
+    }
+}
+
+void test11223()
+{
+    Tuple11223!string tmp;
+    tmp = Tuple11223!string();
+}
+
+/************************************/
 
 int main()
 {
@@ -282,6 +304,7 @@ int main()
     test7();
     test8();
     test4841();
+    test11223();
 
     printf("Success\n");
     return 0;
