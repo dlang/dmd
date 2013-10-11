@@ -355,6 +355,13 @@ void test7806()
 
 /***************************************/
 
+void test7976() {
+    creal[] a = new creal[2];
+    auto b = a[0] = a[1];
+}
+
+/***************************************/
+
 int main(char[][] args)
 {
 
@@ -379,6 +386,7 @@ int main(char[][] args)
     test8966();
     test10677();
     test7806();
+    test7976();
 
     printf("Success!\n");
     return 0;
