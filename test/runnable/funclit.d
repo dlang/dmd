@@ -861,6 +861,20 @@ void test11081()
 }
 
 /***************************************************/
+// 11220
+
+int parsePrimaryExp11220(int x)
+{
+    parseAmbig11220!( (parsed){ x += 1; } )();
+    return 1;
+}
+
+typeof(handler(1)) parseAmbig11220(alias handler)()
+{
+    return handler(parsePrimaryExp11220(1));
+}
+
+/***************************************************/
 
 int main()
 {
