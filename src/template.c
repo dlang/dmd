@@ -2604,8 +2604,12 @@ void functionResolve(Match *m, Dsymbol *dstart, Loc loc, Scope *sc,
 
         if (FuncLiteralDeclaration *fld = m->lastf->isFuncLiteralDeclaration())
         {
-            // Inside template constraint, nested reference check doesn't work correctly.
-            if (!(sc->flags & SCOPEstaticif) && fld->tok == TOKreserved)
+            if ((sc->flags & SCOPEstaticif) || sc->intypeof)
+            {
+                // Inside template constraint, or inside typeof,
+                // nested reference check doesn't work correctly.
+            }
+            else if (fld->tok == TOKreserved)
             {
                 // change to non-nested
                 fld->tok = TOKfunction;
