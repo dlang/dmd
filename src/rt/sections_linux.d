@@ -466,7 +466,7 @@ version (Shared)
         return handle;
     }
 
-    extern(C) bool rt_unloadLibrary(void* handle)
+    extern(C) int rt_unloadLibrary(void* handle)
     {
         if (handle is null) return false;
 

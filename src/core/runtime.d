@@ -21,8 +21,8 @@ version (Windows) import core.stdc.wchar_ : wchar_t;
 extern (C) void* rt_loadLibrary(const char* name);
 /// ditto
 version (Windows) extern (C) void* rt_loadLibraryW(const wchar_t* name);
-/// C interface for Runtime.unloadLibrary
-extern (C) bool  rt_unloadLibrary(void* ptr);
+/// C interface for Runtime.unloadLibrary, returns 1/0 instead of bool
+extern (C) int rt_unloadLibrary(void* ptr);
 
 private
 {
@@ -227,7 +227,7 @@ struct Runtime
      */
     static bool unloadLibrary()(void* p)
     {
-        return rt_unloadLibrary(p);
+        return !!rt_unloadLibrary(p);
     }
 
 
