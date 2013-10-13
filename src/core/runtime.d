@@ -195,7 +195,6 @@ struct Runtime
 
             if (name.length == 0) return null;
             // Load a DLL at runtime
-            enum CP_UTF8 = 65001;
             auto len = MultiByteToWideChar(
                 CP_UTF8, 0, name.ptr, cast(int)name.length, null, 0);
             if (len == 0)
