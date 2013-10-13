@@ -1,5 +1,7 @@
 // PERMUTE_ARGS:
 
+struct S { uint[0x100000] arr; }    // Bugzilla 11233
+
 static int bigarray[100][100];
 
 int main(char[][] args)
