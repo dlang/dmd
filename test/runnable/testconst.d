@@ -3236,6 +3236,14 @@ void test11257()
 }
 
 /************************************/
+// 11215
+
+shared(inout(void)**) f11215(inout int);
+
+static assert(is(typeof(f11215(0)) == shared(void**)));
+static assert(is(typeof(f11215((const int).init)) == shared(const(void)**)));
+
+/************************************/
 
 int main()
 {

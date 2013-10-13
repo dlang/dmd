@@ -1953,14 +1953,16 @@ L1:
     if (isWild())
     {
         if (mod & MODconst)
-            t = isShared() ? t->sharedConstOf() : t->constOf();
+            t = t->constOf();
         else if (mod & MODimmutable)
             t = t->immutableOf();
         else if (mod & MODwild)
-            t = isShared() ? t->sharedWildOf() : t->wildOf();
+            t = t->wildOf();
         else
-            t = isShared() ? t->sharedOf() : t->mutableOf();
+            t = t->mutableOf();
     }
+    if (isShared())
+        t = t->addMod(MODshared);
 
     //printf("-Type::substWildTo t = %s\n", t->toChars());
     return t;
