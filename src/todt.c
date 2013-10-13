@@ -414,17 +414,10 @@ dt_t **StructLiteralExp::toDt(dt_t **pdt)
         if (!e)
             continue;
         dt_t *dt = NULL;
-        Type *t = sd->fields[i]->type;
-        size_t dim = 1;
-        t = t->toBasetype();
-        while (!t->immutableOf()->equals(e->type->immutableOf()) &&
-               t->toBasetype()->ty == Tsarray)
-        {
-            TypeSArray *tsa = (TypeSArray *)t->toBasetype();
-            dim *= tsa->dim->toInteger();
-            t = t->nextOf();
-        }
-        for (size_t j = 0; j < dim; j++)
+        Type *tb = sd->fields[i]->type->toBasetype();
+        if (tb->ty == Tsarray)
+            ((TypeSArray *)tb)->toDtElem(&dt, e);
+        else
             e->toDt(&dt);           // convert e to an initializer dt
         dts[i] = dt;
     }
