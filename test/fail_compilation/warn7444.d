@@ -68,3 +68,24 @@ void test10214()
     bool[1] arr;
     arr = 0;
 }
+
+/*
+TEST_OUTPUT:
+---
+No warning
+---
+*/
+
+struct S11228
+{
+    int[2] ii;
+    alias ii this;
+}
+void test11228()
+{
+    S11228 s;
+    int[2] ii;
+    ii = s.ii; // OK
+    ii = s;    // OK <- Warning
+    pragma(msg, "No warning");
+}
