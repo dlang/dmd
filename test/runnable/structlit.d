@@ -1145,6 +1145,32 @@ void test11147()
 }
 
 /********************************************/
+// 11256
+
+struct S11256 { @disable this(); }
+
+struct Z11256a(Ranges...)
+{
+    Ranges ranges;
+    this(Ranges rs) { ranges = rs; }
+}
+
+struct F11256(alias pred)
+{
+    this(int[] = null) { }
+}
+
+Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
+{
+    return Z!Ranges(ranges);
+}
+
+void test11256()
+{
+    z11256!Z11256a(S11256.init, F11256!(gv => true)());
+}
+
+/********************************************/
 
 int main()
 {
@@ -1184,6 +1210,7 @@ int main()
     test9566();
     test11105();
     test11147();
+    test11256();
 
     printf("Success\n");
     return 0;

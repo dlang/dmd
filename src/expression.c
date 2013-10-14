@@ -4716,7 +4716,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
             }
             else
             {
-                if (v->storage_class & STCnodefaultctor)
+                if ((v->storage_class & STCnodefaultctor) && !ctorinit)
                 {
                     error("field %s.%s must be initialized because it has no default constructor",
                             sd->type->toChars(), v->toChars());
