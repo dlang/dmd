@@ -11597,7 +11597,8 @@ Ltupleassign:
                 e2 = e2->semantic(sc);
             }
             else if (global.params.warnings && !global.gag && op == TOKassign &&
-                     e2->op != TOKarrayliteral && e2->op != TOKstring)
+                     e2->op != TOKarrayliteral && e2->op != TOKstring &&
+                     !e2->implicitConvTo(t1))
             {   // Disallow sa = da (Converted to sa[] = da[])
                 // Disallow sa = e  (Converted to sa[] = e)
                 const char* e1str = e1->toChars();
