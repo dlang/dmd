@@ -1,7 +1,7 @@
 /**
  * ...
  *
- * Copyright: Copyright Benjamin Thaut 2010 - 2011.
+ * Copyright: Copyright Benjamin Thaut 2010 - 2013.
  * License:   $(LINK2 http://www.boost.org/LICENSE_1_0.txt, Boost License 1.0)
  * Authors:   Benjamin Thaut, Sean Kelly
  * Source:    $(DRUNTIMESRC core/sys/windows/_stacktrace.d)
@@ -29,7 +29,9 @@ debug(PRINTF) import core.stdc.stdio;
 extern(Windows) void RtlCaptureContext(CONTEXT* ContextRecord);
 extern(Windows) DWORD GetEnvironmentVariableA(LPCSTR lpName, LPSTR pBuffer, DWORD nSize);
 
+extern(Windows) alias USHORT function(ULONG FramesToSkip, ULONG FramesToCapture, PVOID *BackTrace, PULONG BackTraceHash) RtlCaptureStackBackTraceFunc;
 
+private __gshared RtlCaptureStackBackTraceFunc RtlCaptureStackBackTrace;
 private __gshared immutable bool initialized;
 
 
@@ -47,7 +49,7 @@ public:
         if(context is null)
         {
             version(Win64)
-                static enum INTERNALFRAMES = 4;
+                static enum INTERNALFRAMES = 3;
             else
                 static enum INTERNALFRAMES = 2;
                 
@@ -139,6 +141,32 @@ private:
         auto dbghelp  = DbgHelp.get();
         if(dbghelp is null)
             return []; // dbghelp.dll not available
+            
+        if(RtlCaptureStackBackTrace !is null && context is null)
+        {
+            size_t[63] buffer = void; // On windows xp the sum of "frames to skip" and "frames to capture" can't be greater then 63
+            auto backtraceLength = RtlCaptureStackBackTrace(cast(ULONG)skip, cast(ULONG)(buffer.length - skip), cast(void**)buffer.ptr, null);
+            
+            // If we get a backtrace and it does not have the maximum length use it.
+            // Otherwise rely on tracing through StackWalk64 which is slower but works when no frame pointers are available.
+            if(backtraceLength > 1 && backtraceLength < buffer.length - skip)
+            {
+                debug(PRINTF) printf("Using result from RtlCaptureStackBackTrace\n");
+                version(Win64)
+                {
+                    return buffer[0..backtraceLength].dup;
+                }
+                else
+                {
+                    auto result = new ulong[backtraceLength];
+                    foreach(i, ref e; result)
+                    {
+                        e = buffer[i];
+                    }
+                    return result;
+                }
+            }
+        }
 
         HANDLE       hThread  = GetCurrentThread();
         HANDLE       hProcess = GetCurrentProcess();
@@ -355,6 +383,17 @@ shared static this()
 
     if( dbghelp is null )
         return; // dbghelp.dll not available
+        
+    auto kernel32Handle = LoadLibraryA( "kernel32.dll" );
+    if(kernel32Handle !is null)
+    {
+        RtlCaptureStackBackTrace = cast(RtlCaptureStackBackTraceFunc) GetProcAddress(kernel32Handle, "RtlCaptureStackBackTrace");
+        debug(PRINTF) 
+        {
+            if(RtlCaptureStackBackTrace !is null)
+                printf("Found RtlCaptureStackBackTrace\n");
+        }
+    }
 
     debug(PRINTF) 
     {
