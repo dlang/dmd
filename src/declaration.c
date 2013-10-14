@@ -1104,7 +1104,8 @@ Lnomatch:
         }
 
         for (size_t i = 0; i < nelems; i++)
-        {   Parameter *arg = Parameter::getNth(tt->arguments, i);
+        {
+            Parameter *arg = Parameter::getNth(tt->arguments, i);
 
             OutBuffer buf;
             buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
@@ -1112,18 +1113,21 @@ Lnomatch:
             const char *name = (const char *)buf.extractData();
             Identifier *id = Lexer::idPool(name);
 
-            Expression *einit = ie;
-            if (ie && ie->op == TOKtuple)
+            Initializer *ti;
+            if (ie)
             {
-                TupleExp *te = (TupleExp *)ie;
-                einit = (*te->exps)[i];
-                if (i == 0)
-                    einit = Expression::combine(te->e0, einit);
+                Expression *einit = ie;
+                if (ie->op == TOKtuple)
+                {
+                    TupleExp *te = (TupleExp *)ie;
+                    einit = (*te->exps)[i];
+                    if (i == 0)
+                        einit = Expression::combine(te->e0, einit);
+                }
+                ti = new ExpInitializer(einit->loc, einit);
             }
-            Initializer *ti = init;
-            if (einit)
-            {   ti = new ExpInitializer(einit->loc, einit);
-            }
+            else
+                ti = init ? init->syntaxCopy() : NULL;
 
             VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
             v->storage_class |= storage_class;
