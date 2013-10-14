@@ -1145,6 +1145,44 @@ void test11147()
 }
 
 /********************************************/
+// 11256
+
+struct S11256 { @disable this(); }
+
+struct Z11256a(Ranges...)
+{
+    Ranges ranges;
+    this(Ranges rs) { ranges = rs; }
+}
+struct Z11256b(Ranges...)
+{
+    Ranges ranges = Ranges.init;    // Internal error: e2ir.c 5321
+    this(Ranges rs) { ranges = rs; }
+}
+struct Z11256c(Ranges...)
+{
+    Ranges ranges = void;           // todt.c(475) v->type->ty == Tsarray && vsz == 0
+    this(Ranges rs) { ranges = rs; }
+}
+
+struct F11256(alias pred)
+{
+    this(int[] = null) { }
+}
+
+Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
+{
+    return Z!Ranges(ranges);
+}
+
+void test11256()
+{
+    z11256!Z11256a(S11256.init, F11256!(gv => true)());
+    z11256!Z11256b(S11256.init, F11256!(gv => true)());
+    z11256!Z11256c(S11256.init, F11256!(gv => true)());
+}
+
+/********************************************/
 
 int main()
 {
@@ -1184,6 +1222,7 @@ int main()
     test9566();
     test11105();
     test11147();
+    test11256();
 
     printf("Success\n");
     return 0;
