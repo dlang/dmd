@@ -8388,20 +8388,34 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     }
 
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
-    {   m = MATCHexact;         // exact match
+    {
+        m = MATCHexact;         // exact match
         if (mod != to->mod)
         {
             m = MATCHconst;
             if (MODimplicitConv(mod, to->mod))
                 ;
             else
-            {   /* Check all the fields. If they can all be converted,
+            {
+                /* Check all the fields. If they can all be converted,
                  * allow the conversion.
                  */
+                unsigned offset;
                 for (size_t i = 0; i < sym->fields.dim; i++)
-                {   Dsymbol *s = sym->fields[i];
-                    VarDeclaration *v = s->isVarDeclaration();
-                    assert(v && v->isField());
+                {
+                    VarDeclaration *v = sym->fields[i];
+                    if (i == 0)
+                        ;
+                    else if (v->offset == offset)
+                    {
+                        if (m)
+                            continue;
+                    }
+                    else
+                    {
+                        if (!m)
+                            return m;
+                    }
 
                     // 'from' type
                     Type *tvf = v->type->addMod(mod);
@@ -8417,6 +8431,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                         return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
+                    offset = v->offset;
                 }
             }
         }
