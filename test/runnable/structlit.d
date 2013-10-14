@@ -1154,6 +1154,11 @@ struct Z11256a(Ranges...)
     Ranges ranges;
     this(Ranges rs) { ranges = rs; }
 }
+struct Z11256b(Ranges...)
+{
+    Ranges ranges = Ranges.init;    // Internal error: e2ir.c 5321
+    this(Ranges rs) { ranges = rs; }
+}
 
 struct F11256(alias pred)
 {
@@ -1168,6 +1173,7 @@ Z!Ranges z11256(alias Z, Ranges...)(Ranges ranges)
 void test11256()
 {
     z11256!Z11256a(S11256.init, F11256!(gv => true)());
+    z11256!Z11256b(S11256.init, F11256!(gv => true)());
 }
 
 /********************************************/

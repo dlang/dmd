@@ -5315,27 +5315,36 @@ elem *StructLiteralExp::toElem(IRState *irs)
         e = el_combine(e, fillHole(stmp, &offset, sd->structsize, sd->structsize));
     }
 
+    bool hasHidden = false;
+
     if (elements)
     {
         size_t dim = elements->dim;
-        assert(dim <= sd->fields.dim - sd->isNested());
+        assert(dim <= sd->fields.dim);
+
+        // CTFE may fill the hidden pointer by NullExp.
+        hasHidden = sd->isNested() && dim == sd->fields.dim;
+
         for (size_t i = 0; i < dim; i++)
-        {   Expression *el = (*elements)[i];
+        {
+            Expression *el = (*elements)[i];
             if (!el)
                 continue;
 
             Dsymbol *s = sd->fields[i];
             VarDeclaration *v = s->isVarDeclaration();
             assert(v);
-            assert(!v->isThisDeclaration());
+            assert(!v->isThisDeclaration() || el->op == TOKnull);
 
             elem *e1;
             if (tybasic(stmp->Stype->Tty) == TYnptr)
-            {   e1 = el_var(stmp);
+            {
+                e1 = el_var(stmp);
                 e1->EV.sp.Voffset = soffset;
             }
             else
-            {   e1 = el_ptr(stmp);
+            {
+                e1 = el_ptr(stmp);
                 if (soffset)
                     e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
             }
@@ -5378,8 +5387,9 @@ elem *StructLiteralExp::toElem(IRState *irs)
     }
 
 #if DMDV2
-    if (sd->isNested())
-    {   // Initialize the hidden 'this' pointer
+    if (sd->isNested() && !hasHidden)
+    {
+        // Initialize the hidden 'this' pointer
         assert(sd->fields.dim);
         Dsymbol *s = sd->fields[sd->fields.dim - 1];
         ThisDeclaration *v = s->isThisDeclaration();
@@ -5387,11 +5397,13 @@ elem *StructLiteralExp::toElem(IRState *irs)
 
         elem *e1;
         if (tybasic(stmp->Stype->Tty) == TYnptr)
-        {   e1 = el_var(stmp);
+        {
+            e1 = el_var(stmp);
             e1->EV.sp.Voffset = soffset;
         }
         else
-        {   e1 = el_ptr(stmp);
+        {
+            e1 = el_ptr(stmp);
             if (soffset)
                 e1 = el_bin(OPadd, TYnptr, e1, el_long(TYsize_t, soffset));
         }
