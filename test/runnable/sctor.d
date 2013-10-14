@@ -163,10 +163,52 @@ void test9665()
 }
 
 /***************************************************/
+// 11246
+
+struct Foo11246
+{
+    static int ctor = 0;
+    static int dtor = 0;
+    this(int i)
+    {
+        ++ctor;
+    }
+
+    ~this()
+    {
+        ++dtor;
+    }
+}
+
+struct Bar11246
+{
+    Foo11246 foo;
+
+    this(int)
+    {
+        foo = Foo11246(5);
+        assert(Foo11246.ctor == 1);
+        assert(Foo11246.dtor == 0);
+    }
+}
+
+void test11246()
+{
+    {
+        auto bar = Bar11246(1);
+        assert(Foo11246.ctor == 1);
+        assert(Foo11246.dtor == 0);
+    }
+    assert(Foo11246.ctor == 1);
+    assert(Foo11246.dtor == 1);
+}
+
+/***************************************************/
 
 int main()
 {
     test9665();
+    test11246();
 
     printf("Success\n");
     return 0;
