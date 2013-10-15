@@ -5815,7 +5815,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (fparam->storageClass & STCauto)
             {
                 if (fargs && i < fargs->dim)
-                {   Expression *farg = (*fargs)[i];
+                {
+                    Expression *farg = (*fargs)[i];
+                    if (Expression *e = farg->isTemp())
+                        farg = e;
                     if (farg->isLvalue())
                         ;                               // ref parameter
                     else
