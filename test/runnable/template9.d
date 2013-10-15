@@ -2852,6 +2852,21 @@ void test10969()
 }
 
 /******************************************/
+// 11271
+
+struct SmartPtr11271(T)
+{
+    ~this() {}
+    void opAssign(U)(auto ref U rh) {}
+}
+
+void test11271()
+{
+    SmartPtr11271!Object a;
+    a = SmartPtr11271!Object();
+}
+
+/******************************************/
 
 int main()
 {
@@ -2942,6 +2957,7 @@ int main()
     test11242();
     test10811();
     test10969();
+    test11271();
 
     printf("Success\n");
     return 0;
