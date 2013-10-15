@@ -7990,7 +7990,41 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
         {
             var->ctorinit = 1;
             //printf("setting ctorinit\n");
-            return TRUE;
+            int result = TRUE;
+            if (var->isField() && sc->fieldinit && !sc->intypeof)
+            {
+                assert(e1);
+                bool mustInit = (var->storage_class & STCnodefaultctor ||
+                                 var->type->needsNested());
+
+                size_t dim = sc->fieldinit_dim;
+                AggregateDeclaration *ad = fd->isAggregateMember2();
+                assert(ad);
+                size_t i;
+                for (i = 0; i < dim; i++)   // same as findFieldIndexByName in ctfeexp.c ?
+                {
+                    if (ad->fields[i] == var)
+                        break;
+                }
+                assert(i < dim);
+                unsigned fi = sc->fieldinit[i];
+                if (fi & CSXthis_ctor)
+                {
+                    if (var->type->isMutable() && e1->type->isMutable())
+                        result = FALSE;
+                    else
+                        ::error(loc, "multiple field %s initialization", var->toChars());
+                }
+                else if (sc->noctor || fi & CSXlabel)
+                {
+                    if (!mustInit && var->type->isMutable() && e1->type->isMutable())
+                        result = FALSE;
+                    else
+                        ::error(loc, "field %s initializing not allowed in loops or after labels", var->toChars());
+                }
+                sc->fieldinit[i] |= CSXthis_ctor;
+            }
+            return result;
         }
         else
         {
@@ -11392,6 +11426,12 @@ Ltupleassign:
         }
     }
 
+    if (op == TOKassign && e1->checkModifiable(sc) == 2)
+    {
+        //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
+        op = TOKconstruct;
+    }
+
     // Determine if this is an initialization of a reference
     int refinit = 0;
     if (op == TOKconstruct && e1->op == TOKvar)
@@ -11514,51 +11554,120 @@ Ltupleassign:
                  * assignments to fields. An assignment to a field counts even
                  * if done through an opAssign overload.
                  */
-                e1->checkModifiable(sc);
                 return e;
             }
         }
         else if (op == TOKconstruct && !refinit)
         {
             Type *t2 = e2->type->toBasetype();
-            if (t2->ty == Tstruct &&
-                sd == ((TypeStruct *)t2)->sym &&
-                sd->cpctor)
+            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
             {
-                /* We have a copy constructor for this
-                 */
-                if (e2->op == TOKquestion)
+                if (sd->ctor &&            // there are constructors
+                    e2->op == TOKcall &&
+                    e2->type->implicitConvTo(t1))
                 {
-                    /* Write as:
-                     *  a ? e1 = b : e1 = c;
+                    /* Look for form of constructor call which is:
+                     *    *__ctmp.ctor(arguments...)
                      */
-                    CondExp *econd = (CondExp *)e2;
-                    AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
-                    ea1->op = op;
-                    AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
-                    ea2->op = op;
-                    Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                    return e->semantic(sc);
-                }
+                    CallExp *ce = (CallExp *)e2;
+                    if (ce->e1->op == TOKdotvar)
+                    {
+                        DotVarExp *dve = (DotVarExp *)ce->e1;
+                        if (dve->var->isCtorDeclaration())
+                        {
+                            /* It's a constructor call, currently constructing
+                             * a temporary __ctmp.
+                             */
+                            /* Before calling the constructor, initialize
+                             * variable with a bit copy of the default
+                             * initializer
+                             */
 
-                if (e2->isLvalue())
-                {
-                    /* Write as:
-                     *  e1.cpctor(e2);
-                     */
-                    if (!e2->type->implicitConvTo(e1->type))
-                        error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+                            if (sd->zeroInit == 1)
+                            {
+                                e2 = new IntegerExp(loc, 0, Type::tint32);
+                            }
+                            else if (sd->isNested())
+                            {
+                                e2 = t1->defaultInitLiteral(loc);
+                                this->op = TOKblit;
+                            }
+                            else
+                            {
+                                e2 = t1->defaultInit(loc);
+                                this->op = TOKblit;
+                            }
+                            type = e1->type;
 
-                    Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-                    e = new CallExp(loc, e, e2);
-                    return e->semantic(sc);
+                            /* Replace __ctmp being constructed with e1.
+                             * We need to copy constructor call expression,
+                             * because it may be used in other place.
+                             */
+                            DotVarExp *dvx = (DotVarExp *)dve->copy();
+                            dvx->e1 = e1;
+                            CallExp *cx = (CallExp *)ce->copy();
+                            cx->e1 = dvx;
+
+                            Expression *e = new CommaExp(loc, this, cx);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
                 }
-                else
+                if (sd->cpctor)
                 {
-                    /* The struct value returned from the function is transferred
-                     * so should not call the destructor on it.
+                    /* We have a copy constructor for this
                      */
-                    e2 = valueNoDtor(e2);
+                    if (e2->op == TOKquestion)
+                    {
+                        /* Write as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp *econd = (CondExp *)e2;
+                        AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
+                        ea1->op = op;
+                        AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
+                        ea2->op = op;
+                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
+                        return e->semantic(sc);
+                    }
+
+                    if (e2->isLvalue())
+                    {
+                        /* Write as:
+                         *  e1.cpctor(e2);
+                         */
+                        if (!e2->type->implicitConvTo(e1->type))
+                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
+                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+                        e = new CallExp(loc, e, e2);
+                        return e->semantic(sc);
+                    }
+                    else
+                    {
+                        /* The struct value returned from the function is transferred
+                         * so should not call the destructor on it.
+                         */
+                        e2 = valueNoDtor(e2);
+                    }
+                }
+            }
+            else
+            {
+                if (!e2->implicitConvTo(t1))
+                {
+                    // Look for implicit constructor call
+                    if (sd->ctor)
+                    {
+                        // Look for constructor first
+                        // Rewrite as e1.ctor(arguments)
+                        Expression *e;
+                        e = new DotIdExp(loc, e1, Id::ctor);
+                        e = new CallExp(loc, e, e2);
+                        e = e->semantic(sc);
+                        return e;
+                    }
                 }
             }
         }
@@ -11639,7 +11748,7 @@ Ltupleassign:
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (op == TOKassign && e1->checkModifiable(sc) == 1 && !tn->isMutable())
+        if (op == TOKassign && !tn->isMutable())
         {
             error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
@@ -13456,11 +13565,7 @@ Expression *CondExp::syntaxCopy()
 
 
 Expression *CondExp::semantic(Scope *sc)
-{   Type *t1;
-    Type *t2;
-    unsigned cs0;
-    unsigned cs1;
-
+{
 #if LOGSEMANTIC
     printf("CondExp::semantic('%s')\n", toChars());
 #endif
@@ -13472,14 +13577,20 @@ Expression *CondExp::semantic(Scope *sc)
     econd = econd->checkToPointer();
     econd = econd->checkToBoolean(sc);
 
-    cs0 = sc->callSuper;
+    unsigned cs0 = sc->callSuper;
+    unsigned *fi0 = fi0 = sc->saveFieldInit();
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    cs1 = sc->callSuper;
+
+    unsigned cs1 = sc->callSuper;
+    unsigned *fi1 = sc->fieldinit;
     sc->callSuper = cs0;
+    sc->fieldinit = fi0;
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
+
     sc->mergeCallSuper(loc, cs1);
+    sc->mergeFieldInit(loc, fi1);
 
     if (econd->type == Type::terror)
         return econd;
@@ -13490,8 +13601,8 @@ Expression *CondExp::semantic(Scope *sc)
 
 
     // If either operand is void, the result is void
-    t1 = e1->type;
-    t2 = e2->type;
+    Type *t1 = e1->type;
+    Type *t2 = e2->type;
     if (t1->ty == Tvoid || t2->ty == Tvoid)
         type = Type::tvoid;
     else if (t1 == t2)

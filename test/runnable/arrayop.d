@@ -611,13 +611,14 @@ void test9656()
     static class C {}
     static struct S
     {
-        immutable int[] narr;
-        immutable C[] carr;
+        immutable int[] narr1;
+        immutable int[] narr2;
+        immutable C[] carr1;
         immutable C[] carr2;
         this(int n) {
-            narr = new int[](3); // OK, expected
-            narr = [1,2,3].dup;  // NG -> OK
-            carr = [new C].dup;  // NG -> OK
+            narr1 = new int[](3); // OK, expected
+            narr2 = [1,2,3].dup;  // NG -> OK
+            carr1 = [new C].dup;  // NG -> OK
 
             C c = new C;
             static assert(!__traits(compiles, carr2 = [c]));

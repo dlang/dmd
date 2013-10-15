@@ -1009,6 +1009,8 @@ void FuncDeclaration::semantic3(Scope *sc)
         sc2->speculative = sc->speculative || isSpeculative() != NULL;
         sc2->userAttributes = NULL;
         if (sc2->intypeof == 1) sc2->intypeof = 2;
+        sc2->fieldinit = NULL;
+        sc2->fieldinit_dim = 0;
 
         // Declare 'this'
         AggregateDeclaration *ad = isThis();
@@ -1267,10 +1269,13 @@ void FuncDeclaration::semantic3(Scope *sc)
              */
             if (ad && isCtorDeclaration())
             {
+                sc2->fieldinit = new unsigned[ad->fields.dim];
+                sc2->fieldinit_dim = ad->fields.dim;
                 for (size_t i = 0; i < ad->fields.dim; i++)
-                {   VarDeclaration *v = ad->fields[i];
-
+                {
+                    VarDeclaration *v = ad->fields[i];
                     v->ctorinit = 0;
+                    sc2->fieldinit[i] = 0;
                 }
             }
 
@@ -1367,8 +1372,20 @@ void FuncDeclaration::semantic3(Scope *sc)
                             else if (v->type->needsNested())
                                 error("field %s must be initialized in constructor, because it is nested struct", v->toChars());
                         }
+                        else
+                        {
+                            bool mustInit = (v->storage_class & STCnodefaultctor ||
+                                             v->type->needsNested());
+                            if (mustInit && !(sc2->fieldinit[i] & CSXthis_ctor))
+                            {
+                                error("field %s must be initialized but skipped", v->toChars());
+                            }
+                        }
                     }
                 }
+                delete[] sc2->fieldinit;
+                sc2->fieldinit = NULL;
+                sc2->fieldinit_dim = 0;
 
                 if (cd &&
                     !(sc2->callSuper & CSXany_ctor) &&
