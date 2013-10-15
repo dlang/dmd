@@ -1376,6 +1376,96 @@ struct S10456
 }
 
 /***************************************************/
+// 11261
+
+template Tuple11261(Specs...)
+{
+    struct Tuple11261
+    {
+        static if (Specs.length != 4)   // anonymous field version
+        {
+            alias Specs Types;
+            Types expand;
+            alias expand this;
+        }
+        else
+        {
+            alias Seq!(Specs[0], Specs[2]) Types;
+            Types expand;
+            ref inout(Tuple11261!Types) _Tuple_super() inout @trusted
+            {
+                return *cast(typeof(return)*) &(expand[0]);
+            }
+            // This is mostly to make t[n] work.
+            alias _Tuple_super this;
+        }
+
+        this()(Types values)
+        {
+            expand[] = values[];
+        }
+    }
+}
+
+interface InputRange11261(E)
+{
+    @property bool empty();
+    @property E front();
+    void popFront();
+
+    int opApply(int delegate(E));
+    int opApply(int delegate(size_t, E));
+
+}
+template InputRangeObject11261(R)
+{
+    alias typeof(R.init.front()) E;
+
+    class InputRangeObject11261 : InputRange11261!E
+    {
+        private R _range;
+
+        this(R range) { this._range = range; }
+
+        @property bool empty() { return _range.empty; }
+        @property E front() { return _range.front; }
+        void popFront() { _range.popFront(); }
+
+        int opApply(int delegate(E) dg) { return 0; }
+        int opApply(int delegate(size_t, E) dg) { return 0; }
+    }
+}
+
+// ------
+
+class Container11261
+{
+    alias Tuple11261!(string, "key", string, "value") Key;
+
+    InputRange11261!Key opSlice()
+    {
+        Range r;
+        return new InputRangeObject11261!Range(r);
+    }
+    private struct Range
+    {
+        enum empty = false;
+        auto popFront() {}
+        auto front() { return Key("myKey", "myValue"); }
+    }
+}
+
+void test11261()
+{
+    auto container = new Container11261();
+    foreach (k, v; container)   // map the tuple of container[].front to (k, v)
+    {
+        static assert(is(typeof(k) == string) && is(typeof(v) == string));
+        break;
+    }
+}
+
+/***************************************************/
 
 int main()
 {

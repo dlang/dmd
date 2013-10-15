@@ -1018,25 +1018,27 @@ void expandTuples(Expressions *exps)
 
 TupleDeclaration *isAliasThisTuple(Expression *e)
 {
-    if (e->type)
+    if (!e->type)
+        return NULL;
+
+    Type *t = e->type->toBasetype();
+Lagain:
+    if (Dsymbol *s = t->toDsymbol(NULL))
     {
-        Type *t = e->type->toBasetype();
-        AggregateDeclaration *ad;
-        if (t->ty == Tstruct)
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        if (ad)
         {
-            ad = ((TypeStruct *)t)->sym;
-            goto L1;
-        }
-        else if (t->ty == Tclass)
-        {
-            ad = ((TypeClass *)t)->sym;
-          L1:
-            Dsymbol *s = ad->aliasthis;
+            s = ad->aliasthis;
             if (s && s->isVarDeclaration())
             {
                 TupleDeclaration *td = s->isVarDeclaration()->toAlias()->isTupleDeclaration();
                 if (td && td->isexp)
                     return td;
+            }
+            if (Type *att = t->aliasthisOf())
+            {
+                t = att;
+                goto Lagain;
             }
         }
     }
