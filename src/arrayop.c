@@ -309,6 +309,13 @@ bool isArrayOpValid(Expression *e)
 {
     if (e->op == TOKslice)
         return true;
+    if (e->op == TOKarrayliteral)
+    {
+        Type *t = e->type->toBasetype();
+        while (t->ty == Tarray || t->ty == Tsarray)
+            t = t->nextOf()->toBasetype();
+        return (t->ty != Tvoid);
+    }
     Type *tb = e->type->toBasetype();
 
     if ( (tb->ty == Tarray) || (tb->ty == Tsarray) )
@@ -451,6 +458,12 @@ void CastExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
         Expression::buildArrayIdent(buf, arguments);
 }
 
+void ArrayLiteralExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
+{
+    buf->writestring("Slice");
+    arguments->shift(this);
+}
+
 void SliceExp::buildArrayIdent(OutBuffer *buf, Expressions *arguments)
 {
     buf->writestring("Slice");
@@ -556,6 +569,19 @@ Expression *CastExp::buildArrayLoop(Parameters *fparams)
     }
     else
         return Expression::buildArrayLoop(fparams);
+}
+
+Expression *ArrayLiteralExp::buildArrayLoop(Parameters *fparams)
+{
+    Identifier *id = Identifier::generateId("p", fparams->dim);
+    Parameter *param = new Parameter(STCconst, type, id, NULL);
+    fparams->shift(param);
+    Expression *e = new IdentifierExp(Loc(), id);
+    Expressions *arguments = new Expressions();
+    Expression *index = new IdentifierExp(Loc(), Id::p);
+    arguments->push(index);
+    e = new ArrayExp(Loc(), e, arguments);
+    return e;
 }
 
 Expression *SliceExp::buildArrayLoop(Parameters *fparams)
@@ -671,6 +697,13 @@ int Expression::isArrayOperand()
     //printf("Expression::isArrayOperand() %s\n", toChars());
     if (op == TOKslice)
         return 1;
+    if (op == TOKarrayliteral)
+    {
+        Type *t = type->toBasetype();
+        while (t->ty == Tarray || t->ty == Tsarray)
+            t = t->nextOf()->toBasetype();
+        return (t->ty != Tvoid);
+    }
     if (type->toBasetype()->ty == Tarray)
     {
         switch (op)
