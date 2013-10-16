@@ -5682,7 +5682,7 @@ void TemplateInstance::semantic(Scope *sc, Expressions *fargs)
             }
         }
     }
-    if (found_deferred_ad)
+    if (found_deferred_ad || Module::deferred.dim)
         goto Laftersemantic;
 
     /* ConditionalDeclaration may introduce eponymous declaration,
