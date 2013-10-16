@@ -1243,81 +1243,76 @@ private:
         immutable milliseconds = splitUnitsFromHNSecs!"msecs"(hnsecs);
         immutable microseconds = splitUnitsFromHNSecs!"usecs"(hnsecs);
 
-        try
+        auto totalUnits = 0;
+
+        if(weeks != 0)
+            ++totalUnits;
+        if(days != 0)
+            ++totalUnits;
+        if(hours != 0)
+            ++totalUnits;
+        if(minutes != 0)
+            ++totalUnits;
+        if(seconds != 0)
+            ++totalUnits;
+        if(milliseconds != 0)
+            ++totalUnits;
+        if(microseconds != 0)
+            ++totalUnits;
+        if(hnsecs != 0)
+            ++totalUnits;
+
+        string retval;
+        auto unitsUsed = 0;
+
+        static string unitsToPrint(string units, bool plural) nothrow
         {
-            auto totalUnits = 0;
-
-            if(weeks != 0)
-                ++totalUnits;
-            if(days != 0)
-                ++totalUnits;
-            if(hours != 0)
-                ++totalUnits;
-            if(minutes != 0)
-                ++totalUnits;
-            if(seconds != 0)
-                ++totalUnits;
-            if(milliseconds != 0)
-                ++totalUnits;
-            if(microseconds != 0)
-                ++totalUnits;
-            if(hnsecs != 0)
-                ++totalUnits;
-
-            string retval;
-            auto unitsUsed = 0;
-
-            static string unitsToPrint(string units, bool plural)
-            {
-                if(units == "seconds")
-                    return plural ? "secs" : "sec";
-                else if(units == "msecs")
-                    return "ms";
-                else if(units == "usecs")
-                    return "μs";
-                else
-                    return plural ? units : units[0 .. $-1];
-            }
-
-            void addUnitStr(string units, long value)
-            {
-                if(value != 0)
-                {
-                    auto utp = unitsToPrint(units, value != 1);
-                    auto valueStr = numToString(value);
-
-                    if(unitsUsed == 0)
-                        retval ~= valueStr ~ " " ~ utp;
-                    else if(unitsUsed == totalUnits - 1)
-                    {
-                        if(totalUnits == 2)
-                            retval ~= " and " ~ valueStr ~ " " ~ utp;
-                        else
-                            retval ~= ", and " ~ valueStr ~ " " ~ utp;
-                    }
-                    else
-                        retval ~= ", " ~ valueStr ~ " " ~ utp;
-
-                    ++unitsUsed;
-                }
-            }
-
-            addUnitStr("weeks", weeks);
-            addUnitStr("days", days);
-            addUnitStr("hours", hours);
-            addUnitStr("minutes", minutes);
-            addUnitStr("seconds", seconds);
-            addUnitStr("msecs", milliseconds);
-            addUnitStr("usecs", microseconds);
-            addUnitStr("hnsecs", hnsecs);
-
-            if(retval.length == 0)
-                return "0 hnsecs";
-
-            return retval;
+            if(units == "seconds")
+                return plural ? "secs" : "sec";
+            else if(units == "msecs")
+                return "ms";
+            else if(units == "usecs")
+                return "μs";
+            else
+                return plural ? units : units[0 .. $-1];
         }
-        catch(Exception e)
-            assert(0, "Something threw when nothing can throw.");
+
+        void addUnitStr(string units, long value) nothrow
+        {
+            if(value != 0)
+            {
+                auto utp = unitsToPrint(units, value != 1);
+                auto valueStr = numToString(value);
+
+                if(unitsUsed == 0)
+                    retval ~= valueStr ~ " " ~ utp;
+                else if(unitsUsed == totalUnits - 1)
+                {
+                    if(totalUnits == 2)
+                        retval ~= " and " ~ valueStr ~ " " ~ utp;
+                    else
+                        retval ~= ", and " ~ valueStr ~ " " ~ utp;
+                }
+                else
+                    retval ~= ", " ~ valueStr ~ " " ~ utp;
+
+                ++unitsUsed;
+            }
+        }
+
+        addUnitStr("weeks", weeks);
+        addUnitStr("days", days);
+        addUnitStr("hours", hours);
+        addUnitStr("minutes", minutes);
+        addUnitStr("seconds", seconds);
+        addUnitStr("msecs", milliseconds);
+        addUnitStr("usecs", microseconds);
+        addUnitStr("hnsecs", hnsecs);
+
+        if(retval.length == 0)
+            return "0 hnsecs";
+
+        return retval;
     }
 
 
