@@ -570,6 +570,7 @@ public:
     void toMangleBuffer(OutBuffer *buf);
     Expression *optimize(int result, bool keepLvalue = false);
     Expression *interpret(InterState *istate, CtfeGoal goal = ctfeNeedRvalue);
+    Expression *addDtorHook(Scope *sc);
     dt_t **toDt(dt_t **pdt);
     Symbol *toSymbol();
     MATCH implicitConvTo(Type *t);
