@@ -2680,6 +2680,25 @@ static: // necessary to make overloaded symbols accessible via __traits(getOverl
 }
 
 /******************************************/
+// 10313
+
+void test10313()
+{
+    struct Nullable(T)
+    {
+        this()(inout T value) inout {}
+    }
+
+    struct S { S[] array; }
+    S s;
+    auto ns = Nullable!S(s);
+
+    class C { C[] array; }
+    C c;
+    auto nc = Nullable!C(c);
+}
+
+/******************************************/
 // 10498
 
 template triggerIssue10498a()

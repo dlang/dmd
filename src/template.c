@@ -3893,6 +3893,8 @@ MATCH TypeStruct::deduceType(Scope *sc, Type *tparam, TemplateParameters *parame
         TypeStruct *tp = (TypeStruct *)tparam;
 
         //printf("\t%d\n", (MATCH) implicitConvTo(tp));
+        if (wildmatch && wildConvTo(tparam))
+            return MATCHconst;
         return implicitConvTo(tp);
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
@@ -4078,6 +4080,8 @@ MATCH TypeClass::deduceType(Scope *sc, Type *tparam, TemplateParameters *paramet
         TypeClass *tp = (TypeClass *)tparam;
 
         //printf("\t%d\n", (MATCH) implicitConvTo(tp));
+        if (wildmatch && wildConvTo(tparam))
+            return MATCHconst;
         return implicitConvTo(tp);
     }
     return Type::deduceType(sc, tparam, parameters, dedtypes, wildmatch);
