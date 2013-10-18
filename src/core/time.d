@@ -1233,91 +1233,52 @@ private:
       +/
     string _toStringImpl() @safe const pure nothrow
     {
-        long hnsecs = _hnsecs;
-
-        immutable weeks = splitUnitsFromHNSecs!"weeks"(hnsecs);
-        immutable days = splitUnitsFromHNSecs!"days"(hnsecs);
-        immutable hours = splitUnitsFromHNSecs!"hours"(hnsecs);
-        immutable minutes = splitUnitsFromHNSecs!"minutes"(hnsecs);
-        immutable seconds = splitUnitsFromHNSecs!"seconds"(hnsecs);
-        immutable milliseconds = splitUnitsFromHNSecs!"msecs"(hnsecs);
-        immutable microseconds = splitUnitsFromHNSecs!"usecs"(hnsecs);
-
-        try
+        static void appListSep(ref string res, uint pos, bool last) nothrow
         {
-            auto totalUnits = 0;
-
-            if(weeks != 0)
-                ++totalUnits;
-            if(days != 0)
-                ++totalUnits;
-            if(hours != 0)
-                ++totalUnits;
-            if(minutes != 0)
-                ++totalUnits;
-            if(seconds != 0)
-                ++totalUnits;
-            if(milliseconds != 0)
-                ++totalUnits;
-            if(microseconds != 0)
-                ++totalUnits;
-            if(hnsecs != 0)
-                ++totalUnits;
-
-            string retval;
-            auto unitsUsed = 0;
-
-            static string unitsToPrint(string units, bool plural)
-            {
-                if(units == "seconds")
-                    return plural ? "secs" : "sec";
-                else if(units == "msecs")
-                    return "ms";
-                else if(units == "usecs")
-                    return "μs";
-                else
-                    return plural ? units : units[0 .. $-1];
-            }
-
-            void addUnitStr(string units, long value)
-            {
-                if(value != 0)
-                {
-                    auto utp = unitsToPrint(units, value != 1);
-                    auto valueStr = numToString(value);
-
-                    if(unitsUsed == 0)
-                        retval ~= valueStr ~ " " ~ utp;
-                    else if(unitsUsed == totalUnits - 1)
-                    {
-                        if(totalUnits == 2)
-                            retval ~= " and " ~ valueStr ~ " " ~ utp;
-                        else
-                            retval ~= ", and " ~ valueStr ~ " " ~ utp;
-                    }
-                    else
-                        retval ~= ", " ~ valueStr ~ " " ~ utp;
-
-                    ++unitsUsed;
-                }
-            }
-
-            addUnitStr("weeks", weeks);
-            addUnitStr("days", days);
-            addUnitStr("hours", hours);
-            addUnitStr("minutes", minutes);
-            addUnitStr("seconds", seconds);
-            addUnitStr("msecs", milliseconds);
-            addUnitStr("usecs", microseconds);
-            addUnitStr("hnsecs", hnsecs);
-
-            if(retval.length == 0)
-                return "0 hnsecs";
-
-            return retval;
+            if (pos == 0)
+                return;
+            if (!last)
+                res ~= ", ";
+            else
+                res ~= pos == 1 ? " and " : ", and ";
         }
-        catch(Exception e)
-            assert(0, "Something threw when nothing can throw.");
+
+        static void appUnitVal(string units)(ref string res, long val) nothrow
+        {
+            immutable plural = val != 1;
+            string unit;
+            static if (units == "seconds")
+                unit = plural ? "secs" : "sec";
+            else static if (units == "msecs")
+                unit = "ms";
+            else static if (units == "usecs")
+                unit = "μs";
+            else
+                unit = plural ? units : units[0 .. $-1];
+            res ~= numToString(val) ~ " " ~ unit;
+        }
+
+        if (_hnsecs == 0) return "0 hnsecs";
+
+        template TT(T...) { alias T TT; }
+        alias units = TT!("weeks", "days", "hours", "minutes", "seconds", "msecs", "usecs");
+
+        long hnsecs = _hnsecs; string res; uint pos;
+        foreach (unit; units)
+        {
+            if (auto val = splitUnitsFromHNSecs!unit(hnsecs))
+            {
+                appListSep(res, pos++, hnsecs == 0);
+                appUnitVal!unit(res, val);
+            }
+            if (hnsecs == 0) break;
+        }
+        if (hnsecs != 0)
+        {
+            appListSep(res, pos++, true);
+            appUnitVal!"hnsecs"(res, hnsecs);
+        }
+        return res;
     }
 
 
