@@ -362,6 +362,7 @@ Usage:\n\
 \n\
   files.d        D source files\n\
   @cmdfile       read arguments from cmdfile\n\
+  -allinst       generate code for all template instantiations\n\
   -c             do not link\n\
   -cov           do code coverage analysis\n\
   -cov=nnn       require at least nnn%% code coverage\n\
@@ -628,7 +629,9 @@ int tryMain(size_t argc, char *argv[])
         p = argv[i];
         if (*p == '-')
         {
-            if (strcmp(p + 1, "de") == 0)
+            if (strcmp(p + 1, "allinst") == 0)
+                global.params.allInst = true;
+            else if (strcmp(p + 1, "de") == 0)
                 global.params.useDeprecated = 0;
             else if (strcmp(p + 1, "d") == 0)
                 global.params.useDeprecated = 1;

@@ -586,6 +586,7 @@ void FuncDeclaration::toObjFile(int multiobj)
      */
     TemplateInstance *ti = inTemplateInstance();
     if (!global.params.useUnitTests &&
+        !global.params.allInst &&
         ti && ti->instantiatingModule && !ti->instantiatingModule->isRoot())
     {
         Module *mi = ti->instantiatingModule;
