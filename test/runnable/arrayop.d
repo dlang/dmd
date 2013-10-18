@@ -665,6 +665,38 @@ void test10433()
 }
 
 /************************************************************************/
+// 10684
+
+void test10684a()
+{
+    int[] a = [0, 0];
+    a[] += [10, 20][];
+}
+
+void test10684b()
+{
+    int[] a = [1, 2, 3];
+    int[] b = [4, 5, 6];
+
+    // Allow array literal as the operand of array oeration
+    a[] += [1, 2, 3];
+    assert(a == [2, 4, 6]);
+
+    a[] *= b[] + [1, 1, 1];
+    assert(a == [2*(4+1), 4*(5+1), 6*(6+1)]);
+
+    a[] = [9, 8, 7] - [1, 2, 3];
+    assert(a == [8, 6, 4]);
+
+    a[] = [2, 4, 6] / 2;
+    assert(a == [1,2,3]);
+
+    // Disallow: [1,2,3] is not an lvalue
+    static assert(!__traits(compiles, { [1,2,3] = a[] * 2; }));
+    static assert(!__traits(compiles, { [1,2,3] += a[] * b[]; }));
+}
+
+/************************************************************************/
 
 int main()
 {
@@ -678,6 +710,8 @@ int main()
     test8651();
     test9656();
     test10433();
+    test10684a();
+    test10684b();
 
     printf("Success\n");
     return 0;
