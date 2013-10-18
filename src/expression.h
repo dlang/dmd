@@ -486,6 +486,9 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
 
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Parameters *fparams);
+
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
