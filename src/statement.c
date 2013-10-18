@@ -1961,10 +1961,11 @@ Lagain:
                             arg->type ? arg->type->toChars() : "?", arg->ident->toChars(),
                             exp->type->toChars(), exp->toChars());
                 #endif
-                    if (arg->type && !exp->implicitConvTo(arg->type))
-                        goto Lrangeerr;
                     if (!arg->type)
                         arg->type = exp->type;
+                    arg->type = arg->type->addStorageClass(arg->storageClass);
+                    if (!exp->implicitConvTo(arg->type))
+                        goto Lrangeerr;
 
                     VarDeclaration *var = new VarDeclaration(loc, arg->type, arg->ident, new ExpInitializer(loc, exp));
                     var->storage_class |= STCctfe | STCref | STCforeach;
