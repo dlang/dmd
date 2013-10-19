@@ -403,7 +403,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = NULL;
         goto Lfd;
     }
-    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1->op == TOKdotvar && e1->type && e1->type->toBasetype()->ty == Tfunction)
     {
         DotVarExp *dve = (DotVarExp *)e1;
         s      = dve->var->isFuncDeclaration();
@@ -411,7 +411,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = dve->e1->type;
         goto Lfd;
     }
-    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1->op == TOKvar && e1->type && e1->type->toBasetype()->ty == Tfunction)
     {
         s      = ((VarExp *)e1)->var->isFuncDeclaration();
         tiargs = NULL;
