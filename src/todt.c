@@ -715,8 +715,7 @@ void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
     StructLiteralExp *sle = new StructLiteralExp(loc, this, NULL);
-    sle->ctorinit = 1;
-    Expression *e = sle->fill();
+    Expression *e = sle->fill(true);
     if (e == sle)
     {
         //printf("sd->toDt sle = %s\n", sle->toChars());

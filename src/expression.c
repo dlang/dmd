@@ -4589,7 +4589,6 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
-    this->ctorinit = 0;
     this->origin = this;
     this->stageflags = 0;
     this->inlinecopy = NULL;
@@ -4696,7 +4695,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
-    Expression *e = fill();
+    Expression *e = fill(false);
     if (e->op == TOKerror)
     {
         /* An error in the initializer needs to be recorded as an error
@@ -4727,7 +4726,7 @@ Expression *StructLiteralExp::semantic(Scope *sc)
     return this;
 }
 
-Expression *StructLiteralExp::fill()
+Expression *StructLiteralExp::fill(bool ctorinit)
 {
     assert(sd && sd->sizeok == SIZEOKdone);
     size_t nfields = sd->fields.dim - sd->isNested();
@@ -8759,8 +8758,8 @@ Lagain:
 
     // Check for call operator overload
     if (t1)
-    {   AggregateDeclaration *ad;
-
+    {
+        AggregateDeclaration *ad;
         if (t1->ty == Tstruct)
         {
             ad = ((TypeStruct *)t1)->sym;
@@ -8789,29 +8788,29 @@ Lagain:
                 ExpInitializer *ei = NULL;
                 if (t1->needsNested())
                 {
-                    Expressions *args = new Expressions();
-                    StructLiteralExp *se = new StructLiteralExp(loc, (StructDeclaration *)ad, args);
-                    se->ctorinit = 1;
-                    ei = new ExpInitializer(loc, se);
+                    StructLiteralExp *sle = new StructLiteralExp(loc, (StructDeclaration *)ad, NULL, e1->type);
+                    Expression *e = sle->fill(true);
+                    if (e->op == TOKerror)
+                        return e;
+                    sle->type = type;
+                    ei = new ExpInitializer(loc, sle);
                 }
-
                 VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, ei);
                 tmp->storage_class |= STCctfe;
-                Expression *av = new DeclarationExp(loc, tmp);
-                av = new CommaExp(loc, av, new VarExp(loc, tmp));
 
-                Expression *e;
+                Expression *e = new DeclarationExp(loc, tmp);
+                e = new CommaExp(loc, e, new VarExp(loc, tmp));
                 if (CtorDeclaration *cf = ad->ctor->isCtorDeclaration())
                 {
-                    e = new DotVarExp(loc, av, cf, 1);
+                    e = new DotVarExp(loc, e, cf, 1);
                 }
                 else if (TemplateDeclaration *td = ad->ctor->isTemplateDeclaration())
                 {
-                    e = new DotTemplateExp(loc, av, td);
+                    e = new DotTemplateExp(loc, e, td);
                 }
                 else if (OverloadSet *os = ad->ctor->isOverloadSet())
                 {
-                    e = new DotExp(loc, av, new OverExp(loc, os));
+                    e = new DotExp(loc, e, new OverExp(loc, os));
                 }
                 else
                     assert(0);

@@ -278,7 +278,7 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
             return new ErrorInitializer();
 
         StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
-        Expression *e = sle->fill();
+        Expression *e = sle->fill(false);
         if (e->op == TOKerror)
             return new ErrorInitializer();
 

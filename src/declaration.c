@@ -1537,17 +1537,19 @@ Lnomatch:
                                      */
                                     storage_class &= ~(STCref | STCforeach | STCparameter);
 
-                                    Expression *e;
+                                    Expression *e = new VarExp(loc, this);
                                     if (sd->zeroInit == 1)
                                     {
-                                        e = new ConstructExp(loc, new VarExp(loc, this), new IntegerExp(loc, 0, Type::tint32));
+                                        e = new ConstructExp(loc, e, new IntegerExp(loc, 0, Type::tint32));
                                     }
                                     else if (sd->isNested())
-                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInitLiteral(loc));
+                                    {
+                                        e = new AssignExp(loc, e, t->defaultInitLiteral(loc));
                                         e->op = TOKblit;
                                     }
                                     else
-                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
+                                    {
+                                        e = new AssignExp(loc, e, t->defaultInit(loc));
                                         e->op = TOKblit;
                                     }
                                     e->type = t;
