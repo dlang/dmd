@@ -4696,52 +4696,17 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
-    for (size_t i = elements->dim; i < nfields; i++)
+    Expression *e = fill();
+    if (e->op == TOKerror)
     {
-        Expression *e;
-        VarDeclaration *v = sd->fields[i];
-        assert(!v->isThisDeclaration());
-
-        if (v->offset < offset)
-        {
-            e = NULL;
-            sd->hasUnions = 1;
-        }
-        else
-        {
-            if (v->init)
-            {
-                if (v->init->isVoidInitializer())
-                    e = NULL;
-                else
-                    e = v->getConstInitializer(false);
-            }
-            else
-            {
-                if ((v->storage_class & STCnodefaultctor) && !ctorinit)
-                {
-                    error("field %s.%s must be initialized because it has no default constructor",
-                            sd->type->toChars(), v->toChars());
-                }
-                if (v->type->needsNested() && ctorinit)
-                    e = v->type->defaultInit(loc);
-                else
-                    e = v->type->defaultInitLiteral(loc);
-            }
-            offset = v->offset + v->type->size();
-        }
-        if (e && e->op == TOKerror)
-        {
-            /* An error in the initializer needs to be recorded as an error
-             * in the enclosing function or template, since the initializer
-             * will be part of the stuct declaration.
-             */
-            global.increaseErrorCount();
-            return e;
-        }
-        elements->push(e);
+        /* An error in the initializer needs to be recorded as an error
+         * in the enclosing function or template, since the initializer
+         * will be part of the stuct declaration.
+         */
+        global.increaseErrorCount();
+        return e;
     }
-
+    assert(e == this);
     type = stype ? stype : sd->type;
 
     /* If struct requires a destructor, rewrite as:
@@ -4759,6 +4724,115 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         return e;
     }
 
+    return this;
+}
+
+Expression *StructLiteralExp::fill()
+{
+    assert(sd && sd->sizeok == SIZEOKdone);
+    size_t nfields = sd->fields.dim - sd->isNested();
+
+    size_t dim = elements->dim;
+    elements->setDim(nfields);
+    for (size_t i = dim; i < nfields; i++)
+        (*elements)[i] = NULL;
+
+    // Fill in missing any elements with default initializers
+    for (size_t i = 0; i < nfields; i++)
+    {
+        if ((*elements)[i])
+            continue;
+        VarDeclaration *vd = sd->fields[i];
+        VarDeclaration *vx = vd;
+        if (vd->init && vd->init->isVoidInitializer())
+            vx = NULL;
+        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+        size_t fieldi = i;
+        for (size_t j = 0; j < nfields; j++)
+        {
+            if (i == j)
+                continue;
+            VarDeclaration *v2 = sd->fields[j];
+            if (v2->init && v2->init->isVoidInitializer())
+                continue;
+
+            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
+                            v2->offset < vd->offset + vd->type->size());
+            if (!overlap)
+                continue;
+
+            sd->hasUnions = 1;  // note that directly unrelated...
+
+            if ((*elements)[j])
+            {
+                vx = NULL;
+                break;
+            }
+
+#if 1
+            /* Prefer first found non-void-initialized field
+             * union U { int a; int b = 2; }
+             * U u;    // Error: overlapping initialization for field a and b
+             */
+            if (!vx)
+                vx = v2, fieldi = j;
+            else if (v2->init)
+            {
+                error("overlapping initialization for field %s and %s",
+                    v2->toChars(), vd->toChars());
+            }
+#else   // fix Bugzilla 1432
+            /* Prefer explicitly initialized field
+             * union U { int a; int b = 2; }
+             * U u;    // OK (u.b == 2)
+             */
+            if (!vx || !vx->init && v2->init)
+                vx = v2, fieldi = j;
+            else if (vx != vd &&
+                !(vx->offset < v2->offset + v2->type->size() &&
+                  v2->offset < vx->offset + vx->type->size()))
+            {
+                // Both vx and v2 fills vd, but vx and v2 does not overlap
+            }
+            else if (vx->init && v2->init)
+            {
+                error("overlapping default initialization for field %s and %s",
+                    v2->toChars(), vd->toChars());
+            }
+            else
+                assert(vx->init || !vx->init && !v2->init);
+#endif
+        }
+        if (vx)
+        {
+            Expression *e;
+            if (vx->init)
+            {
+                assert(!vx->init->isVoidInitializer());
+                e = vx->getConstInitializer(false);
+            }
+            else
+            {
+                if ((vx->storage_class & STCnodefaultctor) && !ctorinit)
+                {
+                    error("field %s.%s must be initialized because it has no default constructor",
+                            sd->type->toChars(), vx->toChars());
+                }
+                if (vx->type->needsNested() && ctorinit)
+                    e = vx->type->defaultInit(loc);
+                else
+                    e = vx->type->defaultInitLiteral(loc);
+            }
+            (*elements)[fieldi] = e;
+        }
+    }
+
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        Expression *e = (*elements)[i];
+        if (e && e->op == TOKerror)
+            return e;
+    }
     return this;
 }
 

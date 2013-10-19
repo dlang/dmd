@@ -714,10 +714,15 @@ void ClassDeclaration::toDt2(dt_t **pdt, ClassDeclaration *cd)
 void StructDeclaration::toDt(dt_t **pdt)
 {
     //printf("StructDeclaration::toDt(), this='%s'\n", toChars());
-    StructInitializer si(loc);
-
-    Expression *e = si.fill(NULL, type, INITinterpret);
-    e->toDt(pdt);
+    StructLiteralExp *sle = new StructLiteralExp(loc, this, NULL);
+    sle->ctorinit = 1;
+    Expression *e = sle->fill();
+    if (e == sle)
+    {
+        //printf("sd->toDt sle = %s\n", sle->toChars());
+        sle->type = type;
+        sle->toDt(pdt);
+    }
 }
 
 /* ================================================================= */
