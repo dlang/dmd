@@ -46,18 +46,55 @@ struct lconv
     byte  int_n_sign_posn;
 }
 
-enum LC_CTYPE          = 0;
-enum LC_NUMERIC        = 1;
-enum LC_TIME           = 2;
-enum LC_COLLATE        = 3;
-enum LC_MONETARY       = 4;
-enum LC_ALL            = 6;
-enum LC_PAPER          = 7;  // non-standard
-enum LC_NAME           = 8;  // non-standard
-enum LC_ADDRESS        = 9;  // non-standard
-enum LC_TELEPHONE      = 10; // non-standard
-enum LC_MEASUREMENT    = 11; // non-standard
-enum LC_IDENTIFICATION = 12; // non-standard
+version(linux)
+{
+    enum LC_CTYPE          = 0;
+    enum LC_NUMERIC        = 1;
+    enum LC_TIME           = 2;
+    enum LC_COLLATE        = 3;
+    enum LC_MONETARY       = 4;
+    enum LC_MESSAGES       = 5;
+    enum LC_ALL            = 6;
+    enum LC_PAPER          = 7;  // non-standard
+    enum LC_NAME           = 8;  // non-standard
+    enum LC_ADDRESS        = 9;  // non-standard
+    enum LC_TELEPHONE      = 10; // non-standard
+    enum LC_MEASUREMENT    = 11; // non-standard
+    enum LC_IDENTIFICATION = 12; // non-standard
+}
+else version(Windows)
+{
+    enum LC_ALL            = 0;
+    enum LC_COLLATE        = 1;
+    enum LC_CTYPE          = 2;
+    enum LC_MONETARY       = 3;
+    enum LC_NUMERIC        = 4;
+    enum LC_TIME           = 5;
+}
+else version(OSX)
+{
+    enum LC_ALL            = 0;
+    enum LC_COLLATE        = 1;
+    enum LC_CTYPE          = 2;
+    enum LC_MONETARY       = 3;
+    enum LC_NUMERIC        = 4;
+    enum LC_TIME           = 5;
+    enum LC_MESSAGES       = 6;
+}
+else version(FreeBSD)
+{
+    enum LC_ALL            = 0;
+    enum LC_COLLATE        = 1;
+    enum LC_CTYPE          = 2;
+    enum LC_MONETARY       = 3;
+    enum LC_NUMERIC        = 4;
+    enum LC_TIME           = 5;
+    enum LC_MESSAGES       = 6;
+}
+else
+{
+    static assert(false);
+}
 
 @system char*  setlocale(int category, in char* locale);
 lconv* localeconv();
