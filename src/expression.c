@@ -11780,7 +11780,7 @@ Ltupleassign:
                 e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                 e2 = e2->semantic(sc);
             }
-            else if (global.params.warnings && !global.gag && op == TOKassign &&
+            else if (0 && global.params.warnings && !global.gag && op == TOKassign &&
                      e2->op != TOKarrayliteral && e2->op != TOKstring &&
                      !e2->implicitConvTo(t1))
             {   // Disallow sa = da (Converted to sa[] = da[])
@@ -11910,7 +11910,7 @@ Ltupleassign:
         {
             e2->checkPostblit(sc, t2->nextOf());
         }
-        if (global.params.warnings && !global.gag && op == TOKassign &&
+        if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
             e2->op != TOKarrayliteral && e2->op != TOKstring &&
             !(e2->op == TOKadd || e2->op == TOKmin ||
@@ -11934,7 +11934,7 @@ Ltupleassign:
     }
     else
     {
-        if (global.params.warnings && !global.gag && op == TOKassign &&
+        if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
             e2->op != TOKslice && //e2->op != TOKarrayliteral &&
             t2->implicitConvTo(t1))

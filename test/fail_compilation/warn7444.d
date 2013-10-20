@@ -4,16 +4,7 @@
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(30): Warning: explicit element-wise assignment (sa)[] = e is better than sa = e
-fail_compilation/warn7444.d(32): Error: cannot implicitly convert expression (e) of type int to int[]
-fail_compilation/warn7444.d(37): Warning: explicit element-wise assignment (sa)[] = sa[] is better than sa = sa[]
-fail_compilation/warn7444.d(38): Warning: explicit element-wise assignment sa[] = (sa)[] is better than sa[] = sa
-fail_compilation/warn7444.d(41): Warning: explicit element-wise assignment (sa)[] = (da)[] is better than sa = da
-fail_compilation/warn7444.d(42): Warning: explicit element-wise assignment (sa)[] = da[] is better than sa = da[]
-fail_compilation/warn7444.d(43): Warning: explicit element-wise assignment sa[] = (da)[] is better than sa[] = da
-fail_compilation/warn7444.d(47): Warning: explicit slice assignment da = (sa)[] is better than da = sa
-fail_compilation/warn7444.d(49): Warning: explicit element-wise assignment da[] = (sa)[] is better than da[] = sa
-fail_compilation/warn7444.d(54): Warning: explicit element-wise assignment da[] = (da)[] is better than da[] = da
+fail_compilation/warn7444.d(23): Error: cannot implicitly convert expression (e) of type int to int[]
 ---
 */
 
@@ -59,7 +50,7 @@ void test7444()
 /*
 TEST_OUTPUT:
 ---
-fail_compilation/warn7444.d(69): Warning: explicit element-wise assignment (arr)[] = 0 is better than arr = 0
+No warning
 ---
 */
 
@@ -67,6 +58,7 @@ void test10214()
 {
     bool[1] arr;
     arr = 0;
+    pragma(msg, "No warning");
 }
 
 /*
