@@ -291,6 +291,22 @@ void Module::genobjfile(int multiobj)
 
     //printf("Module::genobjfile(multiobj = %d) %s\n", multiobj, toChars());
 
+    if (ident == Id::entrypoint)
+    {
+        char v = global.params.verbose;
+        global.params.verbose = 0;
+
+        for (size_t i = 0; i < members->dim; i++)
+        {
+            Dsymbol *member = (*members)[i];
+            //printf("toObjFile %s %s\n", member->kind(), member->toChars());
+            member->toObjFile(global.params.multiobj);
+        }
+
+        global.params.verbose = v;
+        return;
+    }
+
     lastmname = srcfile->toChars();
 
     objmod->initfile(lastmname, NULL, toPrettyChars());
