@@ -174,6 +174,8 @@ int runLINK()
         cmdbuf.writeByte(' ');
         if (global.params.exefile)
         {   cmdbuf.writestring("/OUT:");
+            const char *ext = global.params.dll ? "dll" : "exe";
+            global.params.exefile = FileName::defaultExt(global.params.exefile, ext);
             writeFilename(&cmdbuf, global.params.exefile);
         }
         else
