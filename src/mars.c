@@ -1707,12 +1707,7 @@ Language changes listed by -transition=id:\n\
                 fprintf(global.stdmsg, "code      %s\n", m->toChars());
             m->genobjfile(0);
             if (entrypoint && m == entrypoint->importedFrom)
-            {
-                char v = global.params.verbose;
-                global.params.verbose = 0;
                 entrypoint->genobjfile(0);
-                global.params.verbose = v;
-            }
             if (!global.errors && global.params.doDocComments)
                 m->gendocfile();
         }
@@ -1733,12 +1728,7 @@ Language changes listed by -transition=id:\n\
                 obj_start(m->srcfile->toChars());
                 m->genobjfile(global.params.multiobj);
                 if (entrypoint && m == entrypoint->importedFrom)
-                {
-                    char v = global.params.verbose;
-                    global.params.verbose = 0;
                     entrypoint->genobjfile(global.params.multiobj);
-                    global.params.verbose = v;
-                }
                 obj_end(library, m->objfile);
                 obj_write_deferred(library);
             }
