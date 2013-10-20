@@ -189,10 +189,100 @@ Initializer *StructInitializer::semantic(Scope *sc, Type *t, NeedInterpret needI
                 sd->kind(), sd->toChars(), sd->toChars());
             return new ErrorInitializer();
         }
+        sd->size(loc);
+        if (sd->sizeok != SIZEOKdone)
+            return new ErrorInitializer();
+        size_t nfields = sd->fields.dim - sd->isNested();
 
-        Expression *e = fill(sc, t, needInterpret);
+        //expandTuples for non-identity arguments?
+
+        Expressions *elements = new Expressions();
+        elements->setDim(nfields);
+        for (size_t i = 0; i < elements->dim; i++)
+            (*elements)[i] = NULL;
+
+        // Run semantic for explicitly given initializers
+        // TODO: this part is slightly different from StructLiteralExp::semantic.
+        bool errors = false;
+        for (size_t fieldi = 0, i = 0; i < field.dim; i++)
+        {
+            if (Identifier *id = field[i])
+            {
+                Dsymbol *s = sd->search(loc, id, 0);
+                if (!s)
+                {
+                    s = sd->search_correct(id);
+                    if (s)
+                        error(loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
+                              id->toChars(), sd->toChars(), s->kind(), s->toChars());
+                    else
+                        error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
+                    return new ErrorInitializer();
+                }
+                s = s->toAlias();
+
+                // Find out which field index it is
+                for (fieldi = 0; 1; fieldi++)
+                {
+                    if (fieldi >= nfields)
+                    {
+                        error(loc, "%s.%s is not a per-instance initializable field",
+                            sd->toChars(), s->toChars());
+                        return new ErrorInitializer();
+                    }
+                    if (s == sd->fields[fieldi])
+                        break;
+                }
+            }
+            else if (fieldi >= nfields)
+            {
+                error(loc, "too many initializers for %s", sd->toChars());
+                return new ErrorInitializer();
+            }
+
+            VarDeclaration *vd = sd->fields[fieldi];
+            if ((*elements)[fieldi])
+            {
+                error(loc, "duplicate initializer for field '%s'", vd->toChars());
+                errors = true;
+                continue;
+            }
+            for (size_t j = 0; j < nfields; j++)
+            {
+                VarDeclaration *v2 = sd->fields[j];
+                bool overlap = (vd->offset < v2->offset + v2->type->size() &&
+                                v2->offset < vd->offset + vd->type->size());
+                if (overlap && (*elements)[j])
+                {
+                    error(loc, "overlapping initialization for field %s and %s",
+                        v2->toChars(), vd->toChars());
+                    errors = true;
+                    continue;
+                }
+            }
+
+            assert(sc);
+            Initializer *iz = value[i];
+            iz = iz->semantic(sc, vd->type->addMod(t->mod), needInterpret);
+            Expression *ex = iz->toExpression();
+            if (ex->op == TOKerror)
+            {
+                errors = true;
+                continue;
+            }
+            value[i] = iz;
+            (*elements)[fieldi] = ex;
+            ++fieldi;
+        }
+        if (errors)
+            return new ErrorInitializer();
+
+        StructLiteralExp *sle = new StructLiteralExp(loc, sd, elements, t);
+        Expression *e = sle->fill(false);
         if (e->op == TOKerror)
             return new ErrorInitializer();
+
+        e->type = t;
 
         ExpInitializer *ie = new ExpInitializer(loc, e);
         return ie->semantic(sc, t, needInterpret);
@@ -224,194 +314,6 @@ Expression *StructInitializer::toExpression(Type *t)
 {
     // cannot convert to an expression without target 'ad'
     return NULL;
-}
-
-Expression *StructInitializer::fill(Scope *sc, Type *t, NeedInterpret needInterpret)
-{
-    //printf("StructInitializer::fill(sc = %p, '%s')\n", sc, toChars());
-    assert(t->ty == Tstruct);
-    StructDeclaration *sd = ((TypeStruct *)t)->sym;
-    sd->size(loc);
-    if (sd->sizeok != SIZEOKdone)
-        return new ErrorExp();
-    size_t nfields = sd->fields.dim - sd->isNested();
-
-    Expressions *elements = new Expressions();
-    elements->setDim(nfields);
-    for (size_t i = 0; i < elements->dim; i++)
-        (*elements)[i] = NULL;
-
-    // Run semantic for explicitly given initializers
-    bool errors = false;
-    for (size_t fieldi = 0, i = 0; i < field.dim; i++)
-    {
-        if (Identifier *id = field[i])
-        {
-            Dsymbol *s = sd->search(loc, id, 0);
-            if (!s)
-            {
-                s = sd->search_correct(id);
-                if (s)
-                    error(loc, "'%s' is not a member of '%s', did you mean '%s %s'?",
-                          id->toChars(), sd->toChars(), s->kind(), s->toChars());
-                else
-                    error(loc, "'%s' is not a member of '%s'", id->toChars(), sd->toChars());
-                return new ErrorExp();
-            }
-            s = s->toAlias();
-
-            // Find out which field index it is
-            for (fieldi = 0; 1; fieldi++)
-            {
-                if (fieldi >= nfields)
-                {
-                    error(loc, "%s.%s is not a per-instance initializable field",
-                        sd->toChars(), s->toChars());
-                    return new ErrorExp();
-                }
-                if (s == sd->fields[fieldi])
-                    break;
-            }
-        }
-        else if (fieldi >= nfields)
-        {
-            error(loc, "too many initializers for %s", sd->toChars());
-            return new ErrorExp();
-        }
-
-        VarDeclaration *vd = sd->fields[fieldi];
-        if ((*elements)[fieldi])
-        {
-            error(loc, "duplicate initializer for field '%s'", vd->toChars());
-            errors = true;
-            continue;
-        }
-        for (size_t j = 0; j < nfields; j++)
-        {
-            VarDeclaration *v2 = sd->fields[j];
-            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
-                            v2->offset < vd->offset + vd->type->size());
-            if (overlap && (*elements)[j])
-            {
-                error(loc, "overlapping initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-                errors = true;
-                continue;
-            }
-        }
-
-        assert(sc);
-        Initializer *iz = value[i];
-        iz = iz->semantic(sc, vd->type->addMod(t->mod), needInterpret);
-        Expression *ex = iz->toExpression();
-        if (ex->op == TOKerror)
-        {
-            errors = true;
-            continue;
-        }
-        value[i] = iz;
-        (*elements)[fieldi] = ex;
-        ++fieldi;
-    }
-    if (errors)
-        return new ErrorExp();
-
-    // Fill in missing any elements with default initializers
-    for (size_t i = 0; i < elements->dim; i++)
-    {
-        if ((*elements)[i])
-            continue;
-        VarDeclaration *vd = sd->fields[i];
-        VarDeclaration *vx = vd;
-        if (vd->init && vd->init->isVoidInitializer())
-            vx = NULL;
-        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
-        size_t fieldi = i;
-        for (size_t j = 0; j < nfields; j++)
-        {
-            if (i == j)
-                continue;
-            VarDeclaration *v2 = sd->fields[j];
-            if (v2->init && v2->init->isVoidInitializer())
-                continue;
-
-            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
-                            v2->offset < vd->offset + vd->type->size());
-            if (!overlap)
-                continue;
-
-            if ((*elements)[j])
-            {
-                vx = NULL;
-                break;
-            }
-
-    #if 1
-            /* Prefer first found non-void-initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // Error: overlapping initialization for field a and b
-             */
-            if (!vx)
-                vx = v2, fieldi = j;
-            else if (v2->init)
-            {
-                error(loc, "overlapping initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-    #else   // fix Bugzilla 1432
-            /* Prefer explicitly initialized field
-             * union U { int a; int b = 2; }
-             * U u;    // OK (u.b == 2)
-             */
-            if (!vx || !vx->init && v2->init)
-                vx = v2, fieldi = j;
-            else if (vx->init && v2->init)
-            {
-                error(loc, "overlapping default initialization for field %s and %s",
-                    v2->toChars(), vd->toChars());
-            }
-            else
-                assert(vx->init || !vx->init && !v2->init);
-    #endif
-        }
-        if (vx)
-        {
-            if (vx->init)
-            {
-                assert(!vx->init->isVoidInitializer());
-                if (vx->scope)
-                {
-                    // Do deferred semantic analysis
-                    Initializer *i2 = vx->init->syntaxCopy();
-                    i2 = i2->semantic(vx->scope, vx->type, INITinterpret);
-                    (*elements)[fieldi] = i2->toExpression();
-                    if (!global.gag)
-                    {
-                        vx->scope = NULL;
-                        vx->init = i2;  // save result
-                    }
-                }
-                else
-                    (*elements)[fieldi] = vx->init->toExpression();
-            }
-            else
-                (*elements)[fieldi] = vx->type->defaultInit();
-        }
-    }
-
-    for (size_t i = 0; i < elements->dim; i++)
-    {
-        Expression *e = (*elements)[i];
-        if (e && e->op == TOKerror)
-            return e;
-    }
-
-    Expression *e = new StructLiteralExp(loc, sd, elements, t);
-    if (sc)
-        e = e->semantic(sc);
-    else
-        e->type = sd->type; // from glue layer
-    return e;
 }
 
 void StructInitializer::toCBuffer(OutBuffer *buf, HdrGenState *hgs)

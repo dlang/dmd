@@ -1183,6 +1183,31 @@ void test11256()
 }
 
 /********************************************/
+// 11269
+
+struct Atom
+{
+    union
+    {
+        int i;
+        struct
+        {
+            ulong first, rest;
+        }
+        struct
+        {
+            uint a, b;
+        }
+    }
+}
+
+void test11269()
+{
+    Atom a1;
+    Atom a2 = {i:1, rest:10, b:2};
+}
+
+/********************************************/
 
 int main()
 {
