@@ -2761,6 +2761,7 @@ elem *AssignExp::toElem(IRState *irs)
          */
         if (are->lwr == NULL && ta->ty == Tsarray &&
             e2->op == TOKarrayliteral &&
+            op == TOKconstruct &&   // Bugzilla 11238: avoid aliasing issue
             t2->nextOf()->mutableOf()->implicitConvTo(ta->nextOf()))
         {
             ArrayLiteralExp *ae = (ArrayLiteralExp *)e2;
