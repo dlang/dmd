@@ -97,7 +97,35 @@ static unsigned short parseIdx(unsigned char **pp)
     return idx;
 }
 
+static unsigned parseLength(unsigned char **pp)
+{
+    unsigned char *p = *pp;
+    unsigned len;
+    switch (*p)
+    {
+    default:   // 1-byte
+        len = p[0];
+        p += 1;
+        break;
 
+    case 0x81: // 2-bytes
+        len = p[1] | p[2] << 8;
+        p += 3;
+        break;
+
+    case 0x82: // 3-bytes
+        len = p[1] | p[2] << 8 | p[3] << 16;
+        p += 4;
+        break;
+
+    case 0x84: // 4-bytes
+        len = p[1] | p[2] << 8 | p[3] << 16 | p[4] << 24;
+        p += 5;
+        break;
+    }
+    *pp = p;
+    return len;
+}
 
 /*****************************************
  * Reads an object module from base[0..buflen] and passes the names
@@ -158,6 +186,17 @@ void scanOmfObjModule(void* pctx, void (*pAddSymbol)(void* pctx, char* name, int
                     parseName(&p, name);
                     p += (recTyp == PUBDEF) ? 2 : 4;    // skip offset
                     parseIdx(&p);                               // skip type index
+                    (*pAddSymbol)(pctx, name, 0);
+                }
+                break;
+
+            case COMDEF:
+                while (p + 1 < pnext)
+                {
+                    parseName(&p, name);
+                    parseIdx(&p);       // skip type index
+                    p++;                // data type
+                    parseLength(&p);    // communal length
                     (*pAddSymbol)(pctx, name, 0);
                 }
                 break;
