@@ -978,7 +978,15 @@ void StructDeclaration::toObjFile(int multiobj)
             sinit->Sfl = FLdata;
             toDt(&sinit->Sdt);
             dt_optimize(sinit->Sdt);
-            if (dtallzeros(sinit->Sdt))
+
+            /* The following does not work for 32 bit Windows because COMDEFs are not
+             * put in a library's symbol table.
+             */
+            if (
+#if TARGET_WINDOS
+                global.params.is64bit == 1 &&
+#endif
+                dtallzeros(sinit->Sdt))
             {
                 /* Since this is immutable data, a further optimization would be
                  * to overlap all these 0 sinit's.
