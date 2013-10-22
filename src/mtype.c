@@ -9543,7 +9543,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 stc &= ~STCshared;
 
             StorageClassDeclaration::stcToCBuffer(buf,
-                stc & (STCconst | STCimmutable | STCshared | STCscope));
+                stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
 
             argbuf.reset();
             if (arg->storageClass & STCalias)

@@ -499,6 +499,7 @@ const char *StorageClassDeclaration::stcToChars(char tmp[], StorageClass& stc)
         { STCimmutable,    TOKimmutable },
         { STCshared,       TOKshared },
         { STCnothrow,      TOKnothrow },
+        { STCwild,         TOKwild },
         { STCpure,         TOKpure },
         { STCref,          TOKref },
         { STCtls },

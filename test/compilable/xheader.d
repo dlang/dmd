@@ -43,3 +43,13 @@ class C4(T)
 
 
 auto flit = 3 / 2.0;
+
+// 11217
+void foo11217()(    const int[] arr) {}
+void foo11217()(immutable int[] arr) {}
+void foo11217()(      ref int[] arr) {}
+void foo11217()(     lazy int[] arr) {}
+void foo11217()( auto ref int[] arr) {}
+void foo11217()(    scope int[] arr) {}
+void foo11217()(       in int[] arr) {}
+void foo11217()(    inout int[] arr) {}

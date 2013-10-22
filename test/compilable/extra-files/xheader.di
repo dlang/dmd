@@ -39,3 +39,59 @@ template C4(T)
 	}
 }
 auto flit = 3 / 2.00000;
+template foo11217()
+{
+	void foo11217(const int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(immutable int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(ref int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(lazy int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(auto ref int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(scope int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(in int[] arr)
+	{
+	}
+
+}
+template foo11217()
+{
+	void foo11217(inout int[] arr)
+	{
+	}
+
+}
