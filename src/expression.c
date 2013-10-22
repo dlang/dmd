@@ -13956,7 +13956,8 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
         Identifier *id = Lexer::uniqueId("__dop");
         ExpInitializer *ei = new ExpInitializer(ue->loc, ue->e1);
         VarDeclaration *v = new VarDeclaration(ue->loc, ue->e1->type, id, ei);
-        v->storage_class |= STCctfe | STCforeach | STCref;
+        v->storage_class |= STCctfe
+                            | (ue->e1->isLvalue() ? (STCforeach | STCref) : 0);
         e0 = new DeclarationExp(ue->loc, v);
         e0 = e0->semantic(sc);
         ue->e1 = new VarExp(ue->loc, v);
