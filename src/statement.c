@@ -1012,6 +1012,12 @@ Statement *ScopeStatement::syntaxCopy()
     return s;
 }
 
+ReturnStatement *ScopeStatement::isReturnStatement()
+{
+    if (statement)
+        return statement->isReturnStatement();
+    return NULL;
+}
 
 Statement *ScopeStatement::semantic(Scope *sc)
 {   ScopeDsymbol *sym;
