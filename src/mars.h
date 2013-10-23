@@ -1,6 +1,6 @@
 
 // Compiler implementation of the D programming language
-// Copyright (c) 1999-2012 by Digital Mars
+// Copyright (c) 1999-2013 by Digital Mars
 // All Rights Reserved
 // written by Walter Bright
 // http://www.digitalmars.com
@@ -178,6 +178,7 @@ struct Param
     char enforcePropertySyntax;
     char betterC;       // be a "better C" compiler; no dependency on D runtime
     bool addMain;       // add a default main() function
+    bool allInst;       // generate code for all template instantiations
 
     char *argv0;        // program name
     Strings *imppath;     // array of char*'s of where to look for import modules
