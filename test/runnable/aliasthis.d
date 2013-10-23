@@ -655,6 +655,50 @@ void test6508()
     assert(y == 20);
 }
 
+void test6508x()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct Tuple(T...)
+    {
+        T field;
+        alias field this;
+
+        this(int)  { ++ctor;   printf("ctor\n");   }
+        this(this) { ++cpctor; printf("cpctor\n"); }
+        ~this()    { ++dtor;   printf("dtor\n");   }
+    }
+
+    {
+        alias Tup = Tuple!(int, string);
+        auto tup = Tup(1);
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        auto getVal() { return tup; }
+        ref getRef(ref Tup s = tup) { return s; }
+
+        {
+            auto n1 = tup[0];
+            assert(ctor==1 && cpctor==0 && dtor==0);
+
+            auto n2 = getRef()[0];
+            assert(ctor==1 && cpctor==0 && dtor==0);
+
+            auto n3 = getVal()[0];
+            assert(ctor==1 && cpctor==1 && dtor==1);
+        }
+
+        // bug in DotVarExp::semantic
+        {
+            typeof(tup.field) vars;
+            vars = getVal();
+            assert(ctor==1 && cpctor==2 && dtor==2);
+        }
+    }
+    assert(ctor==1 && cpctor==2 && dtor==3);
+    assert(ctor + cpctor == dtor);
+}
+
 /***********************************/
 // 6369
 
@@ -1487,6 +1531,7 @@ int main()
     test2777b();
     test5679();
     test6508();
+    test6508x();
     test6369a();
     test6369b();
     test6369c();
