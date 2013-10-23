@@ -6045,7 +6045,7 @@ unsigned codout(code *c)
                                 unsigned reg = rm & modregrm(0,7,0);
                                 if (ins & T ||
                                     ((op == 0xF6 || op == 0xF7) && (reg == modregrm(0,0,0) || reg == modregrm(0,1,0))))
-                                {   if (ins & E)
+                                {   if (ins & E || op == 0xF6)
                                         val = -5;
                                     else if (c->Iflags & CFopsize)
                                         val = -6;
