@@ -7919,7 +7919,9 @@ Expression *DotVarExp::semantic(Scope *sc)
                 Identifier *id = Lexer::uniqueId("__tup");
                 ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
                 VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
-                v->storage_class |= STCctfe | STCref | STCforeach;
+                v->storage_class |= STCctfe;
+                if (e1->isLvalue())
+                    v->storage_class |= STCref | STCforeach;
                 e0 = new DeclarationExp(e1->loc, v);
                 ev = new VarExp(e1->loc, v);
                 e0 = e0->semantic(sc);
@@ -11465,7 +11467,9 @@ Ltupleassign:
             Identifier *id = Lexer::uniqueId("__tup");
             ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
             VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
-            v->storage_class = STCctfe | STCref | STCforeach;
+            v->storage_class = STCctfe;
+            if (e2->isLvalue())
+                v->storage_class = STCref | STCforeach;
             Expression *e0 = new DeclarationExp(e2->loc, v);
             Expression *ev = new VarExp(e2->loc, v);
             ev->type = e2->type;
@@ -11560,6 +11564,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
                         Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
                     v->storage_class |= STCctfe;
+                    if (ek->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ek = new VarExp(loc, v);
@@ -11569,6 +11575,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, e2->type,
                         Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
                     v->storage_class |= STCctfe;
+                    if (ev->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ev = new VarExp(loc, v);
@@ -14079,7 +14087,6 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
-        vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(ie->e1->loc, vd);
 
         ec = de;
@@ -14089,7 +14096,8 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aakey");
         VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
-        vd->storage_class |= STCref | STCforeach;
+        if (ie->e2->isLvalue())
+            vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(ie->e2->loc, vd);
 
         ec = ec ? new CommaExp(loc, ec, de) : de;
