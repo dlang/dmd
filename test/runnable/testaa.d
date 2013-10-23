@@ -988,6 +988,51 @@ void test6178()
     test6178e();
 }
 
+void test6178x()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct S
+    {
+        this(int)  { ++ctor;   printf("ctor\n");   }
+        this(this) { ++cpctor; printf("cpctor\n"); }
+        ~this()    { ++dtor;   printf("dtor\n");   }
+    }
+    static struct X
+    {
+        this(int) {}
+        void opAssign(int) {}
+    }
+
+    X[S] aa1;
+    S[int] aa2;
+
+    {
+        auto value = S(1);
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        ref getRef(ref S s = value) { return s; }
+        auto getVal() { return value; }
+
+        aa1[value] = 10;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa1[getRef()] = 20;
+        assert(ctor==1 && cpctor==0 && dtor==0);
+
+        aa1[getVal()] = 20;
+        assert(ctor==1 && cpctor==1 && dtor==1);
+
+        aa2[1] = value;
+        assert(ctor==1 && cpctor==2 && dtor==1);
+
+        aa2[2] = getRef();
+        assert(ctor==1 && cpctor==3 && dtor==1);
+    }
+    assert(ctor==1 && cpctor==3 && dtor==2);
+    assert(ctor + cpctor - aa2.length == dtor);
+}
+
 /************************************************/
 // 10595
 
@@ -1188,6 +1233,7 @@ int main()
     test4826c();
     test5131();
     test6178();
+    test6178x();
     test10595();
     test10970();
     test6433();

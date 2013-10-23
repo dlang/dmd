@@ -11560,6 +11560,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
                         Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
                     v->storage_class |= STCctfe;
+                    if (ek->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ek = new VarExp(loc, v);
@@ -11569,6 +11571,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, e2->type,
                         Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
                     v->storage_class |= STCctfe;
+                    if (ev->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ev = new VarExp(loc, v);
