@@ -381,28 +381,13 @@ extern (C) bool runModuleUnitTests()
         }
     }
 
-    static struct Console
-    {
-        Console opCall( in char[] val )
-        {
-            version( Windows )
-            {
-                DWORD count = void;
-                assert(val.length <= uint.max, "val must be less than or equal to uint.max");
-                WriteFile( GetStdHandle( 0xfffffff5 ), val.ptr, cast(uint)val.length, &count, null );
-            }
-            else version( Posix )
-            {
-                write( 2, val.ptr, val.length );
-            }
-            return this;
-        }
-    }
-
-    static __gshared Console console;
-
     if( Runtime.sm_moduleUnitTester is null )
     {
+        void printErr(const(char)[] buf)
+        {
+            .fprintf(.stderr, "%.s", cast(int)buf.length, buf.ptr);
+        }
+
         size_t failed = 0;
         foreach( m; ModuleInfo )
         {
@@ -418,7 +403,7 @@ extern (C) bool runModuleUnitTests()
                     }
                     catch( Throwable e )
                     {
-                        console( e.toString() )( "\n" );
+                        e.toString(&printErr); printErr("\n");
                         failed++;
                     }
                 }

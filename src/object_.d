@@ -27,7 +27,6 @@ private
     import core.memory;
     import rt.util.hash;
     import rt.util.string;
-    import rt.util.console;
     import rt.minfo;
     debug(PRINTF) import core.stdc.stdio;
 
@@ -1343,37 +1342,54 @@ class Throwable : Object
         //this.info = _d_traceContext();
     }
 
+    /**
+     * Overrides $(D Object.toString) and returns the error message.
+     * Internally this forwards to the $(D toString) overload that
+     * takes a $(PARAM sink) delegate.
+     */
     override string toString()
     {
-        char[20] tmp = void;
-        char[]   buf;
+        string s;
+        toString((buf) { s ~= buf; });
+        return s;
+    }
 
+    /**
+     * The Throwable hierarchy uses a toString overload that takes a
+     * $(PARAM sink) delegate to avoid GC allocations, which cannot be
+     * performed in certain error situations.  Override this $(D
+     * toString) method to customize the error message.
+     */
+    void toString(scope void delegate(const(char)[]) sink) const
+    {
+        char[20] tmp = void;
+
+        sink(this.classinfo.name);
         if (file)
         {
-           buf ~= this.classinfo.name ~ "@" ~ file ~ "(" ~ tmp.uintToString(line) ~ ")";
+            sink("@"); sink(file);
+            sink("("); sink(tmp.uintToString(line)); sink(")");
         }
-        else
-        {
-            buf ~= this.classinfo.name;
-        }
+
         if (msg)
         {
-            buf ~= ": " ~ msg;
+            sink(": "), sink(msg);
         }
         if (info)
         {
             try
             {
-                buf ~= "\n----------------";
+                sink("\n----------------");
                 foreach (t; info)
-                    buf ~= "\n" ~ t;
+                {
+                    sink("\n"); sink(t);
+                }
             }
             catch (Throwable)
             {
                 // ignore more errors
             }
         }
-        return cast(string) buf;
     }
 }
 
