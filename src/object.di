@@ -316,6 +316,7 @@ class Throwable : Object
     @safe pure nothrow this(string msg, Throwable next = null);
     @safe pure nothrow this(string msg, string file, size_t line, Throwable next = null);
     override string toString();
+    void toString(scope void delegate(const(char)[]) sink) const;
 }
 
 
