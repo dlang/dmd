@@ -11555,6 +11555,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, ie->e1->type,
                         Lexer::uniqueId("__aatmp"), new ExpInitializer(loc, ie->e1));
                     v->storage_class |= STCctfe;
+                    if (ea->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ea = new VarExp(loc, v);
@@ -14088,7 +14090,8 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
         Expression *de = new DeclarationExp(ie->e1->loc, vd);
-
+        if (ie->e1->isLvalue())
+            vd->storage_class |= STCref | STCforeach;
         ec = de;
         ie->e1 = new VarExp(ie->e1->loc, vd);
     }

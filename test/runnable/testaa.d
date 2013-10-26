@@ -1195,6 +1195,22 @@ void test6799()
 }
 
 /************************************************/
+// 11359
+
+void test11359()
+{
+    class Bar {}
+    static Bar[string] aa;
+    static ref fun() { return aa; }
+
+    string key = "test";
+
+    fun[key] = new Bar;
+    assert(aa.length == 1);
+    Bar bar = fun[key];
+}
+
+/************************************************/
 
 int main()
 {
@@ -1241,6 +1257,7 @@ int main()
     test7365();
     test5520();
     test6799();
+    test11359();
 
     printf("Success\n");
     return 0;
