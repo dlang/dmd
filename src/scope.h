@@ -91,6 +91,8 @@ struct Scope
     bool speculative;            // in __traits(compiles) or typeof(exp)
 
     unsigned callSuper;         // primitive flow analysis for constructors
+    unsigned *fieldinit;
+    unsigned fieldinit_dim;
 
     structalign_t structalign;       // alignment for struct members
     LINK linkage;          // linkage for external functions
@@ -124,6 +126,9 @@ struct Scope
     Scope *endCTFE();
 
     void mergeCallSuper(Loc loc, unsigned cs);
+
+    unsigned *saveFieldInit();
+    void mergeFieldInit(Loc loc, unsigned *cses);
 
     Dsymbol *search(Loc loc, Identifier *ident, Dsymbol **pscopesym);
     Dsymbol *search_correct(Identifier *ident);

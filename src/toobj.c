@@ -977,8 +977,25 @@ void StructDeclaration::toObjFile(int multiobj)
 
             sinit->Sfl = FLdata;
             toDt(&sinit->Sdt);
+            dt_optimize(sinit->Sdt);
 
-            out_readonly(sinit);
+            /* The following does not work for 32 bit Windows because COMDEFs are not
+             * put in a library's symbol table.
+             */
+            if (
+#if TARGET_WINDOS
+                global.params.is64bit == 1 &&
+#endif
+                dtallzeros(sinit->Sdt))
+            {
+                /* Since this is immutable data, a further optimization would be
+                 * to overlap all these 0 sinit's.
+                 */
+                sinit->Sclass = SCglobal;
+                dt2common(&sinit->Sdt); // put in BSS segment
+            }
+            else
+                out_readonly(sinit);    // put in read-only segment
             outdata(sinit);
         }
 

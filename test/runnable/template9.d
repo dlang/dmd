@@ -2805,6 +2805,20 @@ void test10592()
 }
 
 /******************************************/
+// 11242
+
+inout(T[]) fromString11242(T)(inout(char[]) s, T[] dst)
+{
+    return s;
+}
+
+void test11242()
+{
+    char[] a;
+    fromString11242(a, a);
+}
+
+/******************************************/
 // 10811
 
 void foo10811a(R1, R2)(R1, R2) {}
@@ -2835,6 +2849,21 @@ void test10969()
 {
     foo10969!(int, float)(3);
     bar10969!(int, float)(3);
+}
+
+/******************************************/
+// 11271
+
+struct SmartPtr11271(T)
+{
+    ~this() {}
+    void opAssign(U)(auto ref U rh) {}
+}
+
+void test11271()
+{
+    SmartPtr11271!Object a;
+    a = SmartPtr11271!Object();
 }
 
 /******************************************/
@@ -2925,8 +2954,10 @@ int main()
     test9977();
     test10083();
     test10592();
+    test11242();
     test10811();
     test10969();
+    test11271();
 
     printf("Success\n");
     return 0;

@@ -290,6 +290,7 @@ public:
     Statement *syntaxCopy();
     void toCBuffer(OutBuffer *buf, HdrGenState *hgs);
     ScopeStatement *isScopeStatement() { return this; }
+    ReturnStatement *isReturnStatement();
     Statement *semantic(Scope *sc);
     bool hasBreak();
     bool hasContinue();

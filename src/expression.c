@@ -403,7 +403,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = NULL;
         goto Lfd;
     }
-    else if (e1->op == TOKdotvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1->op == TOKdotvar && e1->type && e1->type->toBasetype()->ty == Tfunction)
     {
         DotVarExp *dve = (DotVarExp *)e1;
         s      = dve->var->isFuncDeclaration();
@@ -411,7 +411,7 @@ Expression *resolvePropertiesX(Scope *sc, Expression *e1, Expression *e2 = NULL)
         tthis  = dve->e1->type;
         goto Lfd;
     }
-    else if (e1->op == TOKvar && e1->type->toBasetype()->ty == Tfunction)
+    else if (e1->op == TOKvar && e1->type && e1->type->toBasetype()->ty == Tfunction)
     {
         s      = ((VarExp *)e1)->var->isFuncDeclaration();
         tiargs = NULL;
@@ -1018,25 +1018,27 @@ void expandTuples(Expressions *exps)
 
 TupleDeclaration *isAliasThisTuple(Expression *e)
 {
-    if (e->type)
+    if (!e->type)
+        return NULL;
+
+    Type *t = e->type->toBasetype();
+Lagain:
+    if (Dsymbol *s = t->toDsymbol(NULL))
     {
-        Type *t = e->type->toBasetype();
-        AggregateDeclaration *ad;
-        if (t->ty == Tstruct)
+        AggregateDeclaration *ad = s->isAggregateDeclaration();
+        if (ad)
         {
-            ad = ((TypeStruct *)t)->sym;
-            goto L1;
-        }
-        else if (t->ty == Tclass)
-        {
-            ad = ((TypeClass *)t)->sym;
-          L1:
-            Dsymbol *s = ad->aliasthis;
+            s = ad->aliasthis;
             if (s && s->isVarDeclaration())
             {
                 TupleDeclaration *td = s->isVarDeclaration()->toAlias()->isTupleDeclaration();
                 if (td && td->isexp)
                     return td;
+            }
+            if (Type *att = t->aliasthisOf())
+            {
+                t = att;
+                goto Lagain;
             }
         }
     }
@@ -4587,7 +4589,6 @@ StructLiteralExp::StructLiteralExp(Loc loc, StructDeclaration *sd, Expressions *
     this->soffset = 0;
     this->fillHoles = 1;
     this->ownedByCtfe = false;
-    this->ctorinit = 0;
     this->origin = this;
     this->stageflags = 0;
     this->inlinecopy = NULL;
@@ -4694,52 +4695,17 @@ Expression *StructLiteralExp::semantic(Scope *sc)
 
     /* Fill out remainder of elements[] with default initializers for fields[]
      */
-    for (size_t i = elements->dim; i < nfields; i++)
+    Expression *e = fill(false);
+    if (e->op == TOKerror)
     {
-        Expression *e;
-        VarDeclaration *v = sd->fields[i];
-        assert(!v->isThisDeclaration());
-
-        if (v->offset < offset)
-        {
-            e = NULL;
-            sd->hasUnions = 1;
-        }
-        else
-        {
-            if (v->init)
-            {
-                if (v->init->isVoidInitializer())
-                    e = NULL;
-                else
-                    e = v->getConstInitializer(false);
-            }
-            else
-            {
-                if (v->storage_class & STCnodefaultctor)
-                {
-                    error("field %s.%s must be initialized because it has no default constructor",
-                            sd->type->toChars(), v->toChars());
-                }
-                if (v->type->needsNested() && ctorinit)
-                    e = v->type->defaultInit(loc);
-                else
-                    e = v->type->defaultInitLiteral(loc);
-            }
-            offset = v->offset + v->type->size();
-        }
-        if (e && e->op == TOKerror)
-        {
-            /* An error in the initializer needs to be recorded as an error
-             * in the enclosing function or template, since the initializer
-             * will be part of the stuct declaration.
-             */
-            global.increaseErrorCount();
-            return e;
-        }
-        elements->push(e);
+        /* An error in the initializer needs to be recorded as an error
+         * in the enclosing function or template, since the initializer
+         * will be part of the stuct declaration.
+         */
+        global.increaseErrorCount();
+        return e;
     }
-
+    assert(e == this);
     type = stype ? stype : sd->type;
 
     /* If struct requires a destructor, rewrite as:
@@ -4757,6 +4723,115 @@ Expression *StructLiteralExp::semantic(Scope *sc)
         return e;
     }
 
+    return this;
+}
+
+Expression *StructLiteralExp::fill(bool ctorinit)
+{
+    assert(sd && sd->sizeok == SIZEOKdone);
+    size_t nfields = sd->fields.dim - sd->isNested();
+
+    size_t dim = elements->dim;
+    elements->setDim(nfields);
+    for (size_t i = dim; i < nfields; i++)
+        (*elements)[i] = NULL;
+
+    // Fill in missing any elements with default initializers
+    for (size_t i = 0; i < nfields; i++)
+    {
+        if ((*elements)[i])
+            continue;
+        VarDeclaration *vd = sd->fields[i];
+        VarDeclaration *vx = vd;
+        if (vd->init && vd->init->isVoidInitializer())
+            vx = NULL;
+        // Find overlapped fields with the hole [vd->offset .. vd->offset->size()].
+        size_t fieldi = i;
+        for (size_t j = 0; j < nfields; j++)
+        {
+            if (i == j)
+                continue;
+            VarDeclaration *v2 = sd->fields[j];
+            if (v2->init && v2->init->isVoidInitializer())
+                continue;
+
+            bool overlap = (vd->offset < v2->offset + v2->type->size() &&
+                            v2->offset < vd->offset + vd->type->size());
+            if (!overlap)
+                continue;
+
+            sd->hasUnions = 1;  // note that directly unrelated...
+
+            if ((*elements)[j])
+            {
+                vx = NULL;
+                break;
+            }
+
+#if 1
+            /* Prefer first found non-void-initialized field
+             * union U { int a; int b = 2; }
+             * U u;    // Error: overlapping initialization for field a and b
+             */
+            if (!vx)
+                vx = v2, fieldi = j;
+            else if (v2->init)
+            {
+                error("overlapping initialization for field %s and %s",
+                    v2->toChars(), vd->toChars());
+            }
+#else   // fix Bugzilla 1432
+            /* Prefer explicitly initialized field
+             * union U { int a; int b = 2; }
+             * U u;    // OK (u.b == 2)
+             */
+            if (!vx || !vx->init && v2->init)
+                vx = v2, fieldi = j;
+            else if (vx != vd &&
+                !(vx->offset < v2->offset + v2->type->size() &&
+                  v2->offset < vx->offset + vx->type->size()))
+            {
+                // Both vx and v2 fills vd, but vx and v2 does not overlap
+            }
+            else if (vx->init && v2->init)
+            {
+                error("overlapping default initialization for field %s and %s",
+                    v2->toChars(), vd->toChars());
+            }
+            else
+                assert(vx->init || !vx->init && !v2->init);
+#endif
+        }
+        if (vx)
+        {
+            Expression *e;
+            if (vx->init)
+            {
+                assert(!vx->init->isVoidInitializer());
+                e = vx->getConstInitializer(false);
+            }
+            else
+            {
+                if ((vx->storage_class & STCnodefaultctor) && !ctorinit)
+                {
+                    error("field %s.%s must be initialized because it has no default constructor",
+                            sd->type->toChars(), vx->toChars());
+                }
+                if (vx->type->needsNested() && ctorinit)
+                    e = vx->type->defaultInit(loc);
+                else
+                    e = vx->type->defaultInitLiteral(loc);
+            }
+            (*elements)[fieldi] = e;
+        }
+    }
+
+    for (size_t i = 0; i < elements->dim; i++)
+    {
+        Expression *e = (*elements)[i];
+        if (e && e->op == TOKerror)
+            return e;
+    }
     return this;
 }
 
@@ -7844,7 +7919,9 @@ Expression *DotVarExp::semantic(Scope *sc)
                 Identifier *id = Lexer::uniqueId("__tup");
                 ExpInitializer *ei = new ExpInitializer(e1->loc, e1);
                 VarDeclaration *v = new VarDeclaration(e1->loc, NULL, id, ei);
-                v->storage_class |= STCctfe | STCref | STCforeach;
+                v->storage_class |= STCctfe;
+                if (e1->isLvalue())
+                    v->storage_class |= STCref | STCforeach;
                 e0 = new DeclarationExp(e1->loc, v);
                 ev = new VarExp(e1->loc, v);
                 e0 = e0->semantic(sc);
@@ -7990,7 +8067,41 @@ int modifyFieldVar(Loc loc, Scope *sc, VarDeclaration *var, Expression *e1)
         {
             var->ctorinit = 1;
             //printf("setting ctorinit\n");
-            return TRUE;
+            int result = TRUE;
+            if (var->isField() && sc->fieldinit && !sc->intypeof)
+            {
+                assert(e1);
+                bool mustInit = (var->storage_class & STCnodefaultctor ||
+                                 var->type->needsNested());
+
+                size_t dim = sc->fieldinit_dim;
+                AggregateDeclaration *ad = fd->isAggregateMember2();
+                assert(ad);
+                size_t i;
+                for (i = 0; i < dim; i++)   // same as findFieldIndexByName in ctfeexp.c ?
+                {
+                    if (ad->fields[i] == var)
+                        break;
+                }
+                assert(i < dim);
+                unsigned fi = sc->fieldinit[i];
+                if (fi & CSXthis_ctor)
+                {
+                    if (var->type->isMutable() && e1->type->isMutable())
+                        result = FALSE;
+                    else
+                        ::error(loc, "multiple field %s initialization", var->toChars());
+                }
+                else if (sc->noctor || fi & CSXlabel)
+                {
+                    if (!mustInit && var->type->isMutable() && e1->type->isMutable())
+                        result = FALSE;
+                    else
+                        ::error(loc, "field %s initializing not allowed in loops or after labels", var->toChars());
+                }
+                sc->fieldinit[i] |= CSXthis_ctor;
+            }
+            return result;
         }
         else
         {
@@ -8649,8 +8760,8 @@ Lagain:
 
     // Check for call operator overload
     if (t1)
-    {   AggregateDeclaration *ad;
-
+    {
+        AggregateDeclaration *ad;
         if (t1->ty == Tstruct)
         {
             ad = ((TypeStruct *)t1)->sym;
@@ -8679,29 +8790,29 @@ Lagain:
                 ExpInitializer *ei = NULL;
                 if (t1->needsNested())
                 {
-                    Expressions *args = new Expressions();
-                    StructLiteralExp *se = new StructLiteralExp(loc, (StructDeclaration *)ad, args);
-                    se->ctorinit = 1;
-                    ei = new ExpInitializer(loc, se);
+                    StructLiteralExp *sle = new StructLiteralExp(loc, (StructDeclaration *)ad, NULL, e1->type);
+                    Expression *e = sle->fill(true);
+                    if (e->op == TOKerror)
+                        return e;
+                    sle->type = type;
+                    ei = new ExpInitializer(loc, sle);
                 }
-
                 VarDeclaration *tmp = new VarDeclaration(loc, t1, idtmp, ei);
                 tmp->storage_class |= STCctfe;
-                Expression *av = new DeclarationExp(loc, tmp);
-                av = new CommaExp(loc, av, new VarExp(loc, tmp));
 
-                Expression *e;
+                Expression *e = new DeclarationExp(loc, tmp);
+                e = new CommaExp(loc, e, new VarExp(loc, tmp));
                 if (CtorDeclaration *cf = ad->ctor->isCtorDeclaration())
                 {
-                    e = new DotVarExp(loc, av, cf, 1);
+                    e = new DotVarExp(loc, e, cf, 1);
                 }
                 else if (TemplateDeclaration *td = ad->ctor->isTemplateDeclaration())
                 {
-                    e = new DotTemplateExp(loc, av, td);
+                    e = new DotTemplateExp(loc, e, td);
                 }
                 else if (OverloadSet *os = ad->ctor->isOverloadSet())
                 {
-                    e = new DotExp(loc, av, new OverExp(loc, os));
+                    e = new DotExp(loc, e, new OverExp(loc, os));
                 }
                 else
                     assert(0);
@@ -11356,7 +11467,9 @@ Ltupleassign:
             Identifier *id = Lexer::uniqueId("__tup");
             ExpInitializer *ei = new ExpInitializer(e2->loc, e2);
             VarDeclaration *v = new VarDeclaration(e2->loc, NULL, id, ei);
-            v->storage_class = STCctfe | STCref | STCforeach;
+            v->storage_class = STCctfe;
+            if (e2->isLvalue())
+                v->storage_class = STCref | STCforeach;
             Expression *e0 = new DeclarationExp(e2->loc, v);
             Expression *ev = new VarExp(e2->loc, v);
             ev->type = e2->type;
@@ -11390,6 +11503,12 @@ Ltupleassign:
         Lnomatch:
             ;
         }
+    }
+
+    if (op == TOKassign && e1->checkModifiable(sc) == 2)
+    {
+        //printf("[%s] change to init - %s\n", loc.toChars(), toChars());
+        op = TOKconstruct;
     }
 
     // Determine if this is an initialization of a reference
@@ -11445,6 +11564,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, ie->e2->type,
                         Lexer::uniqueId("__aakey"), new ExpInitializer(loc, ie->e2));
                     v->storage_class |= STCctfe;
+                    if (ek->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ek = new VarExp(loc, v);
@@ -11454,6 +11575,8 @@ Ltupleassign:
                     VarDeclaration *v = new VarDeclaration(loc, e2->type,
                         Lexer::uniqueId("__aaval"), new ExpInitializer(loc, e2));
                     v->storage_class |= STCctfe;
+                    if (ev->isLvalue())
+                        v->storage_class |= STCforeach | STCref;
                     v->semantic(sc);
                     e0 = combine(e0, new DeclarationExp(loc, v));
                     ev = new VarExp(loc, v);
@@ -11514,51 +11637,120 @@ Ltupleassign:
                  * assignments to fields. An assignment to a field counts even
                  * if done through an opAssign overload.
                  */
-                e1->checkModifiable(sc);
                 return e;
             }
         }
         else if (op == TOKconstruct && !refinit)
         {
             Type *t2 = e2->type->toBasetype();
-            if (t2->ty == Tstruct &&
-                sd == ((TypeStruct *)t2)->sym &&
-                sd->cpctor)
+            if (t2->ty == Tstruct && sd == ((TypeStruct *)t2)->sym)
             {
-                /* We have a copy constructor for this
-                 */
-                if (e2->op == TOKquestion)
+                if (sd->ctor &&            // there are constructors
+                    e2->op == TOKcall &&
+                    e2->type->implicitConvTo(t1))
                 {
-                    /* Write as:
-                     *  a ? e1 = b : e1 = c;
+                    /* Look for form of constructor call which is:
+                     *    *__ctmp.ctor(arguments...)
                      */
-                    CondExp *econd = (CondExp *)e2;
-                    AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
-                    ea1->op = op;
-                    AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
-                    ea2->op = op;
-                    Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
-                    return e->semantic(sc);
-                }
+                    CallExp *ce = (CallExp *)e2;
+                    if (ce->e1->op == TOKdotvar)
+                    {
+                        DotVarExp *dve = (DotVarExp *)ce->e1;
+                        if (dve->var->isCtorDeclaration())
+                        {
+                            /* It's a constructor call, currently constructing
+                             * a temporary __ctmp.
+                             */
+                            /* Before calling the constructor, initialize
+                             * variable with a bit copy of the default
+                             * initializer
+                             */
 
-                if (e2->isLvalue())
-                {
-                    /* Write as:
-                     *  e1.cpctor(e2);
-                     */
-                    if (!e2->type->implicitConvTo(e1->type))
-                        error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+                            if (sd->zeroInit == 1)
+                            {
+                                e2 = new IntegerExp(loc, 0, Type::tint32);
+                            }
+                            else if (sd->isNested())
+                            {
+                                e2 = t1->defaultInitLiteral(loc);
+                                this->op = TOKblit;
+                            }
+                            else
+                            {
+                                e2 = t1->defaultInit(loc);
+                                this->op = TOKblit;
+                            }
+                            type = e1->type;
 
-                    Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
-                    e = new CallExp(loc, e, e2);
-                    return e->semantic(sc);
+                            /* Replace __ctmp being constructed with e1.
+                             * We need to copy constructor call expression,
+                             * because it may be used in other place.
+                             */
+                            DotVarExp *dvx = (DotVarExp *)dve->copy();
+                            dvx->e1 = e1;
+                            CallExp *cx = (CallExp *)ce->copy();
+                            cx->e1 = dvx;
+
+                            Expression *e = new CommaExp(loc, this, cx);
+                            e = e->semantic(sc);
+                            return e;
+                        }
+                    }
                 }
-                else
+                if (sd->cpctor)
                 {
-                    /* The struct value returned from the function is transferred
-                     * so should not call the destructor on it.
+                    /* We have a copy constructor for this
                      */
-                    e2 = valueNoDtor(e2);
+                    if (e2->op == TOKquestion)
+                    {
+                        /* Write as:
+                         *  a ? e1 = b : e1 = c;
+                         */
+                        CondExp *econd = (CondExp *)e2;
+                        AssignExp *ea1 = new AssignExp(econd->e1->loc, e1, econd->e1);
+                        ea1->op = op;
+                        AssignExp *ea2 = new AssignExp(econd->e1->loc, e1, econd->e2);
+                        ea2->op = op;
+                        Expression *e = new CondExp(loc, econd->econd, ea1, ea2);
+                        return e->semantic(sc);
+                    }
+
+                    if (e2->isLvalue())
+                    {
+                        /* Write as:
+                         *  e1.cpctor(e2);
+                         */
+                        if (!e2->type->implicitConvTo(e1->type))
+                            error("conversion error from %s to %s", e2->type->toChars(), e1->type->toChars());
+
+                        Expression *e = new DotVarExp(loc, e1, sd->cpctor, 0);
+                        e = new CallExp(loc, e, e2);
+                        return e->semantic(sc);
+                    }
+                    else
+                    {
+                        /* The struct value returned from the function is transferred
+                         * so should not call the destructor on it.
+                         */
+                        e2 = valueNoDtor(e2);
+                    }
+                }
+            }
+            else
+            {
+                if (!e2->implicitConvTo(t1))
+                {
+                    // Look for implicit constructor call
+                    if (sd->ctor)
+                    {
+                        // Look for constructor first
+                        // Rewrite as e1.ctor(arguments)
+                        Expression *e;
+                        e = new DotIdExp(loc, e1, Id::ctor);
+                        e = new CallExp(loc, e, e2);
+                        e = e->semantic(sc);
+                        return e;
+                    }
                 }
             }
         }
@@ -11596,8 +11788,9 @@ Ltupleassign:
                 e2 = new SliceExp(e2->loc, e2, NULL, NULL);
                 e2 = e2->semantic(sc);
             }
-            else if (global.params.warnings && !global.gag && op == TOKassign &&
-                     e2->op != TOKarrayliteral && e2->op != TOKstring)
+            else if (0 && global.params.warnings && !global.gag && op == TOKassign &&
+                     e2->op != TOKarrayliteral && e2->op != TOKstring &&
+                     !e2->implicitConvTo(t1))
             {   // Disallow sa = da (Converted to sa[] = da[])
                 // Disallow sa = e  (Converted to sa[] = e)
                 const char* e1str = e1->toChars();
@@ -11638,7 +11831,7 @@ Ltupleassign:
     else if (e1->op == TOKslice)
     {
         Type *tn = e1->type->nextOf();
-        if (op == TOKassign && e1->checkModifiable(sc) == 1 && !tn->isMutable())
+        if (op == TOKassign && !tn->isMutable())
         {
             error("slice %s is not mutable", e1->toChars());
             return new ErrorExp();
@@ -11725,7 +11918,7 @@ Ltupleassign:
         {
             e2->checkPostblit(sc, t2->nextOf());
         }
-        if (global.params.warnings && !global.gag && op == TOKassign &&
+        if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             e2->op != TOKslice && e2->op != TOKassign &&
             e2->op != TOKarrayliteral && e2->op != TOKstring &&
             !(e2->op == TOKadd || e2->op == TOKmin ||
@@ -11749,7 +11942,7 @@ Ltupleassign:
     }
     else
     {
-        if (global.params.warnings && !global.gag && op == TOKassign &&
+        if (0 && global.params.warnings && !global.gag && op == TOKassign &&
             t1->ty == Tarray && t2->ty == Tsarray &&
             e2->op != TOKslice && //e2->op != TOKarrayliteral &&
             t2->implicitConvTo(t1))
@@ -13455,11 +13648,7 @@ Expression *CondExp::syntaxCopy()
 
 
 Expression *CondExp::semantic(Scope *sc)
-{   Type *t1;
-    Type *t2;
-    unsigned cs0;
-    unsigned cs1;
-
+{
 #if LOGSEMANTIC
     printf("CondExp::semantic('%s')\n", toChars());
 #endif
@@ -13471,14 +13660,20 @@ Expression *CondExp::semantic(Scope *sc)
     econd = econd->checkToPointer();
     econd = econd->checkToBoolean(sc);
 
-    cs0 = sc->callSuper;
+    unsigned cs0 = sc->callSuper;
+    unsigned *fi0 = fi0 = sc->saveFieldInit();
     e1 = e1->semantic(sc);
     e1 = resolveProperties(sc, e1);
-    cs1 = sc->callSuper;
+
+    unsigned cs1 = sc->callSuper;
+    unsigned *fi1 = sc->fieldinit;
     sc->callSuper = cs0;
+    sc->fieldinit = fi0;
     e2 = e2->semantic(sc);
     e2 = resolveProperties(sc, e2);
+
     sc->mergeCallSuper(loc, cs1);
+    sc->mergeFieldInit(loc, fi1);
 
     if (econd->type == Type::terror)
         return econd;
@@ -13489,8 +13684,8 @@ Expression *CondExp::semantic(Scope *sc)
 
 
     // If either operand is void, the result is void
-    t1 = e1->type;
-    t2 = e2->type;
+    Type *t1 = e1->type;
+    Type *t2 = e2->type;
     if (t1->ty == Tvoid || t2->ty == Tvoid)
         type = Type::tvoid;
     else if (t1 == t2)
@@ -13769,7 +13964,8 @@ Expression *extractOpDollarSideEffect(Scope *sc, UnaExp *ue)
         Identifier *id = Lexer::uniqueId("__dop");
         ExpInitializer *ei = new ExpInitializer(ue->loc, ue->e1);
         VarDeclaration *v = new VarDeclaration(ue->loc, ue->e1->type, id, ei);
-        v->storage_class |= STCctfe | STCforeach | STCref;
+        v->storage_class |= STCctfe
+                            | (ue->e1->isLvalue() ? (STCforeach | STCref) : 0);
         e0 = new DeclarationExp(ue->loc, v);
         e0 = e0->semantic(sc);
         ue->e1 = new VarExp(ue->loc, v);
@@ -13891,7 +14087,6 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aatmp");
         VarDeclaration *vd = new VarDeclaration(ie->e1->loc, ie->e1->type, id, new ExpInitializer(ie->e1->loc, ie->e1));
-        vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(ie->e1->loc, vd);
 
         ec = de;
@@ -13901,7 +14096,8 @@ Expression *BinExp::reorderSettingAAElem(Scope *sc)
     {
         Identifier *id = Lexer::uniqueId("__aakey");
         VarDeclaration *vd = new VarDeclaration(ie->e2->loc, ie->e2->type, id, new ExpInitializer(ie->e2->loc, ie->e2));
-        vd->storage_class |= STCref | STCforeach;
+        if (ie->e2->isLvalue())
+            vd->storage_class |= STCref | STCforeach;
         Expression *de = new DeclarationExp(ie->e2->loc, vd);
 
         ec = ec ? new CommaExp(loc, ec, de) : de;

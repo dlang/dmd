@@ -486,6 +486,9 @@ public:
     Expression *inferType(Type *t, int flag = 0, Scope *sc = NULL, TemplateParameters *tparams = NULL);
     dt_t **toDt(dt_t **pdt);
 
+    void buildArrayIdent(OutBuffer *buf, Expressions *arguments);
+    Expression *buildArrayLoop(Parameters *fparams);
+
     Expression *doInline(InlineDoState *ids);
     Expression *inlineScan(InlineScanState *iss);
 };
@@ -542,7 +545,6 @@ public:
     size_t soffset;             // offset from start of s
     int fillHoles;              // fill alignment 'holes' with zero
     bool ownedByCtfe;           // true = created in CTFE
-    int ctorinit;
 
     StructLiteralExp *origin;   // pointer to the origin instance of the expression.
                                 // once a new expression is created, origin is set to 'this'.
@@ -560,6 +562,7 @@ public:
     Expression *syntaxCopy();
     int apply(apply_fp_t fp, void *param);
     Expression *semantic(Scope *sc);
+    Expression *fill(bool ctorinit);
     Expression *getField(Type *type, unsigned offset);
     int getFieldIndex(Type *type, unsigned offset);
     elem *toElem(IRState *irs);

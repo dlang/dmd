@@ -148,7 +148,7 @@ int Declaration::checkModify(Loc loc, Scope *sc, Type *t, Expression *e1, int fl
             {
                 const char *s = isParameter() && parent->ident != Id::ensure ? "parameter" : "result";
                 if (!flag) error(loc, "cannot modify %s '%s' in contract", s, toChars());
-                return 0;
+                return 2;   // do not report type related errors
             }
         }
     }
@@ -1104,7 +1104,8 @@ Lnomatch:
         }
 
         for (size_t i = 0; i < nelems; i++)
-        {   Parameter *arg = Parameter::getNth(tt->arguments, i);
+        {
+            Parameter *arg = Parameter::getNth(tt->arguments, i);
 
             OutBuffer buf;
             buf.printf("_%s_field_%llu", ident->toChars(), (ulonglong)i);
@@ -1112,18 +1113,21 @@ Lnomatch:
             const char *name = (const char *)buf.extractData();
             Identifier *id = Lexer::idPool(name);
 
-            Expression *einit = ie;
-            if (ie && ie->op == TOKtuple)
+            Initializer *ti;
+            if (ie)
             {
-                TupleExp *te = (TupleExp *)ie;
-                einit = (*te->exps)[i];
-                if (i == 0)
-                    einit = Expression::combine(te->e0, einit);
+                Expression *einit = ie;
+                if (ie->op == TOKtuple)
+                {
+                    TupleExp *te = (TupleExp *)ie;
+                    einit = (*te->exps)[i];
+                    if (i == 0)
+                        einit = Expression::combine(te->e0, einit);
+                }
+                ti = new ExpInitializer(einit->loc, einit);
             }
-            Initializer *ti = init;
-            if (einit)
-            {   ti = new ExpInitializer(einit->loc, einit);
-            }
+            else
+                ti = init ? init->syntaxCopy() : NULL;
 
             VarDeclaration *v = new VarDeclaration(loc, arg->type, id, ti);
             v->storage_class |= storage_class;
@@ -1533,17 +1537,19 @@ Lnomatch:
                                      */
                                     storage_class &= ~(STCref | STCforeach | STCparameter);
 
-                                    Expression *e;
+                                    Expression *e = new VarExp(loc, this);
                                     if (sd->zeroInit == 1)
                                     {
-                                        e = new ConstructExp(loc, new VarExp(loc, this), new IntegerExp(loc, 0, Type::tint32));
+                                        e = new ConstructExp(loc, e, new IntegerExp(loc, 0, Type::tint32));
                                     }
                                     else if (sd->isNested())
-                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInitLiteral(loc));
+                                    {
+                                        e = new AssignExp(loc, e, t->defaultInitLiteral(loc));
                                         e->op = TOKblit;
                                     }
                                     else
-                                    {   e = new AssignExp(loc, new VarExp(loc, this), t->defaultInit(loc));
+                                    {
+                                        e = new AssignExp(loc, e, t->defaultInit(loc));
                                         e->op = TOKblit;
                                     }
                                     e->type = t;

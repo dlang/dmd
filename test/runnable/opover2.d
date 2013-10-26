@@ -1438,6 +1438,63 @@ void test11062()
 }
 
 /**************************************/
+// 11311
+
+void test11311()
+{
+    static int ctor, cpctor, dtor;
+
+    static struct S
+    {
+        this(int)  { ++ctor; }
+        this(this) { ++cpctor; }
+        ~this()    { ++dtor; }
+    }
+    static struct Arr
+    {
+        S data;
+        ref S opIndex(int) { return data; }
+        ref S opSlice(int, int) { return data; }
+    }
+
+    {
+        Arr a = Arr(S(1));
+        assert(ctor == 1);
+        assert(cpctor == 0);
+        assert(dtor == 0);
+
+        auto getA1() { return a; }
+      //getA1().opIndex(1);  // OK
+        getA1()[1];          // NG
+
+        assert(ctor == 1);
+        assert(cpctor == 1);  // getA() returns a copy of a
+        assert(dtor == 1);    // temporary returned by getA() should be destroyed
+    }
+    assert(dtor == 2);
+    assert(ctor + cpctor == dtor);
+
+    ctor = cpctor = dtor = 0;
+
+    {
+        Arr a = Arr(S(1));
+        assert(ctor == 1);
+        assert(cpctor == 0);
+        assert(dtor == 0);
+
+        auto getA2() { return a; }
+      //getA2().opSlice(1, 2);  // OK
+        getA2()[1..2];          // NG
+
+        assert(ctor == 1);
+        assert(cpctor == 1);  // getA() returns a copy of a
+        assert(dtor == 1);    // temporary returned by getA() should be destroyed
+    }
+    assert(dtor == 2);
+    assert(ctor + cpctor == dtor);
+}
+
+/**************************************/
 
 int main()
 {
@@ -1473,6 +1530,7 @@ int main()
     test10394();
     test10567();
     test11062();
+    test11311();
 
     printf("Success\n");
     return 0;

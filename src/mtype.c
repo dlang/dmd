@@ -5815,7 +5815,10 @@ Type *TypeFunction::semantic(Loc loc, Scope *sc)
             if (fparam->storageClass & STCauto)
             {
                 if (fargs && i < fargs->dim)
-                {   Expression *farg = (*fargs)[i];
+                {
+                    Expression *farg = (*fargs)[i];
+                    if (Expression *e = farg->isTemp())
+                        farg = e;
                     if (farg->isLvalue())
                         ;                               // ref parameter
                     else
@@ -6556,8 +6559,7 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
             RootObject *id = idents[i];
             Type *t = s->getType();     // type symbol, type alias, or type tuple?
             Dsymbol *sm = s->searchX(loc, sc, id);
-            //printf("\t3: s = '%s' %p, kind = '%s'\n",s->toChars(), s, s->kind());
-            //printf("\tgetType = '%s'\n", s->getType()->toChars());
+            //printf("\t3: s = %p %s %s, sm = %p\n", s, s->kind(), s->toChars(), sm);
             if (intypeid && !t && sm && sm->needThis())
                 goto L3;
             if (!sm)
@@ -6586,7 +6588,13 @@ void TypeQualified::resolveHelper(Loc loc, Scope *sc,
                             goto L2;
                     }
                 L3:
-                    Expression *e = new DsymbolExp(loc, s);
+                    Expression *e;
+                    VarDeclaration *v = s->isVarDeclaration();
+                    FuncDeclaration *f = s->isFuncDeclaration();
+                    if (intypeid || !v && !f)
+                        e = new DsymbolExp(loc, s);
+                    else
+                        e = new VarExp(loc, s->isDeclaration());
                     e = e->semantic(sc);
                     for (; i < idents.dim; i++)
                     {
@@ -8388,20 +8396,34 @@ MATCH TypeStruct::implicitConvTo(Type *to)
     }
 
     if (ty == to->ty && sym == ((TypeStruct *)to)->sym)
-    {   m = MATCHexact;         // exact match
+    {
+        m = MATCHexact;         // exact match
         if (mod != to->mod)
         {
             m = MATCHconst;
             if (MODimplicitConv(mod, to->mod))
                 ;
             else
-            {   /* Check all the fields. If they can all be converted,
+            {
+                /* Check all the fields. If they can all be converted,
                  * allow the conversion.
                  */
+                unsigned offset;
                 for (size_t i = 0; i < sym->fields.dim; i++)
-                {   Dsymbol *s = sym->fields[i];
-                    VarDeclaration *v = s->isVarDeclaration();
-                    assert(v && v->isField());
+                {
+                    VarDeclaration *v = sym->fields[i];
+                    if (i == 0)
+                        ;
+                    else if (v->offset == offset)
+                    {
+                        if (m)
+                            continue;
+                    }
+                    else
+                    {
+                        if (!m)
+                            return m;
+                    }
 
                     // 'from' type
                     Type *tvf = v->type->addMod(mod);
@@ -8417,6 +8439,7 @@ MATCH TypeStruct::implicitConvTo(Type *to)
                         return mf;
                     if (mf < m)         // if field match is worse
                         m = mf;
+                    offset = v->offset;
                 }
             }
         }
@@ -9520,7 +9543,7 @@ void Parameter::argsToCBuffer(OutBuffer *buf, HdrGenState *hgs, Parameters *argu
                 stc &= ~STCshared;
 
             StorageClassDeclaration::stcToCBuffer(buf,
-                stc & (STCconst | STCimmutable | STCshared | STCscope));
+                stc & (STCconst | STCimmutable | STCwild | STCshared | STCscope));
 
             argbuf.reset();
             if (arg->storageClass & STCalias)

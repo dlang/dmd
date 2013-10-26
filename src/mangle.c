@@ -366,7 +366,8 @@ const char *Dsymbol::mangle(bool isv)
     id = ident ? ident->toChars() : toChars();
     if (parent)
     {
-        const char *p = parent->mangle(isv);
+        FuncDeclaration *f = parent->isFuncDeclaration();
+        const char *p = f ? f->mangleExact(isv) : parent->mangle(isv);
         if (p[0] == '_' && p[1] == 'D')
             p += 2;
         buf.writestring(p);

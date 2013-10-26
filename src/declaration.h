@@ -90,7 +90,7 @@ enum PURE;
 const StorageClass STCStorageClass = (STCauto | STCscope | STCstatic | STCextern | STCconst | STCfinal |
     STCabstract | STCsynchronized | STCdeprecated | STCoverride | STClazy | STCalias |
     STCout | STCin |
-    STCmanifest | STCimmutable | STCshared | STCnothrow | STCpure | STCref | STCtls |
+    STCmanifest | STCimmutable | STCshared | STCwild | STCnothrow | STCpure | STCref | STCtls |
     STCgshared | STCproperty | STCsafe | STCtrusted | STCsystem | STCdisable);
 
 struct Match
