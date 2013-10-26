@@ -93,6 +93,8 @@ static int fptraits(void *param, Dsymbol *s)
  */
 static void collectUnitTests(Dsymbols *symbols, AA *uniqueUnitTests, Expressions *unitTests)
 {
+    if (!symbols)
+        return;
     for (size_t i = 0; i < symbols->dim; i++)
     {
         Dsymbol *symbol = (*symbols)[i];
