@@ -62,6 +62,10 @@ void test_getUnitTestsFromImport ()
    static assert(__traits(getUnitTests, mixin("imports.traits_getUnitTests_import")).length == 1);
 }
 
+// 11358
+debug {  }
+enum len11358 = __traits(getUnitTests, mixin(__MODULE__)).length;
+
 void main ()
 {
     test_getUnitTestsFromModule();
