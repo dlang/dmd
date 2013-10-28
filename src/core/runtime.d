@@ -385,7 +385,7 @@ extern (C) bool runModuleUnitTests()
     {
         void printErr(const(char)[] buf)
         {
-            .fprintf(.stderr, "%.s", cast(int)buf.length, buf.ptr);
+            .fprintf(.stderr, "%.*s", cast(int)buf.length, buf.ptr);
         }
 
         size_t failed = 0;
