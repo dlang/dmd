@@ -522,7 +522,7 @@ void destroy(T)(ref T obj) if (is(T == struct))
         buf[] = init[];
 }
 
-void destroy(T : U[n], U, size_t n)(ref T obj)
+void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
     obj[] = U.init;
 }
