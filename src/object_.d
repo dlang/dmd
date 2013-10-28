@@ -2374,7 +2374,7 @@ version(unittest) unittest
    }
 }
 
-void destroy(T : U[n], U, size_t n)(ref T obj)
+void destroy(T : U[n], U, size_t n)(ref T obj) if (!is(T == struct))
 {
     obj[] = U.init;
 }
@@ -2387,6 +2387,18 @@ version(unittest) unittest
     destroy(a);
     assert(a == [ 0, 0 ]);
 }
+
+unittest
+{
+    static struct vec2f {
+        float[2] values;
+        alias values this;
+    }
+
+    vec2f v;
+    destroy!vec2f(v);
+}
+
 
 void destroy(T)(ref T obj)
     if (!is(T == struct) && !is(T == interface) && !is(T == class) && !_isStaticArray!T)
