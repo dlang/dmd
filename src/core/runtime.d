@@ -104,9 +104,11 @@ struct Runtime
      * Initializes the runtime.  This call is to be used in instances where the
      * standard program initialization process is not executed.  This is most
      * often in shared libraries or in libraries linked to a C program.
+     * If the runtime was already successfully initialized this returns true.
+     * Each call to initialize must be paired by a call to $(LREF, terminate).
      *
      * Returns:
-     *  true if initialization succeeds and false if initialization fails.
+     *  true if initialization succeeded or false if initialization failed.
      */
     static bool initialize()
     {
@@ -127,9 +129,10 @@ struct Runtime
      * libraries linked to a C program. All non-daemon threads must be
      * joined or detached prior to calling this function. See also
      * $(CXREF thread, thread_joinAll) and $(CXREF thread, thread_detachThis).
+     * If the runtime was not successfully initialized the function returns false.
      *
      * Returns:
-     *  true if termination succeeds and false if termination fails.
+     *  true if termination succeeded or false if termination failed.
      */
     static bool terminate()
     {

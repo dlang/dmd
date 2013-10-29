@@ -148,6 +148,11 @@ extern (C) __gshared bool rt_trapExceptions = true;
 
 alias void delegate(Throwable) ExceptionHandler;
 
+/**
+ * Keep track of how often rt_init/rt_term were called.
+ */
+shared size_t _initCount;
+
 /**********************************************
  * Initialize druntime.
  * If a C program wishes to call D code, and there's no D main(), then it
@@ -155,6 +160,13 @@ alias void delegate(Throwable) ExceptionHandler;
  */
 extern (C) int rt_init()
 {
+    /* @@BUG 11380 @@ Need to synchronize rt_init/rt_term calls for
+       version (Shared) druntime, because multiple C threads might
+       initialize different D libraries without knowing about the
+       shared druntime. Also we need to attach any thread that calls
+       rt_init. */
+    if (_initCount++) return 1;
+
     _STI_monitor_staticctor();
     _STI_critical_init();
 
@@ -169,6 +181,7 @@ extern (C) int rt_init()
     }
     catch (Throwable t)
     {
+        _initCount = 0;
         printThrowable(t);
     }
     _STD_critical_term();
@@ -181,6 +194,9 @@ extern (C) int rt_init()
  */
 extern (C) int rt_term()
 {
+    if (!_initCount) return 0; // was never initialized
+    if (--_initCount) return 1;
+
     try
     {
         /* Check that all other non-daemon threads have finished
