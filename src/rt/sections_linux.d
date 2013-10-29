@@ -91,12 +91,17 @@ private:
 }
 
 /****
+ * Boolean flag set to true while the runtime is initialized.
+ */
+__gshared bool _isRuntimeInitialized;
+
+
+/****
  * Gets called on program startup just before GC is initialized.
  */
 void initSections()
 {
-    version (Shared)
-        !pthread_mutex_init(&_linkMapToDSOMutex, null) || assert(0);
+    _isRuntimeInitialized = true;
 }
 
 
@@ -105,8 +110,7 @@ void initSections()
  */
 void finiSections()
 {
-    version (Shared)
-        !pthread_mutex_destroy(&_linkMapToDSOMutex) || assert(0);
+    _isRuntimeInitialized = false;
 }
 
 alias ScanDG = void delegate(void* pbeg, void* pend);
@@ -302,9 +306,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
     // no backlink => register
     if (*data._slot is null)
     {
-        // initialize the runtime when loading the first DSO
-        if (_loadedDSOs.empty)
-            initRuntime();
+        if (_loadedDSOs.empty) initLocks(); // first DSO
 
         DSO* pdso = cast(DSO*).calloc(1, DSO.sizeof);
         assert(typeid(DSO).init().ptr is null);
@@ -350,9 +352,14 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
             _tlsRanges.insertBack(getTLSRange(pdso._tlsMod, pdso._tlsSize));
         }
 
-        registerGCRanges(pdso);
-        immutable runTlsCtors = !_rtLoading;
-        runModuleConstructors(pdso, runTlsCtors);
+        // don't initialize modules before rt_init was called (see Bugzilla 11378)
+        if (_isRuntimeInitialized)
+        {
+            registerGCRanges(pdso);
+            // rt_loadLibrary will run tls ctors, so do this only for dlopen
+            immutable runTlsCtors = !_rtLoading;
+            runModuleConstructors(pdso, runTlsCtors);
+        }
     }
     // has backlink => unregister
     else
@@ -360,9 +367,14 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
         DSO* pdso = cast(DSO*)*data._slot;
         *data._slot = null;
 
-        immutable runTlsDtors = !_rtLoading;
-        runModuleDestructors(pdso, runTlsDtors);
-        unregisterGCRanges(pdso);
+        // don't finalizes modules after rt_term was called (see Bugzilla 11378)
+        if (_isRuntimeInitialized)
+        {
+            // rt_unloadLibrary already ran tls dtors, so do this only for dlclose
+            immutable runTlsDtors = !_rtLoading;
+            runModuleDestructors(pdso, runTlsDtors);
+            unregisterGCRanges(pdso);
+        }
 
         version (Shared)
         {
@@ -396,9 +408,7 @@ extern(C) void _d_dso_registry(CompilerDSOData* data)
 
         freeDSO(pdso);
 
-        // terminate the runtime when unloading the last DSO
-        if (_loadedDSOs.empty)
-            termRuntime();
+        if (_loadedDSOs.empty) finiLocks(); // last DSO
     }
 }
 
@@ -485,19 +495,16 @@ version (Shared)
 // helper functions
 ///////////////////////////////////////////////////////////////////////////////
 
-void initRuntime()
+void initLocks()
 {
-    if (!rt_init())
-    {
-        rt_term();
-        exit(EXIT_FAILURE);
-    }
+    version (Shared)
+        !pthread_mutex_init(&_linkMapToDSOMutex, null) || assert(0);
 }
 
-void termRuntime()
+void finiLocks()
 {
-    if (!rt_term())
-        exit(EXIT_FAILURE);
+    version (Shared)
+        !pthread_mutex_destroy(&_linkMapToDSOMutex) || assert(0);
 }
 
 void runModuleConstructors(DSO* pdso, bool runTlsCtors)

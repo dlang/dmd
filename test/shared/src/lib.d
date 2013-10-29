@@ -79,3 +79,16 @@ void runTestsImpl()
         if (m.name == "lib") passed = true;
     assert(passed);
 }
+
+// Provide a way to initialize D from C programs that are D agnostic.
+import core.runtime : rt_init, rt_term;
+
+extern(C) int lib_init()
+{
+    return rt_init();
+}
+
+extern(C) int lib_term()
+{
+    return rt_term();
+}
