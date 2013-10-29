@@ -152,12 +152,8 @@ alias void delegate(Throwable) ExceptionHandler;
  * Initialize druntime.
  * If a C program wishes to call D code, and there's no D main(), then it
  * must call rt_init() and rt_term().
- * If it fails, call dg. Except that what dg might be
- * able to do is undetermined, since the state of druntime
- * will not be known.
- * This needs rethinking.
  */
-extern (C) bool rt_init(ExceptionHandler dg = null)
+extern (C) int rt_init()
 {
     _STI_monitor_staticctor();
     _STI_critical_init();
@@ -169,34 +165,21 @@ extern (C) bool rt_init(ExceptionHandler dg = null)
         initStaticDataGC();
         rt_moduleCtor();
         rt_moduleTlsCtor();
-        return true;
+        return 1;
     }
-    catch (Throwable e)
+    catch (Throwable t)
     {
-        /* Note that if we get here, the runtime is in an unknown state.
-         * I'm not sure what the point of calling dg is.
-         */
-        if (dg)
-            dg(e);
-        else
-            throw e;    // rethrow, don't silently ignore error
-        /* Rethrow, and the two STD functions aren't called?
-         * This needs rethinking.
-         */
+        printThrowable(t);
     }
     _STD_critical_term();
     _STD_monitor_staticdtor();
-    return false;
+    return 0;
 }
 
 /**********************************************
  * Terminate use of druntime.
- * If it fails, call dg. Except that what dg might be
- * able to do is undetermined, since the state of druntime
- * will not be known.
- * This needs rethinking.
  */
-extern (C) bool rt_term(ExceptionHandler dg = null)
+extern (C) int rt_term()
 {
     try
     {
@@ -218,19 +201,18 @@ extern (C) bool rt_term(ExceptionHandler dg = null)
         rt_moduleDtor();
         gc_term();
         finiSections();
-        return true;
+        return 1;
     }
-    catch (Throwable e)
+    catch (Throwable t)
     {
-        if (dg)
-            dg(e);
+        printThrowable(t);
     }
     finally
     {
         _STD_critical_term();
         _STD_monitor_staticdtor();
     }
-    return false;
+    return 0;
 }
 
 /***********************************
@@ -392,29 +374,6 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
 
     void tryExec(scope void delegate() dg)
     {
-        static void print(Throwable t)
-        {
-            void sink(const(char)[] buf) nothrow
-            {
-                printf("%.*s", cast(int)buf.length, buf.ptr);
-            }
-
-            for (; t; t = t.next)
-            {
-                t.toString(&sink); sink("\n");
-
-                auto e = cast(Error)t;
-                if (e is null || e.bypassedException is null) continue;
-
-                sink("=== Bypassed ===\n");
-                for (auto t2 = e.bypassedException; t2; t2 = t2.next)
-                {
-                    t2.toString(&sink); sink("\n");
-                }
-                sink("=== ~Bypassed ===\n");
-            }
-        }
-
         if (trapExceptions)
         {
             try
@@ -423,7 +382,7 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
             }
             catch (Throwable t)
             {
-                print(t);
+                printThrowable(t);
                 result = EXIT_FAILURE;
             }
         }
@@ -480,4 +439,27 @@ extern (C) int _d_run_main(int argc, char **argv, MainFunc mainFunc)
     }
 
     return result;
+}
+
+private void printThrowable(Throwable t)
+{
+    void sink(const(char)[] buf) nothrow
+    {
+        printf("%.*s", cast(int)buf.length, buf.ptr);
+    }
+
+    for (; t; t = t.next)
+    {
+        t.toString(&sink); sink("\n");
+
+        auto e = cast(Error)t;
+        if (e is null || e.bypassedException is null) continue;
+
+        sink("=== Bypassed ===\n");
+        for (auto t2 = e.bypassedException; t2; t2 = t2.next)
+        {
+            t2.toString(&sink); sink("\n");
+        }
+        sink("=== ~Bypassed ===\n");
+    }
 }
