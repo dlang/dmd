@@ -2526,6 +2526,9 @@ static unsigned storelength(unsigned long length,unsigned i)
     if (length >= 128)  // Microsoft docs say 129, but their linker
                         // won't take >=128, so accommodate it
     {   obj.extdata[i] = 129;
+#ifdef DEBUG
+        assert(length <= 0xFFFF);
+#endif
         TOWORD(obj.extdata + i + 1,length);
         if (length >= 0x10000)
         {   obj.extdata[i] = 132;
