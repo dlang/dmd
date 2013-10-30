@@ -2380,3 +2380,18 @@ unittest
     assert(s4.x == null);
     assert(gc_getAttr(s4) == 0);
 }
+
+unittest
+{
+    import core.memory;
+    // Bugzilla 3454 - Inconsistent flag setting in GC.realloc()
+    static void test(size_t multiplier)
+    {
+        auto p = GC.malloc(8 * multiplier, BlkAttr.NO_SCAN);
+        assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
+        p = GC.realloc(p, 2 * multiplier, BlkAttr.NO_SCAN);
+        assert(GC.getAttr(p) == BlkAttr.NO_SCAN);
+    }
+    test(1);
+    test(1024 * 1024);
+}
