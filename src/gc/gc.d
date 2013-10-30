@@ -643,24 +643,16 @@ class GC
 
                     if (newsz < psz)
                     {   // Shrink in place
-                        {
-                            gcLock.lock();
-                            scope(exit) gcLock.unlock();
-                            debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
-                            pool.freePages(pagenum + newsz, psz - newsz);
-                            pool.updateOffsets(pagenum);
-                        }
+                        debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
+                        pool.freePages(pagenum + newsz, psz - newsz);
+                        pool.updateOffsets(pagenum);
                         if(alloc_size)
                             *alloc_size = newsz * PAGESIZE;
                         gcx.updateCaches(p, newsz * PAGESIZE);
                         return p;
                     }
                     else if (pagenum + newsz <= pool.npages)
-                    {
-                        // Attempt to expand in place
-                        gcLock.lock();
-                        scope(exit) gcLock.unlock();
-
+                    {   // Attempt to expand in place
                         foreach (binsz; pool.pagetable[pagenum + psz .. pagenum + newsz])
                             if (binsz != B_FREE) goto Lno;
 
