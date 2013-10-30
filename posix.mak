@@ -169,7 +169,7 @@ $(DRUNTIME): $(OBJS) $(SRCS)
 	$(DMD) -lib -of$(DRUNTIME) -Xfdruntime.json $(DFLAGS) $(SRCS) $(OBJS)
 
 UT_MODULES:=$(patsubst src/%.d,$(OBJDIR)/%,$(SRCS))
-ADDITIONAL_TESTS:=test/init_fini
+ADDITIONAL_TESTS:=test/init_fini test/exceptions
 ADDITIONAL_TESTS+=$(if $(findstring $(OS),linux),test/shared,)
 
 unittest : $(UT_MODULES) $(addsuffix /.run,$(ADDITIONAL_TESTS))
@@ -215,7 +215,7 @@ $(OBJDIR)/% : $(OBJDIR)/test_runner
 # succeeded, render the file new again
 	@touch $@
 
-test/init_fini/.run: $(DRUNTIME)
+test/init_fini/.run test/exceptions/.run: $(DRUNTIME)
 test/shared/.run: $(DRUNTIMESO)
 
 test/%/.run: test/%/Makefile
