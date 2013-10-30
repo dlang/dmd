@@ -641,35 +641,37 @@ class GC
                     auto pool = gcx.findPool(p);
                     auto pagenum = (p - pool.baseAddr) / PAGESIZE;
 
+                    size_t biti = void;
+
                     if (newsz < psz)
                     {   // Shrink in place
                         debug (MEMSTOMP) memset(p + size, 0xF2, psize - size);
                         pool.freePages(pagenum + newsz, psz - newsz);
-                        pool.updateOffsets(pagenum);
-                        if(alloc_size)
-                            *alloc_size = newsz * PAGESIZE;
-                        gcx.updateCaches(p, newsz * PAGESIZE);
-                        return p;
                     }
                     else if (pagenum + newsz <= pool.npages)
                     {   // Attempt to expand in place
                         foreach (binsz; pool.pagetable[pagenum + psz .. pagenum + newsz])
-                            if (binsz != B_FREE) goto Lno;
+                            if (binsz != B_FREE) goto Lfallthrough;
 
                         debug (MEMSTOMP) memset(p + psize, 0xF0, size - psize);
                         debug(PRINTF) printFreeInfo(pool);
                         memset(&pool.pagetable[pagenum + psz], B_PAGEPLUS, newsz - psz);
-                        pool.updateOffsets(pagenum);
-                        if(alloc_size)
-                            *alloc_size = newsz * PAGESIZE;
                         pool.freepages -= (newsz - psz);
                         debug(PRINTF) printFreeInfo(pool);
-                        gcx.updateCaches(p, newsz * PAGESIZE);
-                        return p;
-
-                    Lno:
-                        {}
                     }
+                    pool.updateOffsets(pagenum);
+                    if (bits)
+                    {
+                        biti = cast(size_t)(p - pool.baseAddr) >> pool.shiftBy;
+                        gcx.clrBits(pool, biti, ~BlkAttr.NONE);
+                        gcx.setBits(pool, biti, bits);
+                    }
+                    if(alloc_size)
+                        *alloc_size = newsz * PAGESIZE;
+                    gcx.updateCaches(p, newsz * PAGESIZE);
+                    return p;
+                    Lfallthrough:
+                        {}
                 }
                 if (psize < size ||             // if new size is bigger
                     psize > size * 2)           // or less than half
